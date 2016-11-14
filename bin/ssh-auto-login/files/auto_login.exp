@@ -1,0 +1,25 @@
+#!/usr/bin/expect -f
+set host [lindex $argv 0]
+set user [lindex $argv 1]
+set password [lindex $argv 2]
+set port [lindex $argv 3]
+set timeout -1
+spawn ssh $user@$host -p $port
+match_max 100000
+
+
+expect {
+	"*assword*"
+	{
+		send -- "$password\n"
+	}
+	"*passphrase*"
+	{
+		send -- "$password\n"
+	}
+	"continue connecting"
+	{
+		send -- "yes\n"
+	}
+}
+interact

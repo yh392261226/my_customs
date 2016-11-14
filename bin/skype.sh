@@ -1,0 +1,30 @@
+#!/usr/bin/expect
+set addr [lindex $argv 0]
+set dir  [lindex $argv 1]
+# if { $addr=="" } {
+#     puts "skype  |working|";
+#     exit;
+# }
+if { "$addr"=="" } {
+	# set address [lindex 192.168.1.18]
+	# set port [lindex 22]
+	set user [lindex skype]
+	set pwd [lindex yanghao1017]
+           set act [lindex "/Applications/Skype.app/Contents/MacOS/Skype &"]
+           set act2 [lindex exit]
+   }
+spawn su $user 
+expect -re "password:" {
+    send "$pwd"
+    send "\r"
+} 
+sleep 1;
+    send "$pwd"
+    send "\r"
+#     send "\r"
+    send "$act\r";
+sleep 2;
+    send "$act2\r";
+interact
+
+

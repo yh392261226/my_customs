@@ -1,0 +1,11 @@
+#!/bin/bash
+
+####批量添加后缀名
+if [ $# -ne 2 ]; then
+    echo "请输入$0 目录 后缀名";exit;    
+else
+    for i in $1; do
+        mv "$1" "$1.$2";
+    done
+fi
+
