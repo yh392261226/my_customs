@@ -1,0 +1,6 @@
+#!/bin/bash
+for i in $(ls -A ~/.runtime/ | grep '_dotfiles'); do
+    if [ ! -f ~/.runtime/$i/set_to_my_symlink ];then
+        echo $i
+    fi
+done

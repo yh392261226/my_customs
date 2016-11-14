@@ -1,0 +1,113 @@
+#!/bin/bash
+####################################
+##  描    述：neovim 配置文件的更替脚本
+##  使用方法：nvimc
+##  时    间：2016-07-11
+##	每套配置的外层文件夹
+##	1:都需要放在$MYRUNTIME下以
+##	2:名称_nvimfiles形式存在
+##  3:每个配置的文件夹里，
+##	  需要保证含有的几个文件：
+##
+##    fromurl
+####################################
+MYRUNTIME=$(cat ~/.myruntime)
+MARKFILE=$MYRUNTIME/tools/m_nvim
+CURGCONFIG=$HOME/.config/nvim/init.vim
+CURCONFIGFILE=$HOME/.config/nvim
+#配置文件地址
+CONFIGSPATH=$MYRUNTIME
+#文件夹后缀名
+EXT=_nvimfiles
+#来源网址记录文件名称
+FROMURL=fromurl
+#执行软连接脚本名称
+SYMLINKSHELL=set_to_my_symlink
+
+##删除已存在的配置软连接
+UnSymlink() {
+    echo "" > $MARKFILE
+    needdel=( #需要删除的数组列表
+        "$HOME/.config/nvim"
+        "$HOME/.nvim"
+        "$HOME/.nvimrc"
+        )
+    for file in ${needdel[*]}; do
+        if [ -f $file ] || [ -d $file ]; then   #如果存在就删除
+            rm -rf $file
+        fi
+    done
+}
+
+##软连接配置
+Symlink() {
+    id=$1
+    configs=($(ls $CONFIGSPATH|grep "$EXT"))
+    choose=$CONFIGSPATH/${configs[$id]}
+    echo $(basename $choose | awk -F "$EXT" '{print $1}') > $MARKFILE
+    cd $choose
+    #执行链接脚本
+    bash $choose/$SYMLINKSHELL
+}
+
+##获取版本
+CheckCurVersion() {
+    if [ ! -f $MARKFILE ]; then
+        echo "Config mark file does not exists!";exit 1;
+    fi
+    name=$(cat $MARKFILE)
+    if [ "" = "$name" ]; then
+        echo "Unknow config file!";exit 1;
+    fi
+    echo "Current Config：$name"
+    echo "Source From：$(cat $CONFIGSPATH/${name}$EXT/$FROMURL)"
+    exit 0
+}
+
+##更换版本操作
+ChangeConfig() {
+    case "$1" in
+        "v"|"ver"|"version")
+            CheckCurVersion
+            ;;
+        *)
+            #strornum=$(echo $1| awk '{print($0~/^[-]?([0-9])+[.]?([0-9])+$/)?"number":"string"}') #验证参数是不是数字 这个有些变态10以内的 需要这样的形式 01 02
+            strornum=$([[ "$1" =~ ^[0-9]+$  ]] && echo "number" || echo "string")
+            if [ "$strornum" != "number" ] && [ "" != "$1" ]; then
+                echo "Wrong para!";exit 1;
+            fi
+            if [ -d $CONFIGSPATH ]; then #验证配置目录是否存在
+                configs=($(ls $CONFIGSPATH|grep "$EXT"))
+                if [ "${#configs[*]}" -gt "0" ]; then #验证是否有配置文件
+                    if [ "" != "$1" ] && [ "$1" -ge "0" ] && [ "$1" -lt "${#configs[*]}" ]; then #验证是否有参数传递
+                        UnSymlink
+                        Symlink $1
+                        CheckCurVersion
+                    else #列出可选配置
+                        echo "Input the NO.：";
+                        posit=0
+                        for file in ${configs[*]}; do
+                          echo $posit "：" $(basename ${file} | awk -F "$EXT" '{print $1}');
+                          ((posit+=1))
+                        done
+                        read id #读取用户自选配置
+                        ChangeConfig $id
+                    fi
+                else
+                    echo "No config can be found！！！";
+                    exit 1
+                fi
+            else
+              echo "The path for configs does not exists！！！";
+                exit 1
+            fi
+            ;;
+    esac
+}
+
+##直接给参数选择
+if [ "" != "$1" ]; then
+	ChangeConfig $1
+else
+    ChangeConfig
+fi

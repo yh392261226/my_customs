@@ -1,0 +1,31 @@
+#!/bin/bash
+########################################
+## tmux -f 
+## tmux 根据选择使用配置文件
+########################################
+CONFIGS=/Users/json/.runtime/tmuxconfigs  #配置文件地址
+EXT=tmux.conf
+
+
+if [ -d $CONFIGS ]; then
+  configs=($(ls $CONFIGS/*${EXT}))
+  if [ "${#configs[*]}" != "0" ]; then
+    echo "请输入序号：";
+    posit=0
+    for file in ${configs[*]}; do
+      echo $posit "：" $(basename ${file} | awk -F ".$EXT" '{print $1}');
+      ((posit+=1))
+    done
+    #echo ${configs[2]}
+    read conf
+    if [ "$conf" -lt "${#configs[*]}" ]; then
+      tmux -f ${configs[$conf]}
+    else
+      echo "您选择的配置不存在！！！";
+    fi
+  else
+    echo "暂无配置文件！！！";
+  fi
+else
+  echo "配置文件地址不存在！！！";
+fi

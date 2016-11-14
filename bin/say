@@ -1,0 +1,12 @@
+#!/bin/bash
+########################################
+## 利用mac的发音 自动说话
+########################################
+words=$1
+if [ $# -ne 1 ]; then
+    echo "请输入要说的话"
+    echo "例如：$0 haha "
+    exit 1
+fi
+#osascript -e 'say "'$words'" using "Cellos"'
+osascript -e 'say "'$words'" using "Ting-Ting"'

@@ -1,0 +1,66 @@
+#!/bin/sh
+##################################
+## 描    述：预装一些扩展及所需的包
+## 使用方法：./prepare.sh
+## 时    间：2014-03-11
+##################################
+echo "开始安装所需的包和扩展..."
+
+if [ "$(uname -s | awk '/Darwin/')" ]; then
+    mysys='Mac'
+elif [ "$(uname -s | awk '/Linux/')" ]; then
+    if [ "$(cat /etc/issue|awk '/CentOS/')" ]; then
+        mysys='Centos'
+    elif [ "$(cat /etc/issue|awk '/Ubuntu/')" ]; then
+        mysys='Ubuntu'
+    else
+        mysys='Unknow'
+    fi
+else
+    mysys='Unknow'
+fi
+
+echo "无论你是什么操作系统，非常建议安装上homebrew.因为这个集成包里面好多地方用到homebrew!!!";
+
+if [ "$mysys"="Mac" ]; then
+    brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
+    sudo easy_install -ZU autopep8 twisted
+    brew install haskell-platform  terminal-notifier
+elif [ "$mysys"="Ubuntu" ]; then
+    sudo apt-get -y install ctags git astyle python-dev cmake autopep8 twisted vim tmux zsh fish node python-pip npm ruby autojump python-devel build-essential ncurses-dev libncurses5-dev gettext ack-grep ctags tmux python-pip
+    sudo apt-get install lsb-release scrot libnotify python-lxml
+    wget http://github.com/downloads/djmelik/archey/archey-0.2.8.deb
+    sudo dpkg -i archey-0.2.8.deb
+elif [ "$mysys"="Centos" ]; then
+    sudo yum -y install ctags git astyle autopep8 twisted vim tmux fish zsh node python-pip npm ruby autojump python-devel ncurses-devel
+    sudo yum -y install rubygems
+else
+  echo "暂不支持该系统!"
+  exit;
+fi
+
+npm install jshint -g
+npm install jslint -g
+npm install -g csslint
+npm install -g jsonlint
+sudo pip install pyflakes
+sudo pip install pylint
+sudo pip install howdoi
+sudo pip install unittest2
+sudo pip install mock
+sudo gem install compass
+npm install -g coffeelint
+sudo pip install argparse
+sudo pip install argcomplete
+sudo pip install virtualenv
+sudo pip install virtualenvwrapper
+sudo pip install dbgp vim-debug
+install-vim-debug.py
+sudo gem install vimdeck
+sudo npm install -g jshint coffee-script jsonlint stylus less serve yalr
+sudo npm install -g npmlv npm-mkrelease grunt
+sudo gem install sass
+sudo gem install json_pure
+#sudo gem install tmuxinator  #是否要装  全看自己  这个很好
+
+echo "能装的我都装完了，剩下的就是你自己的事了..."

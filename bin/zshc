@@ -1,0 +1,43 @@
+#!/bin/bash
+#################################################
+## 描    述：zshrc配置文件更替脚本
+## 使用方法：./zshc
+## 时    间：2014-05-20
+#################################################
+MYRUNTIME=$(cat ~/.myruntime)
+MYZSHCONFIG=$MYRUNTIME/oh-my-zsh
+GITZSHCONFIG=$MYRUNTIME/oh-my-zsh-git
+MARKFILE=$MYRUNTIME/tools/m_zsh
+CURCONFIG=$(cat $MARKFILE)
+
+if [ $# -ne 1 ]; then
+    $0 version
+    echo "请输入要是用的zsh配置"
+    echo "现有 my| git版本供选择"
+    read linetheme;
+else
+    linetheme=$1
+    #if [ "$linetheme" = "v" ]; then
+    #    echo '版本';
+    #else
+    #    rm ~/.zshrc
+    #fi
+fi
+
+if [ "$linetheme" = "my" ]; then
+    ln -sf $MYZSHCONFIG/zshrc ~/.zshrc
+    echo "my" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "git" ]; then
+    ln -sf $GITZSHCONFIG/zshrc ~/.zshrc
+    echo "git" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "v" ]; then
+    $0 version
+elif [ "$linetheme" = "version" ]; then
+    if [ "$CURCONFIG" = "git" ]; then
+        echo "当前使用可更新的git版本"
+    elif [ "$linetheme" = "my" ]; then
+        echo "当前使用自己修改过的版本"
+    fi
+fi

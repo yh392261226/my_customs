@@ -1,0 +1,554 @@
+#!/bin/bash
+
+####################################
+##  描    述：vim 配置文件的更替脚本
+##  使用方法：./vimconfig.sh
+##  时    间：2014-03-11
+####################################
+
+MYRUNTIME=$(cat ~/.myruntime)
+MARKFILE=$MYRUNTIME/tools/mark
+CURCONFIG=$HOME/.vimrc
+CURGCONFIG=$HOME/.gvimrc
+CURCONFIGFILE=$HOME/.vim
+KGITVIMCONFIG=$MYRUNTIME/k-vim-git
+SPF13CONFIG=$MYRUNTIME/spf13-vim
+NEWVIMCONFIG=$MYRUNTIME/newvim
+HUOMIAOZUZUCONFIG=$MYRUNTIME/huomiaozuzuvimfiles
+YADRCONFIG=$MYRUNTIME/yadrvimfiles
+LUANCONFIG=$MYRUNTIME/luanvimfiles
+VINITKUMARCONFIG=$MYRUNTIME/vinitkumar
+MYUSUF3CONFIG=$MYRUNTIME/myusuf3vimfiles
+XEROCONFIG=$MYRUNTIME/xerovimfiles
+RYANOASISCONFIG=$MYRUNTIME/ryanoasisvim
+JAXBOTCONFIG=$MYRUNTIME/jaxbotvim
+HELLABYTECONFIG=$MYRUNTIME/hellabyte/hellabyte_dotfiles/.vim
+ANTWONLEECONFIG=$MYRUNTIME/antwonlee
+OHMYVIMCONFIG=$MYRUNTIME/oh-my-vim
+IVIMCONFIG=$MYRUNTIME/ivim
+AMIXCONFIG=$MYRUNTIME/amixvimfiles
+CAIXWCONFIG=$MYRUNTIME/caixw_go_vim
+VIMICONFIG=$MYRUNTIME/vimifiedvimfiles
+AXIAOXINCONFIG=$MYRUNTIME/axiaoxinvimfiles
+MUTEWINTERCONFIG=$MYRUNTIME/mutewintervimfiles
+EXVIMCONFIG=$MYRUNTIME/exvim
+ONLYGOCONFIG=$MYRUNTIME/onlygovimfiles
+J1Z0CONFIG=$MYRUNTIME/j1z0
+JSONCONFIG=$MYRUNTIME/json
+OLICALCONFIG=$MYRUNTIME/olicalvimfiles
+JUNEGUNNCONFIG=$MYRUNTIME/junegunn
+VIMSTORMCONFIG=$MYRUNTIME/VIMStorm
+L0stSoul=$MYRUNTIME/L0stSoulvimfiles
+fisadev=$MYRUNTIME/fisadev
+atomantic=$MYRUNTIME/atomanticdotfiles
+jhillyerd=$MYRUNTIME/jhillyerddotfiles/dotvim
+vsouza=$MYRUNTIME/vsouzavimfiles
+ReoVimRC=$MYRUNTIME/ReoVimRC
+Aix=$MYRUNTIME/Aix-Vim
+chalmagean=$MYRUNTIME/chalmagean
+llh911001=$MYRUNTIME/llh911001
+zerob13=$MYRUNTIME/zerob13
+ssarcandy=$MYRUNTIME/ssarcandy-vim
+kdeldycke=$MYRUNTIME/kdeldycke_vim
+altercation=$MYRUNTIME/altercation_vim
+bootstrap=$MYRUNTIME/bootstrap_vim
+automac=$MYRUNTIME/autoconfig-mac-vimrc
+joker1007=$MYRUNTIME/joker1007_dotfiles
+janus=$MYRUNTIME/janusvim
+
+if [ $# -ne 1 ]; then
+    $0 version
+    echo "请输入要使用的vim配置名称："
+    echo "
+    现有：
+    kgitvim| spf13| newvim| huomiaozuzu| yadr| luan| vinitkumar| myusuf3| xero(适合mvim)| ryanoasis| jaxbot|
+    hellabyte| antwonlee| oh-my-vim| ivim| amix| caixw| vimi| axiaoxin| mutewinter| exvim| onlygo| j1z0| json|
+    olical| junegunn| vimstorm| L0stSoul| fisadev| atomantic| jhillyerd| vsouza| ReoVimRC| aix| chalmagean
+    | llh911001| zerob13| ssarcandy| kdeldycke| altercation| bootstrap| automac| joker1007| janus 供选择
+    "
+    echo "我自己的json 慢慢也会超爽的"
+    echo "建议spf13 真的很爽很舒服"
+    echo "xero更适合macvim使用，命令:mvim"
+    echo "ivim也不错的"
+    echo "amix 大神的产物之一"
+    echo "junegunn 大神的产物之一"
+    echo "zerob13 超慢仅适合macvim"
+    read linethemes;
+else
+    linethemes=$1
+fi
+
+if [ "$1" != "version" ]; then
+    if [ "$1" != "v" ]; then
+        echo "" > $MARKFILE
+        #rm -rf $HOME/.spf13-vim-3
+        if [ -d $HOME/.oh-my-vim ]; then
+            rm -rf $HOME/.oh-my-vim
+        fi
+        if [ -f $HOME/.vimrc.bundles ]; then
+            rm -rf $HOME/.vimrc.bundles
+        fi
+        if [ -f $HOME/.vimrc.before ]; then
+            rm -rf $HOME/.vimrc.before
+        fi
+        if [ -f $HOME/.vimrc.local ]; then
+            rm -rf $HOME/.vimrc.local
+        fi
+        if [ -f $HOME/.vimrc.before.local ]; then
+            rm -rf $HOME/.vimrc.before.local
+        fi
+        if [ -f $HOME/.vimrc.bundles.local ]; then
+            rm -rf $HOME/.vimrc.bundles.local
+        fi
+        if [ -f $HOME/.vimrc.local.before ]; then
+            rm -rf $HOME/.vimrc.local.before
+        fi
+        if [ -f $HOME/.vim ] || [ -d $HOME/.vim ]; then
+            rm -rf $HOME/.vim
+        fi
+        if [ -f $HOME/.vimrc ]; then
+            rm -rf $HOME/.vimrc
+        fi
+        if [ -f $HOME/.ctags ]; then
+            rm  -f $HOME/.ctags
+        fi
+        if [ -f $HOME/.gvimrc ]; then
+            rm  -f $HOME/.gvimrc
+        fi
+        if [ -f $HOME/.jsbeautifyrc ]; then
+            rm  -f $HOME/.jsbeautifyrc
+        fi
+        if [ -f $HOME/.jscsrc ]; then
+            rm  -f $HOME/.jscsrc
+        fi
+        if [ -f $HOME/.jshintrc ]; then
+            rm  -f $HOME/.jshintrc
+        fi
+        if [ -d $HOME/.vim_runtime ]; then
+            rm -rf $HOME/.vim_runtime
+        fi
+        if [ -d $HOME/rc ];then
+            rm -rf $HOME/rc
+        fi
+        if [ -f $HOME/.vimrc.user.before ]; then
+            rm -f $HOME/.vimrc.user.before
+        fi
+        if [ -f $HOME/.vimrc.user.after ]; then
+            rm -f $HOME/.vimrc.user.after
+        fi
+        if [ -f $HOME/.vimrc.user.install ]; then
+            rm -f $HOME/.vimrc.user.install
+        fi
+        if [ -f $HOME/.gtkrc-2.0.mine ]; then
+            rm -f $HOME/.gtkrc-2.0.mine
+        fi
+		if [ -f $HOME/.vimrc_experiments ]; then
+			rm -f $HOME/.vimrc_experiments
+		fi
+    fi
+fi
+
+if [ "$linethemes" = "kgitvim" ]; then
+    ln -sf $KGITVIMCONFIG $CURCONFIGFILE
+    ln -sf $KGITVIMCONFIG/gvimrc $CURGCONFIG
+    ln -sf $KGITVIMCONFIG/vimrc $CURCONFIG
+    ln -sf $KGITVIMCONFIG/vimrc.bundles ~/.vimrc.bundles
+    echo "kgitvim" > $MARKFILE
+elif [ "$linethemes" = "spf13" ]; then
+    ln -sf $SPF13CONFIG $CURCONFIGFILE
+    ln -sf $SPF13CONFIG/.vimrc $CURCONFIG
+    ln -sf $SPF13CONFIG/.gvimrc $CURGCONFIG
+    ln -sf $SPF13CONFIG/.vimrc.before $HOME/.vimrc.before
+    ln -sf $SPF13CONFIG/.vimrc.before.local $HOME/.vimrc.before.local
+    #ln -sf $SPF13CONFIG/.vimrc.local $HOME/.vimrc.local
+    ln -sf $SPF13CONFIG/.vimrc.bundles $HOME/.vimrc.bundles
+    #ln -sf $SPF13CONFIG $HOME/.spf13-vim-3/
+    echo "spf13" > $MARKFILE
+elif [ "$linethemes" = "newvim" ]; then
+    ln -sf $NEWVIMCONFIG $CURCONFIGFILE
+    ln -sf $NEWVIMCONFIG/vimrc $CURCONFIG
+    ln -sf $NEWVIMCONFIG/gvimrc $CURGCONFIG
+    echo "newvim" > $MARKFILE
+elif [ "$linethemes" = "huomiaozuzu" ]; then
+    ln -sf $HUOMIAOZUZUCONFIG $CURCONFIGFILE
+    ln -sf $HUOMIAOZUZUCONFIG/vimrc $CURCONFIG
+    ln -sf $HUOMIAOZUZUCONFIG/vimrc $CURGCONFIG
+    echo "huomiaozuzu" > $MARKFILE
+elif [ "$linethemes" = "yadr" ]; then
+    ln -sf $YADRCONFIG $CURCONFIGFILE
+    ln -sf $YADRCONFIG/vimrc $CURCONFIG
+    ln -sf $YADRCONFIG/vimrc $CURGCONFIG
+    echo "yadr" > $MARKFILE
+elif [ "$linethemes" = "luan" ]; then
+    ln -sf $LUANCONFIG $CURCONFIGFILE
+    ln -sf $LUANCONFIG/vimrc $CURCONFIG
+    ln -sf $LUANCONFIG/gvimrc $CURGCONFIG
+    echo "luan" > $MARKFILE
+elif [ "$linethemes" = "vinitkumar" ]; then
+    ln -sf $VINITKUMARCONFIG $CURCONFIGFILE
+    ln -sf $VINITKUMARCONFIG/vimrc $CURCONFIG
+    ln -sf $VINITKUMARCONFIG/vimrc $CURGCONFIG
+    ln -sf $VINITKUMARCONFIG/vimrc.before $HOME/.vimrc.before
+    ln -sf $VINITKUMARCONFIG/vimrc.bundles $HOME/.vimrc.bundles
+    echo "vinitkumar" > $MARKFILE
+elif [ "$linethemes" = "myusuf3" ]; then
+    ln -sf $MYUSUF3CONFIG/vimrc $CURCONFIG
+    ln -sf $MYUSUF3CONFIG/gvimrc $CURGCONFIG
+    ln -sf $MYUSUF3CONFIG/vim $CURCONFIGFILE
+    echo "myusuf3" > $MARKFILE
+elif [ "$linethemes" = "xero" ]; then
+    ln -sf $XEROCONFIG/.vim $CURCONFIGFILE
+    ln -sf $XEROCONFIG/.vimrc $CURCONFIG
+    ln -sf $XEROCONFIG/.vimrc $CURGCONFIG
+    echo "xero" > $MARKFILE
+elif [ "$linethemes" = "ryanoasis" ]; then
+    ln -sf $RYANOASISCONFIG/.vim $CURCONFIGFILE
+    ln -sf $RYANOASISCONFIG/.vimrc $CURCONFIG
+    ln -sf $RYANOASISCONFIG/.vimrc $CURGCONFIG
+	 ln -sf $RYANOASISCONFIG/.vimrc_experiments $HOME/.vimrc_experiments
+    ln -sf $RYANOASISCONFIG/.jsbeautifyrc $HOME/.jsbeautifyrc
+    ln -sf $RYANOASISCONFIG/.jscsrc $HOME/.jscsrc
+    ln -sf $RYANOASISCONFIG/.jshintrc $HOME/.jshintrc
+    echo "ryanoasis" > $MARKFILE
+elif [ "$linethemes" = "jaxbot" ]; then
+    ln -sf $JAXBOTCONFIG $CURCONFIGFILE
+    ln -sf $JAXBOTCONFIG/vimrc $CURCONFIG
+    ln -sf $JAXBOTCONFIG/vimrc $CURGCONFIG
+    echo "jaxbot" > $MARKFILE
+elif [ "$linethemes" = "hellabyte" ]; then
+    ln -sf $HELLABYTECONFIG $CURCONFIGFILE
+    ln -sf $HELLABYTECONFIG/.vimrc $CURCONFIG
+    ln -sf $HELLABYTECONFIG/.gvimrc $CURGCONFIG
+    echo "hellabyte" > $MARKFILE
+elif [ "$linethemes" = "antwonlee" ]; then
+    ln -sf $ANTWONLEECONFIG/.vim $CURCONFIGFILE
+    ln -sf $ANTWONLEECONFIG/.vimrc $CURCONFIG
+    ln -sf $ANTWONLEECONFIG/.vimrc $CURGCONFIG
+    ln -sf $ANTWONLEECONFIG/.vimrc.bundles $HOME/.vimrc.bundles
+    echo "antwonlee" > $MARKFILE
+elif [ "$linethemes" = "oh-my-vim" ]; then
+    if [ ! -f $HOME/.oh-my-vim ]; then
+        ln -sf $MYRUNTIME/oh-my-vim $HOME/.oh-my-vim
+    fi
+    ln -sf $OHMYVIMCONFIG/templates/vimrc-template $CURCONFIG
+    ln -sf $OHMYVIMCONFIG/templates/vimrc-template $CURGCONFIG
+    echo "oh-my-vim" > $MARKFILE
+elif [ "$linethemes" = "ivim" ]; then
+    ln -sf $IVIMCONFIG $CURCONFIGFILE
+    ln -sf $IVIMCONFIG/vimrc $CURCONFIG
+    ln -sf $IVIMCONFIG/vimrc $CURGCONFIG
+    echo "ivim" > $MARKFILE
+elif [ "$linethemes" = "amix" ]; then
+    ln -sf $AMIXCONFIG ~/.vim_runtime
+    ln -sf $AMIXCONFIG/vimrc $CURCONFIG
+    ln -sf $AMIXCONFIG/vimrc $CURGCONFIG
+    echo "amix" > $MARKFILE
+elif [ "$linethemes" = "caixw" ]; then
+    ln -sf $CAIXWCONFIG $CURCONFIGFILE
+    ln -sf $CAIXWCONFIG/vimrc.vim $CURCONFIG
+    ln -sf $CAIXWCONFIG/vimrc.vim $CURGCONFIG
+    #ln -sf $CAIXWCONFIG/ultisnippets ~/.ultisnippets
+    echo "caixw" > $MARKFILE
+elif [ "$linethemes" = "use_as_ide" ]; then
+    ln -sf $ASIDECONFIG $CURCONFIGFILE
+    ln -sf $ASIDECONFIG/.vimrc $CURCONFIG
+    ln -sf $ASIDECONFIG/.vimrc $CURGCONFIG
+    echo "use_as_ide" > $MARKFILE
+elif [ "$linethemes" = "vimi" ]; then
+    ln -sf $VIMICONFIG $CURCONFIGFILE
+    ln -sf $VIMICONFIG/vimrc $CURCONFIG
+    ln -sf $VIMICONFIG/vimrc $CURGCONFIG
+    echo "vimi" > $MARKFILE
+elif [ "$linethemes" = "axiaoxin" ]; then
+    ln -sf $AXIAOXINCONFIG/.vim $CURCONFIGFILE
+    ln -sf $AXIAOXINCONFIG/.vimrc $CURCONFIG
+    ln -sf $AXIAOXINCONFIG/.vimrc $CURGCONFIG
+    echo "axiaoxin" > $MARKFILE
+elif [ "$linethemes" = "mutewinter" ]; then
+    ln -sf $MUTEWINTERCONFIG $CURCONFIGFILE
+    ln -sf $MUTEWINTERCONFIG/vimrc $CURCONFIG
+    ln -sf $MUTEWINTERCONFIG/gvimrc $CURGCONFIG
+    echo "mutewinter" > $MARKFILE
+elif [ "$linethemes" = "exvim" ]; then
+    ln -sf $EXVIMCONFIG/myvimrc $CURCONFIG
+    echo "exvim" > $MARKFILE
+elif [ "$linethemes" = "onlygo" ]; then
+    ln -sf $ONLYGOCONFIG/vim $CURCONFIGFILE
+    ln -sf $ONLYGOCONFIG/vimrc $CURCONFIG
+    echo "onlygo" > $MARKFILE
+elif [ "$linethemes" = "j1z0" ]; then
+    ln -sf $J1Z0CONFIG $CURCONFIGFILE
+    ln -sf $J1Z0CONFIG/vimrc $CURCONFIG
+    ln -sf $J1Z0CONFIG/vimrc $CURGCONFIG
+    echo "j1z0" > $MARKFILE
+elif [ "$linethemes" = "json" ]; then
+    ln -sf $JSONCONFIG/vim $CURCONFIGFILE
+    ln -sf $JSONCONFIG/vimrc $CURCONFIG
+    ln -sf $JSONCONFIG/vimrc $CURGCONFIG
+    echo "json" > $MARKFILE
+elif [ "$linethemes" = "olical" ]; then
+    ln -sf $OLICALCONFIG/.vim $CURCONFIGFILE
+    ln -sf $OLICALCONFIG/.vimrc $CURCONFIG
+    ln -sf $OLICALCONFIG/.vimrc $CURGCONFIG
+    echo "olical" > $MARKFILE
+elif [ "$linethemes" = "junegunn" ]; then
+    ln -sf $JUNEGUNNCONFIG $CURCONFIGFILE
+    ln -sf $JUNEGUNNCONFIG/vimrc $CURCONFIG
+    ln -sf $JUNEGUNNCONFIG/vimrc $CURGCONFIG
+    echo "junegunn" > $MARKFILE
+elif [ "$linethemes" = "vimstorm" ]; then
+    ln -sf $VIMSTORMCONFIG $CURCONFIGFILE
+    ln -sf $VIMSTORMCONFIG/.vimrc $CURCONFIG
+    ln -sf $VIMSTORMCONFIG/.vimrc $CURGCONFIG
+    echo "vimstorm" > $MARKFILE
+elif [ "$linethemes" = "L0stSoul" ]; then
+    ln -sf $L0stSoul $CURCONFIGFILE
+    ln -sf $L0stSoul/.vimrc $CURCONFIG
+    ln -sf $L0stSoul/.vimrc $CURGCONFIG
+    echo "L0stSoul" > $MARKFILE
+elif [ "$linethemes" = "fisadev" ]; then
+    ln -sf $fisadev $CURCONFIGFILE
+    ln -sf $fisadev/.vimrc $CURCONFIG
+    ln -sf $fisadev/.vimrc $CURGCONFIG
+    echo "fisadev" > $MARKFILE
+elif [ "$linethemes" = "atomantic" ]; then
+    ln -sf $atomantic/.vimrc $CURCONFIG
+    ln -sf $atomantic/.vimrc $CURGCONFIG
+    ln -sf $atomantic/.vim $CURCONFIGFILE
+    echo "atomantic" > $MARKFILE
+elif [ "$linethemes" = "jhillyerd" ]; then
+    ln -sf $jhillyerd $CURCONFIGFILE
+    ln -sf $jhillyerd/vimrc $CURCONFIG
+    ln -sf $jhillyerd/vimrc $CURGCONFIG
+    echo "jhillyerd" > $MARKFILE
+elif [ "$linethemes" = "vsouza" ]; then
+    ln -sf $vsouza $CURCONFIGFILE
+    ln -sf $vsouza/.vimrc $CURCONFIG
+    ln -sf $vsouza/.vimrc $CURGCONFIG
+    echo "vsouza" > $MARKFILE
+elif [ "$linethemes" = "ReoVimRC" ]; then
+    ln -sf $ReoVimRC/.vim $CURCONFIGFILE
+    ln -sf $ReoVimRC/.vim/.vimrc $CURCONFIG
+    ln -sf $ReoVimRC/.vim/.vimrc $CURGCONFIG
+    ln -sf $ReoVimRC/vimrc.user.before $HOME/.vimrc.user.before
+    ln -sf $ReoVimRC/vimrc.user.install $HOME/.vimrc.user.install
+    ln -sf $ReoVimRC/vimrc.user.after $HOME/.vimrc.user.after
+    ln -sf $ReoVimRC/gtkrc-2.0.mine $HOME/.gtkrc-2.0.mine
+    echo "ReoVimRC" > $MARKFILE
+elif [ "$linethemes" = "aix" ]; then
+    ln -sf $Aix $CURCONFIGFILE
+    ln -sf $Aix/aix $HOME/aix
+    ln -sf $Aix/.vimrc $CURCONFIG
+    ln -sf $Aix/.vimrc $CURGCONFIG
+    echo "aix" > $MARKFILE
+elif [ "$linethemes" = "chalmagean" ]; then
+    ln -sf $chalmagean $CURCONFIGFILE
+    ln -sf $chalmagean/vimrc $CURCONFIG
+    ln -sf $chalmagean/vimrc $CURGCONFIG
+    echo "chalmagean" > $MARKFILE
+elif [ "$linethemes" = "llh911001" ]; then
+    ln -sf $llh911001 $CURCONFIGFILE
+    ln -sf $llh911001/.vimrc $CURCONFIG
+    ln -sf $llh911001/.vimrc $CURGCONFIG
+    echo "llh911001" > $MARKFILE
+elif [ "$linethemes" = "zerob13" ]; then
+    ln -sf $zerob13 $CURCONFIGFILE
+    ln -sf $zerob13/.vimrc $CURCONFIG
+    ln -sf $zerob13/.vimrc $CURGCONFIG
+    echo "zerob13" > $MARKFILE
+elif [ "$linethemes" = "ssarcandy" ]; then
+    ln -sf $ssarcandy $CURCONFIGFILE
+    ln -sf $ssarcandy/.vimrc $CURCONFIG
+    ln -sf $ssarcandy/.vimrc $CURGCONFIG
+    echo "ssarcandy" > $MARKFILE
+elif [ "$linethemes" = "kdeldycke" ]; then
+    ln -sf $kdeldycke $CURCONFIGFILE
+    ln -sf $kdeldycke/.vimrc $CURCONFIG
+    ln -sf $kdeldycke/.vimrc $CURGCONFIG
+    echo "kdeldycke" > $MARKFILE
+elif [ "$linethemes" = "altercation" ]; then
+    ln -sf $altercation $CURCONFIGFILE
+    ln -sf $altercation/.vimrc $CURCONFIG
+    ln -sf $altercation/.vimrc $CURGCONFIG
+    echo "altercation" > $MARKFILE
+elif [ "$linethemes" = "bootstrap" ]; then
+    ln -sf $bootstrap $CURCONFIGFILE
+    ln -sf $bootstrap/generate.vim $CURCONFIG
+    ln -sf $bootstrap/generate.vim $CURGCONFIG
+    echo "bootstrap" > $MARKFILE
+elif [ "$linethemes" = "automac" ]; then
+    ln -sf $automac $CURCONFIGFILE
+    ln -sf $automac/.vimrc $CURCONFIG
+    ln -sf $automac/.vimrc $CURGCONFIG
+    echo "automac" > $MARKFILE
+elif [ "$linethemes" = "joker1007" ]; then
+    ln -sf $joker1007/vim $CURCONFIGFILE
+    ln -sf $joker1007/vimrc $CURCONFIG
+    ln -sf $joker1007/vimrc $CURGCONFIG
+    echo "joker1007" > $MARKFILE
+elif [ "$linethemes" = "janus" ]; then
+    ln -sf $janus/ $CURCONFIGFILE
+    ln -sf $janus/janus/vim/vimrc.before $HOME/.vimrc.before
+    ln -sf $janus/janus/vim/vimrc.before $HOME/.gvimrc.before
+    ln -sf $janus/janus/vim/vimrc $CURCONFIG
+    ln -sf $janus/janus/vim/gvimrc $CURGCONFIG
+    ln -sf $janus/janus/vim/vimrc.after $HOME/.vimrc.after
+    ln -sf $janus/janus/vim/vimrc.after $HOME/.gvimrc.after
+    echo "janus" > $MARKFILE
+    
+elif [ "$linethemes" = "version" ]; then
+    if [ -f $MARKFILE ]; then
+        CURCONFIGVERSION=$(cat $MARKFILE);
+    fi
+    echo $CURCONFIGVERSION;
+    if [ "$CURCONFIGVERSION" = "kgitvim" ]; then
+        echo "当前使用的配置是k-vim原生版本"
+        echo "https://github.com/wklken/k-vim"
+    elif [ "$CURCONFIGVERSION" = "spf13" ]; then
+        echo "当前使用的配置是spf13"
+        echo "https://github.com/spf13/spf13-vim"
+    elif [ "$CURCONFIGVERSION" = "newvim" ]; then
+        echo "当前使用的配置是new vim"
+        echo "https://github.com/whatyouhide/dotfiles"
+        echo "https://bitbucket.org/jmpiontek/vim_dotvim"
+    elif [ "$CURCONFIGVERSION" = "huomiaozuzu" ]; then
+        echo "当前使用的配置是huomiaozuzu"
+        echo "https://github.com/humiaozuzu/dot-vimrc"
+    elif [ "$CURCONFIGVERSION" = "yadr" ]; then
+        echo "当前使用的配置是 yadr中摘出来的"
+        echo "https://github.com/skwp/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "luan" ]; then
+        echo "当前使用的配置是 luan"
+        echo "https://github.com/luan/vimfiles"
+    elif [ "$CURCONFIGVERSION" = "vinitkumar" ]; then
+        echo "当前使用的配置是 vinitkumar"
+        echo "https://github.com/vinitkumar/.vim"
+    elif [ "$CURCONFIGVERSION" = "myusuf3" ]; then
+        echo "当前使用的配置是 myusuf3 中拆出来的vim配置"
+        echo "https://github.com/myusuf3/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "xero" ]; then
+        echo "当前使用的配置是 xero 中拆出来的vim配置"
+        echo "https://github.com/xero/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "ryanoasis" ]; then
+        echo "当前使用的配置是 ryanoasis 中拆出来的vim配置"
+        echo "https://github.com/ryanoasis/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "jaxbot" ]; then
+        echo "当前使用的配置是 jaxbot的vim配置"
+        echo "https://github.com/jaxbot/vimfiles"
+    elif [ "$CURCONFIGVERSION" = "hellabyte" ]; then
+        echo "当前使用的配置是 hellabyte中拆出来的vim配置"
+        echo "https://github.com/hellabyte/myconfig.git"
+    elif [ "$CURCONFIGVERSION" = "antwonlee" ]; then
+        echo "当前使用的配置是 antwonlee中拆出来的vim配置"
+        echo "https://github.com/antwonlee/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "oh-my-vim" ]; then
+        echo "当前使用的配置是 oh-my-vim配置"
+        echo "https://github.com/liangxianzhe/oh-my-vim"
+    elif [ "$CURCONFIGVERSION" = "ivim" ]; then
+        echo "当前使用的配置是 ivim配置"
+        echo "https://github.com/kepbod/ivim"
+    elif [ "$CURCONFIGVERSION" = "amix" ]; then
+        echo "当前使用的配置是 amix配置"
+        echo "https://github.com/amix/vimrc"
+    elif [ "$CURCONFIGVERSION" = "caixw" ]; then
+        echo "当前使用的配置是 caixw配置"
+        echo "https://github.com/caixw/VimIDE"
+    elif [ "$CURCONFIGVERSION" = "use_as_ide" ]; then
+        echo "当前使用的配置是 use_as_ide配置"
+        echo "https://github.com/yangyangwithgnu/use_vim_as_ide"
+    elif [ "$CURCONFIGVERSION" = "vimi" ]; then
+        echo "当前使用的配置是 vimi配置"
+        echo "https://github.com/zaiste/vimified"
+    elif [ "$CURCONFIGVERSION" = "axiaoxin" ]; then
+        echo "当前使用的配置是 axiaoxin配置"
+        echo "https://github.com/axiaoxin/vim-settings"
+    elif [ "$CURCONFIGVERSION" = "mutewinter" ]; then
+        echo "当前使用的配置是 mutewinter配置"
+        echo "https://github.com/mutewinter/dot_vim"
+    elif [ "$CURCONFIGVERSION" = "exvim" ]; then
+        echo "当前使用的配置是 exvim配置"
+        echo "https://github.com/exvim/main"
+    elif [ "$CURCONFIGVERSION" = "onlygo" ]; then
+        echo "当前使用的配置是 onlygo配置"
+        echo "https://github.com/border/vimrc"
+    elif [ "$CURCONFIGVERSION" = "j1z0" ]; then
+        echo "当前使用的配置是 j1z0配置"
+        echo "https://github.com/j1z0/vim-config"
+    elif [ "$CURCONFIGVERSION" = "json" ]; then
+        echo "当前使用的配置是 json配置"
+        echo "没有连接 我自己找的别人的 然后自己改的"
+    elif [ "$CURCONFIGVERSION" = "olical" ]; then
+        echo "当前使用的配置是 olical配置"
+        echo "没有连接 我自己找的别人的 然后自己改的"
+    elif [ "$CURCONFIGVERSION" = "junegunn" ]; then
+        echo "当前使用的配置是 junegunn配置"
+        echo "https://github.com/junegunn/dotfiles/blob/master/vimrc"
+    elif [ "$CURCONFIGVERSION" = "vimstorm" ]; then
+        echo "当前使用的配置是 vimstorm配置"
+        echo "https://github.com/ifahrentholz/VIMStorm"
+    elif [ "$CURCONFIGVERSION" = "L0stSoul" ]; then
+        echo "当前使用的配置是 L0stSoul配置"
+        echo "https://github.com/L0stSoul/vim-config"
+    elif [ "$CURCONFIGVERSION" = "fisadev" ]; then
+        echo "当前使用的配置是 fisadev配置"
+        echo "https://github.com/fisadev/fisa-vim-config"
+    elif [ "$CURCONFIGVERSION" = "atomantic" ]; then
+        echo "当前使用的配置是 atomantic的dotfiles分离的vim配置"
+        echo "https://github.com/atomantic/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "jhillyerd" ]; then
+        echo "当前使用的配置是 jhillyerd的vimdot的配置"
+        echo "https://github.com/jhillyerd/dotvim"
+    elif [ "$CURCONFIGVERSION" = "vsouza" ]; then
+        echo "当前使用的配置是 vsouza的vim配置"
+        echo "https://github.com/vsouza/.vimrc"
+    elif [ "$CURCONFIGVERSION" = "ReoVimRC" ]; then
+        echo "当前使用的配置是 ReoVimRC的vim配置"
+        echo "https://github.com/reo7sp/ReoVimRC"
+    elif [ "$CURCONFIGVERSION" = "aix" ]; then
+        echo "当前使用的配置是 aix的vim配置"
+        echo "https://github.com/DemonCloud/Aix-Vim"
+    elif [ "$CURCONFIGVERSION" = "chalmagean" ]; then
+        echo "当前使用的配置是 chalmagean的vim配置"
+        echo "https://github.com/chalmagean/vimfiles"
+    elif [ "$CURCONFIGVERSION" = "llh911001" ]; then
+        echo "当前使用的配置是 llh911001的vim配置"
+        echo "https://github.com/llh911001/vimrc"
+    elif [ "$CURCONFIGVERSION" = "zerob13" ]; then
+        echo "当前使用的配置是 zerob13的vim配置"
+        echo "https://github.com/zerob13/vimrc"
+    elif [ "$CURCONFIGVERSION" = "ssarcandy" ]; then
+        echo "当前使用的配置是 ssarcandy的vim配置"
+        echo "https://github.com/SSARCandy/ssarcandy-vim"
+    elif [ "$CURCONFIGVERSION" = "kdeldycke" ]; then
+        echo "当前使用的配置是 kdeldycke中拆出来的vim配置"
+        echo "https://github.com/kdeldycke/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "altercation" ]; then
+        echo "当前使用的配置是 altercation的vim配置"
+        echo "https://github.com/altercation/dotfiles-vim"
+    elif [ "$CURCONFIGVERSION" = "bootstrap" ]; then
+        echo "当前使用的配置是 bootstrap的vim配置"
+        echo "http://vim-bootstrap.com/"
+    elif [ "$CURCONFIGVERSION" = "automac" ]; then
+        echo "当前使用的配置是 autoconfig-mac的vim配置"
+        echo "https://github.com/barretlee/autoconfig-mac-vimrc"
+    elif [ "$CURCONFIGVERSION" = "joker1007" ]; then
+        echo "当前使用的配置是 日本人的joker1007的vim配置"
+        echo "https://github.com/joker1007/dotfiles"
+    elif [ "$CURCONFIGVERSION" = "janus" ]; then
+        echo "当前使用的配置是 日本人的janus的vim配置"
+        echo "https://github.com/carlhuda/janus"
+    else
+        echo "当前使用的未知版本"
+    fi
+    echo "每一个版本或多或少都有修改，请注意使用"
+    exit;
+elif [ "$linethemes" = "v" ]; then
+    $0 version
+else
+    $0 version
+fi
+
+if [ $# -ne 1 ]; then
+    echo "vim配置文件/.vimrc更换完毕"
+    $0 version
+fi

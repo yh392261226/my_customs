@@ -1,0 +1,10 @@
+#!/bin/bash
+########################################
+## 好像是tmux的状态栏获取分支的 忘记了  
+## 好像没用了
+########################################
+tmux showenv -g TMUX_PWD_$(tmux display -p "#D" | tr -d %)  | sed 's/^.*=//'
+#branchname=$(git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/')
+#if [ "" != "$branchname" ]; then
+#	echo $branchname
+#fi

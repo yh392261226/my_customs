@@ -1,0 +1,65 @@
+#!/bin/bash
+########################################
+## 自动切换包
+## Json 2016-06-08
+## 每个包文件夹的根目录中必须含有一个
+## set_to_my_symlink文件，该文件为执行文件，
+## 执行全部软连接
+########################################
+MYRUNTIME=$(cat ~/.myruntime)   #我的runtime地址
+CONFIGSPATH=$MYRUNTIME          #配置文件地址
+EXT=_dotfiles                   #后缀名
+FROMURL=fromurl                 #来源网址
+MARKFILE=$MYRUNTIME/tools/m_dot       #当前使用配置记录
+SYMLINKFILE=set_to_my_symlink   #每个配置文件包中的软连接文件
+
+##获取当前使用的配置信息
+CheckCurVersion() {
+  name=$(cat $MARKFILE)
+  echo "当前配置：$name"
+  echo "来源网址：$(cat $CONFIGSPATH/$name$EXT/$FROMURL)"
+}
+
+##删除软连接
+UnSymlink() {
+  :
+}
+
+##设置软连接
+Symlink() {
+  id=$1
+  configs=($(ls $CONFIGSPATH|grep "$EXT"))
+  choose=${configs[$id]}
+  cd $CONFIGSPATH/$choose
+  echo $choose|sed "s,$EXT,," > $MARKFILE
+  sh $SYMLINKFILE
+}
+
+##执行选择
+if [ -d $CONFIGSPATH ]; then
+  configs=($(ls $CONFIGSPATH|grep "$EXT"))
+  if [ "${#configs[*]}" != "0" ]; then
+    echo "请输入序号：";
+    posit=0
+    for file in ${configs[*]}; do
+      echo $posit "：" $(basename ${file} | awk -F "$EXT" '{print $1}');
+      ((posit+=1))
+    done
+    read id
+    if [ "$id" = "v" ] || [ "$id" = "version" ] || [ "$id" = "ver" ]; then
+        CheckCurVersion #获取当前配置的版本
+    elif [ "$id" -lt "${#configs[*]}" ]; then
+        #exit 1
+        UnSymlink #清除已存在软连接
+        Symlink $id #做软连接
+        CheckCurVersion #获取当前配置的版本
+    else
+      echo "您选择的配置不存在！！！";
+    fi
+  else
+    echo "暂无配置文件！！！";
+  fi
+else
+  echo "配置文件地址不存在！！！";
+fi
+exit 0

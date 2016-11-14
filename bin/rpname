@@ -1,0 +1,39 @@
+#!/usr/bin/env php
+<?php
+/**
+ *  把背景图片目录下的图片重新按照指定的文件名更新并排序
+ *  $filedir 图片文件地址
+ *  $newname_pre 要更改成为的名字的前缀
+ *  $begin   起始数字
+ *
+ *  使用方法：   php rpname 或 ./rpname
+ */
+$filedir = '/Users/json/.runtime/pictures';
+$newname_pre = 'J-';
+$begin = 1;
+$tmpsh = './tmprenamepics.sh';
+
+function renamePictures($filedir, $newname_pre, $begin=1) {
+    global $tmpsh;
+    $str = "#!/bin/zsh \n ";
+    $handler = opendir($filedir);
+    while(($files = readdir($handler)) != false) {
+        if ($files !== '.' && $files !== '..' && $files !== '.DS_Store') {
+            //文件后缀名
+            $fileend = end(explode('.', $files));
+            $newname = $newname_pre.date("YmdHis").'-'.$begin.'.'.$fileend;
+            $str .= "mv ".$filedir.'/'.$files." ".$filedir.'/'.$newname."\n";
+            $begin++;
+        }
+    }
+    file_put_contents($tmpsh, $str);
+    shell_exec("chmod +x ".$tmpsh); //给临时脚本赋予可执行权限
+    shell_exec("sh ".$tmpsh);      //执行临时脚本
+    return $begin-1;
+}
+
+
+$picnums = renamePictures($filedir, $newname_pre, $begin);
+unlink($tmpsh);
+echo "本次共重命名文件".$picnums."个\n";
+echo "source ~/.zshrc\n";

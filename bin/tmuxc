@@ -1,0 +1,143 @@
+#!/bin/bash
+#################################################
+## 描    述：tmux.conf配置文件更替脚本
+## 使用方法：./tmuxconfig.sh
+## 时    间：2015-09-15
+#################################################
+MYRUNTIME=$(cat ~/.myruntime)
+MARKFILE=$MYRUNTIME/tools/m_tmux
+CURCONFIG=$(cat $MARKFILE)
+CONFIG=$HOME/.tmux.conf
+TMUXENCONFIG=$MYRUNTIME/tmuxen
+MYUSUF3CONFIG=$MYRUNTIME/myusuf3
+XEROCONFIG=$MYRUNTIME/xerotmux
+GPAKOSZCONFIG=$MYRUNTIME/gpakosz_tmux
+TONYCONFIG=$MYRUNTIME/tony_tmux
+SPICYCODECONFIG=$MYRUNTIME/spicycode
+TMUXCONFIGS=$MYRUNTIME/tmuxconfigs
+
+if [ $# -ne 1 ]; then
+    $0 version
+    echo "请输入要是用的tmux配置"
+    echo "现有 tmuxen| myusuf3| xero| gpakosz| tony| spicycode| blued| graawr| powerlined| classytouch| kalterfive| murmur|  muxt| ttt| grafikart| ignu| jsatk 版本供选择"
+    read linetheme;
+    rm -rf $HOME/.tmux.conf
+    rm -rf $HOME/.tmux
+    rm -rf $HOME/.tmux.conf.local
+else
+    linetheme=$1
+    if [ "$linetheme" != "version" ]; then
+        rm -rf $HOME/.tmux.conf
+        rm -rf $HOME/.tmux
+        rm -rf $HOME/.tmux.conf.local
+    fi
+fi
+
+if [ "$linetheme" = "tmuxen" ]; then
+    ln -sf $TMUXENCONFIG/_tmux.conf $CONFIG
+    echo "tmuxen" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "myusuf3" ]; then
+    ln -sf $MYUSUF3CONFIG/tmux $CONFIG
+    echo "myusuf3" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "xero" ]; then
+    ln -sf $XEROCONFIG/.tmux.conf $CONFIG
+    echo "xero" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "gpakosz" ]; then
+    ln -sf $GPAKOSZCONFIG/.tmux.conf $CONFIG
+    ln -sf $GPAKOSZCONFIG/.tmux.conf.local $HOME/.tmux.conf.local
+    echo "gpakosz" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "tony" ]; then
+    ln -sf $TONYCONFIG/.tmux.conf $CONFIG
+    ln -sf $TONYCONFIG $HOME/.tmux
+    echo "tony" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "spicycode" ]; then
+    ln -sf $SPICYCODECONFIG/tmux.conf $CONFIG
+    echo "spicycode" > $MARKFILE
+elif [ "$linetheme" = "blued" ]; then
+    ln -sf $TMUXCONFIGS/blued.tmux.conf $CONFIG
+    echo "blued" > $MARKFILE
+elif [ "$linetheme" = "graawr" ]; then
+    ln -sf $TMUXCONFIGS/graawr.tmux.conf $CONFIG
+    echo "graawr" > $MARKFILE
+elif [ "$linetheme" = "powerlined" ]; then
+    ln -sf $TMUXCONFIGS/powerlined.tmux.conf $CONFIG
+    echo "powerlined" > $MARKFILE
+elif [ "$linetheme" = "ttt" ]; then
+    ln -sf $TMUXCONFIGS/ttt.tmux.conf $CONFIG
+    echo "ttt" > $MARKFILE
+elif [ "$linetheme" = "muxt" ]; then
+    ln -sf $TMUXCONFIGS/muxt.tmux.conf $CONFIG
+    echo "muxt" > $MARKFILE
+elif [ "$linetheme" = "murmur" ]; then
+    ln -sf $TMUXCONFIGS/murmur.tmux.conf $CONFIG
+    echo "murmur" > $MARKFILE
+elif [ "$linetheme" = "kalterfive" ]; then
+    ln -sf $TMUXCONFIGS/kalterfive.tmux.conf $CONFIG
+    echo "kalterfive" > $MARKFILE
+elif [ "$linetheme" = "classytouch" ]; then
+    ln -sf $TMUXCONFIGS/classytouch.tmux.conf $CONFIG
+    echo "classytouch" > $MARKFILE
+elif [ "$linetheme" = "grafikart" ]; then
+    ln -sf $TMUXCONFIGS/grafikart.tmux.conf $CONFIG
+    echo "grafikart" > $MARKFILE
+elif [ "$linetheme" = "ignu" ]; then
+    ln -sf $TMUXCONFIGS/ignu.tmux.conf $CONFIG
+    echo "ignu" > $MARKFILE
+elif [ "$linetheme" = "jsatk" ]; then
+    ln -sf $TMUXCONFIGS/jsatk.tmux.conf $CONFIG
+    echo "jsatk" > $MARKFILE
+elif [ "$linetheme" = "v" ]; then
+    $0 version
+elif [ "$linetheme" = "version" ]; then
+    if [ "$CURCONFIG" = "tmuxen" ]; then
+        echo "当前使用可更新的tmuxen版本"
+    elif [ "$linetheme" = "myusuf3" ]; then
+        echo "当前使用从myusuf3中分离出来的版本"
+    elif [ "$linetheme" = "xero" ]; then
+        echo "当前使用从xero中分离出来的版本"
+    elif [ "$linetheme" = "gpakosz" ]; then
+        echo "当前使用从gpakosz的版本"
+        echo "https://github.com/gpakosz/.tmux"
+    elif [ "$linetheme" = "tony" ]; then
+        echo "当前使用从tony的版本"
+        echo "https://github.com/tony/tmux-config"
+    elif [ "$linetheme" = "spicycode" ]; then
+        echo "当前使用从spicycode的版本"
+        echo "https://github.com/spicycode/dotfiles"
+    elif [ "$linetheme" = "blued" ]; then
+        echo "当前使用blued的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "graawr" ]; then
+        echo "当前使用graawr的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "powerlined" ]; then
+        echo "当前使用powerlined的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "ttt" ]; then
+        echo "当前使用ttt的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "muxt" ]; then
+        echo "当前使用muxt的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "murmur" ]; then
+        echo "当前使用murmur的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "kalterfive" ]; then
+        echo "当前使用kalterfive的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "classytouch" ]; then
+        echo "当前使用classytouch的版本"
+        echo "http://dotshare.it/"
+    elif [ "$linetheme" = "ignu" ]; then
+        echo "当前使用ignu的版本"
+        echo "https://github.com/ignu/dotfiles2.0/blob/master/tmux.conf"
+    elif [ "$linetheme" = "jsatk" ]; then
+        echo "当前使用jsatk的版本"
+        echo "https://github.com/jsatk/dotfiles/blob/master/tmux.conf.symlink"
+    fi
+fi

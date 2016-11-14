@@ -1,0 +1,55 @@
+#!/bin/sh
+#######################################
+## 描    述：卸载整体包
+## 使用方法：./uninstall.sh
+## 时    间：2014-03-11
+#######################################
+echo "开始卸载？ 输入y|Y|yes执行 或 输入n|N|no取消."
+read line
+if [ "$line" = "y" ] || [ "$line" = "yes" ] || [ "$line" = "Y" ]; then
+  if [ -f $MYRUNTIME ]; then
+    tar -zcvf $HOME/runtime-uninstall-finished.tar.gz $MYRUNTIME && rm -rf $MYRUNTIME
+    rm -rf $HOME/.zshrc
+    rm -rf $HOME/.antigen
+    rm -rf $HOME/.bash-powerline.sh
+    rm -rf $HOME/.bash_profile
+    rm -rf $HOME/.bashrc
+    rm -rf $HOME/.tmux.conf
+    rm -rf $HOME/.tmux-powerlinerc
+    rm -rf $HOME/bin
+    rm -rf $HOME/.vim
+    rm -rf $HOME/.vimrc
+    rm -rf $HOME/.vimrc.bundles.local
+    rm -rf $HOME/.vimrc.bundles
+    rm -rf $HOME/.vimrc.before
+    rm -rf $HOME/.vimrc.after
+    rm -rf $HOME/.spf13-vim-3
+    rm -rf $HOME/.yadr
+    rm -rf $HOME/.ackrc
+    rm -rf $HOME/.aprc
+    rm -rf $HOME/.dotfiles
+    rm -rf $HOME/.editorconfig
+    rm -rf $HOME/.editrc
+    rm -rf $HOME/.env
+    rm -rf $HOME/.escaped_colors.rb
+    rm -rf $HOME/.gemrc
+    rm -rf $HOME/.gitconfig
+    rm -rf $HOME/.gvimrc 
+    rm -rf $HOME/.inputrc
+    rm -rf $HOME/.irbrc
+    rm -rf $HOME/.jekyllconfig
+    rm -rf $HOME/.myruntime
+    rm -rf $HOME/.pryrc
+    rm -rf $HOME/.rdebugrc
+    rm -rf $HOME/.ssh
+    rm -rf $HOME/.tern-project
+    rm -rf $HOME/.toprc
+    rm -rf $HOME/.unescaped_colors.rb
+    rm -rf $HOME/.zprezto
+    rm -rf $HOME/.zpreztorc
+    rm -rf $HOME/powerline-shell.py
+  fi
+
+  echo "卸载完毕！"
+  echo "备份文件为$HOME/runtime-uninstall-finished.tar.gz"
+fi

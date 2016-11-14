@@ -1,0 +1,65 @@
+#!/bin/bash
+#################################
+## 描    述：bashrc的更替脚本
+## 使用方法：./bashconfig.sh
+## 时    间：2014-03-11
+#################################
+MYRUNTIME=$(cat ~/.myruntime)
+BASHITCONFIG=$MYRUNTIME/bash_it_bashfiles
+BASHENVCONFIG=$MYRUNTIME/bash.env_bashfiles
+DOTBASHCONFIG=$MYRUNTIME/dot_bashfiles
+HELLABYTECONFIG=$MYRUNTIME/hellabyte
+MARKFILE=$MYRUNTIME/tools/m_bsh
+CURCONFIG=$(cat $MARKFILE)
+
+if [ $# -ne 1 ]; then
+    $0 version
+    echo "请输入要是用的bash配置"
+    echo "现有 dot| it| env| hellabyte 版本供选择"
+    read linetheme;
+else
+    linetheme=$1
+fi
+
+if [ "$linetheme" = "dot" ]; then
+    ln -sf $DOTBASHCONFIG/link/.ackrc ~/.ackrc
+    ln -sf $DOTBASHCONFIG/link/.aprc ~/.aprc
+    ln -sf $DOTBASHCONFIG/link/.bash_profile ~/.bash_profile
+    ln -sf $DOTBASHCONFIG/link/.bashrc ~/.bashrc
+    ln -sf $DOTBASHCONFIG/link/.gemrc ~/.gemrc
+    ln -sf $DOTBASHCONFIG/link/.gitignore_global ~/.gitignore_global
+    ln -sf $DOTBASHCONFIG/link/.irbrc ~/.irbrc
+    ln -sf $DOTBASHCONFIG/link/.ssh ~/.ssh
+    ln -sf $DOTBASHCONFIG/link/.toprc ~/.toprc
+    echo "dot" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "it" ]; then
+    ln -sf $BASHITCONFIG/template/bashrc ~/.bashrc
+    ln -sf $BASHITCONFIG/template/bash_profile.template.bash ~/.bash_profile
+    ln -sf $BASHITCONFIG/template/jekyllconfig.template.bash ~/.jekyllconfig
+    echo "it" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "env" ]; then
+    ln -sf $BASHENVCONFIG/bashrc ~/.bashrc
+    ln -sf $BASHENVCONFIG/bash_profile ~/.bash_profile
+    ln -sf $BASHENVCONFIG ~/.env
+    echo "env" > $MARKFILE
+    $0 version
+elif [ "$linetheme" = "hellabyte" ]; then
+    echo "hellabyte" > $MARKFILE
+    bash $HELLABYTECONFIG/install.bash
+elif [ "$linetheme" = "v" ]; then
+    $0 version
+elif [ "$linetheme" = "version" ]; then
+    if [ "$CURCONFIG" = "it" ]; then
+        echo "当前使用bash_it版本"
+		  echo "https://github.com/Bash-it/bash-it"
+    elif [ "$linetheme" = "env" ]; then
+        echo "当前使用bash.env版本"
+    elif [ "$linetheme" = "dot" ]; then
+        echo "当前使用dotfiles版本"
+    elif [ "$linetheme" = "hellabyte" ]; then
+        echo "当前使用hellabyte版本"
+        echo "https://github.com/hellabyte/myconfig/tree/master/hellabyte_dotfiles";
+    fi
+fi
