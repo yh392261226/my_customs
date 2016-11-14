@@ -1,6 +1,7 @@
 # my_customs
 
 Usage: Add below into $HOME/.zshrc
+```bash
 z_config=("alias" "basic" "prompt" "export" "func" "omz" "other")
 my_custom_zsh=$HOME/.runtime/customs/my_zsh
 
@@ -10,3 +11,4 @@ for custom_zsh_config in $z_config; do
     fi
 done
 source $z_config/zmy_changebg.zsh #background images change by bindkey of iterm2
+```
