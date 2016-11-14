@@ -1,0 +1,9 @@
+#!/bin/bash
+#### Open the image folder and locate the image file of the iterm2's background
+
+bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
+if [ ! -f "$bgfile" ]; then
+	echo "No bg at the current time!";exit 1
+else
+	/usr/bin/open -R $bgfile
+fi
