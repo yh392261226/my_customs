@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # update_gfwlist.sh
 # Author : VincentSit
 # Copyright (c) http://xuexuefeng.com

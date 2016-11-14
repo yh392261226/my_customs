@@ -2,6 +2,7 @@
 ## 这个好像是tmux获取git版本的 忘记了
 ## 好像也没用了
 ########################################
+#
 # tmux-git
 # Script for showing current Git branch in Tmux status bar
 #

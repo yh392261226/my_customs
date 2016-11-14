@@ -1,4 +1,6 @@
 #!/usr/bin/expect
+#### old auto connect to server by the alias names
+
 set addr [lindex $argv 0]
 set dir  [lindex $argv 1]
 if { $addr=="" } {

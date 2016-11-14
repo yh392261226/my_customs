@@ -1,7 +1,10 @@
 #!/bin/bash
+#### Update the hosts of osx and Windows with bootcamp
+
 today=$(date +%Y%m%d)
-markline=34
+markline=34  #hosts file 0-34 lines has my custom hosts just ignore them and add the new to the below
 tmppath=/Users/json/Desktop
+bootcamppath=/Volumes/BOOTCAMP
 
 ##下载下来
 #wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO /tmp/${today}.hosts > /dev/null
@@ -18,7 +21,7 @@ rm -f /Users/json/Desktop/hosts
 ##迁移到桌面去
 mv /tmp/final_${today}.hosts $tmppath/hosts
 ##给windows也覆盖一份
-cp $tmppath/hosts /Volumes/BOOTCAMP/Windows/System32/drivers/etc/hosts
+cp $tmppath/hosts $bootcamppath/Windows/System32/drivers/etc/hosts
 ##覆盖本系统的hosts
 sudo cp $tmppath/hosts /etc/hosts
 ##删除临时文件与备份

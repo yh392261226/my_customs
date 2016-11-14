@@ -1,6 +1,6 @@
 # my_customs
 
-Usage: Add flow into $HOME/.zshrc
+Usage: Add below into $HOME/.zshrc
 z_config=("alias" "basic" "prompt" "export" "func" "omz" "other")
 my_custom_zsh=$HOME/.runtime/customs/my_zsh
 

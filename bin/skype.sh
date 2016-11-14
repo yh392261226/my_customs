@@ -1,4 +1,6 @@
 #!/usr/bin/expect
+#### open two skype clients on a osx , you should add two users in the osx
+
 set addr [lindex $argv 0]
 set dir  [lindex $argv 1]
 # if { $addr=="" } {
