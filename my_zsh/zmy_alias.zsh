@@ -65,3 +65,4 @@ alias gcid="git log | head -1 | awk '{print substr(\$2,1,7)}' | pbcopy"
 alias gh='/usr/bin/git stash'
 alias cl='/usr/bin/clear'
 alias woshi='/usr/bin/whoami'
+alias rm='trash'
