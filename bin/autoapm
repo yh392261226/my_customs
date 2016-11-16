@@ -1,13 +1,12 @@
 #!/usr/bin/expect
-# auto update atom plugins by command apm with expect
-set answer [lindex yes]
-set command [lindex /usr/local/bin/apm]
-spawn $command
+#### auto update atom plugins with command apm by expect
+#### not useful shit
 
-expect {
-	"*yes*"
-	{
-		send -- "$answer\n"
-	}
+set answer [lindex yes]
+
+spawn /usr/local/bin/apm update
+
+expect "*updates*" {
+	send "$answer\r\r\r\n"
 }
 interact
