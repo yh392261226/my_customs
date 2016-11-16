@@ -1,0 +1,13 @@
+#!/usr/bin/expect
+# auto update atom plugins by command apm with expect
+set answer [lindex yes]
+set command [lindex /usr/local/bin/apm]
+spawn $command
+
+expect {
+	"*yes*"
+	{
+		send -- "$answer\n"
+	}
+}
+interact
