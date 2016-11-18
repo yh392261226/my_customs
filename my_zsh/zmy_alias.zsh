@@ -1,5 +1,5 @@
 #####重定向 别名
-alias vim="mvim -v"                         # vim alias link
+alias vim="/usr/local/opt/macvim/bin/mvim -v"                         # vim alias link
 alias vi='/usr/local/opt/macvim/bin/mvim -v'
 alias nvi="nvim"
 alias vi2='vi -O2 '

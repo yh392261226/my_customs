@@ -7,9 +7,9 @@ tmppath=/Users/json/Desktop
 bootcamppath=/Volumes/BOOTCAMP
 
 ##下载下来
-#wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO /tmp/${today}.hosts > /dev/null
+wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO /tmp/${today}.hosts > /dev/null
 #wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO /tmp/${today}.hosts > /dev/null
-wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO /tmp/${today}.hosts > /dev/null
+#wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO /tmp/${today}.hosts > /dev/null
 ##把系统原有的备份一个
 cat /etc/hosts > /tmp/${today}.hosts.bak
 ##分割手动的一些hosts
