@@ -1,4 +1,6 @@
 #####重定向 别名
+#vim
+
 alias vim="/usr/local/opt/macvim/bin/mvim -v"                         # vim alias link
 alias vi='/usr/local/opt/macvim/bin/mvim -v'
 alias nvi="nvim"
@@ -11,11 +13,13 @@ alias vom='vim'
 alias vum='vim'
 alias mvim='/usr/local/opt/macvim/bin/mvim -v'
 alias mvi='/usr/local/opt/macvim/bin/mvim -v'
-alias l='/bin/ls -aH'                            # Change the command l to ls -aH
 alias vimdiff="$(brew --prefix vim)/bin/vimdiff" # vimdiff alias link
+alias ehosts='sudo vim /etc/hosts'                  # editHosts:        Edit /etc/hosts fil
+
+#directoy
+
+alias l='/bin/ls -aH'                            # Change the command l to ls -aH
 alias lll="/usr/local/bin/ls++"
-alias brewu='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
-alias brewup='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
 alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)
 alias cd.='cd ..'
 alias ..='cd ../'                           # Go back 1 directory level
@@ -31,12 +35,33 @@ alias numFiles='echo $(ls -1 | wc -l)'      # numFiles:     Count of non-hidden 
 alias make1mb='mkfile 1m ./1MB.dat'         # make1mb:      Creates a file of 1mb size (all zeros)
 alias make5mb='mkfile 5m ./5MB.dat'         # make5mb:      Creates a file of 5mb size (all zeros)
 alias make10mb='mkfile 10m ./10MB.dat'      # make10mb:     Creates a file of 10mb size (all zeros)
+alias mountReadWrite='/sbin/mount -uw /'    # mountReadWrite:   For use when booted into single-user
+alias finderShow='defaults write com.apple.finder ShowAllFiles TRUE'
+alias finderHide='defaults write com.apple.finder ShowAllFiles FALSE'
+alias tmuxls="ls $TMPDIR/tmux*/"
+
+#brew
+
+alias brewu='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
+alias brewup='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
+
+#files
+
+alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
+alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 alias qfind="find . -name "                 # qfind:    Quickly search for file
+alias rm='trash'
+
+#process
+
 alias memHogsTop='top -l 1 -o rsize | head -20'
 alias memHogsPs='ps wwaxm -o pid,stat,vsize,rss,time,command | head -10'
 alias cpu_hogs='ps wwaxr -o pid,stat,%cpu,time,command | head -10'
 alias topForever='top -l 9999999 -s 10 -o cpu'
 alias ttop="top -R -F -s 10 -o rsize"
+
+#network
+
 alias myip='curl ip.appspot.com'                    # myip:         Public facing IP Address
 alias netCons='lsof -i'                             # netCons:      Show all open TCP/IP sockets
 alias flushDNS='dscacheutil -flushcache'            # flushDNS:     Flush out the DNS Cache
@@ -47,22 +72,26 @@ alias ipInfo0='ipconfig getpacket en0'              # ipInfo0:      Get info on 
 alias ipInfo1='ipconfig getpacket en1'              # ipInfo1:      Get info on connections for en1
 alias openPorts='sudo lsof -i | grep LISTEN'        # openPorts:    All listening connections
 alias showBlocked='sudo ipfw list'                  # showBlocked:  All ipfw rules inc/ blocked IPs
-alias mountReadWrite='/sbin/mount -uw /'    # mountReadWrite:   For use when booted into single-user
-alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
-alias finderShow='defaults write com.apple.finder ShowAllFiles TRUE'
-alias finderHide='defaults write com.apple.finder ShowAllFiles FALSE'
-alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
-alias screensaverDesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'
-alias ehosts='sudo vim /etc/hosts'                  # editHosts:        Edit /etc/hosts fil
-alias hc="history -c"
-alias typep='type -p'
-alias tmuxls="ls $TMPDIR/tmux*/"
-alias gz='tar -zxvf'
-alias tgz='tar -zxvf'
-alias bz2='tar -xjvf'
+
+#versions
+
 alias gitv='git log --graph --format="%C(auto)%h%d %s %C(black)%C(bold)%cr"'
 alias gcid="git log | head -1 | awk '{print substr(\$2,1,7)}' | pbcopy"
 alias gh='/usr/bin/git stash'
+alias hgs='hg status'
+alias hgu='hg update'
+alias hgpl='hg pull'
+alias hgpu='hg push'
+alias hgc='hg clone'
+
+#compression
+alias gz='tar -zxvf'
+alias tgz='tar -zxvf'
+alias bz2='tar -xjvf'
+
+#other
+alias screensaverDesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'
+alias hc="history -c"
+alias typep='type -p'
 alias cl='/usr/bin/clear'
 alias woshi='/usr/bin/whoami'
-alias rm='trash'
