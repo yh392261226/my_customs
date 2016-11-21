@@ -40,17 +40,23 @@ alias finderShow='defaults write com.apple.finder ShowAllFiles TRUE'
 alias finderHide='defaults write com.apple.finder ShowAllFiles FALSE'
 alias tmuxls="ls $TMPDIR/tmux*/"
 
-#brew
-
-alias brewu='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
-alias brewup='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
-
 #files
 
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
 alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 alias qfind="find . -name "                 # qfind:    Quickly search for file
 alias rm='trash'
+alias rmDS="find . -type f -name '*.DS_Store' -ls -delete"
+
+#compression
+alias gz='tar -zxvf'
+alias tgz='tar -zxvf'
+alias bz2='tar -xjvf'
+
+#brew
+
+alias brewu='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
+alias brewup='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
 
 #process
 
@@ -83,11 +89,6 @@ alias hgu='hg update'
 alias hgpl='hg pull'
 alias hgpu='hg push'
 alias hgc='hg clone'
-
-#compression
-alias gz='tar -zxvf'
-alias tgz='tar -zxvf'
-alias bz2='tar -xjvf'
 
 #other
 alias screensaverDesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'
