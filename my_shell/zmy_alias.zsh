@@ -45,7 +45,7 @@ alias tmuxls="ls $TMPDIR/tmux*/"
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
 alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 alias qfind="find . -name "                 # qfind:    Quickly search for file
-alias rm='trash'
+alias rm='/usr/local/bin/trash'
 alias rmDS="find . -type f -name '*.DS_Store' -ls -delete"
 
 #compression
