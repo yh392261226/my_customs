@@ -9,18 +9,23 @@ USERNAME=`/usr/bin/whoami`
 if [ "$(uname -s|awk '/Darwin/')" ]; then
     MYSYSNAME='Mac'
     SYSHEADER=''
+    export OS_ICON=""
 elif [ "$(uname -s|awk '/Linux/')" ]; then
     if [ "$(cat /etc/issue|awk '/Ubuntu/')" ]; then
         MYSYSNAME='Ubuntu'
         SYSHEADER='☢'
+        export OS_ICON="☢"
     elif [ "$(cat /etc/issue|awk '/CentOS/')" ]; then
         MYSYSNAME='Centos'
         SYSHEADER='۞'
+        export OS_ICON="۞"
     else
         MYSYSNAME='Unknow'
         SYSHEADER='㊭'
+        export OS_ICON="㊭"
     fi
 else
     MYSYSNAME='Unknow'
     SYSHEADER='☭'
+    export OS_ICON="☭"
 fi
