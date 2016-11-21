@@ -10,7 +10,7 @@ EXT=tmux.conf
 if [ -d $CONFIGS ]; then
   configs=($(ls $CONFIGS/*${EXT}))
   if [ "${#configs[*]}" != "0" ]; then
-    echo "请输入序号：";
+    echo "Input the NO. :";
     posit=0
     for file in ${configs[*]}; do
       echo $posit "：" $(basename ${file} | awk -F ".$EXT" '{print $1}');
@@ -21,11 +21,11 @@ if [ -d $CONFIGS ]; then
     if [ "$conf" -lt "${#configs[*]}" ]; then
       tmux -f ${configs[$conf]}
     else
-      echo "您选择的配置不存在！！！";
+      echo "The config you choose does not exists ！！！";
     fi
   else
-    echo "暂无配置文件！！！";
+    echo "No config can be found ！！！";
   fi
 else
-  echo "配置文件地址不存在！！！";
+  echo "Path of config does not exists ！！！";
 fi
