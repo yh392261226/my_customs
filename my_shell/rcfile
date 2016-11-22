@@ -1,0 +1,20 @@
+export MYRUNTIME=$(cat ~/.myruntime)
+
+curshell() {
+    curshell=$(env | grep RBENV_SHELL)
+    if [ "" = "$curshell" ]; then
+        curshell=$(env | grep PYENV_SHELL)
+        if [ "$curshell" = "PYENV_SHELL=bash" ]; then
+            echo "bash"
+        else
+            echo "Unknow"
+        fi
+    elif [ "$curshell" = "RBENV_SHELL=zsh" ]; then
+        echo "zsh"
+    else
+            echo "Unknow"
+    fi
+}
+
+export nowshell=$(curshell)
+source $MYRUNTIME/customs/my_shell/${nowshell}/custom_shrc
