@@ -1,0 +1,21 @@
+#### 引入我自己的配置：开始
+sh_config=("basic" "prompt" "export" "func" "other" "alias" "import")
+my_custom_sh=$HOME/.runtime/customs/my_shell
+
+for custom_sh_config in $sh_config; do
+    if [ -f $my_custom_sh/my_${custom_sh_config}.sh ]; then
+        source $my_custom_sh/my_${custom_sh_config}.sh
+    fi
+done
+
+if [ "bash" = "$nowshell" ]; then
+	for custom_bash_config in $sh_config; do
+		if [ -f $my_custom_sh/$nowshell/zmy_${custom_bash_config}.$nowshell ]; then
+        	source $my_custom_sh/$nowshell/zmy_${custom_bash_config}.$nowshell
+    	fi
+	done
+fi
+
+test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
+
+### 引入我自己的配置：结束

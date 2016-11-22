@@ -1,5 +1,5 @@
 #### 引入我自己的配置：开始
-sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias")
+sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias" "import")
 my_custom_sh=$HOME/.runtime/customs/my_shell
 
 for custom_sh_config in $sh_config; do
@@ -8,7 +8,6 @@ for custom_sh_config in $sh_config; do
     fi
 done
 
-source $HOME/.my.sh
 if [ "zsh" = "$nowshell" ]; then
 	for custom_zsh_config in $sh_config; do
 		if [ -f $my_custom_sh/zsh/zmy_${custom_zsh_config}.zsh ]; then
