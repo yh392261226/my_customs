@@ -1,6 +1,6 @@
 # my_customs
-
-ZSH custom configs:
+This project can be used for Mac osx Iterm2 & terminal with bash or zsh only
+SHELL custom configs:
 Usage: Add below into $HOME/.zshrc
 ```bash
 source $MYRUNTIME/customs/my_shell/rcfile
