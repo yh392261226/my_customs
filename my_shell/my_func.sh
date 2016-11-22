@@ -464,3 +464,7 @@ rmext () {
         trash ./*$1
     fi
 }
+
+function battery_charge {
+  echo `~/bin/batcharge.py`
+}
