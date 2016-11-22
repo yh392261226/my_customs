@@ -430,3 +430,11 @@ zsh_wifi_signal(){
         echo -n "%{$color%}\uf230  $signal%{%f%}" # \uf230 is 
     fi
 }
+
+removeDS() {
+    if [ "" = "$1" ]; then
+        find . -type f -name '*.DS_Store' -ls -delete
+    else
+        find $1 -type f -name '*.DS_Store' -ls -delete
+    fi
+}
