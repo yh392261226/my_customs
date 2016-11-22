@@ -84,6 +84,18 @@ alias showBlocked='sudo ipfw list'                  # showBlocked:  All ipfw rul
 alias gitv='git log --graph --format="%C(auto)%h%d %s %C(black)%C(bold)%cr"'
 alias gcid="git log | head -1 | awk '{print substr(\$2,1,7)}' | pbcopy"
 alias gh='/usr/bin/git stash'
+git config --global alias.co checkout
+git config --global alias.ci commit
+git config --global alias.cm commit
+git config --global alias.st status
+git config --global alias.ad add
+git config --global alias.df diff
+git config --global alias.dfc "diff --cached"
+git config --global alias.br branch
+git config --global alias.lol "log --graph --decorate --pretty=oneline --abbrev-commit"
+git config --global alias.lola "log --graph --decorate --pretty=oneline --abbrev-commit --all"
+git config --global alias.subup "submodule update --init --recursive"
+git config --global alias.subst "submodule status --recursive"
 alias hgs='hg status'
 alias hgu='hg update'
 alias hgpl='hg pull'
