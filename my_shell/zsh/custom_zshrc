@@ -1,4 +1,3 @@
-source $HOME/.yadr/zsh/prezto/runcoms/zshrc
 #### 引入我自己的配置：开始
 sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias")
 my_custom_sh=$HOME/.runtime/customs/my_shell
@@ -27,7 +26,3 @@ test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell
 #不知道跟yadr的哪个插件冲突 所以必须单独引入
 source $my_custom_sh/zsh/zmy_changebg.zsh
 ### 引入我自己的配置：结束
-
-
-# OPAM configuration
-. /Users/json/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
