@@ -1,7 +1,3 @@
-### 配置文件引入
-source $MYRUNTIME/customs/my_shell/go.sh
-source $MYRUNTIME/customs/my_shell/php.sh
-source $MYRUNTIME/customs/my_shell/ser.sh
 # Z integration
 source $HOME/z.sh
 unalias z 2> /dev/null
@@ -38,6 +34,3 @@ fi
 eval $(thefuck --alias)
 
 /bin/sh $MYRUNTIME/tools/extendslocatetochangepicurl.sh
-
-
-

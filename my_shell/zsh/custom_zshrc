@@ -1,5 +1,5 @@
 #### 引入我自己的配置：开始
-sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias" "import")
+sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias" "import" "go" "php" "ser")
 my_custom_sh=$HOME/.runtime/customs/my_shell
 
 for custom_sh_config in $sh_config; do
