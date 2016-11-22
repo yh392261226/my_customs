@@ -441,7 +441,7 @@ removeDS() {
     fi
 }
 
-mytrash () {
+mtrash () {
     local path
     for path in "$@"; do
         # ignore any arguments
@@ -457,3 +457,10 @@ mytrash () {
     done
 }
 
+rmext () {
+    if [ "" = "$1" ]; then
+        trash ./*
+    else
+        trash ./*$1
+    fi
+}
