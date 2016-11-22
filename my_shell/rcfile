@@ -1,3 +1,10 @@
+######################################################
+# This rcfile and custom settings can be only used for
+# ZSH or BASH
+# Usage: In your ~/.bashrc or ~/.zshrc
+#    source $MYRUNTIME/customs/my_shell/rcfile
+#
+######################################################
 export MYRUNTIME=$(cat ~/.myruntime)
 
 curshell() {
