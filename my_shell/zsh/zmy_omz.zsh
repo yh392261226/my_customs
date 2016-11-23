@@ -7,11 +7,10 @@ export UPDATE_ZSH_DAYS=7
 #ZSH_THEME="robbyrussell"
 #ZSH_THEME="powerline2"
 ZSH_THEME="powerlevel9k/powerlevel9k"
-#powerlevel9k的主题设置
+#powerlevel9k的主题设置 参考网址：https://github.com/bhilburn/powerlevel9k
+### custom setting
 POWERLEVEL9K_MODE='awesome-fontconfig'
-#POWERLEVEL9K_PROMPT_ON_NEWLINE=true
-#POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX="%{%F{249}%}\u250f"
-#POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="%{%F{249}%}\u2517%{%F{default}%} "
+POWERLEVEL9K_PROMPT_ON_NEWLINE=true
 POWERLEVEL9K_SHORTEN_DIR_LENGTH=4
 POWERLEVEL9K_SHORTEN_STRATEGY="truncate_middle"
 POWERLEVEL9K_OS_ICON_BACKGROUND="black"
@@ -25,7 +24,7 @@ POWERLEVEL9K_DIR_HOME_SUBFOLDER_FOREGROUND="249"
 POWERLEVEL9K_DIR_DEFAULT_BACKGROUND="black"
 POWERLEVEL9K_DIR_DEFAULT_FOREGROUND="249"
 POWERLEVEL9K_STATUS_OK_BACKGROUND="black"
-POWERLEVEL9K_STATUS_OK_FOREGROUND="green"
+POWERLEVEL9K_STATUS_OK_FOREGROUND="yellow"
 POWERLEVEL9K_STATUS_ERROR_BACKGROUND="black"
 POWERLEVEL9K_STATUS_ERROR_FOREGROUND="red"
 POWERLEVEL9K_NVM_BACKGROUND="black"
@@ -61,19 +60,18 @@ POWERLEVEL9K_BATTERY_DISCONNECTED_VISUAL_IDENTIFIER_COLOR="249"
 POWERLEVEL9K_TIME_BACKGROUND="black"
 POWERLEVEL9K_TIME_FOREGROUND="249"
 POWERLEVEL9K_TIME_FORMAT="%D{%H:%M:%S}"
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=('status' 'os_icon' 'todo' 'context' 'dir' 'vcs')
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=('load' 'ram_joined' 'battery' 'time')
-#POWERLEVEL9K_MODE='awesome-fontconfig'
-# POWERLEVEL9K_MODE='awesome-patched'
-# POWERLEVEL9K_MODE='flat'
-#POWERLEVEL9K_CUSTOM_WIFI_SIGNAL="zsh_wifi_signal"
-#POWERLEVEL9K_CUSTOM_WIFI_SIGNAL_BACKGROUND="blue"
-#POWERLEVEL9K_CUSTOM_WIFI_SIGNAL_FOREGROUND="yellow"
-#POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
-#POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(status battery custom_wifi_signal time)
-# U+F424 wifi基站   monofur for powerline pnft mono
-# U+F240 battery满 monofur for powerline pnft plus
-#插件
+### custom command
+POWERLEVEL9K_CUSTOM_WIFI_SIGNAL="zsh_wifi_signal"
+POWERLEVEL9K_CUSTOM_WIFI_SIGNAL_BACKGROUND="black"
+POWERLEVEL9K_CUSTOM_WIFI_SIGNAL_FOREGROUND="black"
+POWERLEVEL9K_CUSTOM_BATTERY_SIGNAL="zsh_battery_charge"
+POWERLEVEL9K_CUSTOM_BATTERY_SIGNAL_BACKGROUND="black"
+POWERLEVEL9K_CUSTOM_BATTERY_SIGNAL_FOREGROUND="249"
+### prompt line setting
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=('os_icon' 'todo' 'context' 'dir' 'vcs')
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=('status' 'custom_wifi_signal' 'battery' 'time')
+
+#plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
 plugins=(mvn subl autojump svn svn-fast-info go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting web-search)
 
