@@ -70,6 +70,8 @@ POWERLEVEL9K_CUSTOM_BATTERY_SIGNAL_FOREGROUND="249"
 ### prompt line setting
 POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=('os_icon' 'todo' 'context' 'dir' 'vcs')
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=('status' 'custom_wifi_signal' 'battery' 'time')
+POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="╰─➢ "
+
 
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
