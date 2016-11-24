@@ -1,0 +1,25 @@
+#!/bin/bash
+
+###work director file
+dirmarks=$HOME/.work_director
+
+if [ $# -ne 1 ]; then
+  echo "Usage: $0 work|record|learn";
+  exit 0
+fi
+
+if [ -f $workdir ]; then
+  source $dirmarks
+
+  case "$1" in
+    work)
+      cd $working
+      ;;
+    record)
+      cd $recording
+      ;;
+    learn)
+      cd $learnning
+      ;;
+  esac
+fi
