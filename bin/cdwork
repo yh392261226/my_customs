@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###work director file
-dirmarks=$HOME/.work_director
+dirmarks=$MYRUNTIME/customs/bin/work_director
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 work|record|learn";
