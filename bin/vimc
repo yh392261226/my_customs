@@ -60,6 +60,7 @@ UnSymlink() {
         "$HOME/.vimrc.last"
         "$HOME/.vimrc.plugins"
         "/tmp/vimrc_human/"  #针对配置bootleq
+        "$HOME/.vimrc.local.plugins"
         )
     for file in ${needdel[*]}; do
         if [ -f $file ] || [ -d $file ]; then   #如果存在就删除
@@ -259,6 +260,11 @@ Symlink() {
             ln -sf $choose/vimrc.user.after $HOME/.vimrc.user.after
         else
             :
+        fi
+
+        #软连接.vimrc.local.plugins
+        if [ -f $choose/.vimrc.local.plugins ]; then
+            ln -sf $choose/.vimrc.local.plugins $HOME/.vimrc.local.plugins
         fi
 
         #软连接vimrc.first

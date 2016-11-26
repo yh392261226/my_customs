@@ -2,6 +2,8 @@
 export PLATFORM=$(uname -s)
 export BASE=$HOME
 export PATH="$(brew --prefix macvim)/bin:/usr/local/bin:$PATH"
+export RBENV_ROOT=/usr/local/var/rbenv
+eval "$(rbenv init -)"
 
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then
