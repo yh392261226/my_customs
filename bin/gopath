@@ -2,7 +2,7 @@
 
 ###work director file
 dirmarks=$MYRUNTIME/customs/bin/work_director
-tmpcommand=$MYRUNTIME/custom/bin/gopath_command
+tmpcommand=$MYRUNTIME/customs/bin/gopath_command
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 work|record|learn";
