@@ -2,6 +2,7 @@
 
 ###work director file
 dirmarks=$MYRUNTIME/customs/bin/work_director
+tmpcommand=$MYRUNTIME/custom/bin/gopath_command
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 work|record|learn";
@@ -13,13 +14,16 @@ if [ -f $workdir ]; then
 
   case "$1" in
     work)
-      cd $working
+      echo "cd $working" > $tmpcommand
       ;;
     record)
-      cd $recording
+      echo "cd $recording" > $tmpcommand
       ;;
     learn)
-      cd $learnning
+      echo "cd $learnning" > $tmpcommand
       ;;
   esac
 fi
+
+/bin/chmod +x $tmpcommand
+/bin/bash $tmpcommand
