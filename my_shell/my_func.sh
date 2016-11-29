@@ -502,3 +502,21 @@ mwhois() {
                           # strip extra fluff
   /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
+
+gowork() {
+  worklist=$MYRUNTIME/customs/worklist
+  if [ -f $worklist ]; then
+    source $worklist
+  fi
+  case $1 in
+    work)
+      cd "$working"
+      ;;
+    record)
+      cd "$recording"
+      ;;
+    learn)
+      cd "$learnning"
+      ;;
+  esac
+}
