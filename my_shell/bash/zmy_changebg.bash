@@ -1,3 +1,5 @@
+#!/bin/bash
+
 show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php
 
@@ -8,7 +10,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
         image_list=($(/bin/ls $MYPATH/pictures/))
         image_index=-1
         #图像切换函数
-        bg_change() {
+        function bg_change() {
             image_path=$1
             image_index=$2
             CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
@@ -51,7 +53,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
         }
 
         #下一个背景图
-        bg_next() {
+        function bg_next() {
             if [ -z "$BUFFER" ]; then
                 if test $image_index -ge ${#image_list[*]}; then
                     image_index=-1
@@ -61,50 +63,42 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 image_path=$image_list[$image_index]
                 bg_change $image_path $image_index
             else
-                zle self-insert '^}'
+                self-insert '"\C-}"'
             fi
         }
-        zle -N bg_next
-        bindkey '^}' bg_next   #//Ctrl }符换背景 (下一个)
 
         #随机下一个背景图
-        bg_rand_next() {
+        function bg_rand_next() {
             if [ -z "$BUFFER" ]; then
                 image_path=$($phpbin $MYPATH/tools/pictures.php next);
                 bg_change $image_path
             else
-                zle self-insert '^E'
+                self-insert '"\C-e"'
             fi
         }
-        zle -N bg_rand_next
-        bindkey '^E' bg_rand_next   #//Ctrl E 换背景 (随机的下一个)
 
         #随机一个背景图
-        bg_rand() {
+        function bg_rand() {
             if [ -z "$BUFFER" ]; then
                 image_path=$($phpbin $MYPATH/tools/pictures.php rand);
                 bg_change $image_path
             else
-                zle self-insert '^W'
+                self-insert '"\C-w"'
             fi
         }
-        zle -N bg_rand
-        bindkey '^W' bg_rand   #//Ctrl W 换背景 (随机一个)
 
         #随机上一个背景图
-        bg_rand_pre() {
+        function bg_rand_pre() {
             if [ -z "$BUFFER" ]; then
                 image_path=$($phpbin $MYPATH/tools/pictures.php pre);
                 bg_change $image_path
             else
-                zle self-insert '^Q'
+                self-insert '"\C-q"'
             fi
         }
-        zle -N bg_rand_pre
-        bindkey '^Q' bg_rand_pre   #//Ctrl Q 换背景 (随机的上一个)
 
         #上一个背景图
-        bg_pre() {
+        function bg_pre() {
             if [ -z "$BUFFER" ]; then
                 if test $image_index -le 0; then
                     image_index=${#image_list[*]}
@@ -114,23 +108,27 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 image_path=$image_list[$image_index]
                 bg_change $image_path $image_index
             else
-                zle self-insert '^{'
+                self-insert '"\C-{"'
             fi
         }
-        zle -N bg_pre
-        bindkey '^{' bg_pre   #//Ctrl {符换背景(上一个)
 
         #背景图设置为空
-        bg_empty() {
+        function bg_empty() {
             if [ -z "$BUFFER" ]; then
                 image_path=
                 bg_change $image_path
             else
-                zle self-insert '^B'
+                self-insert '"\C-b"'
             fi
         }
-        zle -N bg_empty
-        bindkey '^B' bg_empty #//Ctrl B 背景换成空的
+
+        #只有 Ctrl + e 可以用 其他的白费  很奇怪...
+        bind -x '"\C-{":'bg_pre         #//Ctrl { 符换背景(上一个)
+        bind -x '"\C-}":'bg_next        #//Ctrl } 符换背景 (下一个)
+        bind -x '"\C-q":'bg_rand_pre    #//Ctrl Q 换背景 (随机的上一个)
+        bind -x '"\C-w":'bg_rand_next   #//Ctrl W 换背景 (随机一个)
+        bind -x '"\C-e":'bg_rand        #//Ctrl E 换背景 (随机的下一个)
+        bind -x '"\C-b":'bg_empty       #//Ctrl B 背景换成空的
     fi
 
 #    控制打开终端就自动随机更换一次背景
