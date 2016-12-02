@@ -129,10 +129,10 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             else
                 zle self-insert '^B'
             fi
-    }
-    zle -N bg_empty
-    bindkey '^B' bg_empty #//Ctrl B 背景换成空的
-fi
+	    }
+	    zle -N bg_empty
+	    bindkey '^B' bg_empty #//Ctrl B 背景换成空的
+	fi
 
 #    控制打开终端就自动随机更换一次背景
 #     bg_rand
