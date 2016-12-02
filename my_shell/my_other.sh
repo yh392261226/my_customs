@@ -13,3 +13,5 @@ fi
 [[ -s ~/.autojump/etc/profile.d/autojump.sh  ]] && source ~/.autojump/etc/profile.d/autojump.sh
 
 default_user=$(/usr/bin/whoami)
+
+/usr/local/bin/screenfetch
