@@ -5,7 +5,6 @@ set phpbin /usr/local/bin/php
 set MYSYSNAME Mac
 set ITERMPATH "/Applications/iTerm.app"
 set image_list (/bin/ls $MYPATH/pictures/)
-set image_index -1
 
 function bg_change
     set image_path $argv
@@ -13,6 +12,12 @@ function bg_change
         rm -f $MYPATH/tools/current_picturename
     end
     echo "$image_path" > $MYPATH/tools/current_picturename
+
+	if test "$show_msg" = "1"
+        if test not -z "$image_path"
+            /usr/local/bin/terminal-notifier -message $image_path
+        end
+    end
 
     /usr/bin/osascript -e "tell application \"iTerm.app\"
         tell current window
