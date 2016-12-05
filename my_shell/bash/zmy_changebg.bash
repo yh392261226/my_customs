@@ -7,7 +7,7 @@ phpbin=/usr/local/bin/php
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     ITERMPATH="/Applications/iTerm.app"
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
-        image_list=($(/bin/ls $MYPATH/pictures/))
+        image_list=( $(/bin/ls $MYPATH/pictures/) )
         image_index=-1
         #图像切换函数
         function bg_change() {
@@ -52,28 +52,13 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             fi
         }
 
-        #下一个背景图
-        function bg_next() {
-            if [ -z "$BUFFER" ]; then
-                if test $image_index -ge ${#image_list[*]}; then
-                    image_index=-1
-                else
-                    image_index=$(( $image_index + 1 ))
-                fi
-                image_path=$image_list[$image_index]
-                bg_change $image_path $image_index
-            else
-                self-insert '"\C-}"'
-            fi
-        }
-
         #随机下一个背景图
         function bg_rand_next() {
             if [ -z "$BUFFER" ]; then
                 image_path=$($phpbin $MYPATH/tools/pictures.php next);
                 bg_change $image_path
             else
-                self-insert '"\C-e"'
+                self-insert '"˚"'
             fi
         }
 
@@ -83,7 +68,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 image_path=$($phpbin $MYPATH/tools/pictures.php rand);
                 bg_change $image_path
             else
-                self-insert '"\C-w"'
+                self-insert '"∆"'
             fi
         }
 
@@ -93,22 +78,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 image_path=$($phpbin $MYPATH/tools/pictures.php pre);
                 bg_change $image_path
             else
-                self-insert '"\C-q"'
-            fi
-        }
-
-        #上一个背景图
-        function bg_pre() {
-            if [ -z "$BUFFER" ]; then
-                if test $image_index -le 0; then
-                    image_index=${#image_list[*]}
-                else
-                    image_index=$(( $image_index - 1 ))
-                fi
-                image_path=$image_list[$image_index]
-                bg_change $image_path $image_index
-            else
-                self-insert '"\C-{"'
+                self-insert '"˙"'
             fi
         }
 
@@ -118,17 +88,15 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 image_path=
                 bg_change $image_path
             else
-                self-insert '"\C-b"'
+                self-insert '"∫"'
             fi
         }
 
-        #只有 Ctrl + e 可以用 其他的白费  很奇怪...
-        bind -x '"\C-{":'bg_pre         #//Ctrl { 符换背景(上一个)
-        bind -x '"\C-}":'bg_next        #//Ctrl } 符换背景 (下一个)
-        bind -x '"\C-q":'bg_rand_pre    #//Ctrl Q 换背景 (随机的上一个)
-        bind -x '"\C-w":'bg_rand_next   #//Ctrl W 换背景 (随机一个)
-        bind -x '"\C-e":'bg_rand        #//Ctrl E 换背景 (随机的下一个)
-        bind -x '"\C-b":'bg_empty       #//Ctrl B 背景换成空的
+        bind -x '"˙":"bg_rand_pre"'    #//Alt h 换背景 (随机的上一个)
+        bind -x '"∆":"bg_rand"'        #//Alt j 换背景 (随机一个)
+        bind -x '"˚":"bg_rand_next"'   #//Alt k 换背景 (随机的下一个)
+
+        bind -x '"∫":"bg_empty"'       #//Alt b 背景换成空的
     fi
 
 #    控制打开终端就自动随机更换一次背景
