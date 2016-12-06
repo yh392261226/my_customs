@@ -11,18 +11,18 @@ set -gx GOARCH amd64
 set -gx PATH $MYRUNTIME/customs/bin $PATH
 
 ##别名设置
-alias goweb="godoc -http=:9900 >> /dev/null &"
-alias vimgo='vim -u ~/.vimrc.go'
-alias l="ls -a"
-alias lll="/usr/local/bin/ls++"
-alias gopl="open ~/Documents/golang/gopl-zh/_book/index.html"
-alias cl="clear"
+alias goweb" godoc -http=:9900 >> /dev/null &"
+alias vimgo 'vim -u ~/.vimrc.go'
+alias l "ls -a"
+alias lll "/usr/local/bin/ls++"
+alias gopl "open ~/Documents/golang/gopl-zh/_book/index.html"
+alias cl "clear"
 
 ##图片脚本设置
 sh {$MYRUNTIME}/tools/extendslocatetochangepicurl.sh
 
 ##autojump设置
-[ -f /usr/local/share/autojump/autojump.fish ]; and source /usr/local/share/autojump/autojump.fish
+[ -f /usr/local/share/autojump/autojump.fish ]; and . /usr/local/share/autojump/autojump.fish
 
 eval (thefuck --alias | tr '\n' ';')
 
@@ -30,5 +30,5 @@ eval (thefuck --alias | tr '\n' ';')
 
 ##引入iterm2 自动变更背景脚本
 if test -f {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
-    source {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
+    . {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
 end
