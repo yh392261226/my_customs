@@ -48,8 +48,6 @@ extract () {
 ff () { /usr/bin/find . -name "$@" ; }      # ff:       Find file under the current directory
 ffs () { /usr/bin/find . -name "$@"'*' ; }  # ffs:      Find file whose name starts with a given string
 ffe () { /usr/bin/find . -name '*'"$@" ; }  # ffe:      Find file whose name ends with a given string
-mf() { find . -iname "*$1*" ${@:2} }
-mr() { grep "$1" ${@:2} -R . }
 
 #   spotlight: Search for a file using MacOS Spotlight's metadata
 #   -----------------------------------------------------------
@@ -174,7 +172,6 @@ gitdiffb() {
         --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' \
         --abbrev-commit --date=relative $1..$2
 }
-
 
 miniprompt() {
     unset PROMPT_COMMAND

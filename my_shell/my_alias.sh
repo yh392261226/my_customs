@@ -45,7 +45,7 @@ alias tmuxls="ls $TMPDIR/tmux*/"
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
 alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 alias qfind="find . -name "                 # qfind:    Quickly search for file
-alias rm='/usr/local/bin/trash'
+#alias rm='/usr/local/bin/trash'
 alias rmDS="removeDS"
 
 #compression
@@ -83,7 +83,7 @@ alias showBlocked='sudo ipfw list'                  # showBlocked:  All ipfw rul
 
 alias gitv='git log --graph --format="%C(auto)%h%d %s %C(black)%C(bold)%cr"'
 alias gcid="git log | head -1 | awk '{print substr(\$2,1,7)}' | pbcopy"
-alias gh='/usr/bin/git stash'
+alias gith="/usr/bin/git stash"
 git config --global alias.co checkout
 git config --global alias.ci commit
 git config --global alias.cm commit

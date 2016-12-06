@@ -19,7 +19,7 @@ alias gopl="open ~/Documents/golang/gopl-zh/_book/index.html"
 alias cl="clear"
 
 ##图片脚本设置
-sh (cat ~/.myruntime)/tools/extendslocatetochangepicurl.sh
+sh {$MYRUNTIME}/tools/extendslocatetochangepicurl.sh
 
 ##autojump设置
 [ -f /usr/local/share/autojump/autojump.fish ]; and . /usr/local/share/autojump/autojump.fish
@@ -29,6 +29,6 @@ eval (thefuck --alias | tr '\n' ';')
 /usr/local/bin/screenfetch
 
 ##引入iterm2 自动变更背景脚本
-if test -f $MYRUNTIME/customs/my_shell/fish/zmy_changebg.fish
-    source $MYRUNTIME/customs/my_shell/fish/zmy_changebg.fish
+if test -f {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
+    source {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
 end

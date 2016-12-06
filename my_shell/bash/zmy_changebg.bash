@@ -21,7 +21,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 echo $image_index > $MYPATH/tools/current_picture
             fi
             if [ -f $MYPATH/tools/current_picturename ]; then
-                rm -f $MYPATH/tools/current_picturename
+                /bin/rm -f $MYPATH/tools/current_picturename
             fi
             echo "$image_path" > $MYPATH/tools/current_picturename
 

@@ -8,10 +8,10 @@ set image_list (/bin/ls $MYPATH/pictures/)
 
 function bg_change
     set image_path $argv
-    if test -f $MYPATH/tools/current_picturename
-        rm -f $MYPATH/tools/current_picturename
+    if test -f {$MYPATH}/tools/current_picturename
+        rm -f {$MYPATH}/tools/current_picturename
     end
-    echo "$image_path" > $MYPATH/tools/current_picturename
+    echo "$image_path" > {$MYPATH}/tools/current_picturename
 
 	if test "$show_msg" = "1"
         if test not -z "$image_path"

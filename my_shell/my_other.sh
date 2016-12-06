@@ -15,3 +15,18 @@ fi
 default_user=$(/usr/bin/whoami)
 
 /usr/local/bin/screenfetch
+
+if [ "bash" = "$nowshell" ]; then
+    source $(brew --prefix grc)/etc/grc.bashrc
+    source $(brew --prefix)/etc/bash_completion
+    source ~/git-completion.bash
+    [ -f ~/.fzf.bash ] && source ~/.fzf.bash
+elif [ "zsh" = "$nowshell" ]; then
+    source $(brew --prefix)/share/antigen/antigen.zsh
+	# unset _fzf_completion_loaded
+    [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+fi
+
+eval $(thefuck --alias)
+
+/bin/sh $MYRUNTIME/tools/extendslocatetochangepicurl.sh
