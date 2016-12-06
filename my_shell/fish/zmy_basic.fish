@@ -22,7 +22,7 @@ alias cl="clear"
 sh {$MYRUNTIME}/tools/extendslocatetochangepicurl.sh
 
 ##autojump设置
-[ -f /usr/local/share/autojump/autojump.fish ]; and . /usr/local/share/autojump/autojump.fish
+[ -f /usr/local/share/autojump/autojump.fish ]; and source /usr/local/share/autojump/autojump.fish
 
 eval (thefuck --alias | tr '\n' ';')
 
