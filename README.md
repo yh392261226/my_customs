@@ -3,15 +3,13 @@ This project can be used for Mac osx Iterm2 & terminal with bash or zsh only
 SHELL custom configs:
 
 **********************************************
-Usage: Add below into $HOME/.zshrc
+Usage: Add below into $HOME/.zshrc or add below into $HOME/.bashrc
 ```bash
 source $MYRUNTIME/customs/my_shell/rcfile
 
 ```
-Usage: Add below into $HOME/.bashrc
-```zsh
-source $MYRUNTIME/customs/my_shell/rcfile
-```
+
+
 **********************************************
 
 Iterm2 custom setting:
