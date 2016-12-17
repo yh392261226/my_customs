@@ -505,7 +505,11 @@ gowork() {
   if [ -f $worklist ]; then
     source $worklist
   fi
-  case $1 in
+  para=$1
+  if [ "$para" = "" ]; then
+    para="work"
+  fi
+  case $para in
     work)
       cd "$working"
       ;;
