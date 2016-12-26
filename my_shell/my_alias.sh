@@ -108,3 +108,4 @@ alias hc="history -c"
 alias typep='type -p'
 alias cl='/usr/bin/clear'
 alias woshi='/usr/bin/whoami'
+alias dut="$(whereis du) -sh"
