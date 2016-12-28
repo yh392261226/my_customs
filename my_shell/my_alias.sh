@@ -3,7 +3,7 @@
 
 alias vim="/usr/local/opt/macvim/bin/mvim -v"                         # vim alias link
 alias vi='/usr/local/opt/macvim/bin/mvim -v'
-alias nvi="nvim"
+alias nvi="/usr/local/bin/nvim"
 alias vi2='vi -O2 '
 alias ephp='vim'
 alias epy='vim'
