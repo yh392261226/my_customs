@@ -1,14 +1,14 @@
 #!/bin/bash
 ##
 ## 根据不同的网络位置设置 改变当前背景图片的读取位置
-## beyond the diffrent posit of network link the diffrent image path to the picture 
+## beyond the diffrent posit of network link the diffrent image path to the picture
 ## you should set the network positions of osx first
 ##
 CURLOCATION=$(networksetup -getcurrentlocation);  #当前位置名
 PICURL=$MYRUNTIME/pictures; #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
-COMPANYPICS=$HOME/Dropbox/company
-OTHERPICS=$HOME/Dropbox/pictures
+COMPANYPICS=$HOME/Pictures/down_pics/company
+OTHERPICS=$HOME/Pictures/down_pics/pictures
 
 
 
