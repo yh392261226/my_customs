@@ -519,5 +519,8 @@ gowork() {
     learn)
       cd "$learnning"
       ;;
+    max)
+      cd "$max"
+      ;;
   esac
 }
