@@ -11,7 +11,7 @@ set -gx GOARCH amd64
 set -gx PATH $MYRUNTIME/customs/bin $PATH
 
 ##别名设置
-alias goweb" godoc -http=:9900 >> /dev/null &"
+alias goweb "godoc -http=:9900 >> /dev/null &"
 alias vimgo 'vim -u ~/.vimrc.go'
 alias l "ls -a"
 alias lll "/usr/local/bin/ls++"
