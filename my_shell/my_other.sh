@@ -17,7 +17,8 @@ default_user=$(/usr/bin/whoami)
 /usr/local/bin/screenfetch
 
 if [ "bash" = "$nowshell" ]; then
-    source $(brew --prefix grc)/etc/grc.bashrc
+#    source $(brew --prefix grc)/etc/grc.bashrc
+    source /usr/local/etc/grc.bashrc
     source $(brew --prefix)/etc/bash_completion
     source ~/git-completion.bash
     [ -f ~/.fzf.bash ] && source ~/.fzf.bash
