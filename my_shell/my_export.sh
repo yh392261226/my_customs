@@ -8,6 +8,7 @@ eval "$(rbenv init -)"
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then
     export PATH=/usr/local/bin:$PATH:/usr/local/var/rbenv/shims:/Users/json/go/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$HOME/.cabal/bin:/usr/local/sbin:$HOME/bin:$(brew --prefix go)/bin:/usr/local/heroku/bin:$MYRUNTIME/customs/bin:/usr/local/opt/llvm/bin
+    export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 else
     export PATH=$PATH:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/local/rvm/bin:$HOME/.cabal/bin
 fi
