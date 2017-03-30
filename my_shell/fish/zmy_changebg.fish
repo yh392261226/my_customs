@@ -1,5 +1,5 @@
 #!/usr/local/bin/fish
-
+set SOURCED_FISH_CHANGEBG 1
 set show_msg 0 #是否显示当前切换图片地址提示
 set phpbin /usr/local/bin/php
 set MYSYSNAME Mac
