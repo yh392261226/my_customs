@@ -4,11 +4,14 @@
 ## beyond the diffrent posit of network link the diffrent image path to the picture
 ## you should set the network positions of osx first
 ##
+MYRUNTIME=$(cat $HOME/.myruntime)
 CURLOCATION=$(networksetup -getcurrentlocation);  #当前位置名
 PICURL=$MYRUNTIME/pictures; #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
-COMPANYPICS=$HOME/Pictures/down_pics/company
-OTHERPICS=$HOME/Pictures/down_pics/pictures
+PUBLICPICS=$HOME/Pictures/down_pics/public          #everywhere
+PRIVATEPICS=$HOME/Pictures/down_pics/private        #company
+PROTECTEDPICS=$HOME/Pictures/down_pics/protected    #home
+
 
 
 
@@ -30,31 +33,31 @@ case "$CURLOCATION" in
         hastochange company;
         text="公司哟，亲！注意注意！！！";
         echo "company" > $CURMARKFILE;
-        changepiclink $COMPANYPICS;
+        changepiclink $PRIVATEPICS;
     ;;
     home) #自己家
         hastochange home;
         text="自己家哟，亲！随意哟！！！";
         echo "home" > $CURMARKFILE;
-        changepiclink $OTHERPICS;
+        changepiclink $PROTECTEDPICS;
     ;;
     one_floor) #一楼
         hastochange one_floor;
         text="岳父母家哟，亲！注意点哟！！！";
         echo "one_floor" > $CURMARKFILE;
-        changepiclink $OTHERPICS;
+        changepiclink $PRIVATEPICS;
     ;;
     parents_home) #屯里父母家
         hastochange parents_home;
         text="父母家哟，亲！注意些哟！！！";
         echo "parents_home" > $CURMARKFILE;
-        changepiclink $OTHERPICS;
+        changepiclink $PRIVATEPICS;
     ;;
     auto) #自动的 也相当于是随意的
         hastochange auto;
         text="自动的哟，亲！看看自己在哪吧！";
         echo "auto" > $CURMARKFILE;
-        changepiclink $OTHERPICS;
+        changepiclink $PUBLICPICS;
     ;;
 esac
 #/usr/local/bin/sl
