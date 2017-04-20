@@ -1,0 +1,24 @@
+#!/bin/bash
+###########################################
+# get md5 or sha1 value of the file
+###########################################
+
+MD5COMMAND=/sbin/md5
+SHASUMCOMMAND=/usr/local/bin/shasum
+
+paras=$?		#参数个数
+filename=$1		#文件名
+action=$2		#验证方法
+
+if [ "" = "$filename" ]; then
+	echo "Please type the file name!";
+	echo "Example: $1 abc.log ";
+	exit 1;
+fi
+
+
+if [ "$action" = "sha1" ] || [ "$action" = "shasum" ]; then
+	$SHASUMCOMMAND $filename | awk '{print $1}' #sha1 file
+else
+	$MD5COMMAND $filename | awk -F'=' '{print $2}' #default is md5 file
+fi
