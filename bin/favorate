@@ -2,33 +2,202 @@
 ########################################
 ## 喜爱图片收藏脚本
 ########################################
-MYRUNTIME=$(cat ~/.myruntime)
-FAVOMARK=$MYRUNTIME/tools/m_favorate
+MYRUNTIME=$(cat ~/.myruntime)                       #runtime path
+FAVOMARK=$MYRUNTIME/tools/m_favorate                #favorate mark file
+CURPICNAME=$MYRUNTIME/tools/current_picturename     #current background of iterm2 mark file
+CURPIC=$(cat $CURPICNAME)                           #current background of iterm2 name
+TMPFILE=/tmp/favo_tmp                               #tmp file name
+show_msg=0                                          #if show msg 0:no 1:yes
 
+#缩略图
+thumb_favo() {
+	if [ "$1" = "" ]; then
+		echo "Image file does not exists !";
+		exit 1
+	fi
+	printf '\033]1337;File=inline=1;width=10%%;height=5;preserveAspectRatio=0'
+	printf ":"
+	base64 < "$1"
+	printf '\a'
+}
+
+#图片切换
+change_favo () {
+	image_path=$1
+	CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
+	if [ -f $MYRUNTIME/tools/current_picturename ]
+	then
+		rm -f $MYRUNTIME/tools/current_picturename
+	fi
+	echo "$image_path" > $MYRUNTIME/tools/current_picturename
+
+    if [ "$show_msg" = "1" ]
+	then
+		if [ ! -z "$image_path" ]
+		then
+			terminal-notifier -message $image_path
+		fi
+	fi
+
+	osascript -e "tell application \"iTerm.app\"
+                tell current window
+                    tell current session
+                        set background image to \"$image_path\"
+                    end tell
+                end tell
+            end tell"
+}
 
 ###添加喜欢
 add_favo() {
-
+	if [ ! -f $FAVOMARK ]; then
+		check=""
+	else
+		check=$(cat $FAVOMARK | grep "$CURPIC")
+	fi
+    if [ "$check" != "" ]; then
+        echo "Current picture has already marked !";
+        exit 1
+    fi
+    echo $CURPIC >> $FAVOMARK
+    if [ "$?" = "0" ]; then
+        echo "Add favorate picture successful !";
+    else
+        echo "Add favorate picture faild !";
+    fi
 }
 
 ###删除喜欢
 del_favo() {
+    if [ "$1" = "" ]; then
+        curpicname=$CURPIC
+    else
+        curpicname=$1
+    fi
 
+    cat $FAVOMARK | grep -v "$curpicname" | sort | uniq > $TMPFILE
+    if [ -f $TMPFILE ]; then
+        rm -f $FAVOMARK
+        mv $TMPFILE $FAVOMARK
+        if [ "$?" = "0" ]; then
+            echo "Delete favorate picture successful !";
+        else
+            echo "Delete favorate picture faild !";
+        fi
+    fi
 }
 
-###列出喜欢
+###按照数字删除喜欢
+del_favo_by_num() {
+    favolists=`cat $FAVOMARK`
+    favo_array[0]=''
+    posit=0
+    for i in ${favolists[*]}; do
+        if [ "$i" != "" ]; then
+            favo_array[$posit]=$i #加入数组
+            ((posit+=1))
+        fi
+    done
+
+
+    if [ "$1" -lt "${#favo_array[@]}" ]; then
+        del_favo ${favo_array[$conf]}
+    else
+        echo "The NO. you typed dose not exists !";
+        exit 1
+    fi
+}
+
+###列出喜欢的收藏
 list_favo() {
     if [ ! -f $FAVOMARK ]; then
         echo "$FAVOMARK dose not exists!"
         exit 1
     else
-        cat $FAVOMARK
+		favolists=`cat $FAVOMARK`
+		posit=1
+        for i in ${favolists[*]}; do
+            if [ "$i" != "" ]; then
+				thumb_favo $i
+				echo $i
+				((posit+=1))
+            fi
+        done
+		echo "Total : $posit"
     fi
 }
 
+###选择并设置喜欢
+chose_favo() {
+    if [ ! -f $FAVOMARK ]; then
+        echo "$FAVOMARK dose not exists!"
+        exit 1
+    else
+        favolists=`cat $FAVOMARK`
+        favo_array[0]=''
+        posit=0
+        for i in ${favolists[*]}; do
+            if [ "$i" != "" ]; then
+                favo_array[$posit]=$i #加入数组
+				thumb_favo $i
+				echo $posit $i
+                ((posit+=1))
+            fi
+        done
 
-favorates=$(cat $MYRUNTIME/tools/m)
-if [ "" != "$favorates" ]; then
+		echo "Type your choice : "; read conf
+        if [ "$conf" -lt "${#favo_array[@]}" ]; then
+            change_favo ${favo_array[$conf]}
+        else
+            echo "The NO. you typed dose not exists !";
+            exit 1
+        fi
+    fi
+}
 
-fi
+###清空喜欢
+truncate_favo() {
+    echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
+    read choice
+    if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
+        if [ -f $FAVOMARK ]; then
+            rm -f $FAVOMARK
+        fi
+        echo "Truncate successfully !";
+    else
+        exit 1
+    fi
+}
 
+case "$1" in
+	"chose"|"c")
+		chose_favo
+		;;
+	"list"|"l")
+		list_favo
+		;;
+	"add"|"a")
+		add_favo
+		;;
+	"del"|"d")
+		if [ "" = "$2" ]; then
+			del_favo
+		else
+			del_favo_by_num $2
+		fi
+		;;
+	"trun"|"truncate"|"t")
+		truncate_favo
+		;;
+	"thumb")
+		if [ "" != "$2" ]; then
+			thumb_favo $2
+		fi
+		;;
+	"help"|"h"|*)
+		command=$(basename $0)
+		echo "Usage: $command list/l | add/a | del/d | chose/c | trun/t | thumb | help/h";
+		echo "用法： $command 列表   | 添加  | 删除  | 选择    | 清空   | 缩略图| 帮助"
+		exit 0
+		;;
+esac
