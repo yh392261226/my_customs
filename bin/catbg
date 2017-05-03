@@ -5,6 +5,8 @@
 bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
 if [ ! -f "$bgfile" ]; then
 	echo "No bg at the current time!";exit 1
+elif [ "$1" = "name" ] || [ "$1" != "" ]; then
+	echo $bgfile
 else
 	$HOME/.iterm2/imgcat $bgfile
 fi
