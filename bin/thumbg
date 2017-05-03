@@ -3,7 +3,8 @@ bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
 if [ ! -f "$bgfile" ]; then
 	echo "No bg at the current time!";exit 1
 else
-    printf '\033]1337;File=inline=1;width=30%%;height=13;preserveAspectRatio=0'
+    #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
+    printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
     printf ":"
     base64 < "$bgfile"
     printf '\a\n'

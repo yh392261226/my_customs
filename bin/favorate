@@ -111,7 +111,7 @@ del_favo_by_num() {
 ###列出喜欢的收藏
 list_favo() {
     if [ ! -f $FAVOMARK ]; then
-        echo "$FAVOMARK dose not exists!"
+        echo "$FAVOMARK dose not exists !"
         exit 1
     else
 		favolists=`cat $FAVOMARK`
@@ -124,6 +124,24 @@ list_favo() {
             fi
         done
 		echo "Total : $posit"
+    fi
+}
+
+###列出喜欢的收藏文件列表
+list_files_favo() {
+    if [ ! -f $FAVOMARK ]; then
+        echo "$FAVOMARK does not exists !"
+        exit 1
+    else
+        favolists=`cat $FAVOMARK`
+        posit=1
+        for i in ${favolists[*]}; do
+            if [ "$i" != "" ]; then
+                echo $i
+                ((posit+=1))
+            fi
+        done
+        echo "Total : $posit"
     fi
 }
 
@@ -174,7 +192,11 @@ case "$1" in
 		chose_favo
 		;;
 	"list"|"l")
-		list_favo
+        if [ "$2" = "file" ] || [ "$2" = "f" ]; then
+            list_files_favo
+        else
+		    list_favo
+        fi
 		;;
 	"add"|"a")
 		add_favo
