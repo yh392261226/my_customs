@@ -134,15 +134,24 @@ list_files_favo() {
         exit 1
     else
         favolists=`cat $FAVOMARK`
-        posit=1
         for i in ${favolists[*]}; do
             if [ "$i" != "" ]; then
                 echo $i
-                ((posit+=1))
             fi
         done
-        echo "Total : $posit"
+        list_num_favo
     fi
+}
+
+###显示收藏数量
+list_num_favo() {
+	if [ ! -f $FAVOMARK ]; then
+        echo "$FAVOMARK does not exists !"
+        exit 1
+    else
+        counts=`cat $FAVOMARK |wc -l`
+		echo "Total : $counts"
+	fi
 }
 
 ###选择并设置喜欢
@@ -157,13 +166,20 @@ chose_favo() {
         for i in ${favolists[*]}; do
             if [ "$i" != "" ]; then
                 favo_array[$posit]=$i #加入数组
-				thumb_favo $i
-				echo $posit $i
+                if [ "$1" = "" ]; then
+				    thumb_favo $i
+				    echo $posit $i
+                fi
                 ((posit+=1))
             fi
         done
 
-		echo "Type your choice : "; read conf
+        if [ "$1" != "" ]; then
+            conf=$1
+        else
+		    echo "Type your choice : "; read conf
+        fi
+
         if [ "$conf" -lt "${#favo_array[@]}" ]; then
             change_favo ${favo_array[$conf]}
         else
@@ -189,14 +205,24 @@ truncate_favo() {
 
 case "$1" in
 	"chose"|"c")
-		chose_favo
-		;;
-	"list"|"l")
-        if [ "$2" = "file" ] || [ "$2" = "f" ]; then
-            list_files_favo
+        if [ "$2" != "" ]; then
+            chose_favo $2
         else
-		    list_favo
+		    chose_favo
         fi
+		;;
+	"list"|"l"|"num"|"n")
+		if [ "$1" = "list" ] || [ "$1" = "l" ];then
+	        if [ "$2" = "file" ] || [ "$2" = "f" ]; then
+	            list_files_favo
+			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
+				list_num_favo
+	        else
+			    list_favo
+	        fi
+		elif [ "$1" = "num" ] || [ "$1" = "n" ]; then
+				list_num_favo
+		fi
 		;;
 	"add"|"a")
 		add_favo
@@ -218,8 +244,8 @@ case "$1" in
 		;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | add/a | del/d | chose/c | trun/t | thumb | help/h";
-		echo "用法： $command 列表   | 添加  | 删除  | 选择    | 清空   | 缩略图| 帮助"
+		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | thumb | help/h";
+		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 帮助"
 		exit 0
 		;;
 esac
