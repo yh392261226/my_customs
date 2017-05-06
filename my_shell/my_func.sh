@@ -519,8 +519,58 @@ gowork() {
     learn)
       cd "$learnning"
       ;;
-    max)
-      cd "$max"
+    *)
+      cat $worklist
       ;;
   esac
+}
+
+cdwhere() {
+    PATHS=("$HOME/bin" "$MYRUNTIME/customs/bin" "$HOME/go/bin" "$HOME/.php-school/bin" "$MYRUNTIME" "$MYRUNTIME/customs/my_shell/" "$MYRUNTIME/customs" "$MYRUNTIME/customs/bin/ssh-auto-login/auto_gen")
+
+    if [ "0" -lt "${#PATHS[@]}" ]; then
+        if [ "$1" != "" ]; then
+            number=$1
+        else
+            echo "Which bin do you cd :";
+            tmpi=1
+            for i in $PATHS; do
+                echo "$tmpi : $i"
+                ((tmpi+=1))
+            done
+
+            read number;
+        fi
+        cd ${PATHS[$number]}
+        echo "Done !!!"
+    else
+        echo "Custom pathes if empty !!!"
+        exit 1
+    fi
+    # case $number in
+    #     "home"|"1")
+    #         cd $HOME/bin
+    #         ;;
+    #     "customsbin"|"2")
+    #         cd $MYRUNTIME/customs/bin
+    #         ;;
+    #     "go"|"3")
+    #         cd $HOME/go/bin
+    #         ;;
+    #     "php"|"4")
+    #         cd $HOME/.php-school/bin
+    #         ;;
+    #     "runtime"|"5")
+    #         cd $MYRUNTIME
+    #         ;;
+    #     "myshell"|"6")
+    #         cd $MYRUNTIME/customs/my_shell/
+    #         ;;
+    #     "customs"|"7")
+    #         cd $MYRUNTIME/customs
+    #         ;;
+    #     "autossh"|"8")
+    #         cd /tools/ssh-auto-login/auto_gen
+    #         ;;
+    # esac
 }
