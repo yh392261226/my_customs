@@ -1,2 +1,3 @@
 #!/bin/bash
+#Desc:开启mongodb
 mongod --config /usr/local/etc/mongod.conf > /dev/null &

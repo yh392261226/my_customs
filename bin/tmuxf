@@ -1,7 +1,7 @@
 #!/bin/bash
 ########################################
 ## tmux -f 
-## tmux 根据选择使用配置文件
+## Desc:tmux 根据选择使用配置文件
 ########################################
 CONFIGS=/Users/json/.runtime/tmuxconfigs  #配置文件地址
 EXT=tmux.conf

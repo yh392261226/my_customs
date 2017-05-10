@@ -1,6 +1,6 @@
 #!/bin/bash
 ###################################
-# List the same file in the path
+# Desc: List the same file in the path
 ###################################
 MD5COMMAND=/sbin/md5
 SOURCEPATH=$1

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Desc: 获取本地ip
 function localip() {
   function _localip() { echo "📶  "$(ipconfig getifaddr "$1"); }
   export -f _localip

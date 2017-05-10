@@ -1,6 +1,6 @@
 #!/bin/bash
 ##
-## 根据不同的网络位置设置 改变当前背景图片的读取位置
+## Desc: 根据不同的网络位置设置 改变当前背景图片的读取位置
 ## beyond the diffrent posit of network link the diffrent image path to the picture
 ## you should set the network positions of osx first
 ##

@@ -1,5 +1,5 @@
 #!/bin/bash
-####start the mysql service
+####Desc:start the mysql service
 
 #/usr/local/Cellar/mysql/5.6.13/bin/mysqld --basedir=/usr/local/Cellar/mysql/5.6.13 --datadir=/usr/local/var/mysql --plugin-dir=/usr/local/Cellar/mysql/5.6.13/lib/plugin --bind-address=127.0.0.1 --log-error=/usr/local/var/mysql/jsontekiMacBook-Pro.local.err --pid-file=/usr/local/var/mysql/jsontekiMacBook-Pro.local.pid
 mysql.server start # --early-plugin-load=""

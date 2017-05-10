@@ -1,4 +1,4 @@
 #!/bin/bash
-#### get the weather of haerbin 
+#### Desc:get the weather of haerbin 
 
 /usr/bin/curl http://wttr.in/harbin

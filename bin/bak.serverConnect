@@ -1,4 +1,5 @@
 #!/usr/bin/expect
+# Desc: 旧的自动连接服务器 已弃用
 set addr [lindex $argv 0]
 set dir  [lindex $argv 1]
 if { $addr=="" } {

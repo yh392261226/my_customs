@@ -1,4 +1,5 @@
 #!/bin/bash
+#Desc:在iterm中 缩略图显示 指定图片 可以指定图片宽高
 if [ $# -eq 0 ]; then
   echo "Usage: thumbimg file width*height[can type number%]"
   exit 1

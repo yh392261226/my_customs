@@ -1,4 +1,5 @@
 #!/bin/bash
+# Desc: 验证$MYRUNTIME下的dotfiles中是否已有自定义的设置连接文件set_to_my_symlink
 for i in $(ls -A ~/.runtime/ | grep '_dotfiles'); do
     if [ ! -f ~/.runtime/$i/set_to_my_symlink ];then
         echo $i

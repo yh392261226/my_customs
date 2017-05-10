@@ -1,5 +1,5 @@
 #!/bin/sh
-
+#Desc:php-fpm 管理脚本 启动|关闭|重启
 param=$1
 
 start()

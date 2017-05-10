@@ -1,6 +1,6 @@
 #!/bin/bash
 ###########################################
-# get md5 or sha1 value of the file
+# Desc:get md5 or sha1 value of the file
 ###########################################
 
 MD5COMMAND=/sbin/md5

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding=UTF-8
-
+# Desc: tmux 状态条用的电池段显示
 import math
 import subprocess
 

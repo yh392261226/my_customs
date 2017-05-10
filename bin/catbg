@@ -1,6 +1,6 @@
 #!/bin/bash
 #### move the current background image of the iterm2 to the trash
-
+# Desc: 在iterm中原图显示当前iterm的背景图
 #rm -f $(cat $MYRUNTIME/tools/current_picturename)
 bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
 if [ ! -f "$bgfile" ]; then

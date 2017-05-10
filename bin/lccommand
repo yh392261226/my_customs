@@ -1,0 +1,19 @@
+#!/bin/bash
+# Desc: 列出所有自定义命令
+MYRUNTIME=$(cat $HOME/.myruntime)
+CUSTOMSBIN=$MYRUNTIME/customs/bin
+
+if [ -d $CUSTOMSBIN ]; then
+    files=$(/bin/ls $CUSTOMSBIN | sort)
+    for i in $files; do
+        if [ -f $i ] && [ "$i" != "$(basename $0)" ]; then
+            desc=$(cat $CUSTOMSBIN/$i | grep 'Desc:' | sed 's/#//g' | sed 's/Desc://g' | sed 's/^[ \t]*//')
+            #echo "$i \t\t【 $desc 】"
+            printf "%-5s%-35s%-15s\n" "#" "$i" "【 $desc 】"
+            echo "____________________________________________________________________________________________________________________"
+        fi
+    done
+else
+    echo "$CUSTOMSBIN does not exists !!!";
+    exit 1
+fi

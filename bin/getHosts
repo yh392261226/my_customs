@@ -1,5 +1,5 @@
 #!/bin/bash
-#### Update the hosts of osx and Windows with bootcamp
+#### Desc:Update the hosts of osx and Windows with bootcamp
 
 today=$(date +%Y%m%d)
 markline=34  #hosts file 0-34 lines has my custom hosts just ignore them and add the new to the below

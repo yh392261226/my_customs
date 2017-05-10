@@ -1,4 +1,5 @@
 #!/bin/bash
+#Desc:在iterm中缩略图当前背景图
 bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
 if [ ! -f "$bgfile" ]; then
 	echo "No bg at the current time!";exit 1

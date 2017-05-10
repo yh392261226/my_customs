@@ -1,6 +1,6 @@
 #!/bin/bash
 ########################################
-## 喜爱图片收藏脚本
+## Desc: 喜爱图片收藏脚本
 ########################################
 MYRUNTIME=$(cat ~/.myruntime)                       #runtime path
 FAVOMARK=$MYRUNTIME/tools/m_favorate                #favorate mark file

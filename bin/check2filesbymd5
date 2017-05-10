@@ -1,6 +1,6 @@
 #!/bin/bash
 ###################################
-# diff the two files md5 value
+# Desc: diff the two files md5 value
 ###################################
 MD5COMMAND=/sbin/md5 #md5 command
 LOCALPATH=$1 #args[0]
