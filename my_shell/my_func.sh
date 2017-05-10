@@ -526,7 +526,7 @@ gowork() {
 }
 
 cdwhere() {
-    PATHS=("$HOME/bin" "$MYRUNTIME/customs/bin" "$HOME/go/bin" "$HOME/.php-school/bin" "$MYRUNTIME" "$MYRUNTIME/customs/my_shell/" "$MYRUNTIME/customs" "$MYRUNTIME/customs/bin/ssh-auto-login/auto_gen")
+    PATHS=("$HOME/bin" "$MYRUNTIME/customs/bin" "$HOME/go/bin" "$HOME/.php-school/bin" "$MYRUNTIME" "$MYRUNTIME/customs/my_shell/" "$MYRUNTIME/customs" "$MYRUNTIME/customs/bin/ssh-auto-login/auto_gen" "$HOME/.ssh/tmp")
 
     if [ "0" -lt "${#PATHS[@]}" ]; then
         if [ "$1" != "" ]; then
@@ -575,4 +575,8 @@ upplugins() {
 upruntimes() {
     updotfiles
     upplugins
+}
+
+rmsshtmp() {
+    /bin/rm -f $HOME/.ssh/tmp/*
 }
