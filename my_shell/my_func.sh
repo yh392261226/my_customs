@@ -547,30 +547,32 @@ cdwhere() {
         echo "Custom pathes if empty !!!"
         exit 1
     fi
-    # case $number in
-    #     "home"|"1")
-    #         cd $HOME/bin
-    #         ;;
-    #     "customsbin"|"2")
-    #         cd $MYRUNTIME/customs/bin
-    #         ;;
-    #     "go"|"3")
-    #         cd $HOME/go/bin
-    #         ;;
-    #     "php"|"4")
-    #         cd $HOME/.php-school/bin
-    #         ;;
-    #     "runtime"|"5")
-    #         cd $MYRUNTIME
-    #         ;;
-    #     "myshell"|"6")
-    #         cd $MYRUNTIME/customs/my_shell/
-    #         ;;
-    #     "customs"|"7")
-    #         cd $MYRUNTIME/customs
-    #         ;;
-    #     "autossh"|"8")
-    #         cd /tools/ssh-auto-login/auto_gen
-    #         ;;
-    # esac
+}
+
+upgitfiles() {
+    if [ "" != "$1" ]; then
+        filepath=$1
+    else
+        filepath=$MYRUNTIME
+    fi
+
+    for f in $(/bin/ls $filepath/); do
+        if [ -d $filepath/$f/.git ]; then
+            /bin/echo $filepath/$f
+            /usr/bin/cd $filepath/$f/ && /usr/bin/git pull
+        fi
+    done
+}
+
+updotfiles() {
+    upgitfiles
+}
+
+upplugins() {
+    upgitfiles $MYRUNTIME/public
+}
+
+upruntimes() {
+    updotfiles
+    upplugins
 }
