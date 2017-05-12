@@ -558,8 +558,9 @@ upgitfiles() {
 
     for f in $(/bin/ls $filepath/); do
         if [ -d $filepath/$f/.git ]; then
-            /bin/echo $filepath/$f
-            /usr/bin/cd $filepath/$f/ && /usr/bin/git pull
+            echo $filepath/$f
+            cd $filepath/$f/ >> /dev/null
+            /usr/bin/git pull
         fi
     done
 }
