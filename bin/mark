@@ -1,0 +1,217 @@
+#!/bin/bash
+########################################
+## Desc: 常用目录mark功能
+########################################
+MYRUNTIME=$(cat ~/.myruntime)                       #runtime path
+show_msg=0                                          #if show msg 0:no 1:yes
+MARKFILE=$MYRUNTIME/tools/m_mark                    #mark 记录文件位置
+TMPMARKFILE=/tmp/tmp_mark_path                      #临时替换文件
+TMPCOMMAND=/tmp/tmp_mark_command                    #临时命令
+action=$1                                           #操作参数
+curpath=$(cd `dirname $0`; pwd)                     #当前目录
+
+
+goto_mark() {
+	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
+}
+
+del_mark() {
+    delpath=$1
+    cat $MARKFILE | grep -v "$delpath" | sort | uniq > $TMPMARKFILE
+    if [ -f $TMPMARKFILE ]; then
+        rm -f $MARKFILE
+        mv $TMPMARKFILE $MARKFILE
+        if [ "$?" = "0" ]; then
+            echo "Action successful !";
+        else
+            echo "Action faild !";
+        fi
+    fi
+}
+
+###按照数字删除喜欢
+del_mark_by_num() {
+    marklists=`cat $MARKFILE`
+    number=$1
+    mark_array[0]=''
+    posit=0
+    for i in ${marklists[*]}; do
+        if [ "$i" != "" ]; then
+            mark_array[$posit]=$i #加入数组
+            ((posit+=1))
+        fi
+    done
+
+    if [ "$number" -lt "${#mark_array[@]}" ]; then
+        del_mark ${mark_array[$conf]}
+    else
+        echo "The number: $number you typed dose not exists !";
+        exit 1
+    fi
+}
+
+
+add_mark() {
+    if [ ! -f $MARKFILE ]; then
+		check=""
+	else
+		check=$(cat $MARKFILE | grep "$curpath")
+	fi
+
+    if [ "$check" != "" ]; then
+        echo "Already marked !";
+        exit 1
+    fi
+    echo $curpath >> $MARKFILE
+    if [ "$?" = "0" ]; then
+        echo "Action successful !";
+    else
+        echo "Action faild !";
+    fi
+}
+
+###显示数量
+list_num_mark() {
+	if [ ! -f $MARKFILE ]; then
+        echo "$MARKFILE does not exists !"
+        exit 1
+    else
+        counts=`cat $MARKFILE | sort | uniq |wc -l`
+		echo "Total : $counts"
+	fi
+}
+
+###列出收藏
+list_mark() {
+    if [ ! -f $MARKFILE ]; then
+        echo "$MARKFILE dose not exists !"
+        exit 1
+    else
+		marklists=`cat $MARKFILE`
+        for i in ${marklists[*]}; do
+            if [ "$i" != "" ]; then
+				echo $i
+            fi
+        done
+		list_num_mark
+    fi
+}
+
+chose_mark() {
+    if [ ! -f $MARKFILE ]; then
+        echo "$MARKFILE dose not exists!"
+        exit 1
+    else
+        marklists=$(cat $MARKFILE)
+
+        if [ "0" -lt "${#marklists[@]}" ]; then
+            mark_array[0]=''
+            posit=0
+            for i in ${marklists[*]}; do
+                if [ "$i" != "" ]; then
+                    mark_array[$posit]=$i #加入数组
+                    ((posit+=1))
+                fi
+            done
+
+            if [ "$1" != "" ]; then
+                number=$1
+            else
+                echo "Which one do you want :";
+                tmpposit=0
+                for ii in ${mark_array[*]}; do
+                    if [ "$ii" != "" ]; then
+            			echo $tmpposit $ii
+                        ((tmpposit+=1))
+                    fi
+                done
+
+                read number;
+            fi
+            if [ "$number" -le "0" ] || [ "${mark_array[$number]}" = "" ]; then
+                echo "Your choice does not exists !"
+                exit 1
+            fi
+            # TMPMARKCOMMAND="cd ${mark_array[$number]}"
+            if [ "$nowterm" = "iTerm" ]; then
+                osascript -e "tell application \"iTerm.app\"
+                    tell current window
+                        tell current session
+                            write text \"goto ${mark_array[$number]}\"
+                        end tell
+                    end tell
+                end tell"
+            elif [ "$nowterm" = "Terminal" ]; then
+                osascript -e "tell application \"Terminal\"
+                  activate
+                  do script \"cd ${mark_array[$number]}\" in window 1
+                end tell"
+            fi
+        else
+            echo "Mark file is empty !!!"
+            exit 1
+        fi
+    fi
+}
+
+###清空
+truncate_mark() {
+    echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
+    read choice
+    if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
+        if [ -f $MARKFILE ]; then
+            rm -f $MARKFILE
+            if [ "$?" = "0" ]; then
+                echo "Action successful !";
+                exit 2
+            else
+                echo "Action faild !";
+                exit 1
+            fi
+        fi
+        echo "Mark file is empty !!!"
+    else
+        exit 1
+    fi
+}
+
+case "$action" in
+    "chose"|"c")
+        if [ "$2" != "" ]; then
+            chose_mark $2
+        else
+		    chose_mark
+        fi
+		;;
+	"list"|"l"|"num"|"n")
+		if [ "$1" = "list" ] || [ "$1" = "l" ];then
+	        if [ "$2" = "file" ] || [ "$2" = "f" ]; then
+	            list_mark
+			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
+				list_num_mark
+	        else
+			    list_mark
+	        fi
+		elif [ "$1" = "num" ] || [ "$1" = "n" ]; then
+				list_num_mark
+		fi
+		;;
+	"add"|"a")
+		add_mark
+		;;
+	"del"|"d")
+		if [ "" = "$2" ]; then
+			del_mark
+		else
+			del_mark_by_num $2
+		fi
+		;;
+	"trun"|"truncate"|"t")
+		truncate_mark
+		;;
+    "help"|"h"|*)
+		command=$(basename $0)
+		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | help/h";
+		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 帮助"
+		;;
+esac
