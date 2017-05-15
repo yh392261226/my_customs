@@ -9,6 +9,24 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
         image_list=( $(/bin/ls $MYPATH/pictures/) )
         image_index=-1
+        #图像缩略图
+        bg_thumb() {
+            bgfile=$1
+            if [ ! -f "$bgfile" ]; then
+                echo "No bg at the current time!";
+                exit 1
+            else
+                clear
+                #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
+                printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+                printf ":"
+                base64 < "$bgfile"
+                printf '\a\n'
+                echo ""
+                echo ""
+                return 0
+            fi
+        }
         #图像切换函数
         function bg_change() {
             image_path=$1
@@ -50,6 +68,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     end tell
                 end tell"
             fi
+            bg_thumb $image_path
         }
 
         #随机下一个背景图

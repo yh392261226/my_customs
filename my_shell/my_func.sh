@@ -541,13 +541,15 @@ cdwhere() {
 
             read number;
         fi
-        cd ${PATHS[$number]}
+        goto ${PATHS[$number]}
         echo "Done !!!"
     else
         echo "Custom pathes if empty !!!"
         exit 1
     fi
 }
+
+customcd() { builtin cd "$@";}
 
 upgitfiles() {
     if [ "" != "$1" ]; then
@@ -559,8 +561,7 @@ upgitfiles() {
     for f in $(/bin/ls $filepath/); do
         if [ -d $filepath/$f/.git ]; then
             echo $filepath/$f
-            cd $filepath/$f/ >> /dev/null
-            /usr/bin/git pull
+            customcd $filepath/$f/ && /usr/bin/git pull
         fi
     done
 }
@@ -576,6 +577,11 @@ upplugins() {
 upruntimes() {
     updotfiles
     upplugins
+}
+
+upall() {
+    upruntimes
+    brew update  && brew upgrade && brew cleanup && brew prune && brew doctor
 }
 
 rmsshtmp() {

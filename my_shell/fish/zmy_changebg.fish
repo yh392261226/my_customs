@@ -6,6 +6,25 @@ set MYSYSNAME Mac
 set ITERMPATH "/Applications/iTerm.app"
 set image_list (/bin/ls $MYPATH/pictures/)
 
+#图像缩略图
+function bg_thumb
+    set bgfile $argv
+    if test not -f {$bgfile}
+        echo "No bg at the current time!";
+        false
+    else
+        clear
+        #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
+        printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+        printf ":"
+        base64 < "$bgfile"
+        printf '\a\n'
+        echo ""
+        echo ""
+        true
+    end
+end
+
 function bg_change
     set image_path $argv
     if test -f {$MYPATH}/tools/current_picturename
@@ -26,6 +45,8 @@ function bg_change
             end tell
         end tell
     end tell"
+
+    bg_thumb $image_path
 end
 
 #随机下一个背景图
