@@ -500,55 +500,6 @@ mwhois() {
   /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
 
-gowork() {
-  worklist=$MYRUNTIME/customs/worklist
-  if [ -f $worklist ]; then
-    source $worklist
-  fi
-  para=$1
-  if [ "$para" = "" ]; then
-    para="work"
-  fi
-  case $para in
-    work)
-      cd "$working"
-      ;;
-    record)
-      cd "$recording"
-      ;;
-    learn)
-      cd "$learnning"
-      ;;
-    *)
-      cat $worklist
-      ;;
-  esac
-}
-
-cdwhere() {
-    PATHS=("$HOME/bin" "$MYRUNTIME/customs/bin" "$HOME/go/bin" "$HOME/.php-school/bin" "$MYRUNTIME" "$MYRUNTIME/customs/my_shell/" "$MYRUNTIME/customs" "$MYRUNTIME/customs/bin/ssh-auto-login/auto_gen" "$HOME/.ssh/tmp")
-
-    if [ "0" -lt "${#PATHS[@]}" ]; then
-        if [ "$1" != "" ]; then
-            number=$1
-        else
-            echo "Which bin do you cd :";
-            tmpi=1
-            for i in $PATHS; do
-                echo "$tmpi : $i"
-                ((tmpi+=1))
-            done
-
-            read number;
-        fi
-        goto ${PATHS[$number]}
-        echo "Done !!!"
-    else
-        echo "Custom pathes if empty !!!"
-        exit 1
-    fi
-}
-
 customcd() { builtin cd "$@";}
 
 upgitfiles() {

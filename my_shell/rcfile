@@ -24,5 +24,17 @@ curshell() {
     fi
 }
 
+curterm() {
+    TMPCURTERM=$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')
+    CURTERM="Unknow"
+    if [ "$TMPCURTERM" = "iTerm.app" ]; then
+        CURTERM='iTerm'
+    elif [ "$TMPCURTERM" = "Apple_Terminal" ]; then
+        CURTERM='Terminal'
+    fi
+    echo $CURTERM
+}
+
 export nowshell=$(curshell)
+export nowterm=$(curterm)
 source $MYRUNTIME/customs/my_shell/${nowshell}/custom_shrc
