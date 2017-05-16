@@ -8,7 +8,6 @@ MARKFILE=$MYRUNTIME/tools/m_mark                    #mark 记录文件位置
 TMPMARKFILE=/tmp/tmp_mark_path                      #临时替换文件
 TMPCOMMAND=/tmp/tmp_mark_command                    #临时命令
 action=$1                                           #操作参数
-curpath=$(cd `dirname $0`; pwd)                     #当前目录
 
 
 goto_mark() {
@@ -52,6 +51,7 @@ del_mark_by_num() {
 
 
 add_mark() {
+    curpath=$(pwd)                     #当前目录
     if [ ! -f $MARKFILE ]; then
 		check=""
 	else
