@@ -182,6 +182,7 @@ chose_favo() {
 
         if [ "$conf" -lt "${#favo_array[@]}" ]; then
             change_favo ${favo_array[$conf]}
+            clear
         else
             echo "The NO. you typed dose not exists !";
             exit 1
