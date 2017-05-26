@@ -1,5 +1,0 @@
-#!/bin/bash
-########################################
-## Desc:beyond compare 无限期试用的解决方法
-########################################
-rm "/Users/$(whoami)/Library/Application Support/Beyond Compare/registry.dat"
