@@ -175,6 +175,12 @@ truncate_mark() {
     fi
 }
 
+if [ ! -d $MYRUNTIME ] || [ ! -f $MARKFILE ]; then
+	echo "Runtime file or MARKFILE does not exists !!!"
+	echo "You need to create it by yourself ."
+	exit 1
+fi
+
 case "$action" in
     "chose"|"c")
         if [ "$2" != "" ]; then

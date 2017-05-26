@@ -212,11 +212,17 @@ posit_favo() {
     for i in ${favolists[*]}; do
         if [ "$i" = "$CURPIC" ]; then
             echo $posit;
-            return 
+            return
         fi
         ((posit+=1))
     done
 }
+
+if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
+	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
+	echo "You need to create it by yourself ."
+	exit 1
+fi
 
 case "$1" in
 	"chose"|"c")
