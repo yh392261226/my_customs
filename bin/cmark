@@ -128,7 +128,7 @@ chose_mark() {
 
                 read number;
             fi
-            if [ "$number" -le "0" ] || [ "${mark_array[$number]}" = "" ]; then
+            if [ "$number" -lt "0" ] || [ "${mark_array[$number]}" = "" ]; then
                 echo "Your choice does not exists !"
                 exit 1
             fi
