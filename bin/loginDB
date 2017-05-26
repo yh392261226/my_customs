@@ -1,3 +1,4 @@
 #!/bin/bash
 #Desc: 自动登陆本机mysql
-mysql -uroot -pyanghao1017 -h127.0.0.1 -P3306
+#mysql
+/usr/local/bin/mycli -uroot -pyanghao1017 -h127.0.0.1 -P3306

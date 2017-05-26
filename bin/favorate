@@ -204,6 +204,20 @@ truncate_favo() {
     fi
 }
 
+###定位当前背景数
+posit_favo() {
+    favolists=`cat $FAVOMARK`
+    favo_array[0]=''
+    posit=0
+    for i in ${favolists[*]}; do
+        if [ "$i" = "$CURPIC" ]; then
+            echo $posit;
+            return 
+        fi
+        ((posit+=1))
+    done
+}
+
 case "$1" in
 	"chose"|"c")
         if [ "$2" != "" ]; then
@@ -243,10 +257,13 @@ case "$1" in
 			thumb_favo $2
 		fi
 		;;
+    "posit"|"p")
+        posit_favo
+        ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | thumb | help/h";
-		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 帮助"
+		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | help/h";
+		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 帮助"
 		exit 0
 		;;
 esac

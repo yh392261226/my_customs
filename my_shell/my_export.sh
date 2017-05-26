@@ -3,6 +3,7 @@ export PLATFORM=$(uname -s)
 export BASE=$HOME
 export PATH="$(brew --prefix macvim)/bin:/usr/local/bin:$PATH"
 export RBENV_ROOT=/usr/local/var/rbenv
+export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor
 eval "$(rbenv init -)"
 
 #####设置PATH变量
