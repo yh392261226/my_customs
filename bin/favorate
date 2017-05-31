@@ -263,6 +263,9 @@ case "$1" in
 			thumb_favo $2
 		fi
 		;;
+    "cur"|"curent")
+        change_favo $CURPIC
+        ;;
     "posit"|"p")
         posit_favo
         ;;
