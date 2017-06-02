@@ -22,7 +22,7 @@ alias gopl "open ~/Documents/golang/gopl-zh/_book/index.html"
 alias cl "clear"
 
 ##图片脚本设置
-sh {$MYRUNTIME}/tools/extendslocatetochangepicurl
+sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
 
 ##autojump设置
 [ -f /usr/local/share/autojump/autojump.fish ]; and . /usr/local/share/autojump/autojump.fish

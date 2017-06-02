@@ -30,4 +30,4 @@ fi
 
 eval $(thefuck --alias)
 
-/bin/sh $MYRUNTIME/tools/extendslocatetochangepicurl
+/bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
