@@ -14,7 +14,7 @@ fi
 
 default_user=$(/usr/bin/whoami)
 
-/usr/local/bin/screenfetch
+#/usr/local/bin/screenfetch
 
 if [ "bash" = "$nowshell" ]; then
 #    source $(brew --prefix grc)/etc/grc.bashrc

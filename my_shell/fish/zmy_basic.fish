@@ -29,7 +29,7 @@ sh {$MYRUNTIME}/tools/extendslocatetochangepicurl
 
 eval (thefuck --alias | tr '\n' ';')
 
-/usr/local/bin/screenfetch
+#/usr/local/bin/screenfetch
 
 ##引入iterm2 自动变更背景脚本
 if test -f {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
