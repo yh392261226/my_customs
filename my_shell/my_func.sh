@@ -535,6 +535,10 @@ upall() {
     brew update  && brew upgrade && brew cleanup && brew prune
 }
 
+reinstallneovim() {
+    brew reinstall neovim --HEAD
+}
+
 rmsshtmp() {
     /bin/rm -f $HOME/.ssh/tmp/*
 }

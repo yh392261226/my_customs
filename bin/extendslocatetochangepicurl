@@ -68,6 +68,8 @@ figlet -w66 Json|lolcat -a -d 1
 #fortune -s computers | cowsay -f kiss | lolcat
 fortune -s computers | cowsay -f daemon | lolcat
 
+/usr/local/bin/screenfetch
+
 currenthour=$(date +%H%M%S)
 if [ "000000" -lt "$currenthour" ] && [ "120000" -ge "$currenthour" ]; then
     osascript -e 'say "hey Json, good morning" using "Alex"' &
