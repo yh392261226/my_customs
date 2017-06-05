@@ -530,13 +530,14 @@ upruntimes() {
     upplugins
 }
 
+reinstallneovim() {
+    brew reinstall neovim --HEAD
+}
+
 upall() {
     upruntimes
     brew update  && brew upgrade && brew cleanup && brew prune
-}
-
-reinstallneovim() {
-    brew reinstall neovim --HEAD
+    reinstallneovim
 }
 
 rmsshtmp() {
