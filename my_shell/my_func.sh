@@ -515,6 +515,7 @@ upgitfiles() {
             customcd $filepath/$f/ && /usr/bin/git pull
         fi
     done
+    customcd ~
 }
 
 updotfiles() {
@@ -523,6 +524,7 @@ updotfiles() {
 
 upplugins() {
     upgitfiles $MYRUNTIME/public
+    customcd ~
 }
 
 upruntimes() {
