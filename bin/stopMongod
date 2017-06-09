@@ -1,4 +1,4 @@
 #!/bin/bash
-#### Desc:stop the mongodb server
-
+## Desc:stop the mongodb server
+## Author: 杨浩
 ps -ef| grep 'mongod' | grep -v 'grep' | awk '{print $2}' | xargs kill -9

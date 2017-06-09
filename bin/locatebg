@@ -1,5 +1,6 @@
 #!/bin/bash
-#### Desc: Open the image folder and locate the image file of the iterm2's background
+## Desc: Open the image folder and locate the image file of the iterm2's background
+## Author: 杨浩
 
 bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
 if [ ! -f "$bgfile" ]; then

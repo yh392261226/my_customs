@@ -1,6 +1,6 @@
 #!/bin/bash
-
-####Desc:批量添加后缀名
+## Desc:批量添加后缀名
+## Author: 杨浩
 if [ $# -ne 2 ]; then
     echo "请输入$0 目录 后缀名";exit;    
 else

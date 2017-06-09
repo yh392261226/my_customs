@@ -1,4 +1,5 @@
 #!/bin/bash
-#Desc: 自动登陆本机mysql
+## Desc: 自动登陆本机mysql
+## Author: 杨浩
 #mysql
 /usr/local/bin/mycli -uroot -pyanghao1017 -h127.0.0.1 -P3306

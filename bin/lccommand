@@ -1,5 +1,6 @@
 #!/bin/bash
-# Desc: 列出所有自定义命令
+## Desc: 列出所有自定义命令
+## Author: 杨浩
 MYRUNTIME=$(cat $HOME/.myruntime)
 CUSTOMSBIN=$MYRUNTIME/customs/bin
 
@@ -9,8 +10,10 @@ if [ -d $CUSTOMSBIN ]; then
     for i in $files; do
         if [ -f $CUSTOMSBIN/$i ] && [ "$i" != "$(basename $0)" ]; then
             desc=$(cat $CUSTOMSBIN/$i | grep 'Desc:' | sed 's/#\|Desc://g' | sed 's/^[ \t\*]*//')
+            author=$(cat $CUSTOMSBIN/$i | grep 'Author:' | sed 's/#\|Author://g' | sed 's/^[ \t\*]*//')
             #echo "$i \t\t【 $desc 】"
-            printf "%-5s%-35s%-15s\n" "|" "$i" "【 $desc 】"
+            printf "%-2s%-15s%-35s%-5s\n" "|" "$i" " $author " "【 $desc 】"
+            #printf "%-5s%-35s%-15s\n" "|" "$i" " $author " "【 $desc 】"
             echo "-----------------------------------------------------------------------------------------------------------------------------------------"
         fi
     done

@@ -1,6 +1,7 @@
 #!/bin/bash
 ########################################
 ## Desc: 常用目录mark功能
+## Author: 杨浩
 ########################################
 MYRUNTIME=$(cat ~/.myruntime)                       #runtime path
 show_msg=0                                          #if show msg 0:no 1:yes

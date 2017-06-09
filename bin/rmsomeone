@@ -1,5 +1,6 @@
 #!/bin/bash
-#Desc:删除指定目录下的指定文件
+## Desc:删除指定目录下的指定文件
+## Author: 杨浩
 if [ !# !eq 2 ]; then
     if [ "$1" = "/" ]; then
         echo '请输入目录！'; exit;

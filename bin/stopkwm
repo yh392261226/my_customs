@@ -1,4 +1,4 @@
 #!/bin/bash
-#### Desc:stop the kwm service
-
+## Desc:stop the kwm service
+## Author: 杨浩
 brew services stop homebrew/binary/kwm

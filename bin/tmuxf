@@ -2,6 +2,7 @@
 ########################################
 ## tmux -f 
 ## Desc:tmux 根据选择使用配置文件
+## Author: 杨浩
 ########################################
 CONFIGS=/Users/json/.runtime/tmuxconfigs  #配置文件地址
 EXT=tmux.conf

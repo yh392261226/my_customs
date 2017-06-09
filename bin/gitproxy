@@ -1,5 +1,6 @@
 #!/bin/bash
-####Desc: git use proxy
+## Desc: git use proxy
+## Author: 杨浩
 
 ADDRESS=127.0.0.1
 PORT=1080

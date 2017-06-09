@@ -1,7 +1,9 @@
 #!/bin/bash
-#### Desc:Update the hosts of osx and Windows with bootcamp
+## Desc:Update the hosts of osx and Windows with bootcamp
+## Author: 杨浩
 
 today=$(date +%Y%m%d)
+yestoday=$(date -v -1d +%Y%m%d)
 markline=34  #hosts file 0-34 lines has my custom hosts just ignore them and add the new to the below
 tmppath=/Users/json/Desktop
 #bootcamppath=/Volumes/BOOTCAMP   #Windows disck
@@ -9,7 +11,7 @@ tmppath=/Users/json/Desktop
 ##下载下来
 wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO /tmp/${today}.hosts > /dev/null
 #wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO /tmp/${today}.hosts > /dev/null
-#wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO /tmp/${today}.hosts > /dev/null
+
 ##把系统原有的备份一个
 cat /etc/hosts > /tmp/${today}.hosts.bak
 ##分割手动的一些hosts
@@ -24,5 +26,5 @@ mv /tmp/final_${today}.hosts $tmppath/hosts
 #cp $tmppath/hosts $bootcamppath/Windows/System32/drivers/etc/hosts
 ##覆盖本系统的hosts
 sudo cp $tmppath/hosts /etc/hosts
-##删除临时文件与备份
-rm -f /tmp/tmp_hosts_* /tmp/${today}.hosts.bak /tmp/${today}.hosts $tmppath/hosts
+##删除临时文件与昨天的备份文件
+rm -f /tmp/tmp_hosts_* /tmp/${yestoday}.hosts.bak /tmp/${today}.hosts $tmppath/hosts

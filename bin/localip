@@ -1,5 +1,6 @@
 #!/bin/bash
-# Desc: 获取本地ip
+## Desc: 获取本地ip
+## Author: 杨浩
 function localip() {
   function _localip() { echo "📶  "$(ipconfig getifaddr "$1"); }
   export -f _localip

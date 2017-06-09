@@ -1,5 +1,6 @@
 #!/bin/bash
-#Desc:视频转图片
+## Desc:视频转图片
+## Author: 杨浩
 # animated gifs from any video
 # from Alex Sexton gist.github.com/SlexAxton/4989674
 

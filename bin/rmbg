@@ -1,5 +1,6 @@
 #!/bin/bash
-#### Desc:move the current background image of the iterm2 to the trash
+## Desc:move the current background image of the iterm2 to the trash
+## Author: 杨浩
 
 #rm -f $(cat $MYRUNTIME/tools/current_picturename)
 bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)

@@ -2,6 +2,7 @@
 <?php
 /**
  *  #Desc:把背景图片目录下的图片重新按照指定的文件名更新并排序
+ *  #Author: 杨浩
  *  $filedir 图片文件地址
  *  $newname_pre 要更改成为的名字的前缀
  *  $begin   起始数字

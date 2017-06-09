@@ -1,5 +1,6 @@
 #!/usr/bin/expect
-#### Desc:old auto connect to server by the alias names
+## Desc:old auto connect to server by the alias names
+## Author: 杨浩
 
 set addr [lindex $argv 0]
 set dir  [lindex $argv 1]

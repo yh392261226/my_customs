@@ -1,6 +1,7 @@
 #!/bin/bash
 ###################################
-# Desc: List the same file in the path
+## Desc: List the same file in the path
+## Author: 杨浩
 ###################################
 MD5COMMAND=/sbin/md5
 SOURCEPATH=$1

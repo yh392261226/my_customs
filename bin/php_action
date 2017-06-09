@@ -1,5 +1,6 @@
 #!/bin/sh
-#Desc:php-fpm 管理脚本 启动|关闭|重启
+## Desc:php-fpm 管理脚本 启动|关闭|重启
+## Author: 杨浩
 param=$1
 
 start()

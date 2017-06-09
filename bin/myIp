@@ -1,5 +1,6 @@
 #!/bin/bash
-#### Desc: get my IP address from ipinfo.io
+## Desc: get my IP address from ipinfo.io
+## Author: 杨浩
 
 curl http://ipinfo.io
 echo 

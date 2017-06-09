@@ -1,4 +1,5 @@
 #!/bin/bash
-#### Desc:get the weather of haerbin 
+## Desc:get the weather of haerbin 
+## Author: 杨浩
 
 /usr/bin/curl http://wttr.in/harbin
