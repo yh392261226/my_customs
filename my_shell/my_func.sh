@@ -536,9 +536,13 @@ reinstallneovim() {
     brew reinstall neovim --HEAD
 }
 
-upall() {
+upday() {
     upruntimes
     brew update  && brew upgrade && brew cleanup && brew prune
+}
+
+upall() {
+    upday
     reinstallneovim
 }
 
