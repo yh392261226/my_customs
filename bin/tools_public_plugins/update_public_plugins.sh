@@ -1,5 +1,5 @@
 #!/bin/bash
-PUBLICPATH=/Users/json/.runtime/public
+PUBLICPATH=$(cat ~/.myruntime)/public
 GITBIN=/usr/local/bin/git
 
 

@@ -3,7 +3,7 @@
 ### 把所有的插件都列出到 log文件
 ### 会有一些垃圾文件需要手动清理
 ################################
-RUNTIMEPATH=/Users/json/.runtime
+RUNTIMEPATH=$(cat ~/.myruntime)
 EXT=vimfiles
 
 for i in $(ls $RUNTIMEPATH | grep "$EXT"); do

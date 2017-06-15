@@ -1,6 +1,6 @@
 #!/bin/bash
 #RUNTIME目录
-RUNTIMEPATH=/Users/json/.runtime
+RUNTIMEPATH=$(cat ~/.myruntime)
 #VIM配置文件夹结尾
 VIMEXT=vimfiles
 #VIM配置文件夹中的第二层文件夹名称

@@ -1,11 +1,11 @@
 #!/bin/bash
 ###########################################################
-### 将已有的目录下所有插件去插件集目录软连接过来 
+### 将已有的目录下所有插件去插件集目录软连接过来
 ### link the vim plugins from the custom/public/ to save the disk, if the plugin does not in the custom/public, it will auto download by the .git/config url=
 ### Usage: ./other_plugins_symlink.sh the_current_vim/plugged|bundle...
 ###########################################################
 
-PUBLICPATH=/Users/json/.runtime/public    	#插件集合目录
+PUBLICPATH=$(cat ~/.myruntime)/public    	#插件集合目录
 GITBIN=/usr/local/bin/git					#git命令地址
 
 if [ -d $PUBLICPATH ]; then #插件集合目录必须存在
