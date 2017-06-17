@@ -541,11 +541,6 @@ upday() {
     brew update  && brew upgrade && brew cleanup && brew prune
 }
 
-upall() {
-    upday
-    reinstallneovim
-}
-
 rmsshtmp() {
     /bin/rm -f $HOME/.ssh/tmp/*
 }
