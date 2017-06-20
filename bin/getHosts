@@ -1,30 +1,44 @@
 #!/bin/bash
-## Desc:Update the hosts of osx and Windows with bootcamp
+## Desc:Auto update the hosts of osx and Windows with bootcamp
 ## Author: 杨浩
+#
+MYRUNTIME=$(cat $HOME/.myruntime) 			  #MYRUNTIME path
+EXPECTCOMMAND=/usr/local/bin/expect 		  #expect bin
+SUDOPASS=$(cat $MYRUNTIME/tools/m_sudopass)   #sudo password
 
-today=$(date +%Y%m%d)
-yestoday=$(date -v -1d +%Y%m%d)
-markline=34  #hosts file 0-34 lines has my custom hosts just ignore them and add the new to the below
-tmppath=/Users/json/Desktop
-#bootcamppath=/Volumes/BOOTCAMP   #Windows disck
+today=$(date +%Y%m%d)						  #the date of today
+yestoday=$(date -v -1d +%Y%m%d) 			  #the date of yestoday
+markline=34  								  #hosts file 0-34 lines has my custom hosts just ignore them and add the new to the below
+tmppath=/tmp 			   					  #tmp path
+bootcamppath=/Volumes/BOOTCAMP   			  #Windows disck
 
-##下载下来
-wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO /tmp/${today}.hosts > /dev/null
-#wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO /tmp/${today}.hosts > /dev/null
+rm -f $tmppath/${today}.hosts.bak
 
-##把系统原有的备份一个
-cat /etc/hosts > /tmp/${today}.hosts.bak
-##分割手动的一些hosts
-split -l $markline /tmp/${today}.hosts.bak /tmp/tmp_hosts_
-##打给临时文件
-cat /tmp/tmp_hosts_aa /tmp/${today}.hosts > /tmp/final_${today}.hosts
-##删除桌面原有的
-rm -f /Users/json/Desktop/hosts
-##迁移到桌面去
-mv /tmp/final_${today}.hosts $tmppath/hosts
-##给windows也覆盖一份
-#cp $tmppath/hosts $bootcamppath/Windows/System32/drivers/etc/hosts
-##覆盖本系统的hosts
-sudo cp $tmppath/hosts /etc/hosts
-##删除临时文件与昨天的备份文件
-rm -f /tmp/tmp_hosts_* /tmp/${yestoday}.hosts.bak /tmp/${today}.hosts $tmppath/hosts
+##download the new hosts from web
+wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO $tmppath/${today}.hosts > /dev/null #github
+#wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO $tmppath/${today}.hosts > /dev/null  #coding
+
+##backup the old hosts to $tmppath/(today).hosts.bak
+cat /etc/hosts > $tmppath/${today}.hosts.bak
+
+##split the old hosts keep the needle lines stay
+split -l $markline $tmppath/${today}.hosts.bak $tmppath/tmp_hosts_
+
+##compile the needle lines and new hosts to $tmppath/final.hosts
+cat $tmppath/tmp_hosts_aa $tmppath/${today}.hosts > $tmppath/final.hosts
+
+##cp to the bootcamp windows if exists the bootcamp windows
+[[ -d $bootcamppath/Windows/System32/drivers/etc ]] && cp $tmppath/final.hosts $bootcamppath/Windows/System32/drivers/etc/hosts
+
+##cover the final hosts to /etc/hosts
+$EXPECTCOMMAND -c "
+			spawn sudo cp ${tmppath}/final.hosts /etc/hosts
+			expect \"Password: \"
+			send \"${SUDOPASS}\r\"
+			expect \"#\"
+			"
+
+##remove all of the tmp files
+rm -f $tmppath/tmp_hosts_* $tmppath/${yestoday}.hosts.bak $tmppath/final.hosts
+
+echo "Done ..."
