@@ -32,6 +32,7 @@ UnSymlink() {
         "$HOME/.config/nvim"
         "$HOME/.nvim"
         "$HOME/.nvimrc"
+        "$HOME/.local/share/nvim"
         )
     for file in ${needdel[*]}; do
         if [ -f $file ] || [ -d $file ]; then   #如果存在就删除
