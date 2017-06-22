@@ -119,6 +119,7 @@ list_favo() {
 		posit=1
         for i in ${favolists[*]}; do
             if [ "$i" != "" ]; then
+				echo $posit
 				thumb_favo $i
 				echo $i
 				((posit+=1))
