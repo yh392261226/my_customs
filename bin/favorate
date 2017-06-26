@@ -116,7 +116,7 @@ list_favo() {
         exit 1
     else
 		favolists=`cat $FAVOMARK`
-		posit=1
+		posit=0
         for i in ${favolists[*]}; do
             if [ "$i" != "" ]; then
 				echo $posit
@@ -125,6 +125,7 @@ list_favo() {
 				((posit+=1))
             fi
         done
+				((posit+=1))
 		echo "Total : $posit"
     fi
 }
@@ -136,7 +137,7 @@ list_files_favo() {
         exit 1
     else
         favolists=`cat $FAVOMARK`
-        posit=1
+        posit=0
         echo "-----------------------------------------------------------------------------------------------------------------------------------------"
         for i in ${favolists[*]}; do
             if [ "$i" != "" ]; then
