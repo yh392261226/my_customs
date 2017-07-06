@@ -65,6 +65,10 @@ add_mark() {
     fi
     echo $curpath >> $MARKFILE
     if [ "$?" = "0" ]; then
+        cat $MARKFILE | sort > /tmp/m_cmark_temp
+        if [ -f /tmp/m_cmark_temp ]; then
+            rm -f $MARKFILE && mv /tmp/m_cmark_temp $MARKFILE
+        fi
         echo "Action successful !";
     else
         echo "Action faild !";

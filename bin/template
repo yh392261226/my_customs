@@ -1,0 +1,104 @@
+#!/bin/bash
+
+## Desc: create language template
+## Author: 杨浩
+##
+
+# templates dir
+TEMPLATES_PATH=$MYRUNTIME/tools/templates
+
+# select language
+LANGUAGE=$1
+# create new filename
+CREATEPATH=$2
+
+###create path
+createPath() {
+    createpath=$1
+    check=$(checkPathOfCreate $createpath)
+    if [ "$check" = "0" ]; then
+        mkdir -p $createpath
+        if [ "$?" = "1" ]; then
+            return 1
+        fi
+        return 0
+    else
+        return 1
+    fi
+}
+
+###check template of language
+checkLangTemplate() {
+    language=$1
+    if [ -f $TEMPLATES_PATH/${language}.template ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+###check directory of create
+checkPathOfCreate() {
+    createpath=$1
+    if [ -d $createpath ] || [ -f $createpath ]; then
+        return 1 #filepath already exists!
+    else
+        return 0
+    fi
+}
+
+###check privileges of parent directory
+checkPrivilegesOfParentPath() {
+    createpath=$1
+    parentpath=$(dirname $createpath)
+    checkparentpath=$(checkPathOfCreate $parentpath)
+    if test -r "$checkparentpath"; then
+        return 0 #privileges enough
+    else
+        return 1
+    fi
+}
+
+###create file by copy template of language to your directory
+createFileFromTemplate() {
+    language=$1
+    createpath=$2
+
+    checklang=$(checkLangTemplate $language)
+    checkpath=$(checkPathOfCreate $createpath)
+    checkpri=$(checkPrivilegesOfParentPath $createpath)
+    if [ "$checklang" = "1" ]; then #file does not exists
+        echo "Template of language $language does not exists !"
+        exit 1
+    elif [ "$checkpath" = "1" ]; then
+        echo "Create directory or file is already exists !"
+        exit 1
+    elif [ "$checkpri" = "1" ]; then
+        createPath $createpath
+        if [ "$?" = "0" ]; then
+            cp $TEMPLATES_PATH/${language}.template $createpath
+        else
+            echo "Create path faild"
+            exit 1
+        fi
+    else
+        cp $TEMPLATES_PATH/${language}.template $createpath
+    fi
+
+    if [ "$?" = "0" ]; then
+        echo "Create successed !"
+        exit 0
+    else
+        echo "Create faild"
+        exit 1
+    fi
+}
+
+if [ "$LANGUAGE" = "" ]; then
+    LANGUAGE="php"
+fi
+if [ "$CREATEPATH" = "" ]; then
+    CREATEPATH=$(pwd)/test.$LANGUAGE
+fi
+
+createFileFromTemplate $LANGUAGE $CREATEPATH
