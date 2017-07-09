@@ -158,7 +158,7 @@ list_num_favo() {
         exit 1
     else
         counts=`cat $FAVOMARK |wc -l`
-		echo "Total : $counts"
+		echo $counts
 	fi
 }
 
@@ -226,6 +226,40 @@ posit_favo() {
     done
 }
 
+###随机选择收藏
+rand_favo() {
+    max=$(list_num_favo)
+    min=0
+    rand=$(php -r "echo rand($min, $max);")
+    #rand=`expr $rand*1`
+    chose_favo $rand
+}
+
+###随机选择的下一个
+rand_next_favo() {
+  curposit=$(posit_favo)
+  max=$(list_num_favo)
+  ((max-=1))
+  if [ "$curposit" -ge "$max" ]; then
+    echo "Current posit is the max !!!"
+    return
+  fi
+  num=`expr $curposit + 1`
+  chose_favo $num
+}
+
+###随机选择的上一个
+rand_pre_favo() {
+  curposit=$(posit_favo)
+  min=0
+  if [ "$curposit" -le "$min" ]; then
+    echo "Current posit is the min !!!"
+    return
+  fi
+  num=`expr $curposit - 1`
+  chose_favo $num
+}
+
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
 	echo "You need to create it by yourself ."
@@ -271,16 +305,27 @@ case "$1" in
 			thumb_favo $2
 		fi
 		;;
-    "cur"|"curent")
+  "cur"|"curent")
         change_favo $CURPIC
         ;;
-    "posit"|"p")
+  "posit"|"p")
         posit_favo
+        ;;
+  "rand"|"r")
+    if [ "$2" != "" ]; then
+      if [ "$2" = "pre" ] || [ "$2" = "p" ]; then
+        rand_pre_favo
+      elif [ "$2" = "next" ] || [ "$2" = "n" ]; then
+        rand_next_favo
+      fi
+    else
+      rand_favo
+    fi
         ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | help/h";
-		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 帮助"
+		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | help/h";
+		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 帮助"
 		exit 0
 		;;
 esac
