@@ -61,6 +61,19 @@ add_favo() {
         exit 1
     fi
     echo $CURPIC >> $FAVOMARK
+
+    if [ -f $TMPFILE ]; then
+      rm -f $TMPFILE
+    fi
+
+    cat $FAVOMARK | sort > $TMPFILE
+    if [ -f $TMPFILE ]; then
+      if [ -f $FAVOMARK ]; then
+        rm -f $FAVOMARK
+      fi
+      mv $TMPFILE $FAVOMARK
+    fi
+
     if [ "$?" = "0" ]; then
         echo "Add favorate picture successful !";
     else
