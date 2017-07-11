@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+## Desc: Fucking the world
+## Author: 杨浩
+
+CURDATE=$(date "+%Y-%m-%d")
+FAVODATA=("url:" "file:")
+
+echo "$CURDATE Hi！ Unhappy? feel sad? Do something happy？？？"
+echo "You can type C-c or C-z exit this command!"
+
+sleep 15
+
+echo "So? What to do?"
+
+
+### check if the arg is number
+checkInt() {
+  if [ "$1" = "" ]; then
+      return 1
+  fi
+  if grep '^[[:digit:]]*$' <<< "$1"; then
+      return 0
+  else
+      return 1
+  fi
+}
+
+chose_what_todo() {
+    if [ "" eq 0 ]; then
+        echo "Go and fuck yourself !!!"
+        exit 0
+    fi
+
+}
