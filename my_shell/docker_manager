@@ -1,0 +1,51 @@
+#!/bin/bash
+## Desc: docker command, options help
+## Author: 杨浩
+##
+<?php
+//english language
+$en_options = ['--config string      Location of client config files (default "/Users/json/.docker")', '-D, --debug              Enable debug mode', '-D, --debug              Enable debug mode', '--help               Print usage', '-H, --host list          Daemon socket(s) to connect to (default [])', '-H, --host list          Daemon socket(s) to connect to (default [])', '-l, --log-level string   Set the logging level ("debug", "info", "warn", "error", "fatal") (default "info")', '-l, --log-level string   Set the logging level ("debug", "info", "warn", "error", "fatal") (default "info")', '--tls                Use TLS; implied by --tlsverify', '--tlscacert string   Trust certs signed only by this CA (default "/Users/json/.docker/ca.pem")', '--tlscert string     Path to TLS certificate file (default "/Users/json/.docker/cert.pem")', '--tlskey string      Path to TLS key file (default "/Users/json/.docker/key.pem")', '--tlsverify          Use TLS and verify the remote', '-v, --version            Print version information and quit', '-v, --version            Print version information and quit'];
+$en_managementcommands = [];
+$en_commands = [];
+$en_usage = [];
+$en_example = [];
+
+//chinese language
+$cn_options = [];
+$cn_managementcommands = [];
+$cn_commands = [];
+$cn_usage = [];
+$cn_example = [];
+
+
+$dockerbin = '/usr/local/bin/docker'; //docker command
+
+$languages_suppose = ['en', 'cn']; //suppose languages
+
+//docker options
+$options = ["--config", "-D", "--debug", "--help", "-H", "--host", "-l", "--log-level", "--tls", "--tlscacert", "--tlscert", "--tlskey", "--tlsverify", "-v", "--version"];
+
+//docker management commands
+$managementcommands = ["container", "image", "network", "node", "plugin", "secret", "service", "stack", "swarm", "system", "volume"];
+
+//docker commands
+$commands = ["attach", "build", "commit", "cp", "create", "diff", "events", "exec", "export", "history", "images", "import", "info", "inspect", "kill", "load", "login", "logout", "logs", "pause", "port", "ps", "pull", "push", "rename", "restart", "rm", "rmi", "run", "save", "search", "start", "stats", "stop", "tag", "top", "unpause", "update", "version", "wait"];
+
+$translates = [
+				'en' => [
+					'options' 				=> $en_options,
+					'managementcommands' 	=> $en_managementcommands,
+					'commands' 				=> $en_commands,
+					'usage'					=> $en_usage,
+					'example'				=> $en_example,
+				],
+				'cn' => [
+					'options' 				=> $cn_options,
+					'managementcommands' 	=> $cn_managementcommands,
+					'commands' 				=> $cn_commands,
+					'usage'					=> $cn_usage,
+					'example'				=> $cn_example,
+				],
+			];
+
+?>
