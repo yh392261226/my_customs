@@ -5,9 +5,11 @@
 ########################################
 MYRUNTIME=$(cat ~/.myruntime)                       #runtime path
 FAVOMARK=$MYRUNTIME/tools/m_favorate                #favorate mark file
+FAVOHTML=$MYRUNTIME/tools/m_favorate.html           #favorate mark html
 CURPICNAME=$MYRUNTIME/tools/current_picturename     #current background of iterm2 mark file
 CURPIC=$(cat $CURPICNAME)                           #current background of iterm2 name
 TMPFILE=/tmp/favo_tmp                               #tmp file name
+DEFAULTBROWSER="/Applications/Google Chrome.app"    #default browser for open m_favorate.html
 show_msg=0                                          #if show msg 0:no 1:yes
 
 #缩略图
@@ -175,6 +177,36 @@ list_num_favo() {
 	fi
 }
 
+###打开HTML文件
+open_html() {
+    if [ -f $FAVOHTML ]; then
+        [[ -d "$DEFAULTBROWSER" ]] && /usr/bin/open -a "$DEFAULTBROWSER" "$FAVOHTML" || /usr/bin/open "$FAVOHTML"
+    fi
+}
+
+###利用HTML展示列表
+list_html_favo() {
+  if [ ! -f $FAVOMARK ]; then
+      echo "$FAVOMARK does not exists !"
+      exit 1
+  else
+      if [ -f $FAVOHTML ]; then
+        echo "" > $FAVOHTML
+      fi
+      touch $FAVOHTML
+
+      favolists=`cat $FAVOMARK`
+      posit=0
+      for i in ${favolists[*]}; do
+          if [ "$i" != "" ]; then
+              echo "${posit} <a href='${i}' target='_blank'><img width='200' height='80' src='${i}'></a>" >> $FAVOHTML
+              ((posit+=1))
+          fi
+      done
+      open_html
+  fi
+}
+
 ###选择并设置喜欢
 chose_favo() {
     if [ ! -f $FAVOMARK ]; then
@@ -287,17 +319,25 @@ case "$1" in
 		    chose_favo
         fi
 		;;
-	"list"|"l"|"num"|"n")
+	"list"|"l"|"num"|"n"|"html"|"h")
 		if [ "$1" = "list" ] || [ "$1" = "l" ];then
-	        if [ "$2" = "file" ] || [ "$2" = "f" ]; then
+	    if [ "$2" = "file" ] || [ "$2" = "f" ]; then
 	            list_files_favo
 			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
 				list_num_favo
-	        else
-			    list_favo
-	        fi
+      elif [ "$2" = "html" ] || [ "$2" = "h" ]; then
+        list_html_favo
+	    else
+			  list_favo
+	    fi
 		elif [ "$1" = "num" ] || [ "$1" = "n" ]; then
 				list_num_favo
+    elif [ "$1" = "html" ]; then
+        if [ "$2" = "open" ] || [ "$2" = "o" ]; then
+          open_html
+        else
+          list_html_favo
+        fi
 		fi
 		;;
 	"add"|"a")
@@ -337,8 +377,8 @@ case "$1" in
         ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | help/h";
-		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 帮助"
+		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | help/h";
+		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 帮助"
 		exit 0
 		;;
 esac
