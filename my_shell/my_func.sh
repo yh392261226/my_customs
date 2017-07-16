@@ -545,3 +545,7 @@ upday() {
 rmsshtmp() {
     /bin/rm -f $HOME/.ssh/tmp/*
 }
+
+tm() {
+    /usr/local/bin/tmux
+}
