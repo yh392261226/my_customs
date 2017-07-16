@@ -539,6 +539,7 @@ reinstallneovim() {
 upday() {
     upruntimes
     brew update  && brew upgrade && brew cleanup && brew prune
+    /usr/local/sbin/gethosts
 }
 
 rmsshtmp() {
