@@ -8,6 +8,7 @@ show_msg=0                                          #if show msg 0:no 1:yes
 MARKFILE=$MYRUNTIME/tools/m_mark                    #mark 记录文件位置
 TMPMARKFILE=/tmp/tmp_mark_path                      #临时替换文件
 TMPCOMMAND=/tmp/tmp_mark_command                    #临时命令
+DESCFILE=".descfile"                                #描述文件名称
 action=$1                                           #操作参数
 
 
@@ -22,6 +23,7 @@ del_mark() {
         rm -f $MARKFILE
         mv $TMPMARKFILE $MARKFILE
         if [ "$?" = "0" ]; then
+            rm -f ${delpath}/$DESCFILE
             echo "Action successful !";
         else
             echo "Action faild !";
@@ -70,6 +72,8 @@ add_mark() {
             rm -f $MARKFILE && mv /tmp/m_cmark_temp $MARKFILE
         fi
         echo "Action successful !";
+        echo "Do not forget to write a description file!";
+        vim $DESCFILE
     else
         echo "Action faild !";
     fi
@@ -97,9 +101,13 @@ list_mark() {
         posit=0
         for i in ${marklists[*]}; do
             if [ "$i" != "" ]; then
-				#echo $i
-                printf "%-5s%-10s%-50s\n" "|" "$posit" "$i"
-                echo "............................................................................."
+                if [ -f ${i}/$DESCFILE ]; then
+                  desc=$(cat ${i}/$DESCFILE)
+                else
+                  desc="Desc is empty!"
+                fi
+                printf "%-5s%-10s%-90s%-30s\n" "|" "$posit" "$i" "$desc"
+                echo "........................................................................................................................................."
                 ((posit+=1))
             fi
         done
@@ -133,8 +141,13 @@ chose_mark() {
                 echo "-----------------------------------------------------------------------------------------------------------------------------------------"
                 for ii in ${mark_array[*]}; do
                     if [ "$ii" != "" ]; then
-                        printf "%-2s%-15s%-35s\n" "|" "$tmpposit" " $ii "
-                        echo "............................................................................."
+                        if [ -f ${ii}/$DESCFILE ]; then
+                          desc=$(cat ${ii}/$DESCFILE)
+                        else
+                          desc="Desc is empty!"
+                        fi
+                        printf "%-5s%-10s%-90s%-30s\n" "|" "$tmpposit" "$ii" "$desc"
+                        echo "........................................................................................................................................."
                         ((tmpposit+=1))
                     fi
                 done
@@ -145,21 +158,22 @@ chose_mark() {
             if [ "$number" -lt "0" ] || [ "${mark_array[$number]}" = "" ]; then
                 echo "Your choice does not exists !"
                 exit 1
-            fi
-            # TMPMARKCOMMAND="cd ${mark_array[$number]}"
-            if [ "$nowterm" = "iTerm" ]; then
-                osascript -e "tell application \"iTerm.app\"
-                    tell current window
-                        tell current session
-                            write text \"goto ${mark_array[$number]}\"
-                        end tell
-                    end tell
-                end tell"
-            elif [ "$nowterm" = "Terminal" ]; then
-                osascript -e "tell application \"Terminal\"
-                  activate
-                  do script \"cd ${mark_array[$number]}\" in window 1
-                end tell"
+            else
+              # TMPMARKCOMMAND="cd ${mark_array[$number]}"
+              if [ "$nowterm" = "iTerm" ]; then
+                  osascript -e "tell application \"iTerm.app\"
+                      tell current window
+                          tell current session
+                              write text \"goto ${mark_array[$number]}\"
+                          end tell
+                      end tell
+                  end tell"
+              elif [ "$nowterm" = "Terminal" ]; then
+                  osascript -e "tell application \"Terminal\"
+                    activate
+                    do script \"cd ${mark_array[$number]}\" in window 1
+                  end tell"
+              fi
             fi
         else
             echo "Mark file is empty !!!"
