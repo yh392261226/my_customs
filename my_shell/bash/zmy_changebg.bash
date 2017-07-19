@@ -15,7 +15,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 bgfile=$1
                 if [ ! -f "$bgfile" ]; then
                     echo "No bg at the current time!";
-                    exit 1
+                    return 1
                 else
                     clear
                     #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
