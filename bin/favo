@@ -10,6 +10,7 @@ CURPICNAME=$MYRUNTIME/tools/current_picturename     #current background of iterm
 CURPIC=$(cat $CURPICNAME)                           #current background of iterm2 name
 TMPFILE=/tmp/favo_tmp                               #tmp file name
 DEFAULTBROWSER="/Applications/Google Chrome.app"    #default browser for open m_favorate.html
+IFORDER=0                                           #if order the favorates 0 not order, 1 order
 show_msg=0                                          #if show msg 0:no 1:yes
 
 #缩略图
@@ -64,16 +65,18 @@ add_favo() {
     fi
     echo $CURPIC >> $FAVOMARK
 
-    if [ -f $TMPFILE ]; then
-      rm -f $TMPFILE
-    fi
-
-    cat $FAVOMARK | sort > $TMPFILE
-    if [ -f $TMPFILE ]; then
-      if [ -f $FAVOMARK ]; then
-        rm -f $FAVOMARK
+    if [ "$IFORDER" = "1" ]; then
+      if [ -f $TMPFILE ]; then
+        rm -f $TMPFILE
       fi
-      mv $TMPFILE $FAVOMARK
+
+      cat $FAVOMARK | sort > $TMPFILE
+      if [ -f $TMPFILE ]; then
+        if [ -f $FAVOMARK ]; then
+          rm -f $FAVOMARK
+        fi
+        mv $TMPFILE $FAVOMARK
+      fi
     fi
 
     if [ "$?" = "0" ]; then
