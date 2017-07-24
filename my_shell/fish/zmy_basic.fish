@@ -56,9 +56,9 @@ alias ..... 'cd ../../../..'
 alias ...... 'cd ../../../../..'
 
 ##解压 别名设置
-alias gz='tar -zxvf'
-alias tgz='tar -zxvf'
-alias bz2='tar -xjvf'
+alias gz 'tar -zxvf'
+alias tgz 'tar -zxvf'
+alias bz2 'tar -xjvf'
 
 
 ##图片脚本设置
