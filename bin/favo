@@ -176,6 +176,7 @@ list_num_favo() {
         exit 1
     else
         counts=`cat $FAVOMARK |wc -l`
+        ((counts-=1))
 		echo $counts
 	fi
 }
