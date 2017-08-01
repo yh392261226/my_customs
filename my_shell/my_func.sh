@@ -518,6 +518,12 @@ upgitfiles() {
     customcd ~
 }
 
+upzshcustoms() {
+    upgitfiles $MYRUNTIME/oh-my-zsh/custom/plugins
+    upgitfiles $MYRUNTIME/oh-my-zsh/antigen
+    upgitfiles $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
+}
+
 updotfiles() {
     upgitfiles
 }
@@ -538,6 +544,7 @@ reinstallneovim() {
 
 upday() {
     upruntimes
+    upzshcustoms
     brew update  && brew upgrade && brew cleanup && brew prune
     /usr/local/sbin/gethosts
 }
