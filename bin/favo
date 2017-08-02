@@ -261,6 +261,39 @@ truncate_favo() {
     fi
 }
 
+###rebuild Markfile
+rebuild_favo() {
+  echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
+  read choice
+  if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
+      favolists=`cat $FAVOMARK`
+      favo_array[0]=''
+      posit=0
+      if [ -f $TMPFILE ]; then
+          rm -f $TMPFILE
+      fi
+      for i in ${favolists[*]}; do
+          if [ "$i" != "" ] && [ -f $i ]; then
+              echo $i >> $TMPFILE
+          fi
+          ((posit+=1))
+      done
+
+      if [ -f $TMPFILE ]; then
+          mv $TMPFILE $FAVOMARK
+      fi
+      if [ "$?" = "0" ]; then
+          echo "Done ...";
+          return 0;
+      else
+          echo "Failure ...";
+          return 1;
+      fi
+  else
+      exit 1
+  fi
+}
+
 ###定位当前背景数
 posit_favo() {
     favolists=`cat $FAVOMARK`
@@ -379,10 +412,13 @@ case "$1" in
       rand_favo
     fi
         ;;
+  "rebuild"|"b")
+    rebuild_favo
+    ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | help/h";
-		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 帮助"
+		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | rebuild/b | help/h";
+		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 重构      | 帮助"
 		exit 0
 		;;
 esac
