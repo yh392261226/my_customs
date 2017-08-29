@@ -417,8 +417,8 @@ case "$1" in
     ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | rebuild/b | help/h";
-		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 重构      | 帮助"
+		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | rebuild/b | cur  | help/h";
+		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 重构      | 当前 | 帮助"
 		exit 0
 		;;
 esac
