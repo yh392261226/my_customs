@@ -16,7 +16,9 @@ rm -f $tmppath/${today}.hosts.bak
 
 ##download the new hosts from web
 wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO $tmppath/${today}.hosts > /dev/null #github
-#wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO $tmppath/${today}.hosts > /dev/null  #coding
+if [ "$?" != "0" ]; then
+    wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO $tmppath/${today}.hosts > /dev/null  #coding
+fi
 
 ##backup the old hosts to $tmppath/(today).hosts.bak
 cat /etc/hosts > $tmppath/${today}.hosts.bak
