@@ -308,6 +308,21 @@ posit_favo() {
     done
 }
 
+###根据键获取文件全名
+file_favo() {
+    num=$1
+    favolists=`cat $FAVOMARK`
+    favo_array[0]=''
+    posit=0
+    for i in ${favolists[*]}; do
+        if [ "$posit" = "$num" ]; then
+          echo $i
+          return
+        fi
+        ((posit+=1))
+    done
+}
+
 ###随机选择收藏
 rand_favo() {
     max=$(list_num_favo)
@@ -315,6 +330,22 @@ rand_favo() {
     rand=$(php -r "echo rand($min, $max);")
     #rand=`expr $rand*1`
     chose_favo $rand
+}
+
+###随机显示5张图片
+show_favo() {
+    shownum=$1
+    if [ "$shownum" = "" ]; then
+      shownum=5
+    fi
+	  max=$(list_num_favo)
+    min=0
+    for ((i=0; i<$shownum; i++)); do
+      rand=$(php -r "echo rand($min, $max);")
+      filename=$(file_favo $rand)
+      thumb_favo $filename
+      echo ""
+    done
 }
 
 ###随机选择的下一个
@@ -412,13 +443,16 @@ case "$1" in
       rand_favo
     fi
         ;;
+  "show"|"s5")
+    show_favo $2
+    ;;
   "rebuild"|"b")
     rebuild_favo
     ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | rebuild/b | cur  | help/h";
-		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 重构      | 当前 | 帮助"
+		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | rebuild/b | cur  | show/s5  | help/h";
+		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 重构      | 当前 | 随机欣赏 | 帮助"
 		exit 0
 		;;
 esac
