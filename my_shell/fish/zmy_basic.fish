@@ -60,6 +60,15 @@ alias gz 'tar -zxvf'
 alias tgz 'tar -zxvf'
 alias bz2 'tar -xjvf'
 
+##函数
+function goto
+  if test -d $argv
+    cd $argv
+  else
+    cd (dirname $argv)
+  end
+end
+
 
 ##图片脚本设置
 sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
