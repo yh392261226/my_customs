@@ -73,10 +73,10 @@ end
 ##图片脚本设置
 sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
 
-##autojump设置
-[ -f /usr/local/share/autojump/autojump.fish ]; and . /usr/local/share/autojump/autojump.fish
+# ##autojump设置
+# [ -f /usr/local/share/autojump/autojump.fish ]; and source /usr/local/share/autojump/autojump.fish
 
-eval (thefuck --alias | tr '\n' ';')
+# eval (thefuck --alias | tr '\n' ';')
 
 #/usr/local/bin/screenfetch
 
