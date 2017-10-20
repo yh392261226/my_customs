@@ -15,7 +15,8 @@ bootcamppath=/Volumes/BOOTCAMP   			  #Windows disck
 rm -f $tmppath/${today}.hosts.bak
 
 ##download the new hosts from web
-wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO $tmppath/${today}.hosts > /dev/null #github
+#wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO $tmppath/${today}.hosts > /dev/null #github
+wget https://raw.githubusercontent.com/googlehosts/hosts/master/hosts-files/hosts -qO $tmppath/${today}.hosts > /dev/null #github
 if [ "$?" != "0" ]; then
     wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO $tmppath/${today}.hosts > /dev/null  #coding
 fi
