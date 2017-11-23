@@ -84,3 +84,7 @@ sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
 if test -f {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
     . {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
 end
+
+function fish_prompt
+    powerline-shell --shell bare $status
+end
