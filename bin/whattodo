@@ -1,0 +1,23 @@
+#!/bin/bash
+actionlists=("upday" "updotfiles" "upzshcustoms")
+typelists=()
+
+
+###验证类型
+checkType() {
+  checker=$1
+  if [ "" != "$checker" ]; then
+      #验证类型
+      return 1;
+  else
+      return 0;
+  fi
+}
+
+if [ "${#actionlists[*]}" != "0" ]; then
+    posit=0
+    for i in ${actionlists[*]}; do
+        echo $posit $i
+        ((posit+=1))
+    done
+fi

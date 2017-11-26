@@ -1,0 +1,12 @@
+#!/bin/env bash
+if [ "$1" != "" ]; then
+    case "start")
+        pg_ctl -D /usr/local/var/postgres start
+        ;;
+    case "stop")
+        pg_ctl -D /usr/local/var/postgres stop
+        ;;
+    case "restart"
+        pg_ctl -D /usr/local/var/postgres restart
+        ;;
+fi
