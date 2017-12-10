@@ -514,6 +514,10 @@ upgitfiles() {
             echo $filepath/$f
             customcd $filepath/$f/ && /usr/bin/git pull
         fi
+        if [ -f $filepath/$f/.gitmodules ]; then
+            echo $filepath/$f
+            customcd $filepath/$f/ && /usr/bin/git submodule update --init --recursive
+        fi
     done
     customcd ~
 }
