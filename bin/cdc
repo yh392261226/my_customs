@@ -9,6 +9,7 @@ MARKFILE=$MYRUNTIME/tools/m_mark                    #mark 记录文件位置
 TMPMARKFILE=/tmp/tmp_mark_path                      #临时替换文件
 TMPCOMMAND=/tmp/tmp_mark_command                    #临时命令
 DESCFILE=".descfile"                                #描述文件名称
+VIMCOMMAND=/usr/bin/vim                             #vim命令位置
 action=$1                                           #操作参数
 
 
@@ -73,7 +74,7 @@ add_mark() {
         fi
         echo "Action successful !";
         echo "Do not forget to write a description file!";
-        vim $DESCFILE
+        $VIMCOMMAND $DESCFILE
     else
         echo "Action faild !";
     fi

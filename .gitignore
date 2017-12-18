@@ -2,3 +2,4 @@ worklist
 bin/sftp2lo
 bin/sftp2server
 .descfile
+.vscode

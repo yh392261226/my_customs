@@ -76,5 +76,6 @@ POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="╰─➢ "
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
 plugins=(mvn subl autojump svn svn-fast-info go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips)
-
+autoload -U compinit
+#&& compinit
 source $ZSH/oh-my-zsh.sh
