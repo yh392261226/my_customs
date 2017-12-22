@@ -1,4 +1,0 @@
-#!/bin/bash
-## Desc:开启kwm
-## Author: 杨浩
-brew services start homebrew/binary/kwm

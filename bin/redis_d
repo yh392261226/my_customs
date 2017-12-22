@@ -1,0 +1,22 @@
+#!/bin/bash
+###Desc:redis 管理器
+###Author:杨浩
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 start| stop| restart"
+    exit 0
+fi
+
+case "$1" in
+    "start")
+        brew services start redis
+    ;;
+    "stop")
+        brew services stop redis
+    ;;
+    "restart")
+        brew services restart redis
+    ;;
+    "status")
+    ps -ef|grep redis
+    ;;
+esac

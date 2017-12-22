@@ -32,31 +32,34 @@ if [ "$linetheme" != "v" ]; then
     fi
 fi
 
-if [ "$linetheme" = "dor" ]; then
-    ln -sf $DORCONFIG/config.fish $CFCONFIG/config.fish
-    ln -sf $DORCONFIG/functions $CFCONFIG/functions
-    echo "dor" > $MARKFILE
-    $0 version
-elif [ "$linetheme" = "ohmy" ]; then
-    ln -sf $OHMYFISHCONFIG/templates/config.fish $CFCONFIG/config.fish
-    echo "ohmy" > $MARKFILE
-    $0 version
-elif [ "$linetheme" = ""nu ]; then
-    ln -sf $NUFISHCONFIG/* $CFCONFIG/
-    echo "nu" > $MARKFILE
-    $0 version
-elif [ "$linetheme" = "v" ]; then
-    $0 version
-elif [ "$linetheme" = "version" ]; then
-    CURCONFIG=$(cat $MARKFILE)
-    if [ "$CURCONFIG" = "dor" ]; then
-        echo "当前使用dorentusfish版本"
-        echo "https://github.com/dorentus/.fish"
-    elif [ "$CURCONFIG" = "ohmy" ]; then
-        echo "当前使用oh-my-fish版本"
-        echo "https://github.com/bpinto/oh-my-fish"
-    elif [ "$CURCONFIG" = "nu" ]; then
-        echo "当前使用fish-nuggets版本"
-        echo "https://://github.com/zmalltalker/fish-nuggets"
-    fi
-fi
+case "$linetheme" in
+    "dor")
+        ln -sf $DORCONFIG/config.fish $CFCONFIG/config.fish
+        ln -sf $DORCONFIG/functions $CFCONFIG/functions
+        echo "dor" > $MARKFILE
+        $0 version
+    ;;
+    "ohmy")
+        ln -sf $OHMYFISHCONFIG/templates/config.fish $CFCONFIG/config.fish
+        echo "ohmy" > $MARKFILE
+        $0 version
+    ;;
+    "nu")
+        ln -sf $NUFISHCONFIG/* $CFCONFIG/
+        echo "nu" > $MARKFILE
+        $0 version
+    ;;
+    "v" || "version")
+        CURCONFIG=$(cat $MARKFILE)
+        if [ "$CURCONFIG" = "dor" ]; then
+            echo "当前使用dorentusfish版本"
+            echo "https://github.com/dorentus/.fish"
+        elif [ "$CURCONFIG" = "ohmy" ]; then
+            echo "当前使用oh-my-fish版本"
+            echo "https://github.com/bpinto/oh-my-fish"
+        elif [ "$CURCONFIG" = "nu" ]; then
+            echo "当前使用fish-nuggets版本"
+            echo "https://://github.com/zmalltalker/fish-nuggets"
+        fi
+    ;;
+esac

@@ -1,4 +1,0 @@
-#!/bin/bash
-## Desc:开启mongodb
-## Author: 杨浩
-mongod --config /usr/local/etc/mongod.conf > /dev/null &

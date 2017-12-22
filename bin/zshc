@@ -25,20 +25,19 @@ else
     #fi
 fi
 
-if [ "$linetheme" = "my" ]; then
-    ln -sf $MYZSHCONFIG/zshrc ~/.zshrc
-    echo "my" > $MARKFILE
-    $0 version
-elif [ "$linetheme" = "git" ]; then
-    ln -sf $GITZSHCONFIG/zshrc ~/.zshrc
-    echo "git" > $MARKFILE
-    $0 version
-elif [ "$linetheme" = "v" ]; then
-    $0 version
-elif [ "$linetheme" = "version" ]; then
-    if [ "$CURCONFIG" = "git" ]; then
-        echo "当前使用可更新的git版本"
-    elif [ "$linetheme" = "my" ]; then
-        echo "当前使用自己修改过的版本"
-    fi
-fi
+case "$linetheme" in
+    "my")
+        ln -sf $MYZSHCONFIG/zshrc ~/.zshrc
+        echo "my" > $MARKFILE
+        $0 version
+    ;;
+    "git")
+        ln -sf $GITZSHCONFIG/zshrc ~/.zshrc
+        echo "git" > $MARKFILE
+        $0 version
+    ;;
+    "v"||"version")
+        $0 version
+    ;;
+esac
+

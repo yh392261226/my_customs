@@ -1,0 +1,23 @@
+#!/bin/bash
+## Desc:mongodb 管理器
+## Author: 杨浩
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 start| stop| restart"
+    exit 0
+fi
+
+case "$1" in
+    "start")
+        mongod --config /usr/local/etc/mongod.conf > /dev/null &
+    ;;
+    "stop")
+        ps -ef| grep 'mongod' | grep -v 'grep' | awk '{print $2}' | xargs kill -9
+    ;;
+    "restart")
+        ps -ef| grep 'mongod' | grep -v 'grep' | awk '{print $2}' | xargs kill -9;
+        mongod --config /usr/local/etc/mongod.conf > /dev/null &
+    ;;
+    "status")
+    ps -ef|grep mongod
+    ;;
+esac
