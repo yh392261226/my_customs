@@ -1,0 +1,45 @@
+#!/bin/bash
+## Desc: 在iterm背景图管理
+## Author: 杨浩
+
+clear
+if [ $# -lt 1 ]; then
+  echo "-------------------------------------------------"
+  echo "----Features:"
+  echo "-------------------------------------------------"
+  echo "Manage the background image of iterm2."
+  echo ""
+  echo "-------------------------------------------------"
+  echo "----Usage:"
+  echo "-------------------------------------------------"
+  echo "$0 [cat/name/c [image file path]] [rm/remove/r] [thumb/print/p] [open/locate/o/l]"
+  exit 1
+else
+  bgfile=$(sed s/[[:space:]]//g $MYRUNTIME/tools/current_picturename)
+  if [ ! -f "$bgfile" ]; then
+    echo "No bg at the current time!";exit 1
+  fi
+
+  option=$1
+  case "$option" in
+    "cat"|"name"|"c")
+      if [ "$2" = "name" ] || [ "$2" != "" ]; then
+        echo $bgfile
+      else
+        $HOME/.iterm2/imgcat $bgfile
+      fi
+    ;;
+    "rm"|"remove"|"r")
+      trash $bgfile
+    ;;
+    "thumb"|"print"|"p")
+      printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+      printf ":"
+      base64 < "$bgfile"
+      printf '\a\n'
+    ;;
+    "open"|"o"|"locate"|"l")
+      /usr/bin/open -R $bgfile
+    ;;
+  esac
+fi
