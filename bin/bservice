@@ -1,0 +1,83 @@
+#!/bin/bash
+###Desc:服务命令管理器
+###Author:杨浩
+
+options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
+services=$(brew services list | awk '{print $1}'| grep -v 'Name')
+
+if [ $# -lt 1 ]; then
+  clear
+  echo ""
+  echo "-------------------------------------------------"
+  echo "----Installed services:"
+  echo "-------------------------------------------------"
+  for service in ${services[*]}; do
+    echo -n "[ $service ] "
+  done
+
+  echo ""
+
+  echo ""
+  echo "-------------------------------------------------"
+  echo "----Suppose options:"
+  echo "-------------------------------------------------"
+  for option_i in ${options[*]}; do
+    echo -n "[ $option_i ] "
+  done
+
+  echo ""
+
+  echo ""
+  echo "-------------------------------------------------"
+  echo "----Help:"
+  echo "-------------------------------------------------"
+  echo "bservice [service_name] [list | run | start | stop | restart | cleanup]
+    Easily start and stop formulae via launchctl.
+
+    Integrates Homebrew formulae with macOS' launchctl manager. Services can be
+    added to either /Library/LaunchDaemons or ~/Library/LaunchAgents.
+    Basically, items in /Library/LaunchDaemons are started at boot, while those
+    in ~/Library/LaunchAgents are started at login.
+
+    When started with sudo, it operates on /Library/LaunchDaemons; otherwise,
+    it operates on ~/Library/LaunchAgents.
+
+    On start the plist file is generated and written to a Tempfile, and then
+    copied to the launch path (existing plists are overwritten).
+
+    [sudo] bservice list
+    List all running services for the current user (or root)
+
+    [sudo] bservice formula|--all run
+    Run the service formula without starting at login (or boot).
+
+    [sudo] bservice formula|--all start
+    Start the service formula immediately and register it to launch at login (or boot).
+
+    [sudo] bservice formula|--all stop
+    Stop the service formula immediately and unregister it from launching at login (or boot).
+
+    [sudo] bservice formula|--all restart
+    Stop (if necessary) and start the service immediately and register it to launch at login (or boot)."
+  exit 1
+else
+  myoption=$2
+  myservice=$1
+  clear
+  echo "-------------------------------------------------"
+  echo "----Command:"
+  echo "-------------------------------------------------"
+  if [ "$myoption" = "status" ]; then
+    echo "brew services list| grep \"Name\|$myservice\""
+  else
+    echo "brew services -v $myoption $myservice"
+  fi
+  echo "-------------------------------------------------"
+  echo "----Result:"
+  echo "-------------------------------------------------"
+  if [ "$myoption" = "status" ]; then
+    brew services list| grep "Name\|$myservice"
+  else
+    brew services -v  $myoption $myservice
+  fi
+fi
