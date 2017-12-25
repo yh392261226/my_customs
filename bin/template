@@ -94,6 +94,7 @@ createFileFromTemplate() {
     fi
 }
 
+clear
 if [ "$LANGUAGE" = "" ]; then
     LANGUAGE="php"
 fi

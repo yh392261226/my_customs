@@ -76,7 +76,7 @@ Symlink() {
     id=$1
     configs=($(ls $CONFIGSPATH|grep "$EXT"))
     choose=$CONFIGSPATH/${configs[$id]}
-	
+
 	#如果被选配置文件夹中存在set_to_my_symlink文件 则直接执行set_to_my_symlink 不往下走
 	if [ -f $choose/set_to_my_symlink ]; then
 		sh $choose/set_to_my_symlink
@@ -371,6 +371,7 @@ ChangeConfig() {
     esac
 }
 
+clear
 ##直接给参数选择
 if [ "" != "$1" ]; then
 	ChangeConfig $1

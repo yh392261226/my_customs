@@ -14,6 +14,7 @@ checkType() {
   fi
 }
 
+clear
 if [ "${#actionlists[*]}" != "0" ]; then
     posit=0
     for i in ${actionlists[*]}; do

@@ -2,5 +2,6 @@
 ## Desc: get my IP address from ipinfo.io
 ## Author: 杨浩
 
+clear
 curl http://ipinfo.io
-echo 
+echo

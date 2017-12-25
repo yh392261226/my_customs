@@ -418,6 +418,8 @@ trash_favo() {
   fi
 }
 
+
+clear
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
 	echo "You need to create it by yourself ."
@@ -508,7 +510,6 @@ case "$1" in
     ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-    clear
     echo "$command :"
     printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
     printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] [num / n] or [ html / h] " ""

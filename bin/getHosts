@@ -2,6 +2,7 @@
 ## Desc:Auto update the hosts of osx and Windows with bootcamp
 ## Author: 杨浩
 #
+clear
 MYRUNTIME=$(cat $HOME/.myruntime) 			  #MYRUNTIME path
 EXPECTCOMMAND=/usr/local/bin/expect 		  #expect bin
 SUDOPASS=$(cat $MYRUNTIME/tools/m_sudopass)   #sudo password

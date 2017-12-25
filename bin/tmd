@@ -5,6 +5,7 @@
 CURDATE=$(date "+%Y-%m-%d")
 FAVODATA=("url:" "file:")
 
+clear
 echo "$CURDATE Hi！ Unhappy? feel sad? Do something happy？？？"
 echo "You can type C-c or C-z exit this command!"
 

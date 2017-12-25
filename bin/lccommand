@@ -4,6 +4,7 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
 CUSTOMSBIN=$MYRUNTIME/customs/bin
 
+clear
 if [ -d $CUSTOMSBIN ]; then
     files=$(/bin/ls $CUSTOMSBIN | sort)
             echo "-----------------------------------------------------------------------------------------------------------------------------------------"
