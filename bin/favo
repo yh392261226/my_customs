@@ -3,26 +3,47 @@
 ## Desc: 喜爱图片收藏脚本
 ## Author: 杨浩
 ########################################
-MYRUNTIME=$(cat ~/.myruntime)                       #runtime path
-FAVOMARK=$MYRUNTIME/tools/m_favorate                #favorate mark file
-FAVOHTML=$MYRUNTIME/tools/m_favorate.html           #favorate mark html
-CURPICNAME=$MYRUNTIME/tools/current_picturename     #current background of iterm2 mark file
-CURPIC=$(cat $CURPICNAME)                           #current background of iterm2 name
-TMPFILE=/tmp/favo_tmp                               #tmp file name
-DEFAULTBROWSER="/Applications/Google Chrome.app"    #default browser for open m_favorate.html
-IFORDER=0                                           #if order the favorates 0 not order, 1 order
-show_msg=0                                          #if show msg 0:no 1:yes
+MYRUNTIME=$(cat ~/.myruntime)                         #runtime path
+FAVOMARK=$MYRUNTIME/tools/m_favorate                  #favorate mark file
+FAVOHTML=$MYRUNTIME/tools/m_favorate.html             #favorate mark html
+CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
+CURPIC=$(cat $CURPICNAME)                             #current background of iterm2 name
+TMPFILE=/tmp/favo_tmp                                 #tmp file name
+DEFAULTBROWSER="/Applications/Google Chrome.app"      #default browser for open m_favorate.html
+IFORDER=0                                             #if order the favorates 0 not order, 1 order
+BACKGROUNDIMG=$(sed s/[[:space:]]//g $CURPICNAME)     #background image file name
+show_msg=0                                            #if show msg 0:no 1:yes
+
+#原图预览
+cat_favo() {
+  if [ "$1" != "" ]; then
+    $HOME/.iterm2/imgcat $1
+  else
+    $HOME/.iterm2/imgcat $BACKGROUNDIMG
+  fi
+}
+
+#获取文件名
+name_favo() {
+  echo $BACKGROUNDIMG
+}
 
 #缩略图
 thumb_favo() {
-	if [ "$1" = "" ]; then
+	if [ "$1" = "" ] || [ ! -f $1 ]; then
 		echo "Image file does not exists !";
 		exit 1
 	fi
-	printf '\033]1337;File=inline=1;width=10%%;height=5;preserveAspectRatio=0'
-	printf ":"
-	base64 < "$1"
-	printf '\a'
+  if [ "$2" != "" ]; then
+    width=$(echo $2 | awk -F'X|x|*' '{print $1}' | sed 's/%/%%/g')
+    height=$(echo $2 | awk -F'X|x|*' '{print $2}' | sed 's/%/%%/g')
+    printf '\033]1337;File=inline=1;width='$width';height='$height'preserveAspectRatio=0'
+  else
+    printf '\033]1337;File=inline=1;width=30%%;preserveAspectRatio=0'
+  fi
+  printf ":"
+  base64 < "$1"
+  printf '\a\n'
 }
 
 #图片切换
@@ -35,7 +56,7 @@ change_favo () {
 	fi
 	echo "$image_path" > $MYRUNTIME/tools/current_picturename
 
-    if [ "$show_msg" = "1" ]
+  if [ "$show_msg" = "1" ]
 	then
 		if [ ! -z "$image_path" ]
 		then
@@ -373,6 +394,26 @@ rand_pre_favo() {
   chose_favo $num
 }
 
+#打开图片并定位到位置
+open_favo() {
+  if [ "$1" != "" ] && [ -f $1 ]; then
+    /usr/bin/open -R $1
+  else
+    echo "File does not exists !"
+    exit 1
+  fi
+}
+
+#将图片移到垃圾桶
+trash_favo() {
+  if [ "$1" != "" ] && [ -f $1 ]; then
+    trash $1
+  else
+    echo "File does not exists !"
+    exit 1
+  fi
+}
+
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
 	echo "You need to create it by yourself ."
@@ -381,11 +422,11 @@ fi
 
 case "$1" in
 	"chose"|"c")
-        if [ "$2" != "" ]; then
-            chose_favo $2
-        else
-		    chose_favo
-        fi
+    if [ "$2" != "" ]; then
+        chose_favo $2
+    else
+    chose_favo
+    fi
 		;;
 	"list"|"l"|"num"|"n"|"html"|"h")
 		if [ "$1" = "list" ] || [ "$1" = "l" ];then
@@ -418,20 +459,20 @@ case "$1" in
 			del_favo_by_num $2
 		fi
 		;;
-	"trun"|"truncate"|"t")
+	"trun"|"truncate")
 		truncate_favo
 		;;
-	"thumb")
+	"thumb"|"t")
 		if [ "" != "$2" ]; then
-			thumb_favo $2
+			thumb_favo $2 $3
 		fi
 		;;
-  "cur"|"curent")
-        change_favo $CURPIC
-        ;;
+  "scur"|"setcurent")
+    change_favo $CURPIC
+    ;;
   "posit"|"p")
-        posit_favo
-        ;;
+    posit_favo
+    ;;
   "rand"|"r")
     if [ "$2" != "" ]; then
       if [ "$2" = "pre" ] || [ "$2" = "p" ]; then
@@ -446,13 +487,41 @@ case "$1" in
   "show"|"s5")
     show_favo $2
     ;;
+  "cat")
+    cat_favo $2
+    ;;
+  "name")
+    name_favo $2
+    ;;
   "rebuild"|"b")
     rebuild_favo
     ;;
+  "open"|"o"|"locate")
+    open_favo $2
+    ;;
 	"help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | html | num/n | add/a | del/d | chose/c | trun/t | thumb | posit/p | rand/r | rebuild/b | cur  | show/s5  | help/h";
-		echo "用法： $command 列表   | HTML | 数量  | 添加  | 删除  | 选择    | 清空   | 缩略图| 定位    | 随机   | 重构      | 当前 | 随机欣赏 | 帮助"
+    clear
+    echo "$command :"
+    printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
+    printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] [num / n] or [ html / h] " ""
+    printf "%-25s%-25s%-35s\n" "          [添加]:" " [add / a] " ""
+    printf "%-25s%-25s%-35s\n" "          [删除]:" " [del / d] [*number] " ""
+    printf "%-25s%-25s%-35s\n" "          [选择]:" " [chose / c] [*number] " ""
+    printf "%-25s%-25s%-35s\n" "          [清空]:" " [truncate / trun] " ""
+    printf "%-25s%-25s%-35s\n" "          [定位]:" " [posit / p] " ""
+    printf "%-25s%-25s%-35s\n" "          [随机]:" " [rand / r] [pre / p] or [next / n] " ""
+    printf "%-25s%-25s%-35s\n" "          [重构]:" " [rebuild / b] " ""
+    printf "%-25s%-25s%-35s\n" "          [当前]:" " [setcurent / scur] " ""
+    printf "%-25s%-25s%-35s\n" "          [打开]:" " [open / o / locate] [filename] " ""
+    printf "%-25s%-25s%-35s\n" "          [预览]:" " [cat] [filename] " ""
+    printf "%-25s%-25s%-35s\n" "          [文件名]:" "  [name] " ""
+    printf "%-25s%-25s%-35s\n" "          [回收站]:" "  [trash] [filename] " ""
+    printf "%-25s%-25s%-35s\n" "          [缩略图]:" "  [thumb / t] [filename] [width*height] " ""
+    printf "%-25s%-25s%-35s\n" "          [随机欣赏]:" "   [show / s5] [*number] " ""
+    printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""
+    printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
+    printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
 		exit 0
 		;;
 esac
