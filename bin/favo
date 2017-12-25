@@ -48,6 +48,10 @@ thumb_favo() {
 
 #图片切换
 change_favo () {
+  if [ "" = "$1" ] || [ ! -f $1 ]; then
+    echo "File does not exits !"
+    exit 1
+  fi
 	image_path=$1
 	CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
 	if [ -f $MYRUNTIME/tools/current_picturename ]
@@ -490,6 +494,9 @@ case "$1" in
   "cat")
     cat_favo $2
     ;;
+  "set"|"s")
+    change_favo $2
+    ;;
   "name")
     name_favo $2
     ;;
@@ -506,6 +513,7 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
     printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] [num / n] or [ html / h] " ""
     printf "%-25s%-25s%-35s\n" "          [添加]:" " [add / a] " ""
+    printf "%-25s%-25s%-35s\n" "          [设置]:" " [set / s] [filename] " ""
     printf "%-25s%-25s%-35s\n" "          [删除]:" " [del / d] [*number] " ""
     printf "%-25s%-25s%-35s\n" "          [选择]:" " [chose / c] [*number] " ""
     printf "%-25s%-25s%-35s\n" "          [清空]:" " [truncate / trun] " ""
