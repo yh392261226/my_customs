@@ -1,35 +1,19 @@
 #!/usr/bin/env bash
 ## Desc: Fucking the world
 ## Author: 杨浩
-
-CURDATE=$(date "+%Y-%m-%d")
-FAVODATA=("url:" "file:")
-
 clear
-echo "$CURDATE Hi！ Unhappy? feel sad? Do something happy？？？"
-echo "You can type C-c or C-z exit this command!"
+_COLUMNS=$(tput cols)
+_MESSAGE=" 我的提示 "
+y=$(( ( $_COLUMNS - ${#_MESSAGE} )  / 2 ))
+spaces=$(printf "%-${y}s" " ")
+echo " "
+echo -e "${spaces}\033[41;37;5m ${_MESSAGE} \033[0m"
+echo " "
 
-sleep 15
 
-echo "So? What to do?"
-
-
-### check if the arg is number
-checkInt() {
-  if [ "$1" = "" ]; then
-      return 1
-  fi
-  if grep '^[[:digit:]]*$' <<< "$1"; then
-      return 0
-  else
-      return 1
-  fi
-}
-
-chose_what_todo() {
-    if [ "" eq 0 ]; then
-        echo "Go and fuck yourself !!!"
-        exit 0
-    fi
-
-}
+_COLUMNS=$(tput cols)
+_MESSAGE="世界如此美妙，我却如此烦躁，这样不好 不好 淡定 淡定。心里默念:神奇宝宝\n --\033[41;37;5m$(date '+%Y-%m-%d %H:%M:%S')\033[0m"
+y=$(( ( $_COLUMNS - ${#_MESSAGE} )  / 2 ))
+spaces=$(printf "%-${y}s" " ")
+echo -e "${spaces}${_MESSAGE}"
+echo " "
