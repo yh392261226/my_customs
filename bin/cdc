@@ -204,7 +204,7 @@ truncate_mark() {
     fi
 }
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 if [ ! -d $MYRUNTIME ] || [ ! -f $MARKFILE ]; then
 	echo "Runtime file or MARKFILE does not exists !!!"
 	echo "You need to create it by yourself ."

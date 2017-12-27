@@ -1,19 +1,4 @@
 #!/usr/bin/env bash
 ## Desc: Fucking the world
 ## Author: 杨浩
-clear
-_COLUMNS=$(tput cols)
-_MESSAGE=" 我的提示 "
-y=$(( ( $_COLUMNS - ${#_MESSAGE} )  / 2 ))
-spaces=$(printf "%-${y}s" " ")
-echo " "
-echo -e "${spaces}\033[41;37;5m ${_MESSAGE} \033[0m"
-echo " "
-
-
-_COLUMNS=$(tput cols)
-_MESSAGE="世界如此美妙，我却如此烦躁，这样不好 不好 淡定 淡定。心里默念:神奇宝宝\n --\033[41;37;5m$(date '+%Y-%m-%d %H:%M:%S')\033[0m"
-y=$(( ( $_COLUMNS - ${#_MESSAGE} )  / 2 ))
-spaces=$(printf "%-${y}s" " ")
-echo -e "${spaces}${_MESSAGE}"
-echo " "
+source $MYRUNTIME/customs/bin/mymessage

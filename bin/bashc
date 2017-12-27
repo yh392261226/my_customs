@@ -13,6 +13,7 @@ HELLABYTECONFIG=$MYRUNTIME/hellabyte
 MARKFILE=$MYRUNTIME/tools/m_bsh
 CURCONFIG=$(cat $MARKFILE)
 
+source $MYRUNTIME/customs/bin/mymessage
 if [ $# -ne 1 ]; then
     $0 version
     echo "请输入要是用的bash配置"

@@ -17,7 +17,7 @@ TONYCONFIG=$MYRUNTIME/tony_tmux
 SPICYCODECONFIG=$MYRUNTIME/spicycode
 TMUXCONFIGS=$MYRUNTIME/tmuxconfigs
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 if [ $# -ne 1 ]; then
     $0 version
     echo "请输入要是用的tmux配置"

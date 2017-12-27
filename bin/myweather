@@ -2,5 +2,5 @@
 ## Desc:get the weather of haerbin
 ## Author: 杨浩
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 /usr/bin/curl http://wttr.in/harbin

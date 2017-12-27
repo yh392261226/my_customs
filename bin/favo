@@ -32,7 +32,7 @@ name_favo() {
 thumb_favo() {
 	if [ "$1" = "" ] || [ ! -f $1 ]; then
 		echo "Image file does not exists !";
-		exit 1
+		return 1
 	fi
   if [ "$2" != "" ]; then
     width=$(echo $2 | awk -F'X|x|*' '{print $1}' | sed 's/%/%%/g')
@@ -50,7 +50,7 @@ thumb_favo() {
 change_favo () {
   if [ "" = "$1" ] || [ ! -f $1 ]; then
     echo "File does not exits !"
-    exit 1
+    return 1
   fi
 	image_path=$1
 	CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
@@ -86,7 +86,7 @@ add_favo() {
 	fi
     if [ "$check" != "" ]; then
         echo "Current picture has already marked !";
-        exit 1
+        return 1
     fi
     echo $CURPIC >> $FAVOMARK
 
@@ -148,7 +148,7 @@ del_favo_by_num() {
         del_favo ${favo_array[$conf]}
     else
         echo "The NO. you typed dose not exists !";
-        exit 1
+        return 1
     fi
 }
 
@@ -156,7 +156,7 @@ del_favo_by_num() {
 list_favo() {
     if [ ! -f $FAVOMARK ]; then
         echo "$FAVOMARK dose not exists !"
-        exit 1
+        return 1
     else
 		favolists=`cat $FAVOMARK`
 		posit=0
@@ -177,7 +177,7 @@ list_favo() {
 list_files_favo() {
     if [ ! -f $FAVOMARK ]; then
         echo "$FAVOMARK does not exists !"
-        exit 1
+        return 1
     else
         favolists=`cat $FAVOMARK`
         posit=0
@@ -198,7 +198,7 @@ list_files_favo() {
 list_num_favo() {
 	if [ ! -f $FAVOMARK ]; then
         echo "$FAVOMARK does not exists !"
-        exit 1
+        return 1
     else
         counts=`cat $FAVOMARK |wc -l`
         ((counts-=1))
@@ -217,7 +217,7 @@ open_html() {
 list_html_favo() {
   if [ ! -f $FAVOMARK ]; then
       echo "$FAVOMARK does not exists !"
-      exit 1
+      return 1
   else
       if [ -f $FAVOHTML ]; then
         echo "" > $FAVOHTML
@@ -240,7 +240,7 @@ list_html_favo() {
 chose_favo() {
     if [ ! -f $FAVOMARK ]; then
         echo "$FAVOMARK dose not exists!"
-        exit 1
+        return 1
     else
         favolists=`cat $FAVOMARK`
         favo_array[0]=''
@@ -267,7 +267,7 @@ chose_favo() {
             clear
         else
             echo "The NO. you typed dose not exists !";
-            exit 1
+            return 1
         fi
     fi
 }
@@ -282,7 +282,7 @@ truncate_favo() {
         fi
         echo "Truncate successfully !";
     else
-        exit 1
+        return 1
     fi
 }
 
@@ -315,7 +315,7 @@ rebuild_favo() {
           return 1;
       fi
   else
-      exit 1
+      return 1
   fi
 }
 
@@ -404,7 +404,7 @@ open_favo() {
     /usr/bin/open -R $1
   else
     echo "File does not exists !"
-    exit 1
+    return 1
   fi
 }
 
@@ -414,16 +414,17 @@ trash_favo() {
     trash $1
   else
     echo "File does not exists !"
-    exit 1
+    return 1
   fi
 }
 
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
+
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
 	echo "You need to create it by yourself ."
-	exit 1
+	return 1
 fi
 
 case "$1" in
@@ -531,6 +532,7 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""
     printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
     printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
-		exit 0
+		return 0
 		;;
 esac
+echo " "

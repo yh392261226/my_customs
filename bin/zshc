@@ -11,7 +11,7 @@ GITZSHCONFIG=$MYRUNTIME/oh-my-zsh-git
 MARKFILE=$MYRUNTIME/tools/m_zsh
 CURCONFIG=$(cat $MARKFILE)
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 if [ $# -ne 1 ]; then
     $0 version
     echo "请输入要是用的zsh配置"

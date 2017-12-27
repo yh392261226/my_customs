@@ -4,6 +4,7 @@
 # animated gifs from any video
 # from Alex Sexton gist.github.com/SlexAxton/4989674
 
+source $MYRUNTIME/customs/bin/mymessage
 #gifify () {
   if [[ -n "$1" ]]; then
     if [[ $2 == '--good' ]]; then

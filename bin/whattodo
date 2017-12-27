@@ -14,7 +14,7 @@ checkType() {
   fi
 }
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 if [ "${#actionlists[*]}" != "0" ]; then
     posit=0
     for i in ${actionlists[*]}; do

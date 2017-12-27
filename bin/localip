@@ -11,5 +11,5 @@ function localip() {
     sed -r "s/Ethernet Address:/📘 /g" | \
     sed -r "s/(VLAN Configurations)|==*//g"
 }
-
+source $MYRUNTIME/customs/bin/mymessage
 localip

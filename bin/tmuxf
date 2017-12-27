@@ -8,7 +8,7 @@ CONFIGS=/Users/json/.runtime/tmuxconfigs  #配置文件地址
 EXT=tmux.conf
 
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 if [ -d $CONFIGS ]; then
   configs=($(ls $CONFIGS/*${EXT}))
   if [ "${#configs[*]}" != "0" ]; then

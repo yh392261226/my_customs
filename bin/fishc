@@ -12,6 +12,7 @@ DORCONFIG=$MYRUNTIME/dorentusfish
 OHMYFISHCONFIG=$MYRUNTIME/oh-my-fish
 NUFISHCONFIG=$MYRUNTIME/fish-nuggets
 
+source $MYRUNTIME/customs/bin/mymessage
 if [ $# -ne 1 ]; then
     $0 version
     echo "请输入要是用的fish配置"

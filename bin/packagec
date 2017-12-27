@@ -27,6 +27,7 @@ garybernhardt=$MYRUNTIME/garybernhardt_dotfiles
 MARKFILE=$MYRUNTIME/tools/packagemark
 CURCONFIG=$(cat $MARKFILE)
 
+source $MYRUNTIME/customs/bin/mymessage
 if [ $# -ne 1 ]; then
     $0 version
     echo "请输入要是用的整合包配置"

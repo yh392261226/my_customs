@@ -35,6 +35,7 @@ Symlink() {
   sh $SYMLINKFILE
 }
 
+source $MYRUNTIME/customs/bin/mymessage
 ##执行选择
 if [ -d $CONFIGSPATH ]; then
   configs=($(ls $CONFIGSPATH|grep "$EXT"))

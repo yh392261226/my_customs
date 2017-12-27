@@ -9,6 +9,7 @@ TMPFILE=/tmp/findmd5same_tmp
 TMPKEYSFILE=/tmp/findmd5same_keys_tmp
 RESULTFILE=~/Desktop/samemd5file_result
 
+source $MYRUNTIME/customs/bin/mymessage
 if [ ! -d $SOURCEPATH ]; then
 	echo "The path $SOURCEPATH does not exists!";
 	exit 1

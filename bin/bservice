@@ -1,12 +1,11 @@
 #!/bin/bash
 ###Desc:服务命令管理器
 ###Author:杨浩
-clear
+source $MYRUNTIME/customs/bin/mymessage
 options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 
 if [ $# -lt 1 ]; then
-  clear
   echo ""
   echo "-------------------------------------------------"
   echo "----Installed services:"
@@ -63,7 +62,6 @@ if [ $# -lt 1 ]; then
 else
   myoption=$2
   myservice=$1
-  clear
   echo "-------------------------------------------------"
   echo "----Command:"
   echo "-------------------------------------------------"

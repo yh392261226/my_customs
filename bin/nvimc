@@ -107,6 +107,7 @@ ChangeConfig() {
     esac
 }
 
+source $MYRUNTIME/customs/bin/mymessage
 ##直接给参数选择
 if [ "" != "$1" ]; then
 	ChangeConfig $1

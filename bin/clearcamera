@@ -1,4 +1,5 @@
 #!/bin/bash
 ##Desc:Clear the cache and deal the camera
 ##Author: From Net
+source $MYRUNTIME/customs/bin/mymessage
 sudo killall VDCAssistant

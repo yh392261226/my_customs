@@ -5,6 +5,7 @@
 ## 使用方法：./renamepics
 ## 时    间：2014-07-22
 #################################################
+source $MYRUNTIME/customs/bin/mymessage
 echo "谨慎使用， 使用前先备份，多次使用相同前缀会使你的图片文件互相覆盖导致减少y|Y（使用）n|N(不使用)"
 read line;
 if [ "$line" = "y" ] || [ "$line" = "Y" ]; then

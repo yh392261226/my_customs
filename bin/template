@@ -94,7 +94,7 @@ createFileFromTemplate() {
     fi
 }
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 if [ "$LANGUAGE" = "" ]; then
     LANGUAGE="php"
 fi

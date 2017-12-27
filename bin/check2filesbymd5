@@ -7,7 +7,7 @@ MD5COMMAND=/sbin/md5 #md5 command
 LOCALPATH=$1 #args[0]
 TARGETPATH=$2 #args[1]
 
-
+source $MYRUNTIME/customs/bin/mymessage
 if [ ! -f $LOCALPATH ] || [ ! -f $TARGETPATH ]; then # one of the files is not exists
 	echo "Please check the args, File or Path is not exists!"; exit 1
 fi

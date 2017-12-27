@@ -11,6 +11,7 @@ paras=$?		#参数个数
 filename=$1		#文件名
 action=$2		#验证方法
 
+source $MYRUNTIME/customs/bin/mymessage
 if [ "" = "$filename" ]; then
 	echo "Please type the file name!";
 	echo "Example: $1 abc.log ";

@@ -2,6 +2,6 @@
 ## Desc: get my IP address from ipinfo.io
 ## Author: 杨浩
 
-clear
+source $MYRUNTIME/customs/bin/mymessage
 curl http://ipinfo.io
 echo
