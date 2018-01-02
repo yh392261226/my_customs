@@ -424,7 +424,7 @@ source $MYRUNTIME/customs/bin/mymessage
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
 	echo "You need to create it by yourself ."
-	return 1
+	exit 1
 fi
 
 case "$1" in
@@ -509,6 +509,13 @@ case "$1" in
   "open"|"o"|"locate")
     open_favo $2
     ;;
+  "trash")
+    if [ "$2" != "" ]; then
+      trash_favo $2
+    else
+      trash_favo $BACKGROUNDIMG
+    fi
+    ;;
 	"help"|"h"|*)
 		command=$(basename $0)
     echo "$command :"
@@ -532,7 +539,7 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""
     printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
     printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
-		return 0
+		echo ""
 		;;
 esac
 echo " "

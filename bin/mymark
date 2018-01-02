@@ -1,0 +1,126 @@
+#!/bin/bash
+##Desc:我的文本记录
+##Author:杨浩
+
+MARKFILE=$MYRUNTIME/tools/m_note_mark #记录文件
+IFORDER=1
+TMPFILE=/tmp/m_note_mark_tmp
+
+#添加备注
+add_mark() {
+  CURCOMMAND=$1
+  CURDESC=$2
+	if [ ! -f $MARKFILE ]; then
+		check=""
+	else
+		check=$(cat $MARKFILE | grep "$CURCOMMAND")
+	fi
+
+  if [ "$check" != "" ]; then
+      echo "Current mark has already exists !";
+      return 1
+  fi
+  echo "$CURCOMMAND $CURDESC" >> $MARKFILE
+
+  if [ "$IFORDER" = "1" ]; then
+    if [ -f $TMPFILE ]; then
+      rm -f $TMPFILE
+    fi
+
+    cat $MARKFILE | sort > $TMPFILE
+    if [ -f $TMPFILE ]; then
+      if [ -f $MARKFILE ]; then
+        rm -f $MARKFILE
+      fi
+      mv $TMPFILE $MARKFILE
+    fi
+  fi
+
+  if [ "$?" = "0" ]; then
+      echo "Add mark successful !";
+  else
+      echo "Add mark faild !";
+  fi
+}
+
+#删除备注
+del_mark() {
+    if [ "$1" = "" ]; then
+        echo "Delete mark faild !";return 1;
+    fi
+
+    cat $MARKFILE | grep -v "$1" | sort | uniq > $TMPFILE
+    if [ -f $TMPFILE ]; then
+        rm -f $MARKFILE
+        mv $TMPFILE $MARKFILE
+        if [ "$?" = "0" ]; then
+            echo "Delete mark successful !";
+        else
+            echo "Delete mark faild !";
+        fi
+    fi
+}
+
+#备注列表
+list_mark() {
+    if [ ! -f $MARKFILE ]; then
+        echo "$MARKFILE does not exists !"
+        return 1
+    else
+        marklists=`cat $MARKFILE`
+        echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+        printf "%-5s%-15s%-20s%-30s\n" "|" "Serial" "Command" "Description"
+        posit=1
+        while read line; do
+            if [ "" != "$line" ]; then
+              printf "%-5s%-15s%-20s%-30s\n" "|" "$posit" "$(echo $line|awk '{print $1}')" "$(echo $line|awk '{print $2}')"
+              ((posit+=1))
+            fi
+        done < $MARKFILE
+        echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+        # posit=0
+        # echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+        # for i in ${marklists[*]}; do
+        #     if [ "$i" != "" ]; then
+        #         printf "%-5s%-15s%-20s-30s\n" "|" "$posit" "$(echo $i|awk '{print $1}')" "$(echo $i|awk '{print $2}')"
+        #         echo "............................................................................."
+        #         ((posit+=1))
+        #     fi
+        # done
+        # echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+    fi
+}
+
+source $MYRUNTIME/customs/bin/mymessage
+
+if [ ! -f $MARKFILE ]; then
+  touch $MARKFILE
+fi
+
+if [ ! -d $MYRUNTIME ]; then
+	echo "Runtime directory does not exists !!!"
+	echo "You need to create it by yourself ."
+	exit 1
+fi
+
+case "$1" in
+  "add"|"a")
+    add_mark $2 $3
+    ;;
+  "delete"|"del"|"d")
+    del_mark $2
+    ;;
+  "list"|"l")
+    list_mark
+    ;;
+  "help"|"h"|*)
+		command=$(basename $0)
+    echo "$command :"
+    printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
+    printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] " ""
+    printf "%-25s%-25s%-35s\n" "          [添加]:" " [add / a] " ""
+    printf "%-25s%-25s%-35s\n" "          [删除]:" " [delete / del / d] " ""
+    printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help / h] " ""
+		echo ""
+		;;
+esac
