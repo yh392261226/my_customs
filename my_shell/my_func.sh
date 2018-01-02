@@ -560,3 +560,6 @@ rmsshtmp() {
 tm() {
     /usr/local/bin/tmux
 }
+
+function showF() { defaults write com.apple.Finder AppleShowAllFiles YES ; }
+function hideF() { defaults write com.apple.Finder AppleShowAllFiles NO ; }
