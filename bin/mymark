@@ -114,13 +114,14 @@ case "$1" in
     list_mark
     ;;
   "help"|"h"|*)
-		command=$(basename $0)
+	command=$(basename $0)
     echo "$command :"
     printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
     printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] " ""
     printf "%-25s%-25s%-35s\n" "          [添加]:" " [add / a] " ""
     printf "%-25s%-25s%-35s\n" "          [删除]:" " [delete / del / d] " ""
     printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help / h] " ""
-		echo ""
-		;;
+	echo ""
+    list_mark
+	;;
 esac

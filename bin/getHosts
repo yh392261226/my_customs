@@ -17,11 +17,19 @@ rm -f $tmppath/${today}.hosts.bak
 
 ##download the new hosts from web
 #wget https://raw.githubusercontent.com/racaljk/hosts/master/hosts -qO $tmppath/${today}.hosts > /dev/null #github
-wget https://raw.githubusercontent.com/googlehosts/hosts/master/hosts-files/hosts -qO $tmppath/${today}.hosts > /dev/null #github
+hostsurl=https://raw.githubusercontent.com/googlehosts/hosts/master/hosts-files/hosts
+hostsurl2=https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts
+echo "Get hosts from url:$hostsurl"
+wget $hostsurl -qO $tmppath/${today}.hosts > /dev/null #github
 if [ "$?" != "0" ]; then
-    wget https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts -qO $tmppath/${today}.hosts > /dev/null  #coding
+    wget $hostsurl2 -qO $tmppath/${today}.hosts > /dev/null  #coding
 fi
 
+if [ ! -f $tmppath/${today}.hosts ]; then
+    echo "Download hosts file faild!"
+    exit 1
+fi
+echo "Download hosts file success!"
 ##backup the old hosts to $tmppath/(today).hosts.bak
 cat /etc/hosts > $tmppath/${today}.hosts.bak
 
@@ -30,7 +38,7 @@ split -l $markline $tmppath/${today}.hosts.bak $tmppath/tmp_hosts_
 
 ##compile the needle lines and new hosts to $tmppath/final.hosts
 cat $tmppath/tmp_hosts_aa $tmppath/${today}.hosts > $tmppath/final.hosts
-
+echo "Compile hosts file to local hosts success!"
 ##cp to the bootcamp windows if exists the bootcamp windows
 [[ -d $bootcamppath/Windows/System32/drivers/etc ]] && cp $tmppath/final.hosts $bootcamppath/Windows/System32/drivers/etc/hosts
 

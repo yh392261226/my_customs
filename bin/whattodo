@@ -1,4 +1,6 @@
 #!/bin/bash
+## Desc: 不知道干啥
+## Author: 杨浩
 actionlists=("upday" "updotfiles" "upzshcustoms")
 typelists=()
 
