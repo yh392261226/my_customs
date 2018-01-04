@@ -225,7 +225,7 @@ case "$action" in
 	"list"|"l"|"num"|"n")
 		if [ "$1" = "list" ] || [ "$1" = "l" ];then
 	    if [ "$2" = "file" ] || [ "$2" = "f" ]; then
-	            list_mark
+	      list_mark
 			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
 				list_num_mark
 	    else
@@ -252,6 +252,7 @@ case "$action" in
 		command=$(basename $0)
 		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | help/h";
 		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 帮助"
+    list_mark
 
     for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
 
