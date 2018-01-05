@@ -5,11 +5,20 @@ source $MYRUNTIME/customs/bin/mymessage
 options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 
+custom_title() {
+  title=$1
+  if [ "" = "$title" ]; then
+    title=""
+  fi
+  echo "-------------------------------------------------"
+  echo "----$title"
+  echo "-------------------------------------------------"
+  return 0
+}
+
 if [ $# -lt 1 ]; then
   echo ""
-  echo "-------------------------------------------------"
-  echo "----Installed services:"
-  echo "-------------------------------------------------"
+  custom_title "Installed services:"
   for service in ${services[*]}; do
     echo -n "[ $service ] "
   done
@@ -17,9 +26,7 @@ if [ $# -lt 1 ]; then
   echo ""
 
   echo ""
-  echo "-------------------------------------------------"
-  echo "----Suppose options:"
-  echo "-------------------------------------------------"
+  custom_title "Suppose options:"
   for option_i in ${options[*]}; do
     echo -n "[ $option_i ] "
   done
@@ -27,9 +34,7 @@ if [ $# -lt 1 ]; then
   echo ""
 
   echo ""
-  echo "-------------------------------------------------"
-  echo "----Help:"
-  echo "-------------------------------------------------"
+  custom_title "Help:"
   echo "bservice [service_name] [list | run | start | stop | restart | cleanup]
     Easily start and stop formulae via launchctl.
 
@@ -62,20 +67,37 @@ if [ $# -lt 1 ]; then
 else
   myoption=$2
   myservice=$1
-  echo "-------------------------------------------------"
-  echo "----Command:"
-  echo "-------------------------------------------------"
-  if [ "$myoption" = "status" ]; then
-    echo "brew services list| grep \"Name\|$myservice\""
-  else
-    echo "brew services -v $myoption $myservice"
-  fi
-  echo "-------------------------------------------------"
-  echo "----Result:"
-  echo "-------------------------------------------------"
-  if [ "$myoption" = "status" ]; then
-    brew services list| grep "Name\|$myservice"
-  else
-    brew services -v  $myoption $myservice
-  fi
+
+  custom_title "Command:"
+  case "$myoption" in
+    "status")
+      echo "brew services list| grep \"Name\|$myservice\""
+      custom_title "Result:"
+      brew services list| grep "Name\|$myservice"
+      ;;
+    "login")
+      if [ "$myservice" = "mysql" ]; then
+        echo "/usr/local/bin/mycli -uroot -pyanghao1017 -h127.0.0.1 -P3306"
+        /usr/local/bin/mycli -uroot -pyanghao1017 -h127.0.0.1 -P3306
+      elif [ "$myservice" = "redis" ]; then
+        echo "/usr/local/bin/redis-cli -h localhost -p 6379"
+        /usr/local/bin/redis-cli -h localhost -p 6379
+      elif [ "$myservice" = "mongo" ]; then
+        echo "/usr/local/bin/mongo"
+        /usr/local/bin/mongo
+      elif [ "$myservice" = "memcached" ]; then
+        echo "/usr/local/bin/telnet localhost 11211"
+        /usr/local/bin/telnet localhost 11211
+      fi
+      ;;
+    *)
+      echo "brew services -v $myoption $myservice"
+      custom_title "Result:"
+      brew services -v  $myoption $myservice
+      ;;
+
+  esac
+
+
+
 fi
