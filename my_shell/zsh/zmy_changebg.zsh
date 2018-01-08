@@ -11,7 +11,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #图像缩略图
             bg_thumb() {
                 bgfile=$1
-                if [ ! -f "$bgfile" ]; then
+                if [ ! -f "$bgfile" ] && [ "" != "$bgfile" ]; then
                     echo "No bg at the current time!";
                     return 1
                 else
@@ -67,7 +67,12 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         end tell
                     end tell"
                 fi
-                bg_thumb $image_path
+                if [ "" != "$image_path" ]; then
+                  bg_thumb $image_path
+                  echo "----------------------------------------------------------------------"
+                  echo $image_path
+                  echo "----------------------------------------------------------------------"
+                fi
             }
 
             #下一个背景图
@@ -79,7 +84,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         image_index=$(( $image_index + 1 ))
                     fi
                     image_path=$image_list[$image_index]
-                    bg_change $image_path $image_index
+                    bg_change $MYPATH/pictures/$image_path $image_index
                 else
                     zle self-insert '^}'
                 fi
@@ -132,7 +137,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         image_index=$(( $image_index - 1 ))
                     fi
                     image_path=$image_list[$image_index]
-                    bg_change $image_path $image_index
+                    bg_change $MYPATH/pictures/$image_path $image_index
                 else
                     zle self-insert '^{'
                 fi
@@ -143,8 +148,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #背景图设置为空
             bg_empty() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=
-                    bg_change $image_path
+                    bg_change ""
                 else
                     zle self-insert '^B'
                 fi
