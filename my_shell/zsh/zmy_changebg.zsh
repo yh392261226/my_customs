@@ -69,9 +69,12 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
                 if [ "" != "$image_path" ]; then
                   bg_thumb $image_path
-                  echo "----------------------------------------------------------------------"
+                  for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
+                  echo ""
                   echo $image_path
-                  echo "----------------------------------------------------------------------"
+                  echo ""
+                  for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
+                  echo ""
                 fi
             }
 
