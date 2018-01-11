@@ -11,6 +11,7 @@ TMPCOMMAND=/tmp/tmp_mark_command                    #临时命令
 DESCFILE=".descfile"                                #描述文件名称
 VIMCOMMAND=/usr/bin/vim                             #vim命令位置
 action=$1                                           #操作参数
+ifsort=0 																						#是否排序
 
 
 goto_mark() {
@@ -68,13 +69,18 @@ add_mark() {
     fi
     echo $curpath >> $MARKFILE
     if [ "$?" = "0" ]; then
+			if [ "$ifsort" = "1" ]; then
         cat $MARKFILE | sort > /tmp/m_cmark_temp
-        if [ -f /tmp/m_cmark_temp ]; then
-            rm -f $MARKFILE && mv /tmp/m_cmark_temp $MARKFILE
-        fi
-        echo "Action successful !";
-        echo "Do not forget to write a description file!";
-        $VIMCOMMAND $DESCFILE
+			else
+				cat $MARKFILE > /tmp/m_cmark_temp
+			fi
+
+      if [ -f /tmp/m_cmark_temp ]; then
+          rm -f $MARKFILE && mv /tmp/m_cmark_temp $MARKFILE
+      fi
+      echo "Action successful !";
+      echo "Do not forget to write a description file!";
+      $VIMCOMMAND $DESCFILE
     else
         echo "Action faild !";
     fi
