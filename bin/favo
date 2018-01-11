@@ -495,19 +495,31 @@ case "$1" in
     show_favo $2
     ;;
   "cat")
-    cat_favo $2
+    if [ "$2" != "" ]; then
+      cat_favo $2
+    else
+      cat_favo $BACKGROUNDIMG
+    fi
     ;;
   "set"|"s")
     change_favo $2
     ;;
   "name")
-    name_favo $2
+    if [ "$2" != "" ]; then
+      name_favo $2
+    else
+      name_favo $BACKGROUNDIMG
+    fi
     ;;
   "rebuild"|"b")
     rebuild_favo
     ;;
   "open"|"o"|"locate")
-    open_favo $2
+    if [ "$2" != "" ]; then
+        open_favo $2
+    else
+        open_favo $BACKGROUNDIMG
+    fi
     ;;
   "trash")
     if [ "$2" != "" ]; then
