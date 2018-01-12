@@ -7,6 +7,7 @@ export UPDATE_ZSH_DAYS=7
 #ZSH_THEME="robbyrussell"
 #ZSH_THEME="powerline2"
 ZSH_THEME="powerlevel9k/powerlevel9k"
+# ZSH_THEME="cviebrock"
 #powerlevel9k的主题设置 参考网址：https://github.com/bhilburn/powerlevel9k
 ### custom setting
 POWERLEVEL9K_MODE='awesome-fontconfig'
