@@ -1,0 +1,94 @@
+#!/bin/bash
+##Desc:小说管理
+##Author:杨浩
+
+NOVELPATH=$HOME/Documents/novels
+PYTHONCOMMAND=/usr/bin/python
+NOVELEXT=txt
+
+novellists=$(ls ${NOVELPATH}/*${NOVELEXT})
+posit=0
+for i in $novellists; do
+  novellists[$posit]=$i
+  ((posit+=1))
+done
+
+
+getNovel() {
+  $PYTHONCOMMAND $NOVELPATH/novel.py
+}
+
+listNovel() {
+  posit=0
+  echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+  for i in ${novellists[*]}; do
+    if [ -f $i ]; then
+      desc=$(head -n 1 $i)
+      desc=${desc:0:35}
+      name=$(basename $i)
+      printf "%-5s%-5s%-30s%-70s\n" "|" "$posit" "$name" "$desc"
+      ((posit+=1))
+    fi
+  done
+  echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+}
+
+delNovel() {
+  listNovel
+  echo "Which one do you want to delete?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${novellists[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+    trash ${novellists[$number]}
+  fi
+  return 0
+}
+
+viewNovel() {
+  listNovel
+  echo "Which one do you want to view?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${novellists[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+    cat ${novellists[$number]} | iconv -t utf8| more
+  fi
+  return 0
+}
+
+truncateNovel() {
+  trash ${NOVELPATH}/*${NOVELEXT}
+}
+
+helpNovel() {
+  command=$0
+  echo "Usage: $command list/l | get/g | del/d | view/v | trun/t | help/h";
+	echo "用法： $command 列表   | 获取  | 删除  | 查看    | 清空   | 帮助"
+  echo ""
+}
+
+source $MYRUNTIME/customs/bin/mymessage
+
+case "$1" in
+  "get"|"g")
+    getNovel
+    ;;
+  "list"|"l")
+    listNovel
+    ;;
+  "view"|"v")
+    viewNovel
+    ;;
+  "truncate"|"t")
+    truncateNovel
+    ;;
+  "delete"|"del"|"d")
+    delNovel
+    ;;
+  "help"|"h"|*)
+    helpNovel
+    ;;
+esac

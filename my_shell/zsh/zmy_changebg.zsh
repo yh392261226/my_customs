@@ -1,5 +1,6 @@
 show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php
+emptybackground=$HOME/Pictures/down_pics/public/t1l-logo-white-shitty.jpg
 
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
@@ -151,7 +152,8 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #背景图设置为空
             bg_empty() {
                 if [ -z "$BUFFER" ]; then
-                    bg_change ""
+                    #bg_change ""
+                    bg_change $emptybackground
                 else
                     zle self-insert '^B'
                 fi
