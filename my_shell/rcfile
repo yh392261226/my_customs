@@ -17,6 +17,8 @@ curshell() {
         else
             echo "Unknow"
         fi
+    elif [ "$curshell" = "RBENV_SHELL=bash" ]; then
+        echo "bash"
     elif [ "$curshell" = "RBENV_SHELL=zsh" ]; then
         echo "zsh"
     else

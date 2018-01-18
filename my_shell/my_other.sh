@@ -28,6 +28,6 @@ elif [ "zsh" = "$nowshell" ]; then
     [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 fi
 
-eval $(thefuck --alias)
+#eval $(thefuck --alias)
 
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl

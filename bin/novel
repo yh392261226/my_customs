@@ -4,6 +4,7 @@
 
 NOVELPATH=$HOME/Documents/novels
 PYTHONCOMMAND=/usr/bin/python
+NOVELPYTHON=$MYRUNTIME/customs/others/getnovel.py
 NOVELEXT=txt
 
 novellists=$(ls ${NOVELPATH}/*${NOVELEXT})
@@ -15,7 +16,7 @@ done
 
 
 getNovel() {
-  $PYTHONCOMMAND $NOVELPATH/novel.py
+  $PYTHONCOMMAND $NOVELPYTHON
 }
 
 listNovel() {
