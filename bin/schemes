@@ -123,10 +123,15 @@ curScheme() {
   echo "Current scheme is : $(_getScheme)"
 }
 
+setCurScheme() {
+  echo $(basename $(_getScheme)| sed 's/.itermcolors//g')
+  $PREVIEWCOMMAND $(_getScheme)
+}
+
 help() {
   command=$(basename $0)
-  echo "Usage: $command list/l | del/d | chose/c | arrange/a | rand/r | trun/t | current/cur | help/h";
-	echo "用法： $command  列表  |  删除 |  查看   |   整理    |  随机  |  清空  |    当前     |  帮助"
+  echo "Usage: $command list/l | del/d | chose/c | arrange/a | rand/r | trun/t | current/cur | setcur/s | help/h";
+	echo "用法： $command  列表  |  删除 |  查看   |   整理    |  随机  |  清空  |    当前     | 设置当前 |  帮助"
   echo ""
 }
 
@@ -153,6 +158,9 @@ case "$1" in
     ;;
   "current"|"cur")
     curScheme
+    ;;
+  "setcur"|"s")
+    setCurScheme
     ;;
   "help"|"h"|*)
     help
