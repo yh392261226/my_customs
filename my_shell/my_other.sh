@@ -31,3 +31,4 @@ fi
 #eval $(thefuck --alias)
 
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
+source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
