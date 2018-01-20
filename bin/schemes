@@ -1,0 +1,162 @@
+#!/bin/bash
+##Desc:即时变更iterm的主题样式
+##Author:杨浩
+##Schemes can download from : https://github.com/mbadolato/iTerm2-Color-Schemes
+##The PREVIEWCOMMAND is from : https://github.com/mbadolato/iTerm2-Color-Schemes/blob/master/tools/preview.rb
+
+PREVIEWCOMMAND=$MYRUNTIME/customs/others/preview.rb
+SCHEMESPATH=$MYRUNTIME/customs/others/schemes
+SCHEMEMARKFILE=$MYRUNTIME/tools/m_scheme
+SCHEMELISTS=[]
+
+#arrange schemes list to array
+tmplists=$(ls ${SCHEMESPATH}/*|sed 's/ /\\ /g')
+if [ "" != "$tmplists" ]; then
+  tmpposit=0
+  for schemes in $tmplists; do
+    SCHEMELISTS[$tmpposit]=$schemes
+    ((tmpposit+=1))
+  done
+else
+  echo "Does not get any scheme !";
+  exit 1
+fi
+
+#record the current scheme to mark file
+_recordScheme() {
+  #if does not exits $SCHEMEMARKFILE create it.
+  if [ ! -f $SCHEMEMARKFILE ]; then
+    touch $SCHEMEMARKFILE
+  fi
+  scheme=$1
+  echo $scheme > $SCHEMEMARKFILE
+}
+
+#get the current scheme from mark file
+_getScheme() {
+  #if does not exits $SCHEMEMARKFILE create it.
+  if [ ! -f $SCHEMEMARKFILE ]; then
+    touch $SCHEMEMARKFILE
+  fi
+  echo $(cat $SCHEMEMARKFILE)
+}
+
+listSchemes() {
+  posit=0
+  echo "-----------------------------------------------------------------------"
+  for i in ${SCHEMELISTS[*]}; do
+    if [ -f $i ]; then
+      name=$(basename $i)
+      printf "%-5s%-5s%-60s%-30s\n" "|" " $posit" "|     $name" "|"
+      ((posit+=1))
+    fi
+  done
+  echo "-----------------------------------------------------------------------"
+}
+
+delScheme() {
+  listSchemes
+  echo "Which one do you want to delete?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${SCHEMELISTS[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+    echo "trash $(basename ${SCHEMELISTS[$number]}| sed 's/.itermcolors//g')"
+    if [ "${SCHEMELISTS[$number]}" = "$(_getScheme)" ]; then
+      echo "" > $SCHEMEMARKFILE
+    fi
+    trash ${SCHEMELISTS[$number]}
+  fi
+  if [ "$?" = "0" ]; then
+    echo "Delete Successful !"
+    return 0
+  else
+    echo "Delete Failure !"
+    return 1
+  fi
+}
+
+truncateSchemes() {
+  trash ${SCHEMESPATH}/*
+  if [ "$?" = "0" ]; then
+    echo "" > $SCHEMEMARKFILE
+    echo "Truncate Successful !"
+    return 0
+  else
+    echo "Truncate Failure !"
+    return 1
+  fi
+}
+
+choseScheme() {
+  listSchemes
+  echo "Which one do you want to chose?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${SCHEMELISTS[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+    echo $(basename ${SCHEMELISTS[$number]}| sed 's/.itermcolors//g')
+    _recordScheme ${SCHEMELISTS[$number]}
+    $PREVIEWCOMMAND ${SCHEMELISTS[$number]}
+  fi
+  return 0
+}
+
+arrangeSchemes() {
+  for loop in `ls -1 ${SCHEMESPATH} | tr ' '  '#'`
+  do
+      mv  "`echo $loop | sed 's/#/ /g' `"  "`echo $loop |sed 's/#//g' `"  2> /dev/null
+  done
+  echo "Done..."
+}
+
+randScheme() {
+  rand=$(php -r "echo rand(0, ${#SCHEMELISTS[@]});")
+  echo $(basename ${SCHEMELISTS[$rand]}| sed 's/.itermcolors//g')
+  _recordScheme ${SCHEMELISTS[$rand]}
+  $PREVIEWCOMMAND ${SCHEMELISTS[$rand]}
+}
+
+curScheme() {
+  echo "Current scheme is : $(_getScheme)"
+}
+
+help() {
+  command=$(basename $0)
+  echo "Usage: $command list/l | del/d | chose/c | arrange/a | rand/r | trun/t | current/cur | help/h";
+	echo "用法： $command  列表  |  删除 |  查看   |   整理    |  随机  |  清空  |    当前     |  帮助"
+  echo ""
+}
+
+source $MYRUNTIME/customs/bin/mymessage
+
+case "$1" in
+  "list"|"l")
+    listSchemes
+    ;;
+  "chose"|"c")
+    choseScheme
+    ;;
+  "truncate"|"t")
+    truncateSchemes
+    ;;
+  "delete"|"del"|"d")
+    delScheme
+    ;;
+  "arrange"|"a")
+    arrangeSchemes
+    ;;
+  "rand"|"r")
+    randScheme
+    ;;
+  "current"|"cur")
+    curScheme
+    ;;
+  "help"|"h"|*)
+    help
+    echo ""
+    curScheme
+    ;;
+esac

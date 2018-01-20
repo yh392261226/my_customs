@@ -9,11 +9,10 @@ NOVELEXT=txt
 
 novellists=$(ls ${NOVELPATH}/*${NOVELEXT})
 posit=0
-for i in $novellists; do
-  novellists[$posit]=$i
+for novel in $novellists; do
+  novellists[$posit]=$novel
   ((posit+=1))
 done
-
 
 getNovel() {
   $PYTHONCOMMAND $NOVELPYTHON
@@ -27,7 +26,7 @@ listNovel() {
       desc=$(head -n 1 $i)
       desc=${desc:0:35}
       name=$(basename $i)
-      printf "%-5s%-5s%-30s%-70s\n" "|" "$posit" "$name" "$desc"
+      printf "%-5s%-5s%-30s%-60s\n" "|" "| $posit" "| $name" "| $desc"
       ((posit+=1))
     fi
   done
@@ -44,7 +43,13 @@ delNovel() {
   else
     trash ${novellists[$number]}
   fi
-  return 0
+  if [ "$?" = "0" ]; then
+    echo "Delete Successful !"
+    return 0
+  else
+    echo "Delete Failure !"
+    return 1
+  fi
 }
 
 viewNovel() {
@@ -62,12 +67,19 @@ viewNovel() {
 
 truncateNovel() {
   trash ${NOVELPATH}/*${NOVELEXT}
+  if [ "$?" = "0" ]; then
+    echo "Truncate Successful !"
+    return 0
+  else
+    echo "Truncate Failure !"
+    return 1
+  fi
 }
 
 helpNovel() {
-  command=$0
+  command=$(basename $0)
   echo "Usage: $command list/l | get/g | del/d | view/v | trun/t | help/h";
-	echo "用法： $command 列表   | 获取  | 删除  | 查看    | 清空   | 帮助"
+	echo "用法： $command 列表   | 获取  | 删除  | 查看   | 清空   | 帮助"
   echo ""
 }
 
@@ -91,5 +103,7 @@ case "$1" in
     ;;
   "help"|"h"|*)
     helpNovel
+    echo ""
+    listNovel
     ;;
 esac
