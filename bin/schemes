@@ -7,7 +7,10 @@
 PREVIEWCOMMAND=$MYRUNTIME/customs/others/preview.rb
 SCHEMESPATH=$MYRUNTIME/customs/others/schemes
 SCHEMEMARKFILE=$MYRUNTIME/tools/m_scheme
+SCHEMEFAVOFILE=${SCHEMEMARKFILE}_favo
+SCHEMEFAVOTMPFILE=/tmp/scheme_favo_tmp
 SCHEMELISTS=[]
+FAVOARRAY=[]
 
 #arrange schemes list to array
 tmplists=$(ls ${SCHEMESPATH}/*|sed 's/ /\\ /g')
@@ -128,11 +131,106 @@ setCurScheme() {
   $PREVIEWCOMMAND $(_getScheme)
 }
 
+addFavo() {
+  if [ "" != "$1" ]; then
+    scheme=$1
+  else
+    echo "Does not get what to add!"
+    return 1
+  fi
+  if [ "" != "$(cat $SCHEMEFAVOFILE| grep $scheme)" ]; then
+    echo "$(basename $scheme| sed 's/.itermcolors//g') already exits!"
+    return 1
+  fi
+  echo $scheme >> $SCHEMEFAVOFILE
+  echo "Done..."
+}
+
+delFavo() {
+  if [ "" != "$1" ]; then
+    scheme=$1
+  else
+    echo "Does not get which one to delete!"
+    return 1
+  fi
+  cat $SCHEMEFAVOFILE| grep -v $scheme > $SCHEMEFAVOTMPFILE
+  if [ -f $SCHEMEFAVOTMPFILE ]; then
+    rm -f $SCHEMEFAVOFILE
+    mv $SCHEMEFAVOTMPFILE $SCHEMEFAVOFILE
+  fi
+  echo "Done..."
+}
+
+truncateFavo() {
+  if [ ! -f $SCHEMEFAVOFILE ]; then
+    touch $SCHEMEFAVOFILE
+  fi
+  echo "" > $SCHEMEFAVOFILE
+  echo "Done..."
+}
+
+listFavo() {
+  if [ ! -f $SCHEMEFAVOFILE ]; then
+    touch $SCHEMEFAVOFILE
+  fi
+  FAVOLISTS=$(cat $SCHEMEFAVOFILE)
+  posit=0
+  echo "-----------------------------------------------------------------------"
+  for i in ${FAVOLISTS[*]}; do
+    if [ -f $i ]; then
+      name=$(basename $i|sed 's/.itermcolors//g')
+      FAVOARRAY[$posit]=$i
+      printf "%-5s%-5s%-60s%-30s\n" "|" " $posit" "|     $name" "|"
+      ((posit+=1))
+    fi
+  done
+  echo "-----------------------------------------------------------------------"
+}
+
+choseFavo() {
+  listFavo
+  if [ "$1" != "" ]; then
+      conf=$1
+  else
+    echo "Type your choice : "; read conf
+  fi
+
+  if [ "$conf" -lt "${#FAVOARRAY[@]}" ]; then
+      $PREVIEWCOMMAND  ${FAVOARRAY[$conf]}
+  else
+      echo "The NO. you typed dose not exists !";
+      return 1
+  fi
+}
+
+favoScheme() {
+  case "$1" in
+    "add"|"a")
+      addFavo $(cat $SCHEMEMARKFILE)
+      ;;
+    "del"|"d")
+      delFavo $(cat $SCHEMEMARKFILE)
+      ;;
+    "truncate"|"t")
+      truncateFavo
+      ;;
+    "chose"|"c")
+      choseFavo
+      ;;
+    "list"|*)
+      listFavo
+      ;;
+  esac
+}
+
 help() {
   command=$(basename $0)
-  echo "Usage: $command list/l | del/d | chose/c | arrange/a | rand/r | trun/t | current/cur | setcur/s | help/h";
-	echo "用法： $command  列表  |  删除 |  查看   |   整理    |  随机  |  清空  |    当前     | 设置当前 |  帮助"
+  echo "Usage: $command list/l | del/d | chose/c | arrange/a | rand/r | trun/t | current/cur | setcur/s | favo/f | help/h";
+	echo "用法： $command  列表  |  删除 |  查看   |   整理    |  随机  |  清空  |    当前     | 设置当前 |  收藏  |  帮助"
   echo ""
+  echo "$command favo/f [commands]:"
+  echo "list/l | add/a | del/d | truncate/t | chose/c"
+  echo " 列表  | 添加  | 删除  |  清空收藏  | 选择"
 }
 
 source $MYRUNTIME/customs/bin/mymessage
@@ -161,6 +259,9 @@ case "$1" in
     ;;
   "setcur"|"s")
     setCurScheme
+    ;;
+  "favo"|"f")
+    favoScheme $2 $3
     ;;
   "help"|"h"|*)
     help
