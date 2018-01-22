@@ -49,7 +49,7 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
                         end tell
                     end tell
                 end tell"
-
+zz
                 bg_thumb $image_path
             end
 

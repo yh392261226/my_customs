@@ -2,6 +2,9 @@ show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php
 emptybackground=$HOME/Pictures/down_pics/public/t1l-logo-white-shitty.jpg
 
+if [ -z $BGTHUMB ]; then
+  BGTHUMB=1
+fi
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     ITERMPATH="/Applications/iTerm.app"
@@ -68,7 +71,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         end tell
                     end tell"
                 fi
-                if [ "" != "$image_path" ]; then
+                if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
                   bg_thumb $image_path
                   for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
                   echo ""

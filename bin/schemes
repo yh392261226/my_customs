@@ -203,6 +203,14 @@ choseFavo() {
   fi
 }
 
+randFavo() {
+  listFavo >> /dev/null
+  rand=$(php -r "echo rand(0, ${#FAVOARRAY[@]});")
+  echo $(basename ${FAVOARRAY[$rand]}| sed 's/.itermcolors//g')
+  _recordScheme ${FAVOARRAY[$rand]}
+  $PREVIEWCOMMAND ${FAVOARRAY[$rand]}
+}
+
 favoScheme() {
   case "$1" in
     "add"|"a")
@@ -217,6 +225,9 @@ favoScheme() {
     "chose"|"c")
       choseFavo
       ;;
+    "rand"|"r")
+      randFavo
+      ;;
     "list"|*)
       listFavo
       ;;
@@ -229,8 +240,8 @@ help() {
 	echo "用法： $command  列表  |  删除 |  查看   |   整理    |  随机  |  清空  |    当前     | 设置当前 |  收藏  |  帮助"
   echo ""
   echo "$command favo/f [commands]:"
-  echo "list/l | add/a | del/d | truncate/t | chose/c"
-  echo " 列表  | 添加  | 删除  |  清空收藏  | 选择"
+  echo "list/l | add/a | del/d | truncate/t | chose/c | rand/r"
+  echo " 列表  | 添加  | 删除  |  清空收藏  |   选择  |  随机"
 }
 
 source $MYRUNTIME/customs/bin/mymessage
