@@ -563,3 +563,25 @@ tm() {
 
 function showF() { defaults write com.apple.Finder AppleShowAllFiles YES ; }
 function hideF() { defaults write com.apple.Finder AppleShowAllFiles NO ; }
+
+myMessage() {
+clear
+  _COLUMNS=$(tput cols)
+  source $MYRUNTIME/tools/m_title
+  y=$(( ( $_COLUMNS - ${#_TITLE} )  / 2 ))
+  spaces=$(printf "%-${y}s" " ")
+  echo " "
+  echo -e "${spaces}\033[41;37;5m ${_TITLE} \033[0m"
+  echo " "
+
+
+  _COLUMNS=$(tput cols)
+  source $MYRUNTIME/tools/m_message
+  y=$(( ( $_COLUMNS - ${#_MESSAGE} )  / 2 ))
+  spaces=$(printf "%-${y}s" " ")
+  echo -e "${spaces}${_MESSAGE}"
+  echo " "
+  for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
+
+  echo " "
+}
