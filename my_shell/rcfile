@@ -37,6 +37,17 @@ curterm() {
     echo $CURTERM
 }
 
+curPanel() {
+  panel="shell"
+  if [ ! -z "$STY" ]; then
+    panel="screen"
+  elif [ ! -z "$TMUX" ]; then
+    panel="tmux"
+  fi
+  echo $panel;
+}
+
 export nowshell=$(curshell)
 export nowterm=$(curterm)
+export nowpanel=$(curPanel)
 source $MYRUNTIME/customs/my_shell/${nowshell}/custom_shrc
