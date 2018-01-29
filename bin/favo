@@ -472,6 +472,8 @@ case "$1" in
 	"thumb"|"t")
 		if [ "" != "$2" ]; then
 			thumb_favo $2 $3
+    else
+      thumb_favo $BACKGROUNDIMG
 		fi
 		;;
   "scur"|"setcurent")
