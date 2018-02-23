@@ -1,0 +1,21 @@
+#!/bin/bash
+##Desc:获取91视频
+##Author:杨浩
+
+
+COMMANDPATH=$MYRUNTIME/customs/others/vedio_spider
+PYTHONCOMMAND=/usr/local/bin/python3
+PAGESIZE=1
+SAVEDIR=$(cat $HOME/.vedio_path)
+
+if [ "" = "$SAVEDIR" ]; then
+  echo "Does not get save path !"
+  exit 1
+fi
+
+if [ "$1" != "" ]; then
+  PAGESIZE=$1
+fi
+
+cd $COMMANDPATH
+$PYTHONCOMMAND $COMMANDPATH/91_spider.py $SAVEDIR $PAGESIZE
