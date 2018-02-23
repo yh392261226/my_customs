@@ -4,6 +4,7 @@
 
 NOVELPATH=$HOME/Documents/novels
 PYTHONCOMMAND=/usr/bin/python
+MYRUNTIME=$(cat $HOME/.myruntime)
 NOVELPYTHON=$MYRUNTIME/customs/others/getnovel.py
 NOVELEXT=txt
 
