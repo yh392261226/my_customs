@@ -5,6 +5,11 @@
 COMMANDPATH=$MYRUNTIME/customs/others/gvcci
 GVCCIRESULTPATH=$HOME/.gvcci/themes
 THEMESPATH=$MYRUNTIME/customs/others/schemes
+PREVIEWCOMMAND=$MYRUNTIME/customs/others/preview.rb
+CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
+BACKGROUNDIMG=$(cat $CURPICNAME)     #background image file name
+
+# echo $BACKGROUNDIMG;exit 0
 
 help() {
   command=$(basename $0)
@@ -27,10 +32,18 @@ if [ "" = "$1" ]; then
 fi
 
 img=$1
+if [ "$img" = "cur" ]; then
+  img=$BACKGROUNDIMG
+fi
+
 cd $COMMANDPATH
 ./gvcci.sh $img
 tmpthemepath=$(basename $img|awk -F'.' '{print $1}')
 if [ -f ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors ]; then
   cp ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
   rm -rf $GVCCIRESULTPATH/$tmpthemepath
+  $PREVIEWCOMMAND $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
+  echo ""
+  echo ""
+  echo ""
 fi
