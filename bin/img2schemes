@@ -8,14 +8,25 @@ THEMESPATH=$MYRUNTIME/customs/others/schemes
 PREVIEWCOMMAND=$MYRUNTIME/customs/others/preview.rb
 CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
 BACKGROUNDIMG=$(cat $CURPICNAME)     #background image file name
+SCHEMEMARKFILE=$MYRUNTIME/tools/m_scheme
 
 # echo $BACKGROUNDIMG;exit 0
 
-help() {
+_help() {
   command=$(basename $0)
   echo "Usage: $command   help/h";
 	echo "用法： $command    帮助"
   echo ""
+}
+
+#record the current scheme to mark file
+_recordScheme() {
+  #if does not exits $SCHEMEMARKFILE create it.
+  if [ ! -f $SCHEMEMARKFILE ]; then
+    touch $SCHEMEMARKFILE
+  fi
+  scheme=$1
+  echo $scheme > $SCHEMEMARKFILE
 }
 
 if [ ! -d $COMMANDPATH ]; then
@@ -27,7 +38,7 @@ fi
 
 if [ "" = "$1" ]; then
   echo "Path to image can not be empty!"
-  help
+  _help
   exit 1
 fi
 
@@ -42,6 +53,7 @@ tmpthemepath=$(basename $img|awk -F'.' '{print $1}')
 if [ -f ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors ]; then
   cp ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
   rm -rf $GVCCIRESULTPATH/$tmpthemepath
+  _recordScheme ${tmpthemepath}_img2scheme
   $PREVIEWCOMMAND $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
   echo ""
   echo ""
