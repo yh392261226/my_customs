@@ -52,7 +52,7 @@ cd $COMMANDPATH
 tmpthemepath=$(basename $img|awk -F'.' '{print $1}')
 if [ -f ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors ]; then
   cp ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
-  rm -rf $GVCCIRESULTPATH/$tmpthemepath
+#   rm -rf $GVCCIRESULTPATH/$tmpthemepath
   _recordScheme ${tmpthemepath}_img2scheme
   $PREVIEWCOMMAND $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
   echo ""
