@@ -1,0 +1,33 @@
+#!/bin/bash
+##Desc: 将图片转换成mac 使用的主题
+##Author:杨浩
+
+COMMANDPATH=$MYRUNTIME/customs/others/gvcci
+GVCCIRESULTPATH=$HOME/.gvcci/themes
+
+help() {
+  command=$(basename $0)
+  echo "Usage: $command   help/h";
+	echo "用法： $command    帮助"
+  echo ""
+}
+
+if [ ! -d $COMMANDPATH ]; then
+  echo "Command path does not exists !"
+  echo "Please get it from : https://github.com/FabriceCastel/gvcci"
+  echo "git clone https://github.com/FabriceCastel/gvcci $COMMANDPATH"
+  exit 0
+fi
+
+if [ "" = "$1" ]; then
+  echo "Path to image can not be empty!"
+  help
+  exit 1
+fi
+
+img=$1
+
+cd $COMMANDPATH
+./gvcci.sh $img
+
+open ${GVCCIRESULTPATH}/$(basename $img|awk -F'.' '{print $1}')
