@@ -9,15 +9,14 @@ PREVIEWCOMMAND=$MYRUNTIME/customs/others/preview.rb
 CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
 BACKGROUNDIMG=$(cat $CURPICNAME)     #background image file name
 SCHEMEMARKFILE=$MYRUNTIME/tools/m_scheme
-
-# echo $BACKGROUNDIMG;exit 0
-
-_help() {
-  command=$(basename $0)
-  echo "Usage: $command   help/h";
-	echo "用法： $command    帮助"
-  echo ""
-}
+option=$1
+if [ "" != "$2" ]; then
+  img=$2
+  if [ "$img" = "cur" ]; then
+    img=$BACKGROUNDIMG
+  fi
+  tmpthemepath=$(basename $img|awk -F'.' '{print $1}')
+fi
 
 #record the current scheme to mark file
 _recordScheme() {
@@ -29,6 +28,79 @@ _recordScheme() {
   echo $scheme > $SCHEMEMARKFILE
 }
 
+#doing image to scheme
+_createScheme() {
+  if [ "" = "$1" ] || [ ! -f $1 ]; then
+    echo "$1 does not exists!"
+    return 1
+  fi
+  cd $COMMANDPATH
+  ./gvcci.sh $1
+  tmpthemepath=$(basename $1|awk -F'.' '{print $1}')
+  if [ -f ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors ]; then
+    cp ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
+  #   rm -rf $GVCCIRESULTPATH/$tmpthemepath
+    _recordScheme ${tmpthemepath}_img2scheme
+    $PREVIEWCOMMAND $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
+    echo ""
+    echo ""
+    echo ""
+  fi
+}
+
+#use the scheme
+_useScheme() {
+  echo "The files from gvcci:"
+  if [ ! -d $GVCCIRESULTPATH/$1/ ] || [ "" = "$1" ]; then
+    echo "$1 does not exists"
+    return 1
+  fi
+  cp $GVCCIRESULTPATH/$1/iterm.plist ~/Library/Application\ Support/iTerm2/DynamicProfiles/gvcci.plist
+
+  # This doesn't matter if the gvcci profile is set as default
+  sleep 3 # wait for iTerm to pick up the new profile before trying to load it
+  echo -e "\033]50;SetProfile=gvcci\a"
+
+  echo "If you want your iTerm color scheme to update automatically every"
+  echo "time you run this script, go to:"
+  echo "Preferences > Profiles > gvcci"
+  echo "Then under 'Other Actions...' select 'Set as Default'"
+  echo "This will take effect for all new terminal sessions"
+}
+
+#use the wallpaper from the scheme
+_useWallpaper() {
+  if [ ! -f $1 ]; then
+    echo "$1 does not exists!"
+    return 1
+  fi
+  img_path="$1"
+  cmd="tell application \"System Events\" to set picture of every desktop to POSIX file \"$img_path\""
+  osascript -e "$cmd"
+}
+
+#list the schemes from gvcci
+_listSchemes() {
+  ls $GVCCIRESULTPATH
+}
+
+#delete the scheme
+_deleteScheme() {
+  if [ -d $GVCCIRESULTPATH/$1 ]; then
+    rm -rf $GVCCIRESULTPATH/$1
+  fi
+  echo "Done..."
+}
+
+#help messages
+_help() {
+  source $MYRUNTIME/customs/bin/mymessage
+  command=$(basename $0)
+  echo "Usage: $command  create/c | delete/d | use/u | wallpaper/w | list/l | help/h";
+	echo "用法： 图片转主题     创建   |   删除   |  使用 |   桌面背景  |  列表  |  帮助"
+  echo ""
+}
+
 if [ ! -d $COMMANDPATH ]; then
   echo "Command path does not exists !"
   echo "Please get it from : https://github.com/FabriceCastel/gvcci"
@@ -36,26 +108,24 @@ if [ ! -d $COMMANDPATH ]; then
   exit 0
 fi
 
-if [ "" = "$1" ]; then
-  echo "Path to image can not be empty!"
-  _help
-  exit 1
-fi
 
-img=$1
-if [ "$img" = "cur" ]; then
-  img=$BACKGROUNDIMG
-fi
-
-cd $COMMANDPATH
-./gvcci.sh $img
-tmpthemepath=$(basename $img|awk -F'.' '{print $1}')
-if [ -f ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors ]; then
-  cp ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
-#   rm -rf $GVCCIRESULTPATH/$tmpthemepath
-  _recordScheme ${tmpthemepath}_img2scheme
-  $PREVIEWCOMMAND $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
-  echo ""
-  echo ""
-  echo ""
-fi
+case "$option" in
+  "create"|"c")
+    _createScheme $img
+  ;;
+  "delete"|"d")
+    _deleteScheme $img
+  ;;
+  "use"|"u")
+    _useScheme $img
+  ;;
+  "wallpaper"|"w")
+    _useWallpaper $img
+  ;;
+  "list"|"l")
+    _listSchemes
+  ;;
+  "help"|"h"|*)
+    _help
+  ;;
+esac
