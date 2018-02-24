@@ -4,6 +4,7 @@
 
 COMMANDPATH=$MYRUNTIME/customs/others/gvcci
 GVCCIRESULTPATH=$HOME/.gvcci/themes
+THEMESPATH=$MYRUNTIME/customs/others/schemes
 
 help() {
   command=$(basename $0)
@@ -26,8 +27,10 @@ if [ "" = "$1" ]; then
 fi
 
 img=$1
-
 cd $COMMANDPATH
 ./gvcci.sh $img
-
-open ${GVCCIRESULTPATH}/$(basename $img|awk -F'.' '{print $1}')
+tmpthemepath=$(basename $img|awk -F'.' '{print $1}')
+if [ -f ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors ]; then
+  cp ${GVCCIRESULTPATH}/$tmpthemepath/iterm.itermcolors $THEMESPATH/${tmpthemepath}_img2scheme.itermcolors
+  rm -rf $GVCCIRESULTPATH/$tmpthemepath
+fi
