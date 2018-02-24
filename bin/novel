@@ -66,6 +66,19 @@ viewNovel() {
   return 0
 }
 
+openNovel() {
+  listNovel
+  echo "Which one do you want to view?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${novellists[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+     open -a /Applications/Google\ Chrome.app ${novellists[$number]}
+  fi
+  return 0
+}
+
 truncateNovel() {
   trash ${NOVELPATH}/*${NOVELEXT}
   if [ "$?" = "0" ]; then
@@ -79,8 +92,8 @@ truncateNovel() {
 
 helpNovel() {
   command=$(basename $0)
-  echo "Usage: $command list/l | get/g | del/d | view/v | trun/t | help/h";
-	echo "用法： $command 列表   | 获取  | 删除  | 查看   | 清空   | 帮助"
+  echo "Usage: $command list/l | get/g | del/d | view/v | trun/t | open/o | help/h";
+	echo "用法： $command 列表   | 获取  | 删除  | 查看   |  清空  |  打开  | 帮助"
   echo ""
 }
 
@@ -95,6 +108,9 @@ case "$1" in
     ;;
   "view"|"v")
     viewNovel
+    ;;
+  "open"|"o")
+    openNovel
     ;;
   "truncate"|"t")
     truncateNovel
