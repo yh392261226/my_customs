@@ -3,3 +3,5 @@ bin/sftp2lo
 bin/sftp2server
 .descfile
 .vscode
+others/gvcci/*
+others/vedio_spider/*
