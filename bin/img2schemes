@@ -25,7 +25,7 @@ _recordScheme() {
     touch $SCHEMEMARKFILE
   fi
   scheme=$1
-  echo $scheme > $SCHEMEMARKFILE
+  echo $THEMESPATH/${scheme}.itermcolors > $SCHEMEMARKFILE
 }
 
 #doing image to scheme
