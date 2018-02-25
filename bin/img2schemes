@@ -50,7 +50,7 @@ _createScheme() {
 
 #use the scheme
 _useScheme() {
-  echo "The files from gvcci:"
+  echo "Waitting..."
   if [ ! -d $GVCCIRESULTPATH/$1/ ] || [ "" = "$1" ]; then
     echo "$1 does not exists"
     return 1
