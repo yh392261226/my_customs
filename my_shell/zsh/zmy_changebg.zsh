@@ -3,7 +3,7 @@ phpbin=/usr/local/bin/php
 emptybackground=$HOME/Pictures/down_pics/public/t1l-logo-white-shitty.jpg
 
 if [ -z $BGTHUMB ]; then
-  BGTHUMB=1
+  BGTHUMB=0
 fi
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
