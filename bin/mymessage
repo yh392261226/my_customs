@@ -1,8 +1,8 @@
 #!/bin/bash
 ## Desc: 消息插入
 ## Author: 杨浩
-myMessage() {
-  clear
+
+wordMessage() {
   _COLUMNS=$(tput cols)
   source $MYRUNTIME/tools/m_title
   y=$(( ( $_COLUMNS - ${#_TITLE} )  / 2 ))
@@ -10,8 +10,6 @@ myMessage() {
   echo " "
   echo -e "${spaces}\033[41;37;5m ${_TITLE} \033[0m"
   echo " "
-
-
   _COLUMNS=$(tput cols)
   source $MYRUNTIME/tools/m_message
   y=$(( ( $_COLUMNS - ${#_MESSAGE} )  / 2 ))
@@ -19,8 +17,50 @@ myMessage() {
   echo -e "${spaces}${_MESSAGE}"
   echo " "
   for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
-
   echo " "
 }
 
-myMessage
+snowMessage() {
+  LINES=$(tput lines)
+  COLUMNS=$(tput cols)
+  declare -A snowflakes
+  declare -A lastflakes
+  clear
+  function move_flake() {
+    i="$1"
+    if [ "${snowflakes[$i]}" = "" ] || [ "${snowflakes[$i]}" = "$LINES" ]; then
+      snowflakes[$i]=0
+    else
+      if [ "${lastflakes[$i]}" != "" ]; then
+        printf "\033[%s;%sH \033[1;1H " ${lastflakes[$i]} $i
+      fi
+    fi
+    printf "\033[%s;%sH*\033[1;1H" ${snowflakes[$i]} $i
+    lastflakes[$i]=${snowflakes[$i]}
+    snowflakes[$i]=$((${snowflakes[$i]}+1))
+  }
+  while :
+  do
+  i=$(($RANDOM % $COLUMNS))
+  move_flake $i
+  for x in "${!lastflakes[@]}"
+  do
+  move_flake "$x"
+  done
+  sleep 0.1
+  done
+}
+
+myMessage() {
+  clear
+  case "$1" in
+    "snow")
+      snowMessage
+    ;;
+    "word"|*)
+      wordMessage
+    ;;
+  esac
+}
+
+myMessage $1

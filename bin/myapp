@@ -1,0 +1,81 @@
+#!/bin/bash
+##Desc:管理自己的app
+##Author:杨浩
+MYAPPPATH=$MYRUNTIME/myapps
+
+applists=$(ls $MYAPPPATH)
+posit=0
+for app in $applists; do
+  applists[$posit]=$app
+  ((posit+=1))
+done
+
+listApps() {
+  posit=0
+  echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+  for i in ${applists[*]}; do
+    if [ -d $MYAPPPATH/$i ]; then
+      printf "%-5s%-5s%-30s%-60s\n" "|" "| $posit" "| $i" "| "
+      ((posit+=1))
+    fi
+  done
+  echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+}
+
+delApp() {
+  listApps
+  echo "Which one do you want to delete?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${applists[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+    trash ${applists[$number]}
+  fi
+  if [ "$?" = "0" ]; then
+    echo "Delete Successful !"
+    return 0
+  else
+    echo "Delete Failure !"
+    return 1
+  fi
+}
+
+openApp() {
+  listApps
+  echo "Which one do you want to view?:";
+  read number;
+  if [ "$number" -lt "0" ] || [ "${applists[$number]}" = "" ]; then
+    echo "Your choice does not exists !"
+    return 1
+  else
+     open -a ${applists[$number]}
+  fi
+  return 0
+}
+
+helpApp() {
+  command=$(basename $0)
+  echo "Usage: $command list/l | del/d | open/o | help/h";
+	echo "用法： $command 列表   | 删除  |  打开  | 帮助"
+  echo ""
+}
+
+source $MYRUNTIME/customs/bin/mymessage
+
+case "$1" in
+  "list"|"l")
+    listApps
+    ;;
+  "open"|"o")
+    openApp
+    ;;
+  "delete"|"del"|"d")
+    delApp
+    ;;
+  "help"|"h"|*)
+    helpApp
+    echo ""
+    listApps
+    ;;
+esac
