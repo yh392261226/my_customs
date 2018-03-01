@@ -23,9 +23,13 @@ listApps() {
 }
 
 delApp() {
-  listApps
-  echo "Which one do you want to delete?:";
-  read number;
+  if [ "$1" = "" ]; then
+    listApps
+    echo "Which one do you want to delete?:";
+    read number;
+  else
+    number=$1
+  fi
   if [ "$number" -lt "0" ] || [ "${applists[$number]}" = "" ]; then
     echo "Your choice does not exists !"
     return 1
@@ -42,9 +46,13 @@ delApp() {
 }
 
 openApp() {
-  listApps
-  echo "Which one do you want to view?:";
-  read number;
+  if [ "$1" = "" ]; then
+    listApps
+    echo "Which one do you want to open?:";
+    read number;
+  else
+    number=$1
+  fi
   if [ "$number" -lt "0" ] || [ "${applists[$number]}" = "" ]; then
     echo "Your choice does not exists !"
     return 1
@@ -68,10 +76,10 @@ case "$1" in
     listApps
     ;;
   "open"|"o")
-    openApp
+    openApp $2
     ;;
   "delete"|"del"|"d")
-    delApp
+    delApp $2
     ;;
   "help"|"h"|*)
     helpApp
