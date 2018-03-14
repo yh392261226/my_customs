@@ -23,3 +23,8 @@ function install_powerline_precmd() {
 if [ "$TERM" != "linux" ]; then
     install_powerline_precmd
 fi
+
+prompt() {
+    PS1="$(powerline-rs --shell zsh $?)"
+}
+precmd_functions+=(prompt)

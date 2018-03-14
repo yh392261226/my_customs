@@ -37,8 +37,11 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
                 echo "$image_path" > {$MYPATH}/tools/current_picturename
 
                 if test "$show_msg" = "1"
-                    if test not -z "$image_path"
-                        /usr/local/bin/terminal-notifier -message $image_path
+                    if test -z "$image_path"
+                      echo "No bg at the current time!"
+                      false
+                    else
+                      /usr/local/bin/terminal-notifier -message $image_path
                     end
                 end
 
@@ -49,7 +52,7 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
                         end tell
                     end tell
                 end tell"
-zz
+
                 bg_thumb $image_path
             end
 

@@ -11,6 +11,7 @@ set -gx PATH $MYRUNTIME/customs/bin $PATH
 set -gx PATH /tools/ssh-auto-login/auto_gen $PATH
 set -gx PATH /usr/local/opt/coreutils/libexec/gnubin $PATH
 set -gx PATH $HOME/bin $PATH
+set -gx PATH $HOME/.cargo/bin $PATH
 
 ##别名设置
 alias goweb "godoc -http=:9900 >> /dev/null &"
@@ -87,4 +88,8 @@ end
 
 function fish_prompt
     powerline-shell --shell bare $status
+end
+
+function fish_prompt
+    powerline-rs --shell bare $status
 end
