@@ -49,8 +49,10 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
                         end tell
                     end tell
                 end tell"
+                if test "$BGTHUMB" = 1
+                  bg_thumb $image_path
+                end
 
-                bg_thumb $image_path
             end
 
             #随机下一个背景图

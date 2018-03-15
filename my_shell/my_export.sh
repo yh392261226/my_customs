@@ -3,9 +3,8 @@ export PLATFORM=$(uname -s)
 export BASE=$HOME
 export PATH="$(brew --prefix macvim)/bin:/usr/local/bin:$PATH"
 export RBENV_ROOT=/usr/local/var/rbenv
-export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor
 export PATH="$(brew --prefix python3)/bin:$PATH"
-export PATH="/usr/local/opt/python@2/libexec/bin:$HOME/.cargo/bin:$PATH"
+export PATH="/usr/local/opt/python@2/libexec/bin:$HOME/.cargo/bin:/opt/local/bin:$PATH"
 eval "$(rbenv init -)"
 
 #####设置PATH变量
@@ -24,3 +23,4 @@ elif [ "$MYSYSNAME" = "Ubuntu" ] || [ "$MYSYSNAME" = "Centos" ]; then
     export EDITOR="gedit"
 fi
 
+export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor
