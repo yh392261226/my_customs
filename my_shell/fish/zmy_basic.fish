@@ -86,10 +86,10 @@ if test -f {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
     . {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
 end
 
-function fish_prompt
-    powerline-shell --shell bare $status
-end
-
-function fish_prompt
-    powerline-rs --shell bare $status
-end
+#function fish_prompt
+#    powerline-shell --shell bare $status
+#end
+#
+#function fish_prompt
+#    powerline-rs --shell bare $status
+#end

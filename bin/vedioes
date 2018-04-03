@@ -114,7 +114,7 @@ source $MYRUNTIME/customs/bin/mymessage
 
 case "$1" in
   "get"|"g")
-    getVedioes
+    getVedioes $2
     ;;
   "list"|"l")
     listVedioes
