@@ -1,0 +1,7 @@
+#!/bin/bash
+##Desc:启动显示
+##Author:杨浩
+
+
+$MYRUNTIME/customs/bin/myweather
+/usr/bin/cal
