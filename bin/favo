@@ -419,6 +419,10 @@ trash_favo() {
   fi
 }
 
+#将图片设置为桌面背景
+wallpaper_favo() {
+  sqlite3 ${HOME}/Library/Application\ Support/Dock/desktoppicture.db "update data set value = '${1}'" && killall Dock
+}
 
 source $MYRUNTIME/customs/bin/mymessage
 
@@ -531,6 +535,13 @@ case "$1" in
       trash_favo $BACKGROUNDIMG
     fi
     ;;
+  "wallpaper" | "w")
+    if [ "$2" != "" ]; then
+      wallpaper_favo $2
+    else
+      wallpaper_favo $BACKGROUNDIMG
+    fi
+    ;;
 	"help"|"h"|*)
 		command=$(basename $0)
     echo "$command :"
@@ -553,6 +564,7 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "          [随机欣赏]:" "   [show / s5] [*number] " ""
     printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""
     printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
+    printf "%-25s%-25s%-35s\n" "          [桌面背景]:" " [wallpaper / w] [filename] " ""
     printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
 		echo ""
 		;;
