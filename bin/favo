@@ -228,8 +228,8 @@ list_html_favo() {
       posit=0
       for i in ${favolists[*]}; do
           if [ "$i" != "" ]; then
-              name=$(basename $i)
-              echo "${posit} <a href='${i}' target='_blank'><img alt='${i}' width='200' height='80' src='${i}'><br>${name}<br></a>" >> $FAVOHTML
+              #name=$(basename $i)
+              echo "${posit} <a href='${i}' target='_blank'><img alt='${i}' width='200' height='80' src='${i}'></a>" >> $FAVOHTML
               ((posit+=1))
           fi
       done
