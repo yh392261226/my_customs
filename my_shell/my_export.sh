@@ -24,3 +24,7 @@ elif [ "$MYSYSNAME" = "Ubuntu" ] || [ "$MYSYSNAME" = "Centos" ]; then
 fi
 
 export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor
+if [ -d $HOME/.basher ]; then
+    export PATH="$HOME/.basher/bin:$PATH"
+    eval "$(basher init -)"
+fi

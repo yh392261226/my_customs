@@ -32,3 +32,5 @@ fi
 
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
 source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
+
+$MYRUNTIME/customs/bin/start
