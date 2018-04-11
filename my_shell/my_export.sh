@@ -4,7 +4,7 @@ export BASE=$HOME
 export PATH="$(brew --prefix macvim)/bin:/usr/local/bin:$PATH"
 export RBENV_ROOT=/usr/local/var/rbenv
 export PATH="$(brew --prefix python3)/bin:$PATH"
-export PATH="/usr/local/opt/python@2/libexec/bin:$HOME/.cargo/bin:/opt/local/bin:$PATH"
+export PATH="/usr/local/opt/python@2/libexec/bin:$HOME/.cargo/bin:/opt/local/bin:$HOME/.local/bin:$PATH"
 eval "$(rbenv init -)"
 
 #####设置PATH变量

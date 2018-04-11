@@ -12,6 +12,7 @@ set -gx PATH /tools/ssh-auto-login/auto_gen $PATH
 set -gx PATH /usr/local/opt/coreutils/libexec/gnubin $PATH
 set -gx PATH $HOME/bin $PATH
 set -gx PATH $HOME/.cargo/bin $PATH
+set -gx PATH $HOME/.local/bin $PATH
 
 ##别名设置
 alias goweb "godoc -http=:9900 >> /dev/null &"
