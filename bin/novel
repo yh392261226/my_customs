@@ -35,9 +35,13 @@ listNovel() {
 }
 
 delNovel() {
-  listNovel
-  echo "Which one do you want to delete?:";
-  read number;
+  if [ "" != "$1" ]; then
+    number=$1;
+  else
+    listNovel
+    echo "Which one do you want to delete?:";
+    read number;
+  fi
   if [ "$number" -lt "0" ] || [ "${novellists[$number]}" = "" ]; then
     echo "Your choice does not exists !"
     return 1
@@ -54,9 +58,13 @@ delNovel() {
 }
 
 viewNovel() {
-  listNovel
-  echo "Which one do you want to view?:";
-  read number;
+  if [ "" != "$1" ]; then
+    number=$1;
+  else
+    listNovel
+    echo "Which one do you want to view?:";
+    read number;
+  fi
   if [ "$number" -lt "0" ] || [ "${novellists[$number]}" = "" ]; then
     echo "Your choice does not exists !"
     return 1
@@ -67,9 +75,13 @@ viewNovel() {
 }
 
 openNovel() {
-  listNovel
-  echo "Which one do you want to view?:";
-  read number;
+  if [ "" != "$1" ]; then
+    number=$1;
+  else
+    listNovel
+    echo "Which one do you want to view?:";
+    read number;
+  fi
   if [ "$number" -lt "0" ] || [ "${novellists[$number]}" = "" ]; then
     echo "Your choice does not exists !"
     return 1
@@ -110,7 +122,7 @@ case "$1" in
     viewNovel
     ;;
   "open"|"o")
-    openNovel
+    openNovel $2
     ;;
   "truncate"|"t")
     truncateNovel
