@@ -119,7 +119,7 @@ case "$1" in
     listNovel
     ;;
   "view"|"v")
-    viewNovel
+    viewNovel $2
     ;;
   "open"|"o")
     openNovel $2
@@ -128,7 +128,7 @@ case "$1" in
     truncateNovel
     ;;
   "delete"|"del"|"d")
-    delNovel
+    delNovel $2
     ;;
   "help"|"h"|*)
     helpNovel

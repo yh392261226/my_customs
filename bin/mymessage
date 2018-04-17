@@ -16,7 +16,7 @@ wordMessage() {
   spaces=$(printf "%-${y}s" " ")
   echo -e "${spaces}${_MESSAGE}"
   echo " "
-  for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
+  for ((i=1; i<=($(tput cols) / 2); i ++))  ; do echo -n '*';done
   echo " "
 }
 
