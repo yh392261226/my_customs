@@ -1,6 +1,7 @@
 #!/bin/bash
 ## Desc: 消息插入
 ## Author: 杨浩
+TIMEMARKFILE=$MYRUNTIME/tools/m_messagetime
 
 wordMessage() {
   _COLUMNS=$(tput cols)
@@ -58,7 +59,13 @@ myMessage() {
       snowMessage
     ;;
     "word"|*)
-      wordMessage
+      curtime=$(date +%s)
+      lasttime=$(cat $TIMEMARKFILE)
+      let limit=curtime-lasttime
+      echo $curtime > $TIMEMARKFILE
+      if [ "$limit" -gt "10" ]; then
+        wordMessage
+      fi
     ;;
   esac
 }
