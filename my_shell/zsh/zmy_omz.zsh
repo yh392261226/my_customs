@@ -76,7 +76,7 @@ POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="╰─➢ "
 
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
-plugins=(mvn subl autojump svn svn-fast-info go history git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips yeoman codeception zsh-iterm-touchbar git-extra-commands history-substring-search)
+plugins=(mvn subl autojump svn svn-fast-info go history git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips yeoman codeception zsh-iterm-touchbar git-extra-commands history-substring-search zui zbrowse)
 autoload -U compinit
 #&& compinit
 ZSH_TMUX_AUTOSTART='true'

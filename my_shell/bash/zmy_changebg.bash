@@ -3,17 +3,21 @@
 show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php
 
+if [ -z $BGTHUMB ]; then
+  BGTHUMB=0
+fi
+
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     ITERMPATH="/Applications/iTerm.app"
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
         if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
-            image_list=( $(/bin/ls $MYPATH/pictures/) )
+            image_list=($(/bin/ls $MYPATH/pictures/))
             image_index=-1
             #图像缩略图
             bg_thumb() {
                 bgfile=$1
-                if [ ! -f "$bgfile" ]; then
+                if [ ! -f "$bgfile" ] && [ "" != "$bgfile" ]; then
                     echo "No bg at the current time!";
                     return 1
                 else
@@ -29,7 +33,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
             }
             #图像切换函数
-            function bg_change() {
+            bg_change() {
                 image_path=$1
                 image_index=$2
                 CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
@@ -40,7 +44,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     echo $image_index > $MYPATH/tools/current_picture
                 fi
                 if [ -f $MYPATH/tools/current_picturename ]; then
-                    /bin/rm -f $MYPATH/tools/current_picturename
+                    rm -f $MYPATH/tools/current_picturename
                 fi
                 echo "$image_path" > $MYPATH/tools/current_picturename
 
@@ -69,7 +73,15 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         end tell
                     end tell"
                 fi
-                bg_thumb $image_path
+                if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
+                  bg_thumb $image_path
+                  for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
+                  echo ""
+                  echo $image_path
+                  echo ""
+                  for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
+                  echo ""
+                fi
             }
 
             #随机下一个背景图
