@@ -28,3 +28,6 @@ if [ -d $HOME/.basher ]; then
     export PATH="$HOME/.basher/bin:$PATH"
     eval "$(basher init -)"
 fi
+
+#wine 不输出debug信息
+export WINEDEBUG=-all
