@@ -80,4 +80,5 @@ plugins=(mvn subl autojump svn svn-fast-info go history git-flow node osx cp per
 autoload -U compinit
 #&& compinit
 ZSH_TMUX_AUTOSTART='true'
+ZSH_DISABLE_COMPFIX=true
 source $ZSH/oh-my-zsh.sh

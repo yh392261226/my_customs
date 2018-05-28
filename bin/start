@@ -2,6 +2,18 @@
 ##Desc:启动显示
 ##Author:杨浩
 
+TEMPDIR=$MYRUNTIME/tools/m_date_caches
+CURRENTDATE=$(date +%Y-%m-%d)
 
-$MYRUNTIME/customs/bin/myweather
-/usr/bin/cal
+
+if [ ! -d $TEMPDIR ]; then
+	mkdir -p $TEMPDIR
+fi
+
+if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
+	$MYRUNTIME/customs/bin/myweather
+	/usr/bin/cal
+	echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark
+	//delete all file without current date file
+	find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
+fi
