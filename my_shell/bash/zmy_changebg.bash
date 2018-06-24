@@ -2,6 +2,12 @@
 
 show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php
+PICTURES_PATH=$MYPATH/pictures/
+CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
+CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
+ITERMPATH="/Applications/iTerm.app"
+PHP_TOOL=$MYPATH/customs/others/pictures.php
+emptybackground=$HOME/Pictures/down_pics/public/t1l-logo-white-shitty.jpg
 
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0
@@ -9,7 +15,6 @@ fi
 
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
-    ITERMPATH="/Applications/iTerm.app"
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
         if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
             image_list=($(/bin/ls $MYPATH/pictures/))
@@ -38,15 +43,15 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 image_index=$2
                 CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
                 if [ "" != "$image_index" ]; then
-                    if [ -f $MYPATH/tools/current_picture ]; then
-                        /bin/rm -f $MYPATH/tools/current_picture
+                    if [ -f $CURRENT_PICTURE_MARK ]; then
+                        /bin/rm -f $CURRENT_PICTURE_MARK
                     fi
-                    echo $image_index > $MYPATH/tools/current_picture
+                    echo $image_index > $CURRENT_PICTURE_MARK
                 fi
-                if [ -f $MYPATH/tools/current_picturename ]; then
-                    rm -f $MYPATH/tools/current_picturename
+                if [ -f $CURRENT_PICTURENAME_MARK ]; then
+                    rm -f $CURRENT_PICTURENAME_MARK
                 fi
-                echo "$image_path" > $MYPATH/tools/current_picturename
+                echo "$image_path" > $CURRENT_PICTURENAME_MARK
 
                 if [ "$show_msg" = "1" ]; then
                     if [ ! -z "$image_path" ]; then
@@ -87,7 +92,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机下一个背景图
             function bg_rand_next() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $MYPATH/tools/pictures.php next);
+                    image_path=$($phpbin $PHP_TOOL next);
                     bg_change $image_path
                 else
                     self-insert '"˚"'
@@ -97,7 +102,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机一个背景图
             function bg_rand() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $MYPATH/tools/pictures.php rand);
+                    image_path=$($phpbin $PHP_TOOL rand);
                     bg_change $image_path
                 else
                     self-insert '"∆"'
@@ -107,7 +112,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机上一个背景图
             function bg_rand_pre() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $MYPATH/tools/pictures.php pre);
+                    image_path=$($phpbin $PHP_TOOL pre);
                     bg_change $image_path
                 else
                     self-insert '"˙"'
@@ -117,8 +122,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #背景图设置为空
             function bg_empty() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=
-                    bg_change $image_path
+                    bg_change $emptybackground
                 else
                     self-insert '"∫"'
                 fi

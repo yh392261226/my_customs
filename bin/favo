@@ -543,7 +543,7 @@ case "$1" in
         open_favo $BACKGROUNDIMG
     fi
     ;;
-  "trash")
+  "trash"|"rm")
     if [ "$2" != "" ]; then
       trash_favo $2
     else
@@ -574,7 +574,7 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "          [打开]:" " [open / o / locate] [filename] " ""
     printf "%-25s%-25s%-35s\n" "          [预览]:" " [cat] [filename] " ""
     printf "%-25s%-25s%-35s\n" "          [文件名]:" "  [name] " ""
-    printf "%-25s%-25s%-35s\n" "          [回收站]:" "  [trash] [filename] " ""
+    printf "%-25s%-25s%-35s\n" "          [回收站]:" "  [trash/rm] [filename] " ""
     printf "%-25s%-25s%-35s\n" "          [缩略图]:" "  [thumb / t] [filename] [width*height] " ""
     printf "%-25s%-25s%-35s\n" "          [随机欣赏]:" "   [show / s5] [*number] " ""
     printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""

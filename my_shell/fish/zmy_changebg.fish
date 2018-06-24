@@ -4,8 +4,13 @@ set show_msg 0 #是否显示当前切换图片地址提示
 set phpbin /usr/local/bin/php
 set MYSYSNAME Mac
 set ITERMPATH "/Applications/iTerm.app"
-set image_list (/bin/ls $MYPATH/pictures/)
+set PICTURES_PATH {$MYPATH}/pictures/
+set image_list (/bin/ls $PICTURES_PATH)
 set curappname (env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')
+set emptybackground {$HOME}/Pictures/down_pics/public/t1l-logo-white-shitty.jpg
+set CURRENT_PICTURE_MARK {$MYPATH}/tools/current_picture
+set CURRENT_PICTURENAME_MARK {$MYPATH}/tools/current_picturename
+set PHP_TOOL {$MYPATH}/customs/others/pictures.php
 
 if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
     if test -d {$ITERMPATH}                     #判断是否安装了iterm
@@ -31,10 +36,10 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
 
             function bg_change
                 set image_path $argv
-                if test -f {$MYPATH}/tools/current_picturename
-                    rm -f {$MYPATH}/tools/current_picturename
+                if test -f {$CURRENT_PICTURENAME_MARK}
+                    rm -f {$CURRENT_PICTURENAME_MARK}
                 end
-                echo "$image_path" > {$MYPATH}/tools/current_picturename
+                echo "$image_path" > {$CURRENT_PICTURENAME_MARK}
 
                 if test "$show_msg" = "1"
                     if test -n "$image_path"
@@ -58,7 +63,7 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
             #随机下一个背景图
             function bg_rand_next
                 if test -z "$BUFFER"
-                    set image_path (/usr/local/bin/php $MYPATH/tools/pictures.php next)
+                    set image_path ({$phpbin} {$PHP_TOOL} next)
                     bg_change $image_path
                 end
             end
@@ -66,7 +71,7 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
             #随机一个背景图
             function bg_rand
                 if test -z "$BUFFER"
-                    set image_path (/usr/local/bin/php $MYPATH/tools/pictures.php rand)
+                    set image_path ({$phpbin} {$PHP_TOOL} rand)
                     bg_change $image_path
                 end
             end
@@ -74,7 +79,7 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
             #随机上一个背景图
             function bg_rand_pre
                 if test -z "$BUFFER"
-                    set image_path (/usr/local/bin/php $MYPATH/tools/pictures.php pre);
+                    set image_path ({$phpbin} {$PHP_TOOL} pre);
                     bg_change $image_path
                 end
             end
@@ -82,7 +87,7 @@ if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
             #背景图设置为空
             function bg_empty
                 if test -z "$BUFFER"
-                    set image_path
+                    set image_path {$emptybackground}
                     bg_change $image_path
                 end
             end
