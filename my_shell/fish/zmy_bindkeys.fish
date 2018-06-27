@@ -1,3 +1,4 @@
+## ln $MYRUNTIME/customs/my_shell/fish/zmy_bindkeys.fish $HOME/.config/fish/functions/zmy_bindkeys.fish
 function changebg_key_bindings
     fish_vi_key_bindings
 	bind -M insert \cq bg_rand_pre
