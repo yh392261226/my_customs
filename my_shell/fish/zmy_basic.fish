@@ -71,26 +71,8 @@ function goto
   end
 end
 
-
 ##图片脚本设置
 sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
 
-# ##autojump设置
-# [ -f /usr/local/share/autojump/autojump.fish ]; and source /usr/local/share/autojump/autojump.fish
-
-# eval (thefuck --alias | tr '\n' ';')
-
-#/usr/local/bin/screenfetch
-
 ##引入iterm2 自动变更背景脚本
-if test -f {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
-    . {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
-end
-
-#function fish_prompt
-#    powerline-shell --shell bare $status
-#end
-#
-#function fish_prompt
-#    powerline-rs --shell bare $status
-#end
+#source {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
