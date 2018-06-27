@@ -15,14 +15,14 @@ curshell() {
         if [ "$curshell" = "PYENV_SHELL=bash" ]; then
             echo "bash"
         else
-            echo "Unknow"
+            echo "zsh"
         fi
     elif [ "$curshell" = "RBENV_SHELL=bash" ]; then
         echo "bash"
     elif [ "$curshell" = "RBENV_SHELL=zsh" ]; then
         echo "zsh"
     else
-            echo "Unknow"
+            echo "zsh"
     fi
 }
 

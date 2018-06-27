@@ -20,12 +20,12 @@ elif [ "$(uname -s|awk '/Linux/')" ]; then
         SYSHEADER='۞'
         export OS_ICON="۞"
     else
-        MYSYSNAME='Unknow'
+        MYSYSNAME='Mac'
         SYSHEADER='㊭'
         export OS_ICON="㊭"
     fi
 else
-    MYSYSNAME='Unknow'
+    MYSYSNAME='Mac'
     SYSHEADER='☭'
     export OS_ICON="☭"
 fi
