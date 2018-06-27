@@ -6,13 +6,13 @@ set -gx USERNAME json
 set -gx GOPATH $HOME/go-develop
 set -gx GOOS darwin
 set -gx GOARCH amd64
-#set -U PATH /usr/local/opt/go/bin (brew --prefix homebrew/php/php70)/bin $GOPATH/bin /tools/ssh-auto-login/auto_gen $PATH
+#set -U PATH /usr/local/opt/go/bin $GOPATH/bin /tools/ssh-auto-login/auto_gen $PATH
 set -gx PATH $MYRUNTIME/customs/bin $PATH
 set -gx PATH /tools/ssh-auto-login/auto_gen $PATH
-set -gx PATH /usr/local/opt/coreutils/libexec/gnubin $PATH
+#set -gx PATH /usr/local/opt/coreutils/libexec/gnubin $PATH
 set -gx PATH $HOME/bin $PATH
-set -gx PATH $HOME/.cargo/bin $PATH
-set -gx PATH $HOME/.local/bin $PATH
+#set -gx PATH $HOME/.cargo/bin $PATH
+#set -gx PATH $HOME/.local/bin $PATH
 
 ##别名设置
 alias goweb "godoc -http=:9900 >> /dev/null &"
