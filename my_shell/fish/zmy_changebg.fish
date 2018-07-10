@@ -1,9 +1,10 @@
+#!/usr/local/bin/fish
 set -gx  SOURCED_FISH_CHANGEBG 1
 set -gx  show_msg 0 #是否显示当前切换图片地址提示
 set -gx  phpbin /usr/local/bin/php
 set -gx  MYSYSNAME Mac
 set -gx  ITERMPATH "/Applications/iTerm.app"
-set -gx  image_list (/bin/ls $MYPATH/pictures/)
+# set -gx  image_list (/bin/ls $MYPATH/pictures/)
 set -gx  curappname (env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')
 set -gx  bg_change_can_use 0
 set -gx  bg_change_php_command_bin /usr/local/bin/php
