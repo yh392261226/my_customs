@@ -84,3 +84,6 @@ touch pictures.php
 echo "If you want to use fish / zsh instead bash, You can type these:"
 echo "chsh -s /bin/zsh or chsh -s /usr/local/bin/fish"
 echo "to change your default shell"
+echo "----------------------------------------------------------"
+echo "Don't forget to change your pictures location in ~/.runtime/customs/other/pictures.php"
+echo "Done ..."
