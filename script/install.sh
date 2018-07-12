@@ -77,6 +77,7 @@ touch m_zsh
 touch myruntime
 touch packagemark
 touch positmark
+touch m_mysql
 touch pictures.php
 
 #install web server
@@ -90,5 +91,5 @@ echo "to change your default shell"
 echo "----------------------------------------------------------"
 echo "Don't forget to change your pictures location in ~/.runtime/customs/other/pictures.php"
 echo "Type your sudo password into ~/.runtime/tools/m_sudopass"
-echo "Type your mysql user and password into ~/.runtime/customs/bin/bservice on line 80 and 82"
+echo "Type your mysql user, password, host, port into ~/.runtime/tools/m_mysql"
 echo "Done ..."
