@@ -1,6 +1,6 @@
 #### 引入我自己的配置：开始
 sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias" "import" "go" "php" "ser" "proxy" "composer")
-my_custom_sh=$HOME/.runtime/customs/my_shell
+my_custom_sh=$MYRUNTIME/customs/my_shell
 
 for custom_sh_config in $sh_config; do
     if [ -f $my_custom_sh/my_${custom_sh_config}.sh ]; then
