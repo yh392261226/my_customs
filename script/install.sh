@@ -36,6 +36,8 @@ echo 'source $HOME/.runtime/customs/my_shell/fish/zmy_basic.fish' >> ~/.config/f
 echo 'source $HOME/.runtime/customs/my_shell/fish/zmy_bindkeys.fish' >> ~/.config/fish/conf.d/omf.fish
 echo 'source $HOME/.runtime/customs/my_shell/fish/zmy_changebg.fish' >> ~/.config/fish/conf.d/omf.fish
 ln -sf ~/.runtime/customs/my_shell/fish/zmy_bindkeys.fish ~/.config/fish/functions/zmy_bindkeys.fish
+#add fish to shells
+sudo echo "/usr/local/bin/fish" >> /etc/shells
 
 #install bash-it
 git clone --depth=1 https://github.com/Bash-it/bash-it.git ~/.bash_it
@@ -43,3 +45,8 @@ git clone --depth=1 https://github.com/Bash-it/bash-it.git ~/.bash_it
 if [ ! -f $HOME/.bashrc ]; then
   ln -sf $HOME/.bash_profile $HOME/.bashrc
 fi
+
+#notice
+echo "If you want to use fish / zsh instead bash, You can type these:"
+echo "chsh -s /bin/zsh or chsh -s /usr/local/bin/fish"
+echo "to change your default shell"
