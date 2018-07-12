@@ -3,10 +3,13 @@
 ##Author:杨浩
 RUNTIMEPATH="$HOME/.runtime"
 
+[[ ! -d $RUNTIMEPATH ]] && git clone git@github.com:yh392261226/my_customs.git $RUNTIMEPATH && $RUNTIMEPATH/script/install.sh
+cd $RUNTIMEPATH && git pull
+
 echo "Starting Install, You may type sudo password many times !"
 echo '...'
 #install brew first
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+command -v brew >/dev/null 2>&1 || /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 [[ ! -f $HOME/.myruntime ]] && touch $HOME/.myruntime && echo $RUNTIMEPATH > $HOME/.myruntime
 ln -sf $HOME/Pictures $RUNTIMEPATH/pictures
