@@ -21,10 +21,7 @@ brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
 sudo easy_install -ZU autopep8 twisted
 brew install haskell-platform  terminal-notifier
-npm install jshint -g
-npm install jslint -g
-npm install -g csslint
-npm install -g jsonlint
+npm install -g jshint jslint csslint jsonlint
 sudo pip install pyflakes
 sudo pip install pylint
 sudo pip install howdoi
