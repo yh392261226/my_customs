@@ -3,6 +3,8 @@
 ##Author:杨浩
 RUNTIMEPATH="$HOME/.runtime"
 
+echo "Starting Install, You may type sudo password many times !"
+echo '...'
 #install brew first
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
@@ -16,6 +18,31 @@ brew install zsh fish
 brew install aircrack-ng bfg binutils binwalk cifer dex2jar dns2tcp fcrackzip foremost hashpump hydra john knock netpbm nmap pngcheck socat sqlmap tcpflow tcptrace ucspi-tcp xpdf xz ack git-lsf lua lynx p7zip pigz pv rename rlwrap ssh-copy-id tree vbindiff zopfli bash-completion2 findutils moreutils coreutils wget gnupg grep openssh tmux bash cargo-completion autojump trash mytop htop expect redis memcached libmemcached mcrypt mycli memcache-top sqlite postgresql python@2 bash-git-prompt git fontconfig
 brew install php@5.6
 brew install antigen rbenv
+brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
+sudo easy_install -ZU autopep8 twisted
+brew install haskell-platform  terminal-notifier
+npm install jshint -g
+npm install jslint -g
+npm install -g csslint
+npm install -g jsonlint
+sudo pip install pyflakes
+sudo pip install pylint
+sudo pip install howdoi
+sudo pip install unittest2
+sudo pip install mock
+sudo gem install compass
+npm install -g coffeelint
+sudo pip install argparse
+sudo pip install argcomplete
+sudo pip install virtualenv
+sudo pip install virtualenvwrapper
+sudo pip install dbgp vim-debug
+install-vim-debug.py
+sudo gem install vimdeck
+sudo npm install -g jshint coffee-script jsonlint stylus less serve yalr
+sudo npm install -g npmlv npm-mkrelease grunt
+sudo gem install sass
+sudo gem install json_pure
 
 #install softwares
 brew cask install firefox chrome dropbox java vim neovim
