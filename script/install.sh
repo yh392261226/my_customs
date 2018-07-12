@@ -6,6 +6,7 @@
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 [[ ! -f ~/.myruntime ]] && touch ~/.myruntime && echo "$HOME/.runtime" > ~/.myruntime
+ln -sf $HOME/Pictures ~/.runtimes/pictures
 
 #install zshell & fish shell
 brew install zsh fish 
