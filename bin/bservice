@@ -77,17 +77,20 @@ else
       ;;
     "login")
       if [ "$myservice" = "mysql" ]; then
-        echo "/usr/local/bin/mycli -uroot -pyanghao1017 -h127.0.0.1 -P3306"
-        /usr/local/bin/mycli -uroot -pyanghao1017 -h127.0.0.1 -P3306
+        [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
+        echo "mycli -u$user -p$pass -h$host -P$port"
+        /usr/local/bin/mycli -u$user -p$pass -h$host -P$port
       elif [ "$myservice" = "redis" ]; then
-        echo "/usr/local/bin/redis-cli -h localhost -p 6379"
-        /usr/local/bin/redis-cli -h localhost -p 6379
+        [[ -f $MYRUNTIME/tools/m_redis ]] && source $MYRUNTIME/tools/m_redis || echo "ERROR: m_redis does not exists!";
+        echo "/usr/local/bin/redis-cli -h $host -p $port"
+        /usr/local/bin/redis-cli -h $host -p $port
       elif [ "$myservice" = "mongo" ]; then
         echo "/usr/local/bin/mongo"
         /usr/local/bin/mongo
       elif [ "$myservice" = "memcached" ]; then
-        echo "/usr/local/bin/telnet localhost 11211"
-        /usr/local/bin/telnet localhost 11211
+        [[ -f $MYRUNTIME/tools/m_memcached ]] && source $MYRUNTIME/tools/m_memcached || echo "ERROR: m_memcached does not exists!";
+        echo "/usr/local/bin/telnet $host $port"
+        /usr/local/bin/telnet $host $port
       fi
       ;;
     *)
