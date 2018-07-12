@@ -79,6 +79,9 @@ touch packagemark
 touch positmark
 touch pictures.php
 
+#install web server
+brew install nginx mysql
+
 
 #notice
 echo "If you want to use fish / zsh instead bash, You can type these:"
