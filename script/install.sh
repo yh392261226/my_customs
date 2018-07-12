@@ -46,6 +46,40 @@ if [ ! -f $HOME/.bashrc ]; then
   ln -sf $HOME/.bash_profile $HOME/.bashrc
 fi
 
+#create some directories and files
+sudo mkdir /tools/
+sudo chmod 777 /tools
+sudo chown $(whoami) /tools
+ln -sf $HOME/.runtime/customs/bin/ssh-auto-login /tools/ssh-auto-login
+cd ~/.runtime/tools/ 
+touch current_picture
+touch current_picturename
+touch fpmark
+touch m_bsh
+mkdir m_data_caches
+mkdir m_date_caches
+mkdir templates
+touch m_dot
+touch m_favorate
+touch m_fsh
+touch m_mark
+touch m_message
+touch m_messagetime
+touch m_note_mark
+touch m_nvim
+touch m_scheme
+touch m_scheme_favo
+touch m_sudopass
+touch m_title
+touch m_tmux
+touch m_vim
+touch m_zsh
+touch myruntime
+touch packagemark
+touch positmark
+touch pictures.php
+
+
 #notice
 echo "If you want to use fish / zsh instead bash, You can type these:"
 echo "chsh -s /bin/zsh or chsh -s /usr/local/bin/fish"
