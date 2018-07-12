@@ -16,9 +16,9 @@ if [ "zsh" = "$nowshell" ]; then
 	done
 fi
 
-for custom_zsh_file in $HOME/.yadr/zsh/*.zsh; do
-    source $custom_zsh_file
-done
+goto () {
+	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
+}
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
