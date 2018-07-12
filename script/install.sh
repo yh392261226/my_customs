@@ -5,6 +5,8 @@
 #install brew first
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
+[[ ! -f ~/.myruntime ]] && touch ~/.myruntime && echo "$HOME/.runtime" > ~/.myruntime
+
 #install zshell & fish shell
 brew install zsh fish 
 
@@ -52,35 +54,34 @@ sudo chmod 777 /tools
 sudo chown $(whoami) /tools
 ln -sf $HOME/.runtime/customs/bin/ssh-auto-login /tools/ssh-auto-login
 cd ~/.runtime/tools/ 
-touch current_picture
-touch current_picturename
-touch fpmark
-touch m_bsh
-mkdir m_data_caches
-mkdir m_date_caches
-mkdir templates
-touch m_dot
-touch m_favorate
-touch m_fsh
-touch m_mark
-touch m_message
-touch m_messagetime
-touch m_note_mark
-touch m_nvim
-touch m_scheme
-touch m_scheme_favo
-touch m_sudopass
-touch m_title
-touch m_tmux
-touch m_vim
-touch m_zsh
-touch myruntime
-touch packagemark
-touch positmark
-touch m_mysql
-touch m_redis
-touch m_memcached
-touch pictures.php
+[[ ! -f current_picture ]] && touch current_picture
+[[ ! -f current_picturename ]] && touch current_picturename
+[[ ! -f fpmark ]] && touch fpmark
+[[ ! -f m_bsh ]] && touch m_bsh
+[[ ! -d m_date_caches ]] && mkdir m_date_caches
+[[ ! -d templates ]] && mkdir templates
+[[ ! -f m_dot ]] && touch m_dot
+[[ ! -f m_favorate ]] && touch m_favorate
+[[ ! -f m_fsh ]] && touch m_fsh
+[[ ! -f m_mark ]] && touch m_mark
+[[ ! -f m_message ]] && touch m_message
+[[ ! -f m_messagetime ]] && touch m_messagetime
+[[ ! -f m_note_mark ]] && touch m_note_mark
+[[ ! -f m_nvim ]] && touch m_nvim
+[[ ! -f m_scheme ]] && touch m_scheme
+[[ ! -f m_scheme_favo ]] && touch m_scheme_favo
+[[ ! -f m_sudopass ]] && touch m_sudopass
+[[ ! -f m_title ]] && touch m_title
+[[ ! -f m_tmux ]] && touch m_tmux
+[[ ! -f m_vim ]] && touch m_vim
+[[ ! -f m_zsh ]] && touch m_zsh
+[[ ! -f myruntime ]] && touch myruntime
+[[ ! -f packagemark ]] && touch packagemark
+[[ ! -f positmark ]] && touch positmark
+[[ ! -f m_mysql ]] && touch m_mysql
+[[ ! -f m_redis ]] && touch m_redis
+[[ ! -f m_memcached ]] && touch m_memcached
+[[ ! -f pictures.php ]] && touch pictures.php
 
 #install web server
 brew install nginx mysql
