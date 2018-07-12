@@ -67,6 +67,7 @@ sudo mkdir /tools/
 sudo chmod 777 /tools
 sudo chown $(whoami) /tools
 ln -sf $RUNTIMEPATH/customs/bin/ssh-auto-login /tools/ssh-auto-login
+ln -sf $RUNTIMEPATH/customs/bin/getHosts /usr/local/sbin/gethosts
 cd $RUNTIMEPATH/tools/ 
 [[ ! -f current_picture ]] && touch current_picture
 [[ ! -f current_picturename ]] && touch current_picturename
