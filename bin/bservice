@@ -76,7 +76,11 @@ else
       brew services list| grep "Name\|$myservice"
       ;;
     "login")
-      if [ "$myservice" = "mysql" ]; then
+      if [ "$myservice" = "mysqladmin" ]; then
+          [[ -f $MYRUNTIME/tools/m_mysqladmin ]] && source $MYRUNTIME/tools/m_mysqladmin || echo "ERROR: m_mysqladmin does not exists!";
+          echo "mysql -u$user -p$pass -h$host -P$port"
+          mysql -u$user -p$pass -h$host -P$port
+      elif [ "$myservice" = "mysql" ]; then
         [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
         echo "mycli -u$user -p$pass -h$host -P$port"
         /usr/local/bin/mycli -u$user -p$pass -h$host -P$port
