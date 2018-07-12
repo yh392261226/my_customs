@@ -31,6 +31,7 @@ if [ ! -f $tmppath/${today}.hosts ]; then
     exit 1
 fi
 echo "Download hosts file success!"
+echo ${today} >> $tmppath/${today}.hosts
 ##backup the old hosts to $tmppath/(today).hosts.bak
 cat /etc/hosts > $tmppath/${today}.hosts.bak
 
