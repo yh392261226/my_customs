@@ -78,6 +78,8 @@ touch myruntime
 touch packagemark
 touch positmark
 touch m_mysql
+touch m_redis
+touch m_memcached
 touch pictures.php
 
 #install web server
@@ -92,4 +94,6 @@ echo "----------------------------------------------------------"
 echo "Don't forget to change your pictures location in ~/.runtime/customs/other/pictures.php"
 echo "Type your sudo password into ~/.runtime/tools/m_sudopass"
 echo "Type your mysql user, password, host, port into ~/.runtime/tools/m_mysql"
+echo "Type your redis host, port into ~/.runtime/tools/m_redis"
+echo "Type your memcached host, port into ~/.runtime/tools/m_memcached"
 echo "Done ..."
