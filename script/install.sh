@@ -20,7 +20,7 @@ brew install php@5.6
 brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
 sudo easy_install -ZU autopep8 twisted
-brew install haskell-platform  terminal-notifier
+brew install ghc cabal-install stack terminal-notifier
 npm install -g jshint jslint csslint jsonlint
 sudo pip install pyflakes
 sudo pip install pylint
