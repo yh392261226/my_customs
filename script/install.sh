@@ -21,22 +21,10 @@ brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
 sudo easy_install -ZU autopep8 twisted
 brew install ghc cabal-install stack terminal-notifier
-npm install -g jshint jslint csslint jsonlint
-sudo pip install pyflakes
-sudo pip install pylint
-sudo pip install howdoi
-sudo pip install unittest2
-sudo pip install mock
-sudo gem install compass
-npm install -g coffeelint
-sudo pip install argparse
-sudo pip install argcomplete
-sudo pip install virtualenv
-sudo pip install virtualenvwrapper
-sudo pip install dbgp vim-debug
-install-vim-debug.py
-sudo gem install vimdeck
+sudo npm install -g jshint jslint csslint jsonlint coffeelint
+sudo pip install pyflakes pylint howdoi unittest2 mock compass argparse argcomplete virtualenv virtualenvwrapper dbgp vim-debug
 sudo npm install -g jshint coffee-script jsonlint stylus less serve yalr
+sudo gem install vimdeck
 sudo npm install -g npmlv npm-mkrelease grunt
 sudo gem install sass
 sudo gem install json_pure
