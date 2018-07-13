@@ -1,0 +1,9 @@
+/**
+ * Desc:
+ * Author:
+ * Date:
+ */
+function() {
+    var a = 1;
+    alert(a);
+}
