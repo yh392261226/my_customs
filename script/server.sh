@@ -6,8 +6,7 @@ echo "And your codes has to be found in your folder: $WORKINGFOLDER/wwwroot"
 echo "This script install PHP, Nginx and Mysql by brew command, So make sure you have got brew command already!"
 echo "After actions above, You may have to type admin password bleow."
 
-command -v brew >/dev/null 2>&1 || (echo "You don't have brew command ... You can install it by :/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" && exit 1)
-"
+command -v brew >/dev/null 2>&1 || (echo "You do not have brew command ... You should install it first" && exit 1)
 
 [[ ! -d /data ]] && sudo mkdir /data && sudo chown -R {whoami} /data && sudo chmod -R 777 /data 
 mkdir /data/wwwlogs
