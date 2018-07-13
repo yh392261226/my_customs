@@ -101,8 +101,11 @@ cd $RUNTIMEPATH/tools/
 [[ ! -f m_memcached ]] && touch m_memcached
 [[ ! -f pictures.php ]] && touch pictures.php
 
-#install web server
-brew install nginx mysql
+#link softwares
+[[ ! -d $HOME/bin ]] && mkdir $HOME/bin
+[[ -f /Applications/Visual\ Studio Code.app/Contents/Resources/app/bin/code ]] && ln -sf /Applications/Visual\ Studio Code.app/Contents/Resources/app/bin/code $HOME/bin/code
+[[ -f /Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl ]] && ln -sf /Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl $HOME/bin/subl
+ln -sf $HOME/bin/subl $HOME/bin/st
 
 
 #notice
