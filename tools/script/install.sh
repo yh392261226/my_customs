@@ -100,7 +100,9 @@ cd $RUNTIMEPATH/tools/
 [[ ! -f m_mysql ]] && touch m_mysql
 [[ ! -f m_redis ]] && touch m_redis
 [[ ! -f m_memcached ]] && touch m_memcached
+[[ ! -f m_switch_localpic ]] && touch m_switch_localpic
 [[ ! -f pictures.php ]] && touch pictures.php
+cd -
 
 #link softwares
 [[ ! -d $HOME/bin ]] && mkdir $HOME/bin

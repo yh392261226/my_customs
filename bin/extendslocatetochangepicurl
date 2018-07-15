@@ -12,8 +12,14 @@ CURMARKFILE=$MYRUNTIME/tools/positmark
 PUBLICPICS=$HOME/Pictures/down_pics/public          #everywhere
 PRIVATEPICS=$HOME/Pictures/down_pics/private        #company
 PROTECTEDPICS=$HOME/Pictures/down_pics/protected    #home
+SAYName=Json
+SAYSOUNDS=Alex
+currenthour=$(date +%H%M%S)
 
-
+change_local_pic=0
+train=0
+sound=0
+[[ -f $MYRUNTIME/tools/m_switch_localpic ]] && source $MYRUNTIME/tools/m_switch_localpic 
 
 
 changepiclink() {
@@ -29,55 +35,62 @@ hastochange() {
     fi
 }
 
-case "$CURLOCATION" in
-    company) #公司
-        hastochange company;
-        text="公司哟，亲！注意注意！！！";
-        echo "company" > $CURMARKFILE;
-        changepiclink $PRIVATEPICS;
-    ;;
-    home) #自己家
-        hastochange home;
-        text="自己家哟，亲！随意哟！！！";
-        echo "home" > $CURMARKFILE;
-        changepiclink $PROTECTEDPICS;
-    ;;
-    one_floor) #一楼
-        hastochange one_floor;
-        text="岳父母家哟，亲！注意点哟！！！";
-        echo "one_floor" > $CURMARKFILE;
-        changepiclink $PRIVATEPICS;
-    ;;
-    parents_home) #屯里父母家
-        hastochange parents_home;
-        text="父母家哟，亲！注意些哟！！！";
-        echo "parents_home" > $CURMARKFILE;
-        changepiclink $PRIVATEPICS;
-    ;;
-    auto) #自动的 也相当于是随意的
-        hastochange auto;
-        text="自动的哟，亲！看看自己在哪吧！";
-        echo "auto" > $CURMARKFILE;
-        changepiclink $PUBLICPICS;
-    ;;
-esac
-#/usr/local/bin/sl
-clear
+if [ "$change_local_pic" = "1" ]; then
+	case "$CURLOCATION" in
+    	company) #公司
+        	hastochange company;
+        	text="公司哟，亲！注意注意！！！";
+        	echo "company" > $CURMARKFILE;
+        	changepiclink $PRIVATEPICS;
+    	;;
+    	home) #自己家
+        	hastochange home;
+        	text="自己家哟，亲！随意哟！！！";
+        	echo "home" > $CURMARKFILE;
+        	changepiclink $PROTECTEDPICS;
+    	;;
+    	one_floor) #一楼
+        	hastochange one_floor;
+        	text="岳父母家哟，亲！注意点哟！！！";
+        	echo "one_floor" > $CURMARKFILE;
+        	changepiclink $PRIVATEPICS;
+    	;;
+    	parents_home) #屯里父母家
+        	hastochange parents_home;
+        	text="父母家哟，亲！注意些哟！！！";
+        	echo "parents_home" > $CURMARKFILE;
+        	changepiclink $PRIVATEPICS;
+    	;;
+    	auto) #自动的 也相当于是随意的
+        	hastochange auto;
+        	text="自动的哟，亲！看看自己在哪吧！";
+        	echo "auto" > $CURMARKFILE;
+        	changepiclink $PUBLICPICS;
+    	;;
+	esac
+fi
+if [ "train" = 1 ] && [ -f /usr/local/bin/sl ]; then
+	/usr/local/bin/sl
+	clear
+fi
+
+if [ "$sound" = "1" ]; then
+	if [ "000000" -lt "$currenthour" ] && [ "120000" -ge "$currenthour" ]; then
+		osascript -e 'say "hey '${SAYName}', good morning" using "'${SAYSOUNDS}'"' &
+	elif [ "120000" -lt "$currenthour" ] && [ "190000" -ge "$currenthour" ]; then
+		osascript -e 'say "hey '${SAYName}', good afternoon" using "'${SAYSOUNDS}'"' &
+	elif [ "190000" -lt "$currenthour" ] && [ "240000" -ge "$currenthour" ]; then
+		osascript -e 'say "hey '${SAYName}', good evening" using "'${SAYSOUNDS}'"' &
+	fi
+fi
+
+#屏幕火焰
+#aafire
+#ASIIC文字
 #/usr/local/bin/cowsay $text
 #banner -w66 J|lolcat -a -d 1
 #figlet -w66 Json|lolcat -a -d 1
 #fortune -s computers | cowsay -f kiss | lolcat
 #fortune -s computers | cowsay -f daemon | lolcat
-
 #/usr/local/bin/screenfetch
 
-currenthour=$(date +%H%M%S)
-if [ "000000" -lt "$currenthour" ] && [ "120000" -ge "$currenthour" ]; then
-    osascript -e 'say "hey Json, good morning" using "Alex"' &
-elif [ "120000" -lt "$currenthour" ] && [ "190000" -ge "$currenthour" ]; then
-    osascript -e 'say "hey Json, good afternoon" using "Alex"' &
-elif [ "190000" -lt "$currenthour" ] && [ "240000" -ge "$currenthour" ]; then
-    osascript -e 'say "hey Json, good evening" using "Alex"' &
-fi
-#屏幕火了
-#aafire
