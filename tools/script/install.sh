@@ -101,6 +101,7 @@ cd $RUNTIMEPATH/tools/
 [[ ! -f m_redis ]] && touch m_redis
 [[ ! -f m_memcached ]] && touch m_memcached
 [[ ! -f m_switch_localpic ]] && touch m_switch_localpic
+[[ ! -f m_proxy ]] && touch m_proxy
 [[ ! -f pictures.php ]] && touch pictures.php
 cd -
 
