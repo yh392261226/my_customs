@@ -1,4 +1,8 @@
+#IP地址
 host=127.0.0.1
+#端口号
 port=3306
+#账号
 user=developer
+#密码
 pass=Developer001

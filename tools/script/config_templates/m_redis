@@ -1,2 +1,4 @@
+#IP地址
 host=localhost
+#端口号
 port=6379
