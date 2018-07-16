@@ -83,25 +83,25 @@ cd $RUNTIMEPATH/tools/
 [[ ! -f m_favorate ]] && touch m_favorate
 [[ ! -f m_fsh ]] && touch m_fsh
 [[ ! -f m_mark ]] && touch m_mark
-[[ ! -f m_message ]] && touch m_message
+[[ ! -f m_message ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_message m_message
 [[ ! -f m_messagetime ]] && touch m_messagetime
 [[ ! -f m_note_mark ]] && touch m_note_mark
 [[ ! -f m_nvim ]] && touch m_nvim
 [[ ! -f m_scheme ]] && touch m_scheme
 [[ ! -f m_scheme_favo ]] && touch m_scheme_favo
 [[ ! -f m_sudopass ]] && touch m_sudopass
-[[ ! -f m_title ]] && touch m_title
+[[ ! -f m_title ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_title m_title
 [[ ! -f m_tmux ]] && touch m_tmux
 [[ ! -f m_vim ]] && touch m_vim
 [[ ! -f m_zsh ]] && touch m_zsh
 [[ ! -f myruntime ]] && touch myruntime
 [[ ! -f packagemark ]] && touch packagemark
 [[ ! -f positmark ]] && touch positmark
-[[ ! -f m_mysql ]] && touch m_mysql
-[[ ! -f m_redis ]] && touch m_redis
-[[ ! -f m_memcached ]] && touch m_memcached
+[[ ! -f m_mysql ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_mysql m_mysql
+[[ ! -f m_redis ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_redis m_redis
+[[ ! -f m_memcached ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_memcached m_memcached
 [[ ! -f m_switch_localpic ]] && touch m_switch_localpic
-[[ ! -f m_proxy ]] && touch m_proxy
+[[ ! -f m_proxy ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_proxy m_proxy
 [[ ! -f pictures.php ]] && touch pictures.php
 cd -
 
