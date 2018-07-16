@@ -95,13 +95,13 @@ cd $RUNTIMEPATH/tools/
 [[ ! -f myruntime ]] && touch myruntime
 [[ ! -f packagemark ]] && touch packagemark
 [[ ! -f positmark ]] && touch positmark
-[[ ! -f m_title ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_title m_title
-[[ ! -f m_message ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_message m_message
-[[ ! -f m_mysql ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_mysql m_mysql
-[[ ! -f m_redis ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_redis m_redis
-[[ ! -f m_memcached ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_memcached m_memcached
-[[ ! -f m_switch_localpic ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_switch_localpic m_switch_localpic
-[[ ! -f m_proxy ]] && cp $MYRUNTIME/customs/tools/script/config_templates/m_proxy m_proxy
+[[ ! -f m_title ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_title m_title
+[[ ! -f m_message ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_message m_message
+[[ ! -f m_mysql ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_mysql m_mysql
+[[ ! -f m_redis ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_redis m_redis
+[[ ! -f m_memcached ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_memcached m_memcached
+[[ ! -f m_switch_localpic ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_switch_localpic m_switch_localpic
+[[ ! -f m_proxy ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_proxy m_proxy
 [[ ! -f pictures.php ]] && touch pictures.php
 cd -
 
