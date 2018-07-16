@@ -72,38 +72,36 @@ sudo chmod 777 /tools
 sudo chown $(whoami) /tools
 ln -sf $RUNTIMEPATH/customs/bin/ssh-auto-login /tools/ssh-auto-login
 ln -sf $RUNTIMEPATH/customs/bin/getHosts /usr/local/sbin/gethosts
-cd $RUNTIMEPATH/tools/ 
-[[ ! -f current_picture ]] && touch current_picture
-[[ ! -f current_picturename ]] && touch current_picturename
-[[ ! -f fpmark ]] && touch fpmark
-[[ ! -f m_bsh ]] && touch m_bsh
-[[ ! -d m_date_caches ]] && mkdir m_date_caches
-[[ ! -d templates ]] && mkdir templates
-[[ ! -f m_dot ]] && touch m_dot
-[[ ! -f m_favorate ]] && touch m_favorate
-[[ ! -f m_fsh ]] && touch m_fsh
-[[ ! -f m_mark ]] && touch m_mark
-[[ ! -f m_messagetime ]] && touch m_messagetime
-[[ ! -f m_note_mark ]] && touch m_note_mark
-[[ ! -f m_nvim ]] && touch m_nvim
-[[ ! -f m_scheme ]] && touch m_scheme
-[[ ! -f m_scheme_favo ]] && touch m_scheme_favo
-[[ ! -f m_sudopass ]] && touch m_sudopass
-[[ ! -f m_tmux ]] && touch m_tmux
-[[ ! -f m_vim ]] && touch m_vim
-[[ ! -f m_zsh ]] && touch m_zsh
-[[ ! -f myruntime ]] && touch myruntime
-[[ ! -f packagemark ]] && touch packagemark
-[[ ! -f positmark ]] && touch positmark
-[[ ! -f m_title ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_title m_title
-[[ ! -f m_message ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_message m_message
-[[ ! -f m_mysql ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_mysql m_mysql
-[[ ! -f m_redis ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_redis m_redis
-[[ ! -f m_memcached ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_memcached m_memcached
-[[ ! -f m_switch_localpic ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_switch_localpic m_switch_localpic
-[[ ! -f m_proxy ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_proxy m_proxy
-[[ ! -f pictures.php ]] && touch pictures.php
-cd -
+[[ ! -f $RUNTIMEPATH/tools/current_picture ]] && touch $RUNTIMEPATH/tools/current_picture
+[[ ! -f $RUNTIMEPATH/tools/current_picturename ]] && touch $RUNTIMEPATH/tools/current_picturename
+[[ ! -f $RUNTIMEPATH/tools/fpmark ]] && touch $RUNTIMEPATH/tools/fpmark
+[[ ! -f $RUNTIMEPATH/tools/m_bsh ]] && touch $RUNTIMEPATH/tools/m_bsh
+[[ ! -d $RUNTIMEPATH/tools/m_date_caches ]] && mkdir $RUNTIMEPATH/tools/m_date_caches
+[[ ! -d $RUNTIMEPATH/tools/templates ]] && mkdir $RUNTIMEPATH/tools/templates
+[[ ! -f $RUNTIMEPATH/tools/m_dot ]] && touch $RUNTIMEPATH/tools/m_dot
+[[ ! -f $RUNTIMEPATH/tools/m_favorate ]] && touch $RUNTIMEPATH/tools/m_favorate
+[[ ! -f $RUNTIMEPATH/tools/m_fsh ]] && touch $RUNTIMEPATH/tools/m_fsh
+[[ ! -f $RUNTIMEPATH/tools/m_mark ]] && touch $RUNTIMEPATH/tools/m_mark
+[[ ! -f $RUNTIMEPATH/tools/m_messagetime ]] && touch $RUNTIMEPATH/tools/m_messagetime
+[[ ! -f $RUNTIMEPATH/tools/m_note_mark ]] && touch $RUNTIMEPATH/tools/m_note_mark
+[[ ! -f $RUNTIMEPATH/tools/m_nvim ]] && touch $RUNTIMEPATH/tools/m_nvim
+[[ ! -f $RUNTIMEPATH/tools/m_scheme ]] && touch $RUNTIMEPATH/tools/m_scheme
+[[ ! -f $RUNTIMEPATH/tools/m_scheme_favo ]] && touch $RUNTIMEPATH/tools/m_scheme_favo
+[[ ! -f $RUNTIMEPATH/tools/m_sudopass ]] && touch $RUNTIMEPATH/tools/m_sudopass
+[[ ! -f $RUNTIMEPATH/tools/m_tmux ]] && touch $RUNTIMEPATH/tools/m_tmux
+[[ ! -f $RUNTIMEPATH/tools/m_vim ]] && touch $RUNTIMEPATH/tools/m_vim
+[[ ! -f $RUNTIMEPATH/tools/m_zsh ]] && touch $RUNTIMEPATH/tools/m_zsh
+[[ ! -f $RUNTIMEPATH/tools/myruntime ]] && touch $RUNTIMEPATH/tools/myruntime
+[[ ! -f $RUNTIMEPATH/tools/packagemark ]] && touch $RUNTIMEPATH/tools/packagemark
+[[ ! -f $RUNTIMEPATH/tools/positmark ]] && touch $RUNTIMEPATH/tools/positmark
+[[ ! -f $RUNTIMEPATH/tools/m_title ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_title $RUNTIMEPATH/tools/m_title
+[[ ! -f $RUNTIMEPATH/tools/m_message ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_message $RUNTIMEPATH/tools/m_message
+[[ ! -f $RUNTIMEPATH/tools/m_mysql ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_mysql $RUNTIMEPATH/tools/m_mysql
+[[ ! -f $RUNTIMEPATH/tools/m_redis ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_redis $RUNTIMEPATH/tools/m_redis
+[[ ! -f $RUNTIMEPATH/tools/m_memcached ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_memcached $RUNTIMEPATH/tools/m_memcached
+[[ ! -f $RUNTIMEPATH/tools/m_switch_localpic ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_switch_localpic $RUNTIMEPATH/tools/m_switch_localpic
+[[ ! -f $RUNTIMEPATH/tools/m_proxy ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/m_proxy $RUNTIMEPATH/tools/m_proxy
+[[ ! -f $RUNTIMEPATH/tools/pictures.php ]] && touch $RUNTIMEPATH/tools/pictures.php
 
 #link softwares
 [[ ! -d $HOME/bin ]] && mkdir $HOME/bin
