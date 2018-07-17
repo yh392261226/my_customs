@@ -36,7 +36,7 @@ sudo gem install sass
 sudo gem install json_pure
 
 #install softwares
-brew cask install firefox chrome dropbox java vim neovim
+brew cask install firefox chrome dropbox java vim neovim anaconda
 brew install macvim --with-lua
 
 #install oh-my-zsh
