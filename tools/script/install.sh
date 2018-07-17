@@ -23,8 +23,10 @@ brew install lolcat figlet cowsay fortune screenfetch
 brew install php@5.6
 brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
-sudo easy_install -ZU autopep8 twisted
 brew install ghc cabal-install stack terminal-notifier
+brew install ffmpeg --with-faac --with-fdk-aac --with-ffplay --with-fontconfig --with-freetype --with-libass --with-libbluray --with-libcaca --with-libsoxr --with-libquvi --with-frei0r --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-schroedinger --with-speex --with-theroa --with-tools --with-x265
+
+sudo easy_install -ZU autopep8 twisted
 sudo npm install -g jshint jslint csslint jsonlint coffeelint
 sudo pip install pyflakes pylint howdoi unittest2 mock compass argparse argcomplete virtualenv virtualenvwrapper dbgp vim-debug
 sudo npm install -g jshint coffee-script jsonlint stylus less serve yalr
