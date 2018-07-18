@@ -25,6 +25,7 @@ brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
 brew install ghc cabal-install stack terminal-notifier
 brew install ffmpeg --with-faac --with-fdk-aac --with-ffplay --with-fontconfig --with-freetype --with-libass --with-libbluray --with-libcaca --with-libsoxr --with-libquvi --with-frei0r --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-schroedinger --with-speex --with-theroa --with-tools --with-x265
+brew install pyenv
 
 sudo easy_install -ZU autopep8 twisted
 sudo npm install -g jshint jslint csslint jsonlint coffeelint
@@ -34,6 +35,7 @@ sudo gem install vimdeck
 sudo npm install -g npmlv npm-mkrelease grunt
 sudo gem install sass
 sudo gem install json_pure
+
 
 #install softwares
 brew cask install firefox chrome dropbox java vim neovim anaconda

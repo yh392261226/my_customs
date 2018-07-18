@@ -9,6 +9,7 @@ export BASE=$HOME
 [[ -d /opt/local/bin ]] && export PATH="/opt/local/bin:$PATH"
 [[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
 eval "$(rbenv init -)"
+[[ -d $(brew --prefix pyenv) ]] && export PYENV_ROOT="/usr/local/var/pyenv" && eval "$(pyenv init -)"
 
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then
