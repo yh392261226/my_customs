@@ -2,7 +2,8 @@
 
 #### 引入我自己的配置：开始
 sh_config=("basic" "prompt" "export" "func" "other" "alias" "import" "go" "php" "ser" "changebg" "proxy" "composer")
-my_custom_sh=$HOME/.runtime/customs/my_shell
+MYRUNTIME=$(cat $HOME/.myruntime)
+my_custom_sh=$MYRUNTIME/customs/my_shell
 
 source $my_custom_sh/my_basic.sh
 source $my_custom_sh/my_prompt.sh
