@@ -9,7 +9,13 @@
  *
  *  使用方法：   php rpname 或 ./rpname
  */
-$filedir = '/Users/json/.runtime/pictures';
+function getMyRuntime() {
+	$output = shell_exec('cat $HOME/.myruntime');
+	return trim($output);
+}
+
+$myruntime = getMyRuntime(); 
+$filedir = $myruntime . '/pictures';
 $newname_pre = 'J-';
 $begin = 1;
 $tmpsh = './tmprenamepics.sh';

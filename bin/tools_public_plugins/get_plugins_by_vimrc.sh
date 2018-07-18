@@ -27,9 +27,9 @@ for i in $(cat ./uniq_log); do
 	if [ "$(echo $i |grep 'git:')" != "" ]; then
 		landfilename=$(echo $i|sed "s,://,,"|cut -d "/" -f 2)_$(echo $i|sed "s,://,,"|cut -d "/" -f 3)
 		landfilename=$(echo $landfilename |sed "s,\.git,,")
-		cd /Users/json/.runtime/public/ && git clone $i $landfilename
+		cd $RUNTIMEPATH/public/ && git clone $i $landfilename
 	else
 		landfilename=$(echo $i|sed "s,/,_,")
-		cd /Users/json/.runtime/public/ && git clone https://github.com/$i $landfilename
+		cd $RUNTIMEPATH/public/ && git clone https://github.com/$i $landfilename
 	fi
 done
