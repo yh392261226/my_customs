@@ -13,16 +13,15 @@ eval "$(rbenv init -)"
 
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then
-    export PATH=
-    [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
-    [[ -d /usr/local/var/rbenv/shims ]] && export PATH="/usr/local/var/rbenv/shims:$PATH"
-    [[ -d $HOME/go/bin ]] && export PATH="$HOME/go/bin:$PATH"
     [[ -d /usr/bin ]] && export PATH="/usr/bin:$PATH"
     [[ -d /bin ]] && export PATH="/bin:$PATH"
     [[ -d /usr/sbin ]] && export PATH="/usr/sbin:$PATH"
     [[ -d /sbin ]] && export PATH="/sbin:$PATH"
-    [[ -d $HOME/.cabal/bin ]] && export PATH="$HOME/.cabal/bin:$PATH"
+    [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
     [[ -d /usr/local/sbin ]] && export PATH="/usr/local/sbin:$PATH"
+    [[ -d /usr/local/var/rbenv/shims ]] && export PATH="/usr/local/var/rbenv/shims:$PATH"
+    [[ -d $HOME/go/bin ]] && export PATH="$HOME/go/bin:$PATH"
+    [[ -d $HOME/.cabal/bin ]] && export PATH="$HOME/.cabal/bin:$PATH"
     [[ -d $HOME/bin ]] && export PATH="$HOME/bin:$PATH"
     [[ -d $(brew --prefix go)/bin ]] && export PATH="$(brew --prefix go)/bin:$PATH"
     [[ -d /usr/local/heroku/bin ]] && export PATH="/usr/local/heroku/bin:$PATH"
