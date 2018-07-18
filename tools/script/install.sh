@@ -23,8 +23,8 @@ brew install lolcat figlet cowsay fortune screenfetch
 brew install php@5.6
 brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
-brew install ghc cabal-install stack terminal-notifier
-brew install ffmpeg --with-faac --with-fdk-aac --with-ffplay --with-fontconfig --with-freetype --with-libass --with-libbluray --with-libcaca --with-libsoxr --with-libquvi --with-frei0r --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-schroedinger --with-speex --with-theroa --with-tools --with-x265
+brew install ghc cabal-install stack terminal-notifier faac
+brew install ffmpeg --with-chromaprint --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg
 brew install pyenv
 
 sudo easy_install -ZU autopep8 twisted
