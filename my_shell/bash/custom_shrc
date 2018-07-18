@@ -1,7 +1,6 @@
 #!/bin/bash
 
 #### 引入我自己的配置：开始
-sh_config=("basic" "prompt" "export" "func" "other" "alias" "import" "go" "php" "ser" "changebg" "proxy" "composer")
 MYRUNTIME=$(cat $HOME/.myruntime)
 my_custom_sh=$MYRUNTIME/customs/my_shell
 
@@ -11,24 +10,16 @@ source $my_custom_sh/my_export.sh
 source $my_custom_sh/my_func.sh
 source $my_custom_sh/my_other.sh
 source $my_custom_sh/my_alias.sh
-#source $my_custom_sh/my_import.sh
+##source $my_custom_sh/my_import.sh
 source $my_custom_sh/my_go.sh
 source $my_custom_sh/my_php.sh
 source $my_custom_sh/my_ser.sh
 
 source $my_custom_sh/bash/zmy_changebg.bash
 source $my_custom_sh/bash/zmy_other.bash
-
-test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"
-
-function _update_ps1() {
-    PS1="$(powerline-shell $?)"
-}
-
-if [ "$TERM" != "linux" ]; then
-    PROMPT_COMMAND="_update_ps1; $PROMPT_COMMAND"
-fi
-
+#
 goto () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
+
+test -e "${HOME}/.iterm2_shell_integration.bash" && source "${HOME}/.iterm2_shell_integration.bash"

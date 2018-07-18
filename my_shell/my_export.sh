@@ -1,15 +1,15 @@
 ### 环境变量设定
 export PLATFORM=$(uname -s)
 export BASE=$HOME
-[[ -d $(brew --prefix macvim) ]] && export PATH="$(brew --prefix macvim)/bin:/usr/local/bin:$PATH"
+[[ -d /usr/local/opt/macvim ]] && export PATH="/usr/local/opt/macvim/bin:/usr/local/bin:$PATH"
 [[ -d /usr/local/var/rbenv ]] && export RBENV_ROOT=/usr/local/var/rbenv
-[[ -d $(brew --prefix python3) ]] && export PATH="$(brew --prefix python3)/bin:$PATH"
+[[ -d /usr/local/opt/python ]] && export PATH="/usr/local/opt/python/bin:$PATH"
 [[ -d /usr/local/opt/python@2/libexec/bin ]] && export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
 [[ -d $HOME/.cargo/bin ]] && export PATH="$HOME/.cargo/bin:/opt/local/bin:$PATH"
 [[ -d /opt/local/bin ]] && export PATH="/opt/local/bin:$PATH"
 [[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
 eval "$(rbenv init -)"
-[[ -d $(brew --prefix pyenv) ]] && export PYENV_ROOT="/usr/local/var/pyenv" && eval "$(pyenv init -)"
+[[ -d /usr/local/opt/pyenv ]] && export PYENV_ROOT="/usr/local/var/pyenv" && eval "$(pyenv init -)"
 
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then
@@ -23,7 +23,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then
     [[ -d $HOME/go/bin ]] && export PATH="$HOME/go/bin:$PATH"
     [[ -d $HOME/.cabal/bin ]] && export PATH="$HOME/.cabal/bin:$PATH"
     [[ -d $HOME/bin ]] && export PATH="$HOME/bin:$PATH"
-    [[ -d $(brew --prefix go)/bin ]] && export PATH="$(brew --prefix go)/bin:$PATH"
+    [[ -d /usr/local/opt/go/bin ]] && export PATH="/usr/local/opt/go/bin:$PATH"
     [[ -d /usr/local/heroku/bin ]] && export PATH="/usr/local/heroku/bin:$PATH"
     [[ -d $MYRUNTIME/customs/bin ]] && export PATH="$MYRUNTIME/customs/bin:$PATH"
     [[ -d /usr/local/opt/llvm/bin ]] && export PATH="/usr/local/opt/llvm/bin:$PATH"

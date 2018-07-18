@@ -18,9 +18,9 @@ default_user=$(/usr/bin/whoami)
 
 if [ "bash" = "$nowshell" ]; then
 #    source $(brew --prefix grc)/etc/grc.bashrc
-    source /usr/local/etc/grc.bashrc
-    source $(brew --prefix)/etc/bash_completion
-    source $HOME/git-completion.bash
+    #source /usr/local/etc/grc.bashrc
+    #source $(brew --prefix)/etc/bash_completion
+    #source $HOME/git-completion.bash
     [ -f $HOME/.fzf.bash ] && source $HOME/.fzf.bash
 elif [ "zsh" = "$nowshell" ]; then
     source $(brew --prefix)/share/antigen/antigen.zsh
@@ -31,6 +31,7 @@ fi
 #eval $(thefuck --alias)
 
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
-source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
-
+if [ "bash" != "$nowshell" ]; then
+	source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
+fi
 $MYRUNTIME/customs/bin/start
