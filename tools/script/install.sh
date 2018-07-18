@@ -112,7 +112,8 @@ ln -sf $RUNTIMEPATH/customs/bin/getHosts /usr/local/sbin/gethosts
 [[ -f /Applications/Visual\ Studio Code.app/Contents/Resources/app/bin/code ]] && ln -sf /Applications/Visual\ Studio Code.app/Contents/Resources/app/bin/code $HOME/bin/code
 [[ -f /Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl ]] && ln -sf /Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl $HOME/bin/subl
 ln -sf $HOME/bin/subl $HOME/bin/st
-
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+conda config --set show_channel_urls yes
 
 #notice
 echo "If you want to use fish / zsh instead bash, You can type these:"
