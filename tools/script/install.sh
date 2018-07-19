@@ -116,10 +116,10 @@ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/f
 conda config --set show_channel_urls yes
 
 #spacevim
-curl -sLf https://spacevim.org/install.sh | bash
 [[ ! -d $HOME/.SpaceVim.d ]] && mkdir $HOME/.SpaceVim.d
 [[ ! -f $HOME/.SpaceVim.d/init.vim ]] && cp $RUNTIMEPATH/customs/tools/script/config_templates/init.vim $HOME/.SpaceVim.d/init.vim
 [[ -f $HOME/.SpaceVim.d/init.toml ]] && mv $HOME/.SpaceVim.d/init.toml $HOME/.SpaceVim.d/bak_init.toml_bak
+curl -sLf https://spacevim.org/install.sh | bash
 
 #notice
 echo "If you want to use fish / zsh instead bash, You can type these:"
