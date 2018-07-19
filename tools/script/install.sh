@@ -75,6 +75,7 @@ sudo mkdir /tools/
 sudo chmod 777 /tools
 sudo chown $(whoami) /tools
 ln -sf $RUNTIMEPATH/customs/bin/ssh-auto-login /tools/ssh-auto-login
+[[ ! -d /tools/ssh-auto-login/auto_gen ]] && mkdir /tools/ssh-auto-login/auto_gen && cp $RUNTIMEPATH/customs/tools/script/config_templates/localhost /tools/ssh-auto-login/auto_gen/
 ln -sf $RUNTIMEPATH/customs/bin/getHosts /usr/local/sbin/gethosts
 [[ ! -f $RUNTIMEPATH/tools/current_picture ]] && touch $RUNTIMEPATH/tools/current_picture
 [[ ! -f $RUNTIMEPATH/tools/current_picturename ]] && touch $RUNTIMEPATH/tools/current_picturename

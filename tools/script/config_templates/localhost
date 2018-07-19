@@ -1,0 +1,6 @@
+#!/bin/bash
+host="127.0.0.1"                #IP地址
+user_name="root"                #账号
+password="12345678"             #密码         
+cd /tools/ssh-auto-login/files
+./auto_login.sh $host $user_name $password
