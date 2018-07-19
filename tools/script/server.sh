@@ -1,5 +1,5 @@
 #!/bin/bash
-WORKINGFOLDER=$HOME/Dropbox/working/coding #for example this path is mine
+WORKINGFOLDER=$HOME/Dropbox/working #for example this path is mine
 
 echo "Before using this script, You have to put your configs into your folder: $WORKINGFOLDER/conf/"
 echo "And your codes has to be found in your folder: $WORKINGFOLDER/wwwroot"
@@ -10,18 +10,19 @@ command -v brew >/dev/null 2>&1 || (echo "You do not have brew command ... You s
 
 [[ ! -d /data ]] && sudo mkdir /data && sudo chown -R {whoami} /data && sudo chmod -R 777 /data 
 mkdir /data/wwwlogs
-ln -sf $WORKINGFOLDER/wwwroot /data/wwwroot
+ln -sf $WORKINGFOLDER/coding/wwwroot /data/wwwroot
+ln -sf $WORKINGFOLDER/documents /data/documents
 
 brew install php nginx redis memcached imagemagic
 
 rm -f /usr/local/lib/php/pecl
 mkdir /usr/local/lib/php/pecl
 
-rm -fr /usr/local/etc/php && ln -sf $WORKINGFOLDER/conf/php /usr/local/etc/php
-rm -fr /usr/local/etc/nginx && ln -sf $WORKINGFOLDER/conf/nginx /usr/local/etc/nginx
-rm -f /usr/local/etc/my.cnf && ln -sf $WORKINGFOLDER/conf/my.cnf /usr/local/etc/my.cnf
-rm -f /usr/local/etc/redis.conf && ln -sf $WORKINGFOLDER/conf/redis.conf /usr/local/etc/redis.conf
-rm -f /usr/local/etc/redis-sentinel.conf && ln -sf $WORKINGFOLDER/conf/redis-sentinel.conf /usr/local/etc/redis-sentinel.conf
+rm -fr /usr/local/etc/php && ln -sf $WORKINGFOLDER/coding/conf/php /usr/local/etc/php
+rm -fr /usr/local/etc/nginx && ln -sf $WORKINGFOLDER/coding/conf/nginx /usr/local/etc/nginx
+rm -f /usr/local/etc/my.cnf && ln -sf $WORKINGFOLDER/coding/conf/my.cnf /usr/local/etc/my.cnf
+rm -f /usr/local/etc/redis.conf && ln -sf $WORKINGFOLDER/coding/conf/redis.conf /usr/local/etc/redis.conf
+rm -f /usr/local/etc/redis-sentinel.conf && ln -sf $WORKINGFOLDER/coding/conf/redis-sentinel.conf /usr/local/etc/redis-sentinel.conf
 
 echo "If display something to choice below, up to you.(why not try Enter to the end...)"
 pecl install -f mcrypt
