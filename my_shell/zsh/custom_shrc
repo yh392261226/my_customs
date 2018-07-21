@@ -2,12 +2,6 @@
 sh_config=("basic" "prompt" "export" "func" "omz" "other" "alias" "import" "go" "php" "ser" "proxy" "composer")
 my_custom_sh=$MYRUNTIME/customs/my_shell
 
-for custom_sh_config in $sh_config; do
-    if [ -f $my_custom_sh/my_${custom_sh_config}.sh ]; then
-        source $my_custom_sh/my_${custom_sh_config}.sh
-    fi
-done
-
 if [ "zsh" = "$nowshell" ]; then
 	for custom_zsh_config in $sh_config; do
 		if [ -f $my_custom_sh/zsh/zmy_${custom_zsh_config}.zsh ]; then
@@ -19,6 +13,13 @@ fi
 goto () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
+
+
+for custom_sh_config in $sh_config; do
+    if [ -f $my_custom_sh/my_${custom_sh_config}.sh ]; then
+        source $my_custom_sh/my_${custom_sh_config}.sh
+    fi
+done
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
