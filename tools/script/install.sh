@@ -29,7 +29,7 @@ brew install pyenv
 
 sudo easy_install -ZU autopep8 twisted
 sudo npm install -g jshint jslint csslint jsonlint coffeelint
-sudo pip install pyflakes pylint howdoi unittest2 mock compass argparse argcomplete virtualenv virtualenvwrapper dbgp vim-debug
+sudo pip install pyflakes pylint howdoi unittest2 mock compass argparse argcomplete virtualenv virtualenvwrapper dbgp vim-debug pep8 flake8
 sudo npm install -g jshint coffee-script jsonlint stylus less serve yalr
 sudo gem install vimdeck
 sudo npm install -g npmlv npm-mkrelease grunt
