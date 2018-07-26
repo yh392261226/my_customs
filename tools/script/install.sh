@@ -55,6 +55,8 @@ if [ -z fc-cache ]; then
   mv 10-powerline-symbols.conf $HOME/.config/fontconfig/conf.d/
 fi
 
+[[ -d $HOME/.oh-my-zsh ]] && git clone https://github.com/zsh-users/antigen $HOME/.oh-my-zsh/antigen
+
 #install oh-my-fish
 curl -L https://get.oh-my.fish | fish
 echo 'source $RUNTIMEPATH/customs/my_shell/fish/zmy_basic.fish' >> $HOME/.config/fish/conf.d/omf.fish
