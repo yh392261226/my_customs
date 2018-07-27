@@ -31,6 +31,8 @@ pecl install xdebug
 pecl install memcached
 pecl install igbinary
 pecl install redis
+# install mac cli
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/guarinogabriel/mac-cli/master/mac-cli/tools/install)"
 
 echo "PHP & Nginx has already install finished, next is Mysql,"
 echo  "after install, You have to setting it by yourself..."
