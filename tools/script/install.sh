@@ -125,6 +125,8 @@ conda config --set show_channel_urls yes
 [[ -f $HOME/.SpaceVim.d/init.toml ]] && mv $HOME/.SpaceVim.d/init.toml $HOME/.SpaceVim.d/bak_init.toml_bak
 curl -sLf https://spacevim.org/install.sh | bash
 
+[[ ! -d $HOME/go-develop ]] && mkdir $HOME/go-develop
+
 #notice
 echo "If you want to use fish / zsh instead bash, You can type these:"
 echo "chsh -s /bin/zsh or chsh -s /usr/local/bin/fish"
