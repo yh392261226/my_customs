@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+##Desc: 命令行密码管理工具
+##Author:杨浩
 
 set -o errtrace
 set -o nounset
