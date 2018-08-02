@@ -25,7 +25,7 @@ brew install antigen rbenv
 brew install ctags git astyle tmux node chruby fish lua luajit ag ack tig ranger ruby archey
 brew install ghc cabal-install stack terminal-notifier faac
 brew install ffmpeg --with-chromaprint --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg
-brew install pyenv shellcheck gawk httpie
+brew install pyenv shellcheck gawk httpie archey 
 
 sudo easy_install -ZU autopep8 twisted
 sudo npm install -g jshint jslint csslint jsonlint coffeelint
@@ -37,6 +37,7 @@ sudo gem install sass
 sudo gem install json_pure
 #install icdiff
 pip install git+https://github.com/jeffkaufman/icdiff.git
+pip install pexpect pypinyin toml
 
 
 #install softwares
