@@ -38,7 +38,8 @@ sudo gem install json_pure
 #install icdiff
 pip install git+https://github.com/jeffkaufman/icdiff.git
 pip install pexpect pypinyin toml
-
+#install toys
+npm install --global pokemon-terminal
 
 #install softwares
 brew cask install firefox chrome dropbox java vim neovim anaconda docker
