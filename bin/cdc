@@ -123,6 +123,24 @@ list_mark() {
     fi
 }
 
+rebuild_mark() {
+    if [ ! -f $MARKFILE ]; then
+        echo "$MARKFILE dose not exists !"
+        exit 1
+    else
+		marklists=`cat $MARKFILE`
+        for i in ${marklists[*]}; do
+            if [ "$i" != "" ]; then
+                if [ ! -d ${i} ]; then
+                    sed -i "/${i//\//\\/}/d" $MARKFILE
+                fi
+            fi
+        done
+        echo "Done..."
+        return 0
+    fi
+}
+
 chose_mark() {
     if [ ! -f $MARKFILE ]; then
         echo "$MARKFILE dose not exists!"
@@ -251,13 +269,16 @@ case "$action" in
 			del_mark_by_num $2
 		fi
 		;;
+    "rebuild"|"r")
+        rebuild_mark
+        ;;
 	"trun"|"truncate"|"t")
 		truncate_mark
 		;;
   "help"|"h"|*)
 		command=$(basename $0)
-		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | help/h";
-		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   | 帮助"
+		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h";
+		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助"
     list_mark
 
     for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
