@@ -4,9 +4,12 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
 PICURL=$MYRUNTIME/pictures; #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
-PUBLICPICS=$HOME/Pictures/down_pics/public          #everywhere
-PRIVATEPICS=$HOME/Pictures/down_pics/private        #company
-PROTECTEDPICS=$HOME/Pictures/down_pics/protected    #home
+
+PUBLICPICS=$HOME/Pictures/down_pics/public
+PRIVATEPICS=$HOME/Pictures/down_pics/private
+PROTECTEDPICS=$HOME/Pictures/down_pics/protected
+WORDSPICS=$HOME/Pictures/down_pics/words
+OTHERSPICS=$HOME/Pictures/down_pics/others
 
 changepiclink() {
     rm -f $PICURL;
@@ -24,37 +27,39 @@ hastochange() {
     fi
 }
 
+source $MYRUNTIME/customs/bin/mymessage
 echo "Usage: 1 - 5"
-echo "1:company 2:home 3:one_floor 4:parents_home 5:auto"
-
+echo "-----------------------------------------------------------"
+echo "| 1:public | 2:private | 3:protected | 4:words | 5:others |"
+echo "-----------------------------------------------------------"
 if [ $# -ne 1 ]; then
 	exit 0
 fi
 
 case "$1" in
-	1) #公司
-    	hastochange company;
-    	echo "company" > $CURMARKFILE;
+	1)
+    	hastochange public;
+    	echo "public" > $CURMARKFILE;
+    	changepiclink $PUBLICPICS;
+	;;
+	2)
+    	hastochange private;
+    	echo "private" > $CURMARKFILE;
     	changepiclink $PRIVATEPICS;
 	;;
-	2) #自己家
-    	hastochange home;
-    	echo "home" > $CURMARKFILE;
+	3)
+    	hastochange protected;
+    	echo "protected" > $CURMARKFILE;
     	changepiclink $PROTECTEDPICS;
 	;;
-	3) #一楼
-    	hastochange one_floor;
-    	echo "one_floor" > $CURMARKFILE;
-    	changepiclink $PRIVATEPICS;
+	4)
+    	hastochange words;
+    	echo "words" > $CURMARKFILE;
+    	changepiclink $WORDSPICS;
 	;;
-	4) #屯里父母家
-    	hastochange parents_home;
-    	echo "parents_home" > $CURMARKFILE;
-    	changepiclink $PRIVATEPICS;
-	;;
-	5) #自动的 也相当于是随意的
-    	hastochange auto;
-    	echo "auto" > $CURMARKFILE;
-    	changepiclink $PUBLICPICS;
+	5)
+    	hastochange others;
+    	echo "others" > $CURMARKFILE;
+    	changepiclink $OTHERSPICS;
 	;;
 esac
