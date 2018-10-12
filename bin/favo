@@ -28,6 +28,15 @@ name_favo() {
   echo $BACKGROUNDIMG
 }
 
+#验证操作可否
+checkOprate_favo() {
+	realpath=$(basename $(readlink $MYRUNTIME/pictures))
+	if [ "protected" != "$realpath" ]; then
+		echo "The picture link is not protected, so, can not use this command."
+		exit 1
+	fi
+}
+
 #缩略图
 thumb_favo() {
 	if [ "$1" = "" ] || [ ! -f $1 ]; then
@@ -457,29 +466,31 @@ case "$1" in
 		;;
 	"list"|"l"|"num"|"n"|"html"|"h")
 		if [ "$1" = "list" ] || [ "$1" = "l" ];then
-	    if [ "$2" = "file" ] || [ "$2" = "f" ]; then
+	    	if [ "$2" = "file" ] || [ "$2" = "f" ]; then
 	            list_files_favo
 			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
 				list_num_favo
-      elif [ "$2" = "html" ] || [ "$2" = "h" ]; then
-        list_html_favo
-	    else
-			  list_favo
-	    fi
+        	elif [ "$2" = "html" ] || [ "$2" = "h" ]; then
+        		list_html_favo
+	    	else
+				list_favo
+	    	fi
 		elif [ "$1" = "num" ] || [ "$1" = "n" ]; then
-				list_num_favo
-    elif [ "$1" = "html" ]; then
-        if [ "$2" = "open" ] || [ "$2" = "o" ]; then
-          open_html
-        else
-          list_html_favo
-        fi
+			list_num_favo
+    	elif [ "$1" = "html" ]; then
+        	if [ "$2" = "open" ] || [ "$2" = "o" ]; then
+          		open_html
+        	else
+          		list_html_favo
+        	fi
 		fi
 		;;
 	"add"|"a")
+		checkOprate_favo
 		add_favo
 		;;
 	"del"|"d")
+		checkOprate_favo
 		if [ "" = "$2" ]; then
 			del_favo
 		else
@@ -487,76 +498,77 @@ case "$1" in
 		fi
 		;;
 	"trun"|"truncate")
+		checkOprate_favo
 		truncate_favo
 		;;
 	"thumb"|"t")
 		if [ "" != "$2" ]; then
 			thumb_favo $2 $3
-    else
-      thumb_favo $BACKGROUNDIMG
+    	else
+      		thumb_favo $BACKGROUNDIMG
 		fi
 		;;
-  "scur"|"setcurent")
-    change_favo $CURPIC
-    ;;
-  "posit"|"p")
-    posit_favo
-    ;;
-  "rand"|"r")
-    if [ "$2" != "" ]; then
-      if [ "$2" = "pre" ] || [ "$2" = "p" ]; then
-        rand_pre_favo
-      elif [ "$2" = "next" ] || [ "$2" = "n" ]; then
-        rand_next_favo
-      fi
-    else
-      rand_favo
-    fi
+  	"scur"|"setcurent")
+    	change_favo $CURPIC
+    	;;
+  	"posit"|"p")
+    	posit_favo
+    	;;
+  	"rand"|"r")
+    	if [ "$2" != "" ]; then
+      		if [ "$2" = "pre" ] || [ "$2" = "p" ]; then
+        		rand_pre_favo
+      		elif [ "$2" = "next" ] || [ "$2" = "n" ]; then
+        		rand_next_favo
+      		fi
+    	else
+      		rand_favo
+    	fi
         ;;
-  "show"|"s5")
-    show_favo $2
-    ;;
-  "cat")
-    if [ "$2" != "" ]; then
-      cat_favo $2
-    else
-      cat_favo $BACKGROUNDIMG
-    fi
-    ;;
-  "set"|"s")
-    change_favo $2
-    ;;
-  "name")
-    if [ "$2" != "" ]; then
-      name_favo $2
-    else
-      name_favo $BACKGROUNDIMG
-    fi
-    ;;
-  "rebuild"|"b")
-    rebuild_favo
-    ;;
-  "open"|"o"|"locate")
-    if [ "$2" != "" ]; then
-        open_favo $2
-    else
-        open_favo $BACKGROUNDIMG
-    fi
-    ;;
-  "trash"|"rm")
-    if [ "$2" != "" ]; then
-      trash_favo $2
-    else
-      trash_favo $BACKGROUNDIMG
-    fi
-    ;;
-  "wallpaper" | "w")
-    if [ "$2" != "" ]; then
-      wallpaper_favo $2
-    else
-      wallpaper_favo $BACKGROUNDIMG
-    fi
-    ;;
+  	"show"|"s5")
+    	show_favo $2
+    	;;
+  	"cat")
+    	if [ "$2" != "" ]; then
+      		cat_favo $2
+    	else
+      		cat_favo $BACKGROUNDIMG
+    	fi
+    	;;
+  	"set"|"s")
+    	change_favo $2
+    	;;
+  	"name")
+    	if [ "$2" != "" ]; then
+      		name_favo $2
+    	else
+      		name_favo $BACKGROUNDIMG
+    	fi
+    	;;
+  	"rebuild"|"b")
+    	rebuild_favo
+    	;;
+  	"open"|"o"|"locate")
+    	if [ "$2" != "" ]; then
+        	open_favo $2
+    	else
+        	open_favo $BACKGROUNDIMG
+    	fi
+    	;;
+  	"trash"|"rm")
+    	if [ "$2" != "" ]; then
+      		trash_favo $2
+    	else
+      		trash_favo $BACKGROUNDIMG
+    	fi
+    	;;
+  	"wallpaper" | "w")
+    	if [ "$2" != "" ]; then
+      		wallpaper_favo $2
+    	else
+      		wallpaper_favo $BACKGROUNDIMG
+    	fi
+    	;;
 	"help"|"h"|*)
 		command=$(basename $0)
     echo "$command :"

@@ -4,6 +4,8 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
 PICURL=$MYRUNTIME/pictures; #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
+CURRENT_PICTURE_MARK=$MYRUNTIME/tools/current_picture
+CURRENT_PICTURENAME_MARK=$MYRUNTIME/tools/current_picturename
 
 PUBLICPICS=$HOME/Pictures/down_pics/public
 PRIVATEPICS=$HOME/Pictures/down_pics/private
@@ -14,6 +16,8 @@ OTHERSPICS=$HOME/Pictures/down_pics/others
 changepiclink() {
     rm -f $PICURL;
     ln -sf $1 $PICURL;
+    echo "" > $CURRENT_PICTURE_MARK
+    echo "" > $CURRENT_PICTURENAME_MARK
     echo "Change link successfully!"
     echo "Now open new terminal window to use!"
     return 1;
