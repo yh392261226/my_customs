@@ -1,0 +1,60 @@
+#!/bin/bash
+##Desc:变更bgchange功能的背景图文件夹位置
+##Author:杨浩
+MYRUNTIME=$(cat $HOME/.myruntime)
+PICURL=$MYRUNTIME/pictures; #图片软连接地址
+CURMARKFILE=$MYRUNTIME/tools/positmark
+PUBLICPICS=$HOME/Pictures/down_pics/public          #everywhere
+PRIVATEPICS=$HOME/Pictures/down_pics/private        #company
+PROTECTEDPICS=$HOME/Pictures/down_pics/protected    #home
+
+changepiclink() {
+    rm -f $PICURL;
+    ln -sf $1 $PICURL;
+    echo "Change link successfully!"
+    echo "Now open new terminal window to use!"
+    return 1;
+}
+
+hastochange() {
+    curmark=$(cat $CURMARKFILE);
+    if [ "$1" = "$curmark" ];then
+    	echo "Do not need to change!"
+        exit 1;
+    fi
+}
+
+echo "Usage: 1 - 5"
+echo "1:company 2:home 3:one_floor 4:parents_home 5:auto"
+
+if [ $# -ne 1 ]; then
+	exit 0
+fi
+
+case "$1" in
+	1) #公司
+    	hastochange company;
+    	echo "company" > $CURMARKFILE;
+    	changepiclink $PRIVATEPICS;
+	;;
+	2) #自己家
+    	hastochange home;
+    	echo "home" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS;
+	;;
+	3) #一楼
+    	hastochange one_floor;
+    	echo "one_floor" > $CURMARKFILE;
+    	changepiclink $PRIVATEPICS;
+	;;
+	4) #屯里父母家
+    	hastochange parents_home;
+    	echo "parents_home" > $CURMARKFILE;
+    	changepiclink $PRIVATEPICS;
+	;;
+	5) #自动的 也相当于是随意的
+    	hastochange auto;
+    	echo "auto" > $CURMARKFILE;
+    	changepiclink $PUBLICPICS;
+	;;
+esac
