@@ -36,7 +36,7 @@ fi
 
 ######设置editor
 if [ "$MYSYSNAME" = "Mac" ]; then
-    export EDITOR="$HOME/bin/subl"
+    [[ -f $HOME/bin/subl ]] && export EDITOR="$HOME/bin/subl"
 elif [ "$MYSYSNAME" = "Ubuntu" ] || [ "$MYSYSNAME" = "Centos" ]; then
     export EDITOR="gedit"
 fi

@@ -7,11 +7,11 @@ CURMARKFILE=$MYRUNTIME/tools/positmark
 CURRENT_PICTURE_MARK=$MYRUNTIME/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYRUNTIME/tools/current_picturename
 
-PUBLICPICS=$HOME/Pictures/down_pics/public
-PRIVATEPICS=$HOME/Pictures/down_pics/private
-PROTECTEDPICS=$HOME/Pictures/down_pics/protected
-WORDSPICS=$HOME/Pictures/down_pics/words
-OTHERSPICS=$HOME/Pictures/down_pics/others
+PUBLICPICS=$PICURL/../public
+PRIVATEPICS=$PICURL/../private
+PROTECTEDPICS=$PICURL/../protected
+WORDSPICS=$PICURL/../words
+OTHERSPICS=$PICURL/../others
 
 changepiclink() {
     rm -f $PICURL;

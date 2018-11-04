@@ -1,5 +1,5 @@
 ### export 设定
-export NVM_DIR="$HOME/.nvm"
+[[ -d $HOME/.nvm ]] && export NVM_DIR="$HOME/.nvm"
 #####GO
 export GOROOT=$(brew --prefix go)
 
@@ -21,11 +21,11 @@ if [ "bash" = "$nowshell" ]; then
     #source /usr/local/etc/grc.bashrc
     #source $(brew --prefix)/etc/bash_completion
     #source $HOME/git-completion.bash
-    [ -f $HOME/.fzf.bash ] && source $HOME/.fzf.bash
+    [[ -f $HOME/.fzf.bash ]] && source $HOME/.fzf.bash
 elif [ "zsh" = "$nowshell" ]; then
     source $(brew --prefix)/share/antigen/antigen.zsh
 	# unset _fzf_completion_loaded
-    [ -f $HOME/.fzf.zsh ] && source $HOME/.fzf.zsh
+    [[ -f $HOME/.fzf.zsh ]] && source $HOME/.fzf.zsh
 fi
 
 #eval $(thefuck --alias)
@@ -34,4 +34,5 @@ fi
 if [ "bash" != "$nowshell" ]; then
 	source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
 fi
-$MYRUNTIME/customs/bin/start
+
+[[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start

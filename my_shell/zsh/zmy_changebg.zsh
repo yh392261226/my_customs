@@ -1,6 +1,6 @@
 show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php
-emptybackground=$HOME/Pictures/down_pics/public/t1l-logo-white-shitty.jpg
+emptybackground=$PICTURES_PATH/../public/t1l-logo-white-shitty.jpg
 PICTURES_PATH=$MYPATH/pictures/
 CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename

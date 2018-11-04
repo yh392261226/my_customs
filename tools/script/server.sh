@@ -1,5 +1,5 @@
 #!/bin/bash
-WORKINGFOLDER=$HOME/Dropbox/working #for example this path is mine
+WORKINGFOLDER=/data/Dropbox/working #for example this path is mine
 
 echo "Before using this script, You have to put your configs into your folder: $WORKINGFOLDER/conf/"
 echo "And your codes has to be found in your folder: $WORKINGFOLDER/wwwroot"
