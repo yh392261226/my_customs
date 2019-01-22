@@ -6,12 +6,13 @@ PICURL=$MYRUNTIME/pictures; #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
 CURRENT_PICTURE_MARK=$MYRUNTIME/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYRUNTIME/tools/current_picturename
-
-PUBLICPICS=$PICURL/../public
-PRIVATEPICS=$PICURL/../private
-PROTECTEDPICS=$PICURL/../protected
-WORDSPICS=$PICURL/../words
-OTHERSPICS=$PICURL/../others
+##获取第一次手动后PICURL的真实地址
+TMPPICURL=$(readlink $PICURL)
+PUBLICPICS=$TMPPICURL/../public
+PRIVATEPICS=$TMPPICURL/../private
+PROTECTEDPICS=$TMPPICURL/../protected
+WORDSPICS=$TMPPICURL/../words
+OTHERSPICS=$TMPPICURL/../others
 
 changepiclink() {
     rm -f $PICURL;
