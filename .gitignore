@@ -5,3 +5,7 @@ bin/sftp2server
 .vscode
 others/gvcci
 others/vedio_spider
+bin/mysql55
+bin/mysql57
+bin/gitmds
+my_shell/customs.sh

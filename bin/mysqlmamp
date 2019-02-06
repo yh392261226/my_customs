@@ -1,0 +1,26 @@
+#!/bin/bash
+##Desc:mamp mysql5.7 管理命令
+##Author: 杨浩
+##Date: 2018-12-20
+
+
+basedir=/Applications/MAMP/Library
+datadir=/Library/Application\ Support/appsolute/MAMP\ PRO/db/mysql57
+
+case "$1" in
+    "login")
+        /usr/local/bin/mycli -P8889 --socket=/Applications/MAMP/tmp/mysql/mysql.sock -h127.0.0.1 -udeveloper -p'PaWefw^bG{pPeV&3'
+    ;;
+    "admin")
+        ${basedir}/bin/mysql -uroot -h127.0.0.1 -P8889 --socket=/Applications/MAMP/tmp/mysql/mysql.sock -pyanghao
+    ;;
+    "base")
+        echo ${basedir};
+    ;;
+    "data")
+        echo ${datadir};
+    ;;
+    *)
+        ${basedir}/support-files/mysql.server $1
+    ;;
+esac
