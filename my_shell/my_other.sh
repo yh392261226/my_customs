@@ -36,3 +36,5 @@ if [ "bash" != "$nowshell" ]; then
 fi
 
 [[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start
+
+export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
