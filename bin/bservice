@@ -69,6 +69,16 @@ else
   myservice=$1
 
   custom_title "Command:"
+  #******************************************************************#
+  # mysql 启动与重启独立处理
+  #******************************************************************#
+  if [ "$myservice" = "mysql" ]; then
+    if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
+      rm -f /usr/local/etc/my.cnf
+      ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf
+    fi
+  fi
+
   case "$myoption" in
     "status")
       echo "brew services list| grep \"Name\|$myservice\""
