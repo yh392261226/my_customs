@@ -5,7 +5,7 @@
 source $MYRUNTIME/customs/bin/mymessage
 echo "External:"
 echo "-----------------------------------------"
-curl ip.appspot.com
+curl myip.ipip.net
 echo ""
 
 function localip() {
