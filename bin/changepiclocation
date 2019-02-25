@@ -13,6 +13,7 @@ PRIVATEPICS=$TMPPICURL/../private
 PROTECTEDPICS=$TMPPICURL/../protected
 WORDSPICS=$TMPPICURL/../words
 OTHERSPICS=$TMPPICURL/../others
+curmark=$(cat $CURMARKFILE);
 
 changepiclink() {
     rm -f $PICURL;
@@ -25,7 +26,6 @@ changepiclink() {
 }
 
 hastochange() {
-    curmark=$(cat $CURMARKFILE);
     if [ "$1" = "$curmark" ];then
     	echo "Do not need to change!"
         exit 1;
@@ -36,6 +36,10 @@ source $MYRUNTIME/customs/bin/mymessage
 echo "Usage: 1 - 5"
 echo "-----------------------------------------------------------"
 echo "| 1:public | 2:private | 3:protected | 4:words | 5:others |"
+echo "-----------------------------------------------------------"
+echo "-----------------------------------------------------------"
+echo "|                Current : $curmark                        |"
+echo "-----------------------------------------------------------"
 echo "-----------------------------------------------------------"
 if [ $# -ne 1 ]; then
 	exit 0
