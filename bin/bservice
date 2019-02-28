@@ -1,9 +1,13 @@
 #!/bin/bash
 ###Desc:服务命令管理器
 ###Author:杨浩
-source $MYRUNTIME/customs/bin/mymessage
+#source $MYRUNTIME/customs/bin/mymessage
 options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
-services=$(brew services list | awk '{print $1}'| grep -v 'Name')
+myoption=$2
+myservice=$1
+if [ "$myservice" != "status" ] && [ "$myservice" != "login" ]; then
+	services=$(brew services list | awk '{print $1}'| grep -v 'Name')
+fi
 
 custom_title() {
   title=$1
@@ -12,7 +16,6 @@ custom_title() {
   fi
   echo "-------------------------------------------------"
   echo "----$title"
-  echo "-------------------------------------------------"
   return 0
 }
 
@@ -65,56 +68,83 @@ if [ $# -lt 1 ]; then
     Stop (if necessary) and start the service immediately and register it to launch at login (or boot)."
   exit 1
 else
-  myoption=$2
-  myservice=$1
-
-  custom_title "Command:"
   #******************************************************************#
   # mysql 启动与重启独立处理
   #******************************************************************#
-  if [ "$myservice" = "mysql" ]; then
+  ismysql=""
+  [[ $myservice = mysql* ]] && ismysql="true";
+  if [ "$ismysql" = "true" ]; then
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
-      rm -f /usr/local/etc/my.cnf
-      ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf
+ 	  [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
+	  case "$myservice" in
+	  	"mysql") #默认8.0
+		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf
+		;;
+		"mysql@5.5")
+		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /usr/local/etc/my.cnf
+		;;
+		"mysql@5.6")
+		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /usr/local/etc/my.cnf
+		;;
+		"mysql@5.7")
+		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /usr/local/etc/my.cnf
+		;;
+	  esac
     fi
   fi
+ #******************************************************************#
+ # mysql 启动与重启独立处理 end
+ #******************************************************************#
+
 
   case "$myoption" in
     "status")
       echo "brew services list| grep \"Name\|$myservice\""
+      echo "-------------------------------------------------"
       custom_title "Result:"
       brew services list| grep "Name\|$myservice"
       ;;
     "login")
       if [ "$myservice" = "mysqladmin" ]; then
-          [[ -f $MYRUNTIME/tools/m_mysqladmin ]] && source $MYRUNTIME/tools/m_mysqladmin || echo "ERROR: m_mysqladmin does not exists!";
-          echo "mysql -u$user -p$pass -h$host -P$port"
-          mysql -u$user -p$pass -h$host -P$port
-      elif [ "$myservice" = "mysql" ]; then
+        [[ -f $MYRUNTIME/tools/m_mysqladmin ]] && source $MYRUNTIME/tools/m_mysqladmin || echo "ERROR: m_mysqladmin does not exists!";
+        custom_title  "mysql -u$user -p$pass -h$host -P$port"
+	    echo "-------------------------------------------------"
+	    custom_title "Result:"
+        mysql -u$user -p$pass -h$host -P$port
+      elif [ "$ismysql" = "true" ]; then
         [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
-        echo "mycli -u$user -p$pass -h$host -P$port"
+        custom_title  "mycli -u$user -p$pass -h$host -P$port"
+	    echo "-------------------------------------------------"
+	    custom_title "Result:"
         /usr/local/bin/mycli -u$user -p$pass -h$host -P$port
       elif [ "$myservice" = "redis" ]; then
         [[ -f $MYRUNTIME/tools/m_redis ]] && source $MYRUNTIME/tools/m_redis || echo "ERROR: m_redis does not exists!";
-        echo "/usr/local/bin/redis-cli -h $host -p $port"
+        custom_title  "/usr/local/bin/redis-cli -h $host -p $port"
+	    echo "-------------------------------------------------"
+	    custom_title "Result:"
         /usr/local/bin/redis-cli -h $host -p $port
       elif [ "$myservice" = "mongo" ]; then
-        echo "/usr/local/bin/mongo"
+        custom_title  "/usr/local/bin/mongo"
+	    echo "-------------------------------------------------"
+	    custom_title "Result:"
         /usr/local/bin/mongo
       elif [ "$myservice" = "memcached" ]; then
         [[ -f $MYRUNTIME/tools/m_memcached ]] && source $MYRUNTIME/tools/m_memcached || echo "ERROR: m_memcached does not exists!";
-        echo "/usr/local/bin/telnet $host $port"
+        custom_title  "/usr/local/bin/telnet $host $port"
+	    echo "-------------------------------------------------"
+	    custom_title "Result:"
         /usr/local/bin/telnet $host $port
       fi
       ;;
     *)
-      echo "brew services -v $myoption $myservice"
+      custom_title "Command: brew services -v $myoption $myservice"
+      echo "-------------------------------------------------"
       custom_title "Result:"
       brew services -v  $myoption $myservice
       ;;
 
   esac
-
-
-
+  echo "-------------------------------------------------"
+  echo "-------------------------------------------------"
+  echo "-------------------------------------------------"
 fi
