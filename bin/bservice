@@ -102,6 +102,7 @@ else
       echo "brew services list| grep \"Name\|$myservice\""
       echo "-------------------------------------------------"
       custom_title "Result:"
+      echo ""
       brew services list| grep "Name\|$myservice"
       ;;
     "login")
@@ -110,29 +111,34 @@ else
         custom_title  "mysql -u$user -p$pass -h$host -P$port"
 	    echo "-------------------------------------------------"
 	    custom_title "Result:"
+	    echo ""
         mysql -u$user -p$pass -h$host -P$port
       elif [ "$ismysql" = "true" ]; then
         [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
         custom_title  "mycli -u$user -p$pass -h$host -P$port"
 	    echo "-------------------------------------------------"
 	    custom_title "Result:"
+	    echo ""
         /usr/local/bin/mycli -u$user -p$pass -h$host -P$port
       elif [ "$myservice" = "redis" ]; then
         [[ -f $MYRUNTIME/tools/m_redis ]] && source $MYRUNTIME/tools/m_redis || echo "ERROR: m_redis does not exists!";
         custom_title  "/usr/local/bin/redis-cli -h $host -p $port"
 	    echo "-------------------------------------------------"
 	    custom_title "Result:"
+	    echo ""
         /usr/local/bin/redis-cli -h $host -p $port
       elif [ "$myservice" = "mongo" ]; then
         custom_title  "/usr/local/bin/mongo"
 	    echo "-------------------------------------------------"
 	    custom_title "Result:"
+	    echo ""
         /usr/local/bin/mongo
       elif [ "$myservice" = "memcached" ]; then
         [[ -f $MYRUNTIME/tools/m_memcached ]] && source $MYRUNTIME/tools/m_memcached || echo "ERROR: m_memcached does not exists!";
         custom_title  "/usr/local/bin/telnet $host $port"
 	    echo "-------------------------------------------------"
 	    custom_title "Result:"
+	    echo ""
         /usr/local/bin/telnet $host $port
       fi
       ;;
@@ -140,6 +146,7 @@ else
       custom_title "Command: brew services -v $myoption $myservice"
       echo "-------------------------------------------------"
       custom_title "Result:"
+      echo ""
       brew services -v  $myoption $myservice
       ;;
 
