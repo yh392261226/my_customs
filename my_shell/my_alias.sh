@@ -48,6 +48,7 @@ alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/La
 alias qfind="find . -name "                 # qfind:    Quickly search for file
 #alias rm='/usr/local/bin/trash'
 alias rmDS="removeDS"
+alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
 
 #compression
 alias gz='tar -zxvf'
@@ -69,7 +70,7 @@ alias ttop="top -R -F -s 10 -o rsize"
 
 #network
 
-alias myip='curl myip.ipip.net'                    # myip:         Public facing IP Address
+alias myip="curl myip.ipip.net"                    # myip:         Public facing IP Address
 alias netCons='lsof -i'                             # netCons:      Show all open TCP/IP sockets
 alias flushDNS='dscacheutil -flushcache'            # flushDNS:     Flush out the DNS Cache
 alias lsock='sudo /usr/sbin/lsof -i -P'             # lsock:        Display open sockets
