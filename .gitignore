@@ -1,11 +1,6 @@
 worklist
-bin/sftp2lo
-bin/sftp2server
 .descfile
 .vscode
 others/gvcci
 others/vedio_spider
-bin/mysql55
-bin/mysql57
-bin/gitmds
 my_shell/customs.sh
