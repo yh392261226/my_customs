@@ -57,8 +57,8 @@ alias bz2='tar -xjvf'
 
 #brew
 
-alias brewu='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
-alias brewup='brew update && brew upgrade && brew cleanup && brew prune && brew doctor'
+alias brewu='brew update && brew upgrade && brew cleanup && brew cleanup --prune-prefix && brew doctor'
+alias brewup='brew update && brew upgrade && brew cleanup && brew cleanup --prune-prefix && brew doctor'
 
 #process
 

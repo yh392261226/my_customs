@@ -82,3 +82,6 @@ autoload -U compinit
 ZSH_TMUX_AUTOSTART='true'
 ZSH_DISABLE_COMPFIX=true
 source $ZSH/oh-my-zsh.sh
+
+#ZSH的模块加载
+zmodload zsh/zprof 
