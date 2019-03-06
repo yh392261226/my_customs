@@ -19,7 +19,7 @@ alias ehosts='sudo vim /etc/hosts'                  # editHosts:        Edit /et
 
 #directoy
 
-alias l='/bin/ls -aH'                            # Change the command l to ls -aH
+alias l='gls -aH --color=tty'                            # Change the command l to ls -aH
 alias lll="/usr/local/bin/ls++"
 alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)
 alias cd.='cd ..'
