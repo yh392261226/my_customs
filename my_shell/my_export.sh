@@ -49,3 +49,5 @@ fi
 
 #wine 不输出debug信息
 export WINEDEBUG=-all
+export MYCUSTOMS=$MYRUNTIME/customs
+export MYTOOLS=$MYRUNTIME/tools
