@@ -199,10 +199,6 @@ if [ "$PLATFORM" = 'Darwin' ]; then
     }
 
     j() { export JAVA_HOME=$(/usr/libexec/java_home -v1.$1); }
-
-    # https://gist.github.com/Andrewpk/7558715
-    alias startvpn="sudo launchctl load -w /Library/LaunchDaemons/net.juniper.AccessService.plist; open -a '/Applications/Junos Pulse.app/Contents/Plugins/JamUI/PulseTray.app/Contents/MacOS/PulseTray'"
-    alias quitvpn="osascript -e 'tell application \"PulseTray.app\" to quit';sudo launchctl unload -w /Library/LaunchDaemons/net.juniper.AccessService.plist"
 fi
 
 
