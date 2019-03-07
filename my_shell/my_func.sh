@@ -76,15 +76,15 @@ ii() {
     echo -e "\n${RED}Current date :$NC " ; date
     echo -e "\n${RED}Machine stats :$NC " ; uptime
     echo -e "\n${RED}Current network location :$NC " ; scselect
-    echo -e "\n${RED}Public facing IP Address :$NC " ;myip
+    echo -e "\n${RED}Public facing IP Address :$NC " ;curl myip.ipip.net
     #echo -e "\n${RED}DNS Configuration:$NC " ; scutil --dns
     echo
 }
 
-httpHeaders () { /usr/local/bin/curl -I -L $@ ; }             # httpHeaders:      Grabs headers from web page
+httpHeaders () { curl -I -L $@ ; }             # httpHeaders:      Grabs headers from web page
 
 #####httpDebug:  Download a web page and show info on what took time
-httpDebug () { /usr/local/bin/curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
+httpDebug () { curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
 
 tping() {
     for p in $(tmux list-windows -F "#{pane_id}"); do
@@ -585,4 +585,21 @@ clear
   for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
 
   echo " "
+}
+
+ccc() {
+    echo "********************************************************"
+    echo "*** Already exists command:"
+    echo "********************************************************"
+    for word in {a..z}; do
+        if [ "$(command -v $word)" != "" ]; then
+            type $word | grep -v 'not found';
+            if [ "$nowshell" != "bash" ]; then
+                echo "________________________________________________________"
+                which $word | grep -v 'not found';
+            fi
+            echo "________________________________________________________"
+            echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+        fi
+    done
 }

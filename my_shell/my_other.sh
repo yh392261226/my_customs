@@ -9,6 +9,7 @@ if [ -s "$HOME/.nvm/nvm.sh"  ] ; then
     source ~/.nvm/nvm.sh # Loads NVM into a shell session.
 fi
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"  # This loads nvm
+[[ -f $HOME/.rvm/scripts/rvm ]] && source $HOME/.rvm/scripts/rvm
 
 [[ -s $HOME/.autojump/etc/profile.d/autojump.sh  ]] && source $HOME/.autojump/etc/profile.d/autojump.sh
 
