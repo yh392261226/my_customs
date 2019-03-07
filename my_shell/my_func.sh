@@ -119,6 +119,10 @@ viw() {
     vim `which "$1"`
 }
 
+catw() {
+    cat `which "$1"`
+}
+
 gdto() {
     [ "$1" ] && cd *$1*
 }
