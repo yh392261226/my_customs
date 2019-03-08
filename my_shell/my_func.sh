@@ -1,25 +1,42 @@
-function cd() { builtin cd "$@"; /bin/ls -aGH; }               # Always list directory contents upon 'cd'
+# Desc: Always list directory contents upon 'cd'
+function cd() { builtin cd "$@"; /bin/ls -aGH; }               # 
+
+# Desc: Makes new Dir and jumps inside
 function mcd () { mkdir -p "$1" && cd "$1"; }        # mcd:          Makes new Dir and jumps inside
+
+# Desc: Moves a file to the MacOS trash
 function trash () { command mv "$@" ~/.Trash ; }     # trash:        Moves a file to the MacOS trash
+
+# Desc: Opens any file in MacOS Quicklook Preview
 function ql () { qlmanage -p "$*" >& /dev/null; }    # ql:           Opens any file in MacOS Quicklook Preview
 #   mans:   Search manpage given in agument '1' for term given in argument '2' (case insensitive)
 #           displays paginated result with colored search terms and two lines surrounding each hit.             Example: mans mplayer codec
 #   --------------------------------------------------------------------
+
+# Desc: man command[$1] and highlight keyword[$2]
 function mans () {
     man $1 | grep -iC2 --color=always $2 | less
 }
 
 #   showa: to remind yourself of an alias (given some part of it)
 #   ------------------------------------------------------------
-function showa () { /usr/bin/grep --color=always -i -a1 $@ ~/Library/init/bash/aliases.bash | grep -v '^\s*$' | less -FSRXc ; }
+
+# Desc: 显示所有自定义命令及注释
+function showa () { 
+    grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
+}
 
 #   -------------------------------
 #   3.  FILE AND FOLDER MANAGEMENT
 #   -------------------------------
+
+# Desc: 显示所有自定义命令及注释
 function zipf () { zip -r "$1".zip "$1" ; }          # zipf:         To create a ZIP archive of a folder
 
 #   extract:  Extract most know archives with one command
 #   ---------------------------------------------------------
+
+# Desc: 自动检测文件后缀并 自动解压
 function extract () {
     if [ -f $1 ] ; then
       case $1 in
@@ -45,14 +62,18 @@ function extract () {
 #   ---------------------------
 #   4.  SEARCHING
 #   ---------------------------
-function ff () { /usr/bin/find . -name "$@" ; }      # ff:       Find file under the current directory
-function ffs () { /usr/bin/find . -name "$@"'*' ; }  # ffs:      Find file whose name starts with a given string
-function ffe () { /usr/bin/find . -name '*'"$@" ; }  # ffe:      Find file whose name ends with a given string
 
-#   spotlight: Search for a file using MacOS Spotlight's metadata
-#   -----------------------------------------------------------
+# Desc: Find file under the current directory
+function ff () { find . -name "$@" ; }
+
+# Desc: Find file whose name starts with a given string
+function ffs () { find . -name "$@"'*' ; }
+
+# Desc: Find file whose name ends with a given string
+function ffe () { /usr/bin/find . -name '*'"$@" ; }
+
+# Desc: Search for a file using MacOS Spotlight's metadata
 function spotlight () { mdfind "kMDItemDisplayName == '$@'wc"; }
-
 
 #   ---------------------------
 #   5.  PROCESS MANAGEMENT
@@ -63,12 +84,14 @@ function spotlight () { mdfind "kMDItemDisplayName == '$@'wc"; }
 #       E.g. findPid '/d$/' finds pids of all processes with names ending in 'd'
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
+
+# Desc: find out the pid of a specified process
 function findPid () { lsof -t -c "$@" ; }
 
-#####my_ps: List processes owned by my user:
+# Desc: List processes owned by my user:
 function my_ps() { ps $@ -u $USER -o pid,%cpu,%mem,start,time,bsdtime,command ; }
 
-#####ii:  display useful host related informaton
+# Desc: display useful host related informaton
 function ii() {
     echo -e "\nYou are logged on ${RED}$HOST"
     echo -e "\nAdditionnal information:$NC " ; uname -a
@@ -81,17 +104,20 @@ function ii() {
     echo
 }
 
-function httpHeaders () { curl -I -L $@ ; }             # httpHeaders:      Grabs headers from web page
+# Desc: Grabs headers from web page
+function httpHeaders () { curl -I -L $@ ; }
 
-#####httpDebug:  Download a web page and show info on what took time
+# Desc: Download a web page and show info on what took time
 function httpDebug () { curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
 
+# Desc: 打印当前tmux所有的pane id
 function tping() {
     for p in $(tmux list-windows -F "#{pane_id}"); do
         tmux send-keys -t $p Enter
     done
 }
 
+# Desc: tmux 中自动起一个窗口去做操作
 function tt() {
     if [ $# -lt 1 ]; then
         echo 'usage: tt <commands...>'
@@ -111,22 +137,38 @@ function tt() {
     $SHELL -ci "$head; $tail"
 }
 
+# Desc: tmux 生成一个执行 参数中的命令的临时窗口 回车后自动关闭
+function tx() {
+    tmux splitw "$*; echo -n Press enter to finish.; read"
+    tmux select-layout tiled
+    tmux last-pane
+}
+
 
 # Shortcut functions
 # --------------------------------------------------------------------
 
+# Desc: vim 编辑which命令找到的文件地址
 function viw() {
     vim `which "$1"`
 }
 
+# Desc: cat 打印which命令找到的文件地址
 function catw() {
     cat `which "$1"`
 }
 
+# Desc: cd 包含参数的名称的文件夹
 function gdto() {
     [ "$1" ] && cd *$1*
 }
 
+# Desc: cd 命令所在的文件夹
+function cdto() {
+    cd `dirname $(which "$1")`
+}
+
+# Desc: 生成【参数为后缀名的】的数据文件
 function csbuild() {
     [ $# -eq 0 ] && return
 
@@ -139,6 +181,7 @@ function csbuild() {
         cscope -b -q && rm cscope.files
 }
 
+# Desc: rvm多个版本的gem操作同一个包
 function gems() {
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
@@ -146,6 +189,7 @@ function gems() {
     done
 }
 
+# Desc: rvm多个版本的rake操作同一个包
 function rakes() {
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
@@ -153,20 +197,18 @@ function rakes() {
     done
 }
 
-function tx() {
-    tmux splitw "$*; echo -n Press enter to finish.; read"
-    tmux select-layout tiled
-    tmux last-pane
-}
 
+# Desc: git压缩HEAD版本为zip包
 function gitzip() {
     git archive -o $(basename $PWD).zip HEAD
 }
 
+# Desc: git压缩HEAD版本为tgz包
 function gittgz() {
     git archive -o $(basename $PWD).tgz HEAD
 }
 
+# Desc: git 比对两个分支
 function gitdiffb() {
     if [ $# -ne 2 ]; then
         echo two branch names required
@@ -177,6 +219,7 @@ function gitdiffb() {
         --abbrev-commit --date=relative $1..$2
 }
 
+# Desc: 最简化 终端主题
 function miniprompt() {
     unset PROMPT_COMMAND
     PS1="\[\e[38;5;168m\]> \[\e[0m\]"
@@ -185,15 +228,18 @@ function miniprompt() {
 # boot2docker
 # --------------------------------------------------------------------
 if [ "$PLATFORM" = 'Darwin' ]; then
+    # Desc: docker初始化
     function dockerinit() {
         [ $(docker-machine status default) = 'Running' ] || docker-machine start default
         eval "$(docker-machine env default)"
     }
 
+    # Desc: docker停止
     function dockerstop() {
         docker-machine stop default
     }
 
+    # Desc: 图片压缩
     function resizes() {
         mkdir -p out &&
         for jpg in *.JPG; do
@@ -202,6 +248,7 @@ if [ "$PLATFORM" = 'Darwin' ]; then
         done
     }
 
+    # Desc: 设置环境变量JAVA_HOME
     function j() { export JAVA_HOME=$(/usr/libexec/java_home -v1.$1); }
 fi
 
@@ -209,25 +256,25 @@ fi
 # fzf (https://github.com/junegunn/fzf)
 # --------------------------------------------------------------------
 
-# fd - cd to selected directory
+# Desc: cd to selected directory
 function fd() {
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"
 }
 
-# fda - including hidden directories
+# Desc: including hidden directories
 function fda() {
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
 }
 
-# Figlet font selector
+# Desc: Figlet font selector
 function fgl() {
     cd /usr/local/Cellar/figlet/*/share/figlet/fonts
     BASE=`pwd`
     figlet -f `ls *.flf | sort | fzf` $*
 }
 
-# fbr - checkout git branch
+# Desc: checkout git branch
 function fbr() {
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
@@ -236,7 +283,7 @@ function fbr() {
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
 
-# fco - checkout git branch/tag
+# Desc: checkout git branch/tag
 function fco() {
     local tags branches target
     tags=$(
@@ -251,7 +298,7 @@ function fco() {
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-# fco_preview - checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+# Desc: checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
 function fco_preview() {
   local tags branches target
   tags=$(
@@ -267,7 +314,7 @@ sort -u | awk '{print "\x1b[34;1mbranch\x1b[m\t" $1}') || return
   git checkout $(echo "$target" | awk '{print $2}')
 }
 
-# fcoc - checkout git commit
+# Desc: checkout git commit
 function fcoc() {
   local commits commit
   commits=$(git log --pretty=oneline --abbrev-commit --reverse) &&
@@ -275,8 +322,7 @@ function fcoc() {
   git checkout $(echo "$commit" | sed "s/ .*//")
 }
 
-# fcs - get git commit sha
-# example usage: git rebase -i `fcs`
+# Desc: get git commit sha. example usage: git rebase -i `fcs`
 function fcs() {
   local commits commit
   commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
@@ -284,13 +330,13 @@ function fcs() {
   echo -n $(echo "$commit" | sed "s/ .*//")
 }
 
-# fgst - pick files from `git status -s` 
+# Desc: pick files from `git status -s`
 function is_in_git_repo() {
   git rev-parse HEAD > /dev/null 2>&1
 }
 
+# Desc: 显示当前git版本库中未添加进版本的修改或新增文件列表
 function fgst() {
-  # "Nothing to see here, move along"
   is_in_git_repo || return
 
   local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
@@ -301,10 +347,10 @@ function fgst() {
   echo
 }
 
-# fstash - easier way to deal with stashes
-# type fstash to get a list of your stashes
-# enter shows you the contents of the stash
-# ctrl-d shows a diff of the stash against your current HEAD
+# Desc: easier way to deal with stashes.
+# type fstash to get a list of your stashes.
+# enter shows you the contents of the stash.
+# ctrl-d shows a diff of the stash against your current HEAD.
 # ctrl-b checks the stash out as a branch, for easier merging
 function fstash() {
   local out q k sha
@@ -330,7 +376,7 @@ function fstash() {
   done
 }
 
-# fshow - git commit browser
+# Desc: git commit browser
 function fshow() {
 git log --graph --color=always \
     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
@@ -341,7 +387,7 @@ xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 {}"
 }
 
-# ftags - search ctags
+# Desc: search ctags
 function ftags() {
     local line
     [ -e tags ] &&
@@ -352,18 +398,18 @@ function ftags() {
         -c "silent tag $(cut -f2 <<< "$line")"
 }
 
-# fe [FUZZY PATTERN] - Open the selected file with the default editor
 #   - Bypass fuzzy finder if there's only one match (--select-1)
 #   - Exit if there's no match (--exit-0)
+# Desc: Open the selected file with the default editor.
 function fe() {
     local file
     file=$(fzf-tmux --query="$1" --select-1 --exit-0)
     [ -n "$file" ] && ${EDITOR:-vim} "$file"
 }
 
-# Modified version where you can press
 #   - CTRL-O to open with `open` command,
 #   - CTRL-E or Enter key to open with the $EDITOR
+# Desc: Modified version where you can press
 function fo() {
     local out file key
     out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)
@@ -382,14 +428,14 @@ if [ -n "$TMUX_PANE" ]; then
             "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
     }
 
-    # https://github.com/wellle/tmux-complete.vim
+    # Desc: tmux中 https://github.com/wellle/tmux-complete.vim
     function fzf_tmux_words() {
         fzf_tmux_helper \
             '-p 40' \
             'tmuxwords.rb --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
     }
 
-    # ftpane - switch pane (@george-b)
+    # Desc: tmux switch pane (@george-b)
     function ftpane() {
         local panes current_window current_pane target target_window target_pane
         panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
@@ -411,17 +457,9 @@ if [ -n "$TMUX_PANE" ]; then
 
     # Bind CTRL-X-CTRL-T to tmuxwords.sh
     #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
-
-elif [ -d ~/github/iTerm2-Color-Schemes/ ]; then
-    function ftheme() {
-        local base
-        base=~/github/iTerm2-Color-Schemes
-        $base/tools/preview.rb "$(
-        ls {$base/schemes,~/.vim/plugged/seoul256.vim/iterm2}/*.itermcolors | fzf)"
-    }
 fi
 
-# Switch tmux-sessions
+# Desc: Switch tmux-sessions
 function fs() {
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
@@ -429,7 +467,7 @@ function fs() {
         tmux switch-client -t "$session"
 }
 
-# RVM integration
+# Desc: RVM integration
 function frb() {
     local rb
     rb=$(
@@ -438,6 +476,7 @@ function frb() {
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
 }
 
+# Desc: 
 function z() {
     if [[ -z "$*" ]]; then
         cd "$(_z -l 2>&1 | fzf-tmux +s --tac | sed 's/^[0-9,.]* *//')"
@@ -446,7 +485,7 @@ function z() {
     fi
 }
 
-# v - open files in ~/.viminfo
+# Desc: v - open files in ~/.viminfo
 function v() {
     local files
     files=$(grep '^>' ~/.viminfo | cut -c3- |
@@ -455,7 +494,7 @@ function v() {
     done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 
-# c - browse chrome history
+# Desc: c - browse chrome history
 function c() {
     local cols sep
     export cols=$(( COLUMNS / 3 ))
@@ -477,7 +516,7 @@ function c() {
     sed 's#.*\(https*://\)#\1#' | xargs open
 }
 
-# vf - fuzzy open with vim from anywhere
+# Desc: vf - fuzzy open with vim from anywhere
 # ex: vf word1 word2 ... (even part of a file name)
 # zsh autoload function
 function vf() {
@@ -492,7 +531,7 @@ function vf() {
   fi
 }
 
-# fuzzy grep open via ag with line number
+# Desc: fuzzy grep open via ag with line number
 function vg() {
   local file
   local line
@@ -505,7 +544,7 @@ function vg() {
   fi
 }
 
-# fdr - cd to selected parent directory
+# Desc: fdr - cd to selected parent directory
 function fdr() {
   local declare dirs=()
   function get_parent_dirs() {
@@ -520,7 +559,7 @@ function fdr() {
   cd "$DIR"
 }
 
-# cf - fuzzy cd from anywhere
+# Desc: cf - fuzzy cd from anywhere
 # ex: cf word1 word2 ... (even part of a file name)
 # zsh autoload function
 function cf() {
@@ -539,19 +578,19 @@ function cf() {
   fi
 }
 
-# cdf - cd into the directory of the selected file
+# Desc: cdff - cd into the directory of the selected file
 function cdff() {
    local file
    local dir
    file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
 
-# fh - repeat history
+# Desc: fh - repeat history
 function fh() {
   eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
 }
 
-# fkill - kill processes - list only the ones you can kill. Modified the earlier script.
+# Desc: fkill - kill processes - list only the ones you can kill. Modified the earlier script.
 function fkill() {
     local pid 
     if [ "$UID" != "0" ]; then
@@ -566,7 +605,7 @@ function fkill() {
     fi  
 }
 
-# Install one or more versions of specified language
+# Desc: Install one or more versions of specified language
 # e.g. `vmi rust` # => fzf multimode, tab to mark, enter to install
 # if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you
 # Mnemonic [V]ersion [M]anager [I]nstall
@@ -587,7 +626,7 @@ function vmi() {
   fi
 }
 
-# Remove one or more versions of specified language
+# Desc: Remove one or more versions of specified language
 # e.g. `vmi rust` # => fzf multimode, tab to mark, enter to remove
 # if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you
 # Mnemonic [V]ersion [M]anager [C]lean
@@ -609,7 +648,7 @@ function vmc() {
 }
 
 #Homebrew
-# Install (one or multiple) selected application(s)
+# Desc: Brew Install (one or multiple) selected application(s)
 # using "brew search" as source input
 # mnemonic [B]rew [I]nstall [P]lugin
 function bip() {
@@ -622,7 +661,7 @@ function bip() {
   fi
 }
 
-# Update (one or multiple) selected application(s)
+# Desc: Brew Update (one or multiple) selected application(s)
 # mnemonic [B]rew [U]pdate [P]lugin
 function bup() {
   local upd=$(brew leaves | fzf -m)
@@ -634,7 +673,7 @@ function bup() {
   fi
 }
 
-# Delete (one or multiple) selected application(s)
+# Desc: Brew Delete (one or multiple) selected application(s)
 # mnemonic (e.g. uninstall)
 function bdl() {
   local uninst=$(brew leaves | fzf -m)
@@ -646,6 +685,7 @@ function bdl() {
   fi
 }
 
+# Desc: 
 function fcd() {
     if [[ "$#" != 0 ]]; then
         builtin cd "$@";
@@ -668,10 +708,12 @@ function fcd() {
 
 #-----------------------------------------
 
+# Desc: acd 操作？
 function acdul() {
     acdcli ul -x 8 -r 4 -o "$@"
 }
 
+# Desc: 删除.DS_Store文件
 function removeDS() {
     if [ "" = "$1" ]; then
         find . -type f -name '*.DS_Store' -ls -delete
@@ -680,6 +722,7 @@ function removeDS() {
     fi
 }
 
+# Desc: 删除到回收站
 function mtrash () {
     local path
     for path in "$@"; do
@@ -696,6 +739,7 @@ function mtrash () {
     done
 }
 
+# Desc: 删除后缀名为参数值的文件到回收站
 function rmext () {
     if [ "" = "$1" ]; then
         trash ./*
@@ -704,7 +748,7 @@ function rmext () {
     fi
 }
 
-#zsh获取WiFi网速
+# Desc: zsh获取WiFi网速
 function zsh_wifi_signal(){
     if [ "$MYSYSNAME" = "Mac" ]; then
         local output=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport -I)
@@ -732,14 +776,17 @@ function zsh_wifi_signal(){
     fi
 }
 
+# Desc: zsh电池图
 function zsh_battery_charge {
   echo `~/bin/battery.py`
 }
 
-function mcdf () {  # short for cdfinder
+# Desc: short for cdfinder
+function mcdf () {
   cd "`osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)'`"
 }
 
+# Desc: 变更权限rwx为权限值【777】
 function mla() {
    ls -l  "$@" | awk '
     {
@@ -752,11 +799,13 @@ function mla() {
     }'
 }
 
+# Desc: 变更权限rwx为权限值
 function mqfind () {
   find . -exec grep -l -s $1 {} \;
   return 0
 }
 
+# Desc: whois网址信息查询
 function mwhois() {
   local domain=$(echo "$1" | awk -F/ '{print $3}') # get domain from URL
   if [ -z $domain ] ; then
@@ -772,6 +821,7 @@ function mwhois() {
 
 function customcd() { builtin cd "$@";}
 
+# Desc: 更新git的目录及git module的目录
 function upgitfiles() {
     if [ "" != "$1" ]; then
         filepath=$1
@@ -792,30 +842,36 @@ function upgitfiles() {
     customcd ~
 }
 
+# Desc: git更新zsh自定义的文件
 function upzshcustoms() {
     upgitfiles $MYRUNTIME/oh-my-zsh/custom/plugins
     upgitfiles $MYRUNTIME/oh-my-zsh/antigen
     upgitfiles $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
 }
 
+# Desc: git 更新$MYRUNTIME 目录下的所有由git管理的目录
 function updotfiles() {
     upgitfiles
 }
 
+# Desc: git 更新 插件目录
 function upplugins() {
     upgitfiles $MYRUNTIME/public
     customcd ~
 }
 
+# Desc: git 更新$MYRUNTIME 目录下的所有由git管理的目录
 function upruntimes() {
     updotfiles
     upplugins
 }
 
+# Desc: 重新安装neovim
 function reinstallneovim() {
     brew reinstall neovim --HEAD
 }
 
+# Desc: 每天一更新
 function upday() {
     upruntimes
     upzshcustoms
@@ -824,17 +880,18 @@ function upday() {
     /usr/local/sbin/gethosts
 }
 
+# Desc: 删除~/.ssh/tmp/*
 function rmsshtmp() {
     /bin/rm -f $HOME/.ssh/tmp/*
 }
 
-function tm() {
-    /usr/local/bin/tmux
-}
-
+# Desc: 文件夹显示隐藏文件
 function showF() { defaults write com.apple.Finder AppleShowAllFiles YES ; }
+
+# Desc: 文件夹不显示隐藏文件
 function hideF() { defaults write com.apple.Finder AppleShowAllFiles NO ; }
 
+# Desc: 显示我的自定义SHELL头信息
 function myMessage() {
 clear
   _COLUMNS=$(tput cols)
@@ -857,6 +914,7 @@ clear
   echo " "
 }
 
+# Desc: 显示从a-z的我的自定义命令
 function ccc() {
     echo "********************************************************"
     echo "*** Already exists command:"
