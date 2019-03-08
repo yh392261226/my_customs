@@ -1,26 +1,26 @@
-cd() { builtin cd "$@"; /bin/ls -aGH; }               # Always list directory contents upon 'cd'
-mcd () { mkdir -p "$1" && cd "$1"; }        # mcd:          Makes new Dir and jumps inside
-trash () { command mv "$@" ~/.Trash ; }     # trash:        Moves a file to the MacOS trash
-ql () { qlmanage -p "$*" >& /dev/null; }    # ql:           Opens any file in MacOS Quicklook Preview
+function cd() { builtin cd "$@"; /bin/ls -aGH; }               # Always list directory contents upon 'cd'
+function mcd () { mkdir -p "$1" && cd "$1"; }        # mcd:          Makes new Dir and jumps inside
+function trash () { command mv "$@" ~/.Trash ; }     # trash:        Moves a file to the MacOS trash
+function ql () { qlmanage -p "$*" >& /dev/null; }    # ql:           Opens any file in MacOS Quicklook Preview
 #   mans:   Search manpage given in agument '1' for term given in argument '2' (case insensitive)
 #           displays paginated result with colored search terms and two lines surrounding each hit.             Example: mans mplayer codec
 #   --------------------------------------------------------------------
-mans () {
+function mans () {
     man $1 | grep -iC2 --color=always $2 | less
 }
 
 #   showa: to remind yourself of an alias (given some part of it)
 #   ------------------------------------------------------------
-showa () { /usr/bin/grep --color=always -i -a1 $@ ~/Library/init/bash/aliases.bash | grep -v '^\s*$' | less -FSRXc ; }
+function showa () { /usr/bin/grep --color=always -i -a1 $@ ~/Library/init/bash/aliases.bash | grep -v '^\s*$' | less -FSRXc ; }
 
 #   -------------------------------
 #   3.  FILE AND FOLDER MANAGEMENT
 #   -------------------------------
-zipf () { zip -r "$1".zip "$1" ; }          # zipf:         To create a ZIP archive of a folder
+function zipf () { zip -r "$1".zip "$1" ; }          # zipf:         To create a ZIP archive of a folder
 
 #   extract:  Extract most know archives with one command
 #   ---------------------------------------------------------
-extract () {
+function extract () {
     if [ -f $1 ] ; then
       case $1 in
         *.tar.bz2)   tar xjf $1     ;;
@@ -45,13 +45,13 @@ extract () {
 #   ---------------------------
 #   4.  SEARCHING
 #   ---------------------------
-ff () { /usr/bin/find . -name "$@" ; }      # ff:       Find file under the current directory
-ffs () { /usr/bin/find . -name "$@"'*' ; }  # ffs:      Find file whose name starts with a given string
-ffe () { /usr/bin/find . -name '*'"$@" ; }  # ffe:      Find file whose name ends with a given string
+function ff () { /usr/bin/find . -name "$@" ; }      # ff:       Find file under the current directory
+function ffs () { /usr/bin/find . -name "$@"'*' ; }  # ffs:      Find file whose name starts with a given string
+function ffe () { /usr/bin/find . -name '*'"$@" ; }  # ffe:      Find file whose name ends with a given string
 
 #   spotlight: Search for a file using MacOS Spotlight's metadata
 #   -----------------------------------------------------------
-spotlight () { mdfind "kMDItemDisplayName == '$@'wc"; }
+function spotlight () { mdfind "kMDItemDisplayName == '$@'wc"; }
 
 
 #   ---------------------------
@@ -63,13 +63,13 @@ spotlight () { mdfind "kMDItemDisplayName == '$@'wc"; }
 #       E.g. findPid '/d$/' finds pids of all processes with names ending in 'd'
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
-findPid () { lsof -t -c "$@" ; }
+function findPid () { lsof -t -c "$@" ; }
 
 #####my_ps: List processes owned by my user:
-my_ps() { ps $@ -u $USER -o pid,%cpu,%mem,start,time,bsdtime,command ; }
+function my_ps() { ps $@ -u $USER -o pid,%cpu,%mem,start,time,bsdtime,command ; }
 
 #####ii:  display useful host related informaton
-ii() {
+function ii() {
     echo -e "\nYou are logged on ${RED}$HOST"
     echo -e "\nAdditionnal information:$NC " ; uname -a
     echo -e "\n${RED}Users logged on:$NC " ; w -h
@@ -81,18 +81,18 @@ ii() {
     echo
 }
 
-httpHeaders () { curl -I -L $@ ; }             # httpHeaders:      Grabs headers from web page
+function httpHeaders () { curl -I -L $@ ; }             # httpHeaders:      Grabs headers from web page
 
 #####httpDebug:  Download a web page and show info on what took time
-httpDebug () { curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
+function httpDebug () { curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
 
-tping() {
+function tping() {
     for p in $(tmux list-windows -F "#{pane_id}"); do
         tmux send-keys -t $p Enter
     done
 }
 
-tt() {
+function tt() {
     if [ $# -lt 1 ]; then
         echo 'usage: tt <commands...>'
         return 1
@@ -115,19 +115,19 @@ tt() {
 # Shortcut functions
 # --------------------------------------------------------------------
 
-viw() {
+function viw() {
     vim `which "$1"`
 }
 
-catw() {
+function catw() {
     cat `which "$1"`
 }
 
-gdto() {
+function gdto() {
     [ "$1" ] && cd *$1*
 }
 
-csbuild() {
+function csbuild() {
     [ $# -eq 0 ] && return
 
     cmd="find `pwd`"
@@ -139,35 +139,35 @@ csbuild() {
         cscope -b -q && rm cscope.files
 }
 
-gems() {
+function gems() {
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         gem $@
     done
 }
 
-rakes() {
+function rakes() {
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         rake $@
     done
 }
 
-tx() {
+function tx() {
     tmux splitw "$*; echo -n Press enter to finish.; read"
     tmux select-layout tiled
     tmux last-pane
 }
 
-gitzip() {
+function gitzip() {
     git archive -o $(basename $PWD).zip HEAD
 }
 
-gittgz() {
+function gittgz() {
     git archive -o $(basename $PWD).tgz HEAD
 }
 
-gitdiffb() {
+function gitdiffb() {
     if [ $# -ne 2 ]; then
         echo two branch names required
         return
@@ -177,7 +177,7 @@ gitdiffb() {
         --abbrev-commit --date=relative $1..$2
 }
 
-miniprompt() {
+function miniprompt() {
     unset PROMPT_COMMAND
     PS1="\[\e[38;5;168m\]> \[\e[0m\]"
 }
@@ -185,16 +185,16 @@ miniprompt() {
 # boot2docker
 # --------------------------------------------------------------------
 if [ "$PLATFORM" = 'Darwin' ]; then
-    dockerinit() {
+    function dockerinit() {
         [ $(docker-machine status default) = 'Running' ] || docker-machine start default
         eval "$(docker-machine env default)"
     }
 
-    dockerstop() {
+    function dockerstop() {
         docker-machine stop default
     }
 
-    resizes() {
+    function resizes() {
         mkdir -p out &&
         for jpg in *.JPG; do
             echo $jpg
@@ -202,7 +202,7 @@ if [ "$PLATFORM" = 'Darwin' ]; then
         done
     }
 
-    j() { export JAVA_HOME=$(/usr/libexec/java_home -v1.$1); }
+    function j() { export JAVA_HOME=$(/usr/libexec/java_home -v1.$1); }
 fi
 
 
@@ -210,25 +210,25 @@ fi
 # --------------------------------------------------------------------
 
 # fd - cd to selected directory
-fd() {
+function fd() {
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"
 }
 
 # fda - including hidden directories
-fda() {
+function fda() {
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
 }
 
 # Figlet font selector
-fgl() {
+function fgl() {
     cd /usr/local/Cellar/figlet/*/share/figlet/fonts
     BASE=`pwd`
     figlet -f `ls *.flf | sort | fzf` $*
 }
 
 # fbr - checkout git branch
-fbr() {
+function fbr() {
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
@@ -237,7 +237,7 @@ fbr() {
 }
 
 # fco - checkout git branch/tag
-fco() {
+function fco() {
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -251,8 +251,87 @@ fco() {
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
+# fco_preview - checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+function fco_preview() {
+  local tags branches target
+  tags=$(
+git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
+  branches=$(
+git branch --all | grep -v HEAD |
+sed "s/.* //" | sed "s#remotes/[^/]*/##" |
+sort -u | awk '{print "\x1b[34;1mbranch\x1b[m\t" $1}') || return
+  target=$(
+(echo "$tags"; echo "$branches") |
+    fzf --no-hscroll --no-multi --delimiter="\t" -n 2 \
+        --ansi --preview="git log -200 --pretty=format:%s $(echo {+2..} |  sed 's/$/../' )" ) || return
+  git checkout $(echo "$target" | awk '{print $2}')
+}
+
+# fcoc - checkout git commit
+function fcoc() {
+  local commits commit
+  commits=$(git log --pretty=oneline --abbrev-commit --reverse) &&
+  commit=$(echo "$commits" | fzf --tac +s +m -e) &&
+  git checkout $(echo "$commit" | sed "s/ .*//")
+}
+
+# fcs - get git commit sha
+# example usage: git rebase -i `fcs`
+function fcs() {
+  local commits commit
+  commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
+  commit=$(echo "$commits" | fzf --tac +s +m -e --ansi --reverse) &&
+  echo -n $(echo "$commit" | sed "s/ .*//")
+}
+
+# fgst - pick files from `git status -s` 
+function is_in_git_repo() {
+  git rev-parse HEAD > /dev/null 2>&1
+}
+
+function fgst() {
+  # "Nothing to see here, move along"
+  is_in_git_repo || return
+
+  local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
+
+  eval "$cmd" | FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} --reverse $FZF_DEFAULT_OPTS $FZF_CTRL_T_OPTS" fzf -m "$@" | while read -r item; do
+    echo "$item" | awk '{print $2}'
+  done
+  echo
+}
+
+# fstash - easier way to deal with stashes
+# type fstash to get a list of your stashes
+# enter shows you the contents of the stash
+# ctrl-d shows a diff of the stash against your current HEAD
+# ctrl-b checks the stash out as a branch, for easier merging
+function fstash() {
+  local out q k sha
+  while out=$(
+    git stash list --pretty="%C(yellow)%h %>(14)%Cgreen%cr %C(blue)%gs" |
+    fzf --ansi --no-sort --query="$q" --print-query \
+        --expect=ctrl-d,ctrl-b);
+  do
+    mapfile -t out <<< "$out"
+    q="${out[0]}"
+    k="${out[1]}"
+    sha="${out[-1]}"
+    sha="${sha%% *}"
+    [[ -z "$sha" ]] && continue
+    if [[ "$k" == 'ctrl-d' ]]; then
+      git diff $sha
+    elif [[ "$k" == 'ctrl-b' ]]; then
+      git stash branch "stash-$sha" $sha
+      break;
+    else
+      git stash show -p $sha
+    fi
+  done
+}
+
 # fshow - git commit browser
-fshow() {
+function fshow() {
 git log --graph --color=always \
     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
 fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
@@ -263,7 +342,7 @@ xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 }
 
 # ftags - search ctags
-ftags() {
+function ftags() {
     local line
     [ -e tags ] &&
         line=$(
@@ -276,7 +355,7 @@ ftags() {
 # fe [FUZZY PATTERN] - Open the selected file with the default editor
 #   - Bypass fuzzy finder if there's only one match (--select-1)
 #   - Exit if there's no match (--exit-0)
-fe() {
+function fe() {
     local file
     file=$(fzf-tmux --query="$1" --select-1 --exit-0)
     [ -n "$file" ] && ${EDITOR:-vim} "$file"
@@ -285,7 +364,7 @@ fe() {
 # Modified version where you can press
 #   - CTRL-O to open with `open` command,
 #   - CTRL-E or Enter key to open with the $EDITOR
-fo() {
+function fo() {
     local out file key
     out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)
     key=$(head -1 <<< "$out")
@@ -296,7 +375,7 @@ fo() {
 }
 
 if [ -n "$TMUX_PANE" ]; then
-    fzf_tmux_helper() {
+    function fzf_tmux_helper() {
         local sz=$1;  shift
         local cmd=$1; shift
         tmux split-window $sz \
@@ -304,14 +383,14 @@ if [ -n "$TMUX_PANE" ]; then
     }
 
     # https://github.com/wellle/tmux-complete.vim
-    fzf_tmux_words() {
+    function fzf_tmux_words() {
         fzf_tmux_helper \
             '-p 40' \
             'tmuxwords.rb --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
     }
 
     # ftpane - switch pane (@george-b)
-    ftpane() {
+    function ftpane() {
         local panes current_window current_pane target target_window target_pane
         panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
         current_pane=$(tmux display-message -p '#I:#P')
@@ -334,7 +413,7 @@ if [ -n "$TMUX_PANE" ]; then
     #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
 
 elif [ -d ~/github/iTerm2-Color-Schemes/ ]; then
-    ftheme() {
+    function ftheme() {
         local base
         base=~/github/iTerm2-Color-Schemes
         $base/tools/preview.rb "$(
@@ -343,7 +422,7 @@ elif [ -d ~/github/iTerm2-Color-Schemes/ ]; then
 fi
 
 # Switch tmux-sessions
-fs() {
+function fs() {
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
         fzf-tmux --query="$1" --select-1 --exit-0) &&
@@ -351,7 +430,7 @@ fs() {
 }
 
 # RVM integration
-frb() {
+function frb() {
     local rb
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
@@ -359,7 +438,7 @@ frb() {
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
 }
 
-z() {
+function z() {
     if [[ -z "$*" ]]; then
         cd "$(_z -l 2>&1 | fzf-tmux +s --tac | sed 's/^[0-9,.]* *//')"
     else
@@ -368,7 +447,7 @@ z() {
 }
 
 # v - open files in ~/.viminfo
-v() {
+function v() {
     local files
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
@@ -377,7 +456,7 @@ v() {
 }
 
 # c - browse chrome history
-c() {
+function c() {
     local cols sep
     export cols=$(( COLUMNS / 3 ))
     export sep='{::}'
@@ -398,11 +477,202 @@ c() {
     sed 's#.*\(https*://\)#\1#' | xargs open
 }
 
-acdul() {
+# vf - fuzzy open with vim from anywhere
+# ex: vf word1 word2 ... (even part of a file name)
+# zsh autoload function
+function vf() {
+  local files
+
+  files=(${(f)"$(locate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1 -m)"})
+
+  if [[ -n $files ]]
+  then
+     vim -- $files
+     print -l $files[1]
+  fi
+}
+
+# fuzzy grep open via ag with line number
+function vg() {
+  local file
+  local line
+
+  read -r file line <<<"$(ag --nobreak --noheading $@ | fzf -0 -1 | awk -F: '{print $1, $2}')"
+
+  if [[ -n $file ]]
+  then
+     vim $file +$line
+  fi
+}
+
+# fdr - cd to selected parent directory
+function fdr() {
+  local declare dirs=()
+  function get_parent_dirs() {
+    if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
+    if [[ "${1}" == '/' ]]; then
+      for _dir in "${dirs[@]}"; do echo $_dir; done
+    else
+      get_parent_dirs $(dirname "$1")
+    fi
+  }
+  local DIR=$(get_parent_dirs $(realpath "${1:-$PWD}") | fzf-tmux --tac)
+  cd "$DIR"
+}
+
+# cf - fuzzy cd from anywhere
+# ex: cf word1 word2 ... (even part of a file name)
+# zsh autoload function
+function cf() {
+  local file
+
+  file="$(locate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
+
+  if [[ -n $file ]]
+  then
+     if [[ -d $file ]]
+     then
+        cd -- $file
+     else
+        cd -- ${file:h}
+     fi
+  fi
+}
+
+# cdf - cd into the directory of the selected file
+function cdff() {
+   local file
+   local dir
+   file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
+}
+
+# fh - repeat history
+function fh() {
+  eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
+}
+
+# fkill - kill processes - list only the ones you can kill. Modified the earlier script.
+function fkill() {
+    local pid 
+    if [ "$UID" != "0" ]; then
+        pid=$(ps -f -u $UID | sed 1d | fzf -m | awk '{print $2}')
+    else
+        pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+    fi  
+
+    if [ "x$pid" != "x" ]
+    then
+        echo $pid | xargs kill -${1:-9}
+    fi  
+}
+
+# Install one or more versions of specified language
+# e.g. `vmi rust` # => fzf multimode, tab to mark, enter to install
+# if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you
+# Mnemonic [V]ersion [M]anager [I]nstall
+function vmi() {
+  local lang=${1}
+
+  if [[ ! $lang ]]; then
+    lang=$(asdf plugin-list | fzf)
+  fi
+
+  if [[ $lang ]]; then
+    local versions=$(asdf list-all $lang | fzf -m)
+    if [[ $versions ]]; then
+      for version in $(echo $versions); do
+        asdf install $lang $version;
+      done;
+    fi
+  fi
+}
+
+# Remove one or more versions of specified language
+# e.g. `vmi rust` # => fzf multimode, tab to mark, enter to remove
+# if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you
+# Mnemonic [V]ersion [M]anager [C]lean
+function vmc() {
+  local lang=${1}
+
+  if [[ ! $lang ]]; then
+    lang=$(asdf plugin-list | fzf)
+  fi
+
+  if [[ $lang ]]; then
+    local versions=$(asdf list $lang | fzf -m)
+    if [[ $versions ]]; then
+      for version in $(echo $versions); do
+        asdf uninstall $lang $version; 
+      done;
+    fi
+  fi
+}
+
+#Homebrew
+# Install (one or multiple) selected application(s)
+# using "brew search" as source input
+# mnemonic [B]rew [I]nstall [P]lugin
+function bip() {
+  local inst=$(brew search | fzf -m)
+
+  if [[ $inst ]]; then
+    for prog in $(echo $inst);do
+        brew install $prog;
+    done;
+  fi
+}
+
+# Update (one or multiple) selected application(s)
+# mnemonic [B]rew [U]pdate [P]lugin
+function bup() {
+  local upd=$(brew leaves | fzf -m)
+
+  if [[ $upd ]]; then
+    for prog in $(echo $upd);do
+        brew upgrade $prog;
+    done;
+  fi
+}
+
+# Delete (one or multiple) selected application(s)
+# mnemonic (e.g. uninstall)
+function bdl() {
+  local uninst=$(brew leaves | fzf -m)
+
+  if [[ $uninst ]]; then
+    for prog in $(echo $uninst); do
+        brew uninstall $prog; 
+    done;
+  fi
+}
+
+function fcd() {
+    if [[ "$#" != 0 ]]; then
+        builtin cd "$@";
+        return
+    fi
+    while true; do
+        local lsd=$(echo ".." && ls -p | grep '/$' | sed 's;/$;;')
+        local dir="$(printf '%s\n' "${lsd[@]}" |
+            fzf --reverse --preview '
+                __cd_nxt="$(echo {})";
+                __cd_path="$(echo $(pwd)/${__cd_nxt} | sed "s;//;/;")";
+                echo $__cd_path;
+                echo;
+                gls -p --color=always "${__cd_path}";
+        ')"
+        [[ ${#dir} != 0 ]] || return 0
+        builtin cd "$dir" &> /dev/null
+    done
+}
+
+#-----------------------------------------
+
+function acdul() {
     acdcli ul -x 8 -r 4 -o "$@"
 }
 
-removeDS() {
+function removeDS() {
     if [ "" = "$1" ]; then
         find . -type f -name '*.DS_Store' -ls -delete
     else
@@ -410,7 +680,7 @@ removeDS() {
     fi
 }
 
-mtrash () {
+function mtrash () {
     local path
     for path in "$@"; do
         # ignore any arguments
@@ -426,7 +696,7 @@ mtrash () {
     done
 }
 
-rmext () {
+function rmext () {
     if [ "" = "$1" ]; then
         trash ./*
     else
@@ -435,7 +705,7 @@ rmext () {
 }
 
 #zsh获取WiFi网速
-zsh_wifi_signal(){
+function zsh_wifi_signal(){
     if [ "$MYSYSNAME" = "Mac" ]; then
         local output=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport -I)
         local airport=$(echo $output | grep 'AirPort' | awk -F': ' '{print $2}')
@@ -466,7 +736,7 @@ function zsh_battery_charge {
   echo `~/bin/battery.py`
 }
 
-mcdf () {  # short for cdfinder
+function mcdf () {  # short for cdfinder
   cd "`osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)'`"
 }
 
@@ -482,12 +752,12 @@ function mla() {
     }'
 }
 
-mqfind () {
+function mqfind () {
   find . -exec grep -l -s $1 {} \;
   return 0
 }
 
-mwhois() {
+function mwhois() {
   local domain=$(echo "$1" | awk -F/ '{print $3}') # get domain from URL
   if [ -z $domain ] ; then
     domain=$1
@@ -500,9 +770,9 @@ mwhois() {
   /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
 
-customcd() { builtin cd "$@";}
+function customcd() { builtin cd "$@";}
 
-upgitfiles() {
+function upgitfiles() {
     if [ "" != "$1" ]; then
         filepath=$1
     else
@@ -522,31 +792,31 @@ upgitfiles() {
     customcd ~
 }
 
-upzshcustoms() {
+function upzshcustoms() {
     upgitfiles $MYRUNTIME/oh-my-zsh/custom/plugins
     upgitfiles $MYRUNTIME/oh-my-zsh/antigen
     upgitfiles $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
 }
 
-updotfiles() {
+function updotfiles() {
     upgitfiles
 }
 
-upplugins() {
+function upplugins() {
     upgitfiles $MYRUNTIME/public
     customcd ~
 }
 
-upruntimes() {
+function upruntimes() {
     updotfiles
     upplugins
 }
 
-reinstallneovim() {
+function reinstallneovim() {
     brew reinstall neovim --HEAD
 }
 
-upday() {
+function upday() {
     upruntimes
     upzshcustoms
     upzshcustoms
@@ -554,18 +824,18 @@ upday() {
     /usr/local/sbin/gethosts
 }
 
-rmsshtmp() {
+function rmsshtmp() {
     /bin/rm -f $HOME/.ssh/tmp/*
 }
 
-tm() {
+function tm() {
     /usr/local/bin/tmux
 }
 
 function showF() { defaults write com.apple.Finder AppleShowAllFiles YES ; }
 function hideF() { defaults write com.apple.Finder AppleShowAllFiles NO ; }
 
-myMessage() {
+function myMessage() {
 clear
   _COLUMNS=$(tput cols)
   source $MYRUNTIME/tools/m_title
@@ -587,7 +857,7 @@ clear
   echo " "
 }
 
-ccc() {
+function ccc() {
     echo "********************************************************"
     echo "*** Already exists command:"
     echo "********************************************************"
