@@ -158,6 +158,11 @@ function catw() {
     cat `which "$1"`
 }
 
+# Desc: ll 打印which命令找到的文件地址
+function llw() {
+    ll `which "$1"`
+}
+
 # Desc: cd 包含参数的名称的文件夹
 function gdto() {
     [ "$1" ] && cd *$1*
