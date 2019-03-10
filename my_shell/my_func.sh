@@ -173,6 +173,11 @@ function cdto() {
     cd `dirname $(which "$1")`
 }
 
+# Desc: cd 命令所在的文件夹
+function cdw() {
+    cd `dirname $(which "$1")`
+}
+
 # Desc: 生成【参数为后缀名的】的数据文件
 function csbuild() {
     [ $# -eq 0 ] && return
