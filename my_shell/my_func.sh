@@ -160,7 +160,12 @@ function catw() {
 
 # Desc: ll 打印which命令找到的文件地址
 function llw() {
-    ll `which "$1"`
+    ls -l `which "$1"`
+}
+
+# Desc: 删除 which命令找到的文件
+function rmw() {
+    rm -f `which "$1"`
 }
 
 # Desc: cd 包含参数的名称的文件夹
