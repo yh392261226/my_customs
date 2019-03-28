@@ -41,3 +41,6 @@ fi
 export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 export LDFLAGS="-L/usr/local/opt/openssl/lib"
 export CPPFLAGS="-I/usr/local/opt/openssl/include"
+
+#fasd
+eval "$(fasd --init auto)"

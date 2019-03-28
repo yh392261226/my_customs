@@ -7,9 +7,9 @@ my_custom_sh=$MYRUNTIME/customs/my_shell
 source $my_custom_sh/my_basic.sh
 source $my_custom_sh/my_prompt.sh
 source $my_custom_sh/my_export.sh
-source $my_custom_sh/my_func.sh
-source $my_custom_sh/my_other.sh
 source $my_custom_sh/my_alias.sh
+source $my_custom_sh/my_other.sh
+source $my_custom_sh/my_func.sh
 ##source $my_custom_sh/my_import.sh
 source $my_custom_sh/my_go.sh
 source $my_custom_sh/my_php.sh
@@ -17,6 +17,7 @@ source $my_custom_sh/my_ser.sh
 
 source $my_custom_sh/bash/zmy_changebg.bash
 source $my_custom_sh/bash/zmy_other.bash
+
 #
 goto () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"

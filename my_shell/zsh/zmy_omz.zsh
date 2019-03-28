@@ -85,6 +85,9 @@ ZSH_DISABLE_COMPFIX=true
 source $ZSH/oh-my-zsh.sh
 
 #ZSH的模块加载
-zmodload zsh/zprof 
+zmodload -a zsh/zprof zprof
+zmodload -a zsh/mapfile mapfile
+zmodload -a zsh/zpty zpty
+zmodload -a zsh/stat zstat
 
 source $ZSH/custom/forgit.zsh
