@@ -10,6 +10,11 @@ SAVEDIR=$(cat $HOME/.vedio_path)
 
 vediolists=$(ls $SAVEDIR/)
 posit=0
+
+if [ "" = "$http_proxy" ] && [ "" = "$https_proxy" ]; then
+    echo "Did not set http proxy yet !"
+    exit 1
+fi
 for vedio in $vediolists; do
   vedioeslists[$posit]=$vedio
   ((posit+=1))

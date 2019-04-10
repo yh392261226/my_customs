@@ -77,7 +77,7 @@ ZSH_THEME="spaceship"
 
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
-plugins=(mvn autojump svn svn-fast-info go history git-flow node osx cp perl python ruby rsync urltools zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips yeoman codeception zsh-iterm-touchbar git-extra-commands history-substring-search zui zbrowse)
+plugins=(mvn autojump svn svn-fast-info go history git-flow node osx cp perl python ruby rsync urltools zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips yeoman codeception zsh-iterm-touchbar git-extra-commands history-substring-search zui zbrowse kubectl)
 autoload -U compinit
 #&& compinit
 ZSH_TMUX_AUTOSTART='true'
@@ -91,3 +91,4 @@ zmodload -a zsh/zpty zpty
 zmodload -a zsh/stat zstat
 
 source $ZSH/custom/forgit.zsh
+source <(kubectl completion zsh)
