@@ -30,8 +30,8 @@ name_favo() {
 
 #验证操作可否
 checkOprate_favo() {
-	realpath=$(basename $(readlink $MYRUNTIME/pictures))
-	if [ "protected" != "$realpath" ]; then
+	cur_realpath=$(basename $(readlink $MYRUNTIME/pictures))
+	if [ "protected" != "$cur_realpath" ]; then
 		echo "The picture link is not protected, so, can not use this command."
 		exit 1
 	fi

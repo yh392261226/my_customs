@@ -74,6 +74,7 @@ else
   ismysql=""
   [[ $myservice = mysql* ]] && ismysql="true";
   if [ "$ismysql" = "true" ]; then
+      echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
  	  [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
 	  case "$myservice" in
