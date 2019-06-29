@@ -5,7 +5,7 @@
 options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 myoption=$2
 myservice=$1
-if [ "$myservice" != "status" ] && [ "$myservice" != "login" ]; then
+if [ "$myoption" != "status" ] && [ "$myoption" != "login" ]; then
 	services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 fi
 
