@@ -1,0 +1,178 @@
+brew tap thoughtbot/formulae
+brew tap neovim/neovim
+brew tap homebrew/boneyard
+brew tap homebrew/nginx
+brew tap exolnet/homebrew-deprecated
+brew tap jdpedrie/php55
+brew tap homebrew/livecheck
+brew tap homebrew/aliases
+brew tap go-gitea/gitea
+
+brew install  gcc@7
+brew install  toilet
+brew install --HEAD homebrew/php/php70-igbinary
+brew install Valgrind
+brew install apr apr-util
+brew install asciiquarium
+brew install asdf
+brew install bat
+brew install bench bat
+brew install binutils
+brew install boost --c++11
+brew install bpython3
+brew install bpython3 ipython3
+brew install brew install librdkafka
+brew install brew-php-switcher
+brew install buku
+brew install burl
+brew install cask go
+brew install caskroom/cask/mysql-connector-python
+brew install choose
+brew install cmatrix
+brew install composer
+brew install coreutils
+brew install dcd
+brew install denji/nginx/nginx-full --with-rtmp-module=denji/nginx/rtmp-nginx-module
+brew install deployer
+brew install dmd
+brew install docker-compose
+brew install eg-examples
+brew install fd
+brew install ffmpeg --with-chromaprint --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg\nbrew install pyenv
+brew install gawk
+brew install gcc
+brew install gcc-c++
+brew install gflags glog
+brew install git-lfs
+brew install gitea
+brew install gnupg
+brew install googler
+brew install gperftools
+brew install gsed
+brew install hbase
+brew install hiredis
+brew install homebrew/nginx/autols-nginx-module homebrew/nginx/log-if-nginx-module homebrew/nginx/lua-nginx-module homebrew/nginx/openresty homebrew/nginx/redis-nginx-module homebrew/nginx/unzip-nginx-module homebrew/nginx/tcp-proxy-nginx-module homebrew/nginx/ngx-devel-kit marcqualie/nginx/ngx-devel-kit
+brew install htop
+brew install icdiff
+brew install icu4c
+brew install igbinary
+brew install ipv6toolkit ipv6calc
+brew install ipython
+brew install kafka librdkafka kafkacat kafka-tool
+brew install leaps
+brew install lesspipe
+brew install librdkafka
+brew install librsvg
+brew install libtinfo
+brew install libtinfo.so.5
+brew install linpng
+brew install llvm_clang
+brew install llvm_clang.
+brew install lookupd
+brew install luarocks
+brew install macvim
+brew install mc
+brew install mobile-shell
+brew install mongodb
+brew install most
+brew install msgpack
+brew install mysql-connector-c
+brew install mysql-devel
+brew install mysql-python
+brew install mysql-shell
+brew install mysql-utilities
+brew install mysql@5.5
+brew install mysql@5.5 mysql@5.7
+brew install mysql@5.6
+brew install mysql@5.7
+brew install mytop
+brew install leaps
+brew install passenger
+brew install pipenv
+brew install platypus
+brew install ncurses\n\n
+brew install neovim-dot-app
+brew install nginx-full --with-rtmp-module --with-realip --with-http2 --with-stream --with-flv --with-mp4 --with-gunzip --with-debug --with-upload-module --with-stream-geoip --with-vod-module --with-redis2-module --with-mp4-h264-module --cc=gcc
+brew install openldap
+brew install libiconv
+brew install openssl
+brew install curl-openssl
+brew install openssl-devel
+brew install passenger
+brew install pcre ipv6
+brew install pear
+brew install pecl
+brew install perf
+brew install php-igbinary
+brew install php-openssl
+brew install php-ssl
+brew install php-swoole
+brew install php5-bcmath
+brew install php56-bcmath
+brew install php70
+brew install php70-igbinary
+brew install php70-swoole
+brew install php72-igbinary
+brew install php72-swoole
+brew install php@5.5
+brew install php@5.6
+brew install php@7.0
+brew install php@7.0-igbinary --build-from-source
+brew install php@7.2
+brew install phpbrew
+brew install phpunit
+brew install pkg-config
+brew install proxychains-ng
+brew install proxychains-ng\n
+brew install proxychains4
+brew install psutil
+brew install py
+brew install pyenv
+brew install shellcheck
+brew install gawk
+brew install httpie
+brew install python
+brew install python-setuptools
+brew install python3
+brew install rabbitmq
+brew install ranger
+brew install rcm
+brew install ripgrep
+brew install rtmpdump
+brew install shark
+brew install shfmt
+brew install shiboken
+brew install sphinx
+brew install sshrc
+brew install steem
+brew install terminus
+brew install thefuck
+brew install tig
+brew install timothyye/tap/exchangerate
+brew install timothyye/tap/skm\n
+brew install tmux-xpanes
+brew install tomcat
+brew install truss gperftools
+brew install upx
+brew install uwsgi
+brew install valgrind
+brew install valgrind --HEAD
+brew install vim --with-lua --with-tcl --with-luajit
+brew install wrk exa
+brew install xcowsay
+brew install xhprof
+brew install xz coreutils
+brew install you-get
+brew install zookeeper
+brew install ncdu
+brew install tig
+brew install peco
+brew install ripgrep
+brew install wrk
+brew install exa
+brew install bat
+brew install bench
+brew install diff-so-fancy  
+brew install prettyping 
+brew install ncdu 
+brew install fpp

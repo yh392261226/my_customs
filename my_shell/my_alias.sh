@@ -40,9 +40,11 @@ alias mountReadWrite='/sbin/mount -uw /'    # mountReadWrite:   For use when boo
 alias finderShow='defaults write com.apple.finder ShowAllFiles TRUE'
 alias finderHide='defaults write com.apple.finder ShowAllFiles FALSE'
 alias tmuxls="ls $TMPDIR/tmux*/"
+alias du="ncdu --color dark -rr -x --exclude .git --exclude node_modules"
 
 #files
 
+alias difff="diff-so-fancy" #diff so fancy
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
 alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 alias qfind="find . -name "                 # qfind:    Quickly search for file
