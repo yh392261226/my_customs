@@ -84,7 +84,7 @@ ZSH_THEME="random"
 
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
-plugins=(mvn autojump svn svn-fast-info go history git-flow node osx cp perl python ruby rsync urltools zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips codeception zsh-iterm-touchbar git-extra-commands history-substring-search zui zbrowse last-working-dir)
+plugins=(mvn autojump svn svn-fast-info go history git-flow node osx cp perl python ruby rsync urltools zsh-autosuggestions zsh-syntax-highlighting web-search alias-tips zsh-apple-touchbar codeception zsh-iterm-touchbar git-extra-commands history-substring-search zui zbrowse last-working-dir)
 autoload -U compinit
 #&& compinit
 ZSH_TMUX_AUTOSTART='true'
