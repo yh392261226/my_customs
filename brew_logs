@@ -7,6 +7,7 @@ brew tap jdpedrie/php55
 brew tap homebrew/livecheck
 brew tap homebrew/aliases
 brew tap go-gitea/gitea
+brew tap koekeishiya/formulae
 
 brew install  gcc@7
 brew install  toilet
@@ -16,12 +17,11 @@ brew install apr apr-util
 brew install asciiquarium
 brew install asdf
 brew install bat
-brew install bench bat
+brew install bench
 brew install binutils
 brew install boost --c++11
 brew install bpython3
 brew install bpython3 ipython3
-brew install brew install librdkafka
 brew install brew-php-switcher
 brew install buku
 brew install burl
@@ -58,10 +58,11 @@ brew install icu4c
 brew install igbinary
 brew install ipv6toolkit ipv6calc
 brew install ipython
-brew install kafka librdkafka kafkacat kafka-tool
-brew install leaps
-brew install lesspipe
+brew install kafka
 brew install librdkafka
+brew install kafkacat
+brew install kafka-tool
+brew install lesspipe
 brew install librsvg
 brew install libtinfo
 brew install libtinfo.so.5
@@ -87,18 +88,15 @@ brew install mysql@5.6
 brew install mysql@5.7
 brew install mytop
 brew install leaps
-brew install passenger
 brew install pipenv
 brew install platypus
-brew install ncurses\n\n
-brew install neovim-dot-app
+brew install ncurses
 brew install nginx-full --with-rtmp-module --with-realip --with-http2 --with-stream --with-flv --with-mp4 --with-gunzip --with-debug --with-upload-module --with-stream-geoip --with-vod-module --with-redis2-module --with-mp4-h264-module --cc=gcc
 brew install openldap
 brew install libiconv
 brew install openssl
 brew install curl-openssl
 brew install openssl-devel
-brew install passenger
 brew install pcre ipv6
 brew install pear
 brew install pecl
@@ -129,7 +127,6 @@ brew install psutil
 brew install py
 brew install pyenv
 brew install shellcheck
-brew install gawk
 brew install httpie
 brew install python
 brew install python-setuptools
@@ -147,7 +144,6 @@ brew install sshrc
 brew install steem
 brew install terminus
 brew install thefuck
-brew install tig
 brew install timothyye/tap/exchangerate
 brew install timothyye/tap/skm\n
 brew install tmux-xpanes
@@ -164,15 +160,26 @@ brew install xhprof
 brew install xz coreutils
 brew install you-get
 brew install zookeeper
-brew install ncdu
 brew install tig
 brew install peco
-brew install ripgrep
 brew install wrk
 brew install exa
-brew install bat
-brew install bench
-brew install diff-so-fancy  
-brew install prettyping 
-brew install ncdu 
+brew install ttygif
+brew install httpstat
+brew install inlets
+brew install pandoc
+brew install poppler
+brew install tesseract
+brew install ffmpeg
+brew install yabai
+brew install rxvt-unicode
+brew install gcc@8
+brew install SwiftLint
+brew install fzy
+brew install grc
+brew install jq
+brew install imessage-ruby
+brew install diff-so-fancy
+brew install prettyping
+brew install ncdu
 brew install fpp
