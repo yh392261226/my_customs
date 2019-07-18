@@ -15,7 +15,7 @@ ZSH_THEME_RANDOM_CANDIDATES=(
 	"spaceship"
 	"cviebrock"
 )
-ZSH_THEME="random" 
+ZSH_THEME="amuse" 
 #powerlevel9k的主题设置 参考网址：https://github.com/bhilburn/powerlevel9k
 ### custom setting
 ##POWERLEVEL9K_MODE='awesome-fontconfig'
