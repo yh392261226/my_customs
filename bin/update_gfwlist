@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #Desc:更新gfwlist
 # update_gfwlist.sh
 #Author:VincentSit

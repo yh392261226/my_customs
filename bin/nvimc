@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ####################################
 ##  Desc: neovim 配置文件的更替脚本
 ##  Author: 杨浩

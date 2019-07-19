@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Desc: 列出所有自定义命令
 ## Author: 杨浩
 MYRUNTIME=$(cat $HOME/.myruntime)

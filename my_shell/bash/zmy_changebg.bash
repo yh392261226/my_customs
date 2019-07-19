@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 show_msg=0 #是否显示当前切换图片地址提示
 phpbin=/usr/local/bin/php

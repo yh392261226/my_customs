@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###################################
 ## Desc: diff the two files md5 value
 ## Author: 杨浩

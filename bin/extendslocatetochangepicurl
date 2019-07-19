@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##
 ## Desc: 根据不同的网络位置设置 改变当前背景图片的读取位置
 ## Author: 杨浩

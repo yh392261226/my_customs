@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ########################################
 ## Desc: 常用目录mark功能
 ## Author: 杨浩

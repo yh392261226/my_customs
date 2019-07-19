@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc:mamp mysql5.7 管理命令
 ##Author: 杨浩
 ##Date: 2018-12-20

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc: 将图片转换成mac 使用的主题
 ##Author:杨浩
 

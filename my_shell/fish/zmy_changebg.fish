@@ -1,4 +1,4 @@
-#!/usr/local/bin/fish
+#!/usr/bin/env fish
 set -gx  SOURCED_FISH_CHANGEBG 1
 set -gx  show_msg 0 #是否显示当前切换图片地址提示
 set -gx  phpbin /usr/local/bin/php

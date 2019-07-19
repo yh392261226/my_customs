@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###########################################
 ## Desc:get md5 or sha1 value of the file
 ## Author: 杨浩

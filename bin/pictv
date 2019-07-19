@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Desc:视频转图片
 ## Author: 杨浩
 # animated gifs from any video

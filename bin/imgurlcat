@@ -1,6 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###Desc: cat img from url in iterm2
 ###Author: Json
+if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" != "iTerm.app" ]; then
+    echo "This command can only be used in iterm2 !!!";
+    exit 0;
+fi
 
 if [ $# -ne 1 ]; then
     echo "Type $0 image_url"

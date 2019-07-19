@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #Desc: 搜索引擎搜索 cbaidu|cgoogle keywords
 SEARCH_BROWSER="/Applications/Safari.app"
 [[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###Desc:服务命令管理器
 ###Author:杨浩
 #source $MYRUNTIME/customs/bin/mymessage

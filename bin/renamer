@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Desc:批量添加后缀名
 ## Author: 杨浩
 source $MYRUNTIME/customs/bin/mymessage

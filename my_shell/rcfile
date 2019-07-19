@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ######################################################
 # This rcfile and custom settings can be only used for
 # ZSH or BASH

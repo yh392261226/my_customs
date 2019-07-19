@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc:变更bgchange功能的背景图文件夹位置
 ##Author:杨浩
 MYRUNTIME=$(cat $HOME/.myruntime)

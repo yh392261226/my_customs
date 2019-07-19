@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc:即时变更iterm的主题样式
 ##Author:杨浩
 ##Schemes can download from : https://github.com/mbadolato/iTerm2-Color-Schemes

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc:隐身浏览器Chrome
 ##Author:杨浩
 MYRUNTIME=$(cat $HOME/.myruntime)

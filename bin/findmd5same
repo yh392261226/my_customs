@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ###################################
 ## Desc: List the same file in the path
 ## Author: 杨浩

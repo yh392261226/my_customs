@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Desc: 消息插入
 ## Author: 杨浩
 TIMEMARKFILE=$MYRUNTIME/tools/m_messagetime

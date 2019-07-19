@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Desc:Auto update the hosts of osx and Windows with bootcamp
 ## Author: 杨浩
 #

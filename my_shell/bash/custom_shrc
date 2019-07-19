@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #### 引入我自己的配置：开始
 MYRUNTIME=$(cat $HOME/.myruntime)

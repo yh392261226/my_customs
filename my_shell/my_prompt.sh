@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ➳
 ### PS头
 # if [ "$PLATFORM" = Linux ]; then

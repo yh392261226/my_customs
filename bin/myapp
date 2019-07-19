@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc:管理自己的app
 ##Author:杨浩
 MYAPPPATH=$MYRUNTIME/myapps

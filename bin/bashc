@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #################################
 ## Desc:   bashrc的更替脚本
 ## Author: 杨浩

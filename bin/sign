@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ### Desc: Replace the app sign, in order to make the app can be use, after 2019-07-12, The apple delete the tnt's signlenature
 ### Author: Json
 if [ $# -ne 1 ]; then

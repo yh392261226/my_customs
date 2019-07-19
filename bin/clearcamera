@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ##Desc:Clear the cache and deal the camera
 ##Author: From Net
 source $MYRUNTIME/customs/bin/mymessage

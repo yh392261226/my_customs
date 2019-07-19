@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## Desc: 验证$MYRUNTIME下的dotfiles中是否已有自定义的设置连接文件set_to_my_symlink
 ## Author: 杨浩
 MYRUNTIME=$(cat $HOME/.myruntime)
