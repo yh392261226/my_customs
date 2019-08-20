@@ -44,3 +44,9 @@ export CPPFLAGS="-I/usr/local/opt/openssl/include"
 
 #fasd
 eval "$(fasd --init auto)"
+
+
+#vim&nvim  remote
+if [ -f $HOME/.SpaceVim ] || [ -d $HOME/.SpaceVim ]; then 
+	export PATH=$PATH:$HOME/.SpaceVim/bin
+fi
