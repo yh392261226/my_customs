@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+###Desc: 依托于cheat.sh的备忘录
+###Author: Json
+if [ $# -lt 1 ]; then
+    echo "Usage:$0 language function"
+    exit 0
+fi
+
+curl cheat.sh/$1/$2
