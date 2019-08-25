@@ -3,4 +3,4 @@
 ## Author: 杨浩
 
 source $MYRUNTIME/customs/bin/mymessage
-/usr/bin/curl http://wttr.in/harbin
+/usr/bin/curl http://wttr.in/harbin?lang=zh

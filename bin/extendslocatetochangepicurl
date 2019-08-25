@@ -7,11 +7,11 @@
 ##
 MYRUNTIME=$(cat $HOME/.myruntime)
 CURLOCATION=$(networksetup -getcurrentlocation);  #当前位置名
-PICURL=$MYRUNTIME/pictures; #图片软连接地址
+PICURL=$(cat $MYRUNTIME/tools/m_picurl); #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
-PUBLICPICS=$PICURL/../public          #everywhere
-PRIVATEPICS=$PICURL/../private        #company
-PROTECTEDPICS=$PICURL/../protected    #home
+PUBLICPICS=$PICURL/public          #everywhere
+PRIVATEPICS=$PICURL/private        #company
+PROTECTEDPICS=$PICURL/protected    #home
 SAYName=Json
 SAYSOUNDS=Alex
 currenthour=$(date +%H%M%S)

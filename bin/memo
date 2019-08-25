@@ -2,8 +2,25 @@
 ###Desc: 依托于cheat.sh的备忘录
 ###Author: Json
 if [ $# -lt 1 ]; then
-    echo "Usage:$0 language function"
+    echo "Usage:`basename $0` language function"
+    echo ""
+    echo "---------------------------------------"
+    echo ""
+    curl cht.sh
     exit 0
 fi
 
-curl cheat.sh/$1/$2
+
+url="cheat.sh/"
+if [ "$1" != "" ]; then
+    url="cheat.sh/$1/"
+fi
+
+if [ "$2" != "" ]; then
+    url="cheat.sh/$1/$2"
+fi
+
+if [ "$3" != "" ]; then
+    url="cheat.sh/$1/$2+$3"
+fi
+curl $url
