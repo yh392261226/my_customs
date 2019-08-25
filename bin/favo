@@ -20,63 +20,6 @@ PUBLICPICS=$PICURL/public                             #everywhere
 PRIVATEPICS=$PICURL/private                           #company
 PROTECTEDPICS=$PICURL/protected                       #home
 
-
-#模糊定位
-fuzzy_search() {
-  para=$CURPIC
-  if [ "$1" != "" ]; then
-    para=$1
-  fi
-
-  searchlist=$(ls $PROTECTEDPICS/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PRIVATEPICS/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PUBLICPICS/*${para}* |sed 's/\/\//\//g')
-  if [ "" != "$searchlist" ]; then
-    search_array[0]=''
-    posit=0
-    for i in ${searchlist[*]}; do
-        if [ "$i" != "" ] && [ -f $i ]; then
-            search_array[$posit]=$i #加入数组
-            # echo $i
-            echo "$posit"
-            thumb_favo $i 10%x10%
-            echo "$i" | awk -F'.' '{print $1}' | awk -F'/' '{print $NF}'
-            ((posit+=1))
-        fi
-    done
-    echo "Total: ${#search_array[@]} files was found"
-    echo "More than one, you have to decide to chose which one to oprate :"
-    echo "[a(add) / s(set) / rm(trash) / o(open) / cat / t(thumb) / w(wallpaper)] + number"
-    echo "Type Your Choice:"; read choice
-    act=$(echo $choice | awk -F' ' '{print $1}')
-    num=$(echo $choice | awk -F' ' '{print $2}')
-    if [ "$num" -le "${#search_array[@]}" ]; then
-      conf="${search_array[$num]}"
-    fi
-    case "$act" in
-    "add" | "a")
-      add_favo $conf
-    ;;
-    "set" | "s")
-      change_favo $conf
-    ;;
-    "trash" | "rm")
-      trash_favo $conf
-    ;;
-    "open" | "o")
-      open_favo $conf
-    ;;
-    "thumb" | "t")
-      thumb_favo $conf
-    ;;
-    "wallpaper" | "w")
-      wallpaper_favo $conf
-    ;;
-    esac
-    return 0
-  fi
-}
-
 #原图预览
 cat_favo() {
   if [ "$1" != "" ]; then
@@ -511,6 +454,63 @@ wallpaper_favo() {
   #sqlite3 ${HOME}/Library/Application\ Support/Dock/desktoppicture.db "update data set value = '${1}'" && killall Dock
 }
 
+
+#模糊定位
+fuzzy_search() {
+  para=$CURPIC
+  if [ "$1" != "" ]; then
+    para=$1
+  fi
+
+  searchlist=$(ls $PROTECTEDPICS/*${para}* |sed 's/\/\//\//g')
+  searchlist+=$(ls $PRIVATEPICS/*${para}* |sed 's/\/\//\//g')
+  searchlist+=$(ls $PUBLICPICS/*${para}* |sed 's/\/\//\//g')
+  if [ "" != "$searchlist" ]; then
+    search_array[0]=''
+    posit=0
+    for i in ${searchlist[*]}; do
+        if [ "$i" != "" ] && [ -f $i ]; then
+            search_array[$posit]=$i #加入数组
+            # echo $i
+            echo "$posit"
+            thumb_favo $i 10%x10%
+            echo "$i" | awk -F'.' '{print $1}' | awk -F'/' '{print $NF}'
+            ((posit+=1))
+        fi
+    done
+    echo "Total: ${#search_array[@]} files was found"
+    echo "More than one, you have to decide to chose which one to oprate :"
+    echo "[a(add) / s(set) / rm(trash) / o(open) / cat / t(thumb) / w(wallpaper)] + number"
+    echo "Type Your Choice:"; read choice
+    act=$(echo $choice | awk -F' ' '{print $1}')
+    num=$(echo $choice | awk -F' ' '{print $2}')
+    if [ "$num" -le "${#search_array[@]}" ]; then
+      conf="${search_array[$num]}"
+    fi
+    case "$act" in
+    "add" | "a")
+      add_favo $conf
+    ;;
+    "set" | "s")
+      change_favo $conf
+    ;;
+    "trash" | "rm")
+      trash_favo $conf
+    ;;
+    "open" | "o")
+      open_favo $conf
+    ;;
+    "thumb" | "t")
+      thumb_favo $conf
+    ;;
+    "wallpaper" | "w")
+      wallpaper_favo $conf
+    ;;
+    esac
+    return 0
+  fi
+}
+
 source $MYRUNTIME/customs/bin/mymessage
 
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
@@ -636,7 +636,7 @@ case "$1" in
       		wallpaper_favo $BACKGROUNDIMG
     	fi
     	;;
-    "test")
+    "search" | "f")
       fuzzy_search $2
       ;;
 	  "help"|"h"|*)
@@ -662,8 +662,8 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""
     printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
     printf "%-25s%-25s%-35s\n" "          [桌面背景]:" "   [wallpaper / w] [filename] " ""
+    printf "%-25s%-25s%-35s\n" "          [模糊操作]:" "   [search / f] [filename (without full direcotry and extension)] " ""
     printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
-    printf "%-25s%-25s%-35s\n" "          [模糊操作]:" "   [a(add) / s(set) / rm(trash) / o(open) / cat / t(thumb) / w(wallpaper)] [filename (without full direcotry and extension)] " ""
 		echo ""
 		;;
 esac
