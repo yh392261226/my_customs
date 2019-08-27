@@ -90,7 +90,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #下一个背景图
             bg_next() {
                 if [ -z "$BUFFER" ]; then
-                    if test $image_index -ge ${#image_list[*]}; then
+                    if [ "$image_index" -ge "${#image_list[*]}" ]; then
                         image_index=-1
                     else
                         image_index=$(( $image_index + 1 ))
@@ -143,7 +143,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #上一个背景图
             bg_pre() {
                 if [ -z "$BUFFER" ]; then
-                    if test $image_index -le 0; then
+                    if [ "$image_index" -le "0" ]; then
                         image_index=${#image_list[*]}
                     else
                         image_index=$(( $image_index - 1 ))
