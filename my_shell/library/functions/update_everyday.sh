@@ -3,6 +3,6 @@ function upday() {
     upruntimes
     upzshcustoms
     #upzshcustoms
-    brew update  && brew upgrade && brew cleanup && brew prune
+    brew update  && brew upgrade && brew cleanup
     gethosts
 }
