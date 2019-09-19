@@ -384,8 +384,10 @@ show_favo() {
     for ((i=0; i<$shownum; i++)); do
       rand=$(php -r "echo rand($min, $max);")
       filename=$(file_favo $rand)
-      thumb_favo $filename
-      echo ""
+      if [ -f $filename ]; then
+        thumb_favo $filename; echo $(basename $filename)
+        echo ""
+      fi
     done
 }
 
@@ -478,12 +480,19 @@ fuzzy_search() {
             ((posit+=1))
         fi
     done
+    if [ "0" = "${#search_array[@]}" ]; then
+      echo "Nothing be found !!! Try to change your keyword."
+      return 1
+    fi
     echo "Total: ${#search_array[@]} files was found"
-    echo "More than one, you have to decide to chose which one to oprate :"
+    echo "You have to decide to chose which one to oprate :"
     echo "[a(add) / s(set) / rm(trash) / o(open) / cat / t(thumb) / w(wallpaper)] + number"
     echo "Type Your Choice:"; read choice
     act=$(echo $choice | awk -F' ' '{print $1}')
     num=$(echo $choice | awk -F' ' '{print $2}')
+    if [ "" = "$num" ]; then
+      num=0
+    fi
     if [ "$num" -le "${#search_array[@]}" ]; then
       conf="${search_array[$num]}"
     fi
@@ -508,6 +517,9 @@ fuzzy_search() {
     ;;
     esac
     return 0
+  else
+    echo "Nothing be found !!! Try to change your keyword."
+    return 1
   fi
 }
 

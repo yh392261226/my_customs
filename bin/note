@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+###Desc:日记本
+###Author:json
+###Date:2019-09-01
+
+NOTEFILE=
+CURTIME=$(date)
+
+
+echo "正在开发中...."
