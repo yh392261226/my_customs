@@ -19,10 +19,18 @@ goto_mark() {
 }
 
 del_mark() {
-    delpath=$1
-    cat $MARKFILE | grep -v "$delpath" | sort | uniq > $TMPMARKFILE
+    delpath="$(pwd|sed 's/\ /\\\ /g')"
+    tmpmarks=$(cat $MARKFILE | grep -vFx "$delpath")
     if [ -f $TMPMARKFILE ]; then
-        rm -f $MARKFILE
+        rm -f $TMPMARKFILE
+    fi
+    IFS=$'\n'
+    OLDIFS="$IFS"
+    for mark in $tmpmarks; do
+        echo "$mark" >> $TMPMARKFILE
+    done
+    IFS="$OLDIFS"
+    if [ -f $TMPMARKFILE ]; then
         mv $TMPMARKFILE $MARKFILE
         if [ "$?" = "0" ]; then
             rm -f ${delpath}/$DESCFILE
@@ -45,7 +53,6 @@ del_mark_by_num() {
             ((posit+=1))
         fi
     done
-
     if [ "$number" -lt "${#mark_array[@]}" ]; then
         del_mark ${mark_array[$conf]}
     else
@@ -56,24 +63,24 @@ del_mark_by_num() {
 
 
 add_mark() {
-    curpath=$(pwd)                     #当前目录
+    curpath="$(pwd|sed 's/\ /\\\ /g')"                     #当前目录
     if [ ! -f $MARKFILE ]; then
-		    check=""
+		check=""
 	  else
-		    check=$(cat $MARKFILE | grep -Fx "$curpath")
+		check=$(cat $MARKFILE | grep -Fx "$curpath")
 	  fi
 
     if [ "$check" != "" ]; then
         echo "Already marked !";
         exit 1
     fi
-    echo $curpath >> $MARKFILE
+    echo "$curpath" >> $MARKFILE
     if [ "$?" = "0" ]; then
-			if [ "$ifsort" = "1" ]; then
-        cat $MARKFILE | sort > /tmp/m_cmark_temp
-			else
-				cat $MARKFILE > /tmp/m_cmark_temp
-			fi
+		if [ "$ifsort" = "1" ]; then
+            cat $MARKFILE | sort > /tmp/m_cmark_temp
+		else
+			cat $MARKFILE > /tmp/m_cmark_temp
+		fi
 
       if [ -f /tmp/m_cmark_temp ]; then
           rm -f $MARKFILE && mv /tmp/m_cmark_temp $MARKFILE
@@ -103,6 +110,8 @@ list_mark() {
         echo "$MARKFILE dose not exists !"
         exit 1
     else
+        IFS=$'\n'
+        OLDIFS="$IFS"
 		marklists=`cat $MARKFILE`
         echo "-----------------------------------------------------------------------------------------------------------------------------------------"
         posit=0
@@ -120,6 +129,7 @@ list_mark() {
         done
         echo "-----------------------------------------------------------------------------------------------------------------------------------------"
 		list_num_mark
+        IFS="$OLDIFS"
     fi
 }
 
@@ -128,6 +138,8 @@ rebuild_mark() {
         echo "$MARKFILE dose not exists !"
         exit 1
     else
+        IFS=$'\n'
+        OLDIFS="$IFS"
 		marklists=`cat $MARKFILE`
         for i in ${marklists[*]}; do
             if [ "$i" != "" ]; then
@@ -138,6 +150,7 @@ rebuild_mark() {
         done
         echo "Done..."
         return 0
+        IFS="$OLDIFS"
     fi
 }
 
@@ -147,16 +160,18 @@ chose_mark() {
         exit 1
     else
         marklists=$(cat $MARKFILE)
-
         if [ "0" -lt "${#marklists[@]}" ]; then
             mark_array[0]=''
             posit=0
+            IFS=$'\n'
+            OLDIFS="$IFS"
             for i in ${marklists[*]}; do
                 if [ "$i" != "" ]; then
                     mark_array[$posit]=$i #加入数组
                     ((posit+=1))
                 fi
             done
+            IFS="$OLDIFS"
 
             if [ "$1" != "" ]; then
                 number=$1
@@ -164,6 +179,8 @@ chose_mark() {
                 echo "Which one do you want :";
                 tmpposit=0
                 echo "-----------------------------------------------------------------------------------------------------------------------------------------"
+                IFS=$'\n'
+                OLDIFS="$IFS"
                 for ii in ${mark_array[*]}; do
                     if [ "$ii" != "" ]; then
                         if [ -f ${ii}/$DESCFILE ]; then
@@ -176,6 +193,7 @@ chose_mark() {
                         ((tmpposit+=1))
                     fi
                 done
+                IFS="$OLDIFS"
                 echo "-----------------------------------------------------------------------------------------------------------------------------------------"
 
                 read number;
@@ -184,19 +202,21 @@ chose_mark() {
                 echo "Your choice does not exists !"
                 exit 1
             else
-              # TMPMARKCOMMAND="cd ${mark_array[$number]}"
+              mark_array_final="$(echo -e ${mark_array[$number]} | sed 's/ /\\\\ /g')";
+            #   echo "$mark_array_final";exit 0;
               if [ "$nowterm" = "iTerm" ]; then
+            #   echo "$mark_array_final";exit 0;
                   osascript -e "tell application \"iTerm.app\"
                       tell current window
                           tell current session
-                              write text \"goto ${mark_array[$number]}\"
+                              write text \"goto "${mark_array_final}"\"
                           end tell
                       end tell
                   end tell"
               elif [ "$nowterm" = "Terminal" ]; then
                   osascript -e "tell application \"Terminal\"
                     activate
-                    do script \"cd ${mark_array[$number]}\" in window 1
+                    do script \"cd ${mark_array_final}\" in window 1
                   end tell"
               fi
             fi
@@ -234,6 +254,7 @@ if [ ! -d $MYRUNTIME ] || [ ! -f $MARKFILE ]; then
 	echo "You need to create it by yourself ."
 	exit 1
 fi
+
 
 case "$action" in
 	[0-9]*) #直接填写数字
