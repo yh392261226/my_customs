@@ -1,7 +1,7 @@
 #!/bin/bash
 ##Desc:安装脚本
 ##Author:杨浩
-RUNTIMEPATH="$HOME/.runtime"
+RUNTIMEPATH="$HOME/data/data/.runtime"
 
 [[ ! -d $RUNTIMEPATH ]] && git clone git@github.com:yh392261226/my_customs.git $RUNTIMEPATH && $RUNTIMEPATH/script/install.sh
 cd $RUNTIMEPATH && git pull
