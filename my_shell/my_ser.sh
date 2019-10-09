@@ -1,1 +1,1 @@
-export PATH="/tools/ssh-auto-login/auto_gen:$PATH"
+export PATH="$MYRUNTIME/customs/bin/ssh-auto-login/auto_gen:$PATH"
