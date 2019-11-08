@@ -203,6 +203,10 @@ chose_mark() {
                 exit 1
             else
               mark_array_final="$(echo -e ${mark_array[$number]} | sed 's/ /\\\\ /g')";
+							if [ ! -d "${mark_array[$number]}" ]; then
+								echo "The directory :${mark_array_final} does not exists! Please rebuild your marked file by $0 r/rebuild"
+								exit 0
+							fi
             #   echo "$mark_array_final";exit 0;
               if [ "$nowterm" = "iTerm" ]; then
             #   echo "$mark_array_final";exit 0;

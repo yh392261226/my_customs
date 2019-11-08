@@ -5,7 +5,7 @@
 options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 myoption=$2
 myservice=$1
-if [ "$myoption" != "status" ] && [ "$myoption" != "login" ]; then
+if [ "$myoption" != "status" ] && [ "$myoption" != "login" ] || [ "$myservice" != "mysql" ]; then
 	services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 fi
 
@@ -80,15 +80,19 @@ else
 	  case "$myservice" in
 	  	"mysql") #默认8.0
 		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf
+      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.5")
 		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /usr/local/etc/my.cnf
+      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.6")
 		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /usr/local/etc/my.cnf
+      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.7")
 		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /usr/local/etc/my.cnf
+      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /private/etc/my.cnf
 		;;
 	  esac
     fi
@@ -106,40 +110,74 @@ else
       echo ""
       brew services list| grep "Name\|$myservice"
       ;;
+    "fullprocesslist")
+      if [ "$ismysql" = "true" ]; then
+        [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
+        custom_title  "mysql -u$user -p$pass -h$host -P$port -e 'show full processlist'"
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        for ((i=1; i<=10; i ++)); do
+          echo $i;
+          mysql -u$user -p"$pass" -h$host -P$port -e 'show full processlist'
+          # sleep 1
+        done
+      else
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        echo "Not suppose yet!"
+      fi
+      ;;
+    "processlist")
+      if [ "$ismysql" = "true" ]; then
+        [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
+        custom_title  "/usr/local/bin/mysqladmin -u$user -p"$pass" -h$host -P$port processlist -i 1"
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        /usr/local/bin/mysqladmin -u$user -p$pass -h$host -P$port processlist -i 1
+      else
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        echo "Not suppose yet!"
+      fi
+      ;;
     "login")
       if [ "$myservice" = "mysqladmin" ]; then
         [[ -f $MYRUNTIME/tools/m_mysqladmin ]] && source $MYRUNTIME/tools/m_mysqladmin || echo "ERROR: m_mysqladmin does not exists!";
         custom_title  "mysql -u$user -p$pass -h$host -P$port"
-	    echo "-------------------------------------------------"
-	    custom_title "Result:"
-	    echo ""
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
         mysql -u$user -p$pass -h$host -P$port
       elif [ "$ismysql" = "true" ]; then
         [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
         custom_title  "mycli -u$user -p$pass -h$host -P$port"
-	    echo "-------------------------------------------------"
-	    custom_title "Result:"
-	    echo ""
-        /usr/local/bin/mycli -u$user -p$pass -h$host -P$port
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        /usr/local/bin/mycli -u$user -p$pass -h$host -P$port --myclirc=$myclirc
       elif [ "$myservice" = "redis" ]; then
         [[ -f $MYRUNTIME/tools/m_redis ]] && source $MYRUNTIME/tools/m_redis || echo "ERROR: m_redis does not exists!";
         custom_title  "/usr/local/bin/redis-cli -h $host -p $port"
-	    echo "-------------------------------------------------"
-	    custom_title "Result:"
-	    echo ""
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
         /usr/local/bin/redis-cli -h $host -p $port
       elif [ "$myservice" = "mongo" ]; then
         custom_title  "/usr/local/bin/mongo"
-	    echo "-------------------------------------------------"
-	    custom_title "Result:"
-	    echo ""
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
         /usr/local/bin/mongo
       elif [ "$myservice" = "memcached" ]; then
         [[ -f $MYRUNTIME/tools/m_memcached ]] && source $MYRUNTIME/tools/m_memcached || echo "ERROR: m_memcached does not exists!";
         custom_title  "/usr/local/bin/telnet $host $port"
-	    echo "-------------------------------------------------"
-	    custom_title "Result:"
-	    echo ""
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
         /usr/local/bin/telnet $host $port
       fi
       ;;

@@ -5,8 +5,8 @@ if [ $# -ne 1 ]; then
     echo "Type $0 App path to replace the app sign"
     exit 1
 fi
-if [ -d $1 ]; then
-    codesign --force --deep --sign - $1
+if [ -d "$1" ]; then
+    codesign --force --deep --sign - "$1"
 else
     echo "The app path does not exists !!!"
     exit 1
