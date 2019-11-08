@@ -5,7 +5,9 @@
 options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 myoption=$2
 myservice=$1
-if [ "$myoption" != "status" ] && [ "$myoption" != "login" ] || [ "$myservice" != "mysql" ]; then
+ismysql="true"
+if [ "$myoption" != "status" ] && [ "$myoption" != "login" ] && [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ]; then
+	ismysql=""
 	services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 fi
 
@@ -71,8 +73,6 @@ else
   #******************************************************************#
   # mysql 启动与重启独立处理
   #******************************************************************#
-  ismysql=""
-  [[ $myservice = mysql* ]] && ismysql="true";
   if [ "$ismysql" = "true" ]; then
       echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
