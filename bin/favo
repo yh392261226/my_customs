@@ -4,8 +4,9 @@
 ## Author: 杨浩
 ########################################
 MYRUNTIME=$(cat ~/.myruntime)                         #runtime path
-FAVOMARK=$MYRUNTIME/tools/m_favorate                  #favorate mark file
-FAVOHTML=$MYRUNTIME/tools/m_favorate.html             #favorate mark html
+curmark=$(basename $(readlink $MYRUNTIME/pictures))
+FAVOMARK=$MYRUNTIME/tools/m_favorate_${curmark}                  #favorate mark file
+FAVOHTML=$MYRUNTIME/tools/m_favorate_${curmark}.html             #favorate mark html
 CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
 CURPIC=$(cat $CURPICNAME)                             #current background of iterm2 name
 TMPFILE=/tmp/favo_tmp                                 #tmp file name
@@ -14,7 +15,6 @@ DEFAULTBROWSER2="/Applications/Safari.app"            #second default browser fo
 IFORDER=0                                             #if order the favorates 0 not order, 1 order
 BACKGROUNDIMG=$(sed s/[[:space:]]//g $CURPICNAME)     #background image file name
 show_msg=0                                            #if show msg 0:no 1:yes
-
 PICURL=$(cat $MYRUNTIME/tools/m_picurl);              #图片软连接地址
 PUBLICPICS=$PICURL/public                             #everywhere
 PRIVATEPICS=$PICURL/private                           #company
@@ -36,11 +36,12 @@ name_favo() {
 
 #验证操作可否
 checkOprate_favo() {
-	cur_realpath=$(basename $(readlink $MYRUNTIME/pictures))
-	if [ "protected" != "$cur_realpath" ]; then
-		echo "The picture link is not protected, so, can not use this command."
-		exit 1
+  if [ ! -f $FAVOMARK ] || [ ! -f $FAVOHTML ]; then
+    touch $FAVOMARK
+    touch $FAVOHTML
+    return 0
 	fi
+  return 1
 }
 
 #缩略图
@@ -527,8 +528,7 @@ source $MYRUNTIME/customs/bin/mymessage
 
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
-	echo "You need to create it by yourself ."
-	exit 1
+	echo "Now building ..."
 fi
 
 if [ ! -d "$DEFAULTBROWSER" ]; then
