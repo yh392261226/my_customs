@@ -1,0 +1,335 @@
+### spacevim的配置文件； 复制该文件至~/.Spacevim.d/init.toml   安装https://github.com/spacevim/spacevim的配置文件
+[options] # 所有的 SpaceVim 选项都列在 [options] 之下
+####### 默认配置
+    enc = "utf-8"                                       # 设置默认编码utf-8
+    enable_debug = false                                # 是否打开debug调试模式
+    plugin_bundle_dir = "~/.SpaceVim/vim-plugin-files/" # 插件下载目录
+    snippet_engine = "neosnippet"
+    default_indent = 4                                  # 默认tab键空格数量
+    enable_vimfiler_welcome = true                      # 开启欢迎语
+    vim_help_language = "cn"                            # 帮助文件的语言
+    automatic_update = true                             # 自动更新
+    #colorscheme = "gruvbox"                             # 设置 SpaceVim 主题及背景，默认的主题是 gruvbox，如果你需要使用更  多的主题，你可以载入 colorscheme 模块 全支持主题：NeoSolarized、hybrid、material、SpaceVim、one
+    windows_index_type = 1
+    lint_on_the_fly = 0
+    relativenumber = 1
+    filetree_direction = 'left'
+    lint_on_save = 0
+    force_global_config=0
+    enable_powerline_fonts=1
+    enable_language_specific_leader=1
+    plugin_key_frequency=1
+    plugin_manager="dein"
+    vim_plug_installed=0
+    windows_smartclose="q"
+    #use_colorscheme=1
+    enable_ale=0
+    enable_insert_leader=1
+    enable_cursorcolumn=1
+    enable_neocomplcache=0
+    leader_guide_sort_horizontal=0
+    max_column = 120                                    # 文本标尺
+    enable_key_frequency=0
+    auto_disable_touchpad=1
+    dein_installed=1
+    autocomplete_method="deoplete"
+    plugin_manager_max_processes=8
+    enable_vimfiler_filetypeicon=0
+    unite_leader='f'
+    enable_ycm=0
+    project_rooter_automatically=1
+    disabled_plugins=[]
+    leader_guide_flatten=1
+    enable_neomake=1
+    smartcloseignorewin = ["__Tagbar__", "vimfiler:default"]
+    keep_server_alive = 1
+    project_rooter_patterns=[".git/", "_darcs/", ".hg/", ".bzr/", ".svn/", ".clang", "pom.xml", "package.json"]
+    leader_guide_hspace=5
+    checkinstall=1
+
+    github_username="yh392261226"
+
+    bootstrap_before = "myspacevim#before"
+    bootstrap_after = "myspacevim#after"
+    search_tools = ["rg", "pt", "ack", "grep", "findstr"]
+
+ ###### 主题背景颜色文字
+    enable_guicolors = true                             # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
+    #colorscheme_bg = "dark"                             # 背景可以取值 "dark" 或 "light"
+    vimcompatible = true                                # vim兼容模式
+    #guifont = "Fira Code:h13"
+
+####### File文件树
+    #filemanager = "defx"                                # 使用 vimfiler 作为默认的文件树插件，默认的快捷键是 F3,也提供了另外一组快捷键 SPC f t 和 SPC f T 来打开文件树。 如果需要修改默认文件树插件，需要在 ~/.SpaceVim.d/init.toml 的 [options] 片段中修改选项 filemanager
+    filetree_direction = "left"                         # 函数列表 tagbar 将会在左边
+    enable_vimfiler_gitstatus = true                    # 文件树是否显示Git状态
+    enable_tabline_filetype_icon = true                 # 显示/隐藏顶部标签栏上的文件类型图标，这一图标需要安装 nerd fonts，如果未能成功安装这一字体，可以隐藏图标
+    wildignore = "*/tmp/*,*.so,*.swp,*.zip,*.class,tags,*.jpg,*.ttf,*.TTF,*.png,*/target/*,.git,.svn,.hg,.DS_Store,*.svg"
+                                                        # 忽略文件后缀
+    altmoveignoreft = ["Tagbar", "vimfiler"]
+    smartcloseignoreft = ["help", "tagbar", "vimfiler", "SpaceVimRunner", "SpaceVimREPL", "SpaceVimQuickFix", "HelpDescribe", "VebuggerShell", "VebuggerTerminal"]                                 # 智能不显示忽略文件的集合
+    enable_os_fileformat_icon = true                    # 开启系统文件图标
+    hiddenfileinfo=1
+    gitcommit_pr_icon = ''
+    gitcommit_issue_icon=''
+
+####### 指南及建议
+    realtime_leader_guide = 1                        # 实时指南
+    plugin_groups = ["web", "lang", "edit", "ui", "tools", "checkers", "format", "git", "javascript", "ruby", "python", "scala", "lang#go", "lang#markdown", "scm", "editing", "indents", "navigation", "misc", "core", "core#statusline", "core#tabline", "default", "unite", "github", "denite", "ctrlp", "autocomplete", "nvim", "osx", "lang#rust", "lang#python", "lang#kotlin", "lang#html5", "colorscheme", "core#banner"]
+    terminal_cursor_shape = 2
+    enable_googlesuggest = true                         # 打开Google建议
+    leader_guide_run_map_on_popup = true                # 实时指南弹层
+    buffer_index_type = true                            #
+    windows_leader = "\<space>"                         # 窗口管理器快捷键只可以在 Normal 模式下使用，默认的前缀（WIN）按键为 s
+
+####### 状态栏
+    enable_vimfiler_gitstatus = true                    # 打开Git状态
+    enable_cursorline = true                            # 显示鼠标状态栏
+    statusline_separator = "slant"                      # 设置状态栏上分割符号形状，如果字体安装失败，可以将值设为 "nil" 以#禁用分割符号，默认为三角 "arrow" curve 半圆 slant 梯形 nil 空  fire火焰
+    sidebar_width = 30                                  # sidebar宽度
+    statusline_inactive_separator = "bar"               # 状态栏中激活位的分割方式
+    buffer_index_type = 0                               # 设置顶部标签列表序号类型，有以下五种类型，分别是 0 - 4 # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ ¹ # 4: 1 ➛ 1
+    enable_statusline_mode = true                       # 是否在状态栏上显示当前模式，默认情况下，不显示 Normal/Insert 等字样，只以颜色区分当前模式
+    error_symbol = '✗'
+    warning_symbol =  '⚠'
+    info_symbol =  'ⓘ'
+    buffer_index_type = 4
+    statusline_unicode_symbols = true
+    enable_statusline_tag = false
+    statusline_left_sections = ["winnr", "filename", "major mode", "syntax checking", "minor mode lighters", "version control info", "hunks"]
+    statusline_right_sections=["fileformat", "cursorpos", "percentage"]
+    enable_statusline_display_mode=0
+    leader_guide_position = "botright"
+
+
+
+# SpaceVim 模块设置，主要包括启用/禁用模块
+# 启用 autocomplete 模块，启用模块时，可以列出一些模块选项，并赋值，
+# 关于模块的选项，请阅读各个模块的文档
+[[layers]]
+    name = "autocomplete"
+    auto-completion-return-key-behavior = "complete"
+    auto-completion-tab-key-behavior = "cycle"
+[[layers]]
+    name = "colorscheme"
+    random_theme = true                                 # 启动时随机选择主题
+    frequency = "daily"                                 # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
+[[layers]]                                              # 禁用 shell 模块，禁用模块时，需要加入 enable = false
+    name = "shell"
+    enable = true
+    default_position = "bottom"
+    default_height = 40
+
+###语言部分
+[[layers]]
+  name = "lang"
+[[layers]]
+    name = "lang#c"
+[[layers]]
+    name = "lang#elixir"
+[[layers]]
+    name = "lang#go"
+    go-file-head = [
+        'package main',
+        'import ("fmt")',
+        'func main(){',
+        '//do something'
+        '}',
+    ]
+[[layers]]
+    name = "lang#haskell"
+[[layers]]
+    name = "lang#java"
+[[layers]]
+    name = "lang#javascript"
+[[layers]]
+    name = "lang#lua"
+[[layers]]
+    name = "lang#perl"
+[[layers]]
+    name = "lang#php"
+[[layers]]
+    name = "lang#ruby"
+[[layers]]
+    name = "lang#python"
+    python-file-head = [
+      '#!/usr/bin/env python',
+      '# -*- coding: utf-8 -*-',
+      '',
+      ''
+      ]
+[[layers]]
+    name = "lang#rust"
+[[layers]]
+    name = "lang#swig"
+[[layers]]
+    name = "lang#tmux"
+[[layers]]
+    name = "lang#vim"
+[[layers]]
+    name = "lang#xml"
+[[layers]]
+    name = "lang#sh"
+    sh-file-head = [
+        '#!/usr/bin/env bash',
+        '###Desc:',
+        '###Author:',
+        '###Date:'
+    ]
+[[layers]]
+    name = "lang#sql"
+[[layers]]
+    name = "lang#vue"
+[[layers]]
+    name = "lang#toml"
+[[layers]]
+   name = "lang#typescript"
+[[layers]]
+    name = "lang#markdown"
+    enableWcwidth = 1
+    listItemIndent = 1
+[[layers]]
+   name = "lang#html5"
+[[layers]]
+   name = "lang#html"
+[[layers]]
+   name = "lang#rust"
+[[layers]]
+   name = "lang#python"
+[[layers]]
+   name = "lang#kotlin"
+[[layers]]
+   name = "lang#dockerfile"
+[[layers]]
+   name = "lang#goby"
+[[layers]]
+    name = "javascript"
+[[layers]]
+    name = "ruby"
+[[layers]]
+    name = "python"
+[[layers]]
+    name = "scala"
+[[layers]]
+    name = "go"
+[[layers]]
+    name = "php"
+
+###工具部分
+[[layers]]
+    name = "tools"
+[[layers]]
+    name = "tools#screensaver"
+[[layers]]
+    name = "tools#dash"
+[[layers]]
+    name = "VersionControl"
+[[layers]]
+    name = "git"
+[[layers]]
+    name = "lsp"
+    filetypes = [
+    "rust",
+    "javascript"
+  ]
+[[layers]]
+    name = "edit"
+[[layers]]
+    name = "format"
+[[layers]]
+    name = "debug"
+[[layers]]
+    name = "checkers"
+[[layers]]
+    name = "ui"
+[[layers]]
+    name = "test"
+[[layers]]
+    name = "unite"
+[[layers]]
+    name = "github"
+[[layers]]
+    name = "denite"
+[[layers]]
+    name = "ctrlp"
+[[layers]]
+    name = "fzf"
+[[layers]]
+    name = "incsearch"
+[[layers]]
+    name = "operator"
+[[layers]]
+    name = "tmux"
+#[[layers]]
+#   name = "cscope"
+[[layers]]
+    name = "exprfold"
+[[layers]]
+    name = "autocomplete"
+    auto-completion-return-key-behavior = "complete"
+    auto-completion-tab-key-behavior = "smart"
+    auto_completion_delay = 200
+    auto_completion_complete_with_key_sequence = "nil"
+    auto_completion_complete_with_key_sequence_delay = 0.1
+[[layers]]
+    name = "web"
+[[layers]]
+    name = "tags"
+[[layers]]
+  name = "gtags"
+  gtagslabel = "pygments"
+#[[layers]]
+#    name = "chat"
+[[layers]]
+    name = "chinese"
+[[layers]]
+    name = "floobits"
+[[layers]]
+    name = "gtags"
+[[layers]]
+    name = "leaderf"
+[[layers]]
+    name = "floobits"
+
+###核心部分
+[[layers]]
+    name = "core"
+[[layers]]
+    name = "core#banner"
+[[layers]]
+    name = "core#statusline"
+   enable = true
+[[layers]]
+    name = "core#tabline"
+   enable = true
+[[layers]]
+    name = "editing"
+[[layers]]
+    name = "indents"
+[[layers]]
+    name = "navigation"
+[[layers]]
+    name = "misc"
+[[layers]]
+    name = "nvim"
+[[layers]]
+    name = "osx"
+[[layers]]
+    name = "default"
+#  [layers.override_cmd]
+#    php = ["php-language-server"]
+
+
+# 添加自定义插件
+#[[custom_plugins]]
+#    name = "junegunn/goyo.vim"
+#    merged = false
+[[custom_plugins]]
+    name = "lilydjwg/colorizer"
+    merged = 0
+[[custom_plugins]]
+    name = "SpaceVim/nvim-yarp"
+    merged = 0
+[[custom_plugins]]
+    name = "SpaceVim/vim-hug-neovim-rpc"
+    merged = 0
