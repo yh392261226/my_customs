@@ -229,9 +229,18 @@
 [[layers]]
     name = "lsp"
     filetypes = [
-    "rust",
-    "javascript"
-  ]
+    "rust",         ## brew install rustup-init
+    "javascript",   ## npm install -g javascript-typescript-langserver
+    "typescript",   ## npm install -g typescript-language-server
+    "vue",          ## npm install -g vue-language-server
+    "go",           ## go get -u github.com/sourcegraph/go-langserver
+    "html",         ## npm install -g vscode-html-languageserver-bin
+    "python",       ## pip3 install -g python-language-server
+    "php",          ## 自动安装
+    "sh"            ## npm install -g bash-language-server
+    ]
+    [layers.override_cmd]
+    rust = ["rustup-init", "run", "nightly", "rls"]
 [[layers]]
     name = "edit"
 [[layers]]
