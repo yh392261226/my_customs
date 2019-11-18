@@ -20,6 +20,17 @@ PUBLICPICS=$PICURL/public                             #everywhere
 PRIVATEPICS=$PICURL/private                           #company
 PROTECTEDPICS=$PICURL/protected                       #home
 
+#获取文件源地址
+realfile_position() {
+  if [ "$1" != "" ]; then
+    dir=$(readlink $(dirname "$1"))
+    name=$(basename "$1")
+    CURPIC=${dir}/${name}
+    return 0
+  fi
+  return 1
+}
+
 #原图预览
 cat_favo() {
   if [ "$1" != "" ]; then
@@ -100,31 +111,32 @@ add_favo() {
 	else
 		check=$(cat $FAVOMARK | grep "$CURPIC")
 	fi
-    if [ "$check" != "" ]; then
-        echo "Current picture has already marked !";
-        return 1
-    fi
-    echo $CURPIC >> $FAVOMARK
 
-    if [ "$IFORDER" = "1" ]; then
-      if [ -f $TMPFILE ]; then
-        rm -f $TMPFILE
+  if [ "$check" != "" ]; then
+      echo "Current picture has already marked !";
+      return 1
+  fi
+  echo $CURPIC >> $FAVOMARK
+
+  if [ "$IFORDER" = "1" ]; then
+    if [ -f $TMPFILE ]; then
+      rm -f $TMPFILE
+    fi
+
+    cat $FAVOMARK | sort > $TMPFILE
+    if [ -f $TMPFILE ]; then
+      if [ -f $FAVOMARK ]; then
+        rm -f $FAVOMARK
       fi
-
-      cat $FAVOMARK | sort > $TMPFILE
-      if [ -f $TMPFILE ]; then
-        if [ -f $FAVOMARK ]; then
-          rm -f $FAVOMARK
-        fi
-        mv $TMPFILE $FAVOMARK
-      fi
+      mv $TMPFILE $FAVOMARK
     fi
+  fi
 
-    if [ "$?" = "0" ]; then
-        echo "Add favorate picture successful !";
-    else
-        echo "Add favorate picture faild !";
-    fi
+  if [ "$?" = "0" ]; then
+      echo "Add favorate picture successful !";
+  else
+      echo "Add favorate picture faild !";
+  fi
 }
 
 ###删除喜欢
@@ -534,6 +546,8 @@ fi
 if [ ! -d "$DEFAULTBROWSER" ]; then
   DEFAULTBROWSER=$DEFAULTBROWSER2
 fi
+
+realfile_position "$CURPIC"
 
 case "$1" in
 	"chose"|"c")

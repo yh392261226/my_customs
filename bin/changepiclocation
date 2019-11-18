@@ -22,6 +22,7 @@ changepiclink() {
     echo "" > $CURRENT_PICTURENAME_MARK
     echo "Change link successfully!"
     echo "Now open new terminal window to use!"
+    curmark=$(cat $CURMARKFILE)
     return 1;
 }
 
@@ -72,3 +73,8 @@ case "$1" in
     	changepiclink $OTHERSPICS;
 	;;
 esac
+echo "-----------------------------------------------------------"
+echo "-----------------------------------------------------------"
+echo "|                Now : $curmark                           |"
+echo "-----------------------------------------------------------"
+echo "-----------------------------------------------------------"
