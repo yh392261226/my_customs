@@ -498,7 +498,7 @@ fuzzy_search() {
       return 1
     fi
     echo "Total: ${#search_array[@]} files was found"
-    echo "You have to decide to chose which one to oprate :"
+    echo "You have to decide to chose which one to oprate : （Eg： add 1）"
     echo "[a(add) / s(set) / rm(trash) / o(open) / cat / t(thumb) / w(wallpaper)] + number"
     echo "Type Your Choice:"; read choice
     act=$(echo $choice | awk -F' ' '{print $1}')
@@ -666,6 +666,7 @@ case "$1" in
       fuzzy_search $2
       ;;
 	  "help"|"h"|*)
+
 		command=$(basename $0)
     echo "$command :"
     printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
