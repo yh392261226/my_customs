@@ -58,6 +58,7 @@ class Pic {
 		}
 		$this->total     = count($tmplist);
 		$this->filelists = $tmplist;
+		unset($tmplist);
 		closedir($handler);
 	}
 
@@ -122,6 +123,11 @@ class Pic {
 			$tmpnum = 1;
 		}
 		$this->currentpage = $tmpnum;
+	}
+
+	public function __destruct()
+	{
+		unset($this->filelists);
 	}
 }
 
