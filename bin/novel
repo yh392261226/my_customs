@@ -2,9 +2,9 @@
 ##Desc:小说管理
 ##Author:杨浩
 
+MYRUNTIME=$(cat $HOME/.myruntime)
 NOVELPATH=$HOME/Documents/novels
 PYTHONCOMMAND=/usr/bin/python
-MYRUNTIME=$(cat $HOME/.myruntime)
 NOVELPYTHON=$MYRUNTIME/customs/others/getnovel.py
 NOVELEXT=txt
 
