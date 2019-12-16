@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+###Desc: sublime text which
+###Author: Json
+COMMANDBIN=/Users/json/bin/subl
+if [ -f $COMMANDBIN ]; then
+    if [ "" != "$1" ]; then
+    	$COMMANDBIN `which "$1"`
+    else
+    	$COMMANDBIN `pwd`
+    fi
+fi
