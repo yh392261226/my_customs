@@ -1,6 +1,7 @@
 #####goroot
 #export GOROOT=$HOME/go1.4
 #export PATH=$PATH:$HOME/go1.4/bin
+[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 export GOROOT=$(brew --prefix go)/libexec
 export PATH=$PATH:$(brew --prefix go)/libexec/bin
 export GOPATH=$HOME/go-develop
