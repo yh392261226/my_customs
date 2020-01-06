@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 ########################################
-## Desc: Google Chrome浏览器打开网址
+## Desc: Safari浏览器打开网址
 ## Author: 杨浩
 ########################################
-BROWSERPATH="/Applications/Google Chrome.app"
+BROWSERPATH="/Applications/Safari.app"
 DEFAULTURL="https://www.google.com/"
 
-[[ ! -d "$BROWSERPATH/" ]] && echo "Does not found Chrome " && exit 1
+[[ ! -d "$BROWSERPATH/" ]] && echo "Does not found Safari " && exit 1
 
 [ "" = "$1" ] && url=$DEFAULTURL || url=$1
 /usr/bin/open -a "$BROWSERPATH" "$url"
