@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+########################################
+## Desc: Google Chrome浏览器打开网址
+## Author: 杨浩
+########################################
+BROWSERPATH="/Applications/Google Chrome.app"
+
+[[ ! -d "$BROWSERPATH/" ]] && echo "Does not found Chrome " && exit 1
+
+[ "" = "$1" ] && url="https://www.google.com" || url=$1
+/usr/bin/open -a "$BROWSERPATH" "$url"
