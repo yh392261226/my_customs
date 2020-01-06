@@ -7,34 +7,45 @@ COMMANDPATH=$MYRUNTIME/customs/others/vedio_spider
 PYTHONCOMMAND=/usr/local/bin/python3
 PAGESIZE=1
 SAVEDIR=$(cat $HOME/.vedio_path)
-
 vediolists=$(ls $SAVEDIR/)
 posit=0
 
-if [ "" = "$http_proxy" ] && [ "" = "$https_proxy" ]; then
+checkProxy() {
+  if [ "" = "$http_proxy" ] && [ "" = "$https_proxy" ]; then
     echo "Did not set http proxy yet !"
     exit 1
-fi
-for vedio in $vediolists; do
-  vedioeslists[$posit]=$vedio
-  ((posit+=1))
-done
-echo $vedioeslists
-if [ ! -d $COMMANDPATH ]; then
-  echo "Does not find the path of vedio spider!"
-  echo "Get it from command: git clone git@github.com:yh392261226/91_porn_spider.git $COMMANDPATH"
-  exit 1
-fi
+  fi
+  return 0
+}
 
-if [ ! -f $PYTHONCOMMAND ]; then
-  echo "Does not find command: python3!"
-  exit 1
-fi
+vedioList() {
+  for vedio in $vediolists; do
+    vedioeslists[$posit]=$vedio
+    ((posit+=1))
+  done
+}
 
-if [ "" = "$SAVEDIR" ]; then
-  echo "Does not get save path !"
-  exit 1
-fi
+checkCommand() {
+  if [ ! -d $COMMANDPATH ]; then
+    echo "Does not find the path of vedio spider!"
+    echo "Get it from command: git clone git@github.com:yh392261226/91_porn_spider.git $COMMANDPATH"
+    exit 1
+  fi
+
+  if [ ! -f $PYTHONCOMMAND ]; then
+    echo "Does not find command: python3!"
+    exit 1
+  fi
+  return 0
+}
+
+checkSavePath() {
+  if [ "" = "$SAVEDIR" ]; then
+    echo "Does not get save path !"
+    exit 1
+  fi
+  return 0
+}
 
 #缩略图
 thumb_img() {
@@ -116,18 +127,24 @@ helpVedio() {
 }
 
 source $MYRUNTIME/customs/bin/mymessage
-
+checkCommand
+vedioList
 case "$1" in
   "get"|"g")
+    checkSavePath
+    checkProxy
     getVedioes $2
     ;;
   "list"|"l")
+    checkSavePath
     listVedioes
     ;;
   "open"|"o")
+    checkSavePath
     openVedio
     ;;
   "delete"|"del"|"d")
+    checkSavePath
     delVedio
     ;;
   "help"|"h"|*)
