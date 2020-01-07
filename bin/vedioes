@@ -8,12 +8,32 @@ PYTHONCOMMAND=/usr/local/bin/python3
 PAGESIZE=1
 SAVEDIR=$(cat $HOME/.vedio_path)
 vediolists=$(ls $SAVEDIR/)
+arrange=$SAVEDIR/arrange_data
 posit=0
+autoproxy=true
+proxy_url="http://127.0.0.1:1087"
+
+arrangeData() {
+  for v in $(ls $SAVEDIR/); do
+    if [ -f $v/1.mp4 ]; then
+      mv "$SAVEDIR/$v/1.mp4" "$arrange/$v.mp4"
+      if [ "" = "$(ls $SAVEDIR/$v)" ]; then
+        rmdir $SAVEDIR/$v
+      fi
+    fi
+  done
+  echo "Arrange data already finished ..."
+  return 0
+}
 
 checkProxy() {
   if [ "" = "$http_proxy" ] && [ "" = "$https_proxy" ]; then
-    echo "Did not set http proxy yet !"
-    exit 1
+    if [ "$autoproxy" = "true" ]; then
+      export http_proxy=$proxy_url;export https_proxy=$proxy_url;
+    else
+      echo "Did not set http proxy yet !"
+      exit 1
+    fi
   fi
   return 0
 }
@@ -77,8 +97,10 @@ getVedioes() {
 listVedioes() {
   posit=0
   for i in ${vedioeslists[*]}; do
-    if [ "$i" != "" ] || [ -f $i/thumb.png ]; then
-      thumb_img $SAVEDIR/$i/thumb.png
+    if [ "$i" != "" ]; then
+      if [ -f $i/thumb.png ]; then
+        thumb_img $SAVEDIR/$i/thumb.png
+      fi
       echo $posit $i
       ((posit+=1))
     fi
@@ -146,6 +168,9 @@ case "$1" in
   "delete"|"del"|"d")
     checkSavePath
     delVedio
+    ;;
+  "arrange"|"a")
+    arrangeData
     ;;
   "help"|"h"|*)
     helpVedio
