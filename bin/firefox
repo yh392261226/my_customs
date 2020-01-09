@@ -9,4 +9,10 @@ DEFAULTURL="https://www.google.com/"
 [[ ! -d "$BROWSERPATH/" ]] && echo "Does not found Firefox " && exit 1
 
 [ "" = "$1" ] && url=$DEFAULTURL || url=$1
+
+if [ ! -f $url ]; then
+    if [ "${url:0:6}" != "http://" ] && [ "${url:0:7}" != "https://" ]; then
+        url="http://$url"
+    fi
+fi
 /usr/bin/open -a "$BROWSERPATH" "$url"
