@@ -15,7 +15,7 @@ proxy_url="http://127.0.0.1:1087"
 
 arrangeData() {
   for v in $(ls $SAVEDIR/); do
-    if [ -f $v/1.mp4 ]; then
+    if [ -f $SAVEDIR/$v/1.mp4 ]; then
       mv "$SAVEDIR/$v/1.mp4" "$arrange/$v.mp4"
       if [ "" = "$(ls $SAVEDIR/$v)" ]; then
         rmdir $SAVEDIR/$v
