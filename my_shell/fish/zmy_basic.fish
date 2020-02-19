@@ -6,10 +6,10 @@ set -gx USERNAME json
 set -gx GOPATH $HOME/go-develop
 set -gx GOOS darwin
 set -gx GOARCH amd64
-#set -U PATH /usr/local/opt/go/bin $GOPATH/bin /tools/ssh-auto-login/auto_gen $PATH
+set -gx PATH /usr/local/opt/go/bin $GOPATH/bin $PATH
 set -gx PATH $MYRUNTIME/customs/bin $PATH
 set -gx PATH /tools/ssh-auto-login/auto_gen $PATH
-#set -gx PATH /usr/local/opt/coreutils/libexec/gnubin $PATH
+set -gx PATH /usr/local/bin /usr/local/sbin $PATH
 set -gx PATH $HOME/bin $PATH
 #set -gx PATH $HOME/.cargo/bin $PATH
 set -gx PATH $HOME/.local/bin $PATH
@@ -76,3 +76,8 @@ sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
 
 ##引入iterm2 自动变更背景脚本
 #source {$MYRUNTIME}/customs/my_shell/fish/zmy_changebg.fish
+
+## autojump 引入
+if test -f /usr/local/share/autojump/autojump.fish
+    source /usr/local/share/autojump/autojump.fish
+end
