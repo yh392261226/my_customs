@@ -6,7 +6,7 @@ options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 myoption=$2
 myservice=$1
 ismysql="true"
-if [ "$myoption" != "status" ] && [ "$myoption" != "login" ] && [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ]; then
+if [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ]; then
 	ismysql=""
 	services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 fi
@@ -182,13 +182,20 @@ else
       fi
       ;;
     *)
-      custom_title "Command: brew services -v $myoption $myservice"
-      echo "-------------------------------------------------"
-      custom_title "Result:"
-      echo ""
-      brew services -v  $myoption $myservice
-      ;;
-
+      if [ "$myservice" = "list" ]; then
+        custom_title "Command: brew services list"
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        brew services list
+      else
+        custom_title "Command: brew services $myoption $myservice"
+        echo "-------------------------------------------------"
+        custom_title "Result:"
+        echo ""
+        brew services $myoption $myservice
+      fi
+    ;;
   esac
   echo "-------------------------------------------------"
   echo "-------------------------------------------------"

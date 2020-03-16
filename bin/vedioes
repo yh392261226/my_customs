@@ -14,6 +14,9 @@ autoproxy=true
 proxy_url="http://127.0.0.1:1087"
 
 arrangeData() {
+  if [ ! -d $arrange ]; then
+    mkdir $arrange
+  fi
   for v in $(ls $SAVEDIR/); do
     if [ -f $SAVEDIR/$v/1.mp4 ]; then
       mv "$SAVEDIR/$v/1.mp4" "$arrange/$v.mp4"
@@ -91,7 +94,7 @@ getVedioes() {
   fi
 
   cd $COMMANDPATH
-  $PYTHONCOMMAND $COMMANDPATH/91_spider.py $SAVEDIR $PAGESIZE
+  $PYTHONCOMMAND $COMMANDPATH/bak_91_spider.py $SAVEDIR $PAGESIZE
 }
 
 listVedioes() {
@@ -143,8 +146,8 @@ openVedio() {
 
 helpVedio() {
   command=$(basename $0)
-  echo "Usage: $command list/l | get/g | del/d | open/o | help/h";
-	echo "用法： $command 列表   | 获取  | 删除  |  打开  | 帮助"
+  echo "Usage: $command list/l | get/g | del/d | open/o | arrange/a | help/h";
+	echo "用法： $command 列表   | 获取  | 删除  |  打开  |   整理    | 帮助"
   echo ""
 }
 
