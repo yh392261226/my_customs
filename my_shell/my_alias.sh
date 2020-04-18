@@ -117,3 +117,5 @@ alias cl='/usr/bin/clear'
 alias woshi='/usr/bin/whoami'
 alias dut="$(whereis du) -sh"
 alias train="$(brew --prefix sl)/bin/sl"
+alias cnman='man -M /usr/local/share/man/zh_CN'
+alias cman='man -M /usr/local/share/man/zh_CN'
