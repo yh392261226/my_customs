@@ -83,7 +83,6 @@
     windows_leader = "\<space>"                         # 窗口管理器快捷键只可以在 Normal 模式下使用，默认的前缀（WIN）按键为 s
 
 ####### 状态栏
-    enable_vimfiler_gitstatus = true                    # 打开Git状态
     enable_cursorline = true                            # 显示鼠标状态栏
     statusline_separator = "slant"                      # 设置状态栏上分割符号形状，如果字体安装失败，可以将值设为 "nil" 以#禁用分割符号，默认为三角 "arrow" curve 半圆 slant 梯形 nil 空  fire火焰
     sidebar_width = 30                                  # sidebar宽度
