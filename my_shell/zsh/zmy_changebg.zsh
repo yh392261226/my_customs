@@ -47,7 +47,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     echo $image_index > $CURRENT_PICTURE_MARK
                 fi
                 if [ -f $CURRENT_PICTURENAME_MARK ]; then
-                    rm -f $CURRENT_PICTURENAME_MARK
+                    /bin/rm -f $CURRENT_PICTURENAME_MARK
                 fi
                 echo "$image_path" > $CURRENT_PICTURENAME_MARK
 
