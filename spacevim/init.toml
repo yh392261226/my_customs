@@ -341,3 +341,8 @@
 [[custom_plugins]]
     name = "SpaceVim/vim-hug-neovim-rpc"
     merged = 0
+[[custom_plugins]]
+    name = "lvht/phpcd.vim"
+    build = "composer install"
+    merged = 0
+    on_ft = "php"
