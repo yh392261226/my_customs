@@ -11,6 +11,12 @@ TMPPICURL=`dirname $(readlink $PICURL)`
 PUBLICPICS=$TMPPICURL/public
 PRIVATEPICS=$TMPPICURL/private
 PROTECTEDPICS0=$TMPPICURL/protected0
+PROTECTEDPICS1=$TMPPICURL/protected1
+PROTECTEDPICS2=$TMPPICURL/protected2
+PROTECTEDPICS3=$TMPPICURL/protected3
+PROTECTEDPICS4=$TMPPICURL/protected4
+PROTECTEDPICS5=$TMPPICURL/protected5
+PROTECTEDPICS6=$TMPPICURL/protected6
 WORDSPICS=$TMPPICURL/words
 OTHERSPICS=$TMPPICURL/others
 curmark=$(cat $CURMARKFILE);
@@ -36,7 +42,7 @@ hastochange() {
 source $MYRUNTIME/customs/bin/mymessage
 echo "Usage: 1 - 5"
 echo "-----------------------------------------------------------"
-echo "| 1:public | 2:private | 3:protected | 31:protected1 | 32:protected2 | 33:protected3 | 34:protected4 | 35:protected5 | 4:words | 5:others |"
+echo "| 1:public | 2:private | 3:protected | 31:protected1 | 32:protected2 | 33:protected3 | 34:protected4 | 35:protected5 | 36:protected6 | 4:words | 5:others |"
 echo "-----------------------------------------------------------"
 echo "-----------------------------------------------------------"
 echo "|                Current : $curmark                        |"
@@ -86,6 +92,11 @@ case "$1" in
     	hastochange protected5;
     	echo "protected5" > $CURMARKFILE;
     	changepiclink $PROTECTEDPICS5;
+	;;
+	36)
+    	hastochange protected6;
+    	echo "protected6" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS6;
 	;;
 	4)
     	hastochange words;
