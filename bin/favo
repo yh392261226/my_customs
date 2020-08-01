@@ -24,6 +24,7 @@ PROTECTEDPICS2=$PICURL/protected2
 PROTECTEDPICS3=$PICURL/protected3
 PROTECTEDPICS4=$PICURL/protected4
 PROTECTEDPICS5=$PICURL/protected5
+PROTECTEDPICS6=$PICURL/protected6
 
 #获取文件源地址
 realfile_position() {
@@ -488,6 +489,7 @@ fuzzy_search() {
   searchlist+=$(ls $PROTECTEDPICS3/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PROTECTEDPICS4/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PROTECTEDPICS5/*${para}* |sed 's/\/\//\//g')
+  searchlist+=$(ls $PROTECTEDPICS6/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PRIVATEPICS/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PUBLICPICS/*${para}* |sed 's/\/\//\//g')
   if [ "" != "$searchlist" ]; then
