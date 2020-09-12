@@ -11,7 +11,7 @@ if [ ! -d $TEMPDIR ]; then
 fi
 
 if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
-	$MYRUNTIME/customs/bin/myweather;
+	#$MYRUNTIME/customs/bin/myweather;
 	/usr/bin/cal;
 	echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark;
 	#delete all file without current date file

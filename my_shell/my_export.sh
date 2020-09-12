@@ -9,7 +9,8 @@ export BASE=$HOME
 [[ -d /opt/local/bin ]] && export PATH="/opt/local/bin:$PATH"
 [[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
 eval "$(rbenv init -)"
-[[ -d /usr/local/opt/pyenv ]] && export PYENV_ROOT="/usr/local/var/pyenv" && eval "$(pyenv init -)"
+[[ -d /usr/local/opt/pyenv ]] && export PYENV_ROOT="/usr/local/var/pyenv" && PATH="$PYENV_ROOT/bin:$PATH" && eval "$(pyenv init -)"
+if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
 
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then
