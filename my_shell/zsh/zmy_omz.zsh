@@ -14,6 +14,7 @@ ZSH_THEME_RANDOM_CANDIDATES=(
 	"powerlevel9k/powerlevel9k"
 	"spaceship"
 	"cviebrock"
+	"powerlevel10k/powerlevel10k"
 )
 #ZSH_THEME="amuse" 
 #powerlevel9k的主题设置 参考网址：https://github.com/bhilburn/powerlevel9k
