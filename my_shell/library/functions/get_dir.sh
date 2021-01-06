@@ -1,10 +1,10 @@
-# Desc: open 打开which命令找到的目录或文件
-function openw() {
+# Desc: 获取命令所在目录
+function dirw() {
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
-        open `dirname $(which "$1")`
+        echo $(dirname "$@");
     else
-        open $(dirname $(type "$1" | awk '{print $NF}'))
+        echo $(dirname $(type "$@" | awk '{print $NF}'));
     fi
 }
