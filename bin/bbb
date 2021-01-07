@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+##图片文件夹路径
+PICPATH=$HOME/Pictures/down_pics/
+##数据库文件路径
+DBFILE=$PICPATH/db.log
+##去重后文件路径
+UNIQFILE=$PICPATH/uniq.log
+##处理后的去重文件路径
+DUPLICATEFILE=$PICPATH/result.log
+##单个文件夹最多文件上限
+MAXSIZE=2000
+
+recordDB() {
+    if [ -f $DBFILE ]; then
+        rm -f $DBFILE
+    fi
+    for path in $(ls $PICPATH); do
+        if [ -d $path ]; then 
+            find ${PICPATH}${path} -type f -name "*jpg" >> $DBFILE
+        fi
+    done
+}
+
+uniqDB() {
+    rm -f /tmp/uniq_db_file_names $UNIQFILE;
+    for file in $(cat $DBFILE); do
+        echo $(basename $file) >> /tmp/uniq_db_file_names
+    done
+    if [ -f /tmp/uniq_db_file_names ]; then
+        echo $(cat /tmp/uniq_db_file_names | sort -rn| uniq -c| awk '{if ($1 > 1) print $2}') >> $UNIQFILE
+    fi
+    if [ -f $UNIQFILE ]; then
+        cat $UNIQFILE | tr ' ' '\n' > $DUPLICATEFILE
+    fi
+}
+
+moveUniq() {
+    for file in $(cat $DUPLICATEFILE); do
+        find $PICPATH -type f -name "$file" -exec mv {} ${PICPATH}duplicates/$file \;
+    done
+}
+
+unfull() {
+            echo "path                                                  counts"
+    for curpath in $(ls $PICPATH); do
+        if [ -d ${PICPATH}${curpath} ]; then 
+            echo "${PICPATH}${curpath}         $(find ${PICPATH}${curpath} -type f -name "*jpg" |wc -l)"
+        fi
+    done
+}
+
+case "$1" in
+    'r'|'record')
+        recordDB
+    ;;
+
+    'u'|'uniq')
+        uniqDB
+    ;;
+
+    'm'|'move')
+        moveUniq
+    ;;
+
+    'o'|'open')
+        open $PICPATH
+    ;;
+
+    'un'|'unfull')
+        unfull
+    ;;
+
+    *)
+        echo "全目录记录->去重并记录->重复文件分离 最终文件都在duplicate文件夹中"
+        echo "------------------------------------------------------------------"
+        echo "Usage:     bbb.sh r/record | u/uniq | m/move | o/open"
+        echo "使用方法： bbb.sh 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录"
+    ;;
+esac
