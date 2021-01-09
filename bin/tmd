@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-## Desc: Fucking the world
-## Author: 杨浩
-source $MYRUNTIME/customs/bin/mymessage

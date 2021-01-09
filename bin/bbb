@@ -49,6 +49,8 @@ unfull() {
     done
 }
 
+
+cd $PICPATH;
 case "$1" in
     'r'|'record')
         recordDB

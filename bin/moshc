@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-## Desc:mosh 暂无时间研究
-## Author: 杨浩
-MBIN=/usr/local/bin/mosh
-

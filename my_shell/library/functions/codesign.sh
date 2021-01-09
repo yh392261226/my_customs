@@ -1,0 +1,13 @@
+# Desc: Replace the app sign, in order to make the app can be use, after 2019-07-12, The apple delete the tnt's signlenature
+function codesign() {
+    if [ $# -ne 1 ]; then
+        echo "Type $0 App path to replace the app sign"
+        return 1
+    fi
+    if [ -d "$1" ]; then
+        codesign --force --deep --sign - "$1"
+    else
+        echo "The app path does not exists !!!"
+        return 1
+    fi
+}
