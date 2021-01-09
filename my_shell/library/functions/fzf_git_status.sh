@@ -1,6 +1,6 @@
 # Desc: 显示当前git版本库中未添加进版本的修改或新增文件列表
 function fgst() {
-  is_in_git_repo || return
+  isgit || return
 
   local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
 
