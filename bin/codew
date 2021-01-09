@@ -4,7 +4,13 @@
 COMMANDBIN=/usr/local/bin/code
 if [ -f $COMMANDBIN ]; then
     if [ "" != "$1" ]; then
-    	$COMMANDBIN `which "$1"`
+        command -v "$@" > /dev/null 2>&1
+        [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && exit 1
+        if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+            $COMMANDBIN `which "$1"`
+        else
+            $COMMANDBIN  $(type "$1" | awk '{print $NF}')
+        fi
     else
     	$COMMANDBIN `pwd`
     fi

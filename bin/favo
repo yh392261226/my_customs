@@ -28,6 +28,7 @@ PROTECTEDPICS6=$PICURL/protected6
 PROTECTEDPICS7=$PICURL/protected7
 PROTECTEDPICS8=$PICURL/protected8
 PROTECTEDPICS9=$PICURL/protected9
+PROTECTEDPICS10=$PICURL/protected10
 
 #获取文件源地址
 realfile_position() {
