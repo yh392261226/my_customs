@@ -29,5 +29,3 @@ else
     SYSHEADER='☭'
     export OS_ICON="☭"
 fi
-
-source $MYRUNTIME/customs/my_shell/my_common.sh
