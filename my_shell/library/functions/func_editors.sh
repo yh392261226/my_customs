@@ -20,16 +20,19 @@ function editorw() {
     fi
 }
 
+# Desc: visual studio code 编辑which命令找到的文件地址
 function codew() {
     local COMMANDBIN=/usr/local/bin/code
     editorw $COMMANDBIN $1
 }
 
+# Desc: sublime text 编辑which命令找到的文件地址
 function stw() {
     local COMMANDBIN=$HOME/bin/subl
     editorw $COMMANDBIN $1
 }
 
+# Desc: atom 编辑which命令找到的文件地址
 function atomw() {
     local COMMANDBIN=/usr/local/bin/atom
     editorw $COMMANDBIN $1
@@ -38,6 +41,12 @@ function atomw() {
 # Desc: vim 编辑which命令找到的文件地址
 function viw() {
     local COMMANDBIN=/usr/local/bin/vim
+    editorw $COMMANDBIN $1
+}
+
+# Desc: neovim 编辑which命令找到的文件地址
+function nviw() {
+    local COMMANDBIN=/usr/local/bin/nvim
     editorw $COMMANDBIN $1
 }
 
