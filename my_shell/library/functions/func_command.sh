@@ -159,3 +159,7 @@ function myweather() {
     /usr/bin/curl http://wttr.in/harbin?lang=zh
 }
 
+# Desc: 按执行次数倒序显示历史命令
+function history_sort() {
+    history | awk '{$1="";print}' |sort -rn |uniq -c |sort -rn |less
+}
