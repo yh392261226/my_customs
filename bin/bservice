@@ -12,7 +12,7 @@ if [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ]; then
 fi
 
 custom_title() {
-  title=$1
+  local title=$1
   if [ "" = "$title" ]; then
     title=""
   fi
@@ -74,9 +74,9 @@ else
   # mysql 启动与重启独立处理
   #******************************************************************#
   if [ "$ismysql" = "true" ]; then
-      echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
+    echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
- 	  [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
+    [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
 	  case "$myservice" in
 	  	"mysql") #默认8.0
 		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf

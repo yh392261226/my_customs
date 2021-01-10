@@ -1,7 +1,5 @@
 ### export 设定
 [[ -d $HOME/.nvm ]] && export NVM_DIR="$HOME/.nvm"
-#####GO
-export GOROOT=$(brew --prefix go)
 
 ### source 引入
 #####nvm

@@ -19,8 +19,8 @@ goto_mark() {
 }
 
 del_mark() {
-    delpath="$(pwd|sed 's/\ /\\\ /g')"
-    tmpmarks=$(cat $MARKFILE | grep -vFx "$delpath")
+    local delpath="$(pwd|sed 's/\ /\\\ /g')"
+    local tmpmarks=$(cat $MARKFILE | grep -vFx "$delpath")
     if [ -f $TMPMARKFILE ]; then
         rm -f $TMPMARKFILE
     fi
@@ -43,10 +43,10 @@ del_mark() {
 
 ###按照数字删除喜欢
 del_mark_by_num() {
-    marklists=`cat $MARKFILE`
-    number=$1
-    mark_array[0]=''
-    posit=0
+    local marklists=`cat $MARKFILE`
+    local number=$1
+    local mark_array[0]=''
+    local posit=0
     for i in ${marklists[*]}; do
         if [ "$i" != "" ]; then
             mark_array[$posit]=$i #加入数组
@@ -63,7 +63,7 @@ del_mark_by_num() {
 
 
 add_mark() {
-    curpath="$(pwd|sed 's/\ /\\\ /g')"                     #当前目录
+    local curpath="$(pwd|sed 's/\ /\\\ /g')"                     #当前目录
     if [ ! -f $MARKFILE ]; then
 		check=""
 	  else
@@ -99,7 +99,7 @@ list_num_mark() {
         echo "$MARKFILE does not exists !"
         exit 1
     else
-        counts=`cat $MARKFILE | sort | uniq |wc -l`
+        local counts=`cat $MARKFILE | sort | uniq |wc -l`
 		echo "Total : $counts"
 	fi
 }
@@ -112,9 +112,9 @@ list_mark() {
     else
         IFS=$'\n'
         OLDIFS="$IFS"
-		marklists=`cat $MARKFILE`
+		local marklists=`cat $MARKFILE`
         echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-        posit=0
+        local posit=0
         for i in ${marklists[*]}; do
             if [ "$i" != "" ]; then
                 if [ -f ${i}/$DESCFILE ]; then
@@ -140,7 +140,7 @@ rebuild_mark() {
     else
         IFS=$'\n'
         OLDIFS="$IFS"
-		marklists=`cat $MARKFILE`
+		local marklists=`cat $MARKFILE`
         for i in ${marklists[*]}; do
             if [ "$i" != "" ]; then
                 if [ ! -d ${i} ]; then
@@ -159,10 +159,10 @@ chose_mark() {
         echo "$MARKFILE dose not exists!"
         exit 1
     else
-        marklists=$(cat $MARKFILE)
+        local marklists=$(cat $MARKFILE)
         if [ "0" -lt "${#marklists[@]}" ]; then
-            mark_array[0]=''
-            posit=0
+            local mark_array[0]=''
+            local posit=0
             IFS=$'\n'
             OLDIFS="$IFS"
             for i in ${marklists[*]}; do

@@ -58,8 +58,8 @@ case "$linetheme" in
     ;;
     "version" || "v")
         if [ "$CURCONFIG" = "it" ]; then
-          echo "当前使用bash_it版本"
-          echo "https://github.com/Bash-it/bash-it"
+            echo "当前使用bash_it版本"
+            echo "https://github.com/Bash-it/bash-it"
         elif [ "$linetheme" = "env" ]; then
             echo "当前使用bash.env版本"
         elif [ "$linetheme" = "dot" ]; then
