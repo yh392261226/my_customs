@@ -161,5 +161,10 @@ function myweather() {
 
 # Desc: 按执行次数倒序显示历史命令
 function history_sort() {
-    history | awk '{$1="";print}' |sort -rn |uniq -c |sort -rn |less
+    local last_command_type=`history | tail -n 1 | awk '{print($0~/^[-]?([0-9])+[.]?([0-9])+$/)?"number":"string"}'`
+    if [ "$last_command_type" = "number" ]; then
+        history | awk '{$1="";print}' | sort -rn | uniq -c | sort -rn | less
+    else
+        history | sort -rn | uniq -c | sort -rn | less
+    fi
 }
