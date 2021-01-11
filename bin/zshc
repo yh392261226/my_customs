@@ -37,7 +37,7 @@ case "$linetheme" in
         echo "git" > $MARKFILE
         $0 version
     ;;
-    "v"||"version")
+    "v"|"version")
         $0 version
     ;;
 esac

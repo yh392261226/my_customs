@@ -50,7 +50,7 @@ case "$linetheme" in
         echo "nu" > $MARKFILE
         $0 version
     ;;
-    "v" || "version")
+    "v" | "version")
         CURCONFIG=$(cat $MARKFILE)
         if [ "$CURCONFIG" = "dor" ]; then
             echo "当前使用dorentusfish版本"
