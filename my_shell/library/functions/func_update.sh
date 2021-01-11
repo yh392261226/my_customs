@@ -7,9 +7,8 @@ function updotfiles() {
 function upday() {
     upruntimes
     upzshcustoms
-    #upzshcustoms
     brew update  && brew upgrade && brew cleanup
-    gethosts
+    #gethosts
 }
 
 # Desc: git 更新$MYRUNTIME 目录下的所有由git管理的目录
