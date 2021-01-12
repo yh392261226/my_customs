@@ -58,7 +58,7 @@ if [ -n "$TMUX_PANE" ]; then
     function fzf_tmux_words() {
         fzf_tmux_helper \
             '-p 40' \
-            'tmuxwords.rb --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
+            'tmuxwords --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
     }
 
     function fzf_tmux_helper() {

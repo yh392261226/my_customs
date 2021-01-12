@@ -1,4 +1,4 @@
-# Desc: 自动切换隐藏/显示 我的特殊s文件夹
+# Desc: 自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
 function autodisk() {
     CPATH=/Volumes/XiaoMi/下载/
     CNAME=over_s
@@ -42,9 +42,6 @@ function mwhois() {
     fi
     echo "Getting whois record for: $domain …"
 
-    # avoid recursion
-    # this is the best whois server
-    # strip extra fluff
     /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
 

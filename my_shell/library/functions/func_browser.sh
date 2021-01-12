@@ -1,34 +1,39 @@
 #!/usr/bin/env bash
-#Desc: 搜索引擎搜索 sbaidu|sgoogle keywords
+
 SEARCH_BROWSER="/Applications/Safari.app"
 [[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
 
+#Desc: GOOGLE搜索引擎搜索
 function sgoogle() {
     echo "open -a $SEARCH_BROWSER https://www.google.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "https://www.google.com/search?q= $1"；
 }
 
+#Desc: 百度搜索引擎搜索
 function sbaidu() {
     echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd= $1";
     open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd= $1";
 }
 
+#Desc: Bing搜索引擎搜索
 function sbing() {
     echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q= $1";
 }
 
+#Desc: Yahoo搜索引擎搜索
 function syahoo() {
     echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q= $1";
 }
 
+#Desc: wikipedia搜索引擎搜索
 function swikipedia() {
     echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search= $1";
     open -a "$SEARCH_BROWSER"  "http://en.wikipedia.org/wiki/Special:Search?search= $1";
 }
 
-# Desc: open url in browsers
+# Desc: 浏览器中打开网址
 function browser() {
     local BROWSERPATH=$1
     local DEFAULTURL="https://www.google.com/"
@@ -44,22 +49,25 @@ function browser() {
     /usr/bin/open -a "$BROWSERPATH" "$url"
 }
 
+# Desc: 火狐浏览器打开网址
 function firefox() {
     local BROWSERPATH="/Applications/Firefox.app"
     browser $BROWSERPATH $1
 }
 
+# Desc: Safari浏览器中打开网址
 function safari() {
     local BROWSERPATH="/Applications/Safari.app"
     browser $BROWSERPATH $1
 }
 
+# Desc: Chrome浏览器中打开网址
 function chrome() {
     local BROWSERPATH="/Applications/Google Chrome.app"
     browser $BROWSERPATH $1
 }
 
-# Desc:隐身浏览器Chrome
+# Desc:隐身Chrome浏览器打开网址
 function stealth-browser() {
     local MYRUNTIME=$(cat $HOME/.myruntime)
     local DEFAULTBROWSER="/Applications/Google Chrome.app"
@@ -67,7 +75,7 @@ function stealth-browser() {
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
 
-# Desc: c - browse chrome history
+# Desc: c - 列出Chrome浏览器的历史
 function c() {
     local cols sep
     export cols=$(( COLUMNS / 3 ))
@@ -102,7 +110,7 @@ fb() {
     done
 }
 
-# Desc: open the website goodfon
+# Desc: 打开goodfon.ru
 function goodfon() {
     local DEFAULTBROWSER="/Applications/Firefox.app"      #default browser for open goodfon
     local SECONDBROWSER="/Applications/Google Chrome.app" #second browser for open goodfon

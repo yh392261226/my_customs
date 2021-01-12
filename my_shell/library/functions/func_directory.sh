@@ -1,4 +1,4 @@
-# Desc: Always list directory contents upon 'cd'
+# Desc: cd命令后列出目录内容
 function cd() { builtin cd "$@"; /bin/ls -aGH; }
 
 # Desc: 自定义cd命令
@@ -35,7 +35,7 @@ function fdr() {
     cd "$DIR"
 }
 
-# Desc:
+# Desc: cd to selected directory
 function fcd() {
     if [[ "$#" != 0 ]]; then
         builtin cd "$@";
@@ -59,7 +59,7 @@ function fcd() {
 # fzf (https://github.com/junegunn/fzf)
 # --------------------------------------------------------------------
 
-# Desc: cd to selected directory
+# Desc: another cd to selected directory
 function fd2() {
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"

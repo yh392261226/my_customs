@@ -13,7 +13,7 @@ gifify () {
     fi
 }
 
-#Desc: cat img from url in iterm2
+# Desc: cat img from url in iterm2
 function imgurlcat() {
     if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" != "iTerm.app" ]; then
         echo "This command can only be used in iterm2 !!!";
@@ -24,7 +24,6 @@ function imgurlcat() {
         echo "Type $0 image_url"
         return 1;
     fi
-    #imgurl="http://g.hiphotos.baidu.com/image/pic/item/f7246b600c338744b5a0c49b5f0fd9f9d62aa0f4.jpg"
     imgurl="$1"
     axel -U 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1 Safari/605.1.15' -q -o /tmp/$(basename  $imgurl) $imgurl
 
@@ -38,6 +37,7 @@ function imgurlcat() {
     fi
 }
 
+# Desc: 重命名下载的图片
 function renamedownloadpics() {
     echo "谨慎使用， 使用前先备份，多次使用相同前缀会使你的图片文件互相覆盖导致减少y|Y（使用）n|N(不使用)"
     read line;

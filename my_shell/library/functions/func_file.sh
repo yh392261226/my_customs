@@ -23,7 +23,7 @@ function batw() {
 # Desc: Opens any file in MacOS Quicklook Preview
 function ql () { qlmanage -p "$*" >& /dev/null; }    # ql:           Opens any file in MacOS Quicklook Preview
 
-# Desc:get md5 or sha1 value of the file
+# Desc: get md5 or sha1 value of the file
 function hashfile() {
     local MD5COMMAND=/sbin/md5
     local SHASUMCOMMAND=/usr/local/bin/shasum

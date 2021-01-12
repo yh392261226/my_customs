@@ -54,11 +54,7 @@ function fco() {
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-# Desc: easier way to deal with stashes.
-# type fstash to get a list of your stashes.
-# enter shows you the contents of the stash.
-# ctrl-d shows a diff of the stash against your current HEAD.
-# ctrl-b checks the stash out as a branch, for easier merging
+# Desc: easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
 function fstash() {
     local out q k sha
     while out=$(

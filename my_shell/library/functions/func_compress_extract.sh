@@ -1,6 +1,3 @@
-#   extract:  Extract most know archives with one command
-#   ---------------------------------------------------------
-
 # Desc: 自动检测文件后缀并 自动解压
 extract () {
 	if [ -f $1 ]

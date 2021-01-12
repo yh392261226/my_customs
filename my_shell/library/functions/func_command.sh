@@ -41,11 +41,6 @@ function a2z() {
     done
 }
 
-# Desc: fh - repeat history
-function fh() {
-  eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
-}
-
 # Desc: 更新iterm2的扩展shell
 function upshell() {
 	curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
@@ -82,7 +77,7 @@ function acdul() {
     acdcli ul -x 8 -r 4 -o "$@"
 }
 
-# Desc: check out the bad links
+# Desc: 列出所有失效软连接
 function badlink() {
     local readpath=$HOME
     if [ "" != "$1" ]; then
@@ -110,12 +105,12 @@ function csbuild() {
         cscope -b -q && rm cscope.files
 }
 
-# Desc:Clear the cache and deal the camera
+# Desc: 清理摄像头缓存
 function clearcamera() {
     sudo killall VDCAssistant
 }
 
-# Desc: Replace the app sign, in order to make the app can be use, after 2019-07-12, The apple delete the tnt's signlenature
+# Desc: 2019-07-12 TNT破解失效 更改签名
 function codesign() {
     if [ $# -ne 1 ]; then
         echo "Type $0 App path to replace the app sign"
@@ -129,7 +124,7 @@ function codesign() {
     fi
 }
 
-# Desc: Figlet font selector
+# Desc: Figlet 字体选择器
 function fgl() {
     cd /usr/local/Cellar/figlet/*/share/figlet/fonts
     BASE=`pwd`
@@ -142,7 +137,7 @@ function miniprompt() {
     PS1="\[\e[38;5;168m\]> \[\e[0m\]"
 }
 
-# Desc: speaking the words you type in with osx voice:ting ting
+# Desc: 利用osx系统发音说话
 function speaking() {
     words=$1
     if [ $# -ne 1 ]; then
@@ -154,7 +149,7 @@ function speaking() {
     osascript -e 'say "'$words'" using "Ting-Ting"'
 }
 
-# Desc:get the weather of haerbin
+# Desc: 获取哈尔滨天气
 function myweather() {
     /usr/bin/curl http://wttr.in/harbin?lang=zh
 }
@@ -167,4 +162,14 @@ function history_sort() {
     else
         history | sort -rn | uniq -c | sort -rn | less
     fi
+}
+
+# Desc: 列出历史操作命令 选择后执行
+function fh() {
+  eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
+}
+
+# Desc: help 帮助 man
+function help() {
+
 }
