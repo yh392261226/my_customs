@@ -80,15 +80,17 @@ msg() {
 
 success() {
     msg "${Green}[✔]${Color_off} ${1}${2}"
+    return 0
 }
 
 info() {
     msg "${Blue}[➭]${Color_off} ${1}${2}"
+    return 0
 }
 
 error() {
     msg "${Red}[✘]${Color_off} ${1}${2}"
-    exit 1
+    return 1
 }
 
 warn () {
