@@ -1,0 +1,6 @@
+switcher="0"
+ip=127.0.0.1
+port=58591
+local_http_proxy=http://127.0.0.1:58591
+local_https_proxy=http://127.0.0.1:58591
+local_all_proxy=socks5://127.0.0.1:51837
