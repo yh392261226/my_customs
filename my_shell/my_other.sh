@@ -48,3 +48,7 @@ eval "$(fasd --init auto)"
 if [ -f $HOME/.SpaceVim ] || [ -d $HOME/.SpaceVim ]; then 
 	export PATH=$PATH:$HOME/.SpaceVim/bin
 fi
+
+if [ -d $MYRUNTIME/customs/enhancd/ ]; then
+    source $MYRUNTIME/customs/enhancd/init.sh
+fi
