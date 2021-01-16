@@ -50,5 +50,8 @@ if [ -f $HOME/.SpaceVim ] || [ -d $HOME/.SpaceVim ]; then
 fi
 
 if [ -d $MYRUNTIME/customs/enhancd/ ]; then
+    export ENHANCD_COMMAND=ecd
     source $MYRUNTIME/customs/enhancd/init.sh
+    export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
+    export ENHANCD_HOOK_AFTER_CD="lsd -l"
 fi

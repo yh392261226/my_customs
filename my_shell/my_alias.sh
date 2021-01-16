@@ -16,11 +16,12 @@ alias vum='vim'
 alias mvim='/usr/local/opt/macvim/bin/mvim -v'
 alias mvi='/usr/local/opt/macvim/bin/mvim -v'
 alias vimdiff="$(brew --prefix vim)/bin/vimdiff" # vimdiff alias link
-alias ehosts='sudo vim /etc/hosts'                  # editHosts:        Edit /etc/hosts fil
+alias ehosts='sudo vim /etc/hosts'          # editHosts:        Edit /etc/hosts fil
 
 #directoy
 
-alias l='gls -aH --color=tty'                            # Change the command l to ls -aH
+alias l='gls -aH --color=tty'               # Change the command l to ls -aH
+alias cls='/usr/local/bin/lsd'              # byond lsd change ls to colorful ls
 alias lll="/usr/local/bin/ls++"
 alias ks="ls"
 alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)

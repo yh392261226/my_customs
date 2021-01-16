@@ -1,5 +1,5 @@
 # Desc: cd命令后列出目录内容
-function cd() { builtin cd "$@"; /bin/ls -aGH; }
+function cd() { builtin cd "$@"; /usr/local/bin/gls -aGH --color=tty; }
 
 # Desc: 自定义cd命令
 function customcd() { builtin cd "$@";}
