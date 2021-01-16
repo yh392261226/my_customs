@@ -50,3 +50,13 @@ function flushdns() {
     sudo dscacheutil -flushcache
 }
 
+# Desc: 设置命令行代理
+function setproxy() {
+    source $MYRUNTIME/tools/m_proxy
+    export HTTP_PROXY=${local_http_proxy}; export HTTPS_PROXY=${local_https_proxy}; export ALL_PROXY=${local_all_proxy}
+}
+
+# Desc: 取消设置命令行代理
+function unsetproxy() {
+    export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
+}
