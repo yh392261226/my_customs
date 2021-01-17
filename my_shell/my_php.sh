@@ -2,3 +2,4 @@
 ### add php-school
 #export PATH="$PATH:$HOME/.php-school/bin"
 #source $(brew --prefix php-version)/php-version.sh && php-version 7
+[[ -e $HOME/.phpbrew/bashrc ]] && source $HOME/.phpbrew/bashrc
