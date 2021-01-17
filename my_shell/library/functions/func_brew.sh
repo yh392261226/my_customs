@@ -46,7 +46,3 @@ function bip() {
   fi
 }
 
-# Desc: brew update && brew upgrade && brew cleanup
-function bu() {
-    brew update && brew upgrade && brew cleanup
-}
