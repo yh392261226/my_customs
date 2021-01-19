@@ -6,7 +6,7 @@ options=("start" "restart" "stop" "status" "run" "list" "cleanup" "-h" "--help")
 myoption=$2
 myservice=$1
 ismysql="true"
-if [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ]; then
+if [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ] && [[ $myservice != mysql* ]]; then
 	ismysql=""
 	services=$(brew services list | awk '{print $1}'| grep -v 'Name')
 fi
@@ -77,6 +77,7 @@ else
     echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
     [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
+    [[ -L /private/etc/my.cnf ]] && sudo rm -f /private/etc/my.cnf
 	  case "$myservice" in
 	  	"mysql") #默认8.0
 		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf

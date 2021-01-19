@@ -166,10 +166,10 @@ function history_sort() {
 
 # Desc: 列出历史操作命令 选择后执行
 function fh() {
-  eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
+    eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
 }
 
 # Desc: help 帮助 man
 function help() {
-
+    tldr $@
 }
