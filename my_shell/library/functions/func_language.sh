@@ -61,3 +61,35 @@ function memo() {
     curl $url
 }
 
+# Desc: PHP 依赖于brew 切换已安装版本
+function phpcv() {
+    installedPhpVersions=($(brew ls --versions | ggrep -E 'php(@.*)?\s' | ggrep -oP '(?<=\s)\d\.\d' | uniq | sort))
+    posit=1
+    versions[1]='';
+    commands[1]='';
+    for phpVersion in ${installedPhpVersions[*]}; do
+        value="{"
+
+        for otherPhpVersion in ${installedPhpVersions[*]}; do
+            if [ "${otherPhpVersion}" != "${phpVersion}" ]; then
+                value="${value} brew unlink php@${otherPhpVersion};"
+            fi
+        done
+
+        value="${value} brew link php@${phpVersion} --force --overwrite; }  &> /dev/null && php -v"
+        versions[$posit]="php_${phpVersion}"
+        commands[$posit]=${value}
+        echo "$posit : php_${phpVersion}"
+        ((posit+=1))
+    done
+
+    echo "Which version do you want :"
+    read choose
+    if [ "$choose" -lt "${#versions[@]}" ]; then
+        tmpfile=$(mktemp)
+        echo "${commands[$choose]}" > $tmpfile
+        bash $tmpfile
+        trap 'rm -f "$tmpfile"'
+        echo "Now, it's done ..."
+    fi
+}
