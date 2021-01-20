@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+if [ "" != "$1" ]; then
+    command=$(echo "$1"|cut -f1 -d':')
+    for sh in $(ls $MYRUNTIME/customs/my_shell/library/functions/*sh); do
+        source $sh
+    done
+    type $command
+fi
+

@@ -24,7 +24,7 @@ function showF() { # Desc: showF:文件夹显示隐藏文件
 
 function fdr() { # Desc: fdr:cd to selected parent directory
     local declare dirs=()
-    function get_parent_dirs() {
+    get_parent_dirs() {
         if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
         if [[ "${1}" == '/' ]]; then
             for _dir in "${dirs[@]}"; do echo $_dir; done

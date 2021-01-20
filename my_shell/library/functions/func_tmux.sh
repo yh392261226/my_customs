@@ -30,41 +30,37 @@ function tmuxf() { # Desc: tmuxf:tmux 根据选择使用配置文件
     fi
 }
 
-if [ -n "$TMUX_PANE" ]; then
-    function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
-        local panes current_window current_pane target target_window target_pane
-        panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
-        current_pane=$(tmux display-message -p '#I:#P')
-        current_window=$(tmux display-message -p '#I')
+function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
+    local panes current_window current_pane target target_window target_pane
+    panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
+    current_pane=$(tmux display-message -p '#I:#P')
+    current_window=$(tmux display-message -p '#I')
 
-        target=$(echo "$panes" | grep -v "$current_pane" | fzf +m --reverse) || return
+    target=$(echo "$panes" | grep -v "$current_pane" | fzf +m --reverse) || return
 
-        target_window=$(echo $target | awk 'BEGIN{FS=":|-"} {print$1}')
-        target_pane=$(echo $target | awk 'BEGIN{FS=":|-"} {print$2}' | cut -c 1)
+    target_window=$(echo $target | awk 'BEGIN{FS=":|-"} {print$1}')
+    target_pane=$(echo $target | awk 'BEGIN{FS=":|-"} {print$2}' | cut -c 1)
 
-        if [[ $current_window -eq $target_window ]]; then
-            tmux select-pane -t ${target_window}.${target_pane}
-        else
-            tmux select-pane -t ${target_window}.${target_pane} &&
-                tmux select-window -t $target_window
-        fi
-    }
+    if [[ $current_window -eq $target_window ]]; then
+        tmux select-pane -t ${target_window}.${target_pane}
+    else
+        tmux select-pane -t ${target_window}.${target_pane} &&
+            tmux select-window -t $target_window
+    fi
+}
 
-    function fzf_tmux_words() { # Desc: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
-        fzf_tmux_helper \
-            '-p 40' \
-            'tmuxwords --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
-    }
+function fzf_tmux_words() { # Desc: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
+    fzf_tmux_helper \
+        '-p 40' \
+        'tmuxwords --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
+}
 
-    function fzf_tmux_helper() { # Desc: fzf_tmux_helper:tmux中利用fzf的帮助
-        local sz=$1;  shift
-        local cmd=$1; shift
-        tmux split-window $sz \
-            "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
-    }
-
-
-fi
+function fzf_tmux_helper() { # Desc: fzf_tmux_helper:tmux中利用fzf的帮助
+    local sz=$1;  shift
+    local cmd=$1; shift
+    tmux split-window $sz \
+        "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
+}
 
 function fs() { # Desc: fs:Switch tmux-sessions
     local session

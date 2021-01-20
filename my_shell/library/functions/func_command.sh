@@ -1,7 +1,11 @@
 function showa () { # Desc: showa:显示所有含有字符串的自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
-    customcd $MYRUNTIME/customs/my_shell/library/functions; find *.sh | xargs ag "$1" | awk -F':' '{print $1}' | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
+    customcd $MYRUNTIME/customs/my_shell/library/functions; find *.sh | xargs ag "$1" | awk -F':' '{print $1}' | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
     # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
+}
+
+function showfuncs() {
+    find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*sh" |xargs grep 'function .*().*Desc' |sed 's/Desc:/Î/' |awk -F'Î' '{print $2}' |fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "bash $MYRUNTIME/customs/bin/check_custom_functions {}" --preview-window right:140
 }
 
 function showaliases() { # Desc: showaliases:显示所有自定义命令及注释
