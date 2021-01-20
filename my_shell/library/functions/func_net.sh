@@ -1,4 +1,4 @@
-function autodisk() { # Desc: 自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
+function autodisk() { # Desc: autodisk:自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
     CPATH=/Volumes/XiaoMi/下载/
     CNAME=over_s
 
@@ -14,7 +14,7 @@ function autodisk() { # Desc: 自动切换隐藏/显示 我的小米网盘中的
     fi
 }
 
-function ii() { # Desc: display useful host related informaton
+function ii() { # Desc: ii:display useful host related informaton
     echo -e "\nYou are logged on ${RED}$HOST"
     echo -e "\nAdditionnal information:$NC " ; uname -a
     echo -e "\n${RED}Users logged on:$NC " ; w -h
@@ -26,15 +26,15 @@ function ii() { # Desc: display useful host related informaton
     echo
 }
 
-function httpDebug () { # Desc: Download a web page and show info on what took time
+function httpDebug () { # Desc: httpDebug:Download a web page and show info on what took time
     curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ;
 }
 
-function httpHeaders () { # Desc: Grabs headers from web page
+function httpHeaders () { # Desc: httpHeaders:Grabs headers from web page
     curl -I -L $@ ;
 }
 
-function mwhois() { # Desc: whois网址信息查询
+function mwhois() { # Desc: mwhois:whois网址信息查询
     local domain=$(echo "$1" | awk -F/ '{print $3}') # get domain from URL
     if [ -z $domain ] ; then
     domain=$1
@@ -44,15 +44,15 @@ function mwhois() { # Desc: whois网址信息查询
     /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
 
-function flushdns() { # Desc: Flush dns
+function flushdns() { # Desc: flushdns:刷新本地dns缓存
     sudo dscacheutil -flushcache
 }
 
-function setproxy() { # Desc: 设置命令行代理
+function setproxy() { # Desc: setproxy:设置命令行代理
     source $MYRUNTIME/tools/m_proxy
     export HTTP_PROXY=${local_http_proxy}; export HTTPS_PROXY=${local_https_proxy}; export ALL_PROXY=${local_all_proxy}
 }
 
-function unsetproxy() { # Desc: 取消设置命令行代理
+function unsetproxy() { # Desc: unsetproxy:取消设置命令行代理
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }

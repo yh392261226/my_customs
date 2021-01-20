@@ -1,4 +1,4 @@
-function catw() { # Desc: cat 打印which命令找到的文件地址
+function catw() { # Desc: catw:cat 打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -8,7 +8,7 @@ function catw() { # Desc: cat 打印which命令找到的文件地址
     fi
 }
 
-function batw() { # Desc: bat 打印which命令找到的文件地址
+function batw() { # Desc: batw:bat命令打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -18,11 +18,11 @@ function batw() { # Desc: bat 打印which命令找到的文件地址
     fi
 }
 
-function ql () { # Desc: Opens any file in MacOS Quicklook Preview
+function ql () { # Desc: ql:Opens any file in MacOS Quicklook Preview
     qlmanage -p "$*" >& /dev/null;
 }
 
-function hashfile() { # Desc: get md5 or sha1 value of the file
+function hashfile() { # Desc: hashfile:get md5 or sha1 value of the file
     local MD5COMMAND=/sbin/md5
     local SHASUMCOMMAND=/usr/local/bin/shasum
 
@@ -43,7 +43,7 @@ function hashfile() { # Desc: get md5 or sha1 value of the file
     fi
 }
 
-function check2filesbymd5() { # Desc: diff the two files md5 value
+function check2filesbymd5() { # Desc: check2filesbymd5:diff the two files md5 value
     local MD5COMMAND=/sbin/md5 #md5 command
     local LOCALPATH=$1 #args[0]
     local TARGETPATH=$2 #args[1]
@@ -63,7 +63,7 @@ function check2filesbymd5() { # Desc: diff the two files md5 value
     return 0
 }
 
-function mla() { # Desc: 变更权限rwx为权限值【777】
+function mla() { # Desc: mla:变更权限rwx为权限值【777】
     ls -l  "$@" | awk '
         {
         k=0;

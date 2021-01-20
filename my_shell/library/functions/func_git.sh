@@ -1,4 +1,4 @@
-function fbr() { # Desc: checkout git branch
+function fbr() { # Desc: fbr:checkout git branch
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
@@ -6,14 +6,14 @@ function fbr() { # Desc: checkout git branch
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
 
-function fcoc() { # Desc: checkout git commit
+function fcoc() { # Desc: fcoc:checkout git commit
     local commits commit
     commits=$(git log --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
 
-function fco_preview() { # Desc: checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+function fco_preview() { # Desc: fco_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -28,14 +28,14 @@ function fco_preview() { # Desc: checkout git branch/tag, with a preview showing
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-function fcs() { # Desc: get git commit sha. example usage: git rebase -i `fcs`
+function fcs() { # Desc: fcs:get git commit sha. example usage: git rebase -i `fcs`
     local commits commit
     commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e --ansi --reverse) &&
     echo -n $(echo "$commit" | sed "s/ .*//")
 }
 
-function fco() { # Desc: checkout git branch/tag
+function fco() { # Desc: fco:checkout git branch/tag
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -49,7 +49,7 @@ function fco() { # Desc: checkout git branch/tag
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-function fstash() { # Desc: easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
+function fstash() { # Desc: fstash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
     while out=$(
     git stash list --pretty="%C(yellow)%h %>(14)%Cgreen%cr %C(blue)%gs" |
@@ -73,7 +73,7 @@ function fstash() { # Desc: easier way to deal with stashes. type fstash to get 
     done
 }
 
-function fgst() { # Desc: 显示当前git版本库中未添加进版本的修改或新增文件列表
+function fgst() { # Desc: fgst:显示当前git版本库中未添加进版本的修改或新增文件列表
     isgit || return
 
     local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
@@ -84,7 +84,7 @@ function fgst() { # Desc: 显示当前git版本库中未添加进版本的修改
     echo
 }
 
-function fshow() { # Desc: git commit browser
+function fshow() { # Desc: fshow:git commit browser
 git log --graph --color=always \
     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
 fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
@@ -94,7 +94,7 @@ xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 {}"
 }
 
-function gitdiffb() { # Desc: git 比对两个分支
+function gitdiffb() { # Desc: gitdiffb:git 比对两个分支
     if [ $# -ne 2 ]; then
         echo two branch names required
         return
@@ -104,7 +104,7 @@ function gitdiffb() { # Desc: git 比对两个分支
         --abbrev-commit --date=relative $1..$2
 }
 
-function upgitfiles() { # Desc: 更新git的目录及git module的目录
+function upgitfiles() { # Desc: upgitfiles:更新git的目录及git module的目录
     if [ "" != "$1" ]; then
         filepath=$1
     else
@@ -124,7 +124,7 @@ function upgitfiles() { # Desc: 更新git的目录及git module的目录
     customcd ~
 }
 
-function isgit() { # Desc: pick files from `git status -s`
+function isgit() { # Desc: isgit:pick files from `git status -s`
     git rev-parse HEAD > /dev/null 2>&1
 }
 

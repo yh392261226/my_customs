@@ -1,4 +1,4 @@
-function zsh_wifi_signal() { # Desc: zsh获取WiFi网速
+function zsh_wifi_signal() { # Desc: zsh_wifi_signal:zsh获取WiFi网速
     if [ "$MYSYSNAME" = "Mac" ]; then
         local output=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport -I)
         local airport=$(echo $output | grep 'AirPort' | awk -F': ' '{print $2}')
@@ -25,6 +25,6 @@ function zsh_wifi_signal() { # Desc: zsh获取WiFi网速
     fi
 }
 
-function zsh_battery_charge { # Desc: zsh电池图
+function zsh_battery_charge { # Desc: zsh_battery_charge:zsh电池图
     echo `~/bin/battery.py`
 }

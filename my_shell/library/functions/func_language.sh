@@ -1,4 +1,4 @@
-function frb() { # Desc: RVM integration
+function frb() { # Desc: frb:RVM integration
     local rb
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
@@ -6,14 +6,14 @@ function frb() { # Desc: RVM integration
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
 }
 
-function gems() { # Desc: rvm多个版本的gem操作同一个包
+function gems() { # Desc: gems:rvm多个版本的gem操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         gem $@
     done
 }
 
-function rakes() { # Desc: rvm多个版本的rake操作同一个包
+function rakes() { # Desc: rakes:rvm多个版本的rake操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         rake $@
@@ -26,11 +26,11 @@ function rakes() { # Desc: rvm多个版本的rake操作同一个包
 #           displays paginated result with colored search terms and two lines surrounding each hit.             Example: mans mplayer codec
 #   --------------------------------------------------------------------
 
-function mans () { # Desc: man command[$1] and highlight keyword[$2]
+function mans () { # Desc: mans:man command[$1] and highlight keyword[$2]
     man $1 | grep -iC2 --color=always $2 | less
 }
 
-function memo() { # Desc: 依托于cheat.sh的备忘录
+function memo() { # Desc: memo:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then
         echo "Usage:$0 language function"
         echo ""
@@ -56,7 +56,7 @@ function memo() { # Desc: 依托于cheat.sh的备忘录
     curl $url
 }
 
-function phpcv() { # Desc: PHP 依赖于brew 切换已安装版本
+function phpcv() { # Desc: phpcv:PHP 依赖于brew 切换已安装版本
     installedPhpVersions=($(brew ls --versions | ggrep -E 'php(@.*)?\s' | ggrep -oP '(?<=\s)\d\.\d' | uniq | sort))
     posit=1
     versions[1]='';

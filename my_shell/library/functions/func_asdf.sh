@@ -1,4 +1,4 @@
-function vmi() { # Desc: 安装一个或多个版本的语言包 e.g. `vmi rust` # => fzf multimode, tab to mark, enter to install if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you Mnemonic [V]ersion [M]anager [I]nstall
+function vmi() { # Desc: vmi:安装一个或多个版本的语言包 e.g. `vmi rust` # => fzf multimode, tab to mark, enter to install if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you Mnemonic [V]ersion [M]anager [I]nstall
   local lang=${1}
 
   if [[ ! $lang ]]; then
@@ -15,7 +15,7 @@ function vmi() { # Desc: 安装一个或多个版本的语言包 e.g. `vmi rust`
   fi
 }
 
-function vmc() { # Desc: 删除一个或多个版本的语言包 e.g. `vmi rust` # => fzf multimode, tab to mark, enter to remove if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you Mnemonic [V]ersion [M]anager [C]lean
+function vmc() { # Desc: vmc:删除一个或多个版本的语言包 e.g. `vmi rust` # => fzf multimode, tab to mark, enter to remove if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you Mnemonic [V]ersion [M]anager [C]lean
   local lang=${1}
 
   if [[ ! $lang ]]; then

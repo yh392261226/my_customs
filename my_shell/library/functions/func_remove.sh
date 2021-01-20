@@ -1,4 +1,4 @@
-function removeDS() { # Desc: 删除.DS_Store文件
+function removeDS() { # Desc: removeDS:删除.DS_Store文件
     if [ "" = "$1" ]; then
         find . -type f -name '*.DS_Store' -ls -delete
     else
@@ -6,7 +6,7 @@ function removeDS() { # Desc: 删除.DS_Store文件
     fi
 }
 
-function rmext () { # Desc: 删除后缀名为参数值的文件到回收站
+function rmext () { # Desc: rmext:删除后缀名为参数值的文件到回收站
     if [ "" = "$1" ]; then
         trash ./*
     else
@@ -14,11 +14,11 @@ function rmext () { # Desc: 删除后缀名为参数值的文件到回收站
     fi
 }
 
-function rmsshtmp() { # Desc: 删除~/.ssh/tmp/*
+function rmsshtmp() { # Desc: rmsshtmp:删除~/.ssh/tmp/*
     /bin/rm -f $HOME/.ssh/tmp/*
 }
 
-function mtrash () { # Desc: 删除到回收站
+function mtrash () { # Desc: mtrash:删除到回收站
     local path
     for path in "$@"; do
         # ignore any arguments
@@ -34,11 +34,11 @@ function mtrash () { # Desc: 删除到回收站
     done
 }
 
-function trash () { # Desc: Moves a file to the MacOS trash
+function trash () { # Desc: trash:Moves a file to the MacOS trash
     command mv "$@" ~/.Trash ;
 }
 
-function rmw() { # Desc: 删除 which命令找到的文件
+function rmw() { # Desc: rmw:删除 which命令找到的文件
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then

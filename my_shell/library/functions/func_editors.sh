@@ -1,4 +1,4 @@
-function editorw() { # Desc: use which command to find out the file or command then open with editors
+function editorw() { # Desc: editorw:use which command to find out the file or command then open with editors
     local COMMANDBIN=$1
     local FILENAME=$2
     if [ -f $COMMANDBIN ]; then
@@ -19,38 +19,38 @@ function editorw() { # Desc: use which command to find out the file or command t
     fi
 }
 
-function codew() { # Desc: visual studio code 编辑which命令找到的文件地址
+function codew() { # Desc: codew:visual studio code 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/code
     editorw $COMMANDBIN $1
 }
 
-function stw() { # Desc: sublime text 编辑which命令找到的文件地址
+function stw() { # Desc: stw:sublime text 编辑which命令找到的文件地址
     local COMMANDBIN=$HOME/bin/subl
     editorw $COMMANDBIN $1
 }
 
-function atomw() { # Desc: atom 编辑which命令找到的文件地址
+function atomw() { # Desc: atomw:atom 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/atom
     editorw $COMMANDBIN $1
 }
 
-function viw() { # Desc: vim 编辑which命令找到的文件地址
+function viw() { # Desc: viw:vim 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/vim
     editorw $COMMANDBIN $1
 }
 
-function nviw() { # Desc: neovim 编辑which命令找到的文件地址
+function nviw() { # Desc: nviw:neovim 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/nvim
     editorw $COMMANDBIN $1
 }
 
-function fe() { # Desc: Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
+function fe() { # Desc: fe:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
     local file
     file=$(fzf-tmux --query="$1" --select-1 --exit-0)
     [ -n "$file" ] && ${EDITOR:-vim} "$file"
 }
 
-function ftags() { # Desc: search ctags
+function ftags() { # Desc: ftags:search ctags
     local line
     [ -e tags ] &&
         line=$(
@@ -60,7 +60,7 @@ function ftags() { # Desc: search ctags
         -c "silent tag $(cut -f2 <<< "$line")"
 }
 
-function v() { # Desc: v - open files in ~/.viminfo
+function v() { # Desc: v:open files in ~/.viminfo
     local files
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
@@ -68,7 +68,7 @@ function v() { # Desc: v - open files in ~/.viminfo
     done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 
-function fo() { # Desc: Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
+function fo() { # Desc: fo:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
     local out file key
     out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)
     key=$(head -1 <<< "$out")
@@ -78,7 +78,7 @@ function fo() { # Desc: Modified version where you can press CTRL-O to open with
     fi
 }
 
-function vg() { # Desc: fuzzy grep open via ag with line number
+function vg() { # Desc: vg:fuzzy grep open via ag with line number
     local file
     local line
 

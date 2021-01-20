@@ -3,32 +3,32 @@
 SEARCH_BROWSER="/Applications/Safari.app"
 [[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
 
-function sgoogle() { #Desc: GOOGLE搜索引擎搜索
+function sgoogle() { #Desc: sgoogle:GOOGLE搜索引擎搜索
     echo "open -a $SEARCH_BROWSER https://www.google.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "https://www.google.com/search?q= $1"；
 }
 
-function sbaidu() { #Desc: 百度搜索引擎搜索
+function sbaidu() { #Desc: sbaidu:百度搜索引擎搜索
     echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd= $1";
     open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd= $1";
 }
 
-function sbing() { #Desc: Bing搜索引擎搜索
+function sbing() { #Desc: sbing:Bing搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q= $1";
 }
 
-function syahoo() { #Desc: Yahoo搜索引擎搜索
+function syahoo() { #Desc: syahoo:Yahoo搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q= $1";
 }
 
-function swikipedia() { #Desc: wikipedia搜索引擎搜索
+function swikipedia() { #Desc: syahoo:wikipedia搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search= $1";
     open -a "$SEARCH_BROWSER"  "http://en.wikipedia.org/wiki/Special:Search?search= $1";
 }
 
-function browser() { # Desc: 浏览器中打开网址
+function browser() { # Desc: browser:浏览器中打开网址
     local BROWSERPATH=$1
     local DEFAULTURL="https://www.google.com/"
     [[ ! -d "$BROWSERPATH/" ]] && echo "Does not found Firefox " && exit 1
@@ -43,29 +43,29 @@ function browser() { # Desc: 浏览器中打开网址
     /usr/bin/open -a "$BROWSERPATH" "$url"
 }
 
-function firefox() { # Desc: 火狐浏览器打开网址
+function firefox() { # Desc: firefox:火狐浏览器打开网址
     local BROWSERPATH="/Applications/Firefox.app"
     browser $BROWSERPATH $1
 }
 
-function safari() { # Desc: Safari浏览器中打开网址
+function safari() { # Desc: safari:Safari浏览器中打开网址
     local BROWSERPATH="/Applications/Safari.app"
     browser $BROWSERPATH $1
 }
 
-function chrome() { # Desc: Chrome浏览器中打开网址
+function chrome() { # Desc: chrome:Chrome浏览器中打开网址
     local BROWSERPATH="/Applications/Google Chrome.app"
     browser $BROWSERPATH $1
 }
 
-function stealth-browser() { # Desc:隐身Chrome浏览器打开网址
+function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开网址
     local MYRUNTIME=$(cat $HOME/.myruntime)
     local DEFAULTBROWSER="/Applications/Google Chrome.app"
     [[ -f $MYRUNTIME/tools/m_proxy ]] && source $MYRUNTIME/tools/m_proxy
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
 
-function c() { # Desc: c - 列出Chrome浏览器的历史
+function c() { # Desc: c:列出Chrome浏览器的历史
     local cols sep
     export cols=$(( COLUMNS / 3 ))
     export sep='{::}'
@@ -86,7 +86,7 @@ function c() { # Desc: c - 列出Chrome浏览器的历史
     sed 's#.*\(https*://\)#\1#' | xargs open
 }
 
-fb() { # Desc: buku数据库配合fzf列出网址收藏
+fb() { # Desc: fb:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
     mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi)"
 
@@ -98,7 +98,7 @@ fb() { # Desc: buku数据库配合fzf列出网址收藏
     done
 }
 
-function goodfon() { # Desc: 打开goodfon.ru
+function goodfon() { # Desc: goodfon:打开goodfon.ru
     local DEFAULTBROWSER="/Applications/Firefox.app"      #default browser for open goodfon
     local SECONDBROWSER="/Applications/Google Chrome.app" #second browser for open goodfon
     local URL="https://www.goodfon.ru/"

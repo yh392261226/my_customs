@@ -1,4 +1,4 @@
-gifify () { # Desc: animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
+gifify () { # Desc: gifify:animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
     if [[ -n "$1" ]]; then
         if [[ $2 == '--good' ]]; then
         ffmpeg -i "$1" -r 10 -vcodec png out-static-%05d.png
@@ -12,7 +12,7 @@ gifify () { # Desc: animated gifs from any video from Alex Sexton gist.github.co
     fi
 }
 
-function imgurlcat() { # Desc: cat img from url in iterm2
+function imgurlcat() { # Desc: imgurlcat:cat img from url in iterm2
     if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" != "iTerm.app" ]; then
         echo "This command can only be used in iterm2 !!!";
         return 0;
@@ -35,7 +35,7 @@ function imgurlcat() { # Desc: cat img from url in iterm2
     fi
 }
 
-function renamedownloadpics() { # Desc: 重命名下载的图片
+function renamedownloadpics() { # Desc: renamedownloadpics:重命名下载的图片
     echo "谨慎使用， 使用前先备份，多次使用相同前缀会使你的图片文件互相覆盖导致减少y|Y（使用）n|N(不使用)"
     read line;
     if [ "$line" = "y" ] || [ "$line" = "Y" ]; then
@@ -52,7 +52,7 @@ function renamedownloadpics() { # Desc: 重命名下载的图片
     fi
 }
 
-function resizes() { # Desc: 图片压缩
+function resizes() { # Desc: resizes:图片压缩
     mkdir -p out &&
     for jpg in *.JPG; do
         echo $jpg

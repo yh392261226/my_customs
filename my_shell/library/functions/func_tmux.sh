@@ -1,4 +1,4 @@
-function tmuxf() { # Desc:tmux 根据选择使用配置文件
+function tmuxf() { # Desc: tmuxf:tmux 根据选择使用配置文件
     local CONFIGS=$MYRUNTIME/tmuxconfigs  #配置文件地址
     local EXT=tmux.conf
 
@@ -31,7 +31,7 @@ function tmuxf() { # Desc:tmux 根据选择使用配置文件
 }
 
 if [ -n "$TMUX_PANE" ]; then
-    function ftpane() { # Desc: tmux switch pane (@george-b)
+    function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
         local panes current_window current_pane target target_window target_pane
         panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
         current_pane=$(tmux display-message -p '#I:#P')
@@ -50,13 +50,13 @@ if [ -n "$TMUX_PANE" ]; then
         fi
     }
 
-    function fzf_tmux_words() { # Desc: tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
+    function fzf_tmux_words() { # Desc: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
         fzf_tmux_helper \
             '-p 40' \
             'tmuxwords --all --scroll 500 --min 5 | fzf --multi | paste -sd" " -'
     }
 
-    function fzf_tmux_helper() { # Desc: tmux中利用fzf的帮助
+    function fzf_tmux_helper() { # Desc: fzf_tmux_helper:tmux中利用fzf的帮助
         local sz=$1;  shift
         local cmd=$1; shift
         tmux split-window $sz \
@@ -66,30 +66,26 @@ if [ -n "$TMUX_PANE" ]; then
 
 fi
 
-# Desc: Switch tmux-sessions
-function fs() {
+function fs() { # Desc: fs:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
         fzf-tmux --query="$1" --select-1 --exit-0) &&
         tmux switch-client -t "$session"
 }
 
-# Desc: tmux 生成一个执行 参数中的命令的临时窗口 回车后自动关闭
-function tx() {
+function tx() { # Desc: tx:tmux 生成一个执行 参数中的命令的临时窗口 回车后自动关闭
     tmux splitw "$*; echo -n Press enter to finish.; read"
     tmux select-layout tiled
     tmux last-pane
 }
 
-# Desc: 打印当前tmux所有的pane id
-function tping() {
+function tping() { # Desc: tping:打印当前tmux所有的pane id
     for p in $(tmux list-windows -F "#{pane_id}"); do
         tmux send-keys -t $p Enter
     done
 }
 
-# Desc: tmux 中自动起一个窗口去做操作
-function tt() {
+function tt() { # Desc: tt:tmux 中自动起一个窗口去做操作
     if [ $# -lt 1 ]; then
         echo 'usage: tt <commands...>'
         return 1
