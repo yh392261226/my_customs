@@ -1,22 +1,23 @@
-# Desc:寻找当前目录下后缀名的所有文件
-function lsext() {
+function lsext() { # Desc:寻找当前目录下后缀名的所有文件
     find . -type f -iname '*.'${1}'' -exec ls -l {} \; ;
 }
 
-# Desc: Find file whose name ends with a given string
-function ffe () { /usr/bin/find . -name '*'"$@" ; }
+function ffe () { # Desc: Find file whose name ends with a given string
+    /usr/bin/find . -name '*'"$@" ;
+}
 
-# Desc: Find file whose name starts with a given string
-function ffs () { find . -name "$@"'*' ; }
+function ffs () { # Desc: Find file whose name starts with a given string
+    find . -name "$@"'*' ;
+}
 
-# Desc: 查找当前目录中包含某个字符串的
-function mqfind () {
+function mqfind () { # Desc: 查找当前目录中包含某个字符串的
     find . -exec grep -l -s $1 {} \;
     return 0
 }
 
-# Desc: Find file under the current directory
-function ff () { find . -name "$@" ; }
+function ff () { # Desc: Find file under the current directory
+    find . -name "$@" ;
+}
 
 #   findPid: find out the pid of a specified process
 #   -----------------------------------------------------
@@ -25,11 +26,11 @@ function ff () { find . -name "$@" ; }
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
 
-# Desc: find out the pid of a specified process
-function findPid () { lsof -t -c "$@" ; }
+function findPid () { # Desc: find out the pid of a specified process
+    lsof -t -c "$@" ;
+}
 
-# Desc: find files which has the same md5 value
-function findmd5same() {
+function findmd5same() { # Desc: find files which has the same md5 value
     local MD5COMMAND=/sbin/md5
     local SOURCEPATH=$1
     local TMPFILE=/tmp/findmd5same_tmp
@@ -69,8 +70,7 @@ function findmd5same() {
     fi
 }
 
-# Desc: fkill - kill processes - list only the ones you can kill. Modified the earlier script.
-function fkill() {
+function fkill() { # Desc: fkill - kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     if [ "$UID" != "0" ]; then
         pid=$(ps -f -u $UID | sed 1d | fzf -m | awk '{print $2}')
@@ -84,6 +84,7 @@ function fkill() {
     fi
 }
 
-# Desc: Search for a file using MacOS Spotlight's metadata
-function spotlight () { mdfind "kMDItemDisplayName == '$@'wc"; }
+function spotlight () { # Desc: Search for a file using MacOS Spotlight's metadata
+    mdfind "kMDItemDisplayName == '$@'wc";
+}
 

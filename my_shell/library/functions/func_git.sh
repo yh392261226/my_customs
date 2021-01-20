@@ -1,5 +1,4 @@
-# Desc: checkout git branch
-function fbr() {
+function fbr() { # Desc: checkout git branch
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
@@ -7,16 +6,14 @@ function fbr() {
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
 
-# Desc: checkout git commit
-function fcoc() {
+function fcoc() { # Desc: checkout git commit
     local commits commit
     commits=$(git log --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
 
-# Desc: checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
-function fco_preview() {
+function fco_preview() { # Desc: checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -31,16 +28,14 @@ function fco_preview() {
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-# Desc: get git commit sha. example usage: git rebase -i `fcs`
-function fcs() {
+function fcs() { # Desc: get git commit sha. example usage: git rebase -i `fcs`
     local commits commit
     commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e --ansi --reverse) &&
     echo -n $(echo "$commit" | sed "s/ .*//")
 }
 
-# Desc: checkout git branch/tag
-function fco() {
+function fco() { # Desc: checkout git branch/tag
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -54,8 +49,7 @@ function fco() {
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-# Desc: easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
-function fstash() {
+function fstash() { # Desc: easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
     while out=$(
     git stash list --pretty="%C(yellow)%h %>(14)%Cgreen%cr %C(blue)%gs" |
@@ -79,8 +73,7 @@ function fstash() {
     done
 }
 
-# Desc: 显示当前git版本库中未添加进版本的修改或新增文件列表
-function fgst() {
+function fgst() { # Desc: 显示当前git版本库中未添加进版本的修改或新增文件列表
     isgit || return
 
     local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
@@ -91,8 +84,7 @@ function fgst() {
     echo
 }
 
-# Desc: git commit browser
-function fshow() {
+function fshow() { # Desc: git commit browser
 git log --graph --color=always \
     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
 fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
@@ -102,8 +94,7 @@ xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 {}"
 }
 
-# Desc: git 比对两个分支
-function gitdiffb() {
+function gitdiffb() { # Desc: git 比对两个分支
     if [ $# -ne 2 ]; then
         echo two branch names required
         return
@@ -113,8 +104,7 @@ function gitdiffb() {
         --abbrev-commit --date=relative $1..$2
 }
 
-# Desc: 更新git的目录及git module的目录
-function upgitfiles() {
+function upgitfiles() { # Desc: 更新git的目录及git module的目录
     if [ "" != "$1" ]; then
         filepath=$1
     else
@@ -134,8 +124,7 @@ function upgitfiles() {
     customcd ~
 }
 
-# Desc: pick files from `git status -s`
-function isgit() {
+function isgit() { # Desc: pick files from `git status -s`
     git rev-parse HEAD > /dev/null 2>&1
 }
 

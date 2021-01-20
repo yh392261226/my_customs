@@ -1,5 +1,4 @@
-# Desc: 自动检测文件后缀并 自动解压
-extract () {
+extract () { # Desc: 自动检测文件后缀并 自动解压
 	if [ -f $1 ]
 	then
 		case $1 in
@@ -22,15 +21,14 @@ extract () {
 	fi
 }
 
-# Desc: 压缩目录为zip文件
-function zipf () { zip -r "$1".zip "$1" ; }          # zipf:         To create a ZIP archive of a folder
+function zipf () { # Desc: 压缩目录为zip文件
+	zip -r "$1".zip "$1" ;
+}
 
-# Desc: git压缩HEAD版本为zip包
-function gitzip() {
+function gitzip() { # Desc: git压缩HEAD版本为zip包
     git archive -o $(basename $PWD).zip HEAD
 }
 
-# Desc: git压缩HEAD版本为tgz包
-function gittgz() {
+function gittgz() { # Desc: git压缩HEAD版本为tgz包
     git archive -o $(basename $PWD).tgz HEAD
 }

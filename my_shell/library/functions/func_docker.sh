@@ -1,10 +1,8 @@
-# Desc: docker初始化
-function dockerinit() {
+function dockerinit() { # Desc: docker初始化
     [ $(docker-machine status default) = 'Running' ] || docker-machine start default
     eval "$(docker-machine env default)"
 }
 
-# Desc: docker停止
-function dockerstop() {
+function dockerstop() { # Desc: docker停止
     docker-machine stop default
 }

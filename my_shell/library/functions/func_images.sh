@@ -1,5 +1,4 @@
-# Desc: animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
-gifify () {
+gifify () { # Desc: animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
     if [[ -n "$1" ]]; then
         if [[ $2 == '--good' ]]; then
         ffmpeg -i "$1" -r 10 -vcodec png out-static-%05d.png
@@ -13,8 +12,7 @@ gifify () {
     fi
 }
 
-# Desc: cat img from url in iterm2
-function imgurlcat() {
+function imgurlcat() { # Desc: cat img from url in iterm2
     if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" != "iTerm.app" ]; then
         echo "This command can only be used in iterm2 !!!";
         return 0;
@@ -37,8 +35,7 @@ function imgurlcat() {
     fi
 }
 
-# Desc: 重命名下载的图片
-function renamedownloadpics() {
+function renamedownloadpics() { # Desc: 重命名下载的图片
     echo "谨慎使用， 使用前先备份，多次使用相同前缀会使你的图片文件互相覆盖导致减少y|Y（使用）n|N(不使用)"
     read line;
     if [ "$line" = "y" ] || [ "$line" = "Y" ]; then
@@ -55,12 +52,10 @@ function renamedownloadpics() {
     fi
 }
 
-# Desc: 图片压缩
-function resizes() {
+function resizes() { # Desc: 图片压缩
     mkdir -p out &&
     for jpg in *.JPG; do
         echo $jpg
         [ -e out/$jpg ] || sips -Z 2048 --setProperty formatOptions 80 $jpg --out out/$jpg
     done
 }
-

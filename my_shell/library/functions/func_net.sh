@@ -1,5 +1,4 @@
-# Desc: 自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
-function autodisk() {
+function autodisk() { # Desc: 自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
     CPATH=/Volumes/XiaoMi/下载/
     CNAME=over_s
 
@@ -15,8 +14,7 @@ function autodisk() {
     fi
 }
 
-# Desc: display useful host related informaton
-function ii() {
+function ii() { # Desc: display useful host related informaton
     echo -e "\nYou are logged on ${RED}$HOST"
     echo -e "\nAdditionnal information:$NC " ; uname -a
     echo -e "\n${RED}Users logged on:$NC " ; w -h
@@ -28,14 +26,15 @@ function ii() {
     echo
 }
 
-# Desc: Download a web page and show info on what took time
-function httpDebug () { curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ; }
+function httpDebug () { # Desc: Download a web page and show info on what took time
+    curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ;
+}
 
-# Desc: Grabs headers from web page
-function httpHeaders () { curl -I -L $@ ; }
+function httpHeaders () { # Desc: Grabs headers from web page
+    curl -I -L $@ ;
+}
 
-# Desc: whois网址信息查询
-function mwhois() {
+function mwhois() { # Desc: whois网址信息查询
     local domain=$(echo "$1" | awk -F/ '{print $3}') # get domain from URL
     if [ -z $domain ] ; then
     domain=$1
@@ -45,18 +44,15 @@ function mwhois() {
     /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
 
-# Desc: Flush dns
-function flushdns() {
+function flushdns() { # Desc: Flush dns
     sudo dscacheutil -flushcache
 }
 
-# Desc: 设置命令行代理
-function setproxy() {
+function setproxy() { # Desc: 设置命令行代理
     source $MYRUNTIME/tools/m_proxy
     export HTTP_PROXY=${local_http_proxy}; export HTTPS_PROXY=${local_https_proxy}; export ALL_PROXY=${local_all_proxy}
 }
 
-# Desc: 取消设置命令行代理
-function unsetproxy() {
+function unsetproxy() { # Desc: 取消设置命令行代理
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }

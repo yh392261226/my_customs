@@ -1,13 +1,10 @@
-
-# Desc: 显示所有含有字符串的自定义命令及注释
-function showa () {
+function showa () { # Desc: 显示所有含有字符串的自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     customcd $MYRUNTIME/customs/my_shell/library/functions; find *.sh | xargs ag "$1" | awk -F':' '{print $1}' | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
     # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
 }
 
-# Desc: 显示所有自定义命令及注释
-function showaliases() {
+function showaliases() { # Desc: 显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     #customcd $MYRUNTIME/customs/my_shell/library/functions; ls *.sh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
     cd $MYRUNTIME/customs/my_shell/library/functions; ls *.sh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
@@ -23,8 +20,7 @@ function showaliases() {
     # fi
 }
 
-# Desc: 显示从a-z的我的自定义命令
-function a2z() {
+function a2z() { # Desc: 显示从a-z的我的自定义命令
     echo "********************************************************"
     echo "*** Already exists command:"
     echo "********************************************************"
@@ -41,16 +37,15 @@ function a2z() {
     done
 }
 
-# Desc: 更新iterm2的扩展shell
-function upshell() {
+function upshell() { # Desc: 更新iterm2的扩展shell
 	curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
 }
 
-# Desc: List processes owned by my user:
-function myps() { ps $@ -u $USER -o pid,%cpu,%mem,start,time,bsdtime,command ; }
+function myps() { # Desc: List processes owned by my user:
+    ps $@ -u $USER -o pid,%cpu,%mem,start,time,bsdtime,command ;
+}
 
-# Desc: 显示我的自定义SHELL头信息
-function myMessage() {
+function myMessage() { # Desc: 显示我的自定义SHELL头信息
     clear
     _COLUMNS=$(tput cols)
     source $MYRUNTIME/tools/m_title
@@ -72,13 +67,11 @@ function myMessage() {
     echo " "
 }
 
-# Desc: acd 操作？
-function acdul() {
+function acdul() { # Desc: acd 操作？
     acdcli ul -x 8 -r 4 -o "$@"
 }
 
-# Desc: 列出所有失效软连接
-function badlink() {
+function badlink() { # Desc: 列出所有失效软连接
     local readpath=$HOME
     if [ "" != "$1" ]; then
         readpath=$1
@@ -92,8 +85,7 @@ function badlink() {
     done
 }
 
-# Desc: 生成【参数为后缀名的】的数据文件
-function csbuild() {
+function csbuild() { # Desc: 生成【参数为后缀名的】的数据文件
     [ $# -eq 0 ] && return
 
     cmd="find `pwd`"
@@ -105,13 +97,11 @@ function csbuild() {
         cscope -b -q && rm cscope.files
 }
 
-# Desc: 清理摄像头缓存
-function clearcamera() {
+function clearcamera() { # Desc: 清理摄像头缓存
     sudo killall VDCAssistant
 }
 
-# Desc: 2019-07-12 TNT破解失效 更改签名
-function codesign() {
+function codesign() { # Desc: 2019-07-12 TNT破解失效 更改签名
     if [ $# -ne 1 ]; then
         echo "Type $0 App path to replace the app sign"
         return 1
@@ -124,21 +114,18 @@ function codesign() {
     fi
 }
 
-# Desc: Figlet 字体选择器
-function fgl() {
+function fgl() { # Desc: Figlet 字体选择器
     cd /usr/local/Cellar/figlet/*/share/figlet/fonts
     BASE=`pwd`
     figlet -f `ls *.flf | sort | fzf` $*
 }
 
-# Desc: 最简化 终端主题
-function miniprompt() {
+function miniprompt() { # Desc: 最简化 终端主题
     unset PROMPT_COMMAND
     PS1="\[\e[38;5;168m\]> \[\e[0m\]"
 }
 
-# Desc: 利用osx系统发音说话
-function speaking() {
+function speaking() { # Desc: 利用osx系统发音说话
     words=$1
     if [ $# -ne 1 ]; then
         echo "请输入要说的话"
@@ -149,13 +136,11 @@ function speaking() {
     osascript -e 'say "'$words'" using "Ting-Ting"'
 }
 
-# Desc: 获取哈尔滨天气
-function myweather() {
+function myweather() { # Desc: 获取哈尔滨天气
     /usr/bin/curl http://wttr.in/harbin?lang=zh
 }
 
-# Desc: 按执行次数倒序显示历史命令
-function history_sort() {
+function history_sort() { # Desc: 按执行次数倒序显示历史命令
     local last_command_type=`history | tail -n 1 | awk '{print($0~/^[-]?([0-9])+[.]?([0-9])+$/)?"number":"string"}'`
     if [ "$last_command_type" = "number" ]; then
         history | awk '{$1="";print}' | sort -rn | uniq -c | sort -rn | less
@@ -164,12 +149,10 @@ function history_sort() {
     fi
 }
 
-# Desc: 列出历史操作命令 选择后执行
-function fh() {
+function fh() { # Desc: 列出历史操作命令 选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
 }
 
-# Desc: help 帮助 man
-function help() {
+function help() { # Desc: help 帮助 man
     tldr $@
 }
