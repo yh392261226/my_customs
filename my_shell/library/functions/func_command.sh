@@ -160,3 +160,7 @@ function fh() { # Desc: fh:列出历史操作命令 选择后执行
 function help() { # Desc: help:help 帮助 tldr命令别名
     tldr $@
 }
+
+function p() { # Desc: p:ps -ef |grep 进程
+    ps -ef|grep "$@"
+}

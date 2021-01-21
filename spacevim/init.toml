@@ -112,7 +112,7 @@
 [[layers]]
     name = "colorscheme"
     random_theme = true                                 # 启动时随机选择主题
-    frequency = "daily"                                 # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
+    frequency = "hourly"                                 # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
 [[layers]]                                              # 禁用 shell 模块，禁用模块时，需要加入 enable = false
     name = "shell"
     enable = true
