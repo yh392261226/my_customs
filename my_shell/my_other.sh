@@ -27,7 +27,7 @@ elif [ "zsh" = "$nowshell" ]; then
     [[ -f $HOME/.fzf.zsh ]] && source $HOME/.fzf.zsh
 fi
 
-#eval $(thefuck --alias)
+eval $(thefuck --alias)
 
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
 if [ "bash" != "$nowshell" ]; then
