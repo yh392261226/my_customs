@@ -8,6 +8,7 @@ export GOPATH=$HOME/go-develop
 export PATH=$PATH:$GOPATH/bin
 export GOOS=darwin
 export GOARCH=amd64
+export GO111MODULE=on
 #export GOBOOK=$HOME/go-develop/gobook
 #. $GOBOOK/env.sh
 alias goweb="godoc -http=:9900 >> /dev/null &"
