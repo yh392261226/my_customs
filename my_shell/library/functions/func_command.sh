@@ -164,3 +164,15 @@ function help() { # Desc: help:help 帮助 tldr命令别名
 function p() { # Desc: p:ps -ef |grep 进程
     ps -ef|grep "$@"
 }
+
+if [ -f /usr/local/bin/bashtop ]; then
+    function btop() { # Desc: btop:bashtop命令的别名 
+        /usr/local/bin/bashtop "$@"
+    }
+fi
+
+if [ -f /usr/local/bin/shellcheck ]; then
+    function shell_debug() { # Desc:shell_debug:依赖shellcheck对shell脚本debug
+        /usr/local/bin/shellcheck "$@"
+    }
+fi
