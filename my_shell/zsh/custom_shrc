@@ -21,8 +21,6 @@ for custom_sh_config in $sh_config; do
     fi
 done
 
-#test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
-
 #不知道跟yadr的哪个插件冲突 所以必须单独引入
 source $my_custom_sh/zsh/zmy_changebg.zsh
 ### 引入我自己的配置：结束
