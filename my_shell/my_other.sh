@@ -55,3 +55,6 @@ if [ -d $MYRUNTIME/customs/enhancd/ ]; then
     export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
     export ENHANCD_HOOK_AFTER_CD="lsd -l"
 fi
+
+#iterm2 shell integration
+[[ -e $HOME/.iterm2_shell_integration.${nowshell} ]] && source $HOME/.iterm2_shell_integration.${nowshell}
