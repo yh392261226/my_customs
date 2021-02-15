@@ -13,6 +13,7 @@ source $my_custom_sh/my_func.sh
 ##source $my_custom_sh/my_import.sh
 source $my_custom_sh/my_go.sh
 source $my_custom_sh/my_php.sh
+source $my_custom_sh/my_python.sh
 source $my_custom_sh/my_ser.sh
 
 source $my_custom_sh/bash/zmy_changebg.bash
