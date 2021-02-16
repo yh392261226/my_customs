@@ -77,8 +77,14 @@ function phpcv() { # Desc: phpcv:PHP 依赖于brew 切换已安装版本
         ((posit+=1))
     done
 
-    echo "Which version do you want :"
+    echo "*******************************************************"
+    echo "Current version is : $(php -v)"
+    echo "*******************************************************"
+    echo "Which version do you want or exit type N/no :"
     read choose
+    if [ "$choose" = "N" ] || [ "$choose" = "no" ] || [ "$choose" = "n" ] || [ "$choose" = "NO" ] || [ "$choose" = "No" ]; then
+        return 0
+    fi
     if [ "$choose" -lt "${#versions[@]}" ]; then
         tmpfile=$(mktemp)
         echo "${commands[$choose]}" > $tmpfile
