@@ -55,7 +55,7 @@
     bootstrap_after = "myspacevim#after"
     search_tools = ["rg", "pt", "ack", "grep", "findstr"]
 
- ###### 主题背景颜色文字
+###### 主题背景颜色文字
     enable_guicolors = true                             # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
     #colorscheme_bg = "dark"                             # 背景可以取值 "dark" 或 "light"
     vimcompatible = true                                # vim兼容模式
@@ -123,7 +123,7 @@
 
 ###语言部分
 [[layers]]
-  name = "lang"
+    name = "lang"
 [[layers]]
     name = "lang#c"
 [[layers]]
@@ -141,8 +141,17 @@
     name = "lang#haskell"
 [[layers]]
     name = "lang#java"
+    java_file_head = [
+    '/**',
+    ' * @author : `fnamemodify(expand("~"), ":t")`',
+    ' * @created : `strftime("%Y-%m-%d")`',
+    '**/',
+    ''
+    ]
 [[layers]]
     name = "lang#javascript"
+    auto_fix = true
+    enable_flow_syntax = true
 [[layers]]
     name = "lang#lua"
 [[layers]]
@@ -153,12 +162,13 @@
     name = "lang#ruby"
 [[layers]]
     name = "lang#python"
+    enable_typeinfo = false
     python-file-head = [
-      '#!/usr/bin/env python',
-      '# -*- coding: utf-8 -*-',
-      '',
-      ''
-      ]
+'#!/usr/bin/env python',
+'# -*- coding: utf-8 -*-',
+'',
+''
+]
 [[layers]]
     name = "lang#rust"
 [[layers]]
@@ -184,25 +194,43 @@
 [[layers]]
     name = "lang#toml"
 [[layers]]
-   name = "lang#typescript"
+    name = "lang#typescript"
 [[layers]]
     name = "lang#markdown"
     enableWcwidth = 1
     listItemIndent = 1
 [[layers]]
-   name = "lang#html5"
+    name = "lang#html5"
 [[layers]]
-   name = "lang#html"
+    name = "lang#html"
 [[layers]]
-   name = "lang#rust"
+    name = "lang#rust"
 [[layers]]
-   name = "lang#python"
+    name = "lang#python"
 [[layers]]
-   name = "lang#kotlin"
+    name = "lang#kotlin"
 [[layers]]
-   name = "lang#dockerfile"
+    name = "lang#dockerfile"
 [[layers]]
-   name = "lang#goby"
+    name = "lang#goby"
+[[layers]]
+    name = "lang#actionscript"
+[[layers]]
+    name = "lang#asciidoc"
+[[layers]]
+    name = "lang#batch"
+[[layers]]
+    name = "lang#autohotkey"
+[[layers]]
+    name = "lang#coffeescript"
+[[layers]]
+    name = "lang#io"
+[[layers]]
+    name = "lang#ipynb"
+[[layers]]
+    name = "lang#livescript"
+[[layers]]
+    name = "lang#moonscript"
 [[layers]]
     name = "javascript"
 [[layers]]
@@ -238,20 +266,36 @@
     "html",         ## npm install -g vscode-html-languageserver-bin
     "python",       ## pip3 install -g python-language-server
     "php",          ## 自动安装
-    "sh"            ## npm install -g bash-language-server
+    "sh",           ## npm install -g bash-language-server
+    "css"           ## npm install -g vscode-css-languageserver-bin
     ]
     [layers.override_cmd]
     rust = ["rustup-init", "run", "nightly", "rls"]
+    php = ['php', '/Users/json/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
+    go = ['go-langserver', '-mode', 'stdio']
+    html = ['html-languageserver', '--stdio']
+    javascript = ['javascript-typescript-stdio']
+    python = ['pyls']
+    sh = ['bash-language-server', 'start']
+    typescript = ['typescript-language-server', '--stdio']
+    css = ['css-languageserver', '--stdio']
 [[layers]]
     name = "edit"
 [[layers]]
     name = "format"
+    enable = false
+    format_on_save = true
 [[layers]]
     name = "debug"
 [[layers]]
     name = "checkers"
+    enable_neomake = true
+    enable_ale = false
+    lint_on_the_fly = false
 [[layers]]
     name = "ui"
+    enable_scrollbar = true
+    enable_indentline = true
 [[layers]]
     name = "test"
 [[layers]]
@@ -270,8 +314,9 @@
     name = "operator"
 [[layers]]
     name = "tmux"
-#[[layers]]
-#   name = "cscope"
+    tmux_navigator_modifier = "alt"
+[[layers]]
+    name = "cscope"
 [[layers]]
     name = "exprfold"
 [[layers]]
@@ -286,14 +331,16 @@
 [[layers]]
     name = "tags"
 [[layers]]
-  name = "gtags"
-  gtagslabel = "pygments"
+    name = "gtags"
+    gtagslabel = "pygments"
 #[[layers]]
 #    name = "chat"
 [[layers]]
     name = "chinese"
 [[layers]]
     name = "floobits"
+[[layers]]
+    name = "foldsearch"
 [[layers]]
     name = "gtags"
 [[layers]]
@@ -304,14 +351,16 @@
 ###核心部分
 [[layers]]
     name = "core"
+    ##在文件树内显示隐藏的文件，默认是 false。
+    filetree_show_hidden = true
 [[layers]]
     name = "core#banner"
 [[layers]]
     name = "core#statusline"
-   enable = true
+    enable = true
 [[layers]]
     name = "core#tabline"
-   enable = true
+    enable = true
 [[layers]]
     name = "editing"
 [[layers]]
@@ -326,6 +375,8 @@
     name = "osx"
 [[layers]]
     name = "default"
+[[layers]]
+    name = "sudo"
 #  [layers.override_cmd]
 #    php = ["php-language-server"]
 
