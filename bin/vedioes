@@ -4,7 +4,8 @@
 
 
 COMMANDPATH=$MYRUNTIME/customs/others/vedio_spider
-PYTHONCOMMAND=/usr/local/bin/python3
+[[ -f /usr/local/bin/python3 ]] && PYTHONCOMMAND=/usr/local/bin/python3
+[[ -f /opt/homebrew/bin/python3 ]] && PYTHONCOMMAND=/opt/homebrew/bin/python3
 PAGESIZE=1
 SAVEDIR=$(cat $HOME/.vedio_path)
 vediolists=$(ls $SAVEDIR/)

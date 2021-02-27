@@ -69,8 +69,13 @@ if [ "$change_local_pic" = "1" ]; then
     	;;
 	esac
 fi
-if [ "train" = 1 ] && [ -f /usr/local/bin/sl ]; then
-	/usr/local/bin/sl
+if [ "train" = 1 ]; then
+	if [ -f /usr/local/bin/sl ]; then
+		/usr/local/bin/sl
+	fi
+	if [ -f /opt/homebrew/bin/sl ]; then
+		/opt/homebrew/bin/sl
+	fi
 	clear
 fi
 
