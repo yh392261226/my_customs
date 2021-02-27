@@ -6,7 +6,12 @@ set -gx USERNAME json
 set -gx GOPATH $HOME/go-develop
 set -gx GOOS darwin
 set -gx GOARCH amd64
-set -gx PATH /usr/local/opt/go/bin $GOPATH/bin $PATH
+if test -d /usr/local/opt/go/bin
+  set -gx PATH /usr/local/opt/go/bin $GOPATH/bin $PATH
+end
+if test -d /opt/homebrew/opt/go/bin
+  set -gx PATH /opt/homebrew/opt/go/bin $GOPATH/bin $PATH
+end
 set -gx PATH $MYRUNTIME/customs/bin $PATH
 set -gx PATH $MYRUNTIME/customs/bin/ssh-auto-login/auto_gen $PATH
 set -gx PATH /usr/local/bin /usr/local/sbin $PATH
@@ -18,7 +23,10 @@ set -gx PATH $HOME/.local/bin $PATH
 alias goweb "godoc -http=:9900 >> /dev/null &"
 alias vimgo 'vim -u ~/.vimrc.go'
 alias l "ls -a"
-alias lll "/usr/local/bin/ls++"
+if test -e /usr/local/bin/ls++
+  alias lll "/usr/local/bin/ls++"
+end
+
 alias gopl "open ~/Documents/golang/gopl-zh/_book/index.html"
 alias cl "clear"
 
@@ -80,4 +88,7 @@ sh {$MYRUNTIME}/customs/bin/extendslocatetochangepicurl
 ## autojump 引入
 if test -f /usr/local/share/autojump/autojump.fish
     source /usr/local/share/autojump/autojump.fish
+end
+if test -f /opt/homebrew/share/autojump/autojump.fish
+    source /opt/homebrew/share/autojump/autojump.fish
 end

@@ -1,15 +1,31 @@
 #!/usr/bin/env fish
 set -gx  SOURCED_FISH_CHANGEBG 1
 set -gx  show_msg 0 #是否显示当前切换图片地址提示
-set -gx  phpbin /usr/local/bin/php
+if test -e /usr/local/bin/php
+    set -gx  phpbin /usr/local/bin/php
+end
+if test -e /opt/homebrew/bin/php
+    set -gx  phpbin /opt/homebrew/bin/php
+end
 set -gx  MYSYSNAME Mac
 set -gx  ITERMPATH "/Applications/iTerm.app"
 # set -gx  image_list (/bin/ls $MYPATH/pictures/)
 set -gx  curappname (env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')
 set -gx  bg_change_can_use 0
-set -gx  bg_change_php_command_bin /usr/local/bin/php
+if test -e /usr/local/bin/php
+    set -gx  bg_change_php_command_bin /usr/local/bin/php
+end
+if test -e /opt/homebrew/bin/php
+    set -gx  bg_change_php_command_bin /opt/homebrew/bin/php
+end
 set -gx  bg_change_php_code_bin $MYPATH/customs/others/pictures.php
-set -gx  terminal_notifier_bin /usr/local/bin/terminal-notifier
+if test -e /usr/local/bin/terminal-notifier
+    set -gx  terminal_notifier_bin /usr/local/bin/terminal-notifier
+end
+if test -e /opt/homebrew/bin/terminal-notifier
+    set -gx  bg_change_php_command_bin /opt/homebrew/bin/terminal-notifier
+end
+
 #set -gx  osascript_bin /usr/bin/osascript
 set -gx  current_picturename {$MYPATH}/tools/current_picturename
 

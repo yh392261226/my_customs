@@ -1,5 +1,6 @@
 show_msg=0 #是否显示当前切换图片地址提示
-phpbin=/usr/local/bin/php
+[[ -f /usr/local/bin/php ]] && phpbin=/usr/local/bin/php
+[[ -f /opt/homebrew/bin/php ]] && phpbin=/opt/homebrew/bin/php
 emptybackground=$PICTURES_PATH/../public/t1l-logo-white-shitty.jpg
 PICTURES_PATH=$MYPATH/pictures/
 CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
