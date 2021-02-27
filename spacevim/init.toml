@@ -24,7 +24,7 @@
     vim_plug_installed=0
     windows_smartclose="q"
     #use_colorscheme=1
-    enable_ale=0
+    enable_ale=1
     enable_insert_leader=1
     enable_cursorcolumn=1
     enable_neocomplcache=0

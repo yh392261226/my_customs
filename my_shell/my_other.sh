@@ -1,3 +1,7 @@
+#!/bin/bash
+# File              : my_other.sh
+# Date              : 27.02.2021
+# Last Modified Date: 27.02.2021
 ### export 设定
 [[ -d $HOME/.nvm ]] && export NVM_DIR="$HOME/.nvm"
 
@@ -60,6 +64,9 @@ if [ -d $MYRUNTIME/customs/enhancd/ ]; then
     [[ -f /opt/homebrew/bin/peco ]] && export ENHANCD_FILTER="/opt/homebrew/bin/peco:fzf:non-existing-filter"
     export ENHANCD_HOOK_AFTER_CD="lsd -l"
 fi
+
+[[ -d $(yarn global bin) ]] && export PATH="$(yarn global bin):$PATH"
+[[ -d ~/.local/bin ]] && export PATH="~/.local/bin:$PATH"
 
 #iterm2 shell integration
 [[ -e $HOME/.iterm2_shell_integration.${nowshell} ]] && source $HOME/.iterm2_shell_integration.${nowshell}
