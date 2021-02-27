@@ -119,7 +119,7 @@ function codesign() { # Desc: codesign:2019-07-12 TNT破解失效 更改签名
 }
 
 function fgl() { # Desc: fgl:Figlet 字体选择器
-    cd /usr/local/Cellar/figlet/*/share/figlet/fonts
+    cd $(brew --prefix)/figlet/*/share/figlet/fonts
     BASE=`pwd`
     figlet -f `ls *.flf | sort | fzf` $*
 }

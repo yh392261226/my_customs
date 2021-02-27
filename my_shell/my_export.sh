@@ -2,13 +2,14 @@
 export PLATFORM=$(uname -s)
 export BASE=$HOME
 [[ -d /usr/local/opt/macvim ]] && export PATH="/usr/local/opt/macvim/bin:/usr/local/bin:$PATH"
-[[ -d /usr/local/var/rbenv ]] && export RBENV_ROOT=/usr/local/var/rbenv
+[[ -d /opt/homebrew/opt/macvim ]] && export PATH="/opt/homebrew/opt/macvim/bin:/usr/local/bin:$PATH"
+[[ -d /usr/local/var/rbenv ]] && export RBENV_ROOT=/usr/local/var/rbenv && eval "$(rbenv init -)"
 [[ -d /usr/local/opt/python ]] && export PATH="/usr/local/opt/python/bin:$PATH"
+[[ -d /opt/homebrew/opt/python ]] && export PATH="/opt/homebrew/opt/python/bin:$PATH"
 [[ -d /usr/local/opt/python@2/libexec/bin ]] && export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
 [[ -d $HOME/.cargo/bin ]] && export PATH="$HOME/.cargo/bin:/opt/local/bin:$PATH"
 [[ -d /opt/local/bin ]] && export PATH="/opt/local/bin:$PATH"
 [[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
-eval "$(rbenv init -)"
 [[ -d /usr/local/opt/pyenv ]] && export PYENV_ROOT="/usr/local/var/pyenv" && PATH="$PYENV_ROOT/bin:$PATH" && eval "$(pyenv init -)"
 if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
 
@@ -31,6 +32,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then
     [[ -d /usr/local/opt/coreutils/libexec/gnubin ]] && export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     [[ -d $HOME/.Pokemon-Terminal ]] && export PATH="$HOME/.Pokemon-Terminal:$PATH"
     [[ -d /usr/local/anaconda3/bin ]] && export PATH="/usr/local/anaconda3/bin/:$PATH"
+    [[ -d /opt/homebrew/bin ]] && export PATH="$PATH:/opt/homebrew/bin"
 else
     export PATH=$PATH:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/local/rvm/bin:$HOME/.cabal/bin
 fi

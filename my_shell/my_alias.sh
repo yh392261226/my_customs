@@ -1,11 +1,11 @@
 #####重定向 别名
 #vim
 
-alias vim="/usr/local/opt/macvim/bin/mvim -v"                         # vim alias link
-#alias vi='/usr/local/opt/macvim/bin/mvim -v'
-#alias vi='/usr/bin/vim'
-alias vi='/usr/local/bin/vim'
-alias nvi="/usr/local/bin/nvim"
+[[ -f /opt/homebrew/opt/macvim/bin/mvim ]] && alias vim="/opt/homebrew/opt/macvim/bin/mvim -v"                         # vim alias link
+[[ -f /usr/local/opt/macvim/bin/mvim ]] && alias vim="/usr/local/opt/macvim/bin/mvim -v"                         # vim alias link
+[[ -f /usr/bin/vim ]] && alias vi='/usr/bin/vim'
+[[ -f /opt/homebrew/bin/nvim ]] && alias nvi="/opt/homebrew/bin/nvim"
+[[ -f /usr/local/bin/nvim ]] && alias nvi="/usr/local/bin/nvim"
 alias vi2='vi -O2 '
 alias ephp='vim'
 alias epy='vim'
@@ -13,16 +13,20 @@ alias erb='vim'
 alias ehtml='vim'
 alias vom='vim'
 alias vum='vim'
-alias mvim='/usr/local/opt/macvim/bin/mvim -v'
-alias mvi='/usr/local/opt/macvim/bin/mvim -v'
-alias vimdiff="$(brew --prefix vim)/bin/vimdiff" # vimdiff alias link
+[[ -f /opt/homebrew/opt/macvim/bin/mvim ]] && alias mvim='/opt/homebrew/opt/macvim/bin/mvim -v'
+[[ -f /usr/local/opt/macvim/bin/mvim ]] && alias mvim='/usr/local/opt/macvim/bin/mvim -v'
+[[ -f /opt/homebrew/opt/macvim/bin/mvim ]] && alias mvi='/opt/homebrew/opt/macvim/bin/mvim -v'
+[[ -f /usr/local/opt/macvim/bin/mvim ]] && alias mvi='/usr/local/opt/macvim/bin/mvim -v'
+[[ -f /opt/homebrew/opt/macvim/bin/vimdiff ]] && alias vimdiff="/opt/homebrew/opt/macvim/bin/vimdiff" # vimdiff alias link
+[[ -f /usr/local/opt/macvim/bin/vimdiff ]] && alias vimdiff="/usr/local/opt/macvim/bin/vimdiff" # vimdiff alias link
 alias ehosts='sudo vim /etc/hosts'          # editHosts:        Edit /etc/hosts fil
 
 #directoy
 
 alias l='gls -aH --color=tty'               # Change the command l to ls -aH
-alias cls='/usr/local/bin/lsd'              # byond lsd change ls to colorful ls
-alias lll="/usr/local/bin/ls++"
+[[ -f /usr/local/bin/lsd ]] && alias cls='/usr/local/bin/lsd'              # byond lsd change ls to colorful ls
+[[ -f /opt/homebrew/bin/lsd ]] && alias cls='/opt/homebrew/bin/lsd'              # byond lsd change ls to colorful ls
+[[ -f /usr/local/bin/ls++ ]] && alias lll="/usr/local/bin/ls++"
 alias ks="ls"
 alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)
 alias cd.='cd ..'
@@ -91,7 +95,7 @@ alias pping='prettyping'                            # a nice way to show ping co
 
 alias gitv='git log --graph --format="%C(auto)%h%d %s %C(black)%C(bold)%cr"'
 alias gcid="git log | head -1 | awk '{print substr(\$2,1,7)}' | pbcopy"
-alias gith="/usr/bin/git stash"
+alias gith="git stash"
 git config --global alias.co checkout
 git config --global alias.ci commit
 git config --global alias.cm commit
@@ -124,9 +128,11 @@ alias dkcpstop="docker-compose stop"
 alias screensaverDesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'
 alias hc="history -c"
 alias typep='type -p'
-alias cl='/usr/bin/clear'
-alias woshi='/usr/bin/whoami'
+alias cl='clear'
+alias woshi='whoami'
 alias dut="$(whereis du) -sh"
 alias train="$(brew --prefix sl)/bin/sl"
-alias cnman='man -M /usr/local/share/man/zh_CN'
-alias cman='man -M /usr/local/share/man/zh_CN'
+[[ -d /usr/local/share/man/zh_CN ]] && alias cnman='man -M /usr/local/share/man/zh_CN'
+[[ -d /opt/homebrew/share/man/zh ]] && alias cnman='man -M /opt/homebrew/share/man/zh'
+[[ -d /usr/local/share/man/zh_CN ]] && alias cman='man -M /usr/local/share/man/zh_CN'
+[[ -d /opt/homebrew/share/man/zh ]] && alias cman='man -M /opt/homebrew/share/man/zh'

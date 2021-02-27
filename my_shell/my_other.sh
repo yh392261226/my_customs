@@ -22,7 +22,8 @@ if [ "bash" = "$nowshell" ]; then
     #source $HOME/git-completion.bash
     [[ -f $HOME/.fzf.bash ]] && source $HOME/.fzf.bash
 elif [ "zsh" = "$nowshell" ]; then
-    source $(brew --prefix)/share/antigen/antigen.zsh
+    [[ -f /opt/homebrew/share/antigen/antigen.zsh ]] && source /opt/homebrew/share/antigen/antigen.zsh
+    [[ -f /usr/local/share/antigen/antigen.zsh ]] && source /usr/local/share/antigen/antigen.zsh
 	# unset _fzf_completion_loaded
     [[ -f $HOME/.fzf.zsh ]] && source $HOME/.fzf.zsh
 fi
@@ -36,9 +37,12 @@ fi
 
 [[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start
 
-export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
-export LDFLAGS="-L/usr/local/opt/openssl/lib"
-export CPPFLAGS="-I/usr/local/opt/openssl/include"
+[[ -d /usr/local/opt/sphinx-doc/bin ]] && export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
+[[ -d /opt/homebrew/opt/sphinx-doc/bin ]] && export PATH="/opt/homebrew/opt/sphinx-doc/bin:$PATH"
+[[ -d /usr/local/opt/openssl/lib ]] && export LDFLAGS="-L/usr/local/opt/openssl/lib"
+[[ -d /opt/homebrew/opt/openssl/lib ]] && export LDFLAGS="-L/opt/homebrew/opt/openssl/lib"
+[[ -d /usr/local/opt/openssl/include ]] && export CPPFLAGS="-I/usr/local/opt/openssl/include"
+[[ -d /opt/homebrew/opt/openssl/include ]] && export CPPFLAGS="-I/opt/homebrew/opt/openssl/include"
 
 #fasd
 eval "$(fasd --init auto)"
@@ -52,7 +56,8 @@ fi
 if [ -d $MYRUNTIME/customs/enhancd/ ]; then
     export ENHANCD_COMMAND=ecd
     source $MYRUNTIME/customs/enhancd/my_init.sh
-    export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
+    [[ -f /usr/local/bin/peco ]] && export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
+    [[ -f /opt/homebrew/bin/peco ]] && export ENHANCD_FILTER="/opt/homebrew/bin/peco:fzf:non-existing-filter"
     export ENHANCD_HOOK_AFTER_CD="lsd -l"
 fi
 

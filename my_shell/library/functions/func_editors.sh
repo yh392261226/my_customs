@@ -35,12 +35,20 @@ function atomw() { # Desc: atomw:atom 编辑which命令找到的文件地址
 }
 
 function viw() { # Desc: viw:vim 编辑which命令找到的文件地址
-    local COMMANDBIN=/usr/local/bin/vim
+    if [ -f /usr/local/bin/vim ]; then
+        local COMMANDBIN=/usr/local/bin/vim
+    elif [ -f /opt/homebrew/bin/vim ]; then
+        local COMMANDBIN=/opt/homebrew/bin/vim
+    fi
     editorw $COMMANDBIN $1
 }
 
 function nviw() { # Desc: nviw:neovim 编辑which命令找到的文件地址
-    local COMMANDBIN=/usr/local/bin/nvim
+    if [ -f /usr/local/bin/nvim ]; then
+        local COMMANDBIN=/usr/local/bin/nvim
+    elif [ -f /opt/homebrew/bin/nvim ]; then
+        local COMMANDBIN=/usr/local/bin/nvim
+    fi
     editorw $COMMANDBIN $1
 }
 
