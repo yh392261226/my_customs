@@ -54,7 +54,7 @@ eval "$(fasd --init auto)"
 
 #vim&nvim  remote
 if [ -f $HOME/.SpaceVim ] || [ -d $HOME/.SpaceVim ]; then 
-	export PATH=$PATH:$HOME/.SpaceVim/bin
+	export PATH=$HOME/.SpaceVim/bin:$PATH
 fi
 
 if [ -d $MYRUNTIME/customs/enhancd/ ]; then

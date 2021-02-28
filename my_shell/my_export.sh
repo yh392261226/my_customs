@@ -32,9 +32,9 @@ if [ "$MYSYSNAME" = "Mac" ]; then
     [[ -d /usr/local/opt/coreutils/libexec/gnubin ]] && export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
     [[ -d $HOME/.Pokemon-Terminal ]] && export PATH="$HOME/.Pokemon-Terminal:$PATH"
     [[ -d /usr/local/anaconda3/bin ]] && export PATH="/usr/local/anaconda3/bin/:$PATH"
-    [[ -d /opt/homebrew/bin ]] && export PATH="$PATH:/opt/homebrew/bin"
+    [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
 else
-    export PATH=$PATH:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/local/rvm/bin:$HOME/.cabal/bin
+    export PATH=/usr/local/rvm/bin:$HOME/.cabal/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:$PATH
 fi
 
 ######设置editor

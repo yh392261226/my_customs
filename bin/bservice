@@ -77,23 +77,44 @@ else
     echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
     [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
+    [[ -L /opt/homebrew/etc/my.cnf ]] && rm -f /opt/homebrew/etc/my.cnf
     [[ -L /private/etc/my.cnf ]] && sudo rm -f /private/etc/my.cnf
 	  case "$myservice" in
 	  	"mysql") #默认8.0
-		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf
-      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /private/etc/my.cnf
+	      if [ -d /usr/local/etc/ ]; then
+		    ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /usr/local/etc/my.cnf
+		  fi
+          if [ -d /opt/homebrew/etc/ ]; then
+		    ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /opt/homebrew/etc/my.cnf
+		  fi
+          sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/8.0/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.5")
-		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /usr/local/etc/my.cnf
-      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /private/etc/my.cnf
+          if [ -d /usr/local/etc/ ]; then
+		    ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /usr/local/etc/my.cnf
+		  fi
+          if [ -d /opt/homebrew/etc/ ]; then
+          	ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /opt/homebrew/etc/my.cnf
+		  fi
+          sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.6")
-		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /usr/local/etc/my.cnf
-      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /private/etc/my.cnf
+          if [ -d /usr/local/etc/ ]; then
+		    ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /usr/local/etc/my.cnf
+		  fi
+          if [ -d /opt/homebrew/etc/ ]; then
+          	ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /opt/homebrew/etc/my.cnf
+		  fi
+          sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.7")
-		  ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /usr/local/etc/my.cnf
-      sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /private/etc/my.cnf
+          if [ -d /usr/local/etc/ ]; then
+		    ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /usr/local/etc/my.cnf
+		  fi
+          if [ -d /opt/homebrew/etc/ ]; then
+          	ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /opt/homebrew/etc/my.cnf
+		  fi
+          sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.7/my.cnf /private/etc/my.cnf
 		;;
 	  esac
     fi
@@ -133,11 +154,11 @@ else
     "processlist")
       if [ "$ismysql" = "true" ]; then
         [[ -f $MYRUNTIME/tools/m_mysql ]] && source $MYRUNTIME/tools/m_mysql || echo "ERROR: m_mysql does not exists!";
-        custom_title  "/usr/local/bin/mysqladmin -u$user -p"$pass" -h$host -P$port processlist -i 1"
+        custom_title  "mysqladmin -u$user -p"$pass" -h$host -P$port processlist -i 1"
         echo "-------------------------------------------------"
         custom_title "Result:"
         echo ""
-        /usr/local/bin/mysqladmin -u$user -p$pass -h$host -P$port processlist -i 1
+        mysqladmin -u$user -p$pass -h$host -P$port processlist -i 1
       else
         echo "-------------------------------------------------"
         custom_title "Result:"
@@ -159,27 +180,27 @@ else
         echo "-------------------------------------------------"
         custom_title "Result:"
         echo ""
-        /usr/local/bin/mycli -u$user -p$pass -h$host -P$port --myclirc=$myclirc
+        mycli -u$user -p$pass -h$host -P$port --myclirc=$myclirc
       elif [ "$myservice" = "redis" ]; then
         [[ -f $MYRUNTIME/tools/m_redis ]] && source $MYRUNTIME/tools/m_redis || echo "ERROR: m_redis does not exists!";
-        custom_title  "/usr/local/bin/redis-cli -h $host -p $port"
+        custom_title  "redis-cli -h $host -p $port"
         echo "-------------------------------------------------"
         custom_title "Result:"
         echo ""
-        /usr/local/bin/redis-cli -h $host -p $port
+        redis-cli -h $host -p $port
       elif [ "$myservice" = "mongo" ]; then
-        custom_title  "/usr/local/bin/mongo"
+        custom_title  "mongo"
         echo "-------------------------------------------------"
         custom_title "Result:"
         echo ""
-        /usr/local/bin/mongo
+        mongo
       elif [ "$myservice" = "memcached" ]; then
         [[ -f $MYRUNTIME/tools/m_memcached ]] && source $MYRUNTIME/tools/m_memcached || echo "ERROR: m_memcached does not exists!";
-        custom_title  "/usr/local/bin/telnet $host $port"
+        custom_title  "telnet $host $port"
         echo "-------------------------------------------------"
         custom_title "Result:"
         echo ""
-        /usr/local/bin/telnet $host $port
+        telnet $host $port
       fi
       ;;
     *)

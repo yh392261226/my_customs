@@ -5,19 +5,26 @@ MYRUNTIME=$(cat $HOME/.myruntime)
 my_custom_sh=$MYRUNTIME/customs/my_shell
 
 source $my_custom_sh/my_basic.sh
+source $my_custom_sh/my_common.sh
 source $my_custom_sh/my_prompt.sh
 source $my_custom_sh/my_export.sh
 source $my_custom_sh/my_alias.sh
+source $my_custom_sh/my_func.sh
 source $my_custom_sh/my_other.sh
 source $my_custom_sh/my_func.sh
-##source $my_custom_sh/my_import.sh
+source $my_custom_sh/my_powerline.sh
 source $my_custom_sh/my_go.sh
 source $my_custom_sh/my_php.sh
 source $my_custom_sh/my_python.sh
+source $my_custom_sh/my_java.sh
+source $my_custom_sh/my_composer.sh
 source $my_custom_sh/my_ser.sh
+source $my_custom_sh/my_proxy.sh
 
 source $my_custom_sh/bash/zmy_changebg.bash
 source $my_custom_sh/bash/zmy_other.bash
+
+[[ -f $my_custom_sh/customs.sh ]] && source $my_custom_sh/customs.sh
 
 #
 goto () {

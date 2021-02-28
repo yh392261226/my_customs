@@ -1,8 +1,6 @@
 ### spacevim的配置文件； 复制该文件至~/.Spacevim.d/init.toml   安装https://github.com/spacevim/spacevim的配置文件
 [options] # 所有的 SpaceVim 选项都列在 [options] 之下
 ####### 默认配置
-#python3_host_prog = /usr/local/opt/python@3/bin/python3
-#python2_host_prog = /usr/local/bin/python2
     enc = "utf-8"                                       # 设置默认编码utf-8
     enable_debug = false                                # 是否打开debug调试模式
     plugin_bundle_dir = "~/.SpaceVim/vim-plugin-files/" # 插件下载目录
