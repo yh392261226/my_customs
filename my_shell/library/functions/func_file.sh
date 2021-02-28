@@ -74,3 +74,31 @@ function mla() { # Desc: mla:变更权限rwx为权限值【777】
         printf(" %9s  %3s %2s %5s  %6s  %s %s %s\n", $3, $6, $7, $8, $5, $9,$10, $11);
         }'
 }
+
+function headw() { # Desc: headw:head命令打印which命令找到的文件地址
+    command -v "$1" > /dev/null 2>&1
+    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    lines=50
+    if [ "" != "$2" ]; then
+        lines=$2
+    fi
+    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+        head -n $lines `which "$1"`
+    else
+        head -n $lines $(type "$1" | awk '{print $NF}')
+    fi
+}
+
+function tailw() { # Desc: tailw:tail命令打印which命令找到的文件地址
+    command -v "$1" > /dev/null 2>&1
+    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    lines=50
+    if [ "" != "$2" ]; then
+        lines=$2
+    fi
+    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+        tail -n $lines `which "$1"`
+    else
+        tail -n $lines $(type "$1" | awk '{print $NF}')
+    fi
+}
