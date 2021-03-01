@@ -1,9 +1,6 @@
 " File              : myspacevim.vim
-" Date              : 27.02.2021
-" Last Modified Date: 27.02.2021
-" File              : myspacevim.vim
-" Date              : 17.02.2021
-" Last Modified Date: 17.02.2021
+" Date              : 01.03.2021
+" Last Modified Date: 01.03.2021
 function! myspacevim#before() abort
     let g:loaded_python_provider = 1
     let g:python2_host_prog = '/usr/bin/python2'
