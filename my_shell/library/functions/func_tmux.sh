@@ -14,7 +14,7 @@ function tmuxf() { # Desc: tmuxf:tmux 根据选择使用配置文件
             #echo ${configs[2]}
             read conf
             if [ "$conf" -lt "${#configs[*]}" ]; then
-                /usr/local/bin/tmux -f ${configs[$conf]}
+                tmux -f ${configs[$conf]}
                 return 0
             else
                 echo "The config you choose does not exists ！！！";
