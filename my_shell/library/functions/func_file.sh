@@ -102,3 +102,31 @@ function tailw() { # Desc: tailw:tail命令打印which命令找到的文件地�
         tail -n $lines $(type "$1" | awk '{print $NF}')
     fi
 }
+
+function slink() { # Desc: slink:配置文件链接
+    if [ "" != "$CPUCORE" ]; then
+        if [ "$CPUCORE" = "arm64" ]; then
+            #redis
+            rm -f /opt/homebrew/etc/redis-sentinel.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis_arm64/redis-sentinel.conf /opt/homebrew/etc/redis-sentinel.conf
+            rm -f /opt/homebrew/etc/redis.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis_arm64/redis.conf /opt/homebrew/etc/redis.conf
+            #php
+            rm -rf /opt/homebrew/etc/php && ln -sf $HOME/data/data/Dropbox/working/coding/conf/php_arm64/ /opt/homebrew/etc/php
+            #mysql
+            rm -f /opt/homebrew/etc/my.cnf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/mysql_arm64/8.0/my.cnf /opt/homebrew/etc/my.cnf
+            #nginx
+            rm -rf /opt/homebrew/etc/nginx && ln -sf $HOME/data/data/Dropbox/working/coding/conf/nginx_arm64/ /opt/homebrew/etc/nginx
+        fi
+
+        if [ "$CPUCORE" = "intel64" ]; then
+            #redis
+            rm -f /opt/homebrew/etc/redis-sentinel.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis/redis-sentinel.conf /opt/homebrew/etc/redis-sentinel.conf
+            rm -f /opt/homebrew/etc/redis.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis/redis.conf /opt/homebrew/etc/redis.conf
+            #php
+            rm -rf /opt/homebrew/etc/php && ln -sf $HOME/data/data/Dropbox/working/coding/conf/php/ /opt/homebrew/etc/php
+            #mysql
+            rm -f /opt/homebrew/etc/my.cnf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/mysql/8.0/my.cnf /opt/homebrew/etc/my.cnf
+            #nginx
+            rm -rf /opt/homebrew/etc/nginx && ln -sf $HOME/data/data/Dropbox/working/coding/conf/nginx/ /opt/homebrew/etc/nginx
+        fi
+    fi
+}

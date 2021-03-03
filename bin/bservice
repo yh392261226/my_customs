@@ -76,8 +76,8 @@ else
   if [ "$ismysql" = "true" ]; then
     echo "如果mysql出现问题，需要更改plist文件，进入mysql的base目录 修改目录下的plist文件即可"
     if [ "$myoption" = "start" ] || [ "$myoption" = "restart" ]; then
-    [[ "intel64" = "$CPUCORE" ]] && [[ -L /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
-    [[ "arm64" = "$CPUCORE" ]] && [[ -L /opt/homebrew/etc/my.cnf ]] && rm -f /opt/homebrew/etc/my.cnf
+    [[ "intel64" = "$CPUCORE" ]] && [[ -f /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
+    [[ "arm64" = "$CPUCORE" ]] && [[ -f /opt/homebrew/etc/my.cnf ]] && rm -f /opt/homebrew/etc/my.cnf
     [[ -L /private/etc/my.cnf ]] && sudo rm -f /private/etc/my.cnf
 	  case "$myservice" in
 	  	"mysql") #默认8.0
@@ -91,22 +91,16 @@ else
 		    fi
 		;;
 		"mysql@5.5")
-        if [ -d /usr/local/etc/ ]; then
+        if [ -d /usr/local/etc/ ] && [ "intel64" = "$CPUCORE" ]; then
 		      ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /usr/local/etc/my.cnf
+          sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /private/etc/my.cnf
 		    fi
-        if [ -d /opt/homebrew/etc/ ]; then
-         	ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /opt/homebrew/etc/my.cnf
-		    fi
-        sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.5/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.6")
-        if [ -d /usr/local/etc/ ]; then
+        if [ -d /usr/local/etc/ ] && [ "intel64" = "$CPUCORE" ]; then
 		      ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /usr/local/etc/my.cnf
+          sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /private/etc/my.cnf
 		    fi
-        if [ -d /opt/homebrew/etc/ ]; then
-          ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /opt/homebrew/etc/my.cnf
-		    fi
-        sudo ln -sf $HOME/Dropbox/working/coding/conf/mysql/5.6/my.cnf /private/etc/my.cnf
 		;;
 		"mysql@5.7")
 	      if [ -d /usr/local/etc/ ] && [ "intel64" = "$CPUCORE" ]; then
