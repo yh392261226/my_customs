@@ -1,0 +1,318 @@
+    1  /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+    4  sudo spctl --master-disable
+    7  sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+   35  mkdir -p ~/data/app/www/
+   70  touch ~/.myruntime
+   75  export HTTP_PROXY=http://127.0.0.1:58591; export HTTPS_PROXY=http://127.0.0.1:58591; export ALL_PROXY=socks5://127.0.0.1:51837
+   77  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   78  sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+   88  ln -sf ~/data/data/.runtime ~/.runtime
+   100  ln -sf ~/data/data/down_pics ~/Pictures/down_pic
+  132  brew install aalib
+  133  brew install abseil
+  134  brew install ack
+  141  brew install python
+  142  brew install adns
+  143  brew install adwaita-icon-theme
+  144  brew install aircrack-ng
+  145  brew install ansible
+  146  brew install ansifilter
+  147  brew install asdf apr antigen archey argon2 arpack asciidoc asciinema aspell astyle autoconf autojump automake autotrace automysqlbackup awk bash
+  151  brew install proxychains-ng psgrep pstoedit pstree psutils pth pugixml pulseaudio push-stream-nginx-module pv py2cairo py3cairo pyenv pyenv-virtualenv pygobject pygobject3 pygtk pyqt pyside python@2 python@3.8 python@3.9
+  161  brew tap thoughtbot/formulae
+  168  ln -sf ~/.runtime/oh-my-zsh ~/.oh-my-zsh
+  176  brew tap aspnet/homebrew-dnx
+  177  brew tap bramstein/homebrew-webfonttools
+  178  brew tap caskformula/homebrew-caskformula
+  179  brew tap caskformula/caskroom
+  180  brew tap cjbassi/homebrew-gotop
+  182  brew tap cjbassi/homebrew-gotop
+  183  brew tap cowsay-org/homebrew-cowsay
+  184  brew tap denji/homebrew-nginx
+  185  brew tap discoteq/homebrew-discoteq
+  186  brew tap getantibody/homebrew-tap
+  187  brew tap git-time-metric/homebrew-gtm
+  188  brew tap go-delve/homebrew-delve
+  189  brew tap goby-lang/homebrew-goby
+  190  brew tap homebrew/homebrew-aliases
+  191  brew tap homebrew/homebrew-bundle
+  192  brew tap homebrew/homebrew-cask
+  193  brew tap homebrew/homebrew-cask-drivers
+  195  brew tap homebrew/homebrew-cask-fonts
+  196  brew tap homebrew/homebrew-cask-versions
+  197  brew tap homebrew/homebrew-command-not-found
+  198  brew tap homebrew/homebrew-livecheck/homebrew-services
+  199  brew tap jdxcode/homebrew-brew
+  200  brew tap jesseduffield/homebrew-lazygit
+  201  brew tap jimbojsb/homebrew-launchrocket
+  202  brew tap koekeishiya/homebrew-formulae
+  203  brew tap madcapjake/homebrew-lbstanza
+  204  brew tap neovim/homebrew-neovim
+  205  brew tap passy/homebrew-givegif
+  206  brew tap phinze/homebrew-cask
+  207  brew tap phinze/cask
+  208  brew tap homebrew/cask
+  209  brew tap possatti/homebrew-possatti
+  210  brew tap railwaycat/homebrew-emacsmacport
+  211  brew tap rs/homebrew-tap
+  212  brew tap shivammathur/homebrew-extensions
+  213  brew tap shivammathur/homebrew-openssl-deprecated
+  214  brew tap shivammathur/homebrew-php
+  215  brew tap supermomonga/homebrew-splhack
+  216  brew tap thoughtbot/homebrew-formulae
+  217  brew tap timothyye/homebrew-tap
+  218  brew tap yudai/homebrew-gotty
+  219  brew install axel bash-completion bash-completion@2 bat beanstalkd bench binutils binwalk bison boost bork brew-php-switcher bsdmake burl bzip2 cabal-install cairo cairomm camlp4 capnp ccat cheat chromaprint chruby chruby-fish cifer clingo cloc cmake cmatrix colordiff composer 
+  220  brew install php php-code-sniffer php-cs-fixer php-version php@5.6 php@7.0 php@7.1 php@7.2 php@7.3 php@7.4  phplint  phpmd  phpstan  phpunit  pickle  pidcat  pidof  pigz  pinentry  pipenv  pixman  pkg-config  pkgdiff  platformio
+  221  brew install asdf apr antigen archey argon2 arpack asciidoc asciinema aspell astyle autoconf autojump automake autotrace automysqlbackup awk bash
+  222  brew tap homebrew/core
+  240  brew install axel
+  241  brew install bash-completion
+  242  brew search composer
+  243  which composer
+  244  brew install composer
+  333  brew tap beeftornado/rmtree  # 循环移除指令的仓库
+  334  brew tap homebrew/cask  # 「Casks」
+  339  brew tap homebrew/cask-fonts  # 字体仓库
+  340  brew tap homebrew/cask-versions  # 历史版本软件包仓库
+  341  brew tap homebrew/services  # 服务指令仓库
+  342  brew tap homebrew/aliases
+  343  brew tap homebrew/homebrew-livecheck
+  344  brew tap homebrew/command-not-found
+  345  brew tap homebrew/bundle
+  346  brew tap shivammathur/php
+  347  brew tap shivammathur/extensions
+  348  brew tap neovim/neovim
+  349  brew tap cowsay-org/cowsay
+  350  brew tap denji/nginx
+  351  brew tap cjbassi/gotop
+  352  brew tap homebrew/core  # 「Formulae」
+  353  brew install  bash-completion bash-completion@2 bat beanstalkd bench binutils binwalk bison boost bork brew-php-switcher bsdmake burl bzip2 cabal-install cairo cairomm camlp4 capnp ccat cheat chromaprint chruby chruby-fish cifer clingo cloc cmake cmatrix colordiff composer 
+  354  brew install  bash-completion bash-completion@2 bat beanstalkd bench binutils binwalk bison boost bork brew-php-switcher bsdmake burl bzip2 cabal-install cairo cairomm capnp ccat cheat chromaprint chruby chruby-fish cifer clingo cloc cmake cmatrix colordiff composer 
+  355  brew unlink bash-completion;\nbrew install  bash-completion@2 bat beanstalkd bench binutils binwalk bison boost bork brew-php-switcher bsdmake burl bzip2 cabal-install cairo cairomm capnp ccat cheat chromaprint chruby chruby-fish cifer clingo cloc cmake cmatrix colordiff composer 
+  356  brew --prefix
+  357  brew install  bash-completion@2 bat beanstalkd bench binutils binwalk bison boost bork brew-php-switcher bsdmake burl bzip2 cabal-install cairo cairomm capnp ccat cheat chromaprint chruby chruby-fish cifer clingo cloc cmake cmatrix colordiff composer 
+  358  brew install --build-from-source chromaprint binwalk bench
+  359  brew install php php-code-sniffer php-cs-fixer php-version php@5.6 php@7.0 php@7.1 php@7.2 php@7.3 php@7.4  phplint  phpmd  phpstan  phpunit  pickle  pidcat  pidof  pigz  pinentry  pipenv  pixman  pkg-config  pkgdiff  platformio
+  360  brew install php php-code-sniffer
+  361  brew install php-cs-fixer php-version php@5.6 php@7.0 php@7.1 php@7.2 php@7.3 php@7.4  
+  362  brew install php-cs-fixer php@5.6 php@7.0 php@7.1 php@7.2 php@7.3 php@7.4  
+  363  brew install phplint  phpmd  phpstan  phpunit  pickle  pidcat  pidof  pigz  pinentry  pipenv  pixman  pkg-config  pkgdiff  platformio
+  364  brew install asdf apr antigen archey argon2 arpack asciidoc asciinema aspell astyle autoconf autojump automake autotrace automysqlbackup awk bash
+  365  brew install asdf apr antigen archey argon2 arpack asciidoc asciinema aspell astyle autoconf autojump automake automysqlbackup awk bash
+  366  brew unlink gawk
+  367  brew install asdf apr antigen archey argon2 arpack asciidoc asciinema aspell astyle autoconf autojump automake automysqlbackup awk bash
+  368  brew install confuse coreutils corkscrew cowsay cowsay-apj cpanminus cscope ctags ctags-objc-ja cunit curl cython  czmq dark-mode dash dbus  dcd dcraw deployer dex2jar diff-so-fancy diffutils direnv dirmngr dmd dns2tcp
+  369  brew install confuse coreutils corkscrew cowsay cowsay-apj cpanminus cscope ctags cunit curl cython  czmq dark-mode dash dbus  dcd dcraw deployer dex2jar diff-so-fancy diffutils direnv dirmngr dmd dns2tcp
+  370  brew install confuse coreutils corkscrew cowsay cowsay-apj cpanminus cscope ctags cunit curl cython  czmq dark-mode dash dbus  dcd dcraw deployer dex2jar diff-so-fancy diffutils direnv dmd dns2tcp
+  371  brew unlink cowsay
+  372  brew install confuse coreutils corkscrew cowsay cowsay-apj cpanminus cscope ctags cunit curl cython  czmq dark-mode dash dbus  dcd dcraw deployer dex2jar diff-so-fancy diffutils direnv dmd dns2tcp
+  373  brew install confuse coreutils corkscrew cowsay cowsay-apj cpanminus cscope ctags cunit curl cython  czmq dark-mode dash dbus  dcd dcraw deployer dex2jar diff-so-fancy diffutils dmd dns2tcp
+  374  brew install confuse coreutils corkscrew cowsay cowsay-apj cpanminus cscope ctags cunit curl cython  czmq dark-mode dash dbus  dcd dcraw deployer dex2jar diff-so-fancy diffutils dns2tcp
+  375  brew install --build-from-source dark-mode dcd 
+  376  brew install dnsmasq  docbook docbook-xsl docker docker-compose docker-machine docutils dos2unix  double-conversion  doxygen  ed editorconfig eg-examples eigen elasticsearch elixir emacs epsilon epstool
+  377  brew install --build-from-source editorconfig elasticsearch
+  379  brew install erlang espeak exa  exchangerate exenv exiftool expat expect extract_url  faac fasd fcrackzip fd fdk-aac figlet file-formula findutils fish fisherman flac flock flow fltk fontconfig foremost fortune fpp freetds  freetype freexl
+  380  brew install erlang espeak exa  exenv exiftool expat expect extract_url  faac fasd fcrackzip fd fdk-aac figlet file-formula findutils fish fisherman flac flock flow fltk fontconfig foremost fortune fpp freetds  freetype freexl
+  381  brew install erlang espeak exa  exenv exiftool expat expect extract_url  faac fasd fcrackzip fd fdk-aac figlet file-formula findutils fish  flac flock flow fltk fontconfig foremost fortune fpp freetds  freetype freexl
+  382  brew install frei0r fribidi fzf fzy game-music-emu gawk gcc gd gdb  gdbm geoip geos gettext gflags ghc  ghi ghostscript giflib git git-annex git-extras git-flow git-flow-avh git-lfs git-town  gitsh glib glib-networking glib-openssl glibmm glide global glog
+  383  brew install frei0r fribidi fzf fzy game-music-emu gawk gcc gd gdb  gdbm geoip geos gettext gflags ghc  ghi ghostscript giflib git git-annex git-extras git-flow git-flow-avh git-lfs git-town  glib glib-networking glib-openssl glibmm glide global glog
+  384  brew unlink git-flow
+  385  brew install frei0r fribidi fzf fzy game-music-emu gawk gcc gd gdb  gdbm geoip geos gettext gflags ghc  ghi ghostscript giflib git git-annex git-extras git-flow git-flow-avh git-lfs git-town  glib glib-networking glib-openssl glibmm glide global glog
+  386  brew install --build-from-source gdb ghc git-annex 
+  387  brew install --build-from-source ghc git-annex 
+  388  brew install --build-from-source git-annex 
+  389  brew install grpc gsasl gsl guile gzip harfbuzz hashpump haskell-platform hbase hdf5 highlight htop http_load httpd  httpie httpstat hub hugo hwloc hydra hyperspec icdiff icoutils icu4c id3tool idutils iftop igbinary ilmbase
+  390  brew install grpc gsasl gsl guile gzip harfbuzz hashpump hbase hdf5 highlight htop http_load httpd  httpie httpstat hub hugo hwloc hydra hyperspec icdiff icoutils icu4c id3tool idutils iftop igbinary ilmbase
+  391  brew install grpc gsasl gsl guile gzip harfbuzz hashpump hbase hdf5 highlight htop http_load httpd  httpie httpstat hub hugo hwloc hydra hyperspec icdiff icoutils icu4c id3tool idutils iftop  ilmbase
+  392  brew unlink coreutils
+  393  brew install grpc gsasl gsl guile gzip harfbuzz hashpump hbase hdf5 highlight htop http_load httpd  httpie httpstat hub hugo hwloc hydra hyperspec icdiff icoutils icu4c id3tool idutils iftop  ilmbase
+  394  brew install imagemagick  imagesnap imagick@5.6 imagick@7.0 imagick@7.1 imagick@7.2 imagick@7.3 imagick@7.4 imap-uw  imap@5.6  imap@7.0  imap@7.1  imap@7.2  imap@7.3  imap@7.4 imessage-ruby imlib2 inetutils inlets intltool ipcalc ipv6calc ipv6toolkit irssi isl  jam  jansson  jasper  jemalloc  jenv  john  jpeg  jplot  jq json-c json-glib jsoncpp jsonpp kafka kafkacat keychain knock
+  395  brew install imagemagick  imagesnap imagick@5.6 imagick@7.0 imagick@7.1 imagick@7.2 imagick@7.3 imagick@7.4 imap-uw  imap@5.6  imap@7.0  imap@7.1  imap@7.2  imap@7.3  imap@7.4 imessage-ruby imlib2 inetutils inlets intltool ipcalc ipv6calc ipv6toolkit irssi isl  jam  jansson  jasper  jemalloc  jenv  john  jpeg   jq json-c json-glib jsoncpp jsonpp kafka kafkacat keychain knock
+  396  brew install --build-from-source kafka
+  397  brew install kotlin krb5 kwm lame latlon lazygit ldns leptonica less lesspipe leveldb libass libassuan libav libbluray libbs2b libcaca libcbor libcerf libcouchbase libcroco libdap libde265 libdnet libepoxy libev libevent libffi libfido2 libftdi libgcrypt libgeotiff libgpg-error libgphoto2 libgsm libheif libice libicns libiconv libidn libidn2 libiscsi libksba liblqr libmagic
+  398  brew install kotlin krb5  lame latlon lazygit ldns leptonica less lesspipe leveldb libass libassuan libav libbluray libbs2b libcaca libcbor libcerf libcouchbase libcroco libdap libde265 libdnet libepoxy libev libevent libffi libfido2 libftdi libgcrypt libgeotiff libgpg-error libgphoto2 libgsm libheif libice libicns libiconv libidn libidn2 libiscsi libksba liblqr libmagic
+  399  brew install kotlin krb5  lame  lazygit ldns leptonica less lesspipe leveldb libass libassuan libav libbluray libbs2b libcaca libcbor libcerf libcouchbase libcroco libdap libde265 libdnet libepoxy libev libevent libffi libfido2 libftdi libgcrypt libgeotiff libgpg-error libgphoto2 libgsm libheif libice libicns libiconv libidn libidn2 libiscsi libksba liblqr libmagic
+  400  brew install --build-from-source leveldb
+  401  brew install libmaxminddb libmemcached libmetalink libmodplug libmpc libmpdclient libmustache libodbc++ libogg libomp libplist libpng libpq libpsl libpthread-stubs libquvi librdkafka libressl librsvg librttopo libsamplerate libserdes libsigc++ libsigc++@2 libsm libsndfile libsodium libsoup libsoxr libspatialite libssh libssh2 libtasn1 libtermkey libtiff libtool libunistring libusb libusb-compat libusbmuxd libuv libvidstab libvirt libvo-aacenc libvorbis
+  402  brew install libmaxminddb libmemcached libmetalink libmodplug libmpc libmpdclient libodbc++ libogg libomp libplist libpng libpq libpsl libpthread-stubs libquvi librdkafka libressl librsvg librttopo libsamplerate libserdes libsigc++ libsigc++@2 libsm libsndfile libsodium libsoup libsoxr libspatialite libssh libssh2 libtasn1 libtermkey libtiff libtool libunistring libusb libusb-compat libusbmuxd libuv libvidstab libvirt libvo-aacenc libvorbis
+  403  brew install libmaxminddb libmemcached libmetalink libmodplug libmpc libmpdclient libogg libomp libplist libpng libpq libpsl libpthread-stubs libquvi librdkafka libressl librsvg librttopo libsamplerate libserdes libsigc++ libsigc++@2 libsm libsndfile libsodium libsoup libsoxr libspatialite libssh libssh2 libtasn1 libtermkey libtiff libtool libunistring libusb libusb-compat libusbmuxd libuv libvidstab libvirt libvo-aacenc libvorbis
+  404  brew install libvpx libvterm libwbxml libwebsockets libx11 libxau libxcb libxdmcp libxext libxft libxkbcommon libxml2 libxmu libxp libxrender libxt libyaml libzip links little-cms little-cms2 llvm
+  405  brew install meson metis mhash midnight-commander minizip mongodb moreutils mosh mosquitto most  mpc mpfr msgpack mtr multimarkdown mupdf-tools mycli mysql mysql-client mysql-search-replace mysql@5.6 mysql@5.7 mytop  narwhal nasm ncbi-c++-toolkit ncdu ncurses neofetch neovim net-snmp netcat netcdf netpbm nettle nghttp2 ngx-devel-kit ninja nkf nmap nnn node npth nspr nss ntopng numpy nvm nyancat ocaml ocamlbuild octave
+  406  brew install meson metis mhash midnight-commander minizip  moreutils mosh mosquitto most  mpc mpfr msgpack mtr multimarkdown mupdf-tools mycli mysql mysql-client mysql-search-replace mysql@5.6 mysql@5.7 mytop  narwhal nasm ncbi-c++-toolkit ncdu ncurses neofetch neovim net-snmp netcat netcdf netpbm nettle nghttp2 ngx-devel-kit ninja nkf nmap nnn node npth nspr nss ntopng numpy nvm nyancat ocaml ocamlbuild octave
+  407  brew install meson metis mhash midnight-commander minizip  moreutils mosh mosquitto most  mpc mpfr msgpack mtr multimarkdown mupdf-tools mycli mysql mysql-client mysql-search-replace mysql@5.6 mysql@5.7 mytop  narwhal nasm  ncdu ncurses neofetch neovim net-snmp netcat netcdf netpbm nettle nghttp2 ngx-devel-kit ninja nkf nmap nnn node npth nspr nss ntopng numpy nvm nyancat ocaml ocamlbuild octave
+  408  brew install --build-from-source mysql@5.6 netcat ntopng
+  409  brew install --build-from-source netcat ntopng
+  410  brew install --build-from-source ntopng
+  411  brew install oniguruma opam open-mpi openblas opencc openconnect opencore-amr opencv openexr openh264 openjdk openjdk@11 openjdk@8 openjpeg openldap openmotif openssh openssl@1.0 openssl@1.1 opus ossp-uuid osxutils p11-kit p7zip pandoc pango par pcov@7.1 pcov@7.2 pcov@7.3 pcov@7.4 pcre\n
+  412  brew install oniguruma opam open-mpi openblas opencc openconnect opencore-amr opencv openexr openh264 openjdk openjdk@11 openjdk@8 openjpeg openldap openmotif openssh  openssl@1.1 opus ossp-uuid osxutils p11-kit p7zip pandoc pango par pcov@7.1 pcov@7.2 pcov@7.3 pcov@7.4 pcre
+  413  brew install --build-from-source opencc pandoc
+  414  brew install pcre2 pdflib-lite pear peco perl perl@5.18 pgcli phantomjs platypus plotutils pngcheck podofo pokemonsay poppler popt portaudio postgresql potrace powerline pre-commit prettyping proctools proj protobuf protobuf@3.7 protobuf@5.6 protobuf@7.0 protobuf@7.1 protobuf@7.2 protobuf@7.3 protobuf@7.4
+  415  brew install pcre2 pdflib-lite peco perl perl@5.18 pgcli phantomjs platypus plotutils pngcheck podofo pokemonsay poppler popt portaudio postgresql potrace powerline pre-commit prettyping proctools proj protobuf protobuf@3.7 protobuf@5.6 protobuf@7.0 protobuf@7.1 protobuf@7.2 protobuf@7.3 protobuf@7.4
+  416  brew install pcre2 pdflib-lite peco perl perl@5.18 pgcli phantomjs platypus plotutils pngcheck podofo poppler popt portaudio postgresql potrace powerline pre-commit prettyping proctools proj protobuf protobuf@3.7 protobuf@5.6 protobuf@7.0 protobuf@7.1 protobuf@7.2 protobuf@7.3 protobuf@7.4
+  417  brew install pcre2 pdflib-lite peco perl perl@5.18 pgcli phantomjs platypus plotutils pngcheck podofo poppler popt portaudio postgresql potrace pre-commit prettyping proctools proj protobuf protobuf@3.7 protobuf@5.6 protobuf@7.0 protobuf@7.1 protobuf@7.2 protobuf@7.3 protobuf@7.4
+  418  brew install --build-from-source pdflib-lite protobuf@3.7
+  419  brew install qhull qrencode qrupdate qscintilla2 qt qt@5.7 quvi rabbitmq rabbitmq-c ragel ranger rav1e rbenv rcm re2 re2c readline  reattach-to-user-namespace redis  remind rename rhino ripgrep rmtrash rrdtool rsync  rtmpdump rubberband ruby ruby-build ruby-install rust rustup-init s-lang s-search sane-backends scons screen screenfetch screenresolution scrypt sdb sdl sdl2 sfnt2woff sfnt2woff-zopfli shared-mime-info shark shellcheck shfmt shpotify siege sip skm sl
+  420  brew install qhull qrencode qrupdate qscintilla2 qt quvi rabbitmq rabbitmq-c ragel ranger rav1e rbenv rcm re2 re2c readline  reattach-to-user-namespace redis  remind rename rhino ripgrep rmtrash rrdtool rsync  rtmpdump rubberband ruby ruby-build ruby-install rust rustup-init s-lang s-search sane-backends scons screen screenfetch screenresolution scrypt sdb sdl sdl2 sfnt2woff sfnt2woff-zopfli shared-mime-info shark shellcheck shfmt shpotify siege sip skm sl
+  421  brew install qhull qrencode qrupdate qscintilla2 qt quvi rabbitmq rabbitmq-c ragel ranger rav1e rbenv rcm re2 re2c readline  reattach-to-user-namespace redis  remind rename rhino ripgrep rrdtool rsync  rtmpdump rubberband ruby ruby-build ruby-install rust rustup-init s-lang s-search sane-backends scons screen screenfetch screenresolution scrypt sdb sdl sdl2 sfnt2woff sfnt2woff-zopfli shared-mime-info shark shellcheck shfmt shpotify siege sip skm sl
+  422  brew install qhull qrencode qrupdate qscintilla2 qt quvi rabbitmq rabbitmq-c ragel ranger rav1e rbenv rcm re2 re2c readline  reattach-to-user-namespace redis  remind rename rhino ripgrep rrdtool rsync  rtmpdump rubberband ruby ruby-build ruby-install rust rustup-init s-lang s-search sane-backends scons screen screenfetch screenresolution scrypt sdb sdl sdl2  shared-mime-info shark shellcheck shfmt shpotify siege sip skm sl
+  423  brew install qhull qrencode qrupdate qscintilla2 qt quvi rabbitmq rabbitmq-c ragel ranger rav1e rbenv rcm re2 re2c readline  reattach-to-user-namespace redis  remind rename rhino ripgrep rrdtool rsync  rtmpdump rubberband ruby ruby-build ruby-install rust rustup-init s-lang s-search sane-backends scons screen screenfetch screenresolution scrypt sdb sdl sdl2  shared-mime-info shellcheck shfmt shpotify siege sip skm sl
+  424  brew install qhull qrencode qrupdate qscintilla2 qt quvi rabbitmq rabbitmq-c ragel ranger rav1e rbenv rcm re2 re2c readline  reattach-to-user-namespace redis  remind rename rhino ripgrep rrdtool rsync  rtmpdump rubberband ruby ruby-build ruby-install rust rustup-init s-lang s-search sane-backends scons screen screenfetch screenresolution scrypt sdb sdl sdl2  shared-mime-info shellcheck shfmt shpotify siege sip  sl
+  425  brew install --build-from-source rabbitmq-c
+  426  brew install smartmontools  snappy  socat  source-highlight  spark  speedtest-cli  speex  speexdsp  sphinx  sphinx-doc  sqlite  sqlmap  squid  srt  ssdeep  ssh-copy-id  sshfs  sshrc  stanza-mac  startup-notification  stoken  stow   subversion  suite-sparse  sundials  swift  swiftlint  swig  swig@3  swoole@5.6  swoole@7.0  swoole@7.1  swoole@7.2  swoole@7.3  swoole@7.4  syncthing
+  427  brew install smartmontools  snappy  socat  source-highlight  spark  speedtest-cli  speex  speexdsp  sphinx  sphinx-doc  sqlite  sqlmap  squid  srt  ssdeep  ssh-copy-id  sshfs   stanza-mac  startup-notification  stoken  stow   subversion  suite-sparse  sundials  swift  swiftlint  swig  swig@3  swoole@5.6  swoole@7.0  swoole@7.1  swoole@7.2  swoole@7.3  swoole@7.4  syncthing
+  428  brew install smartmontools  snappy  socat  source-highlight  spark  speedtest-cli  speex  speexdsp  sphinx  sphinx-doc  sqlite  sqlmap  squid  srt  ssdeep  ssh-copy-id  sshfs  startup-notification  stoken  stow   subversion  suite-sparse  sundials  swift  swiftlint  swig  swig@3  swoole@5.6  swoole@7.0  swoole@7.1  swoole@7.2  swoole@7.3  swoole@7.4  syncthing
+  429  brew install --cask osxfuse
+  430  brew install sysbench szip t1lib ta-lib task taskd tasksh tbb tcl-tk tcpflow tcpreplay tcptrace telnet terminal-notifier tesseract texi2html texinfo the_platinum_searcher the_silver_searcher thefuck theora tidy-html5 tig tldr tmate tmux tmux-xpanes tmuxinator-completion todo-txt toilet
+  431  brew unlink inetutils
+  432  brew install sysbench szip t1lib ta-lib task taskd tasksh tbb tcl-tk tcpflow tcpreplay tcptrace telnet terminal-notifier tesseract texi2html texinfo the_platinum_searcher the_silver_searcher thefuck theora tidy-html5 tig tldr tmate tmux tmux-xpanes tmuxinator-completion todo-txt toilet
+  433  brew install --build-from-source sysbench tcpreplay tcptrace
+  434  brew install --build-from-source tcpreplay tcptrace
+  435  brew install --build-from-source tcptrace
+  436  brew install tomcat tomcat@6 trash tree ttygif ttyrec two-lame uchardet ucl ucspi-tcp ufraw unar unbound uni2ascii unibilium unison unixodbc unrar unzip  upx urlview utf8cpp utf8proc v8 vala  veclibfort vifm vim
+  437  brew install tomcat trash tree ttygif ttyrec two-lame uchardet ucl ucspi-tcp ufraw unar unbound uni2ascii unibilium unison unixodbc unrar unzip  upx urlview utf8cpp utf8proc v8 vala  veclibfort vifm vim
+  438  brew install tomcat trash tree ttygif ttyrec two-lame uchardet ucl ucspi-tcp ufraw unar unbound uni2ascii unibilium unison unixodbc unzip  upx urlview utf8cpp utf8proc v8 vala  veclibfort vifm vim
+  439  brew install vte vtk watch watchman wavpack wdiff webkit2png webp wemux wget whatmask when wine winetricks wmctrl woff2 wrk wxmac x264 x265
+  440  brew install vtk watch watchman wavpack wdiff webkit2png webp wemux wget whatmask when wine winetricks wmctrl woff2 wrk wxmac x264 x265
+  441  brew install vtk watch watchman wavpack wdiff webkit2png webp wemux wget whatmask when  winetricks wmctrl woff2 wrk wxmac x264 x265
+  442  brew install --build-from-source upx wrk
+  443  brew install --build-from-source  wrk
+  444  brew install xbitmaps xcb-util xctool xdebug@5.6 xdebug@7.0 xdebug@7.1 xdebug@7.2 xdebug@7.3 xdebug@7.4 xdot xerces-c xkeyboardconfig xmlto xonsh xorgproto xpdf xvid xxhash xz yajl you-get z zbar zeromq zimg zlib zookeeper zopfli zsh zsh-completions zsh-syntax-highlighting
+  445  brew unlink poppler
+  446  brew install xbitmaps xcb-util xctool xdebug@5.6 xdebug@7.0 xdebug@7.1 xdebug@7.2 xdebug@7.3 xdebug@7.4 xdot xerces-c xkeyboardconfig xmlto xonsh xorgproto xpdf xvid xxhash xz yajl you-get z zbar zeromq zimg zlib zookeeper zopfli zsh zsh-completions zsh-syntax-highlighting
+  447  brew install zshdb zstd
+  448  brew install --build-from-source xdot
+  449  brew install pyenv
+  450  brew install ffmpeg --with-chromaprint --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg\n
+  451  brew install ffmpeg  --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg
+  452  brew install nginx-full --with-rtmp-module --with-realip --with-http2 --with-stream --with-flv --with-mp4 --with-gunzip --with-debug --with-upload-module --with-stream-geoip --with-vod-module --with-redis2-module --with-mp4-h264-module --cc=gcc
+  463  brew install fasd
+  467  ln -sf ~/data/data/down_pics ~/.runtime/pictures
+  478  brew install macvim
+  479  which macvim
+  518  git -C ~/.oh-my-zsh/custom/themes/powerlevel10k pull
+  519  ~/.oh-my-zsh/custom/themes/powerlevel10k/gitstatus/install -f
+  521  brew install thefuck
+  531  mkdir ~/Repo
+  532  cd ~/Repo
+  533  git clone https://github.com/powerline/fonts.git --depth=1
+  539  brew install coreutils
+  541  brew link --overwrite coreutils
+  556  git clone https://github.com/runsisi/consolas-font-for-powerline.git
+  561  curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
+  594  brew install font-fira-code font-fira-code-nerd-font font-fira-mono font-fira-mono-for-powerline font-fira-mono-nerd-font font-fira-sans font-fira-sans-condensed font-fira-sans-extra-condensed font-firago
+  595  brew install svn
+  622  brew install bashtop
+  623  python3 -m ensurepip
+  624  python3 -m pip install psutil
+  625  brew install bash coreutils gnu-sed git
+  626  pip install --upgrade pip
+  628  sudo python3 -m pip install psutil
+  629  brew install osx-cpu-temp
+  630  cd ~/Repo
+  633  git clone https://github.com/aristocratos/bashtop.git\ncd bashtop
+  642  brew install python
+  643  brew link --overwrite python
+  649  pip3 install --upgrade pip
+  653  sudo pip3 install --upgrade pip
+  660  brew install bash
+  661  brew link --overwrite bash
+  667  brew install shellcheck
+  668  brew install --build-from-source shellcheck
+  679  cd ~/Repo
+  680  git clone https://github.com/wernight/powerline-web-fonts.git
+  729  brew install lsd
+  761  brew install python@2.7
+  886  networksetup -getcurrentlocation
+  893  sudo gem install solargraph
+  919  git clone https://github.com/SpaceVim/SpaceVim.git "$HOME/.SpaceVim"
+  920  ln -s "$HOME/.SpaceVim" "$HOME/.vim"
+  948  tree -d -L 2 |grep 'vim-import-js' -C 10
+  954  npm install -g import-js
+  961  pip install pynvim
+  971  brew install cscope
+  979  pip install --user python-language-server
+  981  npm install -g javascript-typescript-langserver
+  982  npm i -g bash-language-server
+  983  npm install vue-language-server -g
+  984  npm install -g vscode-css-languageserver-bin
+  986  pip install pyls
+  987  pip install pyls --no-warn-script-location.
+  988  pip install pyls --no-warn-script-location
+  993  pip install python-language-server
+  994  pip install -U python-language-server
+  005  yarn global add javascript-typescript-langserver
+ 1013  pip install -U neovim
+ 1015  python -m pip install -U neovim
+ 1016  brew install python@2.7
+ 1022  pip install pyenv
+ 1023  pip install pyenv --user
+ 1024  brew install pyenv
+ 1025  git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+ 1026  cd ~/.pyenv && src/configure && make -C src
+ 1032  sudo gem install neovim
+ 1033  pip3 uninstall pynvim neovim
+ 1034  pip3 install pynvim
+ 1035  pip3 install neovim
+ 1036  python2 -m pip install --user --upgrade pynvim
+ 1037  cd ~/Repo
+ 1038  wget https://pypi.python.org/packages/45/29/8814bf414e7cd1031e1a3c8a4169218376e284ea2553cc0822a6ea1c2d78/setuptools-36.6.0.zip\#md5\=74663b15117d9a2cc5295d76011e6fd1\nunzip setuptools-36.6.0.zip \ncd setuptools-36.6.0\npython setup.py install
+ 1046  pip install notedown
+ 1054  /usr/local/bin/pip2 install neovim
+ 1062  pip install ale
+ 1063  pip3 install ale
+ 1064  pip3 install neomake
+ 1175  npm install -g import-js
+ 1176  npm install -g gyp
+ 1177  npm install -g import-js
+ 1181  npm install @mapbox/node-pre-gyp --save
+ 1182  npm install -g import-js
+ 1183  brew install sqlite3
+ 1184  npm install -g sqlite3
+ 1185  npm uninstall node-gyp
+ 1186  npm install -g import-js
+ 1189  npm install -g npm
+ 1241  git clone --depth=1 https://github.com/Bash-it/bash-it.git ~/.bash_it
+ 1267  sudo codesign --force --deep --sign - /Applications/1Password\ 7.app
+ 1340  brew install shivammathur/php/php@7.2
+ 1364  brew install shivammathur/php/php@7.3
+ 1366  brew install shivammathur/php/php@7.4
+ 1379  brew tap shivammathur/extensions
+ 1380  brew install amqp@5.6 amqp@7.0 amqp@7.1 amqp@7.2 amqp@7.3 amqp@7.4
+ 1382  brew install grpc@5.6 grpc@7.0 grpc@7.1 grpc@7.2 grpc@7.3 grpc@7.4
+ 1383  brew install igbinary@5.6 igbinary@7.0 igbinary@7.1 igbinary@7.2 igbinary@7.3 igbinary@7.4
+ 1384  brew install imagick@5.6 imagick@7.0 imagick@7.1 imagick@7.2 imagick@7.3 imagick@7.4
+ 1385  brew install imap@5.6 imap@7.0 imap@7.1 imap@7.2 imap@7.3 imap@7.4
+ 1386  brew install msgpack@5.6 msgpack@7.0 msgpack@7.1 msgpack@7.2 msgpack@7.3 msgpack@7.4
+ 1387  brew install pcov@5.6 pcov@7.0 pcov@7.1 pcov@7.2 pcov@7.3 pcov@7.4
+ 1388  brew install pecl_http@5.6 pecl_http@7.0 pecl_http@7.1 pecl_http@7.2 pecl_http@7.3 pecl_http@7.4
+ 1389  brew install pcov@7.1 pcov@7.2 pcov@7.3 pcov@7.4
+ 1390  brew install pecl_http@5.6 pecl_http@7.0 pecl_http@7.1 pecl_http@7.2 pecl_http@7.3 pecl_http@7.4
+ 1391  brew install propro@5.6 propro@7.0 propro@7.1 propro@7.2 propro@7.3 propro@7.4
+ 1392  brew install protobuf@5.6 protobuf@7.0 protobuf@7.1 protobuf@7.2 protobuf@7.3 protobuf@7.4
+ 1393  brew install raphf@5.6 raphf@7.0 raphf@7.1 raphf@7.2 raphf@7.3 raphf@7.4
+ 1394  brew install redis@5.6 redis@7.0 redis@7.1 redis@7.2 redis@7.3 redis@7.4
+ 1395  brew install swoole@5.6 swoole@7.0 swoole@7.1 swoole@7.2 swoole@7.3 swoole@7.4
+ 1396  brew install swoole@7.1 swoole@7.2 swoole@7.3 swoole@7.4
+ 1397  brew install swoole@7.2 swoole@7.3 swoole@7.4
+ 1398  brew install xdebug@5.6 xdebug@7.0 xdebug@7.1 xdebug@7.2 xdebug@7.3 xdebug@7.4
+ 1399  brew install xdebug2@5.6 xdebug2@7.0 xdebug2@7.1 xdebug2@7.2 xdebug2@7.3 xdebug2@7.4
+ 1400  brew install zmq@5.6 zmq@7.0 zmq@7.1 zmq@7.2 zmq@7.3 zmq@7.4
+ 1472  brew install mongodb
+ 1479  brew install mongodb/brew/mongodb
+ 1482  brew install mongodb-community
+ 1484  brew tap mongodb/brew
+ 1487  sudo chown -R $(whoami) $(brew --prefix)
+ 1490  cd /opt/homebrew/Library/Taps/homebrew/homebrew-core && git fetch && git reset --hard origin/master
+ 1495  brew tap mongodb/brew
+ 1498  brew install mongodb-community
+ 1631  brew tap homebrew/services  # 服务指令仓库
+ 1705  brew tap shivammathur/extensions
+ 1906  brew tap shivammathur/php
+ 1973  brew install autoconf
+ 2036  pip install pynvim
+ 2037  pip2 install pynvim
+ 2038  pip3 install pynvim
+ 2173  pip install -U pynvim
+ 2249  brew install --build-from-source asciiquarium
+ 2292  brew install terminal-notifier

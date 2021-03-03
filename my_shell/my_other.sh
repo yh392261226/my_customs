@@ -65,7 +65,7 @@ if [ -d $MYRUNTIME/customs/enhancd/ ]; then
     export ENHANCD_HOOK_AFTER_CD="lsd -l"
 fi
 
-[[ -d $(yarn global bin) ]] && export PATH="$(yarn global bin):$PATH"
+[[ -d ~/.yarn/bin ]] && export PATH="~/.yarn/bin:$PATH"
 [[ -d ~/.local/bin ]] && export PATH="~/.local/bin:$PATH"
 
 #iterm2 shell integration
