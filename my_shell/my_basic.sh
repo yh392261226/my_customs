@@ -29,3 +29,16 @@ else
     SYSHEADER='☭'
     export OS_ICON="☭"
 fi
+
+curcpucore=$(uname -a | awk '{print $NF}')
+if [ "$curcpucore" = "arm64" ]; then
+    export CPUCORE="arm64"
+elif [ "$curcpucore" = "x86_64" ]; then
+    export CPUCORE="intel64"
+elif [ "$curcpucore" = "GNU/Linux" ]; then
+    if [ "$(uname -a | awk '{ print $(NF-1) }')" = "x86_64" ]; then
+        export CPUCORE="linux64"
+    else
+        export CPUCORE="linux"
+    fi
+fi
