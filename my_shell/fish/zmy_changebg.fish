@@ -23,10 +23,8 @@ if test -e /usr/local/bin/terminal-notifier
     set -gx  terminal_notifier_bin /usr/local/bin/terminal-notifier
 end
 if test -e /opt/homebrew/bin/terminal-notifier
-    set -gx  bg_change_php_command_bin /opt/homebrew/bin/terminal-notifier
+    set -gx  terminal_notifier_bin /opt/homebrew/bin/terminal-notifier
 end
-
-#set -gx  osascript_bin /usr/bin/osascript
 set -gx  current_picturename {$MYPATH}/tools/current_picturename
 
 if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
