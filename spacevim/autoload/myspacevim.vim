@@ -1,14 +1,8 @@
-" File              : myspacevim.vim
-" Date              : 01.03.2021
-" Last Modified Date: 01.03.2021
-" File              : myspacevim.vim
-" Date              : 01.03.2021
-" Last Modified Date: 01.03.2021
 function! myspacevim#before() abort
     let g:loaded_python_provider = 1
     let g:python2_host_prog = '/usr/bin/python2'
     let g:python3_host_prog = '/usr/bin/python3'
-    set pyxversion=3
+"    set pyxversion = 3
 
     "key mapping
     inoremap jj <esc>
@@ -77,9 +71,9 @@ function! myspacevim#before() abort
     let g:header_field_timestamp_format = '%Y-%m-%d'
 
     " junegunn/goyo.vim
-    let g:goyo_width = 100
-    let g:goyo_height = 90%
-    let g:goyo_linenr = 0
+    "let g:goyo_width = 100
+    "let g:goyo_height = 90%
+    "let g:goyo_linenr = 0
 
     " junegunn/limelight.vim
     " Color name (:help cterm-colors) or ANSI code
