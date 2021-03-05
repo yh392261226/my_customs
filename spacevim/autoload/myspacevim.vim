@@ -35,17 +35,17 @@ function! myspacevim#before() abort
     nmap <F9> <Plug>(ale_fix)
 
     "Nvim-R config
-    if $DISPLAY != ""
-        let R_openpdf = 1
-    endif
-    let r_syntax_folding = 1
-    let rrst_syn_hl_chunk = 1
-    let rmd_syn_hl_chunk = 1
-    "let R_objbr_place = 'console,top'
-    let R_objbr_h = 15
-    let R_hi_fun_paren = 1
-    let Rout_more_colors = 1
-    au TermOpen * setlocal nonu
+"    if $DISPLAY != ""
+"        let R_openpdf = 1
+"    endif
+"    let r_syntax_folding = 1
+"    let rrst_syn_hl_chunk = 1
+"    let rmd_syn_hl_chunk = 1
+"    "let R_objbr_place = 'console,top'
+"    let R_objbr_h = 15
+"    let R_hi_fun_paren = 1
+"    let Rout_more_colors = 1
+"    au TermOpen * setlocal nonu
 
     "indentguides
     let g:indentguides_firstlevel = 1
