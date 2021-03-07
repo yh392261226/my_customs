@@ -75,6 +75,16 @@ if [ "zsh" = "$nowshell" ]; then
     else
         [[ -f ${MYRUNTIME}/customs/others/zfm/zfm.zsh ]] && source ${MYRUNTIME}/customs/others/zfm/zfm.zsh
     fi
+
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets ]; then
+        git clone https://github.com/amaya382/zsh-fzf-widgets.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets
+    fi
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions ]; then
+        git clone https://github.com/chitoku-k/fzf-zsh-completions.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions
+    fi
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab ]; then
+        git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
+    fi
 fi
 
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
