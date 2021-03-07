@@ -48,6 +48,8 @@ fi
 if [ "zsh" = "$nowshell" ]; then
     if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ]; then
         git clone --depth=1 https://github.com/SleepyBag/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
+        cp $MYRUNTIME/customs/others/customs/fuzzy-fs ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
+        cp $MYRUNTIME/customs/others/customs/_fuzzy-fs-list-recent-dir ${MYRUNTIME}/customs/others/fuzzy-fs/module/recent-dir/_fuzzy-fs-list-recent-dir
         is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs ]] && source ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs

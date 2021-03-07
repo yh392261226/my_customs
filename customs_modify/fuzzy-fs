@@ -1,0 +1,177 @@
+#!/bin/zsh
+FUZZY_FS_BASE_DIR=$(readlink $0 | xargs dirname)
+if [ "" = "$FUZZY_FS_BASE_DIR" ]; then
+    FUZZY_FS_BASE_DIR=$(dirname $(type $0 | awk '{print $NF}'))
+fi
+
+function fuzzy-fs {
+    # for debug
+    local field=main
+
+    local base_dir=$FUZZY_FS_BASE_DIR
+    export base_dir
+    local VERSION=1.0
+    local log_file=$base_dir/.log
+
+    # load all functions
+    for dir in $(cd $base_dir; find . -type d -not -path '*/\.*'); do
+        fpath+=($base_dir/$dir)
+        autoload -Uz $(ls -p $base_dir/$dir | grep -v /)
+    done
+
+    # params
+    zparseopts -D \
+            H=no_header    -no-header=no_header \
+                            -no-color=no_color \
+            a=show_hidden  -all=show_hidden \
+            g=show_git     -git=show_git \
+            d=debug_mode   -debug=debug_mode \
+            h=help         -help=help \
+            V=version      -version=version
+    export no_color show_hidden debug_mode
+
+    local init_path="$*"
+    init_path=${init_path:-.}
+
+    if [[ ! -z "$help" ]]; then
+        cat <<EOF
+Usage: fuzzy-fs [options] [DIR]
+
+Open a file navigator powered by fzf at DIR.
+
+Options:
+    -a    --all          list hidden files
+    -H    --no-header    don't show key-binding tips in header
+          --no-color     disable color
+    -g    --git          show git info in the file list (requires exa)
+    -d    --debug-mode   output debug info into log file
+    -V    --version      show version
+    -h    --help         show this help
+EOF
+        return 0
+    fi
+    if [[ ! -z "$version" ]]; then
+        echo $VERSION
+        return 0
+    fi
+
+    if [[ ! -z "$debug_mode" ]]; then
+        echo Debug information logged to $log_file 1>&2
+    fi
+
+    # check if fzf installed
+    if ! type fzf > /dev/null; then
+        echo fzf is not installed!
+        return 1
+    fi
+
+    # environment params
+    local shell_command=${SHELL:-$(_fuzzy-fs-first-available-command zsh bash ksh fish)}
+    local editor_command=${EDITOR:-$(_fuzzy-fs-first-available-command vim emacs vi)}
+    local pager_command=${FUZZY_FS_PAGER:-$(_fuzzy-fs-first-available-command "bat --paging=always --color=always" less more)}
+    export pager_command
+
+    # tunable commands
+    local open_command=${FUZZY_FS_OPEN_COMMAND:-xdg-open}
+    local preview_command=${FUZZY_FS_PREVIEW_COMMAND:-$base_dir/module/_fuzzy-fs-preview}
+    local ls_command=${FUZZY_FS_LS_COMMAND:-$(_fuzzy-fs-first-available-command exa ls)}
+    local terminal_command=${FUZZY_FS_TERMINAL_COMMAND:-$(_fuzzy-fs-first-available-command "konsole --workdir" "gnome-terminal --working-directory" "terminology -d")}
+    export ls_command
+
+    # tunable icons
+    local file_icon=${FUZZY_FS_FILE_ICON:- fl}
+    local link_icon=${FUZZY_FS_LINK_ICON:- lk}
+    local ancestor_icon=${FUZZY_FS_ANCESTOR_ICON:- up}
+    local directory_icon=${FUZZY_FS_DIRECTORY_ICON:- dr}
+    local command_icon=${FUZZY_FS_COMMAND_ICON:- cm}
+    local recent_dir_icon=${FUZZY_FS_RECENT_DIR_ICON:- rf}
+    export file_icon link_icon ancestor_icon directory_icon command_icon recent_dir_icon
+
+    # tunable separator
+    local ancestor_separator=$FUZZY_FS_ANCESTOR_SEPARATOR
+    local command_separator=$FUZZY_FS_COMMAND_SEPARATOR
+    local recent_dir_separator=$FUZZY_FS_RECENT_DIR_SEPARATOR
+
+    # icons cannot be empty because they are neccessary to determine the item type
+    _fuzzy-fs-check-empty  file_icon       link_icon     ancestor_icon  \
+                           directory_icon  command_icon  recent_dir_icon
+
+    # initialize
+    init_path=$(_fuzzy-fs-abspath $init_path)
+    local pre_path=$PWD
+    cd $init_path
+    local next_panel=_fuzzy-fs-ls-panel
+    # if you are using per-directory-history, init directory
+    if [[ ! -z "$_per_directory_history_is_global" ]]; then
+        _per-directory-history-change-directory "$init_path" "$pre_path"
+    fi
+
+    # main loop
+    while true; do
+        # show panel
+        local query=""
+        local cmd=""
+        local target=""
+        ${=next_panel} $PWD $pre_query
+
+        _fuzzy-fs-debug-var PWD
+        _fuzzy-fs-debug-var query
+        _fuzzy-fs-debug-var cmd
+        _fuzzy-fs-debug-var target
+
+        local pre_query=""
+        case "$cmd" in
+            open)
+                zsh -c "${=open_command} \"$target\"" &> /dev/null
+                ;;
+            cd)
+                local old_path=$PWD
+                cd "$target"
+                # if you are using z or autojump
+                _fuzzy-fs-add-recent-dir $PWD
+                # if you are using per-directory-history
+                if [[ ! -z "$_per_directory_history_is_global" ]]; then
+                    _per-directory-history-change-directory "$PWD" "$old_path"
+                fi
+                ;;
+            rm)
+                rm -ir "$target"
+                ;;
+            edit)
+                _fuzzy-fs-edit "$PWD" "$target"
+                ;;
+            run)
+                _fuzzy-fs-add-history "$target"
+                eval $target
+                ;;
+            shell)
+                _fuzzy-fs-open-shell "$target"
+                pre_query=$query
+                ;;
+            toggle_hidden)
+                [[ -z "$show_hidden" ]] && show_hidden=(-a) || show_hidden=()
+                pre_query=$query
+                ;;
+            toggle_per_directory_history)
+                _fuzzy-fs-toggle-per-directory-history
+                pre_query=$query
+                ;;
+            refresh)
+                ;;
+            exit)
+                return 0
+                ;;
+            *)
+                echo fzf returned something unexpected, please contact the author with the following information:
+                echo PWD: $PWD
+                echo the last panel is: $next_panel
+                echo the query string is: $query
+                echo the cmd is: $cmd
+                echo the taget is: $target
+                return 1
+                ;;
+        esac
+    done
+
+    return 2
+}
