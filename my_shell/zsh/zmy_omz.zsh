@@ -116,6 +116,7 @@ plugins=(
 	bgnotify
 	zsh-apple-touchbar
 	zsh-interactive-cd
+	fzf-tab
 	) #last-working-dir
 autoload -U compinit
 #&& compinit
@@ -125,7 +126,7 @@ source $ZSH/oh-my-zsh.sh
 
 #ZSH的模块加载
 zmodload -a zsh/zprof zprof
-zmodload -a zsh/mapfile mapfile
+# zmodload -a zsh/mapfile mapfile
 zmodload -a zsh/zpty zpty
 zmodload -a zsh/stat zstat
 
