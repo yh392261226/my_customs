@@ -85,6 +85,12 @@ if [ "zsh" = "$nowshell" ]; then
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab ]; then
         git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
     fi
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd ]; then
+        git clone https://github.com/changyuheng/zsh-interactive-cd.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd
+    fi
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks ]; then
+        git clone https://github.com/wfxr/formarks.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks
+    fi
 fi
 
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
