@@ -47,9 +47,7 @@ fi
 
 if [ "zsh" = "$nowshell" ]; then
     if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ]; then
-        git clone --depth=1 https://github.com/SleepyBag/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
-        cp $MYRUNTIME/customs/customs_modify/fuzzy-fs ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
-        cp $MYRUNTIME/customs/customs_modify/_fuzzy-fs-list-recent-dir ${MYRUNTIME}/customs/others/fuzzy-fs/module/recent-dir/_fuzzy-fs-list-recent-dir
+        git clone --depth=1 https://github.com/yh392261226/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
         is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs ]] && source ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
@@ -78,24 +76,28 @@ if [ "zsh" = "$nowshell" ]; then
 
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets ]; then
         git clone https://github.com/amaya382/zsh-fzf-widgets.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets
+        is_notify=1
     fi
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions ]; then
         git clone https://github.com/chitoku-k/fzf-zsh-completions.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions
+        is_notify=1
     fi
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab ]; then
         git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
+        is_notify=1
     fi
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd ]; then
         git clone https://github.com/changyuheng/zsh-interactive-cd.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd
+        is_notify=1
     fi
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks ]; then
         git clone https://github.com/wfxr/formarks.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks
+        is_notify=1
     fi
 fi
 
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
-    git clone https://github.com/b4b4r07/enhancd $MYRUNTIME/customs/others/enhancd
-    cp $MYRUNTIME/customs/customs_modify/enhancd.sh $MYRUNTIME/customs/others/enhancd/my_init.sh
+    git clone https://github.com/yh392261226/enhancd $MYRUNTIME/customs/others/enhancd
     is_notify=1
 else
     if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
