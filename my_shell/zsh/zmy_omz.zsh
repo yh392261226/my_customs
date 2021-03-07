@@ -117,6 +117,8 @@ plugins=(
 	zsh-apple-touchbar
 	zsh-interactive-cd
 	fzf-tab
+	fzf-zsh-completions
+	formarks
 	) #last-working-dir
 autoload -U compinit
 #&& compinit
