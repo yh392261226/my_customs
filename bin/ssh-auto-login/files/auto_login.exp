@@ -6,13 +6,14 @@ set port [lindex $argv 3]
 set timeout -1
 spawn ssh $user@$host -p $port
 match_max 100000
-
+#trap sigwinch spawned
+trap {
+ set rows [stty rows]
+ set cols [stty columns]
+ stty rows $rows columns $cols < $spawn_out(slave,name)
+} WINCH
 
 expect {
-	"*assword*"
-	{
-		send -- "$password\n"
-	}
 	"*passphrase*"
 	{
 		send -- "$password\n"
@@ -20,6 +21,10 @@ expect {
 	"continue connecting"
 	{
 		send -- "yes\n"
+	}
+	"*assword*"
+	{
+		send -- "$password\n"
 	}
 }
 interact
