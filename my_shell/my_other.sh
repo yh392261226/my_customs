@@ -47,24 +47,28 @@ fi
 if [ "zsh" = "$nowshell" ]; then
     if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ]; then
         git clone --depth=1 https://github.com/SleepyBag/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
+        is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs ]] && source ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
     fi
 
     if [ ! -d ${MYRUNTIME}/customs/others/zsh-fzf-widgets/ ]; then
         git clone --depth=1 https://github.com/amaya382/zsh-fzf-widgets.git ${MYRUNTIME}/customs/others/zsh-fzf-widgets
+        is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/zsh-fzf-widgets/zsh-fzf-widgets.zsh ]] && source ${MYRUNTIME}/customs/others/zsh-fzf-widgets/zsh-fzf-widgets.zsh
     fi
 
     if [ ! -d ${MYRUNTIME}/customs/others/git-fuzzy ]; then
         git clone --depth=1 https://github.com/bigH/git-fuzzy.git ${MYRUNTIME}/customs/others/git-fuzzy
+        is_notify=1
     else
         [[ -d ${MYRUNTIME}/customs/others/git-fuzzy/bin ]] && export PATH="${MYRUNTIME}/customs/others/git-fuzzy/bin:$PATH"
     fi
 
     if [ ! -d ${MYRUNTIME}/customs/others/zfm ]; then
         git clone --depth=1 https://github.com/pabloariasal/zfm ${MYRUNTIME}/customs/others/zfm
+        is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/zfm/zfm.zsh ]] && source ${MYRUNTIME}/customs/others/zfm/zfm.zsh
     fi
@@ -73,6 +77,7 @@ fi
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
     git clone https://github.com/b4b4r07/enhancd $MYRUNTIME/customs/others/enhancd
     cp $MYRUNTIME/customs/others/customs/enhancd.sh $MYRUNTIME/customs/others/enhancd/my_init.sh
+    is_notify=1
 else
     if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
         export ENHANCD_COMMAND=ecd
@@ -81,6 +86,10 @@ else
         [[ -f /opt/homebrew/bin/peco ]] && export ENHANCD_FILTER="/opt/homebrew/bin/peco:fzf:non-existing-filter"
         export ENHANCD_HOOK_AFTER_CD="lsd -l"
     fi
+fi
+
+if [ "$is_notify" -ge "0" ]; then
+    echo "Please Restart a new terminal window to effect the changing !!!"
 fi
 
 #custom commands
