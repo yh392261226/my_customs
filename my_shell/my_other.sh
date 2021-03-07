@@ -48,8 +48,8 @@ fi
 if [ "zsh" = "$nowshell" ]; then
     if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ]; then
         git clone --depth=1 https://github.com/SleepyBag/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
-        cp $MYRUNTIME/customs/others/customs/fuzzy-fs ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
-        cp $MYRUNTIME/customs/others/customs/_fuzzy-fs-list-recent-dir ${MYRUNTIME}/customs/others/fuzzy-fs/module/recent-dir/_fuzzy-fs-list-recent-dir
+        cp $MYRUNTIME/customs/customs_modify/fuzzy-fs ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
+        cp $MYRUNTIME/customs/customs_modify/_fuzzy-fs-list-recent-dir ${MYRUNTIME}/customs/others/fuzzy-fs/module/recent-dir/_fuzzy-fs-list-recent-dir
         is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs ]] && source ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
@@ -79,7 +79,7 @@ fi
 
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
     git clone https://github.com/b4b4r07/enhancd $MYRUNTIME/customs/others/enhancd
-    cp $MYRUNTIME/customs/others/customs/enhancd.sh $MYRUNTIME/customs/others/enhancd/my_init.sh
+    cp $MYRUNTIME/customs/customs_modify/enhancd.sh $MYRUNTIME/customs/others/enhancd/my_init.sh
     is_notify=1
 else
     if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
