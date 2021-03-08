@@ -176,3 +176,9 @@ if [ -f /usr/local/bin/shellcheck ]; then
         /usr/local/bin/shellcheck "$@"
     }
 fi
+
+if command -v COMMAND &> /dev/null; then
+    function fhistory() { # Desc:fhistory:依赖fzf 读取history结果
+        history | fzf
+    }
+fi
