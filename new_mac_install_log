@@ -104,6 +104,8 @@ brew install lua luarocks
 
 brew install --build-from-source elasticsearch
 
+brew install pick
+
 
 
 
