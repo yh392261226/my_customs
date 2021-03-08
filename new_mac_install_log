@@ -104,3 +104,30 @@ brew install lua luarocks
 
 brew install --build-from-source elasticsearch
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+pip install -U yapf
+
+python3 -m pip install -U pynvim neovim
+
+pip install -U ale
+
+pip install -U notedown
+
+pip install -U glances
+
+
+
+
+sudo gem install solargraph
