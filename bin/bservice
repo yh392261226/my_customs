@@ -176,7 +176,7 @@ else
         echo "-------------------------------------------------"
         custom_title "Result:"
         echo ""
-        mycli -u$user -p$pass -h$host -P$port --myclirc=$myclirc
+        mycli -u$user -p"$pass" -h$host -P$port --myclirc=$myclirc
       elif [ "$myservice" = "redis" ]; then
         [[ -f $MYRUNTIME/tools/m_redis ]] && source $MYRUNTIME/tools/m_redis || echo "ERROR: m_redis does not exists!";
         custom_title  "redis-cli -h $host -p $port"
