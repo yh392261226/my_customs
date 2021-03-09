@@ -106,6 +106,8 @@ brew install --build-from-source elasticsearch
 
 brew install pick
 
+brew install eth-p/software/bat-extras
+
 
 
 

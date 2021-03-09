@@ -1,4 +1,14 @@
 #!/usr/bin/expect -f
+
+# 捕获 WINCH 信号，并传递给 Spawned 出来的 Children，
+# 这样 ssh 的 TTY 就能随着窗口 resize 而适应。
+trap {
+    set rows [stty rows]
+    set cols [stty columns]
+    stty rows $rows columns $cols < $spawn_out(slave,name)
+	# stty rows 57 columns 283
+} WINCH
+
 set host [lindex $argv 0]
 set user [lindex $argv 1]
 set password [lindex $argv 2]
@@ -6,13 +16,6 @@ set port [lindex $argv 3]
 set timeout -1
 spawn ssh $user@$host -p $port
 match_max 100000
-#trap sigwinch spawned
-trap {
- set rows [stty rows]
- set cols [stty columns]
- stty rows $rows columns $cols < $spawn_out(slave,name)
-} WINCH
-
 expect {
 	"*passphrase*"
 	{
@@ -26,5 +29,10 @@ expect {
 	{
 		send -- "$password\n"
 	}
+	send -- "stty rows 57 columns 283\n"
 }
+expect  "\#" {
+	send "stty rows 57 columns 283\n"
+}
+# expect eof
 interact
