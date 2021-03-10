@@ -56,3 +56,9 @@ function setproxy() { # Desc: setproxy:设置命令行代理
 function unsetproxy() { # Desc: unsetproxy:取消设置命令行代理
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }
+
+function getproxy() { # Desc: getproxy:获取命令行代理
+    echo $HTTP_PROXY
+    echo $HTTPS_PROXY
+    echo $ALL_PROXY
+}
