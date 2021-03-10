@@ -133,7 +133,7 @@ pip install -U notedown
 
 pip install -U glances
 
-
+pip install -U dtags
 
 
 sudo gem install solargraph
