@@ -108,6 +108,8 @@ brew install pick
 
 brew install eth-p/software/bat-extras
 
+brew install --cask font-hack-nerd-font
+
 
 
 
