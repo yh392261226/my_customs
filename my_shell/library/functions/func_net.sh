@@ -58,7 +58,11 @@ function unsetproxy() { # Desc: unsetproxy:取消设置命令行代理
 }
 
 function getproxy() { # Desc: getproxy:获取命令行代理
-    echo "HTTP_PROXY: $HTTP_PROXY"
-    echo "HTTPS_PROXY: $HTTPS_PROXY"
-    echo "ALL_PROXY: $ALL_PROXY"
+    echo " \n
+    HTTP_PROXY: $HTTP_PROXY\n
+    HTTPS_PROXY: $HTTPS_PROXY\n
+    ALL_PROXY: $ALL_PROXY\n
+    \n
+    \n
+    " | cowsay | lolcat
 }

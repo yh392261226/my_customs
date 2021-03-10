@@ -110,7 +110,7 @@ brew install eth-p/software/bat-extras
 
 brew install --cask font-hack-nerd-font
 
-
+brew install lolcat
 
 
 
