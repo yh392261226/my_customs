@@ -112,6 +112,8 @@ brew install --cask font-hack-nerd-font
 
 brew install lolcat
 
+brew install axel base64
+
 
 
 
