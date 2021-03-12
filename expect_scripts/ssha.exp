@@ -1,0 +1,21 @@
+#!/usr/bin/expect -f
+set alias    [ lindex $argv 0 ]
+set host     [ lindex $argv 1 ]
+set port     [ lindex $argv 2 ]
+set user     [ lindex $argv 3 ]
+set password [ lindex $argv 4 ]
+set timeout -1
+spawn ssh $user@$host -p $port
+match_max 100000
+expect {
+    "*passphrase*" { send -- "$password\n" }
+    "continue connecting" { send -- "yes\n"; exp_continue }
+    "*assword*" { send -- "$password\n" }
+    "*Last*" { send -- "\n成功登录【$alias】\n";}
+    "*Welcome*" { send -- "\n成功登录【$alias】\n";}
+    send -- "stty rows 57 columns 283\n"
+}
+expect  "\#" {
+	send "stty rows 57 columns 283\n"
+}
+interact
