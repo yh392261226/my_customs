@@ -109,6 +109,11 @@ else
     fi
 fi
 
+if [ ! -d $MYRUNTIME/customs/others/SSHAutoLogin  ]; then
+    git clone https://github.com/yh392261226/SSHAutoLogin.git $MYRUNTIME/customs/others/SSHAutoLogin
+    $MYRUNTIME/customs/others/SSHAutoLogin/install.sh
+fi
+
 if [ "$is_notify" -gt "0" ]; then
     echo "Please Restart a new terminal window to effect the changing !!!"
 fi
