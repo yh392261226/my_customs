@@ -21,6 +21,7 @@ PROTECTEDPICS7=$TMPPICURL/protected7
 PROTECTEDPICS8=$TMPPICURL/protected8
 PROTECTEDPICS9=$TMPPICURL/protected9
 PROTECTEDPICS10=$TMPPICURL/protected10
+PROTECTEDPICS11=$TMPPICURL/protected11
 WORDSPICS=$TMPPICURL/words
 OTHERSPICS=$TMPPICURL/others
 curmark=$(cat $CURMARKFILE);
@@ -47,7 +48,7 @@ source $MYRUNTIME/customs/bin/mymessage
 echo "Usage: 1 - 5"
 echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 echo "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|"
-echo "| 1:public | 2:private | 3:protected | 31:protected1 | 32:protected2 | 33:protected3 | 34:protected4 | 35:protected5 | 36:protected6 | 37:protected7 | 38:protected8 | 39:protected9 | 310:protected10 | 4:words | 5:others  |"
+echo "| 1:public | 2:private | 3:protected | 31:protected1 | 32:protected2 | 33:protected3 | 34:protected4 | 35:protected5 | 36:protected6 | 37:protected7 | 38:protected8 | 39:protected9 | 310:protected10 | 311:protected11 | 4:words | 5:others  |"
 echo "| .........  .........   ...........   .............   .............   .............   .............   .............   .............   .............   .............   .............   ...............   .......   ........  |"
 echo "|****************************************************************************************************************************************************************************************************************************|"
 echo "______________________________________________________________________________________________________________________________________________________________________________________________________________________________"
@@ -132,6 +133,11 @@ case "$1" in
     	hastochange protected10;
     	echo "protected10" > $CURMARKFILE;
     	changepiclink $PROTECTEDPICS10;
+	;;
+	311)
+    	hastochange protected11;
+    	echo "protected11" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS11;
 	;;
 	4)
     	hastochange words;

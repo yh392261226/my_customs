@@ -29,6 +29,7 @@ PROTECTEDPICS7=$PICURL/protected7
 PROTECTEDPICS8=$PICURL/protected8
 PROTECTEDPICS9=$PICURL/protected9
 PROTECTEDPICS10=$PICURL/protected10
+PROTECTEDPICS11=$PICURL/protected11
 
 #获取文件源地址
 realfile_position() {
@@ -196,18 +197,19 @@ list_favo() {
         echo "$FAVOMARK dose not exists !"
         return 1
     else
-		favolists=`cat $FAVOMARK`
-		posit=0
-        for i in ${favolists[*]}; do
-            if [ "$i" != "" ]; then
-				echo $posit
-				thumb_favo $i
-				echo $i
-				((posit+=1))
-            fi
-        done
-				((posit+=1))
-		echo "Total : $posit"
+    cat $FAVOMARK | fzf --preview "$HOME/.iterm2/imgcat {} 10%x10%"
+		# favolists=`cat $FAVOMARK`
+		# posit=0
+    #     for i in ${favolists[*]}; do
+    #         if [ "$i" != "" ]; then
+		# 		echo $posit
+		# 		thumb_favo $i
+		# 		echo $i
+		# 		((posit+=1))
+    #         fi
+    #     done
+		# 		((posit+=1))
+		# echo "Total : $posit"
     fi
 }
 
@@ -498,6 +500,7 @@ fuzzy_search() {
   searchlist+=$(ls $PROTECTEDPICS8/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PROTECTEDPICS9/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PROTECTEDPICS10/*${para}* |sed 's/\/\//\//g')
+  searchlist+=$(ls $PROTECTEDPICS11/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PRIVATEPICS/*${para}* |sed 's/\/\//\//g')
   searchlist+=$(ls $PUBLICPICS/*${para}* |sed 's/\/\//\//g')
   if [ "" != "$searchlist" ]; then
