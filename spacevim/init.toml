@@ -442,3 +442,7 @@
 # auto-insert the other half of bracket
 [[custom_plugins]]
     name = "jiangmiao/auto-pairs"
+[[custom_plugins]]
+    name = "kiteco/vim-plugin"
+#    kite_supported_languages = ['python', 'javascript', 'go', 'php']
+    kite_supported_languages = ['*']
