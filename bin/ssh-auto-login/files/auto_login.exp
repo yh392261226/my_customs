@@ -6,7 +6,6 @@ trap {
     set rows [stty rows]
     set cols [stty columns]
     stty rows $rows columns $cols < $spawn_out(slave,name)
-	# stty rows 57 columns 283
 } WINCH
 
 set host [lindex $argv 0]
@@ -29,10 +28,10 @@ expect {
 	{
 		send -- "$password\n"
 	}
-	send -- "stty rows 57 columns 283\n"
 }
 expect  "\#" {
-	send "stty rows 57 columns 283\n"
+	send "stty rows 48 columns 158\n"	# M1无外接显示器尺寸
+# 	send "stty rows 57 columns 283\n"	# 带外接显示器尺寸
 }
 # expect eof
 interact
