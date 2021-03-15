@@ -14,5 +14,6 @@ file=$HOME"/.ssh/master-$user@$host:$port"
 if [ -e "$file" ]; then
 	ssh $user@$host -p $port
 else
+	cd $MYRUNTIME/customs/bin/ssh-auto-login/files
 	./auto_login.exp $host $user $password $save_RSA_key $port $rows $columns
 fi
