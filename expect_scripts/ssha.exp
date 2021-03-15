@@ -4,6 +4,8 @@ set host     [ lindex $argv 1 ]
 set port     [ lindex $argv 2 ]
 set user     [ lindex $argv 3 ]
 set password [ lindex $argv 4 ]
+set rows     [ lindex $argv 5 ]
+set columns  [ lindex $argv 6 ]
 set timeout -1
 spawn ssh $user@$host -p $port
 match_max 100000
@@ -13,9 +15,8 @@ expect {
     "*assword*" { send -- "$password\n" }
     "*Last*" { send -- "\n成功登录【$alias】\n";}
     "*Welcome*" { send -- "\n成功登录【$alias】\n";}
-    send -- "stty rows 57 columns 283\n"
 }
 expect  "\#" {
-	send "stty rows 57 columns 283\n"
+	send -- "stty rows $rows columns $columns \n"
 }
 interact

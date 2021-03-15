@@ -52,10 +52,13 @@ function login(){
     server=(${server_list[$1]})
     echo "$USER logging into the【${server[1]}】 server"| toilet -f term -F border --gay
     pem=${server[5]}
+
+    rows=$(stty size | awk '{print $1}')
+    columns=$(stty size | awk '{print $2}')
     if [ -f "$pem" ]; then
-        $MYRUNTIME/customs/expect_scripts/ssha.exp ${server[1]} ${server[2]} ${server[3]} ${server[4]} ${server[5]}
+        $MYRUNTIME/customs/expect_scripts/ssha.exp ${server[1]} ${server[2]} ${server[3]} ${server[4]} ${server[5]} $rows $columns
     else
-        $MYRUNTIME/customs/expect_scripts/ssha.exp ${server[1]} ${server[2]} ${server[3]} ${server[4]} ${server[5]}
+        $MYRUNTIME/customs/expect_scripts/ssha.exp ${server[1]} ${server[2]} ${server[3]} ${server[4]} ${server[5]} $rows $columns
     fi
     echo -e "\t$USER logged out the【${server[1]}】 server\t" | toilet -f term -F border --gay
 }
