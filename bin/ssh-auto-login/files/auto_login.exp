@@ -30,8 +30,9 @@ expect {
 	}
 }
 expect  "\#" {
-	send "stty rows 48 columns 158\n"	# M1无外接显示器尺寸
-# 	send "stty rows 57 columns 283\n"	# 带外接显示器尺寸
+	set rows [lindex $argv 4]
+	set columns [lindex $argv 5]
+	send "stty rows $rows columns $columns \n"
 }
 # expect eof
 interact
