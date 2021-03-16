@@ -17,3 +17,5 @@ else
 	cd $MYRUNTIME/customs/bin/ssh-auto-login/files
 	./auto_login.exp $host $user $password $save_RSA_key $port $rows $columns
 fi
+source $MYRUNTIME/customs/my_shell/my_common.sh
+success "已退出 $host"
