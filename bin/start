@@ -12,7 +12,7 @@ fi
 
 if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 	#$MYRUNTIME/customs/bin/myweather;
-	/usr/bin/cal;
+	/usr/bin/cal | lolcat;
 	echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark;
 	#delete all file without current date file
 	find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
