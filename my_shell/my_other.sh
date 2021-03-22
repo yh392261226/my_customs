@@ -114,6 +114,12 @@ if [ ! -d $MYRUNTIME/customs/others/SSHAutoLogin  ]; then
     $MYRUNTIME/customs/others/SSHAutoLogin/install.sh
 fi
 
+if [ ! -d $MYRUNTIME/customs/others/up ]; then
+    git clone https://github.com/shannonmoeller/up $MYRUNTIME/customs/others/up
+    ln -sf $MYRUNTIME/customs/others/up/up.fish $HOME/.config/fish/conf.d/up.fish
+fi
+source $MYRUNTIME/customs/others/up/up.sh
+
 #[[ -f /opt/homebrew/opt/autoenv/activate.sh ]] && source /opt/homebrew/opt/autoenv/activate.sh
 #[[ -f /usr/local/opt/autoenv/activate.sh ]] && source /usr/local/opt/autoenv/activate.sh
 
