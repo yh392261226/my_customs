@@ -148,6 +148,8 @@ pip install -U dtags
 
 pip install -U lesspass
 
+pip install shell-functools
+
 sudo gem install solargraph
 
 sudo gem install sheet

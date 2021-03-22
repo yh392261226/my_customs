@@ -197,3 +197,6 @@ npm install -g fuzzysort
 npm install -g apidoc
 npm install -g spot
 npm install -g snips-cli
+npm install -g fanyi
+npm install -g @rafaelrinaldi/hn-cli
+npm install -g is.sh

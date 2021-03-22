@@ -141,7 +141,7 @@ function speaking() { # Desc: speaking:利用osx系统发音说话
 }
 
 function myweather() { # Desc: myweather:获取哈尔滨天气
-    /usr/bin/curl http://wttr.in/harbin?lang=zh
+   curl http://wttr.in/harbin?lang=zh
 }
 
 function history_sort() { # Desc: history_sort:按执行次数倒序显示历史命令
