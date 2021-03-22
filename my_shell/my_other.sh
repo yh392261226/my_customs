@@ -114,6 +114,9 @@ if [ ! -d $MYRUNTIME/customs/others/SSHAutoLogin  ]; then
     $MYRUNTIME/customs/others/SSHAutoLogin/install.sh
 fi
 
+#[[ -f /opt/homebrew/opt/autoenv/activate.sh ]] && source /opt/homebrew/opt/autoenv/activate.sh
+#[[ -f /usr/local/opt/autoenv/activate.sh ]] && source /usr/local/opt/autoenv/activate.sh
+
 if [ "$is_notify" -gt "0" ]; then
     echo "Please Restart a new terminal window to effect the changing !!!"
 fi
@@ -123,6 +126,9 @@ fi
 eval "$(fasd --init auto)"
 #the fuck command
 eval $(thefuck --alias)
+#the aliases command
+eval "$(aliases init --global)"
+
 
 default_user=$(/usr/bin/whoami)
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl

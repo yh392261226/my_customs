@@ -119,6 +119,7 @@ plugins=(
 	fzf-tab
 	fzf-zsh-completions
 	formarks
+	h
 	) #last-working-dir
 autoload -U compinit
 #&& compinit

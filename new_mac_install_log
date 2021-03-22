@@ -114,6 +114,15 @@ brew install lolcat
 
 brew install axel base64
 
+brew install sebglazebrook/aliases/aliases
+
+brew install ack
+
+brew install hr
+
+brew install desk
+
+
 
 
 
