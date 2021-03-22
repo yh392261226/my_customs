@@ -146,5 +146,8 @@ pip install -U glances
 
 pip install -U dtags
 
+pip install -U lesspass
 
 sudo gem install solargraph
+
+sudo gem install sheet
