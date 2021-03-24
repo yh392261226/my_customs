@@ -122,6 +122,30 @@ brew install hr
 
 brew install desk
 
+brew install starship
+
+brew install ripgrep
+
+brew install glances
+
+brew install nodenv
+
+brew install pipx
+
+brew install jesseduffield/lazydocker/lazydocker
+
+brew install sachaos/todoist/todoist
+
+brew install ctop
+
+brew install httpie
+
+brew install dbcli/tap/pgcli
+
+brew install micro
+
+brew install mas
+
 
 
 
@@ -149,6 +173,8 @@ pip install -U dtags
 pip install -U lesspass
 
 pip install shell-functools
+
+pip install virtualenv
 
 sudo gem install solargraph
 
