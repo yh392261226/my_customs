@@ -1,0 +1,298 @@
+# export STARSHIP_CONFIG=~/.starship/starship.toml
+# export STARSHIP_CACHE=~/.starship/cache
+
+
+# Use custom format
+#format = """
+#$username\
+#$hostname\
+#$shlvl\
+#$kubernetes\
+#$directory\
+#$git_branch\
+#$git_commit\
+#$git_state\
+#$git_status\
+#$hg_branch\
+#$docker_context\
+#$package\
+#$cmake\
+#$dart\
+#$dotnet\
+#$elixir\
+#$elm\
+#$erlang\
+#$golang\
+#$helm\
+#$java\
+#$julia\
+#$kotlin\
+#$nim\
+#$nodejs\
+#$ocaml\
+#$perl\
+#$php\
+#$purescript\
+#$python\
+#$ruby\
+#$rust\
+#$scala\
+#$swift\
+#$terraform\
+#$vagrant\
+#$zig\
+#$nix_shell\
+#$conda\
+#$memory_usage\
+#$aws\
+#$gcloud\
+#$openstack\
+#$env_var\
+#$crystal\
+#$custom\
+#$cmd_duration\
+#$line_break\
+#$lua\
+#$jobs\
+#$battery\
+#$time\
+#$status\
+#$shell\
+#$character"""
+
+format = """
+[.....................................................................................................❯](bold red)
+[+ ](bold yellow)$directory$rust$package
+[...❯](bold red) """
+
+# Wait 10 milliseconds for starship to check files under the current directory.
+scan_timeout = 10
+
+# Inserts a blank line between shell prompts
+add_newline = true
+
+# Replace the "❯" symbol in the prompt with "➜"
+[character]                            # The name of the module we are configuring is "character"
+success_symbol = "[❯](bold green)"     # The "success_symbol" segment is being set to "➜" with the color "bold green"
+error_symbol = "[✗](bold red) "
+vicmd_symbol = "[V](bold green) "
+
+
+# Disable the package module, hiding it from the prompt completely
+[package]
+disabled = true
+format = "via [🎁 $version](208 bold) "
+
+[battery]
+full_symbol = ""
+charging_symbol = ""
+discharging_symbol = ""
+empty_symbol = ""
+[[battery.display]]
+threshold = 10
+style = "bold red"
+[[battery.display]]  # 当电量在 10% 到 20% 时以 "bold yellow" 样式显示
+threshold = 20
+style = "bold yellow"
+
+[cmd_duration]
+min_time = 500
+format = "underwent [$duration](bold yellow)"
+
+[conda]
+format = "[$symbol$environment](dimmed green) "
+
+[crystal]
+format = "via [✨ $version](bold blue) "
+
+[dart]
+format = "via [🔰 $version](bold red) "
+
+[directory]
+truncation_length = 8
+truncation_symbol = "…/"
+
+[docker_context]
+format = "via [🐋 $context](blue bold)"
+
+[dotnet]
+symbol = "🥅 "
+style = "green"
+heuristic = false
+
+[elixir]
+symbol = "🔮 "
+
+[elm]
+format = "via [ $version](cyan bold) "
+
+[env_var]
+variable = "SHELL"
+default = "unknown shell"
+
+[erlang]
+format = "via [e $version](bold red) "
+
+[gcloud]
+format = 'on [$symbol$account(\($project\))]($style) '
+style = "bold yellow"
+symbol = "️🇬️ "
+[gcloud.region_aliases]
+us-central1 = "uc1"
+asia-northeast1 = "an1"
+
+[git_branch]
+symbol = "🌱 "
+truncation_length = 4
+truncation_symbol = ""
+
+[git_commit]
+commit_hash_length = 4
+tag_symbol = "🔖 "
+
+[git_state]
+format = '[\($state( $progress_current of $progress_total)\)]($style) '
+cherry_pick = "[🍒 PICKING](bold red)"
+
+[git_status]
+conflicted = "🏳"
+ahead = "🏎💨"
+behind = "😰"
+diverged = "😵"
+untracked = "🤷‍"
+stashed = "📦"
+modified = "📝"
+staged = '[++\($count\)](green)'
+renamed = "👅"
+deleted = "🗑"
+
+[golang]
+format = "via [🏎💨 $version](bold cyan) "
+
+[hostname]
+ssh_only = false
+format =  "on [$hostname](bold red) "
+trim_at = ".companyname.com"
+disabled = false
+
+[java]
+symbol = "🌟 "
+
+[jobs]
+symbol = "+ "
+threshold = 4
+
+[kotlin]
+symbol = "🅺 "
+
+[kubernetes]
+format = 'on [⛵ $context \($namespace\)](dimmed green) '
+disabled = false
+[kubernetes.context_aliases]
+"dev.local.cluster.k8s" = "dev"
+
+[line_break]
+disabled = true
+
+[lua]
+format = "via [🌕 $version](bold blue) "
+
+[memory_usage]
+disabled = false
+threshold = -1
+symbol = " "
+style = "bold dimmed green"
+
+[hg_branch]
+format = "on [🌱 $branch](bold purple)"
+truncation_length = 4
+truncation_symbol = ""
+
+[nim]
+style = "yellow"
+symbol = "🎣 "
+
+[nix_shell]
+disabled = true
+impure_msg = "[impure shell](bold red)"
+pure_msg = "[pure shell](bold green)"
+format = 'via [☃️ $state( \($name\))](bold blue) '
+
+[nodejs]
+format = "via [🤖 $version](bold green) "
+
+[ocaml]
+format = "via [🐪 $version]($style) "
+
+[openstack]
+format = "on [$symbol$cloud(\\($project\\))]($style) "
+style = "bold yellow"
+symbol = "☁️ "
+
+[perl]
+format = "via [🦪 $version]($style) "
+
+[php]
+format = "via [🔹 $version](147 bold) "
+
+[purescript]
+format = "via [$symbol$version](bold white)"
+
+[python]
+symbol = "👾 "
+pyenv_version_name = true
+# Only use the `python3` binary to get the version.
+python_binary = "python3"
+# Don't trigger for files with the py extension
+detect_extensions = []
+
+[ruby]
+symbol = "🔺 "
+
+[rust]
+format = "via [⚙️ $version](red bold)"
+
+[scala]
+symbol = "🌟 "
+
+[shell]
+fish_indicator = ""
+powershell_indicator = "_"
+disabled = false
+
+[shlvl]
+disabled = false
+format = "$shlvl level(s) down"
+threshold = 3
+
+[singularity]
+format = '[📦 \[$env\]]($style) '
+
+[status]
+style = "bg:blue"
+symbol = "🔴"
+format = '[\[$symbol $common_meaning$signal_name$maybe_int\]]($style) '
+map_symbol = true
+disabled = false
+
+[terraform]
+format = "[🏎💨 $version$workspace]($style) "
+
+[time]
+disabled = false
+format = '🕙[\[ $time \]]($style) '
+time_format = "%T"
+utc_time_offset = "-5"
+time_range = "10:00:00-14:00:00"
+
+[username]
+style_user = "white bold"
+style_root = "black bold"
+format = "user: [$user]($style) "
+disabled = false
+show_always = true
+
+[vagrant]
+format = "via [⍱ $version](bold white) "
+
+
