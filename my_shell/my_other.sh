@@ -122,6 +122,8 @@ source $MYRUNTIME/customs/others/up/up.sh
 
 #[[ -f /opt/homebrew/opt/autoenv/activate.sh ]] && source /opt/homebrew/opt/autoenv/activate.sh
 #[[ -f /usr/local/opt/autoenv/activate.sh ]] && source /usr/local/opt/autoenv/activate.sh
+[[ -f /opt/homebrew/bin/pokemon ]] && alias ding="/opt/homebrew/bin/pokemon"
+[[ -f /usr/local/bin/pokemon ]] && alias ding="/usr/local/bin/pokemon"
 
 if [ "$is_notify" -gt "0" ]; then
     echo "Please Restart a new terminal window to effect the changing !!!"
