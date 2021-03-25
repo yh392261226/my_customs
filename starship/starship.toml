@@ -80,6 +80,7 @@ vicmd_symbol = "[V](bold green) "
 
 # Disable the package module, hiding it from the prompt completely
 [package]
+symbol = " "
 disabled = true
 format = "via [🎁 $version](208 bold) "
 
@@ -100,17 +101,23 @@ min_time = 500
 format = "underwent [$duration](bold yellow)"
 
 [conda]
+symbol = " "
 format = "[$symbol$environment](dimmed green) "
 
 [crystal]
 format = "via [✨ $version](bold blue) "
 
 [dart]
+symbol = " "
 format = "via [🔰 $version](bold red) "
 
 [directory]
+read_only = " "
 truncation_length = 8
 truncation_symbol = "…/"
+
+[docker]
+symbol = " "
 
 [docker_context]
 format = "via [🐋 $context](blue bold)"
@@ -121,7 +128,7 @@ style = "green"
 heuristic = false
 
 [elixir]
-symbol = "🔮 "
+symbol = " "
 
 [elm]
 format = "via [ $version](cyan bold) "
@@ -142,7 +149,7 @@ us-central1 = "uc1"
 asia-northeast1 = "an1"
 
 [git_branch]
-symbol = "🌱 "
+symbol = " "
 truncation_length = 4
 truncation_symbol = ""
 
@@ -167,7 +174,14 @@ renamed = "👅"
 deleted = "🗑"
 
 [golang]
+symbol = " "
 format = "via [🏎💨 $version](bold cyan) "
+
+[haskell]
+symbol = " "
+
+[julia]
+symbol = " "
 
 [hostname]
 ssh_only = false
@@ -176,7 +190,7 @@ trim_at = ".companyname.com"
 disabled = false
 
 [java]
-symbol = "🌟 "
+symbol = " "
 
 [jobs]
 symbol = "+ "
@@ -200,25 +214,28 @@ format = "via [🌕 $version](bold blue) "
 [memory_usage]
 disabled = false
 threshold = -1
-symbol = " "
+symbol = " "
 style = "bold dimmed green"
 
 [hg_branch]
+symbol = " "
 format = "on [🌱 $branch](bold purple)"
 truncation_length = 4
 truncation_symbol = ""
 
 [nim]
 style = "yellow"
-symbol = "🎣 "
+symbol = " "
 
 [nix_shell]
+symbol = " "
 disabled = true
 impure_msg = "[impure shell](bold red)"
 pure_msg = "[pure shell](bold green)"
 format = 'via [☃️ $state( \($name\))](bold blue) '
 
 [nodejs]
+symbol = " "
 format = "via [🤖 $version](bold green) "
 
 [ocaml]
@@ -230,16 +247,18 @@ style = "bold yellow"
 symbol = "☁️ "
 
 [perl]
+symbol = " "
 format = "via [🦪 $version]($style) "
 
 [php]
+symbol = " "
 format = "via [🔹 $version](147 bold) "
 
 [purescript]
 format = "via [$symbol$version](bold white)"
 
 [python]
-symbol = "👾 "
+symbol = " "
 pyenv_version_name = true
 # Only use the `python3` binary to get the version.
 python_binary = "python3"
@@ -247,13 +266,17 @@ python_binary = "python3"
 detect_extensions = []
 
 [ruby]
-symbol = "🔺 "
+symbol = " "
 
 [rust]
+symbol = " "
 format = "via [⚙️ $version](red bold)"
 
 [scala]
-symbol = "🌟 "
+symbol = " "
+
+[swift]
+symbol = "ﯣ "
 
 [shell]
 fish_indicator = ""
