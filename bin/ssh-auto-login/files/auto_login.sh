@@ -10,8 +10,9 @@ fi
 rows=$(stty size | awk '{print $1}')
 columns=$(stty size | awk '{print $2}')
 
-file=$HOME"/.ssh/master-$user@$host:$port"
+file=$HOME"/.ssh/tmp/master-$user@$host:$port"
 if [ -e "$file" ]; then
+	echo -e "\033[41;36m Reuse $user@$host:$port \033[0m" 
 	ssh $user@$host -p $port
 else
 	cd $MYRUNTIME/customs/bin/ssh-auto-login/files
