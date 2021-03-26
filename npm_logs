@@ -200,4 +200,5 @@ npm install -g snips-cli
 npm install -g fanyi
 npm install -g @rafaelrinaldi/hn-cli
 npm install -g is.sh
-npm install --global pokemon-terminal
+npm install -g pokemon-terminal
+npm install -g blessed blessed-contrib

@@ -139,7 +139,7 @@ fi
 
 #SSH config && tmp directory
 [[ ! -f $HOME/.ssh/config ]] && ln -sf $MYRUNTIME/customs/customs_modify_records/ssh_config $HOME/.ssh/config
-[[ !-d $HOME/.ssh/tmp ]] && mkdir -p $HOME/.ssh/tmp
+[[ ! -d $HOME/.ssh/tmp ]] && mkdir -p $HOME/.ssh/tmp
 
 #custom commands
 #fasd

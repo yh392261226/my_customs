@@ -17,3 +17,11 @@ if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 	#delete all file without current date file
 	find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
 fi
+
+echo
+echo "=============== Quote Of The Day ==============="
+echo
+fortune
+echo
+echo "================================================"
+echo
