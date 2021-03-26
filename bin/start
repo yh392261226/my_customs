@@ -22,7 +22,7 @@ echo
 echo "=============== Quote Of The Day ==============="
 echo
 #fortune
-fortune 10% fortunes 35% chinese 30% tang300 25% song100
+fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat
 echo
 echo "================================================"
 echo
