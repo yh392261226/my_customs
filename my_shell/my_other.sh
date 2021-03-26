@@ -137,6 +137,10 @@ if [ -d /opt/homebrew/opt/sqlite/bin ]; then
 	export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig"
 fi
 
+#SSH config && tmp directory
+[[ ! -f $HOME/.ssh/config ]] && ln -sf $MYRUNTIME/customs/customs_modify_records/ssh_config $HOME/.ssh/config
+[[ !-d $HOME/.ssh/tmp ]] && mkdir -p $HOME/.ssh/tmp
+
 #custom commands
 #fasd
 eval "$(fasd --init auto)"
