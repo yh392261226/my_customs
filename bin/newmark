@@ -167,3 +167,32 @@ else
     complete -F _comp p
     complete -F _comp d
 fi
+
+
+case "$1" in
+    "save" | "s")
+        s $2
+    ;;
+    "list" | "l")
+        l
+    ;;
+    "print" | "p")
+        p $2
+    ;;
+    "jump" | "j" | "g")
+        g $2
+    ;;
+    "delete" | "del" | "d")
+        d $2
+    ;;
+    *)
+        echo  "USAGE: "
+        echo ''
+        echo 's <bookmark_name> - Saves the current directory as "bookmark_name"'
+        echo 'g <bookmark_name> - Goes (cd) to the directory associated with "bookmark_name"'
+        echo 'p <bookmark_name> - Prints the directory associated with "bookmark_name"'
+        echo 'd <bookmark_name> - Deletes the bookmark'
+        echo 'l                 - Lists all available bookmarks'
+        kill -SIGINT $$
+    ;;
+esac
