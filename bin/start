@@ -12,6 +12,9 @@ fi
 
 if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 	#$MYRUNTIME/customs/bin/myweather;
+echo
+echo "============= Calendar Of The Month ============"
+echo
 	/usr/bin/cal | lolcat;
 	echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark;
 	#delete all file without current date file
