@@ -22,6 +22,10 @@ PROTECTEDPICS8=$TMPPICURL/protected8
 PROTECTEDPICS9=$TMPPICURL/protected9
 PROTECTEDPICS10=$TMPPICURL/protected10
 PROTECTEDPICS11=$TMPPICURL/protected11
+PROTECTEDPICS12=$TMPPICURL/protected12
+PROTECTEDPICS13=$TMPPICURL/protected13
+PROTECTEDPICS14=$TMPPICURL/protected14
+PROTECTEDPICS15=$TMPPICURL/protected15
 WORDSPICS=$TMPPICURL/words
 OTHERSPICS=$TMPPICURL/others
 curmark=$(cat $CURMARKFILE);
@@ -138,6 +142,26 @@ case "$1" in
     	hastochange protected11;
     	echo "protected11" > $CURMARKFILE;
     	changepiclink $PROTECTEDPICS11;
+	;;
+	312)
+    	hastochange protected12;
+    	echo "protected12" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS12;
+	;;
+	313)
+    	hastochange protected13;
+    	echo "protected13" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS13;
+	;;
+	314)
+    	hastochange protected14;
+    	echo "protected14" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS14;
+	;;
+	315)
+    	hastochange protected15;
+    	echo "protected15" > $CURMARKFILE;
+    	changepiclink $PROTECTEDPICS15;
 	;;
 	4)
     	hastochange words;

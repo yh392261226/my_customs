@@ -1,4 +1,4 @@
-JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-15.0.2.jdk/Contents/Home 
 CLASS_PATH="$JAVA_HOME/lib"
 PATH="$JAVA_HOME/bin:$PATH"
 if [ "$PLATFORM" = 'Darwin' ]; then
