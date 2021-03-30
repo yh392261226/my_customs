@@ -8,31 +8,12 @@ CURRENT_PICTURE_MARK=$MYRUNTIME/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYRUNTIME/tools/current_picturename
 ##获取第一次手动后PICURL的真实地址
 TMPPICURL=`dirname $(readlink $PICURL)`
-PUBLICPICS=$TMPPICURL/public
-PRIVATEPICS=$TMPPICURL/private
-PROTECTEDPICS0=$TMPPICURL/protected0
-PROTECTEDPICS1=$TMPPICURL/protected1
-PROTECTEDPICS2=$TMPPICURL/protected2
-PROTECTEDPICS3=$TMPPICURL/protected3
-PROTECTEDPICS4=$TMPPICURL/protected4
-PROTECTEDPICS5=$TMPPICURL/protected5
-PROTECTEDPICS6=$TMPPICURL/protected6
-PROTECTEDPICS7=$TMPPICURL/protected7
-PROTECTEDPICS8=$TMPPICURL/protected8
-PROTECTEDPICS9=$TMPPICURL/protected9
-PROTECTEDPICS10=$TMPPICURL/protected10
-PROTECTEDPICS11=$TMPPICURL/protected11
-PROTECTEDPICS12=$TMPPICURL/protected12
-PROTECTEDPICS13=$TMPPICURL/protected13
-PROTECTEDPICS14=$TMPPICURL/protected14
-PROTECTEDPICS15=$TMPPICURL/protected15
-WORDSPICS=$TMPPICURL/words
-OTHERSPICS=$TMPPICURL/others
+CHOICES=("public" "private" "words" "protected0" "protected1" "protected2" "protected3" "protected4" "protected5" "protected6" "protected7" "protected8" "protected9" "protected10" "protected11" "protected12" "protected13" "protected14" "protected15" "others")
 curmark=$(cat $CURMARKFILE);
 
 changepiclink() {
     rm -f $PICURL;
-    ln -sf $1 $PICURL;
+    ln -sf $TMPPICURL/$1 $PICURL;
     echo "" > $CURRENT_PICTURE_MARK
     echo "" > $CURRENT_PICTURENAME_MARK
     echo "Change link successfully!"
@@ -47,135 +28,26 @@ hastochange() {
         exit 1;
     fi
 }
+RED="0;31m"
+GREEN="0;33m"
 
-source $MYRUNTIME/customs/bin/mymessage
-echo "Usage: 1 - 5"
-echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-echo "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|"
-echo "| 1:public | 2:private | 3:protected | 31:protected1 | 32:protected2 | 33:protected3 | 34:protected4 | 35:protected5 | 36:protected6 | 37:protected7 | 38:protected8 | 39:protected9 | 310:protected10 | 311:protected11 | 4:words | 5:others  |"
-echo "| .........  .........   ...........   .............   .............   .............   .............   .............   .............   .............   .............   .............   ...............   .......   ........  |"
-echo "|****************************************************************************************************************************************************************************************************************************|"
-echo "______________________________________________________________________________________________________________________________________________________________________________________________________________________________"
+echo -e "\033[${GREEN}^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\033[00m"
 echo ""
 echo ""
-echo ""
-echo "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-echo "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|"
-echo "|								                   	                                        									  		     |"
-echo "|											   CURRENT : $curmark                        									                     |"
-echo "|											   ....................                      									                     |"
-echo "|								                   	                                        									  		     |"
-echo "|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|"
-echo "|****************************************************************************************************************************************************************************************************************************|"
-echo "______________________________________________________________________________________________________________________________________________________________________________________________________________________________"
-if [ $# -ne 1 ]; then
-	exit 0
+echo -e "\033[${RED}                                  CURRENT : $curmark                          \033[00m"
+echo -e "\033[${RED}                               ..........................                        \033[00m"
+echo -e "\033[${RED}                        _______________________________________   \033[00m"
+echo -e "\033[${RED}                    _______________________________________________   \033[00m"
+echo -e "\033[${RED}                _______________________________________________________   \033[00m"
+echo -e "\033[${RED}            _______________________________________________________________   \033[00m"
+echo -e "\033[${RED}        _______________________________________________________________________   \033[00m"
+echo -e "\033[${RED}    _______________________________________________________________________________   \033[00m"
+echo -e "\033[${RED}  ___________________________________________________________________________________ \033[00m"
+echo -e "\033[${GREEN}|-----------------------------------------------------------------------------------|\033[00m"
+
+choose=$(printf "%s\n" "${CHOICES[@]}" |fzf)
+if [ "" != "$choose" ]; then
+	hastochange $choose
+	echo "$choose" > $CURMARKFILE;
+	changepiclink $choose;
 fi
-
-case "$1" in
-	1)
-    	hastochange public;
-    	echo "public" > $CURMARKFILE;
-    	changepiclink $PUBLICPICS;
-	;;
-	2)
-    	hastochange private;
-    	echo "private" > $CURMARKFILE;
-    	changepiclink $PRIVATEPICS;
-	;;
-	3)
-    	hastochange protected0;
-    	echo "protected0" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS0;
-	;;
-	31)
-    	hastochange protected1;
-    	echo "protected1" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS1;
-	;;
-	32)
-    	hastochange protected2;
-    	echo "protected2" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS2;
-	;;
-	33)
-    	hastochange protected3;
-    	echo "protected3" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS3;
-	;;
-	34)
-    	hastochange protected4;
-    	echo "protected4" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS4;
-	;;
-	35)
-    	hastochange protected5;
-    	echo "protected5" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS5;
-	;;
-	36)
-    	hastochange protected6;
-    	echo "protected6" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS6;
-	;;
-	37)
-    	hastochange protected7;
-    	echo "protected7" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS7;
-	;;
-	38)
-    	hastochange protected8;
-    	echo "protected8" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS8;
-	;;
-	39)
-    	hastochange protected9;
-    	echo "protected9" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS9;
-	;;
-	310)
-    	hastochange protected10;
-    	echo "protected10" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS10;
-	;;
-	311)
-    	hastochange protected11;
-    	echo "protected11" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS11;
-	;;
-	312)
-    	hastochange protected12;
-    	echo "protected12" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS12;
-	;;
-	313)
-    	hastochange protected13;
-    	echo "protected13" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS13;
-	;;
-	314)
-    	hastochange protected14;
-    	echo "protected14" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS14;
-	;;
-	315)
-    	hastochange protected15;
-    	echo "protected15" > $CURMARKFILE;
-    	changepiclink $PROTECTEDPICS15;
-	;;
-	4)
-    	hastochange words;
-    	echo "words" > $CURMARKFILE;
-    	changepiclink $WORDSPICS;
-	;;
-	5)
-    	hastochange others;
-    	echo "others" > $CURMARKFILE;
-    	changepiclink $OTHERSPICS;
-	;;
-esac
-echo "-------------------------------------------------------------------------------------------------------------------------------"
-echo "-------------------------------------------------------------------------------------------------------------------------------"
-echo "                									Now : $curmark                                                               "
-echo "-------------------------------------------------------------------------------------------------------------------------------"
-echo "-------------------------------------------------------------------------------------------------------------------------------"
