@@ -108,6 +108,11 @@ git config --global alias.lol "log --graph --decorate --pretty=oneline --abbrev-
 git config --global alias.lola "log --graph --decorate --pretty=oneline --abbrev-commit --all"
 git config --global alias.subup "submodule update --init --recursive"
 git config --global alias.subst "submodule status --recursive"
+alias gd2="git status -s \
+ | fzf --no-sort --reverse \
+ --preview 'git diff --color=always {+2} | diff-so-fancy' \
+ --bind=ctrl-j:preview-down --bind=ctrl-k:preview-up \
+ --preview-window=right:60%:wrap"
 alias hgs='hg status'
 alias hgu='hg update'
 alias hgpl='hg pull'
