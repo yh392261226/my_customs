@@ -12,7 +12,7 @@ columns=$(stty size | awk '{print $2}')
 
 source $MYRUNTIME/customs/my_shell/my_common.sh
 file=$HOME"/.ssh/tmp/master-$user@$host:$port"
-success "已登录 $host_name"
+info "已登录 $host_name"
 if [ -e "$file" ]; then
 	echo -e "\033[41;36m Reuse $user@$host:$port \033[0m" 
 	ssh $user@$host -p $port
