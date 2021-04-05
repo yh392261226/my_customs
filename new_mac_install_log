@@ -148,7 +148,9 @@ brew install mas
 
 brew install jmeter
 
+brew install docui
 
+brew install libomp
 
 
 

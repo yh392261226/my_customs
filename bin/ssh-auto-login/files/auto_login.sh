@@ -14,7 +14,7 @@ source $MYRUNTIME/customs/my_shell/my_common.sh
 file=$HOME"/.ssh/tmp/master-$user@$host:$port"
 info "已登录 $host_name"
 if [ -e "$file" ]; then
-	echo -e "\033[41;36m Reuse $user@$host:$port \033[0m" 
+	echo -e "\033[41;36m 重用 $user@$host:$port \033[0m" 
 	ssh $user@$host -p $port
 else
 	cd $MYRUNTIME/customs/bin/ssh-auto-login/files
