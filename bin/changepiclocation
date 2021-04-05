@@ -8,10 +8,10 @@ CURRENT_PICTURE_MARK=$MYRUNTIME/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYRUNTIME/tools/current_picturename
 ##获取第一次手动后PICURL的真实地址
 TMPPICURL=`dirname $(readlink $PICURL)`
-CHOICES=("public" "private" "words" "protected0" "protected1" "protected2" "protected3" "protected4" "protected5" "protected6" "protected7" "protected8" "protected9" "protected10" "protected11" "protected12" "protected13" "protected14" "protected15" "others")
+CHOICES=$(cd $TMPPICURL; find . -type d ! -path . ! -path ..| grep -v 'duplicates' |sed 's,./,,g')
 curmark=$(cat $CURMARKFILE);
 
-changepiclink() {
+_changePicLink() {
     rm -f $PICURL;
     ln -sf $TMPPICURL/$1 $PICURL;
     echo "" > $CURRENT_PICTURE_MARK
@@ -22,12 +22,24 @@ changepiclink() {
     return 1;
 }
 
-hastochange() {
+_hastochange() {
     if [ "$1" = "$curmark" ];then
     	echo "Do not need to change!"
         exit 1;
     fi
 }
+
+_checkLink() {
+    if [ ! -f $PICURL ] && [ ! -d $PICURL ]; then //先判定自定义目录中是否存在
+        if [ -d $TMPPICURL ] && [ -d $TMPPICURL/public ]; then
+            ln -sf $TMPPICURL/public $PICURL
+        fi
+    fi
+}
+
+_checkLink
+
+
 RED="0;31m"
 GREEN="0;33m"
 
@@ -47,7 +59,7 @@ echo -e "\033[${GREEN}|---------------------------------------------------------
 
 choose=$(printf "%s\n" "${CHOICES[@]}" |fzf)
 if [ "" != "$choose" ]; then
-	hastochange $choose
+	_hastochange $choose
 	echo "$choose" > $CURMARKFILE;
-	changepiclink $choose;
+	_changePicLink $choose;
 fi
