@@ -6,6 +6,20 @@ function customcd() { # Desc:customcd:自定义cd命令
     builtin cd "$@";
 }
 
+function fcf() { # Desc: fcf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
+    local file
+    file="$(locate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
+    if [[ -n $file ]]
+    then
+        if [[ -d $file ]]
+        then
+            cd -- $file
+        else
+            cd -- ${file:h}
+        fi
+    fi
+}
+
 function fda() { # Desc: fda:including hidden directories
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
 }

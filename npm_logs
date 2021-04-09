@@ -203,3 +203,5 @@ npm install -g is.sh
 npm install -g pokemon-terminal
 npm install -g blessed blessed-contrib
 npm install -g how-2
+npm install -g svg-term-cli
+npm install -g cloc

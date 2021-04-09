@@ -152,6 +152,8 @@ brew install docui
 
 brew install libomp
 
+brew install grafana
+
 
 
 
@@ -183,3 +185,7 @@ pip install virtualenv
 sudo gem install solargraph
 
 sudo gem install sheet
+
+sudo gem install coderay
+
+sudo gem install rouge
