@@ -40,9 +40,19 @@ uniqDB() {
     fi
 }
 
+_domove() {
+    if [ "" != "$1" ]; then
+        tmptype=$(basename $(dirname $1) | sed 's,[[:digit:]],,g')
+        if [ ! -d ${PICPATH}duplicates_${tmptype}/ ]; then
+            mkdir ${PICPATH}duplicates_${tmptype}/
+        fi
+        mv $1 ${PICPATH}duplicates_${tmptype}/
+    fi
+}
+
 moveUniq() {
     for file in $(cat $DUPLICATEFILE); do
-        find $PICPATH -type f -name "$file" -exec mv {} ${PICPATH}duplicates/$file \;
+        find $PICPATH -type f -name "$file" -exec _domove {} \;
     done
 }
 
