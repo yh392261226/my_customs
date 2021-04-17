@@ -158,6 +158,14 @@ brew install hstr
 
 brew install progress
 
+brew install hexyl
+
+brew install fx
+
+brew install nvie/tap/git-toolbelt
+
+brew install navi
+
 
 
 

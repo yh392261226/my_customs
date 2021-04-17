@@ -209,3 +209,5 @@ npm install -g taskbook
 npm install -g snips-cli
 npm install -g iponmap
 npm install -g @rafaelrinaldi/whereami
+npm install -g redis-commander
+npm install -g git-commander
