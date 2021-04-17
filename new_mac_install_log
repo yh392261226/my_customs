@@ -154,7 +154,9 @@ brew install libomp
 
 brew install grafana
 
+brew install hstr
 
+brew install progress
 
 
 
@@ -181,6 +183,10 @@ pip install -U lesspass
 pip install shell-functools
 
 pip install virtualenv
+
+pip install haxor-news
+
+pip install isitup
 
 sudo gem install solargraph
 

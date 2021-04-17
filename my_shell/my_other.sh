@@ -137,6 +137,22 @@ if [ -d /opt/homebrew/opt/sqlite/bin ]; then
 	export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig"
 fi
 
+### Bashhub.com Installation
+if [ ! -d $HOME/.bashhub/ ]; then
+	curl -OL https://bashhub.com/setup && zsh setup
+fi
+
+if [ "zsh" = "$nowshell" ]; then
+	if [ -f $HOME/.bashhub/bashhub.zsh ]; then
+    	source $HOME/.bashhub/bashhub.zsh
+	fi
+fi
+if [ "bash" = "$nowshell" ]; then
+	if [ -f $HOME/.bashhub/bashhub.bash ]; then
+		source $HOME/.bashhub/bashhub.bash
+	fi
+fi
+
 #SSH config && tmp directory
 [[ ! -f $HOME/.ssh/config ]] && ln -sf $MYRUNTIME/customs/customs_modify_records/ssh_config $HOME/.ssh/config
 [[ ! -d $HOME/.ssh/tmp ]] && mkdir -p $HOME/.ssh/tmp

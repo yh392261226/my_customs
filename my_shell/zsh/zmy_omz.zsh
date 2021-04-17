@@ -120,6 +120,8 @@ plugins=(
 	fzf-zsh-completions
 	formarks
 	h
+	k
+	mysql-colorize
 	) #last-working-dir
 autoload -U compinit
 #&& compinit

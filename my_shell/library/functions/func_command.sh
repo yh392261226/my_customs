@@ -141,7 +141,11 @@ function speaking() { # Desc: speaking:利用osx系统发音说话
 }
 
 function myweather() { # Desc: myweather:获取哈尔滨天气
-   curl http://wttr.in/harbin?lang=zh
+    if [ -f /opt/homebrew/opt/curl/bin/curl ]; then
+        /opt/homebrew/opt/curl/bin/curl https://wttr.in/harbin\?lang\=zh
+        return
+    fi
+    curl https://wttr.in/harbin\?lang\=zh
 }
 
 function history_sort() { # Desc: history_sort:按执行次数倒序显示历史命令
@@ -182,3 +186,9 @@ if command -v COMMAND &> /dev/null; then
         history | fzf
     }
 fi
+
+function filetree() { # Desc:filetree:tree命令
+	path='./'
+	[[ "" != "$1" ]] && path=$1
+	ls -R $path | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'
+}

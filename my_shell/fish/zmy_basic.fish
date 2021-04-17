@@ -92,3 +92,8 @@ end
 if test -f /opt/homebrew/share/autojump/autojump.fish
     source /opt/homebrew/share/autojump/autojump.fish
 end
+
+### Bashhub.com Installation
+if [ -f "$HOME/.bashhub/bashhub.fish" ]
+    source "$HOME/.bashhub/bashhub.fish"
+end

@@ -205,3 +205,7 @@ npm install -g blessed blessed-contrib
 npm install -g how-2
 npm install -g svg-term-cli
 npm install -g cloc
+npm install -g taskbook
+npm install -g snips-cli
+npm install -g iponmap
+npm install -g @rafaelrinaldi/whereami
