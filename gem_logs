@@ -1,0 +1,7 @@
+sudo gem install solargraph
+
+sudo gem install sheet
+
+sudo gem install coderay
+
+sudo gem install rouge
