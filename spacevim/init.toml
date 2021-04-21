@@ -446,3 +446,5 @@
     name = "kiteco/vim-plugin"
 #    kite_supported_languages = ['python', 'javascript', 'go', 'php']
     kite_supported_languages = ['*']
+[[custom_plugins]]
+    name = "chemzqm/wxapp.vim"
