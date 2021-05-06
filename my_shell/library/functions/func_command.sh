@@ -166,7 +166,7 @@ function help() { # Desc: help:help 帮助 tldr命令别名
 }
 
 function p() { # Desc: p:ps -ef |grep 进程
-    ps -ef|grep "$@" |fzf
+    ps -ef|grep "$@" | grep -v grep |fzf
 }
 
 if [ -f /usr/local/bin/bashtop ]; then
