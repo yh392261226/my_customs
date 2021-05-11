@@ -32,7 +32,7 @@ expect {
 expect  "\#" {
 	set rows [lindex $argv 4]
 	set columns [lindex $argv 5]
-	send "stty rows $rows columns $columns \n"
+#send "stty rows $rows columns $columns \n"
 }
 # expect eof
 interact
