@@ -42,7 +42,7 @@ uniqDB() {
 
 moveUniq() {
     for file in $(cat $DUPLICATEFILE); do
-        find $PICPATH -type f -name "$file" -exec $MYRUNTIME/customs/bin/_domove {} \;
+        find $PICPATH -type f -name "$file" ! -path "${PICPATH}/*duplicates*" -exec $MYRUNTIME/customs/bin/_domove {} \;
     done
 }
 
