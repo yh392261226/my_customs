@@ -47,10 +47,17 @@ moveUniq() {
 }
 
 unfull() {
-            echo "path                                                  counts"
+            echo ""
+            printf "%-60s %-18s %-14s\n" path counts needs
     for curpath in $(ls $PICPATH); do
         if [ -d ${PICPATH}${curpath} ]; then 
-            echo "${PICPATH}${curpath}         $(find ${PICPATH}${curpath} -type f -name "*jpg" |wc -l)"
+            counts=$(find ${PICPATH}${curpath} -type f -name "*jpg" |wc -l)
+            ((needs=$MAXSIZE-$counts))
+            if [[ $curpath =~ duplicates_ ]]; then
+                printf "%-60s %-18s %-14s\n" ${PICPATH}${curpath} $counts
+            else
+                printf "%-60s %-18s %-14s\n" ${PICPATH}${curpath} $counts $needs
+            fi
         fi
     done
 }
