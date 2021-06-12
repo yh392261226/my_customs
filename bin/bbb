@@ -47,9 +47,10 @@ moveUniq() {
 }
 
 unfull() {
-            echo ""
-            printf "%-60s %-18s %-14s\n" path counts needs
-    for curpath in $(ls $PICPATH); do
+    clear
+    echo ""
+    printf "%-60s %-18s %-14s\n" path counts needs
+    for curpath in $(ls $PICPATH | sort -n); do
         if [ -d ${PICPATH}${curpath} ]; then 
             counts=$(find ${PICPATH}${curpath} -type f -name "*jpg" |wc -l)
             ((needs=$MAXSIZE-$counts))
@@ -58,6 +59,7 @@ unfull() {
             else
                 printf "%-60s %-18s %-14s\n" ${PICPATH}${curpath} $counts $needs
             fi
+            echo '-----------------------------------------------------------------------------------------'
         fi
     done
 }
@@ -88,7 +90,7 @@ case "$1" in
     *)
         echo "全目录记录->去重并记录->重复文件分离 最终文件都在duplicate文件夹中"
         echo "------------------------------------------------------------------"
-        echo "Usage:     bbb.sh r/record | u/uniq | m/move | o/open"
-        echo "使用方法： bbb.sh 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录"
+        echo "Usage:     bbb.sh r/record | u/uniq | m/move | o/open | un/unfull"
+        echo "使用方法： bbb.sh 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 | 未满"
     ;;
 esac
