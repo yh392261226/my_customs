@@ -192,10 +192,10 @@
     name = "lang#toml"
 [[layers]]
     name = "lang#typescript"
-[[layers]]
-    name = "lang#markdown"
-    enableWcwidth = 1
-    listItemIndent = 1
+#[[layers]]
+#    name = "lang#markdown"
+#    enableWcwidth = 1
+#    listItemIndent = 1
 [[layers]]
     name = "lang#html5"
 [[layers]]
@@ -218,8 +218,8 @@
     name = "lang#batch"
 [[layers]]
     name = "lang#autohotkey"
-[[layers]]
-    name = "lang#coffeescript"
+# [[layers]]
+#    name = "lang#coffeescript"
 [[layers]]
     name = "lang#io"
 [[layers]]

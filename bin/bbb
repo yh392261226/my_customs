@@ -49,6 +49,8 @@ moveUniq() {
 unfull() {
     clear
     echo ""
+    total=0
+    need_total=0
     printf "%-60s %-18s %-14s\n" path counts needs
     for curpath in $(ls $PICPATH | sort -n); do
         if [ -d ${PICPATH}${curpath} ]; then 
@@ -58,10 +60,13 @@ unfull() {
                 printf "%-60s %-18s %-14s\n" ${PICPATH}${curpath} $counts
             else
                 printf "%-60s %-18s %-14s\n" ${PICPATH}${curpath} $counts $needs
+                ((total=$total+$counts))
+                ((need_total=$need_total+$needs))
             fi
             echo '-----------------------------------------------------------------------------------------'
         fi
     done
+    printf "%-50s %-25s %-20s\n" "" "Total : $total" "Needs :  $need_total"
 }
 
 
