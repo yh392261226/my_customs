@@ -46,6 +46,13 @@ moveUniq() {
     done
 }
 
+afterUniq() {
+    for img in $(cat $UNIQFILE); do
+        results=$(find $PICPATH/* -type f -name "$img" ! -path "${PICPATH}/*duplicates*")
+        echo $results | sed 's, ,\r\n,g'
+    done
+}
+
 unfull() {
     clear
     echo ""
@@ -78,6 +85,10 @@ case "$1" in
 
     'u'|'uniq')
         uniqDB
+    ;;
+
+    'a'|'after')
+        afterUniq
     ;;
 
     'm'|'move')
