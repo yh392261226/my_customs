@@ -49,7 +49,9 @@ moveUniq() {
 afterUniq() {
     for img in $(cat $UNIQFILE); do
         results=$(find $PICPATH/* -type f -name "$img" ! -path "${PICPATH}/*duplicates*")
-        echo $results | sed 's, ,\r\n,g'
+        if [ "" != "$results" ]; then
+            echo $results | sed 's, ,\r\n,g'
+        fi
     done
 }
 
