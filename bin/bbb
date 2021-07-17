@@ -18,7 +18,7 @@ MAXSIZE=2000
 
 recordDB() {
     if [ -f $DBFILE ]; then
-        rm -f $DBFILE
+        rm -f $DBFILE $UNIQFILE;
     fi
     for path in $(ls $PICPATH); do
         if [ -d $path ]; then 
@@ -28,7 +28,7 @@ recordDB() {
 }
 
 uniqDB() {
-    rm -f /tmp/uniq_db_file_names $UNIQFILE;
+    rm -f /tmp/uniq_db_file_names
     for file in $(cat $DBFILE); do
         echo $(basename $file) >> /tmp/uniq_db_file_names
     done
@@ -47,10 +47,16 @@ moveUniq() {
 }
 
 afterUniq() {
+    max=5
+    count=0
     for img in $(cat $UNIQFILE); do
-        results=$(find $PICPATH/* -type f -name "$img" ! -path "${PICPATH}/*duplicates*")
-        if [ "" != "$results" ]; then
-            echo $results | sed 's, ,\r\n,g'
+        if [ $count -lt $max ]; then
+            results=$(find $PICPATH/* -type f -name "$img" ! -path "${PICPATH}/*duplicates*")
+            if [ "" != "$results" ]; then
+                imgthumb $(echo $results | awk -F' ' '{print $1}')
+                echo $results | sed 's, ,\r\n,g'
+                ((count++))
+            fi
         fi
     done
 }

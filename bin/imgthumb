@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+thumb() {
+	if [ "$1" = "" ] || [ ! -f $1 ]; then
+		echo "Image file does not exists !";
+		return 1
+	fi
+  if [ "$2" != "" ]; then
+    width=$(echo $2 | awk -F'X|x|*' '{print $1}' | sed 's/%/%%/g')
+    height=$(echo $2 | awk -F'X|x|*' '{print $2}' | sed 's/%/%%/g')
+    printf '\033]1337;File=inline=1;width='$width';height='$height'preserveAspectRatio=0'
+  else
+    printf '\033]1337;File=inline=1;width=15%%;preserveAspectRatio=0'
+  fi
+  printf ":"
+  base64 < "$1"
+  printf '\a\n'
+}
+
+thumb $@
