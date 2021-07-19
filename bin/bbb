@@ -52,7 +52,7 @@ afterUniq() {
     for img in $(cat $UNIQFILE); do
         if [ $count -lt $max ]; then
             results=$(find $PICPATH/* -type f -name "$img" ! -path "${PICPATH}/*duplicates*")
-            if [ "" != "$results" ]; then
+            if [ "" != "$results" ] && [ "$(echo $results | sed 's, ,\r\n,g' |wc -l)" -gt 1 ]; then
                 imgthumb $(echo $results | awk -F' ' '{print $1}')
                 echo $results | sed 's, ,\r\n,g'
                 ((count++))
