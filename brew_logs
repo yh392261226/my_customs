@@ -163,3 +163,5 @@ brew install nvie/tap/git-toolbelt
 brew install navi
 
 brew install dialog zenity
+
+brew install atuin

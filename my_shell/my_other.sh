@@ -153,6 +153,10 @@ if [ "bash" = "$nowshell" ]; then
 	fi
 fi
 
+if [ "$(command -v atuin)"  =  "" ]; then
+    brew install atuin
+fi
+
 #SSH config && tmp directory
 [[ ! -f $HOME/.ssh/config ]] && ln -sf $MYRUNTIME/customs/customs_modify_records/ssh_config $HOME/.ssh/config
 [[ ! -d $HOME/.ssh/tmp ]] && mkdir -p $HOME/.ssh/tmp
@@ -164,6 +168,12 @@ eval "$(fasd --init auto)"
 eval $(thefuck --alias)
 #the aliases command
 eval "$(aliases init --global)"
+#the atuin import
+if [ "zsh" = "$nowshell" ]; then
+    eval "$(atuin init zsh)"
+elif [ "bash" = "$nowshell" ]; then
+    eval "$(atuin init bash)"
+fi
 
 
 default_user=$(/usr/bin/whoami)
