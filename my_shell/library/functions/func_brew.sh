@@ -21,7 +21,7 @@ function bdl() { # Desc: bdl:Brew Delete (one or multiple) selected application(
   fzf_bdl
 }
 
-function fzf_bup() { # Desc: bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
+function fzf_bup() { # Desc: fzf_bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
   local upd=$(brew leaves | fzf -m)
 
   if [[ $upd ]]; then
