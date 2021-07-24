@@ -26,11 +26,11 @@ function ii() { # Desc: ii:display useful host related informaton
     echo
 }
 
-function httpDebug () { # Desc: httpDebug:Download a web page and show info on what took time
+function http_debug () { # Desc: http_debug:Download a web page and show info on what took time
     curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ;
 }
 
-function httpHeaders () { # Desc: httpHeaders:Grabs headers from web page
+function http_headers () { # Desc: http_headers:Grabs headers from web page
     curl -I -L $@ ;
 }
 

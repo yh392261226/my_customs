@@ -86,7 +86,7 @@ function c() { # Desc: c:列出Chrome浏览器的历史
     sed 's#.*\(https*://\)#\1#' | xargs open
 }
 
-fb() { # Desc: fb:buku数据库配合fzf列出网址收藏
+function fzf_fb() { # Desc: fb:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
     mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi)"
 

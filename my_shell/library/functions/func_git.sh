@@ -1,4 +1,9 @@
-function fbr() { # Desc: fbr:checkout git branch
+
+function isgit() { # Desc: isgit:pick files from `git status -s`
+    git rev-parse HEAD > /dev/null 2>&1
+}
+
+function fzf_br() { # Desc: fzf_br:checkout git branch
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
@@ -6,14 +11,22 @@ function fbr() { # Desc: fbr:checkout git branch
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
 
-function fcoc() { # Desc: fcoc:checkout git commit
+function fbr() { # Desc: fbr:checkout git branch
+    fzf_br
+}
+
+function fzf_coc() { # Desc: fcoc:checkout git commit
     local commits commit
     commits=$(git log --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
 
-function fco_preview() { # Desc: fco_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+function fcoc() { # Desc: fcoc:checkout git commit
+    fzf_coc
+}
+
+function fzf_co_preview() { # Desc: fzf_co_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -28,14 +41,22 @@ function fco_preview() { # Desc: fco_preview:checkout git branch/tag, with a pre
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-function fcs() { # Desc: fcs:get git commit sha. example usage: git rebase -i `fcs`
+function fco_preview() { # Desc: fco_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+    fzf_co_preview
+}
+
+function fzf_cs() { # Desc: fzf_cs:get git commit sha. example usage: git rebase -i `fcs`
     local commits commit
     commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e --ansi --reverse) &&
     echo -n $(echo "$commit" | sed "s/ .*//")
 }
 
-function fco() { # Desc: fco:checkout git branch/tag
+function fcs() { # Desc: fcs:get git commit sha. example usage: git rebase -i `fcs`
+    fzf_cs
+}
+
+function fzf_co() { # Desc: fzf_co:checkout git branch/tag
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -49,7 +70,11 @@ function fco() { # Desc: fco:checkout git branch/tag
     git checkout $(echo "$target" | awk '{print $2}')
 }
 
-function fstash() { # Desc: fstash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
+function fco() { # Desc: fco:checkout git branch/tag
+    fzf_co
+}
+
+function fzf_stash() { # Desc: fzf_stash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
     while out=$(
     git stash list --pretty="%C(yellow)%h %>(14)%Cgreen%cr %C(blue)%gs" |
@@ -73,7 +98,11 @@ function fstash() { # Desc: fstash:easier way to deal with stashes. type fstash 
     done
 }
 
-function fgst() { # Desc: fgst:显示当前git版本库中未添加进版本的修改或新增文件列表
+function fstash() { # Desc: fstash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
+    fzf_stash
+}
+
+function fzf_gst() { # Desc: fzf_gst:显示当前git版本库中未添加进版本的修改或新增文件列表
     isgit || return
 
     local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
@@ -84,7 +113,11 @@ function fgst() { # Desc: fgst:显示当前git版本库中未添加进版本的�
     echo
 }
 
-function fshow() { # Desc: fshow:git commit browser
+function fgst() { # Desc: fgst:显示当前git版本库中未添加进版本的修改或新增文件列表
+    fzf_gst $@
+}
+
+function fzf_show() { # Desc: fzf_show:git commit browser
 git log --graph --color=always \
     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
 fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
@@ -92,6 +125,10 @@ fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
 (grep -o '[a-f0-9]\{7\}' | head -1 |
 xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 {}"
+}
+
+function fshow() { # Desc: fshow:git commit browser
+    fzf_show $@
 }
 
 function gitdiffb() { # Desc: gitdiffb:git 比对两个分支
@@ -122,9 +159,5 @@ function upgitfiles() { # Desc: upgitfiles:更新git的目录及git module的目
         fi
     done
     customcd ~
-}
-
-function isgit() { # Desc: isgit:pick files from `git status -s`
-    git rev-parse HEAD > /dev/null 2>&1
 }
 

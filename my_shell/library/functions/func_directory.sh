@@ -6,7 +6,7 @@ function customcd() { # Desc:customcd:自定义cd命令
     builtin cd "$@";
 }
 
-function fcf() { # Desc: fcf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
+function fzf_cf() { # Desc: fzf_cf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
     local file
     file="$(locate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
     if [[ -n $file ]]
@@ -20,8 +20,16 @@ function fcf() { # Desc: fcf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (e
     fi
 }
 
-function fda() { # Desc: fda:including hidden directories
+function fcf() { # Desc: fcf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
+    fzf_cf $@
+}
+
+function fzf_da() { # Desc: fzf_da:including hidden directories
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
+}
+
+function fda() { # Desc: fda:including hidden directories
+    fzf_da $@
 }
 
 function mcdf() { # Desc: mcdf:short for cdfinder
@@ -36,7 +44,7 @@ function showF() { # Desc: showF:文件夹显示隐藏文件
     defaults write com.apple.Finder AppleShowAllFiles YES ; killall Finder /System/Library/CoreServices/Finder.app;
 }
 
-function fdr() { # Desc: fdr:cd to selected parent directory
+function fzf_dr() { # Desc: fzf_dr:cd to selected parent directory
     local declare dirs=()
     get_parent_dirs() {
         if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
@@ -50,7 +58,11 @@ function fdr() { # Desc: fdr:cd to selected parent directory
     cd "$DIR"
 }
 
-function fcd() { # Desc: fcd:cd to selected directory
+function fdr() { # Desc: fdr:cd to selected parent directory
+    fzf_dr $@
+}
+
+function fzf_cd() { # Desc: fzf_cd:cd to selected directory
     if [[ "$#" != 0 ]]; then
         builtin cd "$@";
         return
@@ -70,16 +82,28 @@ function fcd() { # Desc: fcd:cd to selected directory
     done
 }
 
+function fcd() { # Desc: fcd:cd to selected directory
+    fzf_cd $@
+}
+
 # fzf (https://github.com/junegunn/fzf)
-function fd2() { # Desc: fd2:another cd to selected directory
+function fzf_d2() { # Desc: fzf_d2:another cd to selected directory
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"
 }
 
-function cdff() { # Desc: cdff:cd into the directory of the selected file
+function fd2() { # Desc: fd2:another cd to selected directory
+    fzf_d2 $@
+}
+
+function fzf_cdff() { # Desc: fzf_cdff:cd into the directory of the selected file
     local file
     local dir
     file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
+}
+
+function cdff() { # Desc: cdff:cd into the directory of the selected file
+    fzf_cdff $@
 }
 
 function gdto() { # Desc: gdto:包含参数的名称的文件夹
@@ -134,10 +158,14 @@ function cdto() { # Desc: cdto:命令所在的文件夹
     fi
 }
 
-function fz() { # Desc: fz:目录跳转
+function fzf_z() { # Desc: fzf_z:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
     local dir
     dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
+}
+
+function fz() { # Desc: fz:目录跳转
+    fzf_z $@
 }
 
 function llw() { # Desc: llw:打印which命令找到的文件地址

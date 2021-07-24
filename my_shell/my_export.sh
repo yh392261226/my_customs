@@ -61,6 +61,7 @@ fi
 export WINEDEBUG=-all
 export MYCUSTOMS=$MYRUNTIME/customs
 export MYTOOLS=$MYRUNTIME/tools
+export MYSHELL=$MYCUSTOMS/my_shell 
 
 FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 

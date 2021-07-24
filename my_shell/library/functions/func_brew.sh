@@ -7,7 +7,7 @@ function bcc() { # Desc: bcc:Brew Delete (one or multiple) Caches files of  mnem
   echo "Common files already deleted, You have to clean other files manually!!!"
 }
 
-function bdl() { # Desc: bdl:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
+function fzf_bdl() { # Desc: fzf_bdl:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
   local uninst=$(brew leaves | fzf -m)
 
   if [[ $uninst ]]; then
@@ -17,7 +17,11 @@ function bdl() { # Desc: bdl:Brew Delete (one or multiple) selected application(
   fi
 }
 
-function bup() { # Desc: bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
+function bdl() { # Desc: bdl:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
+  fzf_bdl
+}
+
+function fzf_bup() { # Desc: bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
   local upd=$(brew leaves | fzf -m)
 
   if [[ $upd ]]; then
@@ -27,11 +31,15 @@ function bup() { # Desc: bup:Brew Update (one or multiple) selected application(
   fi
 }
 
+function bup() { # Desc: bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]
+  fzf_bup
+}
+
 function reinstallneovim() { # Desc: reinstallneovim:重新安装neovim
   brew reinstall neovim --HEAD
 }
 
-function bip() { # Desc: bip:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
+function fzf_bip() { # Desc: fzf_bip:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
   local inst=$(brew search | fzf -m)
 
   if [[ $inst ]]; then
@@ -41,3 +49,6 @@ function bip() { # Desc: bip:Brew Install (one or multiple) selected application
   fi
 }
 
+function bip() { # Desc: bip:Brew Install (one or multiple) selected application(s) using "brew search" as 
+  fzf_bip
+}

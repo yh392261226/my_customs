@@ -4,11 +4,15 @@ function showa() { # Desc: showa:显示所有含有字符串的自定义命令�
     # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
 }
 
-function showfuncs() {
+function fzf_showfuncs() { # Desc: fzf_showfuncs:显示所有自定义命令及注释
     find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*sh" |xargs grep 'function .*().*Desc' |sed 's/Desc:/Î/' |awk -F'Î' '{print $2}' |fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "bash $MYRUNTIME/customs/bin/check_custom_functions {}" --preview-window right:140
 }
 
-function showaliases() { # Desc: showaliases:显示所有自定义命令及注释
+function showfuncs() { # Desc: fzf_showfuncs:显示所有自定义命令及注释
+    fzf_showfuncs
+}
+
+function fzf_showaliases() { # Desc: fzf_showaliases:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     #customcd $MYRUNTIME/customs/my_shell/library/functions; ls *.sh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
     ls $MYRUNTIME/customs/my_shell/library/functions/*.sh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
@@ -22,6 +26,10 @@ function showaliases() { # Desc: showaliases:显示所有自定义命令及注�
     #     cat /tmp/tmp_all_aliases.log | fzf --no-sort --tac --toggle-sort=ctrl-r --height 40% --reverse --preview 'cat {}' --preview-window right:140
     #     # rm -f /tmp/tmp_all_aliases.log
     # fi
+}
+
+function showaliases() { # Desc: showaliases:显示所有自定义命令及注释
+    fzf_showaliases
 }
 
 function a2z() { # Desc: a2z:显示从a-z的我的自定义命令
@@ -118,7 +126,7 @@ function codesign() { # Desc: codesign:2019-07-12 TNT破解失效 更改签名
     fi
 }
 
-function fgl() { # Desc: fgl:Figlet 字体选择器
+function fzf_gl() { # Desc: fgl:Figlet 字体选择器
     cd $(brew --prefix)/figlet/*/share/figlet/fonts
     BASE=`pwd`
     figlet -f `ls *.flf | sort | fzf` $*
@@ -157,7 +165,7 @@ function history_sort() { # Desc: history_sort:按执行次数倒序显示历史
     fi
 }
 
-function fh() { # Desc: fh:列出历史操作命令 选择后执行
+function fzf_h() { # Desc: fh:列出历史操作命令 选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
 }
 

@@ -1,36 +1,45 @@
-function lsext() { # Desc: lsext:寻找当前目录下后缀名的所有文件
+function find_ext() { # Desc: find_ext:寻找当前目录下后缀名的所有文件
     find . -type f -iname '*.'${1}'' -exec ls -l {} \; ;
 }
 
-function ffe () { # Desc: ffe:Find file whose name ends with a given string
+function fext() { # Desc: fext:寻找当前目录下后缀名的所有文件
+    find_ext $@
+}
+
+function find_fe () { # Desc: find_fe:Find file whose name ends with a given string
     /usr/bin/find . -name '*'"$@" ;
 }
 
-function ffs () { # Desc: ffs:Find file whose name starts with a given string
+function ffe() { # Desc: ffe:Find file whose name ends with a given string
+    find_fe $@
+}
+
+function find_fs () { # Desc: find_fs:Find file whose name starts with a given string
     find . -name "$@"'*' ;
 }
 
-function mqfind () { # Desc: mqfind:查找当前目录中包含某个字符串的
+function ffs () { # Desc: ffs:Find file whose name starts with a given string
+    find_fs $@
+}
+
+function find_mq () { # Desc: find_mq:查找当前目录中包含某个字符串的
     find . -exec grep -l -s $1 {} \;
     return 0
 }
 
-function ff () { # Desc: ff:Find file under the current directory
+function fmq() { # Desc: fmq:查找当前目录中包含某个字符串的
+    find_mq $@
+}
+
+function find_f () { # Desc: find_f:Find file under the current directory
     find . -name "$@" ;
 }
 
-#   findPid: find out the pid of a specified process
-#   -----------------------------------------------------
-#       Note that the command name can be specified via a regex
-#       E.g. findPid '/d$/' finds pids of all processes with names ending in 'd'
-#       Without the 'sudo' it will only find processes of the current user
-#   -----------------------------------------------------
-
-function findPid () { # Desc: findPid:find out the pid of a specified process
-    lsof -t -c "$@" ;
+function ff () { # Desc: ff:Find file under the current directory
+    find_f $@
 }
 
-function findmd5same() { # Desc: findmd5same:find files which has the same md5 value
+function find_samemd5() { # Desc: find_samemd5:find files which has the same md5 value
     local MD5COMMAND=/sbin/md5
     local SOURCEPATH=$1
     local TMPFILE=/tmp/findmd5same_tmp
@@ -67,20 +76,6 @@ function findmd5same() { # Desc: findmd5same:find files which has the same md5 v
     if [ -f $RESULTFILE ]; then
         echo "Please check the result data, " $RESULTFILE
         exit 0
-    fi
-}
-
-function fkill() { # Desc: fkill: kill processes - list only the ones you can kill. Modified the earlier script.
-    local pid
-    if [ "$UID" != "0" ]; then
-        pid=$(ps -f -u $UID | sed 1d | fzf -m | awk '{print $2}')
-    else
-        pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
-    fi
-
-    if [ "x$pid" != "x" ]
-    then
-        echo $pid | xargs kill -${1:-9}
     fi
 }
 

@@ -30,7 +30,7 @@ function tmuxf() { # Desc: tmuxf:tmux 根据选择使用配置文件
     fi
 }
 
-function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
+function fzf_tpane() { # Desc: fzf_tpane:tmux switch pane (@george-b)
     local panes current_window current_pane target target_window target_pane
     panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
     current_pane=$(tmux display-message -p '#I:#P')
@@ -49,6 +49,10 @@ function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
     fi
 }
 
+function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
+    fzf_tpane $@
+}
+
 function fzf_tmux_words() { # Desc: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
     fzf_tmux_helper \
         '-p 40' \
@@ -62,7 +66,7 @@ function fzf_tmux_helper() { # Desc: fzf_tmux_helper:tmux中利用fzf的帮助
         "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
 }
 
-function fs() { # Desc: fs:Switch tmux-sessions
+function fzf_switchsession() { # Desc: fzf_switchsession:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
         fzf-tmux --query="$1" --select-1 --exit-0) &&

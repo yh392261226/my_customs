@@ -1,9 +1,13 @@
-function frb() { # Desc: frb:RVM integration
+function fzf_rb() { # Desc: fzf_rb:RVM integration
     local rb
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
     awk '{print $1}' |
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
+}
+
+function frb() { # Desc: frb:RVM integration
+    fzf_rb
 }
 
 function gems() { # Desc: gems:rvm多个版本的gem操作同一个包
