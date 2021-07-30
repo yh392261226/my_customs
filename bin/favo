@@ -559,7 +559,7 @@ fuzzy_search() {
   fi
 }
 
-source $MYRUNTIME/customs/bin/mymessage
+# source $MYRUNTIME/customs/bin/mymessage
 
 if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
 	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
