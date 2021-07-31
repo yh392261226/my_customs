@@ -12,20 +12,21 @@ fi
 
 if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 	#$MYRUNTIME/customs/bin/myweather;
-echo
-echo "============= Calendar Of The Month ============"
-echo
-	/usr/bin/cal | lolcat;
-	echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark;
-	#delete all file without current date file
-	find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
-fi
+	echo
+	echo "============= Calendar Of The Month ============"
+	echo
+		/usr/bin/cal | lolcat;
+		echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark;
+		#delete all file without current date file
+		find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
+	
+	echo
+	echo "=============== Quote Of The Day ==============="
+	echo
+	#fortune
+	fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat
+	echo
+	echo "================================================"
+	echo
 
-echo
-echo "=============== Quote Of The Day ==============="
-echo
-#fortune
-fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat
-echo
-echo "================================================"
-echo
+fi
