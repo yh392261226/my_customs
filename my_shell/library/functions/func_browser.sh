@@ -65,12 +65,16 @@ function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
 
-function c() { # Desc: c:列出Chrome浏览器的历史
+function c_history() { # Desc: c:列出Chrome浏览器的历史
+    if [ "" = "$@" ]; then
+        echo "Does not send param!"
+        return 1
+    fi
     local cols sep
     export cols=$(( COLUMNS / 3 ))
     export sep='{::}'
-
-    cp -f ~/Library/Application\ Support/Google/Chrome/Default/History /tmp/h
+    rm -f /tmp/h
+    cp -r -f $@ /tmp/h
     sqlite3 -separator $sep /tmp/h \
         "select title, url from urls order by last_visit_time desc" |
     ruby -ne '
@@ -84,6 +88,14 @@ function c() { # Desc: c:列出Chrome浏览器的历史
     }.join + " " * (2 + cols - len) + "\x1b[m" + url' |
     fzf --ansi --multi --no-hscroll --tiebreak=index |
     sed 's#.*\(https*://\)#\1#' | xargs open
+}
+
+function c() { # Desc: c:列出Chrome默认账户的浏览器的历史
+    c_history ~/Library/Application\ Support/Google/Chrome/Default/History
+}
+
+function c2() { # Desc: c:列出Chrome Profile 1账户的浏览器的历史
+    c_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History
 }
 
 function fzf_fb() { # Desc: fb:buku数据库配合fzf列出网址收藏
