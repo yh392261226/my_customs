@@ -1,0 +1,35 @@
+#!/bin/bash
+# Desc              : 工作目录Git拉取代码更新s
+# File              : gitwork
+# Date              : 05.08.2021
+# Last Modified Date: 05.08.2021
+RECORDDATA=$MYRUNTIME/tools/working_record.log
+
+function gitwork() {
+    title=$1
+    work_path=$2
+    if [ "" = "$2" ]; then
+        echo "$work_path does not exists !!!"
+        return 1
+    fi
+    echo $title
+    cd $work_path
+    git fetch --all
+    git pull
+
+    echo "Done ..."
+}
+
+function gitaction() {
+    if [ ! -f $RECORDDATA ]; then
+        echo "File: $RECORDDATA does not exists, Please record the file and content first!!!"
+        return 1
+    fi
+    source $RECORDDATA
+    for ((i = 0; i < ${#path[@]}; i++)); do #以path目录为主，name名称可以为空s
+        gitwork ${name[$i]} ${path[$i]}
+    done
+}
+
+
+gitaction
