@@ -14,6 +14,7 @@ brew tap neovim/neovim
 brew tap cowsay-org/cowsay
 brew tap denji/nginx
 brew tap cjbassi/gotop
+brew tap aykamko/tag-ag
 
 brew install --build-from-source dark-mode dcd
 brew install --build-from-source editorconfig elasticsearch
@@ -165,3 +166,7 @@ brew install navi
 brew install dialog zenity
 
 brew install atuin
+
+brew install tag-ag
+
+brew install progress

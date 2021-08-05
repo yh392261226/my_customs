@@ -213,3 +213,4 @@ npm install -g redis-commander
 npm install -g git-commander
 npm install -g clever-tools
 npm install -g wept
+npm install -g @rafaelrinaldi/whereami

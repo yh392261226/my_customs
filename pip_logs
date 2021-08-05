@@ -21,3 +21,5 @@ pip install haxor-news
 pip install isitup
 
 pip3 install --user --upgrade advance-touch
+
+pip install percol

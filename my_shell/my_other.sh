@@ -34,7 +34,7 @@ fi
 [[ -d /usr/local/opt/openssl/include ]] && export CPPFLAGS="-I/usr/local/opt/openssl/include"
 [[ -d /opt/homebrew/opt/openssl/include ]] && export CPPFLAGS="-I/opt/homebrew/opt/openssl/include"
 
-#vim&nvim  remote
+### vim&nvim  remote
 if [ -f $HOME/.SpaceVim ] || [ -d $HOME/.SpaceVim ]; then 
 	export PATH=$HOME/.SpaceVim/bin:$PATH
 fi
@@ -42,7 +42,7 @@ fi
 [[ -d ~/.yarn/bin ]] && export PATH="~/.yarn/bin:$PATH"
 [[ -d ~/.local/bin ]] && export PATH="~/.local/bin:$PATH"
 
-#iterm2 shell integration
+### iterm2 shell integration
 [[ -e $HOME/.iterm2_shell_integration.${nowshell} ]] && source $HOME/.iterm2_shell_integration.${nowshell}
 
 if [ "zsh" = "$nowshell" ]; then
@@ -129,7 +129,7 @@ if [ "$is_notify" -gt "0" ]; then
     echo "Please Restart a new terminal window to effect the changing !!!"
 fi
 
-#M1 sqlite3
+### M1 sqlite3
 if [ -d /opt/homebrew/opt/sqlite/bin ]; then
 	export PATH="/opt/homebrew/opt/sqlite/bin:$PATH"
 	export LDFLAGS="-L/opt/homebrew/opt/sqlite/lib"
@@ -157,18 +157,43 @@ if [ "$(command -v atuin)"  =  "" ]; then
     brew install atuin
 fi
 
-#SSH config && tmp directory
+### SSH config && tmp directory
 [[ ! -f $HOME/.ssh/config ]] && ln -sf $MYRUNTIME/customs/customs_modify_records/ssh_config $HOME/.ssh/config
 [[ ! -d $HOME/.ssh/tmp ]] && mkdir -p $HOME/.ssh/tmp
 
-#custom commands
-#fasd
+### fz
+if [ ! -d $MYRUNTIME/customs/others/fz ]; then
+    git clone https://github.com/changyuheng/fz.git $MYRUNTIME/customs/others/fz
+fi
+if [ -f $MYRUNTIME/customs/others/fz/fz.sh ]; then
+	source $MYRUNTIME/customs/others/fz/fz.sh
+fi
+
+### tag
+if [ "zsh" = "$nowshell" ]; then
+    if (( $+commands[tag] )); then
+    export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
+    tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null }
+    alias ag=tag  # replace with rg for ripgrep
+    fi
+fi
+
+if [ "bash" = "$nowshell" ]; then
+    if hash ag 2>/dev/null; then
+    export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
+    tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
+    alias ag=tag  # replace with rg for ripgrep
+    fi
+fi
+
+### custom commands
+## fasd
 eval "$(fasd --init auto)"
-#the fuck command
+## the fuck command
 eval $(thefuck --alias)
-#the aliases command
+## the aliases command
 eval "$(aliases init --global)"
-#the atuin import
+## the atuin import
 if [ "zsh" = "$nowshell" ]; then
     eval "$(atuin init zsh)"
 elif [ "bash" = "$nowshell" ]; then
