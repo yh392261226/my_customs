@@ -5,7 +5,7 @@
 # Last Modified Date: 05.08.2021
 RECORDDATA=$MYRUNTIME/tools/working_record.log
 
-function gitwork() {
+function gitWork() {
     title=$1
     work_path=$2
     if [ "" = "$2" ]; then
@@ -20,16 +20,23 @@ function gitwork() {
     echo "Done ..."
 }
 
-function gitaction() {
+function gitAction() {
     if [ ! -f $RECORDDATA ]; then
         echo "File: $RECORDDATA does not exists, Please record the file and content first!!!"
         return 1
     fi
     source $RECORDDATA
     for ((i = 0; i < ${#path[@]}; i++)); do #以path目录为主，name名称可以为空s
-        gitwork ${name[$i]} ${path[$i]}
+        gitWork ${name[$i]} ${path[$i]}
     done
 }
 
+function setRecord() {
+    nvim $RECORDDATA
+}
 
-gitaction
+if [ "$#" -ne "1"  ]; then
+    gitAction
+else
+    setRecord
+fi
