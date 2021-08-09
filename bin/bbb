@@ -114,7 +114,7 @@ case "$1" in
     *)
         echo "全目录记录->去重并记录->重复文件分离 最终文件都在duplicate文件夹中"
         echo "------------------------------------------------------------------"
-        echo "Usage:     bbb.sh r/record | u/uniq | m/move | o/open | un/unfull"
-        echo "使用方法： bbb.sh 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 | 未满"
+        echo "Usage:     bbb.sh r/record | u/uniq | m/move | o/open | un/unfull |"
+        echo "使用方法： bbb.sh 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 | 未满 | 展示重复"
     ;;
 esac

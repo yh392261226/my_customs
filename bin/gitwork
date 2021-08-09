@@ -35,8 +35,25 @@ function setRecord() {
     nvim $RECORDDATA
 }
 
+function listRecord() {
+    bat $RECORDDATA
+}
+
 if [ "$#" -ne "1"  ]; then
     gitAction
 else
-    setRecord
+    case "$1" in
+        "s"|"set")
+            setRecord
+
+        ;;
+        "l"|"list")
+            listRecord
+        ;;
+        *)
+            echo "Usage:"
+            echo "$0 set/s | list/l | help/h"
+            echo "命令 设置 | 列表 | 帮助"
+        ;;
+    esac
 fi

@@ -23,3 +23,7 @@ pip install isitup
 pip3 install --user --upgrade advance-touch
 
 pip install percol
+
+pip install ippy
+
+pip install tox
