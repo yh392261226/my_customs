@@ -65,7 +65,7 @@ function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
 
-function c_history() { # Desc: c:列出Chrome浏览器的历史
+function chrome_history() { # Desc: chrome_history:列出Chrome浏览器的历史
     if [ "" = "$@" ]; then
         echo "Does not send param!"
         return 1
@@ -90,15 +90,17 @@ function c_history() { # Desc: c:列出Chrome浏览器的历史
     sed 's#.*\(https*://\)#\1#' | xargs open
 }
 
-function c() { # Desc: c:列出Chrome默认账户的浏览器的历史
-    c_history ~/Library/Application\ Support/Google/Chrome/Default/History
+function chrome_default_history() { # Desc: chrome_default_history:列出Chrome默认账户的浏览器的历史
+    chrome_history ~/Library/Application\ Support/Google/Chrome/Default/History
 }
+alias c="chrome_default_history"
 
-function c2() { # Desc: c:列出Chrome Profile 1账户的浏览器的历史
-    c_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History
+function chrome_profile1_history() { # Desc: chrome_profile1_history:列出Chrome Profile 1账户的浏览器的历史
+    chrome_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History
 }
+alias c2="chrome_profile1_history"
 
-function fzf_fb() { # Desc: fb:buku数据库配合fzf列出网址收藏
+function fzf_mark_by_buku() { # Desc: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
     mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi)"
 
@@ -109,6 +111,7 @@ function fzf_fb() { # Desc: fb:buku数据库配合fzf列出网址收藏
         buku -o "$index"
     done
 }
+alias fb="fzf_mark_by_buku"
 
 function goodfon() { # Desc: goodfon:打开goodfon.ru
     local DEFAULTBROWSER="/Applications/Firefox.app"      #default browser for open goodfon

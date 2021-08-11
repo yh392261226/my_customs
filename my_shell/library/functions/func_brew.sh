@@ -1,4 +1,4 @@
-function bcc() { # Desc: bcc:Brew Delete (one or multiple) Caches files of  mnemonic (e.g. uninstall)
+function brew_clean_caches() { # Desc: brew_clean_caches:Brew Delete (one or multiple) Caches files of  mnemonic (e.g. uninstall)
   customcd $(brew --cache)
   rm -f ./*phar ./*patch ./*diff ./*xz ./*gz ./*bz2 ./*zip ./*rock
   rm -rf ./*git
@@ -6,8 +6,9 @@ function bcc() { # Desc: bcc:Brew Delete (one or multiple) Caches files of  mnem
   rm -f ./*phar ./*patch ./*diff ./*xz ./*gz ./*bz2 ./*zip ./*rock
   echo "Common files already deleted, You have to clean other files manually!!!"
 }
+alias bcc="brew_clean_caches"
 
-function fzf_bdl() { # Desc: fzf_bdl:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
+function fzf_brew_delete_by_select() { # Desc: fzf_brew_delete_by_select:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
   local uninst=$(brew leaves | fzf -m)
 
   if [[ $uninst ]]; then
@@ -16,12 +17,9 @@ function fzf_bdl() { # Desc: fzf_bdl:Brew Delete (one or multiple) selected appl
     done;
   fi
 }
+alias fzf_bdl="fzf_brew_delete_by_select"
 
-function bdl() { # Desc: bdl:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
-  fzf_bdl
-}
-
-function fzf_bup() { # Desc: fzf_bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
+function fzf_brew_update_by_select() { # Desc: fzf_brew_update_by_select:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
   local upd=$(brew leaves | fzf -m)
 
   if [[ $upd ]]; then
@@ -30,16 +28,14 @@ function fzf_bup() { # Desc: fzf_bup:Brew Update (one or multiple) selected appl
     done;
   fi
 }
-
-function bup() { # Desc: bup:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]
-  fzf_bup
-}
+alias fzf_bup="fzf_brew_update_by_select"
+alias bup="fzf_brew_update_by_select"
 
 function reinstallneovim() { # Desc: reinstallneovim:重新安装neovim
   brew reinstall neovim --HEAD
 }
 
-function fzf_bip() { # Desc: fzf_bip:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
+function fzf_brew_install_by_select() { # Desc: fzf_brew_install_by_select:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
   local inst=$(brew search | fzf -m)
 
   if [[ $inst ]]; then
@@ -48,7 +44,5 @@ function fzf_bip() { # Desc: fzf_bip:Brew Install (one or multiple) selected app
     done;
   fi
 }
-
-function bip() { # Desc: bip:Brew Install (one or multiple) selected application(s) using "brew search" as 
-  fzf_bip
-}
+alias fzf_bip="fzf_brew_install_by_select"
+alias bip="fzf_brew_install_by_select"

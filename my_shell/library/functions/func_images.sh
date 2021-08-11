@@ -1,4 +1,4 @@
-function gifify () { # Desc: gifify:animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
+function gifify_from_video () { # Desc: gifify_from_video:animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
     if [[ -n "$1" ]]; then
         if [[ $2 == '--good' ]]; then
         ffmpeg -i "$1" -r 10 -vcodec png out-static-%05d.png
@@ -11,8 +11,9 @@ function gifify () { # Desc: gifify:animated gifs from any video from Alex Sexto
         echo "proper usage: gifify <input_movie.mov>. You DO need to include extension."
     fi
 }
+alias gifify="gifify_from_video"
 
-function imgurlcat() { # Desc: imgurlcat:cat img from url in iterm2
+function image_url_cat() { # Desc: image_url_cat:cat img from url in iterm2
     if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" != "iTerm.app" ]; then
         echo "This command can only be used in iterm2 !!!";
         return 0;
@@ -34,8 +35,9 @@ function imgurlcat() { # Desc: imgurlcat:cat img from url in iterm2
         rm -f /tmp/$(basename $imgurl);
     fi
 }
+alias imgurlcat="image_url_cat"
 
-function renamedownloadpics() { # Desc: renamedownloadpics:重命名下载的图片
+function images_rename_from_download() { # Desc: images_rename_from_download:重命名下载的图片
     echo "谨慎使用， 使用前先备份，多次使用相同前缀会使你的图片文件互相覆盖导致减少y|Y（使用）n|N(不使用)"
     read line;
     if [ "$line" = "y" ] || [ "$line" = "Y" ]; then
@@ -51,11 +53,13 @@ function renamedownloadpics() { # Desc: renamedownloadpics:重命名下载的图
     echo $m
     fi
 }
+alias renamedownloadpics="images_rename_from_download"
 
-function resizes() { # Desc: resizes:图片压缩
+function image_resizes() { # Desc: image_resizes:图片压缩
     mkdir -p out &&
     for jpg in *.JPG; do
         echo $jpg
         [ -e out/$jpg ] || sips -Z 2048 --setProperty formatOptions 80 $jpg --out out/$jpg
     done
 }
+alias resizes="image_resizes"

@@ -6,7 +6,7 @@ function customcd() { # Desc:customcd:自定义cd命令
     builtin cd "$@";
 }
 
-function fzf_cf() { # Desc: fzf_cf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
+function fzf_cd_to() { # Desc: fzf_cd_to: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
     local file
     file="$(locate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
     if [[ -n $file ]]
@@ -19,32 +19,28 @@ function fzf_cf() { # Desc: fzf_cf: fuzzy cd from anywhere. ex: fcf word1 word2 
         fi
     fi
 }
+alias fcf="fzf_cd_to"
 
-function fcf() { # Desc: fcf: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
-    fzf_cf $@
-}
-
-function fzf_da() { # Desc: fzf_da:including hidden directories
+function fzf_hidden_directories() { # Desc: fzf_da:including hidden directories
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
 }
-
-function fda() { # Desc: fda:including hidden directories
-    fzf_da $@
-}
+alias fda="fzf_hidden_directories"
 
 function mcdf() { # Desc: mcdf:short for cdfinder
     cd "`osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)'`"
 }
 
-function hideF() { # Desc: hideF:文件夹不显示隐藏文件
+function hidden_files_hide() { # Desc: hidden_files_hide:文件夹不显示隐藏文件
     defaults write com.apple.Finder AppleShowAllFiles NO ; killall Finder /System/Library/CoreServices/Finder.app;
 }
+alias hideF="hidden_files_hide"
 
-function showF() { # Desc: showF:文件夹显示隐藏文件
+function hidden_files_show() { # Desc: hidden_files_show:文件夹显示隐藏文件
     defaults write com.apple.Finder AppleShowAllFiles YES ; killall Finder /System/Library/CoreServices/Finder.app;
 }
+alias showF="hidden_files_show"
 
-function fzf_dr() { # Desc: fzf_dr:cd to selected parent directory
+function fzf_cd_to_parent() { # Desc: fzf_cd_to_parent:cd to selected parent directory
     local declare dirs=()
     get_parent_dirs() {
         if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
@@ -57,12 +53,9 @@ function fzf_dr() { # Desc: fzf_dr:cd to selected parent directory
     local DIR=$(get_parent_dirs $(realpath "${1:-$PWD}") | fzf-tmux --tac)
     cd "$DIR"
 }
+alias fdr="fzf_cd_to_parent"
 
-function fdr() { # Desc: fdr:cd to selected parent directory
-    fzf_dr $@
-}
-
-function fzf_cd() { # Desc: fzf_cd:cd to selected directory
+function fzf_cd_select() { # Desc: fzf_cd:cd to selected directory
     if [[ "$#" != 0 ]]; then
         builtin cd "$@";
         return
@@ -81,36 +74,28 @@ function fzf_cd() { # Desc: fzf_cd:cd to selected directory
         builtin cd "$dir" &> /dev/null
     done
 }
-
-function fcd() { # Desc: fcd:cd to selected directory
-    fzf_cd $@
-}
+alias fcd="fzf_cd_select"
 
 # fzf (https://github.com/junegunn/fzf)
-function fzf_d2() { # Desc: fzf_d2:another cd to selected directory
+function fzf_cd_select2() { # Desc: fzf_cd_select2:another cd to selected directory
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"
 }
+alias fd2="fzf_cd_select2"
 
-function fd2() { # Desc: fd2:another cd to selected directory
-    fzf_d2 $@
-}
-
-function fzf_cdff() { # Desc: fzf_cdff:cd into the directory of the selected file
+function fzf_cd_to_file() { # Desc: fzf_cd_to_file:cd into the directory of the selected file
     local file
     local dir
     file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
+alias cdff="fzf_cd_to_file"
 
-function cdff() { # Desc: cdff:cd into the directory of the selected file
-    fzf_cdff $@
-}
-
-function gdto() { # Desc: gdto:包含参数的名称的文件夹
+function cd_like_directory() { # Desc: gdto:包含参数的名称的文件夹
     [ "$1" ] && cd *$1*
 }
+alias gdto="cd_like_directory"
 
-function dirw() { # Desc: dirw:获取命令所在目录
+function get_command_directory() { # Desc: dirw:获取命令所在目录
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -119,16 +104,19 @@ function dirw() { # Desc: dirw:获取命令所在目录
         echo $(dirname $(type "$@" | awk '{print $NF}'));
     fi
 }
+alias dirw="get_command_directory"
 
-function parentdir() { # Desc: parentdir:获取父级目录
+function get_parent_directory() { # Desc: get_parent_directory:获取父级目录
     echo $(dirname "$@");
 }
+alias parentdir="get_parent_directory"
 
-function mcd() { # Desc: mcd:创建文件夹并进入
+function mkdir_cd() { # Desc: mcd:创建文件夹并进入
     mkdir -p "$1" && cd "$1";
 }
+alias mcd="mkdir_cd"
 
-function cdpw() { # Desc: cdpw:命令所在的父级文件夹
+function cd_command_parent_directory() { # Desc: cd_command_parent_directory:命令所在的父级文件夹
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -137,8 +125,9 @@ function cdpw() { # Desc: cdpw:命令所在的父级文件夹
         cd $(dirname $(dirname $(type "$1" | awk '{print $NF}')))
     fi
 }
+alias cdpw="cd_command_parent_directory"
 
-function cdw() { # Desc: cdw:命令所在的文件夹
+function cd_command_directory() { # Desc: cd_command_directory:命令所在的文件夹
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -147,28 +136,18 @@ function cdw() { # Desc: cdw:命令所在的文件夹
         cd $(dirname $(type "$1" | awk '{print $NF}'))
     fi
 }
+alias cdw="cd_command_directory"
+alias cdto="cd_command_directory"
 
-function cdto() { # Desc: cdto:命令所在的文件夹
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
-        cd `dirname $(which "$1")`
-    else
-        cd $(dirname $(type "$1" | awk '{print $NF}'))
-    fi
-}
-
-function fzf_z() { # Desc: fzf_z:目录跳转
+function fzf_jump_between_directory() { # Desc: fzf_z:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
     local dir
     dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
 }
+alias fzf_z="fzf_jump_between_directoryf"
+alias fz="fzf_jump_between_directory"
 
-function fz() { # Desc: fz:目录跳转
-    fzf_z $@
-}
-
-function llw() { # Desc: llw:打印which命令找到的文件地址
+function ll_whereis_command() { # Desc: ll_whereis_command:打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -177,8 +156,9 @@ function llw() { # Desc: llw:打印which命令找到的文件地址
         ls -l  $(type "$1" | awk '{print $NF}')
     fi
 }
+alias llw="ll_whereis_command"
 
-function openw() { # Desc: openw:打开which命令找到的目录或文件
+function open_directory_whereis_command() { # Desc: openw:打开which命令找到的目录或文件
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -187,3 +167,4 @@ function openw() { # Desc: openw:打开which命令找到的目录或文件
         open $(dirname $(type "$1" | awk '{print $NF}'))
     fi
 }
+alias openw="open_directory_whereis_command"

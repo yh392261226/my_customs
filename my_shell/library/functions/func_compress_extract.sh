@@ -21,14 +21,17 @@ function extract() { # Desc: extract:自动检测文件后缀并 自动解压
 	fi
 }
 
-function zipf() { # Desc: zipf:压缩目录为zip文件
+function compress_zip_file() { # Desc: compress_zip_file:压缩目录为zip文件
 	zip -r "$1".zip "$1" ;
 }
+alias zipf="compress_zip_file"
 
-function gitzip() { # Desc: gitzip:git压缩HEAD版本为zip包
+function compress_git_to_zip() { # Desc: gitzip:git压缩HEAD版本为zip包
     git archive -o $(basename $PWD).zip HEAD
 }
+alias gitzip="compress_git_to_zip"
 
-function gittgz() { # Desc: gittgz:git压缩HEAD版本为tgz包
+function compress_git_to_tgz() { # Desc: gittgz:git压缩HEAD版本为tgz包
     git archive -o $(basename $PWD).tgz HEAD
 }
+alias gittgz="compress_git_to_tgz"

@@ -1,45 +1,30 @@
-function find_ext() { # Desc: find_ext:寻找当前目录下后缀名的所有文件
-    find . -type f -iname '*.'${1}'' -exec ls -l {} \; ;
+function find_current_directory_files_by_ext() { # Desc: find_current_directory_files_by_ext:寻找当前目录下后缀名的所有文件
+    find ./ -type f -iname '*.'${1}'' -exec ls -l {} \; ;
 }
+alias fext="find_current_directory_files_by_ext"
 
-function fext() { # Desc: fext:寻找当前目录下后缀名的所有文件
-    find_ext $@
-}
-
-function find_fe () { # Desc: find_fe:Find file whose name ends with a given string
+function find_file_by_end () { # Desc: find_file_by_end:Find file whose name ends with a given string
     /usr/bin/find . -name '*'"$@" ;
 }
+alias ffe="find_file_by_end"
 
-function ffe() { # Desc: ffe:Find file whose name ends with a given string
-    find_fe $@
-}
-
-function find_fs () { # Desc: find_fs:Find file whose name starts with a given string
+function find_files_by_start () { # Desc: find_fs:Find file whose name starts with a given string
     find . -name "$@"'*' ;
 }
+alias ffs="find_files_by_start"
 
-function ffs () { # Desc: ffs:Find file whose name starts with a given string
-    find_fs $@
-}
-
-function find_mq () { # Desc: find_mq:查找当前目录中包含某个字符串的
+function find_files_by_contain () { # Desc: find_files_by_contain:查找当前目录中包含某个字符串的
     find . -exec grep -l -s $1 {} \;
     return 0
 }
+alias fmq="find_files_by_contain"
 
-function fmq() { # Desc: fmq:查找当前目录中包含某个字符串的
-    find_mq $@
+function find_file_by_params () { # Desc: find_file_by_params:Find file under the current directory
+    find ./ -name "$@" ;
 }
+alias ff="find_file_by_params"
 
-function find_f () { # Desc: find_f:Find file under the current directory
-    find . -name "$@" ;
-}
-
-function ff () { # Desc: ff:Find file under the current directory
-    find_f $@
-}
-
-function find_samemd5() { # Desc: find_samemd5:find files which has the same md5 value
+function find_same_file_by_md5() { # Desc: find_same_file_by_md5:find files which has the same md5 value
     local MD5COMMAND=/sbin/md5
     local SOURCEPATH=$1
     local TMPFILE=/tmp/findmd5same_tmp
@@ -78,8 +63,8 @@ function find_samemd5() { # Desc: find_samemd5:find files which has the same md5
         exit 0
     fi
 }
+alias fsamemd5="find_same_file_by_md5"
 
 function spotlight() { # Desc: spotlight:Search for a file using MacOS Spotlight's metadata
     mdfind "kMDItemDisplayName == '$@'wc";
 }
-

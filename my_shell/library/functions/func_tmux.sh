@@ -1,4 +1,4 @@
-function tmuxf() { # Desc: tmuxf:tmux 根据选择使用配置文件
+function tmux_configs_select() { # Desc: tmux_configs_select:tmux 根据选择使用配置文件
     local CONFIGS=$MYRUNTIME/tmuxconfigs  #配置文件地址
     local EXT=tmux.conf
 
@@ -29,8 +29,9 @@ function tmuxf() { # Desc: tmuxf:tmux 根据选择使用配置文件
         return 1
     fi
 }
+alias tmuxf="tmux_configs_select"
 
-function fzf_tpane() { # Desc: fzf_tpane:tmux switch pane (@george-b)
+function fzf_tmux_pane() { # Desc: fzf_tpane:tmux switch pane (@george-b)
     local panes current_window current_pane target target_window target_pane
     panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
     current_pane=$(tmux display-message -p '#I:#P')
@@ -48,10 +49,7 @@ function fzf_tpane() { # Desc: fzf_tpane:tmux switch pane (@george-b)
             tmux select-window -t $target_window
     fi
 }
-
-function ftpane() { # Desc: ftpane:tmux switch pane (@george-b)
-    fzf_tpane $@
-}
+alias ftpane="fzf_tmux_pane"
 
 function fzf_tmux_words() { # Desc: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
     fzf_tmux_helper \
@@ -66,26 +64,28 @@ function fzf_tmux_helper() { # Desc: fzf_tmux_helper:tmux中利用fzf的帮助
         "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
 }
 
-function fzf_switchsession() { # Desc: fzf_switchsession:Switch tmux-sessions
+function fzf_tmux_switchsession() { # Desc: fzf_tmux_switchsession:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
         fzf-tmux --query="$1" --select-1 --exit-0) &&
         tmux switch-client -t "$session"
 }
 
-function tx() { # Desc: tx:tmux 生成一个执行 参数中的命令的临时窗口 回车后自动关闭
+function tmux_tmp_window() { # Desc: tmux_tmp_window:tmux 生成一个执行 参数中的命令的临时窗口 回车后自动关闭
     tmux splitw "$*; echo -n Press enter to finish.; read"
     tmux select-layout tiled
     tmux last-pane
 }
+alias tx="tmux_tmp_window"
 
-function tping() { # Desc: tping:打印当前tmux所有的pane id
+function tmux_list_panes() { # Desc: tmux_list_panes:打印当前tmux所有的pane id
     for p in $(tmux list-windows -F "#{pane_id}"); do
         tmux send-keys -t $p Enter
     done
 }
+alias tping="tmux_list_panes"
 
-function tt() { # Desc: tt:tmux 中自动起一个窗口去做操作
+function tmux_new_window() { # Desc: tmux_new_window:tmux 中自动起一个窗口去做操作
     if [ $# -lt 1 ]; then
         echo 'usage: tt <commands...>'
         return 1
@@ -103,8 +103,9 @@ function tt() { # Desc: tt:tmux 中自动起一个窗口去做操作
     tmux set-window-option synchronize-panes on > /dev/null
     $SHELL -ci "$head; $tail"
 }
+alias tt="tmux_new_window"
 
-function tmuxen() { # Desc: tmuxen:tmuxen 启动tmux iris聊天窗口模式
+function tmux_iris_window() { # Desc: tmux_iris_window:tmux_iris_window 启动tmux iris聊天窗口模式
     #
     # name     : tmuxen, tmux environment made easy
     # author   : Xu Xiaodong <xxdlhy@gmail.com>
@@ -132,4 +133,33 @@ function tmuxen() { # Desc: tmuxen:tmuxen 启动tmux iris聊天窗口模式
     $cmd att -t $session
 
     exit 0
+}
+alias tmuxen="tmux_iris_window"
+
+function tmux_list() { # Desc:列出所有 tmux 会话
+    tmux ls
+}
+
+function tmux_new() { # Desc:新建名称为传参的会话
+    tmux new -s $1
+}
+
+function tmux_last() { # Desc:恢复至上一次的会话
+    tmux a
+}
+
+function tmux_recover() { # Desc:恢复名称为$1的会话，会话默认名称为数字
+    tmux a -t $1
+}
+
+function tmux_kill() { # Desc:删除名称为$1的会话
+    tmux kill-session -t $1
+}
+
+function tmux_killall() { # Desc:删除所有的会话
+    tmux kill-server
+}
+
+function tmux_windows() { # Desc:列出当前session的所有窗格
+    tmux list-panes -a
 }

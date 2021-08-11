@@ -1,32 +1,27 @@
 
-function isgit() { # Desc: isgit:pick files from `git status -s`
+function is_git() { # Desc: is_git:pick files from `git status -s`
     git rev-parse HEAD > /dev/null 2>&1
 }
 
-function fzf_br() { # Desc: fzf_br:checkout git branch
+function fzf_checkout_git_branch() { # Desc: fzf_br:checkout git branch
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
     fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
+alias fzf_br="fzf_checkout_git_branch"
+alias fbr="fzf_checkout_git_branch"
 
-function fbr() { # Desc: fbr:checkout git branch
-    fzf_br
-}
-
-function fzf_coc() { # Desc: fcoc:checkout git commit
+function fzf_git_checkout_commit() { # Desc: fzf_git_checkout_commit:checkout git commit
     local commits commit
     commits=$(git log --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
+alias fcoc="fzf_git_checkout_commit"
 
-function fcoc() { # Desc: fcoc:checkout git commit
-    fzf_coc
-}
-
-function fzf_co_preview() { # Desc: fzf_co_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+function fzf_git_checkout_preview() { # Desc: fzf_git_checkout_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -40,23 +35,17 @@ function fzf_co_preview() { # Desc: fzf_co_preview:checkout git branch/tag, with
         --ansi --preview="git log -200 --pretty=format:%s $(echo {+2..} |  sed 's/$/../' )" ) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
+alias fco_preview="fzf_git_checkout_preview"
 
-function fco_preview() { # Desc: fco_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
-    fzf_co_preview
-}
-
-function fzf_cs() { # Desc: fzf_cs:get git commit sha. example usage: git rebase -i `fcs`
+function fzf_git_commit_sha() { # Desc: fzf_git_commit_sha:get git commit sha. example usage: git rebase -i `fcs`
     local commits commit
     commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
     commit=$(echo "$commits" | fzf --tac +s +m -e --ansi --reverse) &&
     echo -n $(echo "$commit" | sed "s/ .*//")
 }
+alias fcs="fzf_git_commit_sha"
 
-function fcs() { # Desc: fcs:get git commit sha. example usage: git rebase -i `fcs`
-    fzf_cs
-}
-
-function fzf_co() { # Desc: fzf_co:checkout git branch/tag
+function fzf_git_checkout() { # Desc: fzf_git_checkout:checkout git branch/tag
     local tags branches target
     tags=$(
     git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}') || return
@@ -69,12 +58,9 @@ function fzf_co() { # Desc: fzf_co:checkout git branch/tag
     fzf-tmux -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
+alias fco="fzf_git_checkout"
 
-function fco() { # Desc: fco:checkout git branch/tag
-    fzf_co
-}
-
-function fzf_stash() { # Desc: fzf_stash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
+function fzf_git_stash() { # Desc: fzf_git_stash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
     while out=$(
     git stash list --pretty="%C(yellow)%h %>(14)%Cgreen%cr %C(blue)%gs" |
@@ -97,13 +83,10 @@ function fzf_stash() { # Desc: fzf_stash:easier way to deal with stashes. type f
     fi
     done
 }
+alias fstash="fzf_git_stash"
 
-function fstash() { # Desc: fstash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
-    fzf_stash
-}
-
-function fzf_gst() { # Desc: fzf_gst:显示当前git版本库中未添加进版本的修改或新增文件列表
-    isgit || return
+function fzf_git_untracked() { # Desc: fzf_git_untracked:显示当前git版本库中未添加进版本的修改或新增文件列表
+    is_git || return
 
     local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
 
@@ -112,12 +95,9 @@ function fzf_gst() { # Desc: fzf_gst:显示当前git版本库中未添加进版�
     done
     echo
 }
+alias fgst="fzf_git_untracked"
 
-function fgst() { # Desc: fgst:显示当前git版本库中未添加进版本的修改或新增文件列表
-    fzf_gst $@
-}
-
-function fzf_show() { # Desc: fzf_show:git commit browser
+function fzf_git_commit_browser() { # Desc: fzf_show:git commit browser
 git log --graph --color=always \
     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
 fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
@@ -126,12 +106,9 @@ fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
 xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 {}"
 }
+alias fshow="fzf_git_commit_browser"
 
-function fshow() { # Desc: fshow:git commit browser
-    fzf_show $@
-}
-
-function gitdiffb() { # Desc: gitdiffb:git 比对两个分支
+function git_diff_2branches() { # Desc: git_diff_2branches:git 比对两个分支
     if [ $# -ne 2 ]; then
         echo two branch names required
         return
@@ -140,8 +117,9 @@ function gitdiffb() { # Desc: gitdiffb:git 比对两个分支
         --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' \
         --abbrev-commit --date=relative $1..$2
 }
+alias gitdiffb="git_diff_2branches"
 
-function upgitfiles() { # Desc: upgitfiles:更新git的目录及git module的目录
+function update_git_files_and_modules() { # Desc: update_git_files_and_modules:更新git的目录及git module的目录
     if [ "" != "$1" ]; then
         filepath=$1
     else
@@ -160,4 +138,4 @@ function upgitfiles() { # Desc: upgitfiles:更新git的目录及git module的目
     done
     customcd ~
 }
-
+alias upgitfiles="update_git_files_and_modules"

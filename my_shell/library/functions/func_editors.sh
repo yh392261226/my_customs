@@ -84,7 +84,7 @@ function v() { # Desc: v:open files in ~/.viminfo
     done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 
-function fzf_o() { # Desc: fzf_o:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
+function fzf_open_with_editor() { # Desc: fzf_open_with_editor:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
     local out file key
     out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)
     key=$(head -1 <<< "$out")
@@ -93,12 +93,9 @@ function fzf_o() { # Desc: fzf_o:Modified version where you can press CTRL-O to 
         [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
     fi
 }
+alias fo="fzf_open_with_editor"
 
-function fo() { # Desc: fo:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
-    fzf_o $@
-}
-
-function vg() { # Desc: vg:fuzzy grep open via ag with line number
+function ag_open_with_line() { # Desc: ag_open_with_line:fuzzy grep open via ag with line number
     local file
     local line
 
@@ -109,3 +106,4 @@ function vg() { # Desc: vg:fuzzy grep open via ag with line number
         vim $file +$line
     fi
 }
+alias vg="ag_open_with_line"

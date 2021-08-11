@@ -1,14 +1,12 @@
-function fzf_rb() { # Desc: fzf_rb:RVM integration
+function fzf_rvm_select() { # Desc: fzf_rvm_select:RVM integration
     local rb
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
     awk '{print $1}' |
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
 }
-
-function frb() { # Desc: frb:RVM integration
-    fzf_rb
-}
+alias fzf_rb="fzf_rvm_select"
+alias frb="fzf_rvm_select"
 
 function gems() { # Desc: gems:rvm多个版本的gem操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
@@ -34,7 +32,7 @@ function mans () { # Desc: mans:man command[$1] and highlight keyword[$2]
     man $1 | grep -iC2 --color=always $2 | less
 }
 
-function memo() { # Desc: memo:依托于cheat.sh的备忘录
+function mark_by_cheatsh() { # Desc: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then
         echo "Usage:$0 language function"
         echo ""
@@ -59,8 +57,9 @@ function memo() { # Desc: memo:依托于cheat.sh的备忘录
     fi
     curl $url
 }
+alias memo="mark_by_cheatsh"
 
-function phpcv() { # Desc: phpcv:PHP 依赖于brew 切换已安装版本
+function php_change_version() { # Desc: php_change_version:PHP 依赖于brew 切换已安装版本
     installedPhpVersions=($(brew ls --versions | ggrep -E 'php(@.*)?\s' | ggrep -oP '(?<=\s)\d\.\d' | uniq | sort))
     posit=1
     versions[1]='';
@@ -97,3 +96,4 @@ function phpcv() { # Desc: phpcv:PHP 依赖于brew 切换已安装版本
         echo "Now, it's done ..."
     fi
 }
+alias phpcv="php_change_version"

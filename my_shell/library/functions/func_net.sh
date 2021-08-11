@@ -1,4 +1,4 @@
-function autodisk() { # Desc: autodisk:自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
+function auto_change_netdisk_status() { # Desc: auto_change_netdisk_status:自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
     CPATH=/Volumes/XiaoMi/下载/
     CNAME=over_s
 
@@ -13,8 +13,9 @@ function autodisk() { # Desc: autodisk:自动切换隐藏/显示 我的小米网
         mv $CPATH/.$CNAME $CPATH/$CNAME
     fi
 }
+alias autonetdisk="auto_change_netdisk_status"
 
-function ii() { # Desc: ii:display useful host related informaton
+function show_useful_host() { # Desc: ii:display useful host related informaton
     echo -e "\nYou are logged on ${RED}$HOST"
     echo -e "\nAdditionnal information:$NC " ; uname -a
     echo -e "\n${RED}Users logged on:$NC " ; w -h
@@ -25,6 +26,7 @@ function ii() { # Desc: ii:display useful host related informaton
     #echo -e "\n${RED}DNS Configuration:$NC " ; scutil --dns
     echo
 }
+alias ii="show_useful_host"
 
 function http_debug () { # Desc: http_debug:Download a web page and show info on what took time
     curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ;
@@ -34,7 +36,7 @@ function http_headers () { # Desc: http_headers:Grabs headers from web page
     curl -I -L $@ ;
 }
 
-function mwhois() { # Desc: mwhois:whois网址信息查询
+function my_whois() { # Desc: mwhois:whois网址信息查询
     local domain=$(echo "$1" | awk -F/ '{print $3}') # get domain from URL
     if [ -z $domain ] ; then
     domain=$1
@@ -43,21 +45,25 @@ function mwhois() { # Desc: mwhois:whois网址信息查询
 
     /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
+alias mwhois="my_whois"
 
-function flushdns() { # Desc: flushdns:刷新本地dns缓存
+function flush_dns() { # Desc: flush_dns:刷新本地dns缓存
     sudo dscacheutil -flushcache
 }
+alias flushdns="flush_dns"
 
-function setproxy() { # Desc: setproxy:设置命令行代理
+function set_proxy() { # Desc: set_proxy:设置命令行代理
     source $MYRUNTIME/tools/m_proxy
     export HTTP_PROXY=${local_http_proxy}; export HTTPS_PROXY=${local_https_proxy}; export ALL_PROXY=${local_all_proxy}
 }
+alias setproxy="set_proxy"
 
-function unsetproxy() { # Desc: unsetproxy:取消设置命令行代理
+function unset_proxy() { # Desc: unset_proxy:取消设置命令行代理
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }
+alias unsetproxy="unset_proxy"
 
-function getproxy() { # Desc: getproxy:获取命令行代理
+function get_proxy() { # Desc: get_proxy:获取命令行代理
     echo " \n
     HTTP_PROXY: $HTTP_PROXY\n
     HTTPS_PROXY: $HTTPS_PROXY\n
@@ -66,3 +72,4 @@ function getproxy() { # Desc: getproxy:获取命令行代理
     \n
     " | cowsay | lolcat
 }
+alias getproxy="get_proxy"

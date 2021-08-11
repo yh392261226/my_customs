@@ -1,4 +1,4 @@
-function catw() { # Desc: catw:cat 打印which命令找到的文件地址
+function cat_whereis_file() { # Desc: cat_whereis_file:cat 打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -7,8 +7,9 @@ function catw() { # Desc: catw:cat 打印which命令找到的文件地址
         cat $(type "$1" | awk '{print $NF}')
     fi
 }
+alias catw="cat_whereis_file"
 
-function batw() { # Desc: batw:bat命令打印which命令找到的文件地址
+function bat_whereis_file() { # Desc: bat_whereis_file:bat命令打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
@@ -17,12 +18,14 @@ function batw() { # Desc: batw:bat命令打印which命令找到的文件地址
         bat $(type "$1" | awk '{print $NF}')
     fi
 }
+alias batw="bat_whereis_file"
 
-function ql () { # Desc: ql:Opens any file in MacOS Quicklook Preview
+function quick_preview () { # Desc: quick_preview:Opens any file in MacOS Quicklook Preview
     qlmanage -p "$*" >& /dev/null;
 }
+alias ql="quick_preview"
 
-function hashfile() { # Desc: hashfile:get md5 or sha1 value of the file
+function get_hash_file() { # Desc: get_hash_file:get md5 or sha1 value of the file
     local MD5COMMAND=/sbin/md5
     local SHASUMCOMMAND=/usr/local/bin/shasum
 
@@ -42,8 +45,9 @@ function hashfile() { # Desc: hashfile:get md5 or sha1 value of the file
         $MD5COMMAND $filename | awk -F'=' '{print $2}' #default is md5 file
     fi
 }
+alias hfile="get_hash_file"
 
-function check2filesbymd5() { # Desc: check2filesbymd5:diff the two files md5 value
+function check_2files_by_md5() { # Desc: check_2files_by_md5:diff the two files md5 value
     local MD5COMMAND=/sbin/md5 #md5 command
     local LOCALPATH=$1 #args[0]
     local TARGETPATH=$2 #args[1]
@@ -62,8 +66,9 @@ function check2filesbymd5() { # Desc: check2filesbymd5:diff the two files md5 va
     echo $RESULT
     return 0
 }
+alias c2fmd5="check_2files_by_md5"
 
-function mla() { # Desc: mla:变更权限rwx为权限值【777】
+function get_file_private_value() { # Desc: get_file_private_value:变更权限rwx为权限值【777】
     ls -l  "$@" | awk '
         {
         k=0;
@@ -74,8 +79,9 @@ function mla() { # Desc: mla:变更权限rwx为权限值【777】
         printf(" %9s  %3s %2s %5s  %6s  %s %s %s\n", $3, $6, $7, $8, $5, $9,$10, $11);
         }'
 }
+alias mla="get_file_private_value"
 
-function headw() { # Desc: headw:head命令打印which命令找到的文件地址
+function head_whereis_file() { # Desc: headw:head命令打印which命令找到的文件地址
     command -v "$1" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     lines=50
@@ -88,8 +94,9 @@ function headw() { # Desc: headw:head命令打印which命令找到的文件地�
         head -n $lines $(type "$1" | awk '{print $NF}')
     fi
 }
+alias headw="head_whereis_file"
 
-function tailw() { # Desc: tailw:tail命令打印which命令找到的文件地址
+function tail_whereis_file() { # Desc: tail_whereis_file:tail命令打印which命令找到的文件地址
     command -v "$1" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     lines=50
@@ -102,8 +109,9 @@ function tailw() { # Desc: tailw:tail命令打印which命令找到的文件地�
         tail -n $lines $(type "$1" | awk '{print $NF}')
     fi
 }
+alias tailw="tail_whereis_file"
 
-function slink() { # Desc: slink:配置文件链接
+function set_setting_links() { # Desc: set_setting_links:配置文件链接
     if [ "" != "$CPUCORE" ]; then
         if [ "$CPUCORE" = "arm64" ]; then
             #redis
@@ -130,3 +138,4 @@ function slink() { # Desc: slink:配置文件链接
         fi
     fi
 }
+alias slink="set_setting_links"
