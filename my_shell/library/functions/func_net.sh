@@ -73,3 +73,8 @@ function get_proxy() { # Desc: get_proxy:获取命令行代理
     " | cowsay | lolcat
 }
 alias getproxy="get_proxy"
+
+function get_port_using_status() { # Desc: get_port_using_status:获取端口占用情况
+    lsof -P -i -n | grep $@
+}
+alias getportstatus="get_port_using_status"
