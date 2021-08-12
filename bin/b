@@ -81,7 +81,7 @@ unfull() {
                 elif [ "$needs" -gt "0" ]; then
                     printf "\033[0;35m%-60s\033[0m \033[0;36m%-18s\033[0m \033[0;33m%-14s\033[0m\n" ${PICPATH}${curpath} $counts $needs
                 elif [ "$needs" -lt "0" ]; then
-                    printf "\033[0;35m%-60s\033[0m \033[0;36m%-18s\033[0m \033[0;31m%-14s\033[0m\n" ${PICPATH}${curpath} $counts $needs
+                    printf "\033[0;35m%-60s\033[0m \033[0;36m%-18s\033[0m \033[4;31m%-8s\033[0m\n" ${PICPATH}${curpath} $counts $needs
                 fi
                 ((total=$total+$counts))
                 ((need_total=$need_total+$needs))
