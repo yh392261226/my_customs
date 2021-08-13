@@ -12,6 +12,7 @@ function gitWork() {
         echo "$work_path does not exists !!!"
         return 1
     fi
+    echo "Start pulling Project:"
     echo $title
     cd $work_path
     git fetch --all
