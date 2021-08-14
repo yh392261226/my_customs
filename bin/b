@@ -9,10 +9,16 @@
 PICPATH=$HOME/Pictures/down_pics/
 ##数据库文件路径
 DBFILE=$PICPATH/db.log
+##被去重文件数据库文件路径
+DUPDBFILE=$PICPATH/duplicate_db.log
 ##去重后文件路径
 UNIQFILE=$PICPATH/uniq.log
+##被去重文件去重后文件路径
+DUPUNIQFILE=$PICPATH/duplicate_uniq.log
 ##处理后的去重文件路径
 DUPLICATEFILE=$PICPATH/result.log
+##被去重文件夹处理后的去重文件路径
+DUPDUPLICATEFILE=$PICPATH/duplicate_result.log
 ##单个文件夹最多文件上限
 MAXSIZE=2000
 
@@ -20,9 +26,20 @@ recordDB() {
     if [ -f $DBFILE ]; then
         rm -f $DBFILE $UNIQFILE;
     fi
-    for path in $(ls $PICPATH); do
+    for path in $(ls $PICPATH | grep  -v duplicates_); do
         if [ -d $path ]; then 
             find ${PICPATH}${path} -type f -name "*jpg" >> $DBFILE
+        fi
+    done
+}
+
+recordDuplicateDB() {
+    if [ -f $DUPDBFILE ]; then
+        rm -f $DUPDBFILE $DUPUNIQFILE;
+    fi
+    for path in $(ls $PICPATH | grep duplicates_); do
+        if [ -d $path ]; then 
+            find ${PICPATH}${path} -type f -name "*jpg" >> $DUPDBFILE
         fi
     done
 }
@@ -40,6 +57,19 @@ uniqDB() {
     fi
 }
 
+uniqDuplicateDB() {
+    rm -f /tmp/uniq_duplicate_db_file_names
+    for file in $(cat $DUPDBFILE); do
+        echo $(basename $file) >> /tmp/uniq_duplicate_db_file_names
+    done
+    if [ -f /tmp/uniq_duplicate_db_file_names ]; then
+        echo $(cat /tmp/uniq_duplicate_db_file_names | sort -rn| uniq -c| awk '{if ($1 > 1) print $2}') >> $DUPUNIQFILE
+    fi
+    if [ -f $DUPUNIQFILE ]; then
+        cat $DUPUNIQFILE | tr ' ' '\n' > $DUPDUPLICATEFILE
+    fi
+}
+
 moveUniq() {
     for file in $(cat $DUPLICATEFILE); do
         find $PICPATH -type f -name "$file" ! -path "${PICPATH}/*duplicates*" -exec $MYRUNTIME/customs/bin/_domove {} \;
@@ -47,11 +77,26 @@ moveUniq() {
 }
 
 afterUniq() {
-    max=5
-    count=0
+    local max=5
+    local count=0
     for img in $(cat $UNIQFILE); do
         if [ $count -lt $max ]; then
             results=$(find $PICPATH/* -type f -name "$img" ! -path "${PICPATH}/*duplicates*")
+            if [ "" != "$results" ] && [ "$(echo $results | sed 's, ,\r\n,g' |wc -l)" -gt 1 ]; then
+                imgthumb $(echo $results | awk -F' ' '{print $1}')
+                echo $results | sed 's, ,\r\n,g'
+                ((count++))
+            fi
+        fi
+    done
+}
+
+afterUniqDuplicate() {
+    local max=5
+    local count=0
+    for img in $(cat $DUPUNIQFILE); do
+        if [ $count -lt $max ]; then
+            results=$(find $PICPATH/duplicates_* -type f -name "$img")
             if [ "" != "$results" ] && [ "$(echo $results | sed 's, ,\r\n,g' |wc -l)" -gt 1 ]; then
                 imgthumb $(echo $results | awk -F' ' '{print $1}')
                 echo $results | sed 's, ,\r\n,g'
@@ -109,12 +154,24 @@ case "$1" in
         recordDB
     ;;
 
+    'dr'|'duprecord')
+        recordDuplicateDB
+    ;;
+
     'u'|'uniq')
         uniqDB
     ;;
 
+    'du'|'dupuniq')
+        uniqDuplicateDB
+    ;;
+
     'a'|'after')
         afterUniq
+    ;;
+
+    'da'|'dupafter')
+        afterUniqDuplicate
     ;;
 
     'm'|'move')
@@ -132,7 +189,7 @@ case "$1" in
     *)
         echo "全目录记录->去重并记录->重复文件分离 最终文件都在duplicate文件夹中"
         echo "------------------------------------------------------------------"
-        echo "Usage:     $0 r/record | u/uniq | m/move | o/open | un/unfull | a/after"
-        echo "使用方法： $0 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 | 未满 | 展示重复"
+        echo "Usage:     $0 r/record | u/uniq | m/move | o/open | un/unfull | a/after | dr/duprecord | du'|'dupuniq | da/dupafter"
+        echo "使用方法： $0 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 | 未满 | 展示重复 | 去重后记录 | 去重后再去重 | 去重后展示重复"
     ;;
 esac
