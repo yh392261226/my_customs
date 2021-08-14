@@ -78,18 +78,22 @@ if [ "zsh" = "$nowshell" ]; then
         git clone https://github.com/amaya382/zsh-fzf-widgets.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets
         is_notify=1
     fi
+
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions ]; then
         git clone https://github.com/chitoku-k/fzf-zsh-completions.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions
         is_notify=1
     fi
+
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab ]; then
         git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
         is_notify=1
     fi
+
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd ]; then
         git clone https://github.com/changyuheng/zsh-interactive-cd.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd
         is_notify=1
     fi
+
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks ]; then
         git clone https://github.com/wfxr/formarks.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks
         is_notify=1
@@ -147,6 +151,7 @@ if [ "zsh" = "$nowshell" ]; then
     	source $HOME/.bashhub/bashhub.zsh
 	fi
 fi
+
 if [ "bash" = "$nowshell" ]; then
 	if [ -f $HOME/.bashhub/bashhub.bash ]; then
 		source $HOME/.bashhub/bashhub.bash
@@ -165,6 +170,7 @@ fi
 if [ ! -d $MYRUNTIME/customs/others/fz ]; then
     git clone https://github.com/changyuheng/fz.git $MYRUNTIME/customs/others/fz
 fi
+
 if [ -f $MYRUNTIME/customs/others/fz/fz.sh ]; then
 	source $MYRUNTIME/customs/others/fz/fz.sh
 fi
@@ -172,17 +178,17 @@ fi
 ### tag
 if [ "zsh" = "$nowshell" ]; then
     if (( $+commands[tag] )); then
-    export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
-    tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null }
-    alias ag=tag  # replace with rg for ripgrep
+        export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
+        tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null }
+        alias ag=tag  # replace with rg for ripgrep
     fi
 fi
 
 if [ "bash" = "$nowshell" ]; then
     if hash ag 2>/dev/null; then
-    export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
-    tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
-    alias ag=tag  # replace with rg for ripgrep
+        export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
+        tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
+        alias ag=tag  # replace with rg for ripgrep
     fi
 fi
 
