@@ -173,3 +173,7 @@ brew install progress
 
 brew install pandoc xmlstarlet
 
+brew install fswatch
+
+brew install bastet
+
