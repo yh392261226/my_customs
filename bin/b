@@ -19,6 +19,8 @@ DUPUNIQFILE=$PICPATH/duplicate_uniq.log
 DUPLICATEFILE=$PICPATH/result.log
 ##被去重文件夹处理后的去重文件路径
 DUPDUPLICATEFILE=$PICPATH/duplicate_result.log
+##去重文件数据库文件路径（仅有文件名）
+FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
 ##单个文件夹最多文件上限
 MAXSIZE=2000
 
@@ -45,9 +47,10 @@ recordDuplicateDB() {
 }
 
 uniqDB() {
-    rm -f /tmp/uniq_db_file_names
+    rm -f /tmp/uniq_db_file_names $FULLFILENAMESDB
     for file in $(cat $DBFILE); do
         echo $(basename $file) >> /tmp/uniq_db_file_names
+        echo $(basename $file) >> $FULLFILENAMESDB
     done
     if [ -f /tmp/uniq_db_file_names ]; then
         echo $(cat /tmp/uniq_db_file_names | sort -rn| uniq -c| awk '{if ($1 > 1) print $2}') >> $UNIQFILE

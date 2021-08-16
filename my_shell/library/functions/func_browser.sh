@@ -126,3 +126,56 @@ function goodfon() { # Desc: goodfon:打开goodfon.ru
         [[ -d "$SECONDBROWSER" ]] && /usr/bin/open -a "$SECONDBROWSER" "$URL"
     fi
 }
+alias gf="goodfon"
+
+function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通过比对文件名，实现自动去重下载的图片
+    ##图片文件夹路径
+    local PICPATH=$HOME/Pictures/down_pics/
+    ##数据库文件路径
+    local DBFILE=$PICPATH/db.log
+    ##去重文件数据库文件路径（仅有文件名）
+    local FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
+
+    curprocessid=$$
+    #调起后台脚本，监控火狐浏览器状态，如果浏览器进程消失，则杀死下面的进程
+    tmpshell=$(mktemp)
+    # echo $tmpshell
+    if [ -f $tmpshell ]; then
+        echo "#!/usr/bin/env bash\n" > $tmpshell
+        echo "curfierfoxcounts=1\n" >> $tmpshell
+        echo "while [ \"\$curfierfoxcounts\" -gt \"0\" ]; do\n" >> $tmpshell
+        echo "    curfierfoxcounts=\$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)\n" >> $tmpshell
+        echo "    sleep 1\n" >> $tmpshell
+        echo "done\n" >> $tmpshell
+        echo "if [ \"\$curfierfoxcounts\" -lt \"1\" ]; then\n" >> $tmpshell
+        echo "    ps -ef | grep \"fswatch -0 \$PICPATH\" | grep -v grep | awk '{print \$2}' | xargs kill\n" >> $tmpshell
+        echo "fi\n" >> $tmpshell
+    fi
+    bash $tmpshell > /dev/null 2>&1 &
+
+    fswatch -0 $PICPATH | while read -d "" event; do
+        if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
+            fullfilename=${event}
+            filename=$(basename $fullfilename)
+            echo $(ps -ef | grep 'fswatch -0 $PICPATH' | grep -v grep)
+
+            if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
+                tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
+                if [ "$tmpresult" -gt "1" ]; then
+                    trash $fullfilename
+                fi
+            else
+                echo $filename >> $FULLFILENAMESDB
+                echo $fullfilename >> $DBFILE
+            fi
+        fi
+    done
+    rm -f $tmpshell
+    ps -ef | grep "fswatch -0 $PICPATH" | grep -v grep | awk '{print $2}' | xargs kill > /dev/null
+}
+
+function goodfonWithAutoDiff() { # Desc: 打开goodfon.ru后 通过目录监控自动过滤重名文件
+    goodfon
+    autoDiffDownloadPicureByName
+}
+alias gfa="goodfonWithAutoDiff"
