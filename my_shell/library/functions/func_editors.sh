@@ -46,17 +46,8 @@ function viw() { # Desc: viw:vim 编辑which命令找到的文件地址
 function nviw() { # Desc: nviw:neovim 编辑which命令找到的文件地址
     if [ -f /usr/local/bin/nvim ]; then
         local COMMANDBIN=/usr/local/bin/nvim
-    elif [ -f /opt/homebrew/bin/nvim ] || [ -L /opt/homebrew/bin/nvim ]; then
-        local COMMANDBIN=/opt/homebrew/bin/nvim
-    fi
-    editorw $COMMANDBIN $1
-}
-
-function nviw() { # Desc: nviw:neovim 编辑which命令找到的文件地址
-    if [ -f /usr/local/bin/nvim ]; then
-        local COMMANDBIN=/usr/local/bin/nvim
     elif [ -f /opt/homebrew/bin/nvim ]; then
-        local COMMANDBIN=/usr/local/bin/nvim
+        local COMMANDBIN=/opt/homebrew/bin/nvim
     fi
     editorw $COMMANDBIN $1
 }
