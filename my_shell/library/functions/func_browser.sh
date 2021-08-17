@@ -58,6 +58,11 @@ function chrome() { # Desc: chrome:Chrome浏览器中打开网址
     browser $BROWSERPATH $1
 }
 
+function brave() { # Desc: brave:brave浏览器中打开网址
+    local BROWSERPATH="/Applications/Brave Browser.app"
+    browser $BROWSERPATH $1
+}
+
 function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开网址
     local MYRUNTIME=$(cat $HOME/.myruntime)
     local DEFAULTBROWSER="/Applications/Google Chrome.app"
