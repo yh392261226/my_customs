@@ -157,7 +157,7 @@ function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通
         if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
             fullfilename=${event}
             filename=$(basename $fullfilename)
-            echo $(ps -ef | grep 'fswatch -0 $PICPATH' | grep -v grep)
+            # echo $(ps -ef | grep 'fswatch -0 $PICPATH' | grep -v grep)
 
             if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
                 tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
