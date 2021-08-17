@@ -135,6 +135,10 @@ function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通
     local DBFILE=$PICPATH/db.log
     ##去重文件数据库文件路径（仅有文件名）
     local FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
+    local IFSHOWTHUMB=0
+    local msg=""
+
+    [[ "" != "$1" ]] && IFSHOWTHUMB=1
 
     curprocessid=$$
     #调起后台脚本，监控火狐浏览器状态，如果浏览器进程消失，则杀死下面的进程
@@ -157,16 +161,28 @@ function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通
         if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
             fullfilename=${event}
             filename=$(basename $fullfilename)
-            # echo $(ps -ef | grep 'fswatch -0 $PICPATH' | grep -v grep)
+            showtype=0
 
             if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
                 tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
                 if [ "$tmpresult" -gt "1" ]; then
+                    msg="Already deleted ..."
                     trash $fullfilename
                 fi
             else
                 echo $filename >> $FULLFILENAMESDB
+                msg="Already recorded ..."
+                showtype=1
                 echo $fullfilename >> $DBFILE
+            fi
+
+            echo $msg
+            if [ "$IFSHOWTHUMB" -eq "1" ] && [ "$showtype" -eq "1" ]; then
+                #展示图片
+                printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+                printf ":"
+                base64 < "$fullfilename"
+                printf '\a\n'
             fi
         fi
     done
@@ -176,6 +192,6 @@ function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通
 
 function goodfonWithAutoDiff() { # Desc: 打开goodfon.ru后 通过目录监控自动过滤重名文件
     goodfon
-    autoDiffDownloadPicureByName
+    autoDiffDownloadPicureByName $@
 }
 alias gfa="goodfonWithAutoDiff"
