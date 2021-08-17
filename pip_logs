@@ -27,3 +27,5 @@ pip install percol
 pip install ippy
 
 pip install tox
+
+pip install openpyxl
