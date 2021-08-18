@@ -1,10 +1,15 @@
 function cat_whereis_file() { # Desc: cat_whereis_file:cat 打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         cat `which "$1"`
     else
-        cat $(type "$1" | awk '{print $NF}')
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            cat $endfile
+        else
+            cat_whereis_file $endfile
+        fi
     fi
 }
 alias catw="cat_whereis_file"
@@ -12,10 +17,15 @@ alias catw="cat_whereis_file"
 function bat_whereis_file() { # Desc: bat_whereis_file:bat命令打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         bat `which "$1"`
     else
-        bat $(type "$1" | awk '{print $NF}')
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            bat $endfile
+        else
+            bat_whereis_file $endfile
+        fi
     fi
 }
 alias batw="bat_whereis_file"
@@ -88,10 +98,15 @@ function head_whereis_file() { # Desc: headw:head命令打印which命令找到�
     if [ "" != "$2" ]; then
         lines=$2
     fi
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         head -n $lines `which "$1"`
     else
-        head -n $lines $(type "$1" | awk '{print $NF}')
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            head -n $lines $endfile
+        else
+            head_whereis_file $endfile $lines
+        fi
     fi
 }
 alias headw="head_whereis_file"
@@ -103,10 +118,15 @@ function tail_whereis_file() { # Desc: tail_whereis_file:tail命令打印which�
     if [ "" != "$2" ]; then
         lines=$2
     fi
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         tail -n $lines `which "$1"`
     else
-        tail -n $lines $(type "$1" | awk '{print $NF}')
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            tail -n $lines $endfile
+        else
+            tail_whereis_file $endfile $lines
+        fi
     fi
 }
 alias tailw="tail_whereis_file"

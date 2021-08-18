@@ -5,10 +5,15 @@ function editorw() { # Desc: editorw:use which command to find out the file or c
         if [ "" != "$FILENAME" ]; then
             command -v "$@" > /dev/null 2>&1
             [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-            if [ "$(type $FILENAME | grep 'a shell function from')" = "" ]; then
+            if [ "$(type $FILENAME | grep 'a shell function from')" = "" ] && [ "$(type $FILENAME | grep 'is an alias for')" = "" ]; then
                 $COMMANDBIN `which "$FILENAME"`
             else
-                $COMMANDBIN  $(type "$FILENAME" | awk '{print $NF}')
+                endfile=$(type "$FILENAME" | awk '{print $NF}')
+                if [ -f $endfile ] || [ -d $endfile ]; then
+                    $COMMANDBIN $endfile
+                else
+                    editorw $COMMANDBIN $endfile
+                fi
             fi
         else
             $COMMANDBIN `pwd`

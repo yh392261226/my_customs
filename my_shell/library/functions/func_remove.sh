@@ -33,23 +33,28 @@ function remove_to_trash () { # Desc: mtrash:删除到回收站
             while [ -e ~/.Trash/"$dst" ]; do
                 dst="$dst "$(date +%H-%M-%S)
             done
-            mv "$path" ~/.Trash/"$dst"
+            /bin/mv "$path" ~/.Trash/"$dst"
         fi
     done
 }
 alias mtrash="remove_to_trash"
 
 function trash () { # Desc: trash:Moves a file to the MacOS trash
-    command mv "$@" ~/.Trash ;
+    command /bin/mv "$@" ~/.Trash ;
 }
 
 function remove_whereis_file() { # Desc: remove_whereis_file:删除 which命令找到的文件
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         rm -f `which "$1"`
     else
-        rm -f $(type "$1" | awk '{print $NF}')
+        endfile=$(type "$@" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            rm -f $endfile
+        else
+            remove_whereis_file $endfile
+        fi
     fi
 }
 alias removew="remove_whereis_file"

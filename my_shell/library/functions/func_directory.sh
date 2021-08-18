@@ -98,10 +98,15 @@ alias gdto="cd_like_directory"
 function get_command_directory() { # Desc: dirw:获取命令所在目录
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         echo $(dirname "$@");
     else
-        echo $(dirname $(type "$@" | awk '{print $NF}'));
+        endfile=$(type "$@" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            echo $(dirname $endfile);
+        else
+            get_command_directory $endfile
+        fi
     fi
 }
 alias dirw="get_command_directory"
@@ -119,10 +124,15 @@ alias mcd="mkdir_cd"
 function cd_command_parent_directory() { # Desc: cd_command_parent_directory:命令所在的父级文件夹
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         cd `dirname $(dirname $(which "$1"))`
     else
-        cd $(dirname $(dirname $(type "$1" | awk '{print $NF}')))
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            cd $(dirname $(dirname $endfile))
+        else
+            cd_command_parent_directory $endfile
+        fi
     fi
 }
 alias cdpw="cd_command_parent_directory"
@@ -130,10 +140,15 @@ alias cdpw="cd_command_parent_directory"
 function cd_command_directory() { # Desc: cd_command_directory:命令所在的文件夹
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         cd `dirname $(which "$1")`
     else
-        cd $(dirname $(type "$1" | awk '{print $NF}'))
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            cd $(dirname $endfile)
+        else
+            cd_command_directory $endfile
+        fi
     fi
 }
 alias cdw="cd_command_directory"
@@ -150,10 +165,15 @@ alias fz="fzf_jump_between_directory"
 function ll_whereis_command() { # Desc: ll_whereis_command:打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         ls -l  `which "$1"`
     else
-        ls -l  $(type "$1" | awk '{print $NF}')
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            ls -l $endfile
+        else
+            ll_whereis_command $endfile
+        fi
     fi
 }
 alias llw="ll_whereis_command"
@@ -161,10 +181,15 @@ alias llw="ll_whereis_command"
 function open_directory_whereis_command() { # Desc: openw:打开which命令找到的目录或文件
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ]; then
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         open `dirname $(which "$1")`
     else
-        open $(dirname $(type "$1" | awk '{print $NF}'))
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ] || [ -d $endfile ]; then
+            open $(dirname $endfile)
+        else
+            open_directory_whereis_command $endfile
+        fi
     fi
 }
 alias openw="open_directory_whereis_command"
