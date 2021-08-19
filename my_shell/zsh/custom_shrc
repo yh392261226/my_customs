@@ -1,5 +1,5 @@
 #### 引入我自己的配置：开始
-sh_config=("basic" "prompt" "omz" "other" "import" "go" "php" "ser" "proxy" "composer" "export" "func" "alias" "common" "python" "java")
+sh_config=("basic" "prompt" "omz" "other" "import" "go" "php" "ser" "proxy" "composer" "export" "func" "alias" "common" "python" "java" "zinit")
 my_custom_sh=$MYRUNTIME/customs/my_shell
 
 if [ "zsh" = "$nowshell" ]; then

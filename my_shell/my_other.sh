@@ -175,6 +175,11 @@ if [ -f $MYRUNTIME/customs/others/fz/fz.sh ]; then
 	source $MYRUNTIME/customs/others/fz/fz.sh
 fi
 
+### zinit
+if [ ! -d $MYRUNTIME/customs/others/zinit ]; then
+    git clone https://github.com/zdharma/zinit.git $MYRUNTIME/customs/others/zinit
+fi
+
 ### tag
 if [ "zsh" = "$nowshell" ]; then
     if (( $+commands[tag] )); then

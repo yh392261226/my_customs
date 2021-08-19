@@ -1,0 +1,21 @@
+function create_tmp_aliases() { # Desc: 以a+数字形式创建临时别名命令
+    if [ "$#" -gt "0" ]; then
+        tmp_command_file=$(mktemp)
+        echo $tmp_command_file
+        #创建临时脚本
+        n=1
+        for command in $argv; do
+            echo $command
+            echo "alias a${n}=\"${command}\"\n" >> $tmp_command_file
+            ((n=n+1))
+        done
+        if [ -f $tmp_command_file ]; then
+            source $tmp_command_file
+        fi
+    else
+        return
+    fi
+}
+alias cta="create_tmp_aliases"
+
+
