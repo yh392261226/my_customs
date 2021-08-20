@@ -102,26 +102,26 @@ plugins=(
 	ruby
 	rsync
 	urltools
-	zsh-autosuggestions
-	zsh-syntax-highlighting
-	web-search
-	alias-tips
-	zsh-apple-touchbar
-	codeception
-	zsh-iterm-touchbar
-	git-extra-commands
-	history-substring-search
-	zui
-	zbrowse
-	bgnotify
-	zsh-apple-touchbar
-	zsh-interactive-cd
-	fzf-tab
-	fzf-zsh-completions
-	formarks
-	h
-	k
-	mysql-colorize
+	# zsh-autosuggestions
+	# zsh-syntax-highlighting
+	# web-search
+	# alias-tips
+	# zsh-apple-touchbar
+	# codeception
+	# zsh-iterm-touchbar
+	# git-extra-commands
+	# history-substring-search
+	# zui
+	# zbrowse
+	# bgnotify
+	# zsh-apple-touchbar
+	# zsh-interactive-cd
+	# fzf-tab
+	# fzf-zsh-completions
+	# formarks
+	# h
+	# k
+	# mysql-colorize
 	) #last-working-dir
 autoload -U compinit
 #&& compinit
