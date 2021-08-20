@@ -45,6 +45,7 @@ fi
 ### iterm2 shell integration
 [[ -e $HOME/.iterm2_shell_integration.${nowshell} ]] && source $HOME/.iterm2_shell_integration.${nowshell}
 
+#{{{ OH-MY-ZSH & Zinit plugins
 if [ "zsh" = "$nowshell" ]; then
     if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ]; then
         git clone --depth=1 https://github.com/yh392261226/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
@@ -211,7 +212,7 @@ if [ "zsh" = "$nowshell" ]; then
         is_notify=1
     fi
 fi
-
+#}}}
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
     git clone https://github.com/yh392261226/enhancd $MYRUNTIME/customs/others/enhancd
     is_notify=1
