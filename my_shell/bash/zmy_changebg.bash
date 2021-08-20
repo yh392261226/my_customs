@@ -129,11 +129,13 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
             }
 
-            bind -x '"˙":"bg_rand_pre"'    #//Alt h 换背景 (随机的上一个)
-            bind -x '"∆":"bg_rand"'        #//Alt j 换背景 (随机一个)
-            bind -x '"˚":"bg_rand_next"'   #//Alt k 换背景 (随机的下一个)
+            bind -x '"\C-H":"bg_rand_pre"'    #//Ctrl h 换背景 (随机的上一个)
 
-            bind -x '"∫":"bg_empty"'       #//Alt b 背景换成空的
+            bind -x '"\C-J":"bg_rand"'        #//Ctrl j 换背景 (随机一个)
+
+            bind -x '"\C-K":"bg_rand_next"'   #//Ctrl k 换背景 (随机的下一个)
+
+            bind -x '"\C-B":"bg_empty"'       #//Ctrl b 背景换成空的
         fi
     fi
 
