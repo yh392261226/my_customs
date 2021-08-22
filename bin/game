@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+###############################
+# Desc: 游戏脚本
+# Author: 杨浩
+# Date: 2021-08-22
+###############################
+
+
+function lottery() {
+
+    ### 双色球
+    function doubleBall() {
+        local RED='\033[31m'
+        local BLUE='\033[34m'
+        local END='\033[0m'
+        #定义零长度数组
+        local result=()
+        local length=${#result[@]}
+        while [ "${length}" -lt 6 ]; do
+            #取1到33的随机数
+            s=$[$RANDOM%33+1]
+            #判断随机数是否在数组中，不在就赋值给数组
+            if [[ ! "${result[@]}" =~ "${s}" ]]; then
+                result["${length}"]=$s
+                let length+=1
+            fi
+            done
+        #原数组
+        #echo ${result[*]}
+        #对数组进行排序操作
+        for ((i=0; i<${#result[@]}; i++)); do
+            for ((j=0; j<${#result[@]}-1; j++)); do
+                #${result[j]}获取单个元素，-gt为大于
+                if [[ ${result[j]} -gt ${result[j+1]} ]]; then
+                    #分别定义min为小值，MAX为大值
+                    local min=${result[j+1]}
+                    local max=${result[j]}
+                    #调整数组result中数值顺序
+                    result[j]=$min
+                    result[j+1]=$max
+                fi
+            done
+        done
+        blue=$[$RANDOM%16+1]
+        [[ "$blue" -lt "10" ]] && blue="0$blue"
+        # echo ${result[*]}
+        n=0
+        for i in ${result[*]}; do
+            if [[ ${result[$n]} -lt 10 ]]; then
+                result[$n]="0${result[$n]}"
+            fi
+            ((n=n+1))
+        done
+        #输出冒泡排序结果 #蓝色球从1到16中随意选择一个
+        echo -e "${RED}${result[@]}${END} ${BLUE}${blue}${END}"
+    }
+
+    ### 多票双色球
+    function multipleDoubleBall() {
+        local times=1
+        [[ "" != "$1" ]] && times=$1
+        for ((i=0; i<$times; i++)); do
+            $0 l ssq
+            echo "--------------------"
+        done
+    }
+
+    if [ "$1" = "" ]; then
+        echo "Usage:game l/lottery 彩种 条数"
+        return
+    fi
+
+    case "$1" in
+        'ssq'|'doubleball')
+            if [ "" != "$2" ]; then
+                multipleDoubleBall $2
+            else
+                doubleBall
+            fi
+            ;;
+    esac
+}
+
+
+if [ "$#" -lt "1" ]; then
+    echo "Usage:game l/lottery"
+    echo "使用:game 彩票"
+fi
+
+case "$1" in
+    'l'|'lottery')
+        lottery $2 $3
+        ;;
+esac

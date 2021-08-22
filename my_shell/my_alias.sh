@@ -141,3 +141,5 @@ alias train="$(brew --prefix sl)/bin/sl"
 [[ -d /opt/homebrew/share/man/zh ]] && alias cnman='man -M /opt/homebrew/share/man/zh'
 [[ -d /usr/local/share/man/zh_CN ]] && alias cman='man -M /usr/local/share/man/zh_CN'
 [[ -d /opt/homebrew/share/man/zh ]] && alias cman='man -M /opt/homebrew/share/man/zh'
+
+[[ -f $MYRUNTIME/customs/bin/game ]] && alias ssq="$MYRUNTIME/customs/bin/game lottery doubleball"
