@@ -4,15 +4,14 @@
 # Author: 杨浩
 # Date: 2021-08-22
 ###############################
-
+#颜色值
+RED='\033[31m'
+BLUE='\033[34m'
+END='\033[0m'
 
 function lottery() {
-
     ### 双色球
     function doubleBall() {
-        local RED='\033[31m'
-        local BLUE='\033[34m'
-        local END='\033[0m'
         #定义零长度数组
         local result=()
         local length=${#result[@]}
@@ -52,7 +51,7 @@ function lottery() {
             ((n=n+1))
         done
         #输出冒泡排序结果 #蓝色球从1到16中随意选择一个
-        echo -e "${RED}${result[@]}${END} ${BLUE}${blue}${END}"
+        echo -e "${RED}${result[@]}${END} | ${BLUE}${blue}${END}"
     }
 
     ### 多票双色球
@@ -60,13 +59,66 @@ function lottery() {
         local times=1
         [[ "" != "$1" ]] && times=$1
         for ((i=0; i<$times; i++)); do
-            $0 l ssq
+            $0 lottery doubleball
+            echo "--------------------"
+        done
+    }
+
+    ### 大乐透
+    function lotto() {
+        local i=1
+        local a=()
+        while [ $i -le 5 ]; do
+            if [ $i -eq 1 ]; then
+                a[$i]=$(( $RANDOM % 35 +1 ))
+            else
+                j=$i
+                a[$j]=$(( $RANDOM % 35 +1 ))
+                while [ $j -ge 2 ] && [ ${a[$j]} -le ${a[$((j - 1))]} ]; do 
+                        t=${a[$j]}
+                        a[$j]=${a[$((j -1 ))]}
+                        a[$((j - 1))]=$t
+                        j=$((j - 1))
+                done
+                i=$j
+            fi
+            i=$((i + 1))
+        done
+        local p=`echo ${a[@]}` 
+        local m=1
+        while [ $m -le 2 ]; do
+            if [ $m -eq 1 ]; then
+                b[$m]=$(( $RANDOM % 12 + 1 ))
+            else
+                n=$m
+                b[$n]=$(( $RANDOM % 12 + 1 ))
+                while [ $n -ge 2 ] && [ ${b[$n]} -le ${b[$((n - 1))]} ]; do
+                        r=${b[$n]}
+                        b[$n]=${b[$((n -1 ))]}
+                        b[$((n - 1))]=$r
+                        n=$((n - 1))
+                done
+                m=$n
+            fi
+            m=$((m + 1))
+        done
+        local q=`echo ${b[@]}`
+        echo -e "${RED}${p}${END} | ${BLUE}${q}${END}"
+    }
+
+    ### 多票大乐透
+    function multipleLotto() {
+        local times=1
+        [[ "" != "$1" ]] && times=$1
+        for ((i=0; i<$times; i++)); do
+            $0 lottery lotto
             echo "--------------------"
         done
     }
 
     if [ "$1" = "" ]; then
         echo "Usage:game l/lottery 彩种 条数"
+        echo "可选彩种：ssq/doubleball | lt/lotto"
         return
     fi
 
@@ -76,6 +128,13 @@ function lottery() {
                 multipleDoubleBall $2
             else
                 doubleBall
+            fi
+            ;;
+        'lt'|'lotto')
+            if [ "" != "$2" ]; then
+                multipleLotto $2
+            else
+                lotto
             fi
             ;;
     esac
