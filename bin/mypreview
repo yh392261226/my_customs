@@ -1,0 +1,11 @@
+### Desc: 根据文件类型做出相应的preview
+### Author: 杨浩
+### Date: 2021-08-24
+
+if [ "" != "$1" ]; then
+    if [[ -d $1 ]]; then
+        tree -C $1
+    elif [[ -f $1 ]]; then
+        bat --theme=gruvbox-dark --color=always --style=header,grid,numbers --line-range :600 $1 || exa $1
+    fi
+fi
