@@ -57,6 +57,14 @@ if [ -d $HOME/.basher ]; then
     eval "$(basher init -)"
 fi
 
+### M1 sqlite3
+if [ -d /opt/homebrew/opt/sqlite/bin ]; then
+	export PATH="/opt/homebrew/opt/sqlite/bin:$PATH"
+	export LDFLAGS="-L/opt/homebrew/opt/sqlite/lib"
+	export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include"
+	export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig"
+fi
+
 #wine 不输出debug信息
 export WINEDEBUG=-all
 export MYCUSTOMS=$MYRUNTIME/customs

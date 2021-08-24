@@ -47,8 +47,13 @@ fi
 
 #{{{ OH-MY-ZSH & Zinit plugins
 if [ "zsh" = "$nowshell" ]; then
-    if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ]; then
-        git clone --depth=1 https://github.com/yh392261226/fuzzy-fs.git ${MYRUNTIME}/customs/others/fuzzy-fs
+    if [ ! -d $HOME/.zinit/plugins ]; then
+        mkdir -p $HOME/.zinit/plugins
+    fi
+
+    if [ ! -d ${MYRUNTIME}/customs/others/fuzzy-fs/ ] && [ ! -d $HOME/.zinit/plugins/yh392261226---fuzzy-fs ]; then
+        git clone --depth=1 https://github.com/yh392261226/fuzzy-fs.git $HOME/.zinit/plugins/yh392261226---fuzzy-fs
+        ln -sf $HOME/.zinit/plugins/yh392261226---fuzzy-fs ${MYRUNTIME}/customs/others/fuzzy-fs
         is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs ]] && source ${MYRUNTIME}/customs/others/fuzzy-fs/fuzzy-fs
@@ -69,15 +74,12 @@ if [ "zsh" = "$nowshell" ]; then
         [[ -d ${MYRUNTIME}/customs/others/git-fuzzy/bin ]] && export PATH="${MYRUNTIME}/customs/others/git-fuzzy/bin:$PATH"
     fi
 
-    if [ ! -d ${MYRUNTIME}/customs/others/zfm ]; then
-        git clone --depth=1 https://github.com/pabloariasal/zfm ${MYRUNTIME}/customs/others/zfm
+    if [ ! -d ${MYRUNTIME}/customs/others/zfm ] && [ ! -d $HOME/.zinit/plugins/pabloariasal---zfm ]; then
+        git clone --depth=1 https://github.com/pabloariasal/zfm $HOME/.zinit/plugins/pabloariasal---zfm
+        ln -sf $HOME/.zinit/plugins/pabloariasal---zfm ${MYRUNTIME}/customs/others/zfm
         is_notify=1
     else
         [[ -f ${MYRUNTIME}/customs/others/zfm/zfm.zsh ]] && source ${MYRUNTIME}/customs/others/zfm/zfm.zsh
-    fi
-
-    if [ ! -d $HOME/.zinit/plugins ]; then
-        mkdir -p $HOME/.zinit/plugins
     fi
 
     if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets ] && [ ! -d $HOME/.zinit/plugins/amaya382---zsh-fzf-widgets ]; then
@@ -216,14 +218,13 @@ fi
 if [ ! -d $MYRUNTIME/customs/others/enhancd/ ]; then
     git clone https://github.com/yh392261226/enhancd $MYRUNTIME/customs/others/enhancd
     is_notify=1
-else
-    if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
-        export ENHANCD_COMMAND=ecd
-        source $MYRUNTIME/customs/others/enhancd/my_init.sh
-        [[ -f /usr/local/bin/peco ]] && export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
-        [[ -f /opt/homebrew/bin/peco ]] && export ENHANCD_FILTER="/opt/homebrew/bin/peco:fzf:non-existing-filter"
-        export ENHANCD_HOOK_AFTER_CD="lsd -l"
-    fi
+fi
+if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
+    export ENHANCD_COMMAND=ecd
+    source $MYRUNTIME/customs/others/enhancd/my_init.sh
+    [[ -f /usr/local/bin/peco ]] && export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
+    [[ -f /opt/homebrew/bin/peco ]] && export ENHANCD_FILTER="/opt/homebrew/bin/peco:fzf:non-existing-filter"
+    export ENHANCD_HOOK_AFTER_CD="lsd -l"
 fi
 
 if [ ! -d $MYRUNTIME/customs/others/SSHAutoLogin  ]; then
@@ -244,14 +245,6 @@ source $MYRUNTIME/customs/others/up/up.sh
 
 if [ "$is_notify" -gt "0" ]; then
     echo "Please Restart a new terminal window to effect the changing !!!"
-fi
-
-### M1 sqlite3
-if [ -d /opt/homebrew/opt/sqlite/bin ]; then
-	export PATH="/opt/homebrew/opt/sqlite/bin:$PATH"
-	export LDFLAGS="-L/opt/homebrew/opt/sqlite/lib"
-	export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include"
-	export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig"
 fi
 
 ### Bashhub.com Installation
