@@ -10,3 +10,7 @@ done
 for third in $(ls $MYRUNTIME/customs/my_shell/library/third/third_*.sh); do
     source $third
 done
+
+for other in $(ls $MYRUNTIME/customs/my_shell/library/others/others_*.sh); do
+    source $other
+done
