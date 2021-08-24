@@ -9,9 +9,8 @@ source $my_custom_sh/my_common.sh
 source $my_custom_sh/my_prompt.sh
 source $my_custom_sh/my_export.sh
 source $my_custom_sh/my_alias.sh
-source $my_custom_sh/my_func.sh
 source $my_custom_sh/my_other.sh
-source $my_custom_sh/my_func.sh
+source $my_custom_sh/my_library.sh
 source $my_custom_sh/my_powerline.sh
 source $my_custom_sh/my_go.sh
 source $my_custom_sh/my_php.sh
