@@ -193,3 +193,20 @@ function open_directory_whereis_command() { # Desc: openw:打开which命令找�
     fi
 }
 alias openw="open_directory_whereis_command"
+
+
+function pwd_command_directory() { # Desc: pwd_command_directory:获取命令所在的文件夹
+    command -v "$@" > /dev/null 2>&1
+    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        echo `dirname $(which "$1")`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            echo $(dirname $endfile)
+        else
+            pwd_command_directory $endfile
+        fi
+    fi
+}
+alias pwdw="pwd_command_directory"
