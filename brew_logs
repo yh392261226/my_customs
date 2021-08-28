@@ -178,3 +178,5 @@ brew install fswatch
 brew install bastet
 
 brew install ffsend procs
+
+brew install zoxide nushell
