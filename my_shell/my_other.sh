@@ -303,6 +303,16 @@ if [ "bash" = "$nowshell" ]; then
     fi
 fi
 
+###zoxide
+if [ "" != "$(brew --prefix zoxide)" ]; then
+    if [ "zsh" = "$nowshell" ]; then
+        eval "$(zoxide init zsh)"
+    fi
+    if [ "bash" = "$nowshell" ]; then
+        eval "$(zoxide init bash)"
+    fi
+fi
+
 ### custom commands
 ## fasd
 eval "$(fasd --init auto)"
