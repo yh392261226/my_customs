@@ -16,20 +16,6 @@ IFORDER=0                                             #if order the favorates 0 
 BACKGROUNDIMG=$(sed s/[[:space:]]//g $CURPICNAME)     #background image file name
 show_msg=0                                            #if show msg 0:no 1:yes
 PICURL=$(cat $MYRUNTIME/tools/m_picurl);              #图片软连接地址
-PUBLICPICS=$PICURL/public                             #everywhere
-PRIVATEPICS=$PICURL/private                           #company
-PROTECTEDPICS0=$PICURL/protected0                       #home
-PROTECTEDPICS1=$PICURL/protected1
-PROTECTEDPICS2=$PICURL/protected2
-PROTECTEDPICS3=$PICURL/protected3
-PROTECTEDPICS4=$PICURL/protected4
-PROTECTEDPICS5=$PICURL/protected5
-PROTECTEDPICS6=$PICURL/protected6
-PROTECTEDPICS7=$PICURL/protected7
-PROTECTEDPICS8=$PICURL/protected8
-PROTECTEDPICS9=$PICURL/protected9
-PROTECTEDPICS10=$PICURL/protected10
-PROTECTEDPICS11=$PICURL/protected11
 
 #获取文件源地址
 realfile_position() {
@@ -488,21 +474,12 @@ fuzzy_search() {
   if [ "$1" != "" ]; then
     para=$1
   fi
-
-  searchlist=$(ls $PROTECTEDPICS0/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS1/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS2/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS3/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS4/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS5/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS6/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS7/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS8/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS9/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS10/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PROTECTEDPICS11/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PRIVATEPICS/*${para}* |sed 's/\/\//\//g')
-  searchlist+=$(ls $PUBLICPICS/*${para}* |sed 's/\/\//\//g')
+  searchlist=""
+  for d in $(ls $PICURL/ | grep  -v 'duplicates_'); do
+    if [ -d $PICURL/$d ]; then
+      searchlist+=$(ls $PICURL/$d/*${para}* |sed 's/\/\//\//g')
+    fi
+  done
   if [ "" != "$searchlist" ]; then
     search_array[0]=''
     posit=0
