@@ -120,10 +120,19 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
             }
 
+            #背景图设置为已设定
+            function bg_user() {
+                if [ -z "$BUFFER" ]; then
+                    bg_change $emptybackground
+                else
+                    self-insert '"¨"'
+                fi
+            }
+
             #背景图设置为空
             function bg_empty() {
                 if [ -z "$BUFFER" ]; then
-                    bg_change $emptybackground
+                    bg_change ""
                 else
                     self-insert '"∫"'
                 fi
@@ -134,6 +143,8 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bind -x '"\C-J":"bg_rand"'        #//Ctrl j 换背景 (随机一个)
 
             bind -x '"\C-K":"bg_rand_next"'   #//Ctrl k 换背景 (随机的下一个)
+
+            bind -x '"\C-U":"bg_user"'       #//Ctrl u 背景换成已设定
 
             bind -x '"\C-B":"bg_empty"'       #//Ctrl b 背景换成空的
         fi

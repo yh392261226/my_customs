@@ -23,9 +23,10 @@ if test -e /usr/local/bin/terminal-notifier
     set -gx  terminal_notifier_bin /usr/local/bin/terminal-notifier
 end
 if test -e /opt/homebrew/bin/terminal-notifier
-    set -gx  terminal_notifier_bin /opt/homebrew/bin/terminal-notifier
+    set -gx terminal_notifier_bin /opt/homebrew/bin/terminal-notifier
 end
-set -gx  current_picturename {$MYPATH}/tools/current_picturename
+set -gx current_picturename {$MYPATH}/tools/current_picturename
+set -gx emptybackground {$MYPATH}/pictures/../public0/t1l-logo-white-shitty.jpg
 
 if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
     if test -d $ITERMPATH                       #判断是否安装了iterm
@@ -114,6 +115,15 @@ function bg_rand_pre
     bg_change $image_path
 end
 
+#背景图设置为用户设定
+function bg_user
+    if test "$bg_change_can_use" != 1
+        false
+    end
+    set image_path $emptybackground
+    bg_change $image_path
+end
+
 #背景图设置为空
 function bg_empty
     if test "$bg_change_can_use" != 1
@@ -126,4 +136,5 @@ end
 bind -M insert \cq bg_rand_pre
 bind -M insert \cw bg_rand
 bind -M insert \ce bg_rand_next
+bind -M insert \cu bg_user
 bind -M insert \cb bg_empty

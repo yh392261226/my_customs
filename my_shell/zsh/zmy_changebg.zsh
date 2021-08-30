@@ -158,11 +158,21 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             zle -N bg_pre
             bindkey '^{' bg_pre   #//Ctrl {符换背景(上一个)
 
+            #背景换成已设定
+            bg_user() {
+                if [ -z "$BUFFER" ]; then
+                    bg_change $emptybackground
+                else
+                    zle self-insert '^U'
+                fi
+            }
+            zle -N bg_user
+            bindkey '^U' bg_user #//Ctrl U 背景换成已设定
+
             #背景图设置为空
             bg_empty() {
                 if [ -z "$BUFFER" ]; then
-                    #bg_change ""
-                    bg_change $emptybackground
+                    bg_change ""
                 else
                     zle self-insert '^B'
                 fi
