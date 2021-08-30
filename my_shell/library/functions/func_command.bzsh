@@ -1,7 +1,7 @@
 function show_aliases() { # Desc: show_aliases:显示所有含有字符串的自定义命令及注释
     if [ ""  != "$1" ]; then
         MYRUNTIME=$(cat $HOME/.myruntime)
-        customcd $MYRUNTIME/customs/my_shell/library/functions; find *.sh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
+        customcd $MYRUNTIME/customs/my_shell/library/functions; find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
         # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
     else
         echo "Usage:$0 condition"
@@ -10,16 +10,16 @@ function show_aliases() { # Desc: show_aliases:显示所有含有字符串的自
 alias showa="show_aliases"
 
 function fzf_show_functions() { # Desc: fzf_show_functions:显示所有自定义命令及注释
-    find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*sh" |xargs grep 'function .*().*Desc' |sed 's/Desc:/Î/' |awk -F'Î' '{print $2}' |fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "bash $MYRUNTIME/customs/bin/check_custom_functions {}" --preview-window right:140
+    find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep 'function .*().*Desc' |sed 's/Desc:/Î/' |awk -F'Î' '{print $2}' |fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "bash $MYRUNTIME/customs/bin/check_custom_functions {}" --preview-window right:140
 }
 alias showfuncs="fzf_show_functions"
 
 function fzf_show_aliases2() { # Desc: fzf_show_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
-    #customcd $MYRUNTIME/customs/my_shell/library/functions; ls *.sh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
-    ls $MYRUNTIME/customs/my_shell/library/functions/*.sh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
+    #customcd $MYRUNTIME/customs/my_shell/library/functions; ls *.bzsh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
+    ls $MYRUNTIME/customs/my_shell/library/functions/*.bzsh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
     # touch /tmp/tmp_all_aliases.log
-    # for file in $(ls $MYRUNTIME/customs/my_shell/library/functions/*.sh); do
+    # for file in $(ls $MYRUNTIME/customs/my_shell/library/functions/*.bzsh); do
     #     cat $file | grep '^function ' | awk '{print "Command: " $2}' | sed 's/()//' | sed 's/{//' >> /tmp/tmp_all_aliases.log
     #     cat $file | grep 'Desc:' | sed 's/#//' | sed 's/[ ][ ]*//' >> /tmp/tmp_all_aliases.log
     #     echo '---------------------------------------------------' >> /tmp/tmp_all_aliases.log

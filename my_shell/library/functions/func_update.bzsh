@@ -25,3 +25,7 @@ function update_plugins() { # Desc: upplugins:git 更新 插件目录
     customcd ~
 }
 
+function update_others() { # Desc: update_others:git 更新 其他包目录
+    update_git_files_and_modules $MYRUNTIME/customs/others
+    customcd ~
+}

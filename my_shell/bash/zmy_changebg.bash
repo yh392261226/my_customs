@@ -8,7 +8,7 @@ CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH="/Applications/iTerm.app"
 PHP_TOOL=$MYPATH/customs/others/pictures.php
-emptybackground=$PICTURES_PATH/../public/t1l-logo-white-shitty.jpg
+emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
 
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0

@@ -1,8 +1,8 @@
 show_msg=0 #是否显示当前切换图片地址提示
 [[ -f /usr/local/bin/php ]] && phpbin=/usr/local/bin/php
 [[ -f /opt/homebrew/bin/php ]] && phpbin=/opt/homebrew/bin/php
-emptybackground=$PICTURES_PATH/../public/t1l-logo-white-shitty.jpg
 PICTURES_PATH=$MYPATH/pictures/
+emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
 CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH="/Applications/iTerm.app"
