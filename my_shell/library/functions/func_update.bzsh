@@ -29,3 +29,20 @@ function update_others() { # Desc: update_others:git 更新 其他包目录
     update_git_files_and_modules $MYRUNTIME/customs/others
     customcd ~
 }
+
+function update_go_tools() { # Desc: update_go_tools 更新go语言工具
+    source $MYRUNTIME/tools/m_proxy
+    export HTTP_PROXY=${local_http_proxy}
+    export HTTPS_PROXY=${local_https_proxy}
+    export ALL_PROXY=${local_all_proxy}
+
+    go install -v github.com/cweill/gotests/gotests@latest
+    go install -v github.com/ramya-rao-a/go-outline@latest
+    go install -v github.com/uudashr/gopkgs/v2/cmd/gopkgs@latest
+    go install -v github.com/fatih/gomodifytags@latest
+    go install -v github.com/josharian/impl@latest
+    go install -v github.com/haya14busa/goplay/cmd/goplay@latest
+    go install -v github.com/go-delve/delve/cmd/dlv@latest
+    go install -v honnef.co/go/tools/cmd/staticcheck@latest
+    go install -v golang.org/x/tools/gopls@latest
+}
