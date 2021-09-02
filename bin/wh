@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+if [ "" != "$1" ]; then
+    echo "which $1 : "
+    which $1
+    echo "whereis $1 : "
+    whereis $1
+    echo "type $1 : "
+    type $1
+else
+    echo "Usage:$0 command"
+fi

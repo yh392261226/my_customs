@@ -150,6 +150,11 @@ unfull() {
 
 }
 
+bCd() {
+    echo "cd $PICPATH"
+    `cd $PICPATH`
+}
+
 
 cd $PICPATH;
 case "$1" in
@@ -187,6 +192,9 @@ case "$1" in
 
     'un'|'unfull')
         unfull
+    ;;
+    'cd')
+        bCd
     ;;
 
     *)
