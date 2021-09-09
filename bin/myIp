@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 ## Desc: get my IP address from ipinfo.io
 ## Author: 杨浩
+if [ -f /opt/homebrew/bin/gsed ]; then
+  GSEDCOMMAND=/opt/homebrew/bin/gsed
+else
+  GSEDCOMMAND=/usr/local/bin/gsed
+fi
 
 source $MYRUNTIME/customs/bin/mymessage
 echo "External:"
@@ -13,10 +18,10 @@ function localip() {
   export -f _localip
   local purple="\x1B\[35m" reset="\x1B\[m"
   networksetup -listallhardwareports | \
-    sed -r "s/Hardware Port: (.*)/${purple}\1${reset}/g" | \
-    sed -r "s/Device: (en.*)$/_localip \1/e" | \
-    sed -r "s/Ethernet Address:/📘 /g" | \
-    sed -r "s/(VLAN Configurations)|==*//g"
+    $GSEDCOMMAND -r "s/Hardware Port: (.*)/${purple}\1${reset}/g" | \
+    $GSEDCOMMAND -r "s/Device: (en.*)$/_localip \1/e" | \
+    $GSEDCOMMAND -r "s/Ethernet Address:/📘 /g" | \
+    $GSEDCOMMAND -r "s/(VLAN Configurations)|==*//g"
 }
 echo ""
 echo "Local:"
