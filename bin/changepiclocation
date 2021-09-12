@@ -63,6 +63,10 @@ else
     choose=$1 
 fi
 if [ "" != "$choose" ]; then
+    if [ ! -d $TMPPICURL/$1 ] && [ ! -f $TMPPICURL/$1 ]; then
+        echo "$choose does not exists !!!"
+        exit 1
+    fi
 	_hastochange $choose
 	echo "$choose" > $CURMARKFILE;
 	_changePicLink $choose;
