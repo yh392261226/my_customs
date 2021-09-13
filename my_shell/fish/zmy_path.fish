@@ -1,4 +1,5 @@
 set -gx PATH $PATH /opt/homebrew/bin
+set -gx PATH $PATH /Users/yanghao/Library/Python/3.9/bin
 set -gx PATH $PATH /Users/yanghao/Library/Python/3.8/bin
 set -gx PATH $PATH /opt/homebrew/opt/icu4c/bin
 set -gx PATH $PATH /opt/homebrew/opt/grep/bin
@@ -28,3 +29,4 @@ set -gx PATH $PATH /sbin
 set -gx PATH $PATH /Library/Apple/usr/bin
 set -gx PATH $PATH /Users/yanghao/.oh-my-zsh/custom/plugins/git-extra-commands/bin
 set -gx PATH $PATH /opt/homebrew/opt/fzf/bin
+

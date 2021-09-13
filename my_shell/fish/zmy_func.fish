@@ -3,3 +3,10 @@ function setproxy
     export HTTPS_PROXY=http://127.0.0.1:58591;
     export ALL_PROXY=socks5://127.0.0.1:51837;
 end
+
+function unsetproxy
+    export HTTP_PROXY=;
+    export HTTPS_PROXY=;
+    export ALL_PROXY=;
+
+end
