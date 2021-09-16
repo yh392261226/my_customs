@@ -182,7 +182,7 @@ function help_by_tldr() { # Desc: help_by_tldr:help 帮助 tldr命令别名
 alias help="help_by_tldr"
 
 function p() { # Desc: p:ps -ef |grep 进程
-    ps -ef|grep "$@" | grep -v grep |fzf
+    ps -ef|grep "$@" | grep -v grep #|fzf
 }
 
 if [ -f /usr/local/bin/bashtop ]; then

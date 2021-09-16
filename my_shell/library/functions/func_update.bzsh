@@ -11,7 +11,7 @@ function update_today() { # Desc: upday:每天一更新
 
 function update_runtimes() { # Desc: update_runtimes:git 更新$MYRUNTIME 目录下的所有由git管理的目录
     update_dotfiles
-    upplugins
+    update_plugins
 }
 
 function update_zsh_customs() { # Desc: update_zsh_customs:git更新zsh自定义的文件
