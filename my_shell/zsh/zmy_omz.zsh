@@ -124,6 +124,7 @@ plugins=(
 	# mysql-colorize
 	) #last-working-dir
 autoload -U compinit
+[[ -f $HOME/.custom_omz.sh ]] && source $HOME/.custom_omz.sh
 #&& compinit
 ZSH_TMUX_AUTOSTART='true'
 ZSH_DISABLE_COMPFIX=true
