@@ -130,6 +130,7 @@ alias dkcpstart="docker-compose start"
 alias dkcpstop="docker-compose stop"
 
 #other
+alias woshishei='whoami'
 alias screensaverDesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'
 alias hc="history -c"
 alias typep='type -p'
