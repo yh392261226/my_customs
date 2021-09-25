@@ -159,3 +159,15 @@ function set_setting_links() { # Desc: set_setting_links:配置文件链接
     fi
 }
 alias slink="set_setting_links"
+
+function hidden_files() { # Desc: hidden_files:显示隐藏文件
+    local path='./'
+	[[ "" != "$1" ]] && path=$1
+    for f in $(/bin/ls -a $path); do
+        local tmpfilename=$(/usr/bin/basename $f)
+        if [ "." = "${tmpfilename:0:1}" ] && [ "$tmpfilename" != "." ] && [ "$tmpfilename" != ".." ]; then
+            echo $tmpfilename
+        fi
+    done
+}
+alias hf="hidden_files"
