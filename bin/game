@@ -159,14 +159,29 @@ function websites() {
         fi
     }
 
+    function record() {
+        vim $TMPCAOFILE
+    }
+
+    function list() {
+        bat $TMPCAOFILE
+    }
+
     if [ "$1" = "" ]; then
-        echo "Usage:game w/web o/open"
+        echo "Usage:game w/web o/open|r/record|l/list"
+        echo "用法:game   网站  选择 |  记录  | 列表"
         return
     fi
 
     case "$1" in
         'o'|'open')
             open
+            ;;
+        'r'|'record')
+            record
+            ;;
+        'l'|'list')
+            list
             ;;
     esac
 }
