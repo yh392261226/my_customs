@@ -140,14 +140,48 @@ function lottery() {
     esac
 }
 
+function websites() {
+    BROWSER="/Applications/Brave Browser.app"
+    [[ ! -d $BROWSER ]] && BROWSER="/Applications/Google Chrome.app"
+    [[ ! -d $BROWSER ]] && BROWSER="/Applications/Safari.app"
+    TMPCAOFILE=$MYRUNTIME/tools/m_cao
+    [[ ! -f $TMPCAOFILE ]] && touch $TMPCAOFILE
+
+    function open() {
+        if [ ""  = "$(cat $TMPCAOFILE)" ]; then
+            echo "It's empty in websites records !!!"
+            exit 0
+        fi
+
+        choose=$(cat $TMPCAOFILE | fzf)
+        if [ "" != "$choose" ]; then
+            /usr/bin/open -a "$BROWSER" "$choose"
+        fi
+    }
+
+    if [ "$1" = "" ]; then
+        echo "Usage:game w/web o/open"
+        return
+    fi
+
+    case "$1" in
+        'o'|'open')
+            open
+            ;;
+    esac
+}
+
 
 if [ "$#" -lt "1" ]; then
-    echo "Usage:game l/lottery"
-    echo "使用:game 彩票"
+    echo "Usage:game l/lottery | w/web"
+    echo "使用:game 彩票 | 网站"
 fi
 
 case "$1" in
     'l'|'lottery')
         lottery $2 $3
+        ;;
+    'w'|'web')
+        websites $2 $3
         ;;
 esac
