@@ -211,7 +211,10 @@ case "$1" in
         hr '-'
         hr '*'
         hr '-'
-        echo "Usage:     $0 r/record | u/uniq | m/move | o/open | un/unfull | a/after | dr/duprecord | du'|'dupuniq | da/dupafter"
-        echo "使用方法： $0 全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 | 未满 | 展示重复 | 去重后记录 | 去重后再去重 | 去重后展示重复"
+        echo "Usage:"
+        hr '-'
+        echo " r/record  |   u/uniq   |    m/move    |  o/open  | un/unfull |  a/after | dr/duprecord | du'|'dupuniq | da/dupafter"
+        echo "全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 |   未满    | 展示重复 |  去重后记录  | 去重后再去重 | 去重后展示重复"
+        hr '-'
     ;;
 esac
