@@ -5,6 +5,7 @@ function update_dotfiles() { # Desc: update_dotfiles:git 更新$MYRUNTIME 目录
 function update_today() { # Desc: upday:每天一更新
     update_runtimes
     update_zsh_customs
+    update_others
     brew update  && brew upgrade && brew cleanup
     #gethosts
 }
