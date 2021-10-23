@@ -18,7 +18,6 @@ fi
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
         if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
-            image_list=($(/bin/ls $MYPATH/pictures/))
             image_index=-1
             #图像缩略图
             bg_thumb() {

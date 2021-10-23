@@ -16,7 +16,6 @@ fi
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统 
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
         if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
-            image_list=($(/bin/ls $PICTURES_PATH))
             image_index=-1
             #图像缩略图
             bg_thumb() {
@@ -91,6 +90,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #下一个背景图
             bg_next() {
                 if [ -z "$BUFFER" ]; then
+                    image_list=($(/bin/ls $PICTURES_PATH))
                     if [ "$image_index" -ge "${#image_list[*]}" ]; then
                         image_index=-1
                     else
@@ -144,6 +144,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #上一个背景图
             bg_pre() {
                 if [ -z "$BUFFER" ]; then
+                    image_list=($(/bin/ls $PICTURES_PATH))
                     if [ "$image_index" -le "0" ]; then
                         image_index=${#image_list[*]}
                     else
