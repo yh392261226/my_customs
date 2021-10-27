@@ -10,3 +10,9 @@ function unsetproxy
     export ALL_PROXY=;
 
 end
+
+function eproxy
+    echo $HTTP_PROXY;
+    echo $HTTPS_PROXY;
+    echo $ALL_PROXY;
+end
