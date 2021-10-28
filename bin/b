@@ -80,7 +80,7 @@ moveUniq() {
 }
 
 afterUniq() {
-    local max=5
+    local max=4
     local count=0
     for img in $(cat $UNIQFILE); do
         if [ $count -lt $max ]; then
