@@ -215,3 +215,18 @@ npm install -g clever-tools
 npm install -g wept
 npm install -g @rafaelrinaldi/whereami
 npm install -g speed-test jest-cli lana-cli np xo fkill-cli find-up-cli
+npm install -g is-up-cli
+npm install -g viewport-list-cli
+npm install -g surge
+npm install -g loadtest
+npm install -g diff2html-cli
+npm install -g caniuse-cmd
+npm install -g npm-name-cli
+npm install -g strip-css-comments-cli
+npm install -g moro
+npm install -g brightness-cli
+npm install -g remote-share-cli
+npm install -g mdlt
+npm install -g svgo
+npm install -g movie-cli
+npm install -g itunes-remote
