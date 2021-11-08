@@ -95,7 +95,7 @@ plugins=(
 	history
 	git-flow
 	node
-	osx
+	macos
 	cp
 	perl
 	python
