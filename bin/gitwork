@@ -4,6 +4,7 @@
 # Date              : 05.08.2021
 # Last Modified Date: 05.08.2021
 RECORDDATA=$MYRUNTIME/tools/working_record.log
+source $MYRUNTIME/customs/my_shell/my_common.sh
 
 function gitWork() {
     title=$1
@@ -12,13 +13,13 @@ function gitWork() {
         echo "$work_path does not exists !!!"
         return 1
     fi
-    echo "Start pulling Project:"
-    echo $title
+    echo_with_color "${BRed}" "Start pulling Project:"
+    echo_with_color "${Red}" "$title"
     cd $work_path
     git fetch --all
     git pull
 
-    echo "Done ..."
+    echo_with_color "${BGreen}" "Done ..."
 }
 
 function gitAction() {
