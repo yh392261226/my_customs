@@ -7,12 +7,11 @@ export BASE=$HOME
 [[ -d /usr/local/opt/python ]] && export PATH="/usr/local/opt/python/bin:$PATH"
 [[ -d /opt/homebrew/opt/python ]] && export PATH="/opt/homebrew/opt/python/bin:$PATH"
 [[ -d /usr/local/opt/python@2/libexec/bin ]] && export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
-[[ -d $HOME/.cargo/bin ]] && export PATH="$HOME/.cargo/bin:/opt/local/bin:$PATH"
+[[ -f $HOME/.cargo/env ]] && source $HOME/.cargo/env
 [[ -d /opt/local/bin ]] && export PATH="/opt/local/bin:$PATH"
 [[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
 [[ -d /usr/local/opt/pyenv ]] && export PYENV_ROOT="/usr/local/var/pyenv" && PATH="$PYENV_ROOT/bin:$PATH" && eval "$(pyenv init -)"
 if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
-[[ -d $HOME/.cargo/bin ]] && export PATH="$PATH:$HOME/.cargo/bin"
 
 #####设置PATH变量
 if [ "$MYSYSNAME" = "Mac" ]; then

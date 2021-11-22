@@ -16,7 +16,7 @@ set -gx PATH $MYRUNTIME/customs/bin $PATH
 set -gx PATH $MYRUNTIME/customs/bin/ssh-auto-login/auto_gen $PATH
 set -gx PATH /usr/local/bin /usr/local/sbin $PATH
 set -gx PATH $HOME/bin $PATH
-#set -gx PATH $HOME/.cargo/bin $PATH
+set -gx PATH $HOME/.cargo/bin $PATH
 set -gx PATH $HOME/.local/bin $PATH
 
 ##别名设置

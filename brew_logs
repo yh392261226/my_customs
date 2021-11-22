@@ -180,3 +180,5 @@ brew install bastet
 brew install ffsend procs
 
 brew install zoxide nushell
+
+brew install font-fira-mono font-inconsolata mtmr phantomjs font-fira-code-nerd-font font-hack-nerd-font iina osxfuse xquartz
