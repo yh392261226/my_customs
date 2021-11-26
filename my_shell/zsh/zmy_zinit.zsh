@@ -110,7 +110,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit load amaya382/zsh-fzf-widgets
 
 
-    zinit light zdharma/fast-syntax-highlighting
+    zinit light zdharma-continuum/fast-syntax-highlighting
     # zinit light changyuheng/zsh-interactive-cd
     zinit light floor114/zsh-apple-touchbar
     zinit light unixorn/git-extra-commands
@@ -124,6 +124,6 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light wfxr/formarks
     zinit light horosgrisa/mysql-colorize
     zinit light edouard-lopez/yeoman-zsh-plugin
-    zinit light zdharma/zbrowse
-    zinit light zdharma/zui
+    zinit light zdharma-continuum/zbrowse
+    zinit light zdharma-continuum/zui
 fi

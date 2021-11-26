@@ -172,21 +172,21 @@ if [ "zsh" = "$nowshell" ]; then
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting ] && [ ! -d $HOME/.zinit/plugins/zdharma---fast-syntax-highlighting ]; then
-        git clone git@github.com:zdharma/fast-syntax-highlighting $HOME/.zinit/plugins/zdharma---fast-syntax-highlighting
-        ln -sf $HOME/.zinit/plugins/zdharma---fast-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting ]; then
+        git clone git@github.com:zdharma-continuum/fast-syntax-highlighting $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting
+        ln -sf $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zbrowse ] && [ ! -d $HOME/.zinit/plugins/zdharma---zbrowse ]; then
-        git clone git@github.com:zdharma/zbrowse $HOME/.zinit/plugins/zdharma---zbrowse
-        ln -sf $HOME/.zinit/plugins/zdharma---zbrowse ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zbrowse
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zbrowse ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---zbrowse ]; then
+        git clone git@github.com:zdharma-continuum/zbrowse $HOME/.zinit/plugins/zdharma-continuum---zbrowse
+        ln -sf $HOME/.zinit/plugins/zdharma-continuum---zbrowse ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zbrowse
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zui ] && [ ! -d $HOME/.zinit/plugins/zdharma---zui ]; then
-        git clone git@github.com:zdharma/zui $HOME/.zinit/plugins/zdharma---zui
-        ln -sf $HOME/.zinit/plugins/zdharma---zui ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zui
+    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zui ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---zui ]; then
+        git clone git@github.com:zdharma-continuum/zui $HOME/.zinit/plugins/zdharma-continuum---zui
+        ln -sf $HOME/.zinit/plugins/zdharma-continuum---zui ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zui
         is_notify=1
     fi
 
@@ -283,7 +283,7 @@ fi
 
 ### zinit
 if [ ! -d $MYRUNTIME/customs/others/zinit ]; then
-    git clone git@github.com:zdharma/zinit.git $MYRUNTIME/customs/others/zinit
+    git clone git@github.com:zdharma-continuum/zinit.git $MYRUNTIME/customs/others/zinit
 fi
 
 ### tag
