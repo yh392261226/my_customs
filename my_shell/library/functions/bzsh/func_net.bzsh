@@ -63,12 +63,13 @@ function unset_proxy() { # Desc: unset_proxy:取消设置命令行代理
 }
 alias unsetproxy="unset_proxy"
 
-function echo_proxy() { # Desc: echo_proxy:输出命令行代理
+function print_proxy() { # Desc: print_proxy:输出命令行代理
     echo "http: $HTTP_PROXY";
     echo "https: $HTTPS_PROXY";
     echo "All: $ALL_PROXY";
 }
-alias eproxy="echo_proxy"
+alias eproxy="print_proxy"
+alias pproxy="print_proxy"
 
 function get_proxy() { # Desc: get_proxy:获取命令行代理
     echo " \n
