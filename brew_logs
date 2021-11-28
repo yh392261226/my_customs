@@ -2,467 +2,592 @@
 #-----------------------------------------------------------#
 echo "Tapping Taps Of Homebrew ..."
 #-----------------------------------------------------------#
-brew tap beeftornado/rmtree  # 循环移除指令的仓库
-brew tap homebrew/cask  # 「Casks」
-brew tap homebrew/cask-fonts  # 字体仓库
-brew tap homebrew/cask-versions  # 历史版本软件包仓库
-brew tap homebrew/core  # 「Formulae」
-brew tap homebrew/services  # 服务指令仓库
-brew tap homebrew/aliases
-brew tap homebrew/homebrew-livecheck
-brew tap homebrew/command-not-found
-brew tap homebrew/bundle
-brew tap shivammathur/php
-brew tap shivammathur/extensions
-brew tap neovim/neovim
-brew tap cowsay-org/cowsay
-brew tap denji/nginx
-brew tap cjbassi/gotop
-brew tap aykamko/tag-ag
+#[[[
+    brew tap beeftornado/rmtree  # 循环移除指令的仓库
+    brew tap homebrew/cask  # 「Casks」
+    brew tap homebrew/cask-fonts  # 字体仓库
+    brew tap homebrew/cask-versions  # 历史版本软件包仓库
+    brew tap homebrew/core  # 「Formulae」
+    brew tap homebrew/services  # 服务指令仓库
+    brew tap homebrew/aliases
+    brew tap homebrew/homebrew-livecheck
+    brew tap homebrew/command-not-found
+    brew tap homebrew/bundle
+    brew tap shivammathur/php
+    brew tap shivammathur/extensions
+    brew tap neovim/neovim
+    brew tap cowsay-org/cowsay
+    brew tap denji/nginx
+    brew tap cjbassi/gotop
+    brew tap aykamko/tag-ag
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Download Softwares ..."
 #-----------------------------------------------------------#
-brew install curl
-brew install wget
-brew install burl
-
+#[[[
+    brew install curl
+    brew install wget
+    brew install burl
+#]]]
 #-----------------------------------------------------------#
 echo "Installing Libraries ..."
 #-----------------------------------------------------------#
-brew install libass
-brew install libassuan
-brew install libav
-brew install libbluray
-brew install libbs2b
-brew install libcaca
-brew install libcbor
-brew install libcerf
-brew install libcouchbase
-brew install libcroco
-brew install libdap
-brew install libde265
-brew install libdnet
-brew install libepoxy
-brew install libev
-brew install libevent
-brew install libffi
-brew install libfido2
-brew install libftdi
-brew install libgcrypt
-brew install libgeotiff
-brew install libgpg-error
-brew install libgphoto2
-brew install libgsm
-brew install libheif
-brew install libice
-brew install libicns
-brew install libiconv
-brew install libidn
-brew install libidn2
-brew install libiscsi
-brew install libksba
-brew install liblqr
-brew install libmagic
-brew install libmaxminddb
-brew install libmemcached
-brew install libmetalink
-brew install libmodplug
-brew install libmpc
-brew install libmpdclient
-brew install libogg
-brew install libomp
-brew install libplist
-brew install libpng
-brew install libpq
-brew install libpsl
-brew install libpthread-stubs
-brew install libquvi
-brew install librdkafka
-brew install libressl
-brew install librsvg
-brew install librttopo
-brew install libsamplerate
-brew install libserdes
-brew install libsigc++
-brew install libsigc++@2
-brew install libsm
-brew install libsndfile
-brew install libsodium
-brew install libsoup
-brew install libsoxr
-brew install libspatialite
-brew install libssh
-brew install libssh2
-brew install libtasn1
-brew install libtermkey
-brew install libtiff
-brew install libtool
-brew install libunistring
-brew install libusb
-brew install libusb-compat
-brew install libusbmuxd
-brew install libuv
-brew install libvidstab
-brew install libvirt
-brew install libvo-aacenc
-brew install libvorbis
-brew install libvpx
-brew install libvterm
-brew install libwbxml
-brew install libwebsockets
-brew install libx11
-brew install libxau
-brew install libxcb
-brew install libxdmcp
-brew install libxext
-brew install libxft
-brew install libxkbcommon
-brew install libxml2
-brew install libxmu
-brew install libxp
-brew install libxrender
-brew install libxt
-brew install libyaml
-brew install libzip
-brew install giflib
-brew install ghc
-brew install ghi
+#[[[
+    brew install libass
+    brew install libassuan
+    brew install libav
+    brew install libbluray
+    brew install libbs2b
+    brew install libcaca
+    brew install libcbor
+    brew install libcerf
+    brew install libcouchbase
+    brew install libcroco
+    brew install libdap
+    brew install libde265
+    brew install libdnet
+    brew install libepoxy
+    brew install libev
+    brew install libevent
+    brew install libffi
+    brew install libfido2
+    brew install libftdi
+    brew install libgcrypt
+    brew install libgeotiff
+    brew install libgpg-error
+    brew install libgphoto2
+    brew install libgsm
+    brew install libheif
+    brew install libice
+    brew install libicns
+    brew install libiconv
+    brew install libidn
+    brew install libidn2
+    brew install libiscsi
+    brew install libksba
+    brew install liblqr
+    brew install libmagic
+    brew install libmaxminddb
+    brew install libmemcached
+    brew install libmetalink
+    brew install libmodplug
+    brew install libmpc
+    brew install libmpdclient
+    brew install libogg
+    brew install libomp
+    brew install libplist
+    brew install libpng
+    brew install libpq
+    brew install libpsl
+    brew install libpthread-stubs
+    brew install libquvi
+    brew install librdkafka
+    brew install libressl
+    brew install librsvg
+    brew install librttopo
+    brew install libsamplerate
+    brew install libserdes
+    brew install libsigc++
+    brew install libsigc++@2
+    brew install libsm
+    brew install libsndfile
+    brew install libsodium
+    brew install libsoup
+    brew install libsoxr
+    brew install libspatialite
+    brew install libssh
+    brew install libssh2
+    brew install libtasn1
+    brew install libtermkey
+    brew install libtiff
+    brew install libtool
+    brew install libunistring
+    brew install libusb
+    brew install libusb-compat
+    brew install libusbmuxd
+    brew install libuv
+    brew install libvidstab
+    brew install libvirt
+    brew install libvo-aacenc
+    brew install libvorbis
+    brew install libvpx
+    brew install libvterm
+    brew install libwbxml
+    brew install libwebsockets
+    brew install libx11
+    brew install libxau
+    brew install libxcb
+    brew install libxdmcp
+    brew install libxext
+    brew install libxft
+    brew install libxkbcommon
+    brew install libxml2
+    brew install libxmu
+    brew install libxp
+    brew install libxrender
+    brew install libxt
+    brew install libyaml
+    brew install libzip
+    brew install giflib
+    brew install ghc
+    brew install ghi
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Languages ..."
 #-----------------------------------------------------------#
-brew install llvm
-brew install rust
-brew install go
-brew install python
-brew install cython
-brew install node
-brew install erlang
-brew install php@5.6
-brew install php@7.0
-brew install php@7.1
-brew install php@7.2
-brew install php@7.3
-brew install php@7.4
-brew install php
-brew install ruby
-brew install ruby-build
-brew install ruby-install
-brew install rust
-brew install rustup-init
-brew install java
-brew install lua
-brew install bison
-brew install boost
-brew install kotlin
-brew install expect
-brew install lua
-brew install lua52
-brew install lua@5.1
-brew install luajit
-brew install luarocks
-brew install peco
-brew install perl
-brew install perl@5.18
-brew install ocaml
-brew install v8
-brew install maven
-brew install phantomjs
-brew install cifer
+#[[[
+    brew install llvm
+    brew install rust
+    brew install go
+    brew install python
+    brew install cython
+    brew install node
+    brew install erlang
+    brew install php@5.6
+    brew install php@7.0
+    brew install php@7.1
+    brew install php@7.2
+    brew install php@7.3
+    brew install php@7.4
+    brew install php
+    brew install ruby
+    brew install ruby-build
+    brew install ruby-install
+    brew install rust
+    brew install rustup-init
+    brew install java
+    brew install lua
+    brew install bison
+    brew install boost
+    brew install kotlin
+    brew install expect
+    brew install lua
+    brew install lua52
+    brew install lua@5.1
+    brew install luajit
+    brew install luarocks
+    brew install peco
+    brew install perl
+    brew install perl@5.18
+    brew install ocaml
+    brew install v8
+    brew install maven
+    brew install phantomjs
+    brew install cifer
+    brew install doxygen
+    brew install swift
+
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Language Supports ..."
 #-----------------------------------------------------------#
-brew install imagemagick
-brew install imagesnap
-brew install imap-uw
-brew install gd
-brew install geoip
-brew install geos
-brew install gettext
-brew install gflags
-brew install glib
-brew install glib-networking
-brew install glib-openssl
-brew install glibmm
-brew install grpc
-brew install icoutils
-brew install icu4c
-brew install id3tool
-brew install idutils
-brew install gsasl
-brew install gsl
-brew install grc
-brew install pcre
-brew install pcre2
-brew install protobuf
-brew install apr
-brew install openjdk
-brew install openjdk@11
-brew install openjdk@8
-brew install pickle
-brew install pidcat
+#[[[
+    brew install imagemagick
+    brew install imagesnap
+    brew install imap-uw
+    brew install gd
+    brew install geoip
+    brew install geos
+    brew install gettext
+    brew install gflags
+    brew install glib
+    brew install glib-networking
+    brew install glib-openssl
+    brew install glibmm
+    brew install grpc
+    brew install icoutils
+    brew install icu4c
+    brew install id3tool
+    brew install idutils
+    brew install gsasl
+    brew install gsl
+    brew install grc
+    brew install pcre
+    brew install pcre2
+    brew install protobuf
+    brew install apr
+    brew install openjdk
+    brew install openjdk@11
+    brew install openjdk@8
+    brew install pickle
+    brew install pidcat
+    brew install nushell
+    brew install jmeter
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Language Support Extensions ..."
 #-----------------------------------------------------------#
-brew install imap@5.6
-brew install imap@7.0
-brew install imap@7.1
-brew install imap@7.2
-brew install imap@7.3
-brew install imap@7.4
-brew install imagick@5.6
-brew install imagick@7.0
-brew install imagick@7.1
-brew install imagick@7.2
-brew install imagick@7.3
-brew install imagick@7.4
-brew install swoole@5.6
-brew install swoole@7.0
-brew install swoole@7.1
-brew install swoole@7.2
-brew install swoole@7.3
-brew install swoole@7.4
-brew install pcov@7.1
-brew install pcov@7.2
-brew install pcov@7.3
-brew install pcov@7.4
-brew install protobuf@3.7
-brew install protobuf@5.6
-brew install protobuf@7.0
-brew install protobuf@7.1
-brew install protobuf@7.2
-brew install protobuf@7.3
-brew install protobuf@7.4
-brew install xdebug@5.6
-brew install xdebug@7.0
-brew install xdebug@7.1
-brew install xdebug@7.2
-brew install xdebug@7.3
-brew install xdebug@7.4
+#[[[
+    brew install imap@5.6
+    brew install imap@7.0
+    brew install imap@7.1
+    brew install imap@7.2
+    brew install imap@7.3
+    brew install imap@7.4
+    brew install imagick@5.6
+    brew install imagick@7.0
+    brew install imagick@7.1
+    brew install imagick@7.2
+    brew install imagick@7.3
+    brew install imagick@7.4
+    brew install swoole@5.6
+    brew install swoole@7.0
+    brew install swoole@7.1
+    brew install swoole@7.2
+    brew install swoole@7.3
+    brew install swoole@7.4
+    brew install pcov@7.1
+    brew install pcov@7.2
+    brew install pcov@7.3
+    brew install pcov@7.4
+    brew install protobuf@3.7
+    brew install protobuf@5.6
+    brew install protobuf@7.0
+    brew install protobuf@7.1
+    brew install protobuf@7.2
+    brew install protobuf@7.3
+    brew install protobuf@7.4
+    brew install xdebug@5.6
+    brew install xdebug@7.0
+    brew install xdebug@7.1
+    brew install xdebug@7.2
+    brew install xdebug@7.3
+    brew install xdebug@7.4
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Language Support Libraries ..."
 #-----------------------------------------------------------#
-brew install php-code-sniffer
-brew install php-cs-fixer
-brew install phplint
-brew install phpmd
-brew install phpstan
-brew install phpunit
-brew install brew-php-switcher
-brew install bench
-brew install bzip2
-brew install pkg-config
-brew install pipenv
-brew install nodenv
-brew install pyenv
-brew install jenv
-brew install nvm
-brew install gdb
-brew install gdbm
-brew install freetype
-brew install p7zip
-brew install gzip
-brew install faac
-brew install procs
+#[[[
+    brew install php-code-sniffer
+    brew install php-cs-fixer
+    brew install phplint
+    brew install phpmd
+    brew install phpstan
+    brew install phpunit
+    brew install brew-php-switcher
+    brew install bench
+    brew install bzip2
+    brew install pkg-config
+    brew install pipenv
+    brew install nodenv
+    brew install pyenv
+    brew install jenv
+    brew install nvm
+    brew install gdb
+    brew install gdbm
+    brew install freetype
+    brew install p7zip
+    brew install gzip
+    brew install faac
+    brew install procs
+    brew install base64
+    brew install xmlstarlet
+    brew install utf8cpp
+    brew install utf8proc
+    brew install unbound
+    brew install uni2ascii
+    brew install unibilium
+    brew install unison
+    brew install unixodbc
+    brew install upx
+    brew install swig
+    brew install swig@3
+
+#]]]
 
 #-----------------------------------------------------------#
-echo "Installing System Needs ..."
+echo "Installing System Depends ..."
 #-----------------------------------------------------------#
-brew install cmake
-brew install make
-brew install bsdmake
-brew install makedepend
-brew install ninja
-brew install gcc
-brew install gawk
-brew install gnu-getopt
-brew install gnu-indent
-brew install gnu-sed
-brew install gnu-tar
-brew install gnu-which
-brew install gnupg
-brew install gnuplot
-brew install gnutls
-brew install awk
-brew install bash
-brew install fish
-brew install zsh
-brew install autoconf
-brew install automake
-brew install global
-brew install grep
-brew install ripgrep
-brew install fd
-brew install ipv6calc
-brew install ipv6toolkit
-brew install jemalloc
-brew install mcrypt
-brew install binwalk
-brew install qt
-brew install maxwell
-brew install coreutils
+#[[[
+    brew install cmake
+    brew install make
+    brew install bsdmake
+    brew install makedepend
+    brew install ninja
+    brew install gcc
+    brew install gawk
+    brew install gnu-getopt
+    brew install gnu-indent
+    brew install gnu-sed
+    brew install gnu-tar
+    brew install gnu-which
+    brew install gnupg
+    brew install gnuplot
+    brew install gnutls
+    brew install awk
+    brew install bash
+    brew install fish
+    brew install zsh
+    brew install autoconf
+    brew install automake
+    brew install global
+    brew install grep
+    brew install ripgrep
+    brew install fd
+    brew install ipv6calc
+    brew install ipv6toolkit
+    brew install jemalloc
+    brew install mcrypt
+    brew install binwalk
+    brew install qt
+    brew install maxwell
+    brew install coreutils
+    brew install dex2jar
+    brew install unzip
+    brew install czmq
+    brew install dbus
+    brew install dcraw
+    brew install deployer
+    brew install double-conversion
+    brew install ack
+    brew install axel
+    brew install zopfli
+    brew install zsh-completions
+    brew install zsh-syntax-highlighting
+    brew install zshdb
+    brew install zstd
+    brew install navi
+    brew install dialog
+    brew install zimg
+    brew install zlib
+    brew install zbar
+    brew install xvid
+    brew install xxhash
+    brew install xz
+    brew install xpdf
+    brew install syncthing
+    brew install sysbench
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Services Softwares ..."
 #-----------------------------------------------------------#
-brew install nginx-full --with-rtmp-module --with-realip --with-http2 --with-stream --with-flv --with-mp4 --with-gunzip --with-debug --with-upload-module --with-stream-geoip --with-vod-module --with-redis2-module --with-mp4-h264-module --cc=gcc
-brew install leveldb
-brew install mysql
-brew install mysql-client
-brew install mysql-search-replace
-brew install mysql@5.7
-brew install beanstalkd
-brew install memcached
-brew install redis
-brew install elasticsearch
-brew install httpd
-brew install --build-from-source kafka
-brew install --build-from-source leveldb
-brew install --build-from-source rabbitmq-c
-brew install hbase
+#[[[
+    brew install nginx-full --with-rtmp-module --with-realip --with-http2 --with-stream --with-flv --with-mp4 --with-gunzip --with-debug --with-upload-module --with-stream-geoip --with-vod-module --with-redis2-module --with-mp4-h264-module --cc=gcc
+    brew install leveldb
+    brew install mysql
+    brew install mysql-client
+    brew install mysql-search-replace
+    brew install mysql@5.7
+    brew install beanstalkd
+    brew install memcached
+    brew install redis
+    brew install elasticsearch
+    brew install httpd
+    brew install --build-from-source kafka
+    brew install --build-from-source leveldb
+    brew install --build-from-source rabbitmq-c
+    brew install hbase
+    brew install dnsmasq
+    brew install glances
+    brew install zookeeper
+    brew install zeromq
+    brew install tomcat
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Useful Commands ..."
 #-----------------------------------------------------------#
-brew install bash-completion@2
-brew install bat
-brew install eth-p/software/bat-extras
-brew install ccat
-brew install cheat
-brew install binutils
-brew install colordiff
-brew install ctags
-brew install fzf
-brew install Rasukarusan/tap/fzf-bluetooth-connect
-brew install autojump
-brew install dark-mode
-brew install dash
-brew install exa
-brew install diff-so-fancy
-brew install diffutils
-brew install pkgdiff
-brew install httpie
-brew install icdiff
-brew install wdiff
-brew install chruby
-brew install chruby-fish
-brew install asdf
-brew install docker
-brew install docker-compose
-brew install docker-machine
-brew install fasd
-brew install google-sparsehash
-brew install googler
-brew install gotop
-brew install gotty
-brew install dcd
-brew install vim
-brew install neovim
-brew install macvim
-brew install ed
-brew install emacs
-brew install editorconfig
-brew install fontconfig
-brew install git
-brew install git-annex
-brew install git-extras
-brew install git-flow
-brew install git-flow-avh
-brew install git-lfs
-brew install git-town
-brew install htop
-brew install iftop
-brew install hub
-brew install highlight
-brew install mercurial
-brew install mycli
-brew install automysqlbackup
-brew install m-cli
-brew install pgcli
-brew install mytop
-brew install jq
-brew install composer
-brew install http_load
-brew install httpstat
-brew install git-annex
-brew install less
-brew install lazygit
-brew install dos2unix
-brew install lesspipe
-brew install links
-brew install neofetch
-brew install net-snmp
-brew install ncdu
-brew install netcat
-brew install netcdf
-brew install netpbm
-brew install nettle
-brew install nghttp2
-brew install ghostscript
-brew install asciidoc
-brew install man2html
-brew install mandoc
-brew install docbook
-brew install docbook-xsl
-brew install docutils
-brew install cabal-install
-brew install pango
-brew install cairo
-brew install cairomm
-brew install clingo
-brew install chromaprint
-brew install platformio
-brew install antigen
-brew install cloc
-brew install capnp
-brew install cscope
-brew install cunit
-brew install pidof
-brew install pigz
-brew install pinentry
-brew install pixman
-brew install archey
-brew install argon2
-brew install arpack
-brew install asciinema
-brew install aspell
-brew install astyle
+#[[[
+    brew install bash-completion@2
+    brew install bat
+    brew install eth-p/software/bat-extras
+    brew install ccat
+    brew install cheat
+    brew install binutils
+    brew install colordiff
+    brew install ctags
+    brew install fzf
+    brew install zoxide
+    brew install Rasukarusan/tap/fzf-bluetooth-connect
+    brew install autojump
+    brew install dark-mode
+    brew install dash
+    brew install exa
+    brew install diff-so-fancy
+    brew install diffutils
+    brew install pkgdiff
+    brew install httpie
+    brew install icdiff
+    brew install wdiff
+    brew install chruby
+    brew install chruby-fish
+    brew install asdf
+    brew install docker
+    brew install docker-compose
+    brew install docker-machine
+    brew install fasd
+    brew install google-sparsehash
+    brew install googler
+    brew install gotop
+    brew install gotty
+    brew install dcd
+    brew install vim
+    brew install neovim
+    brew install macvim
+    brew install ed
+    brew install emacs
+    brew install editorconfig
+    brew install fontconfig
+    brew install git
+    brew install git-annex
+    brew install git-extras
+    brew install git-flow
+    brew install git-flow-avh
+    brew install git-lfs
+    brew install git-town
+    brew install htop
+    brew install iftop
+    brew install hub
+    brew install highlight
+    brew install mercurial
+    brew install mycli
+    brew install automysqlbackup
+    brew install m-cli
+    brew install pgcli
+    brew install mytop
+    brew install jq
+    brew install composer
+    brew install http_load
+    brew install httpstat
+    brew install git-annex
+    brew install less
+    brew install lazygit
+    brew install dos2unix
+    brew install lesspipe
+    brew install links
+    brew install neofetch
+    brew install net-snmp
+    brew install ncdu
+    brew install netcat
+    brew install netcdf
+    brew install netpbm
+    brew install nettle
+    brew install nghttp2
+    brew install ghostscript
+    brew install asciidoc
+    brew install man2html
+    brew install mandoc
+    brew install docbook
+    brew install docbook-xsl
+    brew install docutils
+    brew install cabal-install
+    brew install pango
+    brew install cairo
+    brew install cairomm
+    brew install clingo
+    brew install chromaprint
+    brew install platformio
+    brew install antigen
+    brew install cloc
+    brew install capnp
+    brew install cscope
+    brew install cunit
+    brew install pidof
+    brew install pigz
+    brew install pinentry
+    brew install pixman
+    brew install archey
+    brew install argon2
+    brew install arpack
+    brew install asciinema
+    brew install aspell
+    brew install astyle
+    brew install ffsend
+    brew install lolcat
+    brew install sebglazebrook/aliases/aliases
+    brew install hr
+    brew install starship
+    brew install jesseduffield/lazydocker/lazydocker
+    brew install sachaos/todoist/todoist
+    brew install ctop
+    brew install nvie/tap/git-toolbelt
+    brew install fswatch
+    brew install hyperfine
+    brew install --HEAD wvanlint/twf/twf
+    brew install mdcat
+    brew install laggardkernel/tap/iterm2-zmodem
+    brew install you-get
+    brew install z
+    brew install hstr
+    brew install mas
+    brew install whatmask
+    brew install when
+    brew install winetricks
+    brew install wmctrl
+    brew install woff2
+    brew install tig
+    brew install tldr
+    brew install thefuck
+    brew install tmate
+    brew install tmux
+    brew install tmux-xpanes
+    brew install tmuxinator-completion
+    brew install todo-txt
+    brew install toilet
+    brew install trash
+    brew install tree
+    brew install ttygif
+    brew install ttyrec
+    brew install task
+    brew install taskd
+    brew install tasksh
+    brew install tbb
+    brew install tcl-tk
+    brew install tcpflow
+    brew install tcpreplay
+    brew install tcptrace
+    brew install telnet
+    brew install terminal-notifier
+    brew install the_platinum_searcher
+    brew install the_silver_searcher
 
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Cast Softwares ..."
 #-----------------------------------------------------------#
-brew install iina
-brew install osxfuse
-brew install xquartz
-brew install bork
-brew install cmatrix
-brew install confuse
+#[[[
+    brew install iina
+    brew install osxfuse
+    brew install xquartz
+    brew install bork
+    brew install cmatrix
+    brew install confuse
+    brew install cpanminus
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Fonts ..."
 #-----------------------------------------------------------#
-brew install font-fira-mono
-brew install font-inconsolata
-brew install font-fira-code-nerd-font
-brew install font-hack-nerd-font
-brew install --cask font-hack-nerd-font
-brew install font-inconsolata
+#[[[
+    brew install font-fira-mono
+    brew install font-inconsolata
+    brew install font-fira-code-nerd-font
+    brew install font-hack-nerd-font
+    brew install --cask font-hack-nerd-font
+    brew install font-inconsolata
+#]]]
 
 #-----------------------------------------------------------#
 echo "Installing Other Softwares ..."
 #-----------------------------------------------------------#
-brew install fortune
-brew install sl
-brew install cowsay
-brew install cowsay-apj
-brew install figlet
-brew install mtmr
-
+#[[[
+    brew install fortune
+    brew install sl
+    brew install cowsay
+    brew install cowsay-apj
+    brew install figlet
+    brew install mtmr
+    brew install corkscrew
+    brew install ffmpeg --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg
+    brew install eg-examples
+#]]]
 
 
 
@@ -472,17 +597,8 @@ brew install mtmr
 
 
 ####unfinished
-brew install corkscrew
-brew install cpanminus
-brew install czmq
-brew install dbus
-brew install dcraw
-brew install deployer
-brew install dex2jar
-brew install dnsmasq
-brew install double-conversion
-brew install doxygen
-brew install eg-examples
+
+
 brew install eigen
 brew install elixir
 brew install epsilon
@@ -718,62 +834,22 @@ brew install stow
 brew install subversion
 brew install suite-sparse
 brew install sundials
-brew install swift
 brew install swiftlint
-brew install swig
-brew install swig@3 
-brew install syncthing
-brew install sysbench
 brew install szip
 brew install t1lib
 brew install ta-lib
-brew install task
-brew install taskd
-brew install tasksh
-brew install tbb
-brew install tcl-tk
-brew install tcpflow
-brew install tcpreplay
-brew install tcptrace
-brew install telnet
-brew install terminal-notifier
 brew install tesseract
 brew install texi2html
 brew install texinfo
-brew install the_platinum_searcher
-brew install the_silver_searcher
-brew install thefuck
 brew install theora
 brew install tidy-html5
-brew install tig
-brew install tldr
-brew install tmate
-brew install tmux
-brew install tmux-xpanes
-brew install tmuxinator-completion
-brew install todo-txt
-brew install toilet
-brew install tomcat
-brew install trash
-brew install tree
-brew install ttygif
-brew install ttyrec
 brew install two-lame
 brew install uchardet
 brew install ucl
 brew install ucspi-tcp
 brew install ufraw
 brew install unar
-brew install unbound
-brew install uni2ascii
-brew install unibilium
-brew install unison
-brew install unixodbc
-brew install unzip
-brew install upx
 brew install urlview
-brew install utf8cpp
-brew install utf8proc
 brew install vala
 brew install veclibfort
 brew install vifm
@@ -784,17 +860,10 @@ brew install wavpack
 brew install webkit2png
 brew install webp
 brew install wemux
-brew install wget
-brew install whatmask
-brew install when
-brew install winetricks
-brew install wmctrl
-brew install woff2
 brew install wrk
 brew install wxmac
 brew install x264
 brew install x265
-
 brew install xbitmaps
 brew install xcb-util
 brew install xctool
@@ -804,68 +873,27 @@ brew install xkeyboardconfig
 brew install xmlto
 brew install xonsh
 brew install xorgproto
-brew install xpdf
-brew install xvid
-brew install xxhash
-brew install xz
 brew install yajl
-brew install you-get
-brew install z
-brew install zbar
-brew install zeromq
-brew install zimg
-brew install zlib
-brew install zookeeper
-brew install zopfli
-brew install zsh-completions
-brew install zsh-syntax-highlighting
-brew install zshdb
-brew install zstd
-brew install ffmpeg --with-fdk-aac --with-fontconfig --with-freetype --with-frei0r --with-game-music-emu --with-libass --with-libbluray --with-libbs2b --with-libcaca --with-libgsm --with-libmodplug --with-librsvg --with-libsoxr --with-libssh --with-libvidstab --with-libvorbis --with-libvpx --with-opencore-amr --with-openh264 --with-openjpeg --with-openssl --with-opus --with-rtmpdump --with-rubberband --with-sdl2 --with-snappy --with-speex --with-tesseract --with-theora --with-tools --with-two-lame --with-wavpack --with-webp --with-x265 --with-xz --with-zeromq --with-zimg
-brew install hyperfine
-brew install --HEAD wvanlint/twf/twf
-brew install mdcat
-brew install laggardkernel/tap/iterm2-zmodem
 brew install pick
-
-brew install lolcat
-brew install axel base64
-brew install sebglazebrook/aliases/aliases
-brew install ack
-brew install hr
 brew install desk
-brew install starship
-brew install glances
-
 brew install pipx
-brew install jesseduffield/lazydocker/lazydocker
-brew install sachaos/todoist/todoist
-brew install ctop
 brew install httpie
 brew install dbcli/tap/pgcli
 brew install micro
-brew install mas
-brew install jmeter
 brew install docui
 brew install libomp
 brew install grafana
-brew install hstr
 brew install progress
 brew install hexyl
 brew install fx
-brew install nvie/tap/git-toolbelt
-brew install navi
-brew install dialog
 brew install zenity
 brew install atuin
 brew install tag-ag
 brew install progress
 brew install pandoc
-brew install xmlstarlet
-brew install fswatch
 brew install bastet
-brew install ffsend
 
-brew install zoxide
-brew install nushell
+
+
+
 
