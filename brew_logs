@@ -115,6 +115,7 @@ echo "Installing Libraries ..."
     brew install libvterm
     brew install libwbxml
     brew install libwebsockets
+    brew install wtf
     brew install libx11
     brew install libxau
     brew install libxcb
@@ -395,6 +396,7 @@ echo "Installing Useful Commands ..."
 #-----------------------------------------------------------#
 #[[[
     brew install bash-completion@2
+    brew install pipx
     brew install bat
     brew install eth-p/software/bat-extras
     brew install ccat

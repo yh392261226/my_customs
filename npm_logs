@@ -230,3 +230,8 @@ npm install -g mdlt
 npm install -g svgo
 npm install -g movie-cli
 npm install -g itunes-remote
+npm install -g diff2html-cli
+npm install -g wat
+npm install -g jp-cli
+npm install -g organize-cli
+npm install -g wopr

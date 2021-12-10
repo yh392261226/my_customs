@@ -7,3 +7,5 @@ sudo gem install coderay
 sudo gem install rouge
 
 sudo gem install facebook-cli
+
+gem install bropages
