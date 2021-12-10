@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+function get_images_type() { # Desc:get_image_type:获取图片类型
+    if [ $# = 1 ]; then
+        local len3=$(/usr/bin/xxd -p -l 3 $1)
+        local len4=$(/usr/bin/xxd -p -l 4 $1)
+        if [ "$len3" = "ffd8ff" ]; then
+            echo "jpg"
+            return 0
+        elif [ "$len4" = "89504e47" ]; then
+            echo "png"
+            return 0
+        elif [ "$len4" = "47494638" ]; then
+            echo "gif"
+            return 0
+        elif [ "$len4" = "52494646" ]; then
+            echo "webp"
+            return 0
+        elif [ "$len4" = "52617221" ]; then
+            echo "rar"
+            return 0
+        else
+            echo "UnknowFile"
+            return 1
+        fi
+    fi
+    echo "UnknowFile"
+    return 1
+}
+
+function custom_list_files() { # Desc:custom_list_files:利用imgls和bat命令展示文件内容
+    path='./'
+    [[ "" != "$1" ]] && path="$1"
+    echo "Start ..."
+    if [ -d "$path" ]; then
+        count=1
+        for f in $(/bin/ls $path); do
+            echo "-------------------------"
+            echo "$count : $path/$f"
+            echo "-------------------------"
+            if [ -f "$path/$f" ]; then
+                #验证是否为图片
+                ifimg=$(get_images_type "$path/$f")
+                if [ "UnknowFile" != "$ifimg" ]; then
+                    /bin/bash $MYRUNTIME/customs/bin/imgthumb "$path/$f"
+                else
+                #验证是否为可输出文件
+                    /opt/homebrew/bin/bat -n 10 "$path/$f"
+                fi
+            else
+                /bin/ls "$path/$f"
+            fi
+        ((count++))
+        done
+    else
+        echo "-------------------------"
+        echo "$path"
+        echo "-------------------------"
+        if [ -f "$path" ]; then
+            #验证是否为图片
+            ifimg=$(get_images_type "$path")
+            if [ "UnknowFile" != "$ifimg" ]; then
+                $MYRUNTIME/customs/bin/imgthumb "$path"
+            else
+            #验证是否为可输出文件
+                bat "$path"
+            fi
+        else
+            /bin/ls "$path"
+        fi
+    fi
+    echo ""
+    echo "Finish ..."
+}
+
+custom_list_files $@
