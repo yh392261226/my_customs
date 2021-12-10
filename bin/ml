@@ -41,10 +41,10 @@ function custom_list_files() { # Desc:custom_list_files:利用imgls和bat命令�
                 #验证是否为图片
                 ifimg=$(get_images_type "$path/$f")
                 if [ "UnknowFile" != "$ifimg" ]; then
-                    /bin/bash $MYRUNTIME/customs/bin/imgthumb "$path/$f"
+                    $MYRUNTIME/customs/bin/imgthumb "$path/$f"
                 else
                 #验证是否为可输出文件
-                    /opt/homebrew/bin/bat -n 10 "$path/$f"
+                    bat "$path/$f"
                 fi
             else
                 /bin/ls "$path/$f"
