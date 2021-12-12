@@ -186,6 +186,53 @@ function websites() {
     esac
 }
 
+function sehuatang() {
+	if [ "$1" = "" ]; then
+		echo "Please Type The Url ..."
+		return
+	fi
+	local TMPHTMLPATH=/tmp/first_html.log
+	local HOSTURL='https://www.sehuatang.net/'
+	local RECORDPATH=$HOME/Documents/novels/
+
+	echo "Spider Working ..."
+	rm -f $TMPHTMLPATH
+	curl -s $1 > $TMPHTMLPATH
+	if [ -f $TMPHTMLPATH ] && [ "" != "$(cat $TMPHTMLPATH)" ]; then
+		local bookname=$(cat $TMPHTMLPATH |grep 'xs3 xw1'|sed 's,<a href="" class="xs3 xw1">,,g' |sed 's,</a>,,g')
+		local menus=$(cat $TMPHTMLPATH|grep -E "='book-(.*).html"|sed "s,<a\ class=\"pure-menu-link\"\ href=\',,g" |sed "s,</a>,,g")
+		if [ "" != "$menus" ]; then
+			local tmp_links=$(echo $menus|sed 's, ,\n,g'|awk -F"'" '{print $1}')
+			local tmp_titles=$(echo $menus|sed 's, ,\n,g'|awk -F'>' '{print $2}')
+			if [ "" != "$tmp_links" ]; then
+				local count=1
+				for link in $tmp_links; do
+					links[$count]=$link
+					((count++))
+				done
+				local count=1
+				for title in $tmp_titles; do
+					titles[$count]=$title
+					((count++))
+				done
+
+				local count=1
+				echo ${bookname} > ${RECORDPATH}${bookname}.txt
+				for page in ${links[@]}; do
+					echo "" >> ${RECORDPATH}${bookname}.txt
+					content=$(curl -s $HOSTURL$page |grep 'messagecontent">' |sed 's,<div class="messagecontent">,,g'| sed 's,<br>,,g' |sed 's,&nbsp;,,g' |sed 's, ,,g' |sed 's,<div>,,g'|sed 's,</div>,,g'|sed 's,<p>,,g'|sed 's,</p>,,g')
+					echo "${titles[$count]}" >> ${RECORDPATH}${bookname}.txt
+					echo "	$content" >> ${RECORDPATH}${bookname}.txt
+					((count++))
+				done
+				echo "Done ..."
+				return 0
+			fi
+		fi
+	fi
+	return
+}
+
 
 if [ "$#" -lt "1" ]; then
     echo "Usage:game l/lottery | w/web"
@@ -198,5 +245,9 @@ case "$1" in
         ;;
     'w'|'web')
         websites $2 $3
+        ;;
+
+    'novel'|'n')
+        sehuatang $2
         ;;
 esac
