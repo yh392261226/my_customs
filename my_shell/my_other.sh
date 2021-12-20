@@ -285,6 +285,12 @@ if [ -f $MYRUNTIME/customs/others/fz/fz.sh ]; then
 	source $MYRUNTIME/customs/others/fz/fz.sh
 fi
 
+if [ -f $MYRUNTIME/customs/bin/_lessfilter ]; then
+    if [ ! -f ~/.lessfilter ]; then
+        ln -sf $MYRUNTIME/customs/bin/_lessfilter ~/.lessfilter
+    fi
+fi
+
 ### zinit
 if [ ! -d $MYRUNTIME/customs/others/zinit ]; then
     git clone git@github.com:zdharma-continuum/zinit.git $MYRUNTIME/customs/others/zinit
