@@ -217,12 +217,12 @@ function sehuatang() {
 				done
 
 				local count=1
-				echo ${bookname} > ${RECORDPATH}${bookname}.txt
+				echo ${bookname} > "${RECORDPATH}${bookname}.txt"
 				for page in ${links[@]}; do
-					echo "" >> ${RECORDPATH}${bookname}.txt
+					echo "" >> "${RECORDPATH}${bookname}.txt"
 					content=$(curl -s $HOSTURL$page |grep 'messagecontent">' |sed 's,<div class="messagecontent">,,g'| sed 's,<br>,,g' |sed 's,&nbsp;,,g' |sed 's, ,,g' |sed 's,<div>,,g'|sed 's,</div>,,g'|sed 's,<p>,,g'|sed 's,</p>,,g')
-					echo "${titles[$count]}" >> ${RECORDPATH}${bookname}.txt
-					echo "	$content" >> ${RECORDPATH}${bookname}.txt
+					echo "${titles[$count]}" >> "${RECORDPATH}${bookname}.txt"
+					echo "	$content" >> "${RECORDPATH}${bookname}.txt"
 					((count++))
 				done
 				echo "Done ..."
