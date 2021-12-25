@@ -266,12 +266,16 @@ favocolormap =  [
             "synthwave",
            ]
 
+
 async def changecurapp(connection):
     app = await iterm2.async_get_app(connection)
     for cur_window in app.terminal_windows:
         for cur_tab in cur_window.tabs:
             for cur_session in cur_tab.sessions:
-                randomcolor = random.choice(favocolormap)
+                if theme != '':
+                    randomcolor = theme
+                else:
+                    randomcolor = random.choice(favocolormap)
                 preset = await iterm2.ColorPreset.async_get(connection, randomcolor)
                 if not preset:
                     return
@@ -285,7 +289,10 @@ async def changecurwindow(connection):
     cur_window = app.current_terminal_window
     for cur_tab in cur_window.tabs:
         for cur_session in cur_tab.sessions:
-            randomcolor = random.choice(favocolormap)
+            if theme != '':
+                randomcolor = theme
+            else:
+                randomcolor = random.choice(favocolormap)
             preset = await iterm2.ColorPreset.async_get(connection, randomcolor)
             if not preset:
                 return
@@ -299,7 +306,10 @@ async def changecurtab(connection):
     cur_window = app.current_terminal_window
     cur_tab = cur_window.current_tab
     for cur_session in cur_tab.sessions:
-        randomcolor = random.choice(favocolormap)
+        if theme != '':
+            randomcolor = theme
+        else:
+            randomcolor = random.choice(favocolormap)
         preset = await iterm2.ColorPreset.async_get(connection, randomcolor)
         if not preset:
             return
@@ -313,7 +323,10 @@ async def changecursession(connection):
     cur_window = app.current_terminal_window
     cur_tab = cur_window.current_tab
     cur_session = cur_tab.current_session
-    randomcolor = random.choice(favocolormap)
+    if theme != '':
+        randomcolor = theme
+    else:
+        randomcolor = random.choice(favocolormap)
     preset = await iterm2.ColorPreset.async_get(connection, randomcolor)
     if not preset:
         return
@@ -324,8 +337,6 @@ async def changecursession(connection):
     print("Current color is : " + randomcolor)
 
 async def main(connection):
-    # 通过传参 变更session、tab、window、all
-    act = sys.argv[1]
     if act in ["session", "s"]:
         await changecursession(connection)
     elif act in ["tab", "t"]:
@@ -337,6 +348,13 @@ async def main(connection):
     else:
         print("Wrong action ...")
 
+
+# 通过传参 变更session、tab、window、all
+act = sys.argv[1]
+if len(sys.argv) >= 3:
+    theme = sys.argv[2]
+else:
+    theme = ''
 
 try:
     iterm2.run_until_complete(main)

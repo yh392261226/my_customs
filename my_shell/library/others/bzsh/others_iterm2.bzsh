@@ -2,7 +2,7 @@ export LIGHT_THEME="Novel"
 export DARK_THEME="Doom Peacock"
 export DARK_THEME="Seafoam Pastel"
 function toggle-theme() {
-	python3 $MYRUNTIME/customs/my_shell/library/others/others/iterm2-theme-toggle/main.py
+	python3 $MYRUNTIME/customs/others/iterm2-theme-toggle/main.py
 }
 alias itc="toggle-theme"
 
@@ -11,6 +11,11 @@ function change_iterm2_color_scheme() {
 	if [ "" = "$act" ]; then
 		act=session
 	fi
-	python3 $MYRUNTIME/customs/my_shell/library/others/iterm2_scripts/change_color.py "$act"
+	local theme=$2
+	if [ "" != "$theme" ]; then
+		python3 $MYRUNTIME/customs/my_shell/library/others/iterm2_scripts/change_color.py "$act" "$theme"
+	else
+		python3 $MYRUNTIME/customs/my_shell/library/others/iterm2_scripts/change_color.py "$act"
+	fi
 }
 alias citc="change_iterm2_color_scheme"
