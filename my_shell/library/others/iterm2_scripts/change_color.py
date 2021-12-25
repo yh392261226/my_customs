@@ -344,7 +344,7 @@ async def main(connection):
     elif act in ["window", "w"]:
         await changecurwindow(connection)
     elif act in ["all", "a"]:
-        await changecurapp(Connection)
+        await changecurapp(connection)
     else:
         print("Wrong action ...")
 
