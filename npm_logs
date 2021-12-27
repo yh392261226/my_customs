@@ -235,3 +235,5 @@ npm install -g wat
 npm install -g jp-cli
 npm install -g organize-cli
 npm install -g wopr
+npm install -g speed-test
+npm install -g vtop
