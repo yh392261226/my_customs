@@ -213,7 +213,7 @@ chose_mark() {
                   osascript -e "tell application \"iTerm.app\"
                       tell current window
                           tell current session
-                              write text \"goto "${mark_array_final}"\"
+                              write text \"mgoto "${mark_array_final}"\"
                           end tell
                       end tell
                   end tell"
