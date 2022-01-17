@@ -31,6 +31,7 @@ recordDB() {
     for path in $(ls $PICPATH | grep  -v duplicates_); do
         if [ -d $path ]; then 
             find ${PICPATH}${path} -type f -name "*jpg" >> $DBFILE
+            find ${PICPATH}${path} -type f -name "*mp4" >> $DBFILE
         fi
     done
 }
