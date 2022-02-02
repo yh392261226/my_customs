@@ -2,8 +2,9 @@ export LIGHT_THEME="Novel"
 export DARK_THEME="Doom Peacock"
 export DARK_THEME="Seafoam Pastel"
 function toggle-theme() {
-	read -n1 -p "使用此命令会将iterm的配置更改，是否确认使用？ y/n" confirm
-	if [ "y"  =  "$confirm" ] || [ "yes" = "$confirm" ]; then
+	echo "使用此命令会将iterm的配置更改，是否确认使用？ y/n" 
+	read answer
+	if [ "y"  =  "$answer" ] || [ "yes" = "$answer" ]; then
 		python3 $MYRUNTIME/customs/others/iterm2-theme-toggle/main.py
 	fi
 }
