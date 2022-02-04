@@ -411,6 +411,7 @@ echo "Installing Useful Commands ..."
     brew install dark-mode
     brew install dash
     brew install exa
+    brew install sk
     brew install diff-so-fancy
     brew install diffutils
     brew install pkgdiff
