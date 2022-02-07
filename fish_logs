@@ -1,0 +1,48 @@
+# omf
+curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish
+omf install bak
+omf install bass
+omf install fish-spec
+omf install grc		
+omf install proxy		
+omf install ssh-config.d
+omf install bang-bang	
+omf install config		
+omf install fish_logo	
+omf install omf		
+omf install spark		
+omf install agnoster	
+omf install batman		
+omf install bobthefish	
+omf install budspencer	
+omf install dangerous	
+omf install default
+omf install sublime
+
+# -----------------------------------------------------------------------------
+# fisher
+curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher
+
+fisher install PatrickF1/fzf.fish
+fisher install jorgebucaran/replay.fish
+fisher install jorgebucaran/spark.fish
+fisher install jorgebucaran/gitio.fish
+fisher install jorgebucaran/autopair.fish
+fisher install jorgebucaran/getopts.fish
+fisher install acomagu/fish-async-prompt
+fisher install gazorby/fish-abbreviation-tips
+fisher install rodrigobdz/fish-apple-touchbar
+fisher install jorgebucaran/fishtape
+fisher install sentriz/fish-pipenv
+fisher install shinriyo/breeze
+fisher install jethrokuan/z
+fisher install edc/bass
+fisher install patrickf1/colored_man_pages.fish
+fisher install franciscolourenco/done
+fisher install oh-my-fish/plugin-grc
+fisher install jorgebucaran/nvm.fish
+fisher install oh-my-fish/plugin-pj
+fisher install markcial/upto
+fisher install jorgebucaran/fisher
+fisher install b4b4r07/enhancd
+fisher install IlanCosman/tide@v5
