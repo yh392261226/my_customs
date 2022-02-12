@@ -268,7 +268,7 @@
     ]
     [layers.override_cmd]
     rust = ["rustup-init", "run", "nightly", "rls"]
-    php = ['php', '/Users/json/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
+    php = ['php', '/Users/yanghao/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
     go = ['go-langserver', '-mode', 'stdio']
     html = ['html-languageserver', '--stdio']
     javascript = ['javascript-typescript-stdio']
