@@ -261,7 +261,7 @@
     "vue",          ## npm install -g vue-language-server
     "go",           ## go get -u github.com/sourcegraph/go-langserver
     "html",         ## npm install -g vscode-html-languageserver-bin
-    "python",       ## pip3 install -g python-language-server
+    "python",       ## pip3 install -U python-language-server
     "php",          ## 自动安装
     "sh",           ## npm install -g bash-language-server
     "css"           ## npm install -g vscode-css-languageserver-bin

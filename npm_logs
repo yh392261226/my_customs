@@ -237,3 +237,9 @@ npm install -g organize-cli
 npm install -g wopr
 npm install -g speed-test
 npm install -g vtop
+npm install -g typescript-language-server
+npm install -g javascript-typescript-langserver
+npm install -g vue-language-server
+npm install -g vscode-html-languageserver-bin
+npm install -g bash-language-server
+npm install -g vscode-css-languageserver-bin

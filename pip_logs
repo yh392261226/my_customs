@@ -31,3 +31,6 @@ pip install tox
 pip install openpyxl
 
 pip3 install csvkit
+
+pip3 install -U python-language-server
+
