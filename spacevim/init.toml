@@ -100,6 +100,7 @@
     leader_guide_position = "botright"
 
 ####### 其他
+    
 
 # SpaceVim 模块设置，主要包括启用/禁用模块
 # 启用 autocomplete 模块，启用模块时，可以列出一些模块选项，并赋值，
@@ -413,9 +414,9 @@
     name = 'ryanoasis/vim-devicons'
 [[custom_plugins]]
     name = 'pechorin/any-jump.vim'
-[[custom_plugins]]
-    name = "sheerun/vim-polyglot"
-    merged = 0
+#[[custom_plugins]]
+#    name = "sheerun/vim-polyglot"
+#    merged = 0
 [[custom_plugins]]
     name = "tmhedberg/SimpylFold"
     merged = 0
@@ -439,15 +440,6 @@
     merged = 0
 [[custom_plugins]]
     name = 'Shougo/echodoc.vim'
-# add the header information to the file
-#[[custom_plugins]]
-#    name = "alpertuna/vim-header"
-#    header_auto_add_header = 0
-#    header_field_author = 'Json.Yang'
-#    header_field_author_email = 'yh392261226@gmail.com'
-#    header_field_timestamp = 1
-#    header_field_modified_timestamp = 1
-#    header_field_timestamp_format = '%Y-%m-%d'
 # display the number of matches while searching
 [[custom_plugins]]
     name = "google/vim-searchindex"
@@ -461,7 +453,5 @@
     name = "kiteco/vim-plugin"
 #    kite_supported_languages = ['python', 'javascript', 'go', 'php']
     kite_supported_languages = ['*']
-[[custom_plugins]]
-    name = "chemzqm/wxapp.vim"
 [[custom_plugins]]
     name = "terryma/vim-multiple-cursors"
