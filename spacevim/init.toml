@@ -99,7 +99,7 @@
     enable_statusline_display_mode=0
     leader_guide_position = "botright"
 
-
+####### 其他
 
 # SpaceVim 模块设置，主要包括启用/禁用模块
 # 启用 autocomplete 模块，启用模块时，可以列出一些模块选项，并赋值，
@@ -255,8 +255,10 @@
 [[layers]]
     name = "lsp"
     filetypes = [
+    "ruby",         ## gem install solargraph
     "rust",         ## brew install rustup-init
     "javascript",   ## npm install -g javascript-typescript-langserver
+    "purescript"    ## npm install -g purescript-language-server
     "typescript",   ## npm install -g typescript-language-server
     "vue",          ## npm install -g vue-language-server
     "go",           ## go get -u github.com/sourcegraph/go-langserver
@@ -269,13 +271,18 @@
     [layers.override_cmd]
     rust = ["rustup-init", "run", "nightly", "rls"]
     php = ['php', '/Users/yanghao/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
-    go = ['go-langserver', '-mode', 'stdio']
+#    go = ['go-langserver', '-mode', 'stdio']
+    go = ['gopls']
     html = ['html-languageserver', '--stdio']
     javascript = ['javascript-typescript-stdio']
     python = ['pyls']
     sh = ['bash-language-server', 'start']
     typescript = ['typescript-language-server', '--stdio']
     css = ['css-languageserver', '--stdio']
+    vue = ['vls']
+    vim = ['vim-language-server', '--stdio']
+    ruby = ['solargraph', 'stdio']
+    purescript = ['purescript-language-server', '--stdio']
 [[layers]]
     name = "edit"
 [[layers]]
@@ -305,6 +312,8 @@
     name = "ctrlp"
 [[layers]]
     name = "fzf"
+[[layers]]
+    name = "fuzzy"
 [[layers]]
     name = "incsearch"
 [[layers]]
@@ -375,6 +384,8 @@
     name = "default"
 [[layers]]
     name = "sudo"
+[[layers]]
+  name = "treesitter"
 #  [layers.override_cmd]
 #    php = ["php-language-server"]
 

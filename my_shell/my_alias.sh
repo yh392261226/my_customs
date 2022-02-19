@@ -3,7 +3,9 @@
 
 [[ -f /opt/homebrew/opt/macvim/bin/mvim ]] && alias vim="/opt/homebrew/opt/macvim/bin/mvim -v"                         # vim alias link
 [[ -f /usr/local/opt/macvim/bin/mvim ]] && alias vim="/usr/local/opt/macvim/bin/mvim -v"                         # vim alias link
-[[ -f /usr/bin/vim ]] && alias vi='/usr/bin/vim'
+[[ -f /usr/bin/vim ]] && alias lvi='/usr/bin/vim'
+[[ -f /opt/homebrew/bin/vim ]] && alias vi='/opt/homebrew/bin/vim'
+[[ -f /usr/local/bin/vim ]] && alias vi='/usr/local/bin/vim'
 [[ -f /opt/homebrew/bin/nvim ]] && alias nvi="/opt/homebrew/bin/nvim"
 [[ -f /usr/local/bin/nvim ]] && alias nvi="/usr/local/bin/nvim"
 alias vi2='vi -O2 '
