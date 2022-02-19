@@ -16,10 +16,6 @@ function! myspacevim#before() abort
     nmap <silent> <A-h> :wincmd h<CR>
     nmap <silent> <A-l> :wincmd l<CR>
 
-    "vim-tartify
-    let g:startify_custom_header =
-       \ startify#pad(split(system('figlet -w 100 YangHao'), '\n'))
-
     " SimpylFold
     let g:SimpylFold_docstring_preview = 1
 

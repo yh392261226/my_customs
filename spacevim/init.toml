@@ -385,7 +385,11 @@
 [[layers]]
     name = "sudo"
 [[layers]]
-  name = "treesitter"
+  name = "vim"
+[[layers]]
+  name = "format"
+  enable = false
+  format_method = "codefmt"
 #  [layers.override_cmd]
 #    php = ["php-language-server"]
 
@@ -459,3 +463,5 @@
     kite_supported_languages = ['*']
 [[custom_plugins]]
     name = "chemzqm/wxapp.vim"
+[[custom_plugins]]
+    name = "terryma/vim-multiple-cursors"
