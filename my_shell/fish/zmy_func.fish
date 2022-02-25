@@ -20,3 +20,9 @@ function eproxy
     echo $HTTPS_PROXY;
     echo $ALL_PROXY;
 end
+
+function pproxy
+    echo $HTTP_PROXY;
+    echo $HTTPS_PROXY;
+    echo $ALL_PROXY;
+end
