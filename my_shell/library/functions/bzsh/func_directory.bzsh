@@ -1,5 +1,10 @@
 function cd() { # Desc: cd:cd命令后列出目录内容
-    builtin cd "$@"; gls -aGH --color=tty;
+    if  ! command -v lsd &> /dev/null 
+    then
+        builtin cd "$@"; gls -aGH --color=tty;
+    else
+        builtin cd "$@"; lsd -l;
+    fi
 }
 
 function customcd() { # Desc:customcd:自定义cd命令

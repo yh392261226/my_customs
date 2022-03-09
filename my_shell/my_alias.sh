@@ -29,11 +29,11 @@ alias l='gls -aH --color=tty'               # Change the command l to ls -aH
 [[ -f /usr/local/bin/lsd ]] && alias cls='/usr/local/bin/lsd'              # byond lsd change ls to colorful ls
 [[ -f /opt/homebrew/bin/lsd ]] && alias cls='/opt/homebrew/bin/lsd'              # byond lsd change ls to colorful ls
 [[ -f /usr/local/bin/ls++ ]] && alias lll="/usr/local/bin/ls++"
-alias ks="ls"
+alias ks="lsd -l"
 alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)
 alias cd.='cd ..'
-alias ..='cd ../'                           # Go back 1 directory level
-alias ...='cd ../../'                       # Go back 2 directory levels
+alias ..='cd ../; lsd -l'                           # Go back 1 directory level
+alias ...='cd ../../; lsd -l'                       # Go back 2 directory levels
 alias .3='cd ../../../'                     # Go back 3 directory levels
 alias .4='cd ../../../../'                  # Go back 4 directory levels
 alias .5='cd ../../../../../'               # Go back 5 directory levels
