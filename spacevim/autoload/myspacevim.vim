@@ -100,6 +100,9 @@ function! myspacevim#before() abort
     "   Set it to -1 not to overrule hlsearch
     let g:limelight_priority = -1
 
+    "voldikss/vim-floaterm
+    let g:floaterm_keymap_toggle = '<F12>'
+
 
     let g:user_emmet_settings = {
   \ 'wxss': {

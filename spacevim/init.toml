@@ -455,3 +455,8 @@
     kite_supported_languages = ['*']
 [[custom_plugins]]
     name = "terryma/vim-multiple-cursors"
+[[custom_plugins]]
+    name = "voldikss/vim-floaterm"
+    floaterm_width = 0.9
+    floaterm_height = 0.9
+    floaterm_keymap_toggle = '<F12>'
