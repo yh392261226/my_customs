@@ -59,7 +59,8 @@
     #guifont = "Fira Code:h13"
 
 ####### File文件树
-    #filemanager = "defx"                                # 使用 vimfiler 作为默认的文件树插件，默认的快捷键是 F3,也提供了另外一组快捷键 SPC f t 和 SPC f T 来打开文件树。 如果需要修改默认文件树插件，需要在 ~/.SpaceVim.d/init.toml 的 [options] 片段中修改选项 filemanager
+    # filemanager = "defx"                                # 使用 vimfiler 作为默认的文件树插件，默认的快捷键是 F3,也提供了另外一组快捷键 SPC f t 和 SPC f T 来打开文件树。 如果需要修改默认文件树插件，需要在 ~/.SpaceVim.d/init.toml 的 [options] 片段中修改选项 filemanager
+    enable_vimfiler_welcome = false                     # 默认情况下文件树是打开的，如果需要设置文件树默认关闭，需要修改 enable_vimfiler_welcome 选项。
     filetree_direction = "left"                         # 函数列表 tagbar 将会在左边
     enable_vimfiler_gitstatus = true                    # 文件树是否显示Git状态
     enable_tabline_filetype_icon = true                 # 显示/隐藏顶部标签栏上的文件类型图标，这一图标需要安装 nerd fonts，如果未能成功安装这一字体，可以隐藏图标

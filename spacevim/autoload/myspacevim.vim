@@ -59,14 +59,14 @@ function! myspacevim#before() abort
     let g:pandoc#folding#fold_yaml = 1
 
     "ultisnips
-    let g:snips_author = "Hao Yang"
+    let g:snips_author = "杨浩"
     let g:snips_email = "yh392261226@gmail.com"
     let g:snips_github = "https://github.com/yh392261226"
 
     " automately add the file head for alpertuna/vim-header
     let g:header_auto_add_header = 0
     let g:header_field_modified_timestamp = 0
-    let g:header_field_author = 'Hao Yang'
+    let g:header_field_author = '杨浩'
     let g:header_field_author_email = 'yh392261226@gmail.com'
     let g:header_field_timestamp_format = '%Y-%m-%d'
 
