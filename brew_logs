@@ -899,7 +899,7 @@ brew install bastet
 brew install chafa
 brew install xsv
 brew install rustup-init
-
+brew install create-dmg
 
 
 
