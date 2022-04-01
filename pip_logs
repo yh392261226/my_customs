@@ -35,3 +35,5 @@ pip3 install csvkit
 pip3 install -U python-language-server
 
 pip3 install -U tree_sitter
+
+pip3 install -U easyocr
