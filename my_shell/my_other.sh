@@ -323,6 +323,9 @@ if [ "" != "$(brew --prefix zoxide)" ]; then
     fi
 fi
 
+[[ -d /opt/homebrew/opt/ssh-copy-id/bin ]] && export PATH="/opt/homebrew/opt/ssh-copy-id/bin:$PATH"
+[[ -d /usr/local/opt/ssh-copy-id/bin ]] && export PATH="/opt/homebrew/opt/ssh-copy-id/bin:$PATH"
+
 ### custom commands
 ## fasd
 eval "$(fasd --init auto)"
