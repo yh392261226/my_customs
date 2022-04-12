@@ -86,3 +86,8 @@ function get_port_using_status() { # Desc: get_port_using_status:获取端口占
     lsof -P -i -n | grep $@
 }
 alias getportstatus="get_port_using_status"
+alias wport="get_port_using_status"
+
+function list_ports() { # Desc: list_ports:获取所有端口
+    lsof -P -i -n | less
+}
