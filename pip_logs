@@ -38,6 +38,8 @@ pip3 install -U tree_sitter
 
 pip3 install -U easyocr
 
-pip install pytesseract
+pip install -U pytesseract
 
-pip install pillow
+pip install -U pillow
+
+pip3 install -U httpcat
