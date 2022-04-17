@@ -42,4 +42,6 @@ pip install -U pytesseract
 
 pip install -U pillow
 
-pip3 install -U httpcat
+pip install -U httpcat
+
+pip install -U http-prompt
