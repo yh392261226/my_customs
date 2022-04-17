@@ -45,3 +45,11 @@ pip install -U pillow
 pip install -U httpcat
 
 pip install -U http-prompt
+
+pip install -U httpie-snapdsocket
+
+pip install -U httpie-unixsocket
+
+pip install -U httpie-ntlm
+
+pip install -U httpie httpie-http2
