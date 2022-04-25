@@ -10,6 +10,7 @@ function update_today() { # Desc: upday:每天一更新
     brew update  && brew upgrade && brew cleanup
     #gethosts
 }
+alias update="update_today"
 
 function update_runtimes() { # Desc: update_runtimes:git 更新$MYRUNTIME 目录下的所有由git管理的目录
     update_dotfiles
