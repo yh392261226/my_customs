@@ -467,27 +467,6 @@ wallpaper_favo() {
   #sqlite3 ${HOME}/Library/Application\ Support/Dock/desktoppicture.db "update data set value = '${1}'" && killall Dock
 }
 
-#空白文件
-empty_search() {
-  echo "This may take a long while ..."
-  for path in $(ls $PICURL); do
-    if [ -d ${PICURL}/${path} ]; then
-        echo ${PICURL}/${path}
-        for pic in $(ls ${PICURL}/${path}); do
-            if [ -f ${PICURL}/${path}/${pic} ]; then
-                if [[ $pic =~ .*\.jpg$ ]]; then
-                    tmpsize=$(wc -c ${PICURL}/${path}/${pic} | awk '{print $1}')
-                    if [ $tmpsize -lt 1 ]; then
-                        echo ${PICURL}/${path}/${pic}
-                    fi
-                fi
-            fi
-        done
-    fi
-  done
-  echo "Done ..."
-}
-
 #模糊定位
 fuzzy_search() {
   para=$CURPIC
@@ -685,9 +664,6 @@ case "$1" in
     "search" | "f")
       fuzzy_search $2
       ;;
-    "empty" | "e")
-      empty_search
-    ;;
 	  "help"|"h"|*)
 
 		command=$(basename $0)
@@ -713,7 +689,6 @@ case "$1" in
     printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
     printf "%-25s%-25s%-35s\n" "          [桌面背景]:" "   [wallpaper / w] [filename] " ""
     printf "%-25s%-25s%-35s\n" "          [模糊操作]:" "   [search / f] [filename (without full direcotry and extension)] " ""
-    printf "%-25s%-25s%-35s\n" "          [查找空文件]:" " [empty / e]  " ""
     printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
 		echo ""
 		;;
