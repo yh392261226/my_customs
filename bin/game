@@ -148,7 +148,7 @@ function lottery() {
     
     case "$1" in
         'ssq'|'doubleball')
-            if [ "result" != "$2" ] || [ "r" != "$2" ]; then
+            if [ "result" = "$2" ] || [ "r" = "$2" ]; then
                 resultDoubleBall $3
             elif [ "" != "$2" ]; then
                 multipleDoubleBall $2
