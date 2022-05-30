@@ -113,7 +113,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light zdharma-continuum/fast-syntax-highlighting
     # zinit light changyuheng/zsh-interactive-cd
     zinit light floor114/zsh-apple-touchbar
-    zinit light unixorn/git-extra-commands
+    zinit light yh392261226/git-extra-commands
     zinit light djui/alias-tips
     zinit light zsh-users/zsh-history-substring-search
     zinit light iam4x/zsh-iterm-touchbar
