@@ -160,9 +160,13 @@ unfull() {
 
 }
 
+customcd() {
+    builtin cd "$@"
+}
+
 bCd() {
     echo "cd $PICPATH"
-    `cd $PICPATH`
+    customcd $PICPATH
 }
 
 
