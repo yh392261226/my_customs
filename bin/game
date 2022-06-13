@@ -274,6 +274,12 @@ case "$1" in
     ;;
     
     'novel'|'n')
-        sehuatang $2
+        if [ -f $2 ]; then
+            for content in $(cat $2); do
+                sehuatang "$content"
+            done
+        else
+            sehuatang $2
+        fi
     ;;
 esac

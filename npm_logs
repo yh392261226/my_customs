@@ -244,3 +244,4 @@ npm install -g vscode-html-languageserver-bin
 npm install -g bash-language-server
 npm install -g vscode-css-languageserver-bin
 npm install -g better-sqlite3
+npm install -g nativefier 
