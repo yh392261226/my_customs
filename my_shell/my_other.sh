@@ -21,7 +21,7 @@ elif [ "zsh" = "$nowshell" ]; then
     [[ -f $HOME/.fzf.zsh ]] && source $HOME/.fzf.zsh
 fi
 
-if [ "bash" != "$nowshell" ]; then
+if [ "bash" != "$nowshell" ] && [ -f $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh ]; then
 	source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
 fi
 

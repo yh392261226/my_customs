@@ -1,6 +1,6 @@
+#From : https://github.com/lfender6445/iterm2_rainbow_tabs/blob/master/iterm2_rainbow_tabs.sh
 # Usage:
 #   Source this script from your Bash start-up script (eg. ~/.bashrc, ~/.bash_profile).
-#From : https://github.com/lfender6445/iterm2_rainbow_tabs/blob/master/iterm2_rainbow_tabs.sh
 
 function tab_maroon { tab_color 128 0 0; }
 function tab_dark_red { tab_color 139 0 0; }
@@ -151,11 +151,11 @@ function tab_green()  { tab_color  65 174  76; }
 function tab_blue()   { tab_color  92 155 204; }
 function tab_yellow() { tab_color 240 240   0; }
 
-# function tab_color() {
-# echo -n -e "\033]6;1;bg;red;brightness;$1\a"
-# echo -n -e "\033]6;1;bg;green;brightness;$2\a"
-# echo -n -e "\033]6;1;bg;blue;brightness;$3\a"
-# }
+function tab_color() {
+echo -n -e "\033]6;1;bg;red;brightness;$1\a"
+echo -n -e "\033]6;1;bg;green;brightness;$2\a"
+echo -n -e "\033]6;1;bg;blue;brightness;$3\a"
+}
 
 function rand() {
   printf $((  $1 *  RANDOM  / 32767   ))
@@ -300,9 +300,11 @@ function choose_random_color() {
   new_color=$'%s\n' "${my_favorite_colors[$(($(rand "${#my_favorite_colors[*]}")+1))]}"
   eval ${new_color}
 }
+
 function tab_color() {
-  echo "\033]6;1;bg;red;brightness;$1\a"
-  echo "\033]6;1;bg;green;brightness;$2\a"
-  echo "\033]6;1;bg;blue;brightness;$3\a"
+  echo -n -e "\033]6;1;bg;red;brightness;$1\a"
+  echo -n -e "\033]6;1;bg;green;brightness;$2\a"
+  echo -n -e "\033]6;1;bg;blue;brightness;$3\a"
 }
+
 choose_random_color
