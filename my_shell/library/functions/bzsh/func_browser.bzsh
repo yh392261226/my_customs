@@ -133,7 +133,7 @@ function goodfon() { # Desc: goodfon:打开goodfon.ru
 }
 alias gf="goodfon"
 
-if [ "zsh" = "$nowshell" ]; then
+if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
     function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通过比对文件名，实现自动去重下载的图片
         ##图片文件夹路径
         local PICPATH=$HOME/Pictures/down_pics/

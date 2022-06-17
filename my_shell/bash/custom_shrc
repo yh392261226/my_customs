@@ -6,8 +6,8 @@ my_custom_sh=$MYRUNTIME/customs/my_shell
 
 source $my_custom_sh/my_basic.sh
 source $my_custom_sh/my_common.sh
-source $my_custom_sh/my_prompt.sh
 source $my_custom_sh/my_export.sh
+source $my_custom_sh/my_prompt.sh
 source $my_custom_sh/my_alias.sh
 source $my_custom_sh/my_other.sh
 source $my_custom_sh/my_library.sh
@@ -30,3 +30,4 @@ goto () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
 
+source $my_custom_sh/my_library.sh
