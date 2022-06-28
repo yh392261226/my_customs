@@ -133,6 +133,28 @@ function goodfon() { # Desc: goodfon:打开goodfon.ru
 }
 alias gf="goodfon"
 
+function _checkDirFull() {
+    if [ "" != "$1" ]; then
+        local maxsize=2000
+        local picpath=$(dirname $1)
+        local cursize=$(ls $picpath | wc -l)
+
+        if [ "$cursize" -ge "$maxsize" ]; then
+            curcount=$(echo $picpath | tr -cd "[0-9]")
+            curcount=$(($curcount+1))
+            if [ $curcount -le 9 ]; then
+                curcount=0$curcount
+            fi
+            newpath="${picpath%*07}$curcount"
+            if [ ! -d $newpath ]; then
+                mkdir $newpath
+            fi
+            mv $1 $newpath/$(basename $1)
+            echo "$1 $newpath/$(basename $1)"
+        fi
+    fi
+}
+
 if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
     function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通过比对文件名，实现自动去重下载的图片
         ##图片文件夹路径
@@ -183,6 +205,7 @@ if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
                 fi
     
                 echo $msg
+                _checkDirFull $fullfilename #存放目录满的情况下自动生成目录并迁移新文件
                 if [ "$IFSHOWTHUMB" -eq "1" ] && [ "$showtype" -eq "1" ]; then
                     #展示图片
                     printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
