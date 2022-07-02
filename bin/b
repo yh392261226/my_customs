@@ -30,7 +30,7 @@ recordDB() {
     fi
     for path in $(ls $PICPATH | grep  -v duplicates_); do
         if [ -d $path ]; then 
-            find ${PICPATH}${path} -type f -name "*jpg" >> $DBFILE
+            find ${PICPATH}${path} -type f -name "*jpg" -o -name "*png" -o -name "*jpeg" >> $DBFILE
             find ${PICPATH}${path} -type f -name "*mp4" >> $DBFILE
         fi
     done
@@ -42,7 +42,7 @@ recordDuplicateDB() {
     fi
     for path in $(ls $PICPATH | grep duplicates_); do
         if [ -d $path ]; then 
-            find ${PICPATH}${path} -type f -name "*jpg" >> $DUPDBFILE
+            find ${PICPATH}${path} -type f -name "*jpg" -o -name "*png" -o -name "*jpeg" >> $DUPDBFILE
         fi
     done
 }
@@ -127,7 +127,7 @@ unfull() {
     printf "\033[0;33m%-25s\033[0m\n" "========================================================================================="
     for curpath in $(ls $PICPATH | sort -n); do
         if [ -d ${PICPATH}${curpath} ]; then 
-            counts=$(find ${PICPATH}${curpath} -type f -name "*jpg" |wc -l)
+            counts=$(find ${PICPATH}${curpath} -type f -name "*jpg" -o -name "*png" -o -name "*jpeg" |wc -l)
             ((needs=$MAXSIZE-$counts))
             if [[ $curpath =~ duplicates_ ]]; then
                 printf "\033[0;34m%-60s\033[0m \033[0;31m%-18s\033[0m %-14s\n" ${PICPATH}${curpath} $counts

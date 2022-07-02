@@ -42,7 +42,7 @@
     enable_neomake=1
     smartcloseignorewin = ["__Tagbar__", "vimfiler:default"]
     keep_server_alive = 1
-    project_rooter_patterns=[".git/", "_darcs/", ".hg/", ".bzr/", ".svn/", ".clang", "pom.xml", "package.json"]
+    project_rooter_patterns=[".git/", "_darcs/", ".hg/", ".bzr/", ".svn/", ".clang", "pom.xml", "package.json", ".idea"]
     leader_guide_hspace=5
     checkinstall=1
 
