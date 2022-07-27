@@ -141,14 +141,12 @@ function _checkDirFull() {
 
         if [ "$cursize" -ge "$maxsize" ]; then
             curcount=$(echo $picpath | tr -cd "[0-9]")
+            tmpmiddlecount=$curcount
             curcount=$(($curcount+1))
-            if [ $curcount -le 9 ]; then
-                curcount=0$curcount
-            fi
-            newpath="${picpath%*07}$curcount"
-            if [ ! -d $newpath ]; then
-                mkdir $newpath
-            fi
+            [[ $curcount -le 9 ]] && curcount=0$curcount
+            prefixpath=$(echo $picpath | sed "s,${tmpmiddlecount},,g")
+            newpath="${prefixpath}$curcount"
+            [[ ! -d $newpath ]] && mkdir $newpath
             mv $1 $newpath/$(basename $1)
             echo "$1 $newpath/$(basename $1)"
         fi

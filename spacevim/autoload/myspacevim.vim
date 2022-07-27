@@ -1,8 +1,8 @@
 function! myspacevim#before() abort
-    let g:loaded_python_provider = 1
-    " let g:python2_host_prog = '/usr/bin/python2'
-    " let g:python3_host_prog = '/usr/bin/python3'
-"    set pyxversion = 3
+    let g:loaded_python_provider=1
+    " let g:python2_host_prog = '/opt/homebrew/bin/python3'
+    let g:python3_host_prog='/opt/homebrew/bin/python3'
+    set pyxversion=3
 
     "key mapping
     inoremap jj <esc>
@@ -10,7 +10,7 @@ function! myspacevim#before() abort
     "逗号后空格
     inoremap , ,<Space>
     "等号左右空格
-    inoremap = <Space>=<Space>
+    " inoremap=<Space>=<Space>
     nmap <silent> <A-k> :wincmd k<CR>
     nmap <silent> <A-j> :wincmd j<CR>
     nmap <silent> <A-h> :wincmd h<CR>
@@ -20,7 +20,7 @@ function! myspacevim#before() abort
     let g:SimpylFold_docstring_preview = 1
 
     "ale
-    let g:ale_linters = {
+    let g:ale_linters={
     \   'python': ['pyls'],
     \}
     let g:ale_fixers = {

@@ -1,6 +1,14 @@
-### spacevim的配置文件； 复制该文件至~/.Spacevim.d/init.toml   安装https://github.com/spacevim/spacevim的配置文件
-[options] # 所有的 SpaceVim 选项都列在 [options] 之下
-####### 默认配置
+#=============================================================================
+# dark_powered.toml --- dark powered configuration example for SpaceVim
+# Copyright (c) 2016-2022 Wang Shidong & Contributors
+# Author: Wang Shidong < wsdjeg@outlook.com >
+# URL: https://spacevim.org
+# License: GPLv3
+#=============================================================================
+
+# All SpaceVim option below [option] section
+[options]
+    ####### 默认配置
     enc = "utf-8"                                       # 设置默认编码utf-8
     enable_debug = false                                # 是否打开debug调试模式
     plugin_bundle_dir = "~/.SpaceVim/vim-plugin-files/" # 插件下载目录
@@ -54,7 +62,7 @@
 
 ###### 主题背景颜色文字
     enable_guicolors = true                             # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
-    #colorscheme_bg = "dark"                             # 背景可以取值 "dark" 或 "light"
+    colorscheme_bg = "dark"                             # 背景可以取值 "dark" 或 "light"
     vimcompatible = true                                # vim兼容模式
     #guifont = "Fira Code:h13"
 
@@ -85,14 +93,14 @@
 ####### 状态栏
     enable_cursorline = true                            # 显示鼠标状态栏
     statusline_separator = "slant"                      # 设置状态栏上分割符号形状，如果字体安装失败，可以将值设为 "nil" 以#禁用分割符号，默认为三角 "arrow" curve 半圆 slant 梯形 nil 空  fire火焰
+    statusline_iseparator = "arrow"
     sidebar_width = 30                                  # sidebar宽度
     statusline_inactive_separator = "bar"               # 状态栏中激活位的分割方式
-    buffer_index_type = 0                               # 设置顶部标签列表序号类型，有以下五种类型，分别是 0 - 4 # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ ¹ # 4: 1 ➛ 1
+    buffer_index_type = 4                               # 设置顶部标签列表序号类型，有以下五种类型，分别是 0 - 4 # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ ¹ # 4: 1 ➛ 1
     enable_statusline_mode = true                       # 是否在状态栏上显示当前模式，默认情况下，不显示 Normal/Insert 等字样，只以颜色区分当前模式
     error_symbol = '✗'
     warning_symbol =  '⚠'
     info_symbol =  'ⓘ'
-    buffer_index_type = 4
     statusline_unicode_symbols = true
     enable_statusline_tag = false
     statusline_left_sections = ["winnr", "filename", "major mode", "syntax checking", "minor mode lighters", "version control info", "hunks"]
@@ -100,25 +108,22 @@
     enable_statusline_display_mode=0
     leader_guide_position = "botright"
 
-####### 其他
-    
+# Enable autocomplete layer
+[[layers]]
+name = 'autocomplete'
+auto_completion_return_key_behavior = "complete"
+auto_completion_tab_key_behavior = "smart"
 
-# SpaceVim 模块设置，主要包括启用/禁用模块
-# 启用 autocomplete 模块，启用模块时，可以列出一些模块选项，并赋值，
-# 关于模块的选项，请阅读各个模块的文档
 [[layers]]
-    name = "autocomplete"
-    auto-completion-return-key-behavior = "complete"
-    auto-completion-tab-key-behavior = "smart"
+name = "shell"
+enable = true
+default_position = "bottom"
+default_height = 40
+
 [[layers]]
-    name = "colorscheme"
-    random_theme = true                                 # 启动时随机选择主题
-    frequency = "hourly"                                 # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
-[[layers]]                                              # 禁用 shell 模块，禁用模块时，需要加入 enable = false
-    name = "shell"
-    enable = true
-    default_position = "bottom"
-    default_height = 40
+name = "colorscheme"
+random_theme = true                                 # 启动时随机选择主题
+frequency = "hourly"                                 # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
 
 ###语言部分
 [[layers]]
@@ -254,37 +259,37 @@
     name = "VersionControl"
 [[layers]]
     name = "git"
-[[layers]]
-    name = "lsp"
-    filetypes = [
-    "ruby",         ## gem install solargraph
-    "rust",         ## brew install rustup-init
-    "javascript",   ## npm install -g javascript-typescript-langserver
-    "purescript"    ## npm install -g purescript-language-server
-    "typescript",   ## npm install -g typescript-language-server
-    "vue",          ## npm install -g vue-language-server
-    "go",           ## go get -u github.com/sourcegraph/go-langserver
-    "html",         ## npm install -g vscode-html-languageserver-bin
-    "python",       ## pip3 install -U python-language-server
-    "php",          ## 自动安装
-    "sh",           ## npm install -g bash-language-server
-    "css"           ## npm install -g vscode-css-languageserver-bin
-    ]
-    [layers.override_cmd]
-    rust = ["rustup-init", "run", "nightly", "rls"]
-    php = ['php', '/Users/yanghao/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
-#    go = ['go-langserver', '-mode', 'stdio']
-    go = ['gopls']
-    html = ['html-languageserver', '--stdio']
-    javascript = ['javascript-typescript-stdio']
-    python = ['pyls']
-    sh = ['bash-language-server', 'start']
-    typescript = ['typescript-language-server', '--stdio']
-    css = ['css-languageserver', '--stdio']
-    vue = ['vls']
-    vim = ['vim-language-server', '--stdio']
-    ruby = ['solargraph', 'stdio']
-    purescript = ['purescript-language-server', '--stdio']
+# [[layers]]
+#     name = "lsp"
+#     filetypes = [
+#     "ruby",         ## gem install solargraph
+#     "rust",         ## brew install rustup-init
+#     "javascript",   ## npm install -g javascript-typescript-langserver
+#     "purescript"    ## npm install -g purescript-language-server
+#     "typescript",   ## npm install -g typescript-language-server
+#     "vue",          ## npm install -g vue-language-server
+#     "go",           ## go get -u github.com/sourcegraph/go-langserver
+#     "html",         ## npm install -g vscode-html-languageserver-bin
+#     "python",       ## pip3 install -U python-language-server
+#     "php",          ## 自动安装
+#     "sh",           ## npm install -g bash-language-server
+#     "css"           ## npm install -g vscode-css-languageserver-bin
+#     ]
+#     [layers.override_cmd]
+#     rust = ["rustup-init", "run", "nightly", "rls"]
+#     php = ['php', '/Users/yanghao/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
+# #    go = ['go-langserver', '-mode', 'stdio']
+#     go = ['gopls']
+#     html = ['html-languageserver', '--stdio']
+#     javascript = ['javascript-typescript-stdio']
+#     python = ['pyls']
+#     sh = ['bash-language-server', 'start']
+#     typescript = ['typescript-language-server', '--stdio']
+#     css = ['css-languageserver', '--stdio']
+#     vue = ['vls']
+#     vim = ['vim-language-server', '--stdio']
+#     ruby = ['solargraph', 'stdio']
+#     purescript = ['purescript-language-server', '--stdio']
 [[layers]]
     name = "edit"
 [[layers]]
