@@ -19,8 +19,16 @@
     automatic_update = true                             # 自动更新
     colorscheme = "moon"                             # 设置 SpaceVim 主题及背景，默认的主题是 gruvbox，如果你需要使用更  多的主题，你可以载入 colorscheme 模块 全支持主题：NeoSolarized、hybrid、material、SpaceVim、one
     windows_index_type = 1
+    autocomplete_parens = true
+    code_runner_focus = false
+    commandline_prompt = "➭"
+    data_dir = "~/.cache"
+    default_custom_leader = "<Space>"
+    enable_tabline_ft_icon = true
+    file_searching_tools = ['find', 'find -not -iwholename "*.git*" ']
     lint_on_the_fly = 0
     relativenumber = 1
+    update_retry_cnt = 1
     lint_on_save = 0
     force_global_config=0
     enable_powerline_fonts=1
@@ -39,7 +47,8 @@
     enable_key_frequency=0
     auto_disable_touchpad=1
     dein_installed=1
-    autocomplete_method="deoplete"
+    # autocomplete_method="deoplete"
+    autocomplete_method="coc"
     plugin_manager_max_processes=8
     enable_vimfiler_filetypeicon=0
     unite_leader='f'
@@ -58,7 +67,7 @@
 
     bootstrap_before = "myspacevim#before"
     bootstrap_after = "myspacevim#after"
-    search_tools = ["rg", "pt", "ack", "grep", "findstr"]
+    search_tools = ["rg", "ag", "pt", "ack", "grep", "findstr", "git"]
 
 ###### 主题背景颜色文字
     enable_guicolors = true                             # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
@@ -81,6 +90,7 @@
     gitcommit_pr_icon = ''
     gitcommit_issue_icon=''
 
+    lint_engine = "ale"
 ####### 指南及建议
     realtime_leader_guide = 1                        # 实时指南
     plugin_groups = ["web", "lang", "edit", "ui", "tools", "checkers", "format", "git", "javascript", "ruby", "python", "scala", "lang#go", "lang#markdown", "scm", "editing", "indents", "navigation", "misc", "core", "core#statusline", "core#tabline", "default", "unite", "github", "denite", "ctrlp", "autocomplete", "nvim", "osx", "lang#rust", "lang#python", "lang#kotlin", "lang#html5", "colorscheme", "core#banner"]
@@ -91,7 +101,8 @@
     windows_leader = "\<space>"                         # 窗口管理器快捷键只可以在 Normal 模式下使用，默认的前缀（WIN）按键为 s
 
 ####### 状态栏
-    enable_cursorline = true                            # 显示鼠标状态栏
+    enable_bepo_layout = 1
+    enable_cursorline = 1                            # 显示鼠标状态栏
     statusline_separator = "slant"                      # 设置状态栏上分割符号形状，如果字体安装失败，可以将值设为 "nil" 以#禁用分割符号，默认为三角 "arrow" curve 半圆 slant 梯形 nil 空  fire火焰
     statusline_iseparator = "arrow"
     sidebar_width = 30                                  # sidebar宽度
@@ -466,5 +477,12 @@ frequency = "hourly"                                 # 可供选择的频率有�
     floaterm_width = 0.9
     floaterm_height = 0.9
     floaterm_keymap_toggle = '<F12>'
+### Un Setting
 [[custom_plugins]]
     name = "mrjones2014/smart-splits.nvim"
+[[custom_plugins]]
+    name = "mrjones2014/legendary.nvim"
+[[custom_plugins]]
+    name = "delphinus/vim-auto-cursorline"
+    enable = true
+    timeout = 1000
