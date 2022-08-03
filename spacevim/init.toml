@@ -96,6 +96,7 @@
 
     lint_engine = "ale"
                                                                                                                                                        #            #                                                                             #                    #                                                                                                 #              #                # 指南及建议
+    lsp_engine = 'coc'
     realtime_leader_guide         = 1                                                                                                                  # 实时指南
     plugin_groups                 = ["web", "lang", "edit", "ui", "tools", "checkers", "format", "git", "javascript", "ruby", "python", "scala", "lang # go", "lang # markdown", "scm", "editing", "indents", "navigation", "misc", "core", "core # statusline", "core # tabline", "default", "unite", "github", "denite", "ctrlp", "autocomplete", "nvim", "osx", "lang # rust", "lang # python", "lang # kotlin", "lang # html5", "colorscheme", "core # banner"]
     terminal_cursor_shape         = 2
@@ -506,3 +507,7 @@ frequency    = "hourly" # 可供选择的频率有：daily、hourly、weekly, �
     timeout = 1000
 # [[custom_plugins]]
 #     repo = "mattn/vim-lsp-settings"
+[[custom_plugins]]
+    repo = "williamboman/nvim-lsp-installer"
+[[custom_plugins]]
+    repo = "neovim/nvim-lspconfig"

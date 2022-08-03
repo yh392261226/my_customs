@@ -326,6 +326,8 @@ fi
 [[ -d /opt/homebrew/opt/ssh-copy-id/bin ]] && export PATH="/opt/homebrew/opt/ssh-copy-id/bin:$PATH"
 [[ -d /usr/local/opt/ssh-copy-id/bin ]] && export PATH="/opt/homebrew/opt/ssh-copy-id/bin:$PATH"
 
+[[ -f $HOME/.cargo/env ]] && source "$HOME/.cargo/env"
+
 ### custom commands
 ## fasd
 eval "$(fasd --init auto)"
