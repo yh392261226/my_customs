@@ -281,33 +281,35 @@ frequency    = "hourly" # 可供选择的频率有：daily、hourly、weekly, �
 [[layers]]
     name             = "lsp"
     lsp_fold_enabled = 0
+    # enabled_clients = ["phpactor", "rust", "javascript", "go", "python", "sh"]
+    enabled_clients = ["phpactor"]
     filetypes        = [
                   # "ruby",       #                                                 # gem install solargraph
-    "rust",       #               # brew install rustup-init
-    "javascript", #               # npm install -g javascript-typescript-langserver
+    # "rust",       #               # brew install rustup-init
+    # "javascript", #               # npm install -g javascript-typescript-langserver
                   # "purescript"  #                                                 # npm install -g purescript-language-server
                   # "typescript", #                                                 # npm install -g typescript-language-server
                   # "vue",        #                                                 # npm install -g vue-language-server
-    "go",         #               # go get -u github.com/sourcegraph/go-langserver
+    # "go",         #               # go get -u github.com/sourcegraph/go-langserver
                   # "html",       #                                                 # npm install -g vscode-html-languageserver-bin
-    "python",     #               # pip3 install -U python-language-server
+    # "python",     #               # pip3 install -U python-language-server
     "php",        #               # 自动安装
-    "sh",         #               # npm install -g bash-language-server
+    # "sh",         #               # npm install -g bash-language-server
                   # "css"         #                                                 # npm install -g vscode-css-languageserver-bin
     ]
-    [layers.override_cmd]
-    rust         = ["rustup-init", "run", "nightly", "rls"]
-    php          = ['php', '/Users/yanghao/.SpaceVim/vim-plugin-files/repos/github.com/felixfbecker/php-language-server/bin/php-language-server.php']
+    [layers.override_client_cmds]
+    # rust         = ['rustup', 'run', 'nightly', 'rls']
+    phpactor     = ['phpactor', 'nlanguage-server']
 #    go          = ['go-langserver', '-mode', 'stdio']
-    go           = ['gopls']
+    # go           = ['gopls']
     # html       = ['html-languageserver', '--stdio']
     # javascript = ['javascript-typescript-stdio']
-    python       = ['pyls']
-    sh           = ['bash-language-server', 'start']
+    # python       = ['pyls']
+    # sh           = ['bash-language-server', 'start']
     # typescript = ['typescript-language-server', '--stdio']
     # css        = ['css-languageserver', '--stdio']
     # vue        = ['vls']
-    vim          = ['vim-language-server', '--stdio']
+    # vim          = ['vim-language-server', '--stdio']
     # ruby       = ['solargraph', 'stdio']
     # purescript = ['purescript-language-server', '--stdio']
 [[layers]]
@@ -511,3 +513,5 @@ frequency    = "hourly" # 可供选择的频率有：daily、hourly、weekly, �
     repo = "williamboman/nvim-lsp-installer"
 [[custom_plugins]]
     repo = "neovim/nvim-lspconfig"
+#[[custom_plugins]]
+#    repo = ""
