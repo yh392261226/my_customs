@@ -115,6 +115,7 @@ alias gd2="git status -s \
  --preview 'git diff --color=always {+2} | diff-so-fancy' \
  --bind=ctrl-j:preview-down --bind=ctrl-k:preview-up \
  --preview-window=right:60%:wrap"
+alias lg='lazygit'
 alias hgs='hg status'
 alias hgu='hg update'
 alias hgpl='hg pull'
