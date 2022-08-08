@@ -900,6 +900,12 @@ brew install chafa
 brew install xsv
 brew install rustup-init
 brew install create-dmg
-
+brew install glow
+brew install wtfutil
+brew install zellij
+brew install bottom
+brew install git-delta
+brew install broot
+brew install xplr
 
 
