@@ -8,4 +8,7 @@ sudo gem install rouge
 
 sudo gem install facebook-cli
 
-gem install bropages
+sudo gem install bropages
+
+sudo gem install terjira
+

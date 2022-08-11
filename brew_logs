@@ -20,6 +20,7 @@ echo "Tapping Taps Of Homebrew ..."
     brew tap denji/nginx
     brew tap cjbassi/gotop
     brew tap aykamko/tag-ag
+    brew tap federico-terzi/espanso
 #]]]
 
 #-----------------------------------------------------------#
@@ -907,5 +908,9 @@ brew install bottom
 brew install git-delta
 brew install broot
 brew install xplr
-
-
+brew install bpytop
+brew install just
+brew install nb
+brew install lf
+brew install tealdeer
+brew install espanso

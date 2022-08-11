@@ -55,3 +55,5 @@ pip install -U httpie-ntlm
 pip install -U httpie httpie-http2
 
 pip3 install -U neovim-remote
+
+pip3 install -U topydo
