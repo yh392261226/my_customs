@@ -76,7 +76,7 @@
     enable_guicolors = true   # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
     colorscheme_bg   = "dark" # 背景可以取值 "dark" 或 "light"
     vimcompatible    = true   # vim兼容模式
-                              # guifont         = "Fira Code:h13"
+    guifont          = "Fira Code:h13"
 
                                           #                                                                                                                                                                                                                   #  #  #  #  #  # File文件树
     filemanager                  = "defx" # 使用 vimfiler 作为默认的文件树插件，默认的快捷键是 F3,也提供了另外一组快捷键 SPC f t 和 SPC f T 来打开文件树。 如果需要修改默认文件树插件，需要在 ~/.SpaceVim.d/init.toml 的 [options] 片段中修改选项 filemanager
@@ -380,8 +380,9 @@ frequency    = "hourly" # 可供选择的频率有：daily、hourly、weekly, �
 [[layers]]
     name = "gtags"
     gtagslabel = "pygments"
-#[[layers]]
-#    name = "chat"
+[[layers]]
+    name = "chat"
+    enable = true
 [[layers]]
     name = "chinese"
 [[layers]]
