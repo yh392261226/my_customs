@@ -21,6 +21,7 @@ echo "Tapping Taps Of Homebrew ..."
     brew tap cjbassi/gotop
     brew tap aykamko/tag-ag
     brew tap federico-terzi/espanso
+    brew tap how2terminal/how2
 #]]]
 
 #-----------------------------------------------------------#
@@ -914,3 +915,9 @@ brew install nb
 brew install lf
 brew install tealdeer
 brew install espanso
+brew install how2
+brew install difftastic
+brew install sd
+brew install dust
+brew install duf
+brew install dog
