@@ -16,13 +16,13 @@ function unsetproxy
 end
 
 function eproxy
-    echo $HTTP_PROXY;
-    echo $HTTPS_PROXY;
-    echo $ALL_PROXY;
+    echo "HTTP_PROXY: $HTTP_PROXY";
+    echo "HTTPS_PROXY: $HTTPS_PROXY";
+    echo "ALL_PROXY: $ALL_PROXY";
 end
 
 function pproxy
-    echo $HTTP_PROXY;
-    echo $HTTPS_PROXY;
-    echo $ALL_PROXY;
+    echo "HTTP_PROXY: $HTTP_PROXY";
+    echo "HTTPS_PROXY: $HTTPS_PROXY";
+    echo "ALL_PROXY: $ALL_PROXY";
 end
