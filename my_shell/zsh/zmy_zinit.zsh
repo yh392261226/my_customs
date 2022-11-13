@@ -126,4 +126,5 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light edouard-lopez/yeoman-zsh-plugin
     zinit light zdharma-continuum/zbrowse
     zinit light zdharma-continuum/zui
+    zinit light urbainvaes/fzf-marks
 fi
