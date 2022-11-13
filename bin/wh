@@ -6,9 +6,9 @@ if [ "" != "$1" ]; then
     echo "whereis $1 : "
     whereis $1
     echo "type $1 : "
-    type $1
+    builtin type $1
     echo "command $1 :"
-    command $1
+    builtin command $1
 else
     echo "Usage:$0 command"
 fi

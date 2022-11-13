@@ -87,10 +87,20 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
 plugins=(
+    ag
 	mvn
 	autojump
-	svn
-	svn-fast-info
+    bbedit
+    colored-man-pages
+    colorize
+    command-not-found
+    copyfile
+    copypath
+    dnote
+    encode64
+    git-auto-fetch
+#	svn
+#	svn-fast-info
 	golang
 	history
 	git-flow
@@ -102,6 +112,7 @@ plugins=(
 	ruby
 	rsync
 	urltools
+    jsontools
 	# zsh-autosuggestions
 	# zsh-syntax-highlighting
 	# web-search
@@ -129,6 +140,13 @@ autoload -U compinit
 ZSH_TMUX_AUTOSTART='true'
 ZSH_DISABLE_COMPFIX=true
 source $ZSH/oh-my-zsh.sh
+
+HISTFILE=~/data/data/.zsh_history.data
+HISTSIZE=500000
+SAVEHIST=500000
+setopt appendhistory
+setopt INC_APPEND_HISTORY  
+setopt SHARE_HISTORY
 
 #ZSH的模块加载
 zmodload -a zsh/zprof zprof
