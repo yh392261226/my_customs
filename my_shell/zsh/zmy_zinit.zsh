@@ -105,7 +105,6 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     alias reloadz="reload_zinit"
 
     ###Customs
-    zinit load Aloxaf/fzf-tab
     zinit load chitoku-k/fzf-zsh-completions
     zinit load amaya382/zsh-fzf-widgets
 
@@ -127,4 +126,6 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light zdharma-continuum/zbrowse
     zinit light zdharma-continuum/zui
     zinit light urbainvaes/fzf-marks
+    zinit light Aloxaf/fzf-tab
+    zinit light wfxr/forgit
 fi

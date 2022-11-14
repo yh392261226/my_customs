@@ -215,3 +215,8 @@ function file_tree() { # Desc:filetree:tree命令
 	ls -R $path | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'
 }
 alias filetree="file_tree"
+
+function fzf_history_print(){ # Desc: fzf_history_print:列出历史操作命令 选择后回车再执行
+    print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
+}
+alias fhp='fzf_history_print'

@@ -928,3 +928,4 @@ brew install delta
 brew install mcfly
 brew install choose
 brew install vivid
+brew install pstree

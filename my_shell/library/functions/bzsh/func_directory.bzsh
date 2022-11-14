@@ -13,7 +13,7 @@ function customcd() { # Desc:customcd:自定义cd命令
 
 function fzf_cd_to() { # Desc: fzf_cd_to: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
     local file
-    file="$(locate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
+    file="$(glocate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
     if [[ -n $file ]]
     then
         if [[ -d $file ]]
