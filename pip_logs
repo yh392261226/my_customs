@@ -57,3 +57,7 @@ pip install -U httpie httpie-http2
 pip3 install -U neovim-remote
 
 pip3 install -U topydo
+
+pip install --user git+git://github.com/powerline/powerline
+
+pip install psutil
