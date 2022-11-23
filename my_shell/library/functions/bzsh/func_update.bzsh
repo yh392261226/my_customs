@@ -49,3 +49,7 @@ function update_go_tools() { # Desc: update_go_tools 更新go语言工具
     go install -v honnef.co/go/tools/cmd/staticcheck@latest
     go install -v golang.org/x/tools/gopls@latest
 }
+
+function update_command_theme() { # Desc: 更新theme命令
+    curl -Lo $MYRUNTIME/bin/theme 'https://git.io/JM70M' && chmod +x $MYRUNTIME/bin/theme
+}

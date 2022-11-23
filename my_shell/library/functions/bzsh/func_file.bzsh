@@ -194,3 +194,17 @@ function fzf_search_term(){ #Desc: find-in-file - usage: fif <searchTerm>
     rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
 }
 alias fif='fzf_search_term'
+
+function fzf_open_with_editor() { # Desc: This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
+    export FZF_DEFAULT_COMMAND="fd -p -i -H -L -t f -t l -t x \
+-E 'icloud/*' \
+-E 'Library/*' \
+-E 'Pictures/Photos Library.photoslibrary/*' \
+-E '.git'"
+    IFS=$'\n' \
+       files=($(fzf --reverse \
+                    --preview "bat --theme=timu-spacegrey --color=always {}" \
+                    --query="$1" --multi --select-1 --exit-0))
+    [[ -n "$files" ]] && vim "${files[@]}"
+}
+alias fv='fzf_open_with_editor'

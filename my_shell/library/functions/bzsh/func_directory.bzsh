@@ -215,3 +215,11 @@ function pwd_command_directory() { # Desc: pwd_command_directory:获取命令所
     fi
 }
 alias pwdw="pwd_command_directory"
+
+function fzf_directories_or_files() { # Desc: fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换
+    find * | fzf --prompt 'All> ' \
+             --header 'CTRL-D: Directories / CTRL-F: Files' \
+             --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
+             --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)'
+}
+alias fdof='fzf_directories_or_files'
