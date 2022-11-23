@@ -24,9 +24,9 @@ if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 	echo "=============== Quote Of The Day ==============="
 	echo
 	#fortune
-	fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat
-	echo
-	echo "================================================"
-	echo
+	fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat -a -d 30
+#	echo
+#	echo "================================================"
+#	echo
 
 fi

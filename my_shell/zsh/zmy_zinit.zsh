@@ -128,4 +128,5 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light urbainvaes/fzf-marks
     zinit light Aloxaf/fzf-tab
     zinit light wfxr/forgit
+    zinit light kazhala/dotbare
 fi
