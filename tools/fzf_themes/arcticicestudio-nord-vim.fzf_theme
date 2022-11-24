@@ -1,0 +1,4 @@
+# arcticicestudio/nord-vim
+export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS ' --color=bg+:#3B4252,bg:#2E3440,spinner:#81A1C1,hl:#616E88,fg:#D8DEE9,header:#616E88,info:#81A1C1,pointer:#81A1C1,marker:#81A1C1,fg+:#D8DEE9,prompt:#81A1C1,hl+:#81A1C1'
+
+#![nord](https://user-images.githubusercontent.com/700826/113475063-67b3f780-94ae-11eb-9b24-5f0d22b63399.png)
