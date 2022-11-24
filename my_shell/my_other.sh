@@ -342,6 +342,5 @@ elif [ "bash" = "$nowshell" ]; then
     eval "$(atuin init bash)"
 fi
 
-
 default_user=$(/usr/bin/whoami)
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
