@@ -84,7 +84,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     # zinit snippet OMZP::git/git.plugin.zsh
     # zinit snippet OMZP::mvn/mvn.plugin.zsh
     zinit snippet OMZP::sudo/sudo.plugin.zsh
-    zinit snippet OMZP::common-aliases/common-aliases.plugin.zsh
+#    zinit snippet OMZP::common-aliases/common-aliases.plugin.zsh
     zinit snippet OMZP::colored-man-pages/colored-man-pages.plugin.zsh
     # zinit snippet OMZP::extract
     zinit snippet OMZP::pip/pip.plugin.zsh

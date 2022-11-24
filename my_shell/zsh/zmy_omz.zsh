@@ -1,4 +1,7 @@
 export ZSH=$HOME/.oh-my-zsh
+export OMZ=$ZSH
+export OMZP=$ZSH/plugins
+export OMZL=$ZSH/lib
 #自动更新时间
 export UPDATE_ZSH_DAYS=7
 #主题
