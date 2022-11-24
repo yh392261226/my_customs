@@ -64,3 +64,4 @@ pip install psutil
 
 pip install -U fzf-wal
 
+pipx install austin-tui

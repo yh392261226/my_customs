@@ -12,3 +12,4 @@ sudo gem install bropages
 
 sudo gem install terjira
 
+sudo gem install youplot

@@ -930,3 +930,5 @@ brew install choose
 brew install vivid
 brew install pstree
 brew install mpv
+brew install dive
+brew install tako8ki/tap/gobang
