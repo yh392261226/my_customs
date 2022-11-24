@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-### Desc:fzf主题选择器
-
-MYRUNTIME=$(cat ~/.myruntime)
-themes_path=$MYRUNTIME/customs/tools/fzf_themes/
-source $(ls $themes_path/* | fzf)

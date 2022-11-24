@@ -1,4 +1,4 @@
 # junegunn/seoul256.vim (light)
-export FZF_DEFAULT_OPTS='$FZF_DEFAULT_OPTS --color=bg+:#D9D9D9,bg:#E1E1E1,border:#C8C8C8,spinner:#719899,hl:#719872,fg:#616161,header:#719872,info:#727100,pointer:#E12672,marker:#E17899,fg+:#616161,preview-bg:#D9D9D9,prompt:#0099BD,hl+:#719899'
+export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS --color=bg+:#D9D9D9,bg:#E1E1E1,border:#C8C8C8,spinner:#719899,hl:#719872,fg:#616161,header:#719872,info:#727100,pointer:#E12672,marker:#E17899,fg+:#616161,preview-bg:#D9D9D9,prompt:#0099BD,hl+:#719899"
 
 #![seoul256-light](https://user-images.githubusercontent.com/700826/113475022-389d8600-94ae-11eb-905f-0939dd535837.png)
