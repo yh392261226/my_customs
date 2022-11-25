@@ -932,3 +932,11 @@ brew install pstree
 brew install mpv
 brew install dive
 brew install tako8ki/tap/gobang
+brew install gitui
+brew install jesseduffield/lazynpm/lazynpm
+brew install veeso/termscp/termscp
+brew install termshark
+brew install cointop
+brew install plow
+brew install ryo-ma/lazyhub/lazyhub
+brew install lsix
