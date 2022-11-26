@@ -62,8 +62,6 @@ pip install --user git+git://github.com/powerline/powerline
 
 pip install psutil
 
-pip install -U fzf-wal
-
 pipx install austin-tui
 
 pip install -U pingtop

@@ -68,3 +68,9 @@ alias fsamemd5="find_same_file_by_md5"
 function spotlight() { # Desc: spotlight:Search for a file using MacOS Spotlight's metadata
     mdfind "kMDItemDisplayName == '$@'wc";
 }
+alias sp='spotlight'
+
+function tree_search() { # Desc: Search keyword by tree command in the directory.
+    tree -d -L 2 |grep "$1" -C 10|less
+}
+alias trees='tree_search'
