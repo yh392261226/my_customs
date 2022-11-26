@@ -181,7 +181,7 @@ function help_by_tldr() { # Desc: help_by_tldr:help 帮助 tldr命令别名
 }
 alias help="help_by_tldr"
 
-function p() { # Desc: p:ps -ef |grep 进程
+function ps_or_procs() { # Desc: p:ps -ef |grep 进程
     if command -v procs &> /dev/null
     then
         procs | grep "$@" | grep -v grep 
@@ -189,6 +189,7 @@ function p() { # Desc: p:ps -ef |grep 进程
         ps -ef|grep "$@" | grep -v grep #|fzf
     fi
 }
+alias p='ps_or_procs'
 
 if [ -f /usr/local/bin/bashtop ]; then
     function btop() { # Desc: btop:bashtop命令的别名 
