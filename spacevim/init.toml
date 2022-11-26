@@ -520,9 +520,9 @@ frequency                           = "hourly" # 可供选择的频率有：dail
     repo                            = "neovim/nvim-lspconfig"
 [[custom_plugins]]
     repo                            = "felixfbecker/php-language-server"
-[[custom_plugins]]
-    repo                            = "nvim-lua/plenary.nvim"
-[[custom_plugins]]
-    repo                            = "nvim-telescope/telescope.nvim"
-[[custom_plugins]]
-    repo                            = "ibhagwan/fzf-lua"
+# [[custom_plugins]]
+#     repo                            = "nvim-lua/plenary.nvim"
+# [[custom_plugins]]
+#     repo                            = "nvim-telescope/telescope.nvim"
+# [[custom_plugins]]
+#     repo                            = "ibhagwan/fzf-lua"
