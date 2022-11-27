@@ -44,7 +44,7 @@ function images_rename_from_download() { # Desc: images_rename_from_download:重
         echo "请输入前缀"
         read prefix
     m=0
-    for i in $(ls $MYRUNTIME/pictures/*(jpg|png|JPG|JPEG|Jpg|PNG|Png));
+    for i in $(ls $MYRUNTIME/pictures/*.[jpg][png][JPG][JPEG][Jpg][PNG][Png]);
     do
         m=`expr $m + 1`
         #echo 文件名为：${i%.*}

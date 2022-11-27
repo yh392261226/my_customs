@@ -182,6 +182,7 @@ function help_by_tldr() { # Desc: help_by_tldr:help 帮助 tldr命令别名
 alias help="help_by_tldr"
 
 function ps_or_procs() { # Desc: p:ps -ef |grep 进程
+    [[ "" = "$@" ]] && return 1
     if command -v procs &> /dev/null
     then
         procs | grep "$@" | grep -v grep 
