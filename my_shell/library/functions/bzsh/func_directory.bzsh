@@ -5,6 +5,7 @@ function cd() { # Desc: cd:cd命令后列出目录内容
     else
         builtin cd "$@"; lsd -l;
     fi
+    python3 -m fzfdirhist log "$(pwd)"
 }
 
 function customcd() { # Desc:customcd:自定义cd命令
@@ -223,3 +224,9 @@ function fzf_directories_or_files() { # Desc: fzf列出当前目录下所有的�
              --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)'
 }
 alias fdof='fzf_directories_or_files'
+
+function fzf_directory_history() { # Desc: Show past directory history with fzf.
+  local dir=$(python3 -m fzfdirhist show | fzf --height=40% --reverse +m)
+  cd "$dir"
+}
+alias fdh='fzf_directory_history'

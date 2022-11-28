@@ -66,3 +66,4 @@ pipx install austin-tui
 
 pip install -U pingtop
 
+pip install --user -U fzf-dirhistory

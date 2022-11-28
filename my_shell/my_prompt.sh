@@ -15,3 +15,4 @@
 # 	PS1="\[\e[34m\]\u\[\e[1;32m\]@\[\e[0;33m\]\h\[\e[35m\]:"
 # 	PS1="$PS1\[\e[m\]\w\[\e[1;31m\]> \[\e[0m\]"
 # fi
+#PROMPT_COMMAND='python3 -m fzfdirhist log "$(pwd)"'
