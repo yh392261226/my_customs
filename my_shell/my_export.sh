@@ -72,3 +72,7 @@ export MYCUSTOMS=$MYRUNTIME/customs
 export MYTOOLS=$MYRUNTIME/tools
 export MYSHELL=$MYCUSTOMS/my_shell
 export MYBIN=$MYCUSTOMS/bin
+
+# fzf-dirhistory
+export DIR_HISTORY_FILE="~/.fzf_dirhistory"
+export DIR_HISTORY_SIZE=2000
