@@ -1,0 +1,16 @@
+#!/usr/bin/env zsh
+#!/usr/bin/env bash
+### Desc: 定位别名源是否是命令，且定位所在位置
+
+if [ "" != "$@" ]; then
+    target=$(echo "$@" | awk -F'=' '{print $1}')
+    source=$(echo "$@" | awk -F'=' '{print $2}')
+    # read target source <<< $(echo "$@" | awk -F'=' '$1" "$2')
+    echo $target
+    sourcewordnums=$(echo $source | wc -w)
+    if [ 1 -eq $sourcewordnums ]; then
+        # builtin whence -w $source
+        echo "该脚本未完成！！！"
+        which $source
+    fi
+fi

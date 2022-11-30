@@ -7,26 +7,31 @@ function sgoogle() { #Desc: sgoogle:GOOGLE搜索引擎搜索
     echo "open -a $SEARCH_BROWSER https://www.google.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "https://www.google.com/search?q= $1"；
 }
+alias google="sgoogle"
 
 function sbaidu() { #Desc: sbaidu:百度搜索引擎搜索
     echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd= $1";
     open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd= $1";
 }
+alias baidu="sbaidu"
 
 function sbing() { #Desc: sbing:Bing搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q= $1";
 }
+alias bing="sbing"
 
 function syahoo() { #Desc: syahoo:Yahoo搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q= $1";
 }
+alias yahoo="syahoo"
 
 function swikipedia() { #Desc: syahoo:wikipedia搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search= $1";
     open -a "$SEARCH_BROWSER"  "http://en.wikipedia.org/wiki/Special:Search?search= $1";
 }
+alias wikipedia="swikipedia"
 
 function browser() { # Desc: browser:浏览器中打开网址
     local BROWSERPATH=$1
@@ -42,6 +47,7 @@ function browser() { # Desc: browser:浏览器中打开网址
     fi
     /usr/bin/open -a "$BROWSERPATH" "$url"
 }
+alias browse="browser"
 
 function firefox() { # Desc: firefox:火狐浏览器打开网址
     local BROWSERPATH="/Applications/Firefox.app"
@@ -69,6 +75,7 @@ function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开
     [[ -f $MYRUNTIME/tools/m_proxy ]] && source $MYRUNTIME/tools/m_proxy
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
+alias sb="stealth-browser"
 
 function chrome_history() { # Desc: chrome_history:列出Chrome浏览器的历史
     if [ "" = "$@" ]; then
@@ -94,6 +101,7 @@ function chrome_history() { # Desc: chrome_history:列出Chrome浏览器的历�
     fzf --ansi --multi --no-hscroll --tiebreak=index |
     sed 's#.*\(https*://\)#\1#' | xargs open
 }
+alias ch="chrome_history"
 
 function chrome_default_history() { # Desc: chrome_default_history:列出Chrome默认账户的浏览器的历史
     chrome_history ~/Library/Application\ Support/Google/Chrome/Default/History

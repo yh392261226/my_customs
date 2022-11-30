@@ -31,6 +31,11 @@ function fzf_show_aliases2() { # Desc: fzf_show_aliases2:显示所有自定义�
 }
 alias showaliases="fzf_show_aliases2"
 
+function fzf_show_alias() { # Desc: 利用fzf显示所有别名
+    alias | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "$MYRUNTIME/customs/bin/_positalias {}" --preview-window right:140
+}
+alias fsa="fzf_show_alias"
+
 function show_aliases_from_a2z() { # Desc: show_aliases_from_a2z:显示从a-z的我的自定义命令
     echo "********************************************************"
     echo "*** Already exists command:"
