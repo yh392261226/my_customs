@@ -3,6 +3,7 @@
 ### Desc: 定位别名源是否是命令，且定位所在位置
 
 if [ "" != "$@" ]; then
+    echo "$@"
     target=$(echo "$@" | awk -F'=' '{print $1}')
     source=$(echo "$@" | awk -F'=' '{print $2}')
     # read target source <<< $(echo "$@" | awk -F'=' '$1" "$2')
