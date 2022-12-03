@@ -148,4 +148,4 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit ice depth=1; zinit light romkatv/powerlevel10k
 fi
 
-bindkey ',' autosuggest-accept
+#bindkey ',' autosuggest-accept
