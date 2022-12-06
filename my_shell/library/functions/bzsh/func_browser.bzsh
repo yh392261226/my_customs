@@ -162,17 +162,22 @@ function _checkDirFull() {
 }
 
 if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
-    function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通过比对文件名，实现自动去重下载的图片
+    function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
         ##图片文件夹路径
-        local PICPATH=$HOME/Pictures/down_pics/
+        local PICPATH=$(cat ~/.picpath)
+        local MYRUNTIME=$(cat $HOME/.myruntime)
         ##数据库文件路径
         local DBFILE=$PICPATH/db.log
         ##去重文件数据库文件路径（仅有文件名）
         local FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
-        local IFSHOWTHUMB=0
+        local COMMANDBIN=sqlite3
+        local FULLFILENAMESDB2=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
+        IFSHOWTHUMB=0
+        RECORDTYPE=0
         local msg=""
     
-        [[ "" != "$1" ]] && IFSHOWTHUMB=1
+        [[ "" != "$1" ]] && IFSHOWTHUMB=$1
+        [[ "" != "$2" ]] && RECORDTYPE=$2
     
         curprocessid=$$
         #调起后台脚本，监控火狐浏览器状态，如果浏览器进程消失，则杀死下面的进程
@@ -196,20 +201,43 @@ if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
                 fullfilename=${event}
                 filename=$(basename $fullfilename)
                 showtype=0
-    
-                if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
-                    tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
-                    if [ "$tmpresult" -gt "1" ]; then
-                        msg="Already deleted ..."
-                        trash $fullfilename
+                if [ "0" = "$RECORDTYPE" ]; then
+                    if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
+                        tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
+                        if [ "$tmpresult" -gt "1" ]; then
+                            msg="Already deleted ..."
+                            trash $fullfilename
+                        fi
+                    else
+                        echo $filename >> $FULLFILENAMESDB
+                        msg="Already recorded ..."
+                        showtype=1
+                        echo $fullfilename >> $DBFILE
                     fi
-                else
-                    echo $filename >> $FULLFILENAMESDB
-                    msg="Already recorded ..."
-                    showtype=1
-                    echo $fullfilename >> $DBFILE
+                elif [ "1" = "$RECORDTYPE" ]; then
+                    [[ ! -f $FULLFILENAMESDB ]] && echo "The sqlite db file does not exists !" && return 1
+                    local SQL="select * from pictures where pic_name = '"${filename}"';"
+                    local tmpresult=$($COMMANDBIN $FULLFILENAMESDB2 <<EOF
+$SQL
+EOF
+)
+                    if [ "$tmpresult" != "" ]; then
+                        tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
+                        if [ "$tmpresult" -gt "1" ]; then
+                            msg="Already deleted ..."
+                            trash $fullfilename
+                        fi
+                    else
+                        local tmp_path=$(dirname $fullfilename)
+                        SQL='insert into pictures (pic_name, pic_path) values ("'"$filename"'", "'"$tmp_path"'");'
+                        $COMMANDBIN $FULLFILENAMESDB2 <<EOF
+$SQL
+EOF
+                        msg="Already recorded ..."
+                        showtype=1
+                        echo $fullfilename >> $DBFILE
+                    fi
                 fi
-    
                 echo $msg
                 _checkDirFull $fullfilename #存放目录满的情况下自动生成目录并迁移新文件
                 if [ "$IFSHOWTHUMB" -eq "1" ] && [ "$showtype" -eq "1" ]; then
@@ -230,4 +258,10 @@ if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
         autoDiffDownloadPicureByName $@
     }
     alias gfa="goodfonWithAutoDiff"
+
+    function goodfonWithAutoDiff2() { # Desc: 打开goodfon.ru后 通过目录监控自动过滤重名文件
+        goodfon
+        autoDiffDownloadPicureByName 0 1
+    }
+    alias gfa2="goodfonWithAutoDiff2"
 fi

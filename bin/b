@@ -5,8 +5,9 @@
 ## 使用方法：bbb
 ## 时    间：2021-01-09
 #################################
+MYRUNTIME=$(cat ~/.myruntime)
 ##图片文件夹路径
-PICPATH=$HOME/Pictures/down_pics/
+PICPATH=$(cat ~/.picpath)
 ##数据库文件路径
 DBFILE=$PICPATH/db.log
 ##被去重文件数据库文件路径
@@ -21,19 +22,48 @@ DUPLICATEFILE=$PICPATH/result.log
 DUPDUPLICATEFILE=$PICPATH/duplicate_result.log
 ##去重文件数据库文件路径（仅有文件名）
 FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
+FULLFILENAMESDBFILE=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
 ##单个文件夹最多文件上限
 MAXSIZE=2000
+##sqlite 命令位置
+COMMANDBIN=sqlite3
+
+record2SQLITEDB() {
+    if [ ! -f $FULLFILENAMESDBFILE ]; then
+        local SQL="CREATE TABLE pictures ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'pic_name' TEXT DEFAULT NULL, 'created_at' DATETIME NOT NULL DEFAULT CURRENT_TIME, 'pic_path' TEXT DEFAULT NULL);"
+        $COMMANDBIN $FULLFILENAMESDBFILE <<EOF
+$SQL
+EOF
+    fi
+
+    [[ "" = "$1" ]] && return 1
+    local tmp_path=$(dirname $1)
+    local tmp_file=$(basename $1)
+    local SQL='insert into pictures (pic_name, pic_path) values ("'"$tmp_file"'", "'"$tmp_path"'");'
+    $COMMANDBIN $FULLFILENAMESDBFILE <<EOF
+$SQL
+EOF
+}
 
 recordDB() {
     if [ -f $DBFILE ]; then
-        rm -f $DBFILE $UNIQFILE;
+        rm -f $DBFILE $UNIQFILE $FULLFILENAMESDBFILE;
     fi
+    echo "Start recording ..."
+    echo "Start recording to the txt database ..."
     for path in $(ls $PICPATH | grep  -v duplicates_); do
         if [ -d $path ]; then 
             find ${PICPATH}${path} -type f -name "*jpg" -o -name "*png" -o -name "*jpeg" >> $DBFILE
             find ${PICPATH}${path} -type f -name "*mp4" >> $DBFILE
         fi
     done
+    echo "Txt database record finished !"
+    echo "Start recording to the sqlite database, this will go a lone way ..."
+    while read line; do
+        record2SQLITEDB $line
+    done < $DBFILE
+    echo "Sqlite database record finished !"
+    echo "Record finished !"
 }
 
 recordDuplicateDB() {
