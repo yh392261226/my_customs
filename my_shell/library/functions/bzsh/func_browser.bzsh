@@ -77,8 +77,8 @@ function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开
 }
 alias sb="stealth-browser"
 
-function chrome_history() { # Desc: chrome_history:列出Chrome浏览器的历史
-    if [ "" = "$@" ]; then
+function chromium_history() { # Desc: chromium_history:列出Chromium核心的浏览器的历史
+    if [ "" = "$1" ]; then
         echo "Does not send param!"
         return 1
     fi
@@ -86,7 +86,7 @@ function chrome_history() { # Desc: chrome_history:列出Chrome浏览器的历�
     export cols=$(( COLUMNS / 3 ))
     export sep='{::}'
     rm -f /tmp/h
-    cp -r -f $@ /tmp/h
+    cp -r -f "$1" /tmp/h
     sqlite3 -separator $sep /tmp/h \
         "select title, url from urls order by last_visit_time desc" |
     ruby -ne '
@@ -99,19 +99,60 @@ function chrome_history() { # Desc: chrome_history:列出Chrome浏览器的历�
     end
     }.join + " " * (2 + cols - len) + "\x1b[m" + url' |
     fzf --ansi --multi --no-hscroll --tiebreak=index |
-    sed 's#.*\(https*://\)#\1#' | xargs open
+    sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
-alias ch="chrome_history"
+alias ch="chromium_history"
 
 function chrome_default_history() { # Desc: chrome_default_history:列出Chrome默认账户的浏览器的历史
-    chrome_history ~/Library/Application\ Support/Google/Chrome/Default/History
+    chromium_history ~/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
 }
 alias c="chrome_default_history"
 
 function chrome_profile1_history() { # Desc: chrome_profile1_history:列出Chrome Profile 1账户的浏览器的历史
-    chrome_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History
+    chromium_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
 }
 alias c2="chrome_profile1_history"
+
+function brave_default_history() { # Desc: brave_default_history:列出Brave默认账户的浏览器的历史
+    chromium_history ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
+}
+alias bh="brave_default_history"
+
+function chromium_bookmarks() { # Desc: 列出列出Chromium核心的浏览器的书签
+    if [ "" = "$1" ]; then
+        echo "Does not send param!"
+        return 1
+    else
+        rm -f /tmp/bookmarks
+        cp -r -f "$1" /tmp/bookmarks
+    fi
+
+     jq_script='
+        def ancestors: while(. | length >= 2; del(.[-1,-2]));
+        . as $in | paths(.url?) as $key | $in | getpath($key) | {name,url, path: [$key[0:-2] | ancestors as $a | $in | getpath($a) | .name?] | reverse | join("/") } | .path + "/" + .name + "\t" + .url'
+
+    jq -r "$jq_script" < /tmp/bookmarks \
+        | sed -E $'s/(.*)\t(.*)/\\1\t\x1b[36m\\2\x1b[m/g' \
+        | fzf --ansi \
+        | cut -d$'\t' -f2 \
+        | xargs open -a "$2"
+}
+alias cb="chromium_bookmarks"
+
+function chrome_default_bookmarks() { # Desc: chrome_default_bookmarks:列出Chrome默认账户的书签
+    chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
+}
+alias cb1="chrome_default_bookmarks"
+
+function chrome_profile1_bookmarks() { # Desc: chrome_default_bookmarks:列出Chrome Profile 1账户的书签
+    chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
+}
+alias cb2="chrome_profile1_bookmarks"
+
+function brave_default_bookmarks() { # Desc: brave_default_bookmarks:列出Brave默认账户的书签
+    chromium_bookmarks ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
+}
+alias bb="brave_default_bookmarks"
 
 function fzf_mark_by_buku() { # Desc: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
