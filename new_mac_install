@@ -1,34 +1,77 @@
 #!/usr/bin/env bash
 
-# ----------------------------------------------------------------------------------- #
-echo "Changeing OS Settings ..."
-# ----------------------------------------------------------------------------------- #
+if [ ! -f ~/.myruntime ]; then
+    echo "You need to create & input ~/.myruntime ..."
+    vim ~/.myruntime
+else
+    MYRUNTIME=$(cat ~/.myruntime)
+fi
 
-#调整每一列显示图标数量，12表示每一列显示12个，数字部分可根据个人喜好进行设置。
-defaults write com.apple.dock springboard-columns -int 12
-#调整多少行显示图标数量，这里我用的是6，数字部分你也可以改成8或其他
-defaults write com.apple.dock springboard-rows -int 6
-#重置ResetLaunchPad
-defaults write com.apple.dock ResetLaunchPad -bool TRUE
-#重启Dock
-killall Dock
+echo "是否设置启动台行列，y|yes/n|no"
+read choose
+if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
+    # ----------------------------------------------------------------------------------- #
+    echo "Changeing OS Settings ..."
+    # ----------------------------------------------------------------------------------- #
+    #调整每一列显示图标数量，12表示每一列显示12个，数字部分可根据个人喜好进行设置。
+    defaults write com.apple.dock springboard-columns -int 12
+    #调整多少行显示图标数量，这里我用的是6，数字部分你也可以改成8或其他
+    defaults write com.apple.dock springboard-rows -int 6
+    #重置ResetLaunchPad
+    defaults write com.apple.dock ResetLaunchPad -bool TRUE
+    #重启Dock
+    killall Dock
+fi
+
+echo "是否安装oh-my-zsh，y|yes/n|no"
+read choose
+if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
+    # ----------------------------------------------------------------------------------- #
+    echo "Starting Install Oh-My-Zsh ..."
+    # ----------------------------------------------------------------------------------- #
+    sh -c "$(wget https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O -)"
+
+    mv ~/.zshrc ~/.bak_zshrc
+
+    ln -sf $MYRUNTIME/customs/configs/zshrc ~/.zshrc
+fi
+
+echo "是否安装软件，y|yes/n|no"
+read choose
+if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
+    # ----------------------------------------------------------------------------------- #
+    echo "Starting Install New Softwares ..."
+    # ----------------------------------------------------------------------------------- #
+    echo "安装brew 软件 ..."
+    bash brew_logs
+    echo "安装gem 软件 ..."
+    bash gem_logs
+    echo "安装npm 软件 ..."
+    bash npm_logs
+    echo "安装pip 软件 ..."
+    bash pip_logs
+    echo "安装go 软件 ..."
+    bash go_logs
+fi
+
+echo "是否安装spacevim，y|yes/n|no"
+read choose
+if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
+    # ----------------------------------------------------------------------------------- #
+    echo "Starting Install SpaceVim Config ..."
+    # ----------------------------------------------------------------------------------- #
+    ln -sf $MYRUNTIME/customs/configs/spacevim ~/.SpaceVim.d
+    curl -sLf https://spacevim.org/cn/install.sh | bash
+fi
+
+
+
 
 # ----------------------------------------------------------------------------------- #
-echo "Starting Install New Softwares ..."
-# ----------------------------------------------------------------------------------- #
+ln -sf $MYRUNTIME/customs/configs/gitconfig ~/.gitconfig
+ln -sf $MYRUNTIME/customs/configs/gitignore ~/.gitignore
+ln -sf $MYRUNTIME/customs/configs/zellij ~/.zellij
+ln -sf $MYRUNTIME/tmuxconfigs/yanghao.tmux.conf ~/.tmux.conf
 
-#安装brew 软件
-bash brew_logs
-bash gem_logs
-bash npm_logs
-bash pip_logs
-
-# ----------------------------------------------------------------------------------- #
-echo "Starting Install SpaceVim Config ..."
-# ----------------------------------------------------------------------------------- #
-
-curl -sLf https://spacevim.org/cn/install.sh | bash
-
-# ----------------------------------------------------------------------------------- #
 
 # ----------------------------------------------------------------------------------- #

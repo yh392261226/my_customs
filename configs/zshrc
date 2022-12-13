@@ -1,0 +1,32 @@
+#!/bin/zsh
+zmodload zsh/zprof
+# File              : .zshrc
+# Date              : 28.02.2021
+# Last Modified Date: 28.02.2021
+autoload -U +X bashcompinit && bashcompinit
+autoload -U +X compinit && compinit
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:$PATH"
+# export ARCHFLAGS="-arch x86_64"
+
+source $(cat $HOME/.myruntime)/customs/my_shell/rcfile
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+#GITSTATUS_LOG_LEVEL=DEBUG
+
+eval $(thefuck --alias)
+
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+
+
+### Bashhub.com Installation
+if [ -f ~/.bashhub/bashhub.zsh ]; then
+    source ~/.bashhub/bashhub.zsh
+fi
+# Hook for desk activation
+[ -n "$DESK_ENV" ] && source "$DESK_ENV" || true
+
+source ~/.config/broot/launcher/bash/br
