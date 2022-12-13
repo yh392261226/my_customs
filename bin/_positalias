@@ -12,6 +12,6 @@ if [ "" != "$@" ]; then
     if [ 1 -eq $sourcewordnums ]; then
         # builtin whence -w $source
         echo "该脚本未完成！！！"
-        which $source
+        builtin type $source
     fi
 fi

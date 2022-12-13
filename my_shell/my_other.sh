@@ -25,7 +25,6 @@ if [ "bash" != "$nowshell" ] && [ -f $MYRUNTIME/customs/others/iterm2_rainbow_ta
 	source $MYRUNTIME/customs/others/iterm2_rainbow_tabs.sh
 fi
 
-[[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start
 
 [[ -d /usr/local/opt/sphinx-doc/bin ]] && export PATH="/usr/local/opt/sphinx-doc/bin:$PATH"
 [[ -d /opt/homebrew/opt/sphinx-doc/bin ]] && export PATH="/opt/homebrew/opt/sphinx-doc/bin:$PATH"
@@ -344,3 +343,17 @@ fi
 
 default_user=$(/usr/bin/whoami)
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
+
+
+
+
+
+
+
+
+
+
+
+
+
+[[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start
