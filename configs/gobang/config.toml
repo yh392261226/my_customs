@@ -1,0 +1,25 @@
+[[conn]]
+type = "mysql"
+user = "root"
+host = "127.0.0.1"
+password = "yanghao1017"
+port = 3306
+
+[[conn]]
+type = "mysql"
+user = "developer"
+host = "127.0.0.1"
+port = 3306
+password = "PaWefw^bG{pPeV&3"
+database = "bus"
+
+[[conn]]
+type = "postgres"
+user = "root"
+host = "localhost"
+port = 5432
+database = "bar"
+
+[[conn]]
+type = "sqlite"
+path = "/path/to/baz.db"

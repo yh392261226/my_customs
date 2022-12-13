@@ -1,0 +1,93 @@
+
+# 2022-12-07 15:48:12.937402
++.tables
+
+# 2022-12-07 15:48:25.265146
++select count(id) from pictures;
+
+# 2022-12-07 15:49:19.410399
++desc pictures;
+
+# 2022-12-07 15:49:31.527927
++describe pictures;
+
+# 2022-12-07 15:50:00.858379
++\q
+
+# 2022-12-07 15:54:46.163849
++.schema pictures;
+
+# 2022-12-07 15:55:21.043259
++desc pictures;
+
+# 2022-12-07 15:55:34.620717
++.exit
+
+# 2022-12-07 16:03:18.816120
++select count(id) as counts, pic_name from pictures group by pic_name;
+
+# 2022-12-07 16:03:36.801799
++select count(id) as counts, pic_name from pictures group by pic_name where counts > 1;
+
+# 2022-12-07 16:03:52.968420
++select count(id) as counts, pic_name from pictures where counts > 1 group by pic_name;
+
+# 2022-12-07 16:04:04.927376
++select count(id) as counts, pic_name from pictures where count(id) > 1 group by pic_name;
+
+# 2022-12-07 16:04:37.741235
++select count(id) as counts, pic_name from pictures group by pic_name;
+
+# 2022-12-07 16:05:16.354808
++select tt.pic_name from (select count(id) as counts, pic_name from pictures group by pic_name) as tt where tt.counts > 1;
+
+# 2022-12-07 16:05:31.663228
++select tt.pic_name, counts from (select count(id) as counts, pic_name from pictures group by pic_name) as tt where tt.counts > 1;
+
+# 2022-12-07 16:05:53.556983
++select * from pictures where pic_name = 'grigoriy-lifin-photographer-model-girl-brunette-long-hair-st.jpg';
+
+# 2022-12-07 16:07:02.666645
++delete from pictures where id = 69557;
+
+# 2022-12-07 16:07:25.179218
++select * from pictures where pic_name = '黑夜路人老铁群';
+
+# 2022-12-07 16:12:03.566445
++create index pic_name on pictures;
+
+# 2022-12-07 16:12:20.813984
++create index pic_name on pictures pic_name;
+
+# 2022-12-07 16:12:32.841260
++create index 'pic_name' on pictures 'pic_name';
+
+# 2022-12-07 16:12:37.452570
++create index 'pic_name' on pictures pic_name;
+
+# 2022-12-07 16:13:03.587180
++create index pic_name on pictures (pic_name);
+
+# 2022-12-07 16:13:25.771344
++.schema pictures;
+
+# 2022-12-07 16:13:42.826712
++.indexes pictures;
+
+# 2022-12-07 16:13:50.464972
++\q
+
+# 2022-12-09 08:32:47.405995
++.databases;
+
+# 2022-12-09 08:32:54.177848
++.tables
+
+# 2022-12-09 08:33:10.421599
++select count(id) from pictures;
+
+# 2022-12-09 08:33:23.291219
++.schema pictures
+
+# 2022-12-09 08:33:34.137218
++\q
