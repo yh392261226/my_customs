@@ -940,3 +940,7 @@ brew install cointop
 brew install plow
 brew install ryo-ma/lazyhub/lazyhub
 brew install lsix
+brew install media-info
+brew install poppler
+brew install atool
+brew install docx2txt
