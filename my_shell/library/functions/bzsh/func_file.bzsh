@@ -215,3 +215,10 @@ function list_link_files() { # Desc: list_link_files 列出所有软连接文件
     /bin/ls -al ${path} | /usr/bin/grep ^l
 }
 alias llf="list_link_files"
+
+function find_link_files() { # Desc: find_link_files find 找出所有软连接文件
+    local path='./'
+    [[ "" != "$1" ]] && path="$1"
+    /usr/bin/find ${path} -type l -ls
+}
+alias flf="find_link_files"
