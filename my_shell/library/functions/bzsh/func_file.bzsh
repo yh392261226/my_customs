@@ -208,3 +208,10 @@ function fzf_open_with_editor() { # Desc: This finds files with fd, pipes the li
     [[ -n "$files" ]] && vim "${files[@]}"
 }
 alias fv='fzf_open_with_editor'
+
+function list_link_files() { # Desc: list_link_files 列出所有软连接文件
+    local path='./'
+    [[ "" != "$1" ]] && path="$1"
+    /bin/ls -al ${path} | /usr/bin/grep ^l
+}
+alias llf="list_link_files"
