@@ -129,6 +129,9 @@
     enable_statusline_display_mode  = 0
     leader_guide_position           = "botright"
 
+
+    clang_library_path              = "/opt/homebrew/opt/llvm/lib/libclang.dylib"
+
 # Enable autocomplete layer
 [[layers]]
 name                                = 'autocomplete'
