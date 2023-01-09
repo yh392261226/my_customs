@@ -27,6 +27,7 @@ FULLFILENAMESDBFILE=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
 MAXSIZE=2000
 ##sqlite 命令位置
 COMMANDBIN=sqlite3
+TMPSQLFILEPATH=/tmp/tmp_pictures_data.sql
 
 record2SQLITEDB() {
     if [ ! -f $FULLFILENAMESDBFILE ]; then
@@ -45,9 +46,29 @@ $SQL
 EOF
 }
 
+record2SQLITEDB2() {
+    if [ ! -f $FULLFILENAMESDBFILE ]; then
+        local SQL="CREATE TABLE pictures ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'pic_name' TEXT DEFAULT NULL, 'created_at' DATETIME NOT NULL DEFAULT CURRENT_TIME, 'pic_path' TEXT DEFAULT NULL);"
+        $COMMANDBIN $FULLFILENAMESDBFILE <<EOF
+$SQL
+EOF
+    fi
+    local SQL=".read ${TMPSQLFILEPATH}"
+    $COMMANDBIN $FULLFILENAMESDBFILE <<EOF
+$SQL
+EOF
+}
+
+append2TMPSQLFILE() {
+    [[ "" = "$1" ]] && return 1
+    local tmp_path=$(dirname $1)
+    local tmp_file=$(basename $1)
+    echo 'insert into pictures (pic_name, pic_path) values ("'"$tmp_file"'", "'"$tmp_path"'");' >> $TMPSQLFILEPATH
+}
+
 recordDB() {
     if [ -f $DBFILE ]; then
-        rm -f $DBFILE $UNIQFILE $FULLFILENAMESDBFILE;
+        rm -f $DBFILE $UNIQFILE $FULLFILENAMESDBFILE $TMPSQLFILEPATH;
     fi
     echo "Start recording ..."
     echo "Start recording to the txt database ..."
@@ -60,8 +81,10 @@ recordDB() {
     echo "Txt database record finished !"
     echo "Start recording to the sqlite database, this will go a lone way ..."
     while read line; do
-        record2SQLITEDB $line
+        #record2SQLITEDB $line
+        append2TMPSQLFILE $line
     done < $DBFILE
+    record2SQLITEDB2
     echo "Sqlite database record finished !"
     echo "Record finished !"
 }
