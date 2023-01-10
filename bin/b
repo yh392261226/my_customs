@@ -9,20 +9,21 @@ MYRUNTIME=$(cat ~/.myruntime)
 ##图片文件夹路径
 PICPATH=$(cat ~/.picpath)
 ##数据库文件路径
-DBFILE=$PICPATH/db.log
+DBPATH=$MYRUNTIME/tools
+DBFILE=$DBPATH/pictures_db.log
 ##被去重文件数据库文件路径
-DUPDBFILE=$PICPATH/duplicate_db.log
+DUPDBFILE=$DBPATH/pictures_duplicate_db.log
 ##去重后文件路径
-UNIQFILE=$PICPATH/uniq.log
+UNIQFILE=$DBPATH/pictures_uniq.log
 ##被去重文件去重后文件路径
-DUPUNIQFILE=$PICPATH/duplicate_uniq.log
+DUPUNIQFILE=$DBPATH/pictures_duplicate_uniq.log
 ##处理后的去重文件路径
-DUPLICATEFILE=$PICPATH/result.log
+DUPLICATEFILE=$DBPATH/pictures_result.log
 ##被去重文件夹处理后的去重文件路径
-DUPDUPLICATEFILE=$PICPATH/duplicate_result.log
+DUPDUPLICATEFILE=$DBPATH/pictures_duplicate_result.log
 ##去重文件数据库文件路径（仅有文件名）
-FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
-FULLFILENAMESDBFILE=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
+FULLFILENAMESDB=$DBPATH/pictures_fullfilenames_db.log
+FULLFILENAMESDBFILE=$DBPATH/fullfilenames_db.log.sqlitedb
 ##单个文件夹最多文件上限
 MAXSIZE=2000
 ##sqlite 命令位置
