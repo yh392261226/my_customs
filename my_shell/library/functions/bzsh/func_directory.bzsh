@@ -30,7 +30,7 @@ alias fcf="fzf_cd_to"
 function fzf_hidden_directories() { # Desc: fzf_da:including hidden directories
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
 }
-alias fda="fzf_hidden_directories"
+alias fhd="fzf_hidden_directories"
 
 function mcdf() { # Desc: mcdf:short for cdfinder
     cd "`osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)'`"
@@ -144,6 +144,7 @@ function cd_command_parent_directory() { # Desc: cd_command_parent_directory:命
 alias cdpw="cd_command_parent_directory"
 
 function cd_command_directory() { # Desc: cd_command_directory:命令所在的文件夹
+    [[ -f $1 ]] && cd $(dirname $1) && return 1
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
