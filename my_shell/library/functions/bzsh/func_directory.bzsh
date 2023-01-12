@@ -145,6 +145,7 @@ alias cdpw="cd_command_parent_directory"
 
 function cd_command_directory() { # Desc: cd_command_directory:命令所在的文件夹
     [[ -f $1 ]] && cd $(dirname $1) && return 1
+    [[ -d $1 ]] && cd $1 && return 1
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
