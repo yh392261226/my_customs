@@ -1,17 +1,35 @@
-#!/usr/bin/env zsh
 #!/usr/bin/env bash
 ### Desc: 定位别名源是否是命令，且定位所在位置
 
+function bat_whereis_file() {
+	command -v "$@" > /dev/null 2>&1
+	[[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+	if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]
+	then
+		bat `which "$1"`
+	else
+		endfile=$(type "$1" | awk '{print $NF}')
+		if [ -f $endfile ]
+		then
+			bat $endfile
+		else
+			bat_whereis_file $endfile
+		fi
+	fi
+}
+
 if [ "" != "$@" ]; then
     echo "$@"
-    target=$(echo "$@" | awk -F'=' '{print $1}')
-    source=$(echo "$@" | awk -F'=' '{print $2}')
+    target=$(echo "$@" | awk -F'=' '{print $1}' | sed 's,",,g' | sed "s,',,g")
+    source=$(echo "$@" | awk -F'=' '{print $2}' | sed 's,",,g' | sed "s,',,g")
     # read target source <<< $(echo "$@" | awk -F'=' '$1" "$2')
     echo $target
     sourcewordnums=$(echo $source | wc -w)
     if [ 1 -eq $sourcewordnums ]; then
         # builtin whence -w $source
+        echo $source
+        which batw
+        /opt/homebrew/bin/which $source
         echo "该脚本未完成！！！"
-        builtin type $source
     fi
 fi
