@@ -208,9 +208,9 @@ if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
         local PICPATH=$(cat ~/.picpath)
         local MYRUNTIME=$(cat $HOME/.myruntime)
         ##数据库文件路径
-        local DBFILE=$PICPATH/db.log
+        local DBFILE=$MYRUNTIME/tools/pictures_db.log
         ##去重文件数据库文件路径（仅有文件名）
-        local FULLFILENAMESDB=$PICPATH/fullfilenames_db.log
+        local FULLFILENAMESDB=$MYRUNTIME/tools/pictures_fullfilenames_db.log
         local COMMANDBIN=sqlite3
         local FULLFILENAMESDB2=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
         IFSHOWTHUMB=0
@@ -256,7 +256,7 @@ if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
                         echo $fullfilename >> $DBFILE
                     fi
                 elif [ "1" = "$RECORDTYPE" ]; then
-                    [[ ! -f $FULLFILENAMESDB ]] && echo "The sqlite db file does not exists !" && return 1
+                    [[ ! -f $FULLFILENAMESDB2 ]] && echo "The sqlite db file does not exists !" && return 1
                     local SQL="select * from pictures where pic_name = '"${filename}"';"
                     local tmpresult=$($COMMANDBIN $FULLFILENAMESDB2 <<EOF
 $SQL
