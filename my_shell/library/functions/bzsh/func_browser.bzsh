@@ -3,37 +3,37 @@
 SEARCH_BROWSER="/Applications/Safari.app"
 [[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
 
-function sgoogle() { #Desc: sgoogle:GOOGLE搜索引擎搜索
+function sgoogle() { #Desc: function: sgoogle:GOOGLE搜索引擎搜索
     echo "open -a $SEARCH_BROWSER https://www.google.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "https://www.google.com/search?q= $1"；
 }
-alias google="sgoogle"
+alias google="sgoogle"  # Desc: alias: google:sgoogle命令的别名
 
-function sbaidu() { #Desc: sbaidu:百度搜索引擎搜索
+function sbaidu() { #Desc: function: sbaidu:百度搜索引擎搜索
     echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd= $1";
     open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd= $1";
 }
-alias baidu="sbaidu"
+alias baidu="sbaidu"    # Desc: alias: baidu:sbaidu命令的别名
 
-function sbing() { #Desc: sbing:Bing搜索引擎搜索
+function sbing() { #Desc: function: sbing:Bing搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q= $1";
 }
-alias bing="sbing"
+alias bing="sbing"      # Desc: alias: bing:sbing命令的别名
 
-function syahoo() { #Desc: syahoo:Yahoo搜索引擎搜索
+function syahoo() { #Desc: function: syahoo:Yahoo搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q= $1";
     open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q= $1";
 }
-alias yahoo="syahoo"
+alias yahoo="syahoo"        # Desc: alias: yahoo:syahoo命令的别名
 
-function swikipedia() { #Desc: syahoo:wikipedia搜索引擎搜索
+function swikipedia() { #Desc: function: syahoo:wikipedia搜索引擎搜索
     echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search= $1";
     open -a "$SEARCH_BROWSER"  "http://en.wikipedia.org/wiki/Special:Search?search= $1";
 }
-alias wikipedia="swikipedia"
+alias wikipedia="swikipedia"    # Desc: alias: wikipedia:swikipedia命令的别名
 
-function browser() { # Desc: browser:浏览器中打开网址
+function browser() { # Desc: function: browser:浏览器中打开网址
     local BROWSERPATH=$1
     local DEFAULTURL="https://www.google.com/"
     [[ ! -d "$BROWSERPATH/" ]] && echo "Does not found Firefox " && exit 1
@@ -47,37 +47,37 @@ function browser() { # Desc: browser:浏览器中打开网址
     fi
     /usr/bin/open -a "$BROWSERPATH" "$url"
 }
-alias browse="browser"
+alias browse="browser"      # Desc: alias: browse:browser命令的别名
 
-function firefox() { # Desc: firefox:火狐浏览器打开网址
+function firefox() { # Desc: function: firefox:火狐浏览器打开网址
     local BROWSERPATH="/Applications/Firefox.app"
     browser $BROWSERPATH $1
 }
 
-function safari() { # Desc: safari:Safari浏览器中打开网址
+function safari() { # Desc: function: safari:Safari浏览器中打开网址
     local BROWSERPATH="/Applications/Safari.app"
     browser $BROWSERPATH $1
 }
 
-function chrome() { # Desc: chrome:Chrome浏览器中打开网址
+function chrome() { # Desc: function: chrome:Chrome浏览器中打开网址
     local BROWSERPATH="/Applications/Google Chrome.app"
     browser $BROWSERPATH $1
 }
 
-function brave() { # Desc: brave:brave浏览器中打开网址
+function brave() { # Desc: function: brave:brave浏览器中打开网址
     local BROWSERPATH="/Applications/Brave Browser.app"
     browser $BROWSERPATH $1
 }
 
-function stealth-browser() { # Desc: stealth-browser:隐身Chrome浏览器打开网址
+function stealth-browser() { # Desc: function: stealth-browser:隐身Chrome浏览器打开网址
     local MYRUNTIME=$(cat $HOME/.myruntime)
     local DEFAULTBROWSER="/Applications/Google Chrome.app"
     [[ -f $MYRUNTIME/tools/m_proxy ]] && source $MYRUNTIME/tools/m_proxy
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
-alias sb="stealth-browser"
+alias sb="stealth-browser"      # Desc: alias: sb:stealth-browser命令的别名
 
-function chromium_history() { # Desc: chromium_history:列出Chromium核心的浏览器的历史
+function chromium_history() { # Desc: function: chromium_history:列出Chromium核心的浏览器的历史
     if [ "" = "$1" ]; then
         echo "Does not send param!"
         return 1
@@ -101,24 +101,24 @@ function chromium_history() { # Desc: chromium_history:列出Chromium核心的�
     fzf --ansi --multi --no-hscroll --tiebreak=index |
     sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
-alias ch="chromium_history"
+alias ch="chromium_history"     # Desc: alias: ch:chromium_history命令的别名
 
-function chrome_default_history() { # Desc: chrome_default_history:列出Chrome默认账户的浏览器的历史
+function chrome_default_history() { # Desc: function: chrome_default_history:列出Chrome默认账户的浏览器的历史
     chromium_history ~/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
 }
-alias c="chrome_default_history"
+alias c="chrome_default_history"    # Desc: alias: c:chrome_default_history命令的别名
 
-function chrome_profile1_history() { # Desc: chrome_profile1_history:列出Chrome Profile 1账户的浏览器的历史
+function chrome_profile1_history() { # Desc: function: chrome_profile1_history:列出Chrome Profile 1账户的浏览器的历史
     chromium_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
 }
-alias c2="chrome_profile1_history"
+alias c2="chrome_profile1_history"      # Desc: alias: c2:chrome_profile1_history命令的别名
 
-function brave_default_history() { # Desc: brave_default_history:列出Brave默认账户的浏览器的历史
+function brave_default_history() { # Desc: function: brave_default_history:列出Brave默认账户的浏览器的历史
     chromium_history ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
 }
-alias bh="brave_default_history"
+alias bh="brave_default_history"    # Desc: alias: bh:brave_default_history命令的别名
 
-function chromium_bookmarks() { # Desc: 列出列出Chromium核心的浏览器的书签
+function chromium_bookmarks() { # Desc: function: chroomium_bookmarks:列出列出Chromium核心的浏览器的书签
     if [ "" = "$1" ]; then
         echo "Does not send param!"
         return 1
@@ -137,24 +137,24 @@ function chromium_bookmarks() { # Desc: 列出列出Chromium核心的浏览器�
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
 }
-alias cb="chromium_bookmarks"
+alias cb="chromium_bookmarks"   # Desc: alias: cb:chromium_bookmarks命令的别名
 
-function chrome_default_bookmarks() { # Desc: chrome_default_bookmarks:列出Chrome默认账户的书签
+function chrome_default_bookmarks() { # Desc: function: chrome_default_bookmarks:列出Chrome默认账户的书签
     chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
 }
-alias cb1="chrome_default_bookmarks"
+alias cb1="chrome_default_bookmarks"    # Desc: alias: cb1:chrome_default_bookmarks命令的别名
 
-function chrome_profile1_bookmarks() { # Desc: chrome_default_bookmarks:列出Chrome Profile 1账户的书签
+function chrome_profile1_bookmarks() { # Desc: function: chrome_default_bookmarks:列出Chrome Profile 1账户的书签
     chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
 }
-alias cb2="chrome_profile1_bookmarks"
+alias cb2="chrome_profile1_bookmarks"       # Desc: alias: cb2:chrome_profile1_bookmarks命令的别名
 
-function brave_default_bookmarks() { # Desc: brave_default_bookmarks:列出Brave默认账户的书签
+function brave_default_bookmarks() { # Desc: function: brave_default_bookmarks:列出Brave默认账户的书签
     chromium_bookmarks ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
 }
-alias bb="brave_default_bookmarks"
+alias bb="brave_default_bookmarks"      # Desc: alias: bb:brave_default_bookmarks命令的别名
 
-function fzf_mark_by_buku() { # Desc: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
+function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
     mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi)"
 
@@ -165,9 +165,9 @@ function fzf_mark_by_buku() { # Desc: fzf_mark_by_buku:buku数据库配合fzf列
         buku -o "$index"
     done
 }
-alias fb="fzf_mark_by_buku"
+alias fb="fzf_mark_by_buku"     # Desc: alias: fb:fzf_mark_by_buku命令的别名
 
-function goodfon() { # Desc: goodfon:打开goodfon.ru
+function goodfon() { # Desc: function: goodfon:打开goodfon.ru
     local DEFAULTBROWSER="/Applications/Firefox.app"      #default browser for open goodfon
     local SECONDBROWSER="/Applications/Google Chrome.app" #second browser for open goodfon
     local URL="https://www.goodfon.ru/"
@@ -180,7 +180,7 @@ function goodfon() { # Desc: goodfon:打开goodfon.ru
         [[ -d "$SECONDBROWSER" ]] && /usr/bin/open -a "$SECONDBROWSER" "$URL"
     fi
 }
-alias gf="goodfon"
+alias gf="goodfon"      # Desc: alias: gf:goodfon命令的别名
 
 function _checkDirFull() {
     if [ "" != "$1" ]; then
@@ -203,7 +203,7 @@ function _checkDirFull() {
 }
 
 if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
-    function autoDiffDownloadPicureByName() { # Desc:利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
+    function autoDiffDownloadPicureByName() { # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
         ##图片文件夹路径
         local PICPATH=$(cat ~/.picpath)
         local MYRUNTIME=$(cat $HOME/.myruntime)
@@ -294,15 +294,15 @@ EOF
         ps -ef | grep "fswatch -0 $PICPATH" | grep -v grep | awk '{print $2}' | xargs kill > /dev/null
     }
     
-    function goodfonWithAutoDiff() { # Desc: 打开goodfon.ru后 通过目录监控自动过滤重名文件
+    function goodfonWithAutoDiff() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
         goodfon
         autoDiffDownloadPicureByName $@
     }
-    alias gfa="goodfonWithAutoDiff"
+    alias gfa="goodfonWithAutoDiff"     # Desc: alias: gfa:goodfonWithAutoDiff命令的别名
 
-    function goodfonWithAutoDiff2() { # Desc: 打开goodfon.ru后 通过目录监控自动过滤重名文件
+    function goodfonWithAutoDiff2() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
         goodfon
         autoDiffDownloadPicureByName 0 1
     }
-    alias gfa2="goodfonWithAutoDiff2"
+    alias gfa2="goodfonWithAutoDiff2"   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名
 fi

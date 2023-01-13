@@ -1,4 +1,4 @@
-function create_tmp_aliases() { # Desc: 以a+数字形式创建临时别名命令
+function create_tmp_aliases() { # Desc: function: create_tmp_aliases:以a+数字形式创建临时别名命令
     if [ "$#" -gt "0" ]; then
         tmp_command_file=$(mktemp)
         echo $tmp_command_file
@@ -16,6 +16,4 @@ function create_tmp_aliases() { # Desc: 以a+数字形式创建临时别名命�
         return
     fi
 }
-alias cta="create_tmp_aliases"
-
-
+alias cta="create_tmp_aliases" # Desc: alias: cta:create_tmp_aliases命令的别名

@@ -1,21 +1,21 @@
-function fzf_rvm_select() { # Desc: fzf_rvm_select:RVM integration
+function fzf_rvm_select() { # Desc: function: fzf_rvm_select:RVM integration
     local rb
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
     awk '{print $1}' |
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
 }
-alias fzf_rb="fzf_rvm_select"
-alias frb="fzf_rvm_select"
+alias fzf_rb="fzf_rvm_select"       # Desc: alias: fzf_rb:fzf_rvm_select命令的别名
+alias frb="fzf_rvm_select"          # Desc: alias: frb:fzf_rvm_select命令的别名
 
-function gems() { # Desc: gems:rvm多个版本的gem操作同一个包
+function gems() { # Desc: function: gems:rvm多个版本的gem操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         gem $@
     done
 }
 
-function rakes() { # Desc: rakes:rvm多个版本的rake操作同一个包
+function rakes() { # Desc: function: rakes:rvm多个版本的rake操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         rake $@
@@ -28,11 +28,11 @@ function rakes() { # Desc: rakes:rvm多个版本的rake操作同一个包
 #           displays paginated result with colored search terms and two lines surrounding each hit.             Example: mans mplayer codec
 #   --------------------------------------------------------------------
 
-function mans () { # Desc: mans:man command[$1] and highlight keyword[$2]
+function mans () { # Desc: function: mans:man command[$1] and highlight keyword[$2]
     man $1 | grep -iC2 --color=always $2 | less
 }
 
-function mark_by_cheatsh() { # Desc: mark_by_cheatsh:依托于cheat.sh的备忘录
+function mark_by_cheatsh() { # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then
         echo "Usage:$0 language function"
         echo ""
@@ -57,9 +57,9 @@ function mark_by_cheatsh() { # Desc: mark_by_cheatsh:依托于cheat.sh的备忘�
     fi
     curl $url
 }
-alias memo="mark_by_cheatsh"
+alias memo="mark_by_cheatsh"    # Desc: alias: memo:mark_by_cheatsh命令的别名
 
-function php_change_version() { # Desc: php_change_version:PHP 依赖于brew 切换已安装版本
+function php_change_version() { # Desc: function: php_change_version:PHP 依赖于brew 切换已安装版本
     installedPhpVersions=($(brew ls --versions | ggrep -E 'php(@.*)?\s' | ggrep -oP '(?<=\s)\d\.\d' | uniq | sort))
     posit=1
     versions[1]='';
@@ -96,4 +96,4 @@ function php_change_version() { # Desc: php_change_version:PHP 依赖于brew 切
         echo "Now, it's done ..."
     fi
 }
-alias phpcv="php_change_version"
+alias phpcv="php_change_version"    # Desc: alias: phpcv:php_change_version命令的别名

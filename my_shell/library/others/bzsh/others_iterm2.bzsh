@@ -1,16 +1,16 @@
 export LIGHT_THEME="Novel"
 export DARK_THEME="Doom Peacock"
 export DARK_THEME="Seafoam Pastel"
-function toggle-theme() {
+function toggle-theme() { # Desc: function: toggle-theme:更换iterm配置的主题
 	echo "使用此命令会将iterm的配置更改，是否确认使用？ y/n" 
 	read answer
 	if [ "y"  =  "$answer" ] || [ "yes" = "$answer" ]; then
 		python3 $MYRUNTIME/customs/others/iterm2-theme-toggle/main.py
 	fi
 }
-alias itc="toggle-theme"
+alias itc="toggle-theme" # Desc: alias: itc:toggle-theme命令的别名
 
-function change_iterm2_color_scheme() {
+function change_iterm2_color_scheme() { # Desc: function: change_iterm2_color_scheme:更换iterm当前session的主题
 	local act=$1
 	if [ "" = "$act" ]; then
 		act=session
@@ -22,4 +22,4 @@ function change_iterm2_color_scheme() {
 		python3 $MYRUNTIME/customs/my_shell/library/others/iterm2_scripts/change_color.py "$act"
 	fi
 }
-alias citc="change_iterm2_color_scheme"
+alias citc="change_iterm2_color_scheme" # Desc: alias: citc:change_iterm2_color_scheme命令的别名

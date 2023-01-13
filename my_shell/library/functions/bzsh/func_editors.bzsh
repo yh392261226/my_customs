@@ -1,4 +1,4 @@
-function editorw() { # Desc: editorw:use which command to find out the file or command then open with editors
+function editorw() { # Desc: function: editorw:use which command to find out the file or command then open with editors
     local COMMANDBIN=$1
     local FILENAME=$2
     if [ -f $COMMANDBIN ]; then
@@ -24,22 +24,22 @@ function editorw() { # Desc: editorw:use which command to find out the file or c
     fi
 }
 
-function codew() { # Desc: codew:visual studio code 编辑which命令找到的文件地址
+function codew() { # Desc: function: codew:visual studio code 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/code
     editorw $COMMANDBIN $1
 }
 
-function stw() { # Desc: stw:sublime text 编辑which命令找到的文件地址
+function stw() { # Desc: function: stw:sublime text 编辑which命令找到的文件地址
     local COMMANDBIN=$HOME/bin/subl
     editorw $COMMANDBIN $1
 }
 
-function atomw() { # Desc: atomw:atom 编辑which命令找到的文件地址
+function atomw() { # Desc: function: atomw:atom 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/atom
     editorw $COMMANDBIN $1
 }
 
-function viw() { # Desc: viw:vim 编辑which命令找到的文件地址
+function viw() { # Desc: function: viw:vim 编辑which命令找到的文件地址
     if [ -f /usr/local/bin/vim ]; then
         local COMMANDBIN=/usr/local/bin/vim
     elif [ -f /opt/homebrew/bin/vim ]; then
@@ -48,7 +48,7 @@ function viw() { # Desc: viw:vim 编辑which命令找到的文件地址
     editorw $COMMANDBIN $1
 }
 
-function nviw() { # Desc: nviw:neovim 编辑which命令找到的文件地址
+function nviw() { # Desc: function: nviw:neovim 编辑which命令找到的文件地址
     if [ -f /usr/local/bin/nvim ]; then
         local COMMANDBIN=/usr/local/bin/nvim
     elif [ -f /opt/homebrew/bin/nvim ]; then
@@ -57,17 +57,17 @@ function nviw() { # Desc: nviw:neovim 编辑which命令找到的文件地址
     editorw $COMMANDBIN $1
 }
 
-function fzf_e() { # Desc: fzf_e:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
+function fzf_e() { # Desc: function: fzf_e:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
     local file
     file=$(fzf-tmux --query="$1" --select-1 --exit-0)
     [ -n "$file" ] && ${EDITOR:-vim} "$file"
 }
 
-function fe() { # Desc: fe:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
+function fe() { # Desc: function: fe:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
     fzf_e $@
 }
 
-function fzf_tags() { # Desc: ftags:search ctags
+function fzf_tags() { # Desc: function: fzf_tags:search ctags
     local line
     [ -e tags ] &&
         line=$(
@@ -77,11 +77,11 @@ function fzf_tags() { # Desc: ftags:search ctags
         -c "silent tag $(cut -f2 <<< "$line")"
 }
 
-function ftags() { # Desc: ftags:search ctags
+function ftags() { # Desc: function: ftags:search ctags
     fzf_tags $@
 }
 
-function v() { # Desc: v:open files in ~/.viminfo
+function v() { # Desc: function: v:open files in ~/.viminfo
     local files
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
@@ -89,7 +89,7 @@ function v() { # Desc: v:open files in ~/.viminfo
     done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 
-function fzf_open_with_editor() { # Desc: fzf_open_with_editor:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
+function fzf_open_with_editor() { # Desc: function: fzf_open_with_editor:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
     local out file key
     out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)
     key=$(head -1 <<< "$out")
@@ -98,9 +98,9 @@ function fzf_open_with_editor() { # Desc: fzf_open_with_editor:Modified version 
         [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
     fi
 }
-alias fo="fzf_open_with_editor"
+alias fo="fzf_open_with_editor"     # Desc: alias: fo:fzf_open_with_editor命令的别名
 
-function ag_open_with_line() { # Desc: ag_open_with_line:fuzzy grep open via ag with line number
+function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep open via ag with line number
     local file
     local line
 
@@ -111,4 +111,4 @@ function ag_open_with_line() { # Desc: ag_open_with_line:fuzzy grep open via ag 
         vim $file +$line
     fi
 }
-alias vg="ag_open_with_line"
+alias vg="ag_open_with_line"    # Desc: alias: vg:ag_open_with_line命令的别名
