@@ -37,6 +37,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then
     [[ -d /opt/homebrew/opt/grep/bin ]] && export PATH="/opt/homebrew/opt/grep/bin:$PATH"
     [[ -d /opt/homebrew/opt/icu4c/bin ]] && export PATH="/opt/homebrew/opt/icu4c/bin:$PATH"
     [[ -d /opt/homebrew/opt/llvm@15/bin ]] && export PATH="/opt/homebrew/opt/llvm@15/bin:$PATH"
+    [[ -d /opt/homebrew/opt/ed/bin ]] && export PATH="/opt/homebrew/opt/ed/bin:$PATH"
 else
     export PATH=/usr/local/rvm/bin:$HOME/.cabal/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:$PATH
 fi

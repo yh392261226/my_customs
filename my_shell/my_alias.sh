@@ -32,8 +32,8 @@ alias l='gls -aH --color=tty'                                                   
 alias ks="lsd -l"                                                                                                # Desc: alias: ks:设置lsd -l命令的别名
 alias cd..='cd ../'                                                                                              # Desc: alias: cd..:Go back 1 directory level (for fast typers)
 alias cd.='cd ..'                                                                                                # Desc: alias: cd.:Go back 1 directory level (for fast typers)
-alias ..='cd ../; lsd -l'                                                                                        # Desc: alias: ..:Go back 1 directory level
-alias ...='cd ../../; lsd -l'                                                                                    # Desc: alias: ...:Go back 2 directory levels
+alias ..='cd ../'                                                                                        # Desc: alias: ..:Go back 1 directory level
+alias ...='cd ../../'                                                                                    # Desc: alias: ...:Go back 2 directory levels
 alias ....='cd ../../..'                                                                                         # Desc: alias: ....:Go back 3 directory levels
 alias .....='cd ../../../..'                                                                                     # Desc: alias: .....:Go back 4 directory levels
 alias ......='cd ../../../../..'                                                                                 # Desc: alias: ......:Go back 5 directory levels

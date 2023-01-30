@@ -136,6 +136,7 @@ function codesign() { # Desc: function: codesign:2019-07-12 TNT破解失效 更�
         return 1
     fi
 }
+alias cs="codesign"
 
 function fzf_figlet_font_selector() { # Desc: function: fzf_figlet_font_selector:Figlet 字体选择器
     cd $(brew --prefix)/figlet/*/share/figlet/fonts
