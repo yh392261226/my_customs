@@ -93,4 +93,13 @@ ln -sf $MYRUNTIME/customs/configs/thefuck                   ~/.config/thefuck
 ln -sf $MYRUNTIME/customs/configs/vifm                      ~/.config/vifm
 ln -sf $MYRUNTIME/customs/configs/wtf                       ~/.config/wtf
 ln -sf $MYRUNTIME/customs/configs/wgetrc                    ~/.wgetrc
+ln -sf $MYRUNTIME/customs/configs/hgignore                  ~/.hgignore
+ln -sf $MYRUNTIME/customs/configs/hgignore_global           ~/.hgignore_global
+ln -sf $MYRUNTIME/customs/configs/ls++.conf                 ~/.ls++.conf
+ln -sf $MYRUNTIME/customs/configs/myclirc                   ~/.myclirc
+ln -sf $MYRUNTIME/customs/configs/npmrc                     ~/.npmrc
+ln -sf $MYRUNTIME/customs/configs/p10k.zsh                  ~/.p10k.zsh
+ln -sf $MYRUNTIME/customs/configs/pearrc                    ~/.pearrc
+ln -sf $MYRUNTIME/customs/configs/procs.toml                ~/.procs.toml
+ln -sf $MYRUNTIME/customs/configs/xonshrc                   ~/.xonshrc
 # ----------------------------------------------------------------------------------- #
