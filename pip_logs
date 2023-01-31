@@ -69,3 +69,5 @@ pip install -U pingtop
 pip install --user -U fzf-dirhistory
 
 pip install -U litecli
+
+pip install -U osxphotos
