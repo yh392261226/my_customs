@@ -102,4 +102,5 @@ ln -sf $MYRUNTIME/customs/configs/p10k.zsh                  ~/.p10k.zsh
 ln -sf $MYRUNTIME/customs/configs/pearrc                    ~/.pearrc
 ln -sf $MYRUNTIME/customs/configs/procs.toml                ~/.procs.toml
 ln -sf $MYRUNTIME/customs/configs/xonshrc                   ~/.xonshrc
+ln -sf $MYRUNTIME/customs/configs/starship                  ~/.starship
 # ----------------------------------------------------------------------------------- #
