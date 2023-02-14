@@ -68,39 +68,79 @@ fi
 
 
 # ----------------------------------------------------------------------------------- #
+mkdir -p ~/bak/config
+mv ~/.gitconfig ~/bak/
 ln -sf $MYRUNTIME/customs/configs/gitconfig                 ~/.gitconfig
+mv ~/.gitignore ~/bak/
 ln -sf $MYRUNTIME/customs/configs/gitignore                 ~/.gitignore
+mv ~/.zellij ~/bak/
 ln -sf $MYRUNTIME/customs/configs/zellij                    ~/.zellij
+mv ~/.tmux.conf ~/bak/
 ln -sf $MYRUNTIME/tmuxconfigs/yanghao.tmux.conf             ~/.tmux.conf
-ln -sf $MYRUNTIME/customs/configs/zellij                    ~/.config/zellij
-ln -sf $MYRUNTIME/customs/configs/starship/starship         ~/.config/starship
-ln -sf $MYRUNTIME/customs/configs/starship/starship.toml    ~/.config/starship.toml
-ln -sf $MYRUNTIME/customs/configs/bat                       ~/.config/bat
-ln -sf $MYRUNTIME/customs/configs/ranger                    ~/.config/ranger
-ln -sf $MYRUNTIME/customs/configs/atuin                     ~/.config/atuin
-ln -sf $MYRUNTIME/customs/configs/cheat                     ~/.config/cheat
-ln -sf $MYRUNTIME/customs/configs/dnote                     ~/.config/dnote
-ln -sf $MYRUNTIME/customs/configs/gitui                     ~/.config/gitui
-ln -sf $MYRUNTIME/customs/configs/gobang                    ~/.config/gobang
-ln -sf $MYRUNTIME/customs/configs/htop                      ~/.config/htop
-ln -sf $MYRUNTIME/customs/configs/http-prompt               ~/.config/http-prompt
-ln -sf $MYRUNTIME/customs/configs/litecli                   ~/.config/litecli
-ln -sf $MYRUNTIME/customs/configs/lsd                       ~/.config/lsd
-ln -sf $MYRUNTIME/customs/configs/neofetch                  ~/.config/neofetch
-ln -sf $MYRUNTIME/customs/configs/pgcli                     ~/.config/pgcli
-ln -sf $MYRUNTIME/customs/configs/spotify-tui               ~/.config/spotify-tui
-ln -sf $MYRUNTIME/customs/configs/thefuck                   ~/.config/thefuck
-ln -sf $MYRUNTIME/customs/configs/vifm                      ~/.config/vifm
-ln -sf $MYRUNTIME/customs/configs/wtf                       ~/.config/wtf
+mv ~/.wgetrc ~/bak/
 ln -sf $MYRUNTIME/customs/configs/wgetrc                    ~/.wgetrc
+mv ~/.hgignore ~/bak/
 ln -sf $MYRUNTIME/customs/configs/hgignore                  ~/.hgignore
+mv ~/.hgignore_global ~/bak/
 ln -sf $MYRUNTIME/customs/configs/hgignore_global           ~/.hgignore_global
+mv ~/.ls++.conf ~/bak/
 ln -sf $MYRUNTIME/customs/configs/ls++.conf                 ~/.ls++.conf
+mv ~/.myclirc ~/bak/
 ln -sf $MYRUNTIME/customs/configs/myclirc                   ~/.myclirc
+mv ~/.npmrc ~/bak/
 ln -sf $MYRUNTIME/customs/configs/npmrc                     ~/.npmrc
+mv ~/.p10k.zsh ~/bak/
 ln -sf $MYRUNTIME/customs/configs/p10k.zsh                  ~/.p10k.zsh
+mv ~/.pearrc ~/bak/
 ln -sf $MYRUNTIME/customs/configs/pearrc                    ~/.pearrc
+mv ~/.procs.toml ~/bak/
 ln -sf $MYRUNTIME/customs/configs/procs.toml                ~/.procs.toml
+mv ~/.xonshrc ~/bak/
 ln -sf $MYRUNTIME/customs/configs/xonshrc                   ~/.xonshrc
+mv ~/.starship ~/bak/
 ln -sf $MYRUNTIME/customs/configs/starship                  ~/.starship
+
+
+
+mv ~/.config/zellij ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/zellij                    ~/.config/zellij
+mv ~/.config/starship ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/starship/starship         ~/.config/starship
+mv ~/.config/starship.toml ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/starship/starship.toml    ~/.config/starship.toml
+mv ~/.config/bat ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/bat                       ~/.config/bat
+mv ~/.config/ranger ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/ranger                    ~/.config/ranger
+mv ~/.config/atuin ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/atuin                     ~/.config/atuin
+mv ~/.config/cheat ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/cheat                     ~/.config/cheat
+mv ~/.config/dnote ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/dnote                     ~/.config/dnote
+mv ~/.config/gitui ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/gitui                     ~/.config/gitui
+mv ~/.config/gobang ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/gobang                    ~/.config/gobang
+mv ~/.config/htop ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/htop                      ~/.config/htop
+mv ~/.config/http-prompt ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/http-prompt               ~/.config/http-prompt
+mv ~/.config/litecli ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/litecli                   ~/.config/litecli
+mv ~/.config/lsd ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/lsd                       ~/.config/lsd
+mv ~/.config/neofetch ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/neofetch                  ~/.config/neofetch
+mv ~/.config/pgcli ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/pgcli                     ~/.config/pgcli
+mv ~/.config/spotify-tui ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/spotify-tui               ~/.config/spotify-tui
+mv ~/.config/thefuck ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/thefuck                   ~/.config/thefuck
+mv ~/.config/vifm ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/vifm                      ~/.config/vifm
+mv ~/.config/wtf ~/bak/config/
+ln -sf $MYRUNTIME/customs/configs/wtf                       ~/.config/wtf
+
 # ----------------------------------------------------------------------------------- #
