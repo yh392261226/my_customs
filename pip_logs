@@ -71,3 +71,5 @@ pip install --user -U fzf-dirhistory
 pip install -U litecli
 
 pip install -U osxphotos
+
+pip install -U fzf-dirhistory
