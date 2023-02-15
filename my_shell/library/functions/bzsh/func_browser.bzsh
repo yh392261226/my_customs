@@ -236,7 +236,14 @@ if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
             echo "fi\n" >> $tmpshell
         fi
         bash $tmpshell > /dev/null 2>&1 &
-    
+
+        if [[ ! -f $FULLFILENAMESDB2 ]]; then
+            local SQL="CREATE TABLE pictures ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'pic_name' TEXT DEFAULT NULL, 'created_at' DATETIME NOT NULL DEFAULT CURRENT_TIME, 'pic_path' TEXT DEFAULT NULL);"
+            $COMMANDBIN $FULLFILENAMESDB2 <<EOF
+$SQL
+EOF
+        fi
+
         fswatch -0 $PICPATH | while read -d "" event; do
             if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
                 fullfilename=${event}
