@@ -30,10 +30,11 @@ alias l='gls -aH --color=tty'                                                   
 [[ -f /opt/homebrew/bin/lsd ]] && alias cls='/opt/homebrew/bin/lsd'                                              # Desc: alias: cls:(M1)设置环境变量为/opt/homebrew/bin/lsd
 [[ -f /usr/local/bin/ls++ ]] && alias lll="/usr/local/bin/ls++"                                                  # Desc: alias: lll:设置环境变量为/usr/local/bin/ls++
 alias ks="lsd -l"                                                                                                # Desc: alias: ks:设置lsd -l命令的别名
+alias lv="lsd -la"                                                                                               # Desc: alias: lv:设置lsd -la命令的别名
 alias cd..='cd ../'                                                                                              # Desc: alias: cd..:Go back 1 directory level (for fast typers)
 alias cd.='cd ..'                                                                                                # Desc: alias: cd.:Go back 1 directory level (for fast typers)
-alias ..='cd ../'                                                                                        # Desc: alias: ..:Go back 1 directory level
-alias ...='cd ../../'                                                                                    # Desc: alias: ...:Go back 2 directory levels
+alias ..='cd ../'                                                                                                # Desc: alias: ..:Go back 1 directory level
+alias ...='cd ../../'                                                                                            # Desc: alias: ...:Go back 2 directory levels
 alias ....='cd ../../..'                                                                                         # Desc: alias: ....:Go back 3 directory levels
 alias .....='cd ../../../..'                                                                                     # Desc: alias: .....:Go back 4 directory levels
 alias ......='cd ../../../../..'                                                                                 # Desc: alias: ......:Go back 5 directory levels
@@ -55,7 +56,7 @@ alias du="ncdu --color dark -rr -x --exclude .git --exclude node_modules"       
 #----------------------------------------------------------------------------------------------------------------
 alias difff="diff-so-fancy"                                                                                      # Desc: alias: difff:diff so fancy命令的别名
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"                                                  # Desc: alias: cleanupDS:查找并删除当前目录中的.DS_Store文件
-alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"                                                                                                          # Desc: alias: cleanupLS:忘记该别名的作用了
+alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"                                                                                                  # Desc: alias: cleanupLS:忘记该别名的作用了
 alias qfind="find . -name "                                                                                      # Desc: alias: qfind:Quickly search for file
 #alias rm='/usr/local/bin/trash'                                                                                 # Desc: alias: rm:设置为trash替代命令
 alias rmDS="remove_DS_files"                                                                                     # Desc: alias: rmDS:removeDS命令的别名

@@ -238,3 +238,23 @@ function fzf_theme_selector() { # Desc: function: fzf_theme_selector:fzf主题�
     [[ "" != "$choose_theme" ]] && builtin source $choose_theme
 }
 alias ft='fzf_theme_selector'   # Desc: alias: ft:fzf_theme_selector命令的别名
+
+function command_sl_selector() { # Desc: function command_sl_selector:输入命令sl并执行时，二次验证选择
+    echo "执行命令行小火车：1"
+    echo "执行ls命令：2"
+    read choose
+    case "$choose" in
+    "1")
+        [[ -f /opt/homebrew/bin/sl ]] && /opt/homebrew/bin/sl
+        [[ -f /usr/local/bin/sl ]] && /usr/local/bin/sl
+    ;;
+    "2")
+        [[ -f /usr/local/bin/lsd ]] && /usr/local/bin/lsd -la
+        [[ -f /opt/homebrew/bin/lsd ]] && /opt/homebrew/bin/lsd -la
+    ;;
+    "*")
+        echo "无效选择，自动退出..."
+    ;;
+    esac
+}
+alias sl='command_sl_selector'  # Desc: alias: sl:command_sl_selector命令的别名
