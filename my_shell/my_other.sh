@@ -241,6 +241,10 @@ if [ ! -d $MYRUNTIME/customs/others/iterm2-theme-toggle ]; then
     git clone git@github.com:yh392261226/iterm2-theme-toggle.git $MYRUNTIME/customs/others/iterm2-theme-toggle
 fi
 
+if [ ! -d $MYRUNTIME/customs/others/webui-aria2 ]; then
+    git clone https://github.com/ziahamza/webui-aria2 $MYRUNTIME/customs/others/webui-aria2
+fi
+
 #[[ -f /opt/homebrew/opt/autoenv/activate.sh ]] && source /opt/homebrew/opt/autoenv/activate.sh
 #[[ -f /usr/local/opt/autoenv/activate.sh ]] && source /usr/local/opt/autoenv/activate.sh
 [[ -f /opt/homebrew/bin/pokemon ]] && alias ding="/opt/homebrew/bin/pokemon"

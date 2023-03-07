@@ -31,6 +31,7 @@ echo "Installing Download Softwares ..."
     brew install curl
     brew install wget
     brew install burl
+    brew install aria2
 #]]]
 #-----------------------------------------------------------#
 echo "Installing Libraries ..."

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Desc: aria2的自定义启动脚本
+
+COMMANDBINPATH=aria2c
+CONFPATH=$HOME/.aria2/aria2.conf
+WEBUI=$MYRUNTIME/customs/others/webui-aria2/docs/index.html
+
+echo "命令：$COMMANDBINPATH"
+echo "配置：$CONFPATH"
+
+$COMMANDBINPATH --conf-path="$CONFPATH" -D
+
+open $WEBUI
