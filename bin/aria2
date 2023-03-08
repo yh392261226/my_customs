@@ -5,9 +5,32 @@ COMMANDBINPATH=aria2c
 CONFPATH=$HOME/.aria2/aria2.conf
 WEBUI=$MYRUNTIME/customs/others/webui-aria2/docs/index.html
 
-echo "命令：$COMMANDBINPATH"
-echo "配置：$CONFPATH"
+config() {
+    val=$(grep -E "^$1=" $CONFPATH 2>/dev/null | head -n 1 | cut -d '=' -f 2-)
+    echo -n $val
+}
 
-$COMMANDBINPATH --conf-path="$CONFPATH" -D
+case "$1" in
+    "start")
+        echo "命令：$COMMANDBINPATH"
+        echo "配置：$CONFPATH"
+        $COMMANDBINPATH --conf-path="$CONFPATH" -D
+    ;;
+    "web")
+        open $WEBUI
+    ;;
+    "secret")
+        echo $(config rpc-secret)
+    ;;
+    "dir")
+        open $(config dir)
+    ;;
+    *)
+        echo "Usage:"
+        echo "aria2 start 启动"
+        echo "aria2 web   打开WebUI"
+        echo "aria2 secret读取配置文件中的密钥"
+        echo "aria2 dir   打开下载目录"
+    ;;
+esac
 
-open $WEBUI
