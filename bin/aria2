@@ -17,10 +17,11 @@ case "$1" in
         $COMMANDBINPATH --conf-path="$CONFPATH" -D
     ;;
     "web")
-        open $WEBUI
+        open -a "/Applications/Google Chrome.app" $WEBUI
     ;;
     "secret")
-        echo $(config rpc-secret)
+        echo $(config rpc-secret) | pbcopy
+        echo "已复制至剪切板..."
     ;;
     "dir")
         open $(config dir)
