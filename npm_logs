@@ -250,3 +250,4 @@ npm install -g tiny-care-terminal
 npm install -g intelephense
 npm install -g what-is-x
 npm install -g history fz-browse
+npm install -g pake-cli

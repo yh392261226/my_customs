@@ -438,8 +438,8 @@ isColorTerm() {
 
 list() {
 	case "$filterFlag" in
-		--light) filter=2 ;;
-		--dark) filter=1 ;;
+		--light|-li) filter=2 ;;
+		--dark|-d) filter=1 ;;
 		*) filter=0 ;;
 	esac
 
@@ -506,6 +506,14 @@ fi
 case "$1" in
 	--dark|--light)
 		filterFlag=$1
+		shift
+		;;
+	-d)
+		filterFlag="--dark"
+		shift
+		;;
+	-li)
+		filterFlag="--light"
 		shift
 		;;
 esac
@@ -615,6 +623,12 @@ SCRIPTING
 	;;
 -v|--version)
 	echo "$VERSION (original source https://github.com/lemnos/theme.sh)"
+	;;
+-d)
+	set_current_theme "--dark"
+	;;
+-li)
+	set_current_theme "--light"
 	;;
 *)
 	set_current_theme "$1"
