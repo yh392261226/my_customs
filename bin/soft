@@ -1,18 +1,43 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 ### Desc: 打开经常使用的软件网址
 
 WEBSITES=$MYRUNTIME/tools/software_websites.log
 
-[[ ! -f $WEBSITES ]] && echo "Website log file does not exists !!! " && exit 0
+if [ ! -f $WEBSITES ]; then
+    [[ ! -d $(dirname $WEBSITES) ]] && mkdir -p $(dirname $WEBSITES)
+    touch $WEBSITES
+fi
 [[ -f $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh
 
-if [ ""  = "$(cat $WEBSITES)" ]; then
-    echo "It's empty in websites records !!!"
-    exit 0
-fi
+function list() {
+    if [ ""  = "$(cat $WEBSITES)" ]; then
+        echo "It's empty in websites records !!!"
+        exit 0
+    fi
+    choose=$(cat $WEBSITES | fzf)
+    if [ "" != "$choose" ]; then
+        #/usr/bin/open -a "/Applications/Google Chrome.app" "$choose"
+        chrome "$choose"
+    fi
+}
 
-choose=$(cat $WEBSITES | fzf)
-if [ "" != "$choose" ]; then
-    #/usr/bin/open -a "/Applications/Google Chrome.app" "$choose"
-    chrome "$choose"
-fi
+function help() {
+    echo "''''''''''''''''''''''''''"
+    echo "'  edit|e|add|a 编辑记录 '"
+    echo "'  help|e       帮助信息 '"
+    echo "''''''''''''''''''''''''''"
+}
+
+
+case $1 in
+    "e"|"edit"|"a"|"add")
+        vim $WEBSITES
+    ;;
+    "h"|"help")
+        help
+    ;;
+    *)
+        echo "Choose Your Need Or Exec [soft help/h] To Read Help"
+        list
+    ;;
+esac
