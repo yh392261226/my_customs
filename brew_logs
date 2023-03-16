@@ -567,6 +567,7 @@ echo "Installing Cast Softwares ..."
     brew install cmatrix
     brew install confuse
     brew install cpanminus
+    brew install --cask he3-app/he3/he3
 #]]]
 
 #-----------------------------------------------------------#

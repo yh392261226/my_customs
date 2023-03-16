@@ -16,8 +16,8 @@ function list() {
     fi
     choose=$(cat $WEBSITES | fzf)
     if [ "" != "$choose" ]; then
-        #/usr/bin/open -a "/Applications/Google Chrome.app" "$choose"
-        chrome "$choose"
+        /usr/bin/open -a "/Applications/Google Chrome.app" "$choose"
+        #chrome "$choose"
     fi
 }
 
