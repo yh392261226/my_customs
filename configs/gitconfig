@@ -199,3 +199,5 @@ cmd=\"/Applications/UltraCompare.app/Contents/MacOS/UltraCompare\" -gitdt "$LOCA
 [receive]
 	advertisePushOptions = true
 	procReceiveRefs = refs/for
+[safe]
+	directory = /opt/homebrew/Library/Taps/homebrew/homebrew-cask
