@@ -52,7 +52,7 @@
     dein_installed                  = 1
     # autocomplete_method           = "deoplete"
     autocomplete_method             = "coc"
-    coc_global_extensions           = ['coc-json', 'coc-git']
+    coc_global_extensions           = ['coc-json', 'coc-git', 'coc-go', 'coc-golines', 'coc-html', 'coc-php-cs-fixer', 'coc-phpls', 'coc-prettier', 'coc-psalm', 'coc-pyright', 'coc-sh', 'coc-sql', 'coc-toml', 'coc-tsserver', 'coc-xml', 'coc-markdownlint', 'coc-vetur', 'coc-imselect', 'coc-fzf-preview']
     plugin_manager_max_processes    = 8
     enable_vimfiler_filetypeicon    = 0
     unite_leader                    = 'f'
@@ -370,6 +370,7 @@ frequency                           = "hourly" # 可供选择的频率有：dail
     tmuxline_separators_alt         = "arrow"    #设置 tmux 的分隔符，默认等同于 SpaceVim 的 statusline_iseparator，可选值包括：arrow, bar, nil
 [[layers]]
     name                            = "cscope"
+    list_files_command              = ['rg', '--color=never', '--files', '--type', 'c']
 [[layers]]
     name                            = "exprfold"
 [[layers]]
@@ -448,6 +449,8 @@ frequency                           = "hourly" # 可供选择的频率有：dail
 # 添加自定义插件
 [[custom_plugins]]
     repo                            = "lilydjwg/colorizer"
+    on_cmd                          = ['ColorHighlight', 'ColorToggle']
+    on_func                         = 'colorizer#ColorToggle'
     merged                          = 0
 [[custom_plugins]]
     repo                            = "SpaceVim/nvim-yarp"
@@ -529,3 +532,6 @@ frequency                           = "hourly" # 可供选择的频率有：dail
 #     repo                            = "nvim-telescope/telescope.nvim"
 # [[custom_plugins]]
 #     repo                            = "ibhagwan/fzf-lua"
+[[custom_plugins]]
+    repo                            = "https://gitlab.com/code-stats/code-stats-vim.git"
+    merged                          = false
