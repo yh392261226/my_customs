@@ -7,6 +7,8 @@ export FZF_COMPLETION_OPTS="-1 --cycle --inline-info --ansi --height 60% --borde
 export FZF_TAB_OPTS=(-1 --cycle --inline-info --ansi --height 90% --border --layout=reverse  --expect=/ --no-preview)
 export FZF_TAB_OPTS=(-1 --cycle --inline-info --ansi --height 90% --border --layout=reverse  --expect=/ --priview '(${MYRUNTIME}/customs/bin/mypreview {}) 2> /dev/null | head -500'  --preview-window right:70%:noborder --color 'fg:#bbccdd,fg+:#ddeeff,bg:#334455,preview-bg:#223344,border:#778899')
 export FZF_CTRL_T_OPTS="--preview '(${MYRUNTIME}/customs/bin/mypreview {}) 2> /dev/null | head -200'"
+export FZF_CTRL_R_OPTS="--reverse"
+export FZF_TMUX_OPTS="-p"
 _fzf_comprun() {
   local command=$1
   shift
