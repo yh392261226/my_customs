@@ -258,3 +258,26 @@ function command_sl_selector() { # Desc: function command_sl_selector:输入命�
     esac
 }
 alias sl='command_sl_selector'  # Desc: alias: sl:command_sl_selector命令的别名
+
+function fzf_man_widget() { # Desc: function fzf_man_widget:fzf版本的man命令
+  batman="man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
+   man -k . | sort \
+   | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue;} 1' \
+   | fzf  \
+      -q "$1" \
+      --ansi \
+      --tiebreak=begin \
+      --prompt=' Man > '  \
+      --preview-window '50%,rounded,<50(up,85%,border-bottom)' \
+      --preview "${batman}" \
+      --bind "enter:execute(man {1})" \
+      --bind "alt-c:+change-preview(cht.sh {1})+change-prompt(ﯽ Cheat > )" \
+      --bind "alt-m:+change-preview(${batman})+change-prompt( Man > )" \
+      --bind "alt-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )"
+  #zle reset-prompt
+  echo ""
+}
+# `Ctrl-H` keybinding to launch the widget (this widget works only on zsh, don't know how to do it on bash and fish (additionaly pressing`ctrl-backspace` will trigger the widget to be executed too because both share the same keycode)
+zle -N fzf_man_widget
+bindkey '^h' fzf_man_widget
+alias fw="fzf_man_widget" # Desc: alias: fw:fzf_man_widget命令的别名

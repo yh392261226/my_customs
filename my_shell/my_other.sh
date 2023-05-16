@@ -363,3 +363,11 @@ git config --global alias.subst "submodule status --recursive"
 default_user=$(/usr/bin/whoami)
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
 [[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start
+
+#
+#----------------------------------------------------------------------------------------------------------------
+#
+alias config=/usr/bin/git --git-dir=$HOME/.cfg --work-tree=$HOME
+export DOTBARE_DIR="$HOME/.cfg"
+export DOTBARE_TREE="$HOME"
+alias config=dotbare
