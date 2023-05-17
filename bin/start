@@ -4,6 +4,7 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
 TEMPDIR=$MYRUNTIME/tools/m_date_caches
 CURRENTDATE=$(date +%Y-%m-%d)
+IFFORTUNE=$(cat $HOME/.fortune)
 
 
 if [ ! -d $TEMPDIR ]; then
@@ -20,13 +21,14 @@ if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 		#delete all file without current date file
 		find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
 	
-	echo
-	echo "=============== Quote Of The Day ==============="
-	echo
-	#fortune
-	fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat -a -d 30
-#	echo
-#	echo "================================================"
-#	echo
-
+    if [ "1" = "$IFFORTUNE" ]; then
+	    echo
+	    echo "=============== Quote Of The Day ==============="
+	    echo
+	    #fortune
+	    fortune 10% fortunes 35% chinese 30% tang300 25% song100 | lolcat -a -d 30
+    #	echo
+    #	echo "================================================"
+    #	echo
+    fi
 fi
