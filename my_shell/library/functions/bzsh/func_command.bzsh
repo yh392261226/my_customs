@@ -277,7 +277,4 @@ function fzf_man_widget() { # Desc: function fzf_man_widget:fzf版本的man命�
   #zle reset-prompt
   echo ""
 }
-# `Ctrl-H` keybinding to launch the widget (this widget works only on zsh, don't know how to do it on bash and fish (additionaly pressing`ctrl-backspace` will trigger the widget to be executed too because both share the same keycode)
-zle -N fzf_man_widget
-bindkey '^h' fzf_man_widget
 alias fw="fzf_man_widget" # Desc: alias: fw:fzf_man_widget命令的别名
