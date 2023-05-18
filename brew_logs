@@ -949,4 +949,4 @@ brew install atool
 brew install docx2txt
 brew install skhd
 brew install yabai
-
+brew install qlcolorcode qlstephen qlmarkdown quicklook-json qlimagesize suspicious-package apparency quicklookase qlvideo
