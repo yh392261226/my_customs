@@ -368,9 +368,9 @@ frequency                           = "hourly" # 可供选择的频率有：dail
     tmux_navigator_modifier         = "alt"      #设置 tmux 的移动快捷键，默认是 ctrl，可选值包括：alt, ctrl
     tmuxline_separators             = "curve"        #设置 tmux 的主要分隔符，默认等同于 SpaceVim 的 statusline_separator, 可选值包括：arrow, curve, slant, barce, fire, nil
     tmuxline_separators_alt         = "arrow"    #设置 tmux 的分隔符，默认等同于 SpaceVim 的 statusline_iseparator，可选值包括：arrow, bar, nil
-[[layers]]
-    name                            = "cscope"
-    list_files_command              = ['rg', '--color=never', '--files', '--type', 'c']
+#[[layers]]
+#    name                            = "cscope"
+#    list_files_command              = ['rg', '--color=never', '--files', '--type', 'c']
 [[layers]]
     name                            = "exprfold"
 [[layers]]

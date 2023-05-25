@@ -108,6 +108,10 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     ln -sf $MYRUNTIME/customs/configs/zprofile                  ~/.zprofile
     mv ~/.yarnrc ~/bak/
     ln -sf $MYRUNTIME/customs/configs/yarnrc                    ~/.yarnrc
+    mv ~/.yabairc ~/bak/
+    ln -sf $MYRUNTIME/customs/configs/yabairc                   ~/.yabairc
+    mv ~/.skhdrc ~/bak/
+    ln -sf $MYRUNTIME/customs/configs/skhdrc                    ~/.skhdrc
     
     
     
