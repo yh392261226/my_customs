@@ -951,3 +951,5 @@ brew install skhd
 brew install yabai
 brew install qlcolorcode qlstephen qlmarkdown quicklook-json qlimagesize suspicious-package apparency quicklookase qlvideo
 brew install wireguard-tools
+brew install tealdeer
+brew install helix

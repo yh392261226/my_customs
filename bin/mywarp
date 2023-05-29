@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+MYRUNTIME=$(cat ~/.myruntime)
+WARPTOOLS=$MYRUNTIME/customs/others/warpip
+
+
+function get_warpip_list() {
+    cd $WARPTOOLS
+    bash warp-yxip-mac.sh
+}
+
+function set_warpip() {
+    choose=$1
+    if [ "" != "$choose" ]; then
+        warp-cli clear-custom-endpoint; warp-cli set-custom-endpoint "$choose"
+    fi
+}
+
+
+case "$1" in
+    "list")
+        get_warpip_list
+        ;;
+    "set")
+        set_warpip "$2"
+        ;;
+    *)
+        get_warpip_list
+        ;;
+esac
