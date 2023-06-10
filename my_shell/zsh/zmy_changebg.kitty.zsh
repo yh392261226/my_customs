@@ -1,21 +1,9 @@
-show_msg=0 #是否显示当前切换图片地址提示
-[[ -f /usr/local/bin/php ]] && phpbin=/usr/local/bin/php
-[[ -f /opt/homebrew/bin/php ]] && phpbin=/opt/homebrew/bin/php
-PICTURES_PATH=$MYPATH/pictures/
-emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
-CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
-CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
-ITERMPATH="/Applications/iTerm.app"
-PHP_TOOL=$MYPATH/customs/others/pictures.php
-source $MYPATH/customs/my_shell/zsh/zmy_changebg.kitty.zsh
+ITERMPATH2="/Applications/kitty.app"
 
-if [ -z $BGTHUMB ]; then
-  BGTHUMB=0
-fi
-##### 背景图变换
-if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统 
-    if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
-        if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
+
+if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
+  if [ -d "$ITERMPATH2" ]; then #判断是否安装了kitty
+        if [ "$(env | grep '__CFBundleIdentifier=' | sed 's/__CFBundleIdentifier=//')" = "net.kovidgoyal.kitty" ] && [ "$(env | grep 'KITTY_WINDOW_ID=' | sed 's/KITTY_WINDOW_ID=//')" != "" ]; then #判断当前使用的是否是iterm
             image_index=-1
             #图像缩略图
             bg_thumb() {
@@ -39,6 +27,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bg_change() {
                 image_path=$1
                 image_index=$2
+                
                 CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
                 if [ "" != "$image_index" ]; then
                     if [ -f $CURRENT_PICTURE_MARK ]; then
@@ -57,26 +46,10 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     fi
                 fi
 
-                if [ "$CURITERMVERSION" = "iTerm2" ]; then
-                    osascript -e "tell application \"iTerm.app\"
-                        tell current window
-                            tell current session
-                                set background image to \"$image_path\"
-                            end tell
-                        end tell
-                    end tell"
-                else
-                    osascript -e "tell application \"iTerm\"
-                        set current_terminal to (current terminal)
-                        tell current_terminal
-                            set current_session to (current session)
-                            tell current_session
-                                set background image path to \"$image_path\"
-                            end tell
-                        end tell
-                    end tell"
-                fi
-                if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
+                kitty @ set-background-image $image_path
+                # kitty @ background_opacity 0.6
+                
+                if [ "$BGTHUMB" -gt "0" ] && [ "" != "$image_path" ]; then
                   bg_thumb $image_path
                   for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
                   echo ""
@@ -182,7 +155,4 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bindkey '^B' bg_empty #//Ctrl B 背景换成空的
         fi
     fi
-
-#    控制打开终端就自动随机更换一次背景
-#     bg_rand
 fi

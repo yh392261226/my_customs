@@ -155,5 +155,8 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     ln -sf $MYRUNTIME/customs/configs/vifm                      ~/.config/vifm
     mv ~/.config/wtf ~/bak/config/
     ln -sf $MYRUNTIME/customs/configs/wtf                       ~/.config/wtf
+    mv ~/.config/kitty/kitty.conf                               ~/bak/config/
+    mkdir ~/.config/kitty/
+    ln -sf $MYRUNTIME/customs/configs/kitty.conf                ~/.config/kitty/kitty.conf
 fi
 # ----------------------------------------------------------------------------------- #

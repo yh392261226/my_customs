@@ -5,6 +5,7 @@ MYRUNTIME=$(cat $HOME/.myruntime)
 TEMPDIR=$MYRUNTIME/tools/m_date_caches
 CURRENTDATE=$(date +%Y-%m-%d)
 IFFORTUNE=$(cat $HOME/.fortune)
+IFCAL=$(cat $HOME/.cal)
 
 
 if [ ! -d $TEMPDIR ]; then
@@ -13,10 +14,12 @@ fi
 
 if [ ! -f $TEMPDIR/${CURRENTDATE}_mark ]; then
 	#$MYRUNTIME/customs/bin/myweather;
-	echo
-	echo "============= Calendar Of The Month ============"
-	echo
+    if [ "1" = "$IFCAL" ]; then
+	    echo
+	    echo "============= Calendar Of The Month ============"
+	    echo
 		/usr/bin/cal | lolcat;
+    fi
 		echo ${CURRENTDATE} > $TEMPDIR/${CURRENTDATE}_mark;
 		#delete all file without current date file
 		find $TEMPDIR/ ! -name "${CURRENTDATE}_mark" -type f -exec rm -f {} \;
