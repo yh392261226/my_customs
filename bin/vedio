@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+### Desc:下载视频及打开视频文件夹
+### Author:yh392261226
+### Date:2023-06-14
+
+VEDIOPATH=$(cat $HOME/.vediopath)
+DOWNAPP="/Applications/Downie 4.app"
+
+
+if [ "" = "$VEDIOPATH" ]; then
+    mkdir $VEDIOPATH
+fi
+
+if [ ! -d "$DOWNAPP" ]; then
+    echo "Does not have App Downie !"
+    exit 0
+fi
+
+
+case "$1" in
+    "statistics" | "s")
+        echo "Vedio Num:"
+        ls $VEDIOPATH/ | wc -l
+        echo "Vedio Size:"
+        /usr/bin/du -sh $VEDIOPATH | awk '{print $1}'
+        ;;
+    "get" | "g")
+        /usr/bin/open -a "$DOWNAPP"
+        
+        ;;
+    "watch" | "w")
+        open $VEDIOPATH
+        ;;
+    *)
+        echo "Usage"
+        echo "vedio statistics|s,  get|g, watch|w"
+        echo 
+        ;;
+esac
