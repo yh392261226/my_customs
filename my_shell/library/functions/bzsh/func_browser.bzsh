@@ -180,7 +180,7 @@ function goodfon() { # Desc: function: goodfon:打开goodfon.ru
         [[ -d "$SECONDBROWSER" ]] && /usr/bin/open -a "$SECONDBROWSER" "$URL"
     fi
 }
-alias gf="goodfon"      # Desc: alias: gf:goodfon命令的别名
+alias gfon="goodfon"      # Desc: alias: gf:goodfon命令的别名
 
 function _checkDirFull() {
     if [ "" != "$1" ]; then

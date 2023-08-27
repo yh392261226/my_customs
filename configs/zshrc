@@ -30,3 +30,5 @@ fi
 [ -n "$DESK_ENV" ] && source "$DESK_ENV" || true
 
 source ~/.config/broot/launcher/bash/br
+
+alias gf=gf

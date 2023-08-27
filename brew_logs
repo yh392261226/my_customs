@@ -953,3 +953,4 @@ brew install qlcolorcode qlstephen qlmarkdown quicklook-json qlimagesize suspici
 brew install wireguard-tools
 brew install tealdeer
 brew install helix
+brew install mprocs

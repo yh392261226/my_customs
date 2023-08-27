@@ -293,6 +293,8 @@ copy_on_select yes
 dynamic_background_opacity 0.6
 
 # BEGIN_KITTY_THEME
-# Birds Of Paradise
+# Batman
 include current-theme.conf
+# https://github.com/yurikhan/kitty_grab/blob/master/grab.conf.example
+include grab.conf
 # END_KITTY_THEME

@@ -510,8 +510,8 @@ frequency                           = "hourly" # 可供选择的频率有：dail
     floaterm_height                 = 0.9
     floaterm_keymap_toggle          = '<F12>'
 ### Un Setting
-[[custom_plugins]]
-    repo                            = "mrjones2014/smart-splits.nvim"
+#[[custom_plugins]]
+#    repo                            = "mrjones2014/smart-splits.nvim"
 [[custom_plugins]]
     repo                            = "mrjones2014/legendary.nvim"
 [[custom_plugins]]

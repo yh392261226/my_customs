@@ -593,11 +593,19 @@ case "$1" in
 		checkOprate_favo
 		truncate_favo
 		;;
+  "ta"|"thumbandadd")
+    thumb_favo $BACKGROUNDIMG
+    echo "Add favo or not, Type your choice : "; read choose
+    if [ "$choose" = "Y" ] || [ "$choose" = "yes" ] || [ "$choose" = "y" ]; then
+      checkOprate_favo
+		  add_favo
+    fi
+    ;;
 	"thumb"|"t")
 		if [ "" != "$2" ]; then
 			thumb_favo $2 $3
-    	else
-      		thumb_favo $BACKGROUNDIMG
+    else
+    	thumb_favo $BACKGROUNDIMG
 		fi
 		;;
   	"scur"|"setcurent")
