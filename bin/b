@@ -41,7 +41,7 @@ EOF
     [[ "" = "$1" ]] && return 1
     local tmp_path=$(dirname $1)
     local tmp_file=$(basename $1)
-    local SQL='insert into pictures (pic_name, pic_path) values ("'"$tmp_file"'", "'"$tmp_path"'");'
+    local SQL="insert into pictures (pic_name, pic_path) values ('"$tmp_file"', '"$tmp_path"');"
     $COMMANDBIN $FULLFILENAMESDBFILE <<EOF
 $SQL
 EOF
@@ -64,7 +64,7 @@ append2TMPSQLFILE() {
     [[ "" = "$1" ]] && return 1
     local tmp_path=$(dirname $1)
     local tmp_file=$(basename $1)
-    echo 'insert into pictures (pic_name, pic_path) values ("'"$tmp_file"'", "'"$tmp_path"'");' >> $TMPSQLFILEPATH
+    echo "insert into pictures (pic_name, pic_path) values ('"$tmp_file"', '"$tmp_path"');" >> $TMPSQLFILEPATH
 }
 
 recordDB() {

@@ -277,7 +277,8 @@ EOF
                         fi
                     else
                         local tmp_path=$(dirname $fullfilename)
-                        SQL='insert into pictures (pic_name, pic_path) values ("'"$filename"'", "'"$tmp_path"'");'
+                        # SQL='insert into pictures (pic_name, pic_path) values ("'"$filename"'", "'"$tmp_path"'");'
+                        SQL="insert into pictures (pic_name, pic_path) values ('"$filename"', '"$tmp_path"');"
                         $COMMANDBIN $FULLFILENAMESDB2 <<EOF
 $SQL
 EOF
