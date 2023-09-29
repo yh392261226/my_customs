@@ -39,7 +39,8 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bg_change() {
                 image_path=$1
                 image_index=$2
-                CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
+#                CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
+                CURITERMVERSION=$(env |grep 'LC_TERMINAL=' |sed 's,LC_TERMINAL=,,')
                 if [ "" != "$image_index" ]; then
                     if [ -f $CURRENT_PICTURE_MARK ]; then
                         /bin/rm -f $CURRENT_PICTURE_MARK
