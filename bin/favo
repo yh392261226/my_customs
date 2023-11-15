@@ -595,7 +595,7 @@ case "$1" in
 		;;
   "ta"|"thumbandadd")
     thumb_favo $BACKGROUNDIMG
-    echo "Add favo or not, Type your choice : "; read choose
+    echo "Add favo or not, Type your choice, y|n : "; read choose
     if [ "$choose" = "Y" ] || [ "$choose" = "yes" ] || [ "$choose" = "y" ]; then
       checkOprate_favo
 		  add_favo
