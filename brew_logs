@@ -954,3 +954,5 @@ brew install wireguard-tools
 brew install tealdeer
 brew install helix
 brew install mprocs
+brew install loc
+brew install prettyping
