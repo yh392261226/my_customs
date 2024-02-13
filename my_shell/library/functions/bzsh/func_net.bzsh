@@ -58,6 +58,16 @@ function set_proxy() { # Desc: function: set_proxy:设置命令行代理
 }
 alias setproxy="set_proxy"      # Desc: alias: setproxy:set_proxy命令的别名
 
+function proxy_port_config() { # Desc: function: configproxy:设置proxy代理端口
+    vim $MYRUNTIME/tools/m_proxy
+}
+alias configproxy="proxy_port_config"	# Desc: alias: configproxy:proxy_port_config设置proxy代理端口
+
+function proxy_port_cat() { # Desc: function: catproxy:察看proxy代理设置
+    cat $MYRUNTIME/tools/m_proxy
+}
+alias catproxy="proxy_port_cat"    # Desc: alias: catproxy:proxy_port_cat察看proxy代理设置
+
 function unset_proxy() { # Desc: function: unset_proxy:取消设置命令行代理
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }
