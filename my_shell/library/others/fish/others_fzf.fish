@@ -8,6 +8,7 @@ set -U FZF_TAB_OPTS (-1 --cycle --inline-info --ansi --height 90% --border --lay
 set -U FZF_TAB_OPTS (-1 --cycle --inline-info --ansi --height 90% --border --layout=reverse  --expect=/ --priview '(${MYRUNTIME}/customs/bin/mypreview {}) 2> /dev/null | head -500'  --preview-window right:70%:noborder --color 'fg:#bbccdd,fg+:#ddeeff,bg:#334455,preview-bg:#223344,border:#778899')
 set -U FZF_CTRL_T_OPTS "--preview '(${MYRUNTIME}/customs/bin/mypreview {}) 2> /dev/null | head -200'"
 set -U FZF_CTRL_R_OPTS "--reverse"
+set -U FZF_ALT_C_OPTS "--reverse"
 set -U FZF_TMUX_OPTS "-p"
 function _fzf_comprun
   set command $1
