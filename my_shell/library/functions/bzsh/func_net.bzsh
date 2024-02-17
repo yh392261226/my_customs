@@ -57,6 +57,7 @@ function set_proxy() { # Desc: function: set_proxy:设置命令行代理
     export HTTP_PROXY=${local_http_proxy}; export HTTPS_PROXY=${local_https_proxy}; export ALL_PROXY=${local_all_proxy}
 }
 alias setproxy="set_proxy"      # Desc: alias: setproxy:set_proxy命令的别名
+alias onproxy="set_proxy"      # Desc: alias: onproxy:set_proxy命令的别名
 
 function proxy_port_config() { # Desc: function: configproxy:设置proxy代理端口
     vim $MYRUNTIME/tools/m_proxy
@@ -72,6 +73,7 @@ function unset_proxy() { # Desc: function: unset_proxy:取消设置命令行代�
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }
 alias unsetproxy="unset_proxy"      # Desc: alias: unsetproxy:unset_proxy命令的别名
+alias outproxy="unset_proxy"      # Desc: alias: outproxy:unset_proxy命令的别名
 
 function print_proxy() { # Desc: function: print_proxy:输出命令行代理
     echo "http: $HTTP_PROXY";

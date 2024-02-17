@@ -956,3 +956,4 @@ brew install helix
 brew install mprocs
 brew install loc
 brew install prettyping
+brew install rs/tap/jplot
