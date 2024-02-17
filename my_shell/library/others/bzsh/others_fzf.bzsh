@@ -17,9 +17,19 @@ export FZF_CTRL_T_OPTS="--preview '(${MYRUNTIME}/customs/bin/mypreview {}) 2> /d
 
 export FZF_CTRL_R_OPTS="--reverse"
 
+export FZF_ALT_C_COMMAND='fd --type d . --color=never'
+
 export FZF_ALT_C_OPTS="--reverse"
 
 export FZF_TMUX_OPTS="-p"
+
+FZF_HELP_OPTS="--multi --layout=reverse --preview-window=right,75%,wrap --height 80% "
+
+FZF_HELP_OPTS+="--bind ctrl-a:change-preview-window(down,75%,nowrap|right,75%,nowrap)"
+
+export FZF_HELP_SYNTAX='help'
+
+export CLI_OPTIONS_CMD='ag -o --numbers -- $RE'
 
 _fzf_comprun() {
   local command=$1

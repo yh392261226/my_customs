@@ -15,6 +15,7 @@ export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:$PATH"
 # export ARCHFLAGS="-arch x86_64"
 
 source $(cat $HOME/.myruntime)/customs/my_shell/rcfile
+
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 #GITSTATUS_LOG_LEVEL=DEBUG

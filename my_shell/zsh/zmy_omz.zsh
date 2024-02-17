@@ -116,6 +116,7 @@ plugins=(
 	rsync
 	urltools
     jsontools
+    fzf-brew
 	# zsh-autosuggestions
 	# zsh-syntax-highlighting
 	# web-search

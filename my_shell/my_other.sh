@@ -245,6 +245,21 @@ if [ ! -d $MYRUNTIME/customs/others/webui-aria2 ]; then
     git clone https://github.com/ziahamza/webui-aria2 $MYRUNTIME/customs/others/webui-aria2
 fi
 
+if [ ! -d $MYRUNTIME/customs/others/fzf-help ]; then
+    git clone /.runtime/customs/others/fzf-help $MYRUNTIME/customs/others/fzf-help
+fi
+
+if [ "zsh" = "$nowshell" ]; then
+    source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.zsh
+    zle -N fzf-help-widget
+    bindkey "^A" fzf-help-widget
+fi
+
+if [ "bash" = "$nowshell" ]; then
+    source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.zsh
+    bind -x '"\C-a": fzf-help-widget'
+fi
+
 #[[ -f /opt/homebrew/opt/autoenv/activate.sh ]] && source /opt/homebrew/opt/autoenv/activate.sh
 #[[ -f /usr/local/opt/autoenv/activate.sh ]] && source /usr/local/opt/autoenv/activate.sh
 [[ -f /opt/homebrew/bin/pokemon ]] && alias ding="/opt/homebrew/bin/pokemon"
