@@ -73,7 +73,7 @@ function unset_proxy() { # Desc: function: unset_proxy:取消设置命令行代�
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }
 alias unsetproxy="unset_proxy"      # Desc: alias: unsetproxy:unset_proxy命令的别名
-alias outproxy="unset_proxy"      # Desc: alias: outproxy:unset_proxy命令的别名
+alias offproxy="unset_proxy"      # Desc: alias: offproxy:unset_proxy命令的别名
 
 function print_proxy() { # Desc: function: print_proxy:输出命令行代理
     echo "http: $HTTP_PROXY";
