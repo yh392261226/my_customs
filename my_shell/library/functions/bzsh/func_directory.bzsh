@@ -27,7 +27,7 @@ function fzf_cd_to() { # Desc: function: fzf_cd_to: fuzzy cd from anywhere. ex: 
 }
 alias fcf="fzf_cd_to"   # Desc: alias: fcf:fzf_cd_to命令的别名
 
-function fzf_hidden_directories() { # Desc: function: fzf_da:including hidden directories
+function fzf_hidden_directories() { # Desc: function: fzf_da: including hidden directories
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
 }
 alias fhd="fzf_hidden_directories"      # Desc: alias: fhd:fzf_hidden_directories命令的别名
@@ -227,7 +227,7 @@ function fzf_directories_or_files() { # Desc: function: fzf_directories_or_files
 }
 alias fdof='fzf_directories_or_files'   # Desc: alias: fdof:fzf_directories_or_files命令的别名
 
-function fzf_directory_history() { # Desc: function: Show past directory history with fzf.
+function fzf_directory_history() { # Desc: function: fzf_directory_history:Show past directory history with fzf.
   local dir=$(python3 -m fzfdirhist show | fzf --height=40% --reverse +m)
   cd "$dir"
 }

@@ -113,6 +113,20 @@ function fzf_open_with_editor() { # Desc: function: fzf_open_with_editor:Modifie
 }
 alias fo="fzf_open_with_editor"     # Desc: alias: fo:fzf_open_with_editor命令的别名
 
+function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
+    export FZF_DEFAULT_COMMAND="fd -p -i -H -L -t f -t l -t x \
+-E 'icloud/*' \
+-E 'Library/*' \
+-E 'Pictures/Photos Library.photoslibrary/*' \
+-E '.git'"
+    IFS=$'\n' \
+       files=($(fzf --reverse \
+                    --preview "bat --theme=timu-spacegrey --color=always {}" \
+                    --query="$1" --multi --select-1 --exit-0))
+    [[ -n "$files" ]] && vim "${files[@]}"
+}
+alias fv='fzf_open_with_editor2'     # Desc: alias: fv:fzf_open_with_editor2命令的别名
+
 function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep open via ag with line number
     local file
     local line

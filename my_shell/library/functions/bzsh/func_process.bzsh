@@ -1,4 +1,4 @@
-function fzf_process_kill() { # Desc: function: ps_kill: kill processes - list only the ones you can kill. Modified the earlier script.
+function fzf_process_kill() { # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     if [ "$UID" != "0" ]; then
         pid=$(ps -f -u $UID | sed 1d | fzf -m | awk '{print $2}')

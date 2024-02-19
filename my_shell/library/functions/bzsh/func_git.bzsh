@@ -60,6 +60,28 @@ function fzf_git_checkout() { # Desc: function: fzf_git_checkout:checkout git br
 }
 alias fco="fzf_git_checkout"        # Desc: alias: fco:fzf_git_checkout命令的别名
 
+function fzf_git_checkout2() { # Desc: function: fzf_git_checkout2:checkout git branch
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        if [[ "$#" -eq 0 ]]; then
+            local branches branch
+            branches=$(git branch -a) &&
+            branch=$(echo "$branches" |
+            fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+            git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+        elif [ `git rev-parse --verify --quiet $*` ] || \
+             [ `git branch --remotes | grep  --extended-regexp "^[[:space:]]+origin/${*}$"` ]; then
+            echo "Checking out to existing branch"
+            git checkout "$*"
+        else
+            echo "Creating new branch"
+            git checkout -b "$*"
+        fi
+    else
+        echo "Can't check out or create branch. Not in a git repo"
+    fi
+}
+alias fco2="fzf_git_checkout2"        # Desc: alias: fco2:fzf_git_checkout2命令的别名
+
 function fzf_git_stash() { # Desc: function: fzf_git_stash:easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
     while out=$(
@@ -84,6 +106,20 @@ function fzf_git_stash() { # Desc: function: fzf_git_stash:easier way to deal wi
     done
 }
 alias fstash="fzf_git_stash"    # Desc: alias: fstash:fzf_git_stash命令的别名
+
+function fzf_git_status() { # Desc: function: fzf_git_status: 显示当前git的状态,并用编辑打开选择的文件
+  git rev-parse --git-dir > /dev/null 2>&1 || { echo "You are not in a git repository" && return }
+  local selected
+  selected=$(git -c color.status=always status --short |
+      fzf --height 50% "$@" --border -m --ansi --nth 2..,.. \
+      --preview '(git diff --color=always -- {-1} | sed 1,4d; cat {-1}) | head -500' |
+      cut -c4- | sed 's/.* -> //')
+    if [[ $selected ]]; then
+        for prog in $(echo $selected);
+        do; $EDITOR $prog; done;
+    fi
+}
+alias fgs="fzf_git_status"  # Desc: alias: fgs:fzf_git_status的别名
 
 function fzf_git_untracked() { # Desc: function: fzf_git_untracked:显示当前git版本库中未添加进版本的修改或新增文件列表
     is_git || return

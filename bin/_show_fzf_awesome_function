@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+### Desc: 定位fzf别名源是否是命令，且定位所在位置
+
+function _show_fzf_awesome_function() {
+    if [ "" != "$1" ] && [ "" != "$2" ]; then
+        CCommand=$1
+        CLocation=$2
+
+        TmpContent=$(cat $CLocation | grep -E "function\ $CCommand\(")
+
+        awesome_function_file=$(echo "$TmpContent" | awk -F':' '{print $1}')
+        awesome_function_name=$(echo "$TmpContent" | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | awk -F'(' '{print $1}')
+        awesome_function_desc=$(echo "$TmpContent" | awk '{$1=""; print $0 }' | awk -F')' '{print $2}' | sed -e "s/{//g" | sed -e "s/# Desc://g" | sed -e "s/function: //g" | sed -e "s/$awesome_function_name//g")
+
+        echo "Function Location    :"$awesome_function_file
+        echo "Function Name        :"$awesome_function_name
+        echo "Function Description" $awesome_function_desc
+    fi
+}
+
+_show_fzf_awesome_function $1 $2

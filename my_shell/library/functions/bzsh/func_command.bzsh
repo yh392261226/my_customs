@@ -31,10 +31,27 @@ function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有�
 }
 alias showaliases="fzf_show_aliases2"   # Desc: alias: showaliases:fzf_show_aliases2命令的别名
 
-function fzf_show_alias() { # Desc: function: 利用fzf显示所有别名
+function fzf_show_alias() { # Desc: function: fzf_show_alias:利用fzf显示所有别名
     alias | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "$MYRUNTIME/customs/bin/_positalias {}" --preview-window right:140
 }
 alias fsa="fzf_show_alias"  # Desc: alias: fsa:fzf_show_alias命令的别名
+
+function fzf_awesome_functions_list() { # Desc: function: fzf_awesome_functions_list: 利用fzf列出所有自定义fzf相关命令
+    if [ ! -f $HOME/.myruntime ]; then
+        echo "Awesome Fzf Functions Location Not Found !"
+    else
+        AWESOME_FZF_FUNCTIONS_LOCATION=$(cat $HOME/.myruntime)/customs/my_shell/
+        TMP_FZF_FUNCTIONS_FILE=$(mktemp)
+        #--preview "$MYRUNTIME/customs/bin/_positalias {}" --preview-window right:140
+        find $AWESOME_FZF_FUNCTIONS_LOCATION -type f -name "*bzsh" |xargs grep -E "(function fzf_)(.*?)[^(]*" > $TMP_FZF_FUNCTIONS_FILE
+        if [ ! -f $TMP_FZF_FUNCTIONS_FILE ]; then
+            echo "Awesome Fzf Functions Collection File Does Not Exists !"
+        else
+            cat $TMP_FZF_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | sed -e "s/() {//" | awk -F'#' '{print $1}' | grep -E "(^fzf_)(.*?)[^(]*" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_fzf_awesome_function {} $TMP_FZF_FUNCTIONS_FILE"  --prompt="Awesome fzf functions > "
+        fi
+    fi
+}
+alias fafl="fzf_awesome_functions_list" # Desc: alias: fafl: fzf_awesome_functions_list命令的别名
 
 function show_aliases_from_a2z() { # Desc: function: show_aliases_from_a2z:显示从a-z的我的自定义命令
     hr "*"
@@ -212,12 +229,10 @@ if [ -f /usr/local/bin/shellcheck ]; then
     }
 fi
 
-if command -v COMMAND &> /dev/null; then
-    function fzf_history() { # Desc: function: fzf_history:依赖fzf 读取history结果
-        history | fzf
-    }
-    alias fhistory="fzf_history"    # Desc: alias: fhistory:fzf_history命令的别名
-fi
+function fzf_history() { # Desc: function: fzf_history:依赖fzf 读取history结果
+    history | fzf
+}
+alias fhistory="fzf_history"    # Desc: alias: fhistory:fzf_history命令的别名
 
 function file_tree() { # Desc: function: file_tree:tree命令
 	path='./'
@@ -226,7 +241,7 @@ function file_tree() { # Desc: function: file_tree:tree命令
 }
 alias filetree="file_tree"  # Desc: alias: filetree:file_tree命令的别名
 
-function fzf_history_print(){ # Desc: function: fzf_history_print:列出历史操作命令 选择后回车再执行
+function fzf_history_print() { # Desc: function: fzf_history_print:列出历史操作命令 选择后回车再执行
     print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
 }
 alias fhp='fzf_history_print'   # Desc: alias: fhp:fzf_history_print命令的别名
@@ -259,7 +274,7 @@ function command_sl_selector() { # Desc: function command_sl_selector:输入命�
 }
 alias sl='command_sl_selector'  # Desc: alias: sl:command_sl_selector命令的别名
 
-function fzf_man_widget() { # Desc: function fzf_man_widget:fzf版本的man命令
+function fzf_man_widget() { # Desc: function: fzf_man_widget:fzf版本的man命令
   batman="man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
    man -k . | sort \
    | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue;} 1' \
@@ -278,3 +293,48 @@ function fzf_man_widget() { # Desc: function fzf_man_widget:fzf版本的man命�
   echo ""
 }
 alias fw="fzf_man_widget" # Desc: alias: fw:fzf_man_widget命令的别名
+
+function fzf_aliases_functions_selector() { # Desc: function: fzf_aliases_functions_selector:显示所有的alias和function并通过fzf选用
+    CMD=$(
+        (
+            (alias)
+            (functions | grep "()" | cut -d ' ' -f1 | grep -v "^_" )
+        ) | fzf | cut -d '=' -f1
+    );
+
+    eval $CMD
+}
+alias faf="fzf_aliases_functions_selector"  # Desc: alias: faf: fzf_aliases_functions_selector命令的别名
+
+function fzf_env_vars() { # Desc: function: fzf_env_vars:利用fzf选用env变量的值
+  local out
+  out=$(env | fzf)
+  echo $(echo $out | cut -d= -f2)
+  echo $(echo $out | cut -d= -f2) | pbcopy
+}
+alias fev="fzf_env_vars"    # Desc: alias: fev: fzf_env_vars命令的别名
+
+function fzf_eval() { # Desc: function: fzf_eval: 利用fzf执行选中的命令并preview结果
+    echo | fzf -q "$*" --preview-window=up:99% --preview="eval {q}"
+}
+alias feval="fzf_eval"  # Desc: alias: feval: fzf_eval命令的别名
+
+function fold() { # Desc: function: fold: Default `fold` to screen width and break at spaces
+  if [ $# -eq 0 ]; then
+    /usr/bin/fold -w $COLUMNS -s
+  else
+    /usr/bin/fold $*
+  fi
+}
+
+function fzf_spell() { # Desc: function: fzf_spell: Use `fzf` against system dictionary
+  cat /usr/share/dict/words | fzf --preview 'wn {} -over | fold' --preview-window=up:60%
+}
+
+function dic() { # Desc: function: dic: Lookup definition of word using `wn $1 -over`.If $1 is not provided, we'll use the `spell` command to pick a word. Requires:brew install wordnet, brew install fzf
+  if [ $# -eq 0 ]; then
+    wn `fzf_spell` -over | fold
+  else
+    wn $1 -over | fold
+  fi
+}

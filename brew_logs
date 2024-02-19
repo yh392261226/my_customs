@@ -957,3 +957,5 @@ brew install mprocs
 brew install loc
 brew install prettyping
 brew install rs/tap/jplot
+brew install dog
+brew install wordnet

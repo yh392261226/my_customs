@@ -31,7 +31,7 @@ function tmux_configs_select() { # Desc: function: tmux_configs_select:tmux 根�
 }
 alias tmuxf="tmux_configs_select" # Desc: alias: tmuxf:tmux_configs_select命令的别名
 
-function fzf_tmux_pane() { # Desc: function: fzf_tpane:tmux switch pane (@george-b)
+function fzf_tmux_pane() { # Desc: function: fzf_tpane: tmux switch pane (@george-b)
     local panes current_window current_pane target target_window target_pane
     panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
     current_pane=$(tmux display-message -p '#I:#P')

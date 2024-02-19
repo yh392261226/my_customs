@@ -172,13 +172,13 @@ function hidden_files() { # Desc: function: hidden_files:显示隐藏文件
 }
 alias hf="hidden_files"     # Desc: alias: hf:hidden_files命令的别名
 
-function fzf_file_preview() { # Desc: function: preview file content
+function fzf_file_preview() { # Desc: function: fzf_file_preview:preview file content
     [[ 1 -gt $nums ]] && nums=500
     fzf --preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500'
 }
 alias ftt='fzf_file_preview'      # Desc: alias: ftt:fzf_file_preview命令的别名
 
-function fzf_open_or_edit(){ # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
+function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
     IFS=$'\n' out=("$(fzf --preview 'cat {}' --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)")
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
@@ -189,25 +189,11 @@ function fzf_open_or_edit(){ # Desc: function: fzf_open_or_edit:fzf利用open命
 }
 alias foe='fzf_open_or_edit'    # Desc: alias: foe:fzf_open_or_edit命令的别名
 
-function fzf_search_term(){ #Desc: function: fzf_search_term:find-in-file - usage: fif <searchTerm>
+function fzf_search_term() { # Desc: function: fzf_search_term:find-in-file - usage: fif <searchTerm>
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
     rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
 }
 alias fif='fzf_search_term'     # Desc: alias: fif:fzf_search_term命令的别名
-
-function fzf_open_with_editor() { # Desc: function: fzf_open_with_editor:This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
-    export FZF_DEFAULT_COMMAND="fd -p -i -H -L -t f -t l -t x \
--E 'icloud/*' \
--E 'Library/*' \
--E 'Pictures/Photos Library.photoslibrary/*' \
--E '.git'"
-    IFS=$'\n' \
-       files=($(fzf --reverse \
-                    --preview "bat --theme=timu-spacegrey --color=always {}" \
-                    --query="$1" --multi --select-1 --exit-0))
-    [[ -n "$files" ]] && vim "${files[@]}"
-}
-alias fv='fzf_open_with_editor'     # Desc: alias: fv:fzf_open_with_editor命令的别名
 
 function list_link_files() { # Desc: function: list_link_files:列出所有软连接文件
     local path='./'
@@ -222,3 +208,28 @@ function find_link_files() { # Desc: function: find_link_files:find 找出所有
     /usr/bin/find ${path} -type l -ls
 }
 alias flf="find_link_files"     # Desc: alias: flf:find_link_files命令的别名
+
+function fzf_rm_file() { # Desc: function: fzf_rm_file:find 找出文件选中删除
+  if [[ "$#" -eq 0 ]]; then
+    local files
+    files=$(find . -maxdepth 1 -type f | fzf --multi)
+    echo $files | xargs -I '{}' rm {} #we use xargs to capture filenames with spaces in them properly
+  else
+    command rm "$@"
+  fi
+}
+alias frf="fzf_rm_file"     # Desc: alias:frf:fzf_rm_file的别名
+
+# Man without options will use fzf to select a page
+function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
+	MAN="/usr/bin/man"
+	if [ -n "$1" ]; then
+		$MAN "$@"
+		return $?
+	else
+		$MAN -k . | fzf --reverse --preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
+		return $?
+	fi
+}
+alias fman="fzf_man"    # Desc: alias: fzf_man的别名
+
