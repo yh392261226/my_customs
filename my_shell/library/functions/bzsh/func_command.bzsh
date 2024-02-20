@@ -47,7 +47,7 @@ function fzf_awesome_functions_list() { # Desc: function: fzf_awesome_functions_
         if [ ! -f $TMP_FZF_FUNCTIONS_FILE ]; then
             echo "Awesome Fzf Functions Collection File Does Not Exists !"
         else
-            cat $TMP_FZF_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | sed -e "s/() {//" | awk -F'#' '{print $1}' | grep -E "(^fzf_)(.*?)[^(]*" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_fzf_awesome_function {} $TMP_FZF_FUNCTIONS_FILE"  --prompt="Awesome fzf functions > "
+            eval $(cat $TMP_FZF_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | sed -e "s/() {//" | awk -F'#' '{print $1}' | grep -E "(^fzf_)(.*?)[^(]*" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_fzf_awesome_function {} $TMP_FZF_FUNCTIONS_FILE"  --prompt="Awesome fzf functions > ")
         fi
     fi
 }
