@@ -344,3 +344,7 @@ function dic() { # Desc: function: dic: Lookup definition of word using `wn $1 -
     wn $1 -over | fold
   fi
 }
+
+function fzf_fg() { # Desc: function: fzf_fg: 利用fzf显示所有的后台执行程序
+  job="$(jobs | fzf -0 -1 | sed -E 's/\[(.+)\].*/\1/')" && echo '' && fg %$job
+}
