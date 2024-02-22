@@ -139,3 +139,21 @@ function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep op
     fi
 }
 alias vg="ag_open_with_line"    # Desc: alias: vg:ag_open_with_line命令的别名
+
+function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvim进行编辑
+    files="$(fzf --preview "bat --style=numbers --line-range=:500 {}" )"
+    count="$( echo "$files" | wc -l )"
+    nvim $files
+}
+alias fnvi="fzf_nvim"   # Desc: alias: fnvi: fzf_nvim命令的别名
+alias fnvim="fzf_nvim"   # Desc: alias: fnvim: fzf_nvim命令的别名
+
+
+function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim进行编辑
+    files="$(fzf --preview "bat --style=numbers --line-range=:500 {}" )"
+    count="$( echo "$files" | wc -l )"
+    vim $files
+}
+alias fvi="fzf_vim"   # Desc: alias: fvi: fzf_vim命令的别名
+alias fvim="fzf_vim"   # Desc: alias: fvim: fzf_vim命令的别名
+
