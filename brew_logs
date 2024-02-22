@@ -959,3 +959,6 @@ brew install prettyping
 brew install rs/tap/jplot
 brew install dog
 brew install wordnet
+brew install scc
+brew install tre-command
+brew install howdoi
