@@ -1,4 +1,5 @@
 ### enhancd / ecd
+if ! set -q ENHANCD_ROOT; set -gx ENHANCD_ROOT "$HOME/.runtime/customs/others/enhancd/$name"; end
 set -gx ENHANCD_COMMAND "ecd"
 set -gx ENHANCD_DIR "$HOME/.enhancd"
 set -gx ENHANCD_HOOK_AFTER_CD "lsd -l"

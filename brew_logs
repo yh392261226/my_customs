@@ -962,3 +962,4 @@ brew install wordnet
 brew install scc
 brew install tre-command
 brew install howdoi
+brew install rich

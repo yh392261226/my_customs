@@ -350,7 +350,7 @@ fi
 ## fasd
 eval "$(fasd --init auto)"
 ## the fuck command
-eval $(thefuck --alias)
+#eval $(thefuck --alias)
 ## the aliases command
 eval "$(aliases init --global)"
 ## the atuin import

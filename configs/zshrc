@@ -20,8 +20,6 @@ source $(cat $HOME/.myruntime)/customs/my_shell/rcfile
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 #GITSTATUS_LOG_LEVEL=DEBUG
 
-eval $(thefuck --alias)
-
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
 

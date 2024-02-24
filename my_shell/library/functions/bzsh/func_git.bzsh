@@ -115,8 +115,9 @@ function fzf_git_status() { # Desc: function: fzf_git_status: 显示当前git的
       --preview '(git diff --color=always -- {-1} | sed 1,4d; cat {-1}) | head -500' |
       cut -c4- | sed 's/.* -> //')
     if [[ $selected ]]; then
-        for prog in $(echo $selected);
-        do; $EDITOR $prog; done;
+        for prog in $(echo $selected); do
+		$EDITOR $prog; 
+	done;
     fi
 }
 alias fgs="fzf_git_status"  # Desc: alias: fgs:fzf_git_status的别名
