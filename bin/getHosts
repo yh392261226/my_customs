@@ -21,6 +21,7 @@ hostsurl=https://raw.githubusercontent.com/googlehosts/hosts/master/hosts-files/
 hostsurl2=https://coding.net/u/scaffrey/p/hosts/git/raw/master/hosts
 hostsurl3=https://raw.githubusercontent.com/yulei88/autohosts/master/data/hosts
 hostsurl4=https://raw.githubusercontent.com/vokins/yhosts/master/hosts
+hostsurl2=https://raw.githubusercontent.com/StevenBlack/hosts/master/data/StevenBlack/hosts
 echo "Get hosts from url:$hostsurl"
 wget $hostsurl -qO $tmppath/${today}.hosts > /dev/null #github
 if [ "$?" != "0" ]; then

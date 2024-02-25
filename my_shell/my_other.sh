@@ -224,6 +224,8 @@ if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
     [[ -f /usr/local/bin/peco ]] && export ENHANCD_FILTER="/usr/local/bin/peco:fzf:non-existing-filter"
     [[ -f /opt/homebrew/bin/peco ]] && export ENHANCD_FILTER="/opt/homebrew/bin/peco:fzf:non-existing-filter"
     export ENHANCD_HOOK_AFTER_CD="lsd -l"
+    export ENHANCD_FILTER="/opt/homebrew/bin/fzf:sk --ansi:fzy:non-existing-filter"
+    export ENHANCD_USE_ABBREV=true
 fi
 
 if [ ! -d $MYRUNTIME/customs/others/SSHAutoLogin  ]; then
