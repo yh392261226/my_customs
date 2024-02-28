@@ -54,7 +54,6 @@ elif [ "$MYSYSNAME" = "Ubuntu" ] || [ "$MYSYSNAME" = "Centos" ]; then
     export EDITOR="gedit"
 fi
 
-export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor
 if [ -d $HOME/.basher ]; then
     export PATH="$HOME/.basher/bin:$PATH"
     eval "$(basher init -)"
@@ -78,3 +77,6 @@ export MYBIN=$MYCUSTOMS/bin
 # fzf-dirhistory
 export DIR_HISTORY_FILE="~/.fzf_dirhistory"
 export DIR_HISTORY_SIZE=2000
+
+#Git
+export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor
