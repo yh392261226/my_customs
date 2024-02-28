@@ -1,10 +1,11 @@
-# Fig pre block. Keep at the top of this file.
-[[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.pre.zsh"
 #!/bin/zsh
-zmodload zsh/zprof
 # File              : .zshrc
-# Date              : 28.02.2021
-# Last Modified Date: 28.02.2021
+# Date              : 28.02.2024
+# Last Modified Date: 28.02.2024
+# Fig pre block. Keep at the top of this file.
+#[[ -f "$HOME/.fig/shell/zshrc.pre.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.pre.zsh"
+#zmodload zsh/zprof
+
 autoload -U +X bashcompinit && bashcompinit
 autoload -U +X compinit && compinit
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
@@ -12,29 +13,14 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:$PATH"
-# export ARCHFLAGS="-arch x86_64"
 
 source $(cat $HOME/.myruntime)/customs/my_shell/rcfile
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+
 #GITSTATUS_LOG_LEVEL=DEBUG
 
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
-
-
-### Bashhub.com Installation
-if [ -f ~/.bashhub/bashhub.zsh ]; then
-    source ~/.bashhub/bashhub.zsh
-fi
-# Hook for desk activation
-[ -n "$DESK_ENV" ] && source "$DESK_ENV" || true
-
-source ~/.config/broot/launcher/bash/br
-
-alias gf=gf
 
 # Fig post block. Keep at the bottom of this file.
-[[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"
-
-source /Users/yanghao/.config/broot/launcher/bash/br
+#[[ -f "$HOME/.fig/shell/zshrc.post.zsh" ]] && builtin source "$HOME/.fig/shell/zshrc.post.zsh"

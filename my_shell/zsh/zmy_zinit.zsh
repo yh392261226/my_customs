@@ -73,7 +73,6 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit snippet OMZL::clipboard.zsh
     zinit snippet OMZL::completion.zsh
     zinit snippet OMZL::theme-and-appearance.zsh
-    zinit snippet OMZL::theme-and-appearance.zsh
 
     zinit snippet OMZP::cp
     zinit snippet OMZP::brew
@@ -84,8 +83,8 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     # zinit snippet OMZP::git/git.plugin.zsh
     # zinit snippet OMZP::mvn/mvn.plugin.zsh
     zinit snippet OMZP::sudo/sudo.plugin.zsh
-#    zinit snippet OMZP::common-aliases/common-aliases.plugin.zsh
-    zinit snippet OMZP::colored-man-pages/colored-man-pages.plugin.zsh
+    # zinit snippet OMZP::common-aliases/common-aliases.plugin.zsh
+    # zinit snippet OMZP::colored-man-pages/colored-man-pages.plugin.zsh
     # zinit snippet OMZP::extract
     zinit snippet OMZP::pip/pip.plugin.zsh
     zinit snippet OMZP::command-not-found/command-not-found.plugin.zsh
@@ -125,16 +124,8 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
 
     # ASDF
     if [ -d "$HOME/.asdf" ]; then
-    zinit ice wait lucid
-    zinit light asdf-vm/asdf
-    # OR
-    #   load_asdf() {
-    #     . $HOME/.asdf/asdf.sh
-    #   }
-    #
-    #   zinit light-mode wait lucid for \
-    #     atload'load_asdf' \
-    #       zdharma-continuum/null
+        zinit ice wait lucid
+        zinit light asdf-vm/asdf
     fi
 
     function reload_zinit() {
