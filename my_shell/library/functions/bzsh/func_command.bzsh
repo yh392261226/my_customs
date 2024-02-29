@@ -11,15 +11,15 @@ function search_aliases() { # Desc: function: search_aliases:显示所有含有�
 }
 alias searcha="search_aliases"  # Desc: alias: searcha:search_aliases命令的别名
 
-function fzf_show_functions() { # Desc: function: fzf_show_functions:显示所有自定义命令及注释
+function fzf_show_customs_functions() { # Desc: function: fzf_show_customs_functions:显示所有自定义命令及注释
     TMP_FUNCTIONS_FILE=$(mktemp)
     find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
     if [ -f $TMP_FUNCTIONS_FILE ]; then
         eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | sed -e "s/() {//" | awk -F'#' '{print $1}' | grep -E "(.*?)[^(]*" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE"  --prompt="Awesome Customs Functions > ")
     fi
 }
-alias showfuncs="fzf_show_functions"    # Desc: alias: showfuncs:fzf_show_functions命令的别名
-alias fcf="fzf_show_functions"          # Desc: alias: fcf:fzf_show_functions命令的别名
+alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名
+alias fcf="fzf_show_customs_functions"          # Desc: alias: fcf:fzf_show_customs_functions命令的别名
 
 function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
