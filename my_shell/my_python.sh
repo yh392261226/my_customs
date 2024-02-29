@@ -16,3 +16,6 @@ fi
 if [ -d $HOME/Library/Python/3.9/bin/ ]; then
     export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 fi
+if [ -d $HOME/Library/Python/3.10/bin/ ]; then
+    export PATH="$HOME/Library/Python/3.10/bin:$PATH"
+fi
