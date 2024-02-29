@@ -12,7 +12,7 @@ function customcd() { # Desc: function: customcd:自定义cd命令
     builtin cd "$@";
 }
 
-function fzf_cd_to() { # Desc: function: fzf_cd_to: fuzzy cd from anywhere. ex: fcf word1 word2 ... (even part of a file name)
+function fzf_cd_to() { # Desc: function: fzf_cd_to: fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
     local file
     file="$(glocate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
     if [[ -n $file ]]
@@ -25,7 +25,7 @@ function fzf_cd_to() { # Desc: function: fzf_cd_to: fuzzy cd from anywhere. ex: 
         fi
     fi
 }
-alias fcf="fzf_cd_to"   # Desc: alias: fcf:fzf_cd_to命令的别名
+alias fct="fzf_cd_to"   # Desc: alias: fct:fzf_cd_to命令的别名
 
 function fzf_hidden_directories() { # Desc: function: fzf_da: including hidden directories
     DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux` && cd "$DIR"
