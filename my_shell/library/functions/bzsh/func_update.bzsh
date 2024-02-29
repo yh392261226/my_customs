@@ -10,32 +10,32 @@ function update_today() { # Desc: function: upday:每天一更新
     brew update  && brew upgrade && brew cleanup
     #gethosts
 }
-alias update="update_today" # Desc: alias: update:update_today命令的别名
+alias update="update_today" # Desc: alias: update:update_today命令的别名,每天一更新
 
-function update_runtimes() { # Desc: function: update_runtimes:git 更新$MYRUNTIME 目录下的所有由git管理的目录
+function update_runtimes() { # Desc: function: update_runtimes:Git更新$MYRUNTIME目录下的所有由git管理的目录
     update_dotfiles
     update_plugins
 }
-alias ur="update_runtimes" # Desc: alias: ur:update_runtimes命令的别名
+alias ur="update_runtimes" # Desc: alias: ur:update_runtimes命令的别名,Git更新$MYRUNTIME目录下的所有由git管理的目录
 
-function update_zsh_customs() { # Desc: function: update_zsh_customs:git更新zsh自定义的文件
+function update_zsh_customs() { # Desc: function: update_zsh_customs:Git更新zsh自定义的文件
     update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/plugins
     update_git_files_and_modules $MYRUNTIME/oh-my-zsh/antigen
 #    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
 }
-alias uzc="update_zsh_customs" # Desc: alias: uzc:update_zsh_customs命令的别名
+alias uzc="update_zsh_customs" # Desc: alias: uzc:update_zsh_customs命令的别名,Git更新zsh自定义的文件
 
-function update_plugins() { # Desc: function: upplugins:git 更新 插件目录
+function update_plugins() { # Desc: function: upplugins:Git更新插件目录
     update_git_files_and_modules $MYRUNTIME/public
     customcd ~
 }
-alias ugp="update_plugins" # Desc: alias: ugp:update_plugins命令的别名
+alias ugp="update_plugins" # Desc: alias: ugp:update_plugins命令的别名,Git更新插件目录
 
-function update_others() { # Desc: function: update_others:git 更新 其他包目录
+function update_others() { # Desc: function: update_others:Git更新其他包目录
     update_git_files_and_modules $MYRUNTIME/customs/others
     customcd ~
 }
-alias uo="update_others" # Desc: alias: uo:update_others命令的别名
+alias uo="update_others" # Desc: alias: uo:update_others命令的别名,Git更新其他包目录
 
 function update_go_tools() { # Desc: function: update_go_tools:更新go语言工具
     source $MYRUNTIME/tools/m_proxy
@@ -53,9 +53,9 @@ function update_go_tools() { # Desc: function: update_go_tools:更新go语言工
     go install -v honnef.co/go/tools/cmd/staticcheck@latest
     go install -v golang.org/x/tools/gopls@latest
 }
-alias ugt="update_go_tools" # Desc: alias: ugt:update_go_tools命令的别名
+alias ugt="update_go_tools" # Desc: alias: ugt:update_go_tools命令的别名,更新go语言工具
 
 function update_command_theme() { # Desc: function: update_command_theme:更新theme命令
     curl -Lo $MYRUNTIME/bin/theme 'https://git.io/JM70M' && chmod +x $MYRUNTIME/bin/theme
 }
-alias uct="update_command_theme" # Desc: alias: uct:update_command_theme命令的别名
+alias uct="update_command_theme" # Desc: alias: uct:update_command_theme命令的别名,更新theme命令

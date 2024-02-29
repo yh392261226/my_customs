@@ -5,7 +5,7 @@ function remove_DS_files() { # Desc: function: remove_DS_files:删除.DS_Store�
         find $1 -type f -name '*.DS_Store' -ls -delete
     fi
 }
-alias remove_DS="remove_DS_files" # Desc: alias: remove_DS:remove_DS_files命令的别名
+alias remove_DS="remove_DS_files" # Desc: alias: remove_DS:remove_DS_files命令的别名,删除.DS_Store文件
 
 function remove_files_by_ext () { # Desc: function: remove_files_by_ext:删除后缀名为参数值的文件到回收站
     if [ "" = "$1" ]; then
@@ -14,13 +14,13 @@ function remove_files_by_ext () { # Desc: function: remove_files_by_ext:删除�
         trash ./*$1
     fi
 }
-alias remove_ext="remove_files_by_ext" # Desc: alias: remove_ext:remove_files_by_exts命令的别名
+alias remove_ext="remove_files_by_ext" # Desc: alias: remove_ext:remove_files_by_exts命令的别名,删除后缀名为参数值的文件到回收站
 
 function remove_ssh_tmp_file() { # Desc: function: remove_ssh_tmp_file:删除~/.ssh/tmp/*
     /bin/rm -f $HOME/.ssh/tmp/*
 }
-alias rmsshtmp="remove_ssh_tmp_file"        # Desc: alias: rmsshtmp:remove_ssh_tmp_file命令的别名
-alias removesshtmp="remove_ssh_tmp_file"    # Desc: alias: removesshtmp:remove_ssh_tmp_file命令的别名
+alias rmsshtmp="remove_ssh_tmp_file"        # Desc: alias: rmsshtmp:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
+alias removesshtmp="remove_ssh_tmp_file"    # Desc: alias: removesshtmp:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
 
 function remove_to_trash () { # Desc: function: remove_to_trash:删除到回收站
     local path
@@ -37,7 +37,7 @@ function remove_to_trash () { # Desc: function: remove_to_trash:删除到回收�
         fi
     done
 }
-alias mtrash="remove_to_trash" # Desc: alias: mtrash:remove_to_trash命令的别名
+alias mtrash="remove_to_trash" # Desc: alias: mtrash:remove_to_trash命令的别名,删除到回收站
 
 function trash () { # Desc: function: trash:Moves a file to the MacOS trash
     command /bin/mv "$@" ~/.Trash ;
@@ -57,5 +57,5 @@ function remove_whereis_file() { # Desc: function: remove_whereis_file:删除 wh
         fi
     fi
 }
-alias removew="remove_whereis_file"     # Desc: alias: removew:remove_whereis_file命令的别名
-alias rmww="remove_whereis_file"        # Desc: alias: rmww:remove_whereis_file命令的别名
+alias removew="remove_whereis_file"     # Desc: alias: removew:remove_whereis_file命令的别名,删除 which命令找到的文件
+alias rmww="remove_whereis_file"        # Desc: alias: rmww:remove_whereis_file命令的别名,删除 which命令找到的文件

@@ -11,7 +11,7 @@ function fzf_process_kill() { # Desc: function: fzf_process_kill: kill processes
         echo $pid | xargs kill -${1:-9}
     fi
 }
-alias fps_kill="fzf_process_kill" # Desc: alias: fps_kill:fzf_process_kill命令的别名
+alias fps_kill="fzf_process_kill" # Desc: alias: fps_kill:fzf_process_kill命令的别名,kill processes - list only the ones you can kill. Modified the earlier script.
 
 #   find_pid: find out the pid of a specified process
 #   -----------------------------------------------------
@@ -20,18 +20,18 @@ alias fps_kill="fzf_process_kill" # Desc: alias: fps_kill:fzf_process_kill命令
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
 
-function find_process_id () { # Desc: function: find_process_id:find out the pid of a specified process
+function find_process_id () { # Desc: function: find_process_id:Find out the pid of a specified process
     lsof -t -c "$@" ;
 }
-alias find_pid="find_process_id"        # Desc: alias: find_pid:find_process_id命令的别名
-alias fpid="find_process_id"            # Desc: alias: fpid:find_process_id命令的别名
+alias find_pid="find_process_id"        # Desc: alias: find_pid:find_process_id命令的别名,Find out the pid of a specified process
+alias fpid="find_process_id"            # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process
 
-function fzf_process_kill2() { # Desc: function: fzf_process_kill2:fzf展示进程，并可以自行选择kill掉
+function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
     (date; ps -ef) |
     fzf --bind='ctrl-r:reload(date; ps -ef)' \
         --header=$'Press CTRL-R to reload\n\n' --header-lines=2 \
         --preview='echo {}' --preview-window=down,3,wrap \
         --layout=reverse --height=80% | awk '{print $2}' | xargs kill -9
 }
-alias fps_kill2='fzf_process_kill2'     # Desc: alias: fps_kill2:fzf_process_kill2命令的别名
+alias fps_kill2='fzf_process_kill2'     # Desc: alias: fps_kill2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
 

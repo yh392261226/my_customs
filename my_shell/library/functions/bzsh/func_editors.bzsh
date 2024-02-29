@@ -62,10 +62,7 @@ function fzf_e() { # Desc: function: fzf_e:Open the selected file with the defau
     file=$(fzf-tmux --query="$1" --select-1 --exit-0)
     [ -n "$file" ] && ${EDITOR:-vim} "$file"
 }
-
-function fe() { # Desc: function: fe:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
-    fzf_e $@
-}
+alias fe="fzf_e" # Desc: alias: fe: fzf_e命令的别名,Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
 
 function fzf_tags() { # Desc: function: fzf_tags:search ctags
 #    local line
@@ -89,10 +86,7 @@ function fzf_tags() { # Desc: function: fzf_tags:search ctags
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$line") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$line")"
 }
-
-function ftags() { # Desc: function: ftags:search ctags
-    fzf_tags $@
-}
+alias ftags="fzf_tags" # Desc: alias: ftags: fzf_tags: search ctags
 
 function v() { # Desc: function: v:open files in ~/.viminfo
     local files
@@ -111,7 +105,7 @@ function fzf_open_with_editor() { # Desc: function: fzf_open_with_editor:Modifie
         [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
     fi
 }
-alias fo="fzf_open_with_editor"     # Desc: alias: fo:fzf_open_with_editor命令的别名
+alias fo="fzf_open_with_editor"     # Desc: alias: fo:fzf_open_with_editor命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
 
 function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
     export FZF_DEFAULT_COMMAND="fd -p -i -H -L -t f -t l -t x \
@@ -125,7 +119,7 @@ function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This 
                     --query="$1" --multi --select-1 --exit-0))
     [[ -n "$files" ]] && vim "${files[@]}"
 }
-alias fv='fzf_open_with_editor2'     # Desc: alias: fv:fzf_open_with_editor2命令的别名
+alias fv='fzf_open_with_editor2'     # Desc: alias: fv:fzf_open_with_editor2命令的别名,This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
 
 function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep open via ag with line number
     local file
@@ -138,15 +132,15 @@ function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep op
         vim $file +$line
     fi
 }
-alias vg="ag_open_with_line"    # Desc: alias: vg:ag_open_with_line命令的别名
+alias vg="ag_open_with_line"    # Desc: alias: vg:ag_open_with_line命令的别名,fuzzy grep open via ag with line number
 
 function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvim进行编辑
     files="$(fzf --preview "bat --style=numbers --line-range=:500 {}" )"
     count="$( echo "$files" | wc -l )"
     nvim $files
 }
-alias fnvi="fzf_nvim"   # Desc: alias: fnvi: fzf_nvim命令的别名
-alias fnvim="fzf_nvim"   # Desc: alias: fnvim: fzf_nvim命令的别名
+alias fnvi="fzf_nvim"   # Desc: alias: fnvi: fzf_nvim命令的别名,利用fzf选择文件并用nvim进行编辑
+alias fnvim="fzf_nvim"   # Desc: alias: fnvim: fzf_nvim命令的别名,利用fzf选择文件并用nvim进行编辑
 
 
 function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim进行编辑
@@ -154,6 +148,6 @@ function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim�
     count="$( echo "$files" | wc -l )"
     vim $files
 }
-alias fvi="fzf_vim"   # Desc: alias: fvi: fzf_vim命令的别名
-alias fvim="fzf_vim"   # Desc: alias: fvim: fzf_vim命令的别名
+alias fvi="fzf_vim"   # Desc: alias: fvi: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
+alias fvim="fzf_vim"   # Desc: alias: fvim: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 

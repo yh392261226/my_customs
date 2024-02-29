@@ -31,14 +31,14 @@ function zsh_battery_charge { # Desc: function: zsh_battery_charge:zsh电池图
 
 if [ "zsh" = "$nowshell" ]; then
     __fzfmenu__(){
-    local cmd="fd -tf --max-depth=1"
-    eval $cmd | $MYRUNTIME/customs/bin/fzfmenu
+        local cmd="fd -tf --max-depth=1"
+        eval $cmd | $MYRUNTIME/customs/bin/fzfmenu
     }
     __fzf-menu__() {
-    LBUFFER="${LBUFFER}$(__fzfmenu__)"
-    local ret=$?
-    zle reset-prompt
-    return $ret
+        LBUFFER="${LBUFFER}$(__fzfmenu__)"
+        local ret=$?
+        zle reset-prompt
+        return $ret
     }
 
     zle     -N    __fzf-menu__
@@ -47,14 +47,14 @@ if [ "zsh" = "$nowshell" ]; then
     bindkey -M viins '^T^G' __fzf-menu__
 elif [ "bash" = "$nowshell" ]; then
     __fzfmenu__() {
-    local cmd="fd -tf --max-depth=1"
-    eval "$cmd" | $MYRUNTIME/customs/bin/fzfmenu
+        local cmd="fd -tf --max-depth=1"
+        eval "$cmd" | $MYRUNTIME/customs/bin/fzfmenu
     }
 
     __fzf-menu__() {
-    local selected="$(__fzfmenu__)"
-    READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}$selected${READLINE_LINE:$READLINE_POINT}"
-    READLINE_POINT=$(( READLINE_POINT + ${#selected} ))
+        local selected="$(__fzfmenu__)"
+        READLINE_LINE="${READLINE_LINE:0:$READLINE_POINT}$selected${READLINE_LINE:$READLINE_POINT}"
+        READLINE_POINT=$(( READLINE_POINT + ${#selected} ))
     }
     bind -x '"\C-t":"__fzf-menu__"'
 fi
