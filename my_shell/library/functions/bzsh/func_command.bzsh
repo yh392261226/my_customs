@@ -21,6 +21,15 @@ function fzf_show_customs_functions() { # Desc: function: fzf_show_customs_funct
 alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
 alias fcf="fzf_show_customs_functions"          # Desc: alias: fcf:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
 
+function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases:显示所有自定义的别名及注释
+    TMP_ALIASES_FILE=$(mktemp)
+    alias > $TMP_ALIASES_FILE
+    if [ -f $TMP_ALIASES_FILE ]; then
+        eval $(cat $TMP_ALIASES_FILE |awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_awesome_alias {} $TMP_ALIASES_FILE"  --prompt="Awesome Customs Aliases > ")
+    fi
+}
+alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliases命令的别名,显示所有自定义的别名及注释
+
 function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     #customcd $MYRUNTIME/customs/my_shell/library/functions; ls *.bzsh| fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'cat {}' --preview-window right:140
@@ -348,4 +357,34 @@ function dic() { # Desc: function: dic: Lookup definition of word using `wn $1 -
 
 function fzf_fg() { # Desc: function: fzf_fg: 利用fzf显示所有的后台执行程序
   job="$(jobs | fzf -0 -1 | sed -E 's/\[(.+)\].*/\1/')" && echo '' && fg %$job
+}
+alias ffg="fzf_fg" # Desc: alias: ffg: fzf_fg命令的别名,利用fzf显示所有的后台执行程序
+
+function su() { # Desc: function: su:su命令后,theme自动切换主题
+	(
+		INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme red-alert
+		trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
+		env su "$@"
+		$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"
+	)
+}
+
+function sudo() { # Desc: function: sudo:sudo命令后,theme自动切换主题
+	(
+		pid=$(exec sh -c 'echo "$PPID"')
+
+		# If the command takes less than .2s, don't change the theme.
+		# We could also just match on 'su' and ignore everything else,
+		# but this also accomodates other long running commands
+		# like 'sudo sleep 5s'. Modify to taste.
+
+		(
+				sleep .2s
+				ps -p "$pid" > /dev/null && INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme red-alert
+		) &
+
+		trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
+		env sudo "$@"
+		$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"
+	)
 }

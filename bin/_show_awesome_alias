@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+### Desc: 定位别名源所在位置及对应的函数或命令内容
+
+function _show_fzf_awesome_alias() {
+    if [ "" != "$1" ] && [ "" != "$2" ]; then
+        CCommand=$1
+        CLocation=$2
+
+        TmpContent=$(cat $CLocation | grep -E "^${CCommand}=")
+
+        # awesome_alias_file=
+        awesome_alias_name=$CCommand
+        awesome_alias_to=$(echo $TmpContent | sed -e "s/${CCommand}=//g")
+        awesome_alias_desc=""
+
+        # echo "Alias Location    :"$awesome_alias_file
+        echo "Alias Name        :"$CCommand
+        echo "Alias To          :"$awesome_alias_to
+        echo "Alias Description :" $awesome_alias_desc
+        echo ""
+        echo "Which Command:"
+        env which "$awesome_alias_to"
+        # `which "$awesome_alias_to"`
+    fi
+}
+
+_show_fzf_awesome_alias $1 $2
