@@ -388,3 +388,32 @@ function sudo() { # Desc: function: sudo:sudo命令后,theme自动切换主题
 		$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"
 	)
 }
+
+function ssh() { # Desc: function: ssh:ssh命令后,theme自动切换主题
+	# A tiny ssh wrapper which extracts a theme from ~/.ssh_themes
+	# and applies it for the duration of the current ssh command.
+	# Each line in ~/.ssh_themes has the format:
+	#     <hostname>: <theme>.
+
+	# Restoration relies on the fact that you are using theme.sh to manage
+	# the current theme.  (that is, you set the theme in your bashrc.)
+
+	# This can probably be made more robust. It is just a small demo
+	# of what is possible.
+
+
+	touch ~/.ssh_themes
+
+	host="$(echo "$@"|awk '{gsub(".*@","",$NF);print $NF}')"
+	theme="$(awk -vhost="$host" -F': *' 'index($0, host":") == 1 {print $2}' < ~/.ssh_themes)"
+
+	if [ -z "$theme" ]; then
+		env ssh "$@"
+		return
+	fi
+
+	INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme "$theme"
+	trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
+	env ssh "$@"
+	$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"
+}

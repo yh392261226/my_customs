@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Desc: 利用ffmpeg向rtmp服务器推视频,实现无人直播
+
+# ffmpeg命令位置
+FFMPEGCOMMAND=ffmpeg
+# rtmp服务器及参数连接地址
+RTMPLINK="rtmp://live-push.bilivideo.com/live-bvc/?streamname=live_350943383_7128776&key=f9467ea5d97f5e1f7c35128e451031eb&schedule=rtmp&pflag=1"
+# 视频地址
+VIDEOPATH=./workerman.mp4
+
+$FFMPEGCOMMAND -re -stream_loop -1 -i $VIDEOPATH -c copy -f flv $RTMPLINK
