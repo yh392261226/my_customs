@@ -176,3 +176,9 @@ function update_git_files_and_modules() { # Desc: function: update_git_files_and
     customcd ~
 }
 alias upgitfiles="update_git_files_and_modules"     # Desc: alias: upgitfiles:update_git_files_and_modules命令的别名,更新git的目录及git module的目录
+
+
+function fzf_git_vim_to_line() { # Desc: function:fzf_git_vim_to_line: Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行
+    git grep --line-number . | fzf --delimiter : --nth 3.. --bind 'enter:become(vim {1} +{2})'
+}
+alias fgvl="fzf_git_vim_to_line" # Desc: alias: fgvl: fzf_git_vim_to_line命令的别名,Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行
