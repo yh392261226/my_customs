@@ -74,3 +74,54 @@ function tree_search() { # Desc: function: Search keyword by tree command in the
     tree -d -L 2 |grep "$1" -C 10|less
 }
 alias trees='tree_search'       # Desc: alias: trees:tree_search命令的别名,利用tree和grep命令搜索关键字的文件
+
+function fzf_find_by_choice() { # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
+    find * | fzf --prompt 'All> ' \
+             --header 'CTRL-D: Directories / CTRL-F: Files' \
+             --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
+             --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)'
+}
+alias ffbc="fzf_find_by_choice" # Desc: alias: ffbc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
+
+function fzf_fd_by_choice() { # Desc: function: fzf_fd_by_choice: 利用fzf命令显示fd的结果,并根据选择展示文件或文件夹
+    fd --type file | fzf --prompt 'Files> ' \
+      --header 'CTRL-T: Switch between Files/Directories' \
+      --bind 'ctrl-t:transform:[[ ! $FZF_PROMPT =~ Files ]] &&
+              echo "change-prompt(Files> )+reload(fd --type file)" ||
+              echo "change-prompt(Directories> )+reload(fd --type directory)"' \
+      --preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}'
+}
+alias ffbc2="fzf_fd_by_choice" # Desc: alias: ffbc2: fzf_fd_by_choice命令的别名,利用fzf命令显示fd的结果,并根据选择展示文件或文件夹
+
+function fzf_rg_vim() { # Desc: function: fzf_rg_vim: fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
+    # 1. Search for text in files using Ripgrep
+    # 2. Interactively narrow down the list using fzf
+    # 3. Open the file in Vim
+    #rg --color=always --line-number --no-heading --smart-case "${*:-}" | fzf --ansi \
+    #  --color "hl:-1:underline,hl+:-1:underline:reverse" \
+    #  --delimiter : \
+    #  --preview 'bat --color=always {1} --highlight-line {2}' \
+    #  --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
+    #  --bind 'enter:become(vim {1} +{2})'
+
+    # Two-phase filtering with Ripgrep and fzf
+    #
+    # 1. Search for text in files using Ripgrep
+    # 2. Interactively restart Ripgrep with reload action
+    #    * Press ctrl-t to switch to fzf-only filtering
+    # 3. Open the file in Vim
+    RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case "
+INITIAL_QUERY="${*:-}"
+: | fzf --ansi --disabled --query "$INITIAL_QUERY" \
+    --bind "start:reload:$RG_PREFIX {q}" \
+    --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
+    --bind "ctrl-t:unbind(change,ctrl-t)+change-prompt(2. fzf> )+enable-search+clear-query" \
+    --color "hl:-1:underline,hl+:-1:underline:reverse" \
+    --prompt '1. ripgrep> ' \
+    --header 'CTRL-T: Switch to fzf-only filtering' \
+    --delimiter : \
+    --preview 'bat --color=always {1} --highlight-line {2}' \
+    --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
+    --bind 'enter:become(vim {1} +{2})'
+}
+alias frv="fzf_rg_vim" # Desc: alias: frv: fzf_rg_vim命令的别名,fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式

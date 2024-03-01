@@ -117,4 +117,4 @@
 #!!# 
 
 
-cat $0 | grep '#!!' | fzf --preview 'echo {3..}' --preview-window up:7:hidden:wrap --bind 'ctrl-/:toggle-preview' --bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' --color header:italic --header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window"
+cat $0 | grep '#!!' | fzf --preview 'echo "-----------------------------";echo {3..};echo "-----------------------------";'  --margin=1 --padding=1 --preview-window up:3:hidden:wrap --bind 'ctrl-/:toggle-preview' --bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' --bind 'enter:become(eval {3..})' --color header:italic --header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window"
