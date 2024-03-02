@@ -417,3 +417,8 @@ function ssh() { # Desc: function: ssh:ssh命令后,theme自动切换主题
 	env ssh "$@"
 	$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"
 }
+
+function last_theme() { # Desc: function: last_theme: 获取theme命令最后一次的设置
+	echo $($MYRUNTIME/customs/bin/theme -l|tail -n2|head -n1)
+}
+alias lasttheme="last_theme" # Desc: alias: last_theme命令的别名,获取theme命令最后一次的设置

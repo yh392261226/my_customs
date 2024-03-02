@@ -145,3 +145,6 @@ alias train="$(brew --prefix sl)/bin/sl"                                        
 [[ -f /opt/homebrew/bin/ccat ]] && alias cat="/opt/homebrew/bin/ccat"                                            # Desc: alias: cat:(M1)设置/opt/homebrew/bin/ccat代替cat命令
 [[ -f /usr/local/bin/ccat ]] && alias cat="/usr/local/bin/ccat"                                                  # Desc: alias: cat:(Intel)设置/usr/local/bin/ccat代替cat命令
 [[ -f /usr/local/bin/code ]] && alias code.="/usr/local/bin/code ."                                              # Desc: alias: code.:设置用vscode打开当前目录
+
+[[ -f $MYRUNTIME/customs/bin/theme ]] && alias thl="$MYRUNTIME/customs/bin/theme --light -i"                     # Desc: alias: thl:theme命令中的亮系主题列表选择器
+[[ -f $MYRUNTIME/customs/bin/theme ]] && alias thd="$MYRUNTIME/customs/bin/theme --dark -i"                      # Desc: alias: thd:theme命令中的暗系主题列表选择器
