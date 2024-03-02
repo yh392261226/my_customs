@@ -123,6 +123,7 @@ ctrl + alt - 3  : yabai -m display --focus 3
 # change layout of desktop(更换layout方式)
 ctrl + alt - a : yabai -m space --layout bsp
 ctrl + alt - d : yabai -m space --layout float
+ctrl + alt - s : yabai -m space --layout $(yabai -m query --spaces --space | jq -r 'if .type == "bsp" then "float" else "bsp" end')
 
 
 #---------------------------------------------------------------------
