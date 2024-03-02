@@ -1,6 +1,7 @@
 #### 引入我自己的配置：开始
 sh_config=("basic" "prompt" "omz" "zinit" "zstyles" "other" "import" "go" "php" "ser" "proxy" "composer" "export" "library" "alias" "common" "python" "java" "others" "iterm2")
 
+# 上面的sh_config配置可以写在下面的文件中, 覆盖默认的
 [[ -f $HOME/.my_sh_config ]] && source $HOME/.my_sh_config
 
 my_custom_sh=$MYRUNTIME/customs/my_shell
