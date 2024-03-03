@@ -128,6 +128,7 @@
 #!!#|- 显示终端代理信息            pproxy
 #!!#|- 自定义的goodfon的图片下载记录工具并记录于数据库    gfa2
 #!!#|- 自定义的goodfon的图片下载记录工具    gfa
+#!!#|- 利用fzf选择器通过终端打开App     app
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
@@ -173,6 +174,6 @@ case "$1" in
         echo "Usage: snippets edit/e | help/h | list/l"
 	;;
 	"list"|"l"|*)
-		cat $0 | grep '#!!' | grep -v 'skipthisline' | fzf --preview 'echo "-----------------------------";echo {3..};echo "-----------------------------";'  --margin=1 --padding=1 --preview-window up:3:hidden:wrap --bind 'ctrl-/:toggle-preview' --bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' --bind 'enter:become(eval {3..})' --color header:italic --header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window" #skipthisline
+		cat $0 | grep '#!!' | grep -v 'skipthisline' | fzf --preview 'echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";echo "|⋯  "{3..};echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";'  --margin=1 --padding=1 --preview-window up:3:border-rounded:hidden:wrap --bind 'ctrl-/:toggle-preview' --bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' --bind 'enter:become(eval {3..})' --color header:italic --header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window" #skipthisline
 	;;
 esac
