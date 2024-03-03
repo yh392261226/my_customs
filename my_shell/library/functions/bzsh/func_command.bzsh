@@ -422,3 +422,8 @@ function last_theme() { # Desc: function: last_theme: 获取theme命令最后一
 	echo $($MYRUNTIME/customs/bin/theme -l|tail -n2|head -n1)
 }
 alias lasttheme="last_theme" # Desc: alias: last_theme命令的别名,获取theme命令最后一次的设置
+
+function open_app_by_fzf() { # Desc: function open_app_by_fzf: 利用fzf通过终端打开App
+    ls /Applications/ | fzf --ansi --preview 'tree /Applications/{}' --bind 'enter:become(open /Applications/{})'
+}
+alias app="open_app_by_fzf" # Desc: alias: app: open_app_by_fzf命令的别名,利用fzf通过终端打开App
