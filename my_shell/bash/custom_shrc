@@ -29,5 +29,4 @@ source $my_custom_sh/bash/zmy_other.bash
 goto () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
-
 source $my_custom_sh/my_library.sh

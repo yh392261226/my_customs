@@ -258,7 +258,7 @@ if [ "zsh" = "$nowshell" ]; then
 fi
 
 if [ "bash" = "$nowshell" ]; then
-    source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.zsh
+    source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.bash
     bind -x '"\C-a": fzf-help-widget'
 fi
 

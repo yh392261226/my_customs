@@ -1,4 +1,5 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
+
 for func in $(ls $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_*.bzsh); do
     source $func
 done
