@@ -66,7 +66,8 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                                 set background image to \"$image_path\"
                             end tell
                         end tell
-                    end tell"
+                    end tell
+                    "
                 else
                     osascript -e "tell application \"iTerm\"
                         set current_terminal to (current terminal)
@@ -76,7 +77,8 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                                 set background image path to \"$image_path\"
                             end tell
                         end tell
-                    end tell"
+                    end tell
+                    "
                 fi
                 if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
                   bg_thumb $image_path
