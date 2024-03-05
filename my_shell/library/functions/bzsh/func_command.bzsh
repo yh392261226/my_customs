@@ -23,7 +23,7 @@ alias fcf="fzf_show_customs_functions"          # Desc: alias: fcf:fzf_show_cust
 
 function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases:显示所有自定义的别名及注释
     TMP_ALIASES_FILE=$(mktemp)
-    alias > $TMP_ALIASES_FILE
+    alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE |awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_awesome_alias {} $TMP_ALIASES_FILE"  --prompt="Awesome Customs Aliases > ")
     fi
@@ -48,7 +48,7 @@ function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有�
 alias showaliases="fzf_show_aliases2"   # Desc: alias: showaliases:fzf_show_aliases2命令的别名,显示所有自定义命令及注释
 
 function fzf_show_alias() { # Desc: function: fzf_show_alias:利用fzf显示所有别名
-    alias | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "$MYRUNTIME/customs/bin/_positalias {}" --preview-window right:140
+    alias | sed -e "s/^alias //g" | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview "$MYRUNTIME/customs/bin/_positalias {}" --preview-window right:140
 }
 alias fsa="fzf_show_alias"  # Desc: alias: fsa:fzf_show_alias命令的别名,利用fzf显示所有别名
 
@@ -58,7 +58,6 @@ function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_custom
     else
         AWESOME_FZF_FUNCTIONS_LOCATION=$(cat $HOME/.myruntime)/customs/my_shell/
         TMP_FZF_FUNCTIONS_FILE=$(mktemp)
-        #--preview "$MYRUNTIME/customs/bin/_positalias {}" --preview-window right:140
         find $AWESOME_FZF_FUNCTIONS_LOCATION -type f -name "*bzsh" |xargs grep -E "(function fzf_)(.*?)[^(]*" > $TMP_FZF_FUNCTIONS_FILE
         if [ ! -f $TMP_FZF_FUNCTIONS_FILE ]; then
             echo "Awesome Fzf Functions Collection File Does Not Exists !"

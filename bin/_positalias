@@ -23,13 +23,11 @@ if [ "" != "$@" ]; then
     target=$(echo "$@" | awk -F'=' '{print $1}' | sed 's,",,g' | sed "s,',,g")
     source=$(echo "$@" | awk -F'=' '{print $2}' | sed 's,",,g' | sed "s,',,g")
     # read target source <<< $(echo "$@" | awk -F'=' '$1" "$2')
-    echo $target
+	echo "Source  : $source"
+    echo "Alias to: $target"
     sourcewordnums=$(echo $source | wc -w)
     if [ 1 -eq $sourcewordnums ]; then
-        # builtin whence -w $source
-        echo $source
-        which batw
-        /opt/homebrew/bin/which $source
+        bat_whereis_file $source
         echo "该脚本未完成！！！"
     fi
 fi
