@@ -212,7 +212,7 @@ function find_link_files() { # Desc: function: find_link_files:find找出所有�
 }
 alias flf="find_link_files"     # Desc: alias: flf:find_link_files命令的别名,find找出所有软连接文件
 
-function fzf_rm_file() { # Desc: function: fzf_rm_file:find找出文件选中删除
+function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件选中删除
   if [[ "$#" -eq 0 ]]; then
     local files
     files=$(find . -maxdepth 1 -type f | fzf --multi)
@@ -221,7 +221,7 @@ function fzf_rm_file() { # Desc: function: fzf_rm_file:find找出文件选中删
     command rm "$@"
   fi
 }
-alias frf="fzf_rm_file"     # Desc: alias:frf:fzf_rm_file的别名,find找出文件选中删除
+alias frf="fzf_remove_file"     # Desc: alias:frf:fzf_remove_file的别名,find找出文件选中删除
 
 # Man without options will use fzf to select a page
 function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
