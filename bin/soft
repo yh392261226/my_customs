@@ -2,6 +2,8 @@
 ### Desc: 打开经常使用的软件网址
 
 WEBSITES=$MYRUNTIME/tools/software_websites.log
+BROWSER="/Applications/Google Chrome.app"
+BROWSER="/Applications/Safari.app"
 
 if [ ! -f $WEBSITES ]; then
     [[ ! -d $(dirname $WEBSITES) ]] && mkdir -p $(dirname $WEBSITES)
@@ -16,7 +18,7 @@ function list() {
     fi
     choose=$(cat $WEBSITES | fzf)
     if [ "" != "$choose" ]; then
-        /usr/bin/open -a "/Applications/Google Chrome.app" "$choose"
+        /usr/bin/open -a "$BROWSER" "$choose"
         #chrome "$choose"
     fi
 }
