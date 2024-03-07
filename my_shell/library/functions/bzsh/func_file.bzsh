@@ -218,7 +218,7 @@ function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件�
     files=$(find . -maxdepth 1 -type f | fzf --multi)
     echo $files | xargs -I '{}' rm {} #we use xargs to capture filenames with spaces in them properly
   else
-    gum confirm && command rm "$@" || echo "Action aborted !"
+    gum confirm "确认删除?" && command rm "$@" || echo "Action aborted !"
   fi
 }
 alias frf="fzf_remove_file"     # Desc: alias:frf:fzf_remove_file的别名,find找出文件选中删除
