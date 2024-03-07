@@ -239,7 +239,7 @@ function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找
   if [[ "$#" -eq 0 ]]; then
     local directories
     directories=$(find . -maxdepth 1 -type d | fzf --multi)
-    echo $directories | xargs -I '{}' rm -rf {} #we use xargs to capture filenames with spaces in them properly
+    gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !" #we use xargs to capture filenames with spaces in them properly
   else
     gum confirm "确认删除?" && command rm -rf "$@" || echo "Action aborted !"
   fi

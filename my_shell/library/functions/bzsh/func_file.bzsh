@@ -216,7 +216,7 @@ function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件�
   if [[ "$#" -eq 0 ]]; then
     local files
     files=$(find . -maxdepth 1 -type f | fzf --multi)
-    echo $files | xargs -I '{}' rm {} #we use xargs to capture filenames with spaces in them properly
+    gum confirm "确认删除?" && (echo $files | xargs -I '{}' rm {}) || echo "Action aborted !" #we use xargs to capture filenames with spaces in them properly
   else
     gum confirm "确认删除?" && command rm "$@" || echo "Action aborted !"
   fi
