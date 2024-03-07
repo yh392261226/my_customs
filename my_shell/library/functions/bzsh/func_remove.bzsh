@@ -1,3 +1,6 @@
+### Package Desc: 删除相关命令
+
+
 function remove_DS_files() { # Desc: function: remove_DS_files:删除.DS_Store文件
     if [ "" = "$1" ]; then
         find . -type f -name '*.DS_Store' -ls -delete

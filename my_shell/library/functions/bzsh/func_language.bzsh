@@ -1,3 +1,6 @@
+### Package Desc: 语言相关命令
+
+
 function fzf_rvm_select() { # Desc: function: fzf_rvm_select:RVM integration
     local rb
     rb=$(

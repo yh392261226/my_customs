@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+### Package Desc: 浏览器相关命令
 
 SEARCH_BROWSER="/Applications/Safari.app"
 [[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"

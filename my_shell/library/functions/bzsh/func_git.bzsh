@@ -1,3 +1,5 @@
+### Package Desc: Git版本控制工具相关
+
 
 function is_git() { # Desc: function: is_git:pick files from `git status -s`
     git rev-parse HEAD > /dev/null 2>&1

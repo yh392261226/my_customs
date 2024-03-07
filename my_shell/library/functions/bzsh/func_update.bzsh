@@ -1,3 +1,6 @@
+### Package Desc: 自定义更新相关命令
+
+
 function update_dotfiles() { # Desc: function: update_dotfiles:git 更新$MYRUNTIME 目录下的所有由git管理的目录
     update_git_files_and_modules
 }

@@ -1,3 +1,5 @@
+### Package Desc: 目录相关命令
+
 function cd() { # Desc: function: cd:cd命令后列出目录内容
     if  ! command -v lsd &> /dev/null 
     then

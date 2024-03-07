@@ -1,3 +1,6 @@
+### Package Desc: 进程相关命令
+
+
 function fzf_process_kill() { # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     if [ "$UID" != "0" ]; then

@@ -1,3 +1,6 @@
+### Package Desc: 其他自定义命令
+
+
 function zsh_wifi_signal() { # Desc: function: zsh_wifi_signal:zsh获取WiFi网速
     if [ "$MYSYSNAME" = "Mac" ]; then
         local output=$(/System/Library/PrivateFrameworks/Apple80211.framework/Versions/A/Resources/airport -I)

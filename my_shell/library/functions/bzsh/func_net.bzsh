@@ -1,3 +1,6 @@
+### Package Desc: 网络相关命令
+
+
 function auto_change_netdisk_status() { # Desc: function: auto_change_netdisk_status:自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
     CPATH=/Volumes/XiaoMi/下载/
     CNAME=over_s

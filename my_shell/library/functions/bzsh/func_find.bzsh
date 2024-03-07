@@ -1,3 +1,6 @@
+### Package Desc: 查找相关命令
+
+
 function find_current_directory_files_by_ext() { # Desc: function: find_current_directory_files_by_ext:寻找当前目录下后缀名的所有文件
     find ./ -type f -iname '*.'${1}'' -exec ls -l {} \; ;
 }

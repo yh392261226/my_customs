@@ -1,3 +1,6 @@
+### Package Desc: 自定义工具相关命令
+
+
 function create_tmp_aliases() { # Desc: function: create_tmp_aliases:以a+数字形式创建临时别名命令
     if [ "$#" -gt "0" ]; then
         tmp_command_file=$(mktemp)

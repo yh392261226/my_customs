@@ -1,3 +1,6 @@
+### Package Desc: 各种语言的版本虚拟机工具
+### Web : https://github.com/asdf-vm/asdf
+
 function fzf_asdf_install() { # Desc: function: fzf_asdf_install:安装一个或多个版本的语言包 e.g. `vmi rust` # => fzf multimode, tab to mark, enter to install if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you Mnemonic [V]ersion [M]anager [I]nstall
   local lang=${1}
 

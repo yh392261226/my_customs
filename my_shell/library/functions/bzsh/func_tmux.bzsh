@@ -1,3 +1,6 @@
+### Package Desc: Tmux窗口管理工具相关命令
+
+
 function tmux_configs_select() { # Desc: function: tmux_configs_select:Tmux根据选择使用配置文件
     local CONFIGS=$MYRUNTIME/tmuxconfigs  #配置文件地址
     local EXT=tmux.conf

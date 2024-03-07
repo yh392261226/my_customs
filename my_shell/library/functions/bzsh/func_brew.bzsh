@@ -1,3 +1,6 @@
+### Package Desc: HomeBrew软件包管理工具
+### Web : brew.sh
+
 function brew_clean_caches() { # Desc: function: brew_clean_caches:Brew Delete (one or multiple) Caches files of  mnemonic (e.g. uninstall)
   customcd $(brew --cache)
   rm -f ./*phar ./*patch ./*diff ./*xz ./*gz ./*bz2 ./*zip ./*rock

@@ -1,3 +1,6 @@
+### Package Desc: 文件相关命令
+
+
 function cat_whereis_file() { # Desc: function: cat_whereis_file:cat打印which命令找到的文件地址
     command -v "$@" > /dev/null 2>&1
     [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1

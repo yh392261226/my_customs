@@ -1,3 +1,6 @@
+### Package Desc: 编辑器相关命令
+
+
 function editorw() { # Desc: function: editorw:use which command to find out the file or command then open with editors
     local COMMANDBIN=$1
     local FILENAME=$2

@@ -1,3 +1,5 @@
+### Package Desc: 压缩解压相关命令
+
 function customExtract() { # Desc: function: extract:自动检测文件后缀并自动解压
 	if [ -z "$1" ]; then
     	echo "Usage: extract <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
