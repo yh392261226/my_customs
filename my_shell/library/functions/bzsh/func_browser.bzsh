@@ -1,35 +1,85 @@
 ### Package Desc: 浏览器相关命令
 
 SEARCH_BROWSER="/Applications/Safari.app"
-[[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
+#[[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
 
 function sgoogle() { #Desc: function: sgoogle:GOOGLE搜索引擎搜索
-    echo "open -a $SEARCH_BROWSER https://www.google.com/search?q= $1";
-    open -a "$SEARCH_BROWSER" "https://www.google.com/search?q= $1"；
+    if [ "" != "$1" ]; then
+        echo "open -a $SEARCH_BROWSER https://www.google.com/search?q=${1}";
+        open -a "$SEARCH_BROWSER" "https://www.google.com/search?q=${1}";
+    else
+        hascommand=$(ifHasCommand gum)
+        if [ $hascommand = 1 ]; then
+            text=$(gum input --placeholder "Type search text")
+        else
+            read text
+        fi
+        open -a "$SEARCH_BROWSER" "https://www.google.com/search?q=${text}"
+    fi
 }
 alias google="sgoogle"  # Desc: alias: google:sgoogle命令的别名,GOOGLE搜索引擎搜索
 
 function sbaidu() { #Desc: function: sbaidu:百度搜索引擎搜索
-    echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd= $1";
-    open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd= $1";
+    if [ "" != "$1" ]; then
+        echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd=${1}";
+        open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd=${1}";
+    else
+        hascommand=$(ifHasCommand gum)
+        if [ $hascommand = 1 ]; then
+            text=$(gum input --placeholder "Type search text")
+        else
+            read text
+        fi
+        open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd=${text}"
+    fi
 }
 alias baidu="sbaidu"    # Desc: alias: baidu:sbaidu命令的别名,百度搜索引擎搜索
 
 function sbing() { #Desc: function: sbing:Bing搜索引擎搜索
-    echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q= $1";
-    open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q= $1";
+    if [ "" != "$1" ]; then
+        echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q=${1}";
+        open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q=${1}";
+    else
+        hascommand=$(ifHasCommand gum)
+        if [ $hascommand = 1 ]; then
+            text=$(gum input --placeholder "Type search text")
+        else
+            read text
+        fi
+        open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q=${text}"
+    fi
 }
 alias bing="sbing"      # Desc: alias: bing:sbing命令的别名,Bing搜索引擎搜索
 
 function syahoo() { #Desc: function: syahoo:Yahoo搜索引擎搜索
-    echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q= $1";
-    open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q= $1";
+    if [ "" != "$1" ]; then
+        echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q=${1}";
+        open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q=${1}";
+    else
+        hascommand=$(ifHasCommand gum)
+        if [ $hascommand = 1 ]; then
+            text=$(gum input --placeholder "Type search text")
+        else
+            read text
+        fi
+        open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q=${text}"
+    fi
 }
 alias yahoo="syahoo"        # Desc: alias: yahoo:syahoo命令的别名,Yahoo搜索引擎搜索
 
 function swikipedia() { #Desc: function: syahoo:wikipedia搜索引擎搜索
-    echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search= $1";
-    open -a "$SEARCH_BROWSER"  "http://en.wikipedia.org/wiki/Special:Search?search= $1";
+    if [ "" != "$1" ]; then
+        echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search=${1}";
+        open -a "$SEARCH_BROWSER"  "http://en.wikipedia.org/wiki/Special:Search?search=${1}";
+    else
+        hascommand=$(ifHasCommand gum)
+        if [ $hascommand = 1 ]; then
+            text=$(gum input --placeholder "Type search text")
+        else
+            read text
+        fi
+        open -a "$SEARCH_BROWSER" "http://en.wikipedia.org/wiki/Special:Search?search=${text}"
+    fi
 }
 alias wikipedia="swikipedia"    # Desc: alias: wikipedia:swikipedia命令的别名,wikipedia搜索引擎搜索
 

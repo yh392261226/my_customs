@@ -11,7 +11,7 @@ function gifify_from_video () { # Desc: function: gifify_from_video:Animated gif
         ffmpeg -i "$1" -s 600x400 -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=3 > "$1.gif"
         fi
     else
-        echo "proper usage: gifify <input_movie.mov>. You DO need to include extension."
+        echo "proper usage: gifify <input_movie.mov>. You Do need to include extension."
     fi
 }
 alias gifify="gifify_from_video"    # Desc: alias: gifify:gifify_from_video命令的别名,Animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674

@@ -63,40 +63,28 @@ function mark_by_cheatsh() { # Desc: function: mark_by_cheatsh:依托于cheat.sh
 alias memo="mark_by_cheatsh"    # Desc: alias: memo:mark_by_cheatsh命令的别名,依托于cheat.sh的备忘录
 
 function php_change_version() { # Desc: function: php_change_version:PHP依赖于brew切换已安装版本
+    echo "*******************************************************"
+    echo "Current version is : "
+    php -v
+    echo "*******************************************************"
+    echo ""
+    echo "Select to change version:"
     installedPhpVersions=($(brew ls --versions | ggrep -E 'php(@.*)?\s' | ggrep -oP '(?<=\s)\d\.\d' | uniq | sort))
-    posit=1
-    versions[1]='';
-    commands[1]='';
+
+    tmpfile=$(mktemp)
     for phpVersion in ${installedPhpVersions[*]}; do
-        value="{"
-
-        for otherPhpVersion in ${installedPhpVersions[*]}; do
-            if [ "${otherPhpVersion}" != "${phpVersion}" ]; then
-                value="${value} brew unlink php@${otherPhpVersion};"
-            fi
-        done
-
-        value="${value} brew link php@${phpVersion} --force --overwrite; }  &> /dev/null && php -v"
-        versions[$posit]="php_${phpVersion}"
-        commands[$posit]=${value}
-        echo "$posit : php_${phpVersion}"
-        ((posit+=1))
+        echo "brew unlink php@${phpVersion};" >> $tmpfile
     done
 
-    echo "*******************************************************"
-    echo "Current version is : $(php -v)"
-    echo "*******************************************************"
-    echo "Which version do you want or exit type N/no :"
-    read choose
-    if [ "$choose" = "N" ] || [ "$choose" = "no" ] || [ "$choose" = "n" ] || [ "$choose" = "NO" ] || [ "$choose" = "No" ]; then
-        return 0
+    choose=$(printf "%s\n" "${installedPhpVersions[@]}" | fzf)
+    if [ "" = "$choose" ]; then
+        echo "Action abord !"
+        return 1
+    else
+        echo "brew link php@${choose};" >> $tmpfile
     fi
-    if [ "$choose" -lt "${#versions[@]}" ]; then
-        tmpfile=$(mktemp)
-        echo "${commands[$choose]}" > $tmpfile
-        bash $tmpfile
-        trap 'rm -f "$tmpfile"'
-        echo "Now, it's done ..."
-    fi
+    bash $tmpfile &> /dev/null && php -v
+    trap 'rm -f "$tmpfile"'
+    echo "Now, it's done ..."
 }
 alias phpcv="php_change_version"    # Desc: alias: phpcv:php_change_version命令的别名,PHP依赖于brew切换已安装版本

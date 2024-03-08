@@ -60,12 +60,12 @@ function nviw() { # Desc: function: nviw:neovim 编辑which命令找到的文件
     editorw $COMMANDBIN $1
 }
 
-function fzf_e() { # Desc: function: fzf_e:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
+function fzf_edit() { # Desc: function: fzf_edit:Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
     local file
     file=$(fzf-tmux --query="$1" --select-1 --exit-0)
     [ -n "$file" ] && ${EDITOR:-vim} "$file"
 }
-alias fe="fzf_e" # Desc: alias: fe: fzf_e命令的别名,Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
+alias fe="fzf_edit" # Desc: alias: fe: fzf_edit命令的别名,Open the selected file with the default editor. Bypass fuzzy finder if there's only one match (--select-1) Exit if there's no match (--exit-0)
 
 function fzf_tags() { # Desc: function: fzf_tags:search ctags
 #    local line
@@ -91,13 +91,14 @@ function fzf_tags() { # Desc: function: fzf_tags:search ctags
 }
 alias ftags="fzf_tags" # Desc: alias: ftags: fzf_tags: search ctags
 
-function v() { # Desc: function: v:open files in ~/.viminfo
+function fzf_open_viminfo() { # Desc: function: fzf_open_viminfo:open files in ~/.viminfo
     local files
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
         [ -f "${line/\~/$HOME}" ] && echo "$line"
     done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
+alias fov="fzf_open_viminfo" # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in ~/.viminfo
 
 function fzf_open_with_editor() { # Desc: function: fzf_open_with_editor:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
     local out file key

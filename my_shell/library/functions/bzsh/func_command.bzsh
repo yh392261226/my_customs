@@ -313,7 +313,7 @@ function fzf_man_widget() { # Desc: function: fzf_man_widget:fzf版本的man命�
   #zle reset-prompt
   echo ""
 }
-alias fw="fzf_man_widget" # Desc: alias: fw:fzf_man_widget命令的别名,fzf版本的man命令
+alias fmw="fzf_man_widget" # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令
 
 function fzf_aliases_functions_selector() { # Desc: function: fzf_aliases_functions_selector:显示所有的alias和function并通过fzf选用
     CMD=$(

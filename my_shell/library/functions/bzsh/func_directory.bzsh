@@ -104,8 +104,8 @@ function cd_like_directory() { # Desc: function: cd_like_directory:包含参数�
 alias gdto="cd_like_directory"      # Desc: alias: gdto:cd_like_directory命令的别名,包含参数的名称的文件夹
 
 function get_command_directory() { # Desc: function: get_command_directory:获取命令所在目录
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         echo $(dirname "$@");
     else
@@ -130,8 +130,8 @@ function mkdir_cd() { # Desc: function: mkdir_cd:创建文件夹并进入
 alias mcd="mkdir_cd"        # Desc: alias: mcd:mkdir_cd命令的别名,创建文件夹并进入
 
 function cd_command_parent_directory() { # Desc: function: cd_command_parent_directory:进入命令所在的父级文件夹
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         cd `dirname $(dirname $(which "$1"))`
     else
@@ -148,8 +148,8 @@ alias cdpw="cd_command_parent_directory"    # Desc: alias: cdpw:cd_command_paren
 function cd_command_directory() { # Desc: function: cd_command_directory:进入命令所在的文件夹
     [[ -f $1 ]] && cd $(dirname $1) && return 1
     [[ -d $1 ]] && cd $1 && return 1
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         cd `dirname $(which "$1")`
     else
@@ -173,8 +173,8 @@ alias fzf_z="fzf_jump_between_directory"   # Desc: alias: fzf_z:fzf_jump_between
 alias fz="fzf_jump_between_directory"      # Desc: alias: fz:fzf_jump_between_directory命令的别名,目录跳转
 
 function ll_whereis_command() { # Desc: function: ll_whereis_command:打印which命令找到的文件地址
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         ls -l  `which "$1"`
     else
@@ -189,8 +189,8 @@ function ll_whereis_command() { # Desc: function: ll_whereis_command:打印which
 alias llw="ll_whereis_command"  # Desc: alias: llw:ll_whereis_command命令的别名,打印which命令找到的文件地址
 
 function open_directory_whereis_command() { # Desc: function: open_directory_whereis_command:打开which命令找到的目录或文件
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         open `dirname $(which "$1")`
     else
@@ -206,8 +206,8 @@ alias openw="open_directory_whereis_command"    # Desc: alias: openw:open_direct
 
 
 function pwd_command_directory() { # Desc: function: pwd_command_directory:获取命令所在的文件夹
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
         echo `dirname $(which "$1")`
     else
@@ -247,16 +247,3 @@ function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找
   fi
 }
 alias frd="fzf_remove_directory"     # Desc: alias:frd:fzf_remove_directory的别名,find找出文件夹选中删除
-
-
-
-
-
-
-hasCommand() {
-    ret="0"
-    if command -v "$@" > /dev/null 2>&1; then
-        ret="1"
-    fi
-    return $ret
-}
