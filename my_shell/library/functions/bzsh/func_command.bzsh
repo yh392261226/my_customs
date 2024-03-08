@@ -122,7 +122,7 @@ function my_message() { # Desc: function: my_message:显示我的自定义SHELL�
 
     echo " "
 }
-alias myMessage="my_message"    # Desc: alias: myMessage:my_message命令的别名,显示我的自定义SHELL头信息
+alias mymessage="my_message"    # Desc: alias: myMessage:my_message命令的别名,显示我的自定义SHELL头信息
 
 function acdul() { # Desc: function: acdul:acd 操作？
     acdcli ul -x 8 -r 4 -o "$@"
@@ -141,7 +141,7 @@ function show_bad_links() { # Desc: function: show_bad_links:列出所有失效�
     fi
     done
 }
-alias badlink="show_bad_links"      # Desc: alias: badlink:show_bad_links命令的别名,列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
+alias badlinks="show_bad_links"      # Desc: alias: badlink:show_bad_links命令的别名,列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
 
 function csbuild() { # Desc: function: csbuild:生成【参数为后缀名的】的数据文件
     [ $# -eq 0 ] && return
@@ -186,11 +186,11 @@ function miniprompt() { # Desc: function: miniprompt:临时最简化,终端主�
 }
 
 function speaking() { # Desc: function: speaking:利用osx系统发音说话
-    words=$1
-    if [ $# -ne 1 ]; then
-        echo "请输入要说的话"
-        echo "例如：$0 haha "
-        return 1
+    words="$@"
+    hasgum=$(ifHasCommand gum)
+
+    if [ "" = "$words" ]; then
+        [[ 1 = $hasgum ]] && (gum input --placeholder "Type something...") || (echo "请输入要说的话 \n例如：$0 haha " && return 1)
     fi
     #osascript -e 'say "'$words'" using "Cellos"'
     osascript -e 'say "'$words'" using "Ting-Ting"'
@@ -213,6 +213,7 @@ function history_sort() { # Desc: function: history_sort:按执行次数倒序�
         history | sort -rn | uniq -c | sort -rn | less
     fi
 }
+alias his="history_sort" # alias: his: history_sort命令的别名,按执行次数倒序显示历史命令
 
 function fzf_history_select() { # Desc: function: fzf_history_select:列出历史操作命令,选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
@@ -245,6 +246,7 @@ if [ -f /usr/local/bin/shellcheck ]; then
     function shell_debug() { # Desc: function: shell_debug:依赖shellcheck对shell脚本debug
         /usr/local/bin/shellcheck "$@"
     }
+    alias debug="shell_debug" # alias: debug:shell_debug命令的别名,依赖shellcheck对shell脚本debug
 fi
 
 function fzf_history() { # Desc: function: fzf_history:依赖fzf读取history结果
@@ -273,9 +275,10 @@ function fzf_theme_selector() { # Desc: function: fzf_theme_selector:fzf主题�
 alias ft='fzf_theme_selector'   # Desc: alias: ft:fzf_theme_selector命令的别名,fzf主题选择器
 
 function command_sl_selector() { # Desc: function: command_sl_selector:输入命令sl并执行时，二次验证选择
-    echo "执行命令行小火车：1"
-    echo "执行ls命令：2"
-    read choose
+    echo "执行命令行小火车：1, ls命令：2"
+    hasgum=$(ifHasCommand gum)
+
+    [[ "$hasgum" = "1" ]]  && choose=$(gum choose "1" "2") || read choose
     case "$choose" in
     "1")
         [[ -f /opt/homebrew/bin/sl ]] && /opt/homebrew/bin/sl

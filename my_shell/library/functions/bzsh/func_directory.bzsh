@@ -236,18 +236,27 @@ function fzf_directory_history() { # Desc: function: fzf_directory_history:利�
 alias fdh='fzf_directory_history'   # Desc: alias: fdh:fzf_directory_history命令的别名,利用fzf显示目录的历史
 
 function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找出文件夹选中删除
-  if [[ "1" = "$(command -v gum > /dev/null 2>&1)" ]]; then
-    hasgum=0
-  else
-    hasgum=1
-  fi
+  hasgum=$(ifHasCommand gum)
 
   if [[ "$#" -eq 0 ]]; then
     local directories
     directories=$(find . -maxdepth 1 -type d | fzf --multi)
-    hasgum && (gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
+    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
   else
-    hasgum && (gum confirm "确认删除?" && command rm -rf "$@" || echo "Action aborted !") || command rm -rf "$@"
+    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm -rf "$@" || echo "Action aborted !") || command rm -rf "$@"
   fi
 }
 alias frd="fzf_remove_directory"     # Desc: alias:frd:fzf_remove_directory的别名,find找出文件夹选中删除
+
+
+
+
+
+
+hasCommand() {
+    ret="0"
+    if command -v "$@" > /dev/null 2>&1; then
+        ret="1"
+    fi
+    return $ret
+}

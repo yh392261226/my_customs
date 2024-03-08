@@ -74,33 +74,40 @@ On_ICyan='\033[0;106m'    # Cyan
 On_IWhite='\033[0;107m'   # White
 # }}}
 # success/info/error/warn {{{
-msg() {
+function msg() {
     printf '%b\n' "$1" >&2
 }
 
-success() {
+function success() {
     msg "${Green}[✔]${Color_off} ${1}${2}"
     return 0
 }
 
-info() {
+function info() {
     msg "${Blue}[➭]${Color_off} ${1}${2}"
     return 0
 }
 
-error() {
+function error() {
     msg "${Red}[✘]${Color_off} ${1}${2}"
     return 1
 }
 
-warn () {
+function warn () {
     msg "${Yellow}[⚠]${Color_off} ${1}${2}"
 }
 # }}}
 
 # echo_with_color {{{
-echo_with_color () {
+function echo_with_color () {
     printf '%b\n' "$1$2$Color_off" >&2
 }
 # }}}
 
+function ifHasCommand() {
+    if ! command -v $1 >/dev/null 2>&1; then
+        echo "0"
+    else
+        echo "1"
+    fi
+}
