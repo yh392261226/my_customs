@@ -2,177 +2,178 @@
 ### Desc: 所有常用命令选择器
 ### Date: 2023-03-01
 
-#!!!#--终端主题、背景
-#!!#|- 选择终端主题样式        theme -i
-#!!#|- 选择暗系终端主题样式     theme -d -i
-#!!#|- 选择亮系终端主题样式     theme -li -i
-#!!#|- 终端背景图命令pokemon   pokemon
-#!!#|- pokemon的别名ding      ding
-#!!#|- 终端颜色工具vivid       vivid
+#!!!#-- 终端主题、背景
+#!!#|- 选择终端主题样式	theme -i
+#!!#|- 选择暗系终端主题样式	theme -d -i
+#!!#|- 选择亮系终端主题样式	theme -li -i
+#!!#|- 终端背景图命令pokemon	pokemon
+#!!#|- pokemon的别名ding	ding
+#!!#|- 终端颜色工具vivid	vivid
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
-#!!!#--进程管理
-#!!#|- 进程管理器bpytop       bpytop
-#!!#|- 进程管理器bottom          btm
+#!!!#-- 进程管理
+#!!#|- 进程管理器bpytop	bpytop
+#!!#|- 进程管理器bottom	btm
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
-#!!!#--文件、文件夹管理
-#!!#|- 终端文件管理器broot     broot
-#!!#|- 终端文件管理器ranger    ranger
-#!!#|- 终端文件管理器xplr      xplr
-#!!#|- GitHub上Python写的同时创建多级目录   ad
+#!!!#-- 文件、文件夹管理
+#!!#|- 终端文件管理器broot	broot
+#!!#|- 终端文件管理器ranger	ranger
+#!!#|- 终端文件管理器xplr	xplr
+#!!#|- GitHub上Python写的同时创建多级目录	ad
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
-#!!!#--窗口管理
-#!!#|- 终端窗口管理器byobu     byobu
-#!!#|- 终端窗口管理器tmux      tmux
-#!!#|- 终端窗口管理工具zellij  zellij
-#!!#|- 终端窗口管理器xpanes    xpanes
-#!!#|- 终端窗口管理命令        stty
-#!!#|- 苹果窗口管理工具yabai   yabai
-#!!#|- 联网管理tmux的工具tmate  tmate
-#!!#|- Golang版浏览器同步浏览终端内容gotty gotty
+#!!!#-- 窗口管理
+#!!#|- 终端窗口管理器byobu	byobu
+#!!#|- 终端窗口管理器tmux	tmux
+#!!#|- 终端窗口管理工具zellij	zellij
+#!!#|- 终端窗口管理器xpanes	xpanes
+#!!#|- 终端窗口管理命令	stty
+#!!#|- 苹果窗口管理工具yabai	yabai
+#!!#|- 联网管理tmux的工具tmate	tmate
+#!!#|- Golang版浏览器同步浏览终端内容gotty	gotty
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
-#!!!#--编程工具
-#!!#|- 代码量统计工具cloc       cloc
-#!!#|- 终端json查看工具         fx
-#!!#|- Git终端管理工具git-commander git-commander
-#!!#|- 终端Git管理工具lazygit   lazygit
-#!!#|- 终端版Markdown编辑器     glow
-#!!#|- 终端HTTP测试工具         http
-#!!#|- 压力测试命令wrk          wrk
-#!!#|- 用于发送HTTP请求的友好且快速的工具   xh
-#!!#|- 终端基准测试工具          hyperfine
-#!!#|- Sqlite终端工具          litecli
-#!!#|- FZF版本的Cheat命令navi   navi
-#!!#|- 终端代码片段管理器snips   snips
-#!!#|- 终端版Todo工具tb         tb
-#!!#|- 终端Git日志的列表工具tig  tig
-#!!#|- 带例子的man工具tldr      tldr
-#!!#|- 命令执行时间分析          bench
-#!!#|- 跟httpie是同类项目       curlie
-#!!#|- 是用于git、diff和grep输出的语法高亮分页器    delta
-#!!#|- 命令行比对工具并按html模式展示              diff2html
-#!!#|- 管理克隆的远程版本库       ghq
-#!!#|- Postgresql的终端管理工具  pgcli
+#!!!#-- 编程工具
+#!!#|- 代码量统计工具cloc	cloc
+#!!#|- 终端json查看工具	fx
+#!!#|- Git终端管理工具git-commander	git-commander
+#!!#|- 终端Git管理工具lazygit	lazygit
+#!!#|- 终端版Markdown编辑器	glow
+#!!#|- 终端HTTP测试工具	http
+#!!#|- 压力测试命令wrk	wrk
+#!!#|- 用于发送HTTP请求的友好且快速的工具	xh
+#!!#|- 终端基准测试工具	hyperfine
+#!!#|- Sqlite终端工具	litecli
+#!!#|- FZF版本的Cheat命令navi	navi
+#!!#|- 终端代码片段管理器snips	snips
+#!!#|- 终端版Todo工具tb	tb
+#!!#|- 终端Git日志的列表工具tig	tig
+#!!#|- 带例子的man工具tldr	tldr
+#!!#|- 命令执行时间分析	bench
+#!!#|- 跟httpie是同类项目	curlie
+#!!#|- 是用于git、diff和grep输出的语法高亮分页器	delta
+#!!#|- 命令行比对工具并按html模式展示	diff2html
+#!!#|- 管理克隆的远程版本库	ghq
+#!!#|- Postgresql的终端管理工具	pgcli
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
-#!!!#--历史搜索
-#!!#|- 终端历史命令搜索工具         hstr
-#!!#|- 终端历史命令搜索工具mcfly    mcfly
-#!!#|- FZF版本的目录历史记录工具    fdh
-#!!#|- 终端目录记录器              zfm
+#!!!#-- 历史搜索
+#!!#|- 终端历史命令搜索工具	hstr
+#!!#|- 终端历史命令搜索工具mcfly	mcfly
+#!!#|- FZF版本的目录历史记录工具	fdh
+#!!#|- 终端目录记录器	zfm
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
-#!!!#--系统工具或命令替代
-#!!#|- cat命令的更好替代命令percol   percol
-#!!#|- ps命令的更好替代命令procs     procs
-#!!#|- 类似进程管理器的东西           wtfutil
-#!!#|- top命令的更好替代命令bashtop  bashtop
-#!!#|- 同时Ping多个域名             mping
-#!!#|- 同时tail多个文件             multitail
-#!!#|- 比cat更强大的文件内容显示      bat
-#!!#|- cut命令的替代品              choose
-#!!#|- 硬盘信息分析器               dfc
-#!!#|- GitHub上另一个ls的重写       exa
-#!!#|- 另一个ls的重写               eza
-#!!#|- find查找文件命令             fd
-#!!#|- 系统监控工具                 glances
-#!!#|- 系统监控软件                 grafana
-#!!#|- ls的升级变种                 lsd
-#!!#|- grep命令的替代品             rg
-#!!#|- 更聪明的cd命令               zoxide
-#!!# 
-#!!# ----------------------------------------------
-#!!# 
-
-
-#!!!#--网络命令
-#!!#|- 多线程下载器     axel
+#!!!#-- 系统工具或命令替代
+#!!#|- cat命令的更好替代命令percol	percol
+#!!#|- ps命令的更好替代命令procs	procs
+#!!#|- 类似进程管理器的东西	wtfutil
+#!!#|- top命令的更好替代命令bashtop	bashtop
+#!!#|- 同时Ping多个域名	mping
+#!!#|- 同时tail多个文件	multitail
+#!!#|- 比cat更强大的文件内容显示	bat
+#!!#|- cut命令的替代品	choose
+#!!#|- 硬盘信息分析器	dfc
+#!!#|- GitHub上另一个ls的重写	exa
+#!!#|- 另一个ls的重写	eza
+#!!#|- find查找文件命令	fd
+#!!#|- 系统监控工具	glances
+#!!#|- 系统监控软件	grafana
+#!!#|- ls的升级变种	lsd
+#!!#|- grep命令的替代品	rg
+#!!#|- 更聪明的cd命令	zoxide
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
 
-#!!!#--有用命令
-#!!#|- 终端翻译命令fanyi          fanyi
-#!!#|- 利用系统自带的词典查询单词    dic
-#!!#|- 终端翻译命令trans          trans
-#!!#|- 终端检测服务器是否在线       isitup
-#!!#|- IP类型终端管理命令          mtr
-#!!#|- 查看所有自定义别名          showaliases
-#!!#|- 更改破解APP签名工具         sign
-#!!#|- 管理切换ssh-key工具skm     skm
-#!!#|- 终端查看阻止息屏的进程       pmset -g
-#!!#|- 网站生成app文件命令pake     pake
-#!!#|- 一款可交互式的ssh批量执行命令的客户端    hss
-#!!#|- 根据QQ的IP库展示IP所在地    nali
-#!!#|- 极简SSH部署https://github.com/sapegin/shipit  shipit
-#!!#|- Github上的TODO终端管理     todoist
-#!!#|- 自定义的别名选择器          fca
-#!!#|- 自定义函数的选择器          fcf
-#!!#|- 自定义fzf的函数选择器       fafl
-#!!#|- 启动终端代理               onproxy
-#!!#|- 关闭终端代理               offproxy
-#!!#|- 显示终端代理信息            pproxy
-#!!#|- 自定义的goodfon的图片下载记录工具并记录于数据库    gfa2
-#!!#|- 自定义的goodfon的图片下载记录工具    gfa
-#!!#|- 利用fzf选择器通过终端打开App     app
-#!!#|- 一目了然地展示目录和文件大小的命令行工具 dust
-#!!#|- 通过彩色表格的方式展示磁盘使用情况的命令行工具 duf
+#!!!#-- 网络命令
+#!!#|- 多线程下载器	axel
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
 
-#!!!#--其他命令
-#!!#|- Dotfiles管理工具             dotbare
-#!!#|- 火狐终端阅后即焚              ffsend
-#!!#|- 自然语言终端搜索工具how2       how2
-#!!#|- 终端日记工具                  jrnl
-#!!#|- 终端日记本                   diary
-#!!#|- Github上的命令行笔记本        dnote
-#!!#|- 导出苹果系统中的Photos.app的照片命令    osxphotos
-#!!#|- 显示cp、rm、dd等命令进度的工具  progress
-#!!#|- 终端xml图标生成工具wopr        wopr
-#!!#|- 命令行端的生日管理器            birthday
-#!!#|- 汇率兑换管理工具               er
-#!!#|- Git的emoji表情               gitmoji
-#!!#|- Mac系统下的自动输入工具         xdotool
-#!!#|- 一个理念型产物，编辑器及命令行于一体 xsh
-#!!#|- 利用ffmpeg命令实现无人直播间命令 pushvideo
+#!!!#-- 有用命令
+#!!#|- 终端翻译命令fanyi	fanyi
+#!!#|- 利用系统自带的词典查询单词	dic
+#!!#|- 终端翻译命令trans	trans
+#!!#|- 终端检测服务器是否在线	isitup
+#!!#|- IP类型终端管理命令	mtr
+#!!#|- 查看所有自定义别名	showaliases
+#!!#|- 更改破解APP签名工具	sign
+#!!#|- 管理切换ssh-key工具skm	skm
+#!!#|- 终端查看阻止息屏的进程	pmset -g
+#!!#|- 网站生成app文件命令pake	pake
+#!!#|- 一款可交互式的ssh批量执行命令的客户端	hss
+#!!#|- 根据QQ的IP库展示IP所在地	nali
+#!!#|- 极简SSH部署https://github.com/sapegin/shipit	shipit
+#!!#|- Github上的TODO终端管理	todoist
+#!!#|- 自定义的别名选择器	fca
+#!!#|- 自定义函数的选择器	fcf
+#!!#|- 自定义fzf的函数选择器	fafl
+#!!#|- 启动终端代理	onproxy
+#!!#|- 关闭终端代理	offproxy
+#!!#|- 显示终端代理信息	pproxy
+#!!#|- 自定义的goodfon的图片下载记录工具并记录于数据库	gfa2
+#!!#|- 自定义的goodfon的图片下载记录工具	gfa
+#!!#|- 利用fzf选择器通过终端打开App	app
+#!!#|- 一目了然地展示目录和文件大小的命令行工具	dust
+#!!#|- 通过彩色表格的方式展示磁盘使用情况的命令行工具	duf
+#!!#|- 终端中将markdown文件生成网站读取	mdbook
+#!!# 
+#!!# ----------------------------------------------
+#!!# 
+
+
+#!!!#-- 其他命令
+#!!#|- Dotfiles管理工具	dotbare
+#!!#|- 火狐终端阅后即焚	ffsend
+#!!#|- 自然语言终端搜索工具how2	how2
+#!!#|- 终端日记工具	jrnl
+#!!#|- 终端日记本	diary
+#!!#|- Github上的命令行笔记本	dnote
+#!!#|- 导出苹果系统中的Photos.app的照片命令	osxphotos
+#!!#|- 显示cp、rm、dd等命令进度的工具	progress
+#!!#|- 终端xml图标生成工具wopr	wopr
+#!!#|- 命令行端的生日管理器	birthday
+#!!#|- 汇率兑换管理工具	er
+#!!#|- Git的emoji表情	gitmoji
+#!!#|- Mac系统下的自动输入工具	xdotool
+#!!#|- 一个理念型产物，编辑器及命令行于一体	xsh
+#!!#|- 利用ffmpeg命令实现无人直播间命令	pushvideo
 #!!#|- 更换终端背景图片源文件夹命令	changepiclocation
-#!!#|- 终端操作记录命令             asciinema
-#!!#|- 终端版的nosql缓存命令        skate
-#!!#|- 终端版的邮件发送器           pop
-#!!#|- 终端的前端框架               gum
-#!!#|- 终端启动Parallels虚拟机      vm
-#!!#|- TNT破解失效, 更改签名        cs
+#!!#|- 终端操作记录命令	asciinema
+#!!#|- 终端版的nosql缓存命令	skate
+#!!#|- 终端版的邮件发送器	pop
+#!!#|- 终端的前端框架	gum
+#!!#|- 终端启动Parallels虚拟机	vm
+#!!#|- TNT破解失效, 更改签名	cs
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
 
 
-#!!!#--娱乐
-#!!#|- 终端水族馆             asciiquarium
-#!!#|- 终端效果玩具           arttime
-#!!#|- 终端俄罗斯方块游戏       bastet
-#!!#|- 终端黑客帝国效果         cmatrix
-#!!#|- 终端本机IP地址绘制地图   iponmap
-#!!#|- 好看的系统简介，比较方便的分享服务器的配置信息 neofetch
+#!!!#-- 娱乐
+#!!#|- 终端水族馆	asciiquarium
+#!!#|- 终端效果玩具	arttime
+#!!#|- 终端俄罗斯方块游戏	bastet
+#!!#|- 终端黑客帝国效果	cmatrix
+#!!#|- 终端本机IP地址绘制地图	iponmap
+#!!#|- 好看的系统简介，比较方便的分享服务器的配置信息	neofetch
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
@@ -183,8 +184,29 @@ case "$1" in
     ;;
     "help"|"h")
         echo "Usage: snippets edit/e | help/h | list/l"
+		echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
 	;;
 	"list"|"l"|*)
-		cat $0 | grep '#!!' | grep -v 'skipthisline' | fzf --preview 'echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";echo "|⋯  "{3..};echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";'  --margin=1 --padding=1 --preview-window up:3:border-rounded:hidden:wrap --bind 'ctrl-/:toggle-preview' --bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' --bind 'enter:become(eval {3..})' --color header:italic --header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window" #skipthisline
+		cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-60s%-30s%10s\n", $1, $2, $3}' | \
+		fzf --preview \
+		'if [[ "" != {3..} ]]; then; \
+		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
+		echo "|⋯  "{3..};\
+		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
+		echo "Desc:";echo {2}; \
+		else;\
+		if [[ "" != {2} ]] && ([[ {2} != ----* ]] || [[ ! {2} =~ ---- ]]); then; #括号中的两个判断之一即可,两个的作用相同\
+		echo "分类:"{2};\
+		fi;  \
+		fi;'  \
+		--margin=1 \
+		--padding=1 \
+		--preview-window up:6:border-rounded:hidden:wrap \
+		--bind 'ctrl-/:toggle-preview' \
+		--bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
+		--bind 'enter:become(eval {3..})' \
+		--color header:italic \
+		--keep-right \
+		--header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window" #skipthisline
 	;;
 esac
