@@ -38,3 +38,11 @@ function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进�
 }
 alias fps_kill2='fzf_process_kill2'     # Desc: alias: fps_kill2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
 
+function fzf_process_magnifier() { # Desc: function fzf_process_magnifier: 进程放大镜
+    (date; ps -ef) |
+    fzf --bind='ctrl-r:reload(date; ps -ef)' \
+      --header=$'Press CTRL-R to reload\n\n' --header-lines=2 \
+      --preview='echo {}' --preview-window=down,3,wrap \
+      --layout=reverse --height=80% | awk '{print $2}' | xargs kill -9
+}
+alias fpm="fzf_process_magnifier" # Desc: alias: fpm: fzf_process_magnifier命令的别名,进程放大镜

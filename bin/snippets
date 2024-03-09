@@ -88,6 +88,7 @@
 #!!#|- cut命令的替代品              choose
 #!!#|- 硬盘信息分析器               dfc
 #!!#|- GitHub上另一个ls的重写       exa
+#!!#|- 另一个ls的重写               eza
 #!!#|- find查找文件命令             fd
 #!!#|- 系统监控工具                 glances
 #!!#|- 系统监控软件                 grafana
