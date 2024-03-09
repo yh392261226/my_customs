@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+COMMANDBIN=/Applications/IINA.app/Contents/MacOS/iina-cli
+
+VIDEOPATH="$1"
+
+if [ "" = "$VIDEOPATH" ]; then
+	if command -v gum >/dev/null 2>&1; then
+		VIDEOPATH=$(gum input --placeholder "Type video path ...")
+	else
+		read VIDEOPATH
+	fi
+fi
+
+echo $VIDEOPATH;
+exit 0
+
+if [ "" != "$VIDEOPATH" ]; then
+	$COMMANDBIN $VIDEOPATH --volume=20 --no-resume-playback
+fi

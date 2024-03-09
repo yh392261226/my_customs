@@ -21,6 +21,7 @@ function fzf_brew_delete_by_select() { # Desc: function: fzf_brew_delete_by_sele
   fi
 }
 alias fzf_bdl="fzf_brew_delete_by_select"   # Desc: alias: fzf_bdl:fzf_brew_delete_by_select命令的别名
+alias bdl="fzf_brew_delete_by_select"   # Desc: alias: bdl:fzf_brew_delete_by_select命令的别名
 
 function fzf_brew_update_by_select() { # Desc: function: fzf_brew_update_by_select:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
   local upd=$(brew leaves | fzf -m)
@@ -32,7 +33,18 @@ function fzf_brew_update_by_select() { # Desc: function: fzf_brew_update_by_sele
   fi
 }
 alias fzf_bup="fzf_brew_update_by_select"   # Desc: alias: fzf_bup:fzf_brew_update_by_select命令的别名
-alias bup="fzf_brew_update_by_select"       # Desc: alias: bup:fzf_brew_update_by_select命令的别名
+alias bups="fzf_brew_update_by_select"      # Desc: alias: bups:fzf_brew_update_by_select命令的别名
+
+function fzf_brew_upgrade_by_select() { # Desc: function: fzf_brew_upgrade_by_select:Brew upgrade (one or multiple)
+  local upgrads=$(brew outdated | fzf -m)
+  if [[ $upgrads ]]; then
+    for prog in $(echo $upgrads); do
+      brew upgrade $prog
+    done
+  fi
+}
+alias fzf_bupgrade="fzf_brew_upgrade_by_select" # alias: fzf_bupgrade: fzf_brew_upgrade_by_select命令的别名,Brew upgrade (one or multiple)
+alias bupg="fzf_brew_upgrade_by_select" # alias: bupg: fzf_brew_upgrade_by_select命令的别名,Brew upgrade (one or multiple)
 
 function reinstallneovim() { # Desc: function: reinstallneovim:重新安装neovim
   brew reinstall neovim --HEAD
