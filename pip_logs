@@ -75,3 +75,5 @@ pip install -U osxphotos
 pip install -U fzf-dirhistory
 
 pip install -U bpython
+
+pip install -U pyfunky

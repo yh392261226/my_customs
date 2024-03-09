@@ -162,6 +162,7 @@
 #!!#|- 终端的前端框架	gum
 #!!#|- 终端启动Parallels虚拟机	vm
 #!!#|- TNT破解失效, 更改签名	cs
+#!!#|- 进入每个目录都可以设置自动执行的脚本 funky
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
@@ -190,10 +191,10 @@ case "$1" in
 		cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-60s%-30s%10s\n", $1, $2, $3}' | \
 		fzf --preview \
 		'if [[ "" != {3..} ]]; then; \
+		echo ""; \
 		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
-		echo "|⋯  "{3..};\
+		echo "Command |⋯  "{3..};\
 		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
-		echo "Desc:";echo {2}; \
 		else;\
 		if [[ "" != {2} ]] && ([[ {2} != ----* ]] || [[ ! {2} =~ ---- ]]); then; #括号中的两个判断之一即可,两个的作用相同\
 		echo "分类:"{2};\
@@ -201,12 +202,15 @@ case "$1" in
 		fi;'  \
 		--margin=1 \
 		--padding=1 \
-		--preview-window up:6:border-rounded:hidden:wrap \
+		--preview-window bottom:6:border-rounded:hidden:wrap \
 		--bind 'ctrl-/:toggle-preview' \
 		--bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
 		--bind 'enter:become(eval {3..})' \
 		--color header:italic \
 		--keep-right \
+		--separator="|"\
+		--bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
+		--preview-label-pos top,4\
 		--header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window" #skipthisline
 	;;
 esac
