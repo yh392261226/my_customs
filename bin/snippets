@@ -134,6 +134,7 @@
 #!!#|- 一目了然地展示目录和文件大小的命令行工具	dust
 #!!#|- 通过彩色表格的方式展示磁盘使用情况的命令行工具	duf
 #!!#|- 终端中将markdown文件生成网站读取	mdbook
+#!!#|- 缓慢输入展示的命令   pv
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
@@ -163,6 +164,7 @@
 #!!#|- 终端启动Parallels虚拟机	vm
 #!!#|- TNT破解失效, 更改签名	cs
 #!!#|- 进入每个目录都可以设置自动执行的脚本 funky
+#!!#|- 终端浏览器   w3m
 #!!# 
 #!!# ----------------------------------------------
 #!!# 
@@ -180,10 +182,10 @@
 #!!# 
 
 case "$1" in
-	"edit"|"e")
+	"edit"|"--edit"|"-edit"|"e"|"--e"|"-e")
 		vim $0
     ;;
-    "help"|"h")
+    "help"|"--help"|"-help"|"h"|"--h"|"-h")
         echo "Usage: snippets edit/e | help/h | list/l"
 		echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
 	;;
@@ -193,7 +195,7 @@ case "$1" in
 		'if [[ "" != {3..} ]]; then; \
 		echo ""; \
 		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
-		echo "Command |⋯  "{3..};\
+		echo "Command |⋯▶  "{3..};\
 		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
 		else;\
 		if [[ "" != {2} ]] && ([[ {2} != ----* ]] || [[ ! {2} =~ ---- ]]); then; #括号中的两个判断之一即可,两个的作用相同\
@@ -211,6 +213,10 @@ case "$1" in
 		--separator="|"\
 		--bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
 		--preview-label-pos top,4\
+        --preview-label='[ Snippets ]' \
+        --prompt='▶ ' \
+        --pointer='→' \
+        --marker='♡' \
 		--header "Press CTRL-Y to copy command into clipboard Or CTRL-/ to toggle preview window" #skipthisline
 	;;
 esac

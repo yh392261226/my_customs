@@ -199,9 +199,9 @@ function speaking() { # Desc: function: speaking:利用osx系统发音说话
 function my_weather() { # Desc: function: my_weather:获取哈尔滨天气
     if [ -f /opt/homebrew/opt/curl/bin/curl ]; then
         /opt/homebrew/opt/curl/bin/curl https://wttr.in/harbin\?lang\=zh
-        return
+    else
+        curl https://wttr.in/harbin\?lang\=zh
     fi
-    curl https://wttr.in/harbin\?lang\=zh
 }
 alias myweather="my_weather"    # Desc: alias: myweather:my_weather命令的别名,获取哈尔滨天气
 
@@ -215,17 +215,17 @@ function history_sort() { # Desc: function: history_sort:按执行次数倒序�
 }
 alias his="history_sort" # alias: his: history_sort命令的别名,按执行次数倒序显示历史命令
 
-function fzf_history_select() { # Desc: function: fzf_history_select:列出历史操作命令,选择后执行
+function fzf_history_repeat() { # Desc: function: fzf_history_repeat:列出历史操作命令,选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed 's/ *[0-9]* *//')
 }
-alias fh="fzf_history_select"   # Desc: alias: fh:fzf_history_select命令的别名,列出历史操作命令,选择后执行
+alias fh="fzf_history_repeat"   # Desc: alias: fh:fzf_history_repeat命令的别名,列出历史操作命令,选择后执行
 
 function help_by_tldr() { # Desc: function: help_by_tldr:help帮助,tldr命令别名
     tldr $@
 }
 alias help="help_by_tldr"   # Desc: alias: help:help_by_tldr命令的别名,help帮助,tldr命令别名
 
-function ps_or_procs() { # Desc: function: ps_or_procs:ps -ef或procs |grep 进程
+function ps_or_procs_search() { # Desc: function: ps_or_procs_search:ps -ef或procs |grep 进程
     [[ "" = "$@" ]] && return 1
     if command -v procs &> /dev/null
     then
@@ -234,20 +234,16 @@ function ps_or_procs() { # Desc: function: ps_or_procs:ps -ef或procs |grep 进�
         ps -ef|grep "$@" | grep -v grep #|fzf
     fi
 }
-alias p='ps_or_procs'   # Desc: alias: p:ps_or_procs命令的别名,ps -ef或procs |grep 进程
+alias p='ps_or_procs_search'   # Desc: alias: p:ps_or_procs_search命令的别名,ps -ef或procs |grep 进程
 
-if [ -f /usr/local/bin/bashtop ]; then
-    function btop() { # Desc: function: btop:bashtop命令的别名 
-        /usr/local/bin/bashtop "$@"
-    }
-fi
+function btop() { # Desc: function: btop:bashtop命令的别名 
+    [[ -f /usr/local/bin/bashtop ]] && /usr/local/bin/bashtop "$@" || echo "bashtop does not exists !"
+}
 
-if [ -f /usr/local/bin/shellcheck ]; then
-    function shell_debug() { # Desc: function: shell_debug:依赖shellcheck对shell脚本debug
-        /usr/local/bin/shellcheck "$@"
-    }
-    alias debug="shell_debug" # alias: debug:shell_debug命令的别名,依赖shellcheck对shell脚本debug
-fi
+function shell_debug() { # Desc: function: shell_debug:依赖shellcheck对shell脚本debug
+    [[ -f /usr/local/bin/shellcheck ]] && /usr/local/bin/shellcheck "$@" || echo "shellcheck does not exsits !"
+}
+alias debug="shell_debug" # alias: debug:shell_debug命令的别名,依赖shellcheck对shell脚本debug
 
 function fzf_history() { # Desc: function: fzf_history:依赖fzf读取history结果
     history | fzf
@@ -261,10 +257,10 @@ function file_tree() { # Desc: function: file_tree:tree命令
 }
 alias filetree="file_tree"  # Desc: alias: filetree:file_tree命令的别名,tree命令
 
-function fzf_history_print() { # Desc: function: fzf_history_print:列出历史操作命令,选择后回车再执行
+function fzf_history_print() { # Desc: function: fzf_history_print:列出历史操作命令,选择后打印
     print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
 }
-alias fhp='fzf_history_print'   # Desc: alias: fhp:fzf_history_print命令的别名,列出历史操作命令,选择后回车再执行
+alias fhp='fzf_history_print'   # Desc: alias: fhp:fzf_history_print命令的别名,列出历史操作命令,选择后打印
 
 function fzf_theme_selector() { # Desc: function: fzf_theme_selector:fzf主题选择器
     #MYRUNTIME=$(cat ~/.myruntime)
@@ -272,7 +268,7 @@ function fzf_theme_selector() { # Desc: function: fzf_theme_selector:fzf主题�
     choose_theme=$(ls $themes_path/* | fzf)
     [[ "" != "$choose_theme" ]] && builtin source $choose_theme
 }
-alias ft='fzf_theme_selector'   # Desc: alias: ft:fzf_theme_selector命令的别名,fzf主题选择器
+alias fts='fzf_theme_selector'   # Desc: alias: fts:fzf_theme_selector命令的别名,fzf主题选择器
 
 function command_sl_selector() { # Desc: function: command_sl_selector:输入命令sl并执行时，二次验证选择
     echo "执行命令行小火车：1, ls命令：2"

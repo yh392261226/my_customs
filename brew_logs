@@ -973,3 +973,4 @@ brew install MisterTea/et/et
 brew install --cask alt-tab
 brew install eza
 brew install maccy
+brew install pv
