@@ -974,3 +974,4 @@ brew install --cask alt-tab
 brew install eza
 brew install maccy
 brew install pv
+brew install kyu08/tap/fzf-make

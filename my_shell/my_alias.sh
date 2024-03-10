@@ -150,3 +150,4 @@ alias train="$(brew --prefix sl)/bin/sl"                                        
 
 [[ -f $MYRUNTIME/customs/bin/theme ]] && alias thl="$MYRUNTIME/customs/bin/theme --light -i"                     # Desc: alias: thl:theme命令中的亮系主题列表选择器
 [[ -f $MYRUNTIME/customs/bin/theme ]] && alias thd="$MYRUNTIME/customs/bin/theme --dark -i"                      # Desc: alias: thd:theme命令中的暗系主题列表选择器
+[[ -f $MYRUNTIME/customs/others/fuzzy-fs/fuzzy-fs ]] && alias fs="fuzzy-fs"
