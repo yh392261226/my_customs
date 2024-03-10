@@ -104,25 +104,24 @@ function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_custom
 }
 alias fafl="fzf_customs_fzf_awesome_functions_list" # Desc: alias: fafl: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
 
-function show_aliases_from_a2z() { # Desc: function: show_aliases_from_a2z:显示从a-z的我的自定义命令
-    hr "*"
-    hr "="
-    echo "*** Already exists command:"
-    hr "="
-    hr "*"
+function show_aliases_from_a2z() { # Desc: function: show_aliases_from_a2z:显示从a-z的自定义命令
+    hr "⬳"
+    echo -n "[ $(echo -e {a..z}) ]\n"
+    hr "⬳"
+    echo "⭆ Already exists command:"
+    hr "⬳"
     for word in {a..z}; do
         if [ "$(command -v $word)" != "" ]; then
             type $word | grep -v "not found";
             if [ "$nowshell" != "bash" ]; then
-                hr "_"
+                hr "↼"
                 which $word | grep -v "not found";
+                hr "↼"
             fi
-            hr "_"
-            hr "+"
         fi
     done
 }
-alias a2z="show_aliases_from_a2z"   # Desc: alias: a2z:show_aliases_from_a2z命令的别名,显示从a-z的我的自定义命令
+alias a2z="show_aliases_from_a2z"   # Desc: alias: a2z:show_aliases_from_a2z命令的别名,显示从a-z的自定义命令
 
 function update_iterm2_shell_integration() { # Desc: function: update_iterm2_shell_integration:更新iterm2的扩展shell
 	curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
