@@ -18,7 +18,22 @@ function fzf_show_customs_functions() { # Desc: function: fzf_show_customs_funct
     TMP_FUNCTIONS_FILE=$(mktemp)
     find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
     if [ -f $TMP_FUNCTIONS_FILE ]; then
-        eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | sed -e "s/() {//" | awk -F'#' '{print $1}' | grep -E "(.*?)[^(]*" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE"  --prompt="Awesome Customs Functions > ")
+        eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | \
+        sed -e "s/^[ ]*//g" | \
+        sed -e "s/() {//" | awk -F'#' '{print $1}' | \
+        grep -E "(.*?)[^(]*" | \
+        sed -e 's/ $//g' | \
+        fzf --reverse \
+        --margin=1 \
+		--padding=1 \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
+        --preview-label-pos top,4\
+        --preview-label='[ 显示所有自定义命令及注释 ]' \
+        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+        --bind 'ctrl-/:toggle-preview' \
+        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+        --prompt="显示所有自定义命令及注释 > "\
+        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
     fi
 }
 alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
@@ -28,7 +43,9 @@ function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases
     TMP_ALIASES_FILE=$(mktemp)
     alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
-        eval $(cat $TMP_ALIASES_FILE |awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_awesome_alias {} $TMP_ALIASES_FILE"  --prompt="Awesome Customs Aliases > ")
+        eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf --reverse \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_alias {} $TMP_ALIASES_FILE"  \
+        --prompt="Awesome Customs Aliases > ")
     fi
 }
 alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliases命令的别名,显示所有自定义的别名及注释
@@ -65,7 +82,23 @@ function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_custom
         if [ ! -f $TMP_FZF_FUNCTIONS_FILE ]; then
             echo "Awesome Fzf Functions Collection File Does Not Exists !"
         else
-            eval $(cat $TMP_FZF_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | sed -e "s/() {//" | awk -F'#' '{print $1}' | grep -E "(^fzf_)(.*?)[^(]*" | fzf --reverse --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE"  --prompt="Awesome Fzf Customs Functions > ")
+            eval $(cat $TMP_FZF_FUNCTIONS_FILE | \
+            awk '{$1=""; print $0 }' | \
+            sed -e "s/^[ ]*//g" | sed -e "s/() {//" | \
+            awk -F'#' '{print $1}' | \
+            grep -E "(^fzf_)(.*?)[^(]*" | \
+            sed -e 's/ $//g' | \
+            fzf --reverse \
+                --margin=1 \
+                --padding=1 \
+                --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
+                --preview-label-pos top,4\
+                --preview-label='[ 显示所有Fzf相关的命令及注释 ]' \
+                --prompt="显示所有Fzf相关的命令及注释 > "\
+                --bind 'ctrl-/:toggle-preview' \
+                --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
         fi
     fi
 }
@@ -79,10 +112,10 @@ function show_aliases_from_a2z() { # Desc: function: show_aliases_from_a2z:显�
     hr "*"
     for word in {a..z}; do
         if [ "$(command -v $word)" != "" ]; then
-            type $word | grep -v 'not found';
+            type $word | grep -v "not found";
             if [ "$nowshell" != "bash" ]; then
                 hr "_"
-                which $word | grep -v 'not found';
+                which $word | grep -v "not found";
             fi
             hr "_"
             hr "+"

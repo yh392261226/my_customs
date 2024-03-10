@@ -185,16 +185,16 @@ function fzf_search_vim3() { # Desc: function: fzf_search_vim3:Two-phase filteri
     INITIAL_QUERY="${*:-}"
     FZF_DEFAULT_COMMAND="$RG_PREFIX $(printf %q "$INITIAL_QUERY")" \
     fzf --ansi \
-    --color "hl:-1:underline,hl+:-1:underline:reverse" \
-    --disabled --query "$INITIAL_QUERY" \
-    --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
-    --bind "ctrl-f:unbind(change,ctrl-f)+change-prompt(2. fzf> )+enable-search+clear-query" \
-    --prompt '1. ripgrep> ' \
-    --delimiter : \
-    --header  '模式: CTRL-F (fzf)'  \
-    --preview 'bat --color=always {1} --highlight-line {2}' \
-    --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
-    --bind 'enter:become(vim {1} +{2})'
+        --color "hl:-1:underline,hl+:-1:underline:reverse" \
+        --disabled --query "$INITIAL_QUERY" \
+        --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
+        --bind "ctrl-f:unbind(change,ctrl-f)+change-prompt(2. fzf> )+enable-search+clear-query" \
+        --prompt '1. ripgrep> ' \
+        --delimiter : \
+        --header  '模式: CTRL-F (fzf)'  \
+        --preview 'bat --color=always {1} --highlight-line {2}' \
+        --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
+        --bind 'enter:become(vim {1} +{2})'
 }
 alias fsv3="fzf_search_vim3" # Desc: alias: fsv3: fzf_search_vim3命令的别名,Two-phase filtering with Ripgrep and fzf 1. Search for text in files using Ripgrep 2. Interactively restart Ripgrep with reload action * Press ctrl-f to switch to fzf-only filtering 3. Open the file in Vim
 
@@ -212,10 +212,10 @@ function fzf_search_vim4() { # Desc: function: fzf_search_vim4:Switch between Ri
         --header          '模式: CTRL-R (ripgrep) | CTRL-F (fzf)'  \
         --preview         'bat --color=always {1} --highlight-line {2}'    \
         --preview-window  'up,60%,border-bottom,+{2}+3/3,~3'               \
-    --bind  "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
-    --bind  "ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf模糊> )+enable-search+rebind(ctrl-r)+transform-query(echo {q} > /tmp/rg-fzf-r; cat /tmp/rg-fzf-f)" \
-    --bind  "ctrl-r:unbind(ctrl-r)+change-prompt(1. ripgrep> )+disable-search+reload($RG_PREFIX {q} || true)+rebind(change,ctrl-f)+transform-query(echo {q} > /tmp/rg-fzf-f; cat /tmp/rg-fzf-r)" \
-    --bind  "start:unbind(ctrl-r)" \
-    --bind  "enter:become(nvr {1} +{2})"
+        --bind  "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
+        --bind  "ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf模糊> )+enable-search+rebind(ctrl-r)+transform-query(echo {q} > /tmp/rg-fzf-r; cat /tmp/rg-fzf-f)" \
+        --bind  "ctrl-r:unbind(ctrl-r)+change-prompt(1. ripgrep> )+disable-search+reload($RG_PREFIX {q} || true)+rebind(change,ctrl-f)+transform-query(echo {q} > /tmp/rg-fzf-f; cat /tmp/rg-fzf-r)" \
+        --bind  "start:unbind(ctrl-r)" \
+        --bind  "enter:become(nvr {1} +{2})"
 }
 alias fsv4="fzf_search_vim4" # Desc: alias: fsv4: fzf_search_vim5命令的别名,Switch between Ripgrep launcher mode (CTRL-R) and fzf filtering mode (CTRL-F)

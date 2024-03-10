@@ -12,15 +12,15 @@ function _show_fzf_awesome_function() {
         awesome_function_name=$(echo "$TmpContent" | awk '{$1=""; print $0 }' | sed -e "s/^[ ]*//g" | awk -F'(' '{print $1}')
         awesome_function_desc=$(echo "$TmpContent" | awk '{$1=""; print $0 }' | awk -F')' '{print $2}' | sed -e "s/{//g" | sed -e "s/# Desc://g" | sed -e "s/function: //g" | sed -e "s/$awesome_function_name//g")
 
-        echo "Function Location    :"$awesome_function_file
-        echo "Function Name        :"$awesome_function_name
-        echo "Function Description" $awesome_function_desc
-        echo "Function Code        :"
+        echo "Function Location    :⭆ "$awesome_function_file
+        echo "Function Name        :⭆ "$awesome_function_name
+        echo "Function Description :⭆ "$(echo $awesome_function_desc | sed -e 's/^://g' | sed -e 's/^ //g')
+        echo "Function Code        :⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶ "
         echo ""
         echo ""
-        sed -n "/function ${awesome_function_name}(/,/^}/p" $awesome_function_file
+        sed -n "/function ${awesome_function_name}(/,/^}/p" $awesome_function_file | /opt/homebrew/bin/bat --style="numbers,changes,header,grid" --theme="gruvbox-dark" --pager "less -RF" --map-syntax ".ignore:Git Ignore"
 
-
+        hr "⇶"
     fi
 }
 
