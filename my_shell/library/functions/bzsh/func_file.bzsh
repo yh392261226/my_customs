@@ -163,26 +163,58 @@ function set_setting_links() { # Desc: function: set_setting_links:配置文件�
 }
 alias slink="set_setting_links"     # Desc: alias: slink:set_setting_links命令的别名,配置文件链接
 
-function list_hidden_files() { # Desc: function: list_hidden_files:列出隐藏文件
-    local path='./'
-	[[ "" != "$1" ]] && path=$1
-    for f in $(/bin/ls -a $path); do
-        local tmpfilename=$(/usr/bin/basename $f)
-        if [ "." = "${tmpfilename:0:1}" ] && [ "$tmpfilename" != "." ] && [ "$tmpfilename" != ".." ]; then
-            echo $tmpfilename
-        fi
-    done
+function fzf_list_hiddens() { # Desc: function: fzf_list_hiddens:列出隐藏文件
+    local mpath
+	[[ "" != "$1" ]] && mpath=$1 || mpath='./'
+    /bin/ls -A $mpath | grep '^\.' | fzf --reverse \
+                                   --margin=1 \
+                                   --padding=1 \
+                                   --preview-window bottom:6:border-rounded:hidden:wrap \
+                                   --preview " [[ -d {} ]] && cd {} || bat {} " \
+                                   --preview-label-pos top,4\
+                                   --preview-label='[ 隐藏文件或文件夹 ]' \
+                                   --prompt="隐藏文件或文件夹 > "\
+                                   --bind 'ctrl-/:toggle-preview' \
+                                   --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                                   --bind 'ctrl-y:execute-silent(echo -n {} | pbcopy)+abort' \
+                                   --bind 'ctrl-r:execute(rm -rf {})+reload((/bin/ls -A $mpath | grep "^\.") || true)' \
+                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
 }
-alias lhf="list_hidden_files"     # Desc: alias: lhf:list_hidden_files命令的别名,列出隐藏文件
+alias flh="fzf_list_hiddens"     # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
 function fzf_file_preview() { # Desc: function: fzf_file_preview:fzf列出文件夹及选中文件的内容
     [[ 1 -gt $nums ]] && nums=500
-    fzf --preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500'
+    fzf --reverse \
+        --margin=1 \
+        --padding=1 \
+        --preview-window bottom:6:border-rounded:hidden:wrap \
+        --preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500' \
+        --preview-label-pos top,4\
+        --preview-label='[ 列表 ]' \
+        --prompt="列表 > "\
+        --bind 'ctrl-/:toggle-preview' \
+        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
 }
 alias ftt='fzf_file_preview'      # Desc: alias: ftt:fzf_file_preview命令的别名,fzf列出文件夹及选中文件的内容
 
 function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
-    IFS=$'\n' out=("$(fzf --preview 'cat {}' --query="$1" --exit-0 --expect=ctrl-o,ctrl-e)")
+    IFS=$'\n' out=$(fzf --reverse \
+                        --margin=1 \
+                        --padding=1 \
+                        --preview-window bottom:6:border-rounded:hidden:wrap \
+                        --preview 'cat {}' \
+                        --query="$1" \
+                        --exit-0 \
+                        --expect=ctrl-o,ctrl-e \
+                        --preview-label-pos top,4 \
+                        --preview-label='[ 列表 ]' \
+                        --prompt='列表 > ' \
+                        --bind 'ctrl-/:toggle-preview' \
+                        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
     if [ -n "$file" ]; then
@@ -194,36 +226,47 @@ alias foe='fzf_open_or_edit'    # Desc: alias: foe:fzf_open_or_edit命令的别�
 
 function fzf_search_term() { # Desc: function: fzf_search_term:find-in-file - usage: fif <searchTerm>
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
-    rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
+    rg --files-with-matches \
+       --no-messages "$1" | \
+       fzf --reverse \
+           --margin=1 \
+           --padding=1 \
+           --preview-window right:70%:border-rounded:hidden:wrap \
+           --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" \
+           --preview-label-pos top,4 \
+           --preview-label='[ searchTerm ]' \
+           --prompt="searchTerm > "\
+           --bind 'ctrl-/:toggle-preview' \
+           --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+           --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+           --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
 }
 alias fif='fzf_search_term'     # Desc: alias: fif:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
 
 function list_link_files() { # Desc: function: list_link_files:列出所有软连接文件
-    local path='./'
-    [[ "" != "$1" ]] && path="$1"
-    /bin/ls -al ${path} | /usr/bin/grep ^l
+    local mpath='./'
+    [[ "" != "$1" ]] && mpath="$1"
+    /bin/ls -al ${mpath} | grep ^l
 }
 alias llf="list_link_files"     # Desc: alias: llf:list_link_files命令的别名,列出所有软连接文件
 
 function find_link_files() { # Desc: function: find_link_files:find找出所有软连接文件
-    local path='./'
-    [[ "" != "$1" ]] && path="$1"
-    /usr/bin/find ${path} -type l -ls
+    local mpath='./'
+    [[ "" != "$1" ]] && mpath="$1"
+    /usr/bin/find ${mpath} -type l -ls | fzf --reverse \
+                                             --margin=1 \
+                                             --padding=1 \
+                                             --preview-window bottom:6:border-rounded:hidden:wrap \
+                                             --preview " echo {} " \
+                                             --preview-label-pos top,4 \
+                                             --preview-label='[ 软连接列表 ]' \
+                                             --prompt="软连接列表 > "\
+                                             --bind 'ctrl-/:toggle-preview' \
+                                             --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                                             --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                                             --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
 }
 alias flf="find_link_files"     # Desc: alias: flf:find_link_files命令的别名,find找出所有软连接文件
-
-function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件选中删除
-  hasgum=$(ifHasCommand gum)
-
-  if [[ "$#" -eq 0 ]]; then
-    local files
-    files=$(find . -maxdepth 1 -type f | fzf --multi)
-    [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && (echo $files | xargs -I '{}' rm {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
-  else
-    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm "$@" || echo "Action aborted !") || command rm "$@"
-  fi
-}
-alias frf="fzf_remove_file"     # Desc: alias:frf:fzf_remove_file的别名,find找出文件选中删除
 
 # Man without options will use fzf to select a page
 function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
@@ -232,7 +275,19 @@ function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
 		$MAN "$@"
 		return $?
 	else
-		$MAN -k . | fzf --reverse --preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
+		$MAN -k . | fzf --reverse \
+                        --margin=1 \
+                        --padding=1 \
+                        --preview-window bottom:6:border-rounded:hidden:wrap \
+                        --preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" \
+                        --preview-label-pos top,4 \
+                        --preview-label='[ 手册 ]' \
+                        --prompt="手册 > "\
+                        --bind 'ctrl-/:toggle-preview' \
+                        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                        | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
 		return $?
 	fi
 }

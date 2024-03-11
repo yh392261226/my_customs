@@ -62,3 +62,55 @@ function remove_whereis_file() { # Desc: function: remove_whereis_file:删除 wh
 }
 alias removew="remove_whereis_file"     # Desc: alias: removew:remove_whereis_file命令的别名,删除 which命令找到的文件
 alias rmww="remove_whereis_file"        # Desc: alias: rmww:remove_whereis_file命令的别名,删除 which命令找到的文件
+
+function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件选中删除
+  hasgum=$(ifHasCommand gum)
+
+  if [[ "$#" -eq 0 ]]; then
+    local files
+    files=$(find . -maxdepth 1 -type f | fzf --multi \
+                                             --reverse \
+                                             --margin=1 \
+                                             --padding=1 \
+                                             --preview-window bottom:6:border-rounded:hidden:wrap \
+                                             --preview " echo {} " \
+                                             --preview-label-pos top,4\
+                                             --preview-label='[ 删除文件 ]' \
+                                             --prompt="删除文件 > "\
+                                             --bind 'ctrl-/:toggle-preview' \
+                                             --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                                             --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                                             --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+    [[ ! "$files" ]] && return 1
+    [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && (echo $files | xargs -I '{}' rm {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
+  else
+    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm "$@" || echo "Action aborted !") || command rm "$@"
+  fi
+}
+alias frf="fzf_remove_file"     # Desc: alias:frf:fzf_remove_file的别名,find找出文件选中删除
+
+function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找出文件夹选中删除
+  hasgum=$(ifHasCommand gum)
+
+  if [[ "$#" -eq 0 ]]; then
+    local directories
+    directories=$(find . -maxdepth 1 -type d | fzf --multi \
+                                                   --reverse \
+                                                   --margin=1 \
+                                                   --padding=1 \
+                                                   --preview-window bottom:6:border-rounded:hidden:wrap \
+                                                   --preview " echo {} " \
+                                                   --preview-label-pos top,4\
+                                                   --preview-label='[ 删除目录 ]' \
+                                                   --prompt="删除目录 > "\
+                                                   --bind 'ctrl-/:toggle-preview' \
+                                                   --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                                                   --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+    [[ ! "$directories" ]] && return 1
+    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
+  else
+    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm -rf "$@" || echo "Action aborted !") || command rm -rf "$@"
+  fi
+}
+alias frd="fzf_remove_directory"     # Desc: alias:frd:fzf_remove_directory的别名,find找出文件夹选中删除

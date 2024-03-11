@@ -148,7 +148,21 @@ function chromium_history() { # Desc: function: chromium_history:列出Chromium�
         len += e =~ /\p{Han}|\p{Katakana}|\p{Hiragana}|\p{Hangul}/ ? 2 : 1
     end
     }.join + " " * (2 + cols - len) + "\x1b[m" + url' |
-    fzf --ansi --multi --no-hscroll --tiebreak=index |
+    fzf --ansi \
+        --multi \
+        --no-hscroll \
+        --tiebreak=index \
+        --margin=1 \
+        --padding=1 \
+        --preview-window bottom:6:border-rounded:hidden:wrap \
+        --preview " echo -n {} " \
+        --preview-label-pos top,4\
+        --preview-label='[ 浏览器历史记录 ]' \
+        --prompt="浏览器历史记录 > "\
+        --bind 'ctrl-/:toggle-preview' \
+        --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+        --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" |
     sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
 alias ch="chromium_history"     # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
@@ -184,6 +198,17 @@ function chromium_bookmarks() { # Desc: function: chroomium_bookmarks:列出列�
     jq -r "$jq_script" < /tmp/bookmarks \
         | sed -E $'s/(.*)\t(.*)/\\1\t\x1b[36m\\2\x1b[m/g' \
         | fzf --ansi \
+              --margin=1 \
+              --padding=1 \
+              --preview-window bottom:6:border-rounded:hidden:wrap \
+              --preview " echo {} " \
+              --preview-label-pos top,4\
+              --preview-label='[ 浏览器书签 ]' \
+              --prompt="浏览器书签 > "\
+              --bind 'ctrl-/:toggle-preview' \
+              --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+              --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+              --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
 }
@@ -206,7 +231,18 @@ alias bb="brave_default_bookmarks"      # Desc: alias: bb:brave_default_bookmark
 
 function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
-    mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi)"
+    mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi \
+                                                                   --margin=1 \
+                                                                   --padding=1 \
+                                                                   --preview-window bottom:6:border-rounded:hidden:wrap \
+                                                                   --preview " echo {} " \
+                                                                   --preview-label-pos top,4\
+                                                                   --preview-label='[ 网址收藏 ]' \
+                                                                   --prompt="网址收藏 > "\
+                                                                   --bind 'ctrl-/:toggle-preview' \
+                                                                   --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+                                                                   --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+                                                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")"
 
     # open each website
     for i in "${website[@]}"; do
@@ -252,115 +288,113 @@ function _checkDirFull() {
     fi
 }
 
-if [ "zsh" = "$nowshell" ] || [ "bash" = "$nowshell" ]; then
-    function autoDiffDownloadPicureByName() { # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
-        ##图片文件夹路径
-        local PICPATH=$(cat ~/.picpath)
-        local MYRUNTIME=$(cat $HOME/.myruntime)
-        ##数据库文件路径
-        local DBFILE=$MYRUNTIME/tools/pictures_db.log
-        ##去重文件数据库文件路径（仅有文件名）
-        local FULLFILENAMESDB=$MYRUNTIME/tools/pictures_fullfilenames_db.log
-        local COMMANDBIN=sqlite3
-        local FULLFILENAMESDB2=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
-        IFSHOWTHUMB=0
-        RECORDTYPE=0
-        local msg=""
-    
-        [[ "" != "$1" ]] && IFSHOWTHUMB=$1
-        [[ "" != "$2" ]] && RECORDTYPE=$2
-    
-        curprocessid=$$
-        #调起后台脚本，监控火狐浏览器状态，如果浏览器进程消失，则杀死下面的进程
-        tmpshell=$(mktemp)
-        # echo $tmpshell
-        if [ -f $tmpshell ]; then
-            echo "#!/usr/bin/env bash\n" > $tmpshell
-            echo "curfierfoxcounts=1\n" >> $tmpshell
-            echo "while [ \"\$curfierfoxcounts\" -gt \"0\" ]; do\n" >> $tmpshell
-            echo "    curfierfoxcounts=\$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)\n" >> $tmpshell
-            echo "    sleep 1\n" >> $tmpshell
-            echo "done\n" >> $tmpshell
-            echo "if [ \"\$curfierfoxcounts\" -lt \"1\" ]; then\n" >> $tmpshell
-            echo "    ps -ef | grep \"fswatch -0 \$PICPATH\" | grep -v grep | awk '{print \$2}' | xargs kill\n" >> $tmpshell
-            echo "fi\n" >> $tmpshell
-        fi
-        bash $tmpshell > /dev/null 2>&1 &
+function autoDiffDownloadPicureByName() { # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
+    ##图片文件夹路径
+    local PICPATH=$(cat ~/.picpath)
+    local MYRUNTIME=$(cat $HOME/.myruntime)
+    ##数据库文件路径
+    local DBFILE=$MYRUNTIME/tools/pictures_db.log
+    ##去重文件数据库文件路径（仅有文件名）
+    local FULLFILENAMESDB=$MYRUNTIME/tools/pictures_fullfilenames_db.log
+    local COMMANDBIN=sqlite3
+    local FULLFILENAMESDB2=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
+    IFSHOWTHUMB=0
+    RECORDTYPE=0
+    local msg=""
 
-        if [[ ! -f $FULLFILENAMESDB2 ]]; then
-            local SQL="CREATE TABLE pictures ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'pic_name' TEXT DEFAULT NULL, 'created_at' DATETIME NOT NULL DEFAULT CURRENT_TIME, 'pic_path' TEXT DEFAULT NULL);"
-            $COMMANDBIN $FULLFILENAMESDB2 <<EOF
+    [[ "" != "$1" ]] && IFSHOWTHUMB=$1
+    [[ "" != "$2" ]] && RECORDTYPE=$2
+
+    curprocessid=$$
+    #调起后台脚本，监控火狐浏览器状态，如果浏览器进程消失，则杀死下面的进程
+    tmpshell=$(mktemp)
+    # echo $tmpshell
+    if [ -f $tmpshell ]; then
+        echo "#!/usr/bin/env bash\n" > $tmpshell
+        echo "curfierfoxcounts=1\n" >> $tmpshell
+        echo "while [ \"\$curfierfoxcounts\" -gt \"0\" ]; do\n" >> $tmpshell
+        echo "    curfierfoxcounts=\$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)\n" >> $tmpshell
+        echo "    sleep 1\n" >> $tmpshell
+        echo "done\n" >> $tmpshell
+        echo "if [ \"\$curfierfoxcounts\" -lt \"1\" ]; then\n" >> $tmpshell
+        echo "    ps -ef | grep \"fswatch -0 \$PICPATH\" | grep -v grep | awk '{print \$2}' | xargs kill\n" >> $tmpshell
+        echo "fi\n" >> $tmpshell
+    fi
+    bash $tmpshell > /dev/null 2>&1 &
+
+    if [[ ! -f $FULLFILENAMESDB2 ]]; then
+        local SQL="CREATE TABLE pictures ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'pic_name' TEXT DEFAULT NULL, 'created_at' DATETIME NOT NULL DEFAULT CURRENT_TIME, 'pic_path' TEXT DEFAULT NULL);"
+        $COMMANDBIN $FULLFILENAMESDB2 <<EOF
 $SQL
 EOF
-        fi
+    fi
 
-        fswatch -0 $PICPATH | while read -d "" event; do
-            if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
-                fullfilename=${event}
-                filename=$(basename $fullfilename)
-                showtype=0
-                if [ "0" = "$RECORDTYPE" ]; then
-                    if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
-                        tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
-                        if [ "$tmpresult" -gt "1" ]; then
-                            msg="Already deleted ..."
-                            trash $fullfilename
-                        fi
-                    else
-                        echo $filename >> $FULLFILENAMESDB
-                        msg="Already recorded ..."
-                        showtype=1
-                        echo $fullfilename >> $DBFILE
+    fswatch -0 $PICPATH | while read -d "" event; do
+        if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
+            fullfilename=${event}
+            filename=$(basename $fullfilename)
+            showtype=0
+            if [ "0" = "$RECORDTYPE" ]; then
+                if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
+                    tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
+                    if [ "$tmpresult" -gt "1" ]; then
+                        msg="Already deleted ..."
+                        trash $fullfilename
                     fi
-                elif [ "1" = "$RECORDTYPE" ]; then
-                    [[ ! -f $FULLFILENAMESDB2 ]] && echo "The sqlite db file does not exists !" && return 1
-                    local SQL="select * from pictures where pic_name = '"${filename}"';"
-                    local tmpresult=$($COMMANDBIN $FULLFILENAMESDB2 <<EOF
+                else
+                    echo $filename >> $FULLFILENAMESDB
+                    msg="Already recorded ..."
+                    showtype=1
+                    echo $fullfilename >> $DBFILE
+                fi
+            elif [ "1" = "$RECORDTYPE" ]; then
+                [[ ! -f $FULLFILENAMESDB2 ]] && echo "The sqlite db file does not exists !" && return 1
+                local SQL="select * from pictures where pic_name = '"${filename}"';"
+                local tmpresult=$($COMMANDBIN $FULLFILENAMESDB2 <<EOF
 $SQL
 EOF
 )
-                    if [ "$tmpresult" != "" ]; then
-                        tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
-                        if [ "$tmpresult" -gt "1" ]; then
-                            msg="Already deleted ..."
-                            trash $fullfilename
-                        fi
-                    else
-                        local tmp_path=$(dirname $fullfilename)
-                        # SQL='insert into pictures (pic_name, pic_path) values ("'"$filename"'", "'"$tmp_path"'");'
-                        SQL="insert into pictures (pic_name, pic_path) values ('"$filename"', '"$tmp_path"');"
-                        $COMMANDBIN $FULLFILENAMESDB2 <<EOF
+                if [ "$tmpresult" != "" ]; then
+                    tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
+                    if [ "$tmpresult" -gt "1" ]; then
+                        msg="Already deleted ..."
+                        trash $fullfilename
+                    fi
+                else
+                    local tmp_path=$(dirname $fullfilename)
+                    # SQL='insert into pictures (pic_name, pic_path) values ("'"$filename"'", "'"$tmp_path"'");'
+                    SQL="insert into pictures (pic_name, pic_path) values ('"$filename"', '"$tmp_path"');"
+                    $COMMANDBIN $FULLFILENAMESDB2 <<EOF
 $SQL
 EOF
-                        msg="Already recorded ..."
-                        showtype=1
-                        echo $fullfilename >> $DBFILE
-                    fi
-                fi
-                echo $msg
-                _checkDirFull $fullfilename #存放目录满的情况下自动生成目录并迁移新文件
-                if [ "$IFSHOWTHUMB" -eq "1" ] && [ "$showtype" -eq "1" ]; then
-                    #展示图片
-                    printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
-                    printf ":"
-                    base64 < "$fullfilename"
-                    printf '\a\n'
+                    msg="Already recorded ..."
+                    showtype=1
+                    echo $fullfilename >> $DBFILE
                 fi
             fi
-        done
-        rm -f $tmpshell
-        ps -ef | grep "fswatch -0 $PICPATH" | grep -v grep | awk '{print $2}' | xargs kill > /dev/null
-    }
-    
-    function goodfonWithAutoDiff() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
-        goodfon
-        autoDiffDownloadPicureByName $@
-    }
-    alias gfa="goodfonWithAutoDiff"     # Desc: alias: gfa:goodfonWithAutoDiff命令的别名,打开goodfon.ru后 通过目录监控自动过滤重名文件
+            echo $msg
+            _checkDirFull $fullfilename #存放目录满的情况下自动生成目录并迁移新文件
+            if [ "$IFSHOWTHUMB" -eq "1" ] && [ "$showtype" -eq "1" ]; then
+                #展示图片
+                printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+                printf ":"
+                base64 < "$fullfilename"
+                printf '\a\n'
+            fi
+        fi
+    done
+    rm -f $tmpshell
+    ps -ef | grep "fswatch -0 $PICPATH" | grep -v grep | awk '{print $2}' | xargs kill > /dev/null
+}
 
-    function goodfonWithAutoDiff2() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
-        goodfon
-        autoDiffDownloadPicureByName 0 1
-    }
-    alias gfa2="goodfonWithAutoDiff2"   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名,打开goodfon.ru后通过目录监控自动过滤重名文件
-fi
+function goodfonWithAutoDiff() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
+    goodfon
+    autoDiffDownloadPicureByName $@
+}
+alias gfa="goodfonWithAutoDiff"     # Desc: alias: gfa:goodfonWithAutoDiff命令的别名,打开goodfon.ru后 通过目录监控自动过滤重名文件
+
+function goodfonWithAutoDiff2() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
+    goodfon
+    autoDiffDownloadPicureByName 0 1
+}
+alias gfa2="goodfonWithAutoDiff2"   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名,打开goodfon.ru后通过目录监控自动过滤重名文件

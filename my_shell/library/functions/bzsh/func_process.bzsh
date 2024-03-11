@@ -3,10 +3,12 @@
 
 function fzf_process_kill() { # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
+    local PARAMS
+    PARAMS=(--reverse --margin=1 --padding=1 --preview-window bottom:6:border-rounded:hidden:wrap --preview " echo {} " --preview-label-pos top,4 --preview-label="[ 进程 ]" --prompt="进程 > " --bind "ctrl-/:toggle-preview" --bind "focus:transform-preview-label:echo -n \"[ {2} ]\";" --bind "ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort" --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
     if [ "$UID" != "0" ]; then
-        pid=$(ps -f -u $UID | sed 1d | fzf -m | awk '{print $2}')
+        pid=$(ps -f -u $UID | sed 1d | fzf -m $PARAMS | awk '{print $2}')
     else
-        pid=$(ps -ef | sed 1d | fzf -m | awk '{print $2}')
+        pid=$(ps -ef | sed 1d | fzf -m $PARAMS | awk '{print $2}')
     fi
 
     if [ "x$pid" != "x" ]
@@ -14,7 +16,7 @@ function fzf_process_kill() { # Desc: function: fzf_process_kill: kill processes
         echo $pid | xargs kill -${1:-9}
     fi
 }
-alias fps_kill="fzf_process_kill" # Desc: alias: fps_kill:fzf_process_kill命令的别名,kill processes - list only the ones you can kill. Modified the earlier script.
+alias fpk="fzf_process_kill" # Desc: alias: fpk:fzf_process_kill命令的别名,kill processes - list only the ones you can kill. Modified the earlier script.
 
 #   find_pid: find out the pid of a specified process
 #   -----------------------------------------------------
@@ -30,19 +32,39 @@ alias find_pid="find_process_id"        # Desc: alias: find_pid:find_process_id�
 alias fpid="find_process_id"            # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process
 
 function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
-    (date; ps -ef) |
-    fzf --bind='ctrl-r:reload(date; ps -ef)' \
-        --header=$'Press CTRL-R to reload\n\n' --header-lines=2 \
-        --preview='echo {}' --preview-window=down,3,wrap \
-        --layout=reverse --height=80% | awk '{print $2}' | xargs kill -9
+    (date; ps -ef) | fzf --reverse \
+                         --height=80% \
+                         --margin=1 \
+                         --padding=1 \
+                         --preview-window bottom:6:border-rounded:hidden:wrap \
+                         --preview " echo {} " \
+                         --preview-label-pos top,4\
+                         --preview-label='[ 进程 ]' \
+                         --prompt="进程 > "\
+                         --bind 'ctrl-/:toggle-preview' \
+                         --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
+                         --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
+                         --bind='ctrl-r:reload(date; ps -ef)' \
+                         --header $"Press CTRL-R to reload\n\nPress CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                         --header-lines=2 | awk '{print $2}' | xargs kill -9
 }
-alias fps_kill2='fzf_process_kill2'     # Desc: alias: fps_kill2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
+alias fpk2='fzf_process_kill2'     # Desc: alias: fpk2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
 
 function fzf_process_magnifier() { # Desc: function fzf_process_magnifier: 进程放大镜
-    (date; ps -ef) |
-    fzf --bind='ctrl-r:reload(date; ps -ef)' \
-      --header=$'Press CTRL-R to reload\n\n' --header-lines=2 \
-      --preview='echo {}' --preview-window=down,3,wrap \
-      --layout=reverse --height=80% | awk '{print $2}' | xargs kill -9
+    (date; ps -ef) | fzf --reverse \
+                         --height=80% \
+                         --margin=1 \
+                         --padding=1 \
+                         --preview-window bottom:6:border-rounded:wrap \
+                         --preview " echo {} " \
+                         --preview-label-pos top,4\
+                         --preview-label='[ 进程 ]' \
+                         --prompt="进程 > "\
+                         --bind 'ctrl-/:toggle-preview' \
+                         --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
+                         --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
+                         --bind='ctrl-r:reload(date; ps -ef)' \
+                         --header $"Press CTRL-R to reload\n\nPress CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                         --header-lines=2 | awk '{print $2}' | xargs kill -9
 }
 alias fpm="fzf_process_magnifier" # Desc: alias: fpm: fzf_process_magnifier命令的别名,进程放大镜

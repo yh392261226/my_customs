@@ -5,10 +5,10 @@ function search_aliases() { # Desc: function: search_aliases:显示所有含有�
     MYRUNTIME=$(cat $HOME/.myruntime)
     customcd $MYRUNTIME/customs/my_shell/library/functions/bzsh
     if [ ""  != "$1" ]; then
-        find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
+        find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
         # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
     else
-        find *.bzsh | awk -F':' '{print $1}' | sort | uniq | fzf  --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
+        find *.bzsh | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
         # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
     fi
 }
