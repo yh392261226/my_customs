@@ -29,7 +29,7 @@ function fzf_git_checkout_commit() { # Desc: function: fzf_git_checkout_commit:c
                                    --bind 'ctrl-/:toggle-preview' \
                                    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
                                    --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
-                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
 ) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
@@ -60,7 +60,7 @@ function fzf_git_checkout_preview() { # Desc: function: fzf_git_checkout_preview
         --bind 'ctrl-/:toggle-preview' \
         --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
         --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
-        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
         ) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
@@ -80,7 +80,7 @@ function fzf_git_commit_sha() { # Desc: function: fzf_git_commit_sha:get git com
                                    --bind 'ctrl-/:toggle-preview' \
                                    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
                                    --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
-                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     ) &&
     echo -n $(echo "$commit" | sed "s/ .*//")
 }

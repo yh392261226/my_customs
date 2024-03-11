@@ -51,7 +51,7 @@ function fzf_tmux_pane() { # Desc: function: fzf_tpane: Tmux switch pane (@georg
                                                               --bind 'ctrl-/:toggle-preview' \
                                                               --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                               --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                              --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                                              --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     ) || return
 
     target_window=$(echo $target | awk 'BEGIN{FS=":|-"} {print$1}')
@@ -81,7 +81,7 @@ function fzf_tmux_words() { # Desc: function: fzf_tmux_words:tmux中 https://git
                                                     --bind 'ctrl-/:toggle-preview' \
                                                     --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                     --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                    --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                                    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
          | paste -sd" " -'
 }
 alias ftw="fzf_tmux_words" # Desc: alias: ftw: fzf_tmux_words命令的别名,tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
@@ -222,7 +222,7 @@ function fzf_tm() { # Desc: function: fzf_tm: create new tmux session, or switch
                                                                         --bind 'ctrl-/:toggle-preview' \
                                                                         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                                         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                                        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                                                        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     ) &&  tmux $change -t "$session" || echo "No sessions found."
 }
 alias ftm="fzf_tm" # Desc: alias: ftm: fzf_tm命令的别名,create new tmux session, or switch to existing one. Works from within tmux too. (@bag-man)

@@ -86,7 +86,7 @@ function fzf_tags() { # Desc: function: fzf_tags:search ctags
         --bind 'ctrl-/:toggle-preview' \
         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$linen")"
 }
@@ -130,7 +130,7 @@ function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This 
                     --bind 'ctrl-/:toggle-preview' \
                     --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                     --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                    --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
                     --query="$1" --multi --select-1 --exit-0 \
                     ))
     [[ -n "$files" ]] && vim "${files[@]}"
@@ -155,7 +155,7 @@ function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep op
                                                                       --bind 'ctrl-/:toggle-preview' \
                                                                       --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                                       --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                                      --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                                                      --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
                                                                         | awk -F: '{print $1, $2}')"
 
     if [[ -n $cfile ]]
@@ -177,7 +177,7 @@ function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvi
                  --bind 'ctrl-/:toggle-preview' \
                  --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                  --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                 --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
 )"
     count="$( echo "$files" | wc -l )"
     [[ ! "$files" ]] && return
@@ -199,7 +199,7 @@ function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim�
                  --bind 'ctrl-/:toggle-preview' \
                  --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                  --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                 --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
 )"
     count="$( echo "$files" | wc -l )"
     vim $files

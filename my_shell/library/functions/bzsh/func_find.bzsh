@@ -151,7 +151,7 @@ function fzf_find_by_choice() { # Desc: function: fzf_find_by_choice: 利用fzf�
                  --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
                  --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
                  --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
-                 --header 'Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window Or CTRL-D: Directories / CTRL-F: Files'
+                 --header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-D 切换目录模式 | CTRL-F: 切换文件模式'
 }
 alias ffbc="fzf_find_by_choice" # Desc: alias: ffbc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
 alias fdof='fzf_find_by_choice'   # Desc: alias: fdof:fzf_find_by_choice命令的别名,fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换

@@ -24,7 +24,7 @@ function fzf_brew_delete_by_select() { # Desc: function: fzf_brew_delete_by_sele
                                    --bind 'ctrl-/:toggle-preview' \
                                    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                    --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
 
   if [[ $uninst ]]; then
     for prog in $(echo $uninst); do
@@ -48,7 +48,7 @@ function fzf_brew_update_by_select() { # Desc: function: fzf_brew_update_by_sele
                                 --bind 'ctrl-/:toggle-preview' \
                                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
 
   if [[ $upd ]]; then
     for prog in $(echo $upd);do
@@ -72,7 +72,7 @@ function fzf_brew_upgrade_by_select() { # Desc: function: fzf_brew_upgrade_by_se
                                       --bind 'ctrl-/:toggle-preview' \
                                       --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                       --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                      --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                      --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
   if [[ $upgrads ]]; then
     for prog in $(echo $upgrads); do
       brew upgrade $prog
@@ -99,7 +99,7 @@ function fzf_brew_install_by_select() { # Desc: function: fzf_brew_install_by_se
                                  --bind 'ctrl-/:toggle-preview' \
                                  --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                  --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                 --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
 
   if [[ $inst ]]; then
     for prog in $(echo $inst);do
@@ -162,7 +162,7 @@ function fzf_brew_install() { # Desc: function: fzf_brew_install: Fully manage b
         --bind 'ctrl-/:toggle-preview' \
         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
         --bind="enter:execute(
         if [[ '{2}' == '(cask)' ]]; then
           brew \$($state) --cask {1}

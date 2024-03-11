@@ -178,7 +178,7 @@ function fzf_list_hiddens() { # Desc: function: fzf_list_hiddens:列出隐藏文
                                    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                    --bind 'ctrl-y:execute-silent(echo -n {} | pbcopy)+abort' \
                                    --bind 'ctrl-r:execute(rm -rf {})+reload((/bin/ls -A $mpath | grep "^\.") || true)' \
-                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
+                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 alias flh="fzf_list_hiddens"     # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
@@ -195,7 +195,7 @@ function fzf_file_preview() { # Desc: function: fzf_file_preview:fzf列出文件
         --bind 'ctrl-/:toggle-preview' \
         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
+        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 alias ftt='fzf_file_preview'      # Desc: alias: ftt:fzf_file_preview命令的别名,fzf列出文件夹及选中文件的内容
 
@@ -214,7 +214,7 @@ function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:fzf利用open�
                         --bind 'ctrl-/:toggle-preview' \
                         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
     if [ -n "$file" ]; then
@@ -239,7 +239,7 @@ function fzf_search_term() { # Desc: function: fzf_search_term:find-in-file - us
            --bind 'ctrl-/:toggle-preview' \
            --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
            --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-           --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
+           --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 alias fif='fzf_search_term'     # Desc: alias: fif:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
 
@@ -264,7 +264,7 @@ function find_link_files() { # Desc: function: find_link_files:find找出所有�
                                              --bind 'ctrl-/:toggle-preview' \
                                              --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                              --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                             --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window"
+                                             --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 alias flf="find_link_files"     # Desc: alias: flf:find_link_files命令的别名,find找出所有软连接文件
 
@@ -286,7 +286,7 @@ function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
                         --bind 'ctrl-/:toggle-preview' \
                         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
                         | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
 		return $?
 	fi

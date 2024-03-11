@@ -162,7 +162,7 @@ function chromium_history() { # Desc: function: chromium_history:列出Chromium�
         --bind 'ctrl-/:toggle-preview' \
         --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-        --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" |
+        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" |
     sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
 alias ch="chromium_history"     # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
@@ -208,7 +208,7 @@ function chromium_bookmarks() { # Desc: function: chroomium_bookmarks:列出列�
               --bind 'ctrl-/:toggle-preview' \
               --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
               --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-              --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+              --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
 }
@@ -242,7 +242,7 @@ function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库�
                                                                    --bind 'ctrl-/:toggle-preview' \
                                                                    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
                                                                    --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-                                                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")"
+                                                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")"
 
     # open each website
     for i in "${website[@]}"; do

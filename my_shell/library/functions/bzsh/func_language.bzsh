@@ -87,7 +87,7 @@ function php_change_version() { # Desc: function: php_change_version:PHP依赖�
                                                               --bind 'ctrl-/:toggle-preview' \
                                                               --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                               --bind 'ctrl-y:execute-silent(echo -n php@{}| pbcopy)+abort' \
-                                                              --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                                              --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
     if [ "" = "$choose" ]; then
         echo "Action abord !"
         return 1

@@ -45,7 +45,7 @@ function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进�
                          --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
                          --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
                          --bind='ctrl-r:reload(date; ps -ef)' \
-                         --header $"Press CTRL-R to reload\n\nPress CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                         --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
                          --header-lines=2 | awk '{print $2}' | xargs kill -9
 }
 alias fpk2='fzf_process_kill2'     # Desc: alias: fpk2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
@@ -64,7 +64,7 @@ function fzf_process_magnifier() { # Desc: function fzf_process_magnifier: 进�
                          --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
                          --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
                          --bind='ctrl-r:reload(date; ps -ef)' \
-                         --header $"Press CTRL-R to reload\n\nPress CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                         --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
                          --header-lines=2 | awk '{print $2}' | xargs kill -9
 }
 alias fpm="fzf_process_magnifier" # Desc: alias: fpm: fzf_process_magnifier命令的别名,进程放大镜

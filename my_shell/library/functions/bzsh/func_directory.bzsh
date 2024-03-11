@@ -90,7 +90,7 @@ function fzf_cd_select() { # Desc: function: fzf_cd_select:利用fzf选择并进
                 --bind 'ctrl-/:toggle-preview' \
                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
         )"
         [[ ${#dir} != 0 ]] || return 0
         builtin cd "$dir" &> /dev/null
@@ -119,7 +119,7 @@ function fzf_cd_to_file() { # Desc: function: fzf_cd_to_file:进入到利用fzf�
             --bind 'ctrl-/:toggle-preview' \
             --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
             --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-            --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+            --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
 alias cdff="fzf_cd_to_file"     # Desc: alias: cdff:fzf_cd_to_file命令的别名,进入到利用fzf选择的文件的同级文件夹
@@ -205,7 +205,7 @@ function fzf_jump_between_directory() { # Desc: function: fzf_jump_between_direc
                                                     --bind 'ctrl-/:toggle-preview' \
                                                     --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                     --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                    --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                                    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     )" && cd "${dir}" || return 1
 }
 alias fzf_z="fzf_jump_between_directory"   # Desc: alias: fzf_z:fzf_jump_between_directory命令的别名,目录跳转
@@ -275,7 +275,7 @@ function fzf_directory_history() { # Desc: function: fzf_directory_history:利�
                                                --bind 'ctrl-/:toggle-preview' \
                                                --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                               --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+                                               --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
 )
   cd "$dir"
 }

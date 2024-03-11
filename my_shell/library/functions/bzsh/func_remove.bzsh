@@ -26,17 +26,17 @@ alias rmsshtmp="remove_ssh_tmp_file"        # Desc: alias: rmsshtmp:remove_ssh_t
 alias removesshtmp="remove_ssh_tmp_file"    # Desc: alias: removesshtmp:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
 
 function remove_to_trash () { # Desc: function: remove_to_trash:删除到回收站
-    local path
-    for path in "$@"; do
+    local mpath
+    for mpath in "$@"; do
         # ignore any arguments
-        if [[ "$path" = -* ]]; then :
+        if [[ "$mpath" = -* ]]; then :
         else
-            local dst=${path##*/}
+            local dst=${mpath##*/}
             # append the time if necessary
             while [ -e ~/.Trash/"$dst" ]; do
                 dst="$dst "$(date +%H-%M-%S)
             done
-            /bin/mv "$path" ~/.Trash/"$dst"
+            /bin/mv "$mpath" ~/.Trash/"$dst"
         fi
     done
 }
@@ -80,7 +80,7 @@ function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件�
                                              --bind 'ctrl-/:toggle-preview' \
                                              --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                              --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                             --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                             --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
     [[ ! "$files" ]] && return 1
     [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && (echo $files | xargs -I '{}' rm {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
   else
@@ -106,7 +106,7 @@ function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找
                                                    --bind 'ctrl-/:toggle-preview' \
                                                    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                                                    --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                   --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window")
+                                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
     [[ ! "$directories" ]] && return 1
     [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
   else
