@@ -260,23 +260,6 @@ function pwd_command_directory() { # Desc: function: pwd_command_directory:获�
 }
 alias pwdw="pwd_command_directory"  # Desc: alias: pwdw:pwd_command_directory命令的别名,获取命令所在的文件夹
 
-function fzf_directories_or_files() { # Desc: function: fzf_directories_or_files:fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换
-    find * | fzf --margin=1 \
-                 --padding=1 \
-                 --preview-window bottom:6:border-rounded:hidden:wrap \
-                 --preview " echo {} " \
-                 --preview-label-pos top,4 \
-                 --preview-label='[ 安装一个或多个版本的语言包 ]' \
-                 --prompt 'All> ' \
-                 --bind 'ctrl-/:toggle-preview' \
-                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
-                 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
-                 --header 'Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window Or CTRL-D: Directories / CTRL-F: Files'
-}
-alias fdof='fzf_directories_or_files'   # Desc: alias: fdof:fzf_directories_or_files命令的别名,fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换
-
 function fzf_directory_history() { # Desc: function: fzf_directory_history:利用fzf显示目录的历史
   local dir=$(python3 -m fzfdirhist show | fzf --height=70% \
                                                --reverse +m \

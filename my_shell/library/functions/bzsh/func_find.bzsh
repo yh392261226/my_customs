@@ -60,7 +60,7 @@ function find_files_by_contain () { # Desc: function: find_files_by_contain:查�
     fi
     return 0
 }
-alias fmq="find_files_by_contain"       # Desc: alias: fmq:find_files_by_contain命令的别名,查找当前目录中包含某个字符串的
+alias ffc="find_files_by_contain"       # Desc: alias: ffc:find_files_by_contain命令的别名,查找当前目录中包含某个字符串的
 
 function find_file_by_params () { # Desc: function: find_file_by_params:Find file under the current directory
     if [ "$1" != "" ]; then
@@ -75,7 +75,7 @@ function find_file_by_params () { # Desc: function: find_file_by_params:Find fil
         find ./ -name "$text" ;
     fi
 }
-alias ff="find_file_by_params"  # Desc: alias: ff:find_file_by_params命令的别名,Find file under the current directory
+alias ffp="find_file_by_params"  # Desc: alias: ffp:find_file_by_params命令的别名,Find file under the current directory
 
 function find_same_file_by_md5() { # Desc: function: find_same_file_by_md5:Find files which has the same md5 value
     local MD5COMMAND=/sbin/md5
@@ -139,12 +139,22 @@ function tree_search() { # Desc: function: Search keyword by tree command in the
 alias trees='tree_search'       # Desc: alias: trees:tree_search命令的别名,利用tree和grep命令搜索关键字的文件
 
 function fzf_find_by_choice() { # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
-    find * | fzf --prompt 'All> ' \
-             --header 'CTRL-D: Directories / CTRL-F: Files' \
-             --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
-             --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)'
+    find * | fzf --margin=1 \
+                 --padding=1 \
+                 --preview-window bottom:6:border-rounded:hidden:wrap \
+                 --preview " echo {} " \
+                 --preview-label-pos top,4 \
+                 --preview-label='[ 安装一个或多个版本的语言包 ]' \
+                 --prompt 'All> ' \
+                 --bind 'ctrl-/:toggle-preview' \
+                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
+                 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
+                 --header 'Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window Or CTRL-D: Directories / CTRL-F: Files'
 }
 alias ffbc="fzf_find_by_choice" # Desc: alias: ffbc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
+alias fdof='fzf_find_by_choice'   # Desc: alias: fdof:fzf_find_by_choice命令的别名,fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换
 
 function fzf_fd_by_choice() { # Desc: function: fzf_fd_by_choice: 利用fzf命令显示fd的结果,并根据选择展示文件或文件夹
     fd --type file | fzf --prompt 'Files> ' \
