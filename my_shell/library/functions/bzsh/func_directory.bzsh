@@ -15,6 +15,7 @@ function customcd() { # Desc: function: customcd:自定义cd命令
 }
 
 function fzf_cd_to() { # Desc: function: fzf_cd_to: fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
+    [[ "" = "$@" ]] && (echo "ex: fct word1 word2" && return 1 && exit 1)
     local file
     file="$(glocate -Ai -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1)"
     if [[ -n $file ]]
@@ -71,20 +72,32 @@ function fzf_cd_select() { # Desc: function: fzf_cd_select:利用fzf选择并进
     while true; do
         local lsd=$(echo ".." && ls -p | grep '/$' | sed 's;/$;;')
         local dir="$(printf '%s\n' "${lsd[@]}" |
-            fzf --reverse --preview '
+            fzf --reverse \
+                --reverse \
+                --margin=1 \
+                --padding=1 \
+                --preview-window bottom:6:border-rounded:hidden:wrap \
+                --preview '
                 __cd_nxt="$(echo {})";
                 __cd_path="$(echo $(pwd)/${__cd_nxt} | sed "s;//;/;")";
                 echo $__cd_path;
                 echo;
                 gls -p --color=always "${__cd_path}";
-        ')"
+                ' \
+                --preview-label-pos top,4 \
+                --preview-label='[ 文件夹 ]' \
+                --prompt="文件夹 > "\
+                --bind 'ctrl-/:toggle-preview' \
+                --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+        )"
         [[ ${#dir} != 0 ]] || return 0
         builtin cd "$dir" &> /dev/null
     done
 }
 alias fcd="fzf_cd_select"   # Desc: alias: fcd:fzf_cd_select命令的别名,利用fzf选择并进入文件夹
 
-# fzf (https://github.com/junegunn/fzf)
 function fzf_cd_select2() { # Desc: function: fzf_cd_select2:另一款利用fzf进入选择的文件夹
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"
@@ -94,7 +107,20 @@ alias fd2="fzf_cd_select2"      # Desc: alias: fd2:fzf_cd_select2命令的别名
 function fzf_cd_to_file() { # Desc: function: fzf_cd_to_file:进入到利用fzf选择的文件的同级文件夹
     local file
     local dir
-    file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
+    file=$(fzf +m \
+            --reverse \
+            --margin=1 \
+            --padding=1 \
+            --preview-window bottom:6:border-rounded:hidden:wrap \
+            --preview " echo {} " \
+            --preview-label-pos top,4 \
+            --preview-label='[ 文件夹 ]' \
+            --prompt="文件夹 > "\
+            --bind 'ctrl-/:toggle-preview' \
+            --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+            --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+            --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+    -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
 alias cdff="fzf_cd_to_file"     # Desc: alias: cdff:fzf_cd_to_file命令的别名,进入到利用fzf选择的文件的同级文件夹
 
@@ -167,7 +193,20 @@ alias cdto="cd_command_directory"       # Desc: alias: cdto:cd_command_directory
 function fzf_jump_between_directory() { # Desc: function: fzf_jump_between_directory:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
     local dir
-    dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m)" && cd "${dir}" || return 1
+    dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m \
+                                                    --reverse \
+                                                    --margin=1 \
+                                                    --padding=1 \
+                                                    --preview-window bottom:6:border-rounded:hidden:wrap \
+                                                    --preview " echo {} " \
+                                                    --preview-label-pos top,4 \
+                                                    --preview-label='[ 目录 ]' \
+                                                    --prompt="目录 > "\
+                                                    --bind 'ctrl-/:toggle-preview' \
+                                                    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                                                    --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                                                    --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+    )" && cd "${dir}" || return 1
 }
 alias fzf_z="fzf_jump_between_directory"   # Desc: alias: fzf_z:fzf_jump_between_directory命令的别名,目录跳转
 alias fz="fzf_jump_between_directory"      # Desc: alias: fz:fzf_jump_between_directory命令的别名,目录跳转
@@ -222,15 +261,39 @@ function pwd_command_directory() { # Desc: function: pwd_command_directory:获�
 alias pwdw="pwd_command_directory"  # Desc: alias: pwdw:pwd_command_directory命令的别名,获取命令所在的文件夹
 
 function fzf_directories_or_files() { # Desc: function: fzf_directories_or_files:fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换
-    find * | fzf --prompt 'All> ' \
-             --header 'CTRL-D: Directories / CTRL-F: Files' \
-             --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
-             --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)'
+    find * | fzf --margin=1 \
+                 --padding=1 \
+                 --preview-window bottom:6:border-rounded:hidden:wrap \
+                 --preview " echo {} " \
+                 --preview-label-pos top,4 \
+                 --preview-label='[ 安装一个或多个版本的语言包 ]' \
+                 --prompt 'All> ' \
+                 --bind 'ctrl-/:toggle-preview' \
+                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
+                 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
+                 --header 'Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window Or CTRL-D: Directories / CTRL-F: Files'
 }
 alias fdof='fzf_directories_or_files'   # Desc: alias: fdof:fzf_directories_or_files命令的别名,fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换
 
 function fzf_directory_history() { # Desc: function: fzf_directory_history:利用fzf显示目录的历史
-  local dir=$(python3 -m fzfdirhist show | fzf --height=40% --reverse +m)
+  local dir=$(python3 -m fzfdirhist show | fzf --height=70% \
+                                               --reverse +m \
+                                               --margin=1 \
+                                               --padding=1 \
+                                               --margin=1 \
+                                               --padding=1 \
+                                               --preview-window bottom:6:border-rounded:hidden:wrap \
+                                               --preview " echo {} " \
+                                               --preview-label-pos top,4 \
+                                               --preview-label='[ 目录 ]' \
+                                               --prompt="目录 > "\
+                                               --bind 'ctrl-/:toggle-preview' \
+                                               --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+                                               --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+                                               --header "Press CTRL-Y to copy content into clipboard Or CTRL-/ to toggle preview window" \
+)
   cd "$dir"
 }
 alias fdh='fzf_directory_history'   # Desc: alias: fdh:fzf_directory_history命令的别名,利用fzf显示目录的历史
