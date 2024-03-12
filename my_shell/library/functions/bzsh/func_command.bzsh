@@ -34,6 +34,7 @@ function fzf_show_customs_functions() { # Desc: function: fzf_show_customs_funct
         --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
         --prompt="显示所有自定义命令及注释 > "\
         --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+        rm -f $TMP_FUNCTIONS_FILE
     fi
 }
 alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
@@ -57,6 +58,7 @@ function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases
         --bind 'focus:transform-preview-label:echo "[ {} ]";' \
         --bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
         --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
+        rm -f $TMP_ALIASES_FILE
     fi
 }
 alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliases命令的别名,显示所有自定义的别名及注释
@@ -131,6 +133,7 @@ function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_custom
                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
+            rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
     fi
 }

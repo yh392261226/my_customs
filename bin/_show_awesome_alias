@@ -5,12 +5,15 @@ function _show_fzf_awesome_alias() {
     if [ "" != "$1" ] && [ "" != "$2" ]; then
         CCommand=$1
         CLocation=$2
+        CSeprator="|" # 用于处理特殊字符而增加的分隔符
 
-        TmpContent=$(cat $CLocation | grep -E "^${CCommand}=")
+        TmpContent=$(cat $CLocation | sed 's/^ //g' | sed "s/^/${CSeprator}/" | grep -F "${CSeprator}${CCommand}=")
 
+        # echo $CCommand
+        # echo $CLocation
         # awesome_alias_file=
         awesome_alias_name=$CCommand
-        awesome_alias_to=$(echo $TmpContent | sed -e "s/${CCommand}=//g")
+        awesome_alias_to=$(echo "$TmpContent" | sed -e "s/${CSeprator}${CCommand}=//g")
         awesome_alias_desc=""
 
         # echo "Alias Location    :"$awesome_alias_file
