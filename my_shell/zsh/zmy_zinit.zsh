@@ -92,7 +92,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit snippet https://gist.githubusercontent.com/Hill-98/93db00b01327a0226955c2c6b3b7e137/raw/auto-bin-path.zsh
 
     # 延迟加载
-    zinit ice lucid wait='1'
+    zinit ice lucid wait='3'
     # 快速目录跳转
     zinit light skywind3000/z.lua
     zinit light zsh-users/zsh-completions
@@ -121,11 +121,14 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light kazhala/dotbare
     zinit light wfxr/forgit
     zinit light paulirish/git-open
+    zinit light thirteen37/fzf-brew
 
     # ASDF
     if [ -d "$HOME/.asdf" ]; then
         zinit ice wait lucid
         zinit light asdf-vm/asdf
+    else
+        mkdir $HOME/.asdf
     fi
 
     function reload_zinit() {

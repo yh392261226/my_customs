@@ -17,9 +17,9 @@ function _show_fzf_awesome_alias() {
         awesome_alias_desc=""
 
         # echo "Alias Location    :"$awesome_alias_file
-        echo "Alias Name        :"$CCommand
-        echo "Alias To          :"$awesome_alias_to
-        echo "Alias Description :" $awesome_alias_desc
+        echo "Alias Name        :⭆ "$CCommand
+        echo "Alias To          :⭆ "$awesome_alias_to
+        echo "Alias Description :⭆ " $awesome_alias_desc
         echo ""
         echo "Which Command:"
         echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶ "
