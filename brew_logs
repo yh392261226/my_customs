@@ -975,3 +975,5 @@ brew install eza
 brew install maccy
 brew install pv
 brew install kyu08/tap/fzf-make
+brew install forgit
+brew install code-minimap

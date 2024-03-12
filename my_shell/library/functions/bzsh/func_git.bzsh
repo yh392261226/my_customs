@@ -5,6 +5,18 @@ function is_git() { # Desc: function: is_git:pick files from `git status -s`
     git rev-parse HEAD > /dev/null 2>&1
 }
 
+function auto_create_git_respository() { # Desc: function: auto_create_git_respository: 自动创建版本库
+	mkdir $1
+	cd $1
+	git init
+	touch README.md
+	git add README.md
+	git commit -m '自动创建版本库'
+	git remote add origin git@github.com:yh392261226/$1.git
+	git push origin master
+}
+alias mkgit="auto_create_git_respository" # Desc: alias: mkgit: auto_create_git_respository命令的别名,自动创建版本库
+
 function fzf_checkout_git_branch() { # Desc: function: fzf_checkout_git_branch:checkout git branch
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&

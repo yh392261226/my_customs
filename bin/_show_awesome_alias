@@ -22,8 +22,17 @@ function _show_fzf_awesome_alias() {
         echo "Alias Description :" $awesome_alias_desc
         echo ""
         echo "Which Command:"
+        echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶ "
+        echo ""
+        echo ""
         env which "$awesome_alias_to"
-        # `which "$awesome_alias_to"`
+        echo ""
+        if [ ! "$(echo $awesome_alias_to | grep -E '\.')" ]; then
+            CommandLocation=$(find $MYRUNTIME/customs/my_shell -type f | xargs grep -E "(function ${awesome_alias_file})(.*?)[^(]*" | awk -F':' '{print $1}' | sort | uniq)
+            if [ "" != "$CommandLocation" ]; then
+                sed -n "/function ${awesome_alias_to}(/,/^}/p" $CommandLocation | /opt/homebrew/bin/bat --style="numbers,changes,header,grid" --theme="gruvbox-dark" --pager "less -RF" --map-syntax ".ignore:Git Ignore"
+            fi
+        fi
     fi
 }
 
