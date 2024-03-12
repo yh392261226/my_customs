@@ -140,18 +140,18 @@ alias trees='tree_search'       # Desc: alias: trees:tree_search命令的别名,
 
 function fzf_find_by_choice() { # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
     find * | fzf --margin=1 \
-                 --padding=1 \
-                 --preview-window bottom:6:border-rounded:hidden:wrap \
-                 --preview " echo {} " \
-                 --preview-label-pos top,4 \
-                 --preview-label='[ 安装一个或多个版本的语言包 ]' \
-                 --prompt 'All> ' \
-                 --bind 'ctrl-/:toggle-preview' \
-                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
-                 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
-                 --header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-D 切换目录模式 | CTRL-F: 切换文件模式'
+--padding=1 \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview " echo {} " \
+--preview-label-pos top,4 \
+--preview-label='[ 文件或文件夹 ]' \
+--prompt '查找> ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
+--bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-D 切换目录模式 | CTRL-F: 切换文件模式'
 }
 alias ffbc="fzf_find_by_choice" # Desc: alias: ffbc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
 alias fdof='fzf_find_by_choice'   # Desc: alias: fdof:fzf_find_by_choice命令的别名,fzf列出当前目录下所有的文件或文件夹,可根据快捷键切换

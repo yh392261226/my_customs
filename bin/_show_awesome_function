@@ -15,12 +15,14 @@ function _show_fzf_awesome_function() {
         echo "Function Location    :⭆ "$awesome_function_file
         echo "Function Name        :⭆ "$awesome_function_name
         echo "Function Description :⭆ "$(echo $awesome_function_desc | sed -e 's/^://g' | sed -e 's/^ //g')
-        echo "Function Code        :⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶ "
+        echo "Function Code        :⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⭆ "
         echo ""
         echo ""
         sed -n "/function ${awesome_function_name}(/,/^}/p" $awesome_function_file | /opt/homebrew/bin/bat --style="numbers,changes,header,grid" --theme="gruvbox-dark" --pager "less -RF" --map-syntax ".ignore:Git Ignore"
 
-        hr "⇶"
+        echo ""
+        echo ""
+        echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶"
     fi
 }
 

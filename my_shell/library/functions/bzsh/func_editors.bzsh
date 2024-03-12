@@ -73,20 +73,20 @@ function fzf_tags() { # Desc: function: fzf_tags:search ctags
     linen=$(
     awk 'BEGIN { FS="\t" } !/^!/ {print toupper($4)"\t"$1"\t"$2"\t"$3}' tags |
     fzf \
-        --reverse \
-        --margin=1 \
-        --padding=1 \
-        --nth=1,2 \
-        --with-nth=2 \
-        --preview-window right:50%:border-rounded:hidden:wrap \
-        --preview="bat {3} --color=always | tail -n +\$(echo {4} | tr -d \";\\\"\")" \
-        --preview-label-pos top,4 \
-        --preview-label='[ 安装一个或多个版本的语言包 ]' \
-        --prompt="安装一个或多个版本的语言包 > "\
-        --bind 'ctrl-/:toggle-preview' \
-        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+--reverse \
+--margin=1 \
+--padding=1 \
+--nth=1,2 \
+--with-nth=2 \
+--preview-window right:50%:border-rounded:hidden:wrap \
+--preview="bat {3} --color=always | tail -n +\$(echo {4} | tr -d \";\\\"\")" \
+--preview-label-pos top,4 \
+--preview-label='[ Ctags ]' \
+--prompt='查找 > ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$linen")"
 }
@@ -120,18 +120,18 @@ function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This 
 -E '.git'"
     IFS=$'\n' \
        files=($(fzf --reverse \
-                    --margin=1 \
-                    --padding=1 \
-                    --preview-window right:70%:border-rounded:hidden:wrap \
-                    --preview "bat --theme=timu-spacegrey --color=always {}" \
-                    --preview-label-pos top,4 \
-                    --preview-label='[ Search Files ]' \
-                    --prompt="Search Files > "\
-                    --bind 'ctrl-/:toggle-preview' \
-                    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                    --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
-                    --query="$1" --multi --select-1 --exit-0 \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'bat --theme=timu-spacegrey --color=always {}' \
+--preview-label-pos top,4 \
+--preview-label='[ 文件 ]' \
+--prompt='查找 > ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
+--query="$1" --multi --select-1 --exit-0 \
                     ))
     [[ -n "$files" ]] && vim "${files[@]}"
 }
@@ -145,17 +145,17 @@ function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep op
     [[ -f /usr/local/bin/ag ]] && AGBIN=/usr/local/bin/ag
 
     read -r cfile cline <<<"$($AGBIN --nobreak --noheading $@ | fzf -0 -1 --reverse \
-                                                                      --margin=1 \
-                                                                      --padding=1 \
-                                                                      --preview-window right:70%:border-rounded:hidden:wrap \
-                                                                      --preview " echo {} " \
-                                                                      --preview-label-pos top,4 \
-                                                                      --preview-label='[ Search ]' \
-                                                                      --prompt="Search > "\
-                                                                      --bind 'ctrl-/:toggle-preview' \
-                                                                      --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                                                                      --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                                                      --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview ' echo {} ' \
+--preview-label-pos top,4 \
+--preview-label='[ Search ]' \
+--prompt='查找 > ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
                                                                         | awk -F: '{print $1, $2}')"
 
     if [[ -n $cfile ]]
@@ -167,17 +167,17 @@ alias vg="ag_open_with_line"    # Desc: alias: vg:ag_open_with_line命令的别�
 
 function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvim进行编辑
     files="$(fzf --reverse \
-                 --margin=1 \
-                 --padding=1 \
-                 --preview-window right:70%:border-rounded:hidden:wrap \
-                 --preview "bat --style=numbers --line-range=:500 {}" \
-                 --preview-label-pos top,4 \
-                 --preview-label='[ 文件 ]' \
-                 --prompt="文件 > "\
-                 --bind 'ctrl-/:toggle-preview' \
-                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'bat --style=numbers --line-range=:500 {}' \
+--preview-label-pos top,4 \
+--preview-label='[ 文件 ]' \
+--prompt='查找 > ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
 )"
     count="$( echo "$files" | wc -l )"
     [[ ! "$files" ]] && return
@@ -189,17 +189,17 @@ alias fnvim="fzf_nvim"   # Desc: alias: fnvim: fzf_nvim命令的别名,利用fzf
 
 function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim进行编辑
     files="$(fzf --reverse \
-                 --margin=1 \
-                 --padding=1 \
-                 --preview-window right:70%:border-rounded:hidden:wrap \
-                 --preview "bat --style=numbers --line-range=:500 {}" \
-                 --preview-label-pos top,4 \
-                 --preview-label='[ 文件 ]' \
-                 --prompt="文件 > "\
-                 --bind 'ctrl-/:toggle-preview' \
-                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'bat --style=numbers --line-range=:500 {}' \
+--preview-label-pos top,4 \
+--preview-label='[ 文件 ]' \
+--prompt='文件 > ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
 )"
     count="$( echo "$files" | wc -l )"
     vim $files

@@ -77,17 +77,17 @@ function php_change_version() { # Desc: function: php_change_version:PHP依赖�
     done
 
     choose=$(printf "%s\n" "${installedPhpVersions[@]}" | fzf --reverse \
-                                                              --margin=1 \
-                                                              --padding=1 \
-                                                              --preview-window bottom:6:border-rounded:hidden:wrap \
-                                                              --preview " echo php@{} " \
-                                                              --preview-label-pos top,4\
-                                                              --preview-label='[ 切换版本 ]' \
-                                                              --prompt="切换版本 > "\
-                                                              --bind 'ctrl-/:toggle-preview' \
-                                                              --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                                                              --bind 'ctrl-y:execute-silent(echo -n php@{}| pbcopy)+abort' \
-                                                              --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+--margin=1 \
+--padding=1 \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview " echo php@{} " \
+--preview-label-pos top,4 \
+--preview-label='[ 切换版本 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n php@{}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
     if [ "" = "$choose" ]; then
         echo "Action abord !"
         return 1

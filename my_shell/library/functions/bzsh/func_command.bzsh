@@ -4,12 +4,26 @@
 function search_aliases() { # Desc: function: search_aliases:显示所有含有字符串的自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     customcd $MYRUNTIME/customs/my_shell/library/functions/bzsh
+    local FZFPARAMS=(--tac \
+--toggle-sort=ctrl-r \
+--height 95% \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'bat {}' \
+--preview-label-pos top,4 \
+--preview-label='[ 命令及注释 ]' \
+--bind 'focus:transform-preview-label:echo -n \"[ {} ]\";' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--prompt='查找 > ' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口')
+
     if [ ""  != "$1" ]; then
-        find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
-        # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
+        find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort $FZFPARAMS
     else
-        find *.bzsh | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort --tac --toggle-sort=ctrl-r --height 95% --reverse --preview 'bat {}' --preview-window right:140
-        # grep --color=always -i -a2 $@ $MYRUNTIME/customs/my_shell/my_alias.sh $MYRUNTIME/customs/my_shell/my_func.sh | grep -v '^\s*$' | less -FSRXc ;
+        find *.bzsh | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort $FZFPARAMS
     fi
 }
 alias searcha="search_aliases"  # Desc: alias: searcha:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
@@ -19,21 +33,22 @@ function fzf_show_customs_functions() { # Desc: function: fzf_show_customs_funct
     find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
     if [ -f $TMP_FUNCTIONS_FILE ]; then
         eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | \
-        sed -e "s/^[ ]*//g" | \
-        sed -e "s/() {//" | awk -F'#' '{print $1}' | \
-        grep -E "(.*?)[^(]*" | \
-        sed -e 's/ $//g' | \
-        fzf --reverse \
-        --margin=1 \
-		--padding=1 \
-        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
-        --preview-label-pos top,4\
-        --preview-label='[ 显示所有自定义命令及注释 ]' \
-        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-        --bind 'ctrl-/:toggle-preview' \
-        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-        --prompt="显示所有自定义命令及注释 > "\
-        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+sed -e "s/^[ ]*//g" | \
+sed -e "s/() {//" | awk -F'#' '{print $1}' | \
+grep -E "(.*?)[^(]*" | \
+sed -e 's/ $//g' | \
+fzf --reverse \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
+--preview-label-pos top,4 \
+--preview-label='[ 命令及注释 ]' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--prompt="查找 > " \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
         rm -f $TMP_FUNCTIONS_FILE
     fi
 }
@@ -46,18 +61,18 @@ function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases
 #    echo $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf --reverse \
-        --margin=1 \
-        --padding=1 \
-        --toggle-sort=ctrl-s \
-        --preview-window right:70%:border-rounded:hidden:wrap \
-        --preview "$MYRUNTIME/customs/bin/_show_awesome_alias {} $TMP_ALIASES_FILE"  \
-        --preview-label-pos top,4 \
-        --preview-label='[ Awesome Customs Aliases ]' \
-        --prompt="Awesome Customs Aliases > "\
-        --bind 'ctrl-/:toggle-preview' \
-        --bind 'focus:transform-preview-label:echo "[ {} ]";' \
-        --bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
-        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
+--margin=1 \
+--padding=1 \
+--toggle-sort=ctrl-s \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview "$MYRUNTIME/customs/bin/_show_awesome_alias {} $TMP_ALIASES_FILE"  \
+--preview-label-pos top,4 \
+--preview-label='[ Awesome Customs Aliases ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
         rm -f $TMP_ALIASES_FILE
     fi
 }
@@ -66,42 +81,42 @@ alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliase
 function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     ls $MYRUNTIME/customs/my_shell/library/functions/bzsh/*.bzsh| fzf --no-sort \
-    --tac \
-    --toggle-sort=ctrl-s \
-    --height 95% \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window right:70%:border-rounded:hidden:wrap \
-    --preview 'cat {}' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 文件 ]' \
-    --prompt="查询 > "\
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo "[ {} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序"
+--tac \
+--toggle-sort=ctrl-s \
+--height 95% \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'cat {}' \
+--preview-label-pos top,4 \
+--preview-label='[ 文件 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序"
 }
 alias showaliases="fzf_show_aliases2"   # Desc: alias: showaliases:fzf_show_aliases2命令的别名,显示所有自定义命令及注释
 
 function fzf_show_alias() { # Desc: function: fzf_show_alias:利用fzf显示所有别名
     alias | sed -e "s/^alias //g" | fzf --no-sort \
-    --tac \
-    --toggle-sort=ctrl-s \
-    --height 95% \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window right:70%:border-rounded:hidden:wrap \
-    --preview "$MYRUNTIME/customs/bin/_positalias {}" \
-    --preview-window right:70%:border-rounded:hidden:wrap \
-    --preview-label-pos top,4 \
-    --preview-label='[ 文件 ]' \
-    --prompt="查询 > "\
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo "[ {} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序"
+--tac \
+--toggle-sort=ctrl-s \
+--height 95% \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview "$MYRUNTIME/customs/bin/_positalias {}" \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview-label-pos top,4 \
+--preview-label='[ 文件 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo {}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序"
 }
 alias fsa="fzf_show_alias"  # Desc: alias: fsa:fzf_show_alias命令的别名,利用fzf显示所有别名
 
@@ -122,17 +137,17 @@ function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_custom
             grep -E "(^fzf_)(.*?)[^(]*" | \
             sed -e 's/ $//g' | \
             fzf --reverse \
-                --toggle-sort=ctrl-s \
-                --margin=1 \
-                --padding=1 \
-                --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
-                --preview-label-pos top,4\
-                --preview-label='[ 显示所有Fzf相关的命令及注释 ]' \
-                --prompt="显示所有Fzf相关的命令及注释 > "\
-                --bind 'ctrl-/:toggle-preview' \
-                --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
+--toggle-sort=ctrl-s \
+--margin=1 \
+--padding=1 \
+--preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
+--preview-label-pos top,4 \
+--preview-label='[ 命令及注释 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序")
             rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
     fi
@@ -250,8 +265,8 @@ function fzf_figlet_font_selector() { # Desc: function: fzf_figlet_font_selector
 --preview-window bottom:6:border-rounded:hidden:wrap \
 --preview " echo {} " \
 --preview-label-pos top,4 \
---preview-label='[ 选择 ]' \
---prompt="选择 > "\
+--preview-label='[ 字体 ]' \
+--prompt="查找 > " \
 --bind 'ctrl-/:toggle-preview' \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
@@ -296,19 +311,19 @@ alias his="history_sort" # alias: his: history_sort命令的别名,按执行次�
 
 function fzf_history_repeat() { # Desc: function: fzf_history_repeat:列出历史操作命令,选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window bottom:6:border-rounded:hidden:wrap \
-    --preview ' echo {} | awk "{\$1=\"\";print}"' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 历史操作 ]' \
-    --prompt="历史操作 > " \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
-    --bind 'ctrl-s:toggle-sort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序" \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview ' echo {} | awk "{\$1=\"\";print}"' \
+--preview-label-pos top,4 \
+--preview-label='[ 历史操作 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+--bind 'ctrl-s:toggle-sort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序" \
      | sed 's/ *[0-9]* *//')
 }
 alias fh="fzf_history_repeat"   # Desc: alias: fh:fzf_history_repeat命令的别名,列出历史操作命令,选择后执行
@@ -346,7 +361,7 @@ function fzf_history() { # Desc: function: fzf_history:依赖fzf读取history结
 --preview ' echo {} | awk "{\$1=\"\";print}"' \
 --preview-label-pos top,4 \
 --preview-label='[ 操作历史 ]' \
---prompt="操作历史 > " \
+--prompt="查找 > " \
 --bind 'ctrl-/:toggle-preview' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
@@ -364,19 +379,19 @@ alias filetree="file_tree"  # Desc: alias: filetree:file_tree命令的别名,tre
 
 function fzf_history_print() { # Desc: function: fzf_history_print:列出历史操作命令,选择后打印
     print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window bottom:6:border-rounded:hidden:wrap \
-    --preview ' echo {} | awk "{\$1=\"\";print}"' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 操作历史 ]' \
-    --prompt="操作历史 > " \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
-    --bind 'ctrl-s:toggle-sort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序" \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview ' echo {} | awk "{\$1=\"\";print}"' \
+--preview-label-pos top,4 \
+--preview-label='[ 操作历史 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+--bind 'ctrl-s:toggle-sort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序" \
     | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
 }
 alias fhp='fzf_history_print'   # Desc: alias: fhp:fzf_history_print命令的别名,列出历史操作命令,选择后打印
@@ -390,8 +405,8 @@ function fzf_theme_selector() { # Desc: function: fzf_theme_selector:fzf主题�
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview " cat {} " \
 --preview-label-pos top,4 \
---preview-label='[ 选择 ]' \
---prompt="选择 > " \
+--preview-label='[ 主题 ]' \
+--prompt="查找 > " \
 --bind 'ctrl-/:toggle-preview' \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
@@ -427,17 +442,17 @@ function fzf_man_widget() { # Desc: function: fzf_man_widget:fzf版本的man命�
    man -k . | sort \
    | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue;} 1' \
    | fzf  \
-      -q "$1" \
-      --ansi \
-      --tiebreak=begin \
-      --prompt=' Man > '  \
-      --preview-window '50%,rounded,<50(up,85%,border-bottom)' \
-      --preview "${batman}" \
-      --bind "enter:execute(man {1})" \
-      --bind "ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )" \
-      --bind "ctrl-m:+change-preview(${batman})+change-prompt( Man > )" \
-      --bind "ctrl-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )" \
-      --header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr'
+-q "$1" \
+--ansi \
+--tiebreak=begin \
+--prompt="查找 > " \
+--preview-window '50%,rounded,<50(up,85%,border-bottom)' \
+--preview "${batman}" \
+--bind "enter:execute(man {1})" \
+--bind "ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )" \
+--bind "ctrl-m:+change-preview(${batman})+change-prompt( Man > )" \
+--bind "ctrl-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )" \
+--header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr'
   #zle reset-prompt
   echo ""
 }
@@ -454,7 +469,7 @@ function fzf_aliases_functions_selector() { # Desc: function: fzf_aliases_functi
 --preview-window bottom:6:border-rounded:hidden:wrap \
 --preview " echo {} " \
 --preview-label-pos top,4 \
---preview-label='[ 查找 ]' \
+--preview-label='[ 命令 ]' \
 --prompt="查找 > " \
 --bind 'ctrl-/:toggle-preview' \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
@@ -469,35 +484,35 @@ alias faf="fzf_aliases_functions_selector"  # Desc: alias: faf: fzf_aliases_func
 
 function fzf_env_vars() { # Desc: function: fzf_env_vars:利用fzf选用env变量的值
   env | fzf --reverse \
-            --margin=1 \
-            --padding=1 \
-            --preview-window bottom:6:border-rounded:hidden:wrap \
-            --preview " echo {} " \
-            --preview-label-pos top,4 \
-            --preview-label='[ 选择 ]' \
-            --prompt="选择 > " \
-            --bind 'ctrl-/:toggle-preview' \
-            --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-            --bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
-            --bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
-            --header "CTRL-K 复制键 | CTRL-V 复制值 | CTRL-/ 切换预览窗口"
+--margin=1 \
+--padding=1 \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview " echo {} " \
+--preview-label-pos top,4 \
+--preview-label='[ 环境变量 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
+--bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
+--header "CTRL-K 复制键 | CTRL-V 复制值 | CTRL-/ 切换预览窗口"
 }
 alias fev="fzf_env_vars"    # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
 function fzf_eval_preview() { # Desc: function: fzf_eval_preview: 利用fzf执行选中的命令并preview结果
     echo | fzf -q "$*" \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window up:90%:border-rounded:hidden:wrap \
-    --preview="eval {q}" \
-    --preview-label-pos top,4 \
-    --preview-label='[ 选择 ]' \
-    --prompt="选择 > " \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-    --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window up:90%:border-rounded:hidden:wrap \
+--preview="eval {q}" \
+--preview-label-pos top,4 \
+--preview-label='[ 命令 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
 }
 alias feval="fzf_eval_preview"  # Desc: alias: feval: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
 
@@ -511,18 +526,18 @@ function fold() { # Desc: function: fold: Default `fold` to screen width and bre
 
 function fzf_spell() { # Desc: function: fzf_spell: Use `fzf` against system dictionary
   cat /usr/share/dict/words | fzf \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window up:70%:border-rounded:hidden:wrap \
-    --preview 'wn {} -over | fold' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 选择 ]' \
-    --prompt="选择 > " \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-    --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window up:70%:border-rounded:hidden:wrap \
+--preview 'wn {} -over | fold' \
+--preview-label-pos top,4 \
+--preview-label='[ 单词 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 
 function dic() { # Desc: function: dic: Lookup definition of word using `wn $1 -over`.If $1 is not provided, we'll use the `spell` command to pick a word. Requires:brew install wordnet, brew install fzf
@@ -535,18 +550,18 @@ function dic() { # Desc: function: dic: Lookup definition of word using `wn $1 -
 
 function fzf_fg() { # Desc: function: fzf_fg: 利用fzf显示所有的后台执行程序
   job="$(jobs | fzf -0 -1 \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window bottom:6:border-rounded:hidden:wrap \
-    --preview 'echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}"' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 选择 ]' \
-    --prompt="选择 > " \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}" | pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview 'echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}"' \
+--preview-label-pos top,4 \
+--preview-label='[ 后台程序 ]' \
+--prompt="查找 > " \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}" | pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
   | sed -E 's/\[(.+)\].*/\1/')" && echo '' && fg %$job
 }
 alias ffg="fzf_fg" # Desc: alias: ffg: fzf_fg命令的别名,利用fzf显示所有的后台执行程序
@@ -616,59 +631,21 @@ alias lasttheme="last_theme" # Desc: alias: last_theme命令的别名,获取them
 
 function fzf_open_app() { # Desc: function: fzf_open_app: 利用fzf通过终端打开App
     ls /Applications/ | fzf --ansi \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window right:70%:border-rounded:hidden:wrap \
-    --preview 'tree /Applications/{}' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 安装一个或多个版本的语言包 ]' \
-    --prompt="安装一个或多个版本的语言包 > " \
-    --bind 'enter:become(open /Applications/{})' \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-    --bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'tree /Applications/{}' \
+--preview-label-pos top,4 \
+--preview-label='[ App ]' \
+--prompt="查找 > " \
+--bind 'enter:become(open /Applications/{})' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 alias app="fzf_open_app" # Desc: alias: app: fzf_open_app命令的别名,利用fzf通过终端打开App
-
-function archiving_file() { # Desc: function: archiving_file: 压缩解压文件
-	case $1 in
-		(e) case $2 in
-				(*.tar.bz2) tar xvjf $2 ;;
-				(*.tar.gz) tar xvzf $2 ;;
-				(*.bz2) bunzip2 $2 ;;
-				(*.rar) unrar x $2 ;;
-				(*.gz) gunzip $2 ;;
-				(*.tar) tar xvf $2 ;;
-				(*.tbz2) tar xvjf $2 ;;
-				(*.tgz) tar xvzf $2 ;;
-				(*.zip) unzip $2 ;;
-				(*.Z) uncompress $2 ;;
-				(*.7z) 7z x $2 ;;
-				(*) echo "'$2' kann nicht mit >ark< entpackt werden" ;;
-			esac ;;
-		(c) case $2 in
-				(*.tar.*) arch=$2
-					shift 2
-					tar cvf ${arch%.*} $@
-					case $arch in
-						(*.gz) gzip -9r ${arch%.*} ;;
-						(*.bz2) bzip2 -9zv ${arch%.*} ;;
-					esac ;;
-				(*.rar) shift
-					rar a -m5 -r $@
-					rar k $1 ;;
-				(*.zip) shift
-					zip -9r $@ ;;
-				(*.7z) shift
-					7z a -mx9 $@ ;;
-				(*) echo "Kein gültiger Archivtyp" ;;
-			esac ;;
-		(*) echo "WATT?" ;;
-	esac
-}
-alias ark="archiving_file" # Desc: alias: ark: archiving_file命令的别名,压缩解压文件
 
 function cp_forward() { # Desc: function: cp_forward: cp复制完成后跳转至目录
     cp "$@" && goto "$_";
@@ -689,18 +666,18 @@ function most_used_command() { # Desc: function: most_used_command:历史操作�
     #除了history外,在omz中可以使用:omz_history -n | sed 's/^[[:space:]]*//g' | sed 's/^[0-9]*//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -30 | tac
 
     history | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -50 | tac |fzf --no-sort \
-    --reverse \
-    --margin=1 \
-    --padding=1 \
-    --preview-window right:70%:border-rounded:hidden:wrap \
-    --preview 'echo {} | awk "{\$1=\"\";print}"' \
-    --preview-label-pos top,4 \
-    --preview-label='[ 查找 ]' \
-    --prompt="查找 > " \
-    --bind 'enter:become(echo {} | awk "{\$1=\"\";print}")' \
-    --bind 'ctrl-/:toggle-preview' \
-    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
-    --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
+--reverse \
+--margin=1 \
+--padding=1 \
+--preview-window right:70%:border-rounded:hidden:wrap \
+--preview 'echo {} | awk "{\$1=\"\";print}"' \
+--preview-label-pos top,4 \
+--preview-label='[ 使用次数 ]' \
+--prompt="查找 > " \
+--bind 'enter:become(echo {} | awk "{\$1=\"\";print}")' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
 }
 alias mu="most_used_command" # Desc: alias: mu: most_used_command命令的别名,历史操作中使用最多的50个命令
