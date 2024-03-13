@@ -27,3 +27,5 @@ zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 # disable sort when completing `git checkout`
 zstyle ':completion:*:git-checkout:*' sort false
+# switch group using `<` and `>`
+zstyle ':fzf-tab:*' switch-group '<' '>'

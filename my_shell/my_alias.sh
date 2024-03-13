@@ -125,6 +125,10 @@ alias gca='git commit -v -a'                                                    
 alias gb='git branch'                                                                                            # Desc: alias: gb:git branch命令的别名
 alias gba='git branch -a'                                                                                        # Desc: alias: gba:git branch -a命令的别名
 alias gcount='git shortlog -sn'                                                                                  # Desc: alias: gcount:git shortlog -sn命令的别名
+alias git-help='git help'                                                                                        # Desc: alias: git-help:为配合fzf-tab设置git help的别名
+alias git-show='git show'                                                                                        # Desc: alias: git-show:为配合fzf-tab设置git show的别名
+alias git-log='git log'                                                                                          # Desc: alias: git-log:为配合fzf-tab设置git log的别名
+alias git-checkout='git checkout'                                                                                # Desc: alias: git-checkout:为配合fzf-tab设置git checkout的别名
 alias lg='lazygit'                                                                                               # Desc: alias: lg:lazygit命令的别名
 
 alias hgs='hg status'                                                                                            # Desc: alias: hgs:hg status命令的别名
