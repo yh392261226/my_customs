@@ -64,7 +64,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
 #=============================================================================
 
     ###Customs
-    zinit ice lucid wait='0'
+    zinit ice lucid wait='2'
 
     # 加载 OMZ 框架及部分插件
     # zinit snippet OMZL::git.zsh
