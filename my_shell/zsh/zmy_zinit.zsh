@@ -97,27 +97,19 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light skywind3000/z.lua
     zinit light zsh-users/zsh-completions
     zinit light zsh-users/zsh-autosuggestions
-    zinit light zdharma-continuum/fast-syntax-highlighting
-    # zinit light changyuheng/zsh-interactive-cd
     zinit light shengyou/codeception-zsh-plugin
     zinit light zsh-users/zsh-syntax-highlighting
-    zinit light paoloantinori/hhighlighter
-    zinit light floor114/zsh-apple-touchbar
     zinit light djui/alias-tips
     zinit light zsh-users/zsh-history-substring-search
     zinit light iam4x/zsh-iterm-touchbar
     zinit light supercrabtree/k
     zinit light wfxr/formarks
     zinit light junegunn/fzf
-    zinit light chitoku-k/fzf-zsh-completions
     zinit light amaya382/zsh-fzf-widgets
     zinit light urbainvaes/fzf-marks
     zinit light Aloxaf/fzf-tab
     zinit light edouard-lopez/yeoman-zsh-plugin
     zinit light yh392261226/git-extra-commands
-    zinit light horosgrisa/mysql-colorize
-    # zinit light zdharma-continuum/zbrowse
-    # zinit light zdharma-continuum/zui
     zinit light kazhala/dotbare
     zinit light wfxr/forgit
     zinit light paulirish/git-open
