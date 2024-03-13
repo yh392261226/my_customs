@@ -1,8 +1,8 @@
 ### Package Desc: 压缩解压相关命令
 
-function customExtract() { # Desc: function: extract:自动检测文件后缀并自动解压
+function customExtract() { # Desc: function: customExtract:自动检测文件后缀并自动解压
 	if [ -z "$1" ]; then
-    	echo "Usage: extract <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
+    	echo "Usage: extra <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
 	else
 		if [ -f $1 ]; then
 			case $1 in
@@ -28,7 +28,7 @@ function customExtract() { # Desc: function: extract:自动检测文件后缀并
 		fi
 	fi
 }
-alias extr='customExtract'	# Desc: alias: extr:customExtract命令的别名,自动检测文件后缀并自动解压
+alias extra='customExtract'	# Desc: alias: extra: customExtract命令的别名,自动检测文件后缀并自动解压
 
 function archiving_file() { # Desc: function: archiving_file: 压缩解压文件
 	case $1 in
@@ -63,7 +63,7 @@ function archiving_file() { # Desc: function: archiving_file: 压缩解压文件
 					7z a -mx9 $@ ;;
 				(*) echo "Kein gültiger Archivtyp" ;;
 			esac ;;
-		(*) echo "WATT?" ;;
+		(*) echo "Usage: ark <e(解压)|c(压缩)> <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>" ;;
 	esac
 }
 alias ark="archiving_file" # Desc: alias: ark: archiving_file命令的别名,压缩解压文件
