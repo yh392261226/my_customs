@@ -255,9 +255,7 @@ if [ "zsh" = "$nowshell" ]; then
     source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.zsh
     zle -N fzf-help-widget
     bindkey "^A" fzf-help-widget
-fi
-
-if [ "bash" = "$nowshell" ]; then
+elif [ "bash" = "$nowshell" ]; then
     source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.bash
     bind -x '"\C-a": fzf-help-widget'
 fi
