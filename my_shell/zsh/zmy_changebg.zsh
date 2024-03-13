@@ -180,7 +180,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
             }
             zle -N bg_empty
-            bindkey '^N' bg_empty #//Ctrl B 背景换成空的
+            bindkey '^B' bg_empty #//Ctrl B 背景换成空的
         fi
     fi
 

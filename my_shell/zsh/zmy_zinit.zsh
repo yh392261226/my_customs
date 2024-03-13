@@ -116,7 +116,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light edouard-lopez/yeoman-zsh-plugin
     zinit light yh392261226/git-extra-commands
     zinit light horosgrisa/mysql-colorize
-    zinit light zdharma-continuum/zbrowse
+    # zinit light zdharma-continuum/zbrowse
     zinit light zdharma-continuum/zui
     zinit light kazhala/dotbare
     zinit light wfxr/forgit
