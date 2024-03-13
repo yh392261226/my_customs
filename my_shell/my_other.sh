@@ -254,10 +254,10 @@ fi
 if [ "zsh" = "$nowshell" ]; then
     source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.zsh
     zle -N fzf-help-widget
-    bindkey "^A" fzf-help-widget
+    bindkey "^H" fzf-help-widget
 elif [ "bash" = "$nowshell" ]; then
     source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.bash
-    bind -x '"\C-a": fzf-help-widget'
+    bind -x '"\C-h": fzf-help-widget'
 fi
 
 #[[ -f /opt/homebrew/opt/autoenv/activate.sh ]] && source /opt/homebrew/opt/autoenv/activate.sh
