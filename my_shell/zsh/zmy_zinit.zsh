@@ -95,29 +95,49 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit ice lucid wait='3'
     # 快速目录跳转
     zinit light skywind3000/z.lua
+    # 
     zinit light zsh-users/zsh-completions
+    # 根据输入进行命令预测
     zinit light zsh-users/zsh-autosuggestions
+    # 命令提示
     zinit light shengyou/codeception-zsh-plugin
+    # highlight内容
     zinit light zsh-users/zsh-syntax-highlighting
+    # 简短(别名)操作提示
     zinit light djui/alias-tips
+    # zsh历史搜索
     zinit light zsh-users/zsh-history-substring-search
+    # touchbar
     zinit light iam4x/zsh-iterm-touchbar
+    # k(ls替代工具)
     zinit light supercrabtree/k
+    # 目录跳转(类似z命令)
     zinit light wfxr/formarks
+    # Fzf
     zinit light junegunn/fzf
+    # fzf的操作工具
     zinit light amaya382/zsh-fzf-widgets
+    # fzf版目录跳转
     zinit light urbainvaes/fzf-marks
+    # fzf自动补全
     zinit light Aloxaf/fzf-tab
+    # yeoman(nodejs的web app)框架的插件
     zinit light edouard-lopez/yeoman-zsh-plugin
+    # 各种git相关命令
     zinit light yh392261226/git-extra-commands
+    # dotfile管理工具
     zinit light kazhala/dotbare
+    # forgit插件
     zinit light wfxr/forgit
+    # git-open插件
     zinit light paulirish/git-open
+    # fzf brew插件
     zinit light thirteen37/fzf-brew
 
     # ASDF
     if [ -d "$HOME/.asdf" ]; then
         zinit ice wait lucid
+        # asdf工具
         zinit light asdf-vm/asdf
     else
         mkdir $HOME/.asdf
@@ -130,6 +150,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
 
 
     zinit ice lucid wait='2'
+    # svn工具
     zinit ice svn
     zinit ice depth=1; zinit light romkatv/powerlevel10k
 fi
