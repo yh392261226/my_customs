@@ -72,9 +72,7 @@ function fzf_cd_select() { # Desc: function: fzf_cd_select:利用fzf选择并进
     while true; do
         local lsd=$(echo ".." && ls -p | grep '/$' | sed 's;/$;;')
         local dir="$(printf '%s\n' "${lsd[@]}" |
-            fzf --reverse \
-                --margin=1 \
-                --padding=1 \
+            fzf $FZF_CUSTOM_PARAMS \
                 --preview-window right:70%:border-rounded:hidden:wrap \
                 --preview '
                 __cd_nxt="$(echo {})";
@@ -83,13 +81,7 @@ function fzf_cd_select() { # Desc: function: fzf_cd_select:利用fzf选择并进
                 echo;
                 gls -p --color=always "${__cd_path}";
                 ' \
-                --preview-label-pos top,4 \
                 --preview-label='[ 文件夹 ]' \
-                --prompt="查找 > " \
-                --bind 'ctrl-/:toggle-preview' \
-                --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
         )"
         [[ ${#dir} != 0 ]] || return 0
         builtin cd "$dir" &> /dev/null
@@ -106,19 +98,9 @@ alias fd2="fzf_cd_select2"      # Desc: alias: fd2:fzf_cd_select2命令的别名
 function fzf_cd_to_file() { # Desc: function: fzf_cd_to_file:进入到利用fzf选择的文件的同级文件夹
     local file
     local dir
-    file=$(fzf +m \
---reverse \
---margin=1 \
---padding=1 \
+    file=$(fzf +m $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---preview " echo {} " \
---preview-label-pos top,4 \
 --preview-label='[ 文件夹 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
     -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
 alias cdff="fzf_cd_to_file"     # Desc: alias: cdff:fzf_cd_to_file命令的别名,进入到利用fzf选择的文件的同级文件夹
@@ -192,19 +174,8 @@ alias cdto="cd_command_directory"       # Desc: alias: cdto:cd_command_directory
 function fzf_jump_between_directory() { # Desc: function: fzf_jump_between_directory:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
     local dir
-    dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m \
---reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview ' echo {} ' \
---preview-label-pos top,4 \
+    dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m $FZF_CUSTOM_PARAMS \
 --preview-label='[ 目录 ]' \
---prompt='查找 > ' \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
     )" && cd "${dir}" || return 1
 }
 alias fzf_z="fzf_jump_between_directory"   # Desc: alias: fzf_z:fzf_jump_between_directory命令的别名,目录跳转
@@ -260,21 +231,8 @@ function pwd_command_directory() { # Desc: function: pwd_command_directory:获�
 alias pwdw="pwd_command_directory"  # Desc: alias: pwdw:pwd_command_directory命令的别名,获取命令所在的文件夹
 
 function fzf_directory_history() { # Desc: function: fzf_directory_history:利用fzf显示目录的历史
-  local dir=$(python3 -m fzfdirhist show | fzf --height=70% \
---reverse +m \
---margin=1 \
---padding=1 \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview ' echo {} ' \
---preview-label-pos top,4 \
+  local dir=$(python3 -m fzfdirhist show | fzf --height=70%  $FZF_CUSTOM_PARAMS +m \
 --preview-label='[ 目录 ]' \
---prompt='查找 > ' \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口' \
 )
   cd "$dir"
 }

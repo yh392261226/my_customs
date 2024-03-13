@@ -275,19 +275,10 @@ function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
 		$MAN "$@"
 		return $?
 	else
-		$MAN -k . | fzf --reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
+		$MAN -k . | fzf $FZF_CUSTOM_PARAMS \
 --preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" \
---preview-label-pos top,4 \
 --preview-label='[ 手册 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
-                        | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
+| awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
 		return $?
 	fi
 }

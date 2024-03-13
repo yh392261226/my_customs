@@ -148,22 +148,11 @@ function chromium_history() { # Desc: function: chromium_history:列出Chromium�
         len += e =~ /\p{Han}|\p{Katakana}|\p{Hiragana}|\p{Hangul}/ ? 2 : 1
     end
     }.join + " " * (2 + cols - len) + "\x1b[m" + url' |
-    fzf --ansi \
-        --multi \
-        --no-hscroll \
-        --tiebreak=index \
-        --margin=1 \
-        --padding=1 \
-        --preview-window bottom:6:border-rounded:hidden:wrap \
-        --preview " echo -n {} " \
-        --preview-label-pos top,4\
-        --preview-label='[ 浏览器历史记录 ]' \
-        --prompt="浏览器历史记录 > "\
-        --bind 'ctrl-/:toggle-preview' \
+    fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS --preview-label='[ 历史记录 ]' \
+        --preview ' echo -n {} ' \
         --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" |
-    sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
+        | sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
 alias ch="chromium_history"     # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
 
@@ -197,18 +186,9 @@ function chromium_bookmarks() { # Desc: function: chroomium_bookmarks:列出列�
 
     jq -r "$jq_script" < /tmp/bookmarks \
         | sed -E $'s/(.*)\t(.*)/\\1\t\x1b[36m\\2\x1b[m/g' \
-        | fzf --ansi \
-              --margin=1 \
-              --padding=1 \
-              --preview-window bottom:6:border-rounded:hidden:wrap \
-              --preview " echo {} " \
-              --preview-label-pos top,4\
-              --preview-label='[ 浏览器书签 ]' \
-              --prompt="浏览器书签 > "\
-              --bind 'ctrl-/:toggle-preview' \
+        | fzf --ansi $FZF_CUSTOM_PARAMS --preview-label='[ 浏览器书签 ]' \
               --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
               --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-              --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
 }
@@ -231,18 +211,9 @@ alias bb="brave_default_bookmarks"      # Desc: alias: bb:brave_default_bookmark
 
 function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     # save newline separated string into an array
-    mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi \
-                                                                   --margin=1 \
-                                                                   --padding=1 \
-                                                                   --preview-window bottom:6:border-rounded:hidden:wrap \
-                                                                   --preview " echo {} " \
-                                                                   --preview-label-pos top,4\
-                                                                   --preview-label='[ 网址收藏 ]' \
-                                                                   --prompt="网址收藏 > "\
-                                                                   --bind 'ctrl-/:toggle-preview' \
+    mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ 网址收藏 ]' \
                                                                    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-                                                                   --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-                                                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")"
+                                                                   --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort')"
 
     # open each website
     for i in "${website[@]}"; do

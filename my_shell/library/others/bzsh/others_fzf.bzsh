@@ -65,3 +65,17 @@ _fzf_compgen_dir() {
 #    source /opt/homebrew/opt/fzf/shell/key-bindings.bash
 #  fi
 #fi
+
+export FZF_CUSTOM_PARAMS=(--reverse \
+--margin=1 \
+--padding=1 \
+--toggle-sort=ctrl-s \
+--preview-window bottom:6:border-rounded:hidden:wrap \
+--preview ' echo {} ' \
+--preview-label-pos top,4 \
+--preview-label='[ 查找 ]' \
+--prompt='查找 > ' \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序')

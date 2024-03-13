@@ -5,34 +5,11 @@ function fzf_asdf_install() { # Desc: function: fzf_asdf_install:安装一个或
   local lang=${1}
 
   if [[ ! $lang ]]; then
-    lang=$(asdf plugin-list | fzf --reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview " echo {} " \
---preview-label-pos top,4 \
---preview-label='[ 语言版本 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+    lang=$(asdf plugin-list | fzf $FZF_CUSTOM_PARAMS --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]')
   fi
 
   if [[ $lang ]]; then
-    local versions=$(asdf list-all "$lang" | fzf -m \
---reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview " echo {} " \
---preview-label-pos top,4 \
---preview-label='[ 语言版本 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+    local versions=$(asdf list-all "$lang" | fzf -m $FZF_CUSTOM_PARAMS --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]')
     if [[ $versions ]]; then
       for version in $(echo $versions); do
         asdf install $lang $version;
@@ -46,37 +23,14 @@ function fzf_asdf_uninstall() { # Desc: function: fzf_asdf_uninstall:删除一�
   local lang=${1}
 
   if [[ ! $lang ]]; then
-    lang=$(asdf plugin-list | fzf --reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview " echo {} " \
---preview-label-pos top,4 \
---preview-label='[ 语言版本 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+    lang=$(asdf plugin-list | fzf $FZF_CUSTOM_PARAMS --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]')
   fi
 
   if [[ $lang ]]; then
-    local versions=$(asdf list $lang | fzf -m \
---reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview " echo {} " \
---preview-label-pos top,4 \
---preview-label='[ 语言版本 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+    local versions=$(asdf list $lang | fzf -m $FZF_CUSTOM_PARAMS --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]')
     if [[ $versions ]]; then
       for version in $(echo $versions); do
-        asdf uninstall $lang $version; 
+        asdf uninstall $lang $version;
       done;
     fi
   fi

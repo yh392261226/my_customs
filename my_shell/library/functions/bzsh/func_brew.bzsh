@@ -12,19 +12,7 @@ function brew_clean_caches() { # Desc: function: brew_clean_caches:Brew Delete (
 alias bcc="brew_clean_caches"   # Desc: alias: bcc: brew_clean_caches命令的别名
 
 function fzf_brew_delete_by_select() { # Desc: function: fzf_brew_delete_by_select:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
-  local uninst=$(brew leaves | fzf -m \
-                                   --reverse \
-                                   --margin=1 \
-                                   --padding=1 \
-                                   --preview-window bottom:6:border-rounded:hidden:wrap \
-                                   --preview " echo {} " \
-                                   --preview-label-pos top,4\
-                                   --preview-label='[ 删除一个或多个包 ]' \
-                                   --prompt="删除一个或多个包 > "\
-                                   --bind 'ctrl-/:toggle-preview' \
-                                   --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                                   --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                   --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+  local uninst=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]')
 
   if [[ $uninst ]]; then
     for prog in $(echo $uninst); do
@@ -36,19 +24,7 @@ alias fzf_bdl="fzf_brew_delete_by_select"   # Desc: alias: fzf_bdl:fzf_brew_dele
 alias bdl="fzf_brew_delete_by_select"   # Desc: alias: bdl:fzf_brew_delete_by_select命令的别名
 
 function fzf_brew_update_by_select() { # Desc: function: fzf_brew_update_by_select:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
-  local upd=$(brew leaves | fzf -m \
-                                --reverse \
-                                --margin=1 \
-                                --padding=1 \
-                                --preview-window bottom:6:border-rounded:hidden:wrap \
-                                --preview " echo {} " \
-                                --preview-label-pos top,4\
-                                --preview-label='[ 更新一个或多个包 ]' \
-                                --prompt="更新一个或多个包 > "\
-                                --bind 'ctrl-/:toggle-preview' \
-                                --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                                --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+  local upd=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]')
 
   if [[ $upd ]]; then
     for prog in $(echo $upd);do
@@ -60,19 +36,7 @@ alias fzf_bup="fzf_brew_update_by_select"   # Desc: alias: fzf_bup:fzf_brew_upda
 alias bups="fzf_brew_update_by_select"      # Desc: alias: bups:fzf_brew_update_by_select命令的别名
 
 function fzf_brew_upgrade_by_select() { # Desc: function: fzf_brew_upgrade_by_select:Brew upgrade (one or multiple)
-  local upgrads=$(brew outdated | fzf -m \
-                                      --reverse \
-                                      --margin=1 \
-                                      --padding=1 \
-                                      --preview-window bottom:6:border-rounded:hidden:wrap \
-                                      --preview " echo {} " \
-                                      --preview-label-pos top,4\
-                                      --preview-label='[ 升级一个或多个包 ]' \
-                                      --prompt="升级一个或多个包 > "\
-                                      --bind 'ctrl-/:toggle-preview' \
-                                      --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                                      --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                      --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+  local upgrads=$(brew outdated | fzf -m $FZF_CUSTOMS_PARAMS --preview-label='[ 一个或多个包 ]')
   if [[ $upgrads ]]; then
     for prog in $(echo $upgrads); do
       brew upgrade $prog
@@ -87,19 +51,7 @@ function reinstallneovim() { # Desc: function: reinstallneovim:重新安装neovi
 }
 
 function fzf_brew_install_by_select() { # Desc: function: fzf_brew_install_by_select:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
-  local inst=$(brew search | fzf -m \
-                                 --reverse \
-                                 --margin=1 \
-                                 --padding=1 \
-                                 --preview-window bottom:6:border-rounded:hidden:wrap \
-                                 --preview " echo {} " \
-                                 --preview-label-pos top,4\
-                                 --preview-label='[ 安装一个或多个包 ]' \
-                                 --prompt="安装一个或多个包 > "\
-                                 --bind 'ctrl-/:toggle-preview' \
-                                 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-                                 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-                                 --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+  local inst=$(brew search | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]')
 
   if [[ $inst ]]; then
     for prog in $(echo $inst);do
@@ -110,8 +62,8 @@ function fzf_brew_install_by_select() { # Desc: function: fzf_brew_install_by_se
 alias fzf_bip="fzf_brew_install_by_select"  # Desc: alias: fzf_bip: fzf_brew_install_by_select命令的别名
 alias bip="fzf_brew_install_by_select"      # Desc: alias: bip: fzf_brew_install_by_select命令的别名
 
-function fzf_brew_install() { # Desc: function: fzf_brew_install: Fully manage brew installation and suppression, and then some.
-  # filename: fzf_brew_install
+function fzf_brew_install_or_remove() { # Desc: function: fzf_brew_install_or_remove: Fully manage brew installation and suppression, and then some.
+  # filename: fzf_brew_install_or_remove
   #!/usr/bin/env zsh
   # Fully manage brew installation and suppression, and then some.
   # needs zsh, jq, bat
@@ -138,9 +90,12 @@ function fzf_brew_install() { # Desc: function: fzf_brew_install: Fully manage b
   readonly help="${bold}${c}[${d}B${c}]${d}rew ${c}[${d}I${c}]${d}nteractive${reset}
   ${italic}Tab${reset}     Switch between install mode and remove mode
   ${italic}Enter${reset}   Select formula or cask for installation or deletion (depends on mode)
-  ${italic}ctrl-s${reset}  Show formula or cask installation [s]ource code
+  ${italic}ctrl-p${reset}  Show formula or cask installation [s]ource code
   ${italic}ctrl-j${reset}  Show formula or cask [J]SON information
   ${italic}crtl-e${reset}  [E]dit formula or cask source code
+  ${italic}crtl-y${reset}  Copy application
+  ${italic}crtl-s${reset}  Switch between sort or no-sort mode
+  ${italic}crtl-/${reset}  Switch between show or hide preview window
   ${italic}?${reset}       Help (this page)
   ${italic}ESC${reset}     Quit
   It is also advised you use auto-updates, this can be done with:
@@ -150,31 +105,21 @@ function fzf_brew_install() { # Desc: function: fzf_brew_install: Fully manage b
   {
     echo "Install mode (? for help)"; brew tap-info --json --installed | jq --raw-output "$jq_all" | sort 
   } |
-    fzf --reverse \
-        --header-lines=1  \
-        --header-first \
-        --margin=1 \
-        --padding=1 \
-        --preview-window right:70%:border-rounded:hidden:wrap \
-        --preview-label-pos top,4\
-        --preview-label='[ 安装一个或多个包 ]' \
-        --prompt="安装一个或多个包 > "\
-        --bind 'ctrl-/:toggle-preview' \
-        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-        --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
-        --header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口" \
+    fzf $FZF_CUSTOM_PARAMS --header '' --header-lines=1 --header-first --preview-window right:70%:border-rounded:hidden:wrap --preview-label='[ 一个或多个包 ]' \
         --bind="enter:execute(
         if [[ '{2}' == '(cask)' ]]; then
           brew \$($state) --cask {1}
         else
           brew \$($state) {1}
         fi
-        $wait_click)+$reload" --bind='ctrl-s:preview(
+        $wait_click)+$reload" \
+        --bind='ctrl-p:preview(
         bat --color=always $(brew edit --print-path {1}) --style=header
       )' \
         --bind="ctrl-j:preview:brew info --json=v2 {1} | jq '
         (.formulae + .casks)[0] | with_entries(select(try (.value | length > 0)))
-      ' | bat --plain --language=json --color=always" --bind="ctrl-e:execute:
+      ' | bat --plain --language=json --color=always" \
+        --bind="ctrl-e:execute:
         EDITOR='code --wait' brew edit {1}
         bat --color=always --language=markdown --plain <<-MD
           To install the formulae (or cask) you edited with your changes, use:
@@ -187,4 +132,4 @@ function fzf_brew_install() { # Desc: function: fzf_brew_install: Fully manage b
         --preview='brew info {1} | bat --color=always --language=Markdown --style=plain'
 
 }
-alias fbi2="fzf_brew_install" # Desc: alias: fbi2: fzf_brew_install命令的别名,Fully manage brew installation and suppression, and then some.
+alias fbm="fzf_brew_install_or_remove" # Desc: alias: fbm: fzf_brew_install_or_remove命令的别名,Fully manage brew installation and suppression, and then some.
