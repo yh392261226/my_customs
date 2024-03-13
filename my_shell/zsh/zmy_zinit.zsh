@@ -95,8 +95,8 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit ice lucid wait='3'
     # 快速目录跳转
     zinit light skywind3000/z.lua
-    # 
-    zinit light zsh-users/zsh-completions
+    # 自动补全
+    # zinit light zsh-users/zsh-completions
     # 根据输入进行命令预测
     zinit light zsh-users/zsh-autosuggestions
     # 命令提示
