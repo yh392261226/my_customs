@@ -228,14 +228,13 @@ function brave_default_bookmarks() { # Desc: function: brave_default_bookmarks:�
 alias bb="brave_default_bookmarks"      # Desc: alias: bb:brave_default_bookmarks命令的别名,列出Brave默认账户的书签
 
 function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
-    # save newline separated string into an array
-    mapfile -t website <<< "$(buku -p -f 5 | column -ts$'\t' | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ 网址收藏 ]' \
+    website=( $(buku --suggest -p -f 5 | column -ts$'\t' | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 网址收藏 ]' \
                                                                    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-                                                                   --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort')"
-
+                                                                   --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+                                                                   --multi ) )
     # open each website
     for i in "${website[@]}"; do
-        index="$(echo "$i" | awk '{print $1}')"
+        index="$(echo -n "$i" | awk '{print $1}')"
         buku -p "$index"
         buku -o "$index"
     done
