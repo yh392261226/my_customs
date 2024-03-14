@@ -127,6 +127,24 @@ function stealth-browser() { # Desc: function: stealth-browser:隐身Chrome浏�
 }
 alias sb="stealth-browser"      # Desc: alias: sb:stealth-browser命令的别名,隐身Chrome浏览器打开网址
 
+function fzf_safari_history() { # Desc: function: fzf_safari_history: 读取当前用户的safari浏览器历史
+    sqlite3 ~/Library/Safari/History.db "SELECT datetime(h.visit_time + 978307200, 'unixepoch', 'localtime') as date, i.url FROM history_visits h INNER JOIN history_items i ON h.history_item = i.id" | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS --preview-label='[ 历史记录 ]' \
+        --preview ' echo -n {} | awk -F"|" "{print \$2}"' \
+        --bind 'focus:transform-preview-label:echo -n {} | awk -F "|" "{print \"[\" \$1 \"]\"}"' \
+        --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+        --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))'
+}
+alias fsh="fzf_safari_history" # Desc: alias: fsh: fzf_safari_history命令的别名,读取当前用户的safari浏览器历史
+
+function fzf_safari_bookmarks() { # Desc: function: fzf_safari_bookmarks: 读取当前用户的safari浏览器书签
+    /usr/bin/plutil -convert xml1 -o - ~/Library/Safari/Bookmarks.plist | grep -E -o '<string>http[s]{0,1}://.*</string>|<string>title.*</string>' | grep -v icloud | sed -E 's/<\/{0,1}string>//g' | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS --preview-label='[ 书签 ]' \
+        --preview ' echo -n {}' \
+        --bind 'focus:transform-preview-label:echo -n {} ' \
+        --bind 'ctrl-y:execute-silent(echo {} | pbcopy)+abort' \
+        --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))'
+}
+alias fsb="fzf_safari_bookmarks" # Desc: alias: fsb: fzf_safari_bookmarks命令的别名,读取当前用户的safari浏览器书签
+
 function chromium_history() { # Desc: function: chromium_history:列出Chromium核心的浏览器的历史
     if [ "" = "$1" ]; then
         echo "Does not send param!"
