@@ -43,13 +43,14 @@ fzf $FZF_CUSTOM_PARAMS \
 }
 alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
 alias fcf="fzf_show_customs_functions"          # Desc: alias: fcf:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
-zle -N fzf_show_customs_functions
-bindkey "^f" "fzf_show_customs_functions"
+if [ "zsh" = "$nowshell" ]; then
+    zle -N fzf_show_customs_functions
+    bindkey "^f" "fzf_show_customs_functions"
+fi
 
 function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases:显示所有自定义的别名及注释
     TMP_ALIASES_FILE=$(mktemp)
     alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
-#    echo $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
@@ -59,8 +60,10 @@ function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases
     fi
 }
 alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliases命令的别名,显示所有自定义的别名及注释
-zle -N fzf_show_customs_aliases
-bindkey å "fzf_show_customs_aliases"
+if [ "zsh" = "$nowshell" ]; then
+    zle -N fzf_show_customs_aliases
+    bindkey å "fzf_show_customs_aliases"
+fi
 
 function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
@@ -357,7 +360,6 @@ function fzf_man_widget() { # Desc: function: fzf_man_widget:fzf版本的man命�
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
 --bind 'ctrl-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
 --header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr | CTRL-S 切换排序 | CTRL-Y 复制内容 | CTRL-/ 切换预览窗口  | CTRL-N 下翻页 | CTRL-P 上翻页'
-  #zle reset-prompt
   echo ""
 }
 alias fm="fzf_man_widget" # Desc: alias: fm:fzf_man_widget命令的别名,fzf版本的man命令
