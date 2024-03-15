@@ -124,6 +124,9 @@
 #!!#|- Github上的TODO终端管理	todoist
 #!!#|- 自定义的别名选择器	fca
 #!!#|- 自定义函数的选择器	fcf
+#!!#|- 自定义函数Safari浏览器的书签选择器(利用buku) fb
+#!!#|- 自定义函数Safari浏览器的书签选择器 fsb
+#!!#|- 自定义函数Safari浏览器的历史记录选择器 fsh
 #!!#|- 自定义fzf的函数选择器	fafl
 #!!#|- 启动终端代理	onproxy
 #!!#|- 关闭终端代理	offproxy

@@ -43,6 +43,8 @@ fzf $FZF_CUSTOM_PARAMS \
 }
 alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
 alias fcf="fzf_show_customs_functions"          # Desc: alias: fcf:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
+zle -N fzf_show_customs_functions
+bindkey '^F' fzf_show_customs_functions
 
 function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases:显示所有自定义的别名及注释
     TMP_ALIASES_FILE=$(mktemp)
@@ -57,6 +59,8 @@ function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases
     fi
 }
 alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliases命令的别名,显示所有自定义的别名及注释
+zle -N fzf_show_customs_aliases
+bindkey å fzf_show_customs_aliases
 
 function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
