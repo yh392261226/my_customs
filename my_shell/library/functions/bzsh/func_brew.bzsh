@@ -90,7 +90,7 @@ function fzf_brew_install_or_remove() { # Desc: function: fzf_brew_install_or_re
   readonly help="${bold}${c}[${d}B${c}]${d}rew ${c}[${d}I${c}]${d}nteractive${reset}
   ${italic}Tab${reset}     Switch between install mode and remove mode
   ${italic}Enter${reset}   Select formula or cask for installation or deletion (depends on mode)
-  ${italic}ctrl-p${reset}  Show formula or cask installation [s]ource code
+  ${italic}ctrl-c${reset}  Show formula or cask installation [s]ource code
   ${italic}ctrl-j${reset}  Show formula or cask [J]SON information
   ${italic}crtl-e${reset}  [E]dit formula or cask source code
   ${italic}crtl-y${reset}  Copy application
@@ -113,7 +113,7 @@ function fzf_brew_install_or_remove() { # Desc: function: fzf_brew_install_or_re
           brew \$($state) {1}
         fi
         $wait_click)+$reload" \
-        --bind='ctrl-p:preview(
+        --bind='ctrl-c:preview(
         bat --color=always $(brew edit --print-path {1}) --style=header
       )' \
         --bind="ctrl-j:preview:brew info --json=v2 {1} | jq '

@@ -78,4 +78,5 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --bind 'ctrl-/:toggle-preview' \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序')
+--bind 'ctrl-n:page-down,ctrl-p:page-up' \
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页')
