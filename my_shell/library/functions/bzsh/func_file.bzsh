@@ -283,3 +283,19 @@ function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
 	fi
 }
 alias fman="fzf_man"    # Desc: alias: fzf_man的别名,利用fzf选中man手册
+
+function file_category() { # Desc: function: file_category: 获取文件类型的前一段,如application/image中的application
+    [[ "" = "$1" ]] && return 1
+    mime=$(file -bL --mime-type "$1")
+    echo ${mime%%/*}
+    return 0
+}
+alias fcate="file_category" # alias: fcate: file_category命令的别名,获取文件类型的前一段,如application/image中的application
+
+function file_kind() { # Desc: function: file_kind: 获取文件类型的后一段,如application/image中的image
+    [[ "" = "$1" ]] && return 1
+    mime=$(file -bL --mime-type "$1")
+    echo ${mime##*/}
+    return 0
+}
+alias fkind="file_kind" # alias: fkind: file_kind命令的别名,获取文件类型的后一段,如application/image中的image
