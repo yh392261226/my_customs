@@ -360,6 +360,14 @@ elif [ "bash" = "$nowshell" ]; then
     eval "$(atuin init bash)"
 fi
 
+### fzf
+# Set up fzf key bindings and fuzzy completion
+if [ "zsh" = "$nowshell" ]; then
+    eval "$(fzf --zsh)"
+elif [ "bash" = "$nowshell" ]; then
+    eval "$(fzf --bash)"
+fi
+
 #Git configs
 #----------------------------------------------------------------------------------------------------------------
 git config --global alias.co checkout
