@@ -221,6 +221,7 @@ case "$1" in
         --prompt='查找 ▶ ' \
         --pointer='→' \
         --marker='♡' \
-		--header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序" #skipthisline
+        --header-first \
+		--header $' Snippet Selector\n CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序' #skipthisline
 	;;
 esac
