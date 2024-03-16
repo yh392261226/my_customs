@@ -1,11 +1,25 @@
 ### Desc: 根据文件类型做出相应的preview
 ### Author: 杨浩
 ### Date: 2021-08-24
+### Notice: 需要安装xpdf、chafa、glow、bat、exa、tree命令
 
 if [ "" != "$1" ]; then
     if [[ -d $1 ]]; then
         tree -C $1
     elif [[ -f $1 ]]; then
-        bat --theme=gruvbox-dark --color=always --style=header,grid,numbers --line-range :600 $1 || exa $1
+        case $1 in
+            *.jpg|*.jpeg|*.png|*.gif|*.JPG|*.Jpg|*.JPEG|*.Jpeg|*.Gif|*.GIF|*.PNG|*.Png) #终于可以显示图片了
+                chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} "$1"
+            ;;
+            *.pdf) #pdf文件展示
+                pdftotext "$1" |less
+            ;;
+            *.md|*.MD|*.markdown|*.MARKDOWN)
+                glow "$1" | less
+            ;;
+            *)
+                bat --theme=gruvbox-dark --color=always --style=header,grid,numbers --line-range :600 "$1" || exa "$1"
+            ;;
+        esac
     fi
 fi
