@@ -24,7 +24,7 @@ alias vum='vim'                                                                 
 alias ehosts='sudo vim /etc/hosts'                                                                               # Desc: alias: ehosts:以管理员身份用vim打开/etc/hosts
 [[ -f /usr/local/bin/code ]] && alias code.="/usr/local/bin/code ."                                              # Desc: alias: code.:设置用vscode打开当前目录
 
-#Directoy
+#Directoy && File
 #----------------------------------------------------------------------------------------------------------------
 alias l='gls -aH --color=tty'                                                                                    # Desc: alias: l:设置为gls列出所有文件(含隐藏)
 alias le="exa"                                                                                                   # Desc: alias: le:设置为exa列出所有文件
@@ -34,6 +34,12 @@ alias lel="exa -l -a -h -m -n -U --git"                                         
 [[ -f /usr/local/bin/ls++ ]] && alias lll="/usr/local/bin/ls++"                                                  # Desc: alias: lll:设置环境变量为/usr/local/bin/ls++
 alias ks="lsd -l"                                                                                                # Desc: alias: ks:设置lsd -l命令的别名
 alias lv="lsd -la"                                                                                               # Desc: alias: lv:设置lsd -la命令的别名
+alias llm='exa -lbGd --git --sort=modified'                                                                      # Desc: alias: llm:long list, modified date sort
+alias lea='exa -lbhaF --icons --git --color-scale'                                                               # Desc: alias: lea:all list
+alias lla='exa -lbhHigUmuSa --time-style=long-iso --git --color-scale'                                           # Desc: alias: lla:all list
+alias lx='exa -lbhHigUmuSa@ --time-style=long-iso --git --color-scale'                                           # Desc: alias: lx:all + extended list
+alias lS='exa -1'                                                                                                # Desc: alias: lS:one column, just names
+alias lt='exa --tree --level=2'                                                                                  # Desc: alias: lt:tree
 alias cd..='cd ../'                                                                                              # Desc: alias: cd..:Go back 1 directory level (for fast typers)
 alias cd.='cd ..'                                                                                                # Desc: alias: cd.:Go back 1 directory level (for fast typers)
 alias ..='cd ../'                                                                                                # Desc: alias: ..:Go back 1 directory level
@@ -58,17 +64,12 @@ alias du="ncdu --color dark -rr -x --exclude .git --exclude node_modules"       
 [[ -d $(brew --prefix zoxide) ]] && alias zd="zoxide"                                                            # Desc: alias: zd:zoxide命令的别名
 alias dut="$(whereis du) -sh"                                                                                    # Desc: alias: dut:du -sh命令的别名
 
-#Files
-#----------------------------------------------------------------------------------------------------------------
 alias difff="diff-so-fancy"                                                                                      # Desc: alias: difff:diff so fancy命令的别名
-alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"                                                  # Desc: alias: cleanupDS:查找并删除当前目录中的.DS_Store文件
-alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"                                                                                                  # Desc: alias: cleanupLS:忘记该别名的作用了
 alias qfind="find . -name "                                                                                      # Desc: alias: qfind:Quickly search for file
-#alias rm='/usr/local/bin/trash'                                                                                 # Desc: alias: rm:设置为trash替代命令
-alias rmDS="remove_DS_files"                                                                                     # Desc: alias: rmDS:removeDS命令的别名
 alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"            # Desc: alias: filetree:按文件树型结构展示目录
 [[ -f /opt/homebrew/bin/ccat ]] && alias cat="/opt/homebrew/bin/ccat"                                            # Desc: alias: cat:(M1)设置/opt/homebrew/bin/ccat代替cat命令
 [[ -f /usr/local/bin/ccat ]] && alias cat="/usr/local/bin/ccat"                                                  # Desc: alias: cat:(Intel)设置/usr/local/bin/ccat代替cat命令
+alias mime='file -bL --mime-type'                                                                                # Desc: alias: mime:获取文件的类型命令
 
 #Compression
 #----------------------------------------------------------------------------------------------------------------
@@ -156,6 +157,10 @@ alias cpz='rsync -PrlpEz'                                                       
 
 # Rm alias
 #----------------------------------------------------------------------------------------------------------------
+alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"                                                                                                  # Desc: alias: cleanupLS:忘记该别名的作用了
+alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"                                                  # Desc: alias: cleanupDS:查找并删除当前目录中的.DS_Store文件
+#alias rm='/usr/local/bin/trash'                                                                                 # Desc: alias: rm:设置为trash替代命令
+alias rmDS="remove_DS_files"                                                                                     # Desc: alias: rmDS:removeDS命令的别名
 alias rm='rm -i'                                                                                                 # Desc: alias: rm:增加详情选项
 alias rmf='rm -rf'                                                                                               # Desc: alias: rmf:增加递归删除选项
 
@@ -187,4 +192,3 @@ alias train="$(brew --prefix sl)/bin/sl"                                        
 [[ -f $MYRUNTIME/customs/bin/theme ]] && alias thl="$MYRUNTIME/customs/bin/theme --light -i"                     # Desc: alias: thl:theme命令中的亮系主题列表选择器
 [[ -f $MYRUNTIME/customs/bin/theme ]] && alias thd="$MYRUNTIME/customs/bin/theme --dark -i"                      # Desc: alias: thd:theme命令中的暗系主题列表选择器
 [[ -f /opt/homebrew/bin/code-minimap ]] && alias cmap="code-minimap"                                             # Desc: alias: cmap:code-minimap命令的别名
-alias mime='file -bL --mime-type'                                                                                # Desc: alias: mime:获取文件的类型命令
