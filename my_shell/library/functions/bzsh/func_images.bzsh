@@ -73,6 +73,7 @@ function fzf_iterm2_background_image_selector() { # Desc: function: fzf_iterm2_b
     customcd $MYRUNTIME/pictures
     selected=$(ls . | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview ' chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} {} ')
     bg_change ${IMGPATH}/${selected}
+    customcd -
     #echo "bg_change ${IMGPATH}/${selected}" | pbcopy
     #echo "Ctrl - V to paste the command, then press enter to execute."
 }
