@@ -70,7 +70,7 @@ alias resizes="image_resizes"   # Desc: alias: resizes:image_resizes命令的别
 function fzf_iterm2_background_image_selector() { # Desc: function: fzf_iterm2_background_image_selector: 利用fzf选择iterm2的背景图片
     IMGPATH=$MYRUNTIME/pictures
     [[ "" != "$1" ]] && IMGPATH=$1
-    customcd $MYRUNTIME/pictures
+    customcd $IMGPATH
     selected=$(ls . | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview ' chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES} {} ')
     bg_change ${IMGPATH}/${selected}
     customcd -
