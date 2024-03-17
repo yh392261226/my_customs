@@ -227,3 +227,11 @@ function fzf_search_vim4() { # Desc: function: fzf_search_vim4:Switch between Ri
         --bind  "enter:become(nvr {1} +{2})"
 }
 alias fsv4="fzf_search_vim4" # Desc: alias: fsv4: fzf_search_vim5命令的别名,Switch between Ripgrep launcher mode (CTRL-R) and fzf filtering mode (CTRL-F)
+
+function fzf_vim_to_line_by_keyword() { # Desc: function: fzf_vim_to_line_by_keyword: vim定位打开根据关键字搜索到文件及行号
+    [[ "" = "$1" ]] && echo "Usage: fvlk <keyword>" && return 1
+    grep --recursive --line-number --binary-files=without-match "$1" . | fzf --delimiter : --nth 3.. $FZF_CUSTOM_PARAMS \
+--preview-label='[ 文件及行号 ]' \
+--bind 'enter:become(vim {1} +{2})'
+}
+alias fvlk="fzf_vim_to_line_by_keyword" # alias: fvlk: fzf_vim_to_line_by_keyword命令的别名,vim定位打开根据关键字搜索到文件及行号
