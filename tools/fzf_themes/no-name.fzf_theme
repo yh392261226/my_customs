@@ -1,0 +1,1 @@
+export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS --color=fg:240,bg:237,hl:33,fg+:231,bg+:237,hl+:33"

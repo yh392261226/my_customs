@@ -1,5 +1,1 @@
-export FZF_DEFAULT_OPTS=" \
-    --color=bg+:#040c16,bg:#040c16,spinner:#92bbed,hl:#bdd6f4\
-    --color=fg:#cce9ea,header:#E6676B,info:#92bbed,pointer:#92bbed \
-    --color=marker:#edf7f8,fg+:#cce9ea,prompt:#92bbed,hl+:#92bbed \
-    --prompt '  '"
+export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS --color=bg+:#040c16,bg:#040c16,spinner:#92bbed,hl:#bdd6f4 --color=fg:#cce9ea,header:#E6676B,info:#92bbed,pointer:#92bbed --color=marker:#edf7f8,fg+:#cce9ea,prompt:#92bbed,hl+:#92bbed --prompt '  '"

@@ -318,12 +318,12 @@ alias fhp='fzf_history_print'   # Desc: alias: fhp:fzf_history_print命令的别
 function fzf_theme_selector() { # Desc: function: fzf_theme_selector:fzf主题选择器
     #MYRUNTIME=$(cat ~/.myruntime)
     themes_path=$MYRUNTIME/customs/tools/fzf_themes/
-    choose_theme=$(cd $themes_path; ls . | fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
---preview ' cat {} ' \
---preview-label='[ 主题 ]')
-    [[ ! "$choose_theme" ]] && return
-    [[ -f ${theme_path}/$choose_theme ]] && builtin source $choose_theme
+    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview ' bat ${themes_path}/{} ' --preview-label='[ 主题 ]')
+
+    [[ ! "$choose_theme" ]] && echo "Action abord!" && return
+    if [[ -f ${themes_path}/$choose_theme ]]; then
+        source ${themes_path}/$choose_theme
+    fi
 }
 alias fts='fzf_theme_selector'   # Desc: alias: fts:fzf_theme_selector命令的别名,fzf主题选择器
 
