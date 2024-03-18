@@ -222,8 +222,13 @@ alias upgitfiles="update_git_files_and_modules"     # Desc: alias: upgitfiles:up
 
 
 function fzf_git_vim_to_line() { # Desc: function:fzf_git_vim_to_line: Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行
-    git grep --line-number . | fzf --delimiter : --nth 3.. $FZF_CUSTOM_PARAMS \
+    git grep --line-number . | fzf --delimiter ':' --nth 3.. $FZF_CUSTOM_PARAMS \
 --preview-label='[ 文件及行号 ]' \
---bind 'enter:become(vim {1} +{2})'
+--preview 'bat --color=always {1} --highlight-line {2}' \
+--bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--bind 'enter:become(vim {1} +{2})' \
+--bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
+--bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑'
 }
 alias fgvl="fzf_git_vim_to_line" # Desc: alias: fgvl: fzf_git_vim_to_line命令的别名,Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行

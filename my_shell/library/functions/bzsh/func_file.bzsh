@@ -166,60 +166,34 @@ alias slink="set_setting_links"     # Desc: alias: slink:set_setting_links命令
 function fzf_list_hiddens() { # Desc: function: fzf_list_hiddens:列出隐藏文件
     local mpath
 	[[ "" != "$1" ]] && mpath=$1 || mpath='./'
-    /bin/ls -A $mpath | grep '^\.' | fzf --reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview ' [[ -d {} ]] && cd {} || bat {} ' \
---preview-label-pos top,4 \
---preview-label='[ 隐藏文件或文件夹 ]' \
---prompt='查找 > ' \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {} | pbcopy)+abort' \
+    /bin/ls -A $mpath | grep '^\.' | fzf $FZF_CUSTOM_PARAMS \
+--preview ' [[ -d {} ]] && tree {} || bat {} ' \
+--preview-window right:70%:border-rounded:hidden:wrap \
 --bind 'ctrl-r:execute(rm -rf {})+reload((/bin/ls -A $mpath | grep "^\.") || true)' \
---header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口'
+--header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-R 删除'
 }
 alias flh="fzf_list_hiddens"     # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
 function fzf_file_preview() { # Desc: function: fzf_file_preview:fzf列出文件夹及选中文件的内容
     [[ 1 -gt $nums ]] && nums=500
-    fzf --reverse \
---margin=1 \
---padding=1 \
+    fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500' \
---preview-label-pos top,4 \
---preview-label='[ 列表 ]' \
---prompt='查找 > ' \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口'
+--preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500'
 }
 alias ftt='fzf_file_preview'      # Desc: alias: ftt:fzf_file_preview命令的别名,fzf列出文件夹及选中文件的内容
 
 function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
-    IFS=$'\n' out=$(fzf --reverse \
---margin=1 \
---padding=1 \
+    IFS=$'\n' out=$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---preview 'cat {}' \
+--preview 'bat {}' \
 --query="$1" \
 --exit-0 \
---expect=ctrl-o,ctrl-e \
---preview-label-pos top,4 \
---preview-label='[ 列表 ]' \
---prompt='查找 > ' \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口")
+--expect=ctrl-o,ctrl-e
+)
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
     if [ -n "$file" ]; then
-        # [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
-        [ "$key" = ctrl-o ] && open "$file" || nvim "$file"
+        [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-nvim} "$file"
     fi
 }
 alias foe='fzf_open_or_edit'    # Desc: alias: foe:fzf_open_or_edit命令的别名,fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
@@ -228,18 +202,9 @@ function fzf_search_term() { # Desc: function: fzf_search_term:find-in-file - us
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
     rg --files-with-matches \
        --no-messages "$1" | \
-       fzf --reverse \
---margin=1 \
---padding=1 \
+       fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" \
---preview-label-pos top,4 \
---preview-label='[ searchTerm ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
+--preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
 }
 alias fif='fzf_search_term'     # Desc: alias: fif:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
 
@@ -253,18 +218,7 @@ alias llf="list_link_files"     # Desc: alias: llf:list_link_files命令的别�
 function find_link_files() { # Desc: function: find_link_files:find找出所有软连接文件
     local mpath='./'
     [[ "" != "$1" ]] && mpath="$1"
-    /usr/bin/find ${mpath} -type l -ls | fzf --reverse \
---margin=1 \
---padding=1 \
---preview-window bottom:6:border-rounded:hidden:wrap \
---preview " echo {} " \
---preview-label-pos top,4 \
---preview-label='[ 软连接 ]' \
---prompt="查找 > " \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口"
+    /usr/bin/find ${mpath} -type l -ls | fzf $FZF_CUSTOM_PARAMS
 }
 alias flf="find_link_files"     # Desc: alias: flf:find_link_files命令的别名,find找出所有软连接文件
 

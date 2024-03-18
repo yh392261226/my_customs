@@ -134,8 +134,9 @@ function ag_open_with_line() { # Desc: function: ag_open_with_line:fuzzy grep op
         $AGBIN --color --line-number $@ | fzf $FZF_CUSTOM_PARAMS \
         --delimiter=':' -n 2.. \
         --preview-window 'right:70%:border-rounded:hidden:wrap' \
-        --preview 'clp -h {2} {1}' \
+        --preview 'bat --color=always {1} --highlight-line {2}' \
         --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+        --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
         --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
         --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
         --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑'
@@ -148,6 +149,8 @@ function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvi
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --preview-label='[ 文件 ]' \
+--bind 'ctrl-o:execute(nvim {} < /dev/tty)' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑' \
 )"
     count="$( echo "$files" | wc -l )"
     [[ ! "$files" ]] && return
@@ -161,7 +164,9 @@ function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim�
     files="$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'bat --style=numbers --line-range=:500 {}' \
+--bind 'ctrl-o:execute(vim {} < /dev/tty)' \
 --preview-label='[ 文件 ]' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑' \
 )"
     count="$( echo "$files" | wc -l )"
     vim $files
@@ -234,10 +239,51 @@ function fzf_search_vim4() { # Desc: function: fzf_search_vim4:Switch between Ri
 }
 alias fsv4="fzf_search_vim4" # Desc: alias: fsv4: fzf_search_vim5命令的别名,Switch between Ripgrep launcher mode (CTRL-R) and fzf filtering mode (CTRL-F)
 
-function fzf_vim_to_line_by_keyword() { # Desc: function: fzf_vim_to_line_by_keyword: vim定位打开根据关键字搜索到文件及行号
+function fzf_search_vim_to_line() { # Desc: function: fzf_search_vim_to_line: vim定位打开根据关键字搜索到文件及行号
     [[ "" = "$1" ]] && echo "Usage: fvlk <keyword>" && return 1
-    grep --recursive --line-number --binary-files=without-match "$1" . | fzf --delimiter : --nth 3.. $FZF_CUSTOM_PARAMS \
---preview-label='[ 文件及行号 ]' \
---bind 'enter:become(vim {1} +{2})'
+    grep --recursive --line-number --binary-files=without-match "$1" . | fzf --delimiter ':' \
+    --nth 3.. \
+    $FZF_CUSTOM_PARAMS \
+    --preview-label='[ 文件及行号 ]' \
+    --preview-window 'right:70%:border-rounded:hidden:wrap' \
+    --preview 'bat --color=always {1} --highlight-line {2}' \
+    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+    --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+    --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
+    --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
+    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑'
 }
-alias fvlk="fzf_vim_to_line_by_keyword" # alias: fvlk: fzf_vim_to_line_by_keyword命令的别名,vim定位打开根据关键字搜索到文件及行号
+alias fsv2l="fzf_search_vim_to_line" # alias: fsv2l: fzf_search_vim_to_line命令的别名,vim定位打开根据关键字搜索到文件及行号
+
+function fzf_rg_vim() { # Desc: function: fzf_rg_vim: fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
+    # 1. Search for text in files using Ripgrep
+    # 2. Interactively narrow down the list using fzf
+    # 3. Open the file in Vim
+    #rg --color=always --line-number --no-heading --smart-case "${*:-}" | fzf --ansi \
+    #  --color "hl:-1:underline,hl+:-1:underline:reverse" \
+    #  --delimiter : \
+    #  --preview 'bat --color=always {1} --highlight-line {2}' \
+    #  --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
+    #  --bind 'enter:become(vim {1} +{2})'
+
+    # Two-phase filtering with Ripgrep and fzf
+    #
+    # 1. Search for text in files using Ripgrep
+    # 2. Interactively restart Ripgrep with reload action
+    #    * Press ctrl-t to switch to fzf-only filtering
+    # 3. Open the file in Vim
+    RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case "
+INITIAL_QUERY="${*:-}"
+: | fzf --ansi --disabled --query "$INITIAL_QUERY" \
+    --bind "start:reload:$RG_PREFIX {q}" \
+    --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
+    --bind "ctrl-t:unbind(change,ctrl-t)+change-prompt(2. fzf> )+enable-search+clear-query" \
+    --color "hl:-1:underline,hl+:-1:underline:reverse" \
+    --prompt '1. ripgrep> ' \
+    --header 'CTRL-T: Switch to fzf-only filtering' \
+    --delimiter : \
+    --preview 'bat --color=always {1} --highlight-line {2}' \
+    --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
+    --bind 'enter:become(vim {1} +{2})'
+}
+alias frv="fzf_rg_vim" # Desc: alias: frv: fzf_rg_vim命令的别名,fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
