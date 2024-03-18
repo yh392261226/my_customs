@@ -189,6 +189,7 @@ alias cl='clear'                                                                
 alias woshi='whoami'                                                                                             # Desc: alias: woshi:whoami命令的别名
 alias train="$(brew --prefix sl)/bin/sl"                                                                         # Desc: alias: train:命令行小火车跑过命令的别名
 [[ -f $MYRUNTIME/customs/bin/game ]] && alias ssq="$MYRUNTIME/customs/bin/game lottery doubleball"               # Desc: alias: ssq: game命令双色球的别名
+[[ -f $MYRUNTIME/customs/bin/game ]] && alias mweb="$MYRUNTIME/customs/bin/game web open"                        # Desc: alias: mweb: game命令打开网址的别名
 [[ -f $MYRUNTIME/customs/bin/theme ]] && alias thl="$MYRUNTIME/customs/bin/theme --light -i"                     # Desc: alias: thl:theme命令中的亮系主题列表选择器
 [[ -f $MYRUNTIME/customs/bin/theme ]] && alias thd="$MYRUNTIME/customs/bin/theme --dark -i"                      # Desc: alias: thd:theme命令中的暗系主题列表选择器
 [[ -f /opt/homebrew/bin/code-minimap ]] && alias cmap="code-minimap"                                             # Desc: alias: cmap:code-minimap命令的别名
