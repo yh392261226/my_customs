@@ -84,9 +84,10 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
 --bind 'ctrl-n:page-down,ctrl-p:page-up' \
+--bind 'ctrl-a:toggle-all' \
 --bind "result:transform:$transformer" \
 --bind "resize:transform:$transformer" \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选' \
 --header-first \
 )
-#--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:
+#--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
