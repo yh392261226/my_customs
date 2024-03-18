@@ -89,3 +89,4 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页' \
 --header-first \
 )
+#--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:
