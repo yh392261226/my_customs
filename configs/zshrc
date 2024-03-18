@@ -14,3 +14,4 @@ fi
 echo ""
 
 [[ -d ~/.console-ninja/.bin ]] && export PATH=~/.console-ninja/.bin:$PATH
+unset ZSH_AUTOSUGGEST_USE_ASYNC
