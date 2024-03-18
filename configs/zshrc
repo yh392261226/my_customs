@@ -12,3 +12,5 @@ fi
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 echo ""
+
+[[ -d ~/.console-ninja/.bin ]] && export PATH=~/.console-ninja/.bin:$PATH
