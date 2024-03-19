@@ -30,7 +30,7 @@ function fzf_npm_run() { # Desc: function: fzf_npm_run:使用fzf查找npm run
     eval "$pkgcmd run $@"
   fi
 }
-alias fnr="fzf_npm_run" # Desc: alias: fnr: fzf_npm_run命令的别名,使用fzf查找npm run
+alias fnr="fzf_npm_run"                                                                 # Desc: alias: fnr: fzf_npm_run命令的别名,使用fzf查找npm run
 
 function npm_install() { # Desc: function: npm_install:使用node包管理器安装依赖
   pkgcmd=$(__getnpmpkg)
@@ -48,7 +48,7 @@ function npm_install() { # Desc: function: npm_install:使用node包管理器安
     fi
   fi
 }
-alias ni='npm_install -D' # Desc: alias: ni: npm_install命令的别名,使用node包管理器安装依赖
+alias ni='npm_install -D'                                                               # Desc: alias: ni: npm_install命令的别名,使用node包管理器安装依赖
 
 function fzf_npm_update() { # Desc: function: fzf_npm_update:使用node包管理器卸载依赖
   pkgcmd=$(__getnpmpkg)
@@ -65,4 +65,4 @@ function fzf_npm_update() { # Desc: function: fzf_npm_update:使用node包管理
     eval "$pkgcmd remove $@"
   fi
 }
-alias fnu="fzf_npm_update" # Desc: alias: fnu:fzf_npm_update命令的别名,使用node包管理器卸载依赖
+alias fnu="fzf_npm_update"                                                              # Desc: alias: fnu:fzf_npm_update命令的别名,使用node包管理器卸载依赖

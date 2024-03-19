@@ -17,7 +17,7 @@ function search_by_google() { #Desc: function: search_by_google:GOOGLE搜索引�
         open -a "$SEARCH_BROWSER" "https://www.google.com/search?q=${text}"
     fi
 }
-alias google="search_by_google"  # Desc: alias: google:search_by_google命令的别名,GOOGLE搜索引擎搜索
+alias google="search_by_google"                                                     # Desc: alias: google:search_by_google命令的别名,GOOGLE搜索引擎搜索
 
 function search_by_baidu() { #Desc: function: search_by_baidu:百度搜索引擎搜索
     if [ "" != "$1" ]; then
@@ -33,7 +33,7 @@ function search_by_baidu() { #Desc: function: search_by_baidu:百度搜索引擎
         open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd=${text}"
     fi
 }
-alias baidu="search_by_baidu"    # Desc: alias: baidu:search_by_baidu命令的别名,百度搜索引擎搜索
+alias baidu="search_by_baidu"                                                       # Desc: alias: baidu:search_by_baidu命令的别名,百度搜索引擎搜索
 
 function search_by_bing() { #Desc: function: search_by_bing:Bing搜索引擎搜索
     if [ "" != "$1" ]; then
@@ -49,7 +49,7 @@ function search_by_bing() { #Desc: function: search_by_bing:Bing搜索引擎搜�
         open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q=${text}"
     fi
 }
-alias bing="search_by_bing"      # Desc: alias: bing:search_by_bing命令的别名,Bing搜索引擎搜索
+alias bing="search_by_bing"                                                         # Desc: alias: bing:search_by_bing命令的别名,Bing搜索引擎搜索
 
 function search_by_yahoo() { #Desc: function: search_by_yahoo:Yahoo搜索引擎搜索
     if [ "" != "$1" ]; then
@@ -65,7 +65,7 @@ function search_by_yahoo() { #Desc: function: search_by_yahoo:Yahoo搜索引擎�
         open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q=${text}"
     fi
 }
-alias yahoo="search_by_yahoo"        # Desc: alias: yahoo:search_by_yahoo命令的别名,Yahoo搜索引擎搜索
+alias yahoo="search_by_yahoo"                                                       # Desc: alias: yahoo:search_by_yahoo命令的别名,Yahoo搜索引擎搜索
 
 function search_by_wikipedia() { #Desc: function: search_by_wikipedia:wikipedia搜索引擎搜索
     if [ "" != "$1" ]; then
@@ -81,7 +81,7 @@ function search_by_wikipedia() { #Desc: function: search_by_wikipedia:wikipedia�
         open -a "$SEARCH_BROWSER" "http://en.wikipedia.org/wiki/Special:Search?search=${text}"
     fi
 }
-alias wikipedia="search_by_wikipedia"    # Desc: alias: wikipedia:search_by_wikipedia命令的别名,wikipedia搜索引擎搜索
+alias wikipedia="search_by_wikipedia"                                               # Desc: alias: wikipedia:search_by_wikipedia命令的别名,wikipedia搜索引擎搜索
 
 function open_in_browser() { # Desc: function: open_in_browser:浏览器中打开网址
     local BROWSERPATH=$1
@@ -97,7 +97,7 @@ function open_in_browser() { # Desc: function: open_in_browser:浏览器中打�
     fi
     /usr/bin/open -a "$BROWSERPATH" "$url"
 }
-alias browse="open_in_browser"      # Desc: alias: browse:open_in_browser命令的别名,浏览器中打开网址
+alias browse="open_in_browser"                                                      # Desc: alias: browse:open_in_browser命令的别名,浏览器中打开网址
 
 function firefox() { # Desc: function: firefox:火狐浏览器打开网址
     local BROWSERPATH="/Applications/Firefox.app"
@@ -125,7 +125,7 @@ function stealth-browser() { # Desc: function: stealth-browser:隐身Chrome浏�
     [[ -f $MYRUNTIME/tools/m_proxy ]] && source $MYRUNTIME/tools/m_proxy
     [[ -d "$DEFAULTBROWSER" ]] && open  "/Applications/Google Chrome.app" --args -proxy-server=socks5://${ip}:${port} --incognito
 }
-alias sb="stealth-browser"      # Desc: alias: sb:stealth-browser命令的别名,隐身Chrome浏览器打开网址
+alias sb="stealth-browser"                                                          # Desc: alias: sb:stealth-browser命令的别名,隐身Chrome浏览器打开网址
 
 function fzf_safari_history() { # Desc: function: fzf_safari_history: 读取当前用户的safari浏览器历史
     sqlite3 ~/Library/Safari/History.db "SELECT datetime(h.visit_time + 978307200, 'unixepoch', 'localtime') as date, i.url FROM history_visits h INNER JOIN history_items i ON h.history_item = i.id" | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS --preview-label='[ 历史记录 ]' \
@@ -134,7 +134,7 @@ function fzf_safari_history() { # Desc: function: fzf_safari_history: 读取当�
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
         --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))'
 }
-alias fsh="fzf_safari_history" # Desc: alias: fsh: fzf_safari_history命令的别名,读取当前用户的safari浏览器历史
+alias fsh="fzf_safari_history"                                                      # Desc: alias: fsh: fzf_safari_history命令的别名,读取当前用户的safari浏览器历史
 
 function fzf_safari_bookmarks() { # Desc: function: fzf_safari_bookmarks: 读取当前用户的safari浏览器书签
     plutil -convert xml1 -o - ~/Library/Safari/Bookmarks.plist | grep -E "<string>http[s]?://|<string>.*<\/string>" | sed -E 's/<string>(http[s]?:\/\/[^<]*)<\/string>/\1/g' | grep -B 1 "http[s]\?:" | sed -E 's/<string>([^<]*)<\/string>/\1/g' | sed 's/^--$/|seprator|/g' | sed 's/^[[:space:]]*//g' | sed 's/^$/No title .../g' | tr '\n' ' ' | sed 's/|seprator|/\n/g' | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS --preview-label='[ 书签 ]' \
@@ -143,7 +143,7 @@ function fzf_safari_bookmarks() { # Desc: function: fzf_safari_bookmarks: 读取
         --bind 'ctrl-y:execute-silent(echo {} | grep -E "http[s]?://.*" | pbcopy)+abort' \
         --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))'
 }
-alias fsb="fzf_safari_bookmarks" # Desc: alias: fsb: fzf_safari_bookmarks命令的别名,读取当前用户的safari浏览器书签
+alias fsb="fzf_safari_bookmarks"                                                    # Desc: alias: fsb: fzf_safari_bookmarks命令的别名,读取当前用户的safari浏览器书签
 
 function chromium_history() { # Desc: function: chromium_history:列出Chromium核心的浏览器的历史
     if [ "" = "$1" ]; then
@@ -172,22 +172,22 @@ function chromium_history() { # Desc: function: chromium_history:列出Chromium�
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
         | sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
-alias ch="chromium_history"     # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
+alias ch="chromium_history"                                                         # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
 
 function chrome_default_history() { # Desc: function: chrome_default_history:列出Chrome默认账户的浏览器的历史
     chromium_history ~/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
 }
-alias cdh="chrome_default_history"    # Desc: alias: cdh:chrome_default_history命令的别名,列出Chrome默认账户的浏览器的历史
+alias cdh="chrome_default_history"                                                  # Desc: alias: cdh:chrome_default_history命令的别名,列出Chrome默认账户的浏览器的历史
 
 function chrome_profile1_history() { # Desc: function: chrome_profile1_history:列出Chrome Profile 1账户的浏览器的历史
     chromium_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
 }
-alias cph="chrome_profile1_history"      # Desc: alias: cph:chrome_profile1_history命令的别名,列出Chrome Profile 1账户的浏览器的历史
+alias cph="chrome_profile1_history"                                                 # Desc: alias: cph:chrome_profile1_history命令的别名,列出Chrome Profile 1账户的浏览器的历史
 
 function brave_default_history() { # Desc: function: brave_default_history:列出Brave默认账户的浏览器的历史
     chromium_history ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
 }
-alias bdh="brave_default_history"    # Desc: alias: bdh:brave_default_history命令的别名,列出Brave默认账户的浏览器的历史
+alias bdh="brave_default_history"                                                   # Desc: alias: bdh:brave_default_history命令的别名,列出Brave默认账户的浏览器的历史
 
 function chromium_bookmarks() { # Desc: function: chroomium_bookmarks:列出列出Chromium核心的浏览器的书签
     if [ "" = "$1" ]; then
@@ -210,22 +210,22 @@ function chromium_bookmarks() { # Desc: function: chroomium_bookmarks:列出列�
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
 }
-alias cb="chromium_bookmarks"   # Desc: alias: cb:chromium_bookmarks命令的别名,列出列出Chromium核心的浏览器的书签
+alias cb="chromium_bookmarks"                                                       # Desc: alias: cb:chromium_bookmarks命令的别名,列出列出Chromium核心的浏览器的书签
 
 function chrome_default_bookmarks() { # Desc: function: chrome_default_bookmarks:列出Chrome默认账户的书签
     chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
 }
-alias cdb="chrome_default_bookmarks"    # Desc: alias: cdb:chrome_default_bookmarks命令的别名,列出Chrome默认账户的书签
+alias cdb="chrome_default_bookmarks"                                                # Desc: alias: cdb:chrome_default_bookmarks命令的别名,列出Chrome默认账户的书签
 
 function chrome_profile1_bookmarks() { # Desc: function: chrome_default_bookmarks:列出Chrome Profile 1账户的书签
     chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
 }
-alias cpb="chrome_profile1_bookmarks"       # Desc: alias: cpb:chrome_profile1_bookmarks命令的别名,列出Chrome Profile 1账户的书签
+alias cpb="chrome_profile1_bookmarks"                                               # Desc: alias: cpb:chrome_profile1_bookmarks命令的别名,列出Chrome Profile 1账户的书签
 
 function brave_default_bookmarks() { # Desc: function: brave_default_bookmarks:列出Brave默认账户的书签
     chromium_bookmarks ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
 }
-alias bdb="brave_default_bookmarks"      # Desc: alias: bdb:brave_default_bookmarks命令的别名,列出Brave默认账户的书签
+alias bdb="brave_default_bookmarks"                                                 # Desc: alias: bdb:brave_default_bookmarks命令的别名,列出Brave默认账户的书签
 
 function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     website=( $(buku --suggest -p -f 5 | column -ts$'\t' | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 网址收藏 ]' \
@@ -239,7 +239,7 @@ function fzf_mark_by_buku() { # Desc: function: fzf_mark_by_buku:buku数据库�
         buku -o "$index"
     done
 }
-alias fmb="fzf_mark_by_buku"     # Desc: alias: fmb:fzf_mark_by_buku命令的别名,buku数据库配合fzf列出网址收藏
+alias fmb="fzf_mark_by_buku"                                                        # Desc: alias: fmb:fzf_mark_by_buku命令的别名,buku数据库配合fzf列出网址收藏
 
 function goodfon() { # Desc: function: goodfon:打开goodfon.ru
     local DEFAULTBROWSER="/Applications/Firefox.app"      #default browser for open goodfon
@@ -254,7 +254,7 @@ function goodfon() { # Desc: function: goodfon:打开goodfon.ru
         [[ -d "$SECONDBROWSER" ]] && /usr/bin/open -a "$SECONDBROWSER" "$URL"
     fi
 }
-alias gfon="goodfon"      # Desc: alias: gf:goodfon命令的别名,打开goodfon.ru
+alias gfon="goodfon"                                                                # Desc: alias: gf:goodfon命令的别名,打开goodfon.ru
 
 function _checkDirFull() {
     if [ "" != "$1" ]; then
@@ -379,10 +379,10 @@ function goodfonWithAutoDiff() { # Desc: function: 打开goodfon.ru后 通过目
     goodfon
     autoDiffDownloadPicureByName $@
 }
-alias gfa="goodfonWithAutoDiff"     # Desc: alias: gfa:goodfonWithAutoDiff命令的别名,打开goodfon.ru后 通过目录监控自动过滤重名文件
+alias gfa="goodfonWithAutoDiff"                                                     # Desc: alias: gfa:goodfonWithAutoDiff命令的别名,打开goodfon.ru后 通过目录监控自动过滤重名文件
 
 function goodfonWithAutoDiff2() { # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
     goodfon
     autoDiffDownloadPicureByName 0 1
 }
-alias gfa2="goodfonWithAutoDiff2"   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名,打开goodfon.ru后通过目录监控自动过滤重名文件
+alias gfa2="goodfonWithAutoDiff2"                                                   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名,打开goodfon.ru后通过目录监控自动过滤重名文件

@@ -390,7 +390,7 @@ default_user=$(/usr/bin/whoami)
 #
 #----------------------------------------------------------------------------------------------------------------
 #
-alias config=/usr/bin/git --git-dir=$HOME/.cfg --work-tree=$HOME
+#alias config=/usr/bin/git --git-dir=$HOME/.cfg --work-tree=$HOME                                                 # Desc: alias: config:git设置的别名,但紧接着被dotbare覆盖
 export DOTBARE_DIR="$HOME/.cfg"
 export DOTBARE_TREE="$HOME"
-alias config=dotbare
+alias config=dotbare                                                                                             # Desc: alias: config:dotbare的别名

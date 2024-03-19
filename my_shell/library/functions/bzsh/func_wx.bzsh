@@ -6,4 +6,4 @@ function update_wechat_tool() { # Desc: function: update_wechat_tool:更新微�
     rm -rf /tmp/WeChatExtension-ForMac/
     cd -
 }
-alias uwt="update_wechat_tool" # Desc: alias: uwt:update_wechat_tool命令的别名,更新微信小助手
+alias uwt="update_wechat_tool"                                                           # Desc: alias: uwt:update_wechat_tool命令的别名,更新微信小助手

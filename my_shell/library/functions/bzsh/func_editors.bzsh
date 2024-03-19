@@ -26,28 +26,28 @@ function editor_which() { # Desc: function: editor_which:用which命令找出文
         return 1
     fi
 }
-alias ew="editor_which" # Desc: alias: ew: editor_which命令的别名,用which命令找出文件或命令的位置,并用默认编辑器进行编辑
+alias ew="editor_which"                                                             # Desc: alias: ew: editor_which命令的别名,用which命令找出文件或命令的位置,并用默认编辑器进行编辑
 
 function code_which() { # Desc: function: code_which:visual studio code 编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/code
     editor_which $COMMANDBIN $1
 }
-alias cw="code_which" # Desc: alias: cw: code_which命令的别名,visualstudio code编辑which命令找到的文件地址
-alias codew="code_which" # Desc: alias: codew: code_which命令的别名,visualstudio code编辑which命令找到的文件地址
+alias cw="code_which"                                                               # Desc: alias: cw: code_which命令的别名,visualstudio code编辑which命令找到的文件地址
+alias codew="code_which"                                                            # Desc: alias: codew: code_which命令的别名,visualstudio code编辑which命令找到的文件地址
 
 function sublime_text_which() { # Desc: function: sublime_text_which:sublimetext编辑which命令找到的文件地址
     local COMMANDBIN=$HOME/bin/subl
     editor_which $COMMANDBIN $1
 }
-alias sw="sublime_text_which" # Desc: alias: sw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
-alias stw="sublime_text_which" # Desc: alias: stw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
+alias sw="sublime_text_which"                                                       # Desc: alias: sw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
+alias stw="sublime_text_which"                                                      # Desc: alias: stw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
 
 function atom_which() { # Desc: function: atom_which:atom编辑which命令找到的文件地址
     local COMMANDBIN=/usr/local/bin/atom
     editor_which $COMMANDBIN $1
 }
-alias aw="atom_which" # Desc: alias: aw: atom_which命令的别名,atom编辑which命令找到的文件地址
-alias atomw="atom_which" # Desc: alias: atomw: atom_which命令的别名,atom编辑which命令找到的文件地址
+alias aw="atom_which"                                                               # Desc: alias: aw: atom_which命令的别名,atom编辑which命令找到的文件地址
+alias atomw="atom_which"                                                            # Desc: alias: atomw: atom_which命令的别名,atom编辑which命令找到的文件地址
 
 function vim_which() { # Desc: function: vim_which:vim编辑which命令找到的文件地址
     if [ -f /usr/local/bin/vim ]; then
@@ -57,8 +57,8 @@ function vim_which() { # Desc: function: vim_which:vim编辑which命令找到的
     fi
     editor_which $COMMANDBIN $1
 }
-alias vw="vim_which" # Desc: alias: vw: vim_which命令的别名,vim编辑which命令找到的文件地址
-alias viw="vim_which" # Desc: alias: viw: vim_which命令的别名,vim编辑which命令找到的文件地址
+alias vw="vim_which"                                                                # Desc: alias: vw: vim_which命令的别名,vim编辑which命令找到的文件地址
+alias viw="vim_which"                                                               # Desc: alias: viw: vim_which命令的别名,vim编辑which命令找到的文件地址
 
 function neovim_which() { # Desc: function: neovim_which:neovim编辑which命令找到的文件地址
     if [ -f /usr/local/bin/nvim ]; then
@@ -68,8 +68,8 @@ function neovim_which() { # Desc: function: neovim_which:neovim编辑which命令
     fi
     editor_which $COMMANDBIN $1
 }
-alias nw="neovim_which" # Desc: alias: nw: neovim_which命令的别名,neovim编辑which命令找到的文件地址
-alias nviw="neovim_which" # Desc: alias: nviw: neovim_which命令的别名,neovim编辑which命令找到的文件地址
+alias nw="neovim_which"                                                             # Desc: alias: nw: neovim_which命令的别名,neovim编辑which命令找到的文件地址
+alias nviw="neovim_which"                                                           # Desc: alias: nviw: neovim_which命令的别名,neovim编辑which命令找到的文件地址
 
 function fzf_tags() { # Desc: function: fzf_tags:search ctags
     local linen
@@ -83,7 +83,7 @@ function fzf_tags() { # Desc: function: fzf_tags:search ctags
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$linen")"
 }
-alias ftags="fzf_tags" # Desc: alias: ftags: fzf_tags: search ctags
+alias ftags="fzf_tags"                                                              # Desc: alias: ftags: fzf_tags: search ctags
 
 function fzf_open_viminfo() { # Desc: function: fzf_open_viminfo:open files in ~/.viminfo
     local files
@@ -92,7 +92,7 @@ function fzf_open_viminfo() { # Desc: function: fzf_open_viminfo:open files in ~
         [ -f "${line/\~/$HOME}" ] && echo "$line"
     done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
-alias fov="fzf_open_viminfo" # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in ~/.viminfo
+alias fov="fzf_open_viminfo"                                                        # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in ~/.viminfo
 
 function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
     local out file key
@@ -103,8 +103,8 @@ function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:Modified versio
         [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
     fi
 }
-alias fo="fzf_open_or_edit"     # Desc: alias: fo:fzf_open_or_edit命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
-alias fe="fzf_open_or_edit"     # Desc: alias: fe:fzf_open_or_edit命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
+alias fo="fzf_open_or_edit"                                                         # Desc: alias: fo:fzf_open_or_edit命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
+alias fe="fzf_open_or_edit"                                                         # Desc: alias: fe:fzf_open_or_edit命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
 
 function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
     export FZF_DEFAULT_COMMAND="fd -p -i -H -L -t f -t l -t x \
@@ -121,7 +121,7 @@ function fzf_open_with_editor2() { # Desc: function: fzf_open_with_editor2:This 
                     ))
     [[ -n "$files" ]] && vim "${files[@]}"
 }
-alias fv='fzf_open_with_editor2'     # Desc: alias: fv:fzf_open_with_editor2命令的别名,This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
+alias fv='fzf_open_with_editor2'                                                    # Desc: alias: fv:fzf_open_with_editor2命令的别名,This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
 
 function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvim进行编辑
     files="$(fzf $FZF_CUSTOM_PARAMS \
@@ -135,8 +135,8 @@ function fzf_nvim() { # Desc: function: fzf_nvim: 利用fzf选择文件并用nvi
     [[ ! "$files" ]] && return
     nvim $files
 }
-alias fnvi="fzf_nvim"   # Desc: alias: fnvi: fzf_nvim命令的别名,利用fzf选择文件并用nvim进行编辑
-alias fnvim="fzf_nvim"   # Desc: alias: fnvim: fzf_nvim命令的别名,利用fzf选择文件并用nvim进行编辑
+alias fnvi="fzf_nvim"                                                               # Desc: alias: fnvi: fzf_nvim命令的别名,利用fzf选择文件并用nvim进行编辑
+alias fnvim="fzf_nvim"                                                              # Desc: alias: fnvim: fzf_nvim命令的别名,利用fzf选择文件并用nvim进行编辑
 
 
 function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim进行编辑
@@ -150,8 +150,8 @@ function fzf_vim() { # Desc: function: fzf_vim: 利用fzf选择文件并用vim�
     count="$( echo "$files" | wc -l )"
     vim $files
 }
-alias fvi="fzf_vim"   # Desc: alias: fvi: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
-alias fvim="fzf_vim"   # Desc: alias: fvim: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
+alias fvi="fzf_vim"                                                                 # Desc: alias: fvi: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
+alias fvim="fzf_vim"                                                                # Desc: alias: fvim: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 
 function fzf_grep_search_vim_to_line() { # Desc: function: fzf_grep_search_vim_to_line: vim定位打开根据关键字搜索到文件及行号
     [[ "" = "$1" ]] && echo "Usage: fgv2l <keyword>" && return 1
@@ -167,7 +167,7 @@ function fzf_grep_search_vim_to_line() { # Desc: function: fzf_grep_search_vim_t
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
     --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑'
 }
-alias fgv2l="fzf_grep_search_vim_to_line" # alias: fsv2l: fzf_grep_search_vim_to_line命令的别名,vim定位打开根据关键字搜索到文件及行号
+alias fgv2l="fzf_grep_search_vim_to_line"                                           # Desc: alias: fsv2l: fzf_grep_search_vim_to_line命令的别名,vim定位打开根据关键字搜索到文件及行号
 
 function fzf_rg_search_vim_to_line() { # Desc: function: fzf_rg_search_vim_to_line: fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
     \rm -f /tmp/rg-fzf-{r,f}
@@ -196,7 +196,7 @@ function fzf_rg_search_vim_to_line() { # Desc: function: fzf_rg_search_vim_to_li
     --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
     --bind 'enter:become(vim {1} +{2})'
 }
-alias frv2l="fzf_rg_search_vim_to_line" # Desc: alias: frv2l: fzf_rg_search_vim_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
+alias frv2l="fzf_rg_search_vim_to_line"                                             # Desc: alias: frv2l: fzf_rg_search_vim_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
 
 function fzf_ag_search_to_line() { # Desc: function: fzf_ag_search_to_line:fuzzy grep open via ag with line number
     [[ "" = "$1" ]] && echo "Usage: fav2l <keyword>" && return 1
@@ -213,4 +213,4 @@ function fzf_ag_search_to_line() { # Desc: function: fzf_ag_search_to_line:fuzzy
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
     --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑'
 }
-alias fav2l="fzf_ag_search_to_line"    # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fuzzy grep open via ag with line number
+alias fav2l="fzf_ag_search_to_line"                                                 # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fuzzy grep open via ag with line number

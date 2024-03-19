@@ -8,7 +8,7 @@ function remove_DS_files() { # Desc: function: remove_DS_files:删除.DS_Store�
         find $1 -type f -name '*.DS_Store' -ls -delete
     fi
 }
-alias rDS="remove_DS_files" # Desc: alias: rDS:remove_DS_files命令的别名,删除.DS_Store文件
+alias rDS="remove_DS_files"                                                          # Desc: alias: rDS:remove_DS_files命令的别名,删除.DS_Store文件
 
 function remove_files_by_ext () { # Desc: function: remove_files_by_ext:删除后缀名为参数值的文件到回收站
     if [ "" = "$1" ]; then
@@ -17,12 +17,12 @@ function remove_files_by_ext () { # Desc: function: remove_files_by_ext:删除�
         trash ./*$1
     fi
 }
-alias rfe="remove_files_by_ext" # Desc: alias: rfe:remove_files_by_exts命令的别名,删除后缀名为参数值的文件到回收站
+alias rfe="remove_files_by_ext"                                                      # Desc: alias: rfe:remove_files_by_exts命令的别名,删除后缀名为参数值的文件到回收站
 
 function remove_ssh_tmp_file() { # Desc: function: remove_ssh_tmp_file:删除~/.ssh/tmp/*
     /bin/rm -f $HOME/.ssh/tmp/*
 }
-alias rst="remove_ssh_tmp_file"        # Desc: alias: rst:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
+alias rst="remove_ssh_tmp_file"                                                      # Desc: alias: rst:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
 
 function remove_to_trash () { # Desc: function: remove_to_trash:删除到回收站
     local mpath
@@ -39,12 +39,12 @@ function remove_to_trash () { # Desc: function: remove_to_trash:删除到回收�
         fi
     done
 }
-alias r2t="remove_to_trash" # Desc: alias: r2t:remove_to_trash命令的别名,删除到回收站
+alias r2t="remove_to_trash"                                                          # Desc: alias: r2t:remove_to_trash命令的别名,删除到回收站
 
 function trash () { # Desc: function: trash:Moves a file to the MacOS trash
     command /bin/mv "$@" ~/.Trash ;
 }
-alias t="trash" # Desc: alias: t: trash命令的别名,Moves a file to the MacOS trash
+alias t="trash"                                                                      # Desc: alias: t: trash命令的别名,Moves a file to the MacOS trash
 
 function remove_whereis_file() { # Desc: function: remove_whereis_file:删除 which命令找到的文件
     command -v "$@" > /dev/null 2>&1
@@ -60,7 +60,7 @@ function remove_whereis_file() { # Desc: function: remove_whereis_file:删除 wh
         fi
     fi
 }
-alias rmw="remove_whereis_file"        # Desc: alias: rmw:remove_whereis_file命令的别名,删除 which命令找到的文件
+alias rmw="remove_whereis_file"                                                      # Desc: alias: rmw:remove_whereis_file命令的别名,删除 which命令找到的文件
 
 function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件选中删除
   hasgum=$(ifHasCommand gum)
@@ -74,7 +74,7 @@ function fzf_remove_file() { # Desc: function: fzf_remove_file:find找出文件�
     [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm "$@" || echo "Action aborted !") || command rm "$@"
   fi
 }
-alias frf="fzf_remove_file"     # Desc: alias:frf:fzf_remove_file的别名,find找出文件选中删除
+alias frf="fzf_remove_file"                                                          # Desc: alias: frf: fzf_remove_file的别名,find找出文件选中删除
 
 function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找出文件夹选中删除
   hasgum=$(ifHasCommand gum)
@@ -88,4 +88,4 @@ function fzf_remove_directory() { # Desc: function: fzf_remove_directory:find找
     [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm -rf "$@" || echo "Action aborted !") || command rm -rf "$@"
   fi
 }
-alias frd="fzf_remove_directory"     # Desc: alias:frd:fzf_remove_directory的别名,find找出文件夹选中删除
+alias frd="fzf_remove_directory"                                                     # Desc: alias: frd: fzf_remove_directory的别名,find找出文件夹选中删除

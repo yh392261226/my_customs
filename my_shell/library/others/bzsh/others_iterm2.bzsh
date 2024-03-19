@@ -8,7 +8,7 @@ function toggle-theme() { # Desc: function: toggle-theme:更换iterm配置的主
 		python3 $MYRUNTIME/customs/others/iterm2-theme-toggle/main.py
 	fi
 }
-alias itc="toggle-theme" # Desc: alias: itc:toggle-theme命令的别名
+alias tt="toggle-theme" 							         # Desc: alias: tt: toggle-theme命令的别名
 
 function change_iterm2_color_scheme() { # Desc: function: change_iterm2_color_scheme:更换iterm当前session的主题
 	local act=$1
@@ -22,4 +22,4 @@ function change_iterm2_color_scheme() { # Desc: function: change_iterm2_color_sc
 		python3 $MYRUNTIME/customs/my_shell/library/others/iterm2_scripts/change_color.py "$act"
 	fi
 }
-alias citc="change_iterm2_color_scheme" # Desc: alias: citc:change_iterm2_color_scheme命令的别名
+alias cics="change_iterm2_color_scheme" 					         # Desc: alias: cics: change_iterm2_color_scheme命令的别名

@@ -15,7 +15,7 @@ function cat_whereis_file() { # Desc: function: cat_whereis_file:cat打印which�
         fi
     fi
 }
-alias catw="cat_whereis_file"   # Desc: alias: catw:cat_whereis_file命令的别名,cat打印which命令找到的文件地址
+alias catw="cat_whereis_file"                                                          # Desc: alias: catw:cat_whereis_file命令的别名,cat打印which命令找到的文件地址
 
 function bat_whereis_file() { # Desc: function: bat_whereis_file:bat命令打印which命令找到的文件地址
     hascommand=$(ifHasCommand $@)
@@ -31,12 +31,12 @@ function bat_whereis_file() { # Desc: function: bat_whereis_file:bat命令打印
         fi
     fi
 }
-alias batw="bat_whereis_file"       # Desc: alias: batw:bat_whereis_file命令的别名,bat命令打印which命令找到的文件地址
+alias batw="bat_whereis_file"                                                          # Desc: alias: batw:bat_whereis_file命令的别名,bat命令打印which命令找到的文件地址
 
 function quick_preview () { # Desc: function: quick_preview:Opens any file in MacOS Quicklook Preview
     qlmanage -p "$*" >& /dev/null;
 }
-alias ql="quick_preview"    # Desc: alias: ql:quick_preview命令的别名,Opens any file in MacOS Quicklook Preview
+alias ql="quick_preview"                                                               # Desc: alias: ql:quick_preview命令的别名,Opens any file in MacOS Quicklook Preview
 
 function get_hash_file() { # Desc: function: get_hash_file:get md5 or sha1 value of the file
     local MD5COMMAND=/sbin/md5
@@ -58,7 +58,7 @@ function get_hash_file() { # Desc: function: get_hash_file:get md5 or sha1 value
         $MD5COMMAND $filename | awk -F'=' '{print $2}' #default is md5 file
     fi
 }
-alias hashf="get_hash_file"     # Desc: alias: hashf:get_hash_file命令的别名,get md5 or sha1 value of the file
+alias hashf="get_hash_file"                                                            # Desc: alias: hashf:get_hash_file命令的别名,get md5 or sha1 value of the file
 
 function check_2files_by_md5() { # Desc: function: check_2files_by_md5:diff the two files md5 value
     local MD5COMMAND=/sbin/md5 #md5 command
@@ -79,7 +79,7 @@ function check_2files_by_md5() { # Desc: function: check_2files_by_md5:diff the 
     echo $RESULT
     return 0
 }
-alias c2fmd5="check_2files_by_md5"      # Desc: alias: c2fmd5:check_2files_by_md5命令的别名,diff the two files md5 value
+alias c2fmd5="check_2files_by_md5"                                                     # Desc: alias: c2fmd5:check_2files_by_md5命令的别名,diff the two files md5 value
 
 function get_file_private_value() { # Desc: function: get_file_private_value:变更权限rwx为权限值【777】
     ls -l  "$@" | awk '
@@ -92,7 +92,7 @@ function get_file_private_value() { # Desc: function: get_file_private_value:变
         printf(" %9s  %3s %2s %5s  %6s  %s %s %s\n", $3, $6, $7, $8, $5, $9,$10, $11);
         }'
 }
-alias gfpv="get_file_private_value"  # Desc: alias: gfpv:get_file_private_value命令的别名,变更权限rwx为权限值【777】
+alias gfpv="get_file_private_value"                                                    # Desc: alias: gfpv:get_file_private_value命令的别名,变更权限rwx为权限值【777】
 
 function head_whereis_file() { # Desc: function: headw:head命令打印which命令找到的文件地址
     hascommand=$(ifHasCommand $@)
@@ -112,7 +112,7 @@ function head_whereis_file() { # Desc: function: headw:head命令打印which命�
         fi
     fi
 }
-alias headw="head_whereis_file"     # Desc: alias: headw:head_whereis_file命令的别名,head命令打印which命令找到的文件地址
+alias headw="head_whereis_file"                                                        # Desc: alias: headw:head_whereis_file命令的别名,head命令打印which命令找到的文件地址
 
 function tail_whereis_file() { # Desc: function: tail_whereis_file:tail命令打印which命令找到的文件地址
     hascommand=$(ifHasCommand $@)
@@ -132,7 +132,7 @@ function tail_whereis_file() { # Desc: function: tail_whereis_file:tail命令打
         fi
     fi
 }
-alias tailw="tail_whereis_file"     # Desc: alias: tailw:tail_whereis_file命令的别名,tail命令打印which命令找到的文件地址
+alias tailw="tail_whereis_file"                                                        # Desc: alias: tailw:tail_whereis_file命令的别名,tail命令打印which命令找到的文件地址
 
 function set_setting_links() { # Desc: function: set_setting_links:配置文件链接
     if [ "" != "$CPUCORE" ]; then
@@ -161,7 +161,7 @@ function set_setting_links() { # Desc: function: set_setting_links:配置文件�
         fi
     fi
 }
-alias setl="set_setting_links"     # Desc: alias: setl:set_setting_links命令的别名,配置文件链接
+alias setl="set_setting_links"                                                         # Desc: alias: setl:set_setting_links命令的别名,配置文件链接
 
 function fzf_list_hiddens() { # Desc: function: fzf_list_hiddens:列出隐藏文件
     local mpath
@@ -172,7 +172,7 @@ function fzf_list_hiddens() { # Desc: function: fzf_list_hiddens:列出隐藏文
 --bind 'ctrl-r:execute(rm -rf {})+reload((/bin/ls -A $mpath | grep "^\.") || true)' \
 --header 'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-R 删除'
 }
-alias flh="fzf_list_hiddens"     # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
+alias flh="fzf_list_hiddens"                                                           # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
 function fzf_file_to_preview() { # Desc: function: fzf_file_to_preview:fzf列出文件夹及选中文件的内容
     [[ 1 -gt $nums ]] && nums=500
@@ -180,7 +180,7 @@ function fzf_file_to_preview() { # Desc: function: fzf_file_to_preview:fzf列出
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500'
 }
-alias fttp='fzf_file_to_preview'      # Desc: alias: fttp:fzf_file_to_preview命令的别名,fzf列出文件夹及选中文件的内容
+alias fttp='fzf_file_to_preview'                                                       # Desc: alias: fttp:fzf_file_to_preview命令的别名,fzf列出文件夹及选中文件的内容
 
 function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
     IFS=$'\n' out=$(fzf $FZF_CUSTOM_PARAMS \
@@ -196,7 +196,7 @@ function fzf_open_or_edit() { # Desc: function: fzf_open_or_edit:fzf利用open�
         [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-nvim} "$file"
     fi
 }
-alias foe='fzf_open_or_edit'    # Desc: alias: foe:fzf_open_or_edit命令的别名,fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
+alias foe='fzf_open_or_edit'                                                           # Desc: alias: foe:fzf_open_or_edit命令的别名,fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
 
 function fzf_search_term() { # Desc: function: fzf_search_term:find-in-file - usage: fif <searchTerm>
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
@@ -206,21 +206,21 @@ function fzf_search_term() { # Desc: function: fzf_search_term:find-in-file - us
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
 }
-alias fst='fzf_search_term'     # Desc: alias: fst:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
+alias fst='fzf_search_term'                                                            # Desc: alias: fst:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
 
 function list_link_files() { # Desc: function: list_link_files:列出所有软连接文件
     local mpath='./'
     [[ "" != "$1" ]] && mpath="$1"
     /bin/ls -al ${mpath} | grep ^l
 }
-alias llf="list_link_files"     # Desc: alias: llf:list_link_files命令的别名,列出所有软连接文件
+alias llf="list_link_files"                                                            # Desc: alias: llf:list_link_files命令的别名,列出所有软连接文件
 
 function find_link_files() { # Desc: function: find_link_files:find找出所有软连接文件
     local mpath='./'
     [[ "" != "$1" ]] && mpath="$1"
     /usr/bin/find ${mpath} -type l -ls | fzf $FZF_CUSTOM_PARAMS
 }
-alias flf="find_link_files"     # Desc: alias: flf:find_link_files命令的别名,find找出所有软连接文件
+alias flf="find_link_files"                                                            # Desc: alias: flf:find_link_files命令的别名,find找出所有软连接文件
 
 function file_category() { # Desc: function: file_category: 获取文件类型的前一段,如application/image中的application
     [[ "" = "$1" ]] && return 1
@@ -228,7 +228,7 @@ function file_category() { # Desc: function: file_category: 获取文件类型�
     echo ${mime%%/*}
     return 0
 }
-alias fcate="file_category" # alias: fcate: file_category命令的别名,获取文件类型的前一段,如application/image中的application
+alias fcate="file_category"                                                            # Desc: alias: fcate: file_category命令的别名,获取文件类型的前一段,如application/image中的application
 
 function file_kind() { # Desc: function: file_kind: 获取文件类型的后一段,如application/image中的image
     [[ "" = "$1" ]] && return 1
@@ -236,4 +236,4 @@ function file_kind() { # Desc: function: file_kind: 获取文件类型的后一�
     echo ${mime##*/}
     return 0
 }
-alias fkind="file_kind" # alias: fkind: file_kind命令的别名,获取文件类型的后一段,如application/image中的image
+alias fkind="file_kind"                                                                # Desc: alias: fkind: file_kind命令的别名,获取文件类型的后一段,如application/image中的image

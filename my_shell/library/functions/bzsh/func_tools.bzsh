@@ -19,4 +19,4 @@ function create_tmp_aliases() { # Desc: function: create_tmp_aliases:以a+数字
         return
     fi
 }
-alias cta="create_tmp_aliases" # Desc: alias: cta:create_tmp_aliases命令的别名,以a+数字形式创建临时别名命令
+alias cta="create_tmp_aliases"                                                        # Desc: alias: cta:create_tmp_aliases命令的别名,以a+数字形式创建临时别名命令
