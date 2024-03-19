@@ -108,20 +108,21 @@
 
 
 #!!!#-- 有用命令
-#!!#|- 终端翻译命令fanyi	fanyi
-#!!#|- 利用系统自带的词典查询单词	dic
-#!!#|- 终端翻译命令trans	trans
-#!!#|- 终端检测服务器是否在线	isitup
-#!!#|- IP类型终端管理命令	mtr
-#!!#|- 查看所有自定义别名	showaliases
-#!!#|- 更改破解APP签名工具	sign
-#!!#|- 管理切换ssh-key工具skm	skm
-#!!#|- 终端查看阻止息屏的进程	pmset -g
-#!!#|- 网站生成app文件命令pake	pake
-#!!#|- 一款可交互式的ssh批量执行命令的客户端	hss
-#!!#|- 根据QQ的IP库展示IP所在地	nali
-#!!#|- 极简SSH部署https://github.com/sapegin/shipit	shipit
-#!!#|- Github上的TODO终端管理	todoist
+#!!#|- 终端翻译命令fanyi	                            fanyi
+#!!#|- 利用系统自带的词典查询单词	                    dic
+#!!#|- 终端翻译命令trans	                            trans
+#!!#|- 终端检测服务器是否在线	                        isitup
+#!!#|- IP类型终端管理命令	                            mtr
+#!!#|- 查看所有自定义别名	                            sas
+#!!#|- 更改破解APP签名工具	                            cs
+#!!#|- 管理切换ssh-key工具skm	                        skm
+#!!#|- 终端查看阻止息屏的进程	                        pmset -g
+#!!#|- 网站生成app文件命令pake	                        pake
+#!!#|- 一款可交互式的ssh批量执行命令的客户端	        hss
+#!!#|- 根据QQ的IP库展示IP所在地	                        nali
+#!!#|- 极简SSH部署https://github.com/sapegin/shipit	    shipit
+#!!#|- Github上的TODO终端管理	                        todoist
+#!!#|- 全部别名选择器                                   faa
 #!!#|- 自定义的别名选择器	fca
 #!!#|- 自定义函数的选择器	fcf
 #!!#|- 自定义函数Safari浏览器的书签选择器(利用buku) fb
@@ -193,7 +194,7 @@ case "$1" in
 		echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
 	;;
 	"list"|"l"|*)
-		cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-60s%-30s%10s\n", $1, $2, $3}' | \
+		cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-40s%-20s%10s\n", $1, $2, $3}' | \
 		fzf --preview \
 		'if [[ "" != {3..} ]]; then; \
 		echo ""; \

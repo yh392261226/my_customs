@@ -217,12 +217,7 @@ function sign_tnt_code_name() { # Desc: function: sign_tnt_code_name:TNT破解�
     fi
 }
 alias cs="sign_tnt_code_name"                                                       # Desc: alias: cs:sign_tnt_code_name命令的别名,TNT破解失效,更改签名
-
-function fzf_figlet_font_selector() { # Desc: function: fzf_figlet_font_selector:Figlet字体选择器
-    cd $(brew --prefix)/figlet/*/share/figlet/fonts
-    figlet -f `ls *.flf | sort | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 字体 ]'` $*
-}
-alias fffs="fzf_figlet_font_selector"                                               # Desc: alias: fffs:fzf_figlet_font_selector命令的别名,Figlet字体选择器
+alias stnt="sign_tnt_code_name"                                                     # Desc: alias: stnt:sign_tnt_code_name命令的别名,TNT破解失效,更改签名
 
 function miniprompt() { # Desc: function: miniprompt:临时最简化,终端主题
     unset PROMPT_COMMAND
