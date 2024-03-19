@@ -35,19 +35,20 @@ function fzf_hidden_directories() { # Desc: function: fzf_da: including hidden d
 }
 alias fhd="fzf_hidden_directories"      # Desc: alias: fhd:fzf_hidden_directories命令的别名,including hidden directories
 
-function mcdf() { # Desc: function: mcdf:short for cdfinder
+function cd_to_finder() { # Desc: function: cd_to_finder:short for cdfinder
     cd "`osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)'`"
 }
+alias cf="cd_to_finder" # Desc: alias: cf: cd_to_finder命令的别名,short for cdfinder
 
-function hidden_files_hide() { # Desc: function: hidden_files_hide:文件夹不显示隐藏文件
+function change_files_hide() { # Desc: function: change_files_hide:文件夹不显示隐藏文件
     defaults write com.apple.Finder AppleShowAllFiles NO ; killall Finder /System/Library/CoreServices/Finder.app;
 }
-alias hideF="hidden_files_hide"     # Desc: alias: hideF:hidden_files_hide命令的别名,文件夹不显示隐藏文件
+alias cfh="change_files_hide"     # Desc: alias: cfh:change_files_hide命令的别名,文件夹不显示隐藏文件
 
-function hidden_files_show() { # Desc: function: hidden_files_show:文件夹显示隐藏文件
+function change_files_show() { # Desc: function: change_files_show:文件夹显示隐藏文件
     defaults write com.apple.Finder AppleShowAllFiles YES ; killall Finder /System/Library/CoreServices/Finder.app;
 }
-alias showF="hidden_files_show"     # Desc: alias: showF:hidden_files_show命令的别名,文件夹显示隐藏文件
+alias cfs="change_files_show"     # Desc: alias: cfs:change_files_show命令的别名,文件夹显示隐藏文件
 
 function fzf_cd_to_parent() { # Desc: function: fzf_cd_to_parent:进入到选择的文件都父级文件夹
     local declare dirs=()
@@ -62,9 +63,9 @@ function fzf_cd_to_parent() { # Desc: function: fzf_cd_to_parent:进入到选择
     local DIR=$(get_parent_dirs $(realpath "${1:-$PWD}") | fzf-tmux --tac)
     cd "$DIR"
 }
-alias fdr="fzf_cd_to_parent"    # Desc: alias: fdr:fzf_cd_to_parent命令的别名,进入到选择的文件都父级文件夹
+alias fc2p="fzf_cd_to_parent"    # Desc: alias: fc2p:fzf_cd_to_parent命令的别名,进入到选择的文件都父级文件夹
 
-function fzf_cd_select() { # Desc: function: fzf_cd_select:利用fzf选择并进入文件夹
+function fzf_cd_to_select() { # Desc: function: fzf_cd_to_select:利用fzf选择并进入文件夹
     if [[ "$#" != 0 ]]; then
         builtin cd "$@";
         return
@@ -87,13 +88,13 @@ function fzf_cd_select() { # Desc: function: fzf_cd_select:利用fzf选择并进
         builtin cd "$dir" &> /dev/null
     done
 }
-alias fcd="fzf_cd_select"   # Desc: alias: fcd:fzf_cd_select命令的别名,利用fzf选择并进入文件夹
+alias fcd="fzf_cd_to_select"   # Desc: alias: fcd:fzf_cd_to_select命令的别名,利用fzf选择并进入文件夹
 
-function fzf_cd_select2() { # Desc: function: fzf_cd_select2:另一款利用fzf进入选择的文件夹
+function fzf_cd_to_select2() { # Desc: function: fzf_cd_to_select2:另一款利用fzf进入选择的文件夹
     DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux` \
         && cd "$DIR"
 }
-alias fd2="fzf_cd_select2"      # Desc: alias: fd2:fzf_cd_select2命令的别名,另一款利用fzf进入选择的文件夹
+alias fcd2="fzf_cd_to_select2"      # Desc: alias: fcd2:fzf_cd_to_select2命令的别名,另一款利用fzf进入选择的文件夹
 
 function fzf_cd_to_file() { # Desc: function: fzf_cd_to_file:进入到利用fzf选择的文件的同级文件夹
     local file
@@ -103,14 +104,14 @@ function fzf_cd_to_file() { # Desc: function: fzf_cd_to_file:进入到利用fzf�
 --preview-label='[ 文件夹 ]' \
     -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
-alias cdff="fzf_cd_to_file"     # Desc: alias: cdff:fzf_cd_to_file命令的别名,进入到利用fzf选择的文件的同级文件夹
+alias fc2f="fzf_cd_to_file"     # Desc: alias: fc2f:fzf_cd_to_file命令的别名,进入到利用fzf选择的文件的同级文件夹
 
-function cd_like_directory() { # Desc: function: cd_like_directory:包含参数的名称的文件夹
+function cd_directory_by_param() { # Desc: function: cd_directory_by_param:包含参数的名称的文件夹
     [ "$1" ] && cd *$1*
 }
-alias gdto="cd_like_directory"      # Desc: alias: gdto:cd_like_directory命令的别名,包含参数的名称的文件夹
+alias cdbp="cd_directory_by_param"      # Desc: alias: cdbp:cd_directory_by_param命令的别名,包含参数的名称的文件夹
 
-function get_command_directory() { # Desc: function: get_command_directory:获取命令所在目录
+function get_which_command_directory() { # Desc: function: get_which_command_directory:获取命令所在目录
     hascommand=$(ifHasCommand $@)
     [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
@@ -120,23 +121,23 @@ function get_command_directory() { # Desc: function: get_command_directory:获�
         if [ -f $endfile ]; then
             echo $(dirname $endfile);
         else
-            get_command_directory $endfile
+            get_which_command_directory $endfile
         fi
     fi
 }
-alias dirw="get_command_directory"      # Desc: alias: dirw:get_command_directory命令的别名,获取命令所在目录
+alias dirw="get_which_command_directory"      # Desc: alias: dirw:get_which_command_directory命令的别名,获取命令所在目录
 
 function get_parent_directory() { # Desc: function: get_parent_directory:获取父级目录
     echo $(dirname "$@");
 }
-alias parentdir="get_parent_directory"  # Desc: alias: parentdir:get_parent_directory命令的别名,获取父级目录
+alias gpd="get_parent_directory"  # Desc: alias: gpd:get_parent_directory命令的别名,获取父级目录
 
 function mkdir_cd() { # Desc: function: mkdir_cd:创建文件夹并进入
     mkdir -p "$1" && cd "$1";
 }
 alias mcd="mkdir_cd"        # Desc: alias: mcd:mkdir_cd命令的别名,创建文件夹并进入
 
-function cd_command_parent_directory() { # Desc: function: cd_command_parent_directory:进入命令所在的父级文件夹
+function cd_parent_directory_by_which_command() { # Desc: function: cd_parent_directory_by_which_command:进入命令所在的父级文件夹
     hascommand=$(ifHasCommand $@)
     [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
     if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
@@ -146,13 +147,13 @@ function cd_command_parent_directory() { # Desc: function: cd_command_parent_dir
         if [ -f $endfile ]; then
             cd $(dirname $(dirname $endfile))
         else
-            cd_command_parent_directory $endfile
+            cd_parent_directory_by_which_command $endfile
         fi
     fi
 }
-alias cdpw="cd_command_parent_directory"    # Desc: alias: cdpw:cd_command_parent_directory命令的别名,进入命令所在的父级文件夹
+alias cdpw="cd_parent_directory_by_which_command"    # Desc: alias: cdpw:cd_parent_directory_by_which_command命令的别名,进入命令所在的父级文件夹
 
-function cd_command_directory() { # Desc: function: cd_command_directory:进入命令所在的文件夹
+function cd_directory_by_which_command() { # Desc: function: cd_directory_by_which_command:进入命令所在的文件夹
     [[ -f $1 ]] && cd $(dirname $1) && return 1
     [[ -d $1 ]] && cd $1 && return 1
     hascommand=$(ifHasCommand $@)
@@ -164,12 +165,12 @@ function cd_command_directory() { # Desc: function: cd_command_directory:进入�
         if [ -f $endfile ]; then
             cd $(dirname $endfile)
         else
-            cd_command_directory $endfile
+            cd_directory_by_which_command $endfile
         fi
     fi
 }
-alias cdw="cd_command_directory"        # Desc: alias: cdw:cd_command_directory命令的别名,进入命令所在的文件夹
-alias cdto="cd_command_directory"       # Desc: alias: cdto:cd_command_directory命令的别名,进入命令所在的文件夹
+alias cdw="cd_directory_by_which_command"        # Desc: alias: cdw:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
+alias cd2="cd_directory_by_which_command"       # Desc: alias: cd2:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
 
 function fzf_jump_between_directory() { # Desc: function: fzf_jump_between_directory:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
@@ -178,7 +179,7 @@ function fzf_jump_between_directory() { # Desc: function: fzf_jump_between_direc
 --preview-label='[ 目录 ]' \
     )" && cd "${dir}" || return 1
 }
-alias fzf_z="fzf_jump_between_directory"   # Desc: alias: fzf_z:fzf_jump_between_directory命令的别名,目录跳转
+alias fjbd="fzf_jump_between_directory"   # Desc: alias: fjbd:fzf_jump_between_directory命令的别名,目录跳转
 alias fz="fzf_jump_between_directory"      # Desc: alias: fz:fzf_jump_between_directory命令的别名,目录跳转
 
 function ll_whereis_command() { # Desc: function: ll_whereis_command:打印which命令找到的文件地址

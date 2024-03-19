@@ -23,9 +23,9 @@ function search_aliases() { # Desc: function: search_aliases:显示所有含有�
         --preview-label='[ 命令及注释 ]'
     fi
 }
-alias searcha="search_aliases"  # Desc: alias: searcha:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
+alias sas="search_aliases"  # Desc: alias: sas:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
 
-function fzf_show_customs_functions() { # Desc: function: fzf_show_customs_functions:显示所有自定义命令及注释
+function fzf_customs_functions() { # Desc: function: fzf_customs_functions:显示所有自定义命令及注释
     TMP_FUNCTIONS_FILE=$(mktemp)
     find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
     if [ -f $TMP_FUNCTIONS_FILE ]; then
@@ -41,14 +41,14 @@ fzf $FZF_CUSTOM_PARAMS \
         rm -f $TMP_FUNCTIONS_FILE
     fi
 }
-alias showfuncs="fzf_show_customs_functions"    # Desc: alias: showfuncs:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
-alias fcf="fzf_show_customs_functions"          # Desc: alias: fcf:fzf_show_customs_functions命令的别名,显示所有自定义命令及注释
+alias showfuncs="fzf_customs_functions"    # Desc: alias: showfuncs:fzf_customs_functions命令的别名,显示所有自定义命令及注释
+alias fcf="fzf_customs_functions"          # Desc: alias: fcf:fzf_customs_functions命令的别名,显示所有自定义命令及注释
 if [ "zsh" = "$nowshell" ]; then
-    zle -N fzf_show_customs_functions
-    bindkey "^f" "fzf_show_customs_functions"
+    zle -N fzf_customs_functions
+    bindkey "^f" "fzf_customs_functions"
 fi
 
-function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases:显示所有自定义的别名及注释
+function fzf_customs_aliases() { # Desc: function: fzf_customs_aliases:显示所有自定义的别名及注释
     TMP_ALIASES_FILE=$(mktemp)
     alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
@@ -59,13 +59,13 @@ function fzf_show_customs_aliases() { # Desc: function: fzf_show_customs_aliases
         rm -f $TMP_ALIASES_FILE
     fi
 }
-alias fca="fzf_show_customs_aliases" # Desc: alias: fca: fzf_show_customs_aliases命令的别名,显示所有自定义的别名及注释
+alias fca="fzf_customs_aliases" # Desc: alias: fca: fzf_customs_aliases命令的别名,显示所有自定义的别名及注释
 if [ "zsh" = "$nowshell" ]; then
-    zle -N fzf_show_customs_aliases
-    bindkey å "fzf_show_customs_aliases"
+    zle -N fzf_customs_aliases
+    bindkey å "fzf_customs_aliases"
 fi
 
-function fzf_show_aliases2() { # Desc: function: fzf_show_aliases2:显示所有自定义命令及注释
+function fzf_custom_aliases2() { # Desc: function: fzf_custom_aliases2:显示所有自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     ls $MYRUNTIME/customs/my_shell/library/functions/bzsh/*.bzsh| fzf --no-sort --tac \
 $FZF_CUSTOM_PARAMS \
@@ -74,9 +74,9 @@ $FZF_CUSTOM_PARAMS \
 --preview 'cat {}' \
 --preview-label='[ 文件 ]'
 }
-alias showaliases="fzf_show_aliases2"   # Desc: alias: showaliases:fzf_show_aliases2命令的别名,显示所有自定义命令及注释
+alias showaliases="fzf_custom_aliases2"   # Desc: alias: showaliases:fzf_custom_aliases2命令的别名,显示所有自定义命令及注释
 
-function fzf_show_alias() { # Desc: function: fzf_show_alias:利用fzf显示所有别名
+function fzf_aliases() { # Desc: function: fzf_aliases:利用fzf显示所有别名
     alias | sed -e "s/^alias //g" | fzf --no-sort --tac \
 $FZF_CUSTOM_PARAMS \
 --height 95% \
@@ -84,7 +84,7 @@ $FZF_CUSTOM_PARAMS \
 --preview "$MYRUNTIME/customs/bin/_positalias {}" \
 --preview-label='[ 文件 ]'
 }
-alias fsa="fzf_show_alias"  # Desc: alias: fsa:fzf_show_alias命令的别名,利用fzf显示所有别名
+alias fsa="fzf_aliases"  # Desc: alias: fsa:fzf_aliases命令的别名,利用fzf显示所有别名
 
 function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_customs_fzf_awesome_functions_list: 利用fzf列出所有自定义fzf相关命令
     if [ ! -f $HOME/.myruntime ]; then
@@ -112,7 +112,7 @@ function fzf_customs_fzf_awesome_functions_list() { # Desc: function: fzf_custom
 }
 alias fafl="fzf_customs_fzf_awesome_functions_list" # Desc: alias: fafl: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
 
-function show_aliases_from_a2z() { # Desc: function: show_aliases_from_a2z:显示从a-z的自定义命令
+function custom_aliases_from_a2z() { # Desc: function: custom_aliases_from_a2z:显示从a-z的自定义命令
     hr "⬳"
     echo -n "[ $(echo -e {a..z}) ]\n"
     hr "⬳"
@@ -129,7 +129,7 @@ function show_aliases_from_a2z() { # Desc: function: show_aliases_from_a2z:显�
         fi
     done
 }
-alias a2z="show_aliases_from_a2z"   # Desc: alias: a2z:show_aliases_from_a2z命令的别名,显示从a-z的自定义命令
+alias a2z="custom_aliases_from_a2z"   # Desc: alias: a2z:custom_aliases_from_a2z命令的别名,显示从a-z的自定义命令
 
 function update_iterm2_shell_integration() { # Desc: function: update_iterm2_shell_integration:更新iterm2的扩展shell
 	curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
@@ -183,7 +183,7 @@ function show_bad_links() { # Desc: function: show_bad_links:列出所有失效�
 }
 alias badlinks="show_bad_links"      # Desc: alias: badlink:show_bad_links命令的别名,列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
 
-function csbuild() { # Desc: function: csbuild:生成【参数为后缀名的】的数据文件
+function build_by_extension() { # Desc: function: build_by_extension:生成【参数为后缀名的】的数据文件
     [ $# -eq 0 ] && return
 
     cmd="find `pwd`"
@@ -194,12 +194,14 @@ function csbuild() { # Desc: function: csbuild:生成【参数为后缀名的】
     eval "${cmd: 0: ${#cmd} - 3}" > cscope.files &&
         cscope -b -q && rm cscope.files
 }
+alias csbuild="build_by_extension" # Desc: alias: csbuild: build_by_extension命令的别名,生成【参数为后缀名的】的数据文件
 
-function clear_camera() { # Desc: function: clear_camera:清理摄像头缓存
+function clear_camera_cache() { # Desc: function: clear_camera_cache:清理摄像头缓存
     sudo killall VDCAssistant
 }
+alias ccamera="clear_camera_cache" # Desc: alias: ccamera: clear_camera_cache命令的别名,清理摄像头缓存
 
-function codesign() { # Desc: function: codesign:TNT破解失效 更改签名
+function sign_tnt_code_name() { # Desc: function: sign_tnt_code_name:TNT破解失效 更改签名
     if [ $# -ne 1 ]; then
         echo "Type $0 App path to replace the app sign"
         return 1
@@ -211,20 +213,21 @@ function codesign() { # Desc: function: codesign:TNT破解失效 更改签名
         return 1
     fi
 }
-alias cs="codesign"     # Desc: alias: cs:codesign命令的别名,TNT破解失效,更改签名
+alias cs="sign_tnt_code_name"     # Desc: alias: cs:sign_tnt_code_name命令的别名,TNT破解失效,更改签名
 
 function fzf_figlet_font_selector() { # Desc: function: fzf_figlet_font_selector:Figlet字体选择器
     cd $(brew --prefix)/figlet/*/share/figlet/fonts
     figlet -f `ls *.flf | sort | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 字体 ]'` $*
 }
-alias fgl="fzf_figlet_font_selector"    # Desc: alias: fgl:fzf_figlet_font_selector命令的别名,Figlet字体选择器
+alias fffs="fzf_figlet_font_selector"    # Desc: alias: fffs:fzf_figlet_font_selector命令的别名,Figlet字体选择器
 
 function miniprompt() { # Desc: function: miniprompt:临时最简化,终端主题
     unset PROMPT_COMMAND
-    PS1="\[\e[38;5;168m\]> \[\e[0m\]"
+    export PS1="\[\e[38;5;168m\]> \[\e[0m\]"
 }
+alias mp="miniprompt" # Desc: alias: mp: miniprompt命令的别名,临时最简化,终端主题
 
-function speaking() { # Desc: function: speaking:利用osx系统发音说话
+function speaking_by_osx_voice() { # Desc: function: speaking_by_osx_voice:利用osx系统发音说话
     words="$@"
     hasgum=$(ifHasCommand gum)
 
@@ -234,6 +237,7 @@ function speaking() { # Desc: function: speaking:利用osx系统发音说话
     #osascript -e 'say "'$words'" using "Cellos"'
     osascript -e 'say "'$words'" using "Ting-Ting"'
 }
+sbov="speaking_by_osx_voice" # Desc: alias: sbov: speaking_by_osx_voice命令的别名,利用osx系统发音说话
 
 function my_weather() { # Desc: function: my_weather:获取哈尔滨天气
     if [ -f /opt/homebrew/opt/curl/bin/curl ]; then
@@ -244,7 +248,7 @@ function my_weather() { # Desc: function: my_weather:获取哈尔滨天气
 }
 alias myweather="my_weather"    # Desc: alias: myweather:my_weather命令的别名,获取哈尔滨天气
 
-function history_sort() { # Desc: function: history_sort:按执行次数倒序显示历史命令
+function history_sort_by_used() { # Desc: function: history_sort_by_used:按执行次数倒序显示历史命令
     local last_command_type=`history | tail -n 1 | awk '{print($0~/^[-]?([0-9])+[.]?([0-9])+$/)?"number":"string"}'`
     if [ "$last_command_type" = "number" ]; then
         history | awk '{$1="";print}' | sort -rn | uniq -c | sort -rn | less
@@ -252,7 +256,7 @@ function history_sort() { # Desc: function: history_sort:按执行次数倒序�
         history | sort -rn | uniq -c | sort -rn | less
     fi
 }
-alias his="history_sort" # alias: his: history_sort命令的别名,按执行次数倒序显示历史命令
+alias hsu="history_sort_by_used" # alias: hsu: history_sort_by_used命令的别名,按执行次数倒序显示历史命令
 
 function fzf_history_repeat() { # Desc: function: fzf_history_repeat:列出历史操作命令,选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac $FZF_CUSTOM_PARAMS \
@@ -262,7 +266,7 @@ function fzf_history_repeat() { # Desc: function: fzf_history_repeat:列出历�
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
      | sed 's/ *[0-9]* *//')
 }
-alias fh="fzf_history_repeat"   # Desc: alias: fh:fzf_history_repeat命令的别名,列出历史操作命令,选择后执行
+alias fhr="fzf_history_repeat"   # Desc: alias: fhr:fzf_history_repeat命令的别名,列出历史操作命令,选择后执行
 
 function help_by_tldr() { # Desc: function: help_by_tldr:help帮助,tldr命令别名
     tldr $@
@@ -283,11 +287,12 @@ alias p='ps_or_procs_search'   # Desc: alias: p:ps_or_procs_search命令的别�
 function btop() { # Desc: function: btop:bashtop命令的别名 
     [[ -f /usr/local/bin/bashtop ]] && /usr/local/bin/bashtop "$@" || echo "bashtop does not exists !"
 }
+alias bt="btop" # Desc: alias: bt: btop命令的别名,bashtop命令的别名 
 
 function shell_debug() { # Desc: function: shell_debug:依赖shellcheck对shell脚本debug
     [[ -f /usr/local/bin/shellcheck ]] && /usr/local/bin/shellcheck "$@" || echo "shellcheck does not exsits !"
 }
-alias debug="shell_debug" # alias: debug:shell_debug命令的别名,依赖shellcheck对shell脚本debug
+alias sdbug="shell_debug" # alias: sdbug:shell_debug命令的别名,依赖shellcheck对shell脚本debug
 
 function fzf_history() { # Desc: function: fzf_history:依赖fzf读取history结果
     history | fzf $FZF_CUSTOM_PARAMS \
@@ -296,14 +301,14 @@ function fzf_history() { # Desc: function: fzf_history:依赖fzf读取history结
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 }
-alias fhistory="fzf_history"    # Desc: alias: fhistory:fzf_history命令的别名,依赖fzf读取history结果
+alias fh="fzf_history"    # Desc: alias: fh:fzf_history命令的别名,依赖fzf读取history结果
 
 function file_tree() { # Desc: function: file_tree:tree命令
 	mpath='./'
 	[[ "" != "$1" ]] && mpath=$1
 	ls -R $mpath | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'
 }
-alias filetree="file_tree"  # Desc: alias: filetree:file_tree命令的别名,tree命令
+alias ftree="file_tree"  # Desc: alias: ftree:file_tree命令的别名,tree命令
 
 function fzf_history_print() { # Desc: function: fzf_history_print:列出历史操作命令,选择后打印
     print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac $FZF_CUSTOM_PARAMS \
@@ -348,6 +353,22 @@ function command_sl_selector() { # Desc: function: command_sl_selector:输入命
 }
 alias sl='command_sl_selector'  # Desc: alias: sl:command_sl_selector命令的别名,输入命令sl并执行时，二次验证选择
 
+# Man without options will use fzf to select a page
+function fzf_man() { # Desc: function: fzf_man:利用fzf选中man手册
+	MAN="/usr/bin/man"
+	if [ -n "$1" ]; then
+		$MAN "$@"
+		return $?
+	else
+		$MAN -k . | fzf $FZF_CUSTOM_PARAMS \
+--preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" \
+--preview-label='[ 手册 ]' \
+| awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
+		return $?
+	fi
+}
+alias fman="fzf_man"    # Desc: alias: fzf_man的别名,利用fzf选中man手册
+
 function fzf_man_widget() { # Desc: function: fzf_man_widget:fzf版本的man命令
   batman="man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
    man -k . | sort \
@@ -362,7 +383,41 @@ function fzf_man_widget() { # Desc: function: fzf_man_widget:fzf版本的man命�
 --header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr | CTRL-S 切换排序 | CTRL-Y 复制内容 | CTRL-/ 切换预览窗口  | CTRL-N 下翻页 | CTRL-P 上翻页'
   echo ""
 }
-alias fm="fzf_man_widget" # Desc: alias: fm:fzf_man_widget命令的别名,fzf版本的man命令
+alias fmw="fzf_man_widget" # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令
+
+#   mans:   Search manpage given in agument '1' for term given in argument '2' (case insensitive)
+#           displays paginated result with colored search terms and two lines surrounding each hit.             Example: mans mplayer codec
+#   --------------------------------------------------------------------
+function mans () { # Desc: function: mans:man command[$1] and highlight keyword[$2]
+    man $1 | grep -iC2 --color=always $2 | less
+}
+
+function mark_by_cheatsh() { # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
+    if [ $# -lt 1 ]; then
+        echo "Usage:$0 language function"
+        echo ""
+        echo "---------------------------------------"
+        echo ""
+        curl cht.sh
+        return 0
+    fi
+
+
+    url="cheat.sh/"
+    if [ "$1" != "" ]; then
+        url="cheat.sh/$1/"
+    fi
+
+    if [ "$2" != "" ]; then
+        url="cheat.sh/$1/$2"
+    fi
+
+    if [ "$3" != "" ]; then
+        url="cheat.sh/$1/$2+$3"
+    fi
+    curl $url
+}
+alias mbc="mark_by_cheatsh"    # Desc: alias: mbc:mark_by_cheatsh命令的别名,依托于cheat.sh的备忘录
 
 function fzf_aliases_functions_selector() { # Desc: function: fzf_aliases_functions_selector:显示所有的alias和function并通过fzf选用
     CMD=$(
@@ -387,7 +442,7 @@ alias fev="fzf_env_vars"    # Desc: alias: fev: fzf_env_vars命令的别名,利�
 function fzf_eval_preview() { # Desc: function: fzf_eval_preview: 利用fzf执行选中的命令并preview结果
     echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-rounded:hidden:wrap --preview="eval {q}" --preview-label='[ 命令 ]'
 }
-alias feval="fzf_eval_preview"  # Desc: alias: feval: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
+alias fep="fzf_eval_preview"  # Desc: alias: fep: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
 
 function fold() { # Desc: function: fold: Default `fold` to screen width and break at spaces
   if [ $# -eq 0 ]; then
@@ -483,7 +538,7 @@ function ssh() { # Desc: function: ssh:ssh命令后,theme自动切换主题
 function last_theme() { # Desc: function: last_theme: 获取theme命令最后一次的设置
 	echo $($MYRUNTIME/customs/bin/theme -l|tail -n2|head -n1)
 }
-alias lasttheme="last_theme" # Desc: alias: last_theme命令的别名,获取theme命令最后一次的设置
+alias ltheme="last_theme" # Desc: alias: ltheme: last_theme命令的别名,获取theme命令最后一次的设置
 
 function fzf_open_app() { # Desc: function: fzf_open_app: 利用fzf通过终端打开App
     ls /Applications/ | fzf --ansi $FZF_CUSTOM_PARAMS \
@@ -493,7 +548,7 @@ function fzf_open_app() { # Desc: function: fzf_open_app: 利用fzf通过终端�
 --bind 'enter:become(open /Applications/{})' \
 --bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort'
 }
-alias app="fzf_open_app" # Desc: alias: app: fzf_open_app命令的别名,利用fzf通过终端打开App
+alias foa="fzf_open_app" # Desc: alias: foa: fzf_open_app命令的别名,利用fzf通过终端打开App
 
 function cp_forward() { # Desc: function: cp_forward: cp复制完成后跳转至目录
     cp "$@" && goto "$_";
@@ -521,4 +576,4 @@ function most_used_command() { # Desc: function: most_used_command:历史操作�
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 }
-alias mu="most_used_command" # Desc: alias: mu: most_used_command命令的别名,历史操作中使用最多的50个命令
+alias muc="most_used_command" # Desc: alias: muc: most_used_command命令的别名,历史操作中使用最多的50个命令

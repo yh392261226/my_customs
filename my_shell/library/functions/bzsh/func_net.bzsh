@@ -16,7 +16,7 @@ function auto_change_netdisk_status() { # Desc: function: auto_change_netdisk_st
         mv $CPATH/.$CNAME $CPATH/$CNAME
     fi
 }
-alias autonetdisk="auto_change_netdisk_status" # Desc: alias: autonetdisk:auto_change_netdisk_status命令的别名,自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
+alias acns="auto_change_netdisk_status" # Desc: alias: acns:auto_change_netdisk_status命令的别名,自动切换隐藏/显示 我的小米网盘中的特殊s文件夹
 
 function show_useful_host() { # Desc: function: show_useful_host:Display useful host related informaton
     echo -e "\nYou are logged on ${RED}$HOST"
@@ -29,17 +29,19 @@ function show_useful_host() { # Desc: function: show_useful_host:Display useful 
     #echo -e "\n${RED}DNS Configuration:$NC " ; scutil --dns
     echo
 }
-alias ii="show_useful_host"     # Desc: alias: ii:show_useful_host命令的别名,Display useful host related informaton
+alias uh="show_useful_host"     # Desc: alias: uh:show_useful_host命令的别名,Display useful host related informaton
 
-function http_debug () { # Desc: function: http_debug:Download a web page and show info on what took time
+function http_debug () { # Desc: function: http_debug: Download a web page and show info on what took time
     curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ;
 }
+alias hdebug="http_debug" # Desc: alias: hdebug: http_debug命令的别名,Download a web page and show info on what took time
 
 function http_headers () { # Desc: function: http_headers:Grabs headers from web page
     curl -I -L $@ ;
 }
+alias hheaders="http_headers" # Desc: alias: hheaders: http_headers命令的别名,Grabs headers from web page
 
-function my_whois() { # Desc: function: mwhois:Whois网址信息查询
+function custom_whois() { # Desc: function: custom_whois:Whois网址信息查询
     local domain=$(echo "$1" | awk -F/ '{print $3}') # get domain from URL
     if [ -z $domain ] ; then
     domain=$1
@@ -48,12 +50,12 @@ function my_whois() { # Desc: function: mwhois:Whois网址信息查询
 
     /usr/bin/whois -h whois.internic.net $domain | sed '/NOTICE:/q'
 }
-alias mwhois="my_whois"     # Desc: alias: mwhois:my_whois命令的别名,Whois网址信息查询
+alias cwhois="custom_whois"     # Desc: alias: cwhois:custom_whois命令的别名,Whois网址信息查询
 
 function flush_dns() { # Desc: function: flush_dns:刷新本地dns缓存
     sudo dscacheutil -flushcache
 }
-alias flushdns="flush_dns"      # Desc: alias: flushdns:flush_dns命令的别名,刷新本地dns缓存
+alias fdns="flush_dns"      # Desc: alias: fdns:flush_dns命令的别名,刷新本地dns缓存
 
 function set_proxy() { # Desc: function: set_proxy:设置命令行代理
     source $MYRUNTIME/tools/m_proxy
@@ -65,17 +67,17 @@ alias onproxy="set_proxy"      # Desc: alias: onproxy:set_proxy命令的别名,�
 function proxy_port_config() { # Desc: function: configproxy:设置proxy代理端口
     vim $MYRUNTIME/tools/m_proxy
 }
-alias configproxy="proxy_port_config"	# Desc: alias: configproxy:proxy_port_config设置proxy代理端口,设置proxy代理端口
+alias vproxy="proxy_port_config"	# Desc: alias: vproxy:proxy_port_config设置proxy代理端口,设置proxy代理端口
 
-function proxy_port_cat() { # Desc: function: catproxy:察看proxy代理设置
+function proxy_port_cat() { # Desc: function: proxy_port_cat:察看proxy代理设置
     cat $MYRUNTIME/tools/m_proxy
 }
-alias catproxy="proxy_port_cat"    # Desc: alias: catproxy:proxy_port_cat命令的别名,察看proxy代理设置,
+alias cproxy="proxy_port_cat"    # Desc: alias: cproxy:proxy_port_cat命令的别名,察看proxy代理设置,
 
 function unset_proxy() { # Desc: function: unset_proxy:取消设置命令行代理
     export HTTP_PROXY=""; export HTTPS_PROXY=""; export ALL_PROXY=""
 }
-alias unsetproxy="unset_proxy"      # Desc: alias: unsetproxy:unset_proxy命令的别名,取消设置命令行代理
+alias uproxy="unset_proxy"      # Desc: alias: uproxy:unset_proxy命令的别名,取消设置命令行代理
 alias offproxy="unset_proxy"      # Desc: alias: offproxy:unset_proxy命令的别名,取消设置命令行代理
 
 function print_proxy() { # Desc: function: print_proxy:输出命令行代理
@@ -83,7 +85,6 @@ function print_proxy() { # Desc: function: print_proxy:输出命令行代理
     echo "https: $HTTPS_PROXY";
     echo "All: $ALL_PROXY";
 }
-alias eproxy="print_proxy"      # Desc: alias: eproxy:print_proxy命令的别名,输出命令行代理
 alias pproxy="print_proxy"      # Desc: alias: pproxy:print_proxy命令的别名,输出命令行代理
 
 function get_proxy() { # Desc: function: get_proxy:获取命令行代理
@@ -95,13 +96,12 @@ function get_proxy() { # Desc: function: get_proxy:获取命令行代理
     \n
     " | cowsay | lolcat
 }
-alias getproxy="get_proxy"      # Desc: alias: getproxy:get_proxy命令的别名,获取命令行代理
+alias gproxy="get_proxy"      # Desc: alias: gproxy:get_proxy命令的别名,获取命令行代理
 
 function get_port_using_status() { # Desc: function: get_port_using_status:获取端口占用情况
     lsof -P -i -n | grep $@
 }
-alias getportstatus="get_port_using_status"     # Desc: alias: getportstatus:get_port_using_status命令的别名,获取端口占用情况
-alias wport="get_port_using_status"             # Desc: alias: wport:get_port_using_status命令的别名,获取端口占用情况
+alias gps="get_port_using_status"             # Desc: alias: gps:get_port_using_status命令的别名,获取端口占用情况
 
 function list_ports() { # Desc: function: list_ports:获取所有端口
     lsof -P -i -n | less

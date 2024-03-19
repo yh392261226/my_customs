@@ -1,9 +1,10 @@
 ### Package Desc: 自定义更新相关命令
 
 
-function update_dotfiles() { # Desc: function: update_dotfiles:git 更新$MYRUNTIME 目录下的所有由git管理的目录
+function update_dotfiles() { # Desc: function: update_dotfiles:git 更新$MYRUNTIME目录下的所有由git管理的目录
     update_git_files_and_modules
 }
+alias ud="update_dotfiles" # Desc: alias: ud: update_dotfiles命令的别名,更新$MYRUNTIME目录下的所有由git管理的目录
 
 function update_today() { # Desc: function: upday:每天一更新
     update_runtimes
@@ -14,6 +15,7 @@ function update_today() { # Desc: function: upday:每天一更新
     #gethosts
 }
 alias update="update_today" # Desc: alias: update:update_today命令的别名,每天一更新
+alias ut="update_today" # Desc: alias: ut:update_today命令的别名,每天一更新
 
 function update_runtimes() { # Desc: function: update_runtimes:Git更新$MYRUNTIME目录下的所有由git管理的目录
     update_dotfiles

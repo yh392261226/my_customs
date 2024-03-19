@@ -14,7 +14,7 @@ function gifify_from_video () { # Desc: function: gifify_from_video:Animated gif
         echo "proper usage: gifify <input_movie.mov>. You Do need to include extension."
     fi
 }
-alias gifify="gifify_from_video"    # Desc: alias: gifify:gifify_from_video命令的别名,Animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
+alias giffv="gifify_from_video"    # Desc: alias: giffv:gifify_from_video命令的别名,Animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
 
 function image_url_cat() { # Desc: function: image_url_cat:Cat img from url in iterm2
     if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" != "iTerm.app" ]; then
@@ -38,7 +38,7 @@ function image_url_cat() { # Desc: function: image_url_cat:Cat img from url in i
         rm -f /tmp/$(basename $imgurl);
     fi
 }
-alias imgurlcat="image_url_cat"     # Desc: alias: imgurlcat:image_url_cat命令的别名,Cat img from url in iterm2
+alias iuc="image_url_cat"     # Desc: alias: iuc:image_url_cat命令的别名,Cat img from url in iterm2
 
 function images_rename_from_download() { # Desc: function: images_rename_from_download:重命名下载的图片
     echo "谨慎使用， 使用前先备份，多次使用相同前缀会使你的图片文件互相覆盖导致减少y|Y（使用）n|N(不使用)"
@@ -56,7 +56,7 @@ function images_rename_from_download() { # Desc: function: images_rename_from_do
     echo $m
     fi
 }
-alias renamedownloadpics="images_rename_from_download"      # Desc: alias: renamedownloadpics:images_rename_from_download命令的别名,重命名下载的图片
+alias irfd="images_rename_from_download"      # Desc: alias: irfd:images_rename_from_download命令的别名,重命名下载的图片
 
 function image_resizes() { # Desc: function: image_resizes:图片压缩
     mkdir -p out &&
@@ -65,7 +65,7 @@ function image_resizes() { # Desc: function: image_resizes:图片压缩
         [ -e out/$jpg ] || sips -Z 2048 --setProperty formatOptions 80 $jpg --out out/$jpg
     done
 }
-alias resizes="image_resizes"   # Desc: alias: resizes:image_resizes命令的别名,图片压缩
+alias ir="image_resizes"   # Desc: alias: ir:image_resizes命令的别名,图片压缩
 
 function fzf_iterm2_background_image_selector() { # Desc: function: fzf_iterm2_background_image_selector: 利用fzf选择iterm2的背景图片
     IMGPATH=$MYRUNTIME/pictures

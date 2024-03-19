@@ -32,7 +32,7 @@ function tmux_configs_select() { # Desc: function: tmux_configs_select:Tmux根�
         return 1
     fi
 }
-alias tmuxf="tmux_configs_select" # Desc: alias: tmuxf:tmux_configs_select命令的别名,Tmux根据选择使用配置文件
+alias tcs="tmux_configs_select" # Desc: alias: tcs:tmux_configs_select命令的别名,Tmux根据选择使用配置文件
 
 function fzf_tmux_pane() { # Desc: function: fzf_tpane: Tmux switch pane (@george-b)
     local panes current_window current_pane target target_window target_pane
@@ -78,27 +78,27 @@ function fzf_tmux_helper() { # Desc: function: fzf_tmux_helper:tmux中利用fzf�
 }
 alias fth="fzf_tmux_helper" # Desc: alias: fth: fzf_tmux_helper命令的别名,tmux中利用fzf的帮助
 
-function fzf_tmux_switchsession() { # Desc: function: fzf_tmux_switchsession:Switch tmux-sessions
+function fzf_tmux_switch_session() { # Desc: function: fzf_tmux_switch_session:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
         fzf-tmux --query="$1" --select-1 --exit-0) &&
         tmux switch-client -t "$session"
 }
-alias ftss="fzf_tmux_switchsession" # Desc: alias: ftss: fzf_tmux_switchsession命令的别名,Switch tmux-sessions
+alias ftss="fzf_tmux_switch_session" # Desc: alias: ftss: fzf_tmux_switch_session命令的别名,Switch tmux-sessions
 
 function tmux_tmp_window() { # Desc: function: tmux_tmp_window:Tmux生成一个执行,参数中的命令的临时窗口,回车后自动关闭
     tmux splitw "$*; echo -n Press enter to finish.; read"
     tmux select-layout tiled
     tmux last-pane
 }
-alias tx="tmux_tmp_window" # Desc: alias: tx:tmux_tmp_window命令的别名,Tmux生成一个执行,参数中的命令的临时窗口,回车后自动关闭
+alias ttw="tmux_tmp_window" # Desc: alias: ttw:tmux_tmp_window命令的别名,Tmux生成一个执行,参数中的命令的临时窗口,回车后自动关闭
 
 function tmux_list_panes() { # Desc: function: tmux_list_panes:打印当前tmux所有的pane id
     for p in $(tmux list-windows -F "#{pane_id}"); do
         tmux send-keys -t $p Enter
     done
 }
-alias tping="tmux_list_panes" # Desc: alias: tping:tmux_list_panes命令的别名,打印当前tmux所有的pane id
+alias tlp="tmux_list_panes" # Desc: alias: tlp:tmux_list_panes命令的别名,打印当前tmux所有的pane id
 
 function tmux_new_window() { # Desc: function: tmux_new_window:Tmux中自动起一个窗口去做操作
     if [ $# -lt 1 ]; then
@@ -118,7 +118,7 @@ function tmux_new_window() { # Desc: function: tmux_new_window:Tmux中自动起�
     tmux set-window-option synchronize-panes on > /dev/null
     $SHELL -ci "$head; $tail"
 }
-alias tt="tmux_new_window" # Desc: alias: tt:tmux_new_window命令的别名,Tmux中自动起一个窗口去做操作
+alias tnw="tmux_new_window" # Desc: alias: tnw:tmux_new_window命令的别名,Tmux中自动起一个窗口去做操作
 
 function tmux_iris_window() { # Desc: function: tmux_iris_window:tmux_iris_window 启动tmux iris聊天窗口模式
     #
@@ -149,22 +149,22 @@ function tmux_iris_window() { # Desc: function: tmux_iris_window:tmux_iris_windo
 
     exit 0
 }
-alias tmuxen="tmux_iris_window" # Desc: alias: tmuxen:tmux_iris_window命令的别名,启动tmux iris聊天窗口模式
+alias tiw="tmux_iris_window" # Desc: alias: tiw:tmux_iris_window命令的别名,启动tmux iris聊天窗口模式
 
 function tmux_list() { # Desc: function: tmux_list:列出所有tmux会话
     tmux ls
 }
-alias tls="tmux_list" # Desc: alias: tls: tmux_list命令的别名,列出所有tmux会话
+alias tl="tmux_list" # Desc: alias: tl: tmux_list命令的别名,列出所有tmux会话
 
 function tmux_new() { # Desc: function: tmux_new:新建名称为传参的会话
     tmux new -s $1
 }
-alias tnew="tmux_new" # Desc: alias: tnew: tmux_new命令的别名,新建名称为传参的会话
+alias tn="tmux_new" # Desc: alias: tn: tmux_new命令的别名,新建名称为传参的会话
 
 function tmux_restore_last_session() { # Desc: function: tmux_restore_last_session:恢复至上一次的会话
     tmux a
 }
-alias trestore="tmux_restore_last_session" # Desc: alias: trestore: tmux_restore_last_session命令的别名,恢复至上一次的会话
+alias tlasts="tmux_restore_last_session" # Desc: alias: tlasts: tmux_restore_last_session命令的别名,恢复至上一次的会话
 
 function tmux_recover() { # Desc: function: tmux_recover:恢复名称为$1的会话，会话默认名称为数字
     tmux a -t $1

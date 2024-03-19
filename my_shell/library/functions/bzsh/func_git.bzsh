@@ -1,9 +1,10 @@
 ### Package Desc: Git版本控制工具相关
 
 
-function is_git() { # Desc: function: is_git:pick files from `git status -s`
+function check_is_git() { # Desc: function: check_is_git:验证是否是git版本库
     git rev-parse HEAD > /dev/null 2>&1
 }
+alias isgit="check_is_git" # Desc: alias: isgit: check_is_git命令的别名,验证是否是git版本库
 
 function auto_create_git_respository() { # Desc: function: auto_create_git_respository: 自动创建版本库
 	mkdir $1
@@ -15,7 +16,7 @@ function auto_create_git_respository() { # Desc: function: auto_create_git_respo
 	git remote add origin git@github.com:yh392261226/$1.git
 	git push origin master
 }
-alias mkgit="auto_create_git_respository" # Desc: alias: mkgit: auto_create_git_respository命令的别名,自动创建版本库
+alias acgr="auto_create_git_respository" # Desc: alias: acgr: auto_create_git_respository命令的别名,自动创建版本库
 
 function fzf_checkout_git_branch() { # Desc: function: fzf_checkout_git_branch:checkout git branch
     local branches branch
@@ -24,8 +25,7 @@ function fzf_checkout_git_branch() { # Desc: function: fzf_checkout_git_branch:c
     fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
-alias fzf_br="fzf_checkout_git_branch"      # Desc: alias: fzf_br:fzf_checkout_git_branch命令的别名,checkout git branch
-alias fbr="fzf_checkout_git_branch"         # Desc: alias: fbr:fzf_checkout_git_branch命令的别名,checkout git branch
+alias fcb="fzf_checkout_git_branch"         # Desc: alias: fcb:fzf_checkout_git_branch命令的别名,checkout git branch
 
 function fzf_git_checkout_commit() { # Desc: function: fzf_git_checkout_commit:checkout git commit
     local commits commit
@@ -38,7 +38,7 @@ function fzf_git_checkout_commit() { # Desc: function: fzf_git_checkout_commit:c
 ) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
-alias fcoc="fzf_git_checkout_commit"    # Desc: alias: fcoc:fzf_git_checkout_commit命令的别名,checkout git commit
+alias fcc="fzf_git_checkout_commit"    # Desc: alias: fcc:fzf_git_checkout_commit命令的别名,checkout git commit
 
 function fzf_git_checkout_preview() { # Desc: function: fzf_git_checkout_preview:checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
     local tags branches target
@@ -59,7 +59,7 @@ function fzf_git_checkout_preview() { # Desc: function: fzf_git_checkout_preview
         ) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
-alias fcop="fzf_git_checkout_preview"        # Desc: alias: fcop:fzf_git_checkout_preview命令的别名,checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
+alias fcp="fzf_git_checkout_preview"        # Desc: alias: fcp:fzf_git_checkout_preview命令的别名,checkout git branch/tag, with a preview showing the commits between the tag/branch and HEAD
 
 function fzf_git_commit_sha() { # Desc: function: fzf_git_commit_sha:get git commit sha. example usage: git rebase -i `fcs`
     local commits commit
@@ -82,7 +82,7 @@ function fzf_git_checkout() { # Desc: function: fzf_git_checkout:checkout git br
     fzf-tmux -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
-alias fco="fzf_git_checkout"        # Desc: alias: fco:fzf_git_checkout命令的别名,checkout git branch/tag
+alias fck="fzf_git_checkout"        # Desc: alias: fck:fzf_git_checkout命令的别名,checkout git branch/tag
 
 function fzf_git_checkout2() { # Desc: function: fzf_git_checkout2:checkout git branch
     if git rev-parse --git-dir > /dev/null 2>&1; then
@@ -104,7 +104,7 @@ function fzf_git_checkout2() { # Desc: function: fzf_git_checkout2:checkout git 
         echo "Can't check out or create branch. Not in a git repo"
     fi
 }
-alias fco2="fzf_git_checkout2"        # Desc: alias: fco2:fzf_git_checkout2命令的别名,checkout git branch
+alias fck2="fzf_git_checkout2"        # Desc: alias: fck2:fzf_git_checkout2命令的别名,checkout git branch
 
 function fzf_git_stash() { # Desc: function: fzf_git_stash:Easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
@@ -156,7 +156,7 @@ function fzf_git_status() { # Desc: function: fzf_git_status: 显示当前git的
 alias fgs="fzf_git_status"  # Desc: alias: fgs:fzf_git_status的别名,显示当前git的状态,并用编辑打开选择的文件
 
 function fzf_git_untracked() { # Desc: function: fzf_git_untracked:显示当前git版本库中未添加进版本的修改或新增文件列表
-    is_git || return
+    check_is_git || return
 
     local cmd="${FZF_CTRL_T_COMMAND:-"command git status -s"}"
 
@@ -231,4 +231,4 @@ function fzf_git_vim_to_line() { # Desc: function:fzf_git_vim_to_line: Git版本
 --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
 --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑'
 }
-alias fgvl="fzf_git_vim_to_line" # Desc: alias: fgvl: fzf_git_vim_to_line命令的别名,Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行
+alias fgitv2l="fzf_git_vim_to_line" # Desc: alias: fgitv2l: fzf_git_vim_to_line命令的别名,Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行

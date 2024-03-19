@@ -8,8 +8,7 @@ function fzf_rvm_select() { # Desc: function: fzf_rvm_select:RVM integration
     awk '{print $1}' |
     fzf-tmux -l 30 +m --reverse) && rvm use $rb
 }
-alias fzf_rb="fzf_rvm_select"       # Desc: alias: fzf_rb:fzf_rvm_select命令的别名,RVM integration
-alias frb="fzf_rvm_select"          # Desc: alias: frb:fzf_rvm_select命令的别名,RVM integration
+alias frs="fzf_rvm_select"          # Desc: alias: frs:fzf_rvm_select命令的别名,RVM integration
 
 function gems() { # Desc: function: gems:Rvm多个版本的gem操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
@@ -24,43 +23,6 @@ function rakes() { # Desc: function: rakes:rvm多个版本的rake操作同一个
         rake $@
     done
 }
-
-
-
-#   mans:   Search manpage given in agument '1' for term given in argument '2' (case insensitive)
-#           displays paginated result with colored search terms and two lines surrounding each hit.             Example: mans mplayer codec
-#   --------------------------------------------------------------------
-
-function mans () { # Desc: function: mans:man command[$1] and highlight keyword[$2]
-    man $1 | grep -iC2 --color=always $2 | less
-}
-
-function mark_by_cheatsh() { # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
-    if [ $# -lt 1 ]; then
-        echo "Usage:$0 language function"
-        echo ""
-        echo "---------------------------------------"
-        echo ""
-        curl cht.sh
-        return 0
-    fi
-
-
-    url="cheat.sh/"
-    if [ "$1" != "" ]; then
-        url="cheat.sh/$1/"
-    fi
-
-    if [ "$2" != "" ]; then
-        url="cheat.sh/$1/$2"
-    fi
-
-    if [ "$3" != "" ]; then
-        url="cheat.sh/$1/$2+$3"
-    fi
-    curl $url
-}
-alias memo="mark_by_cheatsh"    # Desc: alias: memo:mark_by_cheatsh命令的别名,依托于cheat.sh的备忘录
 
 function php_change_version() { # Desc: function: php_change_version:PHP依赖于brew切换已安装版本
     echo "*******************************************************"
@@ -90,4 +52,4 @@ function php_change_version() { # Desc: function: php_change_version:PHP依赖�
     trap 'rm -f "$tmpfile"'
     echo "Now, it's done ..."
 }
-alias phpcv="php_change_version"    # Desc: alias: phpcv:php_change_version命令的别名,PHP依赖于brew切换已安装版本
+alias pcv="php_change_version"    # Desc: alias: pcv:php_change_version命令的别名,PHP依赖于brew切换已安装版本

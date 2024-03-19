@@ -29,7 +29,6 @@ alias fpk="fzf_process_kill" # Desc: alias: fpk:fzf_process_kill命令的别名,
 function find_process_id () { # Desc: function: find_process_id:Find out the pid of a specified process
     lsof -t -c "$@" ;
 }
-alias find_pid="find_process_id"        # Desc: alias: find_pid:find_process_id命令的别名,Find out the pid of a specified process
 alias fpid="find_process_id"            # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process
 
 function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
