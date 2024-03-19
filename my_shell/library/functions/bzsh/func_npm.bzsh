@@ -13,7 +13,7 @@ __getnpmpkg() {
   echo $pkgcmd
 }
 
-function fzf_npm_run() { # Desc: function: fzf_npm_run:使用fzf查找npm run
+function fzf_npm_run() {                                                                # Desc: function: fzf_npm_run:使用fzf查找npm run
   pkgcmd=$(__getnpmpkg)
   if [ ! -f package.json ]; then
     echo "package.json not found" >&2
@@ -32,7 +32,7 @@ function fzf_npm_run() { # Desc: function: fzf_npm_run:使用fzf查找npm run
 }
 alias fnr="fzf_npm_run"                                                                 # Desc: alias: fnr: fzf_npm_run命令的别名,使用fzf查找npm run
 
-function npm_install() { # Desc: function: npm_install:使用node包管理器安装依赖
+function npm_install() {                                                                # Desc: function: npm_install:使用node包管理器安装依赖
   pkgcmd=$(__getnpmpkg)
   # 如果 $1 为空，则是安装全部依赖
   if [ -z "$1" ]; then
@@ -50,7 +50,7 @@ function npm_install() { # Desc: function: npm_install:使用node包管理器安
 }
 alias ni='npm_install -D'                                                               # Desc: alias: ni: npm_install命令的别名,使用node包管理器安装依赖
 
-function fzf_npm_update() { # Desc: function: fzf_npm_update:使用node包管理器卸载依赖
+function fzf_npm_update() {                                                             # Desc: function: fzf_npm_update:使用node包管理器卸载依赖
   pkgcmd=$(__getnpmpkg)
   # 如果 $@ 为空，则使用 fzf 查找依赖
   if [ -z "$@" ]; then

@@ -1,7 +1,7 @@
 ### Package Desc: 语言相关命令
 
 
-function fzf_rvm_select() { # Desc: function: fzf_rvm_select:RVM integration
+function fzf_rvm_select() {                                                        # Desc: function: fzf_rvm_select:RVM integration
     local rb
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
@@ -10,21 +10,21 @@ function fzf_rvm_select() { # Desc: function: fzf_rvm_select:RVM integration
 }
 alias frs="fzf_rvm_select"                                                         # Desc: alias: frs:fzf_rvm_select命令的别名,RVM integration
 
-function gems() { # Desc: function: gems:Rvm多个版本的gem操作同一个包
+function gems() {                                                                  # Desc: function: gems:Rvm多个版本的gem操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         gem $@
     done
 }
 
-function rakes() { # Desc: function: rakes:rvm多个版本的rake操作同一个包
+function rakes() {                                                                 # Desc: function: rakes:rvm多个版本的rake操作同一个包
     for v in 2.0.0 1.8.7 jruby 1.9.3; do
         rvm use $v
         rake $@
     done
 }
 
-function php_change_version() { # Desc: function: php_change_version:PHP依赖于brew切换已安装版本
+function php_change_version() {                                                    # Desc: function: php_change_version:PHP依赖于brew切换已安装版本
     echo "*******************************************************"
     echo "Current version is : "
     php -v
@@ -53,3 +53,9 @@ function php_change_version() { # Desc: function: php_change_version:PHP依赖�
     echo "Now, it's done ..."
 }
 alias pcv="php_change_version"                                                     # Desc: alias: pcv:php_change_version命令的别名,PHP依赖于brew切换已安装版本
+
+
+function shell_debug() {                                                           # Desc: function: shell_debug:依赖shellcheck对shell脚本debug
+    [[ -f /usr/local/bin/shellcheck ]] && /usr/local/bin/shellcheck "$@" || echo "shellcheck does not exsits !"
+}
+alias sdebug="shell_debug"                                                         # Desc: alias: sdebug:shell_debug命令的别名,依赖shellcheck对shell脚本debug

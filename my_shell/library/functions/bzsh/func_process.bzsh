@@ -1,7 +1,7 @@
 ### Package Desc: 进程相关命令
 
 
-function fzf_process_kill() { # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
+function fzf_process_kill() {                                                       # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     local PARAMS
     PARAMS=($FZF_CUSTOM_PARAMS --preview-label="[ 进程 ]" --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort')
@@ -26,12 +26,12 @@ alias fpk="fzf_process_kill"                                                    
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
 
-function find_process_id () { # Desc: function: find_process_id:Find out the pid of a specified process
+function find_process_id () {                                                       # Desc: function: find_process_id:Find out the pid of a specified process
     lsof -t -c "$@" ;
 }
 alias fpid="find_process_id"                                                        # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process
 
-function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
+function fzf_process_kill2() {                                                      # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
     (date; ps -ef) | fzf $FZF_CUSTOM_PARAMS \
 --height=80% \
 --preview-label='[ 进程 ]' \
@@ -42,7 +42,7 @@ function fzf_process_kill2() { # Desc: function: fzf_process_kill2:Fzf展示进�
 }
 alias fpk2='fzf_process_kill2'                                                      # Desc: alias: fpk2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
 
-function fzf_process_magnifier() { # Desc: function fzf_process_magnifier: 进程放大镜
+function fzf_process_magnifier() {                                                  # Desc: function fzf_process_magnifier: 进程放大镜
     (date; ps -ef) | fzf $FZF_CUSTOM_PARAMS \
 --height=80% \
 --preview-label='[ 进程 ]' \

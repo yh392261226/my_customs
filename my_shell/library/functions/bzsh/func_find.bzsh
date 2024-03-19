@@ -1,7 +1,7 @@
 ### Package Desc: 查找相关命令
 
 
-function find_files_by_ext() { # Desc: function: find_files_by_ext:寻找当前目录下后缀名的所有文件
+function find_files_by_ext() {                                                         # Desc: function: find_files_by_ext:寻找当前目录下后缀名的所有文件
     if [ "$1" != "" ]; then
         find ./ -type f -iname '*.'${1}'' -exec ls -l {} \; ;
     else
@@ -16,7 +16,7 @@ function find_files_by_ext() { # Desc: function: find_files_by_ext:寻找当前�
 }
 alias fext="find_files_by_ext"                                                         # Desc: alias: fext:find_files_by_ext命令的别名,寻找当前目录下后缀名的所有文件
 
-function find_file_by_end() { # Desc: function: find_file_by_end:Find file whose name ends with a given string
+function find_file_by_end() {                                                          # Desc: function: find_file_by_end:Find file whose name ends with a given string
     if [ "$@" != "" ]; then
         /usr/bin/find . -name '*'"$@" ;
     else
@@ -31,7 +31,7 @@ function find_file_by_end() { # Desc: function: find_file_by_end:Find file whose
 }
 alias fend="find_file_by_end"                                                          # Desc: alias: fend:find_file_by_end命令的别名,Find file whose name ends with a given string
 
-function find_files_by_start() { # Desc: function: find_fs:Find file whose name starts with a given string
+function find_files_by_start() {                                                       # Desc: function: find_fs:Find file whose name starts with a given string
     if [ "$@" != "" ]; then
         find . -name "$@"'*' ;
     else
@@ -46,7 +46,7 @@ function find_files_by_start() { # Desc: function: find_fs:Find file whose name 
 }
 alias fstart="find_files_by_start"                                                     # Desc: alias: fstart:find_files_by_start命令的别名,Find file whose name starts with a given string
 
-function find_files_by_contain() { # Desc: function: find_files_by_contain:查找当前目录中包含某个字符串的
+function find_files_by_contain() {                                                     # Desc: function: find_files_by_contain:查找当前目录中包含某个字符串的
     if [ "$1" != "" ]; then
         find . -exec grep -l -s $1 {} \;
     else
@@ -62,7 +62,7 @@ function find_files_by_contain() { # Desc: function: find_files_by_contain:查�
 }
 alias fcontain="find_files_by_contain"                                                 # Desc: alias: fcontain:find_files_by_contain命令的别名,查找当前目录中包含某个字符串的
 
-function find_file_by_params() { # Desc: function: find_file_by_params:Find file under the current directory
+function find_file_by_params() {                                                       # Desc: function: find_file_by_params:Find file under the current directory
     if [ "$1" != "" ]; then
         find ./ -name "$@" ;
     else
@@ -77,7 +77,7 @@ function find_file_by_params() { # Desc: function: find_file_by_params:Find file
 }
 alias fparams="find_file_by_params"                                                    # Desc: alias: fparams:find_file_by_params命令的别名,Find file under the current directory
 
-function find_same_file_by_md5() { # Desc: function: find_same_file_by_md5:Find files which has the same md5 value
+function find_same_file_by_md5() {                                                     # Desc: function: find_same_file_by_md5:Find files which has the same md5 value
     local MD5COMMAND=/sbin/md5
     local SOURCEPATH=$1
     local TMPFILE=/tmp/findmd5same_tmp
@@ -118,12 +118,12 @@ function find_same_file_by_md5() { # Desc: function: find_same_file_by_md5:Find 
 }
 alias fmd5="find_same_file_by_md5"                                                     # Desc: alias: fmd5:find_same_file_by_md5命令的别名,Find files which has the same md5 value
 
-function spotlight() { # Desc: function: spotlight:利用tree和grep命令搜索关键字的文件
+function spotlight() {                                                                 # Desc: function: spotlight:利用tree和grep命令搜索关键字的文件
     mdfind "kMDItemDisplayName == '$@'wc";
 }
 alias sp='spotlight'                                                                   # Desc: alias: sp:spotlight命令的别名,Search for a file using MacOS Spotlight's metadata
 
-function search_by_tree() { # Desc: function: search_by_tree: Search keyword by tree command in the directory.
+function search_by_tree() {                                                            # Desc: function: search_by_tree: Search keyword by tree command in the directory.
     if [ "$1" != "" ]; then
         tree -d -L 2 |grep "$1" -C 10|less
     else
@@ -138,7 +138,7 @@ function search_by_tree() { # Desc: function: search_by_tree: Search keyword by 
 }
 alias stree='search_by_tree'                                                           # Desc: alias: stree:search_by_tree命令的别名,利用tree和grep命令搜索关键字的文件
 
-function fzf_find_by_choice() { # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
+function fzf_find_by_choice() {                                                        # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
     find * | fzf $FZF_CUSTOM_PARAMS \
 --preview-label='[ 文件或文件夹 ]' \
 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
@@ -147,7 +147,7 @@ function fzf_find_by_choice() { # Desc: function: fzf_find_by_choice: 利用fzf�
 }
 alias ffc="fzf_find_by_choice"                                                         # Desc: alias: ffc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
 
-function fzf_fd_by_choice() { # Desc: function: fzf_fd_by_choice: 利用fzf命令显示fd的结果,并根据选择展示文件或文件夹
+function fzf_fd_by_choice() {                                                          # Desc: function: fzf_fd_by_choice: 利用fzf命令显示fd的结果,并根据选择展示文件或文件夹
     fd --type file | fzf --prompt 'Files> ' \
       --header 'CTRL-T: Switch between Files/Directories' \
       --bind 'ctrl-t:transform:[[ ! $FZF_PROMPT =~ Files ]] &&

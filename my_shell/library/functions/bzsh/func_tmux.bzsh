@@ -1,7 +1,7 @@
 ### Package Desc: Tmux窗口管理工具相关命令
 
 
-function tmux_configs_select() { # Desc: function: tmux_configs_select:Tmux根据选择使用配置文件
+function tmux_configs_select() {                                                       # Desc: function: tmux_configs_select:Tmux根据选择使用配置文件
     local CONFIGS=$MYRUNTIME/tmuxconfigs  #配置文件地址
     local EXT=tmux.conf
 
@@ -34,7 +34,7 @@ function tmux_configs_select() { # Desc: function: tmux_configs_select:Tmux根�
 }
 alias tcs="tmux_configs_select"                                                        # Desc: alias: tcs:tmux_configs_select命令的别名,Tmux根据选择使用配置文件
 
-function fzf_tmux_pane() { # Desc: function: fzf_tpane: Tmux switch pane (@george-b)
+function fzf_tmux_pane() {                                                             # Desc: function: fzf_tpane: Tmux switch pane (@george-b)
     local panes current_window current_pane target target_window target_pane
     panes=$(tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
     current_pane=$(tmux display-message -p '#I:#P')
@@ -65,12 +65,12 @@ function fzf_tmux_pane() { # Desc: function: fzf_tpane: Tmux switch pane (@georg
 }
 alias ftpane="fzf_tmux_pane"                                                           # Desc: alias: ftpane:fzf_tmux_pane命令的别名,Tmux switch pane (@george-b)
 
-function fzf_tmux_words() { # Desc: function: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
+function fzf_tmux_words() {                                                            # Desc: function: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
     fzf_tmux_helper '-p 40' 'tmuxwords --all --scroll 500 --min 5 | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ Words ]' | paste -sd" " -'
 }
 alias ftw="fzf_tmux_words"                                                             # Desc: alias: ftw: fzf_tmux_words命令的别名,tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
 
-function fzf_tmux_helper() { # Desc: function: fzf_tmux_helper:tmux中利用fzf的帮助
+function fzf_tmux_helper() {                                                           # Desc: function: fzf_tmux_helper:tmux中利用fzf的帮助
     local sz=$1;  shift
     local cmd=$1; shift
     tmux split-window $sz \
@@ -78,7 +78,7 @@ function fzf_tmux_helper() { # Desc: function: fzf_tmux_helper:tmux中利用fzf�
 }
 alias fth="fzf_tmux_helper"                                                            # Desc: alias: fth: fzf_tmux_helper命令的别名,tmux中利用fzf的帮助
 
-function fzf_tmux_switch_session() { # Desc: function: fzf_tmux_switch_session:Switch tmux-sessions
+function fzf_tmux_switch_session() {                                                   # Desc: function: fzf_tmux_switch_session:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
         fzf-tmux --query="$1" --select-1 --exit-0) &&
@@ -86,21 +86,21 @@ function fzf_tmux_switch_session() { # Desc: function: fzf_tmux_switch_session:S
 }
 alias ftss="fzf_tmux_switch_session"                                                   # Desc: alias: ftss: fzf_tmux_switch_session命令的别名,Switch tmux-sessions
 
-function tmux_tmp_window() { # Desc: function: tmux_tmp_window:Tmux生成一个执行,参数中的命令的临时窗口,回车后自动关闭
+function tmux_tmp_window() {                                                           # Desc: function: tmux_tmp_window:Tmux生成一个执行,参数中的命令的临时窗口,回车后自动关闭
     tmux splitw "$*; echo -n Press enter to finish.; read"
     tmux select-layout tiled
     tmux last-pane
 }
 alias ttw="tmux_tmp_window"                                                            # Desc: alias: ttw:tmux_tmp_window命令的别名,Tmux生成一个执行,参数中的命令的临时窗口,回车后自动关闭
 
-function tmux_list_panes() { # Desc: function: tmux_list_panes:打印当前tmux所有的pane id
+function tmux_list_panes() {                                                           # Desc: function: tmux_list_panes:打印当前tmux所有的pane id
     for p in $(tmux list-windows -F "#{pane_id}"); do
         tmux send-keys -t $p Enter
     done
 }
 alias tlp="tmux_list_panes"                                                            # Desc: alias: tlp:tmux_list_panes命令的别名,打印当前tmux所有的pane id
 
-function tmux_new_window() { # Desc: function: tmux_new_window:Tmux中自动起一个窗口去做操作
+function tmux_new_window() {                                                           # Desc: function: tmux_new_window:Tmux中自动起一个窗口去做操作
     if [ $# -lt 1 ]; then
         echo 'usage: tt <commands...>'
         return 1
@@ -120,7 +120,7 @@ function tmux_new_window() { # Desc: function: tmux_new_window:Tmux中自动起�
 }
 alias tnw="tmux_new_window"                                                            # Desc: alias: tnw:tmux_new_window命令的别名,Tmux中自动起一个窗口去做操作
 
-function tmux_iris_window() { # Desc: function: tmux_iris_window:tmux_iris_window 启动tmux iris聊天窗口模式
+function tmux_iris_window() {                                                          # Desc: function: tmux_iris_window:tmux_iris_window 启动tmux iris聊天窗口模式
     #
     # name     : tmuxen, tmux environment made easy
     # author   : Xu Xiaodong <xxdlhy@gmail.com>
@@ -151,42 +151,42 @@ function tmux_iris_window() { # Desc: function: tmux_iris_window:tmux_iris_windo
 }
 alias tiw="tmux_iris_window"                                                           # Desc: alias: tiw:tmux_iris_window命令的别名,启动tmux iris聊天窗口模式
 
-function tmux_list() { # Desc: function: tmux_list:列出所有tmux会话
+function tmux_list() {                                                                 # Desc: function: tmux_list:列出所有tmux会话
     tmux ls
 }
 alias tl="tmux_list"                                                                   # Desc: alias: tl: tmux_list命令的别名,列出所有tmux会话
 
-function tmux_new() { # Desc: function: tmux_new:新建名称为传参的会话
+function tmux_new() {                                                                  # Desc: function: tmux_new:新建名称为传参的会话
     tmux new -s $1
 }
 alias tn="tmux_new"                                                                    # Desc: alias: tn: tmux_new命令的别名,新建名称为传参的会话
 
-function tmux_restore_last_session() { # Desc: function: tmux_restore_last_session:恢复至上一次的会话
+function tmux_restore_last_session() {                                                 # Desc: function: tmux_restore_last_session:恢复至上一次的会话
     tmux a
 }
 alias tlasts="tmux_restore_last_session"                                               # Desc: alias: tlasts: tmux_restore_last_session命令的别名,恢复至上一次的会话
 
-function tmux_recover() { # Desc: function: tmux_recover:恢复名称为$1的会话，会话默认名称为数字
+function tmux_recover() {                                                              # Desc: function: tmux_recover:恢复名称为$1的会话，会话默认名称为数字
     tmux a -t $1
 }
 alias trecover="tmux_recover"                                                          # Desc: alias: trecover: tmux_recover命令的别名,恢复名称为$1的会话，会话默认名称为数字
 
-function tmux_kill() { # Desc: function: tmux_kill:删除名称为$1的会话
+function tmux_kill() {                                                                 # Desc: function: tmux_kill:删除名称为$1的会话
     tmux kill-session -t $1
 }
 alias tkill="tmux_kill"                                                                # Desc: alias: tkill: tmux_kill命令的别名,删除名称为$1的会话
 
-function tmux_killall() { # Desc: function: tmux_killall:删除所有的会话
+function tmux_killall() {                                                              # Desc: function: tmux_killall:删除所有的会话
     tmux kill-server
 }
 alias tkall="tmux_killall"                                                             # Desc: alias: tkall: tmux_killall命令的别名,删除所有的会话
 
-function tmux_windows() { # Desc: function: tmux_windows:列出当前session的所有窗格
+function tmux_windows() {                                                              # Desc: function: tmux_windows:列出当前session的所有窗格
     tmux list-panes -a
 }
 alias twindows="tmux_windows"                                                          # Desc: alias: twindows: tmux_windows命令的别名,列出当前session的所有窗格
 
-function fzf_tm() { # Desc: function: fzf_tm: create new tmux session, or switch to existing one. Works from within tmux too. (@bag-man)
+function fzf_tm() {                                                                    # Desc: function: fzf_tm: create new tmux session, or switch to existing one. Works from within tmux too. (@bag-man)
     # tm - create new tmux session, or switch to existing one. Works from within tmux too. (@bag-man)
     # `tm` will allow you to select your tmux session via fzf.
     # `tm irc` will attach to the irc session (if it exists), else it will create it.
