@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 ### Desc: 定位fzf别名源是否是命令，且定位所在位置
 
-function _show_fzf_awesome_function() {
+function _show_fzf_awesome_function() {         # Desc: function: _show_fzf_awesome_function: 定位fzf别名源是否是命令，且定位所在位置
     if [ "" != "$1" ] && [ "" != "$2" ]; then
         CCommand=$1
         CLocation=$2
