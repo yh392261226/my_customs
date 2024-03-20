@@ -127,6 +127,7 @@ alias git-show='git show'                                                       
 alias git-log='git log'                                                                                          # Desc: alias: git-log:为配合fzf-tab设置git log的别名
 alias git-checkout='git checkout'                                                                                # Desc: alias: git-checkout:为配合fzf-tab设置git checkout的别名
 alias lg='lazygit'                                                                                               # Desc: alias: lg:lazygit命令的别名
+alias gitlastcommit='git commit --amend -m '                                                                     # Desc: alias: gitlastcommit:git修改最后一次的commit信息
 
 alias hgs='hg status'                                                                                            # Desc: alias: hgs:hg status命令的别名
 alias hgu='hg update'                                                                                            # Desc: alias: hgu:hg update命令的别名
