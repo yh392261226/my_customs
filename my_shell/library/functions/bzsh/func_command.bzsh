@@ -4,24 +4,19 @@
 function search_aliases() {                                                         # Desc: function: search_aliases:显示所有含有字符串的自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
     customcd $MYRUNTIME/customs/my_shell/library/functions/bzsh
-
+    local Content
     if [ ""  != "$1" ]; then
-        find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort \
-        --tac \
-        $FZF_CUSTOM_PARAMS \
-        --height 95% \
-        --preview-window right:70%:border-rounded:hidden:wrap \
-        --preview 'bat {}' \
-        --preview-label='[ 命令及注释 ]'
+        Content=$(find *.bzsh | xargs ag "$1" | awk -F':' '{print $1}' | sort | uniq )
     else
-        find *.bzsh | awk -F':' '{print $1}' | sort | uniq | fzf --no-sort \
-        --tac \
-        $FZF_CUSTOM_PARAMS \
-        --height 95% \
-        --preview-window right:70%:border-rounded:hidden:wrap \
-        --preview 'bat {}' \
-        --preview-label='[ 命令及注释 ]'
+        Content=$(find *.bzsh | awk -F':' '{print $1}' | sort | uniq )
     fi
+    echo "$Content" | fzf --no-sort \
+    --tac \
+    $FZF_CUSTOM_PARAMS \
+    --height 95% \
+    --preview-window right:70%:border-rounded:hidden:wrap \
+    --preview 'bat {}' \
+    --preview-label='[ 命令及注释 ]'
 }
 alias sas="search_aliases"                                                          # Desc: alias: sas:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
 
