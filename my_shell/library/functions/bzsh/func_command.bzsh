@@ -391,17 +391,17 @@ function mark_by_cheatsh() {                                                    
 }
 alias mbc="mark_by_cheatsh"                                                         # Desc: alias: mbc:mark_by_cheatsh命令的别名,依托于cheat.sh的备忘录
 
-function fzf_aliases_functions_selector() {                                         # Desc: function: fzf_aliases_functions_selector:显示所有的alias和function并通过fzf选用
+function fzf_aliases_and_functions_selector() {                                         # Desc: function: fzf_aliases_and_functions_selector:显示所有的alias和function并通过fzf选用
     CMD=$(
         (
             (alias)
             (functions | grep "()" | cut -d ' ' -f1 | grep -v "^_" )
         ) | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 命令 ]' | cut -d '=' -f1
     );
-
+    echo "该命令未完成"
     eval $CMD
 }
-alias faf="fzf_aliases_functions_selector"                                          # Desc: alias: faf: fzf_aliases_functions_selector命令的别名,显示所有的alias和function并通过fzf选用
+alias faaf="fzf_aliases_and_functions_selector"                                          # Desc: alias: faaf: fzf_aliases_and_functions_selector命令的别名,显示所有的alias和function并通过fzf选用
 
 function fzf_env_vars() {                                                           # Desc: function: fzf_env_vars:利用fzf选用env变量的值
   env | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 环境变量 ]' \
