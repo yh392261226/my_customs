@@ -245,4 +245,4 @@ function fzf_directory_manage() {                                               
     ls $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
     --preview-window right:70%:border-rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
-alias fim="fzf_directory_manage"                                                  # Desc: alias: fim: fzf_directory_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
+alias fm="fzf_directory_manage"                                                  # Desc: alias: fm: fzf_directory_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
