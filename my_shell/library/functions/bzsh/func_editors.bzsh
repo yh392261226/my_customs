@@ -154,10 +154,11 @@ alias fvi="fzf_vim"                                                             
 alias fvim="fzf_vim"                                                                # Desc: alias: fvim: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 
 function fzf_grep_search_vim_to_line() {                                            # Desc: function: fzf_grep_search_vim_to_line: vim定位打开根据关键字搜索到文件及行号
-    [[ "" = "$1" ]] && echo "Usage: fgv2l <keyword>" && return 1
+    INITIAL_QUERY="${*:-}"
     grep --recursive --line-number --binary-files=without-match "$1" . | fzf --delimiter ':' \
     --nth 3.. \
     $FZF_CUSTOM_PARAMS \
+    --query "$INITIAL_QUERY" \
     --preview-label='[ 文件及行号 ]' \
     --preview-window 'right,70%,border-bottom,+{2}+3/3,~3' \
     --preview 'bat --color=always {1} --highlight-line {2}' \
@@ -182,7 +183,7 @@ function fzf_rg_search_vim_to_line() {                                          
     --disabled \
     --query "$INITIAL_QUERY" \
     --color "hl:-1:underline,hl+:-1:underline:reverse" \
-    --prompt 'ripgrep正则> ' \
+    --prompt 'ripgrep查询> ' \
     --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 | CTRL-F 切换fzf筛选 | CTRL-R 切换ripgrep筛选' \
     --delimiter : \
     --bind "start:reload:$RG_PREFIX {q};unbind(ctrl-r)" \
@@ -190,8 +191,8 @@ function fzf_rg_search_vim_to_line() {                                          
     --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
-    --bind  "ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf模糊> )+enable-search+rebind(ctrl-r)+transform-query(echo {q} > /tmp/rg-fzf-r; cat /tmp/rg-fzf-f)" \
-    --bind  "ctrl-r:unbind(ctrl-r)+change-prompt(ripgrep正则> )+disable-search+reload($RG_PREFIX {q} || true)+rebind(change,ctrl-f)+transform-query(echo {q} > /tmp/rg-fzf-f; cat /tmp/rg-fzf-r)" \
+    --bind  "ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf查询> )+enable-search+rebind(ctrl-r)+transform-query(echo {q} > /tmp/rg-fzf-r; cat /tmp/rg-fzf-f)" \
+    --bind  "ctrl-r:unbind(ctrl-r)+change-prompt(ripgrep查询> )+disable-search+reload($RG_PREFIX {q} || true)+rebind(change,ctrl-f)+transform-query(echo {q} > /tmp/rg-fzf-f; cat /tmp/rg-fzf-r)" \
     --preview 'bat --color=always {1} --highlight-line {2}' \
     --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
     --bind 'enter:become(vim {1} +{2})'
@@ -199,11 +200,14 @@ function fzf_rg_search_vim_to_line() {                                          
 alias frv2l="fzf_rg_search_vim_to_line"                                             # Desc: alias: frv2l: fzf_rg_search_vim_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
 
 function fzf_ag_search_to_line() {                                                  # Desc: function: fzf_ag_search_to_line:fuzzy grep open via ag with line number
-    [[ "" = "$1" ]] && echo "Usage: fav2l <keyword>" && return 1
     local AGBIN
     [[ -f /opt/homebrew/bin/ag ]] && AGBIN=/opt/homebrew/bin/ag
     [[ -f /usr/local/bin/ag ]] && AGBIN=/usr/local/bin/ag
-    $AGBIN --color --line-number $@ | fzf $FZF_CUSTOM_PARAMS \
+    INITIAL_QUERY="${*:-}"
+    keywords='.'
+    [[ "" != "$INITIAL_QUERY" ]] && keywords="$INITIAL_QUERY"
+    $AGBIN --color --line-number $keywords | fzf $FZF_CUSTOM_PARAMS \
+    --query "$INITIAL_QUERY" \
     --delimiter=':' -n 2.. \
     --preview-window 'right,70%,border-bottom,+{2}+3/3,~3' \
     --preview 'bat --color=always {1} --highlight-line {2}' \

@@ -319,7 +319,7 @@ if [ "zsh" = "$nowshell" ]; then
     if (( $+commands[tag] )); then
         export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
         tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
-        alias ag="tag"  # replace with rg for ripgrep
+        # alias ag="tag"  # replace with rg for ripgrep
     fi
 fi
 
@@ -327,7 +327,7 @@ if [ "bash" = "$nowshell" ]; then
     if hash ag 2>/dev/null; then
         export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
         tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
-        alias ag=tag  # replace with rg for ripgrep
+        # alias ag=tag  # replace with rg for ripgrep
     fi
 fi
 
