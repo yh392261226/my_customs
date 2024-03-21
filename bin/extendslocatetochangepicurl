@@ -6,7 +6,7 @@
 ## you should set the network positions of osx first
 ##
 MYRUNTIME=$(cat $HOME/.myruntime)
-CURLOCATION=$(networksetup -getcurrentlocation);  #当前位置名
+CURLOCATION=$(/usr/sbin/networksetup -getcurrentlocation);  #当前位置名
 PICURL=$(cat $MYRUNTIME/tools/m_picurl); #图片软连接地址
 CURMARKFILE=$MYRUNTIME/tools/positmark
 PUBLICPICS=$PICURL/nature0          #everywhere
