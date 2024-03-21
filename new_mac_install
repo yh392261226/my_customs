@@ -36,6 +36,21 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     ln -sf $MYRUNTIME/customs/configs/zshrc ~/.zshrc
 fi
 
+echo "是否安装bash-it，y|yes/n|no"
+read choose
+if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
+    # ----------------------------------------------------------------------------------- #
+    echo "Starting Install Bash-it ..."
+    # ----------------------------------------------------------------------------------- #
+    cd ~ && git clone --depth=1 https://github.com/Bash-it/bash-it.git ~/.bash_it && bash ~/.bash_it/install.sh
+
+    mv ~/.bashrc ~/.bak_bashrc
+    mv ~/.bash_profile ~/.bak_bash_profile
+
+    ln -sf $MYRUNTIME/customs/configs/bashrc ~/.bashrc
+    ln -sf $MYRUNTIME/customs/configs/bash_profile ~/.bash_profile
+fi
+
 echo "是否安装软件，y|yes/n|no"
 read choose
 if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
@@ -114,6 +129,8 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     ln -sf $MYRUNTIME/customs/configs/skhdrc                    ~/.skhdrc
     mv ~/.fzf.zsh ~/bak/
     ln -sf $MYRUNTIME/customs/configs/fzf.zsh                   ~/.fzf.zsh
+    mv ~/.fzf.bash ~/bak/
+    ln -sf $MYRUNTIME/customs/configs/fzf.bash                   ~/.fzf.bash
     mv ~/.p10k.zsh ~/bak/
     cp $MYRUNTIME/customs/configs/p10k.zsh                      ~/.p10k.zsh
     
