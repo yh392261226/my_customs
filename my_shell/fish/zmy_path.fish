@@ -1,5 +1,5 @@
-fish_add_path ~/Library/Python/3.9/bin
-fish_add_path ~/Library/Python/3.8/bin
+#fish_add_path ~/Library/Python/3.9/bin
+#fish_add_path ~/Library/Python/3.8/bin
 fish_add_path /opt/homebrew/opt/icu4c/bin
 fish_add_path /opt/homebrew/opt/grep/bin
 fish_add_path /opt/homebrew/bin
