@@ -1,79 +1,80 @@
-pip install -U yapf
+pipx install yapf 
 
-python3 -m pip install -U pynvim neovim
+pipx install pynvim neovim 
 
-pip install -U ale
+pipx install ale 
 
-pip install -U notedown
+pipx install notedown 
 
-pip install -U glances
+pipx install glances 
 
-pip install -U dtags
+pipx install dtags 
 
-pip install -U lesspass
+pipx install lesspass 
 
-pip install shell-functools
+pipx install shell-functools 
 
-pip install virtualenv
+pipx install virtualenv 
 
-pip install haxor-news
+pipx install haxor-news 
 
-pip install isitup
+pipx install isitup 
 
-pip3 install --user --upgrade advance-touch
+pipx install advance-touch 
 
-pip install percol
+pipx install percol 
 
-pip install ippy
+pipx install ippy 
 
-pip install tox
+pipx install tox 
 
-pip install openpyxl
+pipx install openpyxl 
 
-pip3 install csvkit
+pipx install csvkit 
 
-pip3 install -U python-language-server
+pipx install python-language-server 
 
-pip3 install -U tree_sitter
+pipx install tree_sitter 
 
-pip3 install -U easyocr
+pipx install easyocr 
 
-pip install -U pytesseract
+pipx install pytesseract 
 
-pip install -U pillow
+pipx install pillow 
 
-pip install -U httpcat
+pipx install httpcat 
 
-pip install -U http-prompt
+pipx install http-prompt 
 
-pip install -U httpie-snapdsocket
+pipx install httpie-snapdsocket 
 
-pip install -U httpie-unixsocket
+pipx install httpie-unixsocket 
 
-pip install -U httpie-ntlm
+pipx install httpie-ntlm 
 
-pip install -U httpie httpie-http2
+pipx install httpie httpie-http2 
 
-pip3 install -U neovim-remote
+pipx install neovim-remote 
 
-pip3 install -U topydo
+pipx install topydo 
 
-pip install --user git+git://github.com/powerline/powerline
+pipx install git+https://github.com/powerline/powerline.git
 
-pip install psutil
+pipx install psutil 
 
-pipx install austin-tui
+pipx install austin-tui 
 
-pip install -U pingtop
+pipx install pingtop 
 
-pip install --user -U fzf-dirhistory
+pipx install fzf-dirhistory 
 
-pip install -U litecli
+pipx install litecli 
 
-pip install -U osxphotos
+pipx install osxphotos 
 
-pip install -U fzf-dirhistory
+# 只能用pip3  无法用pipx
+pip3 install fzf-dirhistory 
 
-pip install -U bpython
+pipx install bpython 
 
-pip install -U pyfunky
+pipx install pyfunky 
