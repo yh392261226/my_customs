@@ -47,7 +47,7 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     mv ~/.bashrc ~/.bak_bashrc
     mv ~/.bash_profile ~/.bak_bash_profile
 
-    ln -sf $MYRUNTIME/customs/configs/bashrc ~/.bashrc
+    ln -sf $MYRUNTIME/customs/configs/bash_profile ~/.bashrc
     ln -sf $MYRUNTIME/customs/configs/bash_profile ~/.bash_profile
 fi
 

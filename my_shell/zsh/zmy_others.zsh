@@ -15,3 +15,7 @@
 if [ -f ~/.bashhub/bashhub.zsh ]; then
     source ~/.bashhub/bashhub.zsh
 fi
+
+if command -v vfox &> /dev/null; then
+    eval "$(vfox activate zsh)"
+fi

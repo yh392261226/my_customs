@@ -979,3 +979,4 @@ brew install forgit
 brew install code-minimap
 brew install --cask keycastr
 brew install jpe90/clp/clp
+brew install version-fox/tap/vfox
