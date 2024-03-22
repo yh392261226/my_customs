@@ -12,7 +12,7 @@ function brew_clean_caches() {                                                  
 alias bcc="brew_clean_caches"                                                          # Desc: alias: bcc: brew_clean_caches命令的别名
 
 function fzf_brew_delete_by_select() {                                                 # Desc: function: fzf_brew_delete_by_select:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
-  local uninst=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]')
+  local uninst=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]') # brew leaves 查看所有安装不包括依赖安装
 
   if [[ $uninst ]]; then
     for prog in $(echo $uninst); do
