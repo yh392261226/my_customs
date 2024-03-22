@@ -387,10 +387,15 @@ default_user=$(/usr/bin/whoami)
 /bin/sh $MYRUNTIME/customs/bin/extendslocatetochangepicurl
 [[ -f $MYRUNTIME/customs/bin/start ]] && $MYRUNTIME/customs/bin/start
 
-#
+#Dotbare
 #----------------------------------------------------------------------------------------------------------------
 #
 #alias config=/usr/bin/git --git-dir=$HOME/.cfg --work-tree=$HOME                                                 # Desc: alias: config:git设置的别名,但紧接着被dotbare覆盖
 export DOTBARE_DIR="$HOME/.cfg"
 export DOTBARE_TREE="$HOME"
 alias config=dotbare                                                                                             # Desc: alias: config:dotbare的别名
+
+#Homebrew
+#----------------------------------------------------------------------------------------------------------------
+#
+export HOMEBREW_NO_AUTO_UPDATE=1                                                                                 # Desc: 设置homebrew不自动更新
