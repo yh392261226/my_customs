@@ -129,7 +129,7 @@ function fzf_nvim() {                                                           
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --preview-label='[ 文件 ]' \
 --bind 'ctrl-o:execute(nvim {} < /dev/tty)' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_nvim 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_nvim 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 )"
     count="$( echo "$files" | wc -l )"
     [[ ! "$files" ]] && return
@@ -145,7 +145,7 @@ function fzf_vim() {                                                            
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --bind 'ctrl-o:execute(vim {} < /dev/tty)' \
 --preview-label='[ 文件 ]' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_vim 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_vim 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 )"
     count="$( echo "$files" | wc -l )"
     vim $files
@@ -166,7 +166,7 @@ function fzf_grep_search_vim_to_line() {                                        
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_grep_search_vim_to_line 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮'
+    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_grep_search_vim_to_line 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias fgv2l="fzf_grep_search_vim_to_line"                                           # Desc: alias: fsv2l: fzf_grep_search_vim_to_line命令的别名,vim定位打开根据关键字搜索到文件及行号
 
@@ -184,7 +184,7 @@ function fzf_rg_search_vim_to_line() {                                          
     --query "$INITIAL_QUERY" \
     --color "hl:-1:underline,hl+:-1:underline:reverse" \
     --prompt 'ripgrep查询> ' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 | CTRL-F 切换fzf筛选 | CTRL-R 切换ripgrep筛选 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_rg_search_vim_to_line 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
+    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 | CTRL-F 切换fzf筛选 | CTRL-R 切换ripgrep筛选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_rg_search_vim_to_line 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
     --delimiter : \
     --bind "start:reload:$RG_PREFIX {q};unbind(ctrl-r)" \
     --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
@@ -215,6 +215,6 @@ function fzf_ag_search_to_line() {                                              
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_ag_search_to_line 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮'
+    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_ag_search_to_line 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias fav2l="fzf_ag_search_to_line"                                                 # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fuzzy grep open via ag with line number
