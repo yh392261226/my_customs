@@ -42,13 +42,6 @@ function sublime_text_which() {                                                 
 alias sw="sublime_text_which"                                                       # Desc: alias: sw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
 alias stw="sublime_text_which"                                                      # Desc: alias: stw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
 
-function atom_which() {                                                             # Desc: function: atom_which:atom编辑which命令找到的文件地址
-    local COMMANDBIN=/usr/local/bin/atom
-    editor_which $COMMANDBIN $1
-}
-alias aw="atom_which"                                                               # Desc: alias: aw: atom_which命令的别名,atom编辑which命令找到的文件地址
-alias atomw="atom_which"                                                            # Desc: alias: atomw: atom_which命令的别名,atom编辑which命令找到的文件地址
-
 function vim_which() {                                                              # Desc: function: vim_which:vim编辑which命令找到的文件地址
     if [ -f /usr/local/bin/vim ]; then
         local COMMANDBIN=/usr/local/bin/vim
@@ -80,6 +73,7 @@ function fzf_tags() {                                                           
 --preview-window right:50%:border-rounded:hidden:wrap \
 --preview="bat {3} --color=always | tail -n +\$(echo {4} | tr -d \";\\\"\")" \
 --preview-label='[ Ctags ]' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_tags 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$linen")"
 }
@@ -90,13 +84,13 @@ function fzf_open_viminfo() {                                                   
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
         [ -f "${line/\~/$HOME}" ] && echo "$line"
-    done | fzf-tmux -d -m -q "$*" -1) && vim ${files//\~/$HOME}
+    done | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_open_viminfo 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 alias fov="fzf_open_viminfo"                                                        # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in ~/.viminfo
 
 function fzf_open_or_edit() {                                                       # Desc: function: fzf_open_or_edit:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
     local out file key
-    out=$(fzf-tmux --query="$1" --exit-0 --expect=ctrl-o,ctrl-e --header='CTRL-O打开 | CTRL-E编辑')
+    out=$(fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap --query="$1" --exit-0 --expect=ctrl-o,ctrl-e --header='CTRL-O打开 | CTRL-E编辑')
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
     if [ -n "$file" ]; then

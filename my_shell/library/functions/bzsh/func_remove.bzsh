@@ -67,7 +67,7 @@ function fzf_remove_file() {                                                    
 
   if [[ "$#" -eq 0 ]]; then
     local files
-    files=$(find . -maxdepth 1 -type f | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ 删除文件 ]')
+    files=$(find . -maxdepth 1 -type f | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ 删除文件 ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_remove_file 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
     [[ ! "$files" ]] && return 1
     [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && (echo $files | xargs -I '{}' rm {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
   else
@@ -81,7 +81,7 @@ function fzf_remove_directory() {                                               
 
   if [[ "$#" -eq 0 ]]; then
     local directories
-    directories=$(find . -maxdepth 1 -type d | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ 删除目录 ]')
+    directories=$(find . -maxdepth 1 -type d | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ 删除目录 ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_remove_directory 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
     [[ ! "$directories" ]] && return 1
     [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
   else

@@ -22,7 +22,7 @@ function fzf_checkout_git_branch() {                                            
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
-    fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_checkout_git_branch 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
 alias fcb="fzf_checkout_git_branch"                                                     # Desc: alias: fcb:fzf_checkout_git_branch命令的别名,checkout git branch
@@ -35,6 +35,7 @@ function fzf_git_checkout_commit() {                                            
 --preview-label='[ checkout ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_nvim 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 ) &&
     git checkout $(echo "$commit" | sed "s/ .*//")
 }
@@ -56,6 +57,7 @@ function fzf_git_checkout_preview() {                                           
 --preview-label='[ Checkout Preview ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_checkout_preview 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
         ) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
@@ -64,7 +66,7 @@ alias fcp="fzf_git_checkout_preview"                                            
 function fzf_git_commit_sha() {                                                         # Desc: function: fzf_git_commit_sha:get git commit sha. example usage: git rebase -i `fcs`
     local commits commit
     commits=$(git log --color=always --pretty=oneline --abbrev-commit --reverse) &&
-    commit=$(echo "$commits" | fzf --tac +s +m -e --ansi $FZF_CUSTOM_PARAMS --preview " echo {2} " --preview-label='[ Commit Sha ]' --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort') &&
+    commit=$(echo "$commits" | fzf --tac +s +m -e --ansi $FZF_CUSTOM_PARAMS --preview " echo {2} " --preview-label='[ Commit Sha ]' --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_commit_sha 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈') &&
     echo -n $(echo "$commit" | sed "s/ .*//")
 }
 alias fcs="fzf_git_commit_sha"                                                          # Desc: alias: fcs:fzf_git_commit_sha命令的别名,get git commit sha. example usage: git rebase -i `fcs`
@@ -79,7 +81,7 @@ function fzf_git_checkout() {                                                   
     sort -u          | awk '{print "\x1b[34;1mbranch\x1b[m\t" $1}') || return
     target=$(
     (echo "$tags"; echo "$branches") |
-    fzf-tmux -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
+    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_checkout 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
 alias fck="fzf_git_checkout"                                                            # Desc: alias: fck:fzf_git_checkout命令的别名,checkout git branch/tag
@@ -90,7 +92,7 @@ function fzf_git_checkout2() {                                                  
             local branches branch
             branches=$(git branch -a) &&
             branch=$(echo "$branches" |
-            fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+            fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_checkout2 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
             git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
         elif [ `git rev-parse --verify --quiet $*` ] || \
              [ `git branch --remotes | grep  --extended-regexp "^[[:space:]]+origin/${*}$"` ]; then
@@ -146,6 +148,7 @@ function fzf_git_status() {                                                     
 --preview-label='[ 预览 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {-1}| pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_status 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
       | cut -c4- | sed 's/.* -> //')
     if [[ $selected ]]; then
         for prog in $(echo $selected); do
@@ -167,6 +170,7 @@ function fzf_git_untracked() {                                                  
 --preview-label='[ 预览 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_untracked 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
     | while read -r item; do
     echo "$item" | awk '{print $2}'
     done

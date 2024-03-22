@@ -12,7 +12,9 @@ function brew_clean_caches() {                                                  
 alias bcc="brew_clean_caches"                                                          # Desc: alias: bcc: brew_clean_caches命令的别名
 
 function fzf_brew_delete_by_select() {                                                 # Desc: function: fzf_brew_delete_by_select:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
-  local uninst=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]') # brew leaves 查看所有安装不包括依赖安装
+  local uninst=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS \
+  --preview-label='[ 一个或多个包 ]' \
+  --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_brew_delete_by_select 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈') # brew leaves 查看所有安装不包括依赖安装
 
   if [[ $uninst ]]; then
     for prog in $(echo $uninst); do
@@ -23,7 +25,9 @@ function fzf_brew_delete_by_select() {                                          
 alias fbd="fzf_brew_delete_by_select"                                                  # Desc: alias: fbd:fzf_brew_delete_by_select命令的别名
 
 function fzf_brew_update_by_select() {                                                 # Desc: function: fzf_brew_update_by_select:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
-  local upd=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]')
+  local upd=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS \
+  --preview-label='[ 一个或多个包 ]' \
+  --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_brew_update_by_select 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
 
   if [[ $upd ]]; then
     upd=$(echo $upd | sed 's/\n/ /g')
@@ -36,7 +40,8 @@ function fzf_brew_update_by_select() {                                          
 alias fbup="fzf_brew_update_by_select"                                                 # Desc: alias: fbup:fzf_brew_update_by_select命令的别名
 
 function fzf_brew_upgrade_by_select() {                                                # Desc: function: fzf_brew_upgrade_by_select:Brew upgrade (one or multiple)
-  local upgrads=$(brew outdated | fzf -m $FZF_CUSTOM_PARAMS)
+  local upgrads=$(brew outdated | fzf -m $FZF_CUSTOM_PARAMS \
+  --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_brew_upgrade_by_select 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
   if [[ $upgrads ]]; then
     upgrades=$(echo $upgrads | sed 's/\n/ /g')
     brew upgrade $upgrades
@@ -53,7 +58,8 @@ function reinstall_neovim() {                                                   
 alias renvim="reinstall_neovim"                                                        # Desc: alias: renvim: reinstall_neovim命令的别名,重新安装neovim
 
 function fzf_brew_install_by_select() {                                                # Desc: function: fzf_brew_install_by_select:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
-  local inst=$(brew search | fzf -m $FZF_CUSTOM_PARAMS)
+  local inst=$(brew search | fzf -m $FZF_CUSTOM_PARAMS \
+  --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_brew_install_by_select 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
 
   if [[ $inst ]]; then
     for prog in $(echo $inst);do
@@ -106,7 +112,10 @@ function fzf_brew_install_or_remove() {                                         
   {
     echo "Install mode (? for help)"; brew tap-info --json --installed | jq --raw-output "$jq_all" | sort 
   } |
-    fzf $FZF_CUSTOM_PARAMS --header '' --header-lines=1 --header-first --preview-window right:70%:border-rounded:hidden:wrap \
+    fzf $FZF_CUSTOM_PARAMS --header '' \
+        --header-lines=1 \
+        --header-first \
+        --preview-window right:70%:border-rounded:hidden:wrap \
         --bind="enter:execute(
         if [[ '{2}' == '(cask)' ]]; then
           brew \$($state) --cask {1}
@@ -130,7 +139,8 @@ function fzf_brew_install_or_remove() {                                         
         $wait_click" \
         --bind="tab:$nextstate+$reload" \
         --bind="?:preview:printf '$help'" \
-        --preview='brew info {1} | bat --color=always --language=Markdown --style=plain'
+        --preview='brew info {1} | bat --color=always --language=Markdown --style=plain' \
+        --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_brew_install_or_remove 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 
 }
 alias fbm="fzf_brew_install_or_remove"                                                 # Desc: alias: fbm: fzf_brew_install_or_remove命令的别名,Fully manage brew installation and suppression, and then some.

@@ -153,6 +153,7 @@ function fzf_fd_by_choice() {                                                   
       --bind 'ctrl-t:transform:[[ ! $FZF_PROMPT =~ Files ]] &&
               echo "change-prompt(Files> )+reload(fd --type file)" ||
               echo "change-prompt(Directories> )+reload(fd --type directory)"' \
-      --preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}'
+      --preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}' \
+      --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_fd_by_choice 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias ffc2="fzf_fd_by_choice"                                                          # Desc: alias: ffc2: fzf_fd_by_choice命令的别名,利用fzf命令显示fd的结果,并根据选择展示文件或文件夹

@@ -16,6 +16,7 @@ function search_aliases() {                                                     
     --height 95% \
     --preview-window right:70%:border-rounded:hidden:wrap \
     --preview 'bat {}' \
+    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ search_aliases 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
     --preview-label='[ 命令及注释 ]'
     customcd -
 }
@@ -85,6 +86,7 @@ $FZF_CUSTOM_PARAMS \
 --height 95% \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_positalias {}" \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_aliases 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 --preview-label='[ 文件 ]'
 }
 alias fa="fzf_aliases"                                                             # Desc: alias: fa:fzf_aliases命令的别名,利用fzf显示所有别名
@@ -249,6 +251,7 @@ function fzf_history_repeat() {                                                 
 --preview-label='[ 历史操作 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_history_repeat 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
      | sed 's/ *[0-9]* *//')
 }
 alias fhr="fzf_history_repeat"                                                      # Desc: alias: fhr:fzf_history_repeat命令的别名,列出历史操作命令,选择后执行
@@ -279,6 +282,7 @@ function fzf_history() {                                                        
 --preview ' echo {} | awk "{\$1=\"\";print}"' \
 --preview-label='[ 操作历史 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_history 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 }
 alias fh="fzf_history"                                                              # Desc: alias: fh:fzf_history命令的别名,依赖fzf读取history结果
@@ -296,6 +300,7 @@ function fzf_history_print() {                                                  
 --preview-label='[ 操作历史 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_history_print 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
     | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
 }
 alias fhp='fzf_history_print'                                                       # Desc: alias: fhp:fzf_history_print命令的别名,列出历史操作命令,选择后打印
@@ -303,7 +308,7 @@ alias fhp='fzf_history_print'                                                   
 function fzf_theme_selector() {                                                     # Desc: function: fzf_theme_selector:fzf主题选择器
     #MYRUNTIME=$(cat ~/.myruntime)
     themes_path=$MYRUNTIME/customs/tools/fzf_themes/
-    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview " bat $themes_path/{} " --preview-label='[ 主题 ]')
+    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview " bat $themes_path/{} " --preview-label='[ 主题 ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_theme_selector 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
 
     [[ ! "$choose_theme" ]] && echo "Action abort!" && return
     if [[ -f ${themes_path}/$choose_theme ]]; then
@@ -343,6 +348,7 @@ function fzf_man() {                                                            
 		$MAN -k . | fzf $FZF_CUSTOM_PARAMS \
 --preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" \
 --preview-label='[ 手册 ]' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_man 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
 		return $?
 	fi
@@ -397,7 +403,7 @@ function fzf_aliases_and_functions_selector() {                                 
         (
             (alias)
             (functions | grep "()" | cut -d ' ' -f1 | grep -v "^_" )
-        ) | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 命令 ]' | cut -d '=' -f1
+        ) | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 命令 ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_aliases_and_functions_selector 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' | cut -d '=' -f1
     );
     echo "该命令未完成"
     eval $CMD
@@ -413,7 +419,7 @@ function fzf_env_vars() {                                                       
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
 function fzf_eval_preview() {                                                       # Desc: function: fzf_eval_preview: 利用fzf执行选中的命令并preview结果
-    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-rounded:hidden:wrap --preview="eval {q}" --preview-label='[ 命令 ]'
+    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-rounded:hidden:wrap --preview="eval {q}" --preview-label='[ 命令 ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_eval_preview 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias fep="fzf_eval_preview"                                                        # Desc: alias: fep: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
 
@@ -429,6 +435,7 @@ function fzf_spell() {                                                          
   cat /usr/share/dict/words | fzf $FZF_CUSTOM_PARAMS \
 --preview-window up:70%:border-rounded:hidden:wrap \
 --preview 'wn {} -over | fold' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_spell 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 --preview-label='[ 单词 ]'
 }
 alias fspell='fzf_spell'                                                            # Desc: alias: fspell: fzf_spell命令的别名,Use `fzf` against system dictionary
@@ -447,6 +454,7 @@ function fzf_fg() {                                                             
 --preview-label='[ 后台程序 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}" | pbcopy)+abort' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_fg 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
   | sed -E 's/\[(.+)\].*/\1/')" && echo '' && fg %$job
 }
 alias ffg="fzf_fg"                                                                  # Desc: alias: ffg: fzf_fg命令的别名,利用fzf显示所有的后台执行程序
@@ -520,6 +528,7 @@ function fzf_open_app() {                                                       
 --preview 'tree /Applications/{}' \
 --preview-label='[ App ]' \
 --bind 'enter:become(open /Applications/{})' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_open_app 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 --bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort'
 }
 alias foa="fzf_open_app"                                                            # Desc: alias: foa: fzf_open_app命令的别名,利用fzf通过终端打开App
@@ -539,7 +548,7 @@ function mkdir_forward() {                                                      
 }
 alias mkf="mkdir_forward"                                                           # Desc: alias: mkf: mkdir_forward命令的别名,mkdir创建目录完成后跳转至目录
 
-function most_used_command() {                                                      # Desc: function: most_used_command:历史操作中使用最多的50个命令
+function fzf_most_used_command() {                                                  # Desc: function: fzf_most_used_command:历史操作中使用最多的50个命令
     #除了history外,在omz中可以使用:omz_history -n | sed 's/^[[:space:]]*//g' | sed 's/^[0-9]*//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -30 | tac
 
     history | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -50 | tac |fzf $FZF_CUSTOM_PARAMS --no-sort \
@@ -548,9 +557,10 @@ function most_used_command() {                                                  
 --preview-label='[ 使用次数 ]' \
 --bind 'enter:become(echo {} | awk "{\$1=\"\";print}")' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_most_used_command 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 }
-alias muc="most_used_command"                                                       # Desc: alias: muc: most_used_command命令的别名,历史操作中使用最多的50个命令
+alias fmu="fzf_most_used_command"                                                   # Desc: alias: fmu: fzf_most_used_command命令的别名,历史操作中使用最多的50个命令
 
 function fzf_manage() {                                                             # Desc: function: fzf_manage: 利用fzf管理目录下的子文件夹、文件、图片等
     local DIRPATH=$HOME/Pictures
