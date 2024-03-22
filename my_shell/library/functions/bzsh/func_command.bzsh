@@ -17,6 +17,7 @@ function search_aliases() {                                                     
     --preview-window right:70%:border-rounded:hidden:wrap \
     --preview 'bat {}' \
     --preview-label='[ 命令及注释 ]'
+    customcd -
 }
 alias sas="search_aliases"                                                          # Desc: alias: sas:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
 
