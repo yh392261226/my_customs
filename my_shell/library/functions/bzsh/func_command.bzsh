@@ -117,7 +117,7 @@ function fzf_customs_fzf_awesome_functions_list() {                             
         fi
     fi
 }
-alias fafl="fzf_customs_fzf_awesome_functions_list"                                 # Desc: alias: fafl: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
+alias faf="fzf_customs_fzf_awesome_functions_list"                                  # Desc: alias: faf: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
 
 function custom_aliases_from_a2z() {                                                # Desc: function: custom_aliases_from_a2z:显示从a-z的自定义命令
     hr "⬳"
@@ -414,7 +414,7 @@ function fzf_env_vars() {                                                       
   env | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 环境变量 ]' \
 --bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
 --bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
---header 'CTRL-K 复制键 | CTRL-V 复制值 | CTRL-Y 复制整体内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_env_vars 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+--header $'CTRL-K 复制键 | CTRL-V 复制值 | CTRL-Y 复制整体内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_env_vars 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
