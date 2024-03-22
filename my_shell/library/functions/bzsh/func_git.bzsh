@@ -115,7 +115,7 @@ function fzf_git_stash() {                                                      
     fzf --ansi --no-sort --query="$q" --print-query --expect=ctrl-d,ctrl-b $FZF_CUSTOM_PARAMS \
 --preview-label='[ Git 存储 ]' \
 --header-lines 2 \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-d 比对存储与HEAD | CTRL-b 将存储切成分支 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_stash 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈" \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-d 比对存储与HEAD | CTRL-b 将存储切成分支 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_stash 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
         );
     do
     mapfile -t out <<< "$out"
@@ -188,7 +188,7 @@ git log --graph --color=always \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
 --bind "ctrl-m:execute:(grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
 {}" \
---header "CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-M 显示修改内容 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_commit_browser 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈"
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-M 显示修改内容 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_git_commit_browser 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias fgcb="fzf_git_commit_browser"                                                     # Desc: alias: fgcb: fzf_git_commit_browser命令的别名,git commit browser
 

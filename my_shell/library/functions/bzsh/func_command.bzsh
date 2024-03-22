@@ -366,7 +366,7 @@ function fzf_man_widget() {                                                     
 --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
 --bind 'ctrl-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr | CTRL-S 切换排序 | CTRL-Y 复制内容 | CTRL-/ 切换预览窗口  | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_man_widget 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+--header $'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr | CTRL-S 切换排序 | CTRL-Y 复制内容 | CTRL-/ 切换预览窗口  | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_man_widget 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
   echo ""
 }
 alias fmw="fzf_man_widget"                                                          # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令
@@ -414,6 +414,9 @@ function fzf_env_vars() {                                                       
   env | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 环境变量 ]' \
 --bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
 --bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
+--bind 'focus:transform-preview-label:echo [ {1} ]' \
+--delimiter='=' \
+--preview='echo {2}' \
 --header $'CTRL-K 复制键 | CTRL-V 复制值 | CTRL-Y 复制整体内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_env_vars 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
 }
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
