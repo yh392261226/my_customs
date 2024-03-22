@@ -33,7 +33,7 @@ sed -e 's/ $//g' | \
 fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_customs_functions 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
 --bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
         rm -f $TMP_FUNCTIONS_FILE
     fi
@@ -51,7 +51,7 @@ function fzf_all_aliases() {                                                    
         eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_all_aliases 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)")
         rm -f $TMP_ALIASES_FILE
     fi
@@ -72,7 +72,7 @@ function fzf_custom_aliases() {                                                 
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)" \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_custom_aliases 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
 --preview-label='[ 文件 ]')
         rm -f $TMP_ALIASES_FILE
     fi
@@ -87,7 +87,7 @@ $FZF_CUSTOM_PARAMS \
 --preview "$MYRUNTIME/customs/bin/_positalias {}" \
 --preview-label='[ 文件 ]'
 }
-alias fsa="fzf_aliases"                                                             # Desc: alias: fsa:fzf_aliases命令的别名,利用fzf显示所有别名
+alias fa="fzf_aliases"                                                             # Desc: alias: fa:fzf_aliases命令的别名,利用fzf显示所有别名
 
 function fzf_customs_fzf_awesome_functions_list() {                                 # Desc: function: fzf_customs_fzf_awesome_functions_list: 利用fzf列出所有自定义fzf相关命令
     if [ ! -f $HOME/.myruntime ]; then
@@ -109,7 +109,7 @@ function fzf_customs_fzf_awesome_functions_list() {                             
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部' \
+--header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-O 预览全部 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_customs_fzf_awesome_functions_list 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
 --preview-label='[ 命令及注释 ]')
             rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
@@ -360,7 +360,7 @@ function fzf_man_widget() {                                                     
 --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
 --bind 'ctrl-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr | CTRL-S 切换排序 | CTRL-Y 复制内容 | CTRL-/ 切换预览窗口  | CTRL-N 下翻页 | CTRL-P 上翻页'
+--header 'CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr | CTRL-S 切换排序 | CTRL-Y 复制内容 | CTRL-/ 切换预览窗口  | CTRL-N 下翻页 | CTRL-P 上翻页 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_man_widget 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮'
   echo ""
 }
 alias fmw="fzf_man_widget"                                                          # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令
@@ -408,7 +408,7 @@ function fzf_env_vars() {                                                       
   env | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 环境变量 ]' \
 --bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
 --bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
---header 'CTRL-K 复制键 | CTRL-V 复制值 | CTRL-Y 复制整体内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页'
+--header 'CTRL-K 复制键 | CTRL-V 复制值 | CTRL-Y 复制整体内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 | CTRL-P 上翻页 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_env_vars 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮'
 }
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
@@ -565,7 +565,7 @@ function fzf_manage() {                                                         
     ls $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-D 删除文件' \
+    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-D 删除文件 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮ \n fzf_manage 搜索内容 \n ↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮↮' \
     --preview-window right:70%:border-rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
 alias fm="fzf_manage"                                                               # Desc: alias: fm: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
