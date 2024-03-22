@@ -26,9 +26,11 @@ function fzf_brew_update_by_select() {                                          
   local upd=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS --preview-label='[ 一个或多个包 ]')
 
   if [[ $upd ]]; then
-    for prog in $(echo $upd);do
-        brew upgrade $prog;
-    done;
+    upd=$(echo $upd | sed 's/\n/ /g')
+    brew upgrade $upd;
+    #for prog in $(echo $upd);do
+    #    brew upgrade $prog;
+    #done;
   fi
 }
 alias fbup="fzf_brew_update_by_select"                                                 # Desc: alias: fbup:fzf_brew_update_by_select命令的别名
@@ -36,9 +38,11 @@ alias fbup="fzf_brew_update_by_select"                                          
 function fzf_brew_upgrade_by_select() {                                                # Desc: function: fzf_brew_upgrade_by_select:Brew upgrade (one or multiple)
   local upgrads=$(brew outdated | fzf -m $FZF_CUSTOM_PARAMS)
   if [[ $upgrads ]]; then
-    for prog in $(echo $upgrads); do
-      brew upgrade $prog
-    done
+    upgrades=$(echo $upgrads | sed 's/\n/ /g')
+    brew upgrade $upgrades
+    #for prog in $(echo $upgrads); do
+    #  brew upgrade $prog
+    #done
   fi
 }
 alias fbug="fzf_brew_upgrade_by_select"                                                # Desc: alias: fbug: fzf_brew_upgrade_by_select命令的别名,Brew upgrade (one or multiple)
