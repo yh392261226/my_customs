@@ -150,7 +150,7 @@ alias fvim="fzf_vim"                                                            
 
 function fzf_grep_search_vim_to_line() {                                            # Desc: function: fzf_grep_search_vim_to_line: vim定位打开根据关键字搜索到文件及行号
     INITIAL_QUERY="${*:-}"
-    grep --recursive --line-number --binary-files=without-match "$1" . | fzf --delimiter ':' \
+    grep --recursive --line-number --binary-files=without-match $@ | fzf --delimiter ':' \
     --nth 3.. \
     $FZF_CUSTOM_PARAMS \
     --query "$INITIAL_QUERY" \
