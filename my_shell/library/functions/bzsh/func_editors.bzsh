@@ -148,7 +148,7 @@ function fzf_vim() {                                                            
 alias fvi="fzf_vim"                                                                 # Desc: alias: fvi: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 alias fvim="fzf_vim"                                                                # Desc: alias: fvim: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 
-function fzf_grep_search_vim_to_line() {                                            # Desc: function: fzf_grep_search_vim_to_line: vim定位打开根据关键字搜索到文件及行号
+function fzf_grep_search_vim_to_line() {                                            # Desc: function: fzf_grep_search_vim_to_line: 查询指定目录并vim定位打开根据关键字搜索到文件及行号
     INITIAL_QUERY="${*:-}"
     grep --recursive --line-number --binary-files=without-match $@ | fzf --delimiter ':' \
     --nth 3.. \
