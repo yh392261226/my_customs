@@ -73,7 +73,7 @@ function fzf_tags() {                                                           
 --preview-window right:50%:border-rounded:hidden:wrap \
 --preview="bat {3} --color=always | tail -n +\$(echo {4} | tr -d \";\\\"\")" \
 --preview-label='[ Ctags ]' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_tags 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader '' 'fzf_tags')" \
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$linen")"
 }
@@ -84,21 +84,9 @@ function fzf_open_viminfo() {                                                   
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
         [ -f "${line/\~/$HOME}" ] && echo "$line"
-    done | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_open_viminfo 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' -d -m -q "$*" -1) && vim ${files//\~/$HOME}
+    done | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap --header="$(_buildFzfHeader '' 'fzf_open_viminfo')" -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 alias fov="fzf_open_viminfo"                                                        # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in ~/.viminfo
-
-function fzf_open_or_edit() {                                                       # Desc: function: fzf_open_or_edit:Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
-    local out file key
-    out=$(fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap --query="$1" --exit-0 --expect=ctrl-o,ctrl-e --header='CTRL-O打开 | CTRL-E编辑')
-    key=$(head -1 <<< "$out")
-    file=$(head -2 <<< "$out" | tail -1)
-    if [ -n "$file" ]; then
-        [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-vim} "$file"
-    fi
-}
-alias fo="fzf_open_or_edit"                                                         # Desc: alias: fo:fzf_open_or_edit命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
-alias fe="fzf_open_or_edit"                                                         # Desc: alias: fe:fzf_open_or_edit命令的别名,Modified version where you can press CTRL-O to open with `open` command, CTRL-E or Enter key to open with the $EDITOR
 
 function fzf_open_with_editor2() {                                                  # Desc: function: fzf_open_with_editor2:This finds files with fd, pipes the list into fzf and the fuzzy matched results get opened with Vim. It also uses bat for file previews.
     export FZF_DEFAULT_COMMAND="fd -p -i -H -L -t f -t l -t x \
@@ -111,7 +99,7 @@ function fzf_open_with_editor2() {                                              
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'bat --theme=timu-spacegrey --color=always {}' \
 --preview-label='[ 文件 ]' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_open_with_editor2 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader '' 'fzf_open_with_editor2')" \
 --query="$1" --multi --select-1 --exit-0 \
                     ))
     [[ -n "$files" ]] && vim "${files[@]}"
@@ -124,7 +112,7 @@ function fzf_nvim() {                                                           
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --preview-label='[ 文件 ]' \
 --bind 'ctrl-o:execute(nvim {} < /dev/tty)' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_nvim 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader 'a+ | CTRL-O 编辑' 'fzf_nvim')" \
 )"
     count="$( echo "$files" | wc -l )"
     [[ ! "$files" ]] && return
@@ -140,7 +128,7 @@ function fzf_vim() {                                                            
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --bind 'ctrl-o:execute(vim {} < /dev/tty)' \
 --preview-label='[ 文件 ]' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_vim 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader 'a+ | CTRL-O 编辑' 'fzf_vim')" \
 )"
     count="$( echo "$files" | wc -l )"
     vim $files
@@ -159,7 +147,7 @@ function fzf_grep_search_vim_to_line() {                                        
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_grep_search_vim_to_line 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+    --header="$(_buildFzfHeader 'a+ | CTRL-O 编辑' 'fzf_grep_search_vim_to_line')"
 }
 alias fgv2l="fzf_grep_search_vim_to_line"                                           # Desc: alias: fsv2l: fzf_grep_search_vim_to_line命令的别名,vim定位打开根据关键字搜索到文件及行号
 
@@ -177,7 +165,7 @@ function fzf_rg_search_vim_to_line() {                                          
     --query "$INITIAL_QUERY" \
     --color "hl:-1:underline,hl+:-1:underline:reverse" \
     --prompt 'ripgrep查询> ' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 | CTRL-F 切换fzf筛选 | CTRL-R 切换ripgrep筛选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_rg_search_vim_to_line 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+    --header="$(_buildFzfHeader 'a+ \n | CTRL-O 编辑 | CTRL-F 切换fzf筛选 | CTRL-R 切换ripgrep筛选' 'fzf_rg_search_vim_to_line')" \
     --delimiter : \
     --bind "start:reload:$RG_PREFIX {q};unbind(ctrl-r)" \
     --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
@@ -208,6 +196,6 @@ function fzf_ag_search_to_line() {                                              
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-O 编辑 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_ag_search_to_line 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+    --header="$(_buildFzfHeader 'a+ | CTRL-O 编辑' 'fzf_ag_search_to_line')"
 }
 alias fav2l="fzf_ag_search_to_line"                                                 # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fuzzy grep open via ag with line number

@@ -110,7 +110,6 @@ alias pping='prettyping'                                                        
 alias gv='git log --graph --format="%C(auto)%h%d %s %C(black)%C(bold)%cr"'                                       # Desc: alias: gv:列出git版本的log日志
 alias gcid="git log | head -1 | awk '{print substr(\$2,1,7)}' | pbcopy"                                          # Desc: alias: gcid:复制当前版本日志重第一条的月份
 alias gsh="git stash"                                                                                            # Desc: alias: gsh:git stash命令的别名g
-alias gd2="git status -s | fzf --no-sort --reverse --preview 'git diff --color=always {+2} | diff-so-fancy' --bind=ctrl-j:preview-down --bind=ctrl-k:preview-up --preview-window=right:60%:wrap"                                                        # Desc: alias: gd2:利用fzf列出当前版本文件中修改的文件并diff
 alias g='git'                                                                                                    # Desc: alias: g:git命令的别名
 alias gs='git status'                                                                                            # Desc: alias: gs:git status命令的别名
 alias gl='git pull'                                                                                              # Desc: alias: gl:git pull命令的别名

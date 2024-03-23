@@ -4,7 +4,7 @@
 function fzf_process_kill() {                                                       # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     local PARAMS
-    PARAMS=($FZF_CUSTOM_PARAMS --preview-label="[ 进程 ]" --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_process_kill 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈')
+    PARAMS=($FZF_CUSTOM_PARAMS --preview-label="[ 进程 ]" --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' --header="$(_buildFzfHeader '' 'fzf_process_kill')")
 
     if [ "$UID" != "0" ]; then
         pid=$(ps -f -u $UID | sed 1d | fzf -m $PARAMS | awk '{print $2}')
@@ -33,22 +33,22 @@ alias fpid="find_process_id"                                                    
 
 function fzf_process_kill2() {                                                      # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
     (date; ps -ef) | fzf $FZF_CUSTOM_PARAMS \
---height=80% \
 --preview-label='[ 进程 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
 --bind='ctrl-r:reload(date; ps -ef)' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_process_kill2 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' | awk '{print $2}' | xargs kill -9
+--header="$(_buildFzfHeader '' 'fzf_process_kill2')" \
+| awk '{print $2}' | xargs kill -9
 }
 alias fpk2='fzf_process_kill2'                                                      # Desc: alias: fpk2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
 
 function fzf_process_magnifier() {                                                  # Desc: function fzf_process_magnifier: 进程放大镜
     (date; ps -ef) | fzf $FZF_CUSTOM_PARAMS \
---height=80% \
 --preview-label='[ 进程 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
 --bind='ctrl-r:reload(date; ps -ef)' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_process_kill2 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' | awk '{print $2}' | xargs kill -9
+--header="$(_buildFzfHeader '' 'fzf_process_magnifier')" \
+| awk '{print $2}' | xargs kill -9
 }
 alias fpm="fzf_process_magnifier"                                                   # Desc: alias: fpm: fzf_process_magnifier命令的别名,进程放大镜

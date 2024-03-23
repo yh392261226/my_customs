@@ -133,7 +133,7 @@ function fzf_safari_history() {                                                 
         --bind 'focus:transform-preview-label:echo -n {} | awk -F "|" "{print \"[\" \$1 \"]\"}"' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
         --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))' \
-        --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_safari_history 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+        --header="$(_buildFzfHeader '' 'fzf_safari_history')"
 }
 alias fsh="fzf_safari_history"                                                      # Desc: alias: fsh: fzf_safari_history命令的别名,读取当前用户的safari浏览器历史
 
@@ -143,7 +143,7 @@ function fzf_safari_bookmarks() {                                               
         --bind 'focus:transform-preview-label:echo -n {} ' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -E "http[s]?://.*" | pbcopy)+abort' \
         --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))' \
-        --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_safari_bookmarks 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+        --header="$(_buildFzfHeader '' 'fzf_safari_bookmarks')"
 }
 alias fsb="fzf_safari_bookmarks"                                                    # Desc: alias: fsb: fzf_safari_bookmarks命令的别名,读取当前用户的safari浏览器书签
 
@@ -172,7 +172,7 @@ function chromium_history() {                                                   
         --preview ' echo -n {} ' \
         --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-        --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ chromium_history 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+        --header="$(_buildFzfHeader '' 'chromium_history')" \
         | sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
 alias ch="chromium_history"                                                         # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
@@ -210,7 +210,7 @@ function chromium_bookmarks() {                                                 
         | fzf --ansi $FZF_CUSTOM_PARAMS --preview-label='[ 浏览器书签 ]' \
               --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
               --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-              --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ chromium_bookmarks 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+              --header="$(_buildFzfHeader '' 'chromium_bookmarks')" \
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
 }
@@ -236,7 +236,7 @@ function fzf_mark_by_buku() {                                                   
     --preview-label='[ 网址收藏 ]' \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
     --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_mark_by_buku 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+    --header="$(_buildFzfHeader '' 'fzf_mark_by_buku')" \
     --multi ) )
     # open each website
     for i in "${website[@]}"; do

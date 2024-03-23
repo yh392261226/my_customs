@@ -40,7 +40,7 @@ function fzf_tmux_pane() {                                                      
     current_pane=$(tmux display-message -p '#I:#P')
     current_window=$(tmux display-message -p '#I')
 
-    target=$(echo "$panes" | grep -v "$current_pane" | fzf +m $FZF_CUSTOM_PARAMS --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_tmux_pane 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈') || return
+    target=$(echo "$panes" | grep -v "$current_pane" | fzf +m $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_tmux_pane')") || return
 
     target_window=$(echo $target | awk 'BEGIN{FS=":|-"} {print$1}')
     target_pane=$(echo $target | awk 'BEGIN{FS=":|-"} {print$2}' | cut -c 1)
@@ -55,7 +55,7 @@ function fzf_tmux_pane() {                                                      
 alias ftpane="fzf_tmux_pane"                                                           # Desc: alias: ftpane:fzf_tmux_pane命令的别名,Tmux switch pane (@george-b)
 
 function fzf_tmux_words() {                                                            # Desc: function: fzf_tmux_words:tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
-    fzf_tmux_helper '-p 40' 'tmuxwords --all --scroll 500 --min 5 | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ Words ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_tmux_words 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' | paste -sd" " -'
+    fzf_tmux_helper '-p 40' 'tmuxwords --all --scroll 500 --min 5 | fzf --multi $FZF_CUSTOM_PARAMS --preview-label='[ Words ]' --header="$(_buildFzfHeader '' 'fzf_tmux_words')" | paste -sd" " -'
 }
 alias ftw="fzf_tmux_words"                                                             # Desc: alias: ftw: fzf_tmux_words命令的别名,tmux中 https://github.com/wellle/tmux-complete.vim  Bind CTRL-X-CTRL-T to tmuxwords.sh #bind '"\C-x\C-t": "$(fzf_tmux_words)\e\C-e"'
 
@@ -70,7 +70,7 @@ alias fth="fzf_tmux_helper"                                                     
 function fzf_tmux_switch_session() {                                                   # Desc: function: fzf_tmux_switch_session:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
-        fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_checkout_git_branch 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' --query="$1" --select-1 --exit-0) &&
+        fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_tmux_switch_session')" --query="$1" --select-1 --exit-0) &&
         tmux switch-client -t "$session"
 }
 alias ftss="fzf_tmux_switch_session"                                                   # Desc: alias: ftss: fzf_tmux_switch_session命令的别名,Switch tmux-sessions
@@ -183,6 +183,6 @@ function fzf_tm() {                                                             
     if [ $1 ]; then
         tmux $change -t "$1" 2>/dev/null || (tmux new-session -d -s $1 && tmux $change -t "$1"); return
     fi
-    session=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | fzf --exit-0 $FZF_CUSTOM_PARAMS --preview-label='[ Session ]' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_tm 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈') &&  tmux $change -t "$session" || echo "No sessions found."
+    session=$(tmux list-sessions -F "#{session_name}" 2>/dev/null | fzf --exit-0 $FZF_CUSTOM_PARAMS --preview-label='[ Session ]' --header="$(_buildFzfHeader '' 'fzf_tm')") &&  tmux $change -t "$session" || echo "No sessions found."
 }
 alias ftm="fzf_tm"                                                                     # Desc: alias: ftm: fzf_tm命令的别名,create new tmux session, or switch to existing one. Works from within tmux too. (@bag-man)

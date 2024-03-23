@@ -170,7 +170,7 @@ function fzf_list_hiddens() {                                                   
 --preview ' [[ -d {} ]] && tree {} || bat {} ' \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --bind 'ctrl-r:execute(rm -rf {})+reload((/bin/ls -A $mpath | grep "^\.") || true)' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-R 删除 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_list_hiddens 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+--header="$(_buildFzfHeader 'a+ | CTRL-R 删除' 'fzf_list_hiddens')"
 }
 alias flh="fzf_list_hiddens"                                                           # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
@@ -178,7 +178,7 @@ function fzf_file_to_preview() {                                                
     [[ 1 -gt $nums ]] && nums=500
     fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_file_to_preview 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader '' 'fzf_file_to_preview')" \
 --preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500'
 }
 alias fttp='fzf_file_to_preview'                                                       # Desc: alias: fttp:fzf_file_to_preview命令的别名,fzf列出文件夹及选中文件的内容
@@ -190,7 +190,7 @@ function fzf_open_or_edit() {                                                   
 --query="$1" \
 --exit-0 \
 --expect=ctrl-o,ctrl-e \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_open_or_edit 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+--header="$(_buildFzfHeader 'a+ \n | CTRL-O 打开文件 | CTRL-E NVim编辑' 'fzf_open_or_edit')" \
 )
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
@@ -206,7 +206,7 @@ function fzf_search_term() {                                                    
        --no-messages "$1" | \
        fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_search_term 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader '' 'fzf_search_term')" \
 --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
 }
 alias fst='fzf_search_term'                                                            # Desc: alias: fst:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
@@ -221,7 +221,7 @@ alias llf="list_link_files"                                                     
 function fzf_find_link_files() {                                                       # Desc: function: fzf_find_link_files:find找出所有软连接文件
     local mpath='./'
     [[ "" != "$1" ]] && mpath="$1"
-    /usr/bin/find ${mpath} -type l -ls | fzf $FZF_CUSTOM_PARAMS --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_find_link_files 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈'
+    /usr/bin/find ${mpath} -type l -ls | fzf $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_aliases')"
 }
 alias fflf="fzf_find_link_files"                                                       # Desc: alias: fflf:fzf_find_link_files命令的别名,find找出所有软连接文件
 

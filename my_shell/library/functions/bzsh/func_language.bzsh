@@ -6,7 +6,7 @@ function fzf_rvm_select() {                                                     
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
     awk '{print $1}' |
-    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ fzf_rvm_select 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' -l 30 +m --reverse) && rvm use $rb
+    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse) && rvm use $rb
 }
 alias frs="fzf_rvm_select"                                                         # Desc: alias: frs:fzf_rvm_select命令的别名,RVM integration
 
@@ -41,7 +41,7 @@ function php_change_version() {                                                 
     choose=$(printf "%s\n" "${installedPhpVersions[@]}" | fzf $FZF_CUSTOM_PARAMS \
 --preview " echo php@{} " \
 --preview-label='[ 切换版本 ]' \
---header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ php_change_version 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈' \
+--header="$(_buildFzfHeader '' 'php_change_version')" \
 --bind 'ctrl-y:execute-silent(echo -n php@{}| pbcopy)+abort')
     if [ "" = "$choose" ]; then
         echo "Action abort !"
