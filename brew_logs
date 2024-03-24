@@ -981,3 +981,5 @@ brew install --cask keycastr
 brew install jpe90/clp/clp
 brew install version-fox/tap/vfox
 brew install dsq
+brew install tssh
+brew install restic

@@ -78,3 +78,5 @@ pip3 install fzf-dirhistory
 pipx install bpython 
 
 pipx install pyfunky 
+
+pipx install DrissionPage
