@@ -252,3 +252,5 @@ npm install -g what-is-x
 npm install -g history fz-browse
 npm install -g pake-cli
 npm install -g gck
+npm install -g commitizen
+npm install -g cz-conventional-changelog

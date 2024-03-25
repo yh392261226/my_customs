@@ -983,3 +983,4 @@ brew install version-fox/tap/vfox
 brew install dsq
 brew install tssh
 brew install restic
+brew install stylua
