@@ -51,7 +51,7 @@ export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
 _buildFzfHeader() {
 
     rm -f $TMP_FZF_HEADER_SWAP_FILE
-    newheader=" F1 帮助信息 "
+    newheader=" CTRL-H 帮助信息 "
     local new_header
     local post_header
 
@@ -119,7 +119,7 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --bind="result:transform:$transformer" \
 --bind="resize:transform:$transformer" \
 --bind='≥:next-selected,≤:prev-selected' \
---bind="F1:transform-preview-label(echo '[ 帮助信息 ]')+preview:(_previewer 'help')" \
+--bind="ctrl-h:change-preview-label([ 帮助信息 ])+transform-preview-label(echo '[ 帮助信息 ]')+preview:(_previewer 'help')" \
 --bind='load:change-prompt:加载完成> '
 --header="$(_buildFzfHeader '' '')" \
 --header-first \

@@ -21,7 +21,7 @@ ${bold}${italic}CTRL-K${reset}   预览内容下滚动
 ${bold}${italic}CTRL-L${reset}   长列表显示(在某些函数中失效或异常显示)
 ${bold}${italic}OPTION-.${reset} 选中项目中跳转下一个
 ${bold}${italic}OPTION-,${reset} 选中项目中跳转上一个
-${bold}${italic}F1${reset}       帮助信息 (this page)
+${bold}${italic}CTRL-H${reset}   帮助信息 (this page)
 ${bold}${italic}ESC${reset}      退出
 
 
