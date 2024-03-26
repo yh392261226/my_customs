@@ -15,8 +15,7 @@ function search_aliases() {                                                     
     $FZF_CUSTOM_PARAMS \
     --preview-window right:70%:border-rounded:hidden:wrap \
     --preview 'bat {}' \
-    --header="$(_buildFzfHeader '' 'search_aliases')" \
-    --preview-label='[ 命令及注释 ]'
+    --header="$(_buildFzfHeader '' 'search_aliases')"
     customcd -
 }
 alias sas="search_aliases"                                                          # Desc: alias: sas:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
@@ -64,8 +63,7 @@ function fzf_custom_aliases() {                                                 
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)" \
---header="$(_buildFzfHeader '' 'fzf_custom_aliases')" \
---preview-label='[ 文件 ]')
+--header="$(_buildFzfHeader '' 'fzf_custom_aliases')")
         rm -f $TMP_ALIASES_FILE
     fi
 }
@@ -76,8 +74,7 @@ function fzf_aliases() {                                                        
 $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_positalias {}" \
---header="$(_buildFzfHeader '' 'fzf_aliases')" \
---preview-label='[ 文件 ]'
+--header="$(_buildFzfHeader '' 'fzf_aliases')"
 }
 alias fa="fzf_aliases"                                                             # Desc: alias: fa:fzf_aliases命令的别名,利用fzf显示所有别名
 
@@ -101,8 +98,7 @@ function fzf_customs_fzf_awesome_functions_list() {                             
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
---header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')" \
---preview-label='[ 命令及注释 ]')
+--header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
             rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
     fi
@@ -238,7 +234,6 @@ alias hsu="history_sort_by_used"                                                
 function fzf_history_repeat() {                                                     # Desc: function: fzf_history_repeat:列出历史操作命令,选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac $FZF_CUSTOM_PARAMS \
 --preview ' echo {} | awk "{\$1=\"\";print}"' \
---preview-label='[ 历史操作 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
 --header="$(_buildFzfHeader '' 'fzf_aliases')" \
@@ -270,7 +265,6 @@ alias bt="btop"                                                                 
 function fzf_history() {                                                            # Desc: function: fzf_history:依赖fzf读取history结果
     history | fzf $FZF_CUSTOM_PARAMS \
 --preview ' echo {} | awk "{\$1=\"\";print}"' \
---preview-label='[ 操作历史 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --header="$(_buildFzfHeader '' 'fzf_history')" \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
@@ -287,7 +281,6 @@ alias ftree="file_tree"                                                         
 function fzf_history_print() {                                                      # Desc: function: fzf_history_print:列出历史操作命令,选择后打印
     print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac $FZF_CUSTOM_PARAMS \
 --preview ' echo {} | awk "{\$1=\"\";print}"' \
---preview-label='[ 操作历史 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
 --header="$(_buildFzfHeader '' 'fzf_history_print')" \
@@ -298,7 +291,7 @@ alias fhp='fzf_history_print'                                                   
 function fzf_theme_selector() {                                                     # Desc: function: fzf_theme_selector:fzf主题选择器
     #MYRUNTIME=$(cat ~/.myruntime)
     themes_path=$MYRUNTIME/customs/tools/fzf_themes/
-    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview " bat $themes_path/{} " --preview-label='[ 主题 ]' --header="$(_buildFzfHeader '' 'fzf_aliases')")
+    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview " bat $themes_path/{} " --header="$(_buildFzfHeader '' 'fzf_aliases')")
 
     [[ ! "$choose_theme" ]] && echo "Action abort!" && return
     if [[ -f ${themes_path}/$choose_theme ]]; then
@@ -337,7 +330,6 @@ function fzf_man() {                                                            
 	else
 		$MAN -k . | fzf $FZF_CUSTOM_PARAMS \
 --preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" \
---preview-label='[ 手册 ]' \
 --header="$(_buildFzfHeader '' 'fzf_man')" \
 | awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
 		return $?
@@ -393,7 +385,7 @@ function fzf_aliases_and_functions_selector() {                                 
         (
             (alias)
             (functions | grep "()" | cut -d ' ' -f1 | grep -v "^_" )
-        ) | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 命令 ]' --header="$(_buildFzfHeader '' 'fzf_aliases_and_functions_selector')" | cut -d '=' -f1
+        ) | fzf $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_aliases_and_functions_selector')" | cut -d '=' -f1
     );
     echo "该命令未完成"
     eval $CMD
@@ -401,7 +393,7 @@ function fzf_aliases_and_functions_selector() {                                 
 alias faaf="fzf_aliases_and_functions_selector"                                          # Desc: alias: faaf: fzf_aliases_and_functions_selector命令的别名,显示所有的alias和function并通过fzf选用
 
 function fzf_env_vars() {                                                           # Desc: function: fzf_env_vars:利用fzf选用env变量的值
-  env | fzf $FZF_CUSTOM_PARAMS --preview-label='[ 环境变量 ]' \
+  env | fzf $FZF_CUSTOM_PARAMS \
 --bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
 --bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
 --bind 'focus:transform-preview-label:echo [ {1} ]' \
@@ -412,7 +404,7 @@ function fzf_env_vars() {                                                       
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
 function fzf_eval_preview() {                                                       # Desc: function: fzf_eval_preview: 利用fzf执行选中的命令并preview结果
-    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-rounded:hidden:wrap --preview="eval {q}" --preview-label='[ 命令 ]' --header="$(_buildFzfHeader '' 'fzf_eval_preview')"
+    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-rounded:hidden:wrap --preview="eval {q}" --header="$(_buildFzfHeader '' 'fzf_eval_preview')"
 }
 alias fep="fzf_eval_preview"                                                        # Desc: alias: fep: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
 
@@ -428,8 +420,7 @@ function fzf_spell() {                                                          
   cat /usr/share/dict/words | fzf $FZF_CUSTOM_PARAMS \
 --preview-window up:70%:border-rounded:hidden:wrap \
 --preview 'wn {} -over | fold' \
---header="$(_buildFzfHeader '' 'fzf_spell')" \
---preview-label='[ 单词 ]'
+--header="$(_buildFzfHeader '' 'fzf_spell')"
 }
 alias fspell='fzf_spell'                                                            # Desc: alias: fspell: fzf_spell命令的别名,Use `fzf` against system dictionary
 
@@ -444,7 +435,6 @@ function dic() {                                                                
 function fzf_fg() {                                                                 # Desc: function: fzf_fg: 利用fzf显示所有的后台执行程序
   job="$(jobs | fzf -0 -1 $FZF_CUSTOM_PARAMS \
 --preview 'echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}"' \
---preview-label='[ 后台程序 ]' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}" | pbcopy)+abort' \
 --header="$(_buildFzfHeader '' 'fzf_fg')" \
@@ -519,7 +509,6 @@ function fzf_open_app() {                                                       
     ls /Applications/ | fzf --ansi $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'tree /Applications/{}' \
---preview-label='[ App ]' \
 --bind 'enter:become(open /Applications/{})' \
 --header="$(_buildFzfHeader '' 'fzf_open_app')" \
 --bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort'
@@ -547,7 +536,6 @@ function fzf_most_used_command() {                                              
     history | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -50 | tac |fzf $FZF_CUSTOM_PARAMS --no-sort \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'echo {} | awk "{\$1=\"\";print}"' \
---preview-label='[ 使用次数 ]' \
 --bind 'enter:become(echo {} | awk "{\$1=\"\";print}")' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --header="$(_buildFzfHeader '' 'fzf_most_used_command')" \

@@ -72,7 +72,6 @@ function fzf_tags() {                                                           
     fzf $FZF_CUSTOM_PARAMS --nth=1,2 --with-nth=2 \
 --preview-window right:50%:border-rounded:hidden:wrap \
 --preview="bat {3} --color=always | tail -n +\$(echo {4} | tr -d \";\\\"\")" \
---preview-label='[ Ctags ]' \
 --header="$(_buildFzfHeader '' 'fzf_tags')" \
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
                                         -c "silent tag $(cut -f2 <<< "$linen")"
@@ -98,7 +97,6 @@ function fzf_open_with_editor2() {                                              
        files=($(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'bat --theme=timu-spacegrey --color=always {}' \
---preview-label='[ 文件 ]' \
 --header="$(_buildFzfHeader '' 'fzf_open_with_editor2')" \
 --query="$1" --multi --select-1 --exit-0 \
                     ))
@@ -110,7 +108,6 @@ function fzf_nvim() {                                                           
     files="$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'bat --style=numbers --line-range=:500 {}' \
---preview-label='[ 文件 ]' \
 --bind 'ctrl-o:execute(nvim {} < /dev/tty)' \
 --header="$(_buildFzfHeader '' 'fzf_nvim')" \
 )"
@@ -127,7 +124,6 @@ function fzf_vim() {                                                            
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --bind 'ctrl-o:execute(vim {} < /dev/tty)' \
---preview-label='[ 文件 ]' \
 --header="$(_buildFzfHeader '' 'fzf_vim')" \
 )"
     count="$( echo "$files" | wc -l )"
@@ -140,7 +136,6 @@ function fzf_grep_search_vim_to_line() {                                        
     grep --recursive --line-number --binary-files=without-match $@ | fzf --delimiter ':' \
     --nth 3.. \
     $FZF_CUSTOM_PARAMS \
-    --preview-label='[ 文件及行号 ]' \
     --preview-window 'right,70%,border-bottom,+{2}+3/3,~3' \
     --preview 'bat --color=always {1} --highlight-line {2}' \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \

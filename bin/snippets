@@ -209,6 +209,7 @@ case "$1" in
 		echo "分类:"{2};\
 		fi;  \
 		fi;'  \
+    --no-multi \
 		--margin=1 \
 		--padding=1 \
 		--toggle-sort=ctrl-s \

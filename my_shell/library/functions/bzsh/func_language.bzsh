@@ -40,7 +40,6 @@ function php_change_version() {                                                 
 
     choose=$(printf "%s\n" "${installedPhpVersions[@]}" | fzf $FZF_CUSTOM_PARAMS \
 --preview " echo php@{} " \
---preview-label='[ 切换版本 ]' \
 --header="$(_buildFzfHeader '' 'php_change_version')" \
 --bind 'ctrl-y:execute-silent(echo -n php@{}| pbcopy)+abort')
     if [ "" = "$choose" ]; then

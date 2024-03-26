@@ -140,7 +140,6 @@ alias stree='search_by_tree'                                                    
 
 function fzf_find_by_choice() {                                                        # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
     find * | fzf $FZF_CUSTOM_PARAMS \
---preview-label='[ 文件或文件夹 ]' \
 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
 --header="$(_buildFzfHeader '' 'fzf_find_by_choice')"

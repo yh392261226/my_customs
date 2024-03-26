@@ -82,7 +82,6 @@ function fzf_cd_to_select() {                                                   
                 echo;
                 gls -p --color=always "${__cd_path}";
                 ' \
-                --preview-label='[ 文件夹 ]' \
                 --header="$(_buildFzfHeader '' 'fzf_cd_to_select')" \
         )"
         [[ ${#dir} != 0 ]] || return 0
@@ -102,7 +101,6 @@ function fzf_cd_to_file() {                                                     
     local dir
     file=$(fzf +m $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
---preview-label='[ 文件夹 ]' \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --header="$(_buildFzfHeader '' 'fzf_cd_to_file')" \
@@ -180,7 +178,6 @@ function fzf_jump_between_directory() {                                         
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
     local dir
     dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m $FZF_CUSTOM_PARAMS \
---preview-label='[ 目录 ]' \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --header="$(_buildFzfHeader '' 'fzf_jump_between_directory')" \
@@ -239,7 +236,6 @@ alias pwdw="pwd_command_directory"                                              
 
 function fzf_directory_history() {                                                # Desc: function: fzf_directory_history:利用fzf显示目录的历史
   local dir=$(python3 -m fzfdirhist show | fzf $FZF_CUSTOM_PARAMS +m \
---preview-label='[ 目录 ]' \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --header="$(_buildFzfHeader '' 'fzf_directory_history')" \

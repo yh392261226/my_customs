@@ -31,9 +31,12 @@ function list() {
 --bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
 --bind 'ctrl-n:page-down,ctrl-p:page-up' \
 --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页' \
---header-first)
-    if [ "" != "$choose" ]; then
-        /usr/bin/open -a "$BROWSER" "$choose"
+--header-first ) 
+    if [[ $choose ]]; then
+        for url in $(echo $choose); do
+          /usr/bin/open -a "$BROWSER" "$url"
+        done
+        #/usr/bin/open -a "$BROWSER" "$choose"
         #chrome "$choose"
     fi
 }
