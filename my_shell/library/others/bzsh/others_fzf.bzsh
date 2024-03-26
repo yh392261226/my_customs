@@ -41,13 +41,17 @@ _fzf_comprun() {
     cd)           fzf "$@" --preview 'tree -C {} | head -200' ;;
     export|unset) fzf "$@" --preview "eval 'echo \$'{}" ;;
     ssh)          fzf "$@" --preview 'dig {}' ;;
+    tree)         find . -type d | fzf --preview 'tree -C {}' "$@";;
     *)            fzf "$@" ;;
   esac
 }
 
+export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
+
 _buildFzfHeader() {
-    rm -f /tmp/tmp_fzf_header
-    newheader="CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n | CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n | CTRL-J 预览上移 | CTRL-K 预览下移 "
+
+    rm -f $TMP_FZF_HEADER_SWAP_FILE
+    newheader="  CTRL-Y 复制内容 | CTRL-T 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 \n| CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-J 预览上移 | CTRL-K 预览下移 \n| CTRL-L 长列表显示 | OPTION-. 选中的下一个 | OPTION-, 选中的上一个 | F1 帮助信息 "
     local new_header
     local post_header
 
@@ -62,6 +66,7 @@ _buildFzfHeader() {
 
     if [ "" != "$2" ]; then
         newheader="${newheader} \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ ${2} 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈ "
+        echo ${2} > $TMP_FZF_HEADER_SWAP_FILE
     fi
     echo "$newheader "
 }
@@ -93,27 +98,30 @@ fzf_transformer='
 
 export FZF_CUSTOM_PARAMS=(--reverse \
 --multi \
---margin=3% \
---padding=3% \
+--margin=10% \
+--padding=2 \
 --height=60% \
 --toggle-sort=ctrl-s \
---preview-window bottom:6:border-rounded:hidden:wrap \
---scrollbar '▌▐' \
---preview ' echo {} ' \
---preview-label-pos top,4 \
+--preview-window=bottom:6:border-rounded:hidden:wrap \
+--scrollbar='▌▐' \
+--preview=' echo {} ' \
+--preview-label-pos=top,4 \
 --preview-label='[ 查找 ]' \
 --prompt='查找 > ' \
---bind 'ctrl-/:toggle-preview' \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---bind 'ctrl-n:page-down,ctrl-p:page-up' \
---bind 'ctrl-a:toggle-all' \
---bind=ctrl-j:preview-down \
---bind=ctrl-k:preview-up \
---bind 'ctrl-l:select-all+execute:less {+f}' --bind 'ctrl-l:+deselect-all' \
---bind "result:transform:$transformer" \
---bind "resize:transform:$transformer" \
---header=$'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页 | CTRL-A 全选/取消全选 \n| CTRL-J 预览上移 | CTRL-K 预览下移 | CTRL-L 长列表显示' \
+--bind='ctrl-t:toggle-preview' \
+--bind='focus:transform-preview-label:echo -n "[ {} ]";' \
+--bind='ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
+--bind='ctrl-n:page-down,ctrl-p:page-up' \
+--bind='ctrl-a:toggle-all' \
+--bind='ctrl-j:preview-down' \
+--bind='ctrl-k:preview-up' \
+--bind='ctrl-l:select-all+execute:less {+f}' --bind='ctrl-l:+deselect-all' \
+--bind="result:transform:$transformer" \
+--bind="resize:transform:$transformer" \
+--bind='≥:next-selected,≤:prev-selected' \
+--bind="F1:preview:(_previewer 'help')" \
+--bind='load:change-prompt:加载完成> '
+--header="$(_buildFzfHeader '' '')" \
 --header-first \
 )
 #--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格

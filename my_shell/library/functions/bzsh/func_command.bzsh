@@ -355,8 +355,8 @@ function fzf_man_widget() {                                                     
 --bind 'enter:execute(man {1})' \
 --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
---bind 'ctrl-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header="$(_buildFzfHeader 'a+ | CTRL-C Cheat | CTRL-M Man | CTRL-T Tldr ' 'fzf_man_widget')" \
+--bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
+--header="$(_buildFzfHeader 'a+ | CTRL-C Cheat | CTRL-M Man | CTRL-R Tldr ' 'fzf_man_widget')" \
   echo ""
 }
 alias fmw="fzf_man_widget"                                                          # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令

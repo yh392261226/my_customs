@@ -112,8 +112,7 @@ function fzf_brew_install_or_remove() {                                         
   {
     echo "Install mode (? for help)"; brew tap-info --json --installed | jq --raw-output "$jq_all" | sort 
   } |
-    fzf $FZF_CUSTOM_PARAMS --header-lines=1 \
-        --header-first \
+    fzf $FZF_CUSTOM_PARAMS \
         --preview-window right:70%:border-rounded:hidden:wrap \
         --bind="enter:execute(
         if [[ '{2}' == '(cask)' ]]; then
