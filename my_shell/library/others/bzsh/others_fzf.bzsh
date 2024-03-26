@@ -119,7 +119,7 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --bind="result:transform:$transformer" \
 --bind="resize:transform:$transformer" \
 --bind='≥:next-selected,≤:prev-selected' \
---bind="F1:preview:(_previewer 'help')" \
+--bind="F1:transform-preview-label(echo '[ 帮助信息 ]')+preview:(_previewer 'help')" \
 --bind='load:change-prompt:加载完成> '
 --header="$(_buildFzfHeader '' '')" \
 --header-first \
