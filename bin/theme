@@ -575,13 +575,13 @@ SCRIPTING
 	;;
 -i2|--interactive2)
 	command -v fzf > /dev/null 2>&1 || { echo "ERROR: -i requires fzf" >&2; exit 1; }
-	"$0" $filterFlag -l|fzf\
-		--tac\
-		--bind "enter:execute-silent($0 {})+accept"\
-		--bind "ctrl-c:execute($0 -l|tail -n1|xargs $0)+abort"\
-		--bind "esc:execute($0 {};echo {})+abort"\
-		--exact\
-		--no-sort\
+	"$0" $filterFlag -l|fzf \
+		--tac \
+		--bind "enter:execute-silent($0 {})+accept" \
+		--bind "ctrl-c:execute($0 -l|tail -n1|xargs $0)+abort" \
+		--bind "esc:execute($0 {};echo {})+abort" \
+		--exact \
+		--no-sort \
 		--preview "$0 --preview2 {}"
 	;;
 -r|--random)
@@ -598,13 +598,13 @@ SCRIPTING
          (use -i2 explicitly to get rid of this message or set COLORTERM)\n\n" >&2
 		"$0" $filterFlag -i2
 	else
-		"$0" $filterFlag -l|fzf\
-			--tac\
-			--exact\
-			--bind "ctrl-c:abort"\
-			--bind "esc:execute(echo {})+abort"\
-			--bind "enter:execute-silent($0 {})+accept"\
-			--no-sort\
+		"$0" $filterFlag -l|fzf \
+			--tac \
+			--exact \
+			--bind "ctrl-c:abort" \
+			--bind "esc:execute(echo {})+abort" \
+			--bind "enter:execute-silent($0 {})+accept" \
+			--no-sort \
 			--preview "$0 --preview {}"
 	fi
 	;;
