@@ -3,11 +3,12 @@
 #export PATH=$PATH:$HOME/go1.4/bin
 [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 export GOROOT=$(brew --prefix go)/libexec
-export PATH=$(brew --prefix go)/libexec/bin:$PATH
 export GOPATH=$HOME/go-develop
+#export GOBIN=$GOPATH/bin
+export PATH=$(brew --prefix go)/libexec/bin:$PATH
 export PATH=$GOPATH/bin:$PATH
 export GOOS=darwin
-export GOARCH=amd64
+export GOARCH=arm64
 export GO111MODULE=on
 #export GOBOOK=$HOME/go-develop/gobook
 #. $GOBOOK/env.sh

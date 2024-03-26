@@ -984,3 +984,4 @@ brew install dsq
 brew install tssh
 brew install restic
 brew install stylua
+brew install git-chglog/git-chglog/git-chglog
