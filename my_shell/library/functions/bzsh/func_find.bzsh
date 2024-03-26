@@ -143,7 +143,7 @@ function fzf_find_by_choice() {                                                 
 --preview-label='[ 文件或文件夹 ]' \
 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
---header="$(_buildFzfHeader 'a+ \n | CTRL-D 切换目录模式 | CTRL-F: 切换文件模式' 'fzf_find_by_choice')"
+--header="$(_buildFzfHeader '' 'fzf_find_by_choice')"
 }
 alias ffc="fzf_find_by_choice"                                                         # Desc: alias: ffc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
 
@@ -153,6 +153,6 @@ function fzf_fd_by_choice() {                                                   
               echo "change-prompt(Files> )+reload(fd --type file)" ||
               echo "change-prompt(Directories> )+reload(fd --type directory)"' \
       --preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}' \
-      --header="$(_buildFzfHeader 'a+ \n| CTRL-F 切换文件或目录 ' 'fzf_fd_by_choice')"
+      --header="$(_buildFzfHeader '' 'fzf_fd_by_choice')"
 }
 alias ffc2="fzf_fd_by_choice"                                                          # Desc: alias: ffc2: fzf_fd_by_choice命令的别名,利用fzf命令显示fd的结果,并根据选择展示文件或文件夹

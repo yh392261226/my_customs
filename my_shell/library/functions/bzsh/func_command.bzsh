@@ -47,7 +47,7 @@ function fzf_all_aliases() {                                                    
         eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
---header="$(_buildFzfHeader 'a+ | CTRL-O 预览全部' 'fzf_all_aliases')" \
+--header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)")
         rm -f $TMP_ALIASES_FILE
     fi
@@ -64,7 +64,7 @@ function fzf_custom_aliases() {                                                 
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)" \
---header="$(_buildFzfHeader 'a+ | CTRL-O 预览全部' 'fzf_custom_aliases')" \
+--header="$(_buildFzfHeader '' 'fzf_custom_aliases')" \
 --preview-label='[ 文件 ]')
         rm -f $TMP_ALIASES_FILE
     fi
@@ -101,7 +101,7 @@ function fzf_customs_fzf_awesome_functions_list() {                             
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
 --preview-window right:70%:border-rounded:hidden:wrap \
 --bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
---header="$(_buildFzfHeader 'a+ | CTRL-O 预览全部' 'fzf_customs_fzf_awesome_functions_list')" \
+--header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')" \
 --preview-label='[ 命令及注释 ]')
             rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
@@ -356,7 +356,7 @@ function fzf_man_widget() {                                                     
 --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
 --bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header="$(_buildFzfHeader 'a+ | CTRL-C Cheat | CTRL-M Man | CTRL-R Tldr ' 'fzf_man_widget')" \
+--header="$(_buildFzfHeader '' 'fzf_man_widget')" \
   echo ""
 }
 alias fmw="fzf_man_widget"                                                          # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令
@@ -407,7 +407,7 @@ function fzf_env_vars() {                                                       
 --bind 'focus:transform-preview-label:echo [ {1} ]' \
 --delimiter='=' \
 --preview='echo {2}' \
---header="$(_buildFzfHeader 'a+ \n | CTRL-K 复制键 | CTRL-V 复制值' 'fzf_env_vars')"
+--header="$(_buildFzfHeader '' 'fzf_env_vars')"
 }
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
@@ -568,7 +568,7 @@ function fzf_manage() {                                                         
     ls $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
-    --header="$(_buildFzfHeader 'a+ | CTRL-D 删除文件' 'fzf_manage')" \
+    --header="$(_buildFzfHeader '' 'fzf_manage')" \
     --preview-window right:70%:border-rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
 alias fm="fzf_manage"                                                               # Desc: alias: fm: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
