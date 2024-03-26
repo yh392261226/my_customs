@@ -51,7 +51,7 @@ export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
 _buildFzfHeader() {
 
     rm -f $TMP_FZF_HEADER_SWAP_FILE
-    newheader="  CTRL-Y 复制内容 | CTRL-T 切换预览窗口 | CTRL-S 切换排序 | CTRL-N 下翻页 \n| CTRL-P 上翻页 | CTRL-A 全选/取消全选 | CTRL-J 预览上移 | CTRL-K 预览下移 \n| CTRL-L 长列表显示 | OPTION-. 选中的下一个 | OPTION-, 选中的上一个 | F1 帮助信息 "
+    newheader=" F1 帮助信息 "
     local new_header
     local post_header
 
