@@ -26,7 +26,7 @@ alias fpk="fzf_process_kill"                                                    
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
 
-function find_process_id () {                                                       # Desc: function: find_process_id:Find out the pid of a specified process
+function find_process_id() {                                                       # Desc: function: find_process_id:Find out the pid of a specified process
     lsof -t -c "$@" ;
 }
 alias fpid="find_process_id"                                                        # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process

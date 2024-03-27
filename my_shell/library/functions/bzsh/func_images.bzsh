@@ -1,7 +1,7 @@
 ### Package Desc: 图片相关命令
 
 
-function gifify_from_video () {                                                      # Desc: function: gifify_from_video:Animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
+function gifify_from_video() {                                                      # Desc: function: gifify_from_video:Animated gifs from any video from Alex Sexton gist.github.com/SlexAxton/4989674
     if [[ -n "$1" ]]; then
         if [[ $2 == '--good' ]]; then
         ffmpeg -i "$1" -r 10 -vcodec png out-static-%05d.png
