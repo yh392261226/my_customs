@@ -6,13 +6,13 @@ function fzf_asdf_install() {                                                   
 
   if [[ ! $lang ]]; then
     lang=$(asdf plugin-list | fzf $FZF_CUSTOM_PARAMS \
-    --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]' \
+    --preview-window bottom:6:border-bottom:hidden:wrap --preview-label='[ 语言版本 ]' \
     --header="$(_buildFzfHeader '' 'fzf_asdf_install')")
   fi
 
   if [[ $lang ]]; then
     local versions=$(asdf list-all "$lang" | fzf -m $FZF_CUSTOM_PARAMS \
-    --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]' \
+    --preview-window bottom:6:border-bottom:hidden:wrap --preview-label='[ 语言版本 ]' \
     --header="$(_buildFzfHeader '' 'fzf_asdf_install')")
     if [[ $versions ]]; then
       for version in $(echo $versions); do
@@ -28,13 +28,13 @@ function fzf_asdf_uninstall() {                                                 
 
   if [[ ! $lang ]]; then
     lang=$(asdf plugin-list | fzf $FZF_CUSTOM_PARAMS \
-    --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]' \
+    --preview-window bottom:6:border-bottom:hidden:wrap --preview-label='[ 语言版本 ]' \
     --header="$(_buildFzfHeader '' 'fzf_asdf_uninstall')")
   fi
 
   if [[ $lang ]]; then
     local versions=$(asdf list $lang | fzf -m $FZF_CUSTOM_PARAMS \
-    --preview-window bottom:6:border-rounded:hidden:wrap --preview-label='[ 语言版本 ]' \
+    --preview-window bottom:6:border-bottom:hidden:wrap --preview-label='[ 语言版本 ]' \
     --header="$(_buildFzfHeader '' 'fzf_asdf_uninstall')")
     if [[ $versions ]]; then
       for version in $(echo $versions); do

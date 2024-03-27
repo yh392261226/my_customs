@@ -17,7 +17,7 @@ function customcd() {                                                           
 function fzf_cd_to() {                                                            # Desc: function: fzf_cd_to: fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
     [[ "" = "$@" ]] && (echo "ex: fct word1 word2" && return 1 && exit 1)
     local file
-    file="$(glocate -Ai -0 $@ | grep -z -vE '~$' | fzf $FZF_CUSTOM_PARAMS --read0 -0 -1 --header="$(_buildFzfHeader '' 'fzf_cd_to')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap)"
+    file="$(glocate -Ai -0 $@ | grep -z -vE '~$' | fzf $FZF_CUSTOM_PARAMS --read0 -0 -1 --header="$(_buildFzfHeader '' 'fzf_cd_to')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-bottom:hidden:wrap)"
     if [[ -n $file ]]
     then
         if [[ -d $file ]]
@@ -31,7 +31,7 @@ function fzf_cd_to() {                                                          
 alias fct="fzf_cd_to"                                                             # Desc: alias: fct:fzf_cd_to命令的别名,fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
 
 function fzf_hidden_directories() {                                               # Desc: function: fzf_da: including hidden directories
-    DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap` && cd "$DIR"
+    DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-bottom:hidden:wrap` && cd "$DIR"
 }
 alias fhd="fzf_hidden_directories"                                                # Desc: alias: fhd:fzf_hidden_directories命令的别名,including hidden directories
 
@@ -74,7 +74,7 @@ function fzf_cd_to_select() {                                                   
         local lsd=$(echo ".." && ls -p | grep '/$' | sed 's;/$;;')
         local dir="$(printf '%s\n' "${lsd[@]}" |
             fzf $FZF_CUSTOM_PARAMS \
-                --preview-window right:70%:border-rounded:hidden:wrap \
+                --preview-window right:70%:border-bottom:hidden:wrap \
                 --preview '
                 __cd_nxt="$(echo {})";
                 __cd_path="$(echo $(pwd)/${__cd_nxt} | sed "s;//;/;")";
@@ -100,9 +100,9 @@ function fzf_cd_to_file() {                                                     
     local file
     local dir
     file=$(fzf +m $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --header="$(_buildFzfHeader '' 'fzf_cd_to_file')" \
     -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
@@ -179,7 +179,7 @@ function fzf_jump_between_directory() {                                         
     local dir
     dir="$(fasd -Rdl "$1" | fzf -1 -0 --no-sort +m $FZF_CUSTOM_PARAMS \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --header="$(_buildFzfHeader '' 'fzf_jump_between_directory')" \
     )" && cd "${dir}" || return 1
 }
@@ -237,7 +237,7 @@ alias pwdw="pwd_command_directory"                                              
 function fzf_directory_history() {                                                # Desc: function: fzf_directory_history:利用fzf显示目录的历史
   local dir=$(python3 -m fzfdirhist show | fzf $FZF_CUSTOM_PARAMS +m \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --header="$(_buildFzfHeader '' 'fzf_directory_history')" \
 )
   cd "$dir"

@@ -51,7 +51,7 @@ function fzf_git_checkout_preview() {                                           
     target=$(
     (echo "$tags"; echo "$branches") |
     fzf --no-hscroll --no-multi --delimiter="\t" -n 2 --ansi $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview="git log -200 --pretty=format:%s $(echo {+2..} |  sed 's/$/../' )" \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
@@ -144,7 +144,7 @@ function fzf_git_status() {                                                     
   local selected
   selected=$(git -c color.status=always status --short |
       fzf "$@" --border -m --ansi --nth 2..,.. $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview '(git diff --color=always -- {-1} | sed 1,4d; cat {-1}) | head -500' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {-1}| pbcopy)+abort' \

@@ -13,7 +13,7 @@ function search_aliases() {                                                     
     echo "$Content" | fzf --no-sort \
     --tac \
     $FZF_CUSTOM_PARAMS \
-    --preview-window right:70%:border-rounded:hidden:wrap \
+    --preview-window right:70%:border-bottom:hidden:wrap \
     --preview 'bat {}' \
     --header="$(_buildFzfHeader '' 'search_aliases')"
     customcd -
@@ -30,7 +30,7 @@ sed -e "s/() {//" | awk -F'#' '{print $1}' | \
 grep -E "(.*?)[^(]*" | \
 sed -e 's/ $//g' | \
 fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
 --header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
 --bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
@@ -44,7 +44,7 @@ function fzf_all_aliases() {                                                    
     alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
 --header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)")
@@ -59,7 +59,7 @@ function fzf_custom_aliases() {                                                 
     find $MYRUNTIME/customs/my_shell/* -type f ! -path "$MYRUNTIME/customs/my_shell/nu/*" ! -path "$MYRUNTIME/customs/my_shell/fish/*" ! -path "$MYRUNTIME/customs/my_shell/library/functions/fish/*" | xargs grep -rE '^alias\ ' > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk '{print $2}' | sed "s/'//g" | sed 's/"//g' | awk -F'=' '{print $1}' | fzf --no-sort --tac $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:nohidden:wrap \
+--preview-window right:70%:border-bottom:nohidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)" \
@@ -72,7 +72,7 @@ alias fca="fzf_custom_aliases"                                                  
 function fzf_aliases() {                                                            # Desc: function: fzf_aliases:利用fzf显示所有别名
     alias | sed -e "s/^alias //g" | fzf --no-sort --tac \
 $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_positalias {}" \
 --header="$(_buildFzfHeader '' 'fzf_aliases')"
 }
@@ -96,7 +96,7 @@ function fzf_customs_fzf_awesome_functions_list() {                             
             sed -e 's/ $//g' | \
             fzf $FZF_CUSTOM_PARAMS \
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
 --header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
             rm -f $TMP_FZF_FUNCTIONS_FILE
@@ -291,7 +291,7 @@ alias fhp='fzf_history_print'                                                   
 function fzf_theme_selector() {                                                     # Desc: function: fzf_theme_selector:fzf主题选择器
     #MYRUNTIME=$(cat ~/.myruntime)
     themes_path=$MYRUNTIME/customs/tools/fzf_themes/
-    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-rounded:hidden:wrap --preview " bat $themes_path/{} " --header="$(_buildFzfHeader '' 'fzf_aliases')")
+    choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:border-bottom:hidden:wrap --preview " bat $themes_path/{} " --header="$(_buildFzfHeader '' 'fzf_aliases')")
 
     [[ ! "$choose_theme" ]] && echo "Action abort!" && return
     if [[ -f ${themes_path}/$choose_theme ]]; then
@@ -404,7 +404,7 @@ function fzf_env_vars() {                                                       
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
 function fzf_eval_preview() {                                                       # Desc: function: fzf_eval_preview: 利用fzf执行选中的命令并preview结果
-    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-rounded:hidden:wrap --preview="eval {q}" --header="$(_buildFzfHeader '' 'fzf_eval_preview')"
+    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:border-bottom:hidden:wrap --preview="eval {q}" --header="$(_buildFzfHeader '' 'fzf_eval_preview')"
 }
 alias fep="fzf_eval_preview"                                                        # Desc: alias: fep: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
 
@@ -418,7 +418,7 @@ function fold() {                                                               
 
 function fzf_spell() {                                                              # Desc: function: fzf_spell: Use `fzf` against system dictionary
   cat /usr/share/dict/words | fzf $FZF_CUSTOM_PARAMS \
---preview-window up:70%:border-rounded:hidden:wrap \
+--preview-window up:70%:border-bottom:hidden:wrap \
 --preview 'wn {} -over | fold' \
 --header="$(_buildFzfHeader '' 'fzf_spell')"
 }
@@ -507,7 +507,7 @@ alias ltheme="last_theme"                                                       
 
 function fzf_open_app() {                                                           # Desc: function: fzf_open_app: 利用fzf通过终端打开App
     ls /Applications/ | fzf --ansi $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview 'tree /Applications/{}' \
 --bind 'enter:become(open /Applications/{})' \
 --header="$(_buildFzfHeader '' 'fzf_open_app')" \
@@ -534,7 +534,7 @@ function fzf_most_used_command() {                                              
     #除了history外,在omz中可以使用:omz_history -n | sed 's/^[[:space:]]*//g' | sed 's/^[0-9]*//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -30 | tac
 
     history | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -50 | tac |fzf $FZF_CUSTOM_PARAMS --no-sort \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview 'echo {} | awk "{\$1=\"\";print}"' \
 --bind 'enter:become(echo {} | awk "{\$1=\"\";print}")' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
@@ -557,7 +557,7 @@ function fzf_manage() {                                                         
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
     --header="$(_buildFzfHeader '' 'fzf_manage')" \
-    --preview-window right:70%:border-rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
+    --preview-window right:70%:border-bottom:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
 alias fm="fzf_manage"                                                               # Desc: alias: fm: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
 

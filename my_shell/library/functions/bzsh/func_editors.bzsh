@@ -70,7 +70,7 @@ function fzf_tags() {                                                           
     linen=$(
     awk 'BEGIN { FS="\t" } !/^!/ {print toupper($4)"\t"$1"\t"$2"\t"$3}' tags |
     fzf $FZF_CUSTOM_PARAMS --nth=1,2 --with-nth=2 \
---preview-window right:50%:border-rounded:hidden:wrap \
+--preview-window right:50%:border-bottom:hidden:wrap \
 --preview="bat {3} --color=always | tail -n +\$(echo {4} | tr -d \";\\\"\")" \
 --header="$(_buildFzfHeader '' 'fzf_tags')" \
     ) && ${EDITOR:-vim} $(cut -f3 <<< "$linen") -c "set nocst" \
@@ -83,7 +83,7 @@ function fzf_open_viminfo() {                                                   
     files=$(grep '^>' ~/.viminfo | cut -c3- |
     while read line; do
         [ -f "${line/\~/$HOME}" ] && echo "$line"
-    done | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-rounded:hidden:wrap --header="$(_buildFzfHeader '' 'fzf_open_viminfo')" -d -m -q "$*" -1) && vim ${files//\~/$HOME}
+    done | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:border-bottom:hidden:wrap --header="$(_buildFzfHeader '' 'fzf_open_viminfo')" -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 alias fov="fzf_open_viminfo"                                                        # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in ~/.viminfo
 
@@ -95,7 +95,7 @@ function fzf_open_with_editor2() {                                              
 -E '.git'"
     IFS=$'\n' \
        files=($(fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview 'bat --theme=timu-spacegrey --color=always {}' \
 --header="$(_buildFzfHeader '' 'fzf_open_with_editor2')" \
 --query="$1" --multi --select-1 --exit-0 \
@@ -106,7 +106,7 @@ alias fv='fzf_open_with_editor2'                                                
 
 function fzf_nvim() {                                                               # Desc: function: fzf_nvim: 利用fzf选择文件并用nvim进行编辑
     files="$(fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --bind 'ctrl-o:execute(nvim {} < /dev/tty)' \
 --header="$(_buildFzfHeader '' 'fzf_nvim')" \
@@ -121,7 +121,7 @@ alias fnvim="fzf_nvim"                                                          
 
 function fzf_vim() {                                                                # Desc: function: fzf_vim: 利用fzf选择文件并用vim进行编辑
     files="$(fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:border-rounded:hidden:wrap \
+--preview-window right:70%:border-bottom:hidden:wrap \
 --preview 'bat --style=numbers --line-range=:500 {}' \
 --bind 'ctrl-o:execute(vim {} < /dev/tty)' \
 --header="$(_buildFzfHeader '' 'fzf_vim')" \
@@ -146,7 +146,7 @@ function fzf_grep_search_vim_to_line() {                                        
 }
 alias fgv2l="fzf_grep_search_vim_to_line"                                           # Desc: alias: fsv2l: fzf_grep_search_vim_to_line命令的别名,vim定位打开根据关键字搜索到文件及行号
 
-function fzf_rg_search_vim_to_line() {                                              # Desc: function: fzf_rg_search_vim_to_line: fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
+function fzf_rg_search_vim_to_line() {                                              # Desc: function: fzf_rg_search_vim_to_line: fzf展示ripgrep关键字的文件,选中后vim定位到行进行编辑,可以用ctrl+t切换查找方式
     \rm -f /tmp/rg-fzf-{r,f}
     local RGBIN
     [[ -f /opt/homebrew/bin/rg ]] && RGBIN=/opt/homebrew/bin/rg
@@ -173,9 +173,9 @@ function fzf_rg_search_vim_to_line() {                                          
     --preview-window 'right,70%,border-bottom,+{2}+3/3,~3' \
     --bind 'enter:become(vim {1} +{2})'
 }
-alias frv2l="fzf_rg_search_vim_to_line"                                             # Desc: alias: frv2l: fzf_rg_search_vim_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vim打开编辑,可以用ctrl+t切换查找方式
+alias frv2l="fzf_rg_search_vim_to_line"                                             # Desc: alias: frv2l: fzf_rg_search_vim_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vim定位到行进行编辑,可以用ctrl+t切换查找方式
 
-function fzf_ag_search_to_line() {                                                  # Desc: function: fzf_ag_search_to_line:fuzzy grep open via ag with line number
+function fzf_ag_search_to_line() {                                                  # Desc: function: fzf_ag_search_to_line:fzf展示ag关键字的文件,选中后vim定位到行进行编辑
     local AGBIN
     [[ -f /opt/homebrew/bin/ag ]] && AGBIN=/opt/homebrew/bin/ag
     [[ -f /usr/local/bin/ag ]] && AGBIN=/usr/local/bin/ag
@@ -193,4 +193,17 @@ function fzf_ag_search_to_line() {                                              
     --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
     --header="$(_buildFzfHeader '' 'fzf_ag_search_to_line')"
 }
-alias fav2l="fzf_ag_search_to_line"                                                 # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fuzzy grep open via ag with line number
+alias fav2l="fzf_ag_search_to_line"                                                 # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fzf展示ag关键字的文件,选中后vim定位到行进行编辑
+
+function fzf_rg_search_vscode_to_line() {                                           # Desc: function: fzf_rg_search_vscode_to_line: fzf展示ripgrep关键字的文件,选中后vscode定位到行进行编辑
+    rg --color=always --line-number --no-heading --smart-case "${*:-}" | fzf $FZF_CUSTOM_PARAMS --ansi \
+    +m \
+    --color="hl:-1:underline,hl+:-1:underline:reverse" \
+    --delimiter=':' \
+    --bind='ctrl-o:execute-silent(/usr/local/bin/code --new-window --goto {1}:{2})' \
+    --bind='enter:become(/usr/local/bin/code --new-window --goto {1}:{2})' \
+    --preview='bat --color=always {1} --highlight-line {2}' \
+    --preview-window='right,60%,border-bottom,+{2}+3/3,~3' \
+    --header="$(_buildFzfHeader '' 'fzf_rg_search_vscode_to_line')"
+}
+alias frc2l='fzf_rg_search_vscode_to_line'                                          # Desc: alias: frc2l: fzf_rg_search_vscode_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vscode定位到行进行编辑
