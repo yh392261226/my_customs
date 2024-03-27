@@ -10,7 +10,7 @@ function remove_DS_files() {                                                    
 }
 alias rDS="remove_DS_files"                                                          # Desc: alias: rDS:remove_DS_files命令的别名,删除.DS_Store文件
 
-function remove_files_by_ext () {                                                    # Desc: function: remove_files_by_ext:删除后缀名为参数值的文件到回收站
+function remove_files_by_ext() {                                                    # Desc: function: remove_files_by_ext:删除后缀名为参数值的文件到回收站
     if [ "" = "$1" ]; then
         trash ./*
     else
@@ -24,7 +24,7 @@ function remove_ssh_tmp_file() {                                                
 }
 alias rst="remove_ssh_tmp_file"                                                      # Desc: alias: rst:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
 
-function remove_to_trash () {                                                        # Desc: function: remove_to_trash:删除到回收站
+function remove_to_trash() {                                                        # Desc: function: remove_to_trash:删除到回收站
     local mpath
     for mpath in "$@"; do
         # ignore any arguments
@@ -41,7 +41,7 @@ function remove_to_trash () {                                                   
 }
 alias r2t="remove_to_trash"                                                          # Desc: alias: r2t:remove_to_trash命令的别名,删除到回收站
 
-function trash () {                                                                  # Desc: function: trash:Moves a file to the MacOS trash
+function trash() {                                                                  # Desc: function: trash:Moves a file to the MacOS trash
     command /bin/mv "$@" ~/.Trash ;
 }
 alias t="trash"                                                                      # Desc: alias: t: trash命令的别名,Moves a file to the MacOS trash
