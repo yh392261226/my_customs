@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Desc: Fzf自定义命令的帮助信息
+readonly bold="\e[1m"
+readonly reset="\e[0m"
+readonly italic="\e[3m"
+readonly gray="\e[30m"
+readonly c="\e[1;36m"
+readonly d="\e[1;37m"
+readonly help="${bold}${c}[帮助信息]${c}${reset}
+${bold}${italic}CTRL-F${reset}   切换fzf筛选
+${bold}${italic}CTRL-R${reset}   切换ripgrep筛选
+${bold}${italic}CTRL-O${reset}   由vscode打开编辑
+${bold}${italic}CTRL-Y${reset}   复制内容
+${bold}${italic}CTRL-T${reset}   切换预览窗口
+${bold}${italic}CTRL-S${reset}   切换排序
+${bold}${italic}CTRL-N${reset}   下翻页
+${bold}${italic}CTRL-P${reset}   上翻页
+${bold}${italic}CTRL-A${reset}   全选/取消全选
+${bold}${italic}CTRL-J${reset}   预览内容上滚动
+${bold}${italic}CTRL-K${reset}   预览内容下滚动
+${bold}${italic}CTRL-L${reset}   长列表显示(在某些函数中失效或异常显示)
+${bold}${italic}OPTION-.${reset} 选中项目中跳转下一个
+${bold}${italic}OPTION-,${reset} 选中项目中跳转上一个
+${bold}${italic}CTRL-H${reset}   帮助信息 (this page)
+${bold}${italic}ESC${reset}      退出
+
+
+${c}利用Fzf与Rg搜索关键字得到列表及所在行,选中后由vscode定位到行进行编辑.${reset}
+"
+
+echo -e "$help"
