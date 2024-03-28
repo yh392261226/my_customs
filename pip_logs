@@ -80,3 +80,5 @@ pipx install bpython
 pipx install pyfunky 
 
 pipx install DrissionPage
+
+pipx install manim
