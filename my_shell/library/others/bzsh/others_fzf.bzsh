@@ -105,11 +105,11 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --preview-window='right,60%,rounded,+{2}+3/3,~3' \
 --scrollbar='▌▐' \
 --border='rounded' \
---border-label='╢ 自定义命令 ╟' \
+--border-label=' 自定义命令 ' \
 --border-label-pos=bottom,4 \
 --preview=' echo {} ' \
 --preview-label-pos=bottom,4 \
---preview-label='╢ 查找 ╟' \
+--preview-label=' 查找 ' \
 --prompt='查找  ➤ ' \
 --bind='ctrl-t:toggle-preview' \
 --bind='focus:transform-preview-label:echo -n "╢  {}  ╟";' \
@@ -122,8 +122,8 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --bind="result:transform:$transformer" \
 --bind="resize:transform:$transformer" \
 --bind='≥:next-selected,≤:prev-selected' \
---bind="ctrl-h:change-preview-label(╢ 帮助信息 ╟)+transform-preview-label(echo '╢ 帮助信息 ╟')+preview:(_previewer 'help')" \
---bind='load:change-prompt:加载完成> ' \
+--bind="ctrl-h:change-preview-label( 帮助信息 )+transform-preview-label(echo ' 帮助信息 ')+preview:(_previewer 'help')" \
+--bind='load:change-prompt:加载完成,查找  ➤ ' \
 --header="$(_buildFzfHeader '' '')" \
 --header-first \
 )
