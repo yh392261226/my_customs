@@ -565,7 +565,7 @@ function fzf_linux_command_searcher() {                                         
     [[ ! -d $MYRUNTIME/customs/others/linux-command ]] && echo "请先下载https://github.com/jaywcjlove/linux-command?tab=readme-ov-file#命令行工具" && return 1
 
     ls $MYRUNTIME/customs/others/linux-command/command | fzf $FZF_CUSTOM_PARAMS +m \
-    --bind='enter:become(glow $MYRUNTIME/customs/others/linux-command/command/{})' \
-    --preview='glow $MYRUNTIME/customs/others/linux-command/command/{}'
+    --bind='enter:become(glow --style=dark $MYRUNTIME/customs/others/linux-command/command/{})' \
+    --preview='glow --style=dark -p $MYRUNTIME/customs/others/linux-command/command/{}'
 }
 alias flc='fzf_linux_command_searcher'                                              # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
