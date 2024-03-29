@@ -399,3 +399,10 @@ alias config=dotbare                                                            
 #----------------------------------------------------------------------------------------------------------------
 #
 export HOMEBREW_NO_AUTO_UPDATE=1                                                                                 # Desc: 设置homebrew不自动更新
+
+#linux-command
+#----------------------------------------------------------------------------------------------------------------
+#
+if [ ! -d $MYRUNTIME/customs/others/linux-command ]; then
+    git clone git@github.com:jaywcjlove/linux-command.git $MYRUNTIME/customs/others/linux-command
+fi
