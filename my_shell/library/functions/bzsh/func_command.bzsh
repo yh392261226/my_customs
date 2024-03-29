@@ -566,6 +566,7 @@ function fzf_linux_command_searcher() {                                         
 
     ls $MYRUNTIME/customs/others/linux-command/command | fzf $FZF_CUSTOM_PARAMS +m \
     --bind='enter:become(glow --style=dark $MYRUNTIME/customs/others/linux-command/command/{})' \
+    --bind="ctrl-y:execute-silent(echo {} | awk -F'.' '{print \$1}' | pbcopy)+abort" \
     --preview='glow --style=dark -p $MYRUNTIME/customs/others/linux-command/command/{}'
 }
 alias flc='fzf_linux_command_searcher'                                              # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
