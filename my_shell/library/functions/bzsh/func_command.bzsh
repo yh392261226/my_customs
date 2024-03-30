@@ -570,3 +570,12 @@ function fzf_linux_command_searcher() {                                         
     --preview='glow --style=dark -p $MYRUNTIME/customs/others/linux-command/command/{}'
 }
 alias flc='fzf_linux_command_searcher'                                              # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
+
+function fzf_how_to_cook_searcher() {                                               # Desc: function: fzf_how_to_cook_searcher: 利用fzf和别人的做饭菜单进行搜索
+    [[ ! -d $MYRUNTIME/customs/others/HowToCook ]] && echo "请先下载https://github.com/Anduin2017/HowToCook/tree/master" && return 1
+    find $MYRUNTIME/customs/others/HowToCook/dishes -type f -name "*md" | fzf $FZF_CUSTOM_PARAMS +m \
+    --bind='enter:become(glow --style=dark {})' \
+    --bind="ctrl-y:execute-silent(cat {} | pbcopy)+abort" \
+    --preview='glow --style=dark -p {}'
+}
+alias how2cook='fzf_how_to_cook_searcher'                                           # Desc: alias: how2cook: fzf_how_to_cook_searcher命令的别名,利用fzf和别人的做饭菜单进行搜索

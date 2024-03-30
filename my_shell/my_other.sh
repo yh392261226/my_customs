@@ -406,3 +406,10 @@ export HOMEBREW_NO_AUTO_UPDATE=1                                                
 if [ ! -d $MYRUNTIME/customs/others/linux-command ]; then
     git clone git@github.com:jaywcjlove/linux-command.git $MYRUNTIME/customs/others/linux-command
 fi
+
+#HowToCook
+#----------------------------------------------------------------------------------------------------------------
+#
+if [ ! -d $MYRUNTIME/customs/others/HowToCook ]; then
+    git clone git@github.com:Anduin2017/HowToCook.git $MYRUNTIME/customs/others/HowToCook
+fi
