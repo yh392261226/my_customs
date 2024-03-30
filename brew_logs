@@ -988,3 +988,4 @@ brew install git-chglog/git-chglog/git-chglog
 brew install --cask superproductivity
 brew install cog
 brew install hurl
+brew install tailspin

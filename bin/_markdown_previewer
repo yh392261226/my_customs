@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+### Desc: 利用glow输出markdown内容
+
+function _preview_markdown_content() {         # Desc: function: _show_fzf_awesome_function: 定位fzf别名源是否是命令，且定位所在位置
+    if [ "" != "$1" ] && [ "" != "$2" ]; then
+        CCommand=$1
+        CLocation=$2
+
+        TmpContent=$(cat $CLocation | grep -E "$CCommand")
+        glow --style=dark -p "$TmpContent"
+    fi
+}
+
+_preview_markdown_content $1 $2
