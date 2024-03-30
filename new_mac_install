@@ -135,6 +135,8 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     cp $MYRUNTIME/customs/configs/p10k.zsh                      ~/.p10k.zsh
     mv ~/.czrc ~/bak/
     ln -sf $MYRUNTIME/customs/configs/czrc                      ~/.czrc
+    mv ~/.warp ~/bak/
+    ln -sf $MYRUNTIME/customs/configs/warp                      ~/.warp
     
     
     

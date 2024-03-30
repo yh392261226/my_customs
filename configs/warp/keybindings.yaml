@@ -1,0 +1,5 @@
+---
+"workspace:activate_prev_tab": cmd-left
+"editor_view:home": ctrl-left
+"workspace:activate_next_tab": cmd-right
+"editor_view:end": ctrl-right
