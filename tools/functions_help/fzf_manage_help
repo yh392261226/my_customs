@@ -8,7 +8,7 @@ readonly c="\e[1;36m"
 readonly d="\e[1;37m"
 readonly help="${bold}${c}[帮助信息]${c}${reset}
 ${bold}${italic}CTRL-D${reset}   删除文件
-${bold}${italic}CTRL-O${reset}   编辑
+${bold}${italic}CTRL-O${reset}   打开
 ${bold}${italic}CTRL-Y${reset}   复制内容
 ${bold}${italic}CTRL-T${reset}   切换预览窗口
 ${bold}${italic}CTRL-S${reset}   切换排序

@@ -556,6 +556,7 @@ function fzf_manage() {                                                         
     ls $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
+    --bind "ctrl-o:execute-silent(open -R $DIRPATH/{})" \
     --header="$(_buildFzfHeader '' 'fzf_manage')" \
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
