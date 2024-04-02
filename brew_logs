@@ -989,3 +989,5 @@ brew install --cask superproductivity
 brew install cog
 brew install hurl
 brew install tailspin
+brew install bruno
+
