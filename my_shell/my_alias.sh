@@ -194,3 +194,5 @@ alias piplogs="nvim $MYRUNTIME/customs/pip_logs"                                
 alias npmlogs="nvim $MYRUNTIME/customs/npm_logs"                                                                 # Desc: alias: npmlogs:npm包安装记录的别名
 alias gemlogs="nvim $MYRUNTIME/customs/gem_logs"                                                                 # Desc: alias: gemlogs:gem包安装记录的
 alias fishlogs="nvim $MYRUNTIME/customs/fish_logs"                                                               # Desc: alias: fishlogs:fish包安装记录的
+[[ -f $MYRUNTIME/customs/bin/webmanager ]] && alias soft="$MYRUNTIME/customs/bin/webmanager soft"                # Desc: alias: soft:webmanager命令中软件网址管理的别名
+[[ -f $MYRUNTIME/customs/bin/webmanager ]] && alias learn="$MYRUNTIME/customs/bin/webmanager learn"              # Desc: alias: learn:webmanager命令中学习网址管

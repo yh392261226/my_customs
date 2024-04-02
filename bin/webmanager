@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-### Desc: 打开经常使用的软件网址
+### Desc: 网址管理器
 
-WEBSITES=$MYRUNTIME/tools/software_websites.log
-BROWSER="/Applications/Google Chrome.app"
+LEARNWEBSITES=$MYRUNTIME/tools/learnning_websites.log
+SOFTWEBSITES=$MYRUNTIME/tools/software_websites.log
 BROWSER="/Applications/Safari.app"
-
-if [ ! -f $WEBSITES ]; then
-    [[ ! -d $(dirname $WEBSITES) ]] && mkdir -p $(dirname $WEBSITES)
-    touch $WEBSITES
-fi
+tmp_iterm="soft"
+tmp_action="list"
 [[ -f $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh
+[[ "" != "$1" ]] && tmp_iterm=$1
+[[ "" != "$2" ]] && tmp_action=$2
 
 function list() {
     if [ ""  = "$(cat $WEBSITES)" ]; then
@@ -42,19 +41,46 @@ function list() {
 }
 
 function help() {
-    echo "''''''''''''''''''''''''''"
-    echo "'  edit|e|add|a 编辑记录 '"
-    echo "'  help|e       帮助信息 '"
-    echo "''''''''''''''''''''''''''"
+    echo "''''''''''''''''''''''''''''''''''''''''"
+    echo "Command: webmanager"
+    echo "  Iterm:(1)"
+    echo "      soft 软件网址管理"
+    echo "      learn 学习网址管理"
+    echo "  Action:(2)"
+    echo "      edit|e|add|a 编辑记录"
+    echo "      help|e       帮助信息"
+    echo "Eg.:"
+    echo "  webmanager soft list"
+    echo "  webmanager learn list"
+    echo ""
+    echo "''''''''''''''''''''''''''''''''''''''''"
 }
 
+case $tmp_iterm in
+    "soft")
+        WEBSITES=$SOFTWEBSITES
+    ;;
+    "learn")
+        WEBSITES=$LEARNWEBSITES
+    ;;
+    *)
+        help
+        exit 0
+    ;;
+esac
 
-case $1 in
+if [ ! -f $WEBSITES ]; then
+    [[ ! -d $(dirname $WEBSITES) ]] && mkdir -p $(dirname $WEBSITES)
+    touch $WEBSITES
+fi
+
+case $tmp_action in
     "e"|"edit"|"a"|"add")
-        vim $WEBSITES
+        nvim $WEBSITES
     ;;
     "h"|"help")
         help
+        exit 0
     ;;
     *)
         list
