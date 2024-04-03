@@ -172,7 +172,6 @@ function cd_directory_by_which_command() {                                      
     fi
 }
 alias cdw="cd_directory_by_which_command"                                         # Desc: alias: cdw:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
-alias cd2="cd_directory_by_which_command"                                         # Desc: alias: cd2:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
 
 function fzf_jump_between_directory() {                                           # Desc: function: fzf_jump_between_directory:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
@@ -216,7 +215,6 @@ function open_directory_whereis_command() {                                     
     fi
 }
 alias openw="open_directory_whereis_command"                                      # Desc: alias: openw:open_directory_whereis_command命令的别名,打开which命令找到的目录或文件
-
 
 function pwd_command_directory() {                                                # Desc: function: pwd_command_directory:获取命令所在的文件夹
     hascommand=$(ifHasCommand $@)
