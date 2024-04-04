@@ -15,30 +15,33 @@ export BASE=$HOME
 if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
 
 #####设置PATH变量
-[[ -d /usr/bin ]] && export PATH="/usr/bin:$PATH"
-[[ -d /bin ]] && export PATH="/bin:$PATH"
-[[ -d /usr/sbin ]] && export PATH="/usr/sbin:$PATH"
-[[ -d /sbin ]] && export PATH="/sbin:$PATH"
-[[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
-[[ -d /usr/local/sbin ]] && export PATH="/usr/local/sbin:$PATH"
-[[ -d /usr/local/var/rbenv/shims ]] && export PATH="/usr/local/var/rbenv/shims:$PATH"
-[[ -d $HOME/go/bin ]] && export PATH="$HOME/go/bin:$PATH"
-[[ -d $HOME/.cabal/bin ]] && export PATH="$HOME/.cabal/bin:$PATH"
-[[ -d $HOME/bin ]] && export PATH="$HOME/bin:$PATH"
-[[ -d /usr/local/opt/go/bin ]] && export PATH="/usr/local/opt/go/bin:$PATH"
-[[ -d /usr/local/heroku/bin ]] && export PATH="/usr/local/heroku/bin:$PATH"
-[[ -d $MYRUNTIME/customs/bin ]] && export PATH="$MYRUNTIME/customs/bin:$PATH"
-[[ -d /usr/local/opt/llvm/bin ]] && export PATH="/usr/local/opt/llvm/bin:$PATH"
-[[ -d /usr/local/opt/coreutils/libexec/gnubin ]] && export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
-[[ -d $HOME/.Pokemon-Terminal ]] && export PATH="$HOME/.Pokemon-Terminal:$PATH"
-[[ -d /usr/local/anaconda3/bin ]] && export PATH="/usr/local/anaconda3/bin/:$PATH"
-[[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
-[[ -d /opt/homebrew/sbin ]] && export PATH="/opt/homebrew/sbin:$PATH"
-[[ -d /opt/homebrew/opt/grep/bin ]] && export PATH="/opt/homebrew/opt/grep/bin:$PATH"
-[[ -d /opt/homebrew/opt/icu4c/bin ]] && export PATH="/opt/homebrew/opt/icu4c/bin:$PATH"
-[[ -d /opt/homebrew/opt/llvm@15/bin ]] && export PATH="/opt/homebrew/opt/llvm@15/bin:$PATH"
-[[ -d /opt/homebrew/opt/ed/bin ]] && export PATH="/opt/homebrew/opt/ed/bin:$PATH"
-export PATH=/usr/local/rvm/bin:$HOME/.cabal/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:$PATH
+if [ "$MYSYSNAME" = "Mac" ]; then
+    [[ -d /usr/bin ]] && export PATH="/usr/bin:$PATH"
+    [[ -d /bin ]] && export PATH="/bin:$PATH"
+    [[ -d /usr/sbin ]] && export PATH="/usr/sbin:$PATH"
+    [[ -d /sbin ]] && export PATH="/sbin:$PATH"
+    [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
+    [[ -d /usr/local/sbin ]] && export PATH="/usr/local/sbin:$PATH"
+    [[ -d /usr/local/var/rbenv/shims ]] && export PATH="/usr/local/var/rbenv/shims:$PATH"
+    [[ -d $HOME/go/bin ]] && export PATH="$HOME/go/bin:$PATH"
+    [[ -d $HOME/.cabal/bin ]] && export PATH="$HOME/.cabal/bin:$PATH"
+    [[ -d $HOME/bin ]] && export PATH="$HOME/bin:$PATH"
+    [[ -d /usr/local/opt/go/bin ]] && export PATH="/usr/local/opt/go/bin:$PATH"
+    [[ -d /usr/local/heroku/bin ]] && export PATH="/usr/local/heroku/bin:$PATH"
+    [[ -d $MYRUNTIME/customs/bin ]] && export PATH="$MYRUNTIME/customs/bin:$PATH"
+    [[ -d /usr/local/opt/llvm/bin ]] && export PATH="/usr/local/opt/llvm/bin:$PATH"
+    [[ -d /usr/local/opt/coreutils/libexec/gnubin ]] && export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+    [[ -d $HOME/.Pokemon-Terminal ]] && export PATH="$HOME/.Pokemon-Terminal:$PATH"
+    [[ -d /usr/local/anaconda3/bin ]] && export PATH="/usr/local/anaconda3/bin/:$PATH"
+    [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
+    [[ -d /opt/homebrew/sbin ]] && export PATH="/opt/homebrew/sbin:$PATH"
+    [[ -d /opt/homebrew/opt/grep/bin ]] && export PATH="/opt/homebrew/opt/grep/bin:$PATH"
+    [[ -d /opt/homebrew/opt/icu4c/bin ]] && export PATH="/opt/homebrew/opt/icu4c/bin:$PATH"
+    [[ -d /opt/homebrew/opt/llvm@15/bin ]] && export PATH="/opt/homebrew/opt/llvm@15/bin:$PATH"
+    [[ -d /opt/homebrew/opt/ed/bin ]] && export PATH="/opt/homebrew/opt/ed/bin:$PATH"
+else
+    export PATH=/usr/local/rvm/bin:$HOME/.cabal/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin:$PATH
+fi
 
 ######设置editor
 if [ "$MYSYSNAME" = "Mac" ]; then
