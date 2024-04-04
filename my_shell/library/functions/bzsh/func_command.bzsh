@@ -560,7 +560,7 @@ function fzf_manage() {                                                         
     --header="$(_buildFzfHeader '' 'fzf_manage')" \
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
-alias fm="fzf_manage"                                                               # Desc: alias: fm: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
+alias fm2="fzf_manage"                                                              # Desc: alias: fm2: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
 
 function fzf_linux_command_searcher() {                                             # Desc: function: fzf_linux_command_searcher: 利用fzf和别人写的linux命令markdown进行搜索
     [[ ! -d $MYRUNTIME/customs/others/linux-command ]] && echo "请先下载https://github.com/jaywcjlove/linux-command?tab=readme-ov-file#命令行工具" && return 1

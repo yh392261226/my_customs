@@ -190,6 +190,34 @@ git log --graph --color=always \
 }
 alias fgcb="fzf_git_commit_browser"                                                     # Desc: alias: fgcb: fzf_git_commit_browser命令的别名,git commit browser
 
+function fzf_gitlog_multi() {                                                           # Desc: function: fzf_gitlog_multi: 利用fzf列出git log,选中后直接显示
+  local git_cmd
+  local fzf_cmd
+
+  git_cmd='git log \
+    --all \
+    --graph \
+    --date-order \
+    --format=format:"%C(auto)%s %d %h %C(cyan)%cd %C(bold black)%an %C(auto)" \
+    --date=short \
+    --color=always'
+
+  fzf_cmd='fzf \
+    --height 100% \
+    --multi \
+    --ansi \
+    --reverse \
+    --no-sort \
+    --tiebreak=index \
+    --bind=ctrl-x:toggle-sort'
+
+  eval "$git_cmd | $fzf_cmd" \
+    | grep -o '[a-f0-9]\{7\}' \
+    | xargs -I % sh -c 'git show % --color' \
+    | cat
+}
+alias fgm='fzf_gitlog_multi'                                                            # Desc: alias: fgm: fzf_gitlog_multi命令的别名,利用fzf列出git log,选中后直接显示
+
 function git_diff_branches() {                                                          # Desc: function: git_diff_branches:Git比对两个分支
     if [ $# -ne 2 ]; then
         echo two branch names required

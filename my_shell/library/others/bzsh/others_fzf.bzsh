@@ -100,7 +100,7 @@ export FZF_CUSTOM_PARAMS=(--reverse \
 --multi \
 --margin=10% \
 --padding=2 \
---height=60% \
+--height=70% \
 --toggle-sort='ctrl-s' \
 --preview-window='right,60%,rounded,+{2}+3/3,~3' \
 --scrollbar='▌▐' \

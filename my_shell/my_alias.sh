@@ -60,7 +60,7 @@ alias finderShow='defaults write com.apple.finder ShowAllFiles TRUE'            
 alias finderHide='defaults write com.apple.finder ShowAllFiles FALSE'                                            # Desc: alias: finderHide:隐藏隐藏文件
 alias tmuxls="ls $TMPDIR/tmux*/"                                                                                 # Desc: alias: tmuxls:列出缓存目录中所有以tmux开头的文件及文件夹
 alias du="ncdu --color dark -rr -x --exclude .git --exclude node_modules"                                        # Desc: alias: du:利用ncdu命令进行文件夹大小统计
-[[ -f $MYRUNTIME/customs/others/fuzzy-fs/fuzzy-fs ]] && alias fs="fuzzy-fs"                                      # Desc: alias: fs:fuzzy-fs目录管理器
+[[ -f $MYRUNTIME/customs/others/fuzzy-fs/fuzzy-fs ]] && alias fm="fuzzy-fs"                                      # Desc: alias: fm:fuzzy-fs目录管理器
 [[ -d $(brew --prefix zoxide) ]] && alias zd="zoxide"                                                            # Desc: alias: zd:zoxide命令的别名
 alias dut="$(whereis du) -sh"                                                                                    # Desc: alias: dut:du -sh命令的别名
 
