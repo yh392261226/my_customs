@@ -202,13 +202,15 @@ function fzf_gitlog_multi() {                                                   
     --date=short \
     --color=always'
 
-  fzf_cmd='fzf \
+  fzf_cmd='fzf $FZF_CUSTOM_PARAMS \
     --height 100% \
     --multi \
     --ansi \
     --reverse \
     --no-sort \
     --tiebreak=index \
+    --header="$(_buildFzfHeader \"\" \"fzf_gitlog_multi\")" \
+    --preview="echo {} | grep -o \"[a-f0-9]\{7\}\" | xargs -I % sh -c \"git show % --color\"" \
     --bind=ctrl-x:toggle-sort'
 
   eval "$git_cmd | $fzf_cmd" \
