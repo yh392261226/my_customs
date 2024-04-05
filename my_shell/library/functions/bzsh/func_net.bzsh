@@ -103,7 +103,7 @@ function get_port_using_status() {                                              
 }
 alias gps="get_port_using_status"                                                       # Desc: alias: gps:get_port_using_status命令的别名,获取端口占用情况
 
-function list_ports() {                                                                 # Desc: function: list_ports:获取所有端口
+function list_ports() {                                                                 # Desc: function: list_ports:获取所有正在使用的端口
     lsof -P -i -n | less
 }
-alias lps="list_ports"                                                                  # Desc: alias: lps: list_ports命令的别名,获取所有端口
+alias lps="list_ports"                                                                  # Desc: alias: lps: list_ports命令的别名,获取所有正在使用的端口

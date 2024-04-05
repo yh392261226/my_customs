@@ -234,7 +234,8 @@ alias bdb="brave_default_bookmarks"                                             
 function fzf_mark_by_buku() {                                                       # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     website=( $(buku --suggest -p -f 5 | column -ts$'\t' | fzf $FZF_CUSTOM_PARAMS \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+    --bind 'ctrl-y:execute-silent(buku --nostdin -p {1} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+    --preview='buku --nostdin -p {1}' \
     --header="$(_buildFzfHeader '' 'fzf_mark_by_buku')" \
     --multi ) )
     # open each website

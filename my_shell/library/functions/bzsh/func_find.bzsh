@@ -142,6 +142,7 @@ function fzf_find_by_choice() {                                                 
     find * | fzf $FZF_CUSTOM_PARAMS \
 --bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
 --bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
+--preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}' \
 --header="$(_buildFzfHeader '' 'fzf_find_by_choice')"
 }
 alias ffc="fzf_find_by_choice"                                                         # Desc: alias: ffc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹

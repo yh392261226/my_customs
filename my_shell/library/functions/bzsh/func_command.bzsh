@@ -321,23 +321,7 @@ function command_sl_selector() {                                                
 }
 alias sl='command_sl_selector'                                                      # Desc: alias: sl:command_sl_selector命令的别名,输入命令sl并执行时，二次验证选择
 
-# Man without options will use fzf to select a page
-function fzf_man() {                                                                # Desc: function: fzf_man:利用fzf选中man手册
-	MAN="/usr/bin/man"
-	if [ -n "$1" ]; then
-		$MAN "$@"
-		return $?
-	else
-		$MAN -k . | fzf $FZF_CUSTOM_PARAMS \
---preview="echo {1,2} | sed 's/ (/./' | sed -E 's/\)\s*$//' | xargs $MAN" \
---header="$(_buildFzfHeader '' 'fzf_man')" \
-| awk '{print $1 "." $2}' | tr -d '()' | xargs -r $MAN
-		return $?
-	fi
-}
-alias fman="fzf_man"                                                                # Desc: alias: fzf_man的别名,利用fzf选中man手册
-
-function fzf_man_widget() {                                                         # Desc: function: fzf_man_widget:fzf版本的man命令
+function fzf_man() {                                                                # Desc: function: fzf_man:fzf版本的man命令
   batman="man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
    man -k . | sort \
    | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue;} 1' \
@@ -348,10 +332,10 @@ function fzf_man_widget() {                                                     
 --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
 --bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header="$(_buildFzfHeader '' 'fzf_man_widget')" \
+--header="$(_buildFzfHeader '' 'fzf_man')" \
   echo ""
 }
-alias fmw="fzf_man_widget"                                                          # Desc: alias: fmw:fzf_man_widget命令的别名,fzf版本的man命令
+alias fmw="fzf_man"                                                                 # Desc: alias: fmw:fzf_man命令的别名,fzf版本的man命令
 
 function mark_by_cheatsh() {                                                        # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then

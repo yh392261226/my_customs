@@ -13,6 +13,7 @@ alias bcc="brew_clean_caches"                                                   
 
 function fzf_brew_delete_by_select() {                                                 # Desc: function: fzf_brew_delete_by_select:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
   local uninst=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS \
+  --preview='brew info {1} | bat --color=always --language=Markdown --style=plain' \
   --header="$(_buildFzfHeader '' 'fzf_brew_delete_by_select')") # brew leaves 查看所有安装不包括依赖安装
 
   if [[ $uninst ]]; then
@@ -25,6 +26,7 @@ alias fbd="fzf_brew_delete_by_select"                                           
 
 function fzf_brew_update_by_select() {                                                 # Desc: function: fzf_brew_update_by_select:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
   local upd=$(brew leaves | fzf -m $FZF_CUSTOM_PARAMS \
+  --preview='brew info {1} | bat --color=always --language=Markdown --style=plain' \
   --header="$(_buildFzfHeader '' 'fzf_brew_update_by_select')")
 
   if [[ $upd ]]; then
@@ -39,6 +41,7 @@ alias fbup="fzf_brew_update_by_select"                                          
 
 function fzf_brew_upgrade_by_select() {                                                # Desc: function: fzf_brew_upgrade_by_select:Brew upgrade (one or multiple)
   local upgrads=$(brew outdated | fzf -m $FZF_CUSTOM_PARAMS \
+  --preview='brew info {1} | bat --color=always --language=Markdown --style=plain' \
   --header="$(_buildFzfHeader '' 'fzf_brew_upgrade_by_select')")
   if [[ $upgrads ]]; then
     upgrades=$(echo $upgrads | sed 's/\n/ /g')
@@ -57,6 +60,7 @@ alias renvim="reinstall_neovim"                                                 
 
 function fzf_brew_install_by_select() {                                                # Desc: function: fzf_brew_install_by_select:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
   local inst=$(brew search | fzf -m $FZF_CUSTOM_PARAMS \
+  --preview='brew info {1} | bat --color=always --language=Markdown --style=plain' \
   --header="$(_buildFzfHeader '' 'fzf_brew_install_by_select')")
 
   if [[ $inst ]]; then
