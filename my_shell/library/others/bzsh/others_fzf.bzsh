@@ -1,4 +1,6 @@
 #fzf 相关
+[[ "zsh" = "$nowshell" ]] && eval $(fzf --zsh) || eval $(fzf --bash)
+
 export FZF_PREVIEW_FILE_CMD="bat"
 
 export FZF_PREVIEW_DIR_CMD="tree -C"
