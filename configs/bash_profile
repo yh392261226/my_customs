@@ -83,8 +83,9 @@ export SCM_CHECK=true
 export PATH='/Users/yanghao/.runtime/customs/bin:/Users/yanghao/.asdf/shims:/Users/yanghao/.zinit/plugins/asdf-vm---asdf/bin:/Users/yanghao/.console-ninja/.bin:/Library/Java/JavaVirtualMachines/jdk-17.0.1.jdk/Contents/Home/bin:/opt/homebrew/opt/sqlite/bin:/opt/homebrew/opt/ed/bin:/opt/homebrew/opt/icu4c/bin:/opt/homebrew/opt/grep/bin:/opt/homebrew/sbin:/opt/homebrew/bin:/Users/yanghao/data/data/.runtime//customs/bin:/usr/local/sbin:/usr/local/bin:/sbin:/usr/sbin:/bin:/usr/bin:/Users/yanghao/.pyenv/shims:/Users/yanghao/.local/bin:/opt/homebrew/opt/python/bin:/opt/homebrew/opt/macvim/bin:/Users/yanghao/data/data/.runtime//customs/bin/ssh-auto-login/auto_gen:/Users/yanghao/go-develop/bin:/opt/homebrew/opt/go/libexec/bin:/Users/yanghao/.aliases.d/shims:/opt/homebrew/opt/ssh-copy-id/bin:/Users/yanghao/data/data/.runtime//customs/others/git-fuzzy/bin:~/.local/bin:~/.yarn/bin:/Users/yanghao/.SpaceVim/bin:/opt/homebrew/opt/sphinx-doc/bin:/Users/yanghao/.zinit/plugins/paulirish---git-open:/Users/yanghao/bin:/Users/yanghao/.zinit/polaris/bin:/System/Cryptexes/App/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/X11/bin:/Library/Apple/usr/bin:/Users/yanghao/.cargo/bin:/Applications/iTerm Beta.app/Contents/Resources/utilities:/opt/homebrew/opt/fzf/bin'
 source "$BASH_IT"/bash_it.sh
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+eval $(fzf --bash)
+MYRUNTIME=$(cat ~/.myruntime)
 [[ -f /opt/homebrew/opt/fzf/shell/completion.bash ]] && source /opt/homebrew/opt/fzf/shell/completion.bash
 [[ -f ${HOME}/.iterm2_shell_integration.bash ]] && source "${HOME}/.iterm2_shell_integration.bash"
 if command -v vfox &> /dev/null; then
