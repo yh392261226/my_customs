@@ -20,25 +20,6 @@ function search_aliases() {                                                     
 }
 alias sas="search_aliases"                                                          # Desc: alias: sas:search_aliases命令的别名,显示所有含有字符串的自定义命令及注释
 
-function fzf_customs_functions() {                                                  # Desc: function: fzf_customs_functions:显示所有自定义命令及注释
-    TMP_FUNCTIONS_FILE=$(mktemp)
-    find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
-    if [ -f $TMP_FUNCTIONS_FILE ]; then
-        eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | \
-sed -e "s/^[ ]*//g" | \
-sed -e "s/() {//" | awk -F'#' '{print $1}' | \
-grep -E "(.*?)[^(]*" | \
-sed -e 's/ $//g' | \
-fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:hidden:wrap \
---preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
---header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
---bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
-        rm -f $TMP_FUNCTIONS_FILE
-    fi
-}
-alias fcf="fzf_customs_functions"                                                   # Desc: alias: fcf:fzf_customs_functions命令的别名,显示所有自定义命令及注释
-
 function fzf_all_aliases() {                                                        # Desc: function: fzf_all_aliases:显示所有自定义的别名及注释
     TMP_ALIASES_FILE=$(mktemp)
     alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
@@ -51,7 +32,7 @@ function fzf_all_aliases() {                                                    
         rm -f $TMP_ALIASES_FILE
     fi
 }
-alias faa="fzf_all_aliases"                                                         # Desc: alias: faa: fzf_all_aliases命令的别名,显示所有自定义的别名及注释
+alias fa="fzf_all_aliases"                                                          # Desc: alias: fa: fzf_all_aliases命令的别名,显示所有自定义的别名及注释
 
 function fzf_custom_aliases() {                                                     # Desc: function: fzf_custom_aliases:显示所有自定义命令及注释
     local TMP_ALIASES_FILE=$(mktemp)
@@ -68,42 +49,6 @@ function fzf_custom_aliases() {                                                 
     fi
 }
 alias fca="fzf_custom_aliases"                                                      # Desc: alias: fca:fzf_custom_aliases命令的别名,显示所有自定义命令及注释
-
-function fzf_aliases() {                                                            # Desc: function: fzf_aliases:利用fzf显示所有别名
-    alias | sed -e "s/^alias //g" | fzf --no-sort --tac \
-$FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:hidden:wrap \
---preview "$MYRUNTIME/customs/bin/_positalias {}" \
---header="$(_buildFzfHeader '' 'fzf_aliases')"
-}
-alias fa="fzf_aliases"                                                             # Desc: alias: fa:fzf_aliases命令的别名,利用fzf显示所有别名
-
-function fzf_customs_fzf_awesome_functions_list() {                                 # Desc: function: fzf_customs_fzf_awesome_functions_list: 利用fzf列出所有自定义fzf相关命令
-    if [ ! -f $HOME/.myruntime ]; then
-        echo "Awesome Fzf Functions Location Not Found !"
-    else
-        AWESOME_FZF_FUNCTIONS_LOCATION=$(cat $HOME/.myruntime)/customs/my_shell/
-        TMP_FZF_FUNCTIONS_FILE=$(mktemp)
-        find $AWESOME_FZF_FUNCTIONS_LOCATION -type f -name "*bzsh" |xargs grep -E "(function fzf_)(.*?)[^(]*" > $TMP_FZF_FUNCTIONS_FILE
-        if [ ! -f $TMP_FZF_FUNCTIONS_FILE ]; then
-            echo "Awesome Fzf Functions Collection File Does Not Exists !"
-        else
-            eval $(cat $TMP_FZF_FUNCTIONS_FILE | \
-            awk '{$1=""; print $0 }' | \
-            sed -e "s/^[ ]*//g" | sed -e "s/() {//" | \
-            awk -F'#' '{print $1}' | \
-            grep -E "(^fzf_)(.*?)[^(]*" | \
-            sed -e 's/ $//g' | \
-            fzf $FZF_CUSTOM_PARAMS \
---preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
---preview-window right:70%:rounded:hidden:wrap \
---bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
---header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
-            rm -f $TMP_FZF_FUNCTIONS_FILE
-        fi
-    fi
-}
-alias faf="fzf_customs_fzf_awesome_functions_list"                                  # Desc: alias: faf: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
 
 function custom_aliases_from_a2z() {                                                # Desc: function: custom_aliases_from_a2z:显示从a-z的自定义命令
     hr "⬳"
@@ -123,6 +68,70 @@ function custom_aliases_from_a2z() {                                            
     done
 }
 alias a2z="custom_aliases_from_a2z"                                                 # Desc: alias: a2z:custom_aliases_from_a2z命令的别名,显示从a-z的自定义命令
+
+function fzf_all_custom_functions() {                                               # Desc: function: fzf_all_custom_functions:显示所有函数(仅zsh下有效)
+    [[ "zsh" != "$nowshell" ]] && echo "Only support ZSH !" && exit 1
+    TMP_ALL_FUNCTIONS_FILE=$(mktemp)
+    functions > $TMP_ALL_FUNCTIONS_FILE
+    if [ -f $TMP_ALL_FUNCTIONS_FILE ]; then
+        selected=$(cat $TMP_ALL_FUNCTIONS_FILE | grep -E "(.*?)[^(]*.*{" | grep -v '$MYRUNTIME' | grep '() {' | grep -v '$MYRUNTIME'  | grep -E '^[+_@.-:]+[a-zA-Z0-9_]*|[a-zA-Z0-9_]*'| sed 's/^[[:blank:]]\{1,\}//' | grep -v '^() {' |sed 's/ () {//' | grep -v ' ' | fzf $FZF_CUSTOM_PARAMS +m \
+        --preview-window right:70%:rounded:hidden:wrap \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'" \
+        --header="$(_buildFzfHeader '' 'fzf_all_custom_functions')" \
+        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'| pbcopy)+abort")
+        if [ -n "$selected" ]; then
+            $MYRUNTIME/customs/bin/_show_awesome_function $selected $TMP_ALL_FUNCTIONS_FILE 'functions'
+        fi
+        rm -f $TMP_ALL_FUNCTIONS_FILE
+    fi
+}
+alias faf='fzf_all_custom_functions'                                                # Desc: alias: faf: fzf_all_custom_functions命令的别名,显示所有函数(仅zsh下有效)
+
+function fzf_customs_functions() {                                                  # Desc: function: fzf_customs_functions:显示所有自定义命令及注释
+    TMP_FUNCTIONS_FILE=$(mktemp)
+    find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
+    if [ -f $TMP_FUNCTIONS_FILE ]; then
+        eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | \
+sed 's/^[[:blank:]]\{1,\}//' | \
+sed -e "s/() {//" | awk -F'#' '{print $1}' | \
+grep -E "(.*?)[^(]*" | \
+sed -e 's/ $//g' | \
+fzf $FZF_CUSTOM_PARAMS \
+--preview-window right:70%:rounded:hidden:wrap \
+--preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
+--header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
+--bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
+        rm -f $TMP_FUNCTIONS_FILE
+    fi
+}
+alias fcf="fzf_customs_functions"                                                   # Desc: alias: fcf:fzf_customs_functions命令的别名,显示所有自定义命令及注释
+
+function fzf_customs_fzf_awesome_functions_list() {                                 # Desc: function: fzf_customs_fzf_awesome_functions_list: 利用fzf列出所有自定义fzf相关命令
+    if [ ! -f $HOME/.myruntime ]; then
+        echo "Awesome Fzf Functions Location Not Found !"
+    else
+        AWESOME_FZF_FUNCTIONS_LOCATION=$(cat $HOME/.myruntime)/customs/my_shell/
+        TMP_FZF_FUNCTIONS_FILE=$(mktemp)
+        find $AWESOME_FZF_FUNCTIONS_LOCATION -type f -name "*bzsh" |xargs grep -E "(function fzf_)(.*?)[^(]*" > $TMP_FZF_FUNCTIONS_FILE
+        if [ ! -f $TMP_FZF_FUNCTIONS_FILE ]; then
+            echo "Awesome Fzf Functions Collection File Does Not Exists !"
+        else
+            eval $(cat $TMP_FZF_FUNCTIONS_FILE | \
+            awk '{$1=""; print $0 }' | \
+            sed 's/^[[:blank:]]\{1,\}//' | sed -e "s/() {//" | \
+            awk -F'#' '{print $1}' | \
+            grep -E "(^fzf_)(.*?)[^(]*" | \
+            sed -e 's/ $//g' | \
+            fzf $FZF_CUSTOM_PARAMS \
+--preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
+--preview-window right:70%:rounded:hidden:wrap \
+--bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
+--header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
+            rm -f $TMP_FZF_FUNCTIONS_FILE
+        fi
+    fi
+}
+alias fff="fzf_customs_fzf_awesome_functions_list"                                  # Desc: alias: fff: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
 
 function update_iterm2_shell_integration() {                                        # Desc: function: update_iterm2_shell_integration:更新iterm2的扩展shell
 	curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
