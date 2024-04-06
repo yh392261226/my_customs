@@ -32,7 +32,7 @@ function fzf_all_aliases() {                                                    
         rm -f $TMP_ALIASES_FILE
     fi
 }
-alias fa="fzf_all_aliases"                                                          # Desc: alias: fa: fzf_all_aliases命令的别名,显示所有自定义的别名及注释
+alias faa="fzf_all_aliases"                                                         # Desc: alias: faa: fzf_all_aliases命令的别名,显示所有自定义的别名及注释
 
 function fzf_custom_aliases() {                                                     # Desc: function: fzf_custom_aliases:显示所有自定义命令及注释
     local TMP_ALIASES_FILE=$(mktemp)
