@@ -413,3 +413,10 @@ fi
 if [ ! -d $MYRUNTIME/customs/others/HowToCook ]; then
     git clone git@github.com:Anduin2017/HowToCook.git $MYRUNTIME/customs/others/HowToCook
 fi
+
+#Reference
+#----------------------------------------------------------------------------------------------------------------
+#
+if [ ! -d $MYRUNTIME/customs/others/reference ]; then
+    git clone git@github.com:jaywcjlove/reference.git $MYRUNTIME/customs/others/reference
+fi
