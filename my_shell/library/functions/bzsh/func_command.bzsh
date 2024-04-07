@@ -337,14 +337,14 @@ function fzf_man() {                                                            
    | fzf -q "$1" --ansi --tiebreak=begin $FZF_CUSTOM_PARAMS \
 --preview-window '50%,rounded,<50(up,85%,rounded)' \
 --preview "${batman}" \
---bind 'enter:execute(man {1})' \
+--bind 'enter:become(man {1})' \
 --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
 --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
 --bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header="$(_buildFzfHeader '' 'fzf_man')" \
+--header="$(_buildFzfHeader '' 'fzf_man')"
   echo ""
 }
-alias fmw="fzf_man"                                                                 # Desc: alias: fmw:fzf_man命令的别名,fzf版本的man命令
+alias fman="fzf_man"                                                                # Desc: alias: fmw:fzf_man命令的别名,fzf版本的man命令
 
 function mark_by_cheatsh() {                                                        # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then
