@@ -117,6 +117,9 @@ plugins=(
 	rsync
 	urltools
     jsontools
+	copypath
+	copyfile
+	copybuffer
     # fzf-brew
 	# zsh-autosuggestions
 	# zsh-syntax-highlighting

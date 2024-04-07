@@ -3,7 +3,7 @@ zmodload zsh/zprof
 autoload -U +X bashcompinit && bashcompinit
 autoload -U +X compinit && compinit
 export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:$PATH"
-source $(cat $HOME/.myruntime)/customs/my_shell/rcfile
+source $(cat ~/.myruntime)/customs/my_shell/rcfile
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then

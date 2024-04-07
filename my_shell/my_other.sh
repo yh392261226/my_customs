@@ -274,16 +274,12 @@ if [ ! -d $HOME/.bashhub/ ]; then
 	curl -OL https://bashhub.com/setup && zsh setup
 fi
 
-if [ "zsh" = "$nowshell" ]; then
-	if [ -f $HOME/.bashhub/bashhub.zsh ]; then
-    	source $HOME/.bashhub/bashhub.zsh
-	fi
+if [ "zsh" = "$nowshell" ] && [ -f $HOME/.bashhub/bashhub.zsh ]; then
+    source $HOME/.bashhub/bashhub.zsh
 fi
 
-if [ "bash" = "$nowshell" ]; then
-	if [ -f $HOME/.bashhub/bashhub.bash ]; then
-		source $HOME/.bashhub/bashhub.bash
-	fi
+if [ "bash" = "$nowshell" ] && [ -f $HOME/.bashhub/bashhub.bash ]; then
+    source $HOME/.bashhub/bashhub.bash
 fi
 
 if [ "$(command -v atuin)"  =  "" ]; then
@@ -303,6 +299,7 @@ if [ -f $MYRUNTIME/customs/others/fz/fz.sh ]; then
 	source $MYRUNTIME/customs/others/fz/fz.sh
 fi
 
+### _lessfilter
 if [ -f $MYRUNTIME/customs/bin/_lessfilter ]; then
     if [ ! -f ~/.lessfilter ]; then
         ln -sf $MYRUNTIME/customs/bin/_lessfilter ~/.lessfilter

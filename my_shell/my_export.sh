@@ -7,9 +7,9 @@ export BASE=$HOME
 [[ -d /usr/local/opt/python ]] && export PATH="/usr/local/opt/python/bin:$PATH"
 [[ -d /opt/homebrew/opt/python ]] && export PATH="/opt/homebrew/opt/python/bin:$PATH"
 [[ -d /usr/local/opt/python@2/libexec/bin ]] && export PATH="/usr/local/opt/python@2/libexec/bin:$PATH"
-[[ -f $HOME/.cargo/env ]] && source $HOME/.cargo/env
+[[ -f ~/.cargo/env ]] && source ~/.cargo/env
 [[ -d /opt/local/bin ]] && export PATH="/opt/local/bin:$PATH"
-[[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
+[[ -d ~/.local/bin ]] && export PATH="~/.local/bin:$PATH"
 [[ -d /usr/local/opt/pyenv ]] && export PYENV_ROOT="/usr/local/var/pyenv" && PATH="$PYENV_ROOT/bin:$PATH" && eval "$(pyenv init -)"
 [[ -d /opt/homebrew/opt/pyenv ]] && eval "$(pyenv init -)"
 if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
@@ -23,15 +23,15 @@ if [ "$MYSYSNAME" = "Mac" ]; then
     [[ -d /usr/local/bin ]] && export PATH="/usr/local/bin:$PATH"
     [[ -d /usr/local/sbin ]] && export PATH="/usr/local/sbin:$PATH"
     [[ -d /usr/local/var/rbenv/shims ]] && export PATH="/usr/local/var/rbenv/shims:$PATH"
-    [[ -d $HOME/go/bin ]] && export PATH="$HOME/go/bin:$PATH"
-    [[ -d $HOME/.cabal/bin ]] && export PATH="$HOME/.cabal/bin:$PATH"
-    [[ -d $HOME/bin ]] && export PATH="$HOME/bin:$PATH"
+    [[ -d ~/go/bin ]] && export PATH="~/go/bin:$PATH"
+    [[ -d ~/.cabal/bin ]] && export PATH="~/.cabal/bin:$PATH"
+    [[ -d ~/bin ]] && export PATH="~/bin:$PATH"
     [[ -d /usr/local/opt/go/bin ]] && export PATH="/usr/local/opt/go/bin:$PATH"
     [[ -d /usr/local/heroku/bin ]] && export PATH="/usr/local/heroku/bin:$PATH"
     [[ -d $MYRUNTIME/customs/bin ]] && export PATH="$MYRUNTIME/customs/bin:$PATH"
     [[ -d /usr/local/opt/llvm/bin ]] && export PATH="/usr/local/opt/llvm/bin:$PATH"
     [[ -d /usr/local/opt/coreutils/libexec/gnubin ]] && export PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
-    [[ -d $HOME/.Pokemon-Terminal ]] && export PATH="$HOME/.Pokemon-Terminal:$PATH"
+    [[ -d ~/.Pokemon-Terminal ]] && export PATH="~/.Pokemon-Terminal:$PATH"
     [[ -d /usr/local/anaconda3/bin ]] && export PATH="/usr/local/anaconda3/bin/:$PATH"
     [[ -d /opt/homebrew/bin ]] && export PATH="/opt/homebrew/bin:$PATH"
     [[ -d /opt/homebrew/sbin ]] && export PATH="/opt/homebrew/sbin:$PATH"
@@ -48,14 +48,14 @@ if [ "$MYSYSNAME" = "Mac" ]; then
     if [ -f /usr/local/bin/code ]; then
         export EDITOR="/usr/local/bin/code"
     else
-        export EDITOR="vim"
+        export EDITOR="nvim"
     fi
 elif [ "$MYSYSNAME" = "Ubuntu" ] || [ "$MYSYSNAME" = "Centos" ]; then
     export EDITOR="gedit"
 fi
 
-if [ -d $HOME/.basher ]; then
-    export PATH="$HOME/.basher/bin:$PATH"
+if [ -d ~/.basher ]; then
+    export PATH="~/.basher/bin:$PATH"
     eval "$(basher init -)"
 fi
 
