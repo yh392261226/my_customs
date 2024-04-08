@@ -6,7 +6,7 @@ function update_dotfiles() {                                                    
 }
 alias ud="update_dotfiles"                                                           # Desc: alias: ud: update_dotfiles命令的别名,更新$MYRUNTIME目录下的所有由git管理的目录
 
-function update_today() {                                                            # Desc: function: upday:每天一更新
+function update_today() {                                                            # Desc: function: update_today:每天一更新
     update_runtimes
     update_zsh_customs
     update_others

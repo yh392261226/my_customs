@@ -7,48 +7,46 @@ function _show_custom_alias() {
         local CCommand=$1
         local CLocation=$2
         local CSeprator="|||" # 用于处理特殊字符而增加的分隔符
-        
+
         if [ "customs" = "$3" ]; then
             TmpContent=$(cat $CLocation | grep -F ":alias ${CCommand}=")
         else
             TmpContent=$(cat $CLocation | sed 's/^ //g' | sed "s/^/${CSeprator}/" | grep -F "${CSeprator}${CCommand}=")
         fi
 
-        awesome_alias_name=$CCommand
+        #awesome_alias_name=$CCommand
         if [ "customs" = "$3" ]; then
             awesome_alias_to=$(echo "$TmpContent" | awk -F':alias ' '{print $2}' | sed -e "s/${CCommand}=//g" |awk -F'#' '{print $1}' | sed 's/"//g' | sed "s/'//g" | sed 's/[[:space:]]*$//g')
             awesome_alias_desc=$(echo "$TmpContent" | awk -F'#' '{print $2}' | sed 's/Desc: alias: //g' | sed "s/${CCommand}://g" | sed 's/^ //g')
             CommandLocation=$(echo "$TmpContent" | awk -F':alias ' '{print $1}')
         else
             awesome_alias_to=$(echo "$TmpContent" | sed -e "s/${CSeprator}${CCommand}=//g" | sed 's/"//g' | sed "s/'//g")
-            awesome_alias_desc=""
+            awesome_alias_to="$awesome_alias_to"
+            tmp_find_location=$(find $MYRUNTIME/customs/my_shell -type f | xargs grep -E "(function ${awesome_alias_to})(.*?)[^(]*{")
+            awesome_alias_desc=$(echo "$tmp_find_location" | awk -F": function: " '{print $2}')
+            CommandLocation=$(echo "$tmp_find_location" | awk -F':' '{print $1}' | sort | uniq)
         fi
 
-        # echo "Alias Location    :"$awesome_alias_file
+
         echo "Alias Name        :⭆ $CCommand"
         echo "Alias To          :⭆ $awesome_alias_to"
         echo "Alias Description :⭆ $awesome_alias_desc"
         echo ""
-        echo "Which Command:"
-        echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶ "
-        echo ""
-        echo ""
-        env which "$awesome_alias_to"
-        echo ""
-        if [ ! "$(echo $awesome_alias_to | grep -E '\.')" ]; then
-            echo "Custom File Location :⭆ $CommandLocation"
+        if [ "" != "$CommandLocation" ]; then
+            echo "Which Command:"
+            echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶ "
             echo ""
-            echo "................................................................................."
-            if [ "" = "$CommandLocation" ]; then
-                CommandLocation=$(find $MYRUNTIME/customs/my_shell -type f | xargs grep -E "(function ${awesome_alias_file})(.*?)[^(]*" | awk -F':' '{print $1}' | sort | uniq)
-                awesome_alias_to="$(echo \"$awesome_alias_to\" | sed 's/[[:space:]]*$//g' | sed 's/[\t]*$//g')"
-            else
-                CommandLocation=$(find $MYRUNTIME/customs/my_shell -type f | xargs grep -E "(function ${awesome_alias_file})(.*?)[^(]*" | awk -F':' '{print $1}' | sort | uniq)
-            fi
-            if [ "" != "$CommandLocation" ]; then
+            echo ""
+            env which "$awesome_alias_to"
+            echo ""
+            if [ ! "$(echo $awesome_alias_to | grep -E '\.')" ]; then
+                echo "Custom File Location :⭆ $CommandLocation"
+                echo ""
+                echo "................................................................................."
+
                 sed -n "/function ${awesome_alias_to}(/,/^}/p" $CommandLocation | /opt/homebrew/bin/bat --style='numbers,changes,header,grid' --theme='gruvbox-dark' --pager 'less -RF' --map-syntax '.ignore:Git Ignore'
+                echo "................................................................................."
             fi
-            echo "................................................................................."
         fi
     fi
 }
