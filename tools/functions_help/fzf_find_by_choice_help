@@ -6,25 +6,27 @@ readonly italic="\e[3m"
 readonly gray="\e[30m"
 readonly c="\e[1;36m"
 readonly d="\e[1;37m"
-readonly help="${bold}${c}[帮助信息]${c}${reset}
-${bold}${italic}CTRL-D${reset}   切换目录模式
-${bold}${italic}CTRL-F${reset}   切换文件模式
-${bold}${italic}CTRL-Y${reset}   复制内容
-${bold}${italic}CTRL-T${reset}   切换预览窗口
-${bold}${italic}CTRL-S${reset}   切换排序
-${bold}${italic}CTRL-N${reset}   下翻页
-${bold}${italic}CTRL-P${reset}   上翻页
-${bold}${italic}CTRL-A${reset}   全选/取消全选
-${bold}${italic}CTRL-J${reset}   预览内容上滚动
-${bold}${italic}CTRL-K${reset}   预览内容下滚动
-${bold}${italic}CTRL-L${reset}   长列表显示(在某些函数中失效或异常显示)
-${bold}${italic}OPTION-.${reset} 选中项目中跳转下一个
-${bold}${italic}OPTION-,${reset} 选中项目中跳转上一个
-${bold}${italic}CTRL-H${reset}   帮助信息 (this page)
-${bold}${italic}ESC${reset}      退出
+readonly help="${bold}${c}[Help Infomation]${c}${reset}
+${bold}${italic}CTRL-D${reset}      Switch directory mode
+${bold}${italic}CTRL-F${reset}      Switch file mode
+${bold}${italic}CTRL-Y${reset}      Copy
+${bold}${italic}CTRL-T${reset}      Toggle show the preview window
+${bold}${italic}CTRL-S${reset}      Toggle sort
+${bold}${italic}CTRL-N${reset}      Page down
+${bold}${italic}CTRL-P${reset}      Page up
+${bold}${italic}CTRL-A${reset}      Toggle select all
+${bold}${italic}CTRL-J${reset}      Scroll up in the preview window
+${bold}${italic}CTRL-K${reset}      Scroll down in the preview window
+${bold}${italic}CTRL-L${reset}      Long list to show all of lines (Unusual in some functions)
+${bold}${italic}OPTION-.${reset}    Go to the previous of selected
+${bold}${italic}OPTION-,${reset}    Go to the next of selected
+${bold}${italic}SHIFT-UP${reset}    Go to the first line
+${bold}${italic}SHIFT-DOWN${reset}  Go to the last line
+${bold}${italic}CTRL-H${reset}      Help infomation (this page)
+${bold}${italic}ESC${reset}         Exit
 
 
-${c}利用Fzf显示Find搜索的结果及对结果的相应操作.${reset}
+${c}Use Fzf to display the results of Find search and the corresponding operations on the results.${reset}
 "
 
 echo -e "$help"
