@@ -19,10 +19,10 @@ function remove_files_by_ext() {                                                
 }
 alias rfe="remove_files_by_ext"                                                      # Desc: alias: rfe:remove_files_by_exts命令的别名,删除后缀名为参数值的文件到回收站
 
-function remove_ssh_tmp_file() {                                                     # Desc: function: remove_ssh_tmp_file:删除~/.ssh/tmp/*
+function remove_ssh_tmp_file() {                                                     # Desc: function: remove_ssh_tmp_file:删除$HOME/.ssh/tmp/*
     /bin/rm -f $HOME/.ssh/tmp/*
 }
-alias rst="remove_ssh_tmp_file"                                                      # Desc: alias: rst:remove_ssh_tmp_file命令的别名,删除~/.ssh/tmp/*
+alias rst="remove_ssh_tmp_file"                                                      # Desc: alias: rst:remove_ssh_tmp_file命令的别名,删除$HOME/.ssh/tmp/*
 
 function remove_to_trash() {                                                        # Desc: function: remove_to_trash:删除到回收站
     local mpath
@@ -32,17 +32,17 @@ function remove_to_trash() {                                                    
         else
             local dst=${mpath##*/}
             # append the time if necessary
-            while [ -e ~/.Trash/"$dst" ]; do
+            while [ -e $HOME/.Trash/"$dst" ]; do
                 dst="$dst "$(date +%H-%M-%S)
             done
-            /bin/mv "$mpath" ~/.Trash/"$dst"
+            /bin/mv "$mpath" $HOME/.Trash/"$dst"
         fi
     done
 }
 alias r2t="remove_to_trash"                                                          # Desc: alias: r2t:remove_to_trash命令的别名,删除到回收站
 
 function trash() {                                                                  # Desc: function: trash:Moves a file to the MacOS trash
-    command /bin/mv "$@" ~/.Trash ;
+    command /bin/mv "$@" $HOME/.Trash ;
 }
 alias t="trash"                                                                      # Desc: alias: t: trash命令的别名,Moves a file to the MacOS trash
 

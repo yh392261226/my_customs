@@ -13,4 +13,4 @@ export GO111MODULE=on
 #export GOBOOK=$HOME/go-develop/gobook
 #. $GOBOOK/env.sh
 alias goweb="godoc -http=:9900 >> /dev/null &"                                                                      # Desc: alias: goweb:godoc的web版别名
-#alias gopl="open ~/Documents/golang/gopl-zh/_book/index.html"
+#alias gopl="open $HOME/Documents/golang/gopl-zh/_book/index.html"

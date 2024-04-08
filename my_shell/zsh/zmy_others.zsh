@@ -9,11 +9,11 @@
 #     git clone git@github.com:thirteen37/fzf-brew.git $HOME/.oh-my-zsh/custom/fzf-brew
 # fi
 
-[[ -f ~/.config/broot/launcher/bash/br ]] && source ~/.config/broot/launcher/bash/br
+[[ -f $HOME/.config/broot/launcher/bash/br ]] && source $HOME/.config/broot/launcher/bash/br
 
 ### Bashhub.com Installation
-if [ -f ~/.bashhub/bashhub.zsh ]; then
-    source ~/.bashhub/bashhub.zsh
+if [ -f $HOME/.bashhub/bashhub.zsh ]; then
+    source $HOME/.bashhub/bashhub.zsh
 fi
 
 if command -v vfox &> /dev/null; then

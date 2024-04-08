@@ -2,11 +2,11 @@
 ######################################################
 # This rcfile and custom settings can be only used for
 # ZSH or BASH
-# Usage: In your ~/.bashrc or ~/.zshrc
+# Usage: In your $HOME/.bashrc or $HOME/.zshrc
 #    source $MYRUNTIME/customs/my_shell/rcfile
 #
 ######################################################
-export MYRUNTIME=$(cat ~/.myruntime)
+export MYRUNTIME=$(cat $HOME/.myruntime)
 
 curshell() {
     if [ -n "$ZSH_VERSION" ]; then

@@ -63,7 +63,7 @@ function fzf_tmux_helper() {                                                    
     local sz=$1;  shift
     local cmd=$1; shift
     tmux split-window $sz \
-        "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source ~/.fzf.bash; $cmd)\" $*)\""
+        "bash -c \"\$(tmux send-keys -t $TMUX_PANE \"\$(source $HOME/.fzf.${nowshell}; $cmd)\" $*)\""
 }
 alias fth="fzf_tmux_helper"                                                            # Desc: alias: fth: fzf_tmux_helper命令的别名,tmux中利用fzf的帮助
 

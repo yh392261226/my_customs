@@ -298,7 +298,7 @@ function fzf_history_print() {                                                  
 alias fhp='fzf_history_print'                                                       # Desc: alias: fhp:fzf_history_print命令的别名,列出历史操作命令,选择后打印
 
 function fzf_theme_selector() {                                                     # Desc: function: fzf_theme_selector:fzf主题选择器
-    #MYRUNTIME=$(cat ~/.myruntime)
+    #MYRUNTIME=$(cat $HOME/.myruntime)
     themes_path=$MYRUNTIME/customs/tools/fzf_themes/
     choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview " bat $themes_path/{} " --header="$(_buildFzfHeader '' 'fzf_aliases')")
 
@@ -465,9 +465,9 @@ function sudo() {                                                               
 }
 
 function ssh() {                                                                    # Desc: function: ssh:ssh命令后,theme自动切换主题
-	# A tiny ssh wrapper which extracts a theme from ~/.ssh_themes
+	# A tiny ssh wrapper which extracts a theme from $HOME/.ssh_themes
 	# and applies it for the duration of the current ssh command.
-	# Each line in ~/.ssh_themes has the format:
+	# Each line in $HOME/.ssh_themes has the format:
 	#     <hostname>: <theme>.
 
 	# Restoration relies on the fact that you are using theme.sh to manage
@@ -477,10 +477,10 @@ function ssh() {                                                                
 	# of what is possible.
 
 
-	touch ~/.ssh_themes
+	touch $HOME/.ssh_themes
 
 	host="$(echo "$@"|awk '{gsub(".*@","",$NF);print $NF}')"
-	theme="$(awk -vhost="$host" -F': *' 'index($0, host":") == 1 {print $2}' < ~/.ssh_themes)"
+	theme="$(awk -vhost="$host" -F': *' 'index($0, host":") == 1 {print $2}' < $HOME/.ssh_themes)"
 
 	if [ -z "$theme" ]; then
 		env ssh "$@"

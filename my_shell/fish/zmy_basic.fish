@@ -1,6 +1,6 @@
 #我自己的一些配置
 ##设置一些变量
-set -gx MYRUNTIME (cat ~/.myruntime)
+set -gx MYRUNTIME (cat $HOME/.myruntime)
 set -gx MYPATH $MYRUNTIME
 set -gx USERNAME json
 set -gx GOPATH $HOME/go-develop
@@ -21,13 +21,15 @@ set -gx PATH $HOME/.local/bin $PATH
 
 ##别名设置
 alias goweb "godoc -http=:9900 >> /dev/null &"
-alias vimgo 'vim -u ~/.vimrc.go'
+alias vimgo 'vim -u $HOME/.vimrc.go'
 alias l "ls -a"
 if test -e /usr/local/bin/ls++
   alias lll "/usr/local/bin/ls++"
 end
 
-alias gopl "open ~/Documents/golang/gopl-zh/_book/index.html"
+if test -d $HOME/Documents/golang/gopl-zh/_book/
+  alias gopl "open $HOME/Documents/golang/gopl-zh/_book/index.html"
+end
 alias cl "clear"
 
 ##版本控制 git 别名设置

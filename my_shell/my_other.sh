@@ -8,7 +8,7 @@ is_notify=0
 
 ### source 引入
 #####nvm
-[[ -s "$HOME/.nvm/nvm.sh"  ]] && source ~/.nvm/nvm.sh # Loads NVM into a shell session.
+[[ -s "$HOME/.nvm/nvm.sh"  ]] && source $HOME/.nvm/nvm.sh # Loads NVM into a shell session.
 [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"  # This loads nvm
 [[ -f $HOME/.rvm/scripts/rvm ]] && source $HOME/.rvm/scripts/rvm
 [[ -s $HOME/.autojump/etc/profile.d/autojump.sh  ]] && source $HOME/.autojump/etc/profile.d/autojump.sh
@@ -38,8 +38,8 @@ if [ -f $HOME/.SpaceVim ] || [ -d $HOME/.SpaceVim ]; then
 	export PATH=$HOME/.SpaceVim/bin:$PATH
 fi
 
-[[ -d ~/.yarn/bin ]] && export PATH="~/.yarn/bin:$PATH"
-[[ -d ~/.local/bin ]] && export PATH="~/.local/bin:$PATH"
+[[ -d $HOME/.yarn/bin ]] && export PATH="$HOME/.yarn/bin:$PATH"
+[[ -d $HOME/.local/bin ]] && export PATH="$HOME/.local/bin:$PATH"
 
 ### iterm2 shell integration
 [[ -e $HOME/.iterm2_shell_integration.${nowshell} ]] && source $HOME/.iterm2_shell_integration.${nowshell}
@@ -81,135 +81,135 @@ if [ "zsh" = "$nowshell" ]; then
         [[ -f ${MYRUNTIME}/customs/others/zfm/zfm.zsh ]] && source ${MYRUNTIME}/customs/others/zfm/zfm.zsh
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets ] && [ ! -d $HOME/.zinit/plugins/amaya382---zsh-fzf-widgets ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets ] && [ ! -d $HOME/.zinit/plugins/amaya382---zsh-fzf-widgets ]; then
         git clone git@github.com:amaya382/zsh-fzf-widgets.git $HOME/.zinit/plugins/amaya382---zsh-fzf-widgets
-        ln -sf $HOME/.zinit/plugins/amaya382---zsh-fzf-widgets ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets
+        ln -sf $HOME/.zinit/plugins/amaya382---zsh-fzf-widgets ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-fzf-widgets
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions ] && [ ! -d $HOME/.zinit/plugins/chitoku-k---fzf-zsh-completions ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fzf-zsh-completions ] && [ ! -d $HOME/.zinit/plugins/chitoku-k---fzf-zsh-completions ]; then
         git clone git@github.com:chitoku-k/fzf-zsh-completions.git $HOME/.zinit/plugins/chitoku-k---fzf-zsh-completions
-        ln -sf $HOME/.zinit/plugins/chitoku-k---fzf-zsh-completions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-zsh-completions
+        ln -sf $HOME/.zinit/plugins/chitoku-k---fzf-zsh-completions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fzf-zsh-completions
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/alias-tips ] && [ ! -d $HOME/.zinit/plugins/djui---alias-tips ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/alias-tips ] && [ ! -d $HOME/.zinit/plugins/djui---alias-tips ]; then
         git clone git@github.com:djui/alias-tips $HOME/.zinit/plugins/djui---alias-tips
-        ln -sf $HOME/.zinit/plugins/djui---alias-tips ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/alias-tips
+        ln -sf $HOME/.zinit/plugins/djui---alias-tips ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/alias-tips
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/yeoman ] && [ ! -d $HOME/.zinit/plugins/edouard-lopez---yeoman-zsh-plugin ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/yeoman ] && [ ! -d $HOME/.zinit/plugins/edouard-lopez---yeoman-zsh-plugin ]; then
         git clone git@github.com:edouard-lopez/yeoman-zsh-plugin $HOME/.zinit/plugins/edouard-lopez---yeoman-zsh-plugin
-        ln -sf $HOME/.zinit/plugins/edouard-lopez---yeoman-zsh-plugin ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/yeoman
+        ln -sf $HOME/.zinit/plugins/edouard-lopez---yeoman-zsh-plugin ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/yeoman
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-apple-touchbar ] && [ ! -d $HOME/.zinit/plugins/floor114---zsh-apple-touchbar ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-apple-touchbar ] && [ ! -d $HOME/.zinit/plugins/floor114---zsh-apple-touchbar ]; then
         git clone git@github.com:floor114/zsh-apple-touchbar $HOME/.zinit/plugins/floor114---zsh-apple-touchbar
-        ln -sf $HOME/.zinit/plugins/floor114---zsh-apple-touchbar ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-apple-touchbar
+        ln -sf $HOME/.zinit/plugins/floor114---zsh-apple-touchbar ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-apple-touchbar
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/mysql-colorize ] && [ ! -d $HOME/.zinit/plugins/horosgrisa---mysql-colorize ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/mysql-colorize ] && [ ! -d $HOME/.zinit/plugins/horosgrisa---mysql-colorize ]; then
         git clone git@github.com:horosgrisa/mysql-colorize $HOME/.zinit/plugins/horosgrisa---mysql-colorize
-        ln -sf $HOME/.zinit/plugins/horosgrisa---mysql-colorize ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/mysql-colorize
+        ln -sf $HOME/.zinit/plugins/horosgrisa---mysql-colorize ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/mysql-colorize
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-iterm-touchbar ] && [ ! -d $HOME/.zinit/plugins/iam4x---zsh-iterm-touchbar ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-iterm-touchbar ] && [ ! -d $HOME/.zinit/plugins/iam4x---zsh-iterm-touchbar ]; then
         git clone git@github.com:iam4x/zsh-iterm-touchbar $HOME/.zinit/plugins/iam4x---zsh-iterm-touchbar
-        ln -sf $HOME/.zinit/plugins/iam4x---zsh-iterm-touchbar ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-iterm-touchbar
+        ln -sf $HOME/.zinit/plugins/iam4x---zsh-iterm-touchbar ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-iterm-touchbar
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/hhighlighter ] && [ ! -d $HOME/.zinit/plugins/paoloantinori---hhighlighter ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/hhighlighter ] && [ ! -d $HOME/.zinit/plugins/paoloantinori---hhighlighter ]; then
         git clone git@github.com:paoloantinori/hhighlighter $HOME/.zinit/plugins/paoloantinori---hhighlighter
-        ln -sf $HOME/.zinit/plugins/paoloantinori---hhighlighter ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/hhighlighter
+        ln -sf $HOME/.zinit/plugins/paoloantinori---hhighlighter ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/hhighlighter
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/git-open ] && [ ! -d $HOME/.zinit/plugins/paulirish---git-open ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/git-open ] && [ ! -d $HOME/.zinit/plugins/paulirish---git-open ]; then
         git clone git@github.com:paulirish/git-open $HOME/.zinit/plugins/paulirish---git-open
-        ln -sf $HOME/.zinit/plugins/paulirish---git-open ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/git-open
+        ln -sf $HOME/.zinit/plugins/paulirish---git-open ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/git-open
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/powerlevel10k ] && [ ! -d $HOME/.zinit/plugins/romkatv---powerlevel10k ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/powerlevel10k ] && [ ! -d $HOME/.zinit/plugins/romkatv---powerlevel10k ]; then
         git clone git@github.com:romkatv/powerlevel10k $HOME/.zinit/plugins/romkatv---powerlevel10k
-        ln -sf $HOME/.zinit/plugins/romkatv---powerlevel10k ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/powerlevel10k
+        ln -sf $HOME/.zinit/plugins/romkatv---powerlevel10k ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/powerlevel10k
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/codeception-zsh-plugin ] && [ ! -d $HOME/.zinit/plugins/shengyou---codeception-zsh-plugin ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/codeception-zsh-plugin ] && [ ! -d $HOME/.zinit/plugins/shengyou---codeception-zsh-plugin ]; then
         git clone git@github.com:shengyou/codeception-zsh-plugin $HOME/.zinit/plugins/shengyou---codeception-zsh-plugin
-        ln -sf $HOME/.zinit/plugins/shengyou---codeception-zsh-plugin ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/codeception-zsh-plugin
+        ln -sf $HOME/.zinit/plugins/shengyou---codeception-zsh-plugin ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/codeception-zsh-plugin
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z.lua ] && [ ! -d $HOME/.zinit/plugins/skywind3000---z.lua ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/z.lua ] && [ ! -d $HOME/.zinit/plugins/skywind3000---z.lua ]; then
         git clone git@github.com:skywind3000/z.lua $HOME/.zinit/plugins/skywind3000---z.lua
-        ln -sf $HOME/.zinit/plugins/skywind3000---z.lua ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/z.lua
+        ln -sf $HOME/.zinit/plugins/skywind3000---z.lua ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/z.lua
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab ] && [ ! -d $HOME/.zinit/plugins/Aloxaf---fzf-tab ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fzf-tab ] && [ ! -d $HOME/.zinit/plugins/Aloxaf---fzf-tab ]; then
         git clone git@github.com:Aloxaf/fzf-tab $HOME/.zinit/plugins/Aloxaf---fzf-tab
-        ln -sf $HOME/.zinit/plugins/Aloxaf---fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
+        ln -sf $HOME/.zinit/plugins/Aloxaf---fzf-tab ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fzf-tab
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd ] && [ ! -d $HOME/.zinit/plugins/changyuheng---zsh-interactive-cd ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-interactive-cd ] && [ ! -d $HOME/.zinit/plugins/changyuheng---zsh-interactive-cd ]; then
         git clone git@github.com:changyuheng/zsh-interactive-cd.git $HOME/.zinit/plugins/changyuheng---zsh-interactive-cd
-        ln -sf $HOME/.zinit/plugins/changyuheng---zsh-interactive-cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-interactive-cd
+        ln -sf $HOME/.zinit/plugins/changyuheng---zsh-interactive-cd ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-interactive-cd
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks ] && [ ! -d $HOME/.zinit/plugins/wfxr---formarks ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/formarks ] && [ ! -d $HOME/.zinit/plugins/wfxr---formarks ]; then
         git clone git@github.com:wfxr/formarks.git $HOME/.zinit/plugins/wfxr---formarks
-        ln -sf $HOME/.zinit/plugins/wfxr---formarks ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/formarks
+        ln -sf $HOME/.zinit/plugins/wfxr---formarks ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/formarks
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting ]; then
         git clone git@github.com:zdharma-continuum/fast-syntax-highlighting $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting
-        ln -sf $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
+        ln -sf $HOME/.zinit/plugins/zdharma-continuum---fast-syntax-highlighting ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/fast-syntax-highlighting
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zbrowse ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---zbrowse ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zbrowse ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---zbrowse ]; then
         git clone git@github.com:zdharma-continuum/zbrowse $HOME/.zinit/plugins/zdharma-continuum---zbrowse
-        ln -sf $HOME/.zinit/plugins/zdharma-continuum---zbrowse ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zbrowse
+        ln -sf $HOME/.zinit/plugins/zdharma-continuum---zbrowse ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zbrowse
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zui ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---zui ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zui ] && [ ! -d $HOME/.zinit/plugins/zdharma-continuum---zui ]; then
         git clone git@github.com:zdharma-continuum/zui $HOME/.zinit/plugins/zdharma-continuum---zui
-        ln -sf $HOME/.zinit/plugins/zdharma-continuum---zui ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zui
+        ln -sf $HOME/.zinit/plugins/zdharma-continuum---zui ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zui
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-autosuggestions ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-autosuggestions ]; then
         git clone git@github.com:zsh-users/zsh-autosuggestions $HOME/.zinit/plugins/zsh-users---zsh-autosuggestions
-        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-completions ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-completions ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-completions ]; then
         git clone git@github.com:zsh-users/zsh-completions $HOME/.zinit/plugins/zsh-users---zsh-completions
-        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-completions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-completions
+        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-completions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-completions
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-history-substring-search ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-history-substring-search ]; then
         git clone git@github.com:zsh-users/zsh-history-substring-search $HOME/.zinit/plugins/zsh-users---zsh-history-substring-search
-        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-history-substring-search ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-history-substring-search
+        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-history-substring-search ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-history-substring-search
         is_notify=1
     fi
 
-    if [ ! -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-syntax-highlighting ]; then
+    if [ ! -d ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ] && [ ! -d $HOME/.zinit/plugins/zsh-users---zsh-syntax-highlighting ]; then
         git clone git@github.com:zsh-users/zsh-syntax-highlighting $HOME/.zinit/plugins/zsh-users---zsh-syntax-highlighting
-        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-syntax-highlighting ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+        ln -sf $HOME/.zinit/plugins/zsh-users---zsh-syntax-highlighting ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
         is_notify=1
     fi
 fi
@@ -301,8 +301,8 @@ fi
 
 ### _lessfilter
 if [ -f $MYRUNTIME/customs/bin/_lessfilter ]; then
-    if [ ! -f ~/.lessfilter ]; then
-        ln -sf $MYRUNTIME/customs/bin/_lessfilter ~/.lessfilter
+    if [ ! -f $HOME/.lessfilter ]; then
+        ln -sf $MYRUNTIME/customs/bin/_lessfilter $HOME/.lessfilter
     fi
 fi
 

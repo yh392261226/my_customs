@@ -149,7 +149,7 @@ ZSH_TMUX_AUTOSTART='true'
 ZSH_DISABLE_COMPFIX=true
 source $ZSH/oh-my-zsh.sh
 
-HISTFILE=~/data/data/.zsh_history.data
+HISTFILE=$HOME/data/data/.zsh_history.data
 HISTSIZE=500000
 SAVEHIST=500000
 setopt appendhistory

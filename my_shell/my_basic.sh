@@ -1,5 +1,5 @@
 #####系统参数
-export MYRUNTIME=$(cat ~/.myruntime)
+export MYRUNTIME=$(cat $HOME/.myruntime)
 MYPATH=$MYRUNTIME
 ZSH=$MYPATH/oh-my-zsh
 OHTMPPATH=/tmp/oh-my-zsh

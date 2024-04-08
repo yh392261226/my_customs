@@ -1,5 +1,5 @@
 zstyle ':fzf-tab:complete:*:*' fzf-preview 'less ${(Q)realpath}'
-export LESSOPEN='|~/.lessfilter %s'
+export LESSOPEN='|$HOME/.lessfilter %s'
 zstyle ':fzf-tab:complete:git-(add|diff|restore):*' fzf-preview \
 	'git diff $word | delta'|
 zstyle ':fzf-tab:complete:git-log:*' fzf-preview \

@@ -1,5 +1,6 @@
 ### Package Desc: 浏览器相关命令
 
+
 SEARCH_BROWSER="/Applications/Safari.app"
 #[[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
 
@@ -128,7 +129,7 @@ function stealth-browser() {                                                    
 alias sb="stealth-browser"                                                          # Desc: alias: sb:stealth-browser命令的别名,隐身Chrome浏览器打开网址
 
 function fzf_safari_history() {                                                     # Desc: function: fzf_safari_history: 读取当前用户的safari浏览器历史
-    sqlite3 ~/Library/Safari/History.db "SELECT datetime(h.visit_time + 978307200, 'unixepoch', 'localtime') as date, i.url FROM history_visits h INNER JOIN history_items i ON h.history_item = i.id" | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
+    sqlite3 $HOME/Library/Safari/History.db "SELECT datetime(h.visit_time + 978307200, 'unixepoch', 'localtime') as date, i.url FROM history_visits h INNER JOIN history_items i ON h.history_item = i.id" | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
         --preview ' echo -n {} | awk -F"|" "{print \$2}"' \
         --bind 'focus:transform-preview-label:echo -n {} | awk -F "|" "{print \"[\" \$1 \"]\"}"' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
@@ -138,7 +139,7 @@ function fzf_safari_history() {                                                 
 alias fsh="fzf_safari_history"                                                      # Desc: alias: fsh: fzf_safari_history命令的别名,读取当前用户的safari浏览器历史
 
 function fzf_safari_bookmarks() {                                                   # Desc: function: fzf_safari_bookmarks: 读取当前用户的safari浏览器书签
-    plutil -convert xml1 -o - ~/Library/Safari/Bookmarks.plist | grep -E "<string>http[s]?://|<string>.*<\/string>" | sed -E 's/<string>(http[s]?:\/\/[^<]*)<\/string>/\1/g' | grep -B 1 "http[s]\?:" | sed -E 's/<string>([^<]*)<\/string>/\1/g' | sed 's/^--$/|seprator|/g' | sed 's/^[[:space:]]*//g' | sed 's/^$/No title .../g' | tr '\n' ' ' | sed 's/|seprator|/\n/g' | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
+    plutil -convert xml1 -o - $HOME/Library/Safari/Bookmarks.plist | grep -E "<string>http[s]?://|<string>.*<\/string>" | sed -E 's/<string>(http[s]?:\/\/[^<]*)<\/string>/\1/g' | grep -B 1 "http[s]\?:" | sed -E 's/<string>([^<]*)<\/string>/\1/g' | sed 's/^--$/|seprator|/g' | sed 's/^[[:space:]]*//g' | sed 's/^$/No title .../g' | tr '\n' ' ' | sed 's/|seprator|/\n/g' | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
         --preview ' echo -n {}' \
         --bind 'focus:transform-preview-label:echo -n {} ' \
         --bind 'ctrl-y:execute-silent(echo {} | grep -E "http[s]?://.*" | pbcopy)+abort' \
@@ -178,17 +179,17 @@ function chromium_history() {                                                   
 alias ch="chromium_history"                                                         # Desc: alias: ch:chromium_history命令的别名,列出Chromium核心的浏览器的历史
 
 function chrome_default_history() {                                                 # Desc: function: chrome_default_history:列出Chrome默认账户的浏览器的历史
-    chromium_history ~/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
+    chromium_history $HOME/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
 }
 alias cdh="chrome_default_history"                                                  # Desc: alias: cdh:chrome_default_history命令的别名,列出Chrome默认账户的浏览器的历史
 
 function chrome_profile1_history() {                                                # Desc: function: chrome_profile1_history:列出Chrome Profile 1账户的浏览器的历史
-    chromium_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
+    chromium_history $HOME/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
 }
 alias cph="chrome_profile1_history"                                                 # Desc: alias: cph:chrome_profile1_history命令的别名,列出Chrome Profile 1账户的浏览器的历史
 
 function brave_default_history() {                                                  # Desc: function: brave_default_history:列出Brave默认账户的浏览器的历史
-    chromium_history ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
+    chromium_history $HOME/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
 }
 alias bdh="brave_default_history"                                                   # Desc: alias: bdh:brave_default_history命令的别名,列出Brave默认账户的浏览器的历史
 
@@ -217,17 +218,17 @@ function chromium_bookmarks() {                                                 
 alias cb="chromium_bookmarks"                                                       # Desc: alias: cb:chromium_bookmarks命令的别名,列出列出Chromium核心的浏览器的书签
 
 function chrome_default_bookmarks() {                                               # Desc: function: chrome_default_bookmarks:列出Chrome默认账户的书签
-    chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
+    chromium_bookmarks $HOME/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
 }
 alias cdb="chrome_default_bookmarks"                                                # Desc: alias: cdb:chrome_default_bookmarks命令的别名,列出Chrome默认账户的书签
 
 function chrome_profile1_bookmarks() {                                              # Desc: function: chrome_default_bookmarks:列出Chrome Profile 1账户的书签
-    chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
+    chromium_bookmarks $HOME/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
 }
 alias cpb="chrome_profile1_bookmarks"                                               # Desc: alias: cpb:chrome_profile1_bookmarks命令的别名,列出Chrome Profile 1账户的书签
 
 function brave_default_bookmarks() {                                                # Desc: function: brave_default_bookmarks:列出Brave默认账户的书签
-    chromium_bookmarks ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
+    chromium_bookmarks $HOME/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
 }
 alias bdb="brave_default_bookmarks"                                                 # Desc: alias: bdb:brave_default_bookmarks命令的别名,列出Brave默认账户的书签
 
@@ -284,7 +285,7 @@ function _checkDirFull() {                                                      
 
 function autoDiffDownloadPicureByName() {                                           # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
     ##图片文件夹路径
-    local PICPATH=$(cat ~/.picpath)
+    local PICPATH=$(cat $HOME/.picpath)
     local MYRUNTIME=$(cat $HOME/.myruntime)
     ##数据库文件路径
     local DBFILE=$MYRUNTIME/tools/pictures_db.log

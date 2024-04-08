@@ -117,17 +117,17 @@ end
 alias ch="chromium_history"     # Desc: alias: ch:chromium_history命令的别名
 
 function chrome_default_history
-    chromium_history ~/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
+    chromium_history $HOME/Library/Application\ Support/Google/Chrome/Default/History "/Applications/Google Chrome.app"
 end
 alias c="chrome_default_history"    # Desc: alias: c:chrome_default_history命令的别名
 
 function chrome_profile1_history
-    chromium_history ~/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
+    chromium_history $HOME/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
 end
 alias c2="chrome_profile1_history"      # Desc: alias: c2:chrome_profile1_history命令的别名
 
 function brave_default_history
-    chromium_history ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
+    chromium_history $HOME/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
 end
 alias bh="brave_default_history"    # Desc: alias: bh:brave_default_history命令的别名
 
@@ -153,17 +153,17 @@ end
 alias cb="chromium_bookmarks"   # Desc: alias: cb:chromium_bookmarks命令的别名
 
 function chrome_default_bookmarks
-    chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
+    chromium_bookmarks $HOME/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
 end
 alias cb1="chrome_default_bookmarks"    # Desc: alias: cb1:chrome_default_bookmarks命令的别名
 
 function chrome_profile1_bookmarks
-    chromium_bookmarks ~/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
+    chromium_bookmarks $HOME/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
 end
 alias cb2="chrome_profile1_bookmarks"       # Desc: alias: cb2:chrome_profile1_bookmarks命令的别名
 
 function brave_default_bookmarks
-    chromium_bookmarks ~/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
+    chromium_bookmarks $HOME/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
 end
 alias bb="brave_default_bookmarks"      # Desc: alias: bb:brave_default_bookmarks命令的别名
 
@@ -225,7 +225,7 @@ end
 
 function autoDiffDownloadPicureByName
     ##图片文件夹路径
-    set PICPATH $(cat ~/.picpath)
+    set PICPATH $(cat $HOME/.picpath)
     set MYRUNTIME $(cat $HOME/.myruntime)
     ##数据库文件路径
     set DBFILE $MYRUNTIME/tools/pictures_db.log
