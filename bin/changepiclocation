@@ -58,7 +58,7 @@ echo -e "\033[${RED}                               ..........................   
 echo -e "\033[${GREEN}|-----------------------------------------------------------------------------------|\033[00m"
 
 if [ ""  = "$1" ]; then
-    choose=$(printf "%s\n" "${CHOICES[@]}" |fzf +m)
+    choose=$(printf "%s\n" "${CHOICES[@]}" |fzf $FZF_CUSTOM_PARAMS +m)
 else
     choose=$1 
 fi

@@ -179,9 +179,11 @@ function websites() {
             exit 0
         fi
         
-        choose=$(cat $TMPCAOFILE | fzf)
-        if [ "" != "$choose" ]; then
-            /usr/bin/open -a "$BROWSER" "$choose"
+        choose=$(cat $TMPCAOFILE | fzf $FZF_CUSTOM_PARAMS)
+        if [[ $choose ]]; then
+          for url in $(echo $choose); do
+            /usr/bin/open -a "$BROWSER" "$url"
+          done
         fi
     }
     

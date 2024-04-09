@@ -1,4 +1,4 @@
-
+MYRUNTIME=$(cat ~/.myruntime)
 # If not running interactively, don't do anything
 case $- in
   *i*) ;;
@@ -6,7 +6,7 @@ case $- in
 esac
 
 # Path to the bash it configuration
-export BASH_IT="/Users/yanghao/.runtime/bash_it"
+export BASH_IT="$MYRUNTIME/bash_it"
 
 # Lock and Load a custom theme file.
 # Leave empty to disable theming.
@@ -80,13 +80,13 @@ export SCM_CHECK=true
 # export BASH_IT_RELOAD_LEGACY=1
 
 # Load Bash It
-export PATH='/Users/yanghao/.runtime/customs/bin:/Users/yanghao/.asdf/shims:/Users/yanghao/.zinit/plugins/asdf-vm---asdf/bin:/Users/yanghao/.console-ninja/.bin:/Library/Java/JavaVirtualMachines/jdk-17.0.1.jdk/Contents/Home/bin:/opt/homebrew/opt/sqlite/bin:/opt/homebrew/opt/ed/bin:/opt/homebrew/opt/icu4c/bin:/opt/homebrew/opt/grep/bin:/opt/homebrew/sbin:/opt/homebrew/bin:/Users/yanghao/data/data/.runtime//customs/bin:/usr/local/sbin:/usr/local/bin:/sbin:/usr/sbin:/bin:/usr/bin:/Users/yanghao/.pyenv/shims:/Users/yanghao/.local/bin:/opt/homebrew/opt/python/bin:/opt/homebrew/opt/macvim/bin:/Users/yanghao/data/data/.runtime//customs/bin/ssh-auto-login/auto_gen:/Users/yanghao/go-develop/bin:/opt/homebrew/opt/go/libexec/bin:/Users/yanghao/.aliases.d/shims:/opt/homebrew/opt/ssh-copy-id/bin:/Users/yanghao/data/data/.runtime//customs/others/git-fuzzy/bin:~/.local/bin:~/.yarn/bin:/Users/yanghao/.SpaceVim/bin:/opt/homebrew/opt/sphinx-doc/bin:/Users/yanghao/.zinit/plugins/paulirish---git-open:/Users/yanghao/bin:/Users/yanghao/.zinit/polaris/bin:/System/Cryptexes/App/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/X11/bin:/Library/Apple/usr/bin:/Users/yanghao/.cargo/bin:/Applications/iTerm Beta.app/Contents/Resources/utilities:/opt/homebrew/opt/fzf/bin'
+export PATH="$HOME/.runtime/customs/bin:$HOME/.asdf/shims:$HOME/.zinit/plugins/asdf-vm---asdf/bin:$HOME/.console-ninja/.bin:/Library/Java/JavaVirtualMachines/jdk-17.0.1.jdk/Contents/Home/bin:/opt/homebrew/opt/sqlite/bin:/opt/homebrew/opt/ed/bin:/opt/homebrew/opt/icu4c/bin:/opt/homebrew/opt/grep/bin:/opt/homebrew/sbin:/opt/homebrew/bin:$HOME/data/data/.runtime//customs/bin:/usr/local/sbin:/usr/local/bin:/sbin:/usr/sbin:/bin:/usr/bin:$HOME/.pyenv/shims:$HOME/.local/bin:/opt/homebrew/opt/python/bin:/opt/homebrew/opt/macvim/bin:$HOME/data/data/.runtime//customs/bin/ssh-auto-login/auto_gen:$HOME/go-develop/bin:/opt/homebrew/opt/go/libexec/bin:$HOME/.aliases.d/shims:/opt/homebrew/opt/ssh-copy-id/bin:$HOME/data/data/.runtime//customs/others/git-fuzzy/bin:~/.local/bin:~/.yarn/bin:$HOME/.SpaceVim/bin:/opt/homebrew/opt/sphinx-doc/bin:$HOME/.zinit/plugins/paulirish---git-open:$HOME/bin:$HOME/.zinit/polaris/bin:/System/Cryptexes/App/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/X11/bin:/Library/Apple/usr/bin:$HOME/.cargo/bin:/Applications/iTerm Beta.app/Contents/Resources/utilities:/opt/homebrew/opt/fzf/bin:$PATH"
 source "$BASH_IT"/bash_it.sh
 
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+#[ -f ~/.fzf.bash ] && source ~/.fzf.bash
 eval $(fzf --bash)
-MYRUNTIME=$(cat ~/.myruntime)
-[[ -f /opt/homebrew/opt/fzf/shell/completion.bash ]] && source /opt/homebrew/opt/fzf/shell/completion.bash
+source $MYRUNTIME/customs/my_shell/rcfile
+#[[ -f /opt/homebrew/opt/fzf/shell/completion.bash ]] && source /opt/homebrew/opt/fzf/shell/completion.bash
 [[ -f ${HOME}/.iterm2_shell_integration.bash ]] && source "${HOME}/.iterm2_shell_integration.bash"
 if command -v vfox &> /dev/null; then
   eval "$(vfox activate bash)"

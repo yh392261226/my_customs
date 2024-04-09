@@ -183,7 +183,7 @@ list_favo() {
         echo "$FAVOMARK dose not exists !"
         return 1
     else
-    cat $FAVOMARK | fzf +m --preview "$HOME/.iterm2/imgcat {} "
+    cat $FAVOMARK | fzf $FZF_CUSTOM_PARAMS +m --preview "$MYRUNTIME/customs/bin/_previewer {} "
 		# favolists=`cat $FAVOMARK`
 		# posit=0
     #     for i in ${favolists[*]}; do
