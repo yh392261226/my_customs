@@ -9,7 +9,7 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 
-export FZF_DEFAULT_OPTS=" --min-height='40' --multi --cycle --inline-info --ansi --border --layout=reverse --padding='2' --margin='20%' --marker=' ✔' --pointer=' ↪︎' --separator='┈┉' --scrollbar='▌▐' --prompt='Search  ➤ ' --info='right' --border-label-pos='bottom,4' --preview-label-pos='bottom,4' --color 'fg:252,bg:233,hl:67,fg+:252,bg+:235,hl+:81,info:144,prompt:161,spinner:135,pointer:135,marker:118,border:254'"
+export FZF_DEFAULT_OPTS=" --min-height='40' --multi --cycle --inline-info --ansi --border --layout=reverse --padding='2' --margin='5%' --marker=' ✔' --pointer=' ↪︎' --separator='┈┉' --scrollbar='▌▐' --prompt='Search  ➤ ' --info='right' --border-label-pos='bottom,4' --preview-label-pos='bottom,4' --color 'fg:252,bg:233,hl:67,fg+:252,bg+:235,hl+:81,info:144,prompt:161,spinner:135,pointer:135,marker:118,border:254'"
 
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" --walker="file,dir,hidden,follow" --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" --preview-label="╢ Search ╟" --toggle-sort="ctrl-s" --border-label="╢ Command ╟" --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 
