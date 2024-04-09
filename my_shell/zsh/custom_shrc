@@ -1,24 +1,14 @@
 #### 引入我自己的配置：开始
-sh_config=("basic" \
-"import" \
-"export" \
-"alias" \
-"common" \
-"proxy" \
-"omz" \
-"prompt" \
+sh_config=("omz" \
 "zinit" \
 "zstyles" \
-"other" \
-"go" \
-"php" \
-"ser" \
+"iterm2" \
 "composer" \
+"others" \
 "python" \
 "java" \
-"library" \
-"iterm2" \
-"others")
+"go" \
+"php")
 
 # 上面的sh_config配置可以写在下面的文件中, 覆盖默认的
 [[ -f $HOME/.my_sh_config ]] && source $HOME/.my_sh_config
@@ -33,16 +23,11 @@ if [ "zsh" = "$nowshell" ]; then
 	done
 fi
 
-mgoto () {
+go2 () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
 
-
-for custom_sh_config in $sh_config; do
-    if [ -f $my_custom_sh/my_${custom_sh_config}.sh ]; then
-        source $my_custom_sh/my_${custom_sh_config}.sh
-    fi
-done
+source $my_custom_sh/library/core/bzsh/core_library.bzsh
 
 #不知道跟yadr的哪个插件冲突 所以必须单独引入
 source $my_custom_sh/zsh/zmy_changebg.zsh

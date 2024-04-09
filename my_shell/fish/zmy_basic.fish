@@ -73,7 +73,7 @@ alias tgz 'tar -zxvf'
 alias bz2 'tar -xjvf'
 
 ##函数
-function goto
+function go2
   if test -d $argv
     cd $argv
   else

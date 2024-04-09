@@ -1,0 +1,36 @@
+MYRUNTIME=$(cat $HOME/.myruntime)
+LIBRARYPATH=$MYRUNTIME/customs/my_shell/library
+FUNCPATH=$LIBRARYPATH/functions/bzsh
+COREPATH=$LIBRARYPATH/core/bzsh
+THIRDPATH=$LIBRARYPATH/third/bzsh
+OTHERSPATH=$LIBRARYPATH/others/bzsh
+
+## functions
+if [ -d $FUNCPATH ]; then
+    for func in $(ls $FUNCPATH/func_*.bzsh); do
+        source $func
+    done
+fi
+
+## cores
+source $COREPATH/core_basic.bzsh
+source $COREPATH/core_common.bzsh
+source $COREPATH/core_export.bzsh
+source $COREPATH/core_alias.bzsh
+source $COREPATH/core_proxy.bzsh
+source $COREPATH/core_ser.bzsh
+source $COREPATH/core_other.bzsh
+
+## thirds
+if [ -d $THIRDPATH ]; then
+    for third in $(ls $THIRDPATH/third_*.bzsh); do
+        source $third
+    done
+fi
+
+## others
+if [ -d $OTHERSPATH ]; then
+    for other in $(ls $OTHERSPATH/others_*.bzsh); do
+        source $other
+    done
+fi

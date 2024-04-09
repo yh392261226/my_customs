@@ -1,4 +1,0 @@
-ControlPersist  yes
-ControlMaster   auto
-ControlPath     ~/.ssh/tmp/master-%r@%h:%p
-

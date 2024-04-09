@@ -51,4 +51,4 @@ export nowshell=$(curshell)
 export nowterm=$(curterm)
 export nowpanel=$(curPanel)
 source $MYRUNTIME/customs/my_shell/${nowshell}/custom_shrc
-[[ -f $MYRUNTIME/customs/my_shell/customs.sh ]] && source $MYRUNTIME/customs/my_shell/customs.sh
+[[ -f $HOME/.customs.sh ]] && source $HOME/.customs.sh

@@ -509,12 +509,12 @@ function fzf_open_app() {                                                       
 alias foa="fzf_open_app"                                                            # Desc: alias: foa: fzf_open_app命令的别名,利用fzf通过终端打开App
 
 function cp_forward() {                                                             # Desc: function: cp_forward: cp复制完成后跳转至目录
-    cp "$@" && goto "$_";
+    cp "$@" && go2 "$_";
 }
 alias cpf="cp_forward"                                                              # Desc: alias: cpf:cp_forward命令的别名,cp复制完成后跳转至目录
 
 function mv_forward() {                                                             # Desc: function: mv_forward: mv移动完成后跳转至目录
-    mv "$@" && goto "$_";
+    mv "$@" && go2 "$_";
 }
 alias mvf="mv_forward"                                                              # Desc: alias: mvf:mv_forward命令的别名,mv移动完成后跳转至目录
 
