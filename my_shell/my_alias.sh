@@ -85,24 +85,24 @@ alias bu='brew update && brew upgrade && brew cleanup'                          
 
 #Process
 #----------------------------------------------------------------------------------------------------------------
-alias memHogsTop='top -l 1 -o rsize | head -20'                                                                  # Desc: alias: memHogsTop:列出进程中占用内存最高的20条
-alias memHogsPs='ps wwaxm -o pid,stat,vsize,rss,time,command | head -10'                                         # Desc: alias: memHogsPs:列出进程中占用内存最高的10条的详细内容
-alias cpu_hogs='ps wwaxr -o pid,stat,%cpu,time,command | head -10'                                               # Desc: alias: cpu_hogs:列出进程中占用cpu最高的前10条
-alias topForever='top -l 9999999 -s 10 -o cpu'                                                                   # Desc: alias: topForever:列出进程按照cpu消耗的降序展示
-alias ttop="top -R -F -s 10 -o rsize"                                                                            # Desc: alias: ttop:列出进程中前10条
+alias memtop20='top -l 1 -o rsize | head -20'                                                                    # Desc: alias: memtop20:列出进程中占用内存最高的20条
+alias memtop10='ps wwaxm -o pid,stat,vsize,rss,time,command | head -10'                                          # Desc: alias: memtop10:列出进程中占用内存最高的10条的详细内容
+alias cputop10='ps wwaxr -o pid,stat,%cpu,time,command | head -10'                                               # Desc: alias: cputop10:列出进程中占用cpu最高的前10条
+alias topsort='top -l 9999999 -s 10 -o cpu'                                                                      # Desc: alias: topsort:列出进程按照cpu消耗的降序展示
+alias top10="top -R -F -s 10 -o rsize"                                                                           # Desc: alias: top10:列出进程中前10条
 
 #Network
 #----------------------------------------------------------------------------------------------------------------
 alias myip="curl myip.ipip.net"                                                                                  # Desc: alias: myip:Public facing IP Address
-alias netCons='lsof -i'                                                                                          # Desc: alias: netCons:Show all open TCP/IP sockets
-alias flushDNS='dscacheutil -flushcache'                                                                         # Desc: alias: flushDNS:Flush out the DNS Cache
+alias opensockets='lsof -i'                                                                                      # Desc: alias: opensockets:Show all open TCP/IP sockets
+alias flushdns='dscacheutil -flushcache'                                                                         # Desc: alias: flushdns:Flush out the DNS Cache
 alias lsock='sudo /usr/sbin/lsof -i -P'                                                                          # Desc: alias: lsock:Display open sockets
-alias lsockU='sudo /usr/sbin/lsof -nP | grep UDP'                                                                # Desc: alias: lsockU:Display only open UDP sockets
-alias lsockT='sudo /usr/sbin/lsof -nP | grep TCP'                                                                # Desc: alias: lsockT:Display only open TCP sockets
-alias ipInfo0='ipconfig getpacket en0'                                                                           # Desc: alias: ipInfo0:Get info on connections for en0
-alias ipInfo1='ipconfig getpacket en1'                                                                           # Desc: alias: ipInfo1:Get info on connections for en1
-alias openPorts='sudo lsof -i | grep LISTEN'                                                                     # Desc: alias: openPorts:All listening connections
-alias showBlocked='sudo ipfw list'                                                                               # Desc: alias: showBlocked:All ipfw rules inc/ blocked IPs
+alias lsockudp='sudo /usr/sbin/lsof -nP | grep UDP'                                                              # Desc: alias: lsockudp:Display only open UDP sockets
+alias lsocktcp='sudo /usr/sbin/lsof -nP | grep TCP'                                                              # Desc: alias: lsocktcp:Display only open TCP sockets
+alias ipinfo0='ipconfig getpacket en0'                                                                           # Desc: alias: ipinfo0:Get info on connections for en0
+alias ipinfo1='ipconfig getpacket en1'                                                                           # Desc: alias: ipinfo1:Get info on connections for en1
+alias openports='sudo lsof -i | grep LISTEN'                                                                     # Desc: alias: openports:All listening connections
+alias showblocked='sudo ipfw list'                                                                               # Desc: alias: showblocked:All ipfw rules inc/ blocked IPs
 alias pping='prettyping'                                                                                         # Desc: alias: pping:a nice way to show ping command result
 
 #Versions
@@ -153,10 +153,10 @@ alias cpz='rsync -PrlpEz'                                                       
 
 # Rm alias
 #----------------------------------------------------------------------------------------------------------------
-alias cleanupLS="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"                                                                                                  # Desc: alias: cleanupLS:忘记该别名的作用了
-alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"                                                  # Desc: alias: cleanupDS:查找并删除当前目录中的.DS_Store文件
+alias cleanupls="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"                                                                                                  # Desc: alias: cleanupls:忘记该别名的作用了
+alias cleanupds="find . -type f -name '*.DS_Store' -ls -delete"                                                  # Desc: alias: cleanupds:查找并删除当前目录中的.DS_Store文件
 #alias rm='/usr/local/bin/trash'                                                                                 # Desc: alias: rm:设置为trash替代命令
-alias rmDS="remove_DS_files"                                                                                     # Desc: alias: rmDS:removeDS命令的别名
+alias rmds="remove_DS_files"                                                                                     # Desc: alias: rmds:removeDS命令的别名
 alias rm='rm -i'                                                                                                 # Desc: alias: rm:增加详情选项
 alias rmf='rm -rf'                                                                                               # Desc: alias: rmf:增加递归删除选项
 
@@ -176,7 +176,7 @@ alias mkdir='mkdir -p'                                                          
 #Other
 #----------------------------------------------------------------------------------------------------------------
 alias woshishei='whoami'                                                                                         # Desc: alias: woshishei:whoami命令的别名
-alias screensaverDesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'    # Desc: alias: screensaverDesktop:忘记该别名作用了
+alias screensaverdesktop='/System/Library/Frameworks/ScreenSaver.framework/Resources/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine -background'    # Desc: alias: screensaverdesktop:忘记该别名作用了
 alias hc="history -c"                                                                                            # Desc: alias: hc:清空历史命令记录
 alias hfd="builtin fc -li | grep $(date -I)"                                                                     # Desc: alias: hfd:列出今天的历史命令记录
 alias hfs="builtin fc -li | grep ${2}"                                                                           # Desc: alias: hfs: 按关键字搜索历史命令记录

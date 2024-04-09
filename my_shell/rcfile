@@ -27,6 +27,10 @@ curterm() {
         CURTERM='iTerm'
     elif [ "$TMPCURTERM" = "Apple_Terminal" ]; then
         CURTERM='Terminal'
+    elif [ "$TMPCURTERM" = "WarpTerminal" ]; then
+        CURTERM='Warp'
+    else
+        CURTERM='Unknow'
     fi
     echo $CURTERM
 }
@@ -37,6 +41,8 @@ curPanel() {
     panel="screen"
   elif [ ! -z "$TMUX" ]; then
     panel="tmux"
+  elif [ "" != "$(env | grep 'ZELLIJ')" ]; then
+    panel="zellij"
   fi
   echo $panel;
 }
