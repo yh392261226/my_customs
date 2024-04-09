@@ -35,12 +35,27 @@ else
       else
           treename="ls -R | grep :$ | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
       fi
-      $treename "$1"
+      $treename "$file"
       exit
     fi
 
+    case $file in
+      *.pdf) #pdf文件展示
+        pdftotext "$file" |less
+        exit
+      ;;
+      *.md|*.MD|*.markdown|*.MARKDOWN)
+        glow "$file" | less
+        exit
+      ;;
+      *)
+        bat --theme=gruvbox-dark --color=always --style=header,grid,numbers --line-range :600 "$file" || exa "$file"
+        exit
+      ;;
+    esac
+
     if [[ $type =~ =binary ]]; then
-      file "$1"
+      file "$file"
       exit
     fi
 
