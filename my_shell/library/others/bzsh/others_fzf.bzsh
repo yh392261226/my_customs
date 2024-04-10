@@ -9,11 +9,11 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 
-export FZF_DEFAULT_OPTS=" --min-height='40' --multi --cycle --inline-info --ansi --border --layout=reverse --padding='2' --margin='5%' --marker=' ✔' --pointer=' ↪︎' --separator='┈┉' --scrollbar='▌▐' --prompt='Search  ➤ ' --info='right' --border-label-pos='bottom,4' --preview-label-pos='bottom,4' --color 'fg:252,bg:233,hl:67,fg+:252,bg+:235,hl+:81,info:144,prompt:161,spinner:135,pointer:135,marker:118,border:254'"
+export FZF_DEFAULT_OPTS=" --min-height='40' --multi --cycle --inline-info --ansi --border=rounded --layout=reverse --padding='2' --margin='5%' --marker=' ✔' --pointer=' ↪︎' --separator='┈┉' --scrollbar='▌▐' --prompt='Search  ➤ ' --info='right' --border-label-pos='bottom,4' --preview-label-pos='bottom,4' --color 'fg:252,bg:233,hl:67,fg+:252,bg+:235,hl+:81,info:144,prompt:161,spinner:135,pointer:135,marker:118,border:254' --header=' CTRL-H Search Infomation ' --header-first"
 
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" --walker="file,dir,hidden,follow" --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" --preview-label="╢ Search ╟" --toggle-sort="ctrl-s" --border-label="╢ Command ╟" --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 
-export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" --bind="focus:transform-preview-label:echo -n \"╢  {}  ╟\";" --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" --bind="ctrl-t:toggle-preview" --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" --bind="ctrl-n:page-down,ctrl-p:page-up" --bind="ctrl-a:toggle-all" --bind="ctrl-j:preview-down" --bind="ctrl-k:preview-up" --bind="ctrl-l:select-all+execute:less {+f}" --bind="ctrl-l:+deselect-all" --bind="≥:next-selected,≤:prev-selected" --bind="shift-up:first" --bind="shift-down:last" '
+export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" --bind="focus:transform-preview-label:echo -n \"╢  {}  ╟\";" --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" --bind="ctrl-t:toggle-preview" --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" --bind="ctrl-n:page-down,ctrl-p:page-up" --bind="ctrl-a:toggle-all" --bind="ctrl-j:preview-down" --bind="ctrl-k:preview-up" --bind="ctrl-l:select-all+execute:less {+f}" --bind="ctrl-l:+deselect-all" --bind="≥:next-selected,≤:prev-selected" --bind="shift-up:first" --bind="shift-down:last" --bind="load:change-prompt:Loaded, Search ➤" --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 
 export FZF_COMPLETION_OPTS="-1 --cycle --inline-info --ansi  --border='bottom' --layout='reverse' --preview '${MYRUNTIME}/customs/bin/_previewer {}' --preview-window 'right:70%:wrap'  $FZF_PREVIEW_KEY_BIND"
 
@@ -69,7 +69,10 @@ _buildFzfHeader() {
     fi
 
     if [ "" != "$2" ]; then
-        newheader="${newheader} \n ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ \n ⇉ ${2} 搜索内容 \n ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈ "
+        newheader="${newheader} 
+⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ 
+⇉ ${2} 搜索内容 
+⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈ "
         echo ${2} > $TMP_FZF_HEADER_SWAP_FILE
     fi
     echo "$newheader "
@@ -99,21 +102,21 @@ fzf_transformer='
     echo "change-preview-window:10"
   fi
 '
-
-export FZF_CUSTOM_PARAMS=(--reverse \
---multi \
---border='rounded' \
---border-label='╢ Custom Command ╟' \
---border-label-pos='bottom,4' \
---preview=' echo {} ' \
---bind='focus:transform-preview-label:echo -n "╢  {}  ╟";' \
---bind='ctrl-y:execute-silent(echo -n {}| pbcopy)+abort' \
---bind="result:transform:$transformer" \
---bind="resize:transform:$transformer" \
---bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo ' Search Infomation ')+preview:($MYRUNTIME/customs/bin/_previewer 'help')" \
---bind='load:change-prompt:Loaded, Search  ➤ ' \
---header="$(_buildFzfHeader '' '')" \
---header-first \
-)
-#--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
-#ctrl-l 不是所有的都好用, 还没弄清楚为什么有的好使,有的不行
+if [ "zsh" = "$nowshell" ]; then
+  export FZF_CUSTOM_PARAMS=( --reverse \
+  --multi \
+  --border-label='╢ Custom Command ╟' \
+  --preview=' echo {} ' \
+  --bind='focus:transform-preview-label:echo -n "╢  {}  ╟";' \
+  --bind="result:transform:$transformer" \
+  --bind="resize:transform:$transformer" \
+  --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo ' Search Infomation ')+preview:($MYRUNTIME/customs/bin/_previewer 'help')" \
+  --header="$(_buildFzfHeader '' '')" \
+  --header-first \
+  )
+  #--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
+  #ctrl-l 不是所有的都好用, 还没弄清楚为什么有的好使,有的不行
+elif [ "bash" = "$nowshell" ]; then
+  # 导出为环境变量
+  export FZF_CUSTOM_PARAMS="--reverse --multi "
+fi
