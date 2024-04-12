@@ -14,7 +14,7 @@ function search_aliases() {                                                     
     --tac \
     $FZF_CUSTOM_PARAMS \
     --preview-window right:70%:rounded:hidden:wrap \
-    --preview 'bat {}' \
+    --preview 'bat --theme=gruvbox-dark --color=always --style=header,grid,numbers {}' \
     --header="$(_buildFzfHeader '' 'search_aliases')"
     customcd -
 }
@@ -28,7 +28,7 @@ function fzf_all_aliases() {                                                    
 --preview-window right:70%:rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
 --header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
---bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)")
+--bind "ctrl-o:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)")
         rm -f $TMP_ALIASES_FILE
     fi
 }
@@ -43,7 +43,7 @@ function fzf_custom_aliases() {                                                 
 --preview-window right:70%:rounded:nohidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind "ctrl-o:execute(bat $TMP_ALIASES_FILE > /dev/tty)" \
+--bind "ctrl-o:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)" \
 --header="$(_buildFzfHeader '' 'fzf_custom_aliases')")
         rm -f $TMP_ALIASES_FILE
     fi
