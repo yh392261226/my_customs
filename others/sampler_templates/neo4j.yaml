@@ -1,0 +1,10 @@
+# prerequisite: installed cypher shell
+
+variables:
+  neo4j_connection: cypher-shell -u neo4j -p pwd --format plain
+sparklines:
+  - title: Neo4j (random number example)
+    pty: true
+    init: $neo4j_connection
+    sample: RETURN rand();
+    transform: echo "$sample" | tail -n 1

@@ -1,0 +1,9 @@
+# prerequisite: installed psql shell
+
+variables:
+  PGPASSWORD: pwd
+  postgres_connection: psql -h localhost -U postgres --no-align --tuples-only
+sparklines:
+  - title: PostgreSQL (random number example)
+    init: $postgres_connection
+    sample: select random();

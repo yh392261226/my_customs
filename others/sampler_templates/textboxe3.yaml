@@ -1,0 +1,10 @@
+textboxes:
+  - title: Neo4j polling
+    pty: true  # enables pseudo-terminal mode, default = false
+    init: cypher-shell -u neo4j -p pwd --format plain
+    sample: RETURN rand();
+    transform: echo "$sample" | tail -n 1
+  - title: Top on a remote server
+    pty: true  # enables pseudo-terminal mode, default = false
+    init: ssh -i ~/user.pem ec2-user@1.2.3.4
+    sample: top    

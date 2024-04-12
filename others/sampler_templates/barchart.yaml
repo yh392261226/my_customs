@@ -1,0 +1,13 @@
+barcharts:
+  - title: Local network activity
+    rate-ms: 500        # sampling rate, default = 1000
+    scale: 0            # number of digits after sample decimal point, default = 1
+    items:
+      - label: UDP bytes in
+        sample: nettop -J bytes_in -l 1 -m udp | awk '{sum += $4} END {print sum}'
+      - label: UDP bytes out
+        sample: nettop -J bytes_out -l 1 -m udp | awk '{sum += $4} END {print sum}'
+      - label: TCP bytes in
+        sample: nettop -J bytes_in -l 1 -m tcp | awk '{sum += $4} END {print sum}'
+      - label: TCP bytes out
+        sample: nettop -J bytes_out -l 1 -m tcp | awk '{sum += $4} END {print sum}'

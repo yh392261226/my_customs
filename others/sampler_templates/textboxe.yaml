@@ -1,0 +1,10 @@
+textboxes:
+  - title: Local weather
+    rate-ms: 10000      # sampling rate, default = 1000
+    sample: curl wttr.in?0ATQF
+    border: false       # border around the item, default = true
+    color: 178          # 8-bit color number, default is white
+  - title: Docker containers stats
+    rate-ms: 500
+    sample: docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.PIDs}}"
+

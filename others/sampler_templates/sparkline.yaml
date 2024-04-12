@@ -1,0 +1,9 @@
+sparklines:
+  - title: CPU usage
+    rate-ms: 200
+    scale: 0
+    sample: ps -A -o %cpu | awk '{s+=$1} END {print s}'
+  - title: Free memory pages
+    rate-ms: 200
+    scale: 0
+    sample: memory_pressure | grep 'Pages free' | awk '{print $3}'

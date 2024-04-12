@@ -1,0 +1,7 @@
+variables:
+  sshconnection: ssh -i ~/my-key-pair.pem ec2-user@1.2.3.4
+textboxes:
+  - title: SSH
+    pty: true
+    init: $sshconnection
+    sample: top

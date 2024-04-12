@@ -1,0 +1,17 @@
+gauges:
+  - title: MINUTE PROGRESS
+    position: [[0, 18], [80, 0]]  
+    cur:
+      sample: date +%S
+    max:
+      sample: echo 60
+    min:
+      sample: echo 0
+    triggers:
+      - title: CLOCK BELL EVERY MINUTE
+        condition: '[ $label == "cur" ] && [ $cur -eq 0 ] && echo 1 || echo 0'  # expects "1" as TRUE indicator
+        actions:
+          terminal-bell: true  # standard terminal bell, default = false
+          sound: true    # NASA quindar tone, default = false
+          visual: false  # notification with current value on top of the component area, default = false
+          script: say -v samantha `date +%I:%M%p`  # an arbitrary script, which can use $cur, $prev and $label variables

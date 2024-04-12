@@ -1,0 +1,6 @@
+textboxes:
+  - title: MongoDB polling
+    rate-ms: 500
+    init: mongo --quiet --host=localhost test # executes only once to start the interactive session
+    sample: Date.now();                       # executes with a required rate, in scope of the interactive session
+    transform: echo result = $sample          # executes in scope of local session, $sample variable is available for transformation

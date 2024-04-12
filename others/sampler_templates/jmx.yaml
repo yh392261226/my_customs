@@ -1,0 +1,8 @@
+textboxes:
+  - title: Java application uptime
+    multistep-init:
+      - java -jar jmxterm-1.0.0-uber.jar
+      - open host:port # or local PID
+      - bean java.lang:type=Runtime
+    sample: get Uptime
+    transform: echo $sample | tr -dc '0-9' | awk '{printf "%.1f min", $1/1000/60}'

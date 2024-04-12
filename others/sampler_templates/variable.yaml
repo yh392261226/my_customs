@@ -1,0 +1,15 @@
+variables:
+    mongoconnection: mongo --quiet --host=localhost test
+barcharts:
+  - title: MongoDB documents by status
+    position: [[0, 8], [80, 9]]
+    items:
+      - label: IN_PROGRESS
+        init: $mongoconnection
+        sample: db.getCollection('events').find({status:'IN_PROGRESS'}).count()
+      - label: SUCCESS
+        init: $mongoconnection
+        sample: db.getCollection('events').find({status:'SUCCESS'}).count()
+      - label: FAIL
+        init: $mongoconnection
+        sample: db.getCollection('events').find({status:'FAIL'}).count()

@@ -1,7 +1,5 @@
 worklist
 .descfile
 .vscode
-others/
 my_shell/customs.sh
-enhancd/
 starship/cache/

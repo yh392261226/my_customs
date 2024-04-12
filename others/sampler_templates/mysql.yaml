@@ -1,0 +1,9 @@
+# prerequisite: installed mysql shell
+
+variables:
+  mysql_connection: mysql -u root -p yanghao1017 -s --database mysql --skip-column-names
+sparklines:  
+  - title: MySQL (random number example)
+    pty: true
+    init: $mysql_connection
+    sample: select rand();

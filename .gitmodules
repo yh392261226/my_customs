@@ -1,0 +1,57 @@
+[submodule "others/HowToCook"]
+	path = others/HowToCook
+	url = git@github.com:Anduin2017/HowToCook.git
+[submodule "others/LTFinderButtons"]
+	path = others/LTFinderButtons
+	url = git@github.com:lexrus/LTFinderButtons
+[submodule "others/SSHAutoLogin"]
+	path = others/SSHAutoLogin
+	url = git@github.com:yh392261226/SSHAutoLogin.git
+[submodule "others/fuzzy-fs"]
+	path = others/fuzzy-fs
+	url = git@github.com:yh392261226/fuzzy-fs.git
+[submodule "others/fz"]
+	path = others/fz
+	url = git@github.com:changyuheng/fz.git
+[submodule "others/fzf-help"]
+	path = others/fzf-help
+	url = https://github.com/BartSte/fzf-help.git
+[submodule "others/fzf-tab-completion"]
+	path = others/fzf-tab-completion
+	url = https://github.com/lincheney/fzf-tab-completion.git
+[submodule "others/git-fuzzy"]
+	path = others/git-fuzzy
+	url = https://github.com/bigH/git-fuzzy.git
+[submodule "others/gvcci"]
+	path = others/gvcci
+	url = git@github.com:yh392261226/gvcci.git
+[submodule "others/iterm2-theme-toggle"]
+	path = others/iterm2-theme-toggle
+	url = git@github.com:yh392261226/iterm2-theme-toggle.git
+[submodule "others/linux-command"]
+	path = others/linux-command
+	url = git@github.com:jaywcjlove/linux-command.git
+[submodule "others/phpstorm-stubs"]
+	path = others/phpstorm-stubs
+	url = git@github.com:JetBrains/phpstorm-stubs.git
+[submodule "others/reference"]
+	path = others/reference
+	url = https://github.com/jaywcjlove/reference.git
+[submodule "others/up"]
+	path = others/up
+	url = git@github.com:shannonmoeller/up.git
+[submodule "others/webui-aria2"]
+	path = others/webui-aria2
+	url = https://github.com/ziahamza/webui-aria2
+[submodule "others/zfm"]
+	path = others/zfm
+	url = git@github.com:pabloariasal/zfm.git
+[submodule "others/zinit"]
+	path = others/zinit
+	url = git@github.com:zdharma-continuum/zinit.git
+[submodule "others/zsh-fzf-widgets"]
+	path = others/zsh-fzf-widgets
+	url = git@github.com:amaya382/zsh-fzf-widgets.git
+[submodule "enhancd"]
+	path = others/enhancd
+	url = git@github.com:yh392261226/enhancd.git

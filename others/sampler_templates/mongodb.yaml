@@ -1,0 +1,8 @@
+# prerequisite: installed mongo shell
+
+variables:
+  mongo_connection: mongo --quiet --host=localhost test
+sparklines:
+  - title: MongoDB (random number example)
+    init: $mongo_connection
+    sample: Math.random();
