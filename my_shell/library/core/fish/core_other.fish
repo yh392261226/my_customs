@@ -163,5 +163,12 @@ if test -d $MYRUNTIME/customs/others/fzf-help
   bind \ca fzf-help-widget
 end
 
+# forgit
+if test -d $HOME/.zinit/plugins/wfxr---forgit/conf.d; and test -f $HOME/.zinit/plugins/wfxr---forgit/conf.d/forgit.plugin.fish
+    if not test -f $HOME/.config/fish/conf.d/forgit.fish
+        ln -sf $HOME/.zinit/plugins/wfxr---forgit/conf.d/forgit.plugin.fish $HOME/.config/fish/conf.d/forgit.fish
+    end
+end
+
 # Homebrew
 set -x HOMEBREW_NO_AUTO_UPDATE 1
