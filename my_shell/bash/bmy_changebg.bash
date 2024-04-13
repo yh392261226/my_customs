@@ -13,7 +13,6 @@ emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0
 fi
-
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm

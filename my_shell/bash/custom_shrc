@@ -4,12 +4,11 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
 my_custom_sh=$MYRUNTIME/customs/my_shell
 
-source $my_custom_sh/bash/bmy_changebg.bash
-source $my_custom_sh/bash/bmy_other.bash
-
 [[ -f $HOME/.customs.sh ]] && source $HOME/.customs.sh
 #
 go2 () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
 source $my_custom_sh/library/core/bzsh/core_library.bzsh
+source $my_custom_sh/bash/bmy_changebg.bash
+source $my_custom_sh/bash/bmy_other.bash
