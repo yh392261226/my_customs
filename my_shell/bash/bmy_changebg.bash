@@ -13,6 +13,7 @@ emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0
 fi
+
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
@@ -40,7 +41,8 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bg_change() {
                 image_path=$1
                 image_index=$2
-                CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
+
+                # CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
                 if [ "" != "$image_index" ]; then
                     if [ -f $CURRENT_PICTURE_MARK ]; then
                         /bin/rm -f $CURRENT_PICTURE_MARK
@@ -57,28 +59,13 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         terminal-notifier -message $image_path
                     fi
                 fi
-
-                if [ "$CURITERMVERSION" = "iTerm2" ]; then
-                    osascript -e "tell application \"iTerm.app\"
+                osascript -e "tell application \"iTerm.app\"
                         tell current window
                             tell current session
                                 set background image to \"$image_path\"
                             end tell
                         end tell
-                    end tell
-                    "
-                else
-                    osascript -e "tell application \"iTerm\"
-                        set current_terminal to (current terminal)
-                        tell current_terminal
-                            set current_session to (current session)
-                            tell current_session
-                                set background image path to \"$image_path\"
-                            end tell
-                        end tell
-                    end tell
-                    "
-                fi
+                    end tell"
                 if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
                   bg_thumb $image_path
                   for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
