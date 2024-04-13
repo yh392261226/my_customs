@@ -3,11 +3,18 @@
 
 function _show_fzf_awesome_function() {         # Desc: function: _show_fzf_awesome_function: 定位fzf别名源是否是命令，且定位所在位置
     if [ "" != "$1" ] && [ "" != "$2" ]; then
-        CCommand=$1
-        CLocation=$2
-        CFlag=$3
+        local CCommand=$1
+        local CLocation=$2
+        local CFlag=$3
+        local Shelltype=$4
+        local isshellorfunc=0
 
-        if [ "functions" != "$CFlag" ]; then
+        [[ "functions" = "$CFlag" ]] && isshellorfunc=1
+        [[ "fish" = "$CFlag" ]] && isshellorfunc=1
+        [[ "bash" = "$CFlag" ]] && isshellorfunc=1
+        [[ "zsh" = "$CFlag" ]] && isshellorfunc=1
+
+        if [ $isshellorfunc != 1 ]; then
             TmpContent=$(cat $CLocation | grep -E "function\ $CCommand\(")
 
             awesome_function_file=$(echo "$TmpContent" | awk -F':' '{print $1}')
@@ -26,10 +33,16 @@ function _show_fzf_awesome_function() {         # Desc: function: _show_fzf_awes
             echo ""
             echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶"
         else
-            sed -n "/^$CCommand () {/,/^}/p" $CLocation
-            sed -n "/^$CCommand ()/,/^}/p" $CLocation
+            if [ "fish" = "$Shelltype" ] || [ "fish" = "$CFlag" ]; then
+                fish -c "builtin type $CCommand | bat --style='numbers,changes,header,grid' --theme='gruvbox-dark' --pager 'less -RF' --map-syntax '.ignore:Git Ignore'"
+                # sed -n "/^function $CCommand/,/^end/p" $CLocation
+            elif [ "bash" = "$Shelltype" ] || [ "bash" = "$CFlag" ]; then
+                sed -n "/^$CCommand ()/,/^}/p" $CLocation
+            else
+                sed -n "/^$CCommand () {/,/^}/p" $CLocation
+            fi
         fi
     fi
 }
 
-_show_fzf_awesome_function $1 $2 $3
+_show_fzf_awesome_function $1 $2 $3 $4

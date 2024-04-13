@@ -3,4 +3,4 @@ function update_wechat_tool
     rm -rf /tmp/WeChatExtension-ForMac/
     cd -
 end
-alias uwt update_wechat_tool
+alias uwt="update_wechat_tool"

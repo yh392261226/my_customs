@@ -15,7 +15,7 @@ function search_by_google
         open -a "$SEARCH_BROWSER" "https://www.google.com/search?q=$text"
     end
 end
-alias google search_by_google
+alias google="search_by_google"
 
 function search_by_baidu
     if test -n $argv
@@ -31,7 +31,7 @@ function search_by_baidu
         open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd=$text"
     end
 end
-alias baidu search_by_baidu
+alias baidu="search_by_baidu"
 
 function search_by_bing
     if test -n $argv
@@ -47,7 +47,7 @@ function search_by_bing
         open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q=$text"
     end
 end
-alias bing search_by_bing
+alias bing="search_by_bing"
 
 function search_by_yahoo
     if test -n $argv
@@ -63,7 +63,7 @@ function search_by_yahoo
         open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q=$text"
     end
 end
-alias yahoo search_by_yahoo
+alias yahoo="search_by_yahoo"
 
 function search_by_wikipedia
     if test -n $argv
@@ -79,7 +79,7 @@ function search_by_wikipedia
         open -a "$SEARCH_BROWSER" "http://en.wikipedia.org/wiki/Special:Search?search=$text"
     end
 end
-alias wikipedia search_by_wikipedia
+alias wikipedia="search_by_wikipedia"
 
 function open_in_browser
     set BROWSERPATH $argv[1]
@@ -101,7 +101,7 @@ function open_in_browser
     end
     /usr/bin/open -a "$BROWSERPATH" "$url"
 end
-alias browse open_in_browser
+alias browse="open_in_browser"
 
 function firefox
     set BROWSERPATH "/Applications/Firefox.app"
@@ -130,7 +130,7 @@ function stealth-browser
     test -d "$DEFAULTBROWSER"
     and open "/Applications/Google Chrome.app" --args -proxy-server=socks5://$ip:$port --incognito
 end
-alias sb stealth-browser
+alias sb="stealth-browser"
 
 function fzf_safari_history
     sqlite3 $HOME/Library/Safari/History.db "SELECT datetime(h.visit_time + 978307200, 'unixepoch', 'localtime') as date, i.url FROM history_visits h INNER JOIN history_items i ON h.history_item = i.id" | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
@@ -140,7 +140,7 @@ function fzf_safari_history
         --bind "enter:execute(echo {} | grep -Eo 'https?://[^[:space:]]+' | head -1 | xargs open)+abort" \
         --header="$(_buildFzfHeader '' 'fzf_safari_history')"
 end
-alias fsh fzf_safari_history
+alias fsh="fzf_safari_history"
 
 function fzf_safari_bookmarks
     plutil -convert xml1 -o - $HOME/Library/Safari/Bookmarks.plist | grep -E '<string>http[s]?://|<string>.*</string>' | sed -E 's/<string>(http[s]?:\/\/[^<]*)<\/string>/\1/g' | grep -B 1 "http[s]\{0,1\}" | sed -E 's/<string>([^<]*)<\/string>/\1/g' | sed 's/^--$/|seprator|/g' | sed 's/^[[:space:]]*//g' | sed 's/^$/No title .../g' | tr '\n' ' ' | sed 's/|seprator|/\n/g' | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
@@ -150,7 +150,7 @@ function fzf_safari_bookmarks
         --bind "enter:execute(echo {} | grep -Eo 'https?://[^[:space:]]+' | head -1 | xargs open)+abort" \
         --header="$(_buildFzfHeader '' 'fzf_safari_bookmarks')"
 end
-alias fsb fzf_safari_bookmarks
+alias fsb="fzf_safari_bookmarks"
 
 function chromium_history
     if test -z $argv[1]
@@ -169,23 +169,23 @@ function chromium_history
     | awk -F "$sep" '{print $2}' \
     | xargs -n 1 open -a (echo $argv[2])
 end
-alias ch chromium_history
+alias ch="chromium_history"
 
 
 function chrome_default_history
     chromium_history $HOME/Library/Application\ Support/Google/Chrome/Default/History '/Applications/Google Chrome.app'
 end
-alias cdh chrome_default_history
+alias cdh="chrome_default_history"
 
 function chrome_profile1_history
     chromium_history $HOME/Library/Application\ Support/Google/Chrome/Profile\ 1/History "/Applications/Google Chrome.app"
 end
-alias cph chrome_profile1_history
+alias cph="chrome_profile1_history"
 
 function brave_default_history
     chromium_history $HOME/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/History "/Applications/Brave Browser.app"
 end
-alias bdh brave_default_history
+alias bdh="brave_default_history"
 
 function chromium_bookmarks
     if test -z $argv[1]
@@ -209,22 +209,22 @@ function chromium_bookmarks
     | cut -d '	' -f2 \
     | xargs open -a (echo $argv[2])
 end
-alias cb chromium_bookmarks
+alias cb="chromium_bookmarks"
 
 function chrome_default_bookmarks
     chromium_bookmarks $HOME/Library/Application\ Support/Google/Chrome/Default/Bookmarks "/Applications/Google Chrome.app"
 end
-alias cdb chrome_default_bookmarks
+alias cdb="chrome_default_bookmarks"
 
 function chrome_profile1_bookmarks
     chromium_bookmarks $HOME/Library/Application\ Support/Google/Chrome/Profile\ 1/Bookmarks "/Applications/Google Chrome.app"
 end
-alias cpb chrome_profile1_bookmarks
+alias cpb="chrome_profile1_bookmarks"
 
 function brave_default_bookmarks
     chromium_bookmarks $HOME/Library/Application\ Support/BraveSoftware/Brave-Browser/Default/Bookmarks "/Applications/Brave Browser.app"
 end
-alias bdb brave_default_bookmarks
+alias bdb="brave_default_bookmarks"
 
 function fzf_mark_by_buku
     set website (buku --suggest -p -f 5 | column -ts '  ' | fzf $FZF_CUSTOM_PARAMS \
@@ -239,7 +239,7 @@ function fzf_mark_by_buku
         buku -o $index
     end
 end
-alias fmb fzf_mark_by_buku
+alias fmb="fzf_mark_by_buku"
 
 function goodfon
     set -l DEFAULTBROWSER "/Applications/Firefox.app"      # default browser for open goodfon
@@ -258,7 +258,7 @@ function goodfon
         end
     end
 end
-alias gfon goodfon
+alias gfon="goodfon"
 
 function _checkDirFull
     if test -n $argv[1]

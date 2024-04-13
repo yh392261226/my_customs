@@ -12,7 +12,7 @@ function gifify_from_video
         echo "proper usage: gifify <input_movie.mov>. You Do need to include extension."
     end
 end
-alias giffv gifify_from_video
+alias giffv="gifify_from_video"
 
 function image_url_cat
     # Desc: function: image_url_cat:Cat img from url in iterm2
@@ -37,7 +37,7 @@ function image_url_cat
         rm -f /tmp/(basename $imgurl)
     end
 end
-alias iuc image_url_cat
+alias iuc="image_url_cat"
 
 function images_rename_from_download
     # Desc: function: images_rename_from_download:重命名下载的图片
@@ -54,7 +54,7 @@ function images_rename_from_download
         echo $m
     end
 end
-alias irfd images_rename_from_download
+alias irfd="images_rename_from_download"
 
 function image_resizes
     # Desc: function: image_resizes:图片压缩
@@ -66,7 +66,7 @@ function image_resizes
         end
     end
 end
-alias ir image_resizes
+alias ir="image_resizes"
 
 function fzf_iterm2_background_image_selector
     # Desc: function: fzf_iterm2_background_image_selector: 利用fzf选择iterm2的背景图片
@@ -81,4 +81,4 @@ function fzf_iterm2_background_image_selector
     #echo "bg_change {$IMGPATH}/$selected" | pbcopy
     #echo "Ctrl - V to paste the command, then press enter to execute."
 end
-alias fbg fzf_iterm2_background_image_selector
+alias fbg="fzf_iterm2_background_image_selector"

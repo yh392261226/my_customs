@@ -7,7 +7,7 @@ function fzf_linux_command_searcher
 
     ls $MDDIR/command | fzf $FZF_CUSTOM_PARAMS +m --height=90% --bind="enter:become(glow --style=dark $MDDIR/command/{})" --bind="ctrl-y:execute-silent(echo {} | awk -F'.' '{print \$1}' | pbcopy)+abort" --header=(_buildFzfHeader '' 'fzf_linux_command_searcher') --preview="glow --style=dark -p $MDDIR/command/{}"
 end
-alias flc fzf_linux_command_searcher
+alias flc="fzf_linux_command_searcher"
 
 function fzf_how_to_cook_searcher
     set MDDIR $MYRUNTIME/customs/others/HowToCook
@@ -25,7 +25,7 @@ function fzf_how_to_cook_searcher
 
     cat $TMPCOOKBOOK | awk -F'/' '{print $NF}' | awk -F'.' '{print $1}' | fzf $FZF_CUSTOM_PARAMS +m --height=90% --bind="enter:become($MYRUNTIME/customs/bin/_markdown_previewer {} $TMPCOOKBOOK)" --bind="ctrl-y:execute-silent(echo {} | pbcopy)+abort" --header=(_buildFzfHeader '' 'fzf_how_to_cook_searcher') --preview=" $MYRUNTIME/customs/bin/_markdown_previewer {} $TMPCOOKBOOK "
 end
-alias fh2c fzf_how_to_cook_searcher
+alias fh2c="fzf_how_to_cook_searcher"
 
 function fzf_develop_references_searcher
     set MDDIR $MYRUNTIME/customs/others/reference
@@ -36,4 +36,4 @@ function fzf_develop_references_searcher
 
     ls $MDDIR/docs | fzf $FZF_CUSTOM_PARAMS +m --height=90% --bind="enter:become(glow --style=dark $MDDIR/docs/{})" --bind="ctrl-y:execute-silent(echo $MDDIR/docs/{} | pbcopy)+abort" --header=(_buildFzfHeader '' 'fzf_develop_references_searcher') --preview="glow --style=dark -p $MDDIR/docs/{}"
 end
-alias fdrs fzf_develop_references_searcher
+alias fdrs="fzf_develop_references_searcher"

@@ -14,7 +14,7 @@ function find_files_by_ext
         find ./ -type f -iname "*.$text" -exec ls -l {} \;
     end
 end
-alias fext find_files_by_ext
+alias fext="find_files_by_ext"
 
 function find_file_by_end
     # Desc: function: find_file_by_end:Find file whose name ends with a given string
@@ -30,7 +30,7 @@ function find_file_by_end
         /usr/bin/find . -name "*$text"
     end
 end
-alias fend find_file_by_end
+alias fend="find_file_by_end"
 
 function find_files_by_start
     # Desc: function: find_fs:Find file whose name starts with a given string
@@ -46,7 +46,7 @@ function find_files_by_start
         find . -name "$text"*
     end
 end
-alias fstart find_files_by_start
+alias fstart="find_files_by_start"
 
 function find_files_by_contain
     # Desc: function: find_files_by_contain:查找当前目录中包含某个字符串的
@@ -63,7 +63,7 @@ function find_files_by_contain
     end
     return 0
 end
-alias fcontain find_files_by_contain
+alias fcontain="find_files_by_contain"
 
 function find_file_by_params
     # Desc: function: find_file_by_params:Find file under the current directory
@@ -79,7 +79,7 @@ function find_file_by_params
         find ./ -name "$text"
     end
 end
-alias fparams find_file_by_params
+alias fparams="find_file_by_params"
 
 function find_same_file_by_md5
     # Desc: function: find_same_file_by_md5:Find files which has the same md5 value
@@ -121,4 +121,4 @@ function find_same_file_by_md5
         exit 0
     end
 end
-alias fmd5 find_same_file_by_md5
+alias fmd5="find_same_file_by_md5"

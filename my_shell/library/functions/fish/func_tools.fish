@@ -16,4 +16,4 @@ function create_tmp_aliases
         return
     end
 end
-alias cta create_tmp_aliases
+alias cta="create_tmp_aliases"

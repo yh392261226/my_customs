@@ -5,13 +5,55 @@ set -gx USERNAME json
 set my_custom_sh $MYRUNTIME/customs/my_shell
 
 function go2
-	[ -d "$1" ]; and cd "$1" or cd "$(dirname "$1")"
+	if test -d $argv[1]
+		cd $argv[1]
+	else
+		cd (dirname $argv[1])
+	end
 end
+
+function curshell
+    if test -n $ZSH_VERSION
+        echo "zsh"
+    else if test -n $BASH_VERSION
+        echo "bash"
+    else
+        echo "Unknow"
+    end
+end
+
+function curterm
+    set -l TMPCURTERM (env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')
+    if test "$TMPCURTERM" = "iTerm.app"
+		set -l CURTERM 'iTerm'
+    else if test "$TMPCURTERM" = "Apple_Terminal"
+        set -l CURTERM='Terminal'
+    else if test "$TMPCURTERM" = "WarpTerminal"
+        set -l CURTERM 'Warp'
+    else
+        set -l CURTERM 'Unknow'
+    end
+    echo $CURTERM
+end
+
+function curPanel
+	set -l panel "shell"
+	if not test -z $STY
+		set -l panel 'screen'
+	else if not test -z $TMUX
+		set -l panel 'tmux'
+	else if not test -z (env | grep 'ZELLIJ')
+		set -l panel 'zellij'
+	end
+	echo $panel
+end
+
+set -gx nowshell (curshell)
+set -gx nowterm (curterm)
+set -gx nowpanel (curPanel)
+
 source $my_custom_sh/library/core/fish/core_library.fish
 
-if test -f $HOME/.config/fish/customs.fish
-	source $HOME/.config/fish/customs.fish
+if test -f $HOME/.config/fish/custom.fish
+	source $HOME/.config/fish/custom.fish
 end
-
-
-$MYRUNTIME/customs/bin/theme ($MYRUNTIME/customs/bin/theme -l|tail -n1)

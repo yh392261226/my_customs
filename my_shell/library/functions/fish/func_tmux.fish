@@ -28,7 +28,7 @@ function tmux_configs_select
         return 1
     end
 end
-alias tcs tmux_configs_select
+alias tcs="tmux_configs_select"
 
 function fzf_tmux_pane
     set panes (tmux list-panes -s -F '#I:#P - #{pane_current_path} #{pane_current_command}')
@@ -47,12 +47,11 @@ function fzf_tmux_pane
         tmux select-window -t $target_window
     end
 end
-alias ftpane fzf_tmux_pane
+alias ftpane="fzf_tmux_pane"
 
 function fzf_tmux_words
     fzf_tmux_helper '-p 40' 'tmuxwords --all --scroll 500 --min 5 | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_tmux_words') | paste -sd" " -'
 end
-
 alias ftw="fzf_tmux_words"
 
 function fzf_tmux_helper
@@ -60,7 +59,6 @@ function fzf_tmux_helper
     set cmd $argv[2]
     tmux split-window $sz "bash -c \"(tmux send-keys -t $TMUX_PANE (source $HOME/.fzf.(nowshell); $cmd) $argv)\""
 end
-
 alias fth="fzf_tmux_helper"
 
 function fzf_tmux_switch_session
@@ -69,7 +67,6 @@ function fzf_tmux_switch_session
         tmux switch-client -t $session
     end
 end
-
 alias ftss="fzf_tmux_switch_session"
 
 function tmux_tmp_window
@@ -77,7 +74,6 @@ function tmux_tmp_window
     tmux select-layout tiled
     tmux last-pane
 end
-
 alias ttw="tmux_tmp_window"
 
 function tmux_list_panes
@@ -85,7 +81,6 @@ function tmux_list_panes
         tmux send-keys -t $p Enter
     end
 end
-
 alias tlp="tmux_list_panes"
 
 function tmux_new_window
@@ -106,7 +101,6 @@ function tmux_new_window
     tmux set-window-option synchronize-panes on > /dev/null
     $SHELL -ci "$head; $tail"
 end
-
 alias tnw="tmux_new_window"
 
 function tmux_iris_window
@@ -130,49 +124,41 @@ function tmux_iris_window
 
     return 0
 end
-
 alias tiw="tmux_iris_window"
 
 function tmux_list
     tmux ls
 end
-
 alias tl="tmux_list"
 
 function tmux_new
     tmux new -s $argv[1]
 end
-
 alias tn="tmux_new"
 
 function tmux_restore_last_session
     tmux a
 end
-
 alias tlasts="tmux_restore_last_session"
 
 function tmux_recover
     tmux a -t $argv[1]
 end
-
 alias trecover="tmux_recover"
 
 function tmux_kill
     tmux kill-session -t $argv[1]
 end
-
 alias tkill="tmux_kill"
 
 function tmux_killall
     tmux kill-server
 end
-
 alias tkall="tmux_killall"
 
 function tmux_windows
     tmux list-panes -a
 end
-
 alias twindows="tmux_windows"
 
 function fzf_tm
@@ -192,5 +178,4 @@ function fzf_tm
     and tmux $change -t "$session"
     or echo "No sessions found."
 end
-
 alias ftm="fzf_tm"

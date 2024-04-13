@@ -75,16 +75,16 @@ function fzf_all_custom_functions
     if test -f $TMP_ALL_FUNCTIONS_FILE
         set selected (cat $TMP_ALL_FUNCTIONS_FILE | fzf $FZF_CUSTOM_PARAMS +m \
         --preview-window right:70%:rounded:hidden:wrap \
-        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'" \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' 'fish'" \
         --header=(_buildFzfHeader '' 'fzf_all_custom_functions') \
-        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'| pbcopy)+abort")
+        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' 'fish'| pbcopy)+abort")
         if test -n "$selected"
             eval "$selected"
         end
         rm -f $TMP_ALL_FUNCTIONS_FILE
     end
 end
-alias faf 'fzf_all_custom_functions'
+alias faf="fzf_all_custom_functions"
 
 function fzf_customs_functions
     set -l TMP_FUNCTIONS_FILE (mktemp)
@@ -97,13 +97,13 @@ function fzf_customs_functions
         sed -e 's/ $//g' | \
         fzf $FZF_CUSTOM_PARAMS \
         --preview-window right:70%:rounded:hidden:wrap \
-        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE 'fish'" \
         --header=(_buildFzfHeader '' 'fzf_customs_functions') \
         --bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
         rm -f $TMP_FUNCTIONS_FILE
     end
 end
-alias fcf 'fzf_customs_functions'
+alias fcf="fzf_customs_functions"
 
 function fzf_customs_fzf_awesome_functions_list
     if not test -f $HOME/.myruntime
@@ -122,7 +122,7 @@ function fzf_customs_fzf_awesome_functions_list
             grep -E "(^fzf_)(.*?)[^(]*" | \
             sed -e 's/ $//g' | \
             fzf $FZF_CUSTOM_PARAMS \
-            --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
+            --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE 'fish'" \
             --preview-window right:70%:rounded:hidden:wrap \
             --bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
             --header=(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list'))
@@ -130,12 +130,12 @@ function fzf_customs_fzf_awesome_functions_list
         end
     end
 end
-alias fff 'fzf_customs_fzf_awesome_functions_list'
+alias fff="fzf_customs_fzf_awesome_functions_list"
 
 function update_iterm2_shell_integration
     curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
 end
-alias upisi 'update_iterm2_shell_integration'
+alias upisi="update_iterm2_shell_integration"
 
 function show_bad_links
     set -l readpath $HOME
@@ -283,7 +283,7 @@ function fzf_history_print
         | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
     print -z $cmd
 end
-alias fhp='fzf_history_print'
+alias fhp="fzf_history_print"
 
 function command_sl_selector
     echo "执行命令行小火车：1, ls命令：2"
@@ -314,7 +314,7 @@ echo $choose
             echo "无效选择，自动退出..."
     end
 end
-alias sl='command_sl_selector'
+alias sl="command_sl_selector"
 
 function fzf_man
     set batman "man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
@@ -366,12 +366,12 @@ function fzf_env_vars
         --preview='echo {2}' \
         --header=(_buildFzfHeader '' 'fzf_env_vars')
 end
-alias fev fzf_env_vars
+alias fev="fzf_env_vars"
 
 function fzf_eval_preview
     echo | fzf $FZF_CUSTOM_PARAMS --preview-window='up:90%:rounded:hidden:wrap' --preview='eval {q}' --header=(_buildFzfHeader '' 'fzf_eval_preview') --query=$argv
 end
-alias fep fzf_eval_preview
+alias fep="fzf_eval_preview"
 
 function fold
     if test (count $argv) -eq 0
@@ -387,7 +387,7 @@ function fzf_spell
         --preview 'wn {} -over | fold' \
         --header=(_buildFzfHeader '' 'fzf_spell')
 end
-alias fspell fzf_spell
+alias fspell="fzf_spell"
 
 function dic
     if test (count $argv) -eq 0
@@ -401,7 +401,7 @@ function last_theme
     # Desc: function: last_theme: 获取theme命令最后一次的设置
     echo ($MYRUNTIME/customs/bin/theme -l|tail -n2|head -n1)
 end
-alias ltheme last_theme
+alias ltheme="last_theme"
 
 function fzf_open_app
     # Desc: function: fzf_open_app: 利用fzf通过终端打开App
@@ -412,22 +412,22 @@ function fzf_open_app
         --header=(_buildFzfHeader '' 'fzf_open_app') \
         --bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort'
 end
-alias foa fzf_open_app
+alias foa="fzf_open_app"
 
 function cp_forward
     cp $argv; and go2 $_
 end
-alias cpf cp_forward
+alias cpf="cp_forward"
 
 function mv_forward
     mv $argv; and go2 $_
 end
-alias mvf mv_forward
+alias mvf="mv_forward"
 
 function mkdir_forward
     mkdir -p $argv; cd $argv
 end
-alias mkf mkdir_forward
+alias mkf="mkdir_forward"
 
 function fzf_most_used_command
     history | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -50 | tac | fzf $FZF_CUSTOM_PARAMS --no-sort \
@@ -438,14 +438,11 @@ function fzf_most_used_command
         --header=(_buildFzfHeader '' 'fzf_most_used_command') \
         --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 end
-alias fmu fzf_most_used_command
+alias fmu="fzf_most_used_command"
 
 function fzf_manage
-    # Desc: function: fzf_manage: 利用fzf管理目录下的子文件夹、文件、图片等
-    set -l DIRPATH $HOME/Pictures
-    if test "" != $argv
-        set -l DIRPATH $argv
-    end
+    set -l DIRPATH .
+    if test -n "$argv[1]"; set DIRPATH $argv[1]; end
 
     set ACTIONCOMMAND
     if test (ifHasCommand gum) = 1
@@ -459,6 +456,6 @@ function fzf_manage
         --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
         --bind "ctrl-o:execute-silent(open -R $DIRPATH/{})" \
         --header=(_buildFzfHeader '' 'fzf_manage') \
-        --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
+        --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish $DIRPATH/{} "
 end
-alias fm2 fzf_manage
+alias fm2="fzf_manage"

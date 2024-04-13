@@ -81,7 +81,7 @@ end
 alias ftags="fzf_tags"
 
 function fzf_open_viminfo
-    set files (grep '^>' $HOME/.viminfo | cut -c3- | while read line; if test -f (string replace -r \~ $HOME $line); echo $line; end; end | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_open_viminfo') -d -m -q $argv -1)
+    set files (grep '^>' $HOME/.viminfo | cut -c3- | while read line; if test -f (string replace -r \~ $HOME $line); echo $line; end; end | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_open_viminfo') -d -m -q $argv -1)
     if test -n "$files"
         vim (string replace -r \~ $HOME $files)
     end
@@ -193,4 +193,4 @@ function fzf_rg_search_vscode_to_line
     --preview-window='right,60%,rounded,+{2}+3/3,~3' \
     --header=(_buildFzfHeader '' 'fzf_rg_search_vscode_to_line')
 end
-alias frc2l='fzf_rg_search_vscode_to_line'
+alias frc2l="fzf_rg_search_vscode_to_line"

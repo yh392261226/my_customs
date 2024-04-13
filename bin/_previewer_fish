@@ -1,0 +1,102 @@
+#!/usr/bin/env fish
+set -gx MYRUNTIME (cat $HOME/.myruntime)
+if test (count $argv) -ne 1
+    echo "usage: $argv[0] FILENAME/FILEPATH"
+    exit 1
+end
+
+set file (string replace -r '\~\/' $HOME $argv[1])
+
+if test "$file" = "help"
+    echo ""
+    if test -f $TMP_FZF_HEADER_SWAP_FILE
+        set helpfile (cat $TMP_FZF_HEADER_SWAP_FILE)_help
+        if test -f $MYRUNTIME/customs/tools/functions_help/$helpfile
+            bash $MYRUNTIME/customs/tools/functions_help/$helpfile
+        else
+            bash $MYRUNTIME/customs/tools/functions_help/default_help
+        end
+    end
+    echo ""
+else
+    set type (file --dereference --mime -- $file)
+    if not string match -q '*image/*' $type
+        if string match -q '*/directory*' $type
+            if command -sq tree > /dev/null
+                set treename "tree -C "
+            else
+                set treename "ls -R | grep : | sed -e 's/://' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+            end
+            eval $treename $file
+            exit
+        end
+
+        switch $file
+            case '*.pdf'
+                pdftotext $file | less
+                exit
+            case '*.md' '*.MD' '*.markdown' '*.MARKDOWN'
+                glow $file | less
+                exit
+            case '*.mp4' '*.webm' '*.avi' '*.wmv' '*.dat' '*.3gp' '*.ogv' '*.mkv' '*.mpg' '*.mpeg' '*.vob' '*.fl[icv]' '*.m2v' '*.mov' '*.ts' '*.mts' '*.m4v' '*.r[am]' '*.qt' '*.divx' '*.as[fx]'
+                timg -E --frames=1 --loops=1 -g (math "$COLUMNS / 2 - 4")x(math "$FZF_PREVIEW_LINES * 2") $file
+                exit
+            case '*.zip'
+                unzip -l $file
+                exit
+            case '*.tar.gz'
+                tar -ztvf $file
+                exit
+            case '*.tar.bz2'
+                tar -jtvf $file
+                exit
+            case '*.tar.xz'
+                tar -Jtvf $file
+                exit
+            case '*.tar'
+                tar -tvf $file
+                exit
+            case '*'
+                bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $file; or exa $file
+                exit
+        end
+
+        if string match -q '=binary' $type
+            file $file
+            exit
+        end
+
+        if command -sq batcat > /dev/null
+            set batname "batcat"
+        else if command -sq bat > /dev/null
+            set batname "bat"
+        else
+            cat $argv[1]
+            exit
+        end
+
+        if test -q $BAT_STYLE
+            set -l BAT_STYLE 'numbers'
+        end
+        $batname --style="$BAT_STYLE" --color=always --pager=never -- $file
+        exit
+    end
+
+    set dim "$FZF_PREVIEW_COLUMNS"x"$FZF_PREVIEW_LINES"
+    if test $dim = x
+        set dim (stty size < /dev/tty | awk '{print $2 "x" $1}')
+    else if test -z $KITTY_WINDOW_ID; and test (math $FZF_PREVIEW_TOP + $FZF_PREVIEW_LINES) -eq (stty size < /dev/tty | awk '{print $1}')
+        set dim "$FZF_PREVIEW_COLUMNS"x(math "$FZF_PREVIEW_LINES - 1")
+    end
+
+    if test $KITTY_WINDOW_ID
+        kitty icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" $file | sed '$d' | sed '$s/$/\e[m/'
+    else if command -v chafa > /dev/null
+        chafa -f sixel -s $dim $file
+        echo
+    else if command -v imgcat > /dev/null
+        imgcat -W (string split 'x' $dim)[1] -H (string split 'x' $dim)[2] $file
+    else
+        file $file
+    end
+end

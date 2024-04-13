@@ -31,7 +31,7 @@ function fzf_npm_run
         eval "$pkgcmd run $argv"
     end
 end
-alias fnr fzf_npm_run
+alias fnr="fzf_npm_run"
 
 function npm_install
     set pkgcmd (__getnpmpkg)
@@ -49,7 +49,7 @@ function npm_install
         end
     end
 end
-alias ni npm_install
+alias ni="npm_install"
 
 function fzf_npm_update
     set pkgcmd (__getnpmpkg)
@@ -67,4 +67,4 @@ function fzf_npm_update
         eval "$pkgcmd remove $argv"
     end
 end
-alias fnu fzf_npm_update
+alias fnu="fzf_npm_update"

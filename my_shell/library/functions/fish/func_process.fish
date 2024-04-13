@@ -12,12 +12,12 @@ function fzf_process_kill
         echo $pid | xargs kill -{$argv[1]:-9}
     end
 end
-alias fpk fzf_process_kill
+alias fpk="fzf_process_kill"
 
 function find_process_id
     lsof -t -c $argv
 end
-alias fpid find_process_id
+alias fpid="find_process_id"
 
 function fzf_process_kill2
     date
@@ -28,7 +28,7 @@ function fzf_process_kill2
       --header=(_buildFzfHeader '' 'fzf_process_kill2') \
       | awk '{print $2}' | xargs kill -9
 end
-alias fpk2 fzf_process_kill2
+alias fpk2="fzf_process_kill2"
 
 function fzf_process_magnifier
     date
@@ -39,4 +39,4 @@ function fzf_process_magnifier
       --header=(_buildFzfHeader '' 'fzf_process_magnifier') \
       | awk '{print $2}' | xargs kill -9
 end
-alias fpm fzf_process_magnifier
+alias fpm="fzf_process_magnifier"

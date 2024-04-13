@@ -2,10 +2,10 @@
 
 function fzf_rvm_select
     # Desc: function: fzf_rvm_select:RVM integration
-    set rb (echo system; rvm list | grep ruby | cut -c 4- | awk '{print $1}' | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse)
+    set rb (echo system; rvm list | grep ruby | cut -c 4- | awk '{print $1}' | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse)
     and rvm use $rb
 end
-alias frs fzf_rvm_select
+alias frs="fzf_rvm_select"
 
 function gems
     # Desc: function: gems:Rvm多个版本的gem操作同一个包
@@ -50,7 +50,7 @@ function php_change_version
     trap 'rm -f "$tmpfile"'
     echo "Now, it's done ..."
 end
-alias pcv php_change_version
+alias pcv="php_change_version"
 
 function shell_debug
     # Desc: function: shell_debug:依赖shellcheck对shell脚本debug
@@ -60,4 +60,4 @@ function shell_debug
         echo "shellcheck does not exsits !"
     end
 end
-alias sdebug shell_debug
+alias sdebug="shell_debug"

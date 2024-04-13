@@ -7,8 +7,7 @@ function brew_clean_caches
     rm -f ./*phar ./*patch ./*diff ./*xz ./*gz ./*bz2 ./*zip ./*rock
     echo "Common files already deleted, You have to clean other files manually!!!"
 end
-
-alias bcc brew_clean_caches # Desc: alias: bcc: brew_clean_caches命令的别名
+alias bcc="brew_clean_caches"
 
 function fzf_brew_delete_by_select
     # Desc: function: fzf_brew_delete_by_select:Brew Delete (one or multiple) selected application(s) mnemonic (e.g. uninstall)
@@ -20,8 +19,7 @@ function fzf_brew_delete_by_select
         end
     end
 end
-
-alias fbd fzf_brew_delete_by_select # Desc: alias: fbd:fzf_brew_delete_by_select命令的别名
+alias fbd="fzf_brew_delete_by_select"
 
 function fzf_brew_update_by_select
     # Desc: function: fzf_brew_update_by_select:Brew Update (one or multiple) selected application(s) mnemonic [B]rew [U]pdate [P]lugin
@@ -32,8 +30,7 @@ function fzf_brew_update_by_select
         brew upgrade $upd
     end
 end
-
-alias fbup fzf_brew_update_by_select # Desc: alias: fbup:fzf_brew_update_by_select命令的别名
+alias fbup="fzf_brew_update_by_select"
 
 function fzf_brew_upgrade_by_select
     # Desc: function: fzf_brew_upgrade_by_select:Brew upgrade (one or multiple)
@@ -43,15 +40,13 @@ function fzf_brew_upgrade_by_select
         brew upgrade $upgrades
     end
 end
-
-alias fbug fzf_brew_upgrade_by_select # Desc: alias: fbug: fzf_brew_upgrade_by_select命令的别名,Brew upgrade (one or multiple)
+alias fbug="fzf_brew_upgrade_by_select"
 
 function reinstall_neovim
     # Desc: function: reinstall_neovim:重新安装neovim
     brew reinstall neovim --HEAD
 end
-
-alias renvim reinstall_neovim # Desc: alias: renvim: reinstall_neovim命令的别名,重新安装neovim
+alias renvim="reinstall_neovim"
 
 function fzf_brew_install_by_select
     # Desc: function: fzf_brew_install_by_select:Brew Install (one or multiple) selected application(s) using "brew search" as source input mnemonic [B]rew [I]nstall [P]lugin
@@ -65,7 +60,7 @@ function fzf_brew_install_by_select
         end
     end
 end
-alias fbis fzf_brew_install_by_select  # Desc: alias: fbis: fzf_brew_install_by_select命令的别名
+alias fbis="fzf_brew_install_by_select"
 
 function fzf_brew_install_or_remove
     # Desc: function: fzf_brew_install_or_remove: Fully manage brew installation and suppression, and then some.
@@ -140,4 +135,4 @@ function fzf_brew_install_or_remove
         --preview='brew info {1} | bat --color=always --language=Markdown --style=plain' \
         --header="$(_buildFzfHeader '' 'fzf_brew_install_or_remove')"
 end
-alias fbm fzf_brew_install_or_remove  # Desc: alias: fbm: fzf_brew_install_or_remove命令的别名,Fully manage brew installation and suppression, and then some.
+alias fbm="fzf_brew_install_or_remove"

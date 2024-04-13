@@ -5,7 +5,7 @@ function remove_DS_files
         find $argv -type f -name '*.DS_Store' -ls -delete
     end
 end
-alias rDS remove_DS_files
+alias rDS="remove_DS_files"
 
 function remove_files_by_ext
     if test -z $argv
@@ -14,12 +14,12 @@ function remove_files_by_ext
         trash ./*$argv
     end
 end
-alias rfe remove_files_by_ext
+alias rfe="remove_files_by_ext"
 
 function remove_ssh_tmp_file
     /bin/rm -f $HOME/.ssh/tmp/*
 end
-alias rst remove_ssh_tmp_file
+alias rst="remove_ssh_tmp_file"
 
 function remove_to_trash
     for mpath in $argv
@@ -35,12 +35,12 @@ function remove_to_trash
         /bin/mv $mpath $HOME/.Trash/$dst
     end
 end
-alias r2t remove_to_trash
+alias r2t="remove_to_trash"
 
 function trash
     command /bin/mv $argv $HOME/.Trash
 end
-alias t trash
+alias t="trash"
 
 function remove_whereis_file
     command -v $argv > /dev/null 2>&1
@@ -62,13 +62,13 @@ function remove_whereis_file
         end
     end
 end
-alias rmw remove_whereis_file
+alias rmw="remove_whereis_file"
 
 function fzf_remove_file
     set hasgum (ifHasCommand gum)
 
     if test (count $argv) -eq 0
-        set files (find . -maxdepth 1 -type f | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_remove_file') --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer {} ")
+        set files (find . -maxdepth 1 -type f | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_remove_file') --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish {} ")
         if test -z $files
             return 1
         end
@@ -85,13 +85,13 @@ function fzf_remove_file
         end
     end
 end
-alias frf fzf_remove_file
+alias frf="fzf_remove_file"
 
 function fzf_remove_directory
     set hasgum (ifHasCommand gum)
 
     if test (count $argv) -eq 0
-        set directories (find . -maxdepth 1 -type d | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_remove_directory') --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer {} ")
+        set directories (find . -maxdepth 1 -type d | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_remove_directory') --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish {} ")
         if test -z $directories
             return 1
         end
@@ -108,4 +108,4 @@ function fzf_remove_directory
         end
     end
 end
-alias frd fzf_remove_directory
+alias frd="fzf_remove_directory"

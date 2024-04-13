@@ -18,7 +18,7 @@ function fzf_cd_to
         exit 1
     end
 
-    set file (glocate -Ai -0 $argv | grep -z -vE '~$' | fzf $FZF_CUSTOM_PARAMS --read0 -0 -1 --header=(_buildFzfHeader '' 'fzf_cd_to') --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap)
+    set file (glocate -Ai -0 $argv | grep -z -vE '~$' | fzf $FZF_CUSTOM_PARAMS --read0 -0 -1 --header=(_buildFzfHeader '' 'fzf_cd_to') --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap)
     if test -n $file
         if test -d $file
             cd -- $file
@@ -34,7 +34,7 @@ function fzf_hidden_directories
     if test -z $1
         set findpath $1
     end
-    set DIR (find $findpath -type d 2> /dev/null | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header=(_buildFzfHeader '' 'fzf_hidden_directories') --preview="$MYRUNTIME/customs/bin/_previewer {}" --preview-window='right:70%:rounded:hidden:wrap')
+    set DIR (find $findpath -type d 2> /dev/null | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header=(_buildFzfHeader '' 'fzf_hidden_directories') --preview="$MYRUNTIME/customs/bin/_previewer_fish {}" --preview-window='right:70%:rounded:hidden:wrap')
     test -n $DIR; cd $DIR
 end
 alias fhd="fzf_hidden_directories"
@@ -107,7 +107,7 @@ end
 alias fcd2="fzf_cd_to_select2"
 
 function fzf_cd_to_file
-    set file (fzf +m $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_cd_to_file') -q $argv) 
+    set file (fzf +m $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_cd_to_file') -q $argv) 
     if test -n $file
         set dir (dirname $file)
         cd $dir
@@ -204,7 +204,7 @@ function fzf_jump_between_directory
         fasd_cd -d $argv; return
     end
 
-    set dir (fasd -Rdl $argv | fzf -1 -0 --no-sort +m $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_jump_between_directory'))
+    set dir (fasd -Rdl $argv | fzf -1 -0 --no-sort +m $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_jump_between_directory'))
     if test -n $dir
         cd $dir
     else
@@ -274,7 +274,7 @@ end
 alias pwdw="pwd_command_directory"
 
 function fzf_directory_history
-    set dir (python3 -m fzfdirhist show | fzf $FZF_CUSTOM_PARAMS +m --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_directory_history'))
+    set dir (python3 -m fzfdirhist show | fzf $FZF_CUSTOM_PARAMS +m --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_directory_history'))
     cd $dir
 end
-alias fdh='fzf_directory_history'
+alias fdh="fzf_directory_history"

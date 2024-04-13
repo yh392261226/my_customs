@@ -16,7 +16,7 @@ function cat_whereis_file
         end
     end
 end
-alias catw cat_whereis_file
+alias catw="cat_whereis_file"
 
 function bat_whereis_file
     set hascommand (ifHasCommand $argv)
@@ -36,12 +36,12 @@ function bat_whereis_file
         end
     end
 end
-alias batw bat_whereis_file
+alias batw="bat_whereis_file"
 
 function quick_preview
     qlmanage -p $argv >& /dev/null
 end
-alias ql quick_preview
+alias ql="quick_preview"
 
 function get_hash_file
     set MD5COMMAND /sbin/md5
@@ -63,7 +63,7 @@ function get_hash_file
         $MD5COMMAND $filename | awk -F'=' '{print $2}' #default
     end
 end
-alias hashf get_hash_file
+alias hashf="get_hash_file"
 
 function fzf_file_to_preview
     set nums (count $argv)
@@ -75,7 +75,7 @@ function fzf_file_to_preview
         --header="$(_buildFzfHeader '' 'fzf_file_to_preview')" \
         --preview '[[ (file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always {} || rougify {} || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -n 500'
 end
-alias fttp fzf_file_to_preview
+alias fttp="fzf_file_to_preview"
 
 function fzf_open_or_edit
     set -l IFS \n
@@ -101,7 +101,7 @@ function fzf_open_or_edit
     end
 
 end
-alias foe fzf_open_or_edit
+alias foe="fzf_open_or_edit"
 
 function fzf_search_term
     if not test (count $argv) -gt 0
@@ -114,7 +114,7 @@ function fzf_search_term
             --header="$(_buildFzfHeader '' 'fzf_search_term')" \
             --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$argv[1]' || rg --ignore-case --pretty --context 10 '$argv[1]' {}"
 end
-alias fst fzf_search_term
+alias fst="fzf_search_term"
 
 function list_link_files
     set mpath './'
@@ -123,7 +123,7 @@ function list_link_files
     end
     /bin/ls -al $mpath | grep ^l
 end
-alias llf list_link_files
+alias llf="list_link_files"
 
 function fzf_find_link_files
     set mpath './'
@@ -132,7 +132,7 @@ function fzf_find_link_files
     end
     /usr/bin/find $mpath -type l -ls | fzf $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_aliases')"
 end
-alias fflf fzf_find_link_files
+alias fflf="fzf_find_link_files"
 
 function file_category
     if test -z $argv[1]
@@ -142,7 +142,7 @@ function file_category
     echo $mime[1..(string match -r '/' $mime) - 1]
     return 0
 end
-alias fcate file_category
+alias fcate="file_category"
 
 function file_kind
     if test -z $argv[1]
@@ -152,4 +152,4 @@ function file_kind
     echo $mime[(string match -r '/' $mime) + 1..-1]
     return 0
 end
-alias fkind file_kind
+alias fkind="file_kind"

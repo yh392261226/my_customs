@@ -16,9 +16,9 @@ end
 alias onproxy "setproxy"
 
 function unsetproxy
-    set -gx HTTP_PROXY ''
-    set -gx HTTPS_PROXY ''
-    set -gx ALL_PROXY ''
+    set -e HTTP_PROXY
+    set -e HTTPS_PROXY
+    set -e ALL_PROXY
 
 end
 alias offproxy "unsetproxy"

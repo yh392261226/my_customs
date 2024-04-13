@@ -76,20 +76,20 @@ function fzf_all_custom_functions() {                                           
         functions > $TMP_ALL_FUNCTIONS_FILE 
         selected=$(cat $TMP_ALL_FUNCTIONS_FILE | grep -E '(.*?)[^(]*.*{' | grep -v '$MYRUNTIME' | grep '() {' | grep -v '$MYRUNTIME'  | grep -E '^[+_@.-:]+[a-zA-Z0-9_]*|[a-zA-Z0-9_]*'| sed 's/^[[:blank:]]\{1,\}//' | grep -v '^() {' |sed 's/ () {//' | grep -v ' ' | fzf $FZF_CUSTOM_PARAMS +m \
         --preview-window right:70%:rounded:hidden:wrap \
-        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'" \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' $nowshell" \
         --header="$(_buildFzfHeader '' 'fzf_all_custom_functions')" \
-        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'| pbcopy)+abort")
+        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' $nowshell| pbcopy)+abort")
     fi
     if [[ "bash" = "$nowshell" ]]; then
         declare -f > $TMP_ALL_FUNCTIONS_FILE
         selected=$(cat $TMP_ALL_FUNCTIONS_FILE | grep -E '(.*?)[^ (]*.*' |grep -v '$MYRUNTIME' |grep ' ()' |grep -v '$MYRUNTIME'  | grep -E '^[+_@.-:]+[a-zA-Z0-9_]*|[a-zA-Z0-9_]* ()'|grep -v '"' | grep -v "'" | grep -v ' function ' | sed 's/^[[:blank:]]\{1,\}//' | grep -v '^()$' |sed 's/ ()//' | fzf $FZF_CUSTOM_PARAMS +m \
         --preview-window right:70%:rounded:hidden:wrap \
-        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'" \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' $nowshell" \
         --header="$(_buildFzfHeader '' 'fzf_all_custom_functions')" \
-        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'| pbcopy)+abort")
+        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' $nowshell| pbcopy)+abort")
     fi
     if [ -n "$selected" ]; then
-        $MYRUNTIME/customs/bin/_show_awesome_function $selected $TMP_ALL_FUNCTIONS_FILE 'functions'
+        $MYRUNTIME/customs/bin/_show_awesome_function $selected $TMP_ALL_FUNCTIONS_FILE 'functions' $nowshell
     fi
     rm -f $TMP_ALL_FUNCTIONS_FILE
 }

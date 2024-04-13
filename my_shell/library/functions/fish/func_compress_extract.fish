@@ -43,8 +43,7 @@ function customExtract
         end
     end
 end
-
-alias extra customExtract # Desc: alias: extra: customExtract命令的别名,自动检测文件后缀并自动解压
+alias extra="customExtract"
 
 function archiving_file
     # Desc: function: archiving_file: 压缩解压文件
@@ -105,8 +104,7 @@ function archiving_file
             echo "Usage: ark <e(解压)|c(压缩)> <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
     end
 end
-
-alias af archiving_file # Desc: alias: af: archiving_file命令的别名,压缩解压文件
+alias af="archiving_file"
 
 function abs_path
     # Desc: function: abs_path:忘记具体干什么的了
@@ -120,8 +118,7 @@ function abs_path
         end
     end
 end
-
-alias apath abs_path # Desc: alias: apath:abs_path命令的别名,忘记具体干什么的了
+alias apath="abs_path"
 
 function show_free
     # Desc: function: show_free:释放内存？
@@ -135,19 +132,16 @@ function show_free
     echo "Inactive:   $INACTIVE MB"
     echo "Total free: $TOTAL MB"
 end
-
-alias sfree show_free # Desc: alias: sfree:show_free命令的别名,释放内存？
+alias sfree="show_free"
 
 function compress_zip_file
     # Desc: function: compress_zip_file:压缩目录为zip文件
     zip -r "$argv[1]".zip "$argv[1"]
 end
-
-alias czf compress_zip_file # Desc: alias: czf:compress_zip_file命令的别名,压缩目录为zip文件
+alias czf="compress_zip_file"
 
 function compress_git_to_zip
     # Desc: function: compress_git_to_zip:git压缩HEAD版本为zip包
     git archive -o (basename $PWD).zip HEAD
 end
-
-alias cg2z compress_git_to_zip # Desc: alias: cg2z:compress_git_to_zip命令的别名,git压
+alias cg2z="compress_git_to_zip"

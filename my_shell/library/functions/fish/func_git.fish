@@ -1,8 +1,7 @@
 function check_is_git
     git rev-parse HEAD > /dev/null 2>&1
 end
-
-abbr isgit check_is_git
+alias isgit="check_is_git"
 
 function auto_create_git_respository
     mkdir $argv[1]
@@ -14,24 +13,21 @@ function auto_create_git_respository
     git remote add origin git@github.com:yh392261226/$argv[1].git
     git push origin master
 end
-
-abbr acgr auto_create_git_respository
+alias acgr="auto_create_git_respository"
 
 function fzf_git_checkout_branch
     set branches (git branch --all | grep -v HEAD)
-    set branch (echo "$branches" | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout_branch')" -d (math 2 + (count $branches)) +m)
+    set branch (echo "$branches" | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout_branch')" -d (math 2 + (count $branches)) +m)
     git checkout (echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 end
-
-abbr fcb fzf_git_checkout_branch
+alias fcb="fzf_git_checkout_branch"
 
 function fzf_git_checkout_commit
     set commits (git log --pretty=oneline --abbrev-commit --reverse)
     set commit (echo "$commits" | fzf --tac +s +m -e $FZF_CUSTOM_PARAMS --preview " echo {2} " --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' --header="$(_buildFzfHeader '' 'fzf_git_checkout_commit')")
     git checkout (echo "$commit" | sed "s/ .*//")
 end
-
-abbr fgcc fzf_git_checkout_commit
+alias fgcc="fzf_git_checkout_commit"
 
 function fzf_git_checkout_preview
     set tags (git tag | awk '{print "\x1b[31;1mtag\x1b[m\t" $1}')
@@ -56,7 +52,7 @@ function fzf_git_checkout
     [ -z "$tags" ]; and return
     set branches (git branch --all | grep -v HEAD | sed "s/.* //" | sed "s#remotes/[^/]*/##" | sort -u | awk '{print "\x1b[34;1mbranch\x1b[m\t" $1}')
     [ -z "$branches" ]; and return
-    set target (echo "$tags"; echo "$branches" | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header=(_buildFzfHeader '' 'fzf_git_checkout') -l30 -- --no-hscroll --ansi +m -d "\t" -n 2)
+    set target (echo "$tags"; echo "$branches" | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --header=(_buildFzfHeader '' 'fzf_git_checkout') -l30 -- --no-hscroll --ansi +m -d "\t" -n 2)
     [ -z "$target" ]; and return
     git checkout (echo "$target" | awk '{print $2}')
 end
@@ -66,7 +62,7 @@ function fzf_git_checkout2
     if test (git rev-parse --is-inside-work-tree ^ /dev/null)
         if test (count $argv) -eq 0
             set branches (git branch -a)
-            set branch (begin; echo "$branches" | wc -l; end | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header=(_buildFzfHeader '' 'fzf_git_checkout2') -d (math 2 + (echo "$branches" | wc -l) +m))
+            set branch (begin; echo "$branches" | wc -l; end | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --header=(_buildFzfHeader '' 'fzf_git_checkout2') -d (math 2 + (echo "$branches" | wc -l) +m))
             git checkout (echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
         else if test (git rev-parse --verify --quiet $argv); or test (git branch --remotes | grep --extended-regexp "^[[:space:]]+origin/$argv")
             echo "Checking out to existing branch"
@@ -202,4 +198,4 @@ function fzf_git_modified_diff
         --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
         --header=(_buildFzfHeader '' 'fzf_git_modified_diff')
 end
-alias fgd='fzf_git_modified_diff'
+alias fgd="fzf_git_modified_diff"

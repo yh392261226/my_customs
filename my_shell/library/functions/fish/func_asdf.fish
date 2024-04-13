@@ -15,8 +15,7 @@ function fzf_asdf_install
         end
     end
 end
-
-alias fai fzf_asdf_install # Desc: alias: fai:fzf_asdf_install命令的别名
+alias fai="fzf_asdf_install"
 
 function fzf_asdf_uninstall
     # Desc: function: fzf_asdf_uninstall:删除一个或多个版本的语言包 e.g. `vmi rust` # => fzf multimode, tab to mark, enter to remove if no plugin is supplied (e.g. `vmi<CR>`), fzf will list them for you Mnemonic [V]ersion [M]anager [C]lean
@@ -35,5 +34,4 @@ function fzf_asdf_uninstall
         end
     end
 end
-
-alias fau fzf_asdf_uninstall # Desc: alias: fau:fzf_asdf_uninstall命令的别名
+alias fau="fzf_asdf_uninstall"
