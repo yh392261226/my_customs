@@ -1,0 +1,17 @@
+#### 引入我自己的配置：开始
+set MYRUNTIME $(cat $HOME/.myruntime)
+set -gx MYPATH $MYRUNTIME
+set -gx USERNAME json
+set my_custom_sh $MYRUNTIME/customs/my_shell
+
+function go2
+	[ -d "$1" ]; and cd "$1" or cd "$(dirname "$1")"
+end
+source $my_custom_sh/library/core/fish/core_library.fish
+
+if test -f $HOME/.config/fish/customs.fish
+	source $HOME/.config/fish/customs.fish
+end
+
+
+$MYRUNTIME/customs/bin/theme ($MYRUNTIME/customs/bin/theme -l|tail -n1)

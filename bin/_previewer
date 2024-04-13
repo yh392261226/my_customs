@@ -73,7 +73,7 @@ else
         exit
       ;;
       *)
-        bat --theme=gruvbox-dark --color=always --style=header,grid,numbers --line-range :600 "$file" || exa "$file"
+        bat --theme=gruvbox-dark --color=always --style=header,grid,numbers "$file" || exa "$file"
         exit
       ;;
     esac

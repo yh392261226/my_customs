@@ -67,7 +67,7 @@ function bg_change
     if test -f "$current_picturename"
         rm -f $current_picturename
     end
-    echo "$image_path" > $current_picturename
+    echo $image_path > $current_picturename
 
     if test "$show_msg" = "1"
         if test -n "$image_path"
@@ -138,3 +138,12 @@ bind -M insert \cw bg_rand
 bind -M insert \ce bg_rand_next
 bind -M insert \cu bg_user
 bind -M insert \cb bg_empty
+
+function changebg_key_bindings
+    fish_vi_key_bindings
+	bind -M insert \cq bg_rand_pre
+	bind -M insert \cw bg_rand
+	bind -M insert \ce bg_rand_next
+	bind -M insert \cb bg_empty
+end
+set -g fish_key_bindings changebg_key_bindings

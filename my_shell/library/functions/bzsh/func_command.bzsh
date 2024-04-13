@@ -387,8 +387,8 @@ alias faaf="fzf_aliases_and_functions_selector"                                 
 
 function fzf_env_vars() {                                                           # Desc: function: fzf_env_vars:利用fzf选用env变量的值
   env | fzf $FZF_CUSTOM_PARAMS \
---bind 'ctrl-k:execute-silent(echo {} | awk -F"=" "{print \$1}" | pbcopy)+abort' \
---bind 'ctrl-v:execute-silent(echo {} | awk -F"=" "{print \$2}" | pbcopy)+abort' \
+--bind 'ctrl-k:execute-silent(echo {1} | pbcopy)+abort' \
+--bind 'ctrl-v:execute-silent(echo {2} | pbcopy)+abort' \
 --bind 'focus:transform-preview-label:echo [ {1} ]' \
 --delimiter='=' \
 --preview='echo {2}' \
