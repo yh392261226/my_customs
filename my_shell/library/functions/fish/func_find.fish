@@ -5,8 +5,7 @@ function find_files_by_ext
     if test -n "$argv[1]"
         find ./ -type f -iname "*.$argv[1]" -exec ls -l {} \;
     else
-        set hasgum (ifHasCommand gum)
-        if test 1 -eq $hasgum
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
@@ -21,8 +20,7 @@ function find_file_by_end
     if test -n "$argv"
         /usr/bin/find . -name "*$argv"
     else
-        set hasgum (ifHasCommand gum)
-        if test 1 -eq $hasgum
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
@@ -37,8 +35,7 @@ function find_files_by_start
     if test -n "$argv"
         find . -name "$argv"* 
     else
-        set hasgum (ifHasCommand gum)
-        if test 1 -eq $hasgum
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
@@ -53,8 +50,7 @@ function find_files_by_contain
     if test -n "$argv[1]"
         find . -exec grep -l -s $argv[1] {} \;
     else
-        set hasgum (ifHasCommand gum)
-        if test 1 -eq $hasgum
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
@@ -70,8 +66,7 @@ function find_file_by_params
     if test -n "$argv[1]"
         find ./ -name "$argv"
     else
-        set hasgum (ifHasCommand gum)
-        if test 1 -eq $hasgum
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text

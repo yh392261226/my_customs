@@ -3,6 +3,21 @@
 
 SEARCH_BROWSER="/Applications/Safari.app"
 #[[ -d "/Applications/Google Chrome.app" ]] && SEARCH_BROWSER="/Applications/Google Chrome.app"
+function search_by_github() {                                                       # Desc: function: search_by_github:Github搜索
+    if [ "" != "$1" ]; then
+        echo "open -a $SEARCH_BROWSER https://github.com/search?q=${1}&type=repositories";
+        open -a "$SEARCH_BROWSER" "https://github.com/search?q=${1}&type=repositories";
+    else
+        hascommand=$(ifHasCommand gum)
+        if [ $hascommand = 1 ]; then
+            text=$(gum input --placeholder "Type search text")
+        else
+            read text
+        fi
+        open -a "$SEARCH_BROWSER" "https://github.com/search?q=${text}&type=repositories"
+    fi
+}
+alias github="search_by_github"                                                     # Desc: alias: github:search_by_github,Github搜索
 
 function search_by_google() {                                                       # Desc: function: search_by_google:GOOGLE搜索引擎搜索
     if [ "" != "$1" ]; then

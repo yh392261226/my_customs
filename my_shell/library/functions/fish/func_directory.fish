@@ -123,8 +123,7 @@ end
 alias cdbp="cd_directory_by_param"
 
 function get_which_command_directory
-    set hascommand (ifHasCommand $argv)
-    if test $hascommand != 1
+    if test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
@@ -153,8 +152,7 @@ end
 alias mcd="mkdir_cd"
 
 function cd_parent_directory_by_which_command
-    set hascommand (ifHasCommand $argv)
-    if test $hascommand != 1
+    if test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
@@ -180,8 +178,7 @@ function cd_directory_by_which_command
         cd $argv; return 1
     end
 
-    set hascommand (ifHasCommand $argv)
-    if test $hascommand != 1
+    if test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
@@ -214,8 +211,7 @@ end
 alias fz="fzf_jump_between_directory"
 
 function ll_whereis_command
-    set hascommand (ifHasCommand $argv)
-    if test $hascommand != 1
+    if test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
@@ -234,8 +230,7 @@ end
 alias llw="ll_whereis_command"
 
 function open_directory_whereis_command
-    set hascommand (ifHasCommand $argv)
-    if test $hascommand != 1
+    if test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
@@ -254,8 +249,7 @@ end
 alias openw="open_directory_whereis_command"
 
 function pwd_command_directory
-    set hascommand (ifHasCommand $argv)
-    if test $hascommand != 1
+    if test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end

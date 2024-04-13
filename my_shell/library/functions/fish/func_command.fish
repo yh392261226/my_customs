@@ -187,10 +187,8 @@ alias stnt="sign_tnt_code_name"
 
 function speaking_by_osx_voice
     set words $argv
-    set hasgum (ifHasCommand gum)
-
     if test "" = "$words"
-        if test 1 = $hasgum
+        if test (ifHasCommand gum) = "1"
             gum input --placeholder "Type something..."
         else
             echo "请输入要说的话 \n例如：$argv[1] haha "
@@ -287,9 +285,7 @@ alias fhp="fzf_history_print"
 
 function command_sl_selector
     echo "执行命令行小火车：1, ls命令：2"
-    set -l hasgum (ifHasCommand gum)
-
-    if test "$hasgum" = "1"
+    if test (ifHasCommand gum) = "1"
         set -l choose (gum choose "1" "2")
     else
         read -l choose
@@ -445,7 +441,7 @@ function fzf_manage
     if test -n "$argv[1]"; set DIRPATH $argv[1]; end
 
     set ACTIONCOMMAND
-    if test (ifHasCommand gum) = 1
+    if test (ifHasCommand gum) = "1"
         set -l ACTIONCOMMAND 'gum confirm "确认删除?" && rm -f '
     else
         set -l ACTIONCOMMAND 'rm -f '

@@ -1,32 +1,40 @@
 ### Package Desc: 编辑器相关命令
 
-
 function editor_which
     set COMMANDBIN $argv[1]
     set FILENAME $argv[2]
-    if test -f $COMMANDBIN
-        if test -n "$FILENAME"
-            command -v $argv > /dev/null 2>&1
-            if test $status = 1
-                echo "Command $argv does not exist !"
+    
+    if not test -n "$COMMANDBIN"
+        echo "Please provide an editor as the first argument"
+        return 1
+    end
+    
+    if not test -n "$FILENAME"
+        echo "Please provide a command or file as the second argument"
+        return 1
+    end
+
+    if not test -f $COMMANDBIN
+        echo "Editor $COMMANDBIN does not exist"
+        return 1
+    end
+
+    # 如果是命令文件走这里
+    if not test (type "$FILENAME" | grep 'is a function')
+        $COMMANDBIN (type $FILENAME | awk '{print $NF}')
+    else
+        set -l endfile (type (type fcf | grep '=' | awk -F'=' '{print $2}' | awk '{print $1}') | sed 's/^[[:space:]]\+//g' | tr -s ' ' | grep '# Defined in' | awk -F ' in ' '{print $2}' | awk '{print $1}')
+        if test -f $endfile; or test -d $endfile
+            $COMMANDBIN $endfile
+        else
+            set resolved_file (commandline -t "$FILENAME")
+            if test -n "$resolved_file"
+                $COMMANDBIN $resolved_file
+            else
+                echo "Cannot resolve file for command or alias: $FILENAME"
                 return 1
             end
-            if test -z (type $FILENAME | grep 'a shell function from') && test -z (type $FILENAME | grep 'is an alias for')
-                $COMMANDBIN (which $FILENAME)
-            else
-                set endfile (type $FILENAME | awk '{print $NF}')
-                if test -f $endfile || test -d $endfile
-                    $COMMANDBIN $endfile
-                else
-                    editor_which $COMMANDBIN $endfile
-                end
-            end
-        else
-            $COMMANDBIN (pwd)
         end
-    else
-        echo "$COMMANDBIN does not exist !!!"
-        return 1
     end
 end
 alias ew="editor_which"
@@ -47,22 +55,20 @@ alias stw="sublime_text_which"
 
 function vim_which
     if test -f /usr/local/bin/vim
-        set COMMANDBIN /usr/local/bin/vim
-    elif test -f /opt/homebrew/bin/vim
-        set COMMANDBIN /opt/homebrew/bin/vim
+        editor_which /usr/local/bin/vim $argv[1]
+    else if test -f /opt/homebrew/bin/vim
+        editor_which /opt/homebrew/bin/vim $argv[1]
     end
-    editor_which $COMMANDBIN $argv[1]
 end
 alias vw="vim_which"
 alias viw="vim_which"
 
 function neovim_which
     if test -f /usr/local/bin/nvim
-        set COMMANDBIN /usr/local/bin/nvim
-    elif test -f /opt/homebrew/bin/nvim
-        set COMMANDBIN /opt/homebrew/bin/nvim
+        editor_which /usr/local/bin/nvim $argv[1]
+    else if test -f /opt/homebrew/bin/nvim
+        editor_which /opt/homebrew/bin/nvim $argv[1]
     end
-    editor_which $COMMANDBIN $argv[1]
 end
 alias nw="neovim_which"
 alias nviw="neovim_which"

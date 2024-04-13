@@ -1,11 +1,10 @@
 function cat_whereis_file
-    set hascommand (ifHasCommand $argv)
-    if [ "$hascommand" != 1 ]
+    if not test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exists !"
         return 1
     end
 
-    if [ "(type $argv[1] | grep 'a shell function from')" = "" ] -a "(type $argv[1] | grep 'is an alias for')" = "" ]
+    if test -n (type "$argv[1]" | grep 'a function with definition'); and test -n (type "$argv[1]" | grep 'a alias')
         cat (which "$argv[1]")
     else
         set endfile (type "$argv[1]" | awk '{print $NF}')
@@ -19,13 +18,12 @@ end
 alias catw="cat_whereis_file"
 
 function bat_whereis_file
-    set hascommand (ifHasCommand $argv)
-    if [ "$hascommand" != 1 ]
+    if not test (ifHasCommand gum) = "1"
         echo "Command $argv does not exists !"
         return 1
     end
 
-    if [ "(type $argv[1] | grep 'a shell function from')" = "" ] -a "(type $argv[1] | grep 'is an alias for')" = "" ]
+    if test -n (type "$argv[1]" | grep 'a function with definition'); and test -n (type "$argv[1]" | grep 'a alias')
         bat (which "$argv[1]")
     else
         set endfile (type "$argv[1]" | awk '{print $NF}')

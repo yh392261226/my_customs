@@ -65,20 +65,19 @@ end
 alias rmw="remove_whereis_file"
 
 function fzf_remove_file
-    set hasgum (ifHasCommand gum)
 
     if test (count $argv) -eq 0
         set files (find . -maxdepth 1 -type f | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_remove_file') --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish {} ")
         if test -z $files
             return 1
         end
-        if test $hasgum = 1
+        if test (ifHasCommand gum) = "1"
             gum confirm "确认删除?" and echo $files | xargs -I '{}' rm {} or echo "Action aborted !"
         else
             echo $files | xargs -I '{}' rm {}
         end
     else
-        if test $hasgum = 1
+        if test (ifHasCommand gum) = "1"
             gum confirm "确认删除?" and command rm $argv or echo "Action aborted !"
         else
             command rm $argv
@@ -88,20 +87,18 @@ end
 alias frf="fzf_remove_file"
 
 function fzf_remove_directory
-    set hasgum (ifHasCommand gum)
-
     if test (count $argv) -eq 0
         set directories (find . -maxdepth 1 -type d | fzf --multi $FZF_CUSTOM_PARAMS --header=(_buildFzfHeader '' 'fzf_remove_directory') --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish {} ")
         if test -z $directories
             return 1
         end
-        if test $hasgum = 1
+        if test (ifHasCommand gum) = "1"
             gum confirm "确认删除?" and echo $directories | xargs -I '{}' rm -rf {} or echo "Action aborted !"
         else
             echo $directories | xargs -I '{}' rm -rf {}
         end
     else
-        if test $hasgum = 1
+        if test (ifHasCommand gum) = "1"
             gum confirm "确认删除?" and command rm -rf $argv or echo "Action aborted !"
         else
             command rm -rf $argv

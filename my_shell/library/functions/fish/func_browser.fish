@@ -1,13 +1,28 @@
 set SEARCH_BROWSER "/Applications/Safari.app"
 # [ -d "/Applications/Google Chrome.app" ]; and set SEARCH_BROWSER "/Applications/Google Chrome.app"
 
+function search_by_github
+    if not test "$argv" = ""
+    echo 'test'
+        echo "open -a $SEARCH_BROWSER https://github.com/search?type=repositories&q=$argv"
+        open -a "$SEARCH_BROWSER" "https://github.com/search?type=repositories&q=$argv"
+    else
+        if test (ifHasCommand gum) = "1"
+            set text (gum input --placeholder "Type search text :")
+        else
+            read -P "Type search text: " text
+        end
+        open -a "$SEARCH_BROWSER" "https://github.com/search?type=repositories&q=$text"
+    end
+end
+alias github="search_by_github"
+
 function search_by_google
-    if test -n $argv
+    if not test "$argv" = ""
         echo "open -a $SEARCH_BROWSER https://www.google.com/search?q=$argv"
         open -a "$SEARCH_BROWSER" "https://www.google.com/search?q=$argv"
     else
-        set hascommand (ifHasCommand gum)
-        if test $hascommand = 1
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read -P "Type search text: " text
@@ -18,12 +33,11 @@ end
 alias google="search_by_google"
 
 function search_by_baidu
-    if test -n $argv
+    if not test "$argv" = ""
         echo "open -a $SEARCH_BROWSER https://www.baidu.com/s?wd=$argv"
         open -a "$SEARCH_BROWSER" "https://www.baidu.com/s?wd=$argv"
     else
-        set hascommand (ifHasCommand gum)
-        if test $hascommand = 1
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read -P "Type search text: " text
@@ -34,12 +48,11 @@ end
 alias baidu="search_by_baidu"
 
 function search_by_bing
-    if test -n $argv
+    if not test "$argv" = ""
         echo "open -a $SEARCH_BROWSER http://www.bing.com/search?q=$argv"
         open -a "$SEARCH_BROWSER" "http://www.bing.com/search?q=$argv"
     else
-        set hascommand (ifHasCommand gum)
-        if test $hascommand = 1
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read -P "Type search text: " text
@@ -50,12 +63,11 @@ end
 alias bing="search_by_bing"
 
 function search_by_yahoo
-    if test -n $argv
+    if not test "$argv" = ""
         echo "open -a $SEARCH_BROWSER http://www.yahoo.com/search?q=$argv"
         open -a "$SEARCH_BROWSER" "http://www.yahoo.com/search?q=$argv"
     else
-        set hascommand (ifHasCommand gum)
-        if test $hascommand = 1
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read -P "Type search text: " text
@@ -66,12 +78,11 @@ end
 alias yahoo="search_by_yahoo"
 
 function search_by_wikipedia
-    if test -n $argv
+    if not test "$argv" = ""
         echo "open -a $SEARCH_BROWSER http://en.wikipedia.org/wiki/Special:Search?search=$argv"
         open -a "$SEARCH_BROWSER" "http://en.wikipedia.org/wiki/Special:Search?search=$argv"
     else
-        set hascommand (ifHasCommand gum)
-        if test $hascommand = 1
+        if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read -P "Type search text: " text
