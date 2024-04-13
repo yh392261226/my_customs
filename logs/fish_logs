@@ -46,3 +46,4 @@ fisher install markcial/upto
 fisher install jorgebucaran/fisher
 fisher install b4b4r07/enhancd
 fisher install IlanCosman/tide@v5
+fisher install wfxr/forgit
