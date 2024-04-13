@@ -70,20 +70,28 @@ function custom_aliases_from_a2z() {                                            
 alias a2z="custom_aliases_from_a2z"                                                 # Desc: alias: a2z:custom_aliases_from_a2z命令的别名,显示从a-z的自定义命令
 
 function fzf_all_custom_functions() {                                               # Desc: function: fzf_all_custom_functions:显示所有函数(仅zsh下有效)
-    [[ "zsh" != "$nowshell" ]] && echo "Only support ZSH !" && exit 1
-    TMP_ALL_FUNCTIONS_FILE=$(mktemp)
-    functions > $TMP_ALL_FUNCTIONS_FILE
-    if [ -f $TMP_ALL_FUNCTIONS_FILE ]; then
-        selected=$(cat $TMP_ALL_FUNCTIONS_FILE | grep -E "(.*?)[^(]*.*{" | grep -v '$MYRUNTIME' | grep '() {' | grep -v '$MYRUNTIME'  | grep -E '^[+_@.-:]+[a-zA-Z0-9_]*|[a-zA-Z0-9_]*'| sed 's/^[[:blank:]]\{1,\}//' | grep -v '^() {' |sed 's/ () {//' | grep -v ' ' | fzf $FZF_CUSTOM_PARAMS +m \
+    local TMP_ALL_FUNCTIONS_FILE=$(mktemp)
+
+    if [[ "zsh" = "$nowshell" ]]; then
+        functions > $TMP_ALL_FUNCTIONS_FILE 
+        selected=$(cat $TMP_ALL_FUNCTIONS_FILE | grep -E '(.*?)[^(]*.*{' | grep -v '$MYRUNTIME' | grep '() {' | grep -v '$MYRUNTIME'  | grep -E '^[+_@.-:]+[a-zA-Z0-9_]*|[a-zA-Z0-9_]*'| sed 's/^[[:blank:]]\{1,\}//' | grep -v '^() {' |sed 's/ () {//' | grep -v ' ' | fzf $FZF_CUSTOM_PARAMS +m \
         --preview-window right:70%:rounded:hidden:wrap \
         --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'" \
         --header="$(_buildFzfHeader '' 'fzf_all_custom_functions')" \
         --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'| pbcopy)+abort")
-        if [ -n "$selected" ]; then
-            $MYRUNTIME/customs/bin/_show_awesome_function $selected $TMP_ALL_FUNCTIONS_FILE 'functions'
-        fi
-        rm -f $TMP_ALL_FUNCTIONS_FILE
     fi
+    if [[ "bash" = "$nowshell" ]]; then
+        declare -f > $TMP_ALL_FUNCTIONS_FILE
+        selected=$(cat $TMP_ALL_FUNCTIONS_FILE | grep -E '(.*?)[^ (]*.*' |grep -v '$MYRUNTIME' |grep ' ()' |grep -v '$MYRUNTIME'  | grep -E '^[+_@.-:]+[a-zA-Z0-9_]*|[a-zA-Z0-9_]* ()'|grep -v '"' | grep -v "'" | grep -v ' function ' | sed 's/^[[:blank:]]\{1,\}//' | grep -v '^()$' |sed 's/ ()//' | fzf $FZF_CUSTOM_PARAMS +m \
+        --preview-window right:70%:rounded:hidden:wrap \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'" \
+        --header="$(_buildFzfHeader '' 'fzf_all_custom_functions')" \
+        --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions'| pbcopy)+abort")
+    fi
+    if [ -n "$selected" ]; then
+        $MYRUNTIME/customs/bin/_show_awesome_function $selected $TMP_ALL_FUNCTIONS_FILE 'functions'
+    fi
+    rm -f $TMP_ALL_FUNCTIONS_FILE
 }
 alias faf='fzf_all_custom_functions'                                                # Desc: alias: faf: fzf_all_custom_functions命令的别名,显示所有函数(仅zsh下有效)
 

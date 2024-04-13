@@ -27,6 +27,7 @@ function _show_fzf_awesome_function() {         # Desc: function: _show_fzf_awes
             echo "⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶⇶"
         else
             sed -n "/^$CCommand () {/,/^}/p" $CLocation
+            sed -n "/^$CCommand ()/,/^}/p" $CLocation
         fi
     fi
 }
