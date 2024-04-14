@@ -4,10 +4,9 @@ end
 alias ud="update_dotfiles"
 
 function update_today
-    update_runtimes
-    update_zsh_customs
     update_others
-    zinit update
+    omf update
+    fisher update
     brew update; and brew upgrade; and brew cleanup
     #gethosts
 end
@@ -20,22 +19,15 @@ function update_runtimes
 end
 alias ur="update_runtimes"
 
-function update_zsh_customs
-    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/plugins
-    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/antigen
-    # update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
-end
-alias uzc="update_zsh_customs"
-
 function update_plugins
     update_git_files_and_modules $MYRUNTIME/public
-    customcd ~
+    cd ~
 end
 alias ugp="update_plugins"
 
 function update_others
     update_git_files_and_modules $MYRUNTIME/customs/others
-    customcd ~
+    cd ~
 end
 alias uo="update_others"
 
