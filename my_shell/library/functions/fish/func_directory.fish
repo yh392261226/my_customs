@@ -52,30 +52,42 @@ function change_files_show
 end
 alias cfs="change_files_show"
 
+
 function fzf_cd_to_parent
-    function get_parent_dirs
-        if test -d $1
-            set -a dirs $1
+    set -g dirs
+    function _get_parent_dirs
+        if test -d $argv[1]
+            set -l dir $argv[1]
+            set -g dirs $dirs $dir
         else
             return
         end
-        if test $1 = '/'
-            for _dir in $dirs
-                echo $_dir
+
+        if test $argv[1] = "/"
+            for dir in $dirs
+                echo $dir
             end
         else
-            get_parent_dirs (dirname $1)
+            _get_parent_dirs (dirname $argv[1])
         end
     end
+    if not test "$argv" = ""
+        set -l cdpath $argv
+    else
+        set -l cdpath (pwd)
+    end
 
-    set DIR (get_parent_dirs (realpath {$1:-$PWD}) | fzf-tmux $FZF_CUSTOM_PARAMS --tac --header=(_buildFzfHeader '' 'fzf_cd_to_parent'))
-    cd $DIR
+    set DIR (_get_parent_dirs (realpath $cdpath) | fzf-tmux $FZF_CUSTOM_PARAMS --tac --header=(_buildFzfHeader '' 'fzf_cd_to_parent'))
+    set -x dirs
+    if not test "$DIR" = ""
+        cd $DIR
+    end
 end
 alias fc2p="fzf_cd_to_parent"
 
 function fzf_cd_to_select
     if test (count $argv) != 0
-        command builtin cd $argv
+        cd $argv
         return
     end
 
@@ -90,7 +102,7 @@ function fzf_cd_to_select
         ' --header=(_buildFzfHeader '' 'fzf_cd_to_select'))
 
         if test (count $dir) != 0
-            command builtin cd $dir > /dev/null
+            cd $dir > /dev/null
         else
             return 0
         end
@@ -99,14 +111,21 @@ end
 alias fcd="fzf_cd_to_select"
 
 function fzf_cd_to_select2
-    set DIR (find {$1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux --header-first --header=(_buildFzfHeader '' 'fzf_cd_to_select2'))
-    test -n $DIR; cd $DIR
+    if not test "$argv" = ""
+        set findpath $argv
+    else
+        set findpath (pwd)
+    end
+    set DIR (find $findpath -type d | fzf-tmux --header-first --header=(_buildFzfHeader '' 'fzf_cd_to_select2'))
+    if not test -n $DIR
+        cd $DIR
+    end
 end
 alias fcd2="fzf_cd_to_select2"
 
 function fzf_cd_to_file
-    set file (fzf +m $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_cd_to_file') -q $argv) 
-    if test -n $file
+    set file (find (pwd) -type f | fzf +m $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --preview-window right:70%:rounded:hidden:wrap --header=(_buildFzfHeader '' 'fzf_cd_to_file') -q "$argv") 
+    if not test "$file" = ""
         set dir (dirname $file)
         cd $dir
     end
@@ -114,19 +133,19 @@ end
 alias fc2f="fzf_cd_to_file"
 
 function cd_directory_by_param
-    if test -n $argv
-        cd *$argv*
+    if not test "$argv" = ""
+        cd "*$argv*"
     end
 end
 alias cdbp="cd_directory_by_param"
 
 function get_which_command_directory
-    if test (ifHasCommand $argv) = "1"
-        echo "Command $argv does not exist !"
+    if not test (ifHasCommand $argv) = "1"
+        echo "Command $argv does not exists !"
         return 1
     end
 
-    if not string match -q "a shell function from" (type $argv)
+    if not string match -q "a function with definition" (type $argv)
         echo (dirname $argv)
     else
         set endfile (type $argv | awk '{print $NF}')
@@ -150,12 +169,12 @@ end
 alias mcd="mkdir_cd"
 
 function cd_parent_directory_by_which_command
-    if test (ifHasCommand $argv) = "1"
+    if not test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
 
-    if not string match -q "a shell function from" (type $argv)
+    if not string match -q "a function with definition" (type $argv)
         cd (dirname (dirname (which $argv)))
     else
         set endfile (type $argv | awk '{print $NF}')
@@ -176,12 +195,12 @@ function cd_directory_by_which_command
         cd $argv; return 1
     end
 
-    if test (ifHasCommand $argv) = "1"
+    if not test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
 
-    if not string match -q "a shell function from" (type $argv)
+    if not string match -q "a function with definition" (type $argv)
         cd (dirname (which $argv))
     else
         set endfile (type $argv | awk '{print $NF}')
@@ -209,12 +228,12 @@ end
 alias fz="fzf_jump_between_directory"
 
 function ll_whereis_command
-    if test (ifHasCommand $argv) = "1"
+    if not test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
 
-    if not string match -q "a shell function from" (type $argv) && not string match -q "is an alias for" (type $argv)
+    if not string match -q "a function with definition" (type $argv) && not string match -q "is an alias for" (type $argv)
         ls -l (which $argv)
     else
         set endfile (type $argv | awk '{print $NF}')
@@ -228,12 +247,12 @@ end
 alias llw="ll_whereis_command"
 
 function open_directory_whereis_command
-    if test (ifHasCommand $argv) = "1"
+    if not test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
 
-    if not string match -q "a shell function from" (type $argv) && not string match -q "is an alias for" (type $argv)
+    if not string match -q "a function with definition" (type $argv) && not string match -q "is an alias for" (type $argv)
         open (dirname (which $argv))
     else
         set endfile (type $argv | awk '{print $NF}')
@@ -247,12 +266,12 @@ end
 alias openw="open_directory_whereis_command"
 
 function pwd_command_directory
-    if test (ifHasCommand $argv) = "1"
+    if not test (ifHasCommand $argv) = "1"
         echo "Command $argv does not exist !"
         return 1
     end
 
-    if not string match -q "a shell function from" (type $argv) && not string match -q "is an alias for" (type $argv)
+    if not string match -q "a function with definition" (type $argv) && not string match -q "is an alias for" (type $argv)
         echo (dirname (which $argv))
     else
         set endfile (type $argv | awk '{print $NF}')
