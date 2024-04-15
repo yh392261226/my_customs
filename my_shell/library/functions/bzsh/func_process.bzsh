@@ -31,18 +31,8 @@ function find_process_id() {                                                    
 }
 alias fpid="find_process_id"                                                        # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process
 
-function fzf_process_kill2() {                                                      # Desc: function: fzf_process_kill2:Fzf展示进程，并可以自行选择kill掉
-    (date; ps -ef) | fzf $FZF_CUSTOM_PARAMS \
---bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
---bind='ctrl-r:reload(date; ps -ef)' \
---header="$(_buildFzfHeader '' 'fzf_process_kill2')" \
-| awk '{print $2}' | xargs kill -9
-}
-alias fpk2='fzf_process_kill2'                                                      # Desc: alias: fpk2:fzf_process_kill2命令的别名,Fzf展示进程，并可以自行选择kill掉
-
 function fzf_process_magnifier() {                                                  # Desc: function fzf_process_magnifier: 进程放大镜
-    (date; ps -ef) | fzf $FZF_CUSTOM_PARAMS \
+    (date; ps -ef | sed 1d) | fzf $FZF_CUSTOM_PARAMS \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
 --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
 --bind='ctrl-r:reload(date; ps -ef)' \
