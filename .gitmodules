@@ -55,3 +55,6 @@
 [submodule "enhancd"]
 	path = others/enhancd
 	url = git@github.com:yh392261226/enhancd.git
+[submodule "others/cheatsheets"]
+	path = others/cheatsheets
+	url = git@github.com:rstacruz/cheatsheets.git

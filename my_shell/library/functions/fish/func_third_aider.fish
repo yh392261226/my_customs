@@ -37,3 +37,19 @@ function fzf_develop_references_searcher
     ls $MDDIR/docs | fzf $FZF_CUSTOM_PARAMS +m --height=90% --bind="enter:become(glow --style=dark $MDDIR/docs/{})" --bind="ctrl-y:execute-silent(echo $MDDIR/docs/{} | pbcopy)+abort" --header=(_buildFzfHeader '' 'fzf_develop_references_searcher') --preview="glow --style=dark -p $MDDIR/docs/{}"
 end
 alias fdrs="fzf_develop_references_searcher"
+
+function fzf_cheatsheets_searcher
+    set MDDIR $MYRUNTIME/customs/others/cheatsheets
+    if not test -d $MDDIR
+        echo "https://github.com/rstacruz/cheatsheets?tab=readme-ov-file"
+        return 1
+    end
+    find $MDDIR -type f -name '*.md' | grep -v 'README.md' | awk -F'/' '{print $NF}' | fzf $FZF_CUSTOM_PARAMS +m \
+        --height=90% \
+        --bind "enter:execute(glow --style=dark $MDDIR/{})" \
+        --bind "ctrl-y:execute-silent(echo $MDDIR/{} | pbcopy;+abort)" \
+        --header "$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
+        --preview "glow --style=dark -p $MDDIR/{}"
+end
+
+alias fcs "fzf_cheatsheets_searcher"

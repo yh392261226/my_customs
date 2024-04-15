@@ -12,7 +12,7 @@ function fzf_linux_command_searcher() {                                         
     --header="$(_buildFzfHeader '' 'fzf_linux_command_searcher')" \
     --preview="glow --style=dark -p ${MDDIR}/command/{}"
 }
-alias flc='fzf_linux_command_searcher'                                              # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
+alias flc="fzf_linux_command_searcher"                                              # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
 
 function fzf_how_to_cook_searcher() {                                               # Desc: function: fzf_how_to_cook_searcher: 利用fzf和别人的做饭菜单进行搜索
     local MDDIR=$MYRUNTIME/customs/others/HowToCook
@@ -28,7 +28,7 @@ function fzf_how_to_cook_searcher() {                                           
     --preview=" $MYRUNTIME/customs/bin/_markdown_previewer {} $TMPCOOKBOOK "
 
 }
-alias fh2c='fzf_how_to_cook_searcher'                                               # Desc: alias: fh2c: fzf_how_to_cook_searcher命令的别名,利用fzf和别人的做饭菜单进行搜索
+alias fh2c="fzf_how_to_cook_searcher"                                               # Desc: alias: fh2c: fzf_how_to_cook_searcher命令的别名,利用fzf和别人的做饭菜单进行搜索
 
 function fzf_develop_references_searcher() {                                        # Desc: function: fzf_develop_references_searcher: 利用fzf和别人做的快速参考和备忘清单
     local MDDIR=$MYRUNTIME/customs/others/reference
@@ -41,4 +41,16 @@ function fzf_develop_references_searcher() {                                    
     --preview="glow --style=dark -p ${MDDIR}/docs/{}"
 
 }
-alias fdrs='fzf_develop_references_searcher'                                        # Desc: alias: fdrs: fzf_develop_references_searcher命令的别名,利用fzf和别人做的快速参考和备忘清单
+alias fdrs="fzf_develop_references_searcher"                                        # Desc: alias: fdrs: fzf_develop_references_searcher命令的别名,利用fzf和别人做的快速参考和备忘清单
+
+function fzf_cheatsheets_searcher() {                                               # Desc: function: fzf_cheatsheets_searcher: 利用fzf和别人做的快速参考和文档进行搜索
+    local MDDIR=$MYRUNTIME/customs/others/cheatsheets
+    [[ ! -d $MDDIR ]] && echo "https://github.com/rstacruz/cheatsheets?tab=readme-ov-file" && return 1
+    ls ${MDDIR}/*.md | grep -v 'README.md' | awk -F'/' '{print $NF}' | fzf $FZF_CUSTOM_PARAMS +m \
+    --height=90% \
+    --bind="enter:become(glow --style=dark ${MDDIR}/{})" \
+    --bind="ctrl-y:execute-silent(echo ${MDDIR}/{} | pbcopy)+abort" \
+    --header="$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
+    --preview="glow --style=dark -p ${MDDIR}/{}"
+}
+alias fcs="fzf_cheatsheets_searcher"                                                # Desc: alias: fcs: fzf_cheatsheets_searcher命令的别名,利用fzf和别人做的快速参考和文档进行搜索
