@@ -122,12 +122,13 @@ alias apath="abs_path"
 
 function show_free
     # Desc: function: show_free:释放内存？
-    set FREE_BLOCKS (vm_stat | grep free | awk '{ print $3 }' | sed 's/\.//')
-    set INACTIVE_BLOCKS (vm_stat | grep inactive | awk '{ print $3 }' | sed 's/\.//')
-    set SPECULATIVE_BLOCKS (vm_stat | grep speculative | awk '{ print $3 }' | sed 's/\.//')
-    set FREE (math "($FREE_BLOCKS + $SPECULATIVE_BLOCKS) * 4096 / 1048576")
-    set INACTIVE ($INACTIVE_BLOCKS * 4096 / 1048576)
-    set TOTAL (math "$FREE + $INACTIVE")
+    set -l FREE_BLOCKS (vm_stat | grep free | awk '{ print $3 }' | sed 's/\.//')
+    set -l INACTIVE_BLOCKS (vm_stat | grep inactive | awk '{ print $3 }' | sed 's/\.//')
+    set -l SPECULATIVE_BLOCKS (vm_stat | grep speculative | awk '{ print $3 }' | sed 's/\.//')
+    set -l tmpsum (math $FREE_BLOCKS + $SPECULATIVE_BLOCKS)
+    set -l FREE (math $tmpsum \* 4096 / 1048576)
+    set -l INACTIVE (math $INACTIVE_BLOCKS \* 4096 / 1048576)
+    set -l TOTAL (math $FREE + $INACTIVE)
     echo "Free:       $FREE MB"
     echo "Inactive:   $INACTIVE MB"
     echo "Total free: $TOTAL MB"
@@ -135,13 +136,11 @@ end
 alias sfree="show_free"
 
 function compress_zip_file
-    # Desc: function: compress_zip_file:压缩目录为zip文件
-    zip -r "$argv[1]".zip "$argv[1"]
+    zip -r "$argv[1]".zip "$argv[1]"
 end
 alias czf="compress_zip_file"
 
 function compress_git_to_zip
-    # Desc: function: compress_git_to_zip:git压缩HEAD版本为zip包
     git archive -o (basename $PWD).zip HEAD
 end
 alias cg2z="compress_git_to_zip"

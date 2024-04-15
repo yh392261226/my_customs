@@ -31,7 +31,7 @@ function fzf_cd_to() {                                                          
 alias fct="fzf_cd_to"                                                             # Desc: alias: fct:fzf_cd_to命令的别名,fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
 
 function fzf_hidden_directories() {                                               # Desc: function: fzf_da: including hidden directories
-    DIR=`find ${1:-.} -type d 2> /dev/null | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap` && cd "$DIR"
+    DIR=`find ${1:-.} -type d -name '.*' | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap` && cd "$DIR"
 }
 alias fhd="fzf_hidden_directories"                                                # Desc: alias: fhd:fzf_hidden_directories命令的别名,including hidden directories
 

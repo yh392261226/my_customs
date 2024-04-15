@@ -30,12 +30,15 @@ end
 alias fct="fzf_cd_to"
 
 function fzf_hidden_directories
-    set findpath .
-    if test -z $1
-        set findpath $1
+    if not test "$argv" = ""
+        set findpath "$argv"
+    else
+        set findpath (pwd)
     end
-    set DIR (find $findpath -type d 2> /dev/null | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header=(_buildFzfHeader '' 'fzf_hidden_directories') --preview="$MYRUNTIME/customs/bin/_previewer_fish {}" --preview-window='right:70%:rounded:hidden:wrap')
-    test -n $DIR; cd $DIR
+    set DIR (find $findpath -type d -name '.*' | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header=(_buildFzfHeader '' 'fzf_hidden_directories') --preview="$MYRUNTIME/customs/bin/_previewer_fish {}" --preview-window='right:70%:rounded:hidden:wrap')
+    if not test "$DIR" = ""
+        cd $DIR
+    end
 end
 alias fhd="fzf_hidden_directories"
 
