@@ -42,11 +42,6 @@ function fzf_hidden_directories
 end
 alias fhd="fzf_hidden_directories"
 
-function cd_to_finder
-    cd (osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)')
-end
-alias cf="cd_to_finder"
-
 function change_files_hide
     defaults write com.apple.Finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app
 end
