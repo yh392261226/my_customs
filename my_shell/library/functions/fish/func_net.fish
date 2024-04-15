@@ -111,6 +111,11 @@ alias gproxy="get_proxy"
 
 function get_port_using_status
     # Desc: function: get_port_using_status:获取端口占用情况
+    if not test "$argv" = ""
+        set -l param "$argv"
+    else
+        set -l param ":"
+    end
     lsof -P -i -n | grep $argv
 end
 alias gps="get_port_using_status"

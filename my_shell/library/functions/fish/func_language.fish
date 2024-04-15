@@ -2,7 +2,8 @@
 
 function fzf_rvm_select
     # Desc: function: fzf_rvm_select:RVM integration
-    set rb (echo system; rvm list | grep ruby | cut -c 4- | awk '{print $1}' | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse)
+    # echo system
+    set rb (rvm list | grep ruby | cut -c 4- | awk '{print $1}' | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer_fish {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse)
     and rvm use $rb
 end
 alias frs="fzf_rvm_select"

@@ -70,15 +70,14 @@ alias ir="image_resizes"
 
 function fzf_iterm2_background_image_selector
     # Desc: function: fzf_iterm2_background_image_selector: 利用fzf选择iterm2的背景图片
+    set -l current_dir (pwd)
     set IMGPATH $MYRUNTIME/pictures
-    if test "" != "$argv[1]"
-        set IMGPATH $argv[1]
+    if not test "" = "$argv"
+        set IMGPATH $argv
     end
-    customcd $IMGPATH
+    cd $IMGPATH
     set selected (ls . | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview ' chafa -f iterm -s $FZF_PREVIEW_COLUMNSx$FZF_PREVIEW_LINES {} ' --header=(_buildFzfHeader '' 'fzf_iterm2_background_image_selector'))
-    bg_change {$IMGPATH}/$selected
-    customcd -
-    #echo "bg_change {$IMGPATH}/$selected" | pbcopy
-    #echo "Ctrl - V to paste the command, then press enter to execute."
+    bg_change $IMGPATH/$selected
+    cd $current_dir
 end
 alias fbg="fzf_iterm2_background_image_selector"

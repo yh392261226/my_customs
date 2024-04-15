@@ -18,14 +18,14 @@ alias fext="find_files_by_ext"
 function find_file_by_end
     # Desc: function: find_file_by_end:Find file whose name ends with a given string
     if test -n "$argv"
-        /usr/bin/find . -name "*$argv"
+        /usr/bin/find (pwd) -name "*$argv"
     else
         if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
         end
-        /usr/bin/find . -name "*$text"
+        /usr/bin/find (pwd) -name "*$text"
     end
 end
 alias fend="find_file_by_end"
@@ -33,14 +33,14 @@ alias fend="find_file_by_end"
 function find_files_by_start
     # Desc: function: find_fs:Find file whose name starts with a given string
     if test -n "$argv"
-        find . -name "$argv"* 
+        find (pwd) -name "$argv*"
     else
         if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
         end
-        find . -name "$text"*
+        find (pwd) -name "$text*"
     end
 end
 alias fstart="find_files_by_start"
@@ -48,14 +48,14 @@ alias fstart="find_files_by_start"
 function find_files_by_contain
     # Desc: function: find_files_by_contain:查找当前目录中包含某个字符串的
     if test -n "$argv[1]"
-        find . -exec grep -l -s $argv[1] {} \;
+        find (pwd) -exec grep -l -s $argv[1] {} \;
     else
         if test (ifHasCommand gum) = "1"
             set text (gum input --placeholder "Type search text")
         else
             read text
         end
-        find . -exec grep -l -s $text {} \;
+        find (pwd) -exec grep -l -s $text {} \;
     end
     return 0
 end
@@ -63,7 +63,7 @@ alias fcontain="find_files_by_contain"
 
 function find_file_by_params
     # Desc: function: find_file_by_params:Find file under the current directory
-    if test -n "$argv[1]"
+    if test -n "$argv"
         find ./ -name "$argv"
     else
         if test (ifHasCommand gum) = "1"
@@ -85,7 +85,7 @@ function find_same_file_by_md5
     set RESULTFILE $HOME/Desktop/samemd5file_result
 
     source $MYRUNTIME/customs/bin/mymessage
-    if test ! -d $SOURCEPATH
+    if not test -d $SOURCEPATH
         echo "The path $SOURCEPATH does not exists!"
         exit 1
     end
