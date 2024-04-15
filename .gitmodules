@@ -58,3 +58,6 @@
 [submodule "others/cheatsheets"]
 	path = others/cheatsheets
 	url = git@github.com:rstacruz/cheatsheets.git
+[submodule "configs/cheat/cheatsheets/configs/cheat/cheatsheets/community"]
+	path = configs/cheat/cheatsheets/configs/cheat/cheatsheets/community
+	url = git@github.com:cheat/cheatsheets.git
