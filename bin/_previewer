@@ -105,7 +105,7 @@ else
     # * https://github.com/junegunn/fzf/issues/2544
     dim=${FZF_PREVIEW_COLUMNS}x$((FZF_PREVIEW_LINES - 1))
   fi
-
+echo $nowterm
   # 1. Use kitty icat on kitty terminal
   if [[ $KITTY_WINDOW_ID ]]; then
     # 1. 'memory' is the fastest option but if you want the image to be scrollable,
@@ -118,7 +118,11 @@ else
 
   # 2. Use chafa with Sixel output
   elif command -v chafa > /dev/null; then
-    chafa -f sixel -s "$dim" "$file"
+    if [ "Warp" = "$nowterm" ]; then
+      chafa -s "$dim" "$file"
+    else
+      chafa -f sixel -s "$dim" "$file"
+    fi
     # Add a new line character so that fzf can display multiple images in the preview window
     echo
 
