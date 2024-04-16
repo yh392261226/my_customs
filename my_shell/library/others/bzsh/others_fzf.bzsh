@@ -1,5 +1,6 @@
 #fzf 相关
-[[ "zsh" = "$nowshell" ]] && eval $(fzf --zsh) || eval $(fzf --bash)
+[[ "zsh" = "$nowshell" ]] && eval $(fzf --zsh)
+[[ "bash" = "$nowshell" ]] && eval $(fzf --bash)
 
 export FZF_PREVIEW_FILE_CMD="bat"
 
@@ -9,33 +10,7 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 
-export FZF_DEFAULT_OPTS=" --min-height='40' --multi --cycle --inline-info --ansi --border=rounded --layout=reverse --padding='2' --margin='5%' --marker=' ✔' --pointer=' ↪︎' --separator='┈┉' --scrollbar='▌▐' --prompt='Search  ➤ ' --info='right' --border-label-pos='bottom,4' --preview-label-pos='bottom,4' --color 'fg:252,bg:233,hl:67,fg+:252,bg+:235,hl+:81,info:144,prompt:161,spinner:135,pointer:135,marker:118,border:254' --header=' CTRL-H Search Infomation ' --header-first"
-
-export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" --walker="file,dir,hidden,follow" --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" --preview-label="╢ Search ╟" --toggle-sort="ctrl-s" --border-label="╢ Command ╟" --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
-
-export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" --bind="focus:transform-preview-label:echo -n \"╢  {}  ╟\";" --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" --bind="ctrl-t:toggle-preview" --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" --bind="ctrl-n:page-down,ctrl-p:page-up" --bind="ctrl-a:toggle-all" --bind="ctrl-j:preview-down" --bind="ctrl-k:preview-up" --bind="ctrl-l:select-all+execute:less {+f}" --bind="ctrl-l:+deselect-all" --bind="≥:next-selected,≤:prev-selected" --bind="shift-up:first" --bind="shift-down:last" --bind="load:change-prompt:Loaded, Search ➤" --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
-
-export FZF_COMPLETION_OPTS="-1 --cycle --inline-info --ansi  --border='bottom' --layout='reverse' --preview '${MYRUNTIME}/customs/bin/_previewer {}' --preview-window 'right:70%:wrap'  $FZF_PREVIEW_KEY_BIND"
-
-export FZF_TAB_OPTS=(-1 --cycle --inline-info --ansi  --border='bottom' --layout='reverse'  --expect='/' --priview='(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500'  --preview-window='right:70%:border-rounded' --color='fg:#bbccdd,fg+:#ddeeff,bg:#334455,preview-bg:#223344,border:#778899')
-
-export FZF_CTRL_T_OPTS="--preview='(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -200'"
-
-export FZF_CTRL_R_OPTS="--bind='enter:accept-or-print-query' --reverse"
-
-export FZF_ALT_C_COMMAND='fd --type d . --color=never'
-
-export FZF_ALT_C_OPTS="--reverse"
-
-export FZF_TMUX_OPTS="-p"
-
-FZF_HELP_OPTS="--multi --layout='reverse' --preview-window='right,75%,wrap'  "
-
-FZF_HELP_OPTS+="--bind='ctrl-m:change-preview-window(down,75%,nowrap|right,75%,nowrap)'"
-
-export FZF_HELP_SYNTAX='help'
-
-export CLI_OPTIONS_CMD='ag -o --numbers -- $RE'
+export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
 
 _fzf_comprun() {
   local command=$1
@@ -49,8 +24,6 @@ _fzf_comprun() {
     *)            fzf "$@" ;;
   esac
 }
-
-export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
 
 _buildFzfHeader() {
 
@@ -78,21 +51,15 @@ _buildFzfHeader() {
     echo "$newheader "
 }
 
-# Use fd (https://github.com/sharkdp/fd) instead of the default find
-# command for listing path candidates.
-# - The first argument to the function ($1) is the base path to start traversal
-# - See the source code (completion.{bash,zsh}) for the details.
 _fzf_compgen_path() {
   fd --hidden --follow --exclude ".git" . "$1"
 }
 
-# Use fd to generate the list for directory completion
 _fzf_compgen_dir() {
   fd --type d --hidden --follow --exclude ".git" . "$1"
 }
 
 fzf_transformer='
-  # 1 line for info, another for prompt, and 2 more lines for preview window border
   lines=$(( FZF_LINES - FZF_MATCH_COUNT - 1 ))
   if [[ $FZF_MATCH_COUNT -eq 0 ]]; then
     echo "change-preview-window:hidden"
@@ -102,21 +69,116 @@ fzf_transformer='
     echo "change-preview-window:10"
   fi
 '
+
+FZF_DEFAULT_OPTS=" --min-height='40' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --cycle "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --inline-info "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --ansi "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border=rounded "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --layout=reverse "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --padding='2' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --margin='5%' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --marker=' ✔' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --pointer=' ↪︎' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --separator='┈┉' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --scrollbar='▌▐' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --prompt='Search  ➤ ' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --info='right' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border-label-pos='bottom,4' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --color 'fg:252,bg:233,hl:67,fg+:252,bg+:235,hl+:81,info:144,prompt:161,spinner:135,pointer:135,marker:118,border:254' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' --header-first"
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label="╢ Search ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢  {}  ╟\";" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-n:page-down,ctrl-p:page-up" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-a:toggle-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:select-all+execute:less {+f}" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:+deselect-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$transformer" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$transformer" '
+export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
+
+FZF_COMPLETION_OPTS=" -1 "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --cycle "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --inline-info "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --ansi  "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --border='bottom' "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --layout='reverse' "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --preview='${MYRUNTIME}/customs/bin/_previewer {}' "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --preview-window='right:70%:wrap' "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" $FZF_PREVIEW_KEY_BIND"
+export FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS
+
+FZF_TAB_OPTS=" -1 "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --cycle "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --inline-info "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --ansi "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --border='bottom' "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --layout='reverse'  "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --expect='/' "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --priview='(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500' "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --preview-window='right:70%:border-rounded' "
+FZF_TAB_OPTS=$FZF_TAB_OPTS" --color='fg:#bbccdd,fg+:#ddeeff,bg:#334455,preview-bg:#223344,border:#778899'"
+export FZF_TAB_OPTS=$FZF_TAB_OPTS
+
+FZF_CTRL_T_OPTS=" --preview='($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null | head -200' "
+export FZF_CTRL_T_OPTS=$FZF_CTRL_T_OPTS
+
+FZF_CTRL_R_OPTS=" --bind='enter:accept-or-print-query' "
+FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS" --reverse"
+export FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS
+
+export FZF_ALT_C_COMMAND='fd --type d . --color=never'
+
+export FZF_ALT_C_OPTS="--reverse"
+
+export FZF_TMUX_OPTS="-p"
+
+FZF_HELP_OPTS=" --multi "
+FZF_HELP_OPTS=$FZF_HELP_OPTS" --layout='reverse' "
+FZF_HELP_OPTS=$FZF_HELP_OPTS" --preview-window='right,75%,wrap' "
+FZF_HELP_OPTS=$FZF_HELP_OPTS" --bind='ctrl-m:change-preview-window(down,75%,nowrap|right,75%,nowrap)' "
+export FZF_HELP_OPTS=$FZF_HELP_OPTS
+
+export FZF_HELP_SYNTAX='help'
+
+export CLI_OPTIONS_CMD='ag -o --numbers -- $RE'
+
 if [ "zsh" = "$nowshell" ]; then
-  export FZF_CUSTOM_PARAMS=( --reverse \
+  FZF_CUSTOM_PARAMS=(--reverse \
   --multi \
-  --border-label='╢ Custom Command ╟' \
-  --preview=' echo {} ' \
-  --bind='focus:transform-preview-label:echo -n "╢  {}  ╟";' \
-  --bind="result:transform:$transformer" \
-  --bind="resize:transform:$transformer" \
-  --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo ' Search Infomation ')+preview:($MYRUNTIME/customs/bin/_previewer 'help')" \
-  --header="$(_buildFzfHeader '' '')" \
-  --header-first \
-  )
+  --border-label="╢Custom Command╟" \
+  --preview='echo {}' \
+  --bind='focus:transform-preview-label:echo -n "╢ {} ╟";' \
+  --bind='ctrl-h:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
+  --header='$(_buildFzfHeader "" "")' \
+  --header-first)
+  export FZF_CUSTOM_PARAMS
+
   #--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
   #ctrl-l 不是所有的都好用, 还没弄清楚为什么有的好使,有的不行
 elif [ "bash" = "$nowshell" ]; then
   # 导出为环境变量
-  export FZF_CUSTOM_PARAMS="--reverse --multi "
+  FZF_CUSTOM_PARAMS='--reverse '
+  FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --multi "
+  FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --header-first "
+  export FZF_CUSTOM_PARAMS
 fi

@@ -7,6 +7,7 @@
 # - https://github.com/sharkdp/bat
 # - https://github.com/hpjansson/chafa
 # - https://iterm2.com/utilities/imgcat
+# - https://github.com/hzeller/timg
 # - tree
 
 if [[ $# -ne 1 ]]; then
@@ -29,6 +30,7 @@ if [ "$file" = "help" ]; then
 else
   type=$(file --dereference --mime -- "$file")
   if [[ ! $type =~ image/ ]]; then
+    # If the file is a directory
     if [[ $type =~ /directory ]]; then
       if command -v tree > /dev/null; then
           treename="tree -C "
@@ -37,104 +39,76 @@ else
       fi
       $treename "$file"
       exit
-    fi
+    else
+      case $file in
+        *.pdf)
+          pdftotext "$file" |less
+          exit
+        ;;
+        *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown)
+          glow "$file" | less
+          exit
+        ;;
+        *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
+          timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) "$file"
+          exit
+        ;;
+        *.zip)
+          unzip -l "$file"
+          exit
+        ;;
+        *.tar.gz)
+          tar -ztvf "$file"
+          exit
+        ;;
+        *.tar.bz2)
+          tar -jtvf "$file"
+          exit
+        ;;
+        *.tar.xz)
+          tar -Jtvf "$file"
+          exit
+        ;;
+        *.tar)
+          tar -tvf "$file"
+          exit
+        ;;
+      esac
 
-    case $file in
-      *.pdf) #pdf文件展示
-        pdftotext "$file" |less
-        exit
-      ;;
-      *.md|*.MD|*.markdown|*.MARKDOWN)
-        glow "$file" | less
-        exit
-      ;;
-      *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
-        timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) "$file"
-        exit
-      ;;
-      *.zip)
-        unzip -l "$file"
-        exit
-      ;;
-      *.tar.gz)
-        tar -ztvf "$file"
-        exit
-      ;;
-      *.tar.bz2)
-        tar -jtvf "$file"
-        exit
-      ;;
-      *.tar.xz)
-        tar -Jtvf "$file"
-        exit
-      ;;
-      *.tar)
-        tar -tvf "$file"
-        exit
-      ;;
-      *)
-        bat --theme=gruvbox-dark --color=always --style=header,grid,numbers "$file" || exa "$file"
-        exit
-      ;;
-    esac
+      [[ $type =~ =binary ]] && file "$file"
 
-    if [[ $type =~ =binary ]]; then
-      file "$file"
+      if command -v batcat > /dev/null; then
+        batname="batcat"
+      elif command -v bat > /dev/null; then
+        batname="bat"
+      else
+        cat "$1"
+        exit
+      fi
+      ${batname} --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never -- "$file"
       exit
     fi
-
-    # Sometimes bat is installed as batcat.
-    if command -v batcat > /dev/null; then
-      batname="batcat"
-    elif command -v bat > /dev/null; then
-      batname="bat"
-    else
-      cat "$1"
-      exit
-    fi
-
-    ${batname} --style="${BAT_STYLE:-numbers}" --color=always --pager=never -- "$file"
-    exit
-  fi
-
-  dim=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}
-  if [[ $dim = x ]]; then
-    dim=$(stty size < /dev/tty | awk '{print $2 "x" $1}')
-  elif ! [[ $KITTY_WINDOW_ID ]] && (( FZF_PREVIEW_TOP + FZF_PREVIEW_LINES == $(stty size < /dev/tty | awk '{print $1}') )); then
-    # Avoid scrolling issue when the Sixel image touches the bottom of the screen
-    # * https://github.com/junegunn/fzf/issues/2544
-    dim=${FZF_PREVIEW_COLUMNS}x$((FZF_PREVIEW_LINES - 1))
-  fi
-echo $nowterm
-  # 1. Use kitty icat on kitty terminal
-  if [[ $KITTY_WINDOW_ID ]]; then
-    # 1. 'memory' is the fastest option but if you want the image to be scrollable,
-    #    you have to use 'stream'.
-    #
-    # 2. The last line of the output is the ANSI reset code without newline.
-    #    This confuses fzf and makes it render scroll offset indicator.
-    #    So we remove the last line and append the reset code to its previous line.
-    kitty icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" "$file" | sed '$d' | sed $'$s/$/\e[m/'
-
-  # 2. Use chafa with Sixel output
-  elif command -v chafa > /dev/null; then
-    if [ "Warp" = "$nowterm" ]; then
-      chafa -s "$dim" "$file"
-    else
-      chafa -f sixel -s "$dim" "$file"
-    fi
-    # Add a new line character so that fzf can display multiple images in the preview window
-    echo
-
-  # 3. If chafa is not found but imgcat is available, use it on iTerm2
-  elif command -v imgcat > /dev/null; then
-    # NOTE: We should use https://iterm2.com/utilities/it2check to check if the
-    # user is running iTerm2. But for the sake of simplicity, we just assume
-    # that's the case here.
-    imgcat -W "${dim%%x*}" -H "${dim##*x}" "$file"
-
-  # 4. Cannot find any suitable method to preview the image
   else
-    file "$file"
+    dim=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}
+    if [[ $dim = x ]]; then
+      dim=$(stty size < /dev/tty | awk '{print $2 "x" $1}')
+    elif ! [[ $KITTY_WINDOW_ID ]] && (( FZF_PREVIEW_TOP + FZF_PREVIEW_LINES == $(stty size < /dev/tty | awk '{print $1}') )); then
+      dim=${FZF_PREVIEW_COLUMNS}x$((FZF_PREVIEW_LINES - 1))
+    fi
+
+    if [[ $KITTY_WINDOW_ID ]]; then
+      kitty icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" "$file" | sed '$d' | sed $'$s/$/\e[m/'
+    elif command -v chafa > /dev/null; then
+      if [ "Warp" = "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" ]; then
+        chafa -s "$dim" "$file"
+      else
+        chafa -f sixel -s "$dim" "$file"
+      fi
+      echo
+    elif command -v imgcat > /dev/null; then
+      imgcat -W "${dim%%x*}" -H "${dim##*x}" "$file"
+    else
+      file "$file"
+    fi
   fi
 fi
