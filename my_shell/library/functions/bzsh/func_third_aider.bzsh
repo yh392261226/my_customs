@@ -45,7 +45,7 @@ alias fdrs="fzf_develop_references_searcher"                                    
 
 function fzf_cheatsheets_searcher() {                                               # Desc: function: fzf_cheatsheets_searcher: 利用fzf和别人做的快速参考和文档进行搜索
     local MDDIR=$MYRUNTIME/customs/others/cheatsheets
-    [[ ! -d $MDDIR ]] && echo "https://github.com/rstacruz/cheatsheets?tab=readme-ov-file" && return 1
+    [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/rstacruz/cheatsheets?tab=readme-ov-file" && return 1
     ls ${MDDIR}/*.md | grep -v 'README.md' | awk -F'/' '{print $NF}' | fzf $FZF_CUSTOM_PARAMS +m \
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/{})" \
@@ -54,3 +54,11 @@ function fzf_cheatsheets_searcher() {                                           
     --preview="glow --style=dark -p ${MDDIR}/{}"
 }
 alias fcs="fzf_cheatsheets_searcher"                                                # Desc: alias: fcs: fzf_cheatsheets_searcher命令的别名,利用fzf和别人做的快速参考和文档进行搜索
+
+function drawdb() {                                                                 # Desc: function: drawdb: Free, simple, and intuitive database design tool and SQL generator.
+    [[ ! -d $MYRUNTIME/customs/others/drawdb ]] && echo "https://github.com/drawdb-io/drawdb?tab=readme-ov-file" && return 1
+    customcd $MYRUNTIME/customs/others/drawdb
+    npm install
+    npm run dev
+}
+alias ddb="drawdb"                                                                  # Desc: alias: ddb: drawdb命令的别名,Free, simple, and intuitive database design tool and SQL generator.

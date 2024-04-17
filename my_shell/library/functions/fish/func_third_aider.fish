@@ -51,5 +51,15 @@ function fzf_cheatsheets_searcher
         --header "$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
         --preview "glow --style=dark -p $MDDIR/{}"
 end
+alias fcs="fzf_cheatsheets_searcher"
 
-alias fcs "fzf_cheatsheets_searcher"
+function drawdb
+    if not test -d $MYRUNTIME/customs/others/drawdb
+        echo "https://github.com/drawdb-io/drawdb?tab=readme-ov-file"
+        return 1
+    end
+    cd $MYRUNTIME/customs/others/drawdb
+    npm install
+    npm run dev
+end
+alias ddb="drawdb"

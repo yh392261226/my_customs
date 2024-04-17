@@ -67,3 +67,6 @@
 [submodule "warp/themes"]
 	path = warp/themes
 	url = git@github.com:austintraver/warp-theme.git
+[submodule "others/drawdb"]
+	path = others/drawdb
+	url = git@github.com:drawdb-io/drawdb.git
