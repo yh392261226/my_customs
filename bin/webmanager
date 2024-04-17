@@ -3,11 +3,10 @@
 
 WEBSITELOGS="$MYRUNTIME/tools/websites"
 BROWSER="/Applications/Safari.app"
-tmp_iterm="soft"
+tmp_iterm=""
 tmp_action="list"
 LOGARR=()
 [[ ! -d $WEBSITELOGS ]] && mkdir -p $WEBSITELOGS
-# TMPLOGS=$(cd $WEBSITELOGS && ls | grep '.*_websites.log' | sed 's/_websites.log//g')
 TMPLOGS=$(ls $WEBSITELOGS | grep '.*_websites.log' | sed 's/_websites.log//g')
 
 [[ -f $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh
@@ -49,22 +48,24 @@ function help() {
     echo "      edit|e|add|a 编辑记录"
     echo "      help|e       帮助信息"
     echo "Eg.:"
-    echo "  webmanager 0 list"
-    echo "  webmanager 1 list"
+    echo "  webmanager soft list"
     echo ""
     echo "''''''''''''''''''''''''''''''''''''''''"
 }
 
 if [[ "${LOGARR[*]}" =~ "$tmp_iterm" ]]; then
-    WEBSITES="$WEBSITELOGS/${tmp_iterm}_websites.log"
+    if [[ -f $WEBSITELOGS/${tmp_iterm}_websites.log ]]; then
+        WEBSITES="$WEBSITELOGS/${tmp_iterm}_websites.log"
+    else
+        help
+        exit 0
+    fi
+elif [[ "create" = "$tmp_iterm" ]]; then
+    touch $WEBSITELOGS/${tmp_action}_websites.log
+    nvim $WEBSITELOGS/${tmp_action}_websites.log
 else
     help
     exit 0
-fi
-
-if [ ! -f $WEBSITES ]; then
-    [[ ! -d $(dirname $WEBSITES) ]] && mkdir -p $(dirname $WEBSITES)
-    touch $WEBSITES
 fi
 
 case "$tmp_action" in
