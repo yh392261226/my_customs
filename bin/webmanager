@@ -50,6 +50,7 @@ function help() {
     echo "      edit|e|add|a 编辑记录"
     echo "      help|e       帮助信息"
     echo "      list         列出记录"
+    echo "      cat          显示记录"
     echo "      filename     配合create创建文件"
     echo "Eg.:"
     echo "  webmanager soft list"
@@ -78,6 +79,13 @@ fi
 case "$tmp_action" in
     "e"|"edit"|"a"|"add")
         nvim $WEBSITES
+    ;;
+    "c"|"cat")
+        if [ "command -v ccat" = "" ]; then
+            cat $WEBSITES
+        else
+            ccat $WEBSITES
+        fi
     ;;
     "h"|"help")
         help
