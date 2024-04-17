@@ -2,7 +2,7 @@
 ### Desc: 网址管理器: 通过向网址目录增加以_websites.log结尾的文件名自动形成网址管理
 
 WEBSITELOGS="$MYRUNTIME/tools/websites"
-BROWSER="/Applications/Safari.app"
+OPENBROWSER="/Applications/Safari.app"
 tmp_iterm=""
 tmp_action="list"
 LOGARR=()
@@ -27,7 +27,7 @@ function list() {
     --header-first --header-lines=1)
     if [[ -n $choose ]]; then
         for url in $choose; do
-            /usr/bin/open -a "$BROWSER" "$url"
+            /usr/bin/open -a "$OPENBROWSER" "$url"
         done
     fi
 }
@@ -41,12 +41,16 @@ function help() {
     echo "Command: webmanager"
     echo "  Iterm:(\$1)"
     for ((i=0; i<${#LOGARR[@]}; i++)); do
-        echo "      $i: $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
+        echo "      $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
     done
+    echo "      create 创建新记录"
+    echo "      dir    打开目录"
     echo ""
     echo "  Action:(\$2)"
     echo "      edit|e|add|a 编辑记录"
     echo "      help|e       帮助信息"
+    echo "      list         列出记录"
+    echo "      filename     配合create创建文件"
     echo "Eg.:"
     echo "  webmanager soft list"
     echo ""
@@ -63,6 +67,9 @@ if [[ "${LOGARR[*]}" =~ "$tmp_iterm" ]]; then
 elif [[ "create" = "$tmp_iterm" ]]; then
     touch $WEBSITELOGS/${tmp_action}_websites.log
     nvim $WEBSITELOGS/${tmp_action}_websites.log
+elif [[ "dir" = "$tmp_iterm" ]]; then
+    echo "$WEBSITELOGS"
+    builtin cd $WEBSITELOGS && exa .
 else
     help
     exit 0
