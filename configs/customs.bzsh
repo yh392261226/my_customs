@@ -1,0 +1,91 @@
+[[ -d /usr/local/opt/openssl/lib ]] && export LDFLAGS="-L/usr/local/opt/openssl/lib"
+[[ -d /usr/local/opt/openssl/include ]] && export CPPFLAGS="-I/usr/local/opt/openssl/include"
+
+[[ -d /data/mycat/bin ]] && export PATH=/data/mycat/bin:$PATH
+
+#[[ -d $HOME/bin/xpdf-tools ]] && export PATH=$HOME/bin/xpdf-tools/bin64:$PATH
+
+# 利用theme命令 自动更换喜欢的主题
+#eval $($MYRUNTIME/customs/bin/theme frontend-delight)
+# 利用theme命令 自动更换主题为上一次选择的主题
+eval $($MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)")
+
+
+# languages
+#-------------------------------------------------------------------
+#####golang
+#------------
+#export GOROOT=$HOME/go1.4
+#export PATH=$PATH:$HOME/go1.4/bin
+[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+export GOROOT=$(brew --prefix go)/libexec
+export GOPATH=$HOME/go-develop
+#export GOBIN=$GOPATH/bin
+export PATH=$(brew --prefix go)/libexec/bin:$PATH
+export PATH=$GOPATH/bin:$PATH
+export GOOS=darwin
+export GOARCH=arm64
+export GO111MODULE=on
+#export GOBOOK=$HOME/go-develop/gobook
+#. $GOBOOK/env.sh
+alias goweb="godoc -http=:9900 >> /dev/null &"                                                                      # Desc: alias: goweb:godoc的web版别名
+#alias gopl="open $HOME/Documents/golang/gopl-zh/_book/index.html"
+
+#####java
+#------------
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-17.0.1.jdk/Contents/Home 
+JAVAHOME=$JAVA_HOME
+CLASS_PATH="$JAVA_HOME/lib"
+CLASSPATH="$JAVA_HOME/lib"
+PATH="$JAVA_HOME/bin:$PATH"
+if [ "$PLATFORM" = 'Darwin' ]; then
+    # Desc: function j 设置环境变量JAVA_HOME
+    function j() { # Desc: function: j:设置JAVA_HOME的环境变量
+        export JAVA_HOME=$(/usr/libexec/java_home -v1.$1);
+    }
+fi
+
+#####php
+#------------
+#export PATH="$(brew --prefix homebrew/core/php@72)/bin:$(brew --prefix homebrew/core/php@72)/sbin:$PATH"
+### add php-school
+#export PATH="$PATH:$HOME/.php-school/bin"
+#source $(brew --prefix php-version)/php-version.sh && php-version 7
+[[ -e $HOME/.phpbrew/bashrc ]] && source $HOME/.phpbrew/bashrc
+
+#####python
+#------------
+# if [ -d $HOME/Library/Python/2.7/bin/ ]; then
+#     export PATH="$HOME/Library/Python/2.7/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.5/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.5/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.6/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.6/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.7/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.7/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.8/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.8/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.9/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.10/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.10/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.11/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.11/bin:$PATH"
+# fi
+# if [ -d $HOME/Library/Python/3.12/bin/ ]; then
+#     export PATH="$HOME/Library/Python/3.12/bin:$PATH"
+# fi
+
+#####composer
+#------------
+[[ -d $HOME/.composer/vendor/bin ]] && export PATH="$PATH:$HOME/.composer/vendor/bin"
+
+[[ -f $HOME/.sdkman/bin/sdkman-init.sh ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+[[ -d $HOME/.rd/bin ]] && export PATH="$HOME/.rd/bin:$PATH"

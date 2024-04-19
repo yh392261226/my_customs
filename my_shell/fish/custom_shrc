@@ -54,6 +54,6 @@ set -gx nowpanel (curPanel)
 
 source $my_custom_sh/library/core/fish/core_library.fish
 
-if test -f $HOME/.config/fish/custom.fish
-	source $HOME/.config/fish/custom.fish
+if test -f $HOME/.config/fish/customs.fish
+	source $HOME/.config/fish/customs.fish
 end

@@ -88,3 +88,6 @@
 [submodule "others/oh-my-zsh"]
 	path = others/oh-my-zsh
 	url = git@github.com:ohmyzsh/ohmyzsh.git
+[submodule "others/SpaceVim"]
+	path = others/SpaceVim
+	url = git@gitlab.com:SpaceVim/SpaceVim.git
