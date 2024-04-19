@@ -91,3 +91,7 @@ source $MYRUNTIME/customs/my_shell/rcfile
 if command -v vfox &> /dev/null; then
   eval "$(vfox activate bash)"
 fi
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/yanghao/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
