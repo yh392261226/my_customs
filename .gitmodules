@@ -76,3 +76,15 @@
 [submodule "others/tmux_configs"]
 	path = others/tmux_configs
 	url = git@github.com:yh392261226/my_tmux_conf.git
+[submodule "others/bash-it"]
+	path = others/bash-it
+	url = git@github.com:Bash-it/bash-it.git
+[submodule "others/oh-my-git"]
+	path = others/oh-my-git
+	url = git@github.com:arialdomartini/oh-my-git.git
+[submodule "others/antigen"]
+	path = others/antigen
+	url = git@github.com:zsh-users/antigen.git
+[submodule "others/oh-my-zsh"]
+	path = others/oh-my-zsh
+	url = git@github.com:ohmyzsh/ohmyzsh.git

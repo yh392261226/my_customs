@@ -13,13 +13,13 @@ export UPDATE_ZSH_DAYS=7
 #ZSH_THEME="powerlevel9k/powerlevel9k"
 #ZSH_THEME="spaceship"
 # ZSH_THEME="cviebrock"
-ZSH_THEME_RANDOM_CANDIDATES=(
-	"amuse"
-	"powerlevel9k/powerlevel9k"
-	"spaceship"
-	"cviebrock"
-	"powerlevel10k/powerlevel10k"
-)
+#ZSH_THEME_RANDOM_CANDIDATES=(
+#	"amuse"
+#	"powerlevel9k/powerlevel9k"
+#	"spaceship"
+#	"cviebrock"
+#	"powerlevel10k/powerlevel10k"
+#)
 #ZSH_THEME="amuse" 
 #powerlevel9k的主题设置 参考网址：https://github.com/bhilburn/powerlevel9k
 ### custom setting
@@ -86,7 +86,7 @@ ZSH_THEME_RANDOM_CANDIDATES=(
 ##POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=('status' 'custom_wifi_signal' 'battery' 'time')
 ##POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="╰─➢ "
 ##
-ZSH_THEME="powerlevel10k/powerlevel10k"
+#ZSH_THEME="powerlevel10k/powerlevel10k"
 
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
