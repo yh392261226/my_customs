@@ -245,7 +245,12 @@ function update_git_files_and_modules() {                                       
         fi
         if [ -f $filepath/$f/.gitmodules ]; then
             echo $filepath/$f
-            customcd $filepath/$f/ && /usr/bin/git submodule update --init --recursive
+            customcd $filepath/$f/ && /usr/bin/git submodule update --init --recursive && git submodule update --recursive --remote
+            if [ "$(git status --porcelain)" != "" ]; then
+                git add .
+                git commit -m "Update submodules"
+                git push
+            fi
         fi
     done
     customcd ~
