@@ -15,13 +15,13 @@
 	url = git@github.com:changyuheng/fz.git
 [submodule "others/fzf-help"]
 	path = others/fzf-help
-	url = https://github.com/BartSte/fzf-help.git
+	url = git@github.com:BartSte/fzf-help.git
 [submodule "others/fzf-tab-completion"]
 	path = others/fzf-tab-completion
-	url = https://github.com/lincheney/fzf-tab-completion.git
+	url = git@github.com:lincheney/fzf-tab-completion.git
 [submodule "others/git-fuzzy"]
 	path = others/git-fuzzy
-	url = https://github.com/bigH/git-fuzzy.git
+	url = git@github.com:bigH/git-fuzzy.git
 [submodule "others/gvcci"]
 	path = others/gvcci
 	url = git@github.com:yh392261226/gvcci.git
@@ -36,13 +36,13 @@
 	url = git@github.com:JetBrains/phpstorm-stubs.git
 [submodule "others/reference"]
 	path = others/reference
-	url = https://github.com/jaywcjlove/reference.git
+	url = git@github.com:jaywcjlove/reference.git
 [submodule "others/up"]
 	path = others/up
 	url = git@github.com:shannonmoeller/up.git
 [submodule "others/webui-aria2"]
 	path = others/webui-aria2
-	url = https://github.com/ziahamza/webui-aria2
+	url = git@github.com:ziahamza/webui-aria2.git
 [submodule "others/zfm"]
 	path = others/zfm
 	url = git@github.com:pabloariasal/zfm.git
