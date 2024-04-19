@@ -70,3 +70,9 @@
 [submodule "others/drawdb"]
 	path = others/drawdb
 	url = git@github.com:drawdb-io/drawdb.git
+[submodule "others/yh392261226_nvim_config"]
+	path = others/yh392261226_nvim_config
+	url = git@github.com:yh392261226/nvim_config
+[submodule "others/tmux_configs"]
+	path = others/tmux_configs
+	url = git@github.com:yh392261226/my_tmux_conf.git
