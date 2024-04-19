@@ -1,5 +1,5 @@
 # my_customs
-This project can be used for Mac osx Iterm2 & terminal with bash or zsh only
+This project can be used for Mac osx Iterm2 & terminal with zsh、bash or fish
 SHELL custom configs:
 
 **********************************************
