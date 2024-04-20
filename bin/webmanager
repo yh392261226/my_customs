@@ -20,14 +20,18 @@ function list() {
         echo "It's empty in websites records !!!"
         exit 0
     fi
-    choose=$(cat $WEBSITES | fzf $FZF_CUSTOM_PARAMS \
-    --preview 'echo {}' \
-    --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
-    --header $'CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序 \n| CTRL-N 下翻页 | CTRL-P 上翻页' \
+    choose=$(cat $WEBSITES | fzf $FZF_CUSTOM_PARAMS --delimiter '#' \
+    --preview='echo {} | sed "s/#/\\n/g"' \
+    --bind='focus:transform-preview-label:echo -n "[ {1} ]";' \
+    --bind='ctrl-y:execute-silent(echo -n {2} | pbcopy)+abort' \
+    --header=$"网址管理工具: Ctrl-H 帮助中心" \
     --header-first --header-lines=1)
     if [[ -n $choose ]]; then
         for url in $choose; do
-            /usr/bin/open -a "$OPENBROWSER" "$url"
+            url=$(echo $url | grep -E 'http[s]?://.*')
+            if [ "" != "$url" ] && [ "#" != "$url" ]; then
+                /usr/bin/open -a "$OPENBROWSER" "$url"
+            fi
         done
     fi
 }
@@ -38,7 +42,7 @@ done
 
 function help() {
     echo "''''''''''''''''''''''''''''''''''''''''"
-    echo "Command: webmanager"
+    echo "Command: webmanager [wm]"
     echo "  Iterm:(\$1)"
     for ((i=0; i<${#LOGARR[@]}; i++)); do
         echo "      $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
