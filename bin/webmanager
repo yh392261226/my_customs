@@ -24,6 +24,7 @@ function list() {
     --preview='echo {} | sed "s/#/\\n/g"' \
     --bind='focus:transform-preview-label:echo -n "[ {1} ]";' \
     --bind='ctrl-y:execute-silent(echo -n {2} | pbcopy)+abort' \
+    --bind="ctrl-e:execute(nvim $WEBSITES < /dev/tty > /dev/tty)+reload(cat $WEBSITES)" \
     --header=$"网址管理工具: Ctrl-H 帮助中心" \
     --header-first --header-lines=1)
     if [[ -n $choose ]]; then
