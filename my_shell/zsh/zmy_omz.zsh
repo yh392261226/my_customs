@@ -92,8 +92,8 @@ export UPDATE_ZSH_DAYS=7
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
 plugins=(
     ag
-	mvn
-	autojump
+	  mvn
+	  autojump
     bbedit
     colored-man-pages
     colorize
@@ -105,21 +105,21 @@ plugins=(
     git-auto-fetch
 #	svn
 #	svn-fast-info
-	golang
-	history
-	git-flow
-	node
-	macos
-	cp
-	perl
-	python
-	ruby
-	rsync
-	urltools
+	  golang
+	  history
+	  git-flow
+	  node
+	  macos
+	  cp
+	  perl
+	  python
+	  ruby
+	  rsync
+	  urltools
     jsontools
-	copypath
-	copyfile
-	copybuffer
+	  copypath
+	  copyfile
+	  copybuffer
     # fzf-brew
 	# zsh-autosuggestions
 	# zsh-syntax-highlighting

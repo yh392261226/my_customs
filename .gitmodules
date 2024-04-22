@@ -91,3 +91,6 @@
 [submodule "others/SpaceVim"]
 	path = others/SpaceVim
 	url = git@gitlab.com:SpaceVim/SpaceVim.git
+[submodule "others/chinese-independent-developer"]
+	path = others/chinese-independent-developer
+	url = git@github.com:1c7/chinese-independent-developer.git
