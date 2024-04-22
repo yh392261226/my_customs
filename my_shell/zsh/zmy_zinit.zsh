@@ -152,7 +152,12 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit ice lucid wait='2'
     # svn工具
     zinit ice svn
-    zinit ice depth=1; zinit light romkatv/powerlevel10k
+    if [ "starship" != "$(cat $HOME/.prompt_config)" ]; then
+        zinit ice depth=1
+        zinit light romkatv/powerlevel10k
+    else
+        eval "$(starship init zsh)"
+    fi
 fi
 
 #bindkey ',' autosuggest-accept
