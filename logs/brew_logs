@@ -996,4 +996,4 @@ brew install lux
 brew install bearer/tap/bearer
 brew install timg
 brew install supabase/tap/supabase
-
+brew install harelba/q/q
