@@ -3,17 +3,19 @@ zmodload zsh/zprof
 autoload -U +X bashcompinit && bashcompinit
 autoload -U +X compinit && compinit
 export PATH="/opt/homebrew/sbin:/opt/homebrew/bin:$PATH"
-source $(cat ~/.myruntime)/customs/my_shell/rcfile
+source $(cat $HOME/.myruntime)/customs/my_shell/rcfile
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[ -f $HOME/.fzf.zsh ] && source $HOME/.fzf.zsh
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
-[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
+if [ "starship" != "$(cat $HOME/.prompt_config)" ] && [ "roundy" = "$(cat $HOME/.prompt_config)" ]; then
+  [[ -f $HOME/.p10k.zsh ]] && source $HOME/.p10k.zsh
+fi
 echo ""
 
-[[ -d ~/.console-ninja/.bin ]] && export 
+[[ -d $HOME/.console-ninja/.bin ]] && export PATH=$HOME/.console-ninja/.bin:$PATH
 unset ZSH_AUTOSUGGEST_USE_ASYNC
 alias gf=gf
 

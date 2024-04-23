@@ -56,9 +56,22 @@ function fzf_cheatsheets_searcher() {                                           
 alias fcs="fzf_cheatsheets_searcher"                                                # Desc: alias: fcs: fzf_cheatsheets_searcher命令的别名,利用fzf和别人做的快速参考和文档进行搜索
 
 function drawdb() {                                                                 # Desc: function: drawdb: Free, simple, and intuitive database design tool and SQL generator.
-    [[ ! -d $MYRUNTIME/customs/others/drawdb ]] && echo "https://github.com/drawdb-io/drawdb?tab=readme-ov-file" && return 1
-    customcd $MYRUNTIME/customs/others/drawdb
+    local MDDIR=$MYRUNTIME/customs/others/drawdb
+    [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/drawdb-io/drawdb?tab=readme-ov-file" && return 1
+    customcd $MDDIR
     npm install
     npm run dev
 }
 alias ddb="drawdb"                                                                  # Desc: alias: ddb: drawdb命令的别名,Free, simple, and intuitive database design tool and SQL generator.
+
+#未完成
+function fzf_chinese_independent_developer() {                                      # Desc: function: fzf_chinese_independent_developer: 中国独立开发者项目列表
+    local MDDIR=$MYRUNTIME/customs/others/chinese-independent-developer
+    [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/1c7/chinese-independent-developer?tab=readme-ov-file" && return 1
+
+    cat $MDDIR/README-Programmer-Edition.md $MDDIR/README.md | grep ':white_check_mark:' | sed 's/:white_check_mark://g' | sed 's/^\*//g' | sed 's/^\-//g' | sed 's/^[[:space:]]*//g' | awk -F']' '{print $1}' | sed 's/^\[//g' | fzf $FZF_CUSTOM_PARAMS \
+        --preview="cat $MDDIR/README-Programmer-Edition.md $MDDIR/README.md | grep -F \[{}] | sed 's/:white_check_mark://g' | sed 's/^*//g' | sed 's/^-//g' | sed 's/[[:space:]]*//g'" \
+        --bind="enter:execute-silent(echo {} | pbcopy)+abort" \
+        --header="$(_buildFzfHeader '' 'fzf_chinese_independent_developer')"
+}
+alias fcid="fzf_chinese_independent_developer"                                      # Desc: alias: fcid: fzf_chinese_independent_developer命令的别名,中国独立开发者项目列表
