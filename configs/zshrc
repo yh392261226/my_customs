@@ -13,10 +13,10 @@ fi
 
 echo ""
 
-[[ -d ~/.console-ninja/.bin ]] && export PATH=~/.console-ninja/.bin:$PATH
+[[ -d ~/.console-ninja/.bin ]] && export 
 unset ZSH_AUTOSUGGEST_USE_ASYNC
 alias gf=gf
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/yanghao/.rd/bin:$PATH"
+export PATH="$HOME/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
