@@ -19,13 +19,12 @@ curshell() {
 }
 
 curterm() {
-    TMPCURTERM=$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')
     CURTERM="Unknow"
-    if [ "$TMPCURTERM" = "iTerm.app" ]; then
+    if [ "$TERM_PROGRAM" = "iTerm.app" ]; then
         CURTERM='iTerm'
-    elif [ "$TMPCURTERM" = "Apple_Terminal" ]; then
+    elif [ "$TERM_PROGRAM" = "Apple_Terminal" ]; then
         CURTERM='Terminal'
-    elif [ "$TMPCURTERM" = "WarpTerminal" ]; then
+    elif [ "$TERM_PROGRAM" = "WarpTerminal" ]; then
         CURTERM='Warp'
     else
         CURTERM='Unknow'
