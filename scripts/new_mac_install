@@ -148,6 +148,8 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     ln -sf $MYRUNTIME/customs/configs/warp                      ~/.warp
     mv ~/.customs.bzsh ~/bak/
     ln -sf $MYRUNTIME/customs/configs/customs.bzsh              ~/.customs.bzsh
+    mv ~/.prompt_config ~/bak/
+    ln -sf $MYRUNTIME/customs/configs/prompt_config             ~/.prompt_config
     
     mv ~/.config/zellij ~/bak/config/
     ln -sf $MYRUNTIME/customs/configs/zellij                    ~/.config/zellij

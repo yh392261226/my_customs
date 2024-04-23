@@ -133,8 +133,6 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light paulirish/git-open
     # fzf brew插件
     zinit light thirteen37/fzf-brew
-    # zsh原型prompt
-    zinit light metaory/zsh-roundy-prompt
 
     # ASDF
     if [ -d "$HOME/.asdf" ]; then
@@ -154,11 +152,15 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit ice lucid wait='2'
     # svn工具
     zinit ice svn
-    if [ "starship" != "$(cat $HOME/.prompt_config)" ]; then
+    if [ "starship" = "$(cat $HOME/.prompt_config)" ]; then
+        # starship
+        eval "$(starship init zsh)"
+    elif [ "roundy" = "$(cat $HOME/.prompt_config)" ]; then
+        # zsh圆型prompt
+        zinit light metaory/zsh-roundy-prompt
+    else
         zinit ice depth=1
         zinit light romkatv/powerlevel10k
-    else
-        eval "$(starship init zsh)"
     fi
 fi
 
