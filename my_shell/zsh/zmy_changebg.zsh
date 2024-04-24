@@ -13,9 +13,9 @@ if [ -z $BGTHUMB ]; then
   BGTHUMB=0
 fi
 ##### 背景图变换
-if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统 
+if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
-        if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
+        if [ "$TERM_PROGRAM" = "iTerm.app" ]; then #判断当前使用的是否是iterm
             image_index=-1
             #图像缩略图
             bg_thumb() {
