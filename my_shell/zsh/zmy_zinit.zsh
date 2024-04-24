@@ -158,6 +158,39 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     elif [ "roundy" = "$(cat $HOME/.prompt_config)" ]; then
         # zsh圆型prompt
         zinit light metaory/zsh-roundy-prompt
+### Zsh Roundy Prompt Configures #https://github.com/metaory/zsh-roundy-prompt
+ROUNDY_EXITSTATUS_OK="➤"
+ROUNDY_EXITSTATUS_NO="➤"
+#ROUNDY_TEXC_ICON="✎"
+ROUNDY_TEXC_ICON="ﮫ"
+ROUNDY_TEXC_MIN_MS=5
+ROUNDY_USER_CONTENT_NORMAL=" %n "
+ROUNDY_USER_CONTENT_ROOT=" %n "
+ROUNDY_DIR_MODE="short"
+ROUNDY_PROMPT_HAS_GAP=true
+
+# Command Exit Status
+ROUNDY_COLORS_BG_EXITSTATUS_OK=4
+ROUNDY_COLORS_FG_EXITSTATUS_OK=0
+
+ROUNDY_COLORS_BG_EXITSTATUS_NO=1
+ROUNDY_COLORS_FG_EXITSTATUS_NO=0
+
+# Time Execution of Command
+ROUNDY_COLORS_BG_TEXC=2
+ROUNDY_COLORS_FG_TEXC=0
+
+# User Display
+ROUNDY_COLORS_BG_USER=8
+ROUNDY_COLORS_FG_USER=255
+
+# Directory Info
+ROUNDY_COLORS_BG_DIR=8
+ROUNDY_COLORS_FG_DIR=255
+
+# Git Info
+ROUNDY_COLORS_BG_GITINFO=5
+ROUNDY_COLORS_FG_GITINFO=0
     else
         zinit ice depth=1
         zinit light romkatv/powerlevel10k
