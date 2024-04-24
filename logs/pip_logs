@@ -82,3 +82,5 @@ pipx install pyfunky
 pipx install DrissionPage
 
 pipx install manim
+
+python3.9 -m pip install --upgrade zsh-startif
