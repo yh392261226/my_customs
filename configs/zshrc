@@ -10,9 +10,6 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-if [ "starship" != "$(cat $HOME/.prompt_config)" ] && [ "roundy" = "$(cat $HOME/.prompt_config)" ]; then
-  [[ -f $HOME/.p10k.zsh ]] && source $HOME/.p10k.zsh
-fi
 echo ""
 
 [[ -d $HOME/.console-ninja/.bin ]] && export PATH=$HOME/.console-ninja/.bin:$PATH

@@ -90,35 +90,15 @@ fi
 [[ -f $HOME/.sdkman/bin/sdkman-init.sh ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 [[ -d $HOME/.rd/bin ]] && export PATH="$HOME/.rd/bin:$PATH"
 
-### Zsh Roundy Prompt Configures
-# Icon definition for Command's Exit Status
-# Note: If your custom symbol overlaps the background or didn't have enough width,
-#       you can add space at the end of your defined symbol.
-ROUNDY_EXITSTATUS_OK="●"
-# You can also using hex code like this
-ROUNDY_EXITSTATUS_NO="✖"
-
-# Icon definition for Time Execution
-ROUNDY_TEXC_ICON="▲"
-# ROUNDY_TEXC_ICON="ﮫ"
-
-# Minimal time (in ms) for the Time Execution of Command is displayed in prompt
-# Set to 0 to disable it
+### Zsh Roundy Prompt Configures #https://github.com/metaory/zsh-roundy-prompt
+ROUNDY_EXITSTATUS_OK="➤"
+ROUNDY_EXITSTATUS_NO="➤"
+#ROUNDY_TEXC_ICON="✎"
+ROUNDY_TEXC_ICON="ﮫ"
 ROUNDY_TEXC_MIN_MS=5
-
-# Overriding username info
 ROUNDY_USER_CONTENT_NORMAL=" %n "
 ROUNDY_USER_CONTENT_ROOT=" %n "
-
-# Working Directory Info Mode
-# Valid choice are : "full", "short", or "dir-only"
-# Example Output
-#   full     : /etc/httpd/conf/extra
-#   short    : /e/h/c/extra
-#   dir-only : extra
-ROUNDY_DIR_MODE="dir-only"
-
-# Whether drawing a gap between a prompt
+ROUNDY_DIR_MODE="short"
 ROUNDY_PROMPT_HAS_GAP=true
 
 # Command Exit Status
@@ -143,3 +123,8 @@ ROUNDY_COLORS_FG_DIR=255
 # Git Info
 ROUNDY_COLORS_BG_GITINFO=5
 ROUNDY_COLORS_FG_GITINFO=0
+
+[[ -d $HOME/Library/Python/3.8/bin ]] && export PATH="$HOME/Library/Python/3.8/bin:$PATH"
+[[ -d $HOME/Library/Python/3.9/bin ]] && export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+[[ -d $HOME/Library/Python/3.10/bin ]] && export PATH="$HOME/Library/Python/3.10/bin:$PATH"
+[[ -d $HOME/Library/Python/3.12/bin ]] && export PATH="$HOME/Library/Python/3.12/bin:$PATH"
