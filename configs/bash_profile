@@ -1,3 +1,4 @@
+source ~/.profile
 MYRUNTIME=$(cat ~/.myruntime)
 # If not running interactively, don't do anything
 case $- in
