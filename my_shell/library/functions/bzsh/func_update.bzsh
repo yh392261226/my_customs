@@ -24,8 +24,8 @@ function update_runtimes() {                                                    
 alias ur="update_runtimes"                                                           # Desc: alias: ur:update_runtimes命令的别名,Git更新$MYRUNTIME目录下的所有由git管理的目录
 
 function update_zsh_customs() {                                                      # Desc: function: update_zsh_customs:Git更新zsh自定义的文件
-    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/plugins
-    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/antigen
+#    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/plugins
+#    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/antigen
 #    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
 }
 alias uzc="update_zsh_customs"                                                       # Desc: alias: uzc:update_zsh_customs命令的别名,Git更新zsh自定义的文件
