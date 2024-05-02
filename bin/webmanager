@@ -12,10 +12,12 @@ TMPLOGS=$(ls $WEBSITELOGS | grep '.*_websites.log' | sed 's/_websites.log//g')
 [[ -f $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh
 [[ -n "$1" ]] && tmp_iterm=$1
 [[ -n "$2" ]] && tmp_action=$2
+[[ -z "$3" ]] && OPENBROWSER="/Applications/Google Chrome.app"
 
 function list() {
     [[ -z "$1" ]] && return
     local WEBSITES=$1
+    local BROWSER="$2"
     if [ ! -s "$WEBSITES" ]; then
         echo "It's empty in websites records !!!"
         exit 0
