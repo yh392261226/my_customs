@@ -72,7 +72,7 @@ fzf_transformer='
   fi
 '
 
-FZF_DEFAULT_OPTS=" --min-height='40' "
+FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --cycle "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --inline-info "
