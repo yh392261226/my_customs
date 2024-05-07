@@ -92,9 +92,7 @@ fi
 
 if [ "zsh" = "$nowshell" ] && [ -f $HOME/.bashhub/bashhub.zsh ]; then
     source $HOME/.bashhub/bashhub.zsh
-fi
-
-if [ "bash" = "$nowshell" ] && [ -f $HOME/.bashhub/bashhub.bash ]; then
+elif [ "bash" = "$nowshell" ] && [ -f $HOME/.bashhub/bashhub.bash ]; then
     source $HOME/.bashhub/bashhub.bash
 fi
 
@@ -123,9 +121,7 @@ if [ "zsh" = "$nowshell" ]; then
         tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
         # alias ag="tag"  # replace with rg for ripgrep
     fi
-fi
-
-if [ "bash" = "$nowshell" ]; then
+elif [ "bash" = "$nowshell" ]; then
     if hash ag 2>/dev/null; then
         export TAG_SEARCH_PROG=ag  # replace with rg for ripgrep
         tag() { command tag "$@"; source ${TAG_ALIAS_FILE:-/tmp/tag_aliases} 2>/dev/null; }
