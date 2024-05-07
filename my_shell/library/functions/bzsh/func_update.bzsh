@@ -27,6 +27,7 @@ function update_zsh_customs() {                                                 
 #    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/plugins
 #    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/antigen
 #    update_git_files_and_modules $MYRUNTIME/oh-my-zsh/custom/themes/powerlevel9k
+    echo ""
 }
 alias uzc="update_zsh_customs"                                                       # Desc: alias: uzc:update_zsh_customs命令的别名,Git更新zsh自定义的文件
 
