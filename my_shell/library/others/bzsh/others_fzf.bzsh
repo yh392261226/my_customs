@@ -42,9 +42,9 @@ _buildFzfHeader() {
     fi
 
     if [ "" != "$2" ]; then
-        newheader="${newheader} 
-⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊ 
-⇉ ${2} 搜索内容 
+        newheader="${newheader}
+⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊
+⇉ ${2} 搜索内容
 ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈ "
         echo ${2} > $TMP_FZF_HEADER_SWAP_FILE
     fi
@@ -76,6 +76,7 @@ FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --cycle "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --inline-info "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --highlight-line "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --ansi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border=rounded "
 #FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --layout=reverse "
@@ -115,6 +116,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search �
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$transformer" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(Type jump label)+jump,jump-cancel:change-header:Jump cancelled" '
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
 FZF_COMPLETION_OPTS=" -1 "
