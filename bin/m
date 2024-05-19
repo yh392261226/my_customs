@@ -45,7 +45,7 @@ done
 
 function help() {
     echo "''''''''''''''''''''''''''''''''''''''''"
-    echo "Command: webmanager [wm]"
+    echo "Command: webmanager [m]"
     echo "  Iterm:(\$1)"
     for ((i=0; i<${#LOGARR[@]}; i++)); do
         echo "      $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
