@@ -25,6 +25,7 @@ ${bold}${italic}OPTION-,${reset}    Go to the next of selected
 ${bold}${italic}SHIFT-UP${reset}    Go to the first line
 ${bold}${italic}SHIFT-DOWN${reset}  Go to the last line
 ${bold}${italic}CTRL-H${reset}      Help infomation (this page)
+${bold}${italic}SPACE${reset}       Toggle jump mode (jump by single character)
 ${bold}${italic}ESC${reset}         Exit
 
 
