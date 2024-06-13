@@ -94,3 +94,6 @@
 [submodule "others/chinese-independent-developer"]
 	path = others/chinese-independent-developer
 	url = git@github.com:1c7/chinese-independent-developer.git
+[submodule "others/geektime-books"]
+	path = others/geektime-books
+	url = git@github.com:it-ebooks-0/geektime-books.git
