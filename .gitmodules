@@ -97,3 +97,6 @@
 [submodule "others/geektime-books"]
 	path = others/geektime-books
 	url = git@github.com:it-ebooks-0/geektime-books.git
+[submodule "others/others/lazyvim"]
+	path = others/others/lazyvim
+	url = git@github.com:LazyVim/LazyVim.git
