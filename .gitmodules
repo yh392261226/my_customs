@@ -100,3 +100,6 @@
 [submodule "others/others/lazyvim"]
 	path = others/others/lazyvim
 	url = git@github.com:LazyVim/LazyVim.git
+[submodule "others/lazyvim"]
+	path = others/lazyvim
+	url = git@github.com:LazyVim/LazyVim.git
