@@ -222,33 +222,20 @@ function switch_nvim_config() {                                                 
     [[ "$change_to_config_name" = "yh392261226" ]] && change_to_config_path="$MYRUNTIME/customs/others/yh392261226_nvim_config"
 
     # backup ~/.local/share/nvim
-    if [[ ! -d ~/.local/share/nvim.${current_nvim_config_name}.bak ]]; then
-        mv ~/.local/share/nvim{,.${current_nvim_config_name}.bak}
-    fi
+    [[ ! -d ~/.local/share/nvim.${current_nvim_config_name}.bak ]] && mv ~/.local/share/nvim{,.${current_nvim_config_name}.bak}
     # backup ~/.local/state/nvim
-    if [[ ! -d ~/.local/state/nvim.${current_nvim_config_name}.bak ]]; then
-        mv ~/.local/state/nvim{,.${current_nvim_config_name}.bak}
-    fi
+    [[ ! -d ~/.local/state/nvim.${current_nvim_config_name}.bak ]] && mv ~/.local/state/nvim{,.${current_nvim_config_name}.bak}
     # backup ~/.cache/nvim
-    if [[ ! -d ~/.cache/nvim.${current_nvim_config_name}.bak ]]; then
-        mv ~/.cache/nvim{,.${current_nvim_config_name}.bak}
-    fi
+    [[ ! -d ~/.cache/nvim.${current_nvim_config_name}.bak ]] && mv ~/.cache/nvim{,.${current_nvim_config_name}.bak}
     # restore ~/.local/share/nvim
-    if [[ -d ~/.local/share/nvim.${change_to_config_name}.bak ]]; then
-        mv ~/.local/share/nvim.${change_to_config_name}.bak ~/.local/share/nvim
-    fi
+    [[ -d ~/.local/share/nvim.${change_to_config_name}.bak ]] && mv ~/.local/share/nvim.${change_to_config_name}.bak ~/.local/share/nvim
     # restore ~/.local/state/nvim
-    if [[ -d ~/.local/state/nvim.${change_to_config_name}.bak ]]; then
-        mv ~/.local/state/nvim.${change_to_config_name}.bak ~/.local/state/nvim
-    fi
+    [[ -d ~/.local/state/nvim.${change_to_config_name}.bak ]] && mv ~/.local/state/nvim.${change_to_config_name}.bak ~/.local/state/nvim
     # restore ~/.cache/nvim
-    if [[ -d ~/.cache/nvim.${change_to_config_name}.bak ]]; then
-        mv ~/.cache/nvim.${change_to_config_name}.bak ~/.cache/nvim
-    fi
-    # change nvim config
+    [[ -d ~/.cache/nvim.${change_to_config_name}.bak ]] && mv ~/.cache/nvim.${change_to_config_name}.bak ~/.cache/nvim
+    # relink new nvim config
     rm -f ~/.config/nvim
     ln -sf $change_to_config_path ~/.config/nvim
-
     # done and boot nvim up
     echo "Change To ${change_to_config_name} Done !"
     echo "Press Enter to Continue Or Ctrl+C to Exit ..."
