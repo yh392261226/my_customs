@@ -209,6 +209,7 @@ function fzf_rg_search_vscode_to_line() {                                       
 alias frc2l='fzf_rg_search_vscode_to_line'                                          # Desc: alias: frc2l: fzf_rg_search_vscode_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vscode定位到行进行编辑
 
 function switch_nvim_config() {                                                     # Desc: function: switch_nvim_config:切换nvim配置,备份原有配置,恢复新配置,并启动nvim
+    # mark : 目前仅有这两个喜欢的, 要是多了呢?还得再去费劲弄fzf....
     local nvim_config_path="$HOME/.config/nvim"
     local current_nvim_config_path="$(readlink $nvim_config_path)"
     local current_nvim_config_name="yh392261226"
