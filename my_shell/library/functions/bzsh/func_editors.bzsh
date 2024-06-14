@@ -207,3 +207,55 @@ function fzf_rg_search_vscode_to_line() {                                       
     --header="$(_buildFzfHeader '' 'fzf_rg_search_vscode_to_line')"
 }
 alias frc2l='fzf_rg_search_vscode_to_line'                                          # Desc: alias: frc2l: fzf_rg_search_vscode_to_line命令的别名,fzf展示ripgrep关键字的文件,选中后vscode定位到行进行编辑
+
+function change_to_lazynvim_config() {
+    # optional but recommended
+    if [[ ! -d ~/.local/share/nvim.yh392261226.bak ]] && [[ "$(readlink ~/.config/nvim)" =~ "others/yh392261226_nvim_config" ]]; then
+        mv ~/.local/share/nvim{,.yh392261226.bak}
+    fi
+    if [ -d ~/.local/share/nvim.lazy.bak ]; then
+        mv ~/.local/share/nvim.lazy.bak ~/.local/share/nvim
+    fi
+    if [[ ! -d ~/.local/state/nvim.yh392261226.bak ]] && [[ "$(readlink ~/.config/nvim)" =~ "others/yh392261226_nvim_config" ]]; then
+        mv ~/.local/state/nvim{,.yh392261226.bak}
+    fi
+    if [ -d ~/.local/state/nvim.lazy.bak ]; then
+        mv ~/.local/state/nvim.lazy.bak ~/.local/state/nvim
+    fi
+    if [[ ! -d ~/.cache/nvim.yh392261226.bak ]] && [[ "$(readlink ~/.config/nvim)" =~ "others/yh392261226_nvim_config" ]]; then
+        mv ~/.cache/nvim{,.yh392261226.bak}
+    fi
+    if [ -d ~/.cache/nvim.lazy.bak ]; then
+        mv ~/.cache/nvim.lazy.bak ~/.cache/nvim
+    fi
+    rm -f ~/.config/nvim
+    ln -sf $MYRUNTIME/customs/others/lazyvim_starter ~/.config/nvim
+    echo "Done ..."
+    nvim
+}
+
+function change_to_yh392261226nvim_config() {
+    # optional but recommended
+    if [[ ! -d ~/.local/share/nvim.lazy.bak ]] && [[ "$(readlink ~/.config/nvim)" =~ "others/lazyvim_starter" ]]; then
+        mv ~/.local/share/nvim{,.lazy.bak}
+    fi
+    if [ -d ~/.local/share/nvim.yh392261226.bak ]; then
+        mv ~/.local/share/nvim.yh392261226.bak ~/.local/share/nvim
+    fi
+    if [[ ! -d ~/.local/state/nvim.lazy.bak ]] && [[ "$(readlink ~/.config/nvim)" =~ "others/lazyvim_starter" ]]; then
+        mv ~/.local/state/nvim{,.lazy.bak}
+    fi
+    if [ -d ~/.local/state/nvim.yh392261226.bak ]; then
+        mv ~/.local/state/nvim.yh392261226.bak ~/.local/state/nvim
+    fi
+    if [[ ! -d ~/.cache/nvim.lazy.bak ]] && [[ "$(readlink ~/.config/nvim)" =~ "others/lazyvim_starter" ]]; then
+        mv ~/.cache/nvim{,.lazy.bak}
+    fi
+    if [ -d ~/.cache/nvim.yh392261226.bak ]; then
+        mv ~/.cache/nvim.yh392261226.bak ~/.cache/nvim
+    fi
+    rm -f ~/.config/nvim
+    ln -sf $MYRUNTIME/customs/others/yh392261226_nvim_config ~/.config/nvim
+    echo "Done ..."
+    nvim
+}
