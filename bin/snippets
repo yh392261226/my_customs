@@ -9,16 +9,16 @@
 #!!#|- 终端背景图命令pokemon	pokemon
 #!!#|- pokemon的别名ding	ding
 #!!#|- 终端颜色工具vivid	vivid
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 #!!!#-- 进程管理
 #!!#|- 进程管理器bpytop	bpytop
 #!!#|- 进程管理器bottom	btm
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 #!!!#-- 文件、文件夹管理
 #!!#|- 终端文件管理器broot	broot
@@ -27,9 +27,9 @@
 #!!#|- 利用fzf的目录管理工具(fuzzy-fs)    fs
 #!!#|- GitHub上Python写的同时创建多级目录	ad
 #!!#|- 终端文件管理器spf  spf
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 #!!!#-- 窗口管理
 #!!#|- 终端窗口管理器byobu	byobu
@@ -40,9 +40,9 @@
 #!!#|- 苹果窗口管理工具yabai	yabai
 #!!#|- 联网管理tmux的工具tmate	tmate
 #!!#|- Golang版浏览器同步浏览终端内容gotty	gotty
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 #!!!#-- 编程工具
 #!!#|- 代码量统计工具cloc	cloc
@@ -70,18 +70,18 @@
 #!!#|- Go语言编写的json交互式命令工具   fx
 #!!#|- 批处理文件的编辑工具,fzf版本的sed工具 sad
 #!!#|- 安全扫描工具 bearer
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 #!!!#-- 历史搜索
 #!!#|- 终端历史命令搜索工具	hstr
 #!!#|- 终端历史命令搜索工具mcfly	mcfly
 #!!#|- FZF版本的目录历史记录工具	fdh
 #!!#|- 终端目录记录器	zfm
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 #!!!#-- 系统工具或命令替代
 #!!#|- cat命令的更好替代命令percol	percol
@@ -102,17 +102,15 @@
 #!!#|- grep命令的替代品	rg
 #!!#|- 更聪明的cd命令	zoxide
 #!!#|- 替代curl的工具命令   hurl
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
-
+#!!#
 
 #!!!#-- 网络命令
 #!!#|- 多线程下载器	axel
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
-
+#!!#
 
 #!!!#-- 有用命令
 #!!#|- 终端翻译命令fanyi	                            fanyi
@@ -154,10 +152,9 @@
 #!!#|- 树形目录浏览器   twf
 #!!#|- 终端中查看图片或视频的命令工具   timg
 #!!#|- 终端查看epub后缀文件 goreader
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
-
+#!!#
 
 #!!!#-- 其他命令
 #!!#|- Dotfiles管理工具	dotbare
@@ -186,10 +183,10 @@
 #!!#|- 终端浏览器   w3m
 #!!#|- 机器学习模型的部署过程简化工具   cog
 #!!#|- 将数据库内容导出为表格的工具 nocodb
-#!!# 
+#!!#|- 切换nvim配置文件的自定义命令 snc
+#!!#
 #!!# ----------------------------------------------
-#!!# 
-
+#!!#
 
 #!!!#-- 娱乐
 #!!#|- 终端水族馆	asciiquarium
@@ -198,22 +195,22 @@
 #!!#|- 终端黑客帝国效果	cmatrix
 #!!#|- 终端本机IP地址绘制地图	iponmap
 #!!#|- 好看的系统简介，比较方便的分享服务器的配置信息	neofetch
-#!!# 
+#!!#
 #!!# ----------------------------------------------
-#!!# 
+#!!#
 
 case "$1" in
-	"edit"|"--edit"|"-edit"|"e"|"--e"|"-e")
-		nvim $0
-    ;;
-    "help"|"--help"|"-help"|"h"|"--h"|"-h")
-        echo "Usage: snippets edit/e | help/h | list/l"
-		echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
+"edit" | "--edit" | "-edit" | "e" | "--e" | "-e")
+	nvim $0
 	;;
-	"list"|"l"|*)
-		cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-40s%-20s%10s\n", $1, $2, $3}' | \
+"help" | "--help" | "-help" | "h" | "--h" | "-h")
+	echo "Usage: snippets edit/e | help/h | list/l"
+	echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
+	;;
+"list" | "l" | *)
+	cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-40s%-20s%10s\n", $1, $2, $3}' |
 		fzf $FZF_CUSTOM_PARAMS --preview \
-		'if [[ "" != {3..} ]]; then; \
+			'if [[ "" != {3..} ]]; then; \
 		echo ""; \
 		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
 		echo "Command |⋯▶  "{3..};\
@@ -222,13 +219,13 @@ case "$1" in
 		if [[ "" != {2} ]] && ([[ {2} != ----* ]] || [[ ! {2} =~ ---- ]]); then; #括号中的两个判断之一即可,两个的作用相同\
 		echo "分类:"{2};\
 		fi;  \
-		fi;'  \
-    --no-multi \
-		--bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
-		--bind 'enter:become(eval {3..})' \
-		--color header:italic \
-		--bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
-        --header-first \
-		--header $' Snippet Selector\n CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序' #skipthisline
+		fi;' \
+			--no-multi \
+			--bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
+			--bind 'enter:become(eval {3..})' \
+			--color header:italic \
+			--bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
+			--header-first \
+			--header $' Snippet Selector\n CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序' #skipthisline
 	;;
 esac
