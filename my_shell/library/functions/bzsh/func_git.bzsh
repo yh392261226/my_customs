@@ -279,3 +279,41 @@ function fzf_git_modified_diff() {                                              
     --header="$(_buildFzfHeader '' 'fzf_git_modified_diff')"
 }
 alias fgd='fzf_git_modified_diff'                                                       # Desc: alias: fgd: fzf_git_modified_diff命令的别名,利用fzf列出当前Git版本文件中修改的文件并diff
+
+function git_submodule_add() {                                                          # Desc: function:git_submodule_add: Git版本文件中增加子模块
+    check_is_git || return
+    if [ $# -ne 2 ]; then
+        echo "Usage: git_submodule_add <submodule_name> <git_url>"
+        return
+    fi
+    git submodule add $2 $1
+    git commit -m "Add $1 submodule"
+    git push
+}
+alias gsa="git_submodule_add"                                                           # Desc: alias: gsa: git_submodule_add命令的别名,添加git子模块
+
+function git_submodule_remove() {                                                       # Desc: function:git_submodule_remove: Git版本文件中删除子模块
+    check_is_git || return
+    if [ $# -ne 1 ]; then
+        echo "Usage: git_submodule_remove <submodule_name>"
+        return
+    fi
+    git submodule deinit $1
+    git rm $1
+    git commit -m "Remove $1 submodule"
+    git push
+}
+alias gsr="git_submodule_remove"                                                        # Desc: alias: gsr: git_submodule_remove命令的别名,删除git子模块
+
+function git_submodule_remove2() {                                                      # Desc: function:git_submodule_remove2: Git版本文件中删除子模块,同时删除本地文件
+    check_is_git || return
+    if [ $# -ne 1 ]; then
+        echo "Usage: git_submodule_remove2 <submodule_name>"
+        return
+    fi
+    git rm --cached $1
+    rm -rf .git/modules/$1
+    git commit -m "Remove $1 submodule"
+    rm -rf $1
+}
+alias gsr2="git_submodule_remove2"                                                      # Desc: alias: gsr2: git_submodule_remove2命令的别名,删除git子模块,同时删除本地文件
