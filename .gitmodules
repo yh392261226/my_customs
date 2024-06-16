@@ -105,4 +105,4 @@
 	url = git@github.com:LazyVim/LazyVim.git
 [submodule "others/lazyvim_starter"]
 	path = others/lazyvim_starter
-	url = git@github.com:LazyVim/starter.git
+	url = git@github.com:yh392261226/starter.git
