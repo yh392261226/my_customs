@@ -226,6 +226,7 @@ case "$1" in
 			--bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
 			--bind 'enter:become(eval {3..})' \
 			--color header:italic \
+			--preview 'if [[ "" != {3..} ]]; then; echo {2} {3..}; fi' \
 			--bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
 			--header-first \
 			--header $' Snippet Selector\n CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序' #skipthisline
