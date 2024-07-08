@@ -192,9 +192,12 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     mv ~/.config/wtf ~/bak/config/
     ln -sf $MYRUNTIME/customs/configs/wtf                       ~/.config/wtf
     mv ~/.config/kitty/kitty.conf ~/bak/config/
-    mkdir ~/.config/kitty/
+    [[ ! -d ~/.config/kitty/ ]] && mkdir ~/.config/kitty/
     ln -sf $MYRUNTIME/customs/configs/kitty.conf                ~/.config/kitty/kitty.conf
     mv ~/.config/fish/customs.fish ~/bak/config/
     ln -sf $MYRUNTIME/customs/configs/customs.fish              ~/.config/fish/customs.fish
+    [[ ! -d ~/.config/helix ]] && mkdir ~/.config/helix
+    ln -sf $MYRUNTIME/customs/configs/helix/config.toml         ~/.config/helix/config.toml
+    ln -sf $MYRUNTIME/customs/configs/helix/languages.toml      ~/.config/helix/languages.toml
 fi
 # ----------------------------------------------------------------------------------- #
