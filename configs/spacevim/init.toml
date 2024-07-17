@@ -9,523 +9,604 @@
 # All SpaceVim option below [option] section
 [options]
 #  #  #  #  #  #  # 默认配置
-    enc                             = "utf-8"                         # 设置默认编码utf-8
-    enable_debug                    = false                           # 是否打开debug调试模式
-    plugin_bundle_dir               = "~/.SpaceVim/vim-plugin-files/" # 插件下载目录
-    snippet_engine                  = "neosnippet"
-    default_indent                  = 4 # 默认tab键空格数量
-    expand_tab                      = true
-    enable_vimfiler_welcome         = true   # 开启欢迎语
-    vim_help_language               = "cn"   # 帮助文件的语言
-    automatic_update                = true   # 自动更新
-    colorscheme                     = "moon" # 设置 SpaceVim 主题及背景，默认的主题是 gruvbox，如果你需要使用更  多的主题，你可以载入 colorscheme 模块 全支持主题：NeoSolarized、hybrid、material、SpaceVim、one
-    windows_index_type              = 1      # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ 1
-    autocomplete_parens             = true
-    code_runner_focus               = false
-    commandline_prompt              = ">>>"
-    data_dir                        = "~/.cache/"
-    default_custom_leader           = "<Space>"
-    enable_tabline_ft_icon          = true
-    use_lua                         = true
-    file_searching_tools            = ['find', 'find -not -iwholename "*.git*" ']
-    lint_on_the_fly                 = 0
-    relativenumber                  = true
-    update_retry_cnt                = 1
-    lint_on_save                    = 0
-    force_global_config             = 0
-    enable_powerline_fonts          = 1
-    enable_language_specific_leader = 1
-    plugin_key_frequency            = 1
-    plugin_manager                  = "dein"
-    vim_plug_installed              = 0
-    windows_smartclose              = "q"
-    #use_colorscheme                = true
-    enable_ale                      = 0
-    enable_insert_leader            = 1
-    enable_cursorcolumn             = true
-    enable_neocomplcache            = 0
-    leader_guide_sort_horizontal    = 0
-    max_column                      = 120                                    # 文本标尺
-    enable_key_frequency            = 0
-    enable_statusline_bfpath        = true
-    auto_disable_touchpad           = 0
-    dein_installed                  = 1
-    # autocomplete_method           = "deoplete"
-    autocomplete_method             = "coc"
-    coc_global_extensions           = ['coc-json', 'coc-git', 'coc-go', 'coc-golines', 'coc-html', 'coc-php-cs-fixer', 'coc-phpls', 'coc-prettier', 'coc-psalm', 'coc-pyright', 'coc-sh', 'coc-sql', 'coc-toml', 'coc-tsserver', 'coc-xml', 'coc-markdownlint', 'coc-vetur', 'coc-imselect', 'coc-fzf-preview']
-    plugin_manager_max_processes    = 8
-    enable_vimfiler_filetypeicon    = 0
-    unite_leader                    = 'f'
-    enable_ycm                      = 0
-    project_rooter_automatically    = 1
-    disabled_plugins                = []             # 请注意，该值为一个 List，每一个选项为插件的名称，而非 github 仓库地址。 SpaceVim 默认安装了一些插件，如果需要禁用某个插件，可以通过 ~/.SpaceVim.d/init.toml 的 [options] 片段中的 disabled_plugins 这一选项来操作
-    leader_guide_flatten            = 1
-    enable_neomake                  = 1
-    smartcloseignorewin             = ["__Tagbar__", "vimfiler:default"]
-    keep_server_alive               = 1
-    project_rooter_patterns         = [".git/", "_darcs/", ".hg/", ".bzr/", ".svn/", ".clang", "pom.xml", "package.json", ".idea"]
-    projects_cache_num              = 100
-    leader_guide_hspace             = 5
-    checkinstall                    = true
-    window_leader                   = "s"
+enc = "utf-8"                                                      # 设置默认编码utf-8
+enable_debug = false                                               # 是否打开debug调试模式
+plugin_bundle_dir = "~/.SpaceVim/vim-plugin-files/"                # 插件下载目录
+snippet_engine = "neosnippet"
+default_indent = 4                                                 # 默认tab键空格数量
+expand_tab = true
+enable_vimfiler_welcome = true                                     # 开启欢迎语
+vim_help_language = "cn"                                           # 帮助文件的语言
+automatic_update = true                                            # 自动更新
+colorscheme = "moon"                                               # 设置 SpaceVim 主题及背景，默认的主题是 gruvbox，如果你需要使用更  多的主题，你可以载入 colorscheme 模块 全支持主题：NeoSolarized、hybrid、material、SpaceVim、one
+windows_index_type = 1                                             # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ 1
+autocomplete_parens = true
+code_runner_focus = false
+commandline_prompt = ">>>"
+data_dir = "~/.cache/"
+default_custom_leader = "<Space>"
+enable_tabline_ft_icon = true
+use_lua = true
+file_searching_tools = ['find', 'find -not -iwholename "*.git*" ']
+lint_on_the_fly = 0
+relativenumber = true
+update_retry_cnt = 1
+lint_on_save = 0
+force_global_config = 0
+enable_powerline_fonts = 1
+enable_language_specific_leader = 1
+plugin_key_frequency = 1
+plugin_manager = "dein"
+vim_plug_installed = 0
+windows_smartclose = "q"
+#use_colorscheme                = true
+enable_ale = 0
+enable_insert_leader = 1
+enable_cursorcolumn = true
+enable_neocomplcache = 0
+leader_guide_sort_horizontal = 0
+max_column = 120                 # 文本标尺
+enable_key_frequency = 0
+enable_statusline_bfpath = true
+auto_disable_touchpad = 0
+dein_installed = 1
+# autocomplete_method           = "deoplete"
+autocomplete_method = "coc"
+coc_global_extensions = [
+  'coc-json',
+  'coc-git',
+  'coc-go',
+  'coc-golines',
+  'coc-html',
+  'coc-php-cs-fixer',
+  'coc-phpls',
+  'coc-prettier',
+  'coc-psalm',
+  'coc-pyright',
+  'coc-sh',
+  'coc-sql',
+  'coc-toml',
+  'coc-tsserver',
+  'coc-xml',
+  'coc-markdownlint',
+  'coc-vetur',
+  'coc-imselect',
+  'coc-fzf-preview',
+]
+plugin_manager_max_processes = 8
+enable_vimfiler_filetypeicon = 0
+unite_leader = 'f'
+enable_ycm = 0
+project_rooter_automatically = 1
+disabled_plugins = [
+] # 请注意，该值为一个 List，每一个选项为插件的名称，而非 github 仓库地址。 SpaceVim 默认安装了一些插件，如果需要禁用某个插件，可以通过 ~/.SpaceVim.d/init.toml 的 [options] 片段中的 disabled_plugins 这一选项来操作
+leader_guide_flatten = 1
+enable_neomake = 1
+smartcloseignorewin = ["__Tagbar__", "vimfiler:default"]
+keep_server_alive = 1
+project_rooter_patterns = [
+  ".git/",
+  "_darcs/",
+  ".hg/",
+  ".bzr/",
+  ".svn/",
+  ".clang",
+  "pom.xml",
+  "package.json",
+  ".idea",
+]
+projects_cache_num = 100
+leader_guide_hspace = 5
+checkinstall = true
+window_leader = "s"
 
-    github_username                 = "yh392261226"
+github_username = "yh392261226"
 
-    bootstrap_before                = "myspacevim#before"
-    bootstrap_after                 = "myspacevim#after"
-    search_tools                    = ["rg", "ag", "pt", "ack", "grep", "findstr", "git"]
+bootstrap_before = "myspacevim#before"
+bootstrap_after = "myspacevim#after"
+search_tools = ["rg", "ag", "pt", "ack", "grep", "findstr", "git"]
 
-    #文字
-    enable_guicolors                = true   # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
-    colorscheme_bg                  = "dark" # 背景可以取值 "dark" 或 "light"
-    vimcompatible                   = true   # vim兼容模式
-    guifont                         = "Fira Code:h13"
+#文字
+enable_guicolors = true   # 启用/禁用终端真色，在目前大多数终端下都是支持真色的，当然也有  一小部分终端不支持真色，如果你的 SpaceVim 颜色看上去比较怪异 可以禁用终端真色，将下面的值设为 false
+colorscheme_bg = "dark"   # 背景可以取值 "dark" 或 "light"
+vimcompatible = true      # vim兼容模式
+guifont = "Fira Code:h13"
 
-    ####### File文件树
-    filemanager                     = "defx" # 使用 vimfiler 作为默认的文件树插件，默认的快捷键是 F3,也提供了另外一组快捷键 SPC f t 和 SPC f T 来打开文件树。 如果需要修改默认文件树插件，需要在 ~/.SpaceVim.d/init.toml 的 [options] 片段中修改选项 filemanager
-    enable_vimfiler_welcome         = false  # 默认情况下文件树是打开的，如果需要设置文件树默认关闭，需要修改 enable_vimfiler_welcome 选项。
-    filetree_direction              = "left" # 函数列表 tagbar 将会在左边
-    enable_vimfiler_gitstatus       = true   # 文件树是否显示Git状态
-    enable_tabline_filetype_icon    = true   # 显示/隐藏顶部标签栏上的文件类型图标，这一图标需要安装 nerd fonts，如果未能成功安装这一字体，可以隐藏图标
-    wildignore                      = "*/tmp/*,*.so,*.swp,*.zip,*.class,tags,*.jpg,*.ttf,*.TTF,*.png,*/target/*,.git,.svn,.hg,.DS_Store,*.svg"
-    line_on_the_fly                 = false  # 忽略文件后缀
-    altmoveignoreft                 = ["Tagbar", "vimfiler"]
-    smartcloseignoreft              = ["help", "tagbar", "vimfiler", "SpaceVimRunner", "SpaceVimREPL", "SpaceVimQuickFix", "HelpDescribe", "VebuggerShell", "VebuggerTerminal"]                                 # 智能不显示忽略文件的集合
-    enable_os_fileformat_icon       = true   # 开启系统文件图标
-    hiddenfileinfo                  = 1
-    gitcommit_pr_icon               = ''
-    gitcommit_issue_icon            = ''
+####### File文件树
+filemanager = "defx" # 使用 vimfiler 作为默认的文件树插件，默认的快捷键是 F3,也提供了另外一组快捷键 SPC f t 和 SPC f T 来打开文件树。 如果需要修改默认文件树插件，需要在 ~/.SpaceVim.d/init.toml 的 [options] 片段中修改选项 filemanager
+enable_vimfiler_welcome = false # 默认情况下文件树是打开的，如果需要设置文件树默认关闭，需要修改 enable_vimfiler_welcome 选项。
+filetree_direction = "left" # 函数列表 tagbar 将会在左边
+enable_vimfiler_gitstatus = true # 文件树是否显示Git状态
+enable_tabline_filetype_icon = true # 显示/隐藏顶部标签栏上的文件类型图标，这一图标需要安装 nerd fonts，如果未能成功安装这一字体，可以隐藏图标
+wildignore = "*/tmp/*,*.so,*.swp,*.zip,*.class,tags,*.jpg,*.ttf,*.TTF,*.png,*/target/*,.git,.svn,.hg,.DS_Store,*.svg"
+line_on_the_fly = false # 忽略文件后缀
+altmoveignoreft = ["Tagbar", "vimfiler"]
+smartcloseignoreft = [
+  "help",
+  "tagbar",
+  "vimfiler",
+  "SpaceVimRunner",
+  "SpaceVimREPL",
+  "SpaceVimQuickFix",
+  "HelpDescribe",
+  "VebuggerShell",
+  "VebuggerTerminal",
+] # 智能不显示忽略文件的集合
+enable_os_fileformat_icon = true # 开启系统文件图标
+hiddenfileinfo = 1
+gitcommit_pr_icon = ''
+gitcommit_issue_icon = ''
 
-    lint_engine                     = "ale"
-    windisk_encoding                = 'cp936'
-    ####### 指南建议
-    lsp_engine                      = 'coc'
-    realtime_leader_guide           = true  # 实时指南
-    plugin_groups                   = ["web", "lang", "edit", "ui", "tools", "checkers", "format", "git", "javascript", "ruby", "python", "scala", "lang # go", "lang # markdown", "scm", "editing", "indents", "navigation", "misc", "core", "core # statusline", "core # tabline", "default", "unite", "github", "denite", "ctrlp", "autocomplete", "nvim", "osx", "lang # rust", "lang # python", "lang # kotlin", "lang # html5", "colorscheme", "core # banner"]
-    terminal_cursor_shape           = 2
-    enable_googlesuggest            = true       # 打开Google建议
-    leader_guide_run_map_on_popup   = true       # 实时指南弹层
-    buffer_index_type               = 3          # # 0: 1 ➛ ➊  |  1: 1 ➛ ➀ |  2: 1 ➛ ⓵ |  3: 1 ➛ ¹ |  4: 1 ➛ 1
-    # windows_leader                = "s"        # 窗口管理器快捷键只可以在 Normal 模式下使用，默认的前缀（WIN）按键为 s
+lint_engine = "ale"
+windisk_encoding = 'cp936'
+####### 指南建议
+lsp_engine = 'coc'
+realtime_leader_guide = true # 实时指南
+plugin_groups = [
+  "web",
+  "lang",
+  "edit",
+  "ui",
+  "tools",
+  "checkers",
+  "format",
+  "git",
+  "javascript",
+  "ruby",
+  "python",
+  "scala",
+  "lang # go",
+  "lang # markdown",
+  "scm",
+  "editing",
+  "indents",
+  "navigation",
+  "misc",
+  "core",
+  "core # statusline",
+  "core # tabline",
+  "default",
+  "unite",
+  "github",
+  "denite",
+  "ctrlp",
+  "autocomplete",
+  "nvim",
+  "osx",
+  "lang # rust",
+  "lang # python",
+  "lang # kotlin",
+  "lang # html5",
+  "colorscheme",
+  "core # banner",
+]
+terminal_cursor_shape = 2
+enable_googlesuggest = true # 打开Google建议
+leader_guide_run_map_on_popup = true # 实时指南弹层
+buffer_index_type = 3 # # 0: 1 ➛ ➊  |  1: 1 ➛ ➀ |  2: 1 ➛ ⓵ |  3: 1 ➛ ¹ |  4: 1 ➛ 1
+# windows_leader                = "s"        # 窗口管理器快捷键只可以在 Normal 模式下使用，默认的前缀（WIN）按键为 s
 
 ####### 状态栏
-    enable_bepo_layout              = true
-    enable_cursorline               = true      # 显示鼠标状态栏
-    statusline_separator            = "slant"   # 设置状态栏上分割符号形状，如果字体安装失败，可以将值设为 "nil" 以 # 禁用分割符号，默认为三角 "arrow" curve 半圆 slant 梯形 nil 空  fire火焰
-    statusline_iseparator           = "arrow"
-    sidebar_width                   = 30        # sidebar宽度
-    statusline_inactive_separator   = "bar"     # 状态栏中激活位的分割方式
-    buffer_index_type               = 4         # 设置顶部标签列表序号类型，有以下五种类型，分别是 0 - 4                                    # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ ¹ # 4: 1 ➛ 1
-    enable_statusline_mode          = true      # 是否在状态栏上显示当前模式，默认情况下，不显示 Normal/Insert 等字样，只以颜色区分当前模式
-    error_symbol                    = '✗'
-    warning_symbol                  = '⚠'
-    info_symbol                     = 'ⓘ'
-    statusline_unicode              = true
-    statusline_unicode_symbols      = true
-    enable_statusline_tag           = false
-    project_rooter_outermost        = false
-    statusline_left_sections        = ["winnr", "filename", "major mode", "syntax checking", "minor mode lighters", "version control info", "hunks"]
-    statusline_right_sections       = ["fileformat", "cursorpos", "percentage"]
-    enable_statusline_display_mode  = 0
-    leader_guide_position           = "botright"
+enable_bepo_layout = true
+enable_cursorline = true # 显示鼠标状态栏
+statusline_separator = "slant" # 设置状态栏上分割符号形状，如果字体安装失败，可以将值设为 "nil" 以 # 禁用分割符号，默认为三角 "arrow" curve 半圆 slant 梯形 nil 空  fire火焰
+statusline_iseparator = "arrow"
+sidebar_width = 30 # sidebar宽度
+statusline_inactive_separator = "bar" # 状态栏中激活位的分割方式
+buffer_index_type = 4 # 设置顶部标签列表序号类型，有以下五种类型，分别是 0 - 4                                    # 0: 1 ➛ ➊ # 1: 1 ➛ ➀ # 2: 1 ➛ ⓵ # 3: 1 ➛ ¹ # 4: 1 ➛ 1
+enable_statusline_mode = true # 是否在状态栏上显示当前模式，默认情况下，不显示 Normal/Insert 等字样，只以颜色区分当前模式
+error_symbol = '✗'
+warning_symbol = '⚠'
+info_symbol = 'ⓘ'
+statusline_unicode = true
+statusline_unicode_symbols = true
+enable_statusline_tag = false
+project_rooter_outermost = false
+statusline_left_sections = [
+  "winnr",
+  "filename",
+  "major mode",
+  "syntax checking",
+  "minor mode lighters",
+  "version control info",
+  "hunks",
+]
+statusline_right_sections = ["fileformat", "cursorpos", "percentage"]
+enable_statusline_display_mode = 0
+leader_guide_position = "botright"
 
 
-    clang_library_path              = "/opt/homebrew/opt/llvm/lib/libclang.dylib"
+clang_library_path = "/opt/homebrew/opt/llvm/lib/libclang.dylib"
 
 # Enable autocomplete layer
 [[layers]]
-name                                = 'autocomplete'
-auto-completion-delay               = 10
+name = 'autocomplete'
+auto-completion-delay = 10
 auto_completion_return_key_behavior = "smart"
-auto_completion_tab_key_behavior    = "smart"
+auto_completion_tab_key_behavior = "smart"
 
 [[layers]]
-name                                = "shell"
-enable                              = true
-default_position                    = "float"
-default_height                      = 40
+name = "shell"
+enable = true
+default_position = "float"
+default_height = 40
 
 [[layers]]
-name                                = "colorscheme"
-random_theme                        = true     # 启动时随机选择主题
-frequency                           = "hourly" # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
+name = "colorscheme"
+random_theme = true  # 启动时随机选择主题
+frequency = "hourly" # 可供选择的频率有：daily、hourly、weekly, 以及 数字 + 单位 这种格式，如 1h。
 
 ###语言部分
 [[layers]]
-    name                            = "lang"
+name = "lang"
 [[layers]]
-    name                            = "lang#c"
+name = "lang#c"
 [[layers]]
-    name                            = "lang#elixir"
+name = "lang#elixir"
 [[layers]]
-    name                            = "lang#go"
-    go-file-head                    = [
-        'package main',
-        'import ("fmt")',
-        'func main(){',
-        '//do something', 
-        '}'
-    ]
-[[layers]]
-    name                            = "lang#haskell"
-[[layers]]
-    name                            = "lang#java"
-    java_file_head                  = [
-    '/**',
-    ' * @author : `fnamemodify(expand("~"), ":t")`',
-    ' * @created : `strftime("%Y-%m-%d")`',
-    '**/',
-    ''
-    ]
-[[layers]]
-    name                            = "lang#javascript"
-    auto_fix                        = true
-    enable_flow_syntax              = true
-[[layers]]
-    name                            = "lang#lua"
-[[layers]]
-    name                            = "lang#perl"
-[[layers]]
-    name                            = "lang#php"
-[[layers]]
-    name                            = "lang#ruby"
-[[layers]]
-    name                            = "lang#python"
-    enable_typeinfo                 = false
-    python-file-head                = [
-'#!/usr/bin/env python',
-'# -*- coding: utf-8 -*-',
-'',
-''
+name = "lang#go"
+go-file-head = [
+  'package main',
+  'import ("fmt")',
+  'func main(){',
+  '//do something',
+  '}',
 ]
 [[layers]]
-    name                            = "lang#rust"
+name = "lang#haskell"
 [[layers]]
-    name                            = "lang#swig"
+name = "lang#java"
+java_file_head = [
+  '/**',
+  ' * @author : `fnamemodify(expand("~"), ":t")`',
+  ' * @created : `strftime("%Y-%m-%d")`',
+  '**/',
+  '',
+]
 [[layers]]
-    name                            = "lang#tmux"
+name = "lang#javascript"
+auto_fix = true
+enable_flow_syntax = true
 [[layers]]
-    name                            = "lang#vim"
+name = "lang#lua"
 [[layers]]
-    name                            = "lang#xml"
+name = "lang#perl"
 [[layers]]
-    name                            = "lang#sh"
-    sh-file-head                    = [
-        '#!/usr/bin/env bash',
-        '###Desc:',
-        '###Author:',
-        '###Date: `strftime("%Y-%m-%d")`'
-    ]
+name = "lang#php"
 [[layers]]
-    name                            = "lang#sql"
+name = "lang#ruby"
 [[layers]]
-    name                            = "lang#vue"
+name = "lang#python"
+enable_typeinfo = false
+python-file-head = ['#!/usr/bin/env python', '# -*- coding: utf-8 -*-', '', '']
 [[layers]]
-    name                            = "lang#toml"
+name = "lang#rust"
 [[layers]]
-    name                            = "lang#typescript"
+name = "lang#swig"
 [[layers]]
-    name                            = "lang#markdown"
-    enableWcwidth                   = 1
-    listItemIndent                  = 1
-    enabled_formater                = ['prettier']
+name = "lang#tmux"
 [[layers]]
-    name                            = "lang#html5"
+name = "lang#vim"
 [[layers]]
-    name                            = "lang#html"
+name = "lang#xml"
 [[layers]]
-    name                            = "lang#rust"
+name = "lang#sh"
+sh-file-head = [
+  '#!/usr/bin/env bash',
+  '###Desc:',
+  '###Author:',
+  '###Date: `strftime("%Y-%m-%d")`',
+]
 [[layers]]
-    name                            = "lang#python"
+name = "lang#sql"
 [[layers]]
-    name                            = "lang#kotlin"
+name = "lang#vue"
 [[layers]]
-    name                            = "lang#dockerfile"
+name = "lang#toml"
 [[layers]]
-    name                            = "lang#goby"
+name = "lang#typescript"
 [[layers]]
-    name                            = "lang#actionscript"
+name = "lang#markdown"
+enableWcwidth = 1
+listItemIndent = 1
+enabled_formater = ['prettier']
 [[layers]]
-    name                            = "lang#asciidoc"
+name = "lang#html5"
 [[layers]]
-    name                            = "lang#batch"
+name = "lang#html"
 [[layers]]
-    name                            = "lang#autohotkey"
+name = "lang#rust"
+[[layers]]
+name = "lang#python"
+[[layers]]
+name = "lang#kotlin"
+[[layers]]
+name = "lang#dockerfile"
+[[layers]]
+name = "lang#goby"
+[[layers]]
+name = "lang#actionscript"
+[[layers]]
+name = "lang#asciidoc"
+[[layers]]
+name = "lang#batch"
+[[layers]]
+name = "lang#autohotkey"
 # [[layers]]
 #    name                           = "lang#coffeescript"
 [[layers]]
-    name                            = "lang#io"
+name = "lang#io"
 [[layers]]
-    name                            = "lang#ipynb"
+name = "lang#ipynb"
 [[layers]]
-    name                            = "lang#livescript"
+name = "lang#livescript"
 [[layers]]
-    name                            = "lang#moonscript"
+name = "lang#moonscript"
 [[layers]]
-    name                            = "javascript"
+name = "javascript"
 [[layers]]
-    name                            = "ruby"
+name = "ruby"
 [[layers]]
-    name                            = "python"
+name = "python"
 [[layers]]
-    name                            = "scala"
+name = "scala"
 [[layers]]
-    name                            = "go"
+name = "go"
 [[layers]]
-    name                            = "php"
+name = "php"
 
 ###工具部分
 [[layers]]
-    name                            = "tools"
+name = "tools"
 [[layers]]
-    name                            = "tools#screensaver"
+name = "tools#screensaver"
 [[layers]]
-    name                            = "tools#dash"
+name = "tools#dash"
 [[layers]]
-    name                            = "VersionControl"
+name = "VersionControl"
 [[layers]]
-    name                            = "git"
+name = "git"
 [[layers]]
-    name                            = "lsp"
-    lsp_fold_enabled                = 0
-    # enabled_clients               = ["phpactor", "rust", "javascript", "go", "python", "sh"]
-    enabled_clients                 = ["phpactor"]
-    filetypes                       = [
-    # "ruby",       #               # gem install solargraph
-    # "rust",       #               # brew install rustup-init
-    # "javascript", #               # npm install -g javascript-typescript-langserver
-    # "purescript"  #               # npm install -g purescript-language-server
-    # "typescript", #               # npm install -g typescript-language-server
-    # "vue",        #               # npm install -g vue-language-server
-    # "go",         #               # go get -u github.com/sourcegraph/go-langserver
-    # "html",       #               # npm install -g vscode-html-languageserver-bin
-    # "python",     #               # pip3 install -U python-language-server
-    "php",          #               # 自动安装
-    # "sh",         #               # npm install -g bash-language-server
-    # "css"         #               # npm install -g vscode-css-languageserver-bin
-    ]
-    [layers.override_client_cmds]
-    # rust                          = ['rustup', 'run', 'nightly', 'rls']
-    phpactor                        = ['phpactor', 'nlanguage-server']
+name = "lsp"
+lsp_fold_enabled = 0
+# enabled_clients               = ["phpactor", "rust", "javascript", "go", "python", "sh"]
+enabled_clients = ["phpactor"]
+filetypes = [
+  # "ruby",       #               # gem install solargraph
+  # "rust",       #               # brew install rustup-init
+  # "javascript", #               # npm install -g javascript-typescript-langserver
+  # "purescript"  #               # npm install -g purescript-language-server
+  # "typescript", #               # npm install -g typescript-language-server
+  # "vue",        #               # npm install -g vue-language-server
+  # "go",         #               # go get -u github.com/sourcegraph/go-langserver
+  # "html",       #               # npm install -g vscode-html-languageserver-bin
+  # "python",     #               # pip3 install -U python-language-server
+  "php", #               # 自动安装
+  # "sh",         #               # npm install -g bash-language-server
+  # "css"         #               # npm install -g vscode-css-languageserver-bin
+]
+[layers.override_client_cmds]
+# rust                          = ['rustup', 'run', 'nightly', 'rls']
+phpactor = ['phpactor', 'nlanguage-server']
 #    go                             = ['go-langserver', '-mode', 'stdio']
-    # go                            = ['gopls']
-    # html                          = ['html-languageserver', '--stdio']
-    # javascript                    = ['javascript-typescript-stdio']
-    # python                        = ['pyls']
-    # sh                            = ['bash-language-server', 'start']
-    # typescript                    = ['typescript-language-server', '--stdio']
-    # css                           = ['css-languageserver', '--stdio']
-    # vue                           = ['vls']
-    # vim                           = ['vim-language-server', '--stdio']
-    # ruby                          = ['solargraph', 'stdio']
-    # purescript                    = ['purescript-language-server', '--stdio']
+# go                            = ['gopls']
+# html                          = ['html-languageserver', '--stdio']
+# javascript                    = ['javascript-typescript-stdio']
+# python                        = ['pyls']
+# sh                            = ['bash-language-server', 'start']
+# typescript                    = ['typescript-language-server', '--stdio']
+# css                           = ['css-languageserver', '--stdio']
+# vue                           = ['vls']
+# vim                           = ['vim-language-server', '--stdio']
+# ruby                          = ['solargraph', 'stdio']
+# purescript                    = ['purescript-language-server', '--stdio']
 [[layers]]
-    name                            = "edit"
+name = "edit"
 [[layers]]
-    name                            = "format"
-    enable                          = false
-    format_on_save                  = true
+name = "format"
+enable = false
+format_on_save = true
 [[layers]]
-    name                            = "debug"
+name = "debug"
 [[layers]]
-    name                            = "checkers"
-    enable_neomake                  = true
-    enable_ale                      = false
-    lint_on_the_fly                 = false
+name = "checkers"
+enable_neomake = true
+enable_ale = false
+lint_on_the_fly = false
 [[layers]]
-    name                            = "ui"
-    enable_sidebar                  = true # 启用/禁用侧栏。
-    enable_scrollbar                = true # 启用/禁用悬浮滚动条，默认为禁用的，该功能需要 Neovim 的悬浮窗口支持。
-    enable_indentline               = true # 启用/禁用对齐线，默认为启用的。
-    enable_cursorword               = true # 启用/禁用高亮光标下的词，默认为禁用状态。需要禁用的话，可设为 false。
-    indentline_char                 = '|'  # 设置对齐线的字符
-    conceallevel                    = 0    # 设置 conceallevel 选项。
-    concealcursor                   = ''   # 设置 concealcursor 选项。
-    cursorword_delay                = 50   # 设置高亮光标下词的延迟时间，默认为 50 毫秒。
-    cursorword_exclude_filetype     = []   # 设置哪些文件类型需要禁用高亮光标下的词。
-    indentline_exclude_filetype     = []   # 设置禁用对齐线的文件类型。
+name = "ui"
+enable_sidebar = true            # 启用/禁用侧栏。
+enable_scrollbar = true          # 启用/禁用悬浮滚动条，默认为禁用的，该功能需要 Neovim 的悬浮窗口支持。
+enable_indentline = true         # 启用/禁用对齐线，默认为启用的。
+enable_cursorword = true         # 启用/禁用高亮光标下的词，默认为禁用状态。需要禁用的话，可设为 false。
+indentline_char = '|'            # 设置对齐线的字符
+conceallevel = 0                 # 设置 conceallevel 选项。
+concealcursor = ''               # 设置 concealcursor 选项。
+cursorword_delay = 50            # 设置高亮光标下词的延迟时间，默认为 50 毫秒。
+cursorword_exclude_filetype = [] # 设置哪些文件类型需要禁用高亮光标下的词。
+indentline_exclude_filetype = [] # 设置禁用对齐线的文件类型。
 [[layers]]
-    name                            = "test"
+name = "test"
 [[layers]]
-    name                            = "unite"
+name = "unite"
 [[layers]]
-    name                            = "github"
+name = "github"
 [[layers]]
-    name                            = "denite"
+name = "denite"
 [[layers]]
-    name                            = "ctrlp"
+name = "ctrlp"
 [[layers]]
-    name                            = "fzf"
+name = "fzf"
 [[layers]]
-    name                            = "fuzzy"
+name = "fuzzy"
 [[layers]]
-    name                            = "incsearch"
-    enable                          = true
+name = "incsearch"
+enable = true
 [[layers]]
-    name                            = "operator"
+name = "operator"
 [[layers]]
-    name                            = "tmux"
-    tmux_navigator_modifier         = "alt"      #设置 tmux 的移动快捷键，默认是 ctrl，可选值包括：alt, ctrl
-    tmuxline_separators             = "curve"        #设置 tmux 的主要分隔符，默认等同于 SpaceVim 的 statusline_separator, 可选值包括：arrow, curve, slant, barce, fire, nil
-    tmuxline_separators_alt         = "arrow"    #设置 tmux 的分隔符，默认等同于 SpaceVim 的 statusline_iseparator，可选值包括：arrow, bar, nil
+name = "tmux"
+tmux_navigator_modifier = "alt"   #设置 tmux 的移动快捷键，默认是 ctrl，可选值包括：alt, ctrl
+tmuxline_separators = "curve"     #设置 tmux 的主要分隔符，默认等同于 SpaceVim 的 statusline_separator, 可选值包括：arrow, curve, slant, barce, fire, nil
+tmuxline_separators_alt = "arrow" #设置 tmux 的分隔符，默认等同于 SpaceVim 的 statusline_iseparator，可选值包括：arrow, bar, nil
 #[[layers]]
 #    name                            = "cscope"
 #    list_files_command              = ['rg', '--color=never', '--files', '--type', 'c']
 [[layers]]
-    name                            = "exprfold"
+name = "exprfold"
 [[layers]]
-    name                                             = "autocomplete"
-    auto-completion-return-key-behavior              = "complete"
-    #auto-completion-tab-key-behavior                = "smart"
-    #auto-completion-tab-key-behavior                = "cycle"
-    auto_completion_delay                            = 200
-    auto_completion_complete_with_key_sequence       = "nil"
-    auto_completion_complete_with_key_sequence_delay = 0.1
+name = "autocomplete"
+auto-completion-return-key-behavior = "complete"
+#auto-completion-tab-key-behavior                = "smart"
+#auto-completion-tab-key-behavior                = "cycle"
+auto_completion_delay = 200
+auto_completion_complete_with_key_sequence = "nil"
+auto_completion_complete_with_key_sequence_delay = 0.1
 [[layers]]
-    name                            = "web"
+name = "web"
 [[layers]]
-    name                            = "tags"
+name = "tags"
 [[layers]]
-    name                            = "gtags"
-    gtagslabel                      = "pygments"
+name = "gtags"
+gtagslabel = "pygments"
 [[layers]]
-    name                            = "chat"
-    enable                          = true
+name = "chat"
+enable = true
 [[layers]]
-    name                            = "chinese"
+name = "chinese"
 [[layers]]
-    name                            = "floobits"
+name = "floobits"
 [[layers]]
-    name                            = "foldsearch"
-    enable                          = true
+name = "foldsearch"
+enable = true
 [[layers]]
-    name                            = "gtags"
-    enable                          = true
+name = "gtags"
+enable = true
 [[layers]]
-    name                            = "leaderf"
+name = "leaderf"
 [[layers]]
-    name                            = "floobits"
+name = "floobits"
 
 ###核心部分
 [[layers]]
-    name                            = "core"
-    ##在文件树内显示隐藏的文件，默认是 false。
-    filetree_show_hidden            = true
+name = "core"
+##在文件树内显示隐藏的文件，默认是 false。
+filetree_show_hidden = true
 [[layers]]
-    name                            = "core#banner"
+name = "core#banner"
 [[layers]]
-    name                            = "core#statusline"
-    enable                          = true
+name = "core#statusline"
+enable = true
 [[layers]]
-    name                            = "core#tabline"
-    enable                          = true
+name = "core#tabline"
+enable = true
 [[layers]]
-    name                            = "editing"
+name = "editing"
 [[layers]]
-    name                            = "indents"
+name = "indents"
 [[layers]]
-    name                            = "navigation"
+name = "navigation"
 [[layers]]
-    name                            = "misc"
+name = "misc"
 [[layers]]
-    name                            = "nvim"
+name = "nvim"
 [[layers]]
-    name                            = "osx"
+name = "osx"
 [[layers]]
-    name                            = "default"
+name = "default"
 [[layers]]
-    name                            = "sudo"
+name = "sudo"
 [[layers]]
-    name                            = "vim"
+name = "vim"
 [[layers]]
-    name                            = "format"
-    enable                          = false
-    format_method                   = "codefmt"
-    [layers.override_cmd]
-        php                         = ["php-language-server"]
+name = "format"
+enable = false
+format_method = "codefmt"
+[layers.override_cmd]
+php = ["php-language-server"]
 [[layers]]
-    name                            = "treesitter"
+name = "treesitter"
 
 # 添加自定义插件
 [[custom_plugins]]
-    repo                            = "lilydjwg/colorizer"
-    on_cmd                          = ['ColorHighlight', 'ColorToggle']
-    on_func                         = 'colorizer#ColorToggle'
-    merged                          = 0
+repo = "lilydjwg/colorizer"
+on_cmd = ['ColorHighlight', 'ColorToggle']
+on_func = 'colorizer#ColorToggle'
+merged = 0
+#[[custom_plugins]]
+#    repo                            = "SpaceVim/nvim-yarp"
+#    merged                          = 0
+#[[custom_plugins]]
+#    repo                            = "SpaceVim/vim-hug-neovim-rpc"
+#    merged                          = 0
 [[custom_plugins]]
-    repo                            = "SpaceVim/nvim-yarp"
-    merged                          = 0
+repo = "lvht/phpcd.vim"
+build = "composer install"
+merged = 0
+on_ft = "php"
 [[custom_plugins]]
-    repo                            = "SpaceVim/vim-hug-neovim-rpc"
-    merged                          = 0
+repo = 'ryanoasis/vim-devicons'
 [[custom_plugins]]
-    repo                            = "lvht/phpcd.vim"
-    build                           = "composer install"
-    merged                          = 0
-    on_ft                           = "php"
-[[custom_plugins]]
-    repo                            = 'ryanoasis/vim-devicons'
-[[custom_plugins]]
-    repo                            = 'pechorin/any-jump.vim'
+repo = 'pechorin/any-jump.vim'
 #[[custom_plugins]]
 #    name                           = "sheerun/vim-polyglot"
 #    merged                         = 0
 [[custom_plugins]]
-    repo                            = "tmhedberg/SimpylFold"
-    merged                          = 0
+repo = "tmhedberg/SimpylFold"
+merged = 0
 [[custom_plugins]]
-    repo                            = "Konfekt/FastFold"
-    merged                          = 0
+repo = "Konfekt/FastFold"
+merged = 0
 [[custom_plugins]]
-    repo                            = 'vim-pandoc/vim-pandoc'
-    merged                          = 0
+repo = 'vim-pandoc/vim-pandoc'
+merged = 0
 [[custom_plugins]]
-    repo                            = 'vim-pandoc/vim-pandoc-syntax'
-    merged                          = 0
+repo = 'vim-pandoc/vim-pandoc-syntax'
+merged = 0
 [[custom_plugins]]
-    repo                            = 'jalvesaq/Nvim-R'
-    merged                          = 0
+repo = 'jalvesaq/Nvim-R'
+merged = 0
 [[custom_plugins]]
-    repo                            = 'airblade/vim-gitgutter'
-    merged                          = 0
+repo = 'airblade/vim-gitgutter'
+merged = 0
 [[custom_plugins]]
-    repo                            = 'thaerkh/vim-indentguides'
-    merged                          = 0
-[[custom_plugins]]
-    repo                            = 'Shougo/echodoc.vim'
+repo = 'thaerkh/vim-indentguides'
+merged = 0
+#[[custom_plugins]]
+#    repo                            = 'Shougo/echodoc.vim'
 # display the number of matches while searching
 [[custom_plugins]]
-    repo                            = "google/vim-searchindex"
+repo = "google/vim-searchindex"
 # switch between the source file and header file for c&c++
 [[custom_plugins]]
-    repo                            = "ericcurtin/CurtineIncSw.vim"
+repo = "ericcurtin/CurtineIncSw.vim"
 # auto-insert the other half of bracket
 [[custom_plugins]]
-    repo                            = "jiangmiao/auto-pairs"
+repo = "jiangmiao/auto-pairs"
 [[custom_plugins]]
-    repo                            = "terryma/vim-multiple-cursors"
+repo = "terryma/vim-multiple-cursors"
 [[custom_plugins]]
-    repo                            = "voldikss/vim-floaterm"
-    floaterm_width                  = 0.9
-    floaterm_height                 = 0.9
-    floaterm_keymap_toggle          = '<F12>'
+repo = "voldikss/vim-floaterm"
+floaterm_width = 0.9
+floaterm_height = 0.9
+floaterm_keymap_toggle = '<F12>'
 ### Un Setting
 #[[custom_plugins]]
 #    repo                            = "mrjones2014/smart-splits.nvim"
 [[custom_plugins]]
-    repo                            = "mrjones2014/legendary.nvim"
+repo = "mrjones2014/legendary.nvim"
 [[custom_plugins]]
-    repo                            = "delphinus/vim-auto-cursorline"
-    enable                          = true
-    timeout                         = 1000
+repo = "delphinus/vim-auto-cursorline"
+enable = true
+timeout = 1000
 # [[custom_plugins]]
 #     repo                          = "mattn/vim-lsp-settings"
 [[custom_plugins]]
-    repo                            = "williamboman/nvim-lsp-installer"
+repo = "williamboman/nvim-lsp-installer"
 [[custom_plugins]]
-    repo                            = "neovim/nvim-lspconfig"
+repo = "neovim/nvim-lspconfig"
 [[custom_plugins]]
-    repo                            = "felixfbecker/php-language-server"
+repo = "felixfbecker/php-language-server"
 # [[custom_plugins]]
 #     repo                            = "nvim-lua/plenary.nvim"
 # [[custom_plugins]]
@@ -533,5 +614,5 @@ frequency                           = "hourly" # 可供选择的频率有：dail
 # [[custom_plugins]]
 #     repo                            = "ibhagwan/fzf-lua"
 [[custom_plugins]]
-    repo                            = "https://gitlab.com/code-stats/code-stats-vim.git"
-    merged                          = false
+repo = "https://gitlab.com/code-stats/code-stats-vim.git"
+merged = false
