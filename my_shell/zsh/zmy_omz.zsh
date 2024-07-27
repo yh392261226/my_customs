@@ -91,7 +91,7 @@ export UPDATE_ZSH_DAYS=7
 #plugins setting
 #plugins=(git mvn textmate subl autojump svn svn-fast-info brew go history tmux git-flow node osx cp perl python ruby rsync urltools oh-my-zsh-bootstrap zshmarks yoshiori zsh-autosuggestions zsh-syntax-highlighting)
 plugins=(
-    ag
+#    ag
 	  mvn
 	  autojump
     bbedit
