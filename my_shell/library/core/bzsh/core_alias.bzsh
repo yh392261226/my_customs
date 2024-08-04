@@ -27,6 +27,8 @@ alias ehosts='sudo vim /etc/hosts'                                              
 #Directoy && File
 #----------------------------------------------------------------------------------------------------------------
 alias l='gls -aH --color=tty'                                                                                    # Desc: alias: l:设置为gls列出所有文件(含隐藏)
+alias ll='gls -alF --color=tty'                                                                                  # Desc: alias: ll:设置为gls列出所有文件(含详细信息)
+alias la='gls -a --color=tty'                                                                                    # Desc: alias: la:设置为gls列出所有文件(含隐藏文件)
 alias le="exa"                                                                                                   # Desc: alias: le:设置为exa列出所有文件
 alias lel="exa -l -a -h -m -n -U --git"                                                                          # Desc: alias: lel:设置为exa列出所有文件详情及git情况
 [[ -f /usr/local/bin/lsd ]] && alias cls='/usr/local/bin/lsd'                                                    # Desc: alias: cls:(Intel)设置环境变量为/usr/local/bin/lsd
