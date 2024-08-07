@@ -188,6 +188,7 @@
 #!!#|- 切换nvim配置文件的自定义命令 snc
 #!!#|- 自定义的网址管理命令工具 webm
 #!!#|- Golang开源的视觉路由追踪工具 nexttrace
+#!!#|- 自定义的图片管理工具 img
 #!!#
 #!!# ----------------------------------------------
 #!!#
@@ -205,16 +206,16 @@
 
 case "$1" in
 "edit" | "--edit" | "-edit" | "e" | "--e" | "-e")
-  nvim $0
-  ;;
+	nvim $0
+	;;
 "help" | "--help" | "-help" | "h" | "--h" | "-h")
-  echo "Usage: snippets edit/e | help/h | list/l"
-  echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
-  ;;
+	echo "Usage: snippets edit/e | help/h | list/l"
+	echo "添加记录时候请注意, 介绍与命令之间使用一个TAB分割"
+	;;
 "list" | "l" | *)
-  cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-40s%-20s%10s\n", $1, $2, $3}' |
-    fzf $FZF_CUSTOM_PARAMS --preview \
-      'if [[ "" != {3..} ]]; then; \
+	cat $0 | grep '#!!' | grep -v 'skipthisline' | awk -F'\t' '{printf "%-40s%-20s%10s\n", $1, $2, $3}' |
+		fzf $FZF_CUSTOM_PARAMS --preview \
+			'if [[ "" != {3..} ]]; then; \
 		echo ""; \
 		echo "⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯⋯";\
 		echo "Command |⋯▶  "{3..};\
@@ -224,13 +225,13 @@ case "$1" in
 		echo "分类:"{2};\
 		fi;  \
 		fi;' \
-      --no-multi \
-      --bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
-      --bind 'enter:become(eval {3..})' \
-      --color header:italic \
-      --preview 'if [[ "" != {3..} ]]; then; echo {2} {3..}; fi' \
-      --bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
-      --header-first \
-      --header $' Snippet Selector\n CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序' #skipthisline
-  ;;
+			--no-multi \
+			--bind 'ctrl-y:execute-silent(echo -n {3..} | pbcopy)+abort' \
+			--bind 'enter:become(eval {3..})' \
+			--color header:italic \
+			--preview 'if [[ "" != {3..} ]]; then; echo {2} {3..}; fi' \
+			--bind 'focus:transform-preview-label:if [[ "" != {2} ]] && [[ ! {2} =~ ---- ]]; then; echo {2}; fi;' \
+			--header-first \
+			--header $' Snippet Selector\n CTRL-Y 复制内容 | CTRL-/ 切换预览窗口 | CTRL-S 切换排序' #skipthisline
+	;;
 esac
