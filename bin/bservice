@@ -124,6 +124,12 @@ else
 				;;
 			esac
 		fi
+
+		if [ "$myoption" = "stop" ]; then
+			[[ "intel64" = "$CPUCORE" ]] && [[ -f /usr/local/etc/my.cnf ]] && rm -f /usr/local/etc/my.cnf
+			[[ "arm64" = "$CPUCORE" ]] && [[ -f /opt/homebrew/etc/my.cnf ]] && rm -f /opt/homebrew/etc/my.cnf
+			[[ -L /private/etc/my.cnf ]] && sudo rm -f /private/etc/my.cnf
+		fi
 	fi
 	#******************************************************************#
 	# mysql 启动与重启独立处理 end
