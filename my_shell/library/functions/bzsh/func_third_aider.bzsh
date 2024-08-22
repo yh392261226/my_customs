@@ -9,6 +9,7 @@ function fzf_linux_command_searcher() {                                         
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/command/{})" \
     --bind="ctrl-y:execute-silent(echo {} | awk -F'.' '{print \$1}' | pbcopy)+abort" \
+    --bind='ctrl-o:execute(echo https://wangchujiang.com/linux-command/c/{}.html | sed "s/.md.html/.html/g" | xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_linux_command_searcher')" \
     --preview="glow --style=dark -p ${MDDIR}/command/{}"
 }
@@ -51,6 +52,7 @@ function fzf_cheatsheets_searcher() {                                           
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/{})" \
     --bind="ctrl-y:execute-silent(echo ${MDDIR}/{} | pbcopy)+abort" \
+    --bind='ctrl-o:execute(echo https://devhints.io/{} | sed 's/.md//g' |xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
     --preview="glow --style=dark -p ${MDDIR}/{}"
 }
