@@ -37,6 +37,7 @@ function fzf_develop_references_searcher() {                                    
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/docs/{})" \
     --bind="ctrl-y:execute-silent(echo ${MDDIR}/docs/{} | pbcopy)+abort" \
+    --bind='ctrl-o:execute(echo https://wangchujiang.com/reference/docs/{} | sed "s/.md/.html/g" | xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_develop_references_searcher')" \
     --preview="glow --style=dark -p ${MDDIR}/docs/{}"
 
