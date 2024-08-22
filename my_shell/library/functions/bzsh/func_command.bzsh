@@ -580,4 +580,4 @@ function record_project_to_neovim() {                                           
         return;
     fi
 }
-alias rptn="record_project_to_neovim"                                               # Desc: alias: record_project_to_neovim命令的别名，记录project到nvim的Project中
+alias rp2n="record_project_to_neovim"                                               # Desc: alias: record_project_to_neovim命令的别名，记录project到nvim的Project中
