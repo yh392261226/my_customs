@@ -563,21 +563,3 @@ function fzf_manage() {                                                         
 }
 alias fm2="fzf_manage"                                                              # Desc: alias: fm2: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
 
-function record_project_to_neovim() {                                               # Desc: function: record_project_to_neovim: 记录project到nvim的Project中
-    hascommand=$(ifHasCommand gum)
-    if [ $hascommand = 1 ]; then
-        text=$(gum input --placeholder "Type search text")
-    else
-        read text
-    fi
-    if [ "" != "$text" ]; then
-        echo "$text" >> $HOME/.local/share/nvim/project_nvim/project_history
-        if [ "$?" = "0" ]; then
-            echo "Done !"
-            return;
-        fi
-        echo "False ..."
-        return;
-    fi
-}
-alias rp2n="record_project_to_neovim"                                               # Desc: alias: record_project_to_neovim命令的别名，记录project到nvim的Project中

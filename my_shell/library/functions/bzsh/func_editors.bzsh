@@ -244,3 +244,31 @@ function switch_nvim_config() {                                                 
     nvim
 }
 alias snc='switch_nvim_config'                                                       # Desc: alias: snc: switch_nvim_config命令的别名,切换nvim配置,备份原有配置,恢复新配置,并启动nvim
+
+function record_project_to_neovim() {                                               # Desc: function: record_project_to_neovim: 记录project到nvim的Project中
+    hascommand=$(ifHasCommand gum)
+    if [ $hascommand = 1 ]; then
+        text=$(gum input --placeholder "Type search text")
+    else
+        read text
+    fi
+    if [ "" != "$text" ]; then
+        echo "$text" >> $HOME/.local/share/nvim/project_nvim/project_history
+        if [ "$?" = "0" ]; then
+            echo "Done !"
+            return;
+        fi
+        echo "False ..."
+        return;
+    fi
+}
+alias rp2n="record_project_to_neovim"                                               # Desc: alias: record_project_to_neovim命令的别名，记录project到nvim的Project中
+
+function fzf_neovim_project() {                                                     # Desc: function: fzf_neovim_project: 利用fzf选择project并打开nvim
+    local project_path="$HOME/.local/share/nvim/project_nvim/project_history"
+    local project_name=$(cat $project_path | fzf $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_neovim_project')")
+    if [ "" != "$project_name" ]; then
+        nvim $project_name
+    fi
+}
+alias fnp="fzf_neovim_project"                                                      # Desc: alias: fnp: fzf_neovim_project命令的别名,利用fzf选择project并打开nvim
