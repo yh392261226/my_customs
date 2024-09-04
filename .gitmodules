@@ -106,3 +106,9 @@
 [submodule "others/lazyvim_starter"]
 	path = others/lazyvim_starter
 	url = git@github.com:yh392261226/starter.git
+[submodule "others/NvChadvim_starter"]
+	path = others/NvChadvim_starter
+	url = git@github.com:NvChad/starter.git
+[submodule "others/ruchee_vim"]
+	path = others/ruchee_vim
+	url = git@github.com:ruchee/vimrc.git
