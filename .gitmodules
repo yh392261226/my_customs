@@ -112,3 +112,6 @@
 [submodule "others/ruchee_vim"]
 	path = others/ruchee_vim
 	url = git@github.com:ruchee/vimrc.git
+[submodule "others/jaywcjlove_vim"]
+	path = others/jaywcjlove_vim
+	url = git@github.com:jaywcjlove/vim-web.git
