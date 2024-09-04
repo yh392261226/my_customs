@@ -106,6 +106,3 @@
 [submodule "others/lazyvim_starter"]
 	path = others/lazyvim_starter
 	url = git@github.com:yh392261226/starter.git
-[submodule "others/vim-plus-plus"]
-	path = others/vim-plus-plus
-	url = git@github.com:FLHonker/vim-plus-plus.git
