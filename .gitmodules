@@ -123,4 +123,4 @@
 	url = git@github.com:ray-x/nvim.git
 [submodule "others/AstroNvim_nvim"]
 	path = others/AstroNvim_nvim
-	url = https://github.com/AstroNvim/template
+	url = git@github.com:yh392261226/AstroNvim.git
