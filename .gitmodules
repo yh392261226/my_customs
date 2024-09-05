@@ -115,3 +115,12 @@
 [submodule "others/jaywcjlove_vim"]
 	path = others/jaywcjlove_vim
 	url = git@github.com:jaywcjlove/vim-web.git
+[submodule "others/tracyone_vinux_vim"]
+	path = others/tracyone_vinux_vim
+	url = git@github.com:tracyone/vinux.git
+[submodule "others/ray-x-nvim"]
+	path = others/ray-x-nvim
+	url = git@github.com:ray-x/nvim.git
+[submodule "others/AstroNvim_nvim"]
+	path = others/AstroNvim_nvim
+	url = https://github.com/AstroNvim/template
