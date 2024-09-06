@@ -121,9 +121,6 @@
 [submodule "others/ray-x-nvim"]
 	path = others/ray-x-nvim
 	url = git@github.com:ray-x/nvim.git
-[submodule "others/AstroNvim_nvim"]
-	path = others/AstroNvim_nvim
-	url = git@github.com:yh392261226/AstroNvim.git
 [submodule "others/gerardbm_vim"]
 	path = others/gerardbm_vim
 	url = git@github.com:gerardbm/vimrc.git
@@ -132,4 +129,4 @@
 	url = git@github.com:LunarVim/LunarVim.git
 [submodule "others/skywind3000_vim"]
 	path = others/skywind3000_vim
-	url = git@github.com:skywind3000/vim-init.git
+	url = git@github.com:yh392261226/skywind3000_vim-init.git
