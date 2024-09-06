@@ -171,20 +171,32 @@
 	url = git@github.com:yh392261226/skywind3000_vim-init.git
 [submodule "others/VimConfig_bilibili_vim-vide"]
 	path = others/VimConfig_bilibili_vim-vide
-	url = git@github.com:bilibili/vim-vide.git
+	url = git@github.com:yh392261226/bilibili_vim-vide.git
 [submodule "others/VimConfig_SpaceVim"]
 	path = others/VimConfig_SpaceVim
 	url = git@gitlab.com:SpaceVim/SpaceVim.git
 [submodule "others/VimConfig_jaywcjlove_vim-web"]
 	path = others/VimConfig_jaywcjlove_vim-web
-	url = git@github.com:jaywcjlove/vim-web.git
+	url = git@github.com:yh392261226/jaywcjlove_vim-web.git
 [submodule "others/VimConfig_gerardbm_vimrc"]
 	path = others/VimConfig_gerardbm_vimrc
-	url = git@github.com:gerardbm/vimrc.git
+	url = git@github.com:yh392261226/gerardbm_vimrc.git
 [submodule "others/VimConfig_ruchee_vimrc"]
 	path = others/VimConfig_ruchee_vimrc
-	url = git@github.com:ruchee/vimrc.git
+	url = git@github.com:yh392261226/ruchee_vimrc.git
 [submodule "others/NeovimConfig_AGou-ops_dotfiles"]
 	path = others/NeovimConfig_AGou-ops_dotfiles
 	url = git@github.com:AGou-ops/dotfiles.git
 	branch = nvim
+[submodule "others/VimConfig_timss_vimconf"]
+	path = others/VimConfig_timss_vimconf
+	url = git@github.com:yh392261226/timss_vimconf.git
+[submodule "others/NeovimConfig_pseudoyu_nvim_config"]
+	path = others/NeovimConfig_pseudoyu_nvim_config
+	url = git@github.com:yh392261226/nvim_config
+[submodule "others/NeovimConfig_LazyVim_starter"]
+	path = others/NeovimConfig_LazyVim_starter
+	url = git@github.com:yh392261226/starter.git
+[submodule "others/NeovimConfig_AstroNvim_template"]
+	path = others/NeovimConfig_AstroNvim_template
+	url = git@github.com:yh392261226/AstroNvim.git
