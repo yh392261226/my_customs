@@ -132,25 +132,25 @@
 	url = git@github.com:yh392261226/skywind3000_vim-init.git
 [submodule "others/NeovimConfig_nvimdots"]
 	path = others/NeovimConfig_nvimdots
-	url = git@github.com:ayamir/nvimdots.git
+	url = git@github.com:yh392261226/nvimdots.git
 [submodule "others/NeovimConfig_nyoom_nvim"]
 	path = others/NeovimConfig_nyoom_nvim
-	url = git@github.com:nyoom-engineering/nyoom.nvim.git
+	url = git@github.com:yh392261226/nyoom.nvim.git
 [submodule "others/NeovimConfig_CosmicNvim"]
 	path = others/NeovimConfig_CosmicNvim
-	url = git@github.com:CosmicNvim/CosmicNvim.git
+	url = git@github.com:yh392261226/CosmicNvim.git
 [submodule "others/NeovimConfig_CodeArt"]
 	path = others/NeovimConfig_CodeArt
-	url = git@github.com:artart222/CodeArt.git
+	url = git@github.com:yh392261226/CodeArt.git
 [submodule "others/NeovimConfig_LunarVim"]
 	path = others/NeovimConfig_LunarVim
-	url = git@github.com:LunarVim/LunarVim.git
+	url = git@github.com:yh392261226/LunarVim.git
 [submodule "others/NeovimConfig_ThinkVim"]
 	path = others/NeovimConfig_ThinkVim
-	url = git@github.com:imxiejie/ThinkVim.git
+	url = git@github.com:yh392261226/ThinkVim.git
 [submodule "others/NeovimConfig_neovim-lua"]
 	path = others/NeovimConfig_neovim-lua
-	url = git@github.com:brainfucksec/neovim-lua.git
+	url = git@github.com:yh392261226/neovim-lua.git
 [submodule "others/NeovimConfig_yh392261226_nvim_config"]
 	path = others/NeovimConfig_yh392261226_nvim_config
 	url = git@github.com:yh392261226/nvim_config
@@ -159,10 +159,10 @@
 	url = git@github.com:yh392261226/starter.git
 [submodule "others/NeovimConfig_NvChad_starter"]
 	path = others/NeovimConfig_NvChad_starter
-	url = git@github.com:NvChad/starter.git
+	url = git@github.com:yh392261226/NvChad_starter.git
 [submodule "others/NeovimConfig_ray-x_nvim"]
 	path = others/NeovimConfig_ray-x_nvim
-	url = git@github.com:ray-x/nvim.git
+	url = git@github.com:yh392261226/ray-x_nvim.git
 [submodule "others/NeovimConfig_yh392261226_AstroNvim"]
 	path = others/NeovimConfig_yh392261226_AstroNvim
 	url = git@github.com:yh392261226/AstroNvim.git
