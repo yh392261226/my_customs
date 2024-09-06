@@ -124,3 +124,6 @@
 [submodule "others/AstroNvim_nvim"]
 	path = others/AstroNvim_nvim
 	url = git@github.com:yh392261226/AstroNvim.git
+[submodule "others/gerardbm_vim"]
+	path = others/gerardbm_vim
+	url = git@github.com:gerardbm/vimrc.git
