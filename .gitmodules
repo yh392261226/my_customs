@@ -130,3 +130,61 @@
 [submodule "others/skywind3000_vim"]
 	path = others/skywind3000_vim
 	url = git@github.com:yh392261226/skywind3000_vim-init.git
+[submodule "others/NeovimConfig_nvimdots"]
+	path = others/NeovimConfig_nvimdots
+	url = git@github.com:ayamir/nvimdots.git
+[submodule "others/NeovimConfig_nyoom_nvim"]
+	path = others/NeovimConfig_nyoom_nvim
+	url = git@github.com:nyoom-engineering/nyoom.nvim.git
+[submodule "others/NeovimConfig_CosmicNvim"]
+	path = others/NeovimConfig_CosmicNvim
+	url = git@github.com:CosmicNvim/CosmicNvim.git
+[submodule "others/NeovimConfig_CodeArt"]
+	path = others/NeovimConfig_CodeArt
+	url = git@github.com:artart222/CodeArt.git
+[submodule "others/NeovimConfig_LunarVim"]
+	path = others/NeovimConfig_LunarVim
+	url = git@github.com:LunarVim/LunarVim.git
+[submodule "others/NeovimConfig_ThinkVim"]
+	path = others/NeovimConfig_ThinkVim
+	url = git@github.com:imxiejie/ThinkVim.git
+[submodule "others/NeovimConfig_neovim-lua"]
+	path = others/NeovimConfig_neovim-lua
+	url = git@github.com:brainfucksec/neovim-lua.git
+[submodule "others/NeovimConfig_yh392261226_nvim_config"]
+	path = others/NeovimConfig_yh392261226_nvim_config
+	url = git@github.com:yh392261226/nvim_config
+[submodule "others/NeovimConfig_yh392261226_starter"]
+	path = others/NeovimConfig_yh392261226_starter
+	url = git@github.com:yh392261226/starter.git
+[submodule "others/NeovimConfig_NvChad_starter"]
+	path = others/NeovimConfig_NvChad_starter
+	url = git@github.com:NvChad/starter.git
+[submodule "others/NeovimConfig_ray-x_nvim"]
+	path = others/NeovimConfig_ray-x_nvim
+	url = git@github.com:ray-x/nvim.git
+[submodule "others/NeovimConfig_yh392261226_AstroNvim"]
+	path = others/NeovimConfig_yh392261226_AstroNvim
+	url = git@github.com:yh392261226/AstroNvim.git
+[submodule "others/VimConfig_skywind3000_vim-init"]
+	path = others/VimConfig_skywind3000_vim-init
+	url = git@github.com:yh392261226/skywind3000_vim-init.git
+[submodule "others/VimConfig_bilibili_vim-vide"]
+	path = others/VimConfig_bilibili_vim-vide
+	url = git@github.com:bilibili/vim-vide.git
+[submodule "others/VimConfig_SpaceVim"]
+	path = others/VimConfig_SpaceVim
+	url = git@gitlab.com:SpaceVim/SpaceVim.git
+[submodule "others/VimConfig_jaywcjlove_vim-web"]
+	path = others/VimConfig_jaywcjlove_vim-web
+	url = git@github.com:jaywcjlove/vim-web.git
+[submodule "others/VimConfig_gerardbm_vimrc"]
+	path = others/VimConfig_gerardbm_vimrc
+	url = git@github.com:gerardbm/vimrc.git
+[submodule "others/VimConfig_ruchee_vimrc"]
+	path = others/VimConfig_ruchee_vimrc
+	url = git@github.com:ruchee/vimrc.git
+[submodule "others/NeovimConfig_AGou-ops_dotfiles"]
+	path = others/NeovimConfig_AGou-ops_dotfiles
+	url = git@github.com:AGou-ops/dotfiles.git
+	branch = nvim
