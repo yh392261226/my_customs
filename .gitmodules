@@ -127,3 +127,9 @@
 [submodule "others/gerardbm_vim"]
 	path = others/gerardbm_vim
 	url = git@github.com:gerardbm/vimrc.git
+[submodule "others/LunarVim_nvim"]
+	path = others/LunarVim_nvim
+	url = git@github.com:LunarVim/LunarVim.git
+[submodule "others/skywind3000_vim"]
+	path = others/skywind3000_vim
+	url = git@github.com:skywind3000/vim-init.git
