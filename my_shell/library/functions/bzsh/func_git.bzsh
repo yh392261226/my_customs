@@ -311,7 +311,7 @@ function git_submodule_remove2() {                                              
         echo "Usage: git_submodule_remove2 <submodule_name>"
         return
     fi
-    git rm --cached $1
+    git rm --cached -f $1
     rm -rf .git/modules/$1
     git commit -m "Remove $1 submodule"
     rm -rf $1
