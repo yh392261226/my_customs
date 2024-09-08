@@ -1,0 +1,6 @@
+AppName:jaywcjlove_vim-web
+Type:Vim
+AppPath:others/VimConfig_jaywcjlove_vim-web
+GitUrl:git@github.com:yh392261226/jaywcjlove_vim-web.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_jaywcjlove_vim-web/.vimrc ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_jaywcjlove_vim-web ~/.vim;

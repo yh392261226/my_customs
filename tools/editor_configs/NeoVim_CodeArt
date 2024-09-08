@@ -1,0 +1,6 @@
+AppName:CodeArt
+Type:Neovim
+AppPath:others/NeovimConfig_CodeArt
+GitUrl:git@github.com:yh392261226/CodeArt.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_CodeArt ~/.config/nvim;

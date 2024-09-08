@@ -1,0 +1,6 @@
+AppName:ray-x_nvim
+Type:Neovim
+AppPath:others/NeovimConfig_ray-x_nvim
+GitUrl:git@github.com:yh392261226/ray-x_nvim.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_ray-x_nvim ~/.config/nvim;

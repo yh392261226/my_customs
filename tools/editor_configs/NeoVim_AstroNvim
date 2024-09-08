@@ -1,0 +1,6 @@
+AppName:AstroNvim_template
+Type:Neovim
+AppPath:others/NeovimConfig_AstroNvim_template
+GitUrl:git@github.com:yh392261226/AstroNvim.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_AstroNvim_template ~/.config/nvim;

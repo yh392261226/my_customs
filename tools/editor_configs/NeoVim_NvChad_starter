@@ -1,0 +1,6 @@
+AppName:NvChad_starter
+Type:Neovim
+AppPath:others/NeovimConfig_NvChad_starter
+GitUrl:git@github.com:yh392261226/NvChad_starter.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_NvChad_starter ~/.config/nvim;

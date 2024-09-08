@@ -1,0 +1,6 @@
+AppName:skywind3000_vim-init
+Type:Vim
+AppPath:others/VimConfig_skywind3000_vim-init
+GitUrl:git@github.com:yh392261226/skywind3000_vim-init.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_skywind3000_vim-init/init.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_skywind3000_vim-init ~/.vim;

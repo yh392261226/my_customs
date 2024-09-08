@@ -1,0 +1,6 @@
+AppName:gerardbm_vimrc
+Type:Vim
+AppPath:others/VimConfig_gerardbm_vimrc
+GitUrl:git@github.com:yh392261226/gerardbm_vimrc.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_gerardbm_vimrc/vim/.vimrc ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_gerardbm_vimrc/vim ~/.vim;

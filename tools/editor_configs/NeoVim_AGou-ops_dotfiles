@@ -1,0 +1,6 @@
+AppName:AGou-ops_dotfiles
+Type:Neovim
+AppPath:others/NeovimConfig_AGou-ops_dotfiles
+GitUrl:git@github.com:yh392261226/AGou-ops_dotfiles.git
+GitBranch:nvim
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_AGou-ops_dotfiles ~/.config/nvim;

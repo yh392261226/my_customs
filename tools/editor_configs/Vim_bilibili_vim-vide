@@ -1,0 +1,6 @@
+AppName:bilibili_vim-vide
+Type:Vim
+AppPath:others/VimConfig_bilibili_vim-vide
+GitUrl:git@github.com:yh392261226/bilibili_vim-vide.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_bilibili_vim-vide/vimrc ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_bilibili_vim-vide ~/.vim;

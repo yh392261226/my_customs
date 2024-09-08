@@ -1,0 +1,6 @@
+AppName:SpaceVim
+Type:Vim
+AppPath:others/VimConfig_SpaceVim
+GitUrl:git@gitlab.com:SpaceVim/SpaceVim.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc ~/.SpaceVim; ln -sf $MYRUNTIME/customs/others/VimConfig_SpaceVim ~/.vim; ln -sf $MYRUNTIME/customs/others/VimConfig_SpaceVim ~/.SpaceVim;

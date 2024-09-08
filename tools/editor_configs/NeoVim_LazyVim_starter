@@ -1,0 +1,6 @@
+AppName:LazyVim_starter
+Type:Neovim
+AppPath:others/NeovimConfig_LazyVim_starter
+GitUrl:git@github.com:yh392261226/starter.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_LazyVim_starter ~/.config/nvim;

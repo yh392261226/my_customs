@@ -1,0 +1,6 @@
+AppName:CosmicNvim
+Type:Neovim
+AppPath:others/NeovimConfig_CosmicNvim
+GitUrl:git@github.com:yh392261226/CosmicNvim.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_CosmicNvim ~/.config/nvim;

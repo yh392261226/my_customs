@@ -1,0 +1,6 @@
+AppName:nvimdots
+Type:Neovim
+AppPath:others/NeovimConfig_nvimdots
+GitUrl:git@github.com:yh392261226/nvimdots.git
+GitBranch:
+UseAction:rm -f ~/.config/nvim; ln -sf $MYRUNTIME/customs/others/NeovimConfig_nvimdots ~/.config/nvim;

@@ -1,0 +1,6 @@
+AppName:ruchee_vimrc
+Type:Vim
+AppPath:others/VimConfig_ruchee_vimrc
+GitUrl:git@github.com:yh392261226/ruchee_vimrc.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_ruchee_vimrc/_vimrc ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_ruchee_vimrc/vimfiles ~/.vim;

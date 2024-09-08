@@ -1,0 +1,6 @@
+AppName:timss_vimconf
+Type:Vim
+AppPath:others/VimConfig_timss_vimconf
+GitUrl:git@github.com:yh392261226/timss_vimconf.git
+GitBranch:
+UseAction:rm -f ~/.vim ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_timss_vimconf/.vimrc ~/.vimrc; ln -sf $MYRUNTIME/customs/others/VimConfig_timss_vimconf ~/.vim;
