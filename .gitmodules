@@ -153,7 +153,7 @@
 	url = git@github.com:yh392261226/neovim-lua.git
 [submodule "others/NeovimConfig_yh392261226_nvim_config"]
 	path = others/NeovimConfig_yh392261226_nvim_config
-	url = git@github.com:yh392261226/nvim_config
+	url = git@github.com:yh392261226/nvim_config.git
 [submodule "others/NeovimConfig_yh392261226_starter"]
 	path = others/NeovimConfig_yh392261226_starter
 	url = git@github.com:yh392261226/starter.git
@@ -186,7 +186,7 @@
 	url = git@github.com:yh392261226/ruchee_vimrc.git
 [submodule "others/NeovimConfig_AGou-ops_dotfiles"]
 	path = others/NeovimConfig_AGou-ops_dotfiles
-	url = git@github.com:AGou-ops/dotfiles.git
+	url = git@github.com:yh392261226/AGou-ops_dotfiles.git
 	branch = nvim
 [submodule "others/VimConfig_timss_vimconf"]
 	path = others/VimConfig_timss_vimconf

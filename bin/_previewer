@@ -10,10 +10,10 @@
 # - https://github.com/hzeller/timg
 # - tree
 
-if [[ $# -ne 1 ]]; then
-  >&2 echo "usage: $0 FILENAME"
-  exit 1
-fi
+# if [[ $# -ne 1 ]]; then
+#   >&2 echo "usage: $0 FILENAME"
+#   exit 1
+# fi
 
 file=${1/#\~\//$HOME/}
 if [ "$file" = "help" ]; then
@@ -27,6 +27,11 @@ if [ "$file" = "help" ]; then
       fi
     fi
     echo ""
+elif [ "$file" = "capture_screen" ]; then
+  tmpapppath=$(cat $2 | grep 'AppPath:' |sed 's/AppPath://g')
+  if [ -f $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg ]; then
+    chafa -f sixel -s 100%x100% $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg
+  fi
 else
   type=$(file --dereference --mime -- "$file")
   if [[ ! $type =~ image/ ]]; then

@@ -272,3 +272,73 @@ function fzf_neovim_project() {                                                 
     fi
 }
 alias fnp="fzf_neovim_project"                                                      # Desc: alias: fnp: fzf_neovim_project命令的别名,利用fzf选择project并打开nvim
+
+function fzf_choose_neovim_config() {                                               # Desc: function: fzf_choose_neovim_config: 选择NeoVim配置,并应用到当前环境
+  local current_choose=$(ls ${MYRUNTIME}/customs/tools/editor_configs/NeoVim_* | fzf $FZF_CUSTOM_PARAMS \
+    --header="$(_buildFzfHeader '' 'fzf_choose_neovim_config')" \
+    --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
+    --preview '$MYRUNTIME/customs/bin/_previewer capture_screen {}')
+  if [ "" != "$current_choose" ]; then
+    local tmpappname=$(cat $current_choose | grep 'AppName:' |sed 's/AppName://g')
+    local tmptype=$(cat $current_choose | grep 'Type:' |sed 's/Type://g')
+    local tmpapppath=$(cat $current_choose | grep 'AppPath:' |sed 's/AppPath://g')
+    local tmpgiturl=$(cat $current_choose | grep 'GitUrl:' |sed 's/GitUrl://g')
+    local tmpgitbranch=$(cat $current_choose | grep 'GitBranch:' |sed 's/GitBranch://g')
+    local tmpuseaction=$(cat $current_choose | grep 'UseAction:' |sed 's/UseAction://g')
+
+    if [ ! -d ${MYRUNTIME}/customs/${tmpapppath} ]; then
+      echo "Warning: ${MYRUNTIME}/customs/${tmpapppath} not exists, try to download it from $tmpgiturl"
+      cd $MYRUNTIME/customs
+      if [ "" != "$tmpgitbranch" ]; then
+        git submodule add -b $tmpgitbranch $tmpgiturl $tmpapppath
+      else
+        git submodule add $tmpgiturl $tmpapppath
+      fi
+    fi
+
+    if [ "" != "$tmpuseaction" ]; then
+      eval $tmpuseaction
+      if [ "$?" = "0" ]; then
+        echo "Change NeoVim Config To $tmpappname Success !"
+      else
+        echo "Change NeoVim Config To $tmpappname Failed !"
+      fi
+    fi
+  fi
+}
+alias fcnc="fzf_choose_neovim_config"                                               # Desc: alias: cnc: fzf_choose_neovim_config命令的别名,选择NeoVim配置,并应用到当前环境
+
+function fzf_choose_vim_config() {                                                  # Desc: function: fzf_choose_vim_config: 选择Vim配置,并应用到当前环境
+  local current_choose=$(ls ${MYRUNTIME}/customs/tools/editor_configs/Vim_* | fzf $FZF_CUSTOM_PARAMS \
+    --header="$(_buildFzfHeader '' 'fzf_choose_vim_config')" \
+    --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
+    --preview '$MYRUNTIME/customs/bin/_previewer capture_screen {}')
+  if [ "" != "$current_choose" ]; then
+    local tmpappname=$(cat $current_choose | grep 'AppName:' |sed 's/AppName://g')
+    local tmptype=$(cat $current_choose | grep 'Type:' |sed 's/Type://g')
+    local tmpapppath=$(cat $current_choose | grep 'AppPath:' |sed 's/AppPath://g')
+    local tmpgiturl=$(cat $current_choose | grep 'GitUrl:' |sed 's/GitUrl://g')
+    local tmpgitbranch=$(cat $current_choose | grep 'GitBranch:' |sed 's/GitBranch://g')
+    local tmpuseaction=$(cat $current_choose | grep 'UseAction:' |sed 's/UseAction://g')
+
+    if [ ! -d ${MYRUNTIME}/customs/${tmpapppath} ]; then
+      echo "Warning: ${MYRUNTIME}/customs/${tmpapppath} not exists, try to download it from $tmpgiturl"
+      cd $MYRUNTIME/customs
+      if [ "" != "$tmpgitbranch" ]; then
+        git submodule add -b $tmpgitbranch $tmpgiturl $tmpapppath
+      else
+        git submodule add $tmpgiturl $tmpapppath
+      fi
+    fi
+
+    if [ "" != "$tmpuseaction" ]; then
+      eval $tmpuseaction
+      if [ "$?" = "0" ]; then
+        echo "Change Vim Config To $tmpappname Success !"
+      else
+        echo "Change Vim Config To $tmpappname Failed !"
+      fi
+    fi
+  fi
+}
+alias fcvc="fzf_choose_vim_config"                                                   # Desc: alias: cvc: fzf_choose_vim_config命令的别名,选择Vim配置,并应用到当前环境
