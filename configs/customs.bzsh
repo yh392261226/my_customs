@@ -82,6 +82,16 @@ fi
 # if [ -d $HOME/Library/Python/3.12/bin/ ]; then
 #     export PATH="$HOME/Library/Python/3.12/bin:$PATH"
 # fi
+## pyenv
+if command -v pyenv 1>/dev/null 2>&1; then
+  eval "$(pyenv init -)"
+fi
+
+
+#####nodejs
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && source "/opt/homebrew/opt/nvm/nvm.sh"
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && source "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
 
 #####composer
 #------------
@@ -93,3 +103,10 @@ fi
 [[ -d $HOME/Library/Python/3.9/bin ]] && export PATH="$HOME/Library/Python/3.9/bin:$PATH"
 [[ -d $HOME/Library/Python/3.10/bin ]] && export PATH="$HOME/Library/Python/3.10/bin:$PATH"
 [[ -d $HOME/Library/Python/3.12/bin ]] && export PATH="$HOME/Library/Python/3.12/bin:$PATH"
+
+
+
+#####zlib
+export LDFLAGS="-L/opt/homebrew/opt/zlib/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/zlib/include"
+export PKG_CONFIG_PATH="/opt/homebrew/opt/zlib/lib/pkgconfig"
