@@ -7,12 +7,12 @@ end
 
 # source 引入
 # nvm
-if test -s "$HOME/.nvm/nvm.sh"
-    source $HOME/.nvm/nvm.sh
-end
-if test -s "$NVM_DIR/nvm.sh"
-    source "$NVM_DIR/nvm.sh"
-end
+#if test -s "$HOME/.nvm/nvm.sh"
+#    source $HOME/.nvm/nvm.sh
+#end
+#if test -s "$NVM_DIR/nvm.sh"
+#    source "$NVM_DIR/nvm.sh"
+#end
 if test -f $HOME/.rvm/scripts/rvm
     source $HOME/.rvm/scripts/rvm
 end
