@@ -7,7 +7,11 @@ function cd() {                                                                 
     else
         builtin cd "$@"; lsd -l;
     fi
-    python3 -m fzfdirhist log "$(pwd)"
+    if python3 -m fzfdirhist &> /dev/null 
+    then
+        python3 -m fzfdirhist log "$(pwd)"
+    fi
+
 }
 
 function customcd() {                                                             # Desc: function: customcd:自定义cd命令

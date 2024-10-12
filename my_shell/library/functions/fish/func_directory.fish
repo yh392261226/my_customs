@@ -4,7 +4,9 @@ function cd
     else
         builtin cd $argv; lsd -l
     end
-    python3 -m fzfdirhist log (pwd)
+    if python3 -m fzfdirhist > /dev/null ^&1
+        python3 -m fzfdirhist log (pwd)
+    end
 end
 
 function customcd
