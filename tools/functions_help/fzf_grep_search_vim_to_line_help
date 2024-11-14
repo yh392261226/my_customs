@@ -11,6 +11,7 @@ ${bold}${italic}CTRL-O${reset}      Edit
 ${bold}${italic}CTRL-Y${reset}      Copy
 ${bold}${italic}CTRL-T${reset}      Toggle show the preview window
 ${bold}${italic}CTRL-S${reset}      Toggle sort
+${bold}${italic}CTRL-V${reset}      Change to Preview bigger to view
 ${bold}${italic}CTRL-N${reset}      Page down
 ${bold}${italic}CTRL-P${reset}      Page up
 ${bold}${italic}CTRL-A${reset}      Toggle select all

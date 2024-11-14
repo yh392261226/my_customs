@@ -102,6 +102,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previe
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢  {}  ╟\";" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-v:change-preview-window(down,99%)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-n:page-down,ctrl-p:page-up" '

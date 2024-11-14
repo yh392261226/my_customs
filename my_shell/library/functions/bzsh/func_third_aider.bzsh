@@ -78,3 +78,29 @@ function fzf_chinese_independent_developer() {                                  
         --header="$(_buildFzfHeader '' 'fzf_chinese_independent_developer')"
 }
 alias fcid="fzf_chinese_independent_developer"                                      # Desc: alias: fcid: fzf_chinese_independent_developer命令的别名,中国独立开发者项目列表
+
+
+function fzf_awesome_cheatsheets_searcher() {                                       # Desc: function: fzf_awesome_cheatsheets_searcher: 超级速查表-编程语言、框架和开发工具的速查表，单个文件包含一切你需要知道的东西
+    local MDDIR=$MYRUNTIME/customs/others/awesome-cheatsheets
+    [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/skywind3000/awesome-cheatsheets" && return 1
+
+    # 第一步先列出所有文件夹
+    local selectedPath=''
+    selectedPath=$(find $MDDIR/* -type d | fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' \
+--preview-window right:70%:rounded:wrap \
+--preview-label='[ 选择工具文件夹 ]' \
+--header="$(_buildFzfHeader 'a+选择工具文件夹' 'fzf_awesome_cheatsheets_searcher')")
+    
+    # 第二步列出所选文件夹下的所有的文件
+    if [ "" != "$selectedPath" ]; then
+        local selectedFile=''
+        selectedFile=$(ls $selectedPath/* | fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' \
+--preview-window right:70%:rounded:wrap \
+--preview-label='[ 选择工具文件夹 ]' \
+--header="$(_buildFzfHeader 'a+选择工具文件' 'fzf_awesome_cheatsheets_searcher')")
+        if [ "" != "$selectedFile" ]; then
+            bat $selectedFile
+        fi
+    fi
+}
+alias facs="fzf_awesome_cheatsheets_searcher"                                       # Desc: alias: facs: fzf_awesome_cheatsheets_searcher命令的别名，超级速查表-编程语言、框架和开发工具的速查表，单个文件包含一切你需要知道的东西

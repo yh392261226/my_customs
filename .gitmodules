@@ -200,3 +200,6 @@
 [submodule "others/NeovimConfig_AstroNvim_template"]
 	path = others/NeovimConfig_AstroNvim_template
 	url = git@github.com:yh392261226/AstroNvim.git
+[submodule "others/awesome-cheatsheets"]
+	path = others/awesome-cheatsheets
+	url = git@github.com:skywind3000/awesome-cheatsheets.git
