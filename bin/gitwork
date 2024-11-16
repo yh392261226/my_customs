@@ -4,7 +4,7 @@
 # Date              : 05.08.2021
 # Last Modified Date: 05.08.2021
 RECORDDATA=$MYRUNTIME/tools/working_record.log
-source $MYRUNTIME/customs/my_shell/my_common.sh
+source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
 
 function gitWork() {
     title=$1
