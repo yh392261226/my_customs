@@ -128,7 +128,7 @@ oldtool=code
   # the usual default is to push all branches
   default = upstream
 [core]
-  autocrlf = false
+	autocrlf = input
   editor = /usr/local/bin/code --wait
   excludesfile = ~/.gitignore
 	quotepath = false
