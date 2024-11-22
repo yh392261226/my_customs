@@ -65,7 +65,7 @@ if [ -d $MYRUNTIME/customs/others/enhancd/ ]; then
     export ENHANCD_USE_ABBREV=false
 fi
 
-[[ -f $MYRUNTIME/customs/others/up/up.sh ]] && source $MYRUNTIME/customs/others/up/up.sh
+#[[ -f $MYRUNTIME/customs/others/up/up.sh ]] && source $MYRUNTIME/customs/others/up/up.sh
 
 if [ "zsh" = "$nowshell" ]; then
     source $MYRUNTIME/customs/others/fzf-help/src/fzf-help.zsh
