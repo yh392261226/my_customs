@@ -122,7 +122,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     # fzf自动补全
     zinit light Aloxaf/fzf-tab
     # yeoman(nodejs的web app)框架的插件
-    zinit light edouard-lopez/yeoman-zsh-plugin
+    # zinit light edouard-lopez/yeoman-zsh-plugin
     # 各种git相关命令
     zinit light yh392261226/git-extra-commands
     # dotfile管理工具
