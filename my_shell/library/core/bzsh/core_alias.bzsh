@@ -73,6 +73,7 @@ alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 
 [[ -f /opt/homebrew/bin/ccat ]] && alias cat="/opt/homebrew/bin/ccat"                                            # Desc: alias: cat:(M1)设置/opt/homebrew/bin/ccat代替cat命令
 [[ -f /usr/local/bin/ccat ]] && alias cat="/usr/local/bin/ccat"                                                  # Desc: alias: cat:(Intel)设置/usr/local/bin/ccat代替cat命令
 alias mime='file -bL --mime-type'                                                                                # Desc: alias: mime:获取文件的类型命令
+alias fs="fuzzy-fs"                                                                                              # Desc: alias: fs:fuzzy-fs目录管理命令的别名
 
 #Compression
 #----------------------------------------------------------------------------------------------------------------

@@ -183,6 +183,16 @@ function fzf_jump_between_directory() {                                         
 }
 alias fz="fzf_jump_between_directory"                                             # Desc: alias: fz:fzf_jump_between_directory命令的别名,目录跳转
 
+function fzf_jump_between_directory2() {                                           # Desc: function: fzf_jump_between_directory2:目录跳转
+    local dir=$(
+    zoxide query --list --score |
+    fzf --height 40% --layout reverse --info inline \
+        --nth 2.. --tac --no-sort --query "$*" \
+        --bind 'enter:become:echo {2..}'
+  ) && cd "$dir"
+}
+alias fz2="fzf_jump_between_directory2"                                             # Desc: alias: fz2:fzf_jump_between_directory2命令的别名,目录跳转
+
 function ll_whereis_command() {                                                   # Desc: function: ll_whereis_command:打印which命令找到的文件地址
     hascommand=$(ifHasCommand $@)
     [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1

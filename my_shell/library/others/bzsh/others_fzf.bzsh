@@ -173,6 +173,7 @@ if [ "zsh" = "$nowshell" ]; then
   --preview='echo {}' \
   --bind='focus:transform-preview-label:echo -n "╢ {} ╟";' \
   --bind='ctrl-h:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
+  --tmux='center' \
   --header='$(_buildFzfHeader "" "")' \
   --header-first)
   export FZF_CUSTOM_PARAMS
@@ -183,5 +184,6 @@ elif [ "bash" = "$nowshell" ]; then
   # 导出为环境变量
   FZF_CUSTOM_PARAMS='--multi '
   FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --header-first "
+  FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --tmux=center "
   export FZF_CUSTOM_PARAMS
 fi
