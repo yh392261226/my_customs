@@ -25,3 +25,4 @@ export PATH="$HOME/.rd/bin:$PATH"
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
+. "/Applications/ServBay/package/common/acme.sh/acme.sh.env"
