@@ -463,7 +463,7 @@ function sudo() {                                                               
 
 		(
 				sleep .2s
-				ps -p "$pid" > /dev/null && INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme red-alert
+				ps -p "$pid" > /dev/null && INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme gruvbox-original-light-medium
 		) &
 
 		trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
