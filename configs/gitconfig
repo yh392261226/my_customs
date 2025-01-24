@@ -203,3 +203,5 @@ cmd=\"/Applications/UltraCompare.app/Contents/MacOS/UltraCompare\" -gitdt "$LOCA
 	directory = /opt/homebrew/Library/Taps/homebrew/homebrew-cask
 	directory = /opt/homebrew/Library/Taps/homebrew/homebrew-core
 	directory = /opt/homebrew/Library/Taps/homebrew/homebrew-core
+[url "git@github.com:"]
+	insteadOf = https://github.com/
