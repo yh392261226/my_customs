@@ -52,6 +52,7 @@ function help() {
     done
     echo "      create 创建新记录"
     echo "      dir    打开目录"
+    echo "      la     列出全部记录"
     echo ""
     echo "  Action:(\$2)"
     echo "      edit|e|add|a 编辑记录"
@@ -63,6 +64,19 @@ function help() {
     echo "  webmanager soft list"
     echo ""
     echo "''''''''''''''''''''''''''''''''''''''''"
+}
+
+function viewContentOfFiles() {
+    for file in ${WEBSITELOGS}/*.log; do
+        if [ -f "$file" ]; then
+            echo "文件内容: $file"
+            echo "-----------------------------"
+            # 输出文件内容
+            cat "$file"
+            echo "-----------------------------"
+            echo ""
+        fi
+    done
 }
 
 if [[ "${LOGARR[*]}" =~ "$tmp_iterm" ]]; then
@@ -78,6 +92,8 @@ elif [[ "create" = "$tmp_iterm" ]]; then
 elif [[ "dir" = "$tmp_iterm" ]]; then
     echo "$WEBSITELOGS"
     builtin cd $WEBSITELOGS && exa .
+elif [[ "la" = "$tmp_iterm" ]]; then
+    viewContentOfFiles
 else
     help
     exit 0
