@@ -72,8 +72,11 @@ fzf_transformer='
   fi
 '
 
+export gap_line_value=$(echo ".............." | lolcat -f -F 1.4) 
+
 FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --style=full:double "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --cycle "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --inline-info "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --highlight-line "
@@ -92,10 +95,22 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --info='right' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' --header-first"
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border bottom --no-list-border "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label="╢ Search ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label="╢ Preview ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-label "╢ Result ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-border '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-label-pos=top,4 '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-border '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-label "╢ Header ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-label-pos=top,4 '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-border '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap-line="˜˜˜˜˜˜˜˜˜˜˜˜˜" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
@@ -119,6 +134,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( Search 
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(Type jump label)+jump,jump-cancel:change-header:Jump cancelled" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind "focus:transform-header:file --brief {}" ' # 验证文件类型
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
 FZF_COMPLETION_OPTS=" -1 "
