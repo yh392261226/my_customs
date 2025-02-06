@@ -72,8 +72,6 @@ fzf_transformer='
   fi
 '
 
-export gap_line_value=$(echo ".............." | lolcat -f -F 1.4) 
-
 FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --style=full:double "
@@ -110,7 +108,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-border '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap-line="˜˜˜˜˜˜˜˜˜˜˜˜˜" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(echo '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈' | lolcat -f -F 1.4)\"  "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
