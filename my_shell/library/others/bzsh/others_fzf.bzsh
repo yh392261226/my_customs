@@ -109,6 +109,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(echo '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈' | lolcat -f -F 1.4)\"  "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) \"" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
