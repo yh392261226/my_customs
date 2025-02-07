@@ -33,6 +33,25 @@ function bat_whereis_file() {                                                   
 }
 alias batw="bat_whereis_file"                                                          # Desc: alias: batw:bat_whereis_file命令的别名,bat命令打印which命令找到的文件地址
 
+
+function type_whereis_file() {                                                         # Desc: function: type_whereis_file:type命令打印which命令找到的文件地址
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        echo $endfile
+        bat `which "$1"`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            echo $endfile
+            bat $endfile
+        else
+            type_whereis_file $endfile
+        fi
+    fi
+}
+alias typew="type_whereis_file"                                                        # Desc: alias: typew:type_whereis_file命令的别名,type命令打印which命令找到的文件地址
+
 function quick_preview () {                                                            # Desc: function: quick_preview:Opens any file in MacOS Quicklook Preview
     qlmanage -p "$*" >& /dev/null;
 }

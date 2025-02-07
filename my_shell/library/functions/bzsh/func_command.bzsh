@@ -51,21 +51,41 @@ function fzf_custom_aliases() {                                                 
 alias fca="fzf_custom_aliases"                                                      # Desc: alias: fca:fzf_custom_aliases命令的别名,显示所有自定义命令及注释
 
 function custom_aliases_from_a2z() {                                                # Desc: function: custom_aliases_from_a2z:显示从a-z的自定义命令
-    hr "⬳"
-    echo -n "[ $(echo -e {a..z}) ]\n"
-    hr "⬳"
-    echo "⭆ Already exists command:"
-    hr "⬳"
+    # 创建临时文件
+    local TMP_A2Z_ALIASES_FILE=$(mktemp)
+    # 将所有a-z的别名内容写入临时文件
+    if [ ! -f $TMP_A2Z_ALIASES_FILE ]; then
+        echo "Tmpfile does not exists !"
+        return 1
+    fi
+
+    hr "⬳" > $TMP_A2Z_ALIASES_FILE
+    echo -n "[ $(echo -e {a..z}) ]\n" >> $TMP_A2Z_ALIASES_FILE
+    hr "⬳" >> $TMP_A2Z_ALIASES_FILE
+    echo "⭆ Already exists command:" >> $TMP_A2Z_ALIASES_FILE
+    hr "⬳" >> $TMP_A2Z_ALIASES_FILE
     for word in {a..z}; do
         if [ "$(command -v $word)" != "" ]; then
-            type $word | grep -v "not found";
+            echo "alias_${word}_start" >> $TMP_A2Z_ALIASES_FILE
+            type $word | grep -v "not found" >> $TMP_A2Z_ALIASES_FILE
             if [ "$nowshell" != "bash" ]; then
-                hr "↼"
-                which $word | grep -v "not found";
-                hr "↼"
+                hr "↼" >> $TMP_A2Z_ALIASES_FILE
+                which $word | grep -v "not found" >> $TMP_A2Z_ALIASES_FILE
+                hr "↼" >> $TMP_A2Z_ALIASES_FILE
             fi
+            echo "alias_${word}_end" >> $TMP_A2Z_ALIASES_FILE
         fi
     done
+
+    if [ "all" = "$1" ] && [ "" != "$1" ]; then
+        bat $TMP_A2Z_ALIASES_FILE
+    else
+        # 利用fzf
+        seq 1 26 |  awk '{printf "%c\n", NR+96}' | fzf $FZF_CUSTOM_PARAMS \
+        --header="$(_buildFzfHeader '' 'custom_aliases_from_a2z')" \
+        --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
+        --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_A2Z_ALIASES_FILE} \"a2z\""
+    fi
 }
 alias a2z="custom_aliases_from_a2z"                                                 # Desc: alias: a2z:custom_aliases_from_a2z命令的别名,显示从a-z的自定义命令
 

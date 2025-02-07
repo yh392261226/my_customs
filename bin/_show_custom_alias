@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 ### Desc: 定位别名源所在位置及对应的函数或命令内容
 
 function _show_custom_alias() {
@@ -10,6 +9,8 @@ function _show_custom_alias() {
 
         if [ "customs" = "$3" ]; then
             TmpContent=$(cat $CLocation | grep -F ":alias ${CCommand}=")
+        elif [ "a2z" = "$3" ]; then
+            TmpContent=$(awk "/alias_${CCommand}_start/,/alias_${CCommand}_end/" $CLocation | grep -v "alias_${CCommand}_start\|alias_${CCommand}_end")
         else
             TmpContent=$(cat $CLocation | sed 's/^ //g' | sed "s/^/${CSeprator}/" | grep -F "${CSeprator}${CCommand}=")
         fi
@@ -19,6 +20,34 @@ function _show_custom_alias() {
             awesome_alias_to=$(echo "$TmpContent" | awk -F':alias ' '{print $2}' | sed -e "s/${CCommand}=//g" |awk -F'#' '{print $1}' | sed 's/"//g' | sed "s/'//g" | sed 's/[[:space:]]*$//g')
             awesome_alias_desc=$(echo "$TmpContent" | awk -F'#' '{print $2}' | sed 's/Desc: alias: //g' | sed "s/${CCommand}://g" | sed 's/^ //g')
             CommandLocation=$(echo "$TmpContent" | awk -F':alias ' '{print $1}')
+        elif [ "a2z" = "$3" ]; then
+            if [ "" != "$(echo $TmpContent | grep 'is an alias for')" ]; then
+                awesome_alias_to=$(echo "$TmpContent" | awk -F'is an alias for ' '{print $2}' | sed 's/"//g' | sed "s/'//g" | sed 's/[[:space:]]*$//g')
+                awesome_alias_desc=''
+                CommandLocation=''
+            elif [ "" != "$(echo $TmpContent | grep 'is a shell function from')" ]; then
+                awesome_alias_to=$(echo "$TmpContent" | awk -F'is a shell function from ' '{print $2}' | sed 's/"//g' | sed "s/'//g" | sed 's/[[:space:]]*$//g')
+                awesome_alias_desc=''
+                if [ -f $awesome_alias_to ]; then
+                    CommandLocation=$awesome_alias_to
+                fi
+            elif [ "" != "$(echo $TmpContent | grep 'is a shell builtin')" ]; then
+                awesome_alias_to='shell builtin'
+                awesome_alias_desc='\033[1;33m A shell builtin command\033[0m'
+            elif [ "" != "$(echo $TmpContent | grep 'is ')" ]; then
+                awesome_alias_to=$(echo "$TmpContent" | awk -F'is ' '{print $2}' | sed 's/"//g' | sed "s/'//g" | sed 's/[[:space:]]*$//g')
+                if [ -f $awesome_alias_to ]; then
+                    CommandLocation=$awesome_alias_to
+                fi
+            else
+                awesome_alias_to=''
+                awesome_alias_desc=''
+                CommandLocation=''
+            fi
+
+            if [ "" = "$awesome_alias_to" ]; then
+                awesome_alias_desc='\033[1;31m Does not alias to a command or function\033[0m'
+            fi
         else
             awesome_alias_to=$(echo "$TmpContent" | sed -e "s/${CSeprator}${CCommand}=//g" | sed 's/"//g' | sed "s/'//g")
             awesome_alias_to="$awesome_alias_to"
@@ -39,14 +68,18 @@ function _show_custom_alias() {
             echo ""
             env which "$awesome_alias_to"
             echo ""
-            if [ ! "$(echo $awesome_alias_to | grep -E '\.')" ]; then
+            # if [ ! "$(echo $awesome_alias_to | grep -E '\.')" ]; then
                 echo "Custom File Location :⭆ $CommandLocation"
                 echo ""
                 echo "................................................................................."
 
-                sed -n "/function ${awesome_alias_to}(/,/^}/p" $CommandLocation | /opt/homebrew/bin/bat --style='numbers,changes,header,grid' --theme='gruvbox-dark' --pager 'less -RF' --map-syntax '.ignore:Git Ignore'
+                if [ -f "$awesome_alias_to" ]; then
+                    /opt/homebrew/bin/bat --style='numbers,changes,header,grid' --theme='gruvbox-dark' --pager 'less -RF' --map-syntax '.ignore:Git Ignore' "$awesome_alias_to"
+                else
+                    sed -n "/function ${awesome_alias_to}(/,/^}/p" $CommandLocation | /opt/homebrew/bin/bat --style='numbers,changes,header,grid' --theme='gruvbox-dark' --pager 'less -RF' --map-syntax '.ignore:Git Ignore'
+                fi
                 echo "................................................................................."
-            fi
+            # fi
         fi
     fi
 }
