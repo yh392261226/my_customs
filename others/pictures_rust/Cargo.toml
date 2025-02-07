@@ -1,0 +1,10 @@
+# member_project_1/Cargo.toml
+[package]
+name = "pictures"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"
+log = "0.4"
+env_logger = "0.9"

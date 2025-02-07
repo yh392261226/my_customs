@@ -1,12 +1,10 @@
 show_msg=0 #是否显示当前切换图片地址提示
-[[ -f /usr/local/bin/php ]] && phpbin=/usr/local/bin/php
-[[ -f /opt/homebrew/bin/php ]] && phpbin=/opt/homebrew/bin/php
+RSCOMMAND=$MYPATH/customs/bin/rs_pictures
 PICTURES_PATH=$MYPATH/pictures/
 emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
 CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH="/Applications/iTerm.app"
-PHP_TOOL=$MYPATH/customs/others/pictures.php
 source $MYPATH/customs/my_shell/zsh/zmy_changebg.kitty.zsh
 
 if [ -z $BGTHUMB ]; then
@@ -25,7 +23,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     return 1
                 else
                     clear
-                    #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
                     printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
                     printf ":"
                     base64 < "$bgfile"
@@ -39,7 +36,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bg_change() {
                 image_path=$1
                 image_index=$2
-#                CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
                 CURITERMVERSION=$(env |grep 'LC_TERMINAL=' |sed 's,LC_TERMINAL=,,')
                 if [ "" != "$image_index" ]; then
                     if [ -f $CURRENT_PICTURE_MARK ]; then
@@ -109,7 +105,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机下一个背景图
             bg_rand_next() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL next);
+                    image_path=$($RSCOMMAND next);
                     bg_change $image_path
                 else
                     zle self-insert '^E'
@@ -120,8 +116,9 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
 
             #随机一个背景图
             bg_rand() {
+                echo $phpbin
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL rand);
+                    image_path=$($RSCOMMAND rand);
                     bg_change $image_path
                 else
                     zle self-insert '^W'
@@ -133,7 +130,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机上一个背景图
             bg_rand_pre() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL pre);
+                    image_path=$($RSCOMMAND pre);
                     bg_change $image_path
                 else
                     zle self-insert '^Q'
