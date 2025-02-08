@@ -166,6 +166,11 @@ elif [ "bash" = "$nowshell" ]; then
     eval "$(fzf --bash)"
 fi
 
+### fzf-git.sh
+if [ -d $MYRUNTIME/customs/others/fzf-git.sh ] && [ -f $MYRUNTIME/customs/others/fzf-git.sh/fzf-git.sh ]; then
+    source $MYRUNTIME/customs/others/fzf-git.sh/fzf-git.sh
+fi
+
 #Git configs
 #----------------------------------------------------------------------------------------------------------------
 git config --global alias.co checkout

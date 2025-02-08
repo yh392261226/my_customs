@@ -200,3 +200,6 @@
 [submodule "others/awesome-cheatsheets"]
 	path = others/awesome-cheatsheets
 	url = git@github.com:skywind3000/awesome-cheatsheets.git
+[submodule "others/fzf-git.sh"]
+	path = others/fzf-git.sh
+	url = git@github.com:junegunn/fzf-git.sh.git
