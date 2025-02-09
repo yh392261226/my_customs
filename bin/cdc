@@ -11,11 +11,25 @@ TMPCOMMAND=/tmp/tmp_mark_command                    #临时命令
 DESCFILE=".descfile"                                #描述文件名称
 VIMCOMMAND=/usr/bin/vim                             #vim命令位置
 action=$1                                           #操作参数
-ifsort=0 																						#是否排序
+ifsort=0 											#是否排序
 
 
-goto_mark() {
-	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
+gotoPath() {
+    local gotopath=$1
+    if [ "$nowterm" = "iTerm" ]; then
+        osascript -e "tell application \"iTerm.app\"
+            tell current window
+                tell current session
+                    write text \"cd "${gotopath}"\"
+                end tell
+            end tell
+        end tell"
+    elif [ "$nowterm" = "Terminal" ]; then
+        osascript -e "tell application \"Terminal\"
+        activate
+        do script \"cd ${gotopath}\" in window 1
+        end tell"
+    fi
 }
 
 del_mark() {
@@ -95,139 +109,67 @@ add_mark() {
 
 ###显示数量
 list_num_mark() {
-	if [ ! -f $MARKFILE ]; then
-        echo "$MARKFILE does not exists !"
-        exit 1
-    else
-        local counts=`cat $MARKFILE | sort | uniq |wc -l`
-		echo "Total : $counts"
-	fi
+    check_mark
+
+    local counts=`cat $MARKFILE | sort | uniq |wc -l`
+    echo "Total : $counts"
 }
 
 ###列出收藏
 list_mark() {
-    if [ ! -f $MARKFILE ]; then
-        echo "$MARKFILE dose not exists !"
-        exit 1
-    else
-        IFS=$'\n'
-        OLDIFS="$IFS"
-		local marklists=`cat $MARKFILE`
-        echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-        local posit=0
-        for i in ${marklists[*]}; do
-            if [ "$i" != "" ]; then
-                if [ -f ${i}/$DESCFILE ]; then
-                  desc=$(cat ${i}/$DESCFILE)
-                else
-                  desc="Desc is empty!"
-                fi
-                printf "%-5s%-10s%-90s%-30s\n" "|" "$posit" "$i" "$desc"
-                echo "........................................................................................................................................."
-                ((posit+=1))
+    check_mark
+
+    IFS=$'\n'
+    OLDIFS="$IFS"
+    local marklists=`cat $MARKFILE`
+    local posit=0
+    for i in ${marklists[*]}; do
+        if [ "$i" != "" ]; then
+            if [ -f ${i}/$DESCFILE ]; then
+                desc=$(cat ${i}/$DESCFILE)
+            else
+                desc="Desc is empty!"
             fi
-        done
-        echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-		list_num_mark
-        IFS="$OLDIFS"
-    fi
+            printf "%-5s%-10s%-90s%-30s\n" "|" "$posit" "$i" "$desc"
+            ((posit+=1))
+        fi
+    done
+    list_num_mark
+    IFS="$OLDIFS"
 }
 
 rebuild_mark() {
-    if [ ! -f $MARKFILE ]; then
-        echo "$MARKFILE dose not exists !"
-        exit 1
-    else
-        IFS=$'\n'
-        OLDIFS="$IFS"
-		local marklists=`cat $MARKFILE`
-        for i in ${marklists[*]}; do
-            if [ "$i" != "" ]; then
-                if [ ! -d ${i} ]; then
-                    sed -i "/${i//\//\\/}/d" $MARKFILE
-                fi
+    check_mark
+
+    IFS=$'\n'
+    OLDIFS="$IFS"
+    local marklists=`cat $MARKFILE`
+    for i in ${marklists[*]}; do
+        if [ "$i" != "" ]; then
+            if [ ! -d ${i} ]; then
+                gsed -i "/${i//\//\\/}/d" $MARKFILE
             fi
-        done
-        echo "Done..."
-        return 0
-        IFS="$OLDIFS"
-    fi
+        fi
+    done
+    echo "Done..."
+    return 0
+    IFS="$OLDIFS"
 }
 
 chose_mark() {
-    if [ ! -f $MARKFILE ]; then
-        echo "$MARKFILE dose not exists!"
-        exit 1
-    else
-        local marklists=$(cat $MARKFILE)
-        if [ "0" -lt "${#marklists[@]}" ]; then
-            local mark_array[0]=''
-            local posit=0
-            IFS=$'\n'
-            OLDIFS="$IFS"
-            for i in ${marklists[*]}; do
-                if [ "$i" != "" ]; then
-                    mark_array[$posit]=$i #加入数组
-                    ((posit+=1))
-                fi
-            done
-            IFS="$OLDIFS"
+    check_mark
 
-            if [ "$1" != "" ]; then
-                number=$1
-            else
-                echo "Which one do you want :";
-                tmpposit=0
-                echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-                IFS=$'\n'
-                OLDIFS="$IFS"
-                for ii in ${mark_array[*]}; do
-                    if [ "$ii" != "" ]; then
-                        if [ -f ${ii}/$DESCFILE ]; then
-                          desc=$(cat ${ii}/$DESCFILE)
-                        else
-                          desc="Desc is empty!"
-                        fi
-                        printf "%-5s%-10s%-90s%-30s\n" "|" "$tmpposit" "$ii" "$desc"
-                        echo "........................................................................................................................................."
-                        ((tmpposit+=1))
-                    fi
-                done
-                IFS="$OLDIFS"
-                echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-
-                read number;
-            fi
-            if [ "$number" -lt "0" ] || [ "${mark_array[$number]}" = "" ]; then
-                echo "Your choice does not exists !"
-                exit 1
-            else
-              mark_array_final="$(echo -e ${mark_array[$number]} | sed 's/ /\\\\ /g')";
-							if [ ! -d "${mark_array[$number]}" ]; then
-								echo "The directory :${mark_array_final} does not exists! Please rebuild your marked file by $0 r/rebuild"
-								exit 0
-							fi
-            #   echo "$mark_array_final";exit 0;
-              if [ "$nowterm" = "iTerm" ]; then
-            #   echo "$mark_array_final";exit 0;
-                  osascript -e "tell application \"iTerm.app\"
-                      tell current window
-                          tell current session
-                              write text \"mgoto "${mark_array_final}"\"
-                          end tell
-                      end tell
-                  end tell"
-              elif [ "$nowterm" = "Terminal" ]; then
-                  osascript -e "tell application \"Terminal\"
-                    activate
-                    do script \"cd ${mark_array_final}\" in window 1
-                  end tell"
-              fi
-            fi
-        else
-            echo "Mark file is empty !!!"
-            exit 1
-        fi
+    choose=$(cat $MYRUNTIME/tools/m_mark | fzf $FZF_CUSTOM_PARAMS \
+    --preview-window right:70%:rounded:hidden:wrap \
+    --preview "if [ -f {}/.descfile ]; then; cat {}/.descfile;fi;$MYRUNTIME/customs/bin/_previewer {}" \
+    --header-first \
+    --header $'Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h  \n  用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助' \
+    --bind="ctrl-y:execute-silent(echo {} | pbcopy)+abort" \
+    --bind='ctrl-d:execute((cat $MYRUNTIME/tools/m_mark | grep -vFx {}) > /tmp/m_cmark_temp && mv /tmp/m_cmark_temp $MYRUNTIME/tools/m_mark)+reload(cat $MYRUNTIME/tools/m_mark)')
+    
+    if [ "$choose" != "" ]; then
+        # choose=$(echo $choose | gsed 's/ /\\\\ /g')
+        gotoPath "$choose"
     fi
 }
 
@@ -252,63 +194,62 @@ truncate_mark() {
     fi
 }
 
-source $MYRUNTIME/customs/bin/mymessage
-if [ ! -d $MYRUNTIME ] || [ ! -f $MARKFILE ]; then
-	echo "Runtime file or MARKFILE does not exists !!!"
-	echo "You need to create it by yourself ."
-	exit 1
-fi
+help_mark() {
+    command=$(basename $0)
+    echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h" | lolcat -f -F 1.4
+    echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助" | lolcat -f -F 1.4
+}
 
+check_mark() {
+    if [ ! -d $MYRUNTIME ] || [ ! -f $MARKFILE ]; then
+        echo "Runtime file or MARKFILE does not exists !!!"
+        echo "You need to create it by yourself ."
+        exit 1
+    fi
+}
 
-case "$action" in
-	[0-9]*) #直接填写数字
-		chose_mark $action
-		;;
-  "chose"|"c")
-      if [ "$2" != "" ]; then
-        chose_mark $2
-      else
-	    	chose_mark
-      fi
-		;;
-	"list"|"l"|"num"|"n")
-		if [ "$1" = "list" ] || [ "$1" = "l" ];then
-	    if [ "$2" = "file" ] || [ "$2" = "f" ]; then
-	      list_mark
-			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
-				list_num_mark
-	    else
-			  list_mark
-	    fi
-		elif [ "$1" = "num" ] || [ "$1" = "n" ]; then
-			list_num_mark
-		fi
-		;;
-	"add"|"a")
-		add_mark
-		;;
-	"del"|"d")
-		if [ "" = "$2" ]; then
-			del_mark
-		else
-			del_mark_by_num $2
-		fi
-		;;
-    "rebuild"|"r")
-        rebuild_mark
-        ;;
-	"trun"|"truncate"|"t")
-		truncate_mark
-		;;
-  "help"|"h"|*)
-		command=$(basename $0)
-		echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h";
-		echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助"
-    list_mark
+init_mark() {
+    # source $MYRUNTIME/customs/bin/mymessage
+    hr '*' | lolcat -f -F 1.4
+    case "$action" in
+        [0-9]*) #直接填写数字
+            chose_mark $action
+            ;;
+        "chose"|"c")
+            if [ "$2" != "" ]; then
+                chose_mark $2
+            else
+                    chose_mark
+            fi
+            ;;
+        "list"|"l")
+            list_mark
+            ;;
+        "num"|"n")
+            list_num_mark
+            ;;
+        "add"|"a")
+            add_mark
+            ;;
+        "del"|"d")
+            if [ "" = "$2" ]; then
+                del_mark
+            else
+                del_mark_by_num $2
+            fi
+            ;;
+        "rebuild"|"r")
+            rebuild_mark
+            ;;
+        "trun"|"truncate"|"t")
+            truncate_mark
+            ;;
+        "help"|"h"|*)
+            # help_mark
+            # hr '*' | lolcat -f -F 1.4
+            chose_mark
+            ;;
+    esac
+}
 
-    for ((i=1; i<=$(tput cols); i ++))  ; do echo -n '*';done
-
-
-
-	  ;;
-esac
+init_mark

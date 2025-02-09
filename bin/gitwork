@@ -9,7 +9,7 @@ source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
 function gitWork() {
     title=$1
     work_path=$2
-    if [ "" = "$2" ]; then
+    if [ "" = "$2" ] || [ ! -d $2 ]; then
         echo "$work_path does not exists !!!"
         return 1
     fi

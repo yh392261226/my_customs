@@ -110,3 +110,21 @@ function ifHasCommand() {
         echo "1"
     fi
 }
+
+function gotoPath() {
+    local gotopath=$1
+    if [ "$nowterm" = "iTerm" ]; then
+        osascript -e "tell application \"iTerm.app\"
+            tell current window
+                tell current session
+                    write text \"cd "${gotopath}"\"
+                end tell
+            end tell
+        end tell"
+    elif [ "$nowterm" = "Terminal" ]; then
+        osascript -e "tell application \"Terminal\"
+        activate
+        do script \"cd ${gotopath}\" in window 1
+        end tell"
+    fi
+}
