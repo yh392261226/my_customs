@@ -1,14 +1,11 @@
-#!/usr/bin/env bash
-
 show_msg=0 #是否显示当前切换图片地址提示
-[[ -f /usr/local/bin/php ]] && phpbin=/usr/local/bin/php
-[[ -f /opt/homebrew/bin/php ]] && phpbin=/opt/homebrew/bin/php
+RSCOMMAND=$MYPATH/customs/bin/rs_pictures
 PICTURES_PATH=$MYPATH/pictures/
+emptybackground=$PICTURES_PATH/../nature0/t1l-logo-white-shitty.jpg
 CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH="/Applications/iTerm.app"
-PHP_TOOL=$MYPATH/customs/others/pictures.php
-emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
+
 
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0
@@ -17,8 +14,8 @@ fi
 ##### 背景图变换
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
-        if [ "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" = "iTerm.app" ]; then #判断当前使用的是否是iterm
-            image_index=-1
+        if [ "$TERM_PROGRAM" = "iTerm.app" ]; then #判断当前使用的是否是iterm
+            image_index=0
             #图像缩略图
             bg_thumb() {
                 bgfile=$1
@@ -27,7 +24,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     return 1
                 else
                     clear
-                    #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
                     printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
                     printf ":"
                     base64 < "$bgfile"
@@ -41,8 +37,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             bg_change() {
                 image_path=$1
                 image_index=$2
-
-                # CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
+                CURITERMVERSION=$(env |grep 'LC_TERMINAL=' |sed 's,LC_TERMINAL=,,')
                 if [ "" != "$image_index" ]; then
                     if [ -f $CURRENT_PICTURE_MARK ]; then
                         /bin/rm -f $CURRENT_PICTURE_MARK
@@ -50,7 +45,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     echo $image_index > $CURRENT_PICTURE_MARK
                 fi
                 if [ -f $CURRENT_PICTURENAME_MARK ]; then
-                    rm -f $CURRENT_PICTURENAME_MARK
+                    /bin/rm -f $CURRENT_PICTURENAME_MARK
                 fi
                 echo "$image_path" > $CURRENT_PICTURENAME_MARK
 
@@ -59,13 +54,26 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                         terminal-notifier -message $image_path
                     fi
                 fi
-                osascript -e "tell application \"iTerm.app\"
+
+                if [ "$CURITERMVERSION" = "iTerm2" ]; then
+                    osascript -e "tell application \"iTerm.app\"
                         tell current window
                             tell current session
                                 set background image to \"$image_path\"
                             end tell
                         end tell
                     end tell"
+                else
+                    osascript -e "tell application \"iTerm\"
+                        set current_terminal to (current terminal)
+                        tell current_terminal
+                            set current_session to (current session)
+                            tell current_session
+                                set background image path to \"$image_path\"
+                            end tell
+                        end tell
+                    end tell"
+                fi
                 if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
                   bg_thumb $image_path
                   for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
@@ -77,63 +85,101 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
             }
 
-            #随机下一个背景图
-            function bg_rand_next() {
+            #下一个背景图
+            bg_next() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL next);
+                    image_list=($(/bin/ls $PICTURES_PATH))
+                    if [ "$image_index" -ge "${#image_list[*]}" ]; then
+                        image_index=-1
+                    else
+                        image_index=$(( $image_index + 1 ))
+                    fi
+                    image_path=${image_list[$image_index]}
+                    bg_change ${PICTURES_PATH}/$image_path $image_index
+                else
+                    zle self-insert '^}'
+                fi
+            }
+
+            #随机下一个背景图
+            bg_rand_next() {
+                if [ -z "$BUFFER" ]; then
+                    image_path=$($RSCOMMAND next);
                     bg_change $image_path
                 else
-                    self-insert '"˚"'
+                    zle self-insert '^E'
                 fi
             }
 
             #随机一个背景图
-            function bg_rand() {
+            bg_rand() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL rand);
+                    image_path=$($RSCOMMAND rand);
                     bg_change $image_path
                 else
-                    self-insert '"∆"'
+                    zle self-insert '^W'
                 fi
             }
 
             #随机上一个背景图
-            function bg_rand_pre() {
+            bg_rand_pre() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL pre);
+                    image_path=$($RSCOMMAND pre);
                     bg_change $image_path
                 else
-                    self-insert '"˙"'
+                    zle self-insert '^Q'
                 fi
             }
 
-            #背景图设置为已设定
-            function bg_user() {
+            #上一个背景图
+            bg_pre() {
+                if [ -z "$BUFFER" ]; then
+                    image_list=($(/bin/ls $PICTURES_PATH))
+                    if [ "$image_index" -le "0" ]; then
+                        image_index=${#image_list[*]}
+                    else
+                        image_index=$(( $image_index - 1 ))
+                    fi
+                    image_path=${image_list[$image_index]}
+                    bg_change ${PICTURES_PATH}$image_path $image_index
+                else
+                    zle self-insert '^{'
+                fi
+            }
+
+            #背景换成已设定
+            bg_user() {
                 if [ -z "$BUFFER" ]; then
                     bg_change $emptybackground
                 else
-                    self-insert '"¨"'
+                    zle self-insert '^U'
                 fi
             }
 
             #背景图设置为空
-            function bg_empty() {
+            bg_empty() {
                 if [ -z "$BUFFER" ]; then
                     bg_change ""
                 else
-                    self-insert '"∫"'
+                    zle self-insert '^B'
                 fi
             }
 
-            bind -x '"\C-H":"bg_rand_pre"'    #//Ctrl h 换背景 (随机的上一个)
-
-            bind -x '"\C-J":"bg_rand"'        #//Ctrl j 换背景 (随机一个)
-
-            bind -x '"\C-K":"bg_rand_next"'   #//Ctrl k 换背景 (随机的下一个)
-
-            bind -x '"\C-U":"bg_user"'       #//Ctrl u 背景换成已设定
-
-            bind -x '"\C-B":"bg_empty"'       #//Ctrl b 背景换成空的
+            stty -ixon
+            export -f bg_next
+            bind '"\C-]":"bg_next;\n"'        #//Ctrl }符换背景 (下一个)
+            export -f bg_rand_pre
+            bind '"\C-Q":"bg_rand_pre;\n"'    #//Ctrl q 换背景 (随机的上一个)
+            export -f bg_rand
+            bind '"\C-W":"bg_rand;\n"'        #//Ctrl w 换背景 (随机一个)
+            export -f bg_rand_next
+            bind '"\C-E":"bg_rand_next;\n"'   #//Ctrl e 换背景 (随机的下一个)
+            export -f bg_pre
+            bind '"\C-[":"bg_pre;\n"'         #//Ctrl {符换背景(上一个)
+            export -f bg_user
+            bind '"\C-U":"bg_user;\n"'        #//Ctrl u 背景换成已设定
+            export -f bg_empty
+            bind '"\C-B":"bg_empty;\n"'       #//Ctrl b 背景换成空的
         fi
     fi
 

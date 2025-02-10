@@ -1,11 +1,10 @@
 show_msg=0 #是否显示当前切换图片地址提示
 RSCOMMAND=$MYPATH/customs/bin/rs_pictures
 PICTURES_PATH=$MYPATH/pictures/
-emptybackground=$PICTURES_PATH/../public0/t1l-logo-white-shitty.jpg
+emptybackground=$PICTURES_PATH/../nature0/t1l-logo-white-shitty.jpg
 CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH="/Applications/iTerm.app"
-source $MYPATH/customs/my_shell/zsh/zmy_changebg.kitty.zsh
 
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0
@@ -14,7 +13,7 @@ fi
 if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
     if [ -d "$ITERMPATH" ]; then #判断是否安装了iterm
         if [ "$TERM_PROGRAM" = "iTerm.app" ]; then #判断当前使用的是否是iterm
-            image_index=-1
+            image_index=0
             #图像缩略图
             bg_thumb() {
                 bgfile=$1
@@ -93,14 +92,12 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     else
                         image_index=$(( $image_index + 1 ))
                     fi
-                    image_path=$image_list[$image_index]
+                    image_path=${image_list[$image_index]}
                     bg_change ${PICTURES_PATH}/$image_path $image_index
                 else
                     zle self-insert '^}'
                 fi
             }
-            zle -N bg_next
-            bindkey '^}' bg_next   #//Ctrl }符换背景 (下一个)
 
             #随机下一个背景图
             bg_rand_next() {
@@ -111,12 +108,9 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     zle self-insert '^E'
                 fi
             }
-            zle -N bg_rand_next
-            bindkey '^E' bg_rand_next   #//Ctrl E 换背景 (随机的下一个)
 
             #随机一个背景图
             bg_rand() {
-                echo $phpbin
                 if [ -z "$BUFFER" ]; then
                     image_path=$($RSCOMMAND rand);
                     bg_change $image_path
@@ -124,8 +118,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     zle self-insert '^W'
                 fi
             }
-            zle -N bg_rand
-            bindkey '^W' bg_rand   #//Ctrl W 换背景 (随机一个)
 
             #随机上一个背景图
             bg_rand_pre() {
@@ -136,8 +128,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     zle self-insert '^Q'
                 fi
             }
-            zle -N bg_rand_pre
-            bindkey '^Q' bg_rand_pre   #//Ctrl Q 换背景 (随机的上一个)
 
             #上一个背景图
             bg_pre() {
@@ -148,14 +138,12 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     else
                         image_index=$(( $image_index - 1 ))
                     fi
-                    image_path=$image_list[$image_index]
+                    image_path=${image_list[$image_index]}
                     bg_change ${PICTURES_PATH}$image_path $image_index
                 else
                     zle self-insert '^{'
                 fi
             }
-            zle -N bg_pre
-            bindkey '^{' bg_pre   #//Ctrl {符换背景(上一个)
 
             #背景换成已设定
             bg_user() {
@@ -165,8 +153,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     zle self-insert '^U'
                 fi
             }
-            zle -N bg_user
-            bindkey '^U' bg_user #//Ctrl U 背景换成已设定
 
             #背景图设置为空
             bg_empty() {
@@ -176,6 +162,19 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     zle self-insert '^B'
                 fi
             }
+
+            zle -N bg_next
+            bindkey '^]' bg_next   #//Ctrl }符换背景 (下一个)
+            zle -N bg_rand_next
+            bindkey '^E' bg_rand_next   #//Ctrl E 换背景 (随机的下一个)
+            zle -N bg_rand
+            bindkey '^W' bg_rand   #//Ctrl W 换背景 (随机一个)
+            zle -N bg_rand_pre
+            bindkey '^Q' bg_rand_pre   #//Ctrl Q 换背景 (随机的上一个)
+            zle -N bg_pre
+            bindkey '^[' bg_pre   #//Ctrl {符换背景(上一个)
+            zle -N bg_user
+            bindkey '^U' bg_user #//Ctrl U 背景换成已设定
             zle -N bg_empty
             bindkey '^B' bg_empty #//Ctrl B 背景换成空的
         fi

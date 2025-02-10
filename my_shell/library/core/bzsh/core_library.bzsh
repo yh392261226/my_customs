@@ -5,13 +5,6 @@ COREPATH=$LIBRARYPATH/core/bzsh
 THIRDPATH=$LIBRARYPATH/third/bzsh
 OTHERSPATH=$LIBRARYPATH/others/bzsh
 
-## functions
-if [ -d $FUNCPATH ]; then
-    for func in $(ls $FUNCPATH/func_*.bzsh); do
-        source $func
-    done
-fi
-
 ## cores
 source $COREPATH/core_basic.bzsh
 source $COREPATH/core_common.bzsh
@@ -20,6 +13,13 @@ source $COREPATH/core_alias.bzsh
 source $COREPATH/core_proxy.bzsh
 source $COREPATH/core_ser.bzsh
 source $COREPATH/core_other.bzsh
+
+## functions
+if [ -d $FUNCPATH ]; then
+    for func in $(ls $FUNCPATH/func_*.bzsh); do
+        source $func
+    done
+fi
 
 ## thirds
 if [ -d $THIRDPATH ]; then

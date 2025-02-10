@@ -76,7 +76,7 @@ export MYBIN=$MYCUSTOMS/bin
 
 # fzf-dirhistory
 export DIR_HISTORY_FILE="$HOME/.fzf_dirhistory"
-export DIR_HISTORY_SIZE=2000
+export DIR_HISTORY_SIZE=20000
 
 #Git
 export GIT_MERGE_AUTOEDIT=no  #while git pull does not open merge editor

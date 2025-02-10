@@ -138,6 +138,21 @@ alias hgpl='hg pull'                                                            
 alias hgpu='hg push'                                                                                             # Desc: alias: hgpu:hg push命令的别名
 alias hgc='hg clone'                                                                                             # Desc: alias: hgc:hg clone命令的别名
 
+#Git configs
+#----------------------------------------------------------------------------------------------------------------
+git config --global alias.co checkout                                                                            # Desc: alias: g co: git checkout命令的别名
+git config --global alias.ci commit                                                                              # Desc: alias: g ci: git commit命令的别名
+git config --global alias.cm commit                                                                              # Desc: alias: g cm: git commit命令的别名
+git config --global alias.st status                                                                              # Desc: alias: g st: git status命令的别名
+git config --global alias.ad add                                                                                 # Desc: alias: g ad: git add命令的别名
+git config --global alias.df diff                                                                                # Desc: alias: g df: git diff命令的别名
+git config --global alias.dfc "diff --cached"                                                                    # Desc: alias: g dfc: git diff --cached命令的别名
+git config --global alias.br branch                                                                              # Desc: alias: g br: git branch命令的别名
+git config --global alias.lol "log --graph --decorate --pretty=oneline --abbrev-commit"                          # Desc: alias: g lol: git log --graph --decorate --pretty=oneline --abbrev-commit命令的别名
+git config --global alias.lola "log --graph --decorate --pretty=oneline --abbrev-commit --all"                   # Desc: alias: g lola: git log --graph --decorate --pretty=oneline --abbrev-commit --all命令的别名
+git config --global alias.subup "submodule update --init --recursive"                                            # Desc: alias: g subup: git submodule update --init --recursive命令的别名
+git config --global alias.subst "submodule status --recursive"                                                   # Desc: alias: g subst: git submoudle status --recursive命令的别名
+
 # Docker alias
 #----------------------------------------------------------------------------------------------------------------
 alias dkps="docker ps"                                                                                           # Desc: alias: dkps:docker ps命令的别名
