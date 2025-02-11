@@ -10,7 +10,7 @@ go2 () {
 	[ -d "$1" ] && cd "$1" || cd "$(dirname "$1")"
 }
 source $my_custom_sh/library/core/bzsh/core_library.bzsh
-source $my_custom_sh/bash/bmy_changebg.bash
+# source $my_custom_sh/bash/bmy_changebg.bash
 source $my_custom_sh/bash/bmy_other.bash
 
 if [ "starship" = "$(cat $HOME/.prompt_config)" ]; then

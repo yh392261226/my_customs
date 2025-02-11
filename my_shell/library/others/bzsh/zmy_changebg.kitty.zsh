@@ -1,3 +1,9 @@
+show_msg=0 #是否显示当前切换图片地址提示
+RSCOMMAND=$MYPATH/customs/bin/rs_pictures
+PICTURES_PATH=$MYPATH/pictures/
+emptybackground=$PICTURES_PATH/../nature0/t1l-logo-white-shitty.jpg
+CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
+CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH2="/Applications/kitty.app"
 
 
@@ -13,7 +19,6 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                     return 1
                 else
                     clear
-                    #printf '\033]1337;File=inline=1;width=30%%;height=10%%;preserveAspectRatio=0'
                     printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
                     printf ":"
                     base64 < "$bgfile"
@@ -81,7 +86,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机下一个背景图
             bg_rand_next() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL next);
+                    image_path=$($RSCOMMAND next);
                     bg_change $image_path
                 else
                     zle self-insert '^E'
@@ -93,7 +98,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机一个背景图
             bg_rand() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL rand);
+                    image_path=$($RSCOMMAND rand);
                     bg_change $image_path
                 else
                     zle self-insert '^W'
@@ -105,7 +110,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             #随机上一个背景图
             bg_rand_pre() {
                 if [ -z "$BUFFER" ]; then
-                    image_path=$($phpbin $PHP_TOOL pre);
+                    image_path=$($RSCOMMAND pre);
                     bg_change $image_path
                 else
                     zle self-insert '^Q'

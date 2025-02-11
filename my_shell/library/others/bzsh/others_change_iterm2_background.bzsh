@@ -163,20 +163,38 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 fi
             }
 
-            zle -N bg_next
-            bindkey '^]' bg_next   #//Ctrl }符换背景 (下一个)
-            zle -N bg_rand_next
-            bindkey '^E' bg_rand_next   #//Ctrl E 换背景 (随机的下一个)
-            zle -N bg_rand
-            bindkey '^W' bg_rand   #//Ctrl W 换背景 (随机一个)
-            zle -N bg_rand_pre
-            bindkey '^Q' bg_rand_pre   #//Ctrl Q 换背景 (随机的上一个)
-            zle -N bg_pre
-            bindkey '^[' bg_pre   #//Ctrl {符换背景(上一个)
-            zle -N bg_user
-            bindkey '^U' bg_user #//Ctrl U 背景换成已设定
-            zle -N bg_empty
-            bindkey '^B' bg_empty #//Ctrl B 背景换成空的
+            if [ "zsh" = "$nowshell" ]; then
+                zle -N bg_next
+                bindkey '^]' bg_next   #//Ctrl }符换背景 (下一个)
+                zle -N bg_rand_next
+                bindkey '^E' bg_rand_next   #//Ctrl E 换背景 (随机的下一个)
+                zle -N bg_rand
+                bindkey '^W' bg_rand   #//Ctrl W 换背景 (随机一个)
+                zle -N bg_rand_pre
+                bindkey '^Q' bg_rand_pre   #//Ctrl Q 换背景 (随机的上一个)
+                zle -N bg_pre
+                bindkey '^[' bg_pre   #//Ctrl {符换背景(上一个)
+                zle -N bg_user
+                bindkey '^U' bg_user #//Ctrl U 背景换成已设定
+                zle -N bg_empty
+                bindkey '^B' bg_empty #//Ctrl B 背景换成空的
+            else
+                stty -ixon
+                export -f bg_next
+                bind '"\C-]":"bg_next;\n"'        #//Ctrl }符换背景 (下一个)
+                export -f bg_rand_pre
+                bind '"\C-Q":"bg_rand_pre;\n"'    #//Ctrl q 换背景 (随机的上一个)
+                export -f bg_rand
+                bind '"\C-W":"bg_rand;\n"'        #//Ctrl w 换背景 (随机一个)
+                export -f bg_rand_next
+                bind '"\C-E":"bg_rand_next;\n"'   #//Ctrl e 换背景 (随机的下一个)
+                export -f bg_pre
+                bind '"\C-[":"bg_pre;\n"'         #//Ctrl {符换背景(上一个)
+                export -f bg_user
+                bind '"\C-U":"bg_user;\n"'        #//Ctrl u 背景换成已设定
+                export -f bg_empty
+                bind '"\C-B":"bg_empty;\n"'       #//Ctrl b 背景换成空的
+            fi
         fi
     fi
 

@@ -25,7 +25,7 @@ go2 () {
 source $my_custom_sh/library/core/bzsh/core_library.bzsh
 
 #不知道跟yadr的哪个插件冲突 所以必须单独引入
-source $my_custom_sh/zsh/zmy_changebg.zsh
+# source $my_custom_sh/zsh/zmy_changebg.zsh
 ### 引入我自己的配置：结束
 
 
