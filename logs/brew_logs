@@ -144,7 +144,6 @@ echo "Installing Languages ..."
 #-----------------------------------------------------------#
 #[[[
 brew install llvm
-brew install rust
 brew install go
 brew install python
 brew install cython
@@ -163,7 +162,6 @@ brew install ruby-install
 brew install rust
 brew install rustup-init
 brew install java
-brew install lua
 brew install bison
 brew install boost
 brew install kotlin
@@ -420,7 +418,6 @@ brew install sk
 brew install diff-so-fancy
 brew install diffutils
 brew install pkgdiff
-brew install httpie
 brew install icdiff
 brew install wdiff
 brew install chruby
@@ -439,7 +436,6 @@ brew install vim
 brew install neovim
 brew install macvim
 brew install ed
-brew install emacs
 brew install editorconfig
 brew install fontconfig
 brew install git
@@ -463,7 +459,6 @@ brew install jq
 brew install composer
 brew install http_load
 brew install httpstat
-brew install git-annex
 brew install less
 brew install lazygit
 brew install dos2unix
@@ -580,7 +575,6 @@ brew install font-inconsolata
 brew install font-fira-code-nerd-font
 brew install font-hack-nerd-font
 brew install --cask font-hack-nerd-font
-brew install font-inconsolata
 #]]]
 
 #-----------------------------------------------------------#
@@ -679,7 +673,6 @@ brew install leptonica
 brew install little-cms
 brew install little-cms2
 
-brew install lolcat
 brew install lrzsz
 brew install lsd
 brew install lynx
@@ -746,7 +739,6 @@ brew install p11-kit
 brew install par
 brew install pdflib-lite
 
-brew install phantomjs
 brew install platypus
 brew install plotutils
 brew install pngcheck
@@ -757,7 +749,6 @@ brew install portaudio
 brew install postgresql
 brew install potrace
 brew install pre-commit
-brew install prettyping
 brew install proctools
 brew install proj
 
@@ -868,12 +859,10 @@ brew install xorgproto
 brew install yajl
 brew install pick
 brew install desk
-brew install pipx
 brew install httpie
 brew install dbcli/tap/pgcli
 brew install micro
 brew install docui
-brew install libomp
 brew install grafana
 brew install progress
 brew install hexyl
@@ -881,12 +870,10 @@ brew install fx
 brew install zenity
 brew install atuin
 brew install tag-ag
-brew install progress
 brew install pandoc
 brew install bastet
 brew install chafa
 brew install xsv
-brew install rustup-init
 brew install create-dmg
 brew install glow
 brew install wtfutil
@@ -933,13 +920,11 @@ brew install skhd
 brew install yabai
 brew install qlcolorcode qlstephen qlmarkdown quicklook-json qlimagesize suspicious-package apparency quicklookase qlvideo
 brew install wireguard-tools
-brew install tealdeer
 brew install helix
 brew install mprocs
 brew install loc
 brew install prettyping
 brew install rs/tap/jplot
-brew install dog
 brew install wordnet
 brew install scc
 brew install tre-command
