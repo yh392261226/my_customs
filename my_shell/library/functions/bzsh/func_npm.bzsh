@@ -18,14 +18,14 @@ function fzf_npm_run() {                                                        
   if [ ! -f package.json ]; then
     echo "package.json not found" >&2
   elif [ -z "$1" ]; then
-    local command=$(jq -r '.scripts | keys[]' package.json | tr -d '"' | 
+    local tmp_command=$(jq -r '.scripts | keys[]' package.json | tr -d '"' | 
     fzf $FZF_CUSTOM_PARAMS \
       --preview-window=:wrap \
       --preview "jq '.scripts.\"{}\"' package.json -r | tr -d '\"' | sed 's/^[[:blank:]]*//'" \
       --header="$(_buildFzfHeader '' 'fzf_npm_run')")
 
-    if [ -n "$command" ]; then
-      eval "$pkgcmd run $command"
+    if [ -n "$tmp_command" ]; then
+      eval "$pkgcmd run $tmp_command"
     fi
   else
     eval "$pkgcmd run $@"
@@ -55,13 +55,13 @@ function fzf_npm_update() {                                                     
   pkgcmd=$(__getnpmpkg)
   # 如果 $@ 为空，则使用 fzf 查找依赖
   if [ -z "$@" ]; then
-    local command=$(jq -r '{dependencies, devDependencies} | to_entries[] | .value | keys[]' package.json |
+    local tmp_command=$(jq -r '{dependencies, devDependencies} | to_entries[] | .value | keys[]' package.json |
     fzf $FZF_CUSTOM_PARAMS \
       --preview-window=:wrap \
       --header="$(_buildFzfHeader '' 'fzf_npm_update')" \
       -m)
-    if [ -n "$command" ]; then
-      eval $(echo -n "$pkgcmd remove $command")
+    if [ -n "$tmp_command" ]; then
+      eval $(echo -n "$pkgcmd remove $tmp_command")
     fi
   else
     eval "$pkgcmd remove $@"
