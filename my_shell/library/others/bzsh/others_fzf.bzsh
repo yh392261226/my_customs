@@ -3,19 +3,14 @@
 [[ "bash" = "$nowshell" ]] && eval $(fzf --bash)
 
 export FZF_PREVIEW_FILE_CMD="bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never"
-
 export FZF_PREVIEW_DIR_CMD="tree -C"
-
 export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
-
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
-
 export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
 
 _fzf_comprun() {
   local tmp_command=$1
   shift
-
   case "$tmp_command" in
     cd)           fzf "$@" --preview 'tree -C {} | head -200' ;;
     export|unset) fzf "$@" --preview "eval 'echo \$'{}" ;;
@@ -26,12 +21,10 @@ _fzf_comprun() {
 }
 
 _buildFzfHeader() {
-
     rm -f $TMP_FZF_HEADER_SWAP_FILE
     newheader=" CTRL-H Search Infomation "
     local new_header
     local post_header
-
     [[ "" != "$1" ]] && post_header="$1"
     # append ...
     if [[ ${post_header:0:3} =~ a+  ]]; then
@@ -40,7 +33,6 @@ _buildFzfHeader() {
     elif [[ ${post_header:0:3} =~ r-  ]]; then
         newheader="${post_header:3} "
     fi
-
     if [ "" != "$2" ]; then
         newheader="${newheader}
 ⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊
@@ -72,6 +64,7 @@ fzf_transformer='
   fi
 '
 
+#FZF_DEFAULT
 FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --style=full:double "
@@ -137,6 +130,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(Type jump label)
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind "focus:transform-header:file --brief {}" ' # 验证文件类型
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
+#FZF_COMPLETION
 FZF_COMPLETION_OPTS=" -1 "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --cycle "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --inline-info "
@@ -178,9 +172,7 @@ FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS" --reverse"
 export FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS
 
 export FZF_ALT_C_COMMAND='fd --type d . --color=never'
-
 export FZF_ALT_C_OPTS="--reverse"
-
 export FZF_TMUX_OPTS="-p"
 
 FZF_HELP_OPTS=" --multi "
@@ -188,7 +180,6 @@ FZF_HELP_OPTS=$FZF_HELP_OPTS" --layout='reverse' "
 FZF_HELP_OPTS=$FZF_HELP_OPTS" --preview-window='right,75%,wrap' "
 FZF_HELP_OPTS=$FZF_HELP_OPTS" --bind='ctrl-m:change-preview-window(down,75%,nowrap|right,75%,nowrap)' "
 export FZF_HELP_OPTS=$FZF_HELP_OPTS
-
 export FZF_HELP_SYNTAX='help'
 
 export CLI_OPTIONS_CMD='ag -o --numbers -- $RE'
@@ -203,7 +194,6 @@ if [ "zsh" = "$nowshell" ]; then
   --header='$(_buildFzfHeader "" "")' \
   --header-first)
   export FZF_CUSTOM_PARAMS
-
   #--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
   #ctrl-l 不是所有的都好用, 还没弄清楚为什么有的好使,有的不行
 elif [ "bash" = "$nowshell" ]; then
