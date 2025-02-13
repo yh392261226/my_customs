@@ -28,7 +28,7 @@ function customExtract() { 							   					  # Desc: function: customExtract:自�
 		fi
 	fi
 }
-alias extra='customExtract'						       # Desc: alias: extra: customExtract命令的别名,自动检测文件后缀并自动解压
+alias extra='customExtract'						       						  # Desc: alias: extra: customExtract命令的别名,自动检测文件后缀并自动解压
 
 function archiving_file() { 						   						  # Desc: function: archiving_file: 压缩解压文件
 	case $1 in

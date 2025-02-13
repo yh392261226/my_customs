@@ -32,22 +32,12 @@ function fzf_cd_to() {                                                          
         fi
     fi
 }
-alias fct="fzf_cd_to"                                                             # Desc: alias: fct:fzf_cd_to命令的别名,fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
+alias fc2="fzf_cd_to"                                                             # Desc: alias: fc2:fzf_cd_to命令的别名,fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
 
 function fzf_hidden_directories() {                                               # Desc: function: fzf_da: including hidden directories
     DIR=`find ${1:-.} -type d -name '.*' | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap` && cd "$DIR"
 }
 alias fhd="fzf_hidden_directories"                                                # Desc: alias: fhd:fzf_hidden_directories命令的别名,including hidden directories
-
-function change_files_hide() {                                                    # Desc: function: change_files_hide:文件夹不显示隐藏文件
-    defaults write com.apple.Finder AppleShowAllFiles NO ; killall Finder /System/Library/CoreServices/Finder.app;
-}
-alias cfh="change_files_hide"                                                     # Desc: alias: cfh:change_files_hide命令的别名,文件夹不显示隐藏文件
-
-function change_files_show() {                                                    # Desc: function: change_files_show:文件夹显示隐藏文件
-    defaults write com.apple.Finder AppleShowAllFiles YES ; killall Finder /System/Library/CoreServices/Finder.app;
-}
-alias cfs="change_files_show"                                                     # Desc: alias: cfs:change_files_show命令的别名,文件夹显示隐藏文件
 
 function fzf_cd_to_parent() {                                                     # Desc: function: fzf_cd_to_parent:进入到选择的文件都父级文件夹
     local declare dirs=()

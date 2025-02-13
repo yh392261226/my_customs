@@ -193,6 +193,16 @@ function fzf_list_hiddens() {                                                   
 }
 alias flh="fzf_list_hiddens"                                                           # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
+function change_files_hide() {                                                         # Desc: function: change_files_hide:文件夹不显示隐藏文件
+    defaults write com.apple.Finder AppleShowAllFiles NO ; killall Finder /System/Library/CoreServices/Finder.app;
+}
+alias cfh="change_files_hide"                                                          # Desc: alias: cfh:change_files_hide命令的别名,文件夹不显示隐藏文件
+
+function change_files_show() {                                                         # Desc: function: change_files_show:文件夹显示隐藏文件
+    defaults write com.apple.Finder AppleShowAllFiles YES ; killall Finder /System/Library/CoreServices/Finder.app;
+}
+alias cfs="change_files_show"                                                          # Desc: alias: cfs:change_files_show命令的别名,文件夹显示隐藏文件
+
 function fzf_open_or_edit() {                                                          # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
     IFS=$'\n' out=$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
