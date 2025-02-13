@@ -78,6 +78,10 @@ else
           tar -tvf "$file"
           exit
         ;;
+        *.txt)
+          piconv -f GB2312 -t UTF-8 "$file" |bat --theme=gruvbox-dark --color=always --style=header,grid,numbers
+          exit
+        ;;
       esac
 
       [[ $type =~ =binary ]] && file "$file"

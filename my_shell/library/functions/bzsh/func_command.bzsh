@@ -247,7 +247,7 @@ function speaking_by_osx_voice() {                                              
     #osascript -e 'say "'$words'" using "Cellos"'
     osascript -e 'say "'$words'" using "Ting-Ting"'
 }
-sbov="speaking_by_osx_voice"                                                        # Desc: alias: sbov: speaking_by_osx_voice命令的别名,利用osx系统发音说话
+alias sbov="speaking_by_osx_voice"                                                  # Desc: alias: sbov: speaking_by_osx_voice命令的别名,利用osx系统发音说话
 
 function my_weather() {                                                             # Desc: function: my_weather:获取哈尔滨天气
     if [ -f /opt/homebrew/opt/curl/bin/curl ]; then
@@ -582,4 +582,3 @@ function fzf_manage() {                                                         
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
 alias fm2="fzf_manage"                                                              # Desc: alias: fm2: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
-

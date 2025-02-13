@@ -193,15 +193,6 @@ function fzf_list_hiddens() {                                                   
 }
 alias flh="fzf_list_hiddens"                                                           # Desc: alias: flh:fzf_list_hiddens命令的别名,列出隐藏文件
 
-function fzf_file_to_preview() {                                                       # Desc: function: fzf_file_to_preview:fzf列出文件夹及选中文件的内容
-    [[ 1 -gt $nums ]] && nums=500
-    fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:hidden:wrap \
---header="$(_buildFzfHeader '' 'fzf_file_to_preview')" \
---preview '[[ $(file --mime {}) =~ binary ]] && echo {} is a binary file || (bat --style=numbers --color=always{} || rougify {}  || highlight -O ansi -l {} || coderay {} || cat {}) 2> /dev/null | head -500'
-}
-alias fttp='fzf_file_to_preview'                                                       # Desc: alias: fttp:fzf_file_to_preview命令的别名,fzf列出文件夹及选中文件的内容
-
 function fzf_open_or_edit() {                                                          # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
     IFS=$'\n' out=$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
