@@ -10,7 +10,7 @@ function remove_DS_files() {                                                    
 }
 alias rDS="remove_DS_files"                                                          # Desc: alias: rDS:remove_DS_files命令的别名,删除.DS_Store文件
 
-function remove_files_by_ext() {                                                    # Desc: function: remove_files_by_ext:删除后缀名为参数值的文件到回收站
+function remove_files_by_ext() {                                                     # Desc: function: remove_files_by_ext:删除后缀名为参数值的文件到回收站
     if [ "" = "$1" ]; then
         trash ./*
     else
@@ -24,7 +24,7 @@ function remove_ssh_tmp_file() {                                                
 }
 alias rst="remove_ssh_tmp_file"                                                      # Desc: alias: rst:remove_ssh_tmp_file命令的别名,删除$HOME/.ssh/tmp/*
 
-function remove_to_trash() {                                                        # Desc: function: remove_to_trash:删除到回收站
+function remove_to_trash() {                                                         # Desc: function: remove_to_trash:删除到回收站
     local mpath
     for mpath in "$@"; do
         # ignore any arguments
@@ -41,7 +41,7 @@ function remove_to_trash() {                                                    
 }
 alias r2t="remove_to_trash"                                                          # Desc: alias: r2t:remove_to_trash命令的别名,删除到回收站
 
-function trash() {                                                                  # Desc: function: trash:Moves a file to the MacOS trash
+function trash() {                                                                   # Desc: function: trash:Moves a file to the MacOS trash
     command /bin/mv "$@" $HOME/.Trash ;
 }
 alias t="trash"                                                                      # Desc: alias: t: trash命令的别名,Moves a file to the MacOS trash
@@ -62,30 +62,18 @@ function remove_whereis_file() {                                                
 }
 alias rmw="remove_whereis_file"                                                      # Desc: alias: rmw:remove_whereis_file命令的别名,删除 which命令找到的文件
 
-function fzf_remove_file() {                                                         # Desc: function: fzf_remove_file:find找出文件选中删除
-  hasgum=$(ifHasCommand gum)
-
-  if [[ "$#" -eq 0 ]]; then
-    local files
-    files=$(find . -maxdepth 1 -type f | fzf --multi $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_remove_file')" --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer {} ")
-    [[ ! "$files" ]] && return 1
-    [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && (echo $files | xargs -I '{}' rm {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
-  else
-    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm "$@" || echo "Action aborted !") || command rm "$@"
-  fi
+function fzf_remove() {                                                              # Desc: function: fzf_remove:find找出文件或文件夹选中删除
+    hasgum=$(ifHasCommand gum)
+    local TMPPATH="."
+    if [ "$1" != "" ]; then
+        TMPPATH="$1"
+    fi
+    local TMPCHOOSE=$(find $TMPPATH -maxdepth 1 | fzf --multi $FZF_CUSTOM_PARAMS \
+    --bind "ctrl-d:change-prompt(Directories> )+reload(find $TMPPATH -maxdepth 1 -type d)" \
+    --bind "ctrl-f:change-prompt(Files> )+reload(find $TMPPATH -maxdepth 1 -type f)" \
+    --preview "$MYRUNTIME/customs/bin/_previewer {}" \
+    --header="$(_buildFzfHeader 'a+ \n CTRL-D Search Directories\n CTRL-F Search Files' 'fzf_remove')")
+    [[ ! "$TMPCHOOSE" ]] && return 1
+    [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && ((echo $TMPCHOOSE | xargs -I '{}' rm -rf {}) && echo "Action success !") || echo "Action aborted !") || (echo $TMPCHOOSE | xargs -I '{}' rm -rf {} && echo "Action success !")
 }
-alias frf="fzf_remove_file"                                                          # Desc: alias: frf: fzf_remove_file的别名,find找出文件选中删除
-
-function fzf_remove_directory() {                                                    # Desc: function: fzf_remove_directory:find找出文件夹选中删除
-  hasgum=$(ifHasCommand gum)
-
-  if [[ "$#" -eq 0 ]]; then
-    local directories
-    directories=$(find . -maxdepth 1 -type d | fzf --multi $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_remove_directory')" --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer {} ")
-    [[ ! "$directories" ]] && return 1
-    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && (echo $directories | xargs -I '{}' rm -rf {}) || echo "Action aborted !") || (echo $directories | xargs -I '{}' rm -rf {}) #we use xargs to capture filenames with spaces in them properly
-  else
-    [[ $hasgum = 1 ]]  && (gum confirm "确认删除?" && command rm -rf "$@" || echo "Action aborted !") || command rm -rf "$@"
-  fi
-}
-alias frd="fzf_remove_directory"                                                     # Desc: alias: frd: fzf_remove_directory的别名,find找出文件夹选中删除
+alias fr="fzf_remove"                                                               # Desc: alias: fr: fzf_remove的别名,find找出文件或文件夹选中删除
