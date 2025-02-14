@@ -46,10 +46,10 @@ else
       exit
     else
       case $file in
-        *.pdf)
-          pdftotext "$file" |less
-          exit
-        ;;
+        # *.pdf)
+        #   pdftotext "$file" |less
+        #   exit
+        # ;;
         *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown)
           glow "$file" | less
           exit
