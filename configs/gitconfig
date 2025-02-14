@@ -169,6 +169,8 @@ oldtool=icdiff
 [http]
 	postBuffer = 524288000
 	sslVerify = true
+	lowSpeedTime = 300
+	lowSpeedLimit = 0
 [gc]
 	writeCommitGraph = true
 [interactive]
