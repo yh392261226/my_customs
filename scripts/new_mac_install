@@ -199,5 +199,7 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     [[ ! -d ~/.config/helix ]] && mkdir ~/.config/helix
     ln -sf $MYRUNTIME/customs/configs/helix/config.toml         ~/.config/helix/config.toml
     ln -sf $MYRUNTIME/customs/configs/helix/languages.toml      ~/.config/helix/languages.toml
+    mv ~/.config/lf ~/bak/config/
+    ln -sf $MYRUNTIME/customs/configs/lf                        ~/.config/lf
 fi
 # ----------------------------------------------------------------------------------- #

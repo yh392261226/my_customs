@@ -36,14 +36,15 @@ alias lel="exa -l -a -h -m -n -U --git"                                         
 [[ -f /usr/local/bin/ls++ ]] && alias lll="/usr/local/bin/ls++"                                                  # Desc: alias: lll:设置环境变量为/usr/local/bin/ls++
 alias ks="lsd -l"                                                                                                # Desc: alias: ks:设置lsd -l命令的别名
 alias lv="lsd -la"                                                                                               # Desc: alias: lv:设置lsd -la命令的别名
-alias llm='exa -lbGd --git --sort=modified'                                                                      # Desc: alias: llm:long list, modified date sort
-alias lea='exa -lbhaF --icons --git --color-scale'                                                               # Desc: alias: lea:all list
+alias llm='exa -lbGd --git --sort=modified'                                                                                   # Desc: alias: llm:long list, modified date sort
+alias lea='exa -lbhaF --icons --git --color-scale'                                                                                     # Desc: alias: lea:all list
 alias lla='exa -lbhHigUmuSa --time-style=long-iso --git --color-scale'                                           # Desc: alias: lla:all list
 alias lx='exa -lbhHigUmuSa@ --time-style=long-iso --git --color-scale'                                           # Desc: alias: lx:all + extended list
-alias lS='exa -1'                                                                                                # Desc: alias: lS:one column, just names
-alias lss='ls | sort -V'                                                                                         # Desc: alias: lss: ls列表自然排序显示
-alias lt='exa --tree --level=2'                                                                                  # Desc: alias: lt:tree
-alias cd..='cd ../'                                                                                              # Desc: alias: cd..:Go back 1 directory level (for fast typers)
+alias lS='exa -1'                                                                                               # Desc: alias: lS:one column, just names
+alias lss='ls | sort -V'                                                                                               # Desc: alias: lss: ls列表自然排序显示
+alias lt='exa --tree --level=2'                                                                                        # Desc: alias: lt:tree
+alias fl='ls | fzf'                                                                                              # Desc: ls并fzf                                                                         
+alias cd..='cd ../'                                                                                                 # Desc: alias: cd..:Go back 1 directory level (for fast typers)
 alias cd.='cd ..'                                                                                                # Desc: alias: cd.:Go back 1 directory level (for fast typers)
 alias ..='cd ../'                                                                                                # Desc: alias: ..:Go back 1 directory level
 alias ...='cd ../../'                                                                                            # Desc: alias: ...:Go back 2 directory levels
