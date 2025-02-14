@@ -1,38 +1,23 @@
 ### Package Desc: Tmux窗口管理工具相关命令
 
 
-function tmux_configs_select() {                                                       # Desc: function: tmux_configs_select:Tmux根据选择使用配置文件
-    local CONFIGS=$MYRUNTIME/tmuxconfigs  #配置文件地址
+function fzf_tmux_configs_select() {                                                   # Desc: function: fzf_tmux_configs_select:Tmux根据选择使用配置文件
+    local CONFIGS=$MYRUNTIME/customs/others/tmux_configs  #配置文件地址
     local EXT=tmux.conf
 
     if [ -d $CONFIGS ]; then
-        local configs=($(ls $CONFIGS/*${EXT}))
-        if [ "${#configs[*]}" != "0" ]; then
-            echo "Input the NO. :";
-            local posit=0
-            for file in ${configs[*]}; do
-                echo $posit "：" $(basename ${file} | awk -F ".$EXT" '{print $1}');
-                ((posit+=1))
-            done
-            #echo ${configs[2]}
-            read conf
-            if [ "$conf" -lt "${#configs[*]}" ]; then
-                tmux -f ${configs[$conf]}
-                return 0
-            else
-                echo "The config you choose does not exists ！！！";
-                return 1
-            fi
-        else
-            echo "No config can be found ！！！";
-            return 1
+        local TMP_CHOOSE=$(ls $CONFIGS/*${EXT} | fzf $FZF_CUSTOM_PARAMS \
+        --header="$(_buildFzfHeader '' 'fzf_manage')" \
+        --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer {} ")
+        if [ "" != "$TMP_CHOOSE" ]; then
+            tmux -f $TMP_CHOOSE
         fi
     else
         echo "Path of config does not exists ！！！";
         return 1
     fi
 }
-alias tcs="tmux_configs_select"                                                        # Desc: alias: tcs:tmux_configs_select命令的别名,Tmux根据选择使用配置文件
+alias ftc="fzf_tmux_configs_select"                                                    # Desc: alias: tcs:fzf_tmux_configs_select命令的别名,Tmux根据选择使用配置文件
 
 function fzf_tmux_pane() {                                                             # Desc: function: fzf_tpane: Tmux switch pane (@george-b)
     local panes current_window current_pane target target_window target_pane

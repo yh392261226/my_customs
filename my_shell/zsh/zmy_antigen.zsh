@@ -9,4 +9,4 @@ antigen bundle command-not-found
 antigen theme robbyrussell
 antigen-bundle arialdomartini/oh-my-git
 antigen-apply
-[[ -f $MYRUNTIME/customs/others/oh-my-git/prompt.sh ]] && source $MYRUNTIME/customs/others/oh-my-git/prompt.sh
+#[[ -f $MYRUNTIME/customs/others/oh-my-git/prompt.sh ]] && source $MYRUNTIME/customs/others/oh-my-git/prompt.sh

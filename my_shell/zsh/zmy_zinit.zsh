@@ -133,6 +133,9 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light paulirish/git-open
     # fzf brew插件
     zinit light thirteen37/fzf-brew
+    # fzf select with lf插件
+    zinit ice depth=1
+    zinit light chmouel/zsh-select-with-lf
 
     # ASDF
     if [ -d "$HOME/.asdf" ]; then
