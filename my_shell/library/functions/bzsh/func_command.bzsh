@@ -578,8 +578,9 @@ function fzf_manage() {                                                         
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
     --bind "ctrl-o:execute-silent(open -R $DIRPATH/{})" \
-    --bind="ctrl-d:change-prompt(Directories> )+reload(fd -type d --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \ 
-    --bind="ctrl-f:change-prompt(Files> )+reload(fd -type f --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
+    --bind 'ctrl-f:transform:[[ ! $FZF_PROMPT =~ Files ]] &&
+              echo "change-prompt(Files> )+reload(fd --type file $DIRPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" ||
+              echo "change-prompt(Directories> )+reload(fd --type directory $DIRPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"' \
     --header="$(_buildFzfHeader '' 'fzf_manage')" \
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }

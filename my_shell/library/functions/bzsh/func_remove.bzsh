@@ -69,8 +69,8 @@ function fzf_remove() {                                                         
         TMPPATH="$1"
     fi
     local TMPCHOOSE=$(find $TMPPATH -maxdepth 1 | fzf --multi $FZF_CUSTOM_PARAMS \
-    --bind "ctrl-d:change-prompt(Directories> )+reload(find $TMPPATH -maxdepth 1 -type d)" \
-    --bind "ctrl-f:change-prompt(Files> )+reload(find $TMPPATH -maxdepth 1 -type f)" \
+    --bind "ctrl-d:change-prompt(Directories> )+reload(fd --type d $TMPPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
+    --bind "ctrl-f:change-prompt(Files> )+reload(fd --type f $TMPPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
     --preview "$MYRUNTIME/customs/bin/_previewer {}" \
     --header="$(_buildFzfHeader 'a+ \n CTRL-D Search Directories\n CTRL-F Search Files' 'fzf_remove')")
     [[ ! "$TMPCHOOSE" ]] && return 1
