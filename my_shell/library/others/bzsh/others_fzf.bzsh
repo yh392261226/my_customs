@@ -64,6 +64,16 @@ fzf_transformer='
   fi
 '
 
+fzf_transformer2='
+  if [[ $FZF_INPUT_STATE = enabled ]]; then
+    echo "rebind(j,k,/)+hide-input"
+  elif [[ $FZF_KEY = enter ]]; then
+    echo accept
+  else
+    echo abort
+  fi
+'
+
 #FZF_DEFAULT
 FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
@@ -88,6 +98,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-first '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border bottom --no-list-border "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --no-input '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" '
@@ -119,6 +130,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:select-all+execute:less {+f}" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:+deselect-all" '
+#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-d:change-prompt(Directories> )+reload(fd -type d --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" --bind="ctrl-f:change-prompt(Files> )+reload(fd -type f --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
@@ -126,8 +138,10 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search �
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$transformer" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer2' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(Type jump label)+jump,jump-cancel:change-header:Jump cancelled" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind "focus:transform-header:file --brief {}" ' # 验证文件类型
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
 #FZF_COMPLETION

@@ -153,35 +153,6 @@ function tail_whereis_file() {                                                  
 }
 alias tailw="tail_whereis_file"                                                        # Desc: alias: tailw:tail_whereis_file命令的别名,tail命令打印which命令找到的文件地址
 
-function set_setting_links() {                                                         # Desc: function: set_setting_links:配置文件链接
-    if [ "" != "$CPUCORE" ]; then
-        if [ "$CPUCORE" = "arm64" ]; then
-            #redis
-            rm -f /opt/homebrew/etc/redis-sentinel.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis_arm64/redis-sentinel.conf /opt/homebrew/etc/redis-sentinel.conf
-            rm -f /opt/homebrew/etc/redis.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis_arm64/redis.conf /opt/homebrew/etc/redis.conf
-            #php
-            rm -rf /opt/homebrew/etc/php && ln -sf $HOME/data/data/Dropbox/working/coding/conf/php_arm64/ /opt/homebrew/etc/php
-            #mysql
-            rm -f /opt/homebrew/etc/my.cnf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/mysql_arm64/8.0/my.cnf /opt/homebrew/etc/my.cnf
-            #nginx
-            rm -rf /opt/homebrew/etc/nginx && ln -sf $HOME/data/data/Dropbox/working/coding/conf/nginx_arm64/ /opt/homebrew/etc/nginx
-        fi
-
-        if [ "$CPUCORE" = "intel64" ]; then
-            #redis
-            rm -f /opt/homebrew/etc/redis-sentinel.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis/redis-sentinel.conf /opt/homebrew/etc/redis-sentinel.conf
-            rm -f /opt/homebrew/etc/redis.conf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/redis/redis.conf /opt/homebrew/etc/redis.conf
-            #php
-            rm -rf /opt/homebrew/etc/php && ln -sf $HOME/data/data/Dropbox/working/coding/conf/php/ /opt/homebrew/etc/php
-            #mysql
-            rm -f /opt/homebrew/etc/my.cnf && ln -sf $HOME/data/data/Dropbox/working/coding/conf/mysql/8.0/my.cnf /opt/homebrew/etc/my.cnf
-            #nginx
-            rm -rf /opt/homebrew/etc/nginx && ln -sf $HOME/data/data/Dropbox/working/coding/conf/nginx/ /opt/homebrew/etc/nginx
-        fi
-    fi
-}
-alias setl="set_setting_links"                                                         # Desc: alias: setl:set_setting_links命令的别名,配置文件链接
-
 function fzf_list_hiddens() {                                                          # Desc: function: fzf_list_hiddens:列出隐藏文件
     local mpath
 	[[ "" != "$1" ]] && mpath=$1 || mpath='./'
@@ -210,6 +181,8 @@ function fzf_open_or_edit() {                                                   
 --query="$1" \
 --exit-0 \
 --expect=ctrl-o,ctrl-e \
+--bind="ctrl-d:change-prompt(Directories> )+reload(fd -type d --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
+--bind="ctrl-f:change-prompt(Files> )+reload(fd -type f --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
 --header="$(_buildFzfHeader '' 'fzf_open_or_edit')" \
 )
     key=$(head -1 <<< "$out")

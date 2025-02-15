@@ -89,9 +89,10 @@ function fzf_cd_to_file() {                                                     
     local file
     local dir
     file=$(fzf +m $FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:hidden:wrap \
 --preview='$MYRUNTIME/customs/bin/_previewer {}' \
 --preview-window right:70%:rounded:hidden:wrap \
+--bind="ctrl-d:change-prompt(Directories> )+reload(fd -type d --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
+--bind="ctrl-f:change-prompt(Files> )+reload(fd -type f --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
 --header="$(_buildFzfHeader '' 'fzf_cd_to_file')" \
     -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }

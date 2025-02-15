@@ -5,12 +5,12 @@
 # Open the launch configuration palette to access and open any launch configuration
 #
 # This file defines your launch configuration
-# More on how to do so here: 
+# More on how to do so here:
 # https://docs.warp.dev/features/session-management/launch-configurations
 #
 # All launch configurations are stored under ~/.warp/launch_configurations/
 # Edit them anytime!
-# 
+#
 # You can also add commands that run on-start for your launch configurations like so:
 # ---
 # name: Example with Command
@@ -27,3 +27,7 @@ windows:
   - tabs:
       - layout:
           cwd: /Users/yanghao/.warp
+background:
+  - image: ""
+  - opacity: 0.8
+  - mode: "cover"
