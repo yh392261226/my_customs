@@ -918,7 +918,15 @@ brew install atool
 brew install docx2txt
 brew install skhd
 brew install yabai
-brew install qlcolorcode qlstephen qlmarkdown quicklook-json qlimagesize suspicious-package apparency quicklookase qlvideo
+brew install qlcolorcode
+brew install qlstephen
+brew install qlmarkdown
+brew install quicklook-json
+brew install qlimagesize
+brew install suspicious-package
+brew install apparency
+brew install quicklookase
+brew install qlvideo
 brew install wireguard-tools
 brew install helix
 brew install mprocs
@@ -966,4 +974,6 @@ brew install timg
 brew install supabase/tap/supabase
 brew install harelba/q/q
 brew install mise
-brew install mkcert nss
+brew install mkcert
+brew install nss
+brew install doggo
