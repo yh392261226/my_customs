@@ -3,10 +3,12 @@
 
 function brew_clean_caches() {                                                         # Desc: function: brew_clean_caches:Brew Delete (one or multiple) Caches files of  mnemonic (e.g. uninstall)
   customcd $(brew --cache)
-  rm -f ./*phar ./*patch ./*diff ./*xz ./*gz ./*bz2 ./*zip ./*rock
+  rm -f ./*
   rm -rf ./*git
   customcd $(brew --cache)/downloads
-  rm -f ./*phar ./*patch ./*diff ./*xz ./*gz ./*bz2 ./*zip ./*rock
+  rm -f ./*
+  customcd $(brew --cache)/Cask
+  rm -f ./*
   echo "Common files already deleted, You have to clean other files manually!!!"
 }
 alias bcc="brew_clean_caches"                                                          # Desc: alias: bcc: brew_clean_caches命令的别名
