@@ -83,7 +83,7 @@ function fzf_open_viminfo() {                                                   
     files=$(grep '^>' $HOME/.viminfo | cut -c3- |
     while read line; do
         [ -f "${line/\~/$HOME}" ] && echo "$line"
-    done | fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap --header="$(_buildFzfHeader '' 'fzf_open_viminfo')" -d -m -q "$*" -1) && vim ${files//\~/$HOME}
+    done | fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap --header="$(_buildFzfHeader '' 'fzf_open_viminfo')" -d -m -q "$*" -1) && vim ${files//\~/$HOME}
 }
 alias fov="fzf_open_viminfo"                                                        # Desc: alias: fov: fzf_open_viminfo命令的别名,open files in $HOME/.viminfo
 

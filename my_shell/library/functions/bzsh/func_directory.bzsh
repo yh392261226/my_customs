@@ -35,7 +35,7 @@ function fzf_cd_to() {                                                          
 alias fc2="fzf_cd_to"                                                             # Desc: alias: fc2:fzf_cd_to命令的别名,fuzzy cd from anywhere. ex: fct word1 word2 ... (even part of a file name)
 
 function fzf_hidden_directories() {                                               # Desc: function: fzf_da: including hidden directories
-    DIR=`find ${1:-.} -type d -name '.*' | fzf-tmux $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap` && cd "$DIR"
+    DIR=`find ${1:-.} -type d -name '.*' | fzf $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_hidden_directories')" --preview='$MYRUNTIME/customs/bin/_previewer {}' --preview-window right:70%:rounded:hidden:wrap` && cd "$DIR"
 }
 alias fhd="fzf_hidden_directories"                                                # Desc: alias: fhd:fzf_hidden_directories命令的别名,including hidden directories
 
@@ -49,7 +49,7 @@ function fzf_cd_to_parent() {                                                   
             get_parent_dirs $(dirname "$1")
         fi
     }
-    local DIR=$(get_parent_dirs $(realpath "${1:-$PWD}") | fzf-tmux $FZF_CUSTOM_PARAMS --tac --header="$(_buildFzfHeader '' 'fzf_cd_to_parent')")
+    local DIR=$(get_parent_dirs $(realpath "${1:-$PWD}") | fzf $FZF_CUSTOM_PARAMS --tac --header="$(_buildFzfHeader '' 'fzf_cd_to_parent')")
     cd "$DIR"
 }
 alias fc2p="fzf_cd_to_parent"                                                     # Desc: alias: fc2p:fzf_cd_to_parent命令的别名,进入到选择的文件都父级文件夹
@@ -80,7 +80,7 @@ function fzf_cd_to_select() {                                                   
 alias fcd="fzf_cd_to_select"                                                      # Desc: alias: fcd:fzf_cd_to_select命令的别名,利用fzf选择并进入文件夹
 
 function fzf_cd_to_select2() {                                                    # Desc: function: fzf_cd_to_select2:另一款利用fzf进入选择的文件夹
-    DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf-tmux --header-first --header="$(_buildFzfHeader '' 'fzf_cd_to_select2')"` \
+    DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_cd_to_select2')"` \
         && cd "$DIR"
 }
 alias fcd2="fzf_cd_to_select2"                                                    # Desc: alias: fcd2:fzf_cd_to_select2命令的别名,另一款利用fzf进入选择的文件夹

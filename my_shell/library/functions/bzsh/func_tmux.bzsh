@@ -55,7 +55,7 @@ alias fth="fzf_tmux_helper"                                                     
 function fzf_tmux_switch_session() {                                                   # Desc: function: fzf_tmux_switch_session:Switch tmux-sessions
     local session
     session=$(tmux list-sessions -F "#{session_name}" | \
-        fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_tmux_switch_session')" --query="$1" --select-1 --exit-0) &&
+        fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_tmux_switch_session')" --query="$1" --select-1 --exit-0) &&
         tmux switch-client -t "$session"
 }
 alias ftss="fzf_tmux_switch_session"                                                   # Desc: alias: ftss: fzf_tmux_switch_session命令的别名,Switch tmux-sessions

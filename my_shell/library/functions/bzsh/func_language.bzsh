@@ -6,7 +6,7 @@ function fzf_rvm_select() {                                                     
     rb=$(
     (echo system; rvm list | grep ruby | cut -c 4-) |
     awk '{print $1}' |
-    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse) && rvm use $rb
+    fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_rvm_select')" -l 30 +m --reverse) && rvm use $rb
 }
 alias frs="fzf_rvm_select"                                                         # Desc: alias: frs:fzf_rvm_select命令的别名,RVM integration
 

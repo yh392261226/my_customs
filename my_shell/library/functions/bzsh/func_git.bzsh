@@ -22,7 +22,7 @@ function fzf_git_checkout_branch() {                                            
     local branches branch
     branches=$(git branch --all | grep -v HEAD) &&
         branch=$(echo "$branches" |
-    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout_branch')" -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+    fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout_branch')" -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
         git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
 }
 alias fcb="fzf_git_checkout_branch"                                                     # Desc: alias: fcb:fzf_git_checkout_branch命令的别名,checkout git branch
@@ -79,7 +79,7 @@ function fzf_git_checkout() {                                                   
     sort -u          | awk '{print "\x1b[34;1mbranch\x1b[m\t" $1}') || return
     target=$(
     (echo "$tags"; echo "$branches") |
-    fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout')" -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
+    fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout')" -l30 -- --no-hscroll --ansi +m -d "\t" -n 2) || return
     git checkout $(echo "$target" | awk '{print $2}')
 }
 alias fgc="fzf_git_checkout"                                                            # Desc: alias: fgc:fzf_git_checkout命令的别名,checkout git branch/tag
@@ -90,7 +90,7 @@ function fzf_git_checkout2() {                                                  
             local branches branch
             branches=$(git branch -a) &&
             branch=$(echo "$branches" |
-            fzf-tmux $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout2')" -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+            fzf $FZF_CUSTOM_PARAMS --preview='$MYRUNTIME/customs/bin/_previewer {}' --header="$(_buildFzfHeader '' 'fzf_git_checkout2')" -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
             git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
         elif [ `git rev-parse --verify --quiet $*` ] || \
              [ `git branch --remotes | grep  --extended-regexp "^[[:space:]]+origin/${*}$"` ]; then
