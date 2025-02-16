@@ -203,3 +203,6 @@
 [submodule "others/fzf-git.sh"]
 	path = others/fzf-git.sh
 	url = git@github.com:junegunn/fzf-git.sh.git
+[submodule "configs/warp/themes"]
+	path = configs/warp/themes
+	url = git@github.com:warpdotdev/themes.git
