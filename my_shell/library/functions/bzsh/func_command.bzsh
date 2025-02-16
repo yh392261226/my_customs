@@ -1,33 +1,4 @@
 ### Package Desc: 自定义命令
-function action_which() {                                                           # Desc: function: action_which:用which命令找出文件或命令的位置,并用参数中的命令操作
-    local COMMANDBIN="$1"
-    local TMPFILEPATH=$(pwd)
-    [[ "" = "$1" ]] && echo "Command is empty !" && return 1
-    [[ "" != "$2" ]] && TMPFILEPATH="$2"
-    
-    if [ -d $TMPFILEPATH ] || [ -f $TMPFILEPATH ]; then
-        eval "$COMMANDBIN $TMPFILEPATH"
-        return
-    elif [ "$(type $TMPFILEPATH | grep 'a shell function from')" != "" ] || [ "$(type $TMPFILEPATH | grep 'is an alias for')" != "" ] || [ "$(type $TMPFILEPATH | grep 'is a shell builtin')" != "" ]; then
-        endfile=$(type "$TMPFILEPATH" | awk '{print $NF}')
-        if [ "$endfile" = "builtin" ]; then
-            echo "$TMPFILEPATH is a shell builtin !"
-            echo "Chanel ..."
-            return 1
-        elif [ -f "$endfile" ] || [ -d "$endfile" ]; then
-            eval "$COMMANDBIN $endfile"
-            return
-        else
-            action_which "$COMMANDBIN" "$endfile"
-            return
-        fi
-    else
-        # 如果 TMPFILEPATH 是一个普通命令，直接执行
-        eval "$COMMANDBIN $(which "$TMPFILEPATH")"
-        return
-    fi
-}
-alias aw="action_which"                                                             # Desc: alias: aw: action_which命令的别名,用which命令找出文件或命令的位置,并用参数中的命令操作
 
 function search_aliases() {                                                         # Desc: function: search_aliases:显示所有含有字符串的自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
@@ -579,22 +550,6 @@ function fzf_manage() {                                                         
 }
 alias fm2="fzf_manage"                                                              # Desc: alias: fm2: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
 
-function ll_whereis_command() {                                                     # Desc: function: ll_whereis_command:打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        ls -l  `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            ls -l $endfile
-        else
-            ll_whereis_command $endfile
-        fi
-    fi
-}
-alias llw="ll_whereis_command"                                                      # Desc: alias: llw:ll_whereis_command命令的别名,打印which命令找到的文件地址
-
 function open_directory_whereis_command() {                                         # Desc: function: open_directory_whereis_command:打开which命令找到的目录或文件
     hascommand=$(ifHasCommand $@)
     [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
@@ -610,22 +565,6 @@ function open_directory_whereis_command() {                                     
     fi
 }
 alias openw="open_directory_whereis_command"                                        # Desc: alias: openw:open_directory_whereis_command命令的别名,打开which命令找到的目录或文件
-
-function pwd_command_directory() {                                                  # Desc: function: pwd_command_directory:获取命令所在的文件夹
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        echo `dirname $(which "$1")`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            echo $(dirname $endfile)
-        else
-            pwd_command_directory $endfile
-        fi
-    fi
-}
-alias pwdw="pwd_command_directory"                                                  # Desc: alias: pwdw:pwd_command_directory命令的别名,获取命令所在的文件夹
 
 function cd_parent_directory_by_which_command() {                                   # Desc: function: cd_parent_directory_by_which_command:进入命令所在的父级文件夹
     hascommand=$(ifHasCommand $@)
@@ -661,11 +600,42 @@ function cd_directory_by_which_command() {                                      
 }
 alias cdw="cd_directory_by_which_command"                                           # Desc: alias: cdw:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
 
+function action_which() {                                                           # Desc: function: action_which:用which命令找出文件或命令的位置,并用参数中的命令操作
+    local COMMANDBIN="$1"
+    local TMPFILEPATH=$(pwd)
+    [[ "" = "$1" ]] && echo "Command is empty !" && return 1
+    [[ "" != "$2" ]] && TMPFILEPATH="$2"
+    
+    if [ -d $TMPFILEPATH ] || [ -f $TMPFILEPATH ]; then
+        eval "$COMMANDBIN $TMPFILEPATH"
+        return
+    elif [ "$(type $TMPFILEPATH | grep 'a shell function from')" != "" ] || [ "$(type $TMPFILEPATH | grep 'is an alias for')" != "" ] || [ "$(type $TMPFILEPATH | grep 'is a shell builtin')" != "" ]; then
+        endfile=$(type "$TMPFILEPATH" | awk '{print $NF}')
+        if [ "$endfile" = "builtin" ]; then
+            echo "$TMPFILEPATH is a shell builtin !"
+            echo "Chanel ..."
+            return 1
+        elif [ -f "$endfile" ] || [ -d "$endfile" ]; then
+            eval "$COMMANDBIN $endfile"
+            return
+        else
+            action_which "$COMMANDBIN" "$endfile"
+            return
+        fi
+    else
+        # 如果 TMPFILEPATH 是一个普通命令，直接执行
+        eval "$COMMANDBIN $(which "$TMPFILEPATH")"
+        return
+    fi
+}
+alias aw="action_which"                                                             # Desc: alias: aw: action_which命令的别名,用which命令找出文件或命令的位置,并用参数中的命令操作
+
 function get_which_command_directory() {                                            # Desc: function: get_which_command_directory:获取命令所在目录
     local COMMANDBIN="/usr/bin/dirname"
     action_which $COMMANDBIN $1
 }
 alias dirw="get_which_command_directory"                                            # Desc: alias: dirw:get_which_command_directory命令的别名,获取命令所在目录
+alias pwdw="get_which_command_directory"                                            # Desc: alias: pwdw:get_which_command_directory命令的别名,获取命令所在的文件夹
 
 function code_which() {                                                             # Desc: function: code_which:visual studio code 编辑which命令找到的文件地址
     local COMMANDBIN="/usr/local/bin/code"
@@ -737,3 +707,55 @@ function type_whereis_file() {                                                  
     action_which $COMMANDBIN $1
 }
 alias typew="type_whereis_file"                                                     # Desc: alias: typew:type_whereis_file命令的别名,type命令打印which命令找到的文件地址
+
+function ll_whereis_command() {                                                     # Desc: function: ll_whereis_command:打印which命令找到的文件地址
+    local COMMANDBIN="/bin/ls -l"
+    action_which $COMMANDBIN $1
+}
+alias llw="ll_whereis_command"                                                      # Desc: alias: llw:ll_whereis_command命令的别名,打印which命令找到的文件地址
+
+function fzf_search_custom_functions_by_desc() {                                    # Desc: function: fzf_search_custom_functions_by_desc:根据自定义的描述和函数名查询自定义命令
+    TMP_FUNCTIONS_FILE=$(mktemp)
+    local COMMANDPATH=$MYRUNTIME/customs/my_shell/
+    find $COMMANDPATH -type f -name "*.bzsh" |xargs grep 'Desc: function:' | grep -v 'TMP_FUNCTIONS_FILE' > $TMP_FUNCTIONS_FILE
+    if [ -f $TMP_FUNCTIONS_FILE ] && [ "" != "$(cat $TMP_FUNCTIONS_FILE)" ]; then
+        local CHOOSE=$(cat $TMP_FUNCTIONS_FILE | awk -F'# Desc: function:' '{print $2}' | fzf $FZF_CUSTOM_PARAMS \
+        --preview-window right:70%:rounded:hidden:wrap \
+        --preview "echo {} | sed 's/:/\\n/g'" \
+        --delimiter ':' \
+        --bind "enter:become(echo {1})" \
+        --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+        --header="$(_buildFzfHeader '' 'fzf_search_custom_functions_by_desc')" \
+        --bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
+        if [ "" != "$CHOOSE" ]; then
+            echo "$CHOOSE"
+            echo ""
+            eval "$CHOOSE"
+        fi
+        rm -f $TMP_FUNCTIONS_FILE
+    fi
+}
+alias fsf="fzf_search_custom_functions_by_desc"                                     # Desc: alias: fsf: fzf_search_custom_functions_by_desc命令的别名,根据自定义的描述和函数名查询自定义命令
+
+function fzf_search_custom_alias_by_desc() {                                        # Desc: function: fzf_search_custom_alias_by_desc:根据自定义的描述和别名查询自定义命令
+    TMP_ALIAS_FILE=$(mktemp)
+    local COMMANDPATH=$MYRUNTIME/customs/my_shell/
+    find $COMMANDPATH -type f -name "*.bzsh" |xargs grep 'Desc: alias:' | grep -v 'TMP_ALIAS_FILE' > $TMP_ALIAS_FILE
+    if [ -f $TMP_ALIAS_FILE ] && [ "" != "$(cat $TMP_ALIAS_FILE)" ]; then
+        local CHOOSE=$(cat $TMP_ALIAS_FILE | awk -F'# Desc: alias:' '{print $2}' | fzf $FZF_CUSTOM_PARAMS \
+        --preview-window right:70%:rounded:hidden:wrap \
+        --preview "echo {} | sed 's/:/\\n/g'" \
+        --delimiter ':' \
+        --bind "enter:become(echo {1})" \
+        --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+        --header="$(_buildFzfHeader '' 'fzf_search_custom_alias_by_desc')" \
+        --bind "ctrl-o:execute(bat $TMP_ALIAS_FILE > /dev/tty)")
+        if [ "" != "$CHOOSE" ]; then
+            echo "$CHOOSE"
+            echo ""
+            eval "$CHOOSE"
+        fi
+        rm -f $TMP_ALIAS_FILE
+    fi
+}
+alias fsa="fzf_search_custom_alias_by_desc"                                         # Desc: alias: fsa: fzf_search_custom_alias_by_desc命令的别名,根据自定义的描述和别名查询自定义命令

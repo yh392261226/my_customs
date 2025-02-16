@@ -124,7 +124,7 @@ function fzf_jump_between_directory() {                                         
 }
 alias fz="fzf_jump_between_directory"                                             # Desc: alias: fz:fzf_jump_between_directory命令的别名,目录跳转
 
-function fzf_jump_between_directory2() {                                           # Desc: function: fzf_jump_between_directory2:目录跳转
+function fzf_jump_between_directory2() {                                          # Desc: function: fzf_jump_between_directory2:目录跳转
     local dir=$(
     zoxide query --list --score |
     fzf --height 40% --layout reverse --info inline \
@@ -132,7 +132,7 @@ function fzf_jump_between_directory2() {                                        
         --bind 'enter:become:echo {2..}'
   ) && cd "$dir"
 }
-alias fz2="fzf_jump_between_directory2"                                             # Desc: alias: fz2:fzf_jump_between_directory2命令的别名,目录跳转
+alias fz2="fzf_jump_between_directory2"                                           # Desc: alias: fz2:fzf_jump_between_directory2命令的别名,目录跳转
 
 function fzf_directory_history() {                                                # Desc: function: fzf_directory_history:利用fzf显示目录的历史
   local dir=$(python3 -m fzfdirhist show | fzf $FZF_CUSTOM_PARAMS +m \

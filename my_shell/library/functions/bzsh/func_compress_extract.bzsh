@@ -1,6 +1,6 @@
 ### Package Desc: 压缩解压相关命令
 
-function customExtract() { 							   					  # Desc: function: customExtract:自动检测文件后缀并自动解压
+function customExtract() { 						       # Desc: function: customExtract:自动检测文件后缀并自动解压
 	if [ -z "$1" ]; then
     	echo "Usage: extra <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>"
 	else
@@ -28,9 +28,9 @@ function customExtract() { 							   					  # Desc: function: customExtract:自�
 		fi
 	fi
 }
-alias extra='customExtract'						       						  # Desc: alias: extra: customExtract命令的别名,自动检测文件后缀并自动解压
+alias extra='customExtract'							   # Desc: alias: extra: customExtract命令的别名,自动检测文件后缀并自动解压
 
-function archiving_file() { 						   						  # Desc: function: archiving_file: 压缩解压文件
+function archiving_file() {						       # Desc: function: archiving_file: 压缩解压文件
 	case $1 in
 		(e) case $2 in
 				(*.tar.bz2) tar xvjf $2 ;;
@@ -66,9 +66,9 @@ function archiving_file() { 						   						  # Desc: function: archiving_file: �
 		(*) echo "Usage: ark <e(解压)|c(压缩)> <path/file_name>.<zip|rar|bz2|gz|tar|tbz2|tgz|Z|7z|xz|ex|tar.bz2|tar.gz|tar.xz>" ;;
 	esac
 }
-alias af="archiving_file" 						       # Desc: alias: af: archiving_file命令的别名,压缩解压文件
+alias af="archiving_file"							   # Desc: alias: af: archiving_file命令的别名,压缩解压文件
 
-function abs_path() {								   					  # Desc: function: abs_path:忘记具体干什么的了
+function abs_path() {						       # Desc: function: abs_path:忘记具体干什么的了
     if [ -d "$1" ]; then
         echo "$(cd $1; pwd)"
     elif [ -f "$1" ]; then
@@ -79,9 +79,9 @@ function abs_path() {								   					  # Desc: function: abs_path:忘记具体�
         fi
     fi
 }
-alias apath="abs_path"						       # Desc: alias: apath:abs_path命令的别名,忘记具体干什么的了
+alias apath="abs_path"							   # Desc: alias: apath:abs_path命令的别名,忘记具体干什么的了
 
-function show_free() {							   						  # Desc: function: show_free:释放内存？
+function show_free() {						       # Desc: function: show_free:释放内存？
     FREE_BLOCKS=$(vm_stat | grep free | awk '{ print $3 }' | sed 's/\.//')
     INACTIVE_BLOCKS=$(vm_stat | grep inactive | awk '{ print $3 }' | sed 's/\.//')
     SPECULATIVE_BLOCKS=$(vm_stat | grep speculative | awk '{ print $3 }' | sed 's/\.//')
@@ -94,17 +94,17 @@ function show_free() {							   						  # Desc: function: show_free:释放内存
 }
 alias sfree="show_free"						       # Desc: alias: sfree:show_free命令的别名,释放内存？
 
-function compress_zip_file() { 											  # Desc: function: compress_zip_file:压缩目录为zip文件
+function compress_zip_file() {			    		       # Desc: function: compress_zip_file:压缩目录为zip文件
 	zip -r "$1".zip "$1" ;
 }
-alias czf="compress_zip_file"					       # Desc: alias: czf:compress_zip_file命令的别名,压缩目录为zip文件
+alias czf="compress_zip_file"			    		       # Desc: alias: czf:compress_zip_file命令的别名,压缩目录为zip文件
 
-function compress_git_to_zip() { 					   					  # Desc: function: compress_git_to_zip:git压缩HEAD版本为zip包
+function compress_git_to_zip() {			    	       	       # Desc: function: compress_git_to_zip:git压缩HEAD版本为zip包
     git archive -o $(basename $PWD).zip HEAD
 }
-alias cg2z="compress_git_to_zip"					       # Desc: alias: cg2z:compress_git_to_zip命令的别名,git压缩HEAD版本为zip包
+alias cg2z="compress_git_to_zip"			    	       	       # Desc: alias: cg2z:compress_git_to_zip命令的别名,git压缩HEAD版本为zip包
 
-function compress_git_to_tgz() { 						   				  # Desc: function: compress_git_to_tgz:git压缩HEAD版本为tgz包
+function compress_git_to_tgz() {			    	       	       # Desc: function: compress_git_to_tgz:git压缩HEAD版本为tgz包
     git archive -o $(basename $PWD).tgz HEAD
 }
-alias cg2t="compress_git_to_tgz"					       # Desc: alias: cg2t:compress_git_to_tgz命令的别名,git压缩HEAD版本为tgz包
+alias cg2t="compress_git_to_tgz"			    	       	       # Desc: alias: cg2t:compress_git_to_tgz命令的别名,git压缩HEAD版本为tgz包

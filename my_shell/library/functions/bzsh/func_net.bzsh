@@ -31,12 +31,12 @@ function show_useful_host() {                                                   
 }
 alias uh="show_useful_host"                                                             # Desc: alias: uh:show_useful_host命令的别名,Display useful host related informaton
 
-function http_debug() {                                                                # Desc: function: http_debug: Download a web page and show info on what took time
+function http_debug() {                                                                 # Desc: function: http_debug: Download a web page and show info on what took time
     curl $@ -o /dev/null -w "dns: %{time_namelookup} connect: %{time_connect} pretransfer: %{time_pretransfer} starttransfer: %{time_starttransfer} total: %{time_total}\n" ;
 }
 alias hdebug="http_debug"                                                               # Desc: alias: hdebug: http_debug命令的别名,Download a web page and show info on what took time
 
-function http_headers() {                                                              # Desc: function: http_headers:Grabs headers from web page
+function http_headers() {                                                               # Desc: function: http_headers:Grabs headers from web page
     curl -I -L $@ ;
 }
 alias hheaders="http_headers"                                                           # Desc: alias: hheaders: http_headers命令的别名,Grabs headers from web page

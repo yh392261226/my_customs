@@ -17,7 +17,7 @@ function fzf_process_kill() {                                                   
         echo $pid | xargs kill -${1:-9}
     fi
 }
-alias fpk="fzf_process_kill"                                                        # Desc: alias: fpk:fzf_process_kill命令的别名,kill processes - list only the ones you can kill. Modified the earlier script.
+alias fpk="fzf_process_kill"                                                         # Desc: alias: fpk:fzf_process_kill命令的别名,kill processes - list only the ones you can kill. Modified the earlier script.
 
 #   find_pid: find out the pid of a specified process
 #   -----------------------------------------------------
@@ -26,7 +26,7 @@ alias fpk="fzf_process_kill"                                                    
 #       Without the 'sudo' it will only find processes of the current user
 #   -----------------------------------------------------
 
-function find_process_id() {                                                       # Desc: function: find_process_id:Find out the pid of a specified process
+function find_process_id() {                                                        # Desc: function: find_process_id:Find out the pid of a specified process
     lsof -t -c "$@" ;
 }
 alias fpid="find_process_id"                                                        # Desc: alias: fpid:find_process_id命令的别名,Find out the pid of a specified process

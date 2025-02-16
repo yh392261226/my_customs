@@ -1,7 +1,7 @@
 ### Package Desc: 第三方辅助相关命令
 
 
-function fzf_linux_command_searcher() {                                             # Desc: function: fzf_linux_command_searcher: 利用fzf和别人写的linux命令markdown进行搜索
+function fzf_linux_command_searcher() {                                         # Desc: function: fzf_linux_command_searcher: 利用fzf和别人写的linux命令markdown进行搜索
     local MDDIR=$MYRUNTIME/customs/others/linux-command
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/jaywcjlove/linux-command?tab=readme-ov-file#命令行工具" && return 1
 
@@ -13,9 +13,9 @@ function fzf_linux_command_searcher() {                                         
     --header="$(_buildFzfHeader '' 'fzf_linux_command_searcher')" \
     --preview="glow --style=dark -p ${MDDIR}/command/{}"
 }
-alias flc="fzf_linux_command_searcher"                                              # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
+alias flc="fzf_linux_command_searcher"                                          # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
 
-function fzf_how_to_cook_searcher() {                                               # Desc: function: fzf_how_to_cook_searcher: 利用fzf和别人的做饭菜单进行搜索
+function fzf_how_to_cook_searcher() {                                           # Desc: function: fzf_how_to_cook_searcher: 利用fzf和别人的做饭菜单进行搜索
     local MDDIR=$MYRUNTIME/customs/others/HowToCook
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/Anduin2017/HowToCook/tree/master" && return 1
     local TMPCOOKBOOK=$(mktemp)
@@ -29,9 +29,9 @@ function fzf_how_to_cook_searcher() {                                           
     --preview=" $MYRUNTIME/customs/bin/_markdown_previewer {} $TMPCOOKBOOK "
 
 }
-alias fh2c="fzf_how_to_cook_searcher"                                               # Desc: alias: fh2c: fzf_how_to_cook_searcher命令的别名,利用fzf和别人的做饭菜单进行搜索
+alias fh2c="fzf_how_to_cook_searcher"                                           # Desc: alias: fh2c: fzf_how_to_cook_searcher命令的别名,利用fzf和别人的做饭菜单进行搜索
 
-function fzf_develop_references_searcher() {                                        # Desc: function: fzf_develop_references_searcher: 利用fzf和别人做的快速参考和备忘清单
+function fzf_develop_references_searcher() {                                    # Desc: function: fzf_develop_references_searcher: 利用fzf和别人做的快速参考和备忘清单
     local MDDIR=$MYRUNTIME/customs/others/reference
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/jaywcjlove/reference" && return 1
     ls ${MDDIR}/docs | fzf $FZF_CUSTOM_PARAMS +m \
@@ -43,9 +43,9 @@ function fzf_develop_references_searcher() {                                    
     --preview="glow --style=dark -p ${MDDIR}/docs/{}"
 
 }
-alias fdrs="fzf_develop_references_searcher"                                        # Desc: alias: fdrs: fzf_develop_references_searcher命令的别名,利用fzf和别人做的快速参考和备忘清单
+alias fdrs="fzf_develop_references_searcher"                                    # Desc: alias: fdrs: fzf_develop_references_searcher命令的别名,利用fzf和别人做的快速参考和备忘清单
 
-function fzf_cheatsheets_searcher() {                                               # Desc: function: fzf_cheatsheets_searcher: 利用fzf和别人做的快速参考和文档进行搜索
+function fzf_cheatsheets_searcher() {                                           # Desc: function: fzf_cheatsheets_searcher: 利用fzf和别人做的快速参考和文档进行搜索
     local MDDIR=$MYRUNTIME/customs/others/cheatsheets
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/rstacruz/cheatsheets?tab=readme-ov-file" && return 1
     ls ${MDDIR}/*.md | grep -v 'README.md' | awk -F'/' '{print $NF}' | fzf $FZF_CUSTOM_PARAMS +m \
@@ -56,19 +56,19 @@ function fzf_cheatsheets_searcher() {                                           
     --header="$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
     --preview="glow --style=dark -p ${MDDIR}/{}"
 }
-alias fcs="fzf_cheatsheets_searcher"                                                # Desc: alias: fcs: fzf_cheatsheets_searcher命令的别名,利用fzf和别人做的快速参考和文档进行搜索
+alias fcs="fzf_cheatsheets_searcher"                                            # Desc: alias: fcs: fzf_cheatsheets_searcher命令的别名,利用fzf和别人做的快速参考和文档进行搜索
 
-function drawdb() {                                                                 # Desc: function: drawdb: Free, simple, and intuitive database design tool and SQL generator.
+function drawdb() {                                                             # Desc: function: drawdb: Free, simple, and intuitive database design tool and SQL generator.
     local MDDIR=$MYRUNTIME/customs/others/drawdb
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/drawdb-io/drawdb?tab=readme-ov-file" && return 1
     customcd $MDDIR
     npm install
     npm run dev
 }
-alias ddb="drawdb"                                                                  # Desc: alias: ddb: drawdb命令的别名,Free, simple, and intuitive database design tool and SQL generator.
+alias ddb="drawdb"                                                              # Desc: alias: ddb: drawdb命令的别名,Free, simple, and intuitive database design tool and SQL generator.
 
 #未完成
-function fzf_chinese_independent_developer() {                                      # Desc: function: fzf_chinese_independent_developer: 中国独立开发者项目列表
+function fzf_chinese_independent_developer() {                                  # Desc: function: fzf_chinese_independent_developer: 中国独立开发者项目列表
     local MDDIR=$MYRUNTIME/customs/others/chinese-independent-developer
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/1c7/chinese-independent-developer?tab=readme-ov-file" && return 1
 
@@ -77,10 +77,10 @@ function fzf_chinese_independent_developer() {                                  
         --bind="enter:execute-silent(echo {} | pbcopy)+abort" \
         --header="$(_buildFzfHeader '' 'fzf_chinese_independent_developer')"
 }
-alias fcid="fzf_chinese_independent_developer"                                      # Desc: alias: fcid: fzf_chinese_independent_developer命令的别名,中国独立开发者项目列表
+alias fcid="fzf_chinese_independent_developer"                                  # Desc: alias: fcid: fzf_chinese_independent_developer命令的别名,中国独立开发者项目列表
 
 
-function fzf_awesome_cheatsheets_searcher() {                                       # Desc: function: fzf_awesome_cheatsheets_searcher: 超级速查表-编程语言、框架和开发工具的速查表，单个文件包含一切你需要知道的东西
+function fzf_awesome_cheatsheets_searcher() {                                   # Desc: function: fzf_awesome_cheatsheets_searcher: 超级速查表-编程语言、框架和开发工具的速查表，单个文件包含一切你需要知道的东西
     local MDDIR=$MYRUNTIME/customs/others/awesome-cheatsheets
     [[ ! -d $MDDIR ]] && echo "请先下载https://github.com/skywind3000/awesome-cheatsheets" && return 1
 
@@ -103,4 +103,4 @@ function fzf_awesome_cheatsheets_searcher() {                                   
         fi
     fi
 }
-alias facs="fzf_awesome_cheatsheets_searcher"                                       # Desc: alias: facs: fzf_awesome_cheatsheets_searcher命令的别名，超级速查表-编程语言、框架和开发工具的速查表，单个文件包含一切你需要知道的东西
+alias facs="fzf_awesome_cheatsheets_searcher"                                   # Desc: alias: facs: fzf_awesome_cheatsheets_searcher命令的别名，超级速查表-编程语言、框架和开发工具的速查表，单个文件包含一切你需要知道的东西
