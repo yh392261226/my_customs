@@ -1,57 +1,5 @@
 ### Package Desc: 文件相关命令
 
-
-function cat_whereis_file() {                                                          # Desc: function: cat_whereis_file:cat打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        cat `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            cat $endfile
-        else
-            cat_whereis_file $endfile
-        fi
-    fi
-}
-alias catw="cat_whereis_file"                                                          # Desc: alias: catw:cat_whereis_file命令的别名,cat打印which命令找到的文件地址
-
-function bat_whereis_file() {                                                          # Desc: function: bat_whereis_file:bat命令打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        bat `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            bat $endfile
-        else
-            bat_whereis_file $endfile
-        fi
-    fi
-}
-alias batw="bat_whereis_file"                                                          # Desc: alias: batw:bat_whereis_file命令的别名,bat命令打印which命令找到的文件地址
-
-
-function type_whereis_file() {                                                         # Desc: function: type_whereis_file:type命令打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        echo $endfile
-        bat `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            echo $endfile
-            bat $endfile
-        else
-            type_whereis_file $endfile
-        fi
-    fi
-}
-alias typew="type_whereis_file"                                                        # Desc: alias: typew:type_whereis_file命令的别名,type命令打印which命令找到的文件地址
-
 function quick_preview () {                                                            # Desc: function: quick_preview:Opens any file in MacOS Quicklook Preview
     qlmanage -p "$*" >& /dev/null;
 }
@@ -112,46 +60,6 @@ function get_file_private_value() {                                             
         }'
 }
 alias gfpv="get_file_private_value"                                                    # Desc: alias: gfpv:get_file_private_value命令的别名,变更权限rwx为权限值【777】
-
-function head_whereis_file() {                                                         # Desc: function: headw:head命令打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    lines=50
-    if [ "" != "$2" ]; then
-        lines=$2
-    fi
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        head -n $lines `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            head -n $lines $endfile
-        else
-            head_whereis_file $endfile $lines
-        fi
-    fi
-}
-alias headw="head_whereis_file"                                                        # Desc: alias: headw:head_whereis_file命令的别名,head命令打印which命令找到的文件地址
-
-function tail_whereis_file() {                                                         # Desc: function: tail_whereis_file:tail命令打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    lines=50
-    if [ "" != "$2" ]; then
-        lines=$2
-    fi
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        tail -n $lines `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            tail -n $lines $endfile
-        else
-            tail_whereis_file $endfile $lines
-        fi
-    fi
-}
-alias tailw="tail_whereis_file"                                                        # Desc: alias: tailw:tail_whereis_file命令的别名,tail命令打印which命令找到的文件地址
 
 function fzf_list_hiddens() {                                                          # Desc: function: fzf_list_hiddens:列出隐藏文件
     local mpath

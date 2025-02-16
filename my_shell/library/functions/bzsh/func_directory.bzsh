@@ -103,22 +103,6 @@ function cd_directory_by_param() {                                              
 }
 alias cdbp="cd_directory_by_param"                                                # Desc: alias: cdbp:cd_directory_by_param命令的别名,包含参数的名称的文件夹
 
-function get_which_command_directory() {                                          # Desc: function: get_which_command_directory:获取命令所在目录
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        echo $(dirname "$@");
-    else
-        endfile=$(type "$@" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            echo $(dirname $endfile);
-        else
-            get_which_command_directory $endfile
-        fi
-    fi
-}
-alias dirw="get_which_command_directory"                                          # Desc: alias: dirw:get_which_command_directory命令的别名,获取命令所在目录
-
 function get_parent_directory() {                                                 # Desc: function: get_parent_directory:获取父级目录
     echo $(dirname "$@");
 }
@@ -128,40 +112,6 @@ function mkdir_cd() {                                                           
     mkdir -p "$1" && cd "$1";
 }
 alias mcd="mkdir_cd"                                                              # Desc: alias: mcd:mkdir_cd命令的别名,创建文件夹并进入
-
-function cd_parent_directory_by_which_command() {                                 # Desc: function: cd_parent_directory_by_which_command:进入命令所在的父级文件夹
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        cd `dirname $(dirname $(which "$1"))`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            cd $(dirname $(dirname $endfile))
-        else
-            cd_parent_directory_by_which_command $endfile
-        fi
-    fi
-}
-alias cdpw="cd_parent_directory_by_which_command"                                 # Desc: alias: cdpw:cd_parent_directory_by_which_command命令的别名,进入命令所在的父级文件夹
-
-function cd_directory_by_which_command() {                                        # Desc: function: cd_directory_by_which_command:进入命令所在的文件夹
-    [[ -f $1 ]] && cd $(dirname $1) && return 1
-    [[ -d $1 ]] && cd $1 && return 1
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        cd `dirname $(which "$1")`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            cd $(dirname $endfile)
-        else
-            cd_directory_by_which_command $endfile
-        fi
-    fi
-}
-alias cdw="cd_directory_by_which_command"                                         # Desc: alias: cdw:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
 
 function fzf_jump_between_directory() {                                           # Desc: function: fzf_jump_between_directory:目录跳转
     [ $# -gt 0 ] && fasd_cd -d "$*" && return
@@ -183,54 +133,6 @@ function fzf_jump_between_directory2() {                                        
   ) && cd "$dir"
 }
 alias fz2="fzf_jump_between_directory2"                                             # Desc: alias: fz2:fzf_jump_between_directory2命令的别名,目录跳转
-
-function ll_whereis_command() {                                                   # Desc: function: ll_whereis_command:打印which命令找到的文件地址
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        ls -l  `which "$1"`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            ls -l $endfile
-        else
-            ll_whereis_command $endfile
-        fi
-    fi
-}
-alias llw="ll_whereis_command"                                                    # Desc: alias: llw:ll_whereis_command命令的别名,打印which命令找到的文件地址
-
-function open_directory_whereis_command() {                                       # Desc: function: open_directory_whereis_command:打开which命令找到的目录或文件
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        open `dirname $(which "$1")`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ] || [ -d $endfile ]; then
-            open $(dirname $endfile)
-        else
-            open_directory_whereis_command $endfile
-        fi
-    fi
-}
-alias openw="open_directory_whereis_command"                                      # Desc: alias: openw:open_directory_whereis_command命令的别名,打开which命令找到的目录或文件
-
-function pwd_command_directory() {                                                # Desc: function: pwd_command_directory:获取命令所在的文件夹
-    hascommand=$(ifHasCommand $@)
-    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        echo `dirname $(which "$1")`
-    else
-        endfile=$(type "$1" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            echo $(dirname $endfile)
-        else
-            pwd_command_directory $endfile
-        fi
-    fi
-}
-alias pwdw="pwd_command_directory"                                                # Desc: alias: pwdw:pwd_command_directory命令的别名,获取命令所在的文件夹
 
 function fzf_directory_history() {                                                # Desc: function: fzf_directory_history:利用fzf显示目录的历史
   local dir=$(python3 -m fzfdirhist show | fzf $FZF_CUSTOM_PARAMS +m \

@@ -1,6 +1,5 @@
 ### Package Desc: 删除相关命令
 
-
 function remove_DS_files() {                                                         # Desc: function: remove_DS_files:删除.DS_Store文件
     if [ "" = "$1" ]; then
         find . -type f -name '*.DS_Store' -ls -delete
@@ -45,22 +44,6 @@ function trash() {                                                              
     command /bin/mv "$@" $HOME/.Trash ;
 }
 alias t="trash"                                                                      # Desc: alias: t: trash命令的别名,Moves a file to the MacOS trash
-
-function remove_whereis_file() {                                                     # Desc: function: remove_whereis_file:删除 which命令找到的文件
-    command -v "$@" > /dev/null 2>&1
-    [[ "$?" = "1" ]] && echo "Command $@ does not exists !" && return 1
-    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
-        rm -f `which "$1"`
-    else
-        endfile=$(type "$@" | awk '{print $NF}')
-        if [ -f $endfile ]; then
-            rm -f $endfile
-        else
-            remove_whereis_file $endfile
-        fi
-    fi
-}
-alias rmw="remove_whereis_file"                                                      # Desc: alias: rmw:remove_whereis_file命令的别名,删除 which命令找到的文件
 
 function fzf_remove() {                                                              # Desc: function: fzf_remove:find找出文件或文件夹选中删除
     hasgum=$(ifHasCommand gum)

@@ -1,5 +1,33 @@
 ### Package Desc: 自定义命令
-
+function action_which() {                                                           # Desc: function: action_which:用which命令找出文件或命令的位置,并用参数中的命令操作
+    local COMMANDBIN="$1"
+    local TMPFILEPATH=$(pwd)
+    [[ "" = "$1" ]] && echo "Command is empty !" && return 1
+    [[ "" != "$2" ]] && TMPFILEPATH="$2"
+    
+    if [ -d $TMPFILEPATH ] || [ -f $TMPFILEPATH ]; then
+        eval "$COMMANDBIN $TMPFILEPATH"
+        return
+    elif [ "$(type $TMPFILEPATH | grep 'a shell function from')" != "" ] || [ "$(type $TMPFILEPATH | grep 'is an alias for')" != "" ] || [ "$(type $TMPFILEPATH | grep 'is a shell builtin')" != "" ]; then
+        endfile=$(type "$TMPFILEPATH" | awk '{print $NF}')
+        if [ "$endfile" = "builtin" ]; then
+            echo "$TMPFILEPATH is a shell builtin !"
+            echo "Chanel ..."
+            return 1
+        elif [ -f "$endfile" ] || [ -d "$endfile" ]; then
+            eval "$COMMANDBIN $endfile"
+            return
+        else
+            action_which "$COMMANDBIN" "$endfile"
+            return
+        fi
+    else
+        # 如果 TMPFILEPATH 是一个普通命令，直接执行
+        eval "$COMMANDBIN $(which "$TMPFILEPATH")"
+        return
+    fi
+}
+alias aw="action_which"                                                             # Desc: alias: aw: action_which命令的别名,用which命令找出文件或命令的位置,并用参数中的命令操作
 
 function search_aliases() {                                                         # Desc: function: search_aliases:显示所有含有字符串的自定义命令及注释
     MYRUNTIME=$(cat $HOME/.myruntime)
@@ -160,11 +188,12 @@ function fzf_customs_fzf_awesome_functions_list() {                             
     fi
 }
 alias fff="fzf_customs_fzf_awesome_functions_list"                                  # Desc: alias: fff: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
+alias 3f="fzf_customs_fzf_awesome_functions_list"                                   # Desc: alias: 3f: fzf_customs_fzf_awesome_functions_list命令的别名,利用fzf列出所有自定义fzf相关命令
 
 function update_iterm2_shell_integration() {                                        # Desc: function: update_iterm2_shell_integration:更新iterm2的扩展shell
 	curl -L https://iterm2.com/shell_integration/install_shell_integration_and_utilities.sh | bash
 }
-alias upisi="update_iterm2_shell_integration"                                       # Desc: alias: upisi:update_iterm2_shell_integration命令的别名,更新iterm2的扩展shell
+alias uii="update_iterm2_shell_integration"                                         # Desc: alias: uii:update_iterm2_shell_integration命令的别名,更新iterm2的扩展shell
 
 function my_message() {                                                             # Desc: function: my_message:显示我的自定义SHELL头信息
     clear
@@ -187,7 +216,7 @@ function my_message() {                                                         
 
     echo " "
 }
-alias mymessage="my_message"                                                        # Desc: alias: myMessage:my_message命令的别名,显示我的自定义SHELL头信息
+alias mm="my_message"                                                               # Desc: alias: mm:my_message命令的别名,显示我的自定义SHELL头信息
 
 function show_bad_links() {                                                         # Desc: function: show_bad_links:列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
     local readpath=$HOME
@@ -203,10 +232,10 @@ function show_bad_links() {                                                     
     done
 }
 alias badlinks="show_bad_links"                                                     # Desc: alias: badlink:show_bad_links命令的别名,列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
+alias sbl="show_bad_links"                                                          # Desc: alias: sbl:show_bad_links命令的别名,列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
 
 function build_by_extension() {                                                     # Desc: function: build_by_extension:生成【参数为后缀名的】的数据文件
     [ $# -eq 0 ] && return
-
     cmd="find `pwd`"
     for ext in $@; do
         cmd=" $cmd -name '*.$ext' -o"
@@ -215,12 +244,12 @@ function build_by_extension() {                                                 
     eval "${cmd: 0: ${#cmd} - 3}" > cscope.files &&
         cscope -b -q && rm cscope.files
 }
-alias csbuild="build_by_extension"                                                  # Desc: alias: csbuild: build_by_extension命令的别名,生成【参数为后缀名的】的数据文件
+alias bbe="build_by_extension"                                                      # Desc: alias: bbe: build_by_extension命令的别名,生成【参数为后缀名的】的数据文件
 
 function clear_camera_cache() {                                                     # Desc: function: clear_camera_cache:清理摄像头缓存
     sudo killall VDCAssistant
 }
-alias ccamera="clear_camera_cache"                                                  # Desc: alias: ccamera: clear_camera_cache命令的别名,清理摄像头缓存
+alias 3c="clear_camera_cache"                                                       # Desc: alias: 3c: clear_camera_cache命令的别名,清理摄像头缓存
 
 function sign_tnt_code_name() {                                                     # Desc: function: sign_tnt_code_name:TNT破解失效 更改签名
     if [ $# -ne 1 ]; then
@@ -240,7 +269,6 @@ alias stnt="sign_tnt_code_name"                                                 
 function speaking_by_osx_voice() {                                                  # Desc: function: speaking_by_osx_voice:利用osx系统发音说话
     words="$@"
     hasgum=$(ifHasCommand gum)
-
     if [ "" = "$words" ]; then
         [[ 1 = $hasgum ]] && (gum input --placeholder "Type something...") || (echo "请输入要说的话 \n例如：$0 haha " && return 1)
     fi
@@ -329,7 +357,6 @@ function fzf_theme_selector() {                                                 
     #MYRUNTIME=$(cat $HOME/.myruntime)
     themes_path=$MYRUNTIME/customs/tools/fzf_themes/
     choose_theme=$(ls $themes_path | fzf $FZF_CUSTOM_PARAMS --preview-window right:70%:rounded:hidden:wrap --preview " bat $themes_path/{} " --header="$(_buildFzfHeader '' 'fzf_aliases')")
-
     [[ ! "$choose_theme" ]] && echo "Action abort!" && return
     if [[ -f ${themes_path}/$choose_theme ]]; then
         source ${themes_path}/$choose_theme
@@ -340,7 +367,6 @@ alias fts='fzf_theme_selector'                                                  
 function command_sl_selector() {                                                    # Desc: function: command_sl_selector:输入命令sl并执行时，二次验证选择
     echo "执行命令行小火车：1, ls命令：2"
     hasgum=$(ifHasCommand gum)
-
     [[ "$hasgum" = "1" ]]  && choose=$(gum choose "1" "2") || read choose
     case "$choose" in
     "1")
@@ -372,7 +398,7 @@ function fzf_man() {                                                            
 --header="$(_buildFzfHeader '' 'fzf_man')"
   echo ""
 }
-alias fman="fzf_man"                                                                # Desc: alias: fmw:fzf_man命令的别名,fzf版本的man命令
+alias fman="fzf_man"                                                                # Desc: alias: fman:fzf_man命令的别名,fzf版本的man命令
 
 function mark_by_cheatsh() {                                                        # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then
@@ -383,35 +409,19 @@ function mark_by_cheatsh() {                                                    
         curl cht.sh
         return 0
     fi
-
-
     url="cheat.sh/"
     if [ "$1" != "" ]; then
         url="cheat.sh/$1/"
     fi
-
     if [ "$2" != "" ]; then
         url="cheat.sh/$1/$2"
     fi
-
     if [ "$3" != "" ]; then
         url="cheat.sh/$1/$2+$3"
     fi
     curl $url
 }
 alias mbc="mark_by_cheatsh"                                                         # Desc: alias: mbc:mark_by_cheatsh命令的别名,依托于cheat.sh的备忘录
-
-function fzf_aliases_and_functions_selector() {                                         # Desc: function: fzf_aliases_and_functions_selector:显示所有的alias和function并通过fzf选用
-    CMD=$(
-        (
-            (alias)
-            (functions | grep "()" | cut -d ' ' -f1 | grep -v "^_" )
-        ) | fzf $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_aliases_and_functions_selector')" | cut -d '=' -f1
-    );
-    echo "该命令未完成"
-    eval $CMD
-}
-alias faaf="fzf_aliases_and_functions_selector"                                          # Desc: alias: faaf: fzf_aliases_and_functions_selector命令的别名,显示所有的alias和function并通过fzf选用
 
 function fzf_env_vars() {                                                           # Desc: function: fzf_env_vars:利用fzf选用env变量的值
   env | fzf $FZF_CUSTOM_PARAMS \
@@ -423,11 +433,6 @@ function fzf_env_vars() {                                                       
 --header="$(_buildFzfHeader '' 'fzf_env_vars')"
 }
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
-
-function fzf_eval_preview() {                                                       # Desc: function: fzf_eval_preview: 利用fzf执行选中的命令并preview结果
-    echo | fzf -q "$*" $FZF_CUSTOM_PARAMS --preview-window up:90%:rounded:hidden:wrap --preview="eval {q}" --header="$(_buildFzfHeader '' 'fzf_eval_preview')"
-}
-alias fep="fzf_eval_preview"                                                        # Desc: alias: fep: fzf_eval_preview命令的别名,利用fzf执行选中的命令并preview结果
 
 function fold() {                                                                   # Desc: function: fold: Default `fold` to screen width and break at spaces
   if [ $# -eq 0 ]; then
@@ -475,17 +480,14 @@ function su() {                                                                 
 function sudo() {                                                                   # Desc: function: sudo:sudo命令后,theme自动切换主题
 	(
 		pid=$(exec sh -c 'echo "$PPID"')
-
 		# If the command takes less than .2s, don't change the theme.
 		# We could also just match on 'su' and ignore everything else,
 		# but this also accomodates other long running commands
 		# like 'sudo sleep 5s'. Modify to taste.
-
 		(
 				sleep .2s
 				ps -p "$pid" > /dev/null && INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme gruvbox-original-light-medium
 		) &
-
 		trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
 		env sudo "$@"
 		$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"
@@ -497,24 +499,17 @@ function ssh() {                                                                
 	# and applies it for the duration of the current ssh command.
 	# Each line in $HOME/.ssh_themes has the format:
 	#     <hostname>: <theme>.
-
 	# Restoration relies on the fact that you are using theme.sh to manage
 	# the current theme.  (that is, you set the theme in your bashrc.)
-
 	# This can probably be made more robust. It is just a small demo
 	# of what is possible.
-
-
 	touch $HOME/.ssh_themes
-
 	host="$(echo "$@"|awk '{gsub(".*@","",$NF);print $NF}')"
 	theme="$(awk -vhost="$host" -F': *' 'index($0, host":") == 1 {print $2}' < $HOME/.ssh_themes)"
-
 	if [ -z "$theme" ]; then
 		env ssh "$@"
 		return
 	fi
-
 	INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme "$theme"
 	trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
 	env ssh "$@"
@@ -553,7 +548,6 @@ alias mkf="mkdir_forward"                                                       
 
 function fzf_most_used_command() {                                                  # Desc: function: fzf_most_used_command:历史操作中使用最多的50个命令
     #除了history外,在omz中可以使用:omz_history -n | sed 's/^[[:space:]]*//g' | sed 's/^[0-9]*//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -30 | tac
-
     history | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sed 's/^[[:space:]]\{0,\}[0-9]\{1,\}//g' | sed 's/^[[:space:]]*//g' | sort | uniq -c | sort -n -k1 | tail -50 | tac |fzf $FZF_CUSTOM_PARAMS --no-sort \
 --preview-window right:70%:rounded:hidden:wrap \
 --preview 'echo {} | awk "{\$1=\"\";print}"' \
@@ -573,7 +567,6 @@ function fzf_manage() {                                                         
     else
         ACTIONCOMMAND='rm -f '
     fi
-
     ls $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
@@ -585,3 +578,162 @@ function fzf_manage() {                                                         
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
 alias fm2="fzf_manage"                                                              # Desc: alias: fm2: fzf_manage命令的别名,利用fzf管理目录下的子文件夹、文件、图片等
+
+function ll_whereis_command() {                                                     # Desc: function: ll_whereis_command:打印which命令找到的文件地址
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        ls -l  `which "$1"`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            ls -l $endfile
+        else
+            ll_whereis_command $endfile
+        fi
+    fi
+}
+alias llw="ll_whereis_command"                                                      # Desc: alias: llw:ll_whereis_command命令的别名,打印which命令找到的文件地址
+
+function open_directory_whereis_command() {                                         # Desc: function: open_directory_whereis_command:打开which命令找到的目录或文件
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        open `dirname $(which "$1")`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ] || [ -d $endfile ]; then
+            open $(dirname $endfile)
+        else
+            open_directory_whereis_command $endfile
+        fi
+    fi
+}
+alias openw="open_directory_whereis_command"                                        # Desc: alias: openw:open_directory_whereis_command命令的别名,打开which命令找到的目录或文件
+
+function pwd_command_directory() {                                                  # Desc: function: pwd_command_directory:获取命令所在的文件夹
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        echo `dirname $(which "$1")`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            echo $(dirname $endfile)
+        else
+            pwd_command_directory $endfile
+        fi
+    fi
+}
+alias pwdw="pwd_command_directory"                                                  # Desc: alias: pwdw:pwd_command_directory命令的别名,获取命令所在的文件夹
+
+function cd_parent_directory_by_which_command() {                                   # Desc: function: cd_parent_directory_by_which_command:进入命令所在的父级文件夹
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        cd `dirname $(dirname $(which "$1"))`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            cd $(dirname $(dirname $endfile))
+        else
+            cd_parent_directory_by_which_command $endfile
+        fi
+    fi
+}
+alias cdpw="cd_parent_directory_by_which_command"                                   # Desc: alias: cdpw:cd_parent_directory_by_which_command命令的别名,进入命令所在的父级文件夹
+
+function cd_directory_by_which_command() {                                          # Desc: function: cd_directory_by_which_command:进入命令所在的文件夹
+    [[ -f $1 ]] && cd $(dirname $1) && return 1
+    [[ -d $1 ]] && cd $1 && return 1
+    hascommand=$(ifHasCommand $@)
+    [[ $hascommand != 1 ]] && echo "Command $@ does not exists !" && return 1
+    if [ "$(type $1 | grep 'a shell function from')" = "" ] && [ "$(type $1 | grep 'is an alias for')" = "" ]; then
+        cd `dirname $(which "$1")`
+    else
+        endfile=$(type "$1" | awk '{print $NF}')
+        if [ -f $endfile ]; then
+            cd $(dirname $endfile)
+        else
+            cd_directory_by_which_command $endfile
+        fi
+    fi
+}
+alias cdw="cd_directory_by_which_command"                                           # Desc: alias: cdw:cd_directory_by_which_command命令的别名,进入命令所在的文件夹
+
+function get_which_command_directory() {                                            # Desc: function: get_which_command_directory:获取命令所在目录
+    local COMMANDBIN="/usr/bin/dirname"
+    action_which $COMMANDBIN $1
+}
+alias dirw="get_which_command_directory"                                            # Desc: alias: dirw:get_which_command_directory命令的别名,获取命令所在目录
+
+function code_which() {                                                             # Desc: function: code_which:visual studio code 编辑which命令找到的文件地址
+    local COMMANDBIN="/usr/local/bin/code"
+    action_which $COMMANDBIN $1
+}
+alias cw="code_which"                                                               # Desc: alias: cw: code_which命令的别名,visualstudio code编辑which命令找到的文件地址
+alias codew="code_which"                                                            # Desc: alias: codew: code_which命令的别名,visualstudio code编辑which命令找到的文件地址
+
+function sublime_text_which() {                                                     # Desc: function: sublime_text_which:sublimetext编辑which命令找到的文件地址
+    local COMMANDBIN="$HOME/bin/subl"
+    action_which $COMMANDBIN $1
+}
+alias sw="sublime_text_which"                                                       # Desc: alias: sw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
+alias stw="sublime_text_which"                                                      # Desc: alias: stw:sublime_text_which命令的别名,sublimetext编辑which命令找到的文件地址
+
+function vim_which() {                                                              # Desc: function: vim_which:vim编辑which命令找到的文件地址
+    if [ -f /usr/local/bin/vim ]; then
+        local COMMANDBIN="/usr/local/bin/vim"
+    elif [ -f /opt/homebrew/bin/vim ]; then
+        local COMMANDBIN="/opt/homebrew/bin/vim"
+    fi
+    action_which $COMMANDBIN $1
+}
+alias vw="vim_which"                                                                # Desc: alias: vw: vim_which命令的别名,vim编辑which命令找到的文件地址
+alias viw="vim_which"                                                               # Desc: alias: viw: vim_which命令的别名,vim编辑which命令找到的文件地址
+
+function neovim_which() {                                                           # Desc: function: neovim_which:neovim编辑which命令找到的文件地址
+    if [ -f /usr/local/bin/nvim ]; then
+        local COMMANDBIN="/usr/local/bin/nvim"
+    elif [ -f /opt/homebrew/bin/nvim ]; then
+        local COMMANDBIN="/opt/homebrew/bin/nvim"
+    fi
+    action_which $COMMANDBIN $1
+}
+alias nw="neovim_which"                                                             # Desc: alias: nw: neovim_which命令的别名,neovim编辑which命令找到的文件地址
+alias nviw="neovim_which"                                                           # Desc: alias: nviw: neovim_which命令的别名,neovim编辑which命令找到的文件地址
+
+function head_whereis_file() {                                                      # Desc: function: headw:head命令打印which命令找到的文件地址
+    local COMMANDBIN="/usr/bin/head"
+    action_which $COMMANDBIN $1
+}
+alias headw="head_whereis_file"                                                     # Desc: alias: headw:head_whereis_file命令的别名,head命令打印which命令找到的文件地址
+
+function tail_whereis_file() {                                                      # Desc: function: tail_whereis_file:tail命令打印which命令找到的文件地址
+    local lines=50
+    [[ "" != "$2" ]] && lines="$2"
+    local COMMANDBIN="/usr/bin/tail -n $lines"
+    action_which $COMMANDBIN $1
+}
+alias tailw="tail_whereis_file"                                                     # Desc: alias: tailw:tail_whereis_file命令的别名,tail命令打印which命令找到的文件地址
+
+function cat_whereis_file() {                                                       # Desc: function: cat_whereis_file:cat打印which命令找到的文件地址
+    local COMMANDBIN="/bin/cat"
+    [[ -f /usr/local/bin/ccat ]] && COMMANDBIN="/usr/local/bin/ccat"
+    [[ -f /opt/homebrew/bin/ccat ]] && COMMANDBIN="/opt/homebrew/bin/ccat"
+    action_which $COMMANDBIN $1
+}
+alias catw="cat_whereis_file"                                                       # Desc: alias: catw:cat_whereis_file命令的别名,cat打印which命令找到的文件地址
+
+function bat_whereis_file() {                                                       # Desc: function: bat_whereis_file:bat命令打印which命令找到的文件地址
+    [[ -f /usr/local/bin/bat ]] && COMMANDBIN="/usr/local/bin/bat"
+    [[ -f /opt/homebrew/bin/bat ]] && COMMANDBIN="/opt/homebrew/bin/bat"
+    action_which $COMMANDBIN $1
+}
+alias batw="bat_whereis_file"                                                       # Desc: alias: batw:bat_whereis_file命令的别名,bat命令打印which命令找到的文件地址
+
+function type_whereis_file() {                                                      # Desc: function: type_whereis_file:type命令打印which命令找到的文件地址
+    local COMMANDBIN="/usr/bin/type"
+    action_which $COMMANDBIN $1
+}
+alias typew="type_whereis_file"                                                     # Desc: alias: typew:type_whereis_file命令的别名,type命令打印which命令找到的文件地址
