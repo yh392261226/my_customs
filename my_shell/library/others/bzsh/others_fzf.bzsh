@@ -7,6 +7,7 @@ export FZF_PREVIEW_DIR_CMD="tree -C"
 export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
+export TMP_FZF_SEARCH_SWAP_FILE=/tmp/tmp_fzf_search_swap
 
 _fzf_comprun() {
   local tmp_command=$1
@@ -64,13 +65,31 @@ fzf_transformer='
   fi
 '
 
-fzf_transformer2='
+fzf_transformer_input_switcher='
   if [[ $FZF_INPUT_STATE = enabled ]]; then
     echo "rebind(j,k,/)+hide-input"
   elif [[ $FZF_KEY = enter ]]; then
     echo accept
   else
     echo abort
+  fi
+'
+
+fzf_transformer_search_swap_type='
+  if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
+    [[ "" = "$TMP_FZF_SEARCH_PATH" ]] && TMP_FZF_SEARCH_PATH='.'
+    if [ "$(cat $TMP_FZF_SEARCH_SWAP_FILE)" = "Files" ]; then
+      echo "Directories" > $TMP_FZF_SEARCH_SWAP_FILE
+      echo "reload(fd --type directory -H --max-depth 1 $TMP_FZF_SEARCH_PATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
+    elif [ "$(cat $TMP_FZF_SEARCH_SWAP_FILE)" = "Directories" ]; then
+      echo "All" > $TMP_FZF_SEARCH_SWAP_FILE
+      echo "reload(fd --type file -H --max-depth 1 $TMP_FZF_SEARCH_PATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
+    else
+      echo "Files" > $TMP_FZF_SEARCH_SWAP_FILE
+      echo "reload(fd --max-depth 1 -H $TMP_FZF_SEARCH_PATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
+    fi
+  else
+    echo "Files" > $TMP_FZF_SEARCH_SWAP_FILE
   fi
 '
 
@@ -84,7 +103,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --tmux "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --highlight-line "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --ansi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border=rounded "
-#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --layout=reverse "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --layout=reverse-list "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --padding='2' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --margin='8%' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --marker=' ✔' "
@@ -102,7 +121,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border bottom --no-list-borde
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --no-input '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,node_modules,target,\$RECYCLE.BIN" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,.vscode,.idea,target,\$RECYCLE.BIN" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label="╢ Preview ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-label "╢ Result ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-border '
@@ -131,16 +150,16 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:select-all+execute:less {+f}" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:+deselect-all" '
-#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-d:change-prompt(Directories> )+reload(fd -type d --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" --bind="ctrl-f:change-prompt(Files> )+reload(fd -type f --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'ctrl-f:transform:$fzf_transformer_search_swap_type'"
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤ " '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer2' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(Type jump label)+jump,jump-cancel:change-header:Jump cancelled" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
@@ -151,7 +170,7 @@ FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --cycle "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --inline-info "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --ansi  "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --border='bottom' "
-FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --layout='reverse' "
+FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --layout='reverse-list' "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --preview='${MYRUNTIME}/customs/bin/_previewer {}' "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" --preview-window='right:70%:wrap' "
 FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" $FZF_PREVIEW_KEY_BIND"
@@ -214,7 +233,7 @@ export FZF_ALT_C_OPTS="--reverse"
 export FZF_TMUX_OPTS="-p"
 
 FZF_HELP_OPTS=" --multi "
-FZF_HELP_OPTS=$FZF_HELP_OPTS" --layout='reverse' "
+FZF_HELP_OPTS=$FZF_HELP_OPTS" --layout='reverse-list' "
 FZF_HELP_OPTS=$FZF_HELP_OPTS" --preview-window='right,75%,wrap' "
 FZF_HELP_OPTS=$FZF_HELP_OPTS" --bind='ctrl-m:change-preview-window(down,75%,nowrap|right,75%,nowrap)' "
 export FZF_HELP_OPTS=$FZF_HELP_OPTS

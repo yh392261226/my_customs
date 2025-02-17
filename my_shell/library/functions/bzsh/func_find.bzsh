@@ -137,22 +137,3 @@ function search_by_tree() {                                                     
     fi
 }
 alias stree='search_by_tree'                                                           # Desc: alias: stree:search_by_tree命令的别名,利用tree和grep命令搜索关键字的文件
-
-function fzf_find_by_choice() {                                                        # Desc: function: fzf_find_by_choice: 利用fzf命令显示find的结果,并根据选择展示文件或文件夹
-    find * | fzf $FZF_CUSTOM_PARAMS \
---bind 'ctrl-d:change-prompt(Directories> )+reload(find * -type d)' \
---bind 'ctrl-f:change-prompt(Files> )+reload(find * -type f)' \
---preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}' \
---header="$(_buildFzfHeader '' 'fzf_find_by_choice')"
-}
-alias ffc="fzf_find_by_choice"                                                         # Desc: alias: ffc: fzf_find_by_choice命令的别名,利用fzf命令显示find的结果,并根据选择展示文件或文件夹
-
-function fzf_fd_by_choice() {                                                          # Desc: function: fzf_fd_by_choice: 利用fzf命令显示fd的结果,并根据选择展示文件或文件夹
-    fd --type file | fzf --prompt 'Files> ' \
-      --bind 'ctrl-f:transform:[[ ! $FZF_PROMPT =~ Files ]] &&
-              echo "change-prompt(Files> )+reload(fd --type file --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" ||
-              echo "change-prompt(Directories> )+reload(fd --type directory --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"' \
-      --preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}' \
-      --header="$(_buildFzfHeader '' 'fzf_fd_by_choice')"
-}
-alias ffc2="fzf_fd_by_choice"                                                          # Desc: alias: ffc2: fzf_fd_by_choice命令的别名,利用fzf命令显示fd的结果,并根据选择展示文件或文件夹

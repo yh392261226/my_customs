@@ -532,19 +532,18 @@ alias fmu="fzf_most_used_command"                                               
 function fzf_manage() {                                                             # Desc: function: fzf_manage: 利用fzf管理目录下的子文件夹、文件、图片等
     local DIRPATH="."
     [[ "" != "$1" ]] && DIRPATH="$1"
+    export TMP_FZF_SEARCH_PATH=$DIRPATH
     local ACTIONCOMMAND
     if [[ $(ifHasCommand gum) = 1 ]]; then
         ACTIONCOMMAND='gum confirm "确认删除?" && rm -f '
     else
         ACTIONCOMMAND='rm -f '
     fi
-    ls $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
+    ls -A $DIRPATH | fzf $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
     --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
     --bind "ctrl-o:execute-silent(open -R $DIRPATH/{})" \
-    --bind 'ctrl-f:transform:[[ ! $FZF_PROMPT =~ Files ]] &&
-              echo "change-prompt(Files> )+reload(fd --type file $DIRPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" ||
-              echo "change-prompt(Directories> )+reload(fd --type directory $DIRPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"' \
+    --bind "ctrl-f:transform:$fzf_transformer_search_swap_type" \
     --header="$(_buildFzfHeader '' 'fzf_manage')" \
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer $DIRPATH/{} "
 }
