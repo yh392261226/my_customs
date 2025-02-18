@@ -8,6 +8,7 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
 export TMP_FZF_SEARCH_SWAP_FILE=/tmp/tmp_fzf_search_swap
+export TMP_FZF_SEARCH_PATH_FILE=/tmp/tmp_fzf_search_path_swap
 
 _fzf_comprun() {
   local tmp_command=$1
@@ -77,16 +78,15 @@ fzf_transformer_input_switcher='
 
 fzf_transformer_search_swap_type='
   if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
-    [[ "" = "$TMP_FZF_SEARCH_PATH" ]] && TMP_FZF_SEARCH_PATH='.'
     if [ "$(cat $TMP_FZF_SEARCH_SWAP_FILE)" = "Files" ]; then
+      echo "reload(fd --type file --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
       echo "Directories" > $TMP_FZF_SEARCH_SWAP_FILE
-      echo "reload(fd --type directory -H --max-depth 1 $TMP_FZF_SEARCH_PATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
     elif [ "$(cat $TMP_FZF_SEARCH_SWAP_FILE)" = "Directories" ]; then
+      echo "reload(fd --type directory --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
       echo "All" > $TMP_FZF_SEARCH_SWAP_FILE
-      echo "reload(fd --type file -H --max-depth 1 $TMP_FZF_SEARCH_PATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
     else
+      echo "reload(fd --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
       echo "Files" > $TMP_FZF_SEARCH_SWAP_FILE
-      echo "reload(fd --max-depth 1 -H $TMP_FZF_SEARCH_PATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
     fi
   else
     echo "Files" > $TMP_FZF_SEARCH_SWAP_FILE
