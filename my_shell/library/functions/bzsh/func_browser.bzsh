@@ -171,9 +171,9 @@ function chromium_history() {                                                   
     local cols sep
     export cols=$(( COLUMNS / 3 ))
     export sep='{::}'
-    rm -f /tmp/h
-    cp -r -f "$1" /tmp/h
-    sqlite3 -separator $sep /tmp/h \
+    rm -f ${TMPDIR:-/tmp}/h
+    cp -r -f "$1" ${TMPDIR:-/tmp}/h
+    sqlite3 -separator $sep ${TMPDIR:-/tmp}/h \
         "select title, url from urls order by last_visit_time desc" |
     ruby -ne '
     cols = ENV["cols"].to_i
@@ -213,15 +213,15 @@ function chromium_bookmarks() {                                                 
         echo "Does not send param!"
         return 1
     else
-        rm -f /tmp/bookmarks
-        cp -r -f "$1" /tmp/bookmarks
+        rm -f ${TMPDIR:-/tmp}/bookmarks
+        cp -r -f "$1" ${TMPDIR:-/tmp}/bookmarks
     fi
 
      jq_script='
         def ancestors: while(. | length >= 2; del(.[-1,-2]));
         . as $in | paths(.url?) as $key | $in | getpath($key) | {name,url, path: [$key[0:-2] | ancestors as $a | $in | getpath($a) | .name?] | reverse | join("/") } | .path + "/" + .name + "\t" + .url'
 
-    jq -r "$jq_script" < /tmp/bookmarks \
+    jq -r "$jq_script" < ${TMPDIR:-/tmp}/bookmarks \
         | sed -E $'s/(.*)\t(.*)/\\1\t\x1b[36m\\2\x1b[m/g' \
         | fzf --ansi $FZF_CUSTOM_PARAMS \
               --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \

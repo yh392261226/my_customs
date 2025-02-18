@@ -2,8 +2,8 @@ source ~/.profile
 MYRUNTIME=$(cat ~/.myruntime)
 # If not running interactively, don't do anything
 case $- in
-  *i*) ;;
-    *) return;;
+*i*) ;;
+*) return ;;
 esac
 
 # Path to the bash it configuration
@@ -89,8 +89,8 @@ eval $(fzf --bash)
 source $MYRUNTIME/customs/my_shell/rcfile
 #[[ -f /opt/homebrew/opt/fzf/shell/completion.bash ]] && source /opt/homebrew/opt/fzf/shell/completion.bash
 [[ -f ${HOME}/.iterm2_shell_integration.bash ]] && source "${HOME}/.iterm2_shell_integration.bash"
-if command -v vfox &> /dev/null; then
-  eval "$(vfox activate bash)"
+if command -v vfox &>/dev/null; then
+	eval "$(vfox activate bash)"
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)

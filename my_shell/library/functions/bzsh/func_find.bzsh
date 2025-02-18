@@ -80,8 +80,8 @@ alias fparams="find_file_by_params"                                             
 function find_same_file_by_md5() {                                                     # Desc: function: find_same_file_by_md5:Find files which has the same md5 value
     local MD5COMMAND=/sbin/md5
     local SOURCEPATH="${1:-$PWD}"
-    local TMPFILE=/tmp/findmd5same_tmp
-    local TMPKEYSFILE=/tmp/findmd5same_keys_tmp
+    local TMPFILE=${TMPDIR:-/tmp}/findmd5same_tmp
+    local TMPKEYSFILE=${TMPDIR:-/tmp}/findmd5same_keys_tmp
     local RESULTFILE=$HOME/Desktop/samemd5file_result
 
     source $MYRUNTIME/customs/bin/mymessage

@@ -6,9 +6,9 @@ export FZF_PREVIEW_FILE_CMD="bat --theme=gruvbox-dark --style=header,grid,number
 export FZF_PREVIEW_DIR_CMD="tree -C"
 export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
-export TMP_FZF_HEADER_SWAP_FILE=/tmp/tmp_fzf_header_swap
-export TMP_FZF_SEARCH_SWAP_FILE=/tmp/tmp_fzf_search_swap
-export TMP_FZF_SEARCH_PATH_FILE=/tmp/tmp_fzf_search_path_swap
+export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header_swap
+export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_swap
+export TMP_FZF_SEARCH_PATH_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_path_swap
 
 _fzf_comprun() {
   local tmp_command=$1
