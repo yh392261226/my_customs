@@ -47,10 +47,7 @@ alias t="trash"                                                                 
 
 function fzf_remove() {                                                              # Desc: function: fzf_remove:find找出文件或文件夹选中删除
     hasgum=$(ifHasCommand gum)
-    local TMPPATH="."
-    if [ "$1" != "" ]; then
-        TMPPATH="$1"
-    fi
+    local TMPPATH="${1:-$PWD}"
     local TMPCHOOSE=$(find $TMPPATH -maxdepth 1 | fzf --multi $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:change-prompt(Directories> )+reload(fd --type d $TMPPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
     --bind "ctrl-f:change-prompt(Files> )+reload(fd --type f $TMPPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \

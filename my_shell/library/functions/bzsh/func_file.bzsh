@@ -29,7 +29,7 @@ alias hashf="get_hash_file"                                                     
 
 function check_2files_by_md5() {                                                       # Desc: function: check_2files_by_md5:diff the two files md5 value
     local MD5COMMAND=/sbin/md5 #md5 command
-    local LOCALPATH=$1 #args[0]
+    local LOCALPATH="${1:-$PWD}"
     local TARGETPATH=$2 #args[1]
 
     if [ ! -f $LOCALPATH ] || [ ! -f $TARGETPATH ]; then # one of the files is not exists
@@ -62,8 +62,7 @@ function get_file_private_value() {                                             
 alias gfpv="get_file_private_value"                                                    # Desc: alias: gfpv:get_file_private_value命令的别名,变更权限rwx为权限值【777】
 
 function fzf_list_hiddens() {                                                          # Desc: function: fzf_list_hiddens:列出隐藏文件
-    local mpath
-	[[ "" != "$1" ]] && mpath=$1 || mpath='./'
+    local mpath="${1:-$PWD}"
     /bin/ls -A $mpath | grep '^\.' | fzf $FZF_CUSTOM_PARAMS \
 --preview ' [[ -d {} ]] && tree {} || bat {} ' \
 --preview-window right:70%:rounded:hidden:wrap \
@@ -113,15 +112,13 @@ function fzf_search_term() {                                                    
 alias fst='fzf_search_term'                                                            # Desc: alias: fst:fzf_search_term命令的别名,find-in-file - usage: fif <searchTerm>
 
 function list_link_files() {                                                           # Desc: function: list_link_files:列出所有软连接文件
-    local mpath='./'
-    [[ "" != "$1" ]] && mpath="$1"
+    local mpath="${1:-$PWD}"
     /bin/ls -al ${mpath} | grep ^l
 }
 alias llf="list_link_files"                                                            # Desc: alias: llf:list_link_files命令的别名,列出所有软连接文件
 
 function fzf_find_link_files() {                                                       # Desc: function: fzf_find_link_files:find找出所有软连接文件
-    local mpath='./'
-    [[ "" != "$1" ]] && mpath="$1"
+    local mpath="${1:-$PWD}"
     /usr/bin/find ${mpath} -type l -ls | fzf $FZF_CUSTOM_PARAMS --header="$(_buildFzfHeader '' 'fzf_aliases')"
 }
 alias fflf="fzf_find_link_files"                                                       # Desc: alias: fflf:fzf_find_link_files命令的别名,find找出所有软连接文件

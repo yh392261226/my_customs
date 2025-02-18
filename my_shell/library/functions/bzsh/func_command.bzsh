@@ -190,10 +190,7 @@ function my_message() {                                                         
 alias mm="my_message"                                                               # Desc: alias: mm:my_message命令的别名,显示我的自定义SHELL头信息
 
 function show_bad_links() {                                                         # Desc: function: show_bad_links:列出所有失效软连接,默认读取家目录,可以指定目录badlink /data
-    local readpath=$HOME
-    if [ "" != "$1" ]; then
-        readpath=$1
-    fi
+    local readpath="${1:-$HOME}"
     echo "File List broken links:"
     for file in $(ls -a $readpath); do
     realpath=$(/usr/bin/readlink $readpath/$file)
@@ -530,8 +527,7 @@ function fzf_most_used_command() {                                              
 alias fmu="fzf_most_used_command"                                                   # Desc: alias: fmu: fzf_most_used_command命令的别名,历史操作中使用最多的50个命令
 
 function fzf_manage() {                                                             # Desc: function: fzf_manage: 利用fzf管理目录下的子文件夹、文件、图片等
-    local DIRPATH="."
-    [[ "" != "$1" ]] && DIRPATH="$1"
+    local DIRPATH="${1:-$PWD}"
     export TMP_FZF_SEARCH_PATH=$DIRPATH
     local ACTIONCOMMAND
     if [[ $(ifHasCommand gum) = 1 ]]; then

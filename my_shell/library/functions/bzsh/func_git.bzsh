@@ -7,13 +7,15 @@ function check_is_git() {                                                       
 alias isgit="check_is_git"                                                              # Desc: alias: isgit: check_is_git命令的别名,验证是否是git版本库
 
 function auto_create_git_respository() {                                                # Desc: function: auto_create_git_respository: 自动创建版本库
-	mkdir $1
-	cd $1
+	local ACTIONPATH="${1:-$PWD}"
+    mkdir $ACTIONPATH
+	cd $ACTIONPATH
 	git init
 	touch README.md
 	git add README.md
 	git commit -m '自动创建版本库'
-	git remote add origin git@github.com:yh392261226/$1.git
+    local GITPATHNAME=$(echo $ACTIONPATH | sed 's,/,_,g')
+	git remote add origin git@github.com:yh392261226/$GITPATHNAME.git
 	git push origin master
 }
 alias acgr="auto_create_git_respository"                                                # Desc: alias: acgr: auto_create_git_respository命令的别名,自动创建版本库
@@ -232,11 +234,7 @@ function git_diff_branches() {                                                  
 alias gd2b="git_diff_branches"                                                          # Desc: alias: gd2b:git_diff_branches命令的别名,Git比对两个分支
 
 function update_git_files_and_modules() {                                               # Desc: function: update_git_files_and_modules:更新git的目录及git module的目录
-    if [ "" != "$1" ]; then
-        filepath=$1
-    else
-        filepath=$MYRUNTIME
-    fi
+    local filepath="${1:-$MYRUNTIME}"
 
     for f in $(/bin/ls $filepath/); do
         if [ -d $filepath/$f/.git ] || [ -f $filepath/$f/.git ]; then
