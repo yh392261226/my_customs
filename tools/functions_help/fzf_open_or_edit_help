@@ -7,7 +7,7 @@ readonly gray="\e[30m"
 readonly c="\e[1;36m"
 readonly d="\e[1;37m"
 readonly help="${bold}${c}[Help Infomation]${c}${reset}
-${bold}${italic}CTRL-O${reset}      Open
+${bold}${italic}CTRL-R${reset}      Open
 ${bold}${italic}CTRL-E${reset}      Edit by nvim
 ${bold}${italic}CTRL-Y${reset}      Copy
 ${bold}${italic}CTRL-T${reset}      Toggle show the preview window

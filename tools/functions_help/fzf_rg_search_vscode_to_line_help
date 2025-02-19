@@ -9,7 +9,7 @@ readonly d="\e[1;37m"
 readonly help="${bold}${c}[Help Infomation]${c}${reset}
 ${bold}${italic}CTRL-F${reset}      Search with fzf
 ${bold}${italic}CTRL-R${reset}      Search with ripgrep
-${bold}${italic}CTRL-O${reset}      Edit by vscode
+${bold}${italic}CTRL-E${reset}      Edit by vscode
 ${bold}${italic}CTRL-Y${reset}      Copy
 ${bold}${italic}CTRL-T${reset}      Toggle show the preview window
 ${bold}${italic}/${reset}           Show input window (Esc/Enter/Ctrl-C to exit)

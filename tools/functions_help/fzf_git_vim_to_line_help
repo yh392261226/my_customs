@@ -7,9 +7,6 @@ readonly gray="\e[30m"
 readonly c="\e[1;36m"
 readonly d="\e[1;37m"
 readonly help="${bold}${c}[Help Infomation]${c}${reset}
-${bold}${italic}CTRL-F${reset}      Search with fzf
-${bold}${italic}CTRL-R${reset}      Search with ripgrep
-${bold}${italic}CTRL-E${reset}      Edit
 ${bold}${italic}CTRL-Y${reset}      Copy
 ${bold}${italic}CTRL-T${reset}      Toggle show the preview window
 ${bold}${italic}/${reset}           Show input window (Esc/Enter/Ctrl-C to exit)
@@ -17,6 +14,7 @@ ${bold}${italic}CTRL-S${reset}      Toggle sort
 ${bold}${italic}CTRL-V${reset}      Change to Preview bigger to view
 ${bold}${italic}CTRL-N${reset}      Page down
 ${bold}${italic}CTRL-P${reset}      Page up
+${bold}${italic}CTRL-R${reset}      Open with vim
 ${bold}${italic}CTRL-A${reset}      Toggle select all
 ${bold}${italic}CTRL-J${reset}      Scroll up in the preview window
 ${bold}${italic}CTRL-K${reset}      Scroll down in the preview window
@@ -30,7 +28,7 @@ ${bold}${italic}SPACE${reset}       Toggle jump mode (jump by single character)
 ${bold}${italic}ESC${reset}         Exit
 
 
-${c}Use Fzf and Rg to search for keywords to get the list and the line where it is located. After selecting, Vim will locate the line for editing.${reset}
+${c}This help information is public help information, which supports most custom commands.${reset}
 "
 
 echo -e "$help"

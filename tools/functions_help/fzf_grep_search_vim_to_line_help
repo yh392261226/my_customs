@@ -7,7 +7,7 @@ readonly gray="\e[30m"
 readonly c="\e[1;36m"
 readonly d="\e[1;37m"
 readonly help="${bold}${c}[Help Infomation]${c}${reset}
-${bold}${italic}CTRL-O${reset}      Edit
+${bold}${italic}CTRL-R${reset}      Edit
 ${bold}${italic}CTRL-Y${reset}      Copy
 ${bold}${italic}CTRL-T${reset}      Toggle show the preview window
 ${bold}${italic}/${reset}           Show input window (Esc/Enter/Ctrl-C to exit)

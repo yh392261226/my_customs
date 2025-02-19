@@ -81,13 +81,13 @@ function change_files_show() {                                                  
 }
 alias cfs="change_files_show"                                                          # Desc: alias: cfs:change_files_show命令的别名,文件夹显示隐藏文件
 
-function fzf_open_or_edit() {                                                          # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
+function fzf_open_or_edit() {                                                          # Desc: function: fzf_open_or_edit:fzf利用open命令打开文件或vim编辑文件 - CTRL-R to open with `open` command, CTRL-E or Enter key to open with the nvim
     IFS=$'\n' out=$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
 --preview 'bat {}' \
 --query="$1" \
 --exit-0 \
---expect=ctrl-o,ctrl-e \
+--expect=ctrl-r,ctrl-e \
 --bind="ctrl-d:change-prompt(Directories> )+reload(fd --type d --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
 --bind="ctrl-f:change-prompt(Files> )+reload(fd --type f --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
 --header="$(_buildFzfHeader '' 'fzf_open_or_edit')" \
@@ -95,10 +95,10 @@ function fzf_open_or_edit() {                                                   
     key=$(head -1 <<< "$out")
     file=$(head -2 <<< "$out" | tail -1)
     if [ -n "$file" ]; then
-        [ "$key" = ctrl-o ] && open "$file" || ${EDITOR:-nvim} "$file"
+        [ "$key" = ctrl-r ] && open "$file" || ${EDITOR:-nvim} "$file"
     fi
 }
-alias foe='fzf_open_or_edit'                                                           # Desc: alias: foe:fzf_open_or_edit命令的别名,fzf利用open命令打开文件或vim编辑文件 - CTRL-O to open with `open` command, CTRL-E or Enter key to open with the nvim
+alias foe='fzf_open_or_edit'                                                           # Desc: alias: foe:fzf_open_or_edit命令的别名,fzf利用open命令打开文件或vim编辑文件 - CTRL-R to open with `open` command, CTRL-E or Enter key to open with the nvim
 
 function fzf_search_term() {                                                           # Desc: function: fzf_search_term:find-in-file - usage: fif <searchTerm>
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi

@@ -260,10 +260,10 @@ function fzf_git_vim_to_line() {                                                
 --preview 'bat --color=always {1} --highlight-line {2}' \
 --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
 --bind 'enter:become(vim {1} +{2})' \
---bind 'ctrl-o:execute(vim +{2} {1} < /dev/tty)' \
+--bind 'ctrl-r:execute(vim +{2} {1} < /dev/tty)' \
 --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
 --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
---header="$(_buildFzfHeader '' 'fzf_custom_aliases')"
+--header="$(_buildFzfHeader '' 'fzf_git_vim_to_line')"
 }
 alias fgitv2l="fzf_git_vim_to_line"                                                     # Desc: alias: fgitv2l: fzf_git_vim_to_line命令的别名,Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行
 
