@@ -72,7 +72,7 @@ function fzf_grep_search_vim_to_line() {                                        
     --nth 3.. \
     $FZF_CUSTOM_PARAMS \
     --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
-    --preview 'bat --color=always {1} --highlight-line {2}' \
+    --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind 'ctrl-r:execute(vim +{2} {1} < /dev/tty)' \
@@ -104,7 +104,7 @@ function fzf_rg_search_vim_to_line() {                                          
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind  "ctrl-f:unbind(change,ctrl-f)+change-prompt(fzf查询> )+enable-search+rebind(ctrl-r)+transform-query(echo {q} > ${TMPDIR:-/tmp}/rg-fzf-r; cat ${TMPDIR:-/tmp}/rg-fzf-f)" \
     --bind  "ctrl-r:unbind(ctrl-r)+change-prompt(ripgrep查询> )+disable-search+reload($RG_PREFIX {q} || true)+rebind(change,ctrl-f)+transform-query(echo {q} > ${TMPDIR:-/tmp}/rg-fzf-f; cat ${TMPDIR:-/tmp}/rg-fzf-r)" \
-    --preview 'bat --color=always {1} --highlight-line {2}' \
+    --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
     --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
     --bind 'enter:become(vim {1} +{2})'
 }
@@ -121,7 +121,7 @@ function fzf_ag_search_to_line() {                                              
     --query "$INITIAL_QUERY" \
     --delimiter=':' -n 2.. \
     --preview-window 'right,70%,rounded,+{2}+3/3,~3' \
-    --preview 'bat --color=always {1} --highlight-line {2}' \
+    --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
     --bind 'ctrl-r:execute(vim +{2} {1} < /dev/tty)' \
@@ -137,7 +137,7 @@ function fzf_rg_search_vscode_to_line() {                                       
     --delimiter=':' \
     --bind='ctrl-e:execute-silent(/usr/local/bin/code --new-window --goto {1}:{2})' \
     --bind='enter:become(/usr/local/bin/code --new-window --goto {1}:{2})' \
-    --preview='bat --color=always {1} --highlight-line {2}' \
+    --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
     --preview-window='right,60%,rounded,+{2}+3/3,~3' \
     --header="$(_buildFzfHeader '' 'fzf_rg_search_vscode_to_line')"
 }

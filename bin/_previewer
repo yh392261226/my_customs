@@ -18,22 +18,27 @@
 # fi
 
 file=${1/#\~\//$HOME/}
+
 if [ "$file" = "help" ]; then
   echo ""
-    if [ -f $TMP_FZF_HEADER_SWAP_FILE ]; then
-      helpfile="$(cat $TMP_FZF_HEADER_SWAP_FILE)_help"
-      if [ -f $MYRUNTIME/customs/tools/functions_help/${helpfile} ]; then
-        bash $MYRUNTIME/customs/tools/functions_help/${helpfile}
-      else
-        bash $MYRUNTIME/customs/tools/functions_help/default_help
-      fi
+  if [ -f $TMP_FZF_HEADER_SWAP_FILE ]; then
+    helpfile="$(cat $TMP_FZF_HEADER_SWAP_FILE)_help"
+    if [ -f $MYRUNTIME/customs/tools/functions_help/${helpfile} ]; then
+      bash $MYRUNTIME/customs/tools/functions_help/${helpfile}
+    else
+      bash $MYRUNTIME/customs/tools/functions_help/default_help
     fi
-    echo ""
+  fi
+  echo ""
 elif [ "$file" = "capture_screen" ]; then
   tmpapppath=$(cat $2 | grep 'AppPath:' |sed 's/AppPath://g')
   if [ -f $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg ]; then
     chafa -f sixel -s 100%x100% $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg
   fi
+elif [ "$(echo \"$file\" | grep -o ':' | wc -l)" -ge "2" ]; then
+  tmpfilepath=$(echo "$file" | awk -F':' '{print $1}')
+  tmplinenum=$(echo "$file" | awk -F':' '{print $2}')
+  bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never --highlight-line="${tmplinenum}" "${tmpfilepath}"
 else
   type=$(file --dereference --mime -- "$file")
   if [[ ! $type =~ image/ ]]; then

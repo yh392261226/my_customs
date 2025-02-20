@@ -762,7 +762,7 @@ function fzf_full_files_manager() {                                             
         [[ -n "$BASH_VERSION" ]] && CMD="${!var_name}"
         [[ -n "$ZSH_VERSION" ]] && CMD="${(P)var_name}"
         eval "$CMD" | fzf $FZF_CUSTOM_PARAMS \
-        --preview "(${MYRUNTIME}/customs/bin/_previewer $PWD/{}) 2> /dev/null | head -500" \
+        --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
         --header="$(_buildFzfHeader '' 'fzf_full_files_manager')"
     }
 
