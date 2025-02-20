@@ -13,7 +13,7 @@ function search_aliases() {                                                     
     --tac \
     $FZF_CUSTOM_PARAMS \
     --preview-window right:70%:rounded:hidden:wrap \
-    --preview 'bat --theme=gruvbox-dark --color=always --style=header,grid,numbers {}' \
+    --preview 'bat --theme=gruvbox-dark --color=always --style=full {}' \
     --header="$(_buildFzfHeader '' 'search_aliases')"
     customcd -
 }
@@ -24,10 +24,10 @@ function fzf_all_aliases() {                                                    
     alias | sed -e "s/^alias //g" > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk -F'=' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:hidden:wrap \
---preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
---header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
---bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)")
+        --preview-window right:70%:rounded:hidden:wrap \
+        --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
+        --header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
+        --bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=full $TMP_ALIASES_FILE > /dev/tty)")
         rm -f $TMP_ALIASES_FILE
     fi
 }
@@ -39,11 +39,11 @@ function fzf_custom_aliases() {                                                 
     find $MYRUNTIME/customs/my_shell/* -type f ! -path "$MYRUNTIME/customs/my_shell/nu/*" ! -path "$MYRUNTIME/customs/my_shell/fish/*" ! -path "$MYRUNTIME/customs/my_shell/library/functions/fish/*" | xargs grep -rE '^alias\ ' > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk '{print $2}' | sed "s/'//g" | sed 's/"//g' | awk -F'=' '{print $1}' | fzf --no-sort --tac $FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:nohidden:wrap \
---preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
---bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)" \
---header="$(_buildFzfHeader '' 'fzf_custom_aliases')")
+        --preview-window right:70%:rounded:nohidden:wrap \
+        --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
+        --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
+        --bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=full $TMP_ALIASES_FILE > /dev/tty)" \
+        --header="$(_buildFzfHeader '' 'fzf_custom_aliases')")
         rm -f $TMP_ALIASES_FILE
     fi
 }
@@ -119,15 +119,15 @@ function fzf_customs_functions() {                                              
     find $MYRUNTIME/customs/my_shell/library/functions/ -type f -name "*bzsh" |xargs grep -E "(function )(.*?)[^(]*.*#.*Desc" |grep -v '$MYRUNTIME' > $TMP_FUNCTIONS_FILE
     if [ -f $TMP_FUNCTIONS_FILE ]; then
         eval $(cat $TMP_FUNCTIONS_FILE | awk '{$1=""; print $0 }' | \
-sed 's/^[[:blank:]]\{1,\}//' | \
-sed -e "s/() {//" | awk -F'#' '{print $1}' | \
-grep -E "(.*?)[^(]*" | \
-sed -e 's/ $//g' | \
-fzf $FZF_CUSTOM_PARAMS \
---preview-window right:70%:rounded:hidden:wrap \
---preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
---header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
---bind "ctrl-r:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
+        sed 's/^[[:blank:]]\{1,\}//' | \
+        sed -e "s/() {//" | awk -F'#' '{print $1}' | \
+        grep -E "(.*?)[^(]*" | \
+        sed -e 's/ $//g' | \
+        fzf $FZF_CUSTOM_PARAMS \
+        --preview-window right:70%:rounded:hidden:wrap \
+        --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
+        --header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
+        --bind "ctrl-r:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
         rm -f $TMP_FUNCTIONS_FILE
     fi
 }
@@ -150,10 +150,10 @@ function fzf_customs_fzf_awesome_functions_list() {                             
             grep -E "(^fzf_)(.*?)[^(]*" | \
             sed -e 's/ $//g' | \
             fzf $FZF_CUSTOM_PARAMS \
---preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
---preview-window right:70%:rounded:hidden:wrap \
---bind "ctrl-r:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
---header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
+            --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
+            --preview-window right:70%:rounded:hidden:wrap \
+            --bind "ctrl-r:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
+            --header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
             rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
     fi
@@ -266,10 +266,10 @@ alias hsu="history_sort_by_used"                                                
 
 function fzf_history_repeat() {                                                     # Desc: function: fzf_history_repeat:列出历史操作命令,选择后执行
     eval $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac $FZF_CUSTOM_PARAMS \
---preview ' echo {} | awk "{\$1=\"\";print}"' \
---bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
---bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
---header="$(_buildFzfHeader '' 'fzf_aliases')" \
+    --preview ' echo {} | awk "{\$1=\"\";print}"' \
+    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+    --header="$(_buildFzfHeader '' 'fzf_aliases')" \
      | sed 's/ *[0-9]* *//')
 }
 alias fhr="fzf_history_repeat"                                                      # Desc: alias: fhr:fzf_history_repeat命令的别名,列出历史操作命令,选择后执行
@@ -297,10 +297,10 @@ alias bt="btop"                                                                 
 
 function fzf_history() {                                                            # Desc: function: fzf_history:依赖fzf读取history结果
     history | fzf $FZF_CUSTOM_PARAMS \
---preview ' echo {} | awk "{\$1=\"\";print}"' \
---bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
---header="$(_buildFzfHeader '' 'fzf_history')" \
---bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
+    --preview ' echo {} | awk "{\$1=\"\";print}"' \
+    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+    --header="$(_buildFzfHeader '' 'fzf_history')" \
+    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 }
 alias fh="fzf_history"                                                              # Desc: alias: fh:fzf_history命令的别名,依赖fzf读取history结果
 
@@ -313,10 +313,10 @@ alias ftree="file_tree"                                                         
 
 function fzf_history_print() {                                                      # Desc: function: fzf_history_print:列出历史操作命令,选择后打印
     print -z $( ([ -n "$ZSH_NAME" ] && fc -l 1 || history) | fzf +s --tac $FZF_CUSTOM_PARAMS \
---preview ' echo {} | awk "{\$1=\"\";print}"' \
---bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
---bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
---header="$(_buildFzfHeader '' 'fzf_history_print')" \
+    --preview ' echo {} | awk "{\$1=\"\";print}"' \
+    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort' \
+    --header="$(_buildFzfHeader '' 'fzf_history_print')" \
     | sed -E 's/ *[0-9]*\*? *//' | sed -E 's/\\/\\\\/g')
 }
 alias fhp='fzf_history_print'                                                       # Desc: alias: fhp:fzf_history_print命令的别名,列出历史操作命令,选择后打印
@@ -357,13 +357,13 @@ function fzf_man() {                                                            
    man -k . | sort \
    | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue;} 1' \
    | fzf -q "$1" --ansi --tiebreak=begin $FZF_CUSTOM_PARAMS \
---preview-window '50%,rounded,<50(up,85%,rounded)' \
---preview "${batman}" \
---bind 'enter:become(man {1})' \
---bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
---bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
---bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
---header="$(_buildFzfHeader '' 'fzf_man')"
+    --preview-window '50%,rounded,<50(up,85%,rounded)' \
+    --preview "${batman}" \
+    --bind 'enter:become(man {1})' \
+    --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
+    --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
+    --bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
+    --header="$(_buildFzfHeader '' 'fzf_man')"
   echo ""
 }
 alias fman="fzf_man"                                                                # Desc: alias: fman:fzf_man命令的别名,fzf版本的man命令
@@ -393,45 +393,45 @@ alias mbc="mark_by_cheatsh"                                                     
 
 function fzf_env_vars() {                                                           # Desc: function: fzf_env_vars:利用fzf选用env变量的值
   env | fzf $FZF_CUSTOM_PARAMS \
---bind 'ctrl-k:execute-silent(echo {1} | pbcopy)+abort' \
---bind 'ctrl-v:execute-silent(echo {2} | pbcopy)+abort' \
---bind 'focus:transform-preview-label:echo [ {1} ]' \
---delimiter='=' \
---preview='echo {2}' \
---header="$(_buildFzfHeader '' 'fzf_env_vars')"
+    --bind 'ctrl-k:execute-silent(echo {1} | pbcopy)+abort' \
+    --bind 'ctrl-v:execute-silent(echo {2} | pbcopy)+abort' \
+    --bind 'focus:transform-preview-label:echo [ {1} ]' \
+    --delimiter='=' \
+    --preview='echo {2}' \
+    --header="$(_buildFzfHeader '' 'fzf_env_vars')"
 }
 alias fev="fzf_env_vars"                                                            # Desc: alias: fev: fzf_env_vars命令的别名,利用fzf选用env变量的值
 
 function fold() {                                                                   # Desc: function: fold: Default `fold` to screen width and break at spaces
-  if [ $# -eq 0 ]; then
-    /usr/bin/fold -w $COLUMNS -s
-  else
-    /usr/bin/fold $*
-  fi
+    if [ $# -eq 0 ]; then
+        /usr/bin/fold -w $COLUMNS -s
+    else
+        /usr/bin/fold $*
+    fi
 }
 
 function fzf_spell() {                                                              # Desc: function: fzf_spell: Use `fzf` against system dictionary
   cat /usr/share/dict/words | fzf $FZF_CUSTOM_PARAMS \
---preview-window up:70%:rounded:hidden:wrap \
---preview 'wn {} -over | fold' \
---header="$(_buildFzfHeader '' 'fzf_spell')"
+    --preview-window up:70%:rounded:hidden:wrap \
+    --preview 'wn {} -over | fold' \
+    --header="$(_buildFzfHeader '' 'fzf_spell')"
 }
 alias fspell='fzf_spell'                                                            # Desc: alias: fspell: fzf_spell命令的别名,Use `fzf` against system dictionary
 
 function dic() {                                                                    # Desc: function: dic: Lookup definition of word using `wn $1 -over`.If $1 is not provided, we'll use the `spell` command to pick a word. Requires:brew install wordnet, brew install fzf
-  if [ $# -eq 0 ]; then
-    wn `fzf_spell` -over | fold
-  else
-    wn $1 -over | fold
-  fi
+    if [ $# -eq 0 ]; then
+        wn `fzf_spell` -over | fold
+    else
+        wn $1 -over | fold
+    fi
 }
 
 function fzf_fg() {                                                                 # Desc: function: fzf_fg: 利用fzf显示所有的后台执行程序
   job="$(jobs | fzf -0 -1 $FZF_CUSTOM_PARAMS \
---preview 'echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}"' \
---bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
---bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}" | pbcopy)+abort' \
---header="$(_buildFzfHeader '' 'fzf_fg')" \
+    --preview 'echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}"' \
+    --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
+    --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";\$2=\"\";\$3=\"\";print}" | pbcopy)+abort' \
+    --header="$(_buildFzfHeader '' 'fzf_fg')" \
   | sed -E 's/\[(.+)\].*/\1/')" && echo '' && fg %$job
 }
 alias ffg="fzf_fg"                                                                  # Desc: alias: ffg: fzf_fg命令的别名,利用fzf显示所有的后台执行程序
@@ -453,8 +453,8 @@ function sudo() {                                                               
 		# but this also accomodates other long running commands
 		# like 'sudo sleep 5s'. Modify to taste.
 		(
-				sleep .2s
-				ps -p "$pid" > /dev/null && INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme gruvbox-original-light-medium
+            sleep .2s
+            ps -p "$pid" > /dev/null && INHIBIT_THEME_HIST=1 $MYRUNTIME/customs/bin/theme gruvbox-original-light-medium
 		) &
 		trap '$MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)"' INT
 		env sudo "$@"
@@ -786,16 +786,16 @@ function fzf_full_files_manager() {                                             
                 --reverse)
 
         case $action in
-        *所有文件*) ___fzf_manage_all "all" ;;
-        *文件夹搜索*) ___fzf_manage_all "directories" ;;
-        *隐藏文件搜索*) ___fzf_manage_all "hiddens" ;;
-        *文件搜索*) ___fzf_manage_all "files" ;;
-        *图片搜索*) ___fzf_manage_all "images" ;;
-        *文本搜索*) ___fzf_manage_all "documents" ;;
-        *媒体操作*) ___fzf_manage_all "medias" ;;
-        *开发语言*) ___fzf_manage_all "languages" ;;
-        *全文搜索*) ___fzf_manage_all "contents" ;;
-        *退出系统*) break 1 ;;
+            *所有文件*) ___fzf_manage_all "all" ;;
+            *文件夹搜索*) ___fzf_manage_all "directories" ;;
+            *隐藏文件搜索*) ___fzf_manage_all "hiddens" ;;
+            *文件搜索*) ___fzf_manage_all "files" ;;
+            *图片搜索*) ___fzf_manage_all "images" ;;
+            *文本搜索*) ___fzf_manage_all "documents" ;;
+            *媒体操作*) ___fzf_manage_all "medias" ;;
+            *开发语言*) ___fzf_manage_all "languages" ;;
+            *全文搜索*) ___fzf_manage_all "contents" ;;
+            *退出系统*) break 1 && return ;;
         esac
     done
 }

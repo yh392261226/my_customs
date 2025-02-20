@@ -42,7 +42,7 @@ alias fv='fzf_open_with_editor2'                                                
 function fzf_nvim() {                                                               # Desc: function: fzf_nvim: 利用fzf选择文件并用nvim进行编辑
     files="$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
---preview 'bat --style=numbers --line-range=:500 {}' \
+--preview 'bat --style=full --line-range=:500 {}' \
 --bind 'ctrl-r:execute(nvim {} < /dev/tty)' \
 --header="$(_buildFzfHeader '' 'fzf_nvim')" \
 )"
@@ -57,7 +57,7 @@ alias fnvim="fzf_nvim"                                                          
 function fzf_vim() {                                                                # Desc: function: fzf_vim: 利用fzf选择文件并用vim进行编辑
     files="$(fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
---preview 'bat --style=numbers --line-range=:500 {}' \
+--preview 'bat --style=full --line-range=:500 {}' \
 --bind 'ctrl-r:execute(vim {} < /dev/tty)' \
 --header="$(_buildFzfHeader '' 'fzf_vim')" \
 )"

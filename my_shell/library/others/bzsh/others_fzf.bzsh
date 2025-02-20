@@ -10,15 +10,15 @@ export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header_swap
 export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_swap
 
 _fzf_comprun() {
-  local tmp_command=$1
-  shift
-  case "$tmp_command" in
-    cd)           fzf "$@" --preview 'tree -C {} | head -200' ;;
-    export|unset) fzf "$@" --preview "eval 'echo \$'{}" ;;
-    ssh)          fzf "$@" --preview 'dig {}' ;;
-    tree)         find . -type d | fzf --preview 'tree -C {}' "$@";;
-    *)            fzf "$@" ;;
-  esac
+    local tmp_command=$1
+    shift
+    case "$tmp_command" in
+        cd)           fzf "$@" --preview 'tree -C {} | head -200' ;;
+        export|unset) fzf "$@" --preview "eval 'echo \$'{}" ;;
+        ssh)          fzf "$@" --preview 'dig {}' ;;
+        tree)         find . -type d | fzf --preview 'tree -C {}' "$@";;
+        *)            fzf "$@" ;;
+    esac
 }
 
 _buildFzfHeader() {
@@ -45,11 +45,11 @@ _buildFzfHeader() {
 }
 
 _fzf_compgen_path() {
-  fd --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
+    fd --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
 _fzf_compgen_dir() {
-  fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
+    fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
 export fzf_transformer_filter_all="fd --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
@@ -63,44 +63,44 @@ export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e 
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' "
 
 fzf_transformer='
-  lines=$(( FZF_LINES - FZF_MATCH_COUNT - 1 ))
-  if [[ $FZF_MATCH_COUNT -eq 0 ]]; then
-    echo "change-preview-window:hidden"
-  elif [[ $lines -gt 10 ]]; then
-    echo "change-preview-window:$lines"
-  elif [[ $lines -le 3 ]]; then
-    echo "change-preview-window:40"
-  elif [[ $FZF_PREVIEW_LINES -gt 0 ]]; then
-    echo "change-preview-window:40"
-  fi
+    lines=$(( FZF_LINES - FZF_MATCH_COUNT - 1 ))
+    if [[ $FZF_MATCH_COUNT -eq 0 ]]; then
+        echo "change-preview-window:hidden"
+    elif [[ $lines -gt 10 ]]; then
+        echo "change-preview-window:$lines"
+    elif [[ $lines -le 3 ]]; then
+        echo "change-preview-window:40"
+    elif [[ $FZF_PREVIEW_LINES -gt 0 ]]; then
+        echo "change-preview-window:40"
+    fi
 '
 
 fzf_transformer_input_switcher='
-  if [[ $FZF_INPUT_STATE = enabled ]]; then
-    echo "rebind(j,k,/)+hide-input"
-  elif [[ $FZF_KEY = enter ]]; then
-    echo accept
-  else
-    echo abort
-  fi
+    if [[ $FZF_INPUT_STATE = enabled ]]; then
+        echo "rebind(j,k,/)+hide-input"
+    elif [[ $FZF_KEY = enter ]]; then
+        echo accept
+    else
+        echo abort
+    fi
 '
 
 fzf_transformer_search_swap_type='
-  if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
-    local action=$(cat $TMP_FZF_SEARCH_SWAP_FILE)
-    case $action in
-      "all") echo 'files' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ All ╟)+reload($fzf_transformer_filter_all)" ;;
-      "files") echo 'directories' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Files Only ╟)+reload($fzf_transformer_filter_files)" ;;
-      "directories") echo 'hiddens' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Directories Only ╟)+reload($fzf_transformer_filter_directories)" ;;
-      "hiddens") echo 'images' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" ;;
-      "images") echo 'medias' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Images Only ╟)+reload($fzf_transformer_filter_images)" ;;
-      "medias") echo 'documents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Medias Only ╟)+reload($fzf_transformer_filter_medias)" ;;
-      "documents") echo 'languages' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
-      "languages") echo 'contents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Develop Languages Only ╟)+reload($fzf_transformer_filter_languages)" ;;
-      "contents") echo 'all' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Contents ╟)+reload($fzf_transformer_filter_contents)" ;;
-    esac
+    if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
+        local action=$(cat $TMP_FZF_SEARCH_SWAP_FILE)
+        case $action in
+            "all")          echo 'files'        > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)" ;;
+            "files")        echo 'directories'  > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Files Only ╟)+reload($fzf_transformer_filter_files)" ;;
+            "directories")  echo 'hiddens'      > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Directories Only ╟)+reload($fzf_transformer_filter_directories)" ;;
+            "hiddens")      echo 'images'       > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" ;;
+            "images")       echo 'medias'       > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Images Only ╟)+reload($fzf_transformer_filter_images)" ;;
+            "medias")       echo 'documents'    > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Medias Only ╟)+reload($fzf_transformer_filter_medias)" ;;
+            "documents")    echo 'languages'    > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
+            "languages")    echo 'contents'     > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Develop Languages Files Only ╟)+reload($fzf_transformer_filter_languages)" ;;
+            "contents")     echo 'all'          > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Contents ╟)+reload($fzf_transformer_filter_contents)" ;;
+        esac
   else
-    echo "all" > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(All)+reload($fzf_transformer_filter_all)"
+        echo "all" > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)"
   fi
 '
 
@@ -188,48 +188,48 @@ FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS" $FZF_PREVIEW_KEY_BIND"
 export FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS
 
 if [ "zsh" = "$nowshell" ]; then
-  #FZF_TAB_OPTS
-  # disable sort when completing `git checkout`
-  zstyle ':completion:*:git-checkout:*' sort false
-  # set descriptions format to enable group support
-  # NOTE: don't use escape sequences (like '%F{red}%d%f') here, fzf-tab will ignore them
-  zstyle ':completion:*:descriptions' format '[%d]'
-  # set list-colors to enable filename colorizing
-  zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-  # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
-  zstyle ':completion:*' menu no
-  # preview directory's content with eza when completing cd
-  zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
-  # custom fzf flags
-  # NOTE: fzf-tab does not follow FZF_DEFAULT_OPTS by default
-  zstyle ':fzf-tab:*' fzf-flags --color=fg:1,fg+:2 --bind=tab:accept
-  # To make fzf-tab follow FZF_DEFAULT_OPTS.
-  # NOTE: This may lead to unexpected behavior since some flags break this plugin. See Aloxaf/fzf-tab#455.
-  zstyle ':fzf-tab:*' use-fzf-default-opts no
-  # switch group using `<` and `>`
-  zstyle ':fzf-tab:*' switch-group '<' '>'
-  zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
-  zstyle ':fzf-tab:complete:*:*' fzf-preview 'less ${(Q)realpath}'
-  export LESSOPEN='|$HOME/.lessfilter %s'
-  zstyle ':fzf-tab:complete:git-(add|diff|restore):*' fzf-preview \
-    'git diff $word | delta'|
-  zstyle ':fzf-tab:complete:git-log:*' fzf-preview \
-    'git log --color=always $word'
-  zstyle ':fzf-tab:complete:git-help:*' fzf-preview \
-    'git help $word | bat -plman --color=always'
-  zstyle ':fzf-tab:complete:git-show:*' fzf-preview \
-    'case "$group" in
-    "commit tag") git show --color=always $word ;;
-    *) git show --color=always $word | delta ;;
-    esac'
-  zstyle ':fzf-tab:complete:git-checkout:*' fzf-preview \
-    'case "$group" in
-    "modified file") git diff $word | delta ;;
-    "recent commit object name") git show --color=always $word | delta ;;
-    *) git log --color=always $word ;;
-    esac'
-  zstyle ':fzf-tab:complete:(\\|)run-help:*' fzf-preview 'run-help $word'
-  zstyle ':fzf-tab:complete:(\\|*/|)man:*' fzf-preview 'man $word'
+    #FZF_TAB_OPTS
+    # disable sort when completing `git checkout`
+    zstyle ':completion:*:git-checkout:*' sort false
+    # set descriptions format to enable group support
+    # NOTE: don't use escape sequences (like '%F{red}%d%f') here, fzf-tab will ignore them
+    zstyle ':completion:*:descriptions' format '[%d]'
+    # set list-colors to enable filename colorizing
+    zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+    # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
+    zstyle ':completion:*' menu no
+    # preview directory's content with eza when completing cd
+    zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
+    # custom fzf flags
+    # NOTE: fzf-tab does not follow FZF_DEFAULT_OPTS by default
+    zstyle ':fzf-tab:*' fzf-flags --color=fg:1,fg+:2 --bind=tab:accept
+    # To make fzf-tab follow FZF_DEFAULT_OPTS.
+    # NOTE: This may lead to unexpected behavior since some flags break this plugin. See Aloxaf/fzf-tab#455.
+    zstyle ':fzf-tab:*' use-fzf-default-opts no
+    # switch group using `<` and `>`
+    zstyle ':fzf-tab:*' switch-group '<' '>'
+    zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
+    zstyle ':fzf-tab:complete:*:*' fzf-preview 'less ${(Q)realpath}'
+    export LESSOPEN='|$HOME/.lessfilter %s'
+    zstyle ':fzf-tab:complete:git-(add|diff|restore):*' fzf-preview \
+        'git diff $word | delta'|
+    zstyle ':fzf-tab:complete:git-log:*' fzf-preview \
+        'git log --color=always $word'
+    zstyle ':fzf-tab:complete:git-help:*' fzf-preview \
+        'git help $word | bat -plman --color=always'
+    zstyle ':fzf-tab:complete:git-show:*' fzf-preview \
+        'case "$group" in
+        "commit tag") git show --color=always $word ;;
+        *) git show --color=always $word | delta ;;
+        esac'
+    zstyle ':fzf-tab:complete:git-checkout:*' fzf-preview \
+        'case "$group" in
+        "modified file") git diff $word | delta ;;
+        "recent commit object name") git show --color=always $word | delta ;;
+        *) git log --color=always $word ;;
+        esac'
+    zstyle ':fzf-tab:complete:(\\|)run-help:*' fzf-preview 'run-help $word'
+    zstyle ':fzf-tab:complete:(\\|*/|)man:*' fzf-preview 'man $word'
 fi
 
 FZF_CTRL_T_OPTS=" --preview='($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null | head -200' "
@@ -253,21 +253,21 @@ export FZF_HELP_SYNTAX='help'
 export CLI_OPTIONS_CMD='ag -o --numbers -- $RE'
 
 if [ "zsh" = "$nowshell" ]; then
-  FZF_CUSTOM_PARAMS=(--multi \
-  --border-label="╢Custom Command╟" \
-  --preview='echo {}' \
-  --bind='focus:transform-preview-label:echo -n "╢ Preview: {} ╟";' \
-  --bind='ctrl-h:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
-  --tmux='center' \
-  --header='$(_buildFzfHeader "" "")' \
-  --header-first)
-  export FZF_CUSTOM_PARAMS
-  #--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
-  #ctrl-l 不是所有的都好用, 还没弄清楚为什么有的好使,有的不行
+    FZF_CUSTOM_PARAMS=(--multi \
+    --border-label="╢Custom Command╟" \
+    --preview='echo {}' \
+    --bind='focus:transform-preview-label:echo -n "╢ Preview: {} ╟";' \
+    --bind='ctrl-h:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
+    --tmux='center' \
+    --header='$(_buildFzfHeader "" "")' \
+    --header-first)
+    export FZF_CUSTOM_PARAMS
+    #--delimiter='' 文本切换的分隔符,比如:/time/+linux/+riscv64.ha:4:def中的:, 系统默认的是空格
+    #ctrl-l 不是所有的都好用, 还没弄清楚为什么有的好使,有的不行
 elif [ "bash" = "$nowshell" ]; then
-  # 导出为环境变量
-  FZF_CUSTOM_PARAMS='--multi '
-  FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --header-first "
-  FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --tmux=center "
-  export FZF_CUSTOM_PARAMS
+    # 导出为环境变量
+    FZF_CUSTOM_PARAMS='--multi '
+    FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --header-first "
+    FZF_CUSTOM_PARAMS=" $FZF_CUSTOM_PARAMS --tmux=center "
+    export FZF_CUSTOM_PARAMS
 fi
