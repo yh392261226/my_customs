@@ -38,7 +38,7 @@ elif [ "$file" = "capture_screen" ]; then
 elif [ "$(echo \"$file\" | grep -o ':' | wc -l)" -ge "2" ]; then
   tmpfilepath=$(echo "$file" | awk -F':' '{print $1}')
   tmplinenum=$(echo "$file" | awk -F':' '{print $2}')
-  bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never --highlight-line="${tmplinenum}" "${tmpfilepath}"
+  bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style='full' --color=always --pager=never "${tmpfilepath}"
 else
   type=$(file --dereference --mime -- "$file")
   if [[ ! $type =~ image/ ]]; then
