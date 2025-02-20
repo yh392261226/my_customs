@@ -776,7 +776,7 @@ function fzf_full_files_manager() {                                             
             "📖 文本搜索" \
             "🎶 媒体操作" \
             "💻 开发语言" \
-            "📝 内容搜索" \
+            "📝 全文搜索" \
             "🚪 退出系统" | \
             fzf --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
@@ -794,7 +794,7 @@ function fzf_full_files_manager() {                                             
         *文本搜索*) ___fzf_manage_all "documents" ;;
         *媒体操作*) ___fzf_manage_all "medias" ;;
         *开发语言*) ___fzf_manage_all "languages" ;;
-        *内容搜索*) ___fzf_manage_all "contents" ;;
+        *全文搜索*) ___fzf_manage_all "contents" ;;
         *退出系统*) break 1 ;;
         esac
     done
