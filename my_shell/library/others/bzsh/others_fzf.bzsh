@@ -8,7 +8,6 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header_swap
 export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_swap
-export TMP_FZF_SEARCH_PATH_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_path_swap
 
 _fzf_comprun() {
   local tmp_command=$1
@@ -46,12 +45,22 @@ _buildFzfHeader() {
 }
 
 _fzf_compgen_path() {
-  fd --hidden --follow --exclude ".git" . "$1"
+  fd --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
 _fzf_compgen_dir() {
-  fd --type d --hidden --follow --exclude ".git" . "$1"
+  fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
+
+export fzf_transformer_filter_all="fd --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_files="fd --type f -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_directories="fd --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_hiddens="fd --type f --type d -d 3 --hidden --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_develop_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' $PWD"
 
 fzf_transformer='
   lines=$(( FZF_LINES - FZF_MATCH_COUNT - 1 ))
@@ -78,18 +87,20 @@ fzf_transformer_input_switcher='
 
 fzf_transformer_search_swap_type='
   if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
-    if [ "$(cat $TMP_FZF_SEARCH_SWAP_FILE)" = "Files" ]; then
-      echo "reload(fd --type file --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
-      echo "Directories" > $TMP_FZF_SEARCH_SWAP_FILE
-    elif [ "$(cat $TMP_FZF_SEARCH_SWAP_FILE)" = "Directories" ]; then
-      echo "reload(fd --type directory --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
-      echo "All" > $TMP_FZF_SEARCH_SWAP_FILE
-    else
-      echo "reload(fd --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})"
-      echo "Files" > $TMP_FZF_SEARCH_SWAP_FILE
-    fi
+    local action=$(cat $TMP_FZF_SEARCH_SWAP_FILE)
+    case $action in
+      "all") echo 'files' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ All ╟)+reload($fzf_transformer_filter_all)" ;;
+      "files") echo 'directories' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Files Only ╟)+reload($fzf_transformer_filter_files)" ;;
+      "directories") echo 'hiddens' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Directories Only ╟)+reload($fzf_transformer_filter_directories)" ;;
+      "hiddens") echo 'images' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" ;;
+      "images") echo 'medias' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Images Only ╟)+reload($fzf_transformer_filter_images)" ;;
+      "medias") echo 'documents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Medias Only ╟)+reload($fzf_transformer_filter_medias)" ;;
+      "documents") echo 'develop_languages' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
+      "develop_languages") echo 'contents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Develop Languages Only ╟)+reload($fzf_transformer_filter_develop_languages)" ;;
+      "contents") echo 'all' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Contents ╟)+reload($fzf_transformer_filter_contents)" ;;
+    esac
   else
-    echo "Files" > $TMP_FZF_SEARCH_SWAP_FILE
+    echo "all" > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(All)+reload($fzf_transformer_filter_all)"
   fi
 '
 

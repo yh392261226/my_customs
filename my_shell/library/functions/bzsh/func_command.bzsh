@@ -27,7 +27,7 @@ function fzf_all_aliases() {                                                    
 --preview-window right:70%:rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
 --header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
---bind "ctrl-o:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)")
+--bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)")
         rm -f $TMP_ALIASES_FILE
     fi
 }
@@ -42,7 +42,7 @@ function fzf_custom_aliases() {                                                 
 --preview-window right:70%:rounded:nohidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
---bind "ctrl-o:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)" \
+--bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)" \
 --header="$(_buildFzfHeader '' 'fzf_custom_aliases')")
         rm -f $TMP_ALIASES_FILE
     fi
@@ -127,7 +127,7 @@ fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE" \
 --header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
---bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
+--bind "ctrl-r:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
         rm -f $TMP_FUNCTIONS_FILE
     fi
 }
@@ -152,7 +152,7 @@ function fzf_customs_fzf_awesome_functions_list() {                             
             fzf $FZF_CUSTOM_PARAMS \
 --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE" \
 --preview-window right:70%:rounded:hidden:wrap \
---bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
+--bind "ctrl-r:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
 --header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
             rm -f $TMP_FZF_FUNCTIONS_FILE
         fi
@@ -536,7 +536,7 @@ function fzf_manage() {                                                         
     fd --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build} | fzf $FZF_CUSTOM_PARAMS \
     --bind "ctrl-d:execute($ACTIONCOMMAND {})+reload(ls || true)" \
     --bind "change:reload:sleep 0.1; fd --max-depth 1 -H --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build} || true" \
-    --bind "ctrl-o:execute-silent(open -R {})" \
+    --bind "ctrl-r:execute-silent(open -R {})" \
     --bind "ctrl-f:transform:$fzf_transformer_search_swap_type" \
     --header="$(_buildFzfHeader '' 'fzf_manage')" \
     --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer {} "
@@ -719,7 +719,7 @@ function fzf_search_custom_functions_by_desc() {                                
         --bind "enter:become(echo {1})" \
         --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
         --header="$(_buildFzfHeader '' 'fzf_search_custom_functions_by_desc')" \
-        --bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
+        --bind "ctrl-e:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
         if [ "" != "$CHOOSE" ]; then
             echo "$CHOOSE"
             echo ""
@@ -742,7 +742,7 @@ function fzf_search_custom_alias_by_desc() {                                    
         --bind "enter:become(echo {1})" \
         --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
         --header="$(_buildFzfHeader '' 'fzf_search_custom_alias_by_desc')" \
-        --bind "ctrl-o:execute(bat $TMP_ALIAS_FILE > /dev/tty)")
+        --bind "ctrl-e:execute(bat $TMP_ALIAS_FILE > /dev/tty)")
         if [ "" != "$CHOOSE" ]; then
             echo "$CHOOSE"
             echo ""
@@ -752,3 +752,57 @@ function fzf_search_custom_alias_by_desc() {                                    
     fi
 }
 alias fsa="fzf_search_custom_alias_by_desc"                                         # Desc: alias: fsa: fzf_search_custom_alias_by_desc命令的别名,根据自定义的描述和别名查询自定义命令
+
+function fzf_full_files_manager() {                                                 # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
+    ___fzf_manage_all() {
+        local ACTION="$1"
+        echo "$ACTION" > $TMP_FZF_SEARCH_SWAP_FILE
+        (case $ACTION in
+            "all") eval "$fzf_transformer_filter_all" ;;
+            "files") eval "$fzf_transformer_filter_files" ;;
+            "directories") eval "$fzf_transformer_filter_directories" ;;
+            "hiddens") eval "$fzf_transformer_filter_hiddens" ;;
+            "images") eval "$fzf_transformer_filter_images" ;;
+            "documents") eval "$fzf_transformer_filter_documents" ;;
+            "medias") eval "$fzf_transformer_filter_medias" ;;
+            "develop_languages") eval "$fzf_transformer_filter_develop_languages" ;;
+            "contents") eval "$fzf_transformer_filter_contents" ;;
+        esac) | fzf $FZF_CUSTOM_PARAMS \
+        --preview "(${MYRUNTIME}/customs/bin/_previewer $PWD/{}) 2> /dev/null | head -500" \
+        --header="$(_buildFzfHeader '' 'fzf_full_files_manager')"
+    }
+
+    while true; do
+        action=$(printf "%s\n" \
+            "🔎 所有文件" \
+            "📁 文件夹搜索" \
+            "📄 文件搜索" \
+            "🫥 隐藏文件搜索" \
+            "🖼️ 图片搜索" \
+            "📖 文本搜索" \
+            "🎶 媒体操作" \
+            "💻 开发语言" \
+            "📝 内容搜索" \
+            "🚪 退出系统" | \
+            fzf --header " 文件管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '选择操作类型'" \
+                --height=15% \
+                --reverse)
+
+        case $action in
+        *所有文件*) ___fzf_manage_all "all" ;;
+        *文件夹搜索*) ___fzf_manage_all "directories" ;;
+        *隐藏文件搜索*) ___fzf_manage_all "hiddens" ;;
+        *文件搜索*) ___fzf_manage_all "files" ;;
+        *图片搜索*) ___fzf_manage_all "images" ;;
+        *文本搜索*) ___fzf_manage_all "documents" ;;
+        *媒体操作*) ___fzf_manage_all "medias" ;;
+        *开发语言*) ___fzf_manage_all "develop_languages" ;;
+        *内容搜索*) ___fzf_manage_all "contents" ;;
+        *退出系统*) break 1 ;;
+        esac
+    done
+}
+alias ffm="fzf_full_files_manager"                                                  # Desc: alias: ffm: fzf_full_files_manager命令的别名,利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
