@@ -150,7 +150,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢  {}  ╟\";" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-v:change-preview-window(down,99%)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
@@ -256,7 +256,7 @@ if [ "zsh" = "$nowshell" ]; then
   FZF_CUSTOM_PARAMS=(--multi \
   --border-label="╢Custom Command╟" \
   --preview='echo {}' \
-  --bind='focus:transform-preview-label:echo -n "╢ {} ╟";' \
+  --bind='focus:transform-preview-label:echo -n "╢ Preview: {} ╟";' \
   --bind='ctrl-h:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
   --tmux='center' \
   --header='$(_buildFzfHeader "" "")' \
