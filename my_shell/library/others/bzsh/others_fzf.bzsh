@@ -59,7 +59,7 @@ export fzf_transformer_filter_hiddens="fd --type f --type d -d 3 --hidden --full
 export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_develop_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' $PWD"
 
 fzf_transformer='
@@ -95,8 +95,8 @@ fzf_transformer_search_swap_type='
       "hiddens") echo 'images' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" ;;
       "images") echo 'medias' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Images Only ╟)+reload($fzf_transformer_filter_images)" ;;
       "medias") echo 'documents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Medias Only ╟)+reload($fzf_transformer_filter_medias)" ;;
-      "documents") echo 'develop_languages' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
-      "develop_languages") echo 'contents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Develop Languages Only ╟)+reload($fzf_transformer_filter_develop_languages)" ;;
+      "documents") echo 'languages' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
+      "languages") echo 'contents' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Develop Languages Only ╟)+reload($fzf_transformer_filter_languages)" ;;
       "contents") echo 'all' > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Contents ╟)+reload($fzf_transformer_filter_contents)" ;;
     esac
   else

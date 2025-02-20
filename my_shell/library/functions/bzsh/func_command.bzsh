@@ -757,17 +757,11 @@ function fzf_full_files_manager() {                                             
     ___fzf_manage_all() {
         local ACTION="$1"
         echo "$ACTION" > $TMP_FZF_SEARCH_SWAP_FILE
-        (case $ACTION in
-            "all") eval "$fzf_transformer_filter_all" ;;
-            "files") eval "$fzf_transformer_filter_files" ;;
-            "directories") eval "$fzf_transformer_filter_directories" ;;
-            "hiddens") eval "$fzf_transformer_filter_hiddens" ;;
-            "images") eval "$fzf_transformer_filter_images" ;;
-            "documents") eval "$fzf_transformer_filter_documents" ;;
-            "medias") eval "$fzf_transformer_filter_medias" ;;
-            "develop_languages") eval "$fzf_transformer_filter_develop_languages" ;;
-            "contents") eval "$fzf_transformer_filter_contents" ;;
-        esac) | fzf $FZF_CUSTOM_PARAMS \
+        local var_name="fzf_transformer_filter_$ACTION"
+        local CMD=$fzf_transformer_filter_all
+        [[ -n "$BASH_VERSION" ]] && CMD="${!var_name}"
+        [[ -n "$ZSH_VERSION" ]] && CMD="${(P)var_name}"
+        eval "$CMD" | fzf $FZF_CUSTOM_PARAMS \
         --preview "(${MYRUNTIME}/customs/bin/_previewer $PWD/{}) 2> /dev/null | head -500" \
         --header="$(_buildFzfHeader '' 'fzf_full_files_manager')"
     }
@@ -799,7 +793,7 @@ function fzf_full_files_manager() {                                             
         *图片搜索*) ___fzf_manage_all "images" ;;
         *文本搜索*) ___fzf_manage_all "documents" ;;
         *媒体操作*) ___fzf_manage_all "medias" ;;
-        *开发语言*) ___fzf_manage_all "develop_languages" ;;
+        *开发语言*) ___fzf_manage_all "languages" ;;
         *内容搜索*) ___fzf_manage_all "contents" ;;
         *退出系统*) break 1 ;;
         esac
