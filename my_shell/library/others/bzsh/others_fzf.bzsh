@@ -55,7 +55,7 @@ _fzf_compgen_dir() {
 export fzf_transformer_filter_all="fd --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_files="fd --type f -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_directories="fd --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_hiddens="fd --type f --type d -d 3 --hidden --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_hiddens="fd --type f --type d --hidden --glob '.*' "
 export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
