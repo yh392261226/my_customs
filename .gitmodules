@@ -206,3 +206,6 @@
 [submodule "configs/warp/themes"]
 	path = configs/warp/themes
 	url = git@github.com:warpdotdev/themes.git
+[submodule "others/lincheney_fzf-tab-completion"]
+	path = others/lincheney_fzf-tab-completion
+	url = git@github.com:lincheney/fzf-tab-completion.git
