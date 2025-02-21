@@ -128,7 +128,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-first '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border bottom --no-list-border "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border='bottom' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --no-input '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
@@ -167,12 +167,12 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected"
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤ " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( Search Infomation )+transform-preview-label(echo \" Search Infomation \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$transformer" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$transformer" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$fzf_transformer" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(Type jump label)+jump,jump-cancel:change-header:Jump cancelled" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
