@@ -96,7 +96,7 @@ fzf_transformer_search_swap_type='
             "images")       echo 'medias'       > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Images Only ╟)+reload($fzf_transformer_filter_images)" ;;
             "medias")       echo 'documents'    > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Medias Only ╟)+reload($fzf_transformer_filter_medias)" ;;
             "documents")    echo 'languages'    > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
-            "languages")    echo 'contents'     > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Develop Languages Files Only ╟)+reload($fzf_transformer_filter_languages)" ;;
+            "languages")    echo 'contents'     > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Develop Languages Files ╟)+reload($fzf_transformer_filter_languages)" ;;
             "contents")     echo 'all'          > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Contents ╟)+reload($fzf_transformer_filter_contents)" ;;
         esac
   else

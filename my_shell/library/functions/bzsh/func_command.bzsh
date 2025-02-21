@@ -755,19 +755,39 @@ alias fsa="fzf_search_custom_alias_by_desc"                                     
 
 function fzf_full_files_manager() {                                                 # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
     ___fzf_manage_all() {
-        local ACTION="$1"
-        echo "$ACTION" > $TMP_FZF_SEARCH_SWAP_FILE
-        local var_name="fzf_transformer_filter_$ACTION"
-        local CMD=$fzf_transformer_filter_all
-        [[ -n "$BASH_VERSION" ]] && CMD="${!var_name}"
-        [[ -n "$ZSH_VERSION" ]] && CMD="${(P)var_name}"
-        eval "$CMD" | fzf $FZF_CUSTOM_PARAMS \
+        local Action="$1"
+        local Varname="fzf_transformer_filter_$Action"
+        local Cmd=$fzf_transformer_filter_all
+        local Operate
+        echo "$Action" > $TMP_FZF_SEARCH_SWAP_FILE
+        [[ -n "$BASH_VERSION" ]] && Cmd="${!Varname}"
+        [[ -n "$ZSH_VERSION" ]] && Cmd="${(P)Varname}"
+        Operate=$(eval "$Cmd" | fzf $FZF_CUSTOM_PARAMS \
         --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
-        --header="$(_buildFzfHeader '' 'fzf_full_files_manager')"
+        --header="$(_buildFzfHeader '' 'fzf_full_files_manager')" )
+        if [ "" != "$Operate" ]; then
+            if [ "$Action" = "contents" ]; then
+                local tmpfilepath=$(echo "$Operate" | awk -F':' '{print $1}')
+                local tmplinenum=$(echo "$Operate" | awk -F':' '{print $2}')
+                if command -v code > /dev/null; then
+                    /usr/local/bin/code --new-window --goto ${tmpfilepath}:${tmplinenum}
+                elif command -v nvim > /dev/null; then
+                    nvim +${tmplinenum} ${tmpfilepath}
+                elif command -v vim > /dev/null; then
+                    vim  +${tmplinenum} ${tmpfilepath}
+                else
+                    bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style='full' --color=always --pager=never "${tmpfilepath}"
+                fi
+            else
+                echo $Operate
+            fi
+        else
+            return
+        fi
     }
 
     while true; do
-        action=$(printf "%s\n" \
+        local action=$(printf "%s\n" \
             "🔎 所有文件" \
             "📁 文件夹搜索" \
             "📄 文件搜索" \
