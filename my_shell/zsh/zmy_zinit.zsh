@@ -155,10 +155,10 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit ice lucid wait='2'
     # svn工具
     zinit ice svn
-    if [ "starship" = "$(cat $HOME/.prompt_config)" ]; then
+    if [ "starship" = "$(head -n 1 $HOME/.prompt_config)" ]; then
         # starship
         eval "$(starship init zsh)"
-    elif [ "roundy" = "$(cat $HOME/.prompt_config)" ]; then
+    elif [ "roundy" = "$(head -n 1 $HOME/.prompt_config)" ]; then
         # zsh圆型prompt
         zinit light metaory/zsh-roundy-prompt
 ### Zsh Roundy Prompt Configures #https://github.com/metaory/zsh-roundy-prompt
