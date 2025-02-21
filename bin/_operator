@@ -1,0 +1,47 @@
+filepath=${1/#\~\//$PWD/}
+
+if [ "$( echo $filepath | grep -o ':' | wc -l )" -ge "2" ]; then
+    tmpfilepath=$(echo "$filepath" | awk -F':' '{print $1}')
+    tmplinenum=$(echo "$filepath" | awk -F':' '{print $2}')
+
+    if command -v code > /dev/null; then
+        code --new-window --goto ${tmpfilepath}:${tmplinenum}
+    elif command -v nvim > /dev/null; then
+        nvim +${tmplinenum} ${tmpfilepath}
+    elif command -v vim > /dev/null; then
+        vim  +${tmplinenum} ${tmpfilepath}
+    else
+        bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style=full --color=always --pager=never "${tmpfilepath}"
+    fi
+else
+    type=$(file --dereference --mime -- "$filepath")
+
+    if [[ ! $type =~ image/ ]]; then
+        if [[ $type =~ /directory ]]; then
+            /usr/bin/open -R $filepath
+        elif [[ $type =~ =binary ]]; then
+            file "$file"
+        else
+            case $filepath in
+                *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown|*.txt|*.log|*.py |*.js |*.ts |*.java |*.cpp |*.c |*.h |*.hpp |*.rb |*.php |*.swift |*.go |*.rs |*.sh |*.bzsh |*.fish |*.pl |*.lua |*.scala |*.kt |*.dart |*.cs |*.m |*.mm |*.vue |*.html |*.htm |*.css |*.json |*.yaml |*.xml |*.md |*.txt |*.yml |*.toml |*.ini |*.cfg |*.conf |*.sql |*.sql |*.dockerfile |*.docker-compose.yml)
+                    if command -v code > /dev/null; then
+                        code --new-window --goto ${filepath}
+                    elif command -v nvim > /dev/null; then
+                        nvim ${tmpfilepath}
+                    elif command -v vim > /dev/null; then
+                        vim  ${tmpfilepath}
+                    fi
+                    ;;
+                *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
+                    open $filepath
+                    ;;
+                *)
+                    /usr/bin/open -R $filepath
+                    ;;
+            esac
+        fi
+    else
+        /usr/bin/open -R $filepath
+        exit
+    fi
+fi

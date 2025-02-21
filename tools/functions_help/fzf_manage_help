@@ -16,6 +16,7 @@ ${bold}${italic}CTRL-S${reset}      Toggle sort
 ${bold}${italic}CTRL-V${reset}      Change to Preview bigger to view
 ${bold}${italic}CTRL-N${reset}      Page down
 ${bold}${italic}CTRL-P${reset}      Page up
+${bold}${italic}CTRL-O${reset}      Open selected by command _operator with file type
 ${bold}${italic}CTRL-F${reset}      Switch search types(All、Files、Directories、Hiddens、Images、Medias、Documents、Languages、Contents)
 ${bold}${italic}CTRL-A${reset}      Toggle select all
 ${bold}${italic}CTRL-J${reset}      Scroll up in the preview window

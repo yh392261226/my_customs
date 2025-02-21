@@ -124,8 +124,8 @@ function fzf_ag_search_to_line() {                                              
     --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
     --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
-    --bind 'ctrl-r:execute(vim +{2} {1} < /dev/tty)' \
-    --bind 'enter:become(vim +{2} {1} < /dev/tty)' \
+    --bind 'ctrl-r:execute(nvim +{2} {1} < /dev/tty)' \
+    --bind 'enter:become(nvim +{2} {1} < /dev/tty)' \
     --header="$(_buildFzfHeader '' 'fzf_ag_search_to_line')"
 }
 alias fav2l="fzf_ag_search_to_line"                                                 # Desc: alias: fav2l:fzf_ag_search_to_line命令的别名,fzf展示ag关键字的文件,选中后vim定位到行进行编辑
