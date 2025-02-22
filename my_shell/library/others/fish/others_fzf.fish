@@ -6,7 +6,7 @@ set -gx FZF_PREVIEW_IMG_CMD "chafa -f iterm -s $FZF_PREVIEW_COLUMNSx$FZF_PREVIEW
 set -gx FZF_DEFAULT_COMMAND "fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 
 
-# 环境变量设置
+# 临时文件环境变量设置
 set -gx TMP_FZF_HEADER_SWAP_FILE /tmp/tmp_fzf_header_swap
 set -gx TMP_FZF_HEADER_SWAP_FILE (test -n "$TMPDIR"; and echo $TMPDIR; or echo /tmp)/tmp_fzf_header_swap
 set -gx TMP_FZF_SEARCH_SWAP_FILE (test -n "$TMPDIR"; and echo $TMPDIR; or echo /tmp)/tmp_fzf_search_swap
@@ -29,7 +29,7 @@ function _fzf_comprun
     end
 end
 
-# 构建 FZF 头部函数
+# 构建 FZF header头部函数
 function _buildFzfHeader
     rm -f $TMP_FZF_HEADER_SWAP_FILE
     set newheader " CTRL-H Search Infomation "
@@ -56,7 +56,7 @@ function _buildFzfHeader
     echo "$newheader "
 end
 
-# 过滤命令定义
+# 搜索过滤命令定义
 set -gx fzf_transformer_filter_all "fd --type f --type d -d 3 --full-path $PWD --exclude .git --exclude .idea --exclude .vscode --exclude .sass-cache"
 set -gx fzf_transformer_filter_files "fd --type f -d 3 --full-path $PWD --exclude .git --exclude .idea --exclude .vscode --exclude .sass-cache"
 set -gx fzf_transformer_filter_directories "fd --type d -d 3 --full-path $PWD --exclude .git --exclude .idea --exclude .vscode --exclude .sass-cache"
@@ -67,7 +67,7 @@ set -gx fzf_transformer_filter_documents "fd -i -t f -e txt -e md -e log -e pdf 
 set -gx fzf_transformer_filter_languages "fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude .git --exclude .idea --exclude .vscode --exclude .sass-cache"
 set -gx fzf_transformer_filter_contents "rg --color=always --line-number --no-heading ''"
 
-# 转换器定义
+# 根据搜索记录数量转换preview-window
 set -gx fzf_transformer '
     set lines (math $FZF_LINES - $FZF_MATCH_COUNT - 1)
     if test $FZF_MATCH_COUNT -eq 0
@@ -81,20 +81,22 @@ set -gx fzf_transformer '
     end
 '
 
+# 根据当前的FZF_INPUT_STATE(搜索框状态)的值,进行toggle切换, 如果是回车(enter)命令,则输出accept,其他则输出abort终止
 set -gx fzf_transformer_input_switcher '
     if test "$FZF_INPUT_STATE" = "enabled"
         echo "rebind(j,k,/)+hide-input"
     else if test "$FZF_KEY" = "enter"
-        echo accept
+        echo "accept"
     else
-        echo abort
+        echo "abort"
     end
 '
 
+# 根据TMP_FZF_SEARCH_SWAP_FILE临时文件中的内容,自动切换至下一种搜索类型,
+# 同时生成list-label内容,并利用reload更新搜索命令及搜索内容
 set -gx fzf_transformer_search_swap_type '
     if test -f $TMP_FZF_SEARCH_SWAP_FILE
-        set action (cat $TMP_FZF_SEARCH_SWAP_FILE)
-        
+        set -l action (cat $TMP_FZF_SEARCH_SWAP_FILE)
         switch $action
             case "all"
                 echo "files" > $TMP_FZF_SEARCH_SWAP_FILE
@@ -131,7 +133,7 @@ set -gx fzf_transformer_search_swap_type '
 '
 
 # FZF 默认设置
-set -x FZF_DEFAULT_OPTS " --reverse --min-height='40' "
+set -x FZF_DEFAULT_OPTS "--reverse --min-height='40' "
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --multi "
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --style=full:double "
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --cycle "
@@ -175,7 +177,6 @@ set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --gap-line=\"$(echo '┈┈┈┈┈�
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview "($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null | head -500" '
-set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-v:change-preview-window(down,99%)" '
@@ -188,18 +189,20 @@ set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-l:select-all+execute:less {+f}" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-l:+deselect-all" '
-set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='result:transform: $fzf_transformer' "
-set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='resize:transform: $fzf_transformer' "
-set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-f:transform: $fzf_transformer_search_swap_type" '
+# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='result:transform: $fzf_transformer' "
+# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='resize:transform: $fzf_transformer' "
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="shift-down:last" '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤ " '
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:($MYRUNTIME/customs/bin/_previewer \"help\")" '
 # set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="j:down,k:up,/:show-input+unbind(j,k,/)" '
-# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher" '
+# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="enter,esc,ctrl-c:transform:\$fzf_transformer_input_switcher" '
+# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-f:transform: \$fzf_transformer_search_swap_type" '
+# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind 'ctrl-f:transform:$fzf_transformer_search_swap_type' "
+# set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind 'esc,ctrl-c,enter:transform:$fzf_transformer_input_switcher' "
 set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
-#set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
+set -x FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 
 
 
