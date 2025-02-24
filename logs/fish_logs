@@ -18,6 +18,7 @@ omf install budspencer
 omf install dangerous	
 omf install default
 omf install sublime
+omf install foreign-env
 
 # -----------------------------------------------------------------------------
 # fisher

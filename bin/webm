@@ -3,6 +3,7 @@
 
 WEBSITELOGS="$MYRUNTIME/tools/websites"
 OPENBROWSER="/Applications/Safari.app"
+[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
 tmp_iterm=""
 tmp_action="list"
 LOGARR=()
@@ -90,8 +91,9 @@ elif [[ "create" = "$tmp_iterm" ]]; then
     touch $WEBSITELOGS/${tmp_action}_websites.log
     nvim $WEBSITELOGS/${tmp_action}_websites.log
 elif [[ "dir" = "$tmp_iterm" ]]; then
-    echo "$WEBSITELOGS"
-    builtin cd $WEBSITELOGS && exa .
+    # echo "$WEBSITELOGS"
+    # builtin cd $WEBSITELOGS && exa .
+    gotoPath $WEBSITELOGS
 elif [[ "la" = "$tmp_iterm" ]]; then
     viewContentOfFiles
 else
