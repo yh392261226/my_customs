@@ -108,6 +108,15 @@ function fzf_git_checkout2() {                                                  
 }
 alias fgc2="fzf_git_checkout2"                                                          # Desc: alias: fgc2:fzf_git_checkout2命令的别名,checkout git branch
 
+function fzf_git_branch_with_remote() {                                                 # Desc: function: fzf_git_branch_with_remote: checkout git branch (including remote branches), sorted by most recent commit, limit 30 last branches
+  local branches branch
+  branches=$(git for-each-ref --count=30 --sort=-committerdate refs/heads/ --format="%(refname:short)") &&
+  branch=$(echo "$branches" |
+           fzf-tmux -d $(( 2 + $(wc -l <<< "$branches") )) +m) &&
+  git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+}
+alias fbr="fzf_git_branch_with_remote"                                                  # Desc: alias: fbr:fzf_git_branch_with_remote命令的别名,checkout git branch (including remote branches), sorted by most recent commit, limit 30 last branches
+
 function fzf_git_stash() {                                                              # Desc: function: fzf_git_stash:Easier way to deal with stashes. type fstash to get a list of your stashes. enter shows you the contents of the stash. ctrl-d shows a diff of the stash against your current HEAD. ctrl-b checks the stash out as a branch, for easier merging
     local out q k sha
     while out=$(

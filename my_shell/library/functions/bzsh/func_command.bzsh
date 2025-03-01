@@ -39,7 +39,6 @@ function fzf_custom_aliases() {                                                 
     find $MYRUNTIME/customs/my_shell/* -type f ! -path "$MYRUNTIME/customs/my_shell/nu/*" ! -path "$MYRUNTIME/customs/my_shell/fish/*" ! -path "$MYRUNTIME/customs/my_shell/library/functions/fish/*" | xargs grep -rE '^alias\ ' > $TMP_ALIASES_FILE
     if [ -f $TMP_ALIASES_FILE ]; then
         eval $(cat $TMP_ALIASES_FILE | awk '{print $2}' | sed "s/'//g" | sed 's/"//g' | awk -F'=' '{print $1}' | fzf --no-sort --tac $FZF_CUSTOM_PARAMS \
-        --preview-window right:70%:rounded:nohidden:wrap \
         --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} ${TMP_ALIASES_FILE} \"customs\""  \
         --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
         --bind "ctrl-r:execute(bat --theme=gruvbox-dark --color=always --style=full $TMP_ALIASES_FILE > /dev/tty)" \
@@ -367,6 +366,35 @@ function fzf_man() {                                                            
   echo ""
 }
 alias fman="fzf_man"                                                                # Desc: alias: fman:fzf_man命令的别名,fzf版本的man命令
+
+
+function fzf_man_widget() {                                                         # Desc: function: fzf_man_widget:fzf版本的man命令
+  manpage="echo {} | sed 's/\([[:alnum:][:punct:]]*\) (\([[:alnum:]]*\)).*/\2 \1/'"
+  batman="${manpage} | xargs -r man | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
+   man -k . | sort \
+   | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue $2; } 1' \
+   | fzf  \
+      -q "$1" \
+      --ansi \
+      --tiebreak=begin \
+      --prompt=' Man > '  \
+      --preview-window '50%,rounded,<50(up,85%,border-bottom)' \
+      --preview "${batman}" \
+      --bind "enter:execute(${manpage} | xargs -r man)" \
+      --bind "alt-c:+change-preview(cht.sh {1})+change-prompt(ﯽ Cheat > )" \
+      --bind "alt-m:+change-preview(${batman})+change-prompt( Man > )" \
+      --bind "alt-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )"
+  zle reset-prompt
+}
+# `Ctrl-H` keybinding to launch the widget (this widget works only on zsh, don't know how to do it on bash and fish (additionaly pressing`ctrl-backspace` will trigger the widget to be executed too because both share the same keycode)
+if [ "zsh" = "$nowshell" ]; then
+    bindkey '^h' fzf_man_widget
+    zle -N fzf_man_widget
+else
+    export -f fzf_man_widget
+    bind '"\C-H":"fzf_man_widget;\n"'   #//Ctrl H 执行fzf_man_widget函数
+fi
+
 
 function mark_by_cheatsh() {                                                        # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then

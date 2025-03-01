@@ -16,107 +16,108 @@ TMPLOGS=$(ls $WEBSITELOGS | grep '.*_websites.log' | sed 's/_websites.log//g')
 [[ "" != "$3" ]] && OPENBROWSER="/Applications/Google Chrome.app"
 
 function list() {
-    [[ -z "$1" ]] && return
-    local WEBSITES=$1
-    local BROWSER="$2"
-    if [ ! -s "$WEBSITES" ]; then
-        echo "It's empty in websites records !!!"
-        exit 0
-    fi
-    choose=$(cat $WEBSITES | fzf $FZF_CUSTOM_PARAMS --delimiter '#' \
-    --preview='echo {} | sed "s/#/\\n/g"' \
-    --bind='focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind='ctrl-y:execute-silent(echo -n {2} | pbcopy)+abort' \
-    --bind="ctrl-e:execute(nvim $WEBSITES < /dev/tty > /dev/tty)+reload(cat $WEBSITES)" \
-    --header=$"网址管理工具: Ctrl-H 帮助中心" \
-    --header-first --header-lines=1)
-    if [[ -n $choose ]]; then
-        for url in $choose; do
-            url=$(echo $url | grep -E 'http[s]?://.*')
-            if [ "" != "$url" ] && [ "#" != "$url" ]; then
-                /usr/bin/open -a "$OPENBROWSER" "$url"
-            fi
-        done
-    fi
+	[[ -z "$1" ]] && return
+	local WEBSITES=$1
+	local BROWSER="$2"
+	if [ ! -s "$WEBSITES" ]; then
+		echo "It's empty in websites records !!!"
+		exit 0
+	fi
+	choose=$(cat $WEBSITES | fzf $FZF_CUSTOM_PARAMS --delimiter '#' \
+		--preview='echo {} | sed "s/#/\\n/g"' \
+		--preview="echo \"{1}\n{2}\"" \
+		--bind='focus:transform-preview-label:echo -n "[ {1} ]";' \
+		--bind='ctrl-y:execute-silent(echo -n {2} | pbcopy)+abort' \
+		--bind="ctrl-e:execute(nvim $WEBSITES < /dev/tty > /dev/tty)+reload(cat $WEBSITES)" \
+		--header=$"网址管理工具: Ctrl-H 帮助中心" \
+		--header-first --header-lines=1)
+	if [[ -n $choose ]]; then
+		for url in $choose; do
+			url=$(echo $url | grep -E 'http[s]?://.*')
+			if [ "" != "$url" ] && [ "#" != "$url" ]; then
+				/usr/bin/open -a "$OPENBROWSER" "$url"
+			fi
+		done
+	fi
 }
 
 for iterm in $TMPLOGS; do
-    LOGARR+=("$iterm")
+	LOGARR+=("$iterm")
 done
 
 function help() {
-    echo "''''''''''''''''''''''''''''''''''''''''"
-    echo "Command: webmanager [m]"
-    echo "  Iterm:(\$1)"
-    for ((i=0; i<${#LOGARR[@]}; i++)); do
-        echo "      $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
-    done
-    echo "      create 创建新记录"
-    echo "      dir    打开目录"
-    echo "      la     列出全部记录"
-    echo ""
-    echo "  Action:(\$2)"
-    echo "      edit|e|add|a 编辑记录"
-    echo "      help|e       帮助信息"
-    echo "      list         列出记录"
-    echo "      cat          显示记录"
-    echo "      filename     配合create创建文件"
-    echo "Eg.:"
-    echo "  webmanager soft list"
-    echo ""
-    echo "''''''''''''''''''''''''''''''''''''''''"
+	echo "''''''''''''''''''''''''''''''''''''''''"
+	echo "Command: webmanager [m]"
+	echo "  Iterm:(\$1)"
+	for ((i = 0; i < ${#LOGARR[@]}; i++)); do
+		echo "      $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
+	done
+	echo "      create 创建新记录"
+	echo "      dir    打开目录"
+	echo "      la     列出全部记录"
+	echo ""
+	echo "  Action:(\$2)"
+	echo "      edit|e|add|a 编辑记录"
+	echo "      help|e       帮助信息"
+	echo "      list         列出记录"
+	echo "      cat          显示记录"
+	echo "      filename     配合create创建文件"
+	echo "Eg.:"
+	echo "  webmanager soft list"
+	echo ""
+	echo "''''''''''''''''''''''''''''''''''''''''"
 }
 
 function viewContentOfFiles() {
-    for file in ${WEBSITELOGS}/*.log; do
-        if [ -f "$file" ]; then
-            echo "文件内容: $file"
-            echo "-----------------------------"
-            # 输出文件内容
-            cat "$file"
-            echo "-----------------------------"
-            echo ""
-        fi
-    done
+	for file in ${WEBSITELOGS}/*.log; do
+		if [ -f "$file" ]; then
+			echo "文件内容: $file"
+			echo "-----------------------------"
+			# 输出文件内容
+			cat "$file"
+			echo "-----------------------------"
+			echo ""
+		fi
+	done
 }
 
 if [[ "${LOGARR[*]}" =~ "$tmp_iterm" ]]; then
-    if [[ -f $WEBSITELOGS/${tmp_iterm}_websites.log ]]; then
-        WEBSITES="$WEBSITELOGS/${tmp_iterm}_websites.log"
-    else
-        help
-        exit 0
-    fi
+	if [[ -f $WEBSITELOGS/${tmp_iterm}_websites.log ]]; then
+		WEBSITES="$WEBSITELOGS/${tmp_iterm}_websites.log"
+	else
+		help
+		exit 0
+	fi
 elif [[ "create" = "$tmp_iterm" ]]; then
-    touch $WEBSITELOGS/${tmp_action}_websites.log
-    nvim $WEBSITELOGS/${tmp_action}_websites.log
+	touch $WEBSITELOGS/${tmp_action}_websites.log
+	nvim $WEBSITELOGS/${tmp_action}_websites.log
 elif [[ "dir" = "$tmp_iterm" ]]; then
-    # echo "$WEBSITELOGS"
-    # builtin cd $WEBSITELOGS && exa .
-    gotoPath $WEBSITELOGS
+	# echo "$WEBSITELOGS"
+	# builtin cd $WEBSITELOGS && exa .
+	gotoPath $WEBSITELOGS
 elif [[ "la" = "$tmp_iterm" ]]; then
-    viewContentOfFiles
+	viewContentOfFiles
 else
-    help
-    exit 0
+	help
+	exit 0
 fi
 
 case "$tmp_action" in
-    "e"|"edit"|"a"|"add")
-        nvim $WEBSITES
-    ;;
-    "c"|"cat")
-        if [ "command -v ccat" = "" ]; then
-            cat $WEBSITES
-        else
-            ccat $WEBSITES
-        fi
-    ;;
-    "h"|"help")
-        help
-        exit 0
-    ;;
-    *)
-        list $WEBSITES
-    ;;
+"e" | "edit" | "a" | "add")
+	nvim $WEBSITES
+	;;
+"c" | "cat")
+	if [ "command -v ccat" = "" ]; then
+		cat $WEBSITES
+	else
+		ccat $WEBSITES
+	fi
+	;;
+"h" | "help")
+	help
+	exit 0
+	;;
+*)
+	list $WEBSITES
+	;;
 esac
