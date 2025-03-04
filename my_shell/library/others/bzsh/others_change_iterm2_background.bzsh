@@ -6,6 +6,7 @@ CURRENT_PICTURE_MARK=$MYPATH/tools/current_picture
 CURRENT_PICTURENAME_MARK=$MYPATH/tools/current_picturename
 ITERMPATH="/Applications/iTerm.app"
 
+([[ -f $HOME/.BGTHUMBCONFIG ]] && [[ "$(cat $HOME/.BGTHUMBCONFIG)" = "1" ]]) && BGTHUMB=1
 if [ -z $BGTHUMB ]; then
   BGTHUMB=0
 fi
@@ -21,7 +22,7 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
                 return 1
             else
                 clear
-                printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+                printf '\033]1337;File=inline=1;width=10%%;preserveAspectRatio=0'
                 printf ":"
                 base64 < "$bgfile"
                 printf '\a\n'
@@ -70,11 +71,11 @@ if [ "$MYSYSNAME" = "Mac" ]; then #判断是否是os系统
             fi
             if [ "" != "$image_path" ] && [ "$BGTHUMB" -gt "0" ]; then
                 bg_thumb $image_path
-                for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
+                echo -n '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
                 echo ""
                 echo $image_path
                 echo ""
-                for ((i=1; i<=((${#image_path} + 2)); i ++))  ; do echo -n '^';done
+                echo -n '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
                 echo ""
             fi
         }
