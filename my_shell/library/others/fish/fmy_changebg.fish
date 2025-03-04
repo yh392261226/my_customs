@@ -28,6 +28,14 @@ end
 set -gx current_picturename {$MYPATH}/tools/current_picturename
 set -gx emptybackground {$MYPATH}/pictures/../public0/t1l-logo-white-shitty.jpg
 
+set BGTHUMB 0
+
+if test -f $HOME/.BGTHUMBCONFIG
+    if string match -q "1" (cat $HOME/.BGTHUMBCONFIG)
+        set BGTHUMB 1
+    end
+end
+
 if test "$MYSYSNAME" = "Mac"                    #判断是否是os系统
     if test -d $ITERMPATH                       #判断是否安装了iterm
         if test $curappname = "iTerm.app"       #判断当前使用的是否是iterm
@@ -42,11 +50,8 @@ function bg_thumb
     if test "$bg_change_can_use" != 1
         false
     end
-    set bgfile $argv
-    if test not -f $bgfile
-        echo "No bg at the current time!";
-        false
-    else
+    set -l bgfile $argv
+    if test -f $bgfile
         clear
         printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
         printf ":"
@@ -55,6 +60,9 @@ function bg_thumb
         echo ""
         echo ""
         true
+    else
+        echo "No bg at the current time!";
+        false
     end
 end
 
@@ -84,6 +92,12 @@ function bg_change
     end tell"
     if test "$BGTHUMB" = 1
         bg_thumb $image_path
+        echo -n '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+        echo ""
+        echo $image_path
+        echo ""
+        echo -n '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
+        echo ""
     end
 
 end
