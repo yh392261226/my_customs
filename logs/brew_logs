@@ -977,3 +977,7 @@ brew install mise
 brew install mkcert
 brew install nss
 brew install doggo
+brew install rm-improved
+brew install tre-command
+brew install khal
+brew install dduan/formulae/ea

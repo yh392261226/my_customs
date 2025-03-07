@@ -351,6 +351,21 @@ function command_sl_selector() {                                                
 }
 alias sl='command_sl_selector'                                                      # Desc: alias: sl:command_sl_selector命令的别名,输入命令sl并执行时，二次验证选择
 
+function tre2() {                                                                   # Desc: function: tre2:tre命令列出所有文件，并生成alias命令文件,按生成的alias进行执行
+    command tre "$@" --editor nvim && source "/tmp/tre_aliases_$USER" 2>/dev/null;
+    if [ -f /tmp/tre_aliases_$USER ]; then
+#        source "/tmp/tre_aliases_$USER" 2>/dev/null;
+        local choose=$(cat /tmp/tre_aliases_$USER | sed 's/"//g' | sed "s/'//g" | sed 's/"//g' | sed "s/'//g" | sed 's/^alias //g' | sed 's/=eval nvim \\/=/g' | sed 's/\\//g' | fzf $FZF_CUSTOM_PARAMS \
+        --delimiter '=' \
+        --preview 'echo "AliasName:{1}\nAliasTo:{2}"' \
+        --bind 'ctrl-y:execute-silent(echo -n {1} | pbcopy)+abort')
+        if [ "" != "$choose" ]; then
+            eval $(echo $choose | awk -F'=' '{print $1}')
+        fi
+    fi
+}
+alias t2="tre2"                                                                     # Desc: alias: t2:tre2命令的别名，tre命令列出所有文件，并生成alias命令文件,按生成的alias进行执行
+
 function fzf_man() {                                                                # Desc: function: fzf_man:fzf版本的man命令
   batman="man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
    man -k . | sort \
