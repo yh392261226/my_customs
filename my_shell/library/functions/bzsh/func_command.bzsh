@@ -367,23 +367,6 @@ function tre2() {                                                               
 alias t2="tre2"                                                                     # Desc: alias: t2:tre2命令的别名，tre命令列出所有文件，并生成alias命令文件,按生成的alias进行执行
 
 function fzf_man() {                                                                # Desc: function: fzf_man:fzf版本的man命令
-  batman="man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
-   man -k . | sort \
-   | awk -v cyan=$(tput setaf 6) -v blue=$(tput setaf 4) -v res=$(tput sgr0) -v bld=$(tput bold) '{ $1=cyan bld $1; $2=res blue;} 1' \
-   | fzf -q "$1" --ansi --tiebreak=begin $FZF_CUSTOM_PARAMS \
-    --preview-window '50%,rounded,<50(up,85%,rounded)' \
-    --preview "${batman}" \
-    --bind 'enter:become(man {1})' \
-    --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
-    --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
-    --bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
-    --header="$(_buildFzfHeader '' 'fzf_man')"
-  echo ""
-}
-alias fman="fzf_man"                                                                # Desc: alias: fman:fzf_man命令的别名,fzf版本的man命令
-
-
-function fzf_man_widget() {                                                         # Desc: function: fzf_man_widget:fzf版本的man命令
   manpage="echo {} | sed 's/\([[:alnum:][:punct:]]*\) (\([[:alnum:]]*\)).*/\2 \1/'"
   batman="${manpage} | xargs -r man | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
    man -k . | sort \
@@ -396,18 +379,20 @@ function fzf_man_widget() {                                                     
       --preview-window '50%,rounded,<50(up,85%,border-bottom)' \
       --preview "${batman}" \
       --bind "enter:execute(${manpage} | xargs -r man)" \
-      --bind "alt-c:+change-preview(cht.sh {1})+change-prompt(ﯽ Cheat > )" \
-      --bind "alt-m:+change-preview(${batman})+change-prompt( Man > )" \
-      --bind "alt-t:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )"
+      --bind "ç:+change-preview(cht {1})+change-prompt(ﯽ Cheat > )" \
+      --bind "µ:+change-preview(${batman})+change-prompt( Man > )" \
+      --bind "®:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )" \
+      --header="$(_buildFzfHeader '' 'fzf_man')"
   zle reset-prompt
 }
+alias fman="fzf_man"                                                                # Desc: alias: fman:fzf_man命令的别名,fzf版本的man命令
 # `Ctrl-H` keybinding to launch the widget (this widget works only on zsh, don't know how to do it on bash and fish (additionaly pressing`ctrl-backspace` will trigger the widget to be executed too because both share the same keycode)
 if [ "zsh" = "$nowshell" ]; then
-    bindkey '^h' fzf_man_widget
-    zle -N fzf_man_widget
+    bindkey '^h' fzf_man
+    zle -N fzf_man
 else
-    export -f fzf_man_widget
-    bind '"\C-H":"fzf_man_widget;\n"'   #//Ctrl H 执行fzf_man_widget函数
+    export -f fzf_man
+    bind '"\C-H":"fzf_man;\n"'   #//Ctrl H 执行fzf_man_widget函数
 fi
 
 

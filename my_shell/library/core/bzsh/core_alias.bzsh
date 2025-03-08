@@ -176,8 +176,8 @@ alias cleanupls="/System/Library/Frameworks/CoreServices.framework/Frameworks/La
 alias cleanupds="find . -type f -name '*.DS_Store' -ls -delete"                                                  # Desc: alias: cleanupds:查找并删除当前目录中的.DS_Store文件
 #alias rm='/usr/local/bin/trash'                                                                                 # Desc: alias: rm:设置为trash替代命令
 alias rmds="remove_DS_files"                                                                                     # Desc: alias: rmds:removeDS命令的别名
-#alias rm='rm -i'                                                                                                 # Desc: alias: rm:增加详情选项
-[[ -f /opt/homebrew/bin/rip ]] && alias rm=/opt/homebrew/bin/rip -i                                              # Desc: alias: rm:利用rip代替rm命令
+alias rm='rm -i'                                                                                                 # Desc: alias: rm:增加详情选项
+[[ -f /opt/homebrew/bin/rip ]] && alias rm2="/opt/homebrew/bin/rip -i"                                           # Desc: alias: rm2:利用rip代替rm命令
 alias rmf='rm -rf'                                                                                               # Desc: alias: rmf:增加递归删除选项
 
 # Mkdir alias

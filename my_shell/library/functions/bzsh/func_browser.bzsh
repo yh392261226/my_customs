@@ -208,6 +208,40 @@ function brave_default_history() {                                              
 }
 alias bdh="brave_default_history"                                                   # Desc: alias: bdh:brave_default_history命令的别名,列出Brave默认账户的浏览器的历史
 
+function browser_history_manage() {                                                 # Desc: function: browser_history_manage:利用fzf管理Safari、Chrome、Brave浏览器的历史
+    while true; do
+        local action=$(printf "%s\n" \
+            "🔎 Safari" \
+            "🔎 Chrome_Default" \
+            "🔎 Chrome_Profile1" \
+            "🔎 Brave_Default" \
+            "🚪 退出系统" | \
+            fzf --header " 浏览器历史记录管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '选择操作类型'" \
+                --height=15% \
+                --header="$(_buildFzfHeader '' 'browser_history_manage')" \
+                --reverse)
+
+        case $action in
+            *Safari*) fzf_safari_history ;;
+            *Chrome_Default*) chrome_default_history ;;
+            *Chrome_Profile1*) chrome_profile1_history ;;
+            *Brave_Default*) brave_default_history ;;
+            *退出系统*) break 1 && return ;;
+        esac
+    done
+}
+alias bh="browser_history_manage"                                                   # Desc: alias: bh:browser_history_manage命令的别名,利用fzf管理Safari、Chrome、Brave浏览器的历史
+if [ "zsh" = "$nowshell" ]; then
+    zle -N browser_history_manage
+    bindkey '˙' browser_history_manage   #//Alt H 执行browser_history_manage函数
+else
+    export -f browser_history_manage
+    bind '"˙":"browser_history_manage;\n"'   #//Alt H 执行browser_history_manage函数
+fi
+
 function chromium_bookmarks() {                                                     # Desc: function: chroomium_bookmarks:列出列出Chromium核心的浏览器的书签
     if [ "" = "$1" ]; then
         echo "Does not send param!"
@@ -262,6 +296,42 @@ function fzf_mark_by_buku() {                                                   
     done
 }
 alias fmb="fzf_mark_by_buku"                                                        # Desc: alias: fmb:fzf_mark_by_buku命令的别名,buku数据库配合fzf列出网址收藏
+
+function browser_bookmarks_manage() {                                               # Desc: function: browser_bookmarks_manage:利用fzf管理Safari、Chrome、Brave浏览器的收藏
+    while true; do
+        local action=$(printf "%s\n" \
+            "🔎 Safari" \
+            "🔎 Chrome_Default" \
+            "🔎 Chrome_Profile1" \
+            "🔎 Brave_Default" \
+            "🔎 Bubu" \
+            "🚪 退出系统" | \
+            fzf --header " 浏览器收藏记录管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '选择操作类型'" \
+                --height=15% \
+                --header="$(_buildFzfHeader '' 'browser_bookmarks_manage')" \
+                --reverse)
+
+        case $action in
+            *Safari*) fzf_safari_bookmarks ;;
+            *Chrome_Default*) chrome_default_bookmarks ;;
+            *Chrome_Profile1*) chrome_profile1_bookmarks ;;
+            *Brave_Default*) brave_default_bookmarks ;;
+            *Bubu*) fzf_mark_by_buku ;;
+            *退出系统*) break 1 && return ;;
+        esac
+    done
+}
+alias bm="browser_bookmarks_manage"                                                 # Desc: alias: bm:browser_bookmarks_manage命令的别名,利用fzf管理Safari、Chrome、Brave浏览器的收藏
+if [ "zsh" = "$nowshell" ]; then
+    zle -N browser_bookmarks_manage
+    bindkey 'µ' browser_bookmarks_manage   #//Alt M 执行browser_bookmarks_manage函数
+else
+    export -f browser_bookmarks_manage
+    bind '"µ":"browser_bookmarks_manage;\n"'   #//Alt M 执行browser_bookmarks_manage函数
+fi
 
 function goodfon() {                                                                # Desc: function: goodfon:打开goodfon.ru
     local DEFAULTBROWSER="/Applications/Firefox.app"      #default browser for open goodfon
