@@ -19,7 +19,7 @@ function search_aliases
     --preview-window right:70%:rounded:hidden:wrap \
     --delimiter=':' \
     --preview 'bat --theme=gruvbox-dark --color=always --style=header,grid,numbers {1}' \
-    --header=(_buildFzfHeader '' 'search_aliases')
+    --header="$(_buildFzfHeader '' 'search_aliases')"
     cd $current_dir
     set FZF_DEFAULT_COMMAND "$tmp_fzf_default_command"
 end
@@ -32,7 +32,7 @@ function fzf_all_aliases
         eval (cat $TMP_ALIASES_FILE | awk -F' ' '{print $1}' | sed -e "s/^[ ]*//g" | grep -v -E "^--(.*?)" | fzf $FZF_CUSTOM_PARAMS \
 --preview-window right:70%:rounded:hidden:wrap \
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE"  \
---header=(_buildFzfHeader '' 'fzf_all_aliases') \
+--header="$(_buildFzfHeader '' 'fzf_all_aliases')" \
 --bind "ctrl-o:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)")
         rm -f $TMP_ALIASES_FILE
     end
@@ -49,7 +49,7 @@ function fzf_custom_aliases
 --preview "$MYRUNTIME/customs/bin/_show_custom_alias {} $TMP_ALIASES_FILE \"customs\""  \
 --bind 'focus:transform-preview-label:echo -n "[ {} ]";' \
 --bind "ctrl-o:execute(bat --theme=gruvbox-dark --color=always --style=header,grid,numbers $TMP_ALIASES_FILE > /dev/tty)" \
---header=(_buildFzfHeader '' 'fzf_custom_aliases'))
+--header="$(_buildFzfHeader '' 'fzf_custom_aliases')")
         rm -f $TMP_ALIASES_FILE
     end
 end
@@ -76,7 +76,7 @@ function fzf_all_custom_functions
         set selected (cat $TMP_ALL_FUNCTIONS_FILE | fzf $FZF_CUSTOM_PARAMS +m \
         --preview-window right:70%:rounded:hidden:wrap \
         --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' 'fish'" \
-        --header=(_buildFzfHeader '' 'fzf_all_custom_functions') \
+        --header="$(_buildFzfHeader '' 'fzf_all_custom_functions')" \
         --bind="ctrl-y:execute-silent($MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_ALL_FUNCTIONS_FILE 'functions' 'fish'| pbcopy)+abort")
         if test -n "$selected"
             eval "$selected"
@@ -98,7 +98,7 @@ function fzf_customs_functions
         fzf $FZF_CUSTOM_PARAMS \
         --preview-window right:70%:rounded:hidden:wrap \
         --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FUNCTIONS_FILE 'fish'" \
-        --header=(_buildFzfHeader '' 'fzf_customs_functions') \
+        --header="$(_buildFzfHeader '' 'fzf_customs_functions')" \
         --bind "ctrl-o:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
         rm -f $TMP_FUNCTIONS_FILE
     end
@@ -125,7 +125,7 @@ function fzf_customs_fzf_awesome_functions_list
             --preview "$MYRUNTIME/customs/bin/_show_awesome_function {} $TMP_FZF_FUNCTIONS_FILE 'fish'" \
             --preview-window right:70%:rounded:hidden:wrap \
             --bind "ctrl-o:execute(bat $TMP_FZF_FUNCTIONS_FILE > /dev/tty)" \
-            --header=(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list'))
+            --header="$(_buildFzfHeader '' 'fzf_customs_fzf_awesome_functions_list')")
             rm -f $TMP_FZF_FUNCTIONS_FILE
         end
     end
@@ -312,19 +312,60 @@ echo $choose
 end
 alias sl="command_sl_selector"
 
+function tre2
+    # 执行 tre 命令并生成别名文件
+    command tre $argv --editor nvim
+    set -l alias_file "/tmp/tre_aliases_$USER"
+    
+    if test -f "$alias_file"
+        # 清理别名格式并选择
+        set -l choose (cat $alias_file \
+            | sed 's/"//g' \
+            | sed "s/'//g" \
+            | sed 's/^alias //g' \
+            | sed 's/=eval nvim \\/=/g' \
+            | sed 's/\\//g' \
+            | fzf $FZF_CUSTOM_PARAMS \
+                --delimiter '=' \
+                --preview 'echo "AliasName:{1}\nAliasTo:{2}"' \
+                --bind 'ctrl-y:execute-silent(echo -n {1} | pbcopy)+abort')
+        
+        if test -n "$choose"
+            # 执行选中的别名
+            eval (echo $choose | awk -F= '{print $1}')
+        end
+    end
+end
+alias t2="tre2"
+
 function fzf_man
-    set batman "man {1} | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
-    man -k . | sort | fzf -q "$argv" --ansi --tiebreak=begin $FZF_CUSTOM_PARAMS \
-        --preview-window '50%,rounded,<50(up,85%,rounded)' \
+    set -l manpage "echo {} | sed 's/\\([[:alnum:][:punct:]]*\\) (\\([[:alnum:]]*\\).*/\\2 \\1/'"
+    set -l batman "$manpage | xargs -r man | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
+    
+    # 获取颜色代码
+    set -l cyan (tput setaf 6)
+    set -l blue (tput setaf 4)
+    set -l res (tput sgr0)
+    set -l bld (tput bold)
+
+    man -k . | sort \
+    | awk -v cyan="$cyan" -v blue="$blue" -v res="$res" -v bld="$bld" \
+        '{ $1=cyan bld $1; $2=res blue $2; } 1' \
+    | fzf \
+        -q "$argv[1]" \
+        --ansi \
+        --tiebreak=begin \
+        --prompt=' Man > ' \
+        --preview-window '50%,rounded,<50(up,85%,border-bottom)' \
         --preview "$batman" \
-        --bind 'enter:become(man {1})' \
-        --bind 'ctrl-c:+change-preview(cheat {1})+change-prompt(ﯽ Cheat > )' \
-        --bind 'ctrl-m:+change-preview(${batman})+change-prompt( Man > )' \
-        --bind 'ctrl-r:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )' \
+        --bind "enter:execute($manpage | xargs -r man)" \
+        --bind "ç:+change-preview(cht {1})+change-prompt(ﯽ Cheat > )" \
+        --bind "µ:+change-preview($batman)+change-prompt( Man > )" \
+        --bind "®:+change-preview(tldr --color=always {1})+change-prompt(ﳁ TLDR > )" \
         --header="$(_buildFzfHeader '' 'fzf_man')"
-    echo ""
 end
 alias fman="fzf_man"
+bind -M insert \ch browser_history_manage
 
 function mark_by_cheatsh
     if test (count $argv) -lt 1
@@ -360,12 +401,12 @@ function fzf_env_vars
         --bind 'focus:transform-preview-label:echo [ {1} ]' \
         --delimiter='=' \
         --preview='echo {2}' \
-        --header=(_buildFzfHeader '' 'fzf_env_vars')
+        --header="$(_buildFzfHeader '' 'fzf_env_vars')"
 end
 alias fev="fzf_env_vars"
 
 function fzf_eval_preview
-    echo | fzf $FZF_CUSTOM_PARAMS --preview-window='up:90%:rounded:hidden:wrap' --preview='eval {q}' --header=(_buildFzfHeader '' 'fzf_eval_preview') --query=$argv
+    echo | fzf $FZF_CUSTOM_PARAMS --preview-window='up:90%:rounded:hidden:wrap' --preview='eval {q}' --header="$(_buildFzfHeader '' 'fzf_eval_preview')" --query=$argv
 end
 alias fep="fzf_eval_preview"
 
@@ -381,7 +422,7 @@ function fzf_spell
     cat /usr/share/dict/words | fzf $FZF_CUSTOM_PARAMS \
         --preview-window up:70%:rounded:hidden:wrap \
         --preview 'wn {} -over | fold' \
-        --header=(_buildFzfHeader '' 'fzf_spell')
+        --header="$(_buildFzfHeader '' 'fzf_spell')"
 end
 alias fspell="fzf_spell"
 
@@ -405,7 +446,7 @@ function fzf_open_app
         --preview-window right:70%:rounded:hidden:wrap \
         --preview 'tree /Applications/{}' \
         --bind 'enter:become(open /Applications/{})' \
-        --header=(_buildFzfHeader '' 'fzf_open_app') \
+        --header="$(_buildFzfHeader '' 'fzf_open_app')" \
         --bind 'ctrl-y:execute-silent(echo "open /Applications/{}"| pbcopy)+abort'
 end
 alias foa="fzf_open_app"
@@ -431,7 +472,7 @@ function fzf_most_used_command
         --preview 'echo {} | awk "{\$1=\"\";print}"' \
         --bind 'enter:become(echo {} | awk "{\$1=\"\";print}")' \
         --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-        --header=(_buildFzfHeader '' 'fzf_most_used_command') \
+        --header="$(_buildFzfHeader '' 'fzf_most_used_command')" \
         --bind 'ctrl-y:execute-silent(echo {} | awk "{\$1=\"\";print}" | pbcopy)+abort'
 end
 alias fmu="fzf_most_used_command"
@@ -451,7 +492,7 @@ function fzf_manage
         --bind "ctrl-d:execute($ACTIONCOMMAND $DIRPATH/{})+reload(ls $DIRPATH || true)" \
         --bind "change:reload:sleep 0.1; ls $DIRPATH || true" \
         --bind "ctrl-o:execute-silent(open -R $DIRPATH/{})" \
-        --header=(_buildFzfHeader '' 'fzf_manage') \
+        --header="$(_buildFzfHeader '' 'fzf_manage')" \
         --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish $DIRPATH/{} "
 end
 alias fm2="fzf_manage"
@@ -592,3 +633,22 @@ end
 
 alias ffm="fzf_full_files_manager"
 bind -M insert \cf fzf_full_files_manager
+
+function type_whereis_command
+    if not test (ifHasCommand $argv) = "1"
+        echo "Command $argv does not exist !"
+        return 1
+    end
+
+    if not string match -q "a function with definition" (type $argv) && not string match -q "is an alias for" (type $argv)
+        type (which $argv)
+    else
+        set endfile (type $argv | awk '{print $NF}')
+        if test -f $endfile
+            type $endfile
+        else
+            type_whereis_command $endfile
+        end
+    end
+end
+alias typew="type_whereis_command"
