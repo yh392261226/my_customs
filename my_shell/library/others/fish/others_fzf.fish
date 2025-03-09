@@ -7,8 +7,8 @@ set -gx FZF_PREVIEW_FILE_CMD "bat --theme=gruvbox-dark --style=header,grid,numbe
 set -gx FZF_PREVIEW_DIR_CMD "tree -C"
 set -gx FZF_PREVIEW_IMG_CMD 'chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
 set -gx FZF_DEFAULT_COMMAND "fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
-set -gx TMP_FZF_HEADER_SWAP_FILE (mktemp -t fzf_header_swap.XXXXXX)
-set -gx TMP_FZF_SEARCH_SWAP_FILE (mktemp -t fzf_search_swap.XXXXXX)
+set -gx TMP_FZF_HEADER_SWAP_FILE /tmp/fzf_header_swap.tmp
+set -gx TMP_FZF_SEARCH_SWAP_FILE /tmp/fzf_search_swap.tmp
 
 # ========================
 # 核心函数定义
@@ -103,9 +103,9 @@ set -gx fzf_transformer_search_swap_type "if [ -f \$TMP_FZF_SEARCH_SWAP_FILE ]; 
         \"files\")        echo 'directories'  > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Files Only ╟)+reload(\$fzf_transformer_filter_files)\" ;;
         \"directories\")  echo 'hiddens'      > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Directories Only ╟)+reload(\$fzf_transformer_filter_directories)\" ;;
         \"hiddens\")      echo 'images'       > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Hiddens ╟)+reload(\$fzf_transformer_filter_hiddens)\" ;;
-        \"images\")       echo 'medias'       > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Images Only ╟)+reload(\$fzf_transformer_filter_medias)\" ;;
-        \"medias\")       echo 'documents'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Medias Only ╟)+reload(\$fzf_transformer_filter_documents)\" ;;
-        \"documents\")    echo 'languages'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Documents Only ╟)+reload(\$fzf_transformer_filter_languages)\" ;;
+        \"images\")       echo 'medias'       > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Images Only ╟)+reload(\$fzf_transformer_filter_images)\" ;;
+        \"medias\")       echo 'documents'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Medias Only ╟)+reload(\$fzf_transformer_filter_medias)\" ;;
+        \"documents\")    echo 'languages'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Documents Only ╟)+reload(\$fzf_transformer_filter_documents)\" ;;
         \"languages\")    echo 'contents'     > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Develop Languages Files ╟)+reload(\$fzf_transformer_filter_languages)\" ;;
         \"contents\")     echo 'all'          > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Contents ╟)+reload(\$fzf_transformer_filter_contents)\" ;;
     esac

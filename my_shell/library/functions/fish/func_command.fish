@@ -512,7 +512,7 @@ alias fsa="fzf_search_custom_alias_by_desc"
 
 function fzf_full_files_manager
     function ___fzf_manage_all -a Action
-        set -l TMP_FZF_SEARCH_SWAP_FILE "/tmp/fzf_search_swap"
+        # set -l TMP_FZF_SEARCH_SWAP_FILE "/tmp/fzf_search_swap"
         set -l Varname "fzf_transformer_filter_$Action"
         set -l Cmd $fzf_transformer_filter_all
         
@@ -520,10 +520,10 @@ function fzf_full_files_manager
             set Cmd (eval "echo \$$Varname")
         end
 
-        echo $Action > $TMP_FZF_SEARCH_SWAP_FILE
+        echo "$Action" > $TMP_FZF_SEARCH_SWAP_FILE
         set -l Operate (eval $Cmd | fzf $FZF_CUSTOM_PARAMS \
             --preview "$MYRUNTIME/customs/bin/_previewer {} 2> /dev/null | head -500" \
-            --header="$(_buildFzfHeader '' 'fzf_mark_by_buku')")
+            --header="$(_buildFzfHeader '' 'fzf_full_files_manager')")
 
         if test -n "$Operate"
             if [ "$Action" = "contents" ]
