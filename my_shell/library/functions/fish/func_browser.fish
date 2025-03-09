@@ -198,6 +198,40 @@ function brave_default_history
 end
 alias bdh="brave_default_history"
 
+function browser_history_manage
+    while true
+        set -l action (printf "%s\n" \
+            "🔎 Safari" \
+            "🔎 Chrome_Default" \
+            "🔎 Chrome_Profile1" \
+            "🔎 Brave_Default" \
+            "🚪 退出系统" | \
+            fzf --header " 浏览器历史记录管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '选择操作类型'" \
+                --height=15% \
+                --header="$(_buildFzfHeader '' 'browser_history_manage')" \
+                --reverse)
+
+        switch "$action"
+            case '*Safari*'
+                fzf_safari_history
+            case '*Chrome_Default*'
+                chrome_default_history
+            case '*Chrome_Profile1*'
+                chrome_profile1_history
+            case '*Brave_Default*'
+                brave_default_history
+            case '*退出系统*'
+                return
+        end
+    end
+end
+
+alias bh="browser_history_manage"
+bind -M insert ˙ browser_history_manage
+
 function chromium_bookmarks
     if test -z $argv[1]
         echo "Does not send param!"
@@ -251,6 +285,43 @@ function fzf_mark_by_buku
     end
 end
 alias fmb="fzf_mark_by_buku"
+
+function browser_bookmarks_manage
+    while true
+        set -l action (printf "%s\n" \
+            "🔎 Safari" \
+            "🔎 Chrome_Default" \
+            "🔎 Chrome_Profile1" \
+            "🔎 Brave_Default" \
+            "🔎 Bubu" \
+            "🚪 退出系统" | \
+            fzf --header " 浏览器收藏记录管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '选择操作类型'" \
+                --height=15% \
+                --header="$(_buildFzfHeader '' 'browser_bookmarks_manage')" \
+                --reverse)
+
+        switch "$action"
+            case '*Safari*'
+                fzf_safari_bookmarks
+            case '*Chrome_Default*'
+                chrome_default_bookmarks
+            case '*Chrome_Profile1*'
+                chrome_profile1_bookmarks
+            case '*Brave_Default*'
+                brave_default_bookmarks
+            case '*Bubu*'
+                fzf_mark_by_buku
+            case '*退出系统*'
+                return
+        end
+    end
+end
+
+alias bm="browser_bookmarks_manage"
+bind -M insert µ browser_bookmarks_manage
 
 function goodfon
     set -l DEFAULTBROWSER "/Applications/Firefox.app"      # default browser for open goodfon
