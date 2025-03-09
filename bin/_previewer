@@ -53,10 +53,12 @@ else
             exit
         else
             case $file in
-                # *.pdf)
-                #     pdftotext "$file" |less
-                #     exit
-                # ;;
+                 *.pdf)
+                    #  pdftotext "$file" |less
+                    # 安装方法：https://github.com/dsanson/termpdf
+                    $MYRUNTIME/customs/bin/termpdf -sixel "$file"
+                    exit
+                ;;
                 *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown)
                     glow "$file" | less
                     exit
