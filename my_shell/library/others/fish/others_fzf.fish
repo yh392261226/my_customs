@@ -1,15 +1,20 @@
 # fzf 相关配置
 eval (fzf --fish)
+# ========================
+# 环境变量设置
+# ========================
 set -gx FZF_PREVIEW_FILE_CMD "bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never"
 set -gx FZF_PREVIEW_DIR_CMD "tree -C"
 set -gx FZF_PREVIEW_IMG_CMD 'chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
 set -gx FZF_DEFAULT_COMMAND "fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
-set -gx TMP_FZF_HEADER_SWAP_FILE (mktemp -t tmp_fzf_header_swap.XXX)
-set -gx TMP_FZF_SEARCH_SWAP_FILE (mktemp -p /tmp tmp_fzf_search_swap.XXX)
-# set -gx FZF_INPUT_DISABLED 0
+set -gx TMP_FZF_HEADER_SWAP_FILE (mktemp -t fzf_header_swap.XXXXXX)
+set -gx TMP_FZF_SEARCH_SWAP_FILE (mktemp -t fzf_search_swap.XXXXXX)
 
+# ========================
+# 核心函数定义
+# ========================
 function _fzf_comprun
-    set tmp_command $argv[1]
+    set -l tmp_command $argv[1]
     set -e argv[1]
     switch "$tmp_command"
         case cd
@@ -27,37 +32,38 @@ end
 
 function _buildFzfHeader
     rm -f $TMP_FZF_HEADER_SWAP_FILE
-    set newheader " CTRL-H Search Infomation "
-    set post_header $argv[1]
-    set search_content $argv[2]
+    set -l newheader " CTRL-H Search Infomation "
+    set -l post_header $argv[1]
+    set -l custom_header $argv[2]
 
     if test -n "$post_header"
-        if string match -qr '^a\+' "$post_header"
-            set newheader "$newheader "(string sub -s 4 "$post_header")" "
+        if string match -qr '^a+' "$post_header"
+            set newheader "$newheader "(string sub -s 4 -- "$post_header")" "
         else if string match -qr '^r-' "$post_header"
-            set newheader (string sub -s 4 "$post_header")" "
+            set newheader (string sub -s 4 -- "$post_header")" "
         end
     end
 
-    if test -n "$search_content"
-        set newheader "$newheader
-⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊
-⇉ $search_content 搜索内容
+    if test -n "$custom_header"
+        set newheader "$newheader\n⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊
+⇉ $custom_header 搜索内容
 ⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈ "
-        echo $search_content > $TMP_FZF_HEADER_SWAP_FILE
+        echo $custom_header > $TMP_FZF_HEADER_SWAP_FILE
     end
     echo "$newheader "
 end
 
 function _fzf_compgen_path
-    fd --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . $argv
+    fd --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$argv"
 end
 
 function _fzf_compgen_dir
-    fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . $argv
+    fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$argv"
 end
 
-# 定义搜索过滤器
+# ========================
+# 搜索过滤器定义
+# ========================
 set -gx fzf_transformer_filter_all "fd --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_files "fd --type f -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_directories "fd --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
@@ -68,85 +74,48 @@ set -gx fzf_transformer_filter_documents "fd -i -t f -e txt -e md -e log -e pdf 
 set -gx fzf_transformer_filter_languages "fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_contents "rg --color=always --line-number --no-heading '' "
 
-# 定义转换器
-set -x fzf_transformer '
-set lines (math "$FZF_LINES - $FZF_MATCH_COUNT - 1")
-if test $FZF_MATCH_COUNT -eq 0
-    echo "change-preview-window:hidden"
-else if test $lines -gt 10
-    echo "change-preview-window:right:$lines"
-else if test $lines -le 3
-    echo "change-preview-window:right:40"
+# ========================
+# FZF 转换器定义
+# ========================
+set -gx fzf_transformer "lines=\$(( FZF_LINES - FZF_MATCH_COUNT - 1 ))
+if [[ \$FZF_MATCH_COUNT -eq 0 ]]; then
+    echo \"change-preview-window:hidden\"
+elif [[ \$lines -gt 10 ]]; then
+    echo \"change-preview-window:\$lines\"
+elif [[ \$lines -le 3 ]]; then
+    echo \"change-preview-window:40\"
+elif [[ \$FZF_PREVIEW_LINES -gt 0 ]]; then
+    echo \"change-preview-window:40\"
+fi"
+
+set -gx fzf_transformer_input_switcher "if [[ \$FZF_INPUT_STATE = enabled ]]; then
+    echo \"rebind(j,k,/)+hide-input\"
+elif [[ \$FZF_KEY = enter ]]; then
+    echo accept
 else
-    echo "change-preview-window:right:60"
-end
-'
+    echo abort
+fi"
 
-set -x fzf_transformer_input_switcher '
-if test $FZF_INPUT_STATE = enabled
-    echo "hide-input+rebind(j,k,/)";
-else if test $FZF_KEY = enter
-    echo "accept";
+set -gx fzf_transformer_search_swap_type "if [ -f \$TMP_FZF_SEARCH_SWAP_FILE ]; then
+    local action=\$(cat \$TMP_FZF_SEARCH_SWAP_FILE)
+    case \$action in
+        \"all\")          echo 'files'        > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search All ╟)+reload(\$fzf_transformer_filter_all)\" ;;
+        \"files\")        echo 'directories'  > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Files Only ╟)+reload(\$fzf_transformer_filter_files)\" ;;
+        \"directories\")  echo 'hiddens'      > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Directories Only ╟)+reload(\$fzf_transformer_filter_directories)\" ;;
+        \"hiddens\")      echo 'images'       > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Hiddens ╟)+reload(\$fzf_transformer_filter_hiddens)\" ;;
+        \"images\")       echo 'medias'       > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Images Only ╟)+reload(\$fzf_transformer_filter_medias)\" ;;
+        \"medias\")       echo 'documents'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Medias Only ╟)+reload(\$fzf_transformer_filter_documents)\" ;;
+        \"documents\")    echo 'languages'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Documents Only ╟)+reload(\$fzf_transformer_filter_languages)\" ;;
+        \"languages\")    echo 'contents'     > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Develop Languages Files ╟)+reload(\$fzf_transformer_filter_languages)\" ;;
+        \"contents\")     echo 'all'          > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Contents ╟)+reload(\$fzf_transformer_filter_contents)\" ;;
+    esac
 else
-    echo "abort";
-end
-'
+    echo \"all\" > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search All ╟)+reload(\$fzf_transformer_filter_all)\"
+fi"
 
-set -x fzf_transformer_search_swap_type '
-set -l filter_cmd
-set -l label
-set -l next_type
-
-if test -f "$TMP_FZF_SEARCH_SWAP_FILE"
-    set action (cat $TMP_FZF_SEARCH_SWAP_FILE)
-else
-    set action all
-end
-
-switch "$action"
-    case all
-        set filter_cmd "$fzf_transformer_filter_all"
-        set label "Search All"
-        set next_type files
-    case files
-        set filter_cmd "$fzf_transformer_filter_files"
-        set label "Files Only"
-        set next_type directories
-    case directories
-        set filter_cmd "$fzf_transformer_filter_directories"
-        set label "Directories Only"
-        set next_type hiddens
-    case hiddens
-        set filter_cmd "$fzf_transformer_filter_hiddens"
-        set label "Hiddens"
-        set next_type images
-    case images
-        set filter_cmd "$fzf_transformer_filter_images"
-        set label "Images"
-        set next_type medias
-    case medias
-        set filter_cmd "$fzf_transformer_filter_medias"
-        set label "Medias"
-        set next_type documents
-    case documents
-        set filter_cmd "$fzf_transformer_filter_documents"
-        set label "Documents"
-        set next_type languages
-    case languages
-        set filter_cmd "$fzf_transformer_filter_languages"
-        set label "Languages"
-        set next_type contents
-    case contents
-        set filter_cmd "$fzf_transformer_filter_contents"
-        set label "Contents"
-        set next_type all
-end
-
-echo "$next_type" > "$TMP_FZF_SEARCH_SWAP_FILE"
-echo "change-list-label(╢ $label ╟)+reload($filter_cmd)"
-'
-
-# 设置 FZF 默认选项
+# ========================
+# FZF 默认选项配置
+# ========================
 set -gx FZF_DEFAULT_OPTS " --reverse --min-height='40' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --multi "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --style=full:double "
@@ -169,53 +138,52 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --info='right' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --border-label-pos='bottom,4' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-first "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-first '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-lines-border='bottom' "
-# set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --no-input "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --preview-window='right:70%:border-rounded,+{2}+3/3,~3' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --walker='file,dir,hidden,follow' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --walker-skip='.git,.vscode,.idea,target,\$RECYCLE.BIN' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --preview-label='╢ Preview ╟' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --list-label '╢ Result ╟' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --list-border "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --list-label-pos=top,4 "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-border "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-label '╢ Header ╟' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-label-pos=top,4 "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --input-border "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --input-label '╢ Input ╟' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --input-label-pos=top,4 "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --gap "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --gap-line='"(echo '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈' | lolcat -f -F 1.4)"' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --info-command='echo -e \"\\x1b[32;1m\$FZF_POS\\x1b[m/\$FZF_INFO Current/Matches/Total (Selected) \"' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --toggle-sort='ctrl-s' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --border-label='╢ Command ╟' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --preview '("$MYRUNTIME/customs/bin/_previewer" {}) 2> /dev/null | head -500' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-v:change-preview-window(down,99%)' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-t:toggle-preview' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-o:become("$MYRUNTIME/customs/bin/_operator" {})' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-y:execute-silent(echo -n {} | pbcopy)+abort' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-n:page-down,ctrl-p:page-up' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-a:toggle-all' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-j:preview-down' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-k:preview-up' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-l:select-all+execute:less {+f}' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-l:+deselect-all' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='≥:next-selected,≤:prev-selected' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='shift-up:first' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='shift-down:last' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='load:change-prompt:Loaded, Search ➤ ' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-h:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:("$MYRUNTIME/customs/bin/_previewer" \"help\")' "
-# set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='ctrl-f:transform:echo $fzf_transformer_search_swap_type'"
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='resize:transform:echo $fzf_transformer'"
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='result:transform:echo $fzf_transformer'"
-# set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
-# set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='esc:toggle-input+toggle-bind(j,k,/)+transform(if test \"$FZF_KEY\" = \"enter\"; echo accept; else; echo abort; end)' "
-# set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="esc:transform(if test \"$FZF_INPUT_STATE\" = \"enabled\"; echo \"hide-input+rebind(j,k,/)\"; else if test \"$FZF_KEY\" = \"enter\"; echo \"accept\"; else; echo \"abort\"; end)" '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟' "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='focus:transform-header:file --brief {}' "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --no-input '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --walker-skip=".git,.vscode,.idea,target,\$RECYCLE.BIN" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-label="╢ Preview ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label "╢ Result ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-border '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label-pos=top,4 '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-border '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label "╢ Header ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label-pos=top,4 '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-border '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --gap '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --gap-line=\"$(echo '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈' | lolcat -f -F 1.4)\"  "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) \"" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview "($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null | head -500" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-v:change-preview-window(down,99%)" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-o:become($MYRUNTIME/customs/bin/_operator {})" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-n:page-down,ctrl-p:page-up" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-a:toggle-all" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-l:select-all+execute:less {+f}" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-l:+deselect-all" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind 'ctrl-f:transform:$fzf_transformer_search_swap_type'"
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="shift-up:first" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="shift-down:last" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤ " '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:($MYRUNTIME/customs/bin/_previewer \"help\")" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="result:transform:$fzf_transformer" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transformer" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 
 set -gx FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS
 

@@ -455,3 +455,140 @@ function fzf_manage
         --preview-window right:70%:rounded:hidden:wrap --preview " $MYRUNTIME/customs/bin/_previewer_fish $DIRPATH/{} "
 end
 alias fm2="fzf_manage"
+
+function fzf_search_custom_functions_by_desc
+    set -l TMP_FUNCTIONS_FILE (mktemp)
+    set -l COMMANDPATH "$MYRUNTIME/customs/my_shell/"
+    
+    find $COMMANDPATH -type f -name "*.bzsh" | xargs grep 'Desc: function:' | grep -v 'TMP_FUNCTIONS_FILE' > $TMP_FUNCTIONS_FILE
+    
+    if test -f $TMP_FUNCTIONS_FILE && test -n "(cat $TMP_FUNCTIONS_FILE)"
+        set -l CHOOSE (cat $TMP_FUNCTIONS_FILE | awk -F'# Desc: function:' '{print $2}' | fzf $FZF_CUSTOM_PARAMS \
+            --preview-window right:70%:rounded:hidden:wrap \
+            --preview "echo {} | sed 's/:/\\n/g'" \
+            --delimiter ':' \
+            --bind "enter:become(echo {1})" \
+            --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+            --header="$(_buildFzfHeader '' 'fzf_search_custom_functions_by_desc')" \
+            --bind "ctrl-e:execute(bat $TMP_FUNCTIONS_FILE > /dev/tty)")
+        
+        if test -n "$CHOOSE"
+            echo $CHOOSE
+            echo ""
+            eval $CHOOSE
+        end
+        rm -f $TMP_FUNCTIONS_FILE
+    end
+end
+
+alias fsf="fzf_search_custom_functions_by_desc"
+
+function fzf_search_custom_alias_by_desc
+    set -l TMP_ALIAS_FILE (mktemp)
+    set -l COMMANDPATH "$MYRUNTIME/customs/my_shell/"
+    
+    find $COMMANDPATH -type f -name "*.bzsh" | xargs grep 'Desc: alias:' | grep -v 'TMP_ALIAS_FILE' > $TMP_ALIAS_FILE
+    
+    if test -f $TMP_ALIAS_FILE && test -n "(cat $TMP_ALIAS_FILE)"
+        set -l CHOOSE (cat $TMP_ALIAS_FILE | awk -F'# Desc: alias:' '{print $2}' | fzf $FZF_CUSTOM_PARAMS \
+            --preview-window right:70%:rounded:hidden:wrap \
+            --preview "echo {} | sed 's/:/\\n/g'" \
+            --delimiter ':' \
+            --bind "enter:become(echo {1})" \
+            --bind 'ctrl-y:execute-silent(echo -n {1}| pbcopy)+abort' \
+            --header="$(_buildFzfHeader '' 'fzf_search_custom_alias_by_desc')" \
+            --bind "ctrl-e:execute(bat $TMP_ALIAS_FILE > /dev/tty)")
+        
+        if test -n "$CHOOSE"
+            echo $CHOOSE
+            echo ""
+            eval $CHOOSE
+        end
+        rm -f $TMP_ALIAS_FILE
+    end
+end
+
+alias fsa="fzf_search_custom_alias_by_desc"
+
+function fzf_full_files_manager
+    function ___fzf_manage_all -a Action
+        set -l TMP_FZF_SEARCH_SWAP_FILE "/tmp/fzf_search_swap"
+        set -l Varname "fzf_transformer_filter_$Action"
+        set -l Cmd $fzf_transformer_filter_all
+        
+        if set -q $Varname
+            set Cmd (eval "echo \$$Varname")
+        end
+
+        echo $Action > $TMP_FZF_SEARCH_SWAP_FILE
+        set -l Operate (eval $Cmd | fzf $FZF_CUSTOM_PARAMS \
+            --preview "$MYRUNTIME/customs/bin/_previewer {} 2> /dev/null | head -500" \
+            --header="$(_buildFzfHeader '' 'fzf_mark_by_buku')")
+
+        if test -n "$Operate"
+            if [ "$Action" = "contents" ]
+                set -l parts (string split ':' -- $Operate)
+                set -l tmpfilepath $parts[1]
+                set -l tmplinenum $parts[2]
+
+                if command -v code > /dev/null
+                    code --new-window --goto $tmpfilepath:$tmplinenum
+                else if command -v nvim > /dev/null
+                    nvim +$tmplinenum $tmpfilepath
+                else if command -v vim > /dev/null
+                    vim +$tmplinenum $tmpfilepath
+                else
+                    bat --highlight-line=$tmplinenum --theme=gruvbox-dark --style=full --color=always --pager=never $tmpfilepath
+                end
+            else
+                echo $Operate
+            end
+        end
+    end
+
+    while true
+        set -l action (printf "%s\n" \
+            "🔎 所有文件" \
+            "📁 文件夹搜索" \
+            "📄 文件搜索" \
+            "🫥 隐藏文件搜索" \
+            "🖼️ 图片搜索" \
+            "📖 文本搜索" \
+            "🎶 媒体操作" \
+            "💻 开发语言" \
+            "📝 全文搜索" \
+            "🚪 退出系统" | \
+            fzf --header " 文件管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '选择操作类型'" \
+                --height=15% \
+                --reverse)
+
+        switch "$action"
+            case '*所有文件*'
+                ___fzf_manage_all "all"
+            case '*文件夹搜索*'
+                ___fzf_manage_all "directories"
+            case '*隐藏文件搜索*'
+                ___fzf_manage_all "hiddens"
+            case '*文件搜索*'
+                ___fzf_manage_all "files"
+            case '*图片搜索*'
+                ___fzf_manage_all "images"
+            case '*文本搜索*'
+                ___fzf_manage_all "documents"
+            case '*媒体操作*'
+                ___fzf_manage_all "medias"
+            case '*开发语言*'
+                ___fzf_manage_all "languages"
+            case '*全文搜索*'
+                ___fzf_manage_all "contents"
+            case '*退出系统*'
+                return
+        end
+    end
+end
+
+alias ffm="fzf_full_files_manager"
+bind -M insert \cf fzf_full_files_manager
