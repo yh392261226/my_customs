@@ -234,12 +234,12 @@ function browser_history_manage() {                                             
     done
 }
 alias bh="browser_history_manage"                                                   # Desc: alias: bh:browser_history_manage命令的别名,利用fzf管理Safari、Chrome、Brave浏览器的历史
-if [ "zsh" = "$nowshell" ]; then
+if [ "$ZSH_VERSION" != "" ]; then
     zle -N browser_history_manage
-    bindkey '˙' browser_history_manage   #//Alt H 执行browser_history_manage函数
-else
+    bindkey '∫' browser_history_manage   #//Alt B 执行browser_history_manage函数
+elif [ "$BASH_VERSION" != "" ]; then
     export -f browser_history_manage
-    bind '"˙":"browser_history_manage;\n"'   #//Alt H 执行browser_history_manage函数
+    bind '"∫":"browser_history_manage;\n"'   #//Alt B 执行browser_history_manage函数
 fi
 
 function chromium_bookmarks() {                                                     # Desc: function: chroomium_bookmarks:列出列出Chromium核心的浏览器的书签
