@@ -235,8 +235,12 @@ function actioner() {
             bat --highlight-line="${filelinenum}" --theme=gruvbox-dark --style=full --color=always --pager=never "${filepath}" > /dev/tty
             break 1 && return 
             ;;
-        *Cat查看*)    
-            cat "$filepath" > /dev/tty
+        *Cat查看*)
+            if [ -f /opt/homebrew/bin/ccat ]; then
+                /opt/homebrew/bin/ccat "$filepath" > /dev/tty
+            else    
+                cat "$filepath" > /dev/tty
+            fi
             break 1 && return 
             ;;
         *打开文件位置*)    
@@ -247,6 +251,8 @@ function actioner() {
             break 1 && return 
             ;;
     esac
+    echo "\n"
+    echo "\n"
     return
 }
 # filepath="$@"
