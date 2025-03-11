@@ -1,0 +1,253 @@
+# Describe：直接操作文件进行，删除、复制、移动、重命名、压缩、解压等操作
+
+# 删除
+actioner_delete() {
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    rm -rf "$1"
+    # 恢复终端状态
+    stty "$original_stty"
+    return
+}
+
+# 复制
+actioner_copy() {
+    old="$1"
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    # 读取输入
+    read -ep "Type Copy [ ${old} ] To : " new < /dev/tty
+    cp -R "$old" "$new"
+    # 恢复终端状态
+    stty "$original_stty"
+    return
+}
+
+# 移动
+actioner_move() {
+    old="$1"
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    read -p "Type Move [ ${old} ] To : " new < /dev/tty
+    mv -i "$old" "$new"
+    # 恢复终端状态
+    stty "$original_stty"
+    return
+}
+
+# 重命名
+actioner_rename() {
+    old="$1"
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    read -p "Type Rename [ ${old} ] To : " new < /dev/tty
+    mv -i "$old" "$new"
+    # 恢复终端状态
+    stty "$original_stty"
+    return
+}
+
+# 压缩
+actioner_archive() {
+    old="$1"
+    # 检查输入参数
+    if [[ -z "$old" ]]; then
+        echo "Error: No source file or directory specified."
+        return 1
+    fi
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    read -p "Type Archive [ ${old} ] To : " new < /dev/tty
+    # 恢复终端状态
+    stty "$original_stty"
+    if [[ -z "$new" ]]; then
+        echo "Error: No target archive name specified."
+        return 1
+    fi
+    # 检查源文件或目录是否存在
+    if [[ ! -e "$old" ]]; then
+        echo "Error: Source file or directory '$old' does not exist."
+        return 1
+    fi
+    # 根据目标文件扩展名选择压缩命令
+    case "$new" in
+        *.tar.bz2) tar cvjf "$new" "$old" ;;
+        *.tar.gz)  tar cvzf "$new" "$old" ;;
+        *.tar.xz)  tar cvJf "$new" "$old" ;;
+        *.tar)     tar cvf "$new" "$old" ;;
+        *.tbz2)    tar cvjf "$new" "$old" ;;
+        *.tgz)     tar cvzf "$new" "$old" ;;
+        *.zip)     zip -r "$new" "$old" ;;
+        *.rar)     rar a "$new" "$old" ;;
+        *.7z)      7z a "$new" "$old" ;;
+        *.xz)      xz -c "$old" > "$new" ;;
+        *.gz)      gzip -c "$old" > "$new" ;;
+        *.bz2)     bzip2 -c "$old" > "$new" ;;
+        *.lzma)    lzma -c "$old" > "$new" ;;
+        *)         echo "Error: Unknown archive method for '$new'"; return 1 ;;
+    esac
+    return
+}
+
+# 解压
+actioner_extract() {
+    # 检查文件是否存在
+    [[ -z "$1" ]] && echo "Error: No file specified" && return 1
+    [[ ! -f "$1" ]] && echo "Error: File '$1' does not exist" && return 1
+
+    old="$1"
+
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    read -p "Type Extract [ ${old} ] To : " new < /dev/tty
+    # 恢复终端状态
+    stty "$original_stty"
+
+    # 如果用户未输入目标路径，则根据文件扩展名生成默认路径
+    if [[ -z "$new" ]]; then
+        case "$old" in
+            *.tar.bz2|*.tar.gz|*.tar.xz)
+                new="${old%.*.*}" ;;
+            *.lzma|*.bz2|*.rar|*.gz|*.tar|*.tbz2|*.tgz|*.zip|*.Z|*.7z|*.xz|*.exe)
+                new="${old%.*}" ;;
+            *)
+                echo "Error: Unknown file extension for '$old'"
+                return 1 ;;
+        esac
+    fi
+
+    # 创建目标目录（如果不存在）
+    mkdir -p "$new" || {
+        echo "Error: Failed to create directory '$new'"
+        return 1
+    }
+
+    # 根据文件扩展名选择解压方法
+    case "$old" in
+        *.tar.bz2)  tar xvjf "$old" -C "$new" ;;
+        *.tar.gz)   tar xvzf "$old" -C "$new" ;;
+        *.tar.xz)   tar xvJf "$old" -C "$new" ;;
+        *.lzma)     xz --format=lzma -dc "$old" > "$new/$(basename "${old%.lzma}")" ;;
+        *.bz2)      bunzip2 -c "$old" > "$new/$(basename "${old%.bz2}")" ;;
+        *.rar)      unrar x "$old" "$new/" ;;
+        *.gz)       gunzip -c "$old" > "$new/$(basename "${old%.gz}")" ;;
+        *.tar)      tar xvf "$old" -C "$new" ;;
+        *.tbz2)     tar xvjf "$old" -C "$new" ;;
+        *.tgz)      tar xvzf "$old" -C "$new" ;;
+        *.zip)      unzip "$old" -d "$new" ;;
+        *.Z)        zcat "$old" > "$new/$(basename "${old%.Z}")" ;;
+        *.7z)       7z x "$old" -o"$new" ;;
+        *.xz)       unxz -c "$old" > "$new/$(basename "${old%.xz}")" ;;
+        *.exe)      cabextract -d "$new" "$old" ;;
+        *)          echo "Error: Unknown archive method for '$old'" ;;
+    esac
+    return 0
+}
+
+
+function actioner() {
+    [[ "" == "$1" ]] && return
+    ([ ! -d $1 ] && [ ! -f $1 ]) && return
+    local filepath="$1"
+    local filelinenum=1
+
+    if [ "$( echo $filepath | grep -o ':' | wc -l )" -ge "2" ]; then
+        #// 带两个：：的是全文搜索得到的文件及行号
+        filelinenum=$(echo "$filepath" | awk -F':' '{print $2}')
+        filepath=$(echo "$filepath" | awk -F':' '{print $1}')
+    fi
+
+    local action=$(printf "%s\n" \
+        "删除" \
+        "复制" \
+        "移动" \
+        "重命名" \
+        "压缩" \
+        "解压" \
+        "Nvim编辑" \
+        "Vim编辑" \
+        "Code编辑" \
+        "Bat查看" \
+        "Cat查看" \
+        "打开文件位置" \
+        "取消选择" | \
+        fzf --header " 选择操作 " \
+            --prompt "主菜单 ❯ " \
+            --preview-window=up:30% \
+            --preview "echo '请选择操作类型'" \
+            --height=15% \
+            --reverse)
+
+    case $action in
+        *删除*)    
+            actioner_delete "$filepath" 
+            break 1 && return 
+            ;;
+        *复制*)    
+            actioner_copy "$filepath" 
+            break 1 && return 
+            ;;
+        *移动*)    
+            actioner_move "$filepath" 
+            break 1 && return 
+            ;;
+        *重命名*)  
+            actioner_rename "$filepath" 
+            break 1 && return 
+            ;;
+        *压缩*)    
+            actioner_archive "$filepath" 
+            break 1 && return 
+            ;;
+        *解压*)    
+            actioner_extract "$filepath" 
+            break 1 && return 
+            ;;
+        *Nvim编辑*)    
+            # 保存并重置终端状态
+            original_stty=$(stty -g)
+            stty sane
+            nvim +$filelinenum "$filepath" > /dev/tty
+            # 恢复终端状态
+            stty "$original_stty"
+            break 1 && return 
+            ;;
+        *Vim编辑*)    
+            # 保存并重置终端状态
+            original_stty=$(stty -g)
+            stty sane
+            vim +$filelinenum "$filepath" > /dev/tty
+            # 恢复终端状态
+            stty "$original_stty"
+            break 1 && return 
+            ;;
+        *Code编辑*)    
+            code --new-window --goto ${filepath}:${filelinenum}
+            break 1 && return 
+            ;;
+        *Bat查看*)    
+            bat --highlight-line="${filelinenum}" --theme=gruvbox-dark --style=full --color=always --pager=never "${filepath}" > /dev/tty
+            break 1 && return 
+            ;;
+        *Cat查看*)    
+            cat "$filepath" > /dev/tty
+            break 1 && return 
+            ;;
+        *打开文件位置*)    
+            /usr/bin/open -R "$filepath"
+            break 1 && return 
+            ;;
+        *取消选择*) 
+            break 1 && return 
+            ;;
+    esac
+    return
+}
+# filepath="$@"
+actioner "$@"
