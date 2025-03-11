@@ -598,6 +598,7 @@ function fzf_full_files_manager
             "🎶 媒体操作" \
             "💻 开发语言" \
             "📝 全文搜索" \
+            "📚 压缩文件" \
             "🚪 退出系统" | \
             fzf --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
@@ -625,6 +626,8 @@ function fzf_full_files_manager
                 ___fzf_manage_all "languages"
             case '*全文搜索*'
                 ___fzf_manage_all "contents"
+            case '*压缩文件*'
+                ___fzf_manage_all "archives"
             case '*退出系统*'
                 return
         end

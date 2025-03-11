@@ -72,6 +72,7 @@ set -gx fzf_transformer_filter_images "fd -i -t f -e jpg -e jpeg -e png -e gif -
 set -gx fzf_transformer_filter_medias "fd -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_documents "fd -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_languages "fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_archives "fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_contents "rg --color=always --line-number --no-heading '' "
 
 # ========================
@@ -107,7 +108,8 @@ set -gx fzf_transformer_search_swap_type "if [ -f \$TMP_FZF_SEARCH_SWAP_FILE ]; 
         \"medias\")       echo 'documents'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Medias Only ╟)+reload(\$fzf_transformer_filter_medias)\" ;;
         \"documents\")    echo 'languages'    > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Documents Only ╟)+reload(\$fzf_transformer_filter_documents)\" ;;
         \"languages\")    echo 'contents'     > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Develop Languages Files ╟)+reload(\$fzf_transformer_filter_languages)\" ;;
-        \"contents\")     echo 'all'          > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Contents ╟)+reload(\$fzf_transformer_filter_contents)\" ;;
+        \"contents\")     echo 'archives'     > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Contents ╟)+reload(\$fzf_transformer_filter_contents)\" ;;
+        \"archives\")     echo 'all'          > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search Archives ╟)+reload(\$fzf_transformer_filter_archives)\" ;;
     esac
 else
     echo \"all\" > \$TMP_FZF_SEARCH_SWAP_FILE && echo \"change-list-label(╢ Search All ╟)+reload(\$fzf_transformer_filter_all)\"
@@ -165,6 +167,7 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(lef
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-v:change-preview-window(down,99%)" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-o:become($MYRUNTIME/customs/bin/_operator {})" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-u:become($MYRUNTIME/customs/bin/_actioner {})" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-n:page-down,ctrl-p:page-up" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="ctrl-a:toggle-all" '
