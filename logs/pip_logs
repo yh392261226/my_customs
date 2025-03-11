@@ -96,3 +96,5 @@ pipx install mypy
 pipx install typer
 
 pipx install rich --include-deps
+
+pipx install jc
