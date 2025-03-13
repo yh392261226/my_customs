@@ -816,17 +816,17 @@ function fzf_full_files_manager() {                                             
 
     while true; do
         local action=$(printf "%s\n" \
-            "🔎 所有文件" \
-            "📁 文件夹搜索" \
-            "📄 文件搜索" \
-            "🫥 隐藏文件搜索" \
-            "🖼️ 图片搜索" \
-            "📖 文本搜索" \
-            "🎶 媒体操作" \
-            "💻 开发语言" \
-            "📝 全文搜索" \
-            "📚 压缩文件" \
-            "🚪 退出系统" | \
+            "🔎 所有文件(All)" \
+            "📁 文件夹(Directory)" \
+            "📄 文件(File)" \
+            "🫥 隐藏文件(Hidden)" \
+            "🖼️ 图片(Image)" \
+            "📖 文本(Document)" \
+            "🎶 媒体(Media)" \
+            "💻 开发(Develop)" \
+            "📝 全文搜索(Content)" \
+            "📚 压缩文件(Archive)" \
+            "🚪 退出系统(Exit)" | \
             fzf --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
                 --preview-window=up:30% \
@@ -836,15 +836,15 @@ function fzf_full_files_manager() {                                             
 
         case $action in
             *所有文件*) ___fzf_manage_all "all" ;;
-            *文件夹搜索*) ___fzf_manage_all "directories" ;;
-            *隐藏文件搜索*) ___fzf_manage_all "hiddens" ;;
-            *文件搜索*) ___fzf_manage_all "files" ;;
-            *图片搜索*) ___fzf_manage_all "images" ;;
-            *文本搜索*) ___fzf_manage_all "documents" ;;
-            *媒体操作*) ___fzf_manage_all "medias" ;;
-            *开发语言*) ___fzf_manage_all "languages" ;;
-            *全文搜索*) ___fzf_manage_all "contents" ;;
+            *文件夹*) ___fzf_manage_all "directories" ;;
+            *隐藏文件*) ___fzf_manage_all "hiddens" ;;
             *压缩文件*) ___fzf_manage_all "archives" ;;
+            *文件*) ___fzf_manage_all "files" ;;
+            *图片*) ___fzf_manage_all "images" ;;
+            *文本*) ___fzf_manage_all "documents" ;;
+            *媒体*) ___fzf_manage_all "medias" ;;
+            *开发*) ___fzf_manage_all "languages" ;;
+            *全文搜索*) ___fzf_manage_all "contents" ;;
             *退出系统*) break 1 && return ;;
         esac
     done

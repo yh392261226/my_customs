@@ -43,7 +43,7 @@ _buildFzfHeader() {
         echo ${2} > $TMP_FZF_HEADER_SWAP_FILE
     fi
     newheader=${newheader}'\n╰───────────────────────────────────────────────────'
-    echo "$newheader "
+    echo "$newheader " | lolcat -f
 }
 
 _fzf_compgen_path() {
@@ -65,7 +65,7 @@ export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e
 export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' "
 
-fzf_transformer='
+export fzf_transformer='
     lines=$(( FZF_LINES - FZF_MATCH_COUNT - 1 ))
     if [[ $FZF_MATCH_COUNT -eq 0 ]]; then
         echo "change-preview-window:hidden"
@@ -78,7 +78,7 @@ fzf_transformer='
     fi
 '
 
-fzf_transformer_input_switcher='
+export fzf_transformer_input_switcher='
     if [[ $FZF_INPUT_STATE = enabled ]]; then
         echo "rebind(j,k,/)+hide-input"
     elif [[ $FZF_KEY = enter ]]; then
@@ -88,7 +88,7 @@ fzf_transformer_input_switcher='
     fi
 '
 
-fzf_transformer_search_swap_type='
+export fzf_transformer_search_swap_type='
     if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
         local action=$(cat $TMP_FZF_SEARCH_SWAP_FILE)
         case $action in
@@ -109,10 +109,11 @@ fzf_transformer_search_swap_type='
 '
 
 #FZF_DEFAULT
-FZF_DEFAULT_OPTS=" --reverse --min-height='40' "
+FZF_DEFAULT_OPTS=" --reverse --smart-case --min-height='40' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --style=full:double "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --cycle "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --scheme=path "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --inline-info "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --tmux "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --highlight-line "
@@ -149,7 +150,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-border '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(echo '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈' | lolcat -f -F 1.4)\"  "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(lolcat -f -F 1.4 <<< ╴╴╴╴╴╴╴╴╴╴╴╴╴╴)\"  "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) \"" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
