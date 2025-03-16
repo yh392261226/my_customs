@@ -8,6 +8,7 @@
 # - https://github.com/hpjansson/chafa
 # - https://iterm2.com/utilities/imgcat
 # - https://github.com/hzeller/timg
+# - https://github.com/dsanson/termpdf
 # - tree
 # - piconv
 # - glow
@@ -30,11 +31,13 @@ if [ "$file" = "help" ]; then
         fi
     fi
     echo ""
+# 用于 Vim 和 Nvim 配置文件的快照预览
 elif [ "$file" = "capture_screen" ]; then
     tmpapppath=$(cat $2 | grep 'AppPath:' |sed 's/AppPath://g')
     if [ -f $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg ]; then
         chafa -f sixel -s 100%x100% $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg
     fi
+# 用于全文搜索结果的编辑(一般会含有两个冒号::)
 elif [ "$(echo \"$file\" | grep -o ':' | wc -l)" -ge "2" ]; then
     tmpfilepath=$(echo "$file" | awk -F':' '{print $1}')
     tmplinenum=$(echo "$file" | awk -F':' '{print $2}')
@@ -53,22 +56,24 @@ else
             exit
         else
             case $file in
+                # pdf 文件在终端中预览 pdf
                  *.pdf)
                     #  pdftotext "$file" |less
-                    # 安装方法：https://github.com/dsanson/termpdf
                     $MYRUNTIME/customs/bin/termpdf -sixel "$file"
                     exit
                 ;;
+                # 根据文件扩展名在终端中预览 markdown内容
                 *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown)
                     glow --style=dark -p "$file"
                     exit
                 ;;
+                # 根据文件扩展名生成视频截图
                 *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
                     timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) "$file"
                     exit
                 ;;
+                # 根据文件扩展名选择查看压缩包内容
                 *.tar.bz2| *.tar.gz| *.tar.xz| *.lzma| *.bz2| *.rar| *.gz| *.tar| *.tbz2| *.tgz| *.zip| *.7z| *.xz| *.Z| *.exe)
-                    # 根据文件扩展名选择查看压缩包内容
                     case "$file" in
                     # 多层压缩的 tar 包
                     *.tar.bz2)   tar tvjf "$file" ;;    # 查看 bzip2 压缩的 tar 包
@@ -93,12 +98,14 @@ else
                     esac
                     exit
                 ;;
+                # txt 文件会自动转换编码为 utf8并用 bat 预览
                 *.txt)
                     piconv -f GB2312 -t UTF-8 "$file" |bat --theme=gruvbox-dark --color=always --style=full
                     exit
                 ;;
             esac
-
+            
+            # 二进制文件直接使用 file 命令
             [[ $type =~ =binary ]] && file "$file"
 
             if command -v batcat > /dev/null; then
