@@ -150,6 +150,43 @@ actioner_extract() {
     return 0
 }
 
+# 查看压缩包内容
+actioner_archive_peek() {
+    # 检查文件是否存在
+    [[ -z "$1" ]] && echo "Error: No file specified" && return 1
+    [[ ! -f "$1" ]] && echo "Error: File '$1' does not exist" && return 1
+    old="$1"
+    # 保存并重置终端状态
+    original_stty=$(stty -g)
+    stty sane
+    # 根据文件扩展名选择查看压缩包内容
+    case "$old" in
+    # 多层压缩的 tar 包
+    *.tar.bz2)   tar tvjf "$old" ;;    # 查看 bzip2 压缩的 tar 包
+    *.tar.gz)    tar tvzf "$old" ;;    # 查看 gzip 压缩的 tar 包
+    *.tar.xz)    tar tvJf "$old" ;;    # 查看 xz 压缩的 tar 包（注意大写 J）
+    # 单层压缩格式
+    *.lzma)      lzma -dc "$old" | tar tvf - ;;  # 查看 LZMA 压缩的 tar 包
+    *.bz2)       bzip2 -l "$old" ;;               # 显示 bzip2 文件元信息
+    *.rar)       unrar l "$old" ;;                # 列出 RAR 压缩包内容
+    *.gz)        gunzip -l "$old" ;;              # 显示 gzip 文件元信息
+    *.tar)       tar tvf "$old" ;;                # 查看未压缩的 tar 包
+    # 变体压缩包
+    *.tbz2)      tar tvjf "$old" ;;    # .tbz2 本质是 tar.bz2
+    *.tgz)       tar tvzf "$old" ;;     # .tgz 本质是 tar.gz
+    # 独立压缩格式
+    *.zip)       unzip -l "$old" ;;               # 列出 ZIP 压缩包内容
+    *.7z)        7z l "$old" ;;                   # 查看 7-Zip 压缩包内容
+    *.xz)        xz -l "$old" ;;                  # 显示 xz 压缩文件元信息
+    *.Z)         zcat "$old" | less ;;            # 查看旧式 compress 压缩内容
+    *.exe)       7z l "$old" ;;                   # 查看自解压 exe 中的文件
+    *)           echo "Error: Unknown archive method for '$old'" ;;
+    esac
+    # 恢复终端状态
+    stty "$original_stty"
+    return 0
+}
+
 
 function actioner() {
     [[ "" == "$1" ]] && return
@@ -168,6 +205,7 @@ function actioner() {
         "复制" \
         "移动" \
         "重命名" \
+        "查看压缩包内容" \
         "压缩" \
         "解压" \
         "Nvim编辑" \
@@ -200,6 +238,10 @@ function actioner() {
         *重命名*)  
             actioner_rename "$filepath" 
             break 1 && return 
+            ;;
+        *查看压缩包内容*)
+            actioner_archive_peek "$filepath" 
+            break 1 && return
             ;;
         *压缩*)    
             actioner_archive "$filepath" 

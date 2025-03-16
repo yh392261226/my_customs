@@ -60,31 +60,37 @@ else
                     exit
                 ;;
                 *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown)
-                    glow "$file" | less
+                    glow --style=dark -p "$file"
                     exit
                 ;;
                 *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
                     timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) "$file"
                     exit
                 ;;
-                *.zip)
-                    unzip -l "$file"
-                    exit
-                ;;
-                *.tar.gz)
-                    tar -ztvf "$file"
-                    exit
-                ;;
-                *.tar.bz2)
-                    tar -jtvf "$file"
-                    exit
-                ;;
-                *.tar.xz)
-                    tar -Jtvf "$file"
-                    exit
-                ;;
-                *.tar)
-                    tar -tvf "$file"
+                *.tar.bz2| *.tar.gz| *.tar.xz| *.lzma| *.bz2| *.rar| *.gz| *.tar| *.tbz2| *.tgz| *.zip| *.7z| *.xz| *.Z| *.exe)
+                    # 根据文件扩展名选择查看压缩包内容
+                    case "$file" in
+                    # 多层压缩的 tar 包
+                    *.tar.bz2)   tar tvjf "$file" ;;    # 查看 bzip2 压缩的 tar 包
+                    *.tar.gz)    tar tvzf "$file" ;;    # 查看 gzip 压缩的 tar 包
+                    *.tar.xz)    tar tvJf "$file" ;;    # 查看 xz 压缩的 tar 包（注意大写 J）
+                    # 单层压缩格式
+                    *.lzma)      lzma -dc "$file" | tar tvf - ;;  # 查看 LZMA 压缩的 tar 包
+                    *.bz2)       bzip2 -l "$file" ;;               # 显示 bzip2 文件元信息
+                    *.rar)       unrar l "$file" ;;                # 列出 RAR 压缩包内容
+                    *.gz)        gunzip -l "$file" ;;              # 显示 gzip 文件元信息
+                    *.tar)       tar tvf "$file" ;;                # 查看未压缩的 tar 包
+                    # 变体压缩包
+                    *.tbz2)      tar tvjf "$file" ;;    # .tbz2 本质是 tar.bz2
+                    *.tgz)       tar tvzf "$file" ;;     # .tgz 本质是 tar.gz
+                    # 独立压缩格式
+                    *.zip)       unzip -l "$file" ;;               # 列出 ZIP 压缩包内容
+                    *.7z)        7z l "$file" ;;                   # 查看 7-Zip 压缩包内容
+                    *.xz)        xz -l "$file" ;;                  # 显示 xz 压缩文件元信息
+                    *.Z)         zcat "$file" | less ;;            # 查看旧式 compress 压缩内容
+                    *.exe)       7z l "$file" ;;                   # 查看自解压 exe 中的文件
+                    *)           echo "Error: Unknown archive method for '$file'" ;;
+                    esac
                     exit
                 ;;
                 *.txt)
