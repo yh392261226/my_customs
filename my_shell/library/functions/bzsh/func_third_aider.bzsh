@@ -11,7 +11,7 @@ function fzf_linux_command_searcher() {                                         
     --bind="ctrl-y:execute-silent(echo {} | awk -F'.' '{print \$1}' | pbcopy)+abort" \
     --bind='ctrl-r:execute(echo https://wangchujiang.com/linux-command/c/{}.html | sed "s/.md.html/.html/g" | xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_linux_command_searcher')" \
-    --preview="glow --style=dark -p ${MDDIR}/command/{}"
+    --preview="$MYRUNTIME/customs/bin/_previewer ${MDDIR}/command/{}"
 }
 alias flc="fzf_linux_command_searcher"                                          # Desc: alias: flc: fzf_linux_command_searcher命令的别名,利用fzf和别人写的linux命令markdown进行搜索
 
@@ -40,7 +40,7 @@ function fzf_develop_references_searcher() {                                    
     --bind="ctrl-y:execute-silent(echo ${MDDIR}/docs/{} | pbcopy)+abort" \
     --bind='ctrl-r:execute(echo https://wangchujiang.com/reference/docs/{} | sed "s/.md/.html/g" | xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_develop_references_searcher')" \
-    --preview="glow --style=dark -p ${MDDIR}/docs/{}"
+    --preview="$MYRUNTIME/customs/bin/_previewer ${MDDIR}/docs/{}"
 
 }
 alias fdrs="fzf_develop_references_searcher"                                    # Desc: alias: fdrs: fzf_develop_references_searcher命令的别名,利用fzf和别人做的快速参考和备忘清单
@@ -54,7 +54,7 @@ function fzf_cheatsheets_searcher() {                                           
     --bind="ctrl-y:execute-silent(echo ${MDDIR}/{} | pbcopy)+abort" \
     --bind='ctrl-r:execute(echo https://devhints.io/{} | sed 's/.md//g' |xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
-    --preview="glow --style=dark -p ${MDDIR}/{}"
+    --preview="$MYRUNTIME/customs/bin/_previewer ${MDDIR}/{}"
 }
 alias fcs="fzf_cheatsheets_searcher"                                            # Desc: alias: fcs: fzf_cheatsheets_searcher命令的别名,利用fzf和别人做的快速参考和文档进行搜索
 
