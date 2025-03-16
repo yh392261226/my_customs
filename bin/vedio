@@ -17,6 +17,13 @@ if [ ! -d "$DOWNAPP" ]; then
     exit 0
 fi
 
+function openVedio() {
+    local choose=$(ls $VEDIOPATH | fzf +m $FZF_CUSTOM_PARAMS --preview="$MYRUNTIME/customs/bin/_previewer $VEDIOPATH/{}")
+    if [ "" != "$choose" ]; then
+        /usr/bin/open $VEDIOPATH/$choose
+    fi
+}
+
 
 case "$1" in
     "statistics" | "s")
@@ -29,12 +36,20 @@ case "$1" in
         /usr/bin/open -a "$DOWNAPP"
         
         ;;
-    "watch" | "w")
+    "directory" | "dir")
         open $VEDIOPATH
         ;;
+    "watch" | "w")
+        openVedio
+        ;;
     *)
-        echo "Usage"
-        echo "vedio statistics|s,  get|g, watch|w"
-        echo 
+        hr '-'
+        hr '*'
+        hr '-'
+        echo "Usage:"
+        hr '-'
+        echo "      s/statistics    |       g/get        |           w/watch        |     dir/directory"
+        echo "统计数量及磁盘占用量  ｜      下载视频     ｜       观看视频文件夹    ｜    打开视频文件夹"
+        hr '-'
         ;;
 esac
