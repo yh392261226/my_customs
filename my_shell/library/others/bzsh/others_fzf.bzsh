@@ -128,6 +128,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --pointer=' ➤' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --separator='┈┉' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --scrollbar='▌▐' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --prompt='Search  ❯ ' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --ghost='Type to search ┈┉' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --info='right' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
@@ -135,6 +136,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-first '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border='bottom' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --no-input '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --history=$HOME/.fzf_history "
 #FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '

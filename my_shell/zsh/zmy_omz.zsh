@@ -94,7 +94,7 @@ plugins=(
 #    ag
 	  mvn
 	  autojump
-    bbedit
+    # bbedit
     colored-man-pages
     colorize
     command-not-found
@@ -105,21 +105,21 @@ plugins=(
     git-auto-fetch
 #	svn
 #	svn-fast-info
-	  golang
-	  history
-	  git-flow
-	  node
-	  macos
-	  cp
-	  perl
-	  python
-	  ruby
-	  rsync
-	  urltools
-    jsontools
-	  copypath
-	  copyfile
-	  copybuffer
+	golang
+	history
+	git-flow
+	node
+	macos
+	cp
+	perl
+	python
+	ruby
+	rsync
+	urltools
+	jsontools
+	copypath
+	copyfile
+	copybuffer
     # fzf-brew
 	# zsh-autosuggestions
 	# zsh-syntax-highlighting
