@@ -147,7 +147,7 @@ function fzf_safari_history() {                                                 
     sqlite3 $HOME/Library/Safari/History.db "SELECT datetime(h.visit_time + 978307200, 'unixepoch', 'localtime') as date, i.url FROM history_visits h INNER JOIN history_items i ON h.history_item = i.id" | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
         --preview ' echo -n {} | awk -F"|" "{print \$2}"' \
         --bind 'focus:transform-preview-label:echo -n {} | awk -F "|" "{print \"[\" \$1 \"]\"}"' \
-        --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+        --bind 'f12:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
         --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))' \
         --header="$(_buildFzfHeader '' 'fzf_safari_history')"
 }
@@ -157,7 +157,7 @@ function fzf_safari_bookmarks() {                                               
     plutil -convert xml1 -o - $HOME/Library/Safari/Bookmarks.plist | grep -E "<string>http[s]?://|<string>.*<\/string>" | sed -E 's/<string>(http[s]?:\/\/[^<]*)<\/string>/\1/g' | grep -B 1 "http[s]\?:" | sed -E 's/<string>([^<]*)<\/string>/\1/g' | sed 's/^--$/|seprator|/g' | sed 's/^[[:space:]]*//g' | sed 's/^$/No title .../g' | tr '\n' ' ' | sed 's/|seprator|/\n/g' | fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
         --preview ' echo -n {}' \
         --bind 'focus:transform-preview-label:echo -n {} ' \
-        --bind 'ctrl-y:execute-silent(echo {} | grep -E "http[s]?://.*" | pbcopy)+abort' \
+        --bind 'f12:execute-silent(echo {} | grep -E "http[s]?://.*" | pbcopy)+abort' \
         --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))' \
         --header="$(_buildFzfHeader '' 'fzf_safari_bookmarks')"
 }
@@ -187,7 +187,7 @@ function chromium_history() {                                                   
     fzf --ansi --multi --no-hscroll --tiebreak=index $FZF_CUSTOM_PARAMS \
         --preview ' echo -n {} ' \
         --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-        --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+        --bind 'f12:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
         --header="$(_buildFzfHeader '' 'chromium_history')" \
         | sed 's#.*\(https*://\)#\1#' | xargs open -a "$2"
 }
@@ -259,7 +259,7 @@ function chromium_bookmarks() {                                                 
         | sed -E $'s/(.*)\t(.*)/\\1\t\x1b[36m\\2\x1b[m/g' \
         | fzf --ansi $FZF_CUSTOM_PARAMS \
               --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-              --bind 'ctrl-y:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+              --bind 'f12:execute-silent(echo {} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
               --header="$(_buildFzfHeader '' 'chromium_bookmarks')" \
         | cut -d$'\t' -f2 \
         | xargs open -a "$2"
@@ -284,7 +284,7 @@ alias bdb="brave_default_bookmarks"                                             
 function fzf_mark_by_buku() {                                                       # Desc: function: fzf_mark_by_buku:buku数据库配合fzf列出网址收藏
     website=( $(buku --suggest -p -f 5 | column -ts$'\t' | fzf $FZF_CUSTOM_PARAMS \
     --bind 'focus:transform-preview-label:echo -n "[ {1} ]";' \
-    --bind 'ctrl-y:execute-silent(buku --nostdin -p {1} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
+    --bind 'f12:execute-silent(buku --nostdin -p {1} | grep -Eo "https?://[^[:space:]]+" | pbcopy)+abort' \
     --preview='buku --nostdin -p {1}' \
     --header="$(_buildFzfHeader '' 'fzf_mark_by_buku')" \
     --multi ) )

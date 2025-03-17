@@ -8,7 +8,7 @@ function fzf_linux_command_searcher() {                                         
     ls ${MDDIR}/command | fzf $FZF_CUSTOM_PARAMS +m \
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/command/{})" \
-    --bind="ctrl-y:execute-silent(echo {} | awk -F'.' '{print \$1}' | pbcopy)+abort" \
+    --bind="f12:execute-silent(echo {} | awk -F'.' '{print \$1}' | pbcopy)+abort" \
     --bind='ctrl-r:execute(echo https://wangchujiang.com/linux-command/c/{}.html | sed "s/.md.html/.html/g" | xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_linux_command_searcher')" \
     --preview="$MYRUNTIME/customs/bin/_previewer ${MDDIR}/command/{}"
@@ -24,7 +24,7 @@ function fzf_how_to_cook_searcher() {                                           
     cat $TMPCOOKBOOK | awk -F'/' '{print $NF}' | awk -F'.' '{print $1}' | fzf $FZF_CUSTOM_PARAMS +m \
     --height=90% \
     --bind="enter:become($MYRUNTIME/customs/bin/_markdown_previewer {} $TMPCOOKBOOK)" \
-    --bind="ctrl-y:execute-silent(echo {} | pbcopy)+abort" \
+    --bind="f12:execute-silent(echo {} | pbcopy)+abort" \
     --header="$(_buildFzfHeader '' 'fzf_how_to_cook_searcher')" \
     --preview=" $MYRUNTIME/customs/bin/_markdown_previewer {} $TMPCOOKBOOK "
 
@@ -37,7 +37,7 @@ function fzf_develop_references_searcher() {                                    
     ls ${MDDIR}/docs | fzf $FZF_CUSTOM_PARAMS +m \
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/docs/{})" \
-    --bind="ctrl-y:execute-silent(echo ${MDDIR}/docs/{} | pbcopy)+abort" \
+    --bind="f12:execute-silent(echo ${MDDIR}/docs/{} | pbcopy)+abort" \
     --bind='ctrl-r:execute(echo https://wangchujiang.com/reference/docs/{} | sed "s/.md/.html/g" | xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_develop_references_searcher')" \
     --preview="$MYRUNTIME/customs/bin/_previewer ${MDDIR}/docs/{}"
@@ -51,7 +51,7 @@ function fzf_cheatsheets_searcher() {                                           
     ls ${MDDIR}/*.md | grep -v 'README.md' | awk -F'/' '{print $NF}' | fzf $FZF_CUSTOM_PARAMS +m \
     --height=90% \
     --bind="enter:become(glow --style=dark ${MDDIR}/{})" \
-    --bind="ctrl-y:execute-silent(echo ${MDDIR}/{} | pbcopy)+abort" \
+    --bind="f12:execute-silent(echo ${MDDIR}/{} | pbcopy)+abort" \
     --bind='ctrl-r:execute(echo https://devhints.io/{} | sed 's/.md//g' |xargs /usr/bin/open)' \
     --header="$(_buildFzfHeader '' 'fzf_cheatsheets_searcher')" \
     --preview="$MYRUNTIME/customs/bin/_previewer ${MDDIR}/{}"

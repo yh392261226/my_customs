@@ -24,7 +24,7 @@ _fzf_comprun() {
 _buildFzfHeader() {
     rm -f $TMP_FZF_HEADER_SWAP_FILE
     newheader='╭───────────────────────────────────────────────────\n'
-    newheader=${newheader}"│   CTRL-H Search Infomation "
+    newheader=${newheader}"│   F1 Help Infomation "
     local new_header
     local post_header
     [[ "" != "$1" ]] && post_header="$1"
@@ -54,15 +54,15 @@ _fzf_compgen_dir() {
     fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
-export fzf_transformer_filter_all="fd --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_files="fd --type f -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_directories="fd --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_all="fd --type f --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_files="fd --type f -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_directories="fd --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_hiddens="fd --type f --type d --hidden --glob '.*' "
-export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' "
 
 export fzf_transformer='
@@ -128,16 +128,15 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --pointer=' ➤' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --separator='┈┉' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --scrollbar='▌▐' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --prompt='Search  ❯ ' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --ghost='Type to search ┈┉' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --info='right' "
+#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --ghost='Type to search ┈┉' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --info='inline-right: 💱 ' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --border-label-pos='bottom,4' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header=' ⚕️CTRL-H Search Infomation ' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-first '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --header-lines-border='bottom' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --no-input '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --history=$HOME/.fzf_history "
-#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,+{2}+3/3,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,.vscode,.idea,target,\$RECYCLE.BIN" '
@@ -153,35 +152,37 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(lolcat -f -F 1.4 <<< ╴╴╴╴╴╴╴╴╴╴╴╴╴╴)\"  "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) \"" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="ctrl-s" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) 👣  \"" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-v:change-preview-window(down,99%)" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-t:toggle-preview" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-o:become(${MYRUNTIME}/customs/bin/_operator {})" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {})" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-y:execute-silent(echo -n {} | pbcopy)+abort" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-n:page-down,ctrl-p:page-up" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-a:toggle-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2:transform:$fzf_transformer_search_swap_type'"
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3:toggle-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f4:toggle-preview" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f5:change-preview-window(down,99%)" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="f6" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f7:become(${MYRUNTIME}/customs/bin/_operator {})" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f8:become(${MYRUNTIME}/customs/bin/_actioner {})" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f9:page-up" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f10:page-down" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f11:select-all+execute:less {+f}" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f11:+deselect-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f12:execute-silent(echo -n {} | pbcopy)+deselect-all+abort" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:select-all+execute:less {+f}" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-l:+deselect-all" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'ctrl-f:transform:$fzf_transformer_search_swap_type'"
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt:Loaded, Search ➤ " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-h:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt: 🔛 Loaded, Search ➤ " '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ 🔝 Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="zero:clear-query+change-input-label(No Match ! 🔚 )+change-prompt:⏳️ Retype, Search ➤ " '
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
 #FZF_COMPLETION
@@ -266,7 +267,7 @@ if [ "zsh" = "$nowshell" ]; then
     --border-label="╢Custom Command╟" \
     --preview='echo {}' \
     --bind='focus:transform-preview-label:echo -n "╢ Preview: {} ╟";' \
-    --bind='ctrl-h:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
+    --bind='f1:change-preview-label(Search Information)+transform-preview-label(echo Search Information)+preview:($MYRUNTIME/customs/bin/_previewer help)' \
     --tmux='center' \
     --header='$(_buildFzfHeader "" "")' \
     --header-first)

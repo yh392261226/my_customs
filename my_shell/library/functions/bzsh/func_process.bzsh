@@ -4,7 +4,7 @@
 function fzf_process_kill() {                                                       # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     local PARAMS
-    PARAMS=($FZF_CUSTOM_PARAMS --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' --header="$(_buildFzfHeader '' 'fzf_process_kill')")
+    PARAMS=($FZF_CUSTOM_PARAMS --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'f12:execute-silent(echo -n {2}| pbcopy)+abort' --header="$(_buildFzfHeader '' 'fzf_process_kill')")
 
     if [ "$UID" != "0" ]; then
         pid=$(ps -f -u $UID | sed 1d | fzf -m $PARAMS | awk '{print $2}')
@@ -34,7 +34,7 @@ alias fpid="find_process_id"                                                    
 function fzf_process_magnifier() {                                                  # Desc: function fzf_process_magnifier: 进程放大镜
     (date; ps -ef | sed 1d) | fzf $FZF_CUSTOM_PARAMS \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
---bind 'ctrl-y:execute-silent(echo -n {2}| pbcopy)+abort' \
+--bind 'f12:execute-silent(echo -n {2}| pbcopy)+abort' \
 --bind='ctrl-r:reload(date; ps -ef)' \
 --header="$(_buildFzfHeader '' 'fzf_process_magnifier')" \
 | awk '{print $2}' | xargs kill -9

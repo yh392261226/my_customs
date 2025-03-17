@@ -41,7 +41,7 @@ function php_change_version() {                                                 
     choose=$(printf "%s\n" "${installedPhpVersions[@]}" | fzf $FZF_CUSTOM_PARAMS \
 --preview " echo php@{} " \
 --header="$(_buildFzfHeader '' 'php_change_version')" \
---bind 'ctrl-y:execute-silent(echo -n php@{}| pbcopy)+abort')
+--bind 'f12:execute-silent(echo -n php@{}| pbcopy)+abort')
     if [ "" = "$choose" ]; then
         echo "Action abort !"
         return 1
