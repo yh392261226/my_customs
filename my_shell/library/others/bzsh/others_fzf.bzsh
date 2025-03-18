@@ -154,7 +154,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(lolcat -f -F 1.4 <<< ╴╴╴╴╴╴╴╴╴╴╴╴╴╴)\"  "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) 👣  \"" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview="(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
