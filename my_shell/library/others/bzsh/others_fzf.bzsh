@@ -110,6 +110,7 @@ export fzf_transformer_search_swap_type='
 
 #FZF_DEFAULT
 FZF_DEFAULT_OPTS=" --reverse --smart-case --min-height='40' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --exact "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --multi "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --style=full:double "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --cycle "

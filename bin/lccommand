@@ -6,7 +6,7 @@ CUSTOMSBIN=${MYRUNTIME}/customs/bin
 
 if [ -d "${CUSTOMSBIN}" ]; then
     cd "${CUSTOMSBIN}" || exit
-    tmp_choose=$(ls "${CUSTOMSBIN}" | sort | fzf +m $FZF_CUSTOM_PARAMS)
+    tmp_choose=$(ls "${CUSTOMSBIN}" | sort | fzf --exact +m $FZF_CUSTOM_PARAMS)
     if [ "${tmp_choose}" != "" ]; then
         echo ${tmp_choose}
         ${CUSTOMSBIN}/${tmp_choose}
