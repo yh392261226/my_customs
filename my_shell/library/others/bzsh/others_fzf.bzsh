@@ -158,7 +158,8 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview="(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Search Infomation ╟ )+transform-preview-label(echo \" ╢ Search Infomation ╟ \")+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2:transform:$fzf_transformer_search_swap_type'"
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3:toggle-all" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f4:toggle-preview" '
@@ -171,17 +172,20 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f10:page-down" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f11:select-all+execute:less {+f}" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f11:+deselect-all" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f12:execute-silent(echo -n {} | pbcopy)+deselect-all+abort" '
+
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ 🔝 Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
+
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
+
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt: 🔛 Loaded, Search ➤ " '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transformer" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ 🔝 Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="zero:clear-query+change-input-label(No Match ! 🔚 )+change-prompt:⏳️ Retype, Search ➤ " '
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
