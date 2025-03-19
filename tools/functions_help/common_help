@@ -20,8 +20,8 @@ ${bold}${italic}F10${reset}         Page down
 ${bold}${italic}F11${reset}         Long list to show all of lines (Unusual in some functions)
 ${bold}${italic}F12${reset}         Copy"
 readonly help_bottom="${bold}${italic}/${reset}           Show input window (Esc/Enter/Ctrl-C to exit)
-${bold}${italic}CTRL-J${reset}      Scroll up in the preview window
-${bold}${italic}CTRL-K${reset}      Scroll down in the preview window
+${bold}${italic}OPTION-J${reset}    Scroll up in the preview window
+${bold}${italic}OPTION-K${reset}    Scroll down in the preview window
 ${bold}${italic}OPTION-.${reset}    Go to the previous of selected
 ${bold}${italic}OPTION-,${reset}    Go to the next of selected
 ${bold}${italic}SHIFT-UP${reset}    Go to the first line

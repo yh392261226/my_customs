@@ -152,7 +152,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-border '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(lolcat -f -F 1.4 <<< ╴╴╴╴╴╴╴╴╴╴╴╴╴╴)\"  "
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(lolcat -f -F 1.4 <<< ........)\"  "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) 👣  \"" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview="(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
@@ -177,9 +177,10 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ 🔝 Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
 
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-j:preview-down" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-k:preview-up" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected,≤:prev-selected" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="∆:preview-down" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="˚:preview-up" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≤:prev-selected" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
 
@@ -188,6 +189,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="zero:clear-query+change-input-label(No Match ! 🔚 )+change-prompt:⏳️ Retype, Search ➤ " '
+
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
 #FZF_COMPLETION
