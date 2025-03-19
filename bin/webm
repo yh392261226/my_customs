@@ -3,7 +3,7 @@
 
 WEBSITELOGS="$MYRUNTIME/tools/websites"
 OPENBROWSER="/Applications/Safari.app"
-OPENBROWSER="/Applications/Google Chrome.app"
+#OPENBROWSER="/Applications/Google Chrome.app"
 
 [ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
 tmp_iterm=""

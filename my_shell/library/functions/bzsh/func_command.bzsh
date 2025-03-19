@@ -834,6 +834,7 @@ function fzf_full_files_manager() {                                             
                 --preview-window=up:30% \
                 --preview "echo '请选择操作类型'" \
                 --height=15% \
+                --bind='space:jump,jump:accept' \
                 --reverse)
 
         case $action in
