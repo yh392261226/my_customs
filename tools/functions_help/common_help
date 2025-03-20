@@ -9,34 +9,33 @@ readonly d="\e[1;37m"
 
 
 readonly help_header="${bold}${c}[Help Infomation]${c}${reset}
-${bold}${italic}F1${reset}          Help infomation (this page).
-${bold}${italic}F2${reset}          Switch search types(All、Files、Directories、Hiddens、Images、Medias、Documents、Languages、Contents).
-${bold}${italic}F3${reset}          Toggle select all.
-${bold}${italic}F4${reset}          Toggle show/hide the preview window.
-${bold}${italic}F5${reset}          Change to Preview bigger to view.
-${bold}${italic}F6${reset}          Toggle sort.
-${bold}${italic}F7${reset}          Open selected by command _operator with file type.
-${bold}${italic}F8${reset}          Use selected command from _actioner to deal with file.
-${bold}${italic}F9${reset}          Page up.
-${bold}${italic}F10${reset}         Page down.
-${bold}${italic}F11${reset}         Long list to show all of lines (Unusual in some functions).
-${bold}${italic}F12${reset}         Copy.
-${bold}${italic}/${reset}           Toggle show/hide the input window."
+${bold}${italic}F1${reset}              Help infomation (this page).
+${bold}${italic}F2${reset}              Switch search types(All、Files、Directories、Hiddens、Images、Medias、Documents、Languages、Contents).
+${bold}${italic}F3, OPTION-A${reset}    Toggle select all.
+${bold}${italic}F4${reset}              Toggle show/hide the preview window.
+${bold}${italic}F5${reset}              Change to Preview bigger to view.
+${bold}${italic}F6${reset}              Toggle sort.
+${bold}${italic}F7${reset}              Open selected by command _operator with file type.
+${bold}${italic}F8${reset}              Use selected command from _actioner to deal with file.
+${bold}${italic}F9${reset}              Page up.
+${bold}${italic}F10${reset}             Page down.
+${bold}${italic}F11${reset}             Long list to show all of lines (Unusual in some functions).
+${bold}${italic}F12${reset}             Copy.
+${bold}${italic}/${reset}               Toggle show/hide the input window."
 
 
-readonly help_bottom="${bold}${italic}/${reset}           Show input window (Esc/Enter/Ctrl-C to exit).
-${bold}${italic}OPTION-J${reset}    Scroll up in the preview window.
-${bold}${italic}OPTION-K${reset}    Scroll down in the preview window.
-${bold}${italic}OPTION-H${reset}    Scroll half page up in the preview window.
-${bold}${italic}OPTION-L${reset}    Scroll half page down in the preview window.
-${bold}${italic}OPTION-G${reset}    Scroll to the top of the preview window.
-${bold}${italic}OPTION-;${reset}    Scroll to the bottom of the preview window.
-${bold}${italic}OPTION-X${reset}    Exclude the selected items or the current item .
-${bold}${italic}OPTION-T${reset}    Toggle track.
-${bold}${italic}OPTION-/${reset}    Toggle show/hide the header window.
-${bold}${italic}OPTION-.${reset}    Go to the previous of selected.
-${bold}${italic}OPTION-,${reset}    Go to the next of selected.
-${bold}${italic}SHIFT-UP${reset}    Go to the first line.
-${bold}${italic}SHIFT-DOWN${reset}  Go to the last line.
-${bold}${italic}SPACE${reset}       Toggle jump mode (jump by single character).
-${bold}${italic}ESC${reset}         Exit."
+readonly help_bottom="${bold}${italic}OPTION-J${reset}        Scroll up in the preview window.
+${bold}${italic}OPTION-K${reset}        Scroll down in the preview window.
+${bold}${italic}OPTION-H${reset}        Scroll half page up in the preview window.
+${bold}${italic}OPTION-L${reset}        Scroll half page down in the preview window.
+${bold}${italic}OPTION-G${reset}        Scroll to the top of the preview window.
+${bold}${italic}OPTION-;${reset}        Scroll to the bottom of the preview window.
+${bold}${italic}OPTION-X${reset}        Exclude the selected items or the current item .
+${bold}${italic}OPTION-T${reset}        Toggle track.
+${bold}${italic}OPTION-/${reset}        Toggle show/hide the header window.
+${bold}${italic}OPTION-.${reset}        Go to the previous of selected.
+${bold}${italic}OPTION-,${reset}        Go to the next of selected.
+${bold}${italic}SHIFT-UP${reset}        Go to the first line.
+${bold}${italic}SHIFT-DOWN${reset}      Go to the last line.
+${bold}${italic}SPACE${reset}           Toggle jump mode (jump by single character).
+${bold}${italic}ESC${reset}             Exit."

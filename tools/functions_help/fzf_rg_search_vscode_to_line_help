@@ -2,9 +2,9 @@
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
 readonly help_infomation="${c}利用fzf展示ripgrep关键字的文件,选中后vscode定位到行进行编辑.${reset}"
-readonly help_content="${bold}${italic}CTRL-F${reset}      Search with fzf.
-${bold}${italic}CTRL-R${reset}      Search with ripgrep.
-${bold}${italic}CTRL-E${reset}      Edit by vscode."
+readonly help_content="${bold}${italic}CTRL-F${reset}          Search with fzf.
+${bold}${italic}CTRL-R${reset}          Search with ripgrep.
+${bold}${italic}CTRL-E${reset}          Edit by vscode."
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}

@@ -62,13 +62,20 @@ function fzf_vim() {                                                            
 --header="$(_buildFzfHeader '' 'fzf_vim')" \
 )"
     count="$( echo "$files" | wc -l )"
-    vim $files
+    [[ "" != "$files" ]] && vim $files
 }
 alias fvi="fzf_vim"                                                                 # Desc: alias: fvi: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 alias fvim="fzf_vim"                                                                # Desc: alias: fvim: fzf_vim命令的别名,利用fzf选择文件并用vim进行编辑
 
 function fzf_grep_search_vim_to_line() {                                            # Desc: function: fzf_grep_search_vim_to_line: 查询指定目录并vim定位打开根据关键字搜索到文件及行号
-    grep --recursive --line-number --binary-files=without-match $@ | fzf --delimiter ':' \
+    local keywords
+    if [ "" = "$1" ]; then
+      echo "Please input the keywords : "
+      read keywords
+    else
+      keywords="$1"
+    fi
+    grep --recursive --line-number --binary-files=without-match $keywords | fzf --delimiter ':' \
     --nth 3.. \
     $FZF_CUSTOM_PARAMS \
     --preview-window 'right,70%,rounded,+{2}+3/3,~3' \

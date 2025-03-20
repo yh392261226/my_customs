@@ -2,7 +2,7 @@
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
 readonly help_infomation="${c}利用fzf列出当前Git版本文件中修改的文件并diff.${reset}"
-readonly help_content="${bold}${italic}CTRL-O${reset}      Edit."
+readonly help_content="${bold}${italic}CTRL-O${reset}          Edit."
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}

@@ -2,8 +2,8 @@
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
 readonly help_infomation="${c}利用fzf和open命令打开文件或vim编辑文件.${reset}"
-readonly help_content="${bold}${italic}CTRL-R${reset}      Open.
-${bold}${italic}CTRL-E${reset}      Edit by nvim."
+readonly help_content="${bold}${italic}CTRL-R${reset}          Open.
+${bold}${italic}CTRL-E${reset}          Edit by nvim."
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}
