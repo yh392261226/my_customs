@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}Use Fzf and Grep to search for keywords to get the list and the line where it is located. After selecting, Vim will locate the line for editing..${reset}"
-readonly help_content="${bold}${italic}CTRL-R${reset}      Edit"
+readonly help_infomation="${c}fzf 列出grep结果，并由vim定位打开根据关键字搜索到文件及行号${reset}"
+readonly help_content="${bold}${italic}CTRL-R${reset}      Edit."
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}

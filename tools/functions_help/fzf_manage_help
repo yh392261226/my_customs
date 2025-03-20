@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}This help information is public help information, which supports most custom commands.${reset}"
+readonly help_infomation="${c}利用fzf管理目录下的子文件夹、文件、图片等.${reset}"
 readonly help_content=""
 readonly help="${help_header}
 ${help_content}

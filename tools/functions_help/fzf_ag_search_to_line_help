@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}This help information is public help information, which supports most custom commands.${reset}"
+readonly help_infomation="${c}fzf展示ag搜索关键字的文件列表,选中后vim定位到行进行编辑.${reset}"
 readonly help_content=""
 readonly help="${help_header}
 ${help_content}

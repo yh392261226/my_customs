@@ -162,7 +162,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_PO
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview="(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|hidden|right)" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|up,90%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|down,90%,border-horizontal|hidden|right)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2:transform:$fzf_transformer_search_swap_type'"
@@ -190,6 +190,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="…:preview-bottom" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="©:preview-top" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≈:exclude-multi" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="†:toggle-track" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="÷:toggle-header" '
 #FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='®:reload($FZF_CURRENT_COMMAND_SWAP_FILE)' "
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≤:prev-selected" '

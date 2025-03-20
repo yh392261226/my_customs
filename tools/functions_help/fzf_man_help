@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}Use Fzf to list all Man's help information.${reset}"
+readonly help_infomation="${c}fzf版本的man命令.${reset}"
 readonly help_content="${bold}${italic}OPTION-C${reset}    Search by cheat
 ${bold}${italic}OPTION-M${reset}    Search by man
 ${bold}${italic}OPTION-R${reset}    Search by tldr
