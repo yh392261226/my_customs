@@ -52,7 +52,7 @@ function fzf_remove() {                                                         
     --bind "ctrl-d:change-prompt(Directories> )+reload(fd --type d $TMPPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
     --bind "ctrl-f:change-prompt(Files> )+reload(fd --type f $TMPPATH --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build})" \
     --preview "$MYRUNTIME/customs/bin/_previewer {}" \
-    --header="$(_buildFzfHeader 'a+ \n CTRL-D Search Directories\n CTRL-F Search Files' 'fzf_remove')")
+    --header="$(_buildFzfHeader 'a+ \n│   CTRL-D Search Directories\n│   CTRL-F Search Files' 'fzf_remove')")
     [[ ! "$TMPCHOOSE" ]] && return 1
     [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && ((echo $TMPCHOOSE | xargs -I '{}' rm -rf {}) && echo "Action success !") || echo "Action aborted !") || (echo $TMPCHOOSE | xargs -I '{}' rm -rf {} && echo "Action success !")
 }

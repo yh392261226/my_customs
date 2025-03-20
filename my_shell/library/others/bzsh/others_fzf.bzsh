@@ -8,6 +8,7 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 #export FZF_CURRENT_COMMAND_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_current_command_swap
 #[[ -f $FZF_CURRENT_COMMAND_SWAP_FILE ]] && chmod +x $FZF_CURRENT_COMMAND_SWAP_FILE
+export TMP_FZF_SEARCH_TYPES_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_types_swap
 export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header_swap
 export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_swap
 
@@ -94,16 +95,46 @@ export fzf_transformer_search_swap_type='
     if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
         local action=$(cat $TMP_FZF_SEARCH_SWAP_FILE)
         case $action in
-            "all")          echo 'files'        > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)" ;;
-            "files")        echo 'directories'  > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Files Only ╟)+reload($fzf_transformer_filter_files)" ;;
-            "directories")  echo 'hiddens'      > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Directories Only ╟)+reload($fzf_transformer_filter_directories)" ;;
-            "hiddens")      echo 'images'       > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" ;;
-            "images")       echo 'medias'       > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Images Only ╟)+reload($fzf_transformer_filter_images)" ;;
-            "medias")       echo 'documents'    > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Medias Only ╟)+reload($fzf_transformer_filter_medias)" ;;
-            "documents")    echo 'languages'    > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Documents Only ╟)+reload($fzf_transformer_filter_documents)" ;;
-            "languages")    echo 'contents'     > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Develop Languages Files ╟)+reload($fzf_transformer_filter_languages)" ;;
-            "contents")     echo 'archives'     > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Contents ╟)+reload($fzf_transformer_filter_contents)" ;;
-            "archives")     echo 'all'          > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search Archives ╟)+reload($fzf_transformer_filter_archives)" ;;
+            "all")          
+                echo 'files'        > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)" 
+                ;;
+            "files")        
+                echo 'directories'  > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Files Only ╟)+reload($fzf_transformer_filter_files)" 
+                ;;
+            "directories")  
+                echo 'hiddens'      > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Directories Only ╟)+reload($fzf_transformer_filter_directories)" 
+                ;;
+            "hiddens")      
+                echo 'images'       > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" 
+                ;;
+            "images")       
+                echo 'medias'       > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Images Only ╟)+reload($fzf_transformer_filter_images)" 
+                ;;
+            "medias")       
+                echo 'documents'    > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Medias Only ╟)+reload($fzf_transformer_filter_medias)" 
+                ;;
+            "documents")    
+                echo 'languages'    > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Documents Only ╟)+reload($fzf_transformer_filter_documents)" 
+                ;;
+            "languages")    
+                echo 'contents'     > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Develop Languages Files ╟)+reload($fzf_transformer_filter_languages)" 
+                ;;
+            "contents")     
+                echo 'archives'     > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Contents ╟)+reload($fzf_transformer_filter_contents)" 
+                ;;
+            "archives")     
+                echo 'all'          > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Search Archives ╟)+reload($fzf_transformer_filter_archives)" 
+                ;;
         esac
   else
         echo "all" > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)"
@@ -180,7 +211,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f12:execute-silent(echo -n {} | pbco
 
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="j:down,k:up,/:show-input+unbind(j,k,/)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header(╢ 🔝 Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header( 🔝 Type jump label )+jump,jump-cancel:change-header: Jump cancelled " '
 
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="∆:preview-down" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="˚:preview-up" '
