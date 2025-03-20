@@ -166,7 +166,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|le
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2:transform:$fzf_transformer_search_swap_type'"
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3,å:toggle-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3:toggle-all" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f4:toggle-preview" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f5:change-preview-window(down,99%)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="f6" '
