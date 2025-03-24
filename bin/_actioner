@@ -80,7 +80,7 @@ actioner_archive() {
         *.tar.gz)  tar cvzf "$new" "$old" ;;
         *.tar.xz)  tar cvJf "$new" "$old" ;;
         *.tar)     tar cvf "$new" "$old" ;;
-        *.tbz2)    tar cvjf "$new" "$old" ;;
+        *.tbz2|*.tbz)    tar cvjf "$new" "$old" ;;
         *.tgz)     tar cvzf "$new" "$old" ;;
         *.zip)     zip -r "$new" "$old" ;;
         *.rar)     rar a "$new" "$old" ;;
@@ -114,7 +114,7 @@ actioner_extract() {
         case "$old" in
             *.tar.bz2|*.tar.gz|*.tar.xz)
                 new="${old%.*.*}" ;;
-            *.lzma|*.bz2|*.rar|*.gz|*.tar|*.tbz2|*.tgz|*.zip|*.Z|*.7z|*.xz|*.exe)
+            *.lzma|*.bz2|*.rar|*.gz|*.tar|*.tbz|*.tbz2|*.tgz|*.zip|*.Z|*.7z|*.xz|*.exe)
                 new="${old%.*}" ;;
             *)
                 echo "Error: Unknown file extension for '$old'"
@@ -138,7 +138,7 @@ actioner_extract() {
         *.rar)      unrar x "$old" "$new/" ;;
         *.gz)       gunzip -c "$old" > "$new/$(basename "${old%.gz}")" ;;
         *.tar)      tar xvf "$old" -C "$new" ;;
-        *.tbz2)     tar xvjf "$old" -C "$new" ;;
+        *.tbz2|*.tbz)     tar xvjf "$old" -C "$new" ;;
         *.tgz)      tar xvzf "$old" -C "$new" ;;
         *.zip)      unzip "$old" -d "$new" ;;
         *.Z)        zcat "$old" > "$new/$(basename "${old%.Z}")" ;;

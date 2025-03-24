@@ -73,7 +73,7 @@ else
                     exit
                 ;;
                 # 根据文件扩展名选择查看压缩包内容
-                *.tar.bz2| *.tar.gz| *.tar.xz| *.lzma| *.bz2| *.rar| *.gz| *.tar| *.tbz2| *.tgz| *.zip| *.7z| *.xz| *.Z| *.exe)
+                *.tar.bz2| *.tar.gz| *.tar.xz| *.lzma| *.bz2| *.rar| *.gz| *.tar| *.tbz| *.tbz2| *.tgz| *.zip| *.7z| *.xz| *.Z| *.exe)
                     case "$file" in
                     # 多层压缩的 tar 包
                     *.tar.bz2)   tar tvjf "$file" ;;    # 查看 bzip2 压缩的 tar 包
@@ -86,7 +86,7 @@ else
                     *.gz)        gunzip -l "$file" ;;              # 显示 gzip 文件元信息
                     *.tar)       tar tvf "$file" ;;                # 查看未压缩的 tar 包
                     # 变体压缩包
-                    *.tbz2)      tar tvjf "$file" ;;    # .tbz2 本质是 tar.bz2
+                    *.tbz2|*.tbz2)      tar tvjf "$file" ;;    # .tbz2 本质是 tar.bz2
                     *.tgz)       tar tvzf "$file" ;;     # .tgz 本质是 tar.gz
                     # 独立压缩格式
                     *.zip)       unzip -l "$file" ;;               # 列出 ZIP 压缩包内容
