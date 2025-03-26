@@ -478,3 +478,50 @@ function goodfonWithAutoDiff2() {                                               
     autoDiffDownloadPicureByName 0 1
 }
 alias gfa2="goodfonWithAutoDiff2"                                                   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名,打开goodfon.ru后通过目录监控自动过滤重名文件
+
+function fzf_change_default_browser() {                                             # Desc: function: fzf_change_default_browser: 利用fzf和duti修改默认浏览器
+    hasduti=$(ifHasCommand duti)
+    if [[ "$hasduti" = "1" ]]; then
+        local browser=$(printf "%s\n" \
+            "Safari" \
+            "Chrome" \
+            "Firefox" \
+            "Brave" \
+            "Edge" | \
+            fzf --header " 选择浏览器 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '请选择默认浏览器'" \
+                --height=15% \
+                --bind='space:jump,jump:accept' \
+                --reverse)
+        case $browser in
+            Safari) 
+                duti -s com.apple.Safari http
+                duti -s com.apple.Safari https
+            ;;
+            Chrome) 
+                duti -s com.google.chrome http
+                duti -s com.google.chrome https
+            ;;
+            Firefox) 
+                duti -s org.mozilla.firefox http
+                duti -s org.mozilla.firefox https
+            ;;
+            Brave) 
+                duti -s com.brave.Browser http
+                duti -s com.brave.Browser https
+            ;;
+            Edge) 
+                duti -s com.microsoft.edgemac http
+                duti -s com.microsoft.edgemac https
+            ;;
+        esac
+    else
+        echo "Command duti does not install !"
+        echo "Install with : brew install duti"
+        return
+    fi
+}
+
+alias fcdb="fzf_change_default_browser"                                             # Desc: alias: fzf_change_default_browser命令的别名，利用fzf和duti修改默认浏览器
