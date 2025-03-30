@@ -110,3 +110,7 @@ export NVM_DIR="$HOME/.nvm"
 export LDFLAGS="-L/opt/homebrew/opt/zlib/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/zlib/include"
 export PKG_CONFIG_PATH="/opt/homebrew/opt/zlib/lib/pkgconfig"
+
+
+
+alias wxmd="md-cli port=8899 > /dev/null &; open http://127.0.0.1:8899/md/"
