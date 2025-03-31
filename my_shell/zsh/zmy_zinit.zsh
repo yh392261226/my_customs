@@ -115,7 +115,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     zinit light wfxr/formarks
     # Fzf
     zinit ice if"[[ -n '$TMUX' ]] || [[ '$TERM_PROGRAM' != 'WarpTerminal' ]]" wait"6" lucid from="gh-r" as"program" atload"source <(fzf --zsh); bindkey '^R' fzf-history-widget; bindkey '^T' fzf-file-widget"
-    zinit light junegunn/fzf
+#    zinit light junegunn/fzf
     # fzf的操作工具
     zinit light amaya382/zsh-fzf-widgets
     # fzf版目录跳转
