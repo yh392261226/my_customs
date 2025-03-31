@@ -97,47 +97,47 @@ export fzf_transformer_search_swap_type='
         case $action in
             "all")          
                 echo 'files'        > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)" 
+                echo "change-list-label(╢ Search All ╟)+change-ghost(Type Search Words ...)+change-pointer( ➤)+reload($fzf_transformer_filter_all)" 
                 ;;
             "files")        
                 echo 'directories'  > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Files Only ╟)+reload($fzf_transformer_filter_files)" 
+                echo "change-list-label(╢ Filter Files Only ╟)+change-ghost(Type Filter Files Words ...)+change-pointer( ⇝)+reload($fzf_transformer_filter_files)" 
                 ;;
             "directories")  
                 echo 'hiddens'      > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Directories Only ╟)+reload($fzf_transformer_filter_directories)" 
+                echo "change-list-label(╢ Filter Directories Only ╟)+change-ghost(Type Filter Directories Words ...)+change-pointer( ⇛)+reload($fzf_transformer_filter_directories)" 
                 ;;
             "hiddens")      
                 echo 'images'       > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Hiddens ╟)+reload($fzf_transformer_filter_hiddens)" 
+                echo "change-list-label(╢ Filter Hiddens Only ╟)+change-ghost(Type Filter Hidden Files and Directories Words ...)+change-pointer( ⇢)+reload($fzf_transformer_filter_hiddens)" 
                 ;;
             "images")       
                 echo 'medias'       > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Images Only ╟)+reload($fzf_transformer_filter_images)" 
+                echo "change-list-label(╢ Filter Images Only ╟)+change-ghost(Type Filter Images Words ...)+change-pointer( ⇥)+reload($fzf_transformer_filter_images)" 
                 ;;
             "medias")       
                 echo 'documents'    > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Medias Only ╟)+reload($fzf_transformer_filter_medias)" 
+                echo "change-list-label(╢ Filter Medias Only ╟)+change-ghost(Type Filter Medias Words ...)+change-pointer( ⇒)+reload($fzf_transformer_filter_medias)" 
                 ;;
             "documents")    
                 echo 'languages'    > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Documents Only ╟)+reload($fzf_transformer_filter_documents)" 
+                echo "change-list-label(╢ Filter Documents Only ╟)+change-ghost(Type Filter Documents Words ...)+change-pointer( ⇪)+reload($fzf_transformer_filter_documents)" 
                 ;;
             "languages")    
                 echo 'contents'     > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Develop Languages Files ╟)+reload($fzf_transformer_filter_languages)" 
+                echo "change-list-label(╢ Filter Develop Languages Files ╟)+change-ghost(Type Filter Develop Languages Words ...)+change-pointer( ↮)+reload($fzf_transformer_filter_languages)" 
                 ;;
             "contents")     
                 echo 'archives'     > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Contents ╟)+reload($fzf_transformer_filter_contents)" 
+                echo "change-list-label(╢ Filter Contents ╟)+change-ghost(Type Filter Contents Words ...)+change-pointer( ⇨)+reload($fzf_transformer_filter_contents)" 
                 ;;
             "archives")     
                 echo 'all'          > $TMP_FZF_SEARCH_SWAP_FILE 
-                echo "change-list-label(╢ Search Archives ╟)+reload($fzf_transformer_filter_archives)" 
+                echo "change-list-label(╢ Filter Archives Only ╟)+change-ghost(Type Filter Archives Words ...)+change-pointer( →)+reload($fzf_transformer_filter_archives)" 
                 ;;
         esac
   else
-        echo "all" > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search All ╟)+reload($fzf_transformer_filter_all)"
+        echo "all" > $TMP_FZF_SEARCH_SWAP_FILE && echo "change-list-label(╢ Search All ╟)+change-ghost(Type Search Words ...)+change-pointer( ➤)+reload($fzf_transformer_filter_all)"
   fi
 '
 
@@ -171,7 +171,7 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --pointer=" ➤" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --separator="┈┉" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --scrollbar="▌▐" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --prompt="Search  ❯ " '
-#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --ghost="Type your search words ┈┉" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --ghost="Type your search words ┈┉ " '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info="inline-right: 💱 " '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label-pos="bottom,4" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label-pos="bottom,4" '
