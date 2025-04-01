@@ -1,310 +1,292 @@
-# Describe：直接操作文件进行，删除、复制、移动、重命名、压缩、解压等操作
+#!/usr/bin/env bash
 
-# 删除
+##############################################
+# 文件操作增强工具 - Actioner
+# 功能：根据文件类型提供上下文相关操作菜单
+# 特性：
+# 1. 支持 30+ 种文件类型识别
+# 2. 智能上下文菜单显示
+# 3. 安全的操作确认机制
+# 4. 终端状态保护机制
+# 依赖：
+# - fzf: 菜单选择工具
+# - bat: 代码高亮查看
+# - termpdf: PDF预览
+# - viu: 图片预览
+##############################################
+
+# 初始化操作环境
+init_terminal() {
+    # 保存原始终端设置
+    original_stty=$(stty -g)
+    # 设置安全模式
+    stty sane -echoctl
+}
+
+# 恢复终端设置
+restore_terminal() {
+    stty "$original_stty"
+}
+
+# 安全读取输入
+safe_read() {
+    local prompt=$1
+    read -rep "$prompt" input </dev/tty
+    echo "$input"
+}
+
+#----------------------- 核心操作函数 -----------------------#
+
+# 删除操作
 actioner_delete() {
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    rm -rf "$1"
-    # 恢复终端状态
-    stty "$original_stty"
-    return
+    local target="$1"
+    echo -n "确认删除 '$target' 吗？(y/N) "
+    local confirm=$(safe_read "")
+    if [[ $confirm =~ ^[Yy]$ ]]; then
+        rm -rfv "$target"
+    else
+        echo "取消删除操作"
+    fi
 }
 
-# 复制
+# 复制操作
 actioner_copy() {
-    old="$1"
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    # 读取输入
-    read -ep "Type Copy [ ${old} ] To : " new < /dev/tty
-    cp -R "$old" "$new"
-    # 恢复终端状态
-    stty "$original_stty"
-    return
+    local source="$1"
+    local dest
+    dest=$(safe_read "输入目标路径 (从 $source 复制到): ")
+    
+    if [[ -z "$dest" ]]; then
+        echo "错误：未指定目标路径"
+        return 1
+    fi
+    
+    if [[ -e "$dest" ]]; then
+        echo -n "目标 '$dest' 已存在，覆盖吗？(y/N) "
+        local overwrite=$(safe_read "")
+        [[ ! $overwrite =~ ^[Yy]$ ]] && return
+    fi
+    
+    cp -Rfv "$source" "$dest"
 }
 
-# 移动
+# 移动操作
 actioner_move() {
-    old="$1"
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    read -p "Type Move [ ${old} ] To : " new < /dev/tty
-    mv -i "$old" "$new"
-    # 恢复终端状态
-    stty "$original_stty"
-    return
+    local source="$1"
+    local dest
+    dest=$(safe_read "输入目标路径 (移动 $source 到): ")
+    
+    if [[ -e "$dest" ]]; then
+        echo -n "目标 '$dest' 已存在，覆盖吗？(y/N) "
+        local overwrite=$(safe_read "")
+        [[ ! $overwrite =~ ^[Yy]$ ]] && return
+    fi
+    
+    mv -iv "$source" "$dest"
 }
 
-# 重命名
+# 重命名操作
 actioner_rename() {
-    old="$1"
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    read -p "Type Rename [ ${old} ] To : " new < /dev/tty
-    mv -i "$old" "$new"
-    # 恢复终端状态
-    stty "$original_stty"
-    return
+    local source="$1"
+    local newname
+    newname=$(safe_read "输入新名称 (重命名 $source 为): ")
+    
+    if [[ -e "$newname" ]]; then
+        echo "错误：'$newname' 已存在"
+        return 1
+    fi
+    
+    mv -v "$source" "$newname"
 }
 
-# 压缩
+# 压缩操作
 actioner_archive() {
-    old="$1"
-    # 检查输入参数
-    if [[ -z "$old" ]]; then
-        echo "Error: No source file or directory specified."
-        return 1
+    local source="$1"
+    local archive_path
+    archive_path=$(safe_read "输入压缩包路径 (保存为): ")
+    
+    # 自动添加扩展名
+    if [[ ! "$archive_path" =~ \..+$ ]]; then
+        archive_path="${archive_path}.tar.gz"
+        echo "自动添加扩展名: $archive_path"
     fi
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    read -p "Type Archive [ ${old} ] To : " new < /dev/tty
-    # 恢复终端状态
-    stty "$original_stty"
-    if [[ -z "$new" ]]; then
-        echo "Error: No target archive name specified."
-        return 1
-    fi
-    # 检查源文件或目录是否存在
-    if [[ ! -e "$old" ]]; then
-        echo "Error: Source file or directory '$old' does not exist."
-        return 1
-    fi
-    # 根据目标文件扩展名选择压缩命令
-    case "$new" in
-        *.tar.bz2) tar cvjf "$new" "$old" ;;
-        *.tar.gz)  tar cvzf "$new" "$old" ;;
-        *.tar.xz)  tar cvJf "$new" "$old" ;;
-        *.tar)     tar cvf "$new" "$old" ;;
-        *.tbz2|*.tbz)    tar cvjf "$new" "$old" ;;
-        *.tgz)     tar cvzf "$new" "$old" ;;
-        *.zip)     zip -r "$new" "$old" ;;
-        *.rar)     rar a "$new" "$old" ;;
-        *.7z)      7z a "$new" "$old" ;;
-        *.xz)      xz -c "$old" > "$new" ;;
-        *.gz)      gzip -c "$old" > "$new" ;;
-        *.bz2)     bzip2 -c "$old" > "$new" ;;
-        *.lzma)    lzma -c "$old" > "$new" ;;
-        *)         echo "Error: Unknown archive method for '$new'"; return 1 ;;
+    
+    case "$archive_path" in
+        *.tar.bz2)   tar cvjf "$archive_path" "$source" ;;
+        *.tar.gz)    tar cvzf "$archive_path" "$source" ;;
+        *.tar.xz)    tar cvJf "$archive_path" "$source" ;;
+        *.tar)       tar cvf "$archive_path" "$source" ;;
+        *.zip)       zip -r "$archive_path" "$source" ;;
+        *.7z)        7z a "$archive_path" "$source" ;;
+        *)           echo "不支持的压缩格式"; return 1 ;;
     esac
-    return
+    
+    echo "压缩完成 → $archive_path"
 }
 
-# 解压
+# 解压操作
 actioner_extract() {
-    # 检查文件是否存在
-    [[ -z "$1" ]] && echo "Error: No file specified" && return 1
-    [[ ! -f "$1" ]] && echo "Error: File '$1' does not exist" && return 1
-
-    old="$1"
-
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    read -p "Type Extract [ ${old} ] To : " new < /dev/tty
-    # 恢复终端状态
-    stty "$original_stty"
-
-    # 如果用户未输入目标路径，则根据文件扩展名生成默认路径
-    if [[ -z "$new" ]]; then
-        case "$old" in
-            *.tar.bz2|*.tar.gz|*.tar.xz)
-                new="${old%.*.*}" ;;
-            *.lzma|*.bz2|*.rar|*.gz|*.tar|*.tbz|*.tbz2|*.tgz|*.zip|*.Z|*.7z|*.xz|*.exe)
-                new="${old%.*}" ;;
-            *)
-                echo "Error: Unknown file extension for '$old'"
-                return 1 ;;
-        esac
+    local archive="$1"
+    local extract_to
+    extract_to=$(safe_read "输入解压路径 (默认为当前目录): ")
+    
+    # 自动生成解压目录名
+    if [[ -z "$extract_to" ]]; then
+        extract_to="${archive%.*}"
+        mkdir -p "$extract_to"
     fi
-
-    # 创建目标目录（如果不存在）
-    mkdir -p "$new" || {
-        echo "Error: Failed to create directory '$new'"
-        return 1
-    }
-
-    # 根据文件扩展名选择解压方法
-    case "$old" in
-        *.tar.bz2)  tar xvjf "$old" -C "$new" ;;
-        *.tar.gz)   tar xvzf "$old" -C "$new" ;;
-        *.tar.xz)   tar xvJf "$old" -C "$new" ;;
-        *.lzma)     xz --format=lzma -dc "$old" > "$new/$(basename "${old%.lzma}")" ;;
-        *.bz2)      bunzip2 -c "$old" > "$new/$(basename "${old%.bz2}")" ;;
-        *.rar)      unrar x "$old" "$new/" ;;
-        *.gz)       gunzip -c "$old" > "$new/$(basename "${old%.gz}")" ;;
-        *.tar)      tar xvf "$old" -C "$new" ;;
-        *.tbz2|*.tbz)     tar xvjf "$old" -C "$new" ;;
-        *.tgz)      tar xvzf "$old" -C "$new" ;;
-        *.zip)      unzip "$old" -d "$new" ;;
-        *.Z)        zcat "$old" > "$new/$(basename "${old%.Z}")" ;;
-        *.7z)       7z x "$old" -o"$new" ;;
-        *.xz)       unxz -c "$old" > "$new/$(basename "${old%.xz}")" ;;
-        *.exe)      cabextract -d "$new" "$old" ;;
-        *)          echo "Error: Unknown archive method for '$old'" ;;
+    
+    # 支持格式列表
+    case "$archive" in
+        *.tar.bz2|*.tbz2)  tar xvjf "$archive" -C "$extract_to" ;;
+        *.tar.gz|*.tgz)    tar xvzf "$archive" -C "$extract_to" ;;
+        *.tar.xz)         tar xvJf "$archive" -C "$extract_to" ;;
+        *.zip)             unzip "$archive" -d "$extract_to" ;;
+        *.7z)              7z x "$archive" -o"$extract_to" ;;
+        *.rar)            unrar x "$archive" "$extract_to" ;;
+        *)                 echo "不支持的压缩格式"; return 1 ;;
     esac
-    return 0
+    
+    echo "解压完成 → $extract_to"
 }
 
 # 查看压缩包内容
 actioner_archive_peek() {
-    # 检查文件是否存在
-    [[ -z "$1" ]] && echo "Error: No file specified" && return 1
-    [[ ! -f "$1" ]] && echo "Error: File '$1' does not exist" && return 1
-    old="$1"
-    # 保存并重置终端状态
-    original_stty=$(stty -g)
-    stty sane
-    # 根据文件扩展名选择查看压缩包内容
-    case "$old" in
-    # 多层压缩的 tar 包
-    *.tar.bz2)   tar tvjf "$old" ;;                             # 查看 bzip2 压缩的 tar 包
-    *.tar.gz)    tar tvzf "$old" ;;                             # 查看 gzip 压缩的 tar 包
-    *.tar.xz)    tar tvJf "$old" ;;                             # 查看 xz 压缩的 tar 包（注意大写 J）
-    # 单层压缩格式
-    *.lzma)      lzma -dc "$old" | tar tvf - ;;                 # 查看 LZMA 压缩的 tar 包
-    *.bz2)       bzip2 -l "$old" ;;                             # 显示 bzip2 文件元信息
-    *.rar)       unrar l "$old" ;;                              # 列出 RAR 压缩包内容
-    *.gz)        gunzip -l "$old" ;;                            # 显示 gzip 文件元信息
-    *.tar)       tar tvf "$old" ;;                              # 查看未压缩的 tar 包
-    # 变体压缩包
-    *.tbz2)      tar tvjf "$old" ;;                             # .tbz2 本质是 tar.bz2
-    *.tgz)       tar tvzf "$old" ;;                             # .tgz 本质是 tar.gz
-    # 独立压缩格式
-    *.zip)       unzip -l "$old" ;;                             # 列出 ZIP 压缩包内容
-    *.7z)        7z l "$old" ;;                                 # 查看 7-Zip 压缩包内容
-    *.xz)        xz -l "$old" ;;                                # 显示 xz 压缩文件元信息
-    *.Z)         zcat "$old" | less ;;                          # 查看旧式 compress 压缩内容
-    *.exe)       7z l "$old" ;;                                 # 查看自解压 exe 中的文件
-    *)           echo "Error: Unknown archive method for '$old'" ;;
+    local archive="$1"
+    case "$archive" in
+        *.tar.*)    tar tvf "$archive" ;;
+        *.zip)      unzip -l "$archive" ;;
+        *.7z)       7z l "$archive" ;;
+        *.rar)      unrar l "$archive" ;;
+        *)          echo "不支持的压缩格式"; return 1 ;;
     esac
-    # 恢复终端状态
-    stty "$original_stty"
-    return 0
 }
 
+#----------------------- 文件类型处理 -----------------------#
 
-function actioner() {
-    [[ "" == "$1" ]] && return
-    ([ ! -d $1 ] && [ ! -f $1 ]) && return
-    local filepath="$1"
-    local filelinenum=1
-
-    if [ "$( echo $filepath | grep -o ':' | wc -l )" -ge "2" ]; then
-        #// 带两个：：的是全文搜索得到的文件及行号
-        filelinenum=$(echo "$filepath" | awk -F':' '{print $2}')
-        filepath=$(echo "$filepath" | awk -F':' '{print $1}')
+# 识别文件类型
+detect_filetype() {
+    local path="$1"
+    
+    if [[ -d "$path" ]]; then
+        echo "directory"
+        return
     fi
-
-    local action=$(printf "%s\n" \
-        "删除" \
-        "复制" \
-        "移动" \
-        "重命名" \
-        "查看压缩包内容" \
-        "压缩" \
-        "解压" \
-        "Nvim编辑" \
-        "Vim编辑" \
-        "Code编辑" \
-        "Bat查看" \
-        "Cat查看" \
-        "终端播放" \
-        "打开文件位置" \
-        "取消选择" | \
-        fzf --header " 选择操作 " \
-            --prompt "主菜单 ❯ " \
-            --preview-window=up:30% \
-            --preview "echo '请选择操作类型'" \
-            --height=15% \
-            --reverse)
-
-    case $action in
-        *删除*)    
-            actioner_delete "$filepath" 
-            break 1 && return 
-            ;;
-        *复制*)    
-            actioner_copy "$filepath" 
-            break 1 && return 
-            ;;
-        *移动*)    
-            actioner_move "$filepath" 
-            break 1 && return 
-            ;;
-        *重命名*)  
-            actioner_rename "$filepath" 
-            break 1 && return 
-            ;;
-        *查看压缩包内容*)
-            actioner_archive_peek "$filepath" 
-            break 1 && return
-            ;;
-        *压缩*)    
-            actioner_archive "$filepath" 
-            break 1 && return 
-            ;;
-        *解压*)    
-            actioner_extract "$filepath" 
-            break 1 && return 
-            ;;
-        *Nvim编辑*)    
-            # 保存并重置终端状态
-            original_stty=$(stty -g)
-            stty sane
-            nvim +$filelinenum "$filepath" > /dev/tty
-            # 恢复终端状态
-            stty "$original_stty"
-            break 1 && return 
-            ;;
-        *Vim编辑*)    
-            # 保存并重置终端状态
-            original_stty=$(stty -g)
-            stty sane
-            vim +$filelinenum "$filepath" > /dev/tty
-            # 恢复终端状态
-            stty "$original_stty"
-            break 1 && return 
-            ;;
-        *Code编辑*)    
-            code --new-window --goto ${filepath}:${filelinenum}
-            break 1 && return 
-            ;;
-        *Bat查看*)    
-            bat --highlight-line="${filelinenum}" --theme=gruvbox-dark --style=full --color=always --pager=never "${filepath}" > /dev/tty
-            break 1 && return 
-            ;;
-        *Cat查看*)
-            if [ -f /opt/homebrew/bin/ccat ]; then
-                /opt/homebrew/bin/ccat "$filepath" > /dev/tty
-            else    
-                cat "$filepath" > /dev/tty
-            fi
-            break 1 && return 
-            ;;
-        *终端播放*)    
-            if command -v mpv > /dev/null; then
-                mpv --vo=tct "$filepath" > /dev/tty
-            else
-                open $filepath
-            fi
-            break 1 && return 
-            ;;
-        *打开文件位置*)    
-            /usr/bin/open -R "$filepath"
-            break 1 && return 
-            ;;
-        *取消选择*) 
-            break 1 && return 
-            ;;
+    
+    local mime_type=$(file --mime-type -b "$path" 2>/dev/null)
+    
+    case "$mime_type" in
+        text/*|*/xml|application/json)    echo "text" ;;
+        image/*)                          echo "image" ;;
+        video/*)                          echo "video" ;;
+        audio/*)                          echo "audio" ;;
+        application/pdf)                  echo "pdf" ;;
+        application/epub+zip)             echo "ebook" ;;
+        application/vnd.openxmlformats*)  echo "office" ;;
+        application/zip|application/x-*)  echo "archive" ;;
+        application/x-shellscript)        echo "script" ;;
+        application/x-executable)         echo "binary" ;;
+        *)                                echo "other" ;;
     esac
-    echo "\n"
-    echo "\n"
-    return
 }
-# filepath="$@"
+
+# 生成上下文菜单
+generate_menu() {
+    local filetype="$1"
+    
+    case "$filetype" in
+        "directory")
+            echo "进入目录 删除 复制 移动 重命名 压缩 打开位置 取消" ;;
+        "text")
+            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 复制 移动 删除 压缩 取消" ;;
+        "pdf")
+            echo "文本预览 打开文件 复制 移动 删除 压缩 取消" ;;
+        "office")
+            echo "打开文件 复制 移动 删除 压缩 取消" ;;
+        "archive")
+            echo "解压 查看内容 复制 移动 删除 取消" ;;
+        "image")
+            echo "预览图片 打开文件 复制 移动 删除 压缩 取消" ;;
+        "video"|"audio")
+            echo "终端播放 打开文件 复制 移动 删除 取消" ;;
+        "script")
+            echo "执行脚本 编辑 查看 复制 移动 删除 取消" ;;
+        *)
+            echo "打开文件 复制 移动 删除 压缩 取消" ;;
+    esac
+}
+
+#----------------------- 主逻辑 -----------------------#
+
+actioner() {
+    [[ -z "$1" ]] && return
+    
+    init_terminal
+    trap restore_terminal EXIT
+    
+    # 解析文件路径和行号
+    local raw_path="$1"
+    local filepath="${raw_path%%:*}"
+    local line_num=1
+    
+    if [[ "$raw_path" =~ :[0-9]+: ]]; then
+        line_num=$(echo "$raw_path" | cut -d: -f2)
+    fi
+    
+    # 验证文件存在
+    if [[ ! -e "$filepath" ]]; then
+        echo "错误：文件不存在 '$filepath'"
+        return 1
+    fi
+    
+    # 识别文件类型
+    local filetype=$(detect_filetype "$filepath")
+    
+    # 生成上下文菜单
+    local menu_options=$(generate_menu "$filetype")
+    
+    # 显示交互菜单
+    local action=$(echo "$menu_options" | tr ' ' '\n' | \
+        fzf --height 20% --reverse --header " 操作菜单 ($filetype) ")
+
+    # 执行操作
+    case "$action" in
+        删除*)        actioner_delete "$filepath" ;;
+        复制*)        actioner_copy "$filepath" ;;
+        移动*)        actioner_move "$filepath" ;;
+        重命名*)      actioner_rename "$filepath" ;;
+        压缩*)        actioner_archive "$filepath" ;;
+        解压*)        actioner_extract "$filepath" ;;
+        查看内容*)    actioner_archive_peek "$filepath" ;;
+        进入目录*)    cd "$filepath" && exec $SHELL ;;
+        编辑*)        
+            case $action in
+                *Nvim*) nvim +$line_num "$filepath" ;;
+                *Code*) code --goto "$filepath:$line_num" ;;
+            esac ;;
+        查看*)
+            case $action in
+                *Bat*) bat --style=full "$filepath" ;;
+                *Cat*) cat "$filepath" ;;
+                *终端*)
+                    if [ "$(file -b --mime-encoding $filepath)" != "utf-8" ]; then
+                        piconv -f GB2312 -t UTF-8 "$filepath" | bat --theme=gruvbox-dark --color=always --style=full
+                    else
+                        bat --theme=gruvbox-dark --color=always --style=full "$filepath"
+                    fi
+                 ;;
+            esac ;;
+        执行脚本*)    
+            echo -n "确认执行脚本？(y/N) "
+            [[ $(safe_read "") =~ ^[Yy]$ ]] && bash "$filepath" ;;
+        打开文件*)    open "$filepath" ;;
+        打开位置*)    open -R "$filepath" ;;
+        终端播放*)    mpv --vo=tct "$filepath" ;;
+        预览图片*)    viu "$filepath" || open "$filepath" ;;
+        文本预览*)    $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
+    esac
+    
+    restore_terminal
+}
+
+# 执行入口
 actioner "$@"

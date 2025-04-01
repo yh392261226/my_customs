@@ -148,6 +148,10 @@ else
 
         if [[ $KITTY_WINDOW_ID ]]; then
             kitty icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" "$file" | sed '$d' | sed $'$s/$/\e[m/'
+        elif command -v viu > /dev/null; then
+            width=$(echo $dim | awk -F'x' '{print $1}')
+            height=$(echo $dim | awk -F'x' '{print $2}')
+            viu -w $width -h $height "$file"
         elif command -v chafa > /dev/null; then
             if [ "Warp" = "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" ]; then
                 chafa -s "$dim" "$file"

@@ -983,3 +983,4 @@ brew install khal
 brew install dduan/formulae/ea
 brew install tokei
 brew install duti
+brew install viu # 缩率图查看器
