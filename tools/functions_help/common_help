@@ -10,9 +10,9 @@ readonly d="\e[1;37m"
 
 readonly help_header="${bold}${c}[Help Infomation]${c}${reset}
 ${bold}${italic}F1${reset}              Help infomation (this page).
-${bold}${italic}F2${reset}              Switch search types(All、Files、Directories、Hiddens、Images、Medias、Documents、Languages、Contents).
-${bold}${italic}F3${reset}              Toggle select all.
-${bold}${italic}F4${reset}              Toggle show/hide the preview window.
+${bold}${italic}F2${reset}              Switch search types(All、Files、Directories、Hiddens、Images、Medias、Documents、Languages、Contents). [can also use Ctrl-F]
+${bold}${italic}F3${reset}              Toggle select all. [can also use Ctrl-A]
+${bold}${italic}F4${reset}              Toggle show/hide the preview window. [can also use Ctrl-T]
 ${bold}${italic}F5${reset}              Change to Preview bigger to view.
 ${bold}${italic}F6${reset}              Toggle sort.
 ${bold}${italic}F7${reset}              Open selected by command _operator with file type.

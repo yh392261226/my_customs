@@ -196,9 +196,9 @@ FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|up,90%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|down,90%,border-horizontal|hidden|right)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2:transform:$fzf_transformer_search_swap_type'"
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3:toggle-all" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f4:toggle-preview" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2,ctrl-f:transform:$fzf_transformer_search_swap_type'"
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3,ctrl-a:toggle-all" '
+FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f4,ctrl-t:toggle-preview" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f5:change-preview-window(down,99%)" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --toggle-sort="f6" '
 FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f7:become(${MYRUNTIME}/customs/bin/_operator {})" '
