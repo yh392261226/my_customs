@@ -213,6 +213,7 @@ function actioner() {
         "Code编辑" \
         "Bat查看" \
         "Cat查看" \
+        "终端播放" \
         "打开文件位置" \
         "取消选择" | \
         fzf --header " 选择操作 " \
@@ -282,6 +283,14 @@ function actioner() {
                 /opt/homebrew/bin/ccat "$filepath" > /dev/tty
             else    
                 cat "$filepath" > /dev/tty
+            fi
+            break 1 && return 
+            ;;
+        *终端播放*)    
+            if command -v mpv > /dev/null; then
+                mpv --vo=tct "$filepath" > /dev/tty
+            else
+                open $filepath
             fi
             break 1 && return 
             ;;
