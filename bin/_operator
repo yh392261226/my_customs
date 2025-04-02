@@ -1,47 +1,119 @@
-filepath=${1/#\~\//$PWD/}
+#!/usr/bin/env bash
 
-if [ "$( echo $filepath | grep -o ':' | wc -l )" -ge "2" ]; then
-    tmpfilepath=$(echo "$filepath" | awk -F':' '{print $1}')
-    tmplinenum=$(echo "$filepath" | awk -F':' '{print $2}')
+# ------------------------- 初始化配置 -------------------------
+# 定义支持的编辑器优先级
+EDITOR_PRIORITY=("code" "nvim" "vim")
+# 支持的文本文件扩展名
+TEXT_EXTENSIONS=(
+    md MD Markdown markdown txt log py js ts java cpp c h hpp rb php swift go rs
+    sh bzsh fish pl lua scala kt dart cs m mm vue html htm css json yaml xml
+    yml toml ini cfg conf sql dockerfile docker-compose.yml
+)
+# 支持的视频文件扩展名
+VIDEO_EXTENSIONS=(
+    mp4 webm avi wmv dat 3gp ogv mkv mpg mpeg vob flv f4v m4v m2v mov ts mts
+    rm ram qt divx asf
+)
 
-    if command -v code > /dev/null; then
-        code --new-window --goto ${tmpfilepath}:${tmplinenum}
-    elif command -v nvim > /dev/null; then
-        nvim +${tmplinenum} ${tmpfilepath}
-    elif command -v vim > /dev/null; then
-        vim  +${tmplinenum} ${tmpfilepath}
-    else
-        bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style=full --color=always --pager=never "${tmpfilepath}"
-    fi
-else
-    type=$(file --dereference --mime -- "$filepath")
-
-    if [[ ! $type =~ image/ ]]; then
-        if [[ $type =~ /directory ]]; then
-            /usr/bin/open -R $filepath
-        elif [[ $type =~ =binary ]]; then
-            file "$file"
-        else
-            case $filepath in
-                *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown|*.txt|*.log|*.py |*.js |*.ts |*.java |*.cpp |*.c |*.h |*.hpp |*.rb |*.php |*.swift |*.go |*.rs |*.sh |*.bzsh |*.fish |*.pl |*.lua |*.scala |*.kt |*.dart |*.cs |*.m |*.mm |*.vue |*.html |*.htm |*.css |*.json |*.yaml |*.xml |*.md |*.txt |*.yml |*.toml |*.ini |*.cfg |*.conf |*.sql |*.sql |*.dockerfile |*.docker-compose.yml)
-                    if command -v code > /dev/null; then
-                        code --new-window --goto ${filepath}
-                    elif command -v nvim > /dev/null; then
-                        nvim ${tmpfilepath}
-                    elif command -v vim > /dev/null; then
-                        vim  ${tmpfilepath}
-                    fi
-                    ;;
-                *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
-                    open $filepath
-                    ;;
-                *)
-                    /usr/bin/open -R $filepath
-                    ;;
-            esac
+# ------------------------- 工具函数 -------------------------
+# 检测可用编辑器
+find_editor() {
+    for editor in "${EDITOR_PRIORITY[@]}"; do
+        if command -v "$editor" >/dev/null; then
+            echo "$editor"
+            return 0
         fi
+    done
+    echo "none"
+}
+
+# 打开文件位置
+open_file_location() {
+    if [[ -e "$1" ]]; then
+        /usr/bin/open -R "$1"
     else
-        /usr/bin/open -R $filepath
-        exit
+        echo "错误：文件不存在 '$1'" >&2
+        return 1
     fi
-fi
+}
+
+# 带行号打开文件
+open_with_line_number() {
+    local filepath="$1"
+    local linenum="$2"
+    local editor=$(find_editor)
+
+    case $editor in
+        "code")
+            code --new-window --goto "${filepath}:${linenum}"
+            ;;
+        "nvim"|"vim")
+            "$editor" +"${linenum}" "$filepath"
+            ;;
+        *)
+            bat --highlight-line="$linenum" \
+                --theme=gruvbox-dark \
+                --style=full \
+                --color=always \
+                --pager=never \
+                "$filepath"
+            ;;
+    esac
+}
+
+# 处理普通文件
+handle_regular_file() {
+    local filepath="$1"
+    local file_type=$(file --dereference --mime -- "$filepath")
+
+    if [[ $file_type =~ /directory ]]; then
+        open_file_location "$filepath"
+    # elif [[ $file_type =~ =binary ]]; then
+    #     file "$filepath"
+    else
+        case "$filepath" in
+            *.${VIDEO_EXTENSIONS// /|*.})
+                /usr/bin/open "$filepath"
+                ;;
+            *.${TEXT_EXTENSIONS// /|*.})
+                local editor=$(find_editor)
+                [[ "$editor" != "none" ]] && "$editor" "$filepath"
+                ;;
+            *)
+                open_file_location "$filepath"
+                ;;
+        esac
+    fi
+}
+
+# ------------------------- 主逻辑 -------------------------
+main() {
+    # 处理路径中的 ~ 符号
+    local filepath="${1/#\~\//$PWD/}"
+
+    # 带行号的特殊格式处理 (filename:line:col)
+    if [[ $(grep -o ':' <<< "$filepath" | wc -l) -ge 2 ]]; then
+        IFS=':' read -ra parts <<< "$filepath"
+        open_with_line_number "${parts[0]}" "${parts[1]}"
+    else
+        # 文件存在性检查
+        if [[ ! -e "$filepath" ]]; then
+            echo "错误：路径不存在 '$filepath'" >&2
+            return 1
+        fi
+
+        # 获取文件类型
+        local file_type=$(file --dereference --mime -- "$filepath")
+
+        # 处理图片文件
+        if [[ $file_type =~ image/ ]]; then
+            open_file_location "$filepath"
+        else
+            handle_regular_file "$filepath"
+        fi
+    fi
+}
+
+# 执行入口
+# filepath=${1/#\~\//$PWD/}
+main "$@"

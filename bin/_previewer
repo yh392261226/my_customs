@@ -1,168 +1,203 @@
 #!/usr/bin/env bash
 #
-# The purpose of this script is to demonstrate how to preview a file or an
-# image in the preview window of fzf.
-#
-# Dependencies:
-# - https://github.com/sharkdp/bat
-# - https://github.com/hpjansson/chafa
-# - https://iterm2.com/utilities/imgcat
-# - https://github.com/hzeller/timg
-# - https://github.com/dsanson/termpdf
-# - tree
-# - piconv
-# - glow
-# - ffmpeg
+# 文件预览工具 - 支持多种格式文件预览
+# 依赖管理：自动降级处理，优先使用更友好的预览工具
 
-# if [[ $# -ne 1 ]]; then
-#   >&2 echo "usage: $0 FILENAME"
-#   exit 1
-# fi
+# ------------------------- 初始化配置 -------------------------
+# 定义颜色常量
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # 重置颜色
 
-file=${1/#\~\//$HOME/}
+# 定义工具优先级列表
+IMG_TOOLS=("kitty" "viu" "chafa" "imgcat")
+VID_TOOLS=("ffmpeg" "timg")
+TEXT_TOOLS=("bat" "batcat" "glow")
 
-if [ "$file" = "help" ]; then
+# ------------------------- 工具检测函数 -------------------------
+# 检测工具是否存在并返回路径
+check_tool() {
+    for tool in "$@"; do
+        if command -v "$tool" >/dev/null; then
+            echo "$tool"
+            return 0
+        fi
+    done
+    echo "none"
+}
+
+# ------------------------- 核心预览函数 -------------------------
+# 处理帮助文档
+show_help() {
     echo ""
-    if [ -f $TMP_FZF_HEADER_SWAP_FILE ]; then
-        helpfile="$(cat $TMP_FZF_HEADER_SWAP_FILE)_help"
-        if [ -f $MYRUNTIME/customs/tools/functions_help/${helpfile} ]; then
-            bash $MYRUNTIME/customs/tools/functions_help/${helpfile}
+    if [ -f "$TMP_FZF_HEADER_SWAP_FILE" ]; then
+        local helpfile="$(cat "$TMP_FZF_HEADER_SWAP_FILE")_help"
+        if [ -f "$MYRUNTIME/customs/tools/functions_help/${helpfile}" ]; then
+            bash "$MYRUNTIME/customs/tools/functions_help/${helpfile}"
         else
-            bash $MYRUNTIME/customs/tools/functions_help/default_help
+            bash "$MYRUNTIME/customs/tools/functions_help/default_help"
         fi
     fi
     echo ""
-# 用于 Vim 和 Nvim 配置文件的快照预览
-elif [ "$file" = "capture_screen" ]; then
-    tmpapppath=$(cat $2 | grep 'AppPath:' |sed 's/AppPath://g')
-    if [ -f $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg ]; then
-        if command -v chafa > /dev/null; then
-            chafa -f sixel -s 100%x100% $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg
-        else
-            imgcat $MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg
-        fi
-    fi
-# 用于全文搜索结果的编辑(一般会含有两个冒号::)
-elif [ "$(echo \"$file\" | grep -o ':' | wc -l)" -ge "2" ]; then
-    tmpfilepath=$(echo "$file" | awk -F':' '{print $1}')
-    tmplinenum=$(echo "$file" | awk -F':' '{print $2}')
-    bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style='full' --color=always --pager=never "${tmpfilepath}"
-else
-    type=$(file --dereference --mime -- "$file")
-    if [[ ! $type =~ image/ ]]; then
-        # If the file is a directory
-        if [[ $type =~ /directory ]]; then
-            if command -v tree > /dev/null; then
-                treename="tree -C "
-            else
-                treename="ls -R | grep :$ | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
-            fi
-            $treename "$file"
-            exit
-        else
-            case $file in
-                # pdf 文件在终端中预览 pdf
-                 *.pdf)
-                    #  pdftotext "$file" |less
-                    $MYRUNTIME/customs/bin/termpdf -sixel "$file"
-                    exit
-                ;;
-                # 根据文件扩展名在终端中预览 markdown内容
-                *.md|*.MD|*Md|*.markdown|*.MARKDOWN|*.Markdown|*.MarkDown)
-                    if command -v glow > /dev/null; then
-                        glow --style=dark -p "$file"
-                    else
-                        cat "$file"
-                    fi
-                    exit
-                ;;
-                # 根据文件扩展名生成视频截图
-                *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])
-                    if command -v ffmpeg > /dev/null; then
-                        ffmpeg -y -ss 00:00:00 -i "$file" -vframes 1 -q:v 2 /tmp/vedio_previewer_tmp.jpg
-                        if [ -f /tmp/vedio_previewer_tmp.jpg ]; then
-                            $MYRUNTIME/customs/bin/_previewer /tmp/vedio_previewer_tmp.jpg
-                            rm -f /tmp/vedio_previewer_tmp.jpg
-                        fi
-                    elif command -v timg > /dev/null; then
-                        timg -E --frames=1 --loops=1 -g $(( $COLUMNS / 2 - 4 ))x$(( $FZF_PREVIEW_LINES * 2 )) "$file"
-                    else
-                        file "$file"
-                    fi
-                    exit
-                ;;
-                # 根据文件扩展名选择查看压缩包内容
-                *.tar.bz2| *.tar.gz| *.tar.xz| *.lzma| *.bz2| *.rar| *.gz| *.tar| *.tbz| *.tbz2| *.tgz| *.zip| *.7z| *.xz| *.Z| *.exe)
-                    case "$file" in
-                    # 多层压缩的 tar 包
-                    *.tar.bz2)   tar tvjf "$file" ;;    # 查看 bzip2 压缩的 tar 包
-                    *.tar.gz)    tar tvzf "$file" ;;    # 查看 gzip 压缩的 tar 包
-                    *.tar.xz)    tar tvJf "$file" ;;    # 查看 xz 压缩的 tar 包（注意大写 J）
-                    # 单层压缩格式
-                    *.lzma)      lzma -dc "$file" | tar tvf - ;;  # 查看 LZMA 压缩的 tar 包
-                    *.bz2)       bzip2 -l "$file" ;;               # 显示 bzip2 文件元信息
-                    *.rar)       unrar l "$file" ;;                # 列出 RAR 压缩包内容
-                    *.gz)        gunzip -l "$file" ;;              # 显示 gzip 文件元信息
-                    *.tar)       tar tvf "$file" ;;                # 查看未压缩的 tar 包
-                    # 变体压缩包
-                    *.tbz2|*.tbz2)      tar tvjf "$file" ;;    # .tbz2 本质是 tar.bz2
-                    *.tgz)       tar tvzf "$file" ;;     # .tgz 本质是 tar.gz
-                    # 独立压缩格式
-                    *.zip)       unzip -l "$file" ;;               # 列出 ZIP 压缩包内容
-                    *.7z)        7z l "$file" ;;                   # 查看 7-Zip 压缩包内容
-                    *.xz)        xz -l "$file" ;;                  # 显示 xz 压缩文件元信息
-                    *.Z)         zcat "$file" | less ;;            # 查看旧式 compress 压缩内容
-                    *.exe)       7z l "$file" ;;                   # 查看自解压 exe 中的文件
-                    *)           echo "Error: Unknown archive method for '$file'" ;;
-                    esac
-                    exit
-                ;;
-                # txt 文件会自动转换编码为 utf8并用 bat 预览
-                *.txt)
-                    piconv -f GB2312 -t UTF-8 "$file" |bat --theme=gruvbox-dark --color=always --style=full
-                    exit
-                ;;
-            esac
-            
-            # 二进制文件直接使用 file 命令
-            [[ $type =~ =binary ]] && file "$file"
+}
 
-            if command -v batcat > /dev/null; then
-                batname="batcat"
-            elif command -v bat > /dev/null; then
-                batname="bat"
-            else
-                cat "$1"
-                exit
-            fi
-            ${batname} --theme=gruvbox-dark --style=full --color=always --pager=never -- "$file"
-            exit
-        fi
+# 处理截图预览
+preview_capture() {
+    local tmpapppath=$(grep 'AppPath:' "$2" | sed 's/AppPath://g')
+    local capture_path="$MYRUNTIME/customs/${tmpapppath}/capture_screen.jpg"
+    
+    if [ -f "$capture_path" ]; then
+        local img_tool=$(check_tool "${IMG_TOOLS[@]}")
+        case $img_tool in
+            "chafa") chafa -f sixel -s 100%x100% "$capture_path" ;;
+            "viu")   viu "$capture_path" ;;
+            "imgcat") imgcat "$capture_path" ;;
+            *)       echo -e "${RED}未找到图片预览工具${NC}" ;;
+        esac
+    fi
+}
+
+# 文本文件预览
+preview_text() {
+    local file="$1"
+    local encoding=$(file -b --mime-encoding "$file")
+    local bat_tool=$(check_tool "${TEXT_TOOLS[@]}")
+    
+    # 编码转换处理
+    if [[ "$encoding" != "utf-8" && "$encoding" != "us-ascii" ]]; then
+        piconv -f GB2312 -t UTF-8 "$file" | "$bat_tool" --theme=gruvbox-dark --color=always --style=full
     else
-        dim=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}
-        if [[ $dim = x ]]; then
-            dim=$(stty size < /dev/tty | awk '{print $2 "x" $1}')
-        elif ! [[ $KITTY_WINDOW_ID ]] && (( FZF_PREVIEW_TOP + FZF_PREVIEW_LINES == $(stty size < /dev/tty | awk '{print $1}') )); then
-            dim=${FZF_PREVIEW_COLUMNS}x$((FZF_PREVIEW_LINES - 1))
-        fi
-
-        if [[ $KITTY_WINDOW_ID ]]; then
-            kitty icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" "$file" | sed '$d' | sed $'$s/$/\e[m/'
-        elif command -v viu > /dev/null; then
-            width=$(echo $dim | awk -F'x' '{print $1}')
-            height=$(echo $dim | awk -F'x' '{print $2}')
-            viu -w $width -h $height "$file"
-        elif command -v chafa > /dev/null; then
-            if [ "Warp" = "$(env | grep 'TERM_PROGRAM=' | sed 's/TERM_PROGRAM=//')" ]; then
-                chafa -s "$dim" "$file"
-            else
-                chafa -f sixel -s "$dim" "$file"
-            fi
-            echo
-        elif command -v imgcat > /dev/null; then
-            imgcat -W "${dim%%x*}" -H "${dim##*x}" "$file"
-        else
-            file "$file"
-        fi
+        "$bat_tool" --theme=gruvbox-dark --color=always --style=full "$file"
     fi
-fi
+}
+
+# 处理压缩文件预览
+preview_archive() {
+    local file="$1"
+    case "$file" in
+        # 多层压缩的 tar 包
+        *.tar.bz2)   tar tvjf "$file" ;;    # 查看 bzip2 压缩的 tar 包
+        *.tar.gz)    tar tvzf "$file" ;;    # 查看 gzip 压缩的 tar 包
+        *.tar.xz)    tar tvJf "$file" ;;    # 查看 xz 压缩的 tar 包（注意大写 J）
+        # 单层压缩格式
+        *.lzma)      lzma -dc "$file" | tar tvf - ;;  # 查看 LZMA 压缩的 tar 包
+        *.bz2)       bzip2 -l "$file" ;;               # 显示 bzip2 文件元信息
+        *.rar)       unrar l "$file" ;;                # 列出 RAR 压缩包内容
+        *.gz)        gunzip -l "$file" ;;              # 显示 gzip 文件元信息
+        *.tar)       tar tvf "$file" ;;                # 查看未压缩的 tar 包
+        # 变体压缩包
+        *.tbz2|*.tbz2)      tar tvjf "$file" ;;    # .tbz2 本质是 tar.bz2
+        *.tgz)       tar tvzf "$file" ;;     # .tgz 本质是 tar.gz
+        # 独立压缩格式
+        *.zip)       unzip -l "$file" ;;               # 列出 ZIP 压缩包内容
+        *.7z)        7z l "$file" ;;                   # 查看 7-Zip 压缩包内容
+        *.xz)        xz -l "$file" ;;                  # 显示 xz 压缩文件元信息
+        *.Z)         zcat "$file" | less ;;            # 查看旧式 compress 压缩内容
+        *.exe)       7z l "$file" ;;                   # 查看自解压 exe 中的文件
+        *)       echo -e "${RED}不支持的压缩格式: ${file##*.}${NC}" ;;
+    esac
+}
+
+# 处理多媒体文件预览
+preview_media() {
+    local file="$1"
+    local tool=$(check_tool "${VID_TOOLS[@]}")
+    
+    case $tool in
+        "ffmpeg")
+            ffmpeg -y -ss 00:00:00 -i "$file" -vframes 1 -q:v 2 /tmp/preview_tmp.jpg 2>/dev/null
+            [ -f /tmp/preview_tmp.jpg ] && preview_image "/tmp/preview_tmp.jpg"
+            rm -f /tmp/preview_tmp.jpg
+            ;;
+        "timg")
+            timg -E --frames=1 --loops=1 -g $((COLUMNS/2))x$((LINES*2)) "$file"
+            ;;
+        *)
+            file "$file"
+            ;;
+    esac
+}
+
+# 图片预览处理
+preview_image() {
+    local file="$1"
+    local dim="${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}"
+    local tool=$(check_tool "${IMG_TOOLS[@]}")
+    
+    case $tool in
+        "kitty")
+            kitty icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" "$file"
+            ;;
+        "viu")
+            viu -w "${dim%x*}" -h "${dim#*x}" "$file"
+            ;;
+        "chafa")
+            [ "$TERM_PROGRAM" = "Warp" ] && format="" || format="sixel"
+            chafa -f $format -s "$dim" "$file"
+            ;;
+        "imgcat")
+            imgcat -W "${dim%x*}" -H "${dim#*x}" "$file"
+            ;;
+        *)
+            file "$file"
+            ;;
+    esac
+}
+
+# ------------------------- 主逻辑 -------------------------
+main() {
+    local file="${1/#\~\//$HOME/}"
+    
+    # 特殊命令处理
+    case "$file" in
+        "help")           show_help ; return ;;
+        "capture_screen") preview_capture "$@" ; return ;;
+    esac
+
+    # 带行号的文本预览处理
+    if [[ $(echo "$file" | grep -o ':' | wc -l) -ge 2 ]]; then
+        local tmpfilepath=$(echo "$file" | awk -F':' '{print $1}')
+        local tmplinenum=$(echo "$file" | awk -F':' '{print $2}')
+        bat --highlight-line="$tmplinenum" --theme=gruvbox-dark --style=full --color=always "$tmpfilepath"
+        return
+    fi
+
+    # 文件类型检测
+    local type=$(file --dereference --mime -- "$file")
+    
+    # 目录处理
+    if [[ $type =~ /directory ]]; then
+        if command -v tree >/dev/null; then
+            tree -C "$file"
+        else
+            ls -R | grep :$ | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/' "$file"
+        fi
+        return
+    fi
+
+    # 按类型分发处理
+    case "$file" in
+        *.pdf) termpdf -sixel "$file" ;;
+        *.md|*.markdown) 
+            local md_tool=$(check_tool "glow" "bat")
+            [ "$md_tool" = "glow" ] && glow --style=dark -p "$file" || bat --theme=gruvbox-dark "$file"
+            ;;
+        *.txt) preview_text "$file" ;;
+        *.csv)
+            csv_tool=$(check_tool "csvlens" "xsv")
+            [ "$csv_tool" = "csvlens" ] && csvlens "$file" || xsv table "$file"
+        ;;
+        *.tar.bz2| *.tar.gz| *.tar.xz| *.lzma| *.bz2| *.rar| *.gz| *.tar| *.tbz| *.tbz2| *.tgz| *.zip| *.7z| *.xz| *.Z| *.exe) preview_archive "$file" ;;
+        *.mp4|*.webm|*.avi,*.wmv,*.dat,*.3gp,*.ogv,*.mkv,*.mpg,*.mpeg,*.vob,*.fl[icv],*.m2v,*.mov,*.ts,*.mts,*.m4v,*.r[am],*.qt,*.divx,*.as[fx])  preview_media "$file" ;;
+        *)            
+            if [[ $type =~ image/ ]]; then
+                preview_image "$file"
+            else
+                preview_text "$file"
+            fi
+            ;;
+    esac
+}
+
+# 执行入口
+main "$@"
