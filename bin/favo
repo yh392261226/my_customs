@@ -1,704 +1,244 @@
 #!/usr/bin/env bash
 ########################################
-## Desc: 喜爱图片收藏脚本
+## Desc: 图片收藏管理脚本 (优化版)
 ## Author: 杨浩
 ########################################
-MYRUNTIME=$(cat ~/.myruntime)                         #runtime path
+
+# --------------------------
+# 环境配置
+# --------------------------
+MYRUNTIME=$(cat ${HOME}/.myruntime)
+RUNTIME_DIR="${MYRUNTIME}/tools"
 curmark=$(basename $(readlink $MYRUNTIME/pictures))
-FAVOMARK=$MYRUNTIME/tools/m_favorate_${curmark}                  #favorate mark file
-FAVOHTML=$MYRUNTIME/tools/m_favorate_${curmark}.html             #favorate mark html
-CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
-CURPIC=$(cat $CURPICNAME)                             #current background of iterm2 name
-TMPFILE=/tmp/favo_tmp                                 #tmp file name
-DEFAULTBROWSER="/Applications/Google Chrome.app"      #default browser for open m_favorate.html
-DEFAULTBROWSER2="/Applications/Safari.app"            #second default browser for open m_favorate.html
-IFORDER=0                                             #if order the favorates 0 not order, 1 order
-BACKGROUNDIMG=$(sed s/[[:space:]]//g $CURPICNAME)     #background image file name
-show_msg=0                                            #if show msg 0:no 1:yes
-PICURL=$(cat $MYRUNTIME/tools/m_picurl);              #图片软连接地址
+FAVO_MARK="${RUNTIME_DIR}/m_favorate_${curmark}"
+FAVO_HTML="${RUNTIME_DIR}/m_favorate_${curmark}.html"
+CURRENT_PIC="${RUNTIME_DIR}/current_picturename"
+TMPFILE=/tmp/favo_tmp
+DEFAULT_BROWSER="/Applications/Google Chrome.app"
+BACKUP_BROWSER="/Applications/Safari.app"
+THUMB_SIZE="40"  # 默认缩略图尺寸
 
-#获取文件源地址
-realfile_position() {
-  if [ "$1" != "" ]; then
-    dir=$(readlink $(dirname "$1"))
-    name=$(basename "$1")
-    CURPIC=${dir}/${name}
-    return 0
-  fi
-  return 1
-}
-
-#原图预览
-cat_favo() {
-  if [ "$1" != "" ]; then
-    $HOME/.iterm2/imgcat $1
-  else
-    $HOME/.iterm2/imgcat $BACKGROUNDIMG
-  fi
-}
-
-#获取文件名
-name_favo() {
-  echo $BACKGROUNDIMG
-}
-
-#验证操作可否
-checkOprate_favo() {
-  if [ ! -f $FAVOMARK ] || [ ! -f $FAVOHTML ]; then
-    touch $FAVOMARK
-    touch $FAVOHTML
-    return 0
-	fi
-  return 1
-}
-
-#缩略图
-thumb_favo() {
-	if [ "$1" = "" ] || [ ! -f $1 ]; then
-		echo "Image file does not exists !";
-		return 1
-	fi
-  if [ "$2" != "" ]; then
-    width=$(echo $2 | awk -F'X|x|*' '{print $1}' | sed 's/%/%%/g')
-    height=$(echo $2 | awk -F'X|x|*' '{print $2}' | sed 's/%/%%/g')
-    printf '\033]1337;File=inline=1;width='$width';height='$height'preserveAspectRatio=0'
-  else
-    printf '\033]1337;File=inline=1;width=30%%;preserveAspectRatio=0'
-  fi
-  printf ":"
-  base64 < "$1"
-  printf '\a\n'
-}
-
-#图片切换
-change_favo () {
-  if [ "" = "$1" ] || [ ! -f $1 ]; then
-    echo "File does not exits !"
-    return 1
-  fi
-	image_path=$1
-	CURITERMVERSION=$(lsappinfo info -only name `lsappinfo front` |awk -F'"LSDisplayName"="' '{print $2}'|cut -d '"' -f 1)
-	if [ -f $MYRUNTIME/tools/current_picturename ]
-	then
-		rm -f $MYRUNTIME/tools/current_picturename
-	fi
-	echo "$image_path" > $MYRUNTIME/tools/current_picturename
-
-  if [ "$show_msg" = "1" ]
-	then
-		if [ ! -z "$image_path" ]
-		then
-			terminal-notifier -message $image_path
-		fi
-	fi
-
-	osascript -e "tell application \"iTerm.app\"
-                tell current window
-                    tell current session
-                        set background image to \"$image_path\"
-                    end tell
-                end tell
-            end tell"
-}
-
-###添加喜欢
-add_favo() {
-	if [ ! -f $FAVOMARK ]; then
-		check=""
-	else
-		check=$(cat $FAVOMARK | grep "$CURPIC")
-	fi
-
-  if [ "$check" != "" ]; then
-      echo "Current picture has already marked !";
-      return 1
-  fi
-  echo $CURPIC >> $FAVOMARK
-
-  if [ "$IFORDER" = "1" ]; then
-    if [ -f $TMPFILE ]; then
-      rm -f $TMPFILE
-    fi
-
-    cat $FAVOMARK | sort > $TMPFILE
-    if [ -f $TMPFILE ]; then
-      if [ -f $FAVOMARK ]; then
-        rm -f $FAVOMARK
-      fi
-      mv $TMPFILE $FAVOMARK
-    fi
-  fi
-
-  if [ "$?" = "0" ]; then
-      echo "Add favorate picture successful !";
-  else
-      echo "Add favorate picture faild !";
-  fi
-}
-
-###删除喜欢
-del_favo() {
-    if [ "$1" = "" ]; then
-        curpicname=$CURPIC
-    else
-        curpicname=$1
-    fi
-
-    cat $FAVOMARK | grep -v "$curpicname" | sort | uniq > $TMPFILE
-    if [ -f $TMPFILE ]; then
-        rm -f $FAVOMARK
-        mv $TMPFILE $FAVOMARK
-        if [ "$?" = "0" ]; then
-            echo "Delete favorate picture successful !";
-        else
-            echo "Delete favorate picture faild !";
-        fi
-    fi
-}
-
-###按照数字删除喜欢
-del_favo_by_num() {
-    favolists=`cat $FAVOMARK`
-    favo_array[0]=''
-    posit=0
-    for i in ${favolists[*]}; do
-        if [ "$i" != "" ]; then
-            favo_array[$posit]=$i #加入数组
-            ((posit+=1))
-        fi
-    done
-
-
-    if [ "$1" -lt "${#favo_array[@]}" ]; then
-        del_favo ${favo_array[$1]}
-    else
-        echo "The NO. you typed dose not exists !";
-        return 1
-    fi
-}
-
-###列出喜欢的收藏
-list_favo() {
-    if [ ! -f $FAVOMARK ]; then
-        echo "$FAVOMARK dose not exists !"
-        return 1
-    else
-    cat $FAVOMARK | fzf $FZF_CUSTOM_PARAMS +m --preview "$MYRUNTIME/customs/bin/_previewer {} "
-		# favolists=`cat $FAVOMARK`
-		# posit=0
-    #     for i in ${favolists[*]}; do
-    #         if [ "$i" != "" ]; then
-		# 		echo $posit
-		# 		thumb_favo $i
-		# 		echo $i
-		# 		((posit+=1))
-    #         fi
-    #     done
-		# 		((posit+=1))
-		# echo "Total : $posit"
-    fi
-}
-
-###列出喜欢的收藏文件列表
-list_files_favo() {
-    if [ ! -f $FAVOMARK ]; then
-        echo "$FAVOMARK does not exists !"
-        return 1
-    else
-        favolists=`cat $FAVOMARK`
-        posit=0
-        echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-        for i in ${favolists[*]}; do
-            if [ "$i" != "" ]; then
-                printf "%-5s%-15s%-50s\n" "|" "$posit" "$i"
-                echo "............................................................................."
-                ((posit+=1))
-            fi
-        done
-        echo "-----------------------------------------------------------------------------------------------------------------------------------------"
-        list_num_favo
-    fi
-}
-
-###显示收藏数量
-list_num_favo() {
-	if [ ! -f $FAVOMARK ]; then
-        echo "$FAVOMARK does not exists !"
-        return 1
-    else
-        counts=`cat $FAVOMARK |wc -l`
-        ((counts-=1))
-		echo $counts
-	fi
-}
-
-###打开HTML文件
-open_html() {
-    if [ -f $FAVOHTML ]; then
-        [[ -d "$DEFAULTBROWSER" ]] && /usr/bin/open -a "$DEFAULTBROWSER" "$FAVOHTML" || /usr/bin/open "$FAVOHTML"
-    fi
-}
-
-###利用HTML展示列表
-list_html_favo() {
-  if [ ! -f $FAVOMARK ]; then
-      echo "$FAVOMARK does not exists !"
-      return 1
-  else
-      if [ -f $FAVOHTML ]; then
-        echo "" > $FAVOHTML
-      fi
-      touch $FAVOHTML
-
-      favolists=`cat $FAVOMARK`
-      posit=0
-      for i in ${favolists[*]}; do
-          if [ "$i" != "" ]; then
-              #name=$(basename $i)
-              echo "${posit} <a href='${i}' target='_blank'><img alt='${i}' width='200' height='80' src='${i}'></a>" >> $FAVOHTML
-              ((posit+=1))
-          fi
-      done
-      open_html
-  fi
-}
-
-###选择并设置喜欢
-chose_favo() {
-    if [ ! -f $FAVOMARK ]; then
-        echo "$FAVOMARK dose not exists!"
-        return 1
-    else
-        favolists=`cat $FAVOMARK`
-        favo_array[0]=''
-        posit=0
-        for i in ${favolists[*]}; do
-            if [ "$i" != "" ]; then
-                favo_array[$posit]=$i #加入数组
-                if [ "$1" = "" ]; then
-				    thumb_favo $i
-				    echo $posit $i
-                fi
-                ((posit+=1))
-            fi
-        done
-
-        if [ "$1" != "" ]; then
-            conf=$1
-        else
-		    echo "Type your choice : "; read conf
-        fi
-
-        if [ "$conf" -lt "${#favo_array[@]}" ]; then
-            change_favo ${favo_array[$conf]}
-            clear
-        else
-            echo "The NO. you typed dose not exists !";
-            return 1
-        fi
-    fi
-}
-
-###清空喜欢
-truncate_favo() {
-    echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
-    read choice
-    if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
-        if [ -f $FAVOMARK ]; then
-            rm -f $FAVOMARK
-        fi
-        echo "Truncate successfully !";
-    else
-        return 1
-    fi
-}
-
-###rebuild Markfile
-rebuild_favo() {
-  echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
-  read choice
-  if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
-      favolists=`cat $FAVOMARK`
-      favo_array[0]=''
-      posit=0
-      if [ -f $TMPFILE ]; then
-          rm -f $TMPFILE
-      fi
-      for i in ${favolists[*]}; do
-          if [ "$i" != "" ] && [ -f $i ]; then
-              echo $i >> $TMPFILE
-          fi
-          ((posit+=1))
-      done
-
-      if [ -f $TMPFILE ]; then
-          mv $TMPFILE $FAVOMARK
-      fi
-      if [ "$?" = "0" ]; then
-          echo "Done ...";
-          return 0;
-      else
-          echo "Failure ...";
-          return 1;
-      fi
-  else
-      return 1
-  fi
-}
-
-###定位当前背景数
-posit_favo() {
-    favolists=`cat $FAVOMARK`
-    favo_array[0]=''
-    posit=0
-    for i in ${favolists[*]}; do
-        if [ "$i" = "$CURPIC" ]; then
-            echo $posit;
-            return
-        fi
-        ((posit+=1))
-    done
-}
-
-###根据键获取文件全名
-file_favo() {
-    num=$1
-    favolists=`cat $FAVOMARK`
-    favo_array[0]=''
-    posit=0
-    for i in ${favolists[*]}; do
-        if [ "$posit" = "$num" ]; then
-          echo $i
-          return
-        fi
-        ((posit+=1))
-    done
-}
-
-###随机选择收藏
-rand_favo() {
-    max=$(list_num_favo)
-    min=0
-    rand=$(php -r "echo rand($min, $max);")
-    #rand=`expr $rand*1`
-    chose_favo $rand
-}
-
-###随机显示5张图片
-show_favo() {
-    shownum=$1
-    if [ "$shownum" = "" ]; then
-      shownum=5
-    fi
-	  max=$(list_num_favo)
-    min=0
-    for ((i=0; i<$shownum; i++)); do
-      rand=$(php -r "echo rand($min, $max);")
-      filename=$(file_favo $rand)
-      if [ -f $filename ]; then
-        thumb_favo $filename; echo $(basename $filename)
-        echo ""
-      fi
-    done
-}
-
-###随机选择的下一个
-rand_next_favo() {
-  curposit=$(posit_favo)
-  max=$(list_num_favo)
-  ((max-=1))
-  if [ "$curposit" -ge "$max" ]; then
-    echo "Current posit is the max !!!"
-    return
-  fi
-  num=`expr $curposit + 1`
-  chose_favo $num
-}
-
-###随机选择的上一个
-rand_pre_favo() {
-  curposit=$(posit_favo)
-  min=0
-  if [ "$curposit" -le "$min" ]; then
-    echo "Current posit is the min !!!"
-    return
-  fi
-  num=`expr $curposit - 1`
-  chose_favo $num
-}
-
-#打开图片并定位到位置
-open_favo() {
-  if [ "$1" != "" ] && [ -f $1 ]; then
-    /usr/bin/open -R $1
-  else
-    echo "File does not exists !"
-    return 1
-  fi
-}
-
-#将图片移到垃圾桶
-trash_favo() {
-  if [ "$1" != "" ] && [ -f $1 ]; then
-    trash $1
-  else
-    echo "File does not exists !"
-    return 1
-  fi
-}
-
-#将图片设置为桌面背景
-wallpaper_favo() {
-  METHOD=$(sw_vers -productVersion | awk -F'.' '{ if ($1 < 10 || $2 < 9) { print "osascript" } else{ print "sqlite3"  } }')
-  case $METHOD in
-      osascript)
-          osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${1}\""
-          ;;
-      sqlite3)
-          current_path=$(sqlite3 -noheader -batch ${HOME}/Library/Application\ Support/Dock/desktoppicture.db 'select value from data limit 1')
-          if [[ "$current_path" != "$1" ]]; then
-              sqlite3 ${HOME}/Library/Application\ Support/Dock/desktoppicture.db "update data set value = '${1}'" && killall Dock
-          fi
-          ;;
-      *)
-          echo "I can't set the wallpaper" && exit 1
-          ;;
-  esac
-  #sqlite3 ${HOME}/Library/Application\ Support/Dock/desktoppicture.db "update data set value = '${1}'" && killall Dock
-}
-
-#模糊定位
-fuzzy_search() {
-  para=$CURPIC
-  if [ "$1" != "" ]; then
-    para=$1
-  fi
-  searchlist=""
-  for d in $(ls $PICURL/ | grep  -v 'duplicates_'); do
-    if [ -d $PICURL/$d ]; then
-      searchlist+=$(ls $PICURL/$d/*${para}* |sed 's/\/\//\//g')
+# --------------------------
+# 初始化检查
+# --------------------------
+init_check() {
+  [[ ! -d "${RUNTIME_DIR}" ]] && mkdir -p "${RUNTIME_DIR}"
+  
+  local required_commands=("trash" "fzf" "viu")
+  for cmd in "${required_commands[@]}"; do
+    if ! command -v "${cmd}" &> /dev/null; then
+      echo "错误: 缺少依赖命令 ${cmd}"
+      exit 1
     fi
   done
-  if [ "" != "$searchlist" ]; then
-    search_array[0]=''
-    posit=0
-    for i in ${searchlist[*]}; do
-        if [ "$i" != "" ] && [ -f $i ]; then
-            search_array[$posit]=$i #加入数组
-            # echo $i
-            echo "$posit"
-            thumb_favo $i 10%x10%
-            echo "$i" | awk -F'.' '{print $1}' | awk -F'/' '{print $NF}'
-            ((posit+=1))
-        fi
-    done
-    if [ "0" = "${#search_array[@]}" ]; then
-      echo "Nothing be found !!! Try to change your keyword."
-      return 1
-    fi
-    echo "Total: ${#search_array[@]} files was found"
-    echo "You have to decide to chose which one to oprate : （Eg： add 1）"
-    echo "[a(add) / s(set) / rm(trash) / o(open) / cat / t(thumb) / w(wallpaper)] + number"
-    echo "Type Your Choice:"; read choice
-    act=$(echo $choice | awk -F' ' '{print $1}')
-    num=$(echo $choice | awk -F' ' '{print $2}')
-    if [ "" = "$num" ]; then
-      num=0
-    fi
-    if [ "$num" -le "${#search_array[@]}" ]; then
-      conf="${search_array[$num]}"
-    fi
-    case "$act" in
-    "add" | "a")
-      add_favo $conf
-    ;;
-    "set" | "s")
-      change_favo $conf
-    ;;
-    "trash" | "rm")
-      trash_favo $conf
-    ;;
-    "open" | "o")
-      open_favo $conf
-    ;;
-    "thumb" | "t")
-      thumb_favo $conf
-    ;;
-    "wallpaper" | "w")
-      wallpaper_favo $conf
-    ;;
-    esac
-    return 0
-  else
-    echo "Nothing be found !!! Try to change your keyword."
+
+  [[ ! -f "${CURRENT_PIC}" ]] && touch "${CURRENT_PIC}"
+  [[ ! -f "${FAVO_MARK}" ]] && touch "${FAVO_MARK}"
+}
+
+# --------------------------
+# 核心功能
+# --------------------------
+
+# 获取当前图片路径
+get_current_pic() {
+  [[ -f "${CURRENT_PIC}" ]] && cat "${CURRENT_PIC}" || echo ""
+}
+
+# 显示缩略图
+show_thumbnail() {
+  local img_path="${1:-$(get_current_pic)}"
+  [[ -z "${img_path}" ]] && return 1
+  
+  viu --width "${THUMB_SIZE}" "${img_path}"
+}
+
+# 添加收藏
+add_favorite() {
+  local target_pic="${1:-$(get_current_pic)}"
+  [[ -z "${target_pic}" ]] && return 1
+
+  if grep -qF "${target_pic}" "${FAVO_MARK}"; then
+    echo "图片已存在收藏!"
     return 1
+  fi
+
+  echo "${target_pic}" >> "${FAVO_MARK}" && sort -u "${FAVO_MARK}" -o "${FAVO_MARK}"
+  echo "成功添加收藏!"
+}
+
+# 删除收藏
+remove_favorite() {
+  local target_id="${1}"
+  if [[ -z "${target_id}" ]]; then
+    interactive_remove
+  else
+    remove_by_id "${target_id}"
   fi
 }
 
-# source $MYRUNTIME/customs/bin/mymessage
+interactive_remove() {
+  local header="🖼️ 图片收藏 (共 $(wc -l < "${FAVO_MARK}") 张)"
+  local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
+  local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | fzf $FZF_CUSTOM_PARAMS --header="选择要删除的图片 (按ESC退出)" +m \
+       --delimiter='│' \
+       --border-label="╢ Favorate Images ╟" \
+       --ghost="Type your search words ┈┉ " \
+       --preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3"  \
+       --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
+       --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+       --header "${header}" \
+       --preview "${preview_cmd} ")
+  [[ -z "${selected}" ]] && return
+  selected=$(basename $(echo "$selected" | awk -F'│' '{print $2}'))
+  cat ${FAVO_MARK} | grep -v "$selected" > $TMPFILE
+  [[ -f $TMPFILE ]] && rm -f ${FAVO_MARK} && mv $TMPFILE ${FAVO_MARK}
+}
 
-if [ ! -d $MYRUNTIME ] || [ ! -f $FAVOMARK ] || [ ! -f $CURPICNAME ]; then
-	echo "Runtime file 、CURPICNAME file or FAVOMARK file does not exists !!!"
-	echo "Now building ..."
-fi
+# --------------------------
+# 交互式列表 (带预览)
+# --------------------------
+list_favorites() {
+  [[ ! -s "${FAVO_MARK}" ]] && echo "收藏列表为空" && return 1
 
-if [ ! -d "$DEFAULTBROWSER" ]; then
-  DEFAULTBROWSER=$DEFAULTBROWSER2
-fi
+  local header="🖼️ 图片收藏 (共 $(wc -l < "${FAVO_MARK}") 张)"
+  local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
+  
+  # 构建带序号的列表
+  local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | \
+    fzf $FZF_CUSTOM_PARAMS +m\
+       --delimiter='│' \
+       --border-label="╢ Favorate Images ╟" \
+       --ghost="Type your search words ┈┉ " \
+       --preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3"  \
+       --preview "${preview_cmd} " \
+       --header "${header}" \
+       --reverse \
+       --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
+       --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+       --prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
+       --ansi)
+  [[ -z "${selected}" ]] && return
+  selected=$(echo "$selected" | awk -F'│' '{print $2}')
+  set_background $selected
+}
 
-realfile_position "$CURPIC"
+# 生成HTML
+generate_html() {
+  [[ ! -s "${FAVO_MARK}" ]] && return 1
 
-case "$1" in
-	"chose"|"c")
-    if [ "$2" != "" ]; then
-        chose_favo $2
-    else
-    chose_favo
-    fi
-		;;
-	"list"|"l"|"num"|"n"|"html"|"h")
-		if [ "$1" = "list" ] || [ "$1" = "l" ];then
-	    	if [ "$2" = "file" ] || [ "$2" = "f" ]; then
-	            list_files_favo
-			elif [ "$2" = "num" ] || [ "$2" = "n" ]; then
-				list_num_favo
-        	elif [ "$2" = "html" ] || [ "$2" = "h" ]; then
-        		list_html_favo
-	    	else
-				list_favo
-	    	fi
-		elif [ "$1" = "num" ] || [ "$1" = "n" ]; then
-			list_num_favo
-    	elif [ "$1" = "html" ]; then
-        	if [ "$2" = "open" ] || [ "$2" = "o" ]; then
-          		open_html
-        	else
-          		list_html_favo
-        	fi
-		fi
-		;;
-	"add"|"a")
-		checkOprate_favo
-		add_favo
-		;;
-	"del"|"d")
-		checkOprate_favo
-		if [ "" = "$2" ]; then
-			del_favo
-		else
-			del_favo_by_num $2
-		fi
-		;;
-	"trun"|"truncate")
-		checkOprate_favo
-		truncate_favo
-		;;
-  "ta"|"thumbandadd")
-    thumb_favo $BACKGROUNDIMG
-    echo "Add favo or not, Type your choice, y|n : "; read choose
-    if [ "$choose" = "Y" ] || [ "$choose" = "yes" ] || [ "$choose" = "y" ]; then
-      checkOprate_favo
-		  add_favo
-    fi
-    ;;
-	"thumb"|"t")
-		if [ "" != "$2" ]; then
-			thumb_favo $2 $3
-    else
-    	thumb_favo $BACKGROUNDIMG
-		fi
-		;;
-  	"scur"|"setcurent")
-    	change_favo $CURPIC
-    	;;
-  	"posit"|"p")
-    	posit_favo
-    	;;
-  	"rand"|"r")
-    	if [ "$2" != "" ]; then
-      		if [ "$2" = "pre" ] || [ "$2" = "p" ]; then
-        		rand_pre_favo
-      		elif [ "$2" = "next" ] || [ "$2" = "n" ]; then
-        		rand_next_favo
-      		fi
-    	else
-      		rand_favo
-    	fi
-        ;;
-  	"show"|"s5")
-    	show_favo $2
-    	;;
-  	"cat")
-    	if [ "$2" != "" ]; then
-      		cat_favo $2
-    	else
-      		cat_favo $BACKGROUNDIMG
-    	fi
-    	;;
-  	"set"|"s")
-    	change_favo $2
-    	;;
-  	"name")
-    	if [ "$2" != "" ]; then
-      		name_favo $2
-    	else
-      		name_favo $BACKGROUNDIMG
-    	fi
-    	;;
-  	"rebuild"|"b")
-    	rebuild_favo
-    	;;
-  	"open"|"o"|"locate")
-    	if [ "$2" != "" ]; then
-        	open_favo $2
-    	else
-        	open_favo $BACKGROUNDIMG
-    	fi
-    	;;
-  	"trash"|"rm")
-    	if [ "$2" != "" ]; then
-      		trash_favo $2
-    	else
-      		trash_favo $BACKGROUNDIMG
-    	fi
-    	;;
-  	"wallpaper" | "w")
-    	if [ "$2" != "" ]; then
-      		wallpaper_favo $2
-    	else
-      		wallpaper_favo $BACKGROUNDIMG
-    	fi
-    	;;
-    "search" | "f")
-      fuzzy_search $2
+  cat <<HTML_HEAD > "${FAVO_HTML}"
+<!DOCTYPE html>
+<html>
+<head>
+  <title>图片收藏</title>
+  <style>
+    .gallery {display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));}
+    img {max-width: 100%; height: auto; border: 1px solid #ddd;}
+  </style>
+</head>
+<body>
+  <div class="gallery">
+HTML_HEAD
+
+  while IFS= read -r img; do
+    echo "<a href=\"${img}\" target=\"_blank\"><img src=\"file://${img}\" alt=\"${img##*/}\"></a>" >> "${FAVO_HTML}"
+  done < "${FAVO_MARK}"
+
+  echo "</div></body></html>" >> "${FAVO_HTML}"
+  open "${FAVO_HTML}" -a "${DEFAULT_BROWSER:-${BACKUP_BROWSER}}"
+}
+
+# 设置背景
+set_background() {
+  local img_path="${1}"
+  [[ ! -f "${img_path}" ]] && return 1
+
+  echo "${img_path}" > "${CURRENT_PIC}"
+  osascript <<APPLESCRIPT
+  tell application "iTerm"
+    tell current window
+      tell current session
+        set background image to "${img_path}"
+      end tell
+    end tell
+  end tell
+APPLESCRIPT
+}
+
+# --------------------------
+# 辅助功能
+# --------------------------
+
+# 随机切换
+random_pic() {
+  local total=$(wc -l < "${FAVO_MARK}")
+  [[ "${total}" -eq 0 ]] && return 1
+  local rand_num=$((RANDOM % total))
+  echo "Random Change Background Done ."
+  set_background "$(sed -n "${rand_num}p" "${FAVO_MARK}")"
+}
+
+# 文件定位
+locate_file() {
+  open -R "$(get_current_pic)"
+}
+
+# 模糊搜索
+fuzzy_search() {
+  local keyword="${1}"
+  [[ -z "${keyword}" ]] && read -p "输入搜索关键词: " keyword
+  [[ -z "${keyword}" ]] && return
+  local header="🖼️ 图片收藏 (共 $(wc -l < "${FAVO_MARK}") 张)"
+  local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
+  local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | grep "${keyword}" | fzf $FZF_CUSTOM_PARAMS +m\
+       --delimiter='│' \
+       --border-label="╢ Favorate Images ╟" \
+       --ghost="Type your search words ┈┉ " \
+       --preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3"  \
+       --preview "${preview_cmd} " \
+       --header "${header}" \
+       --reverse \
+       --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
+       --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+       --prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
+       --ansi)
+  [[ -z "${selected}" ]] && return
+  selected=$(echo "$selected" | awk -F'│' '{print $2}')
+  # echo $selected; return
+  set_background $selected
+}
+
+# --------------------------
+# 主程序
+# --------------------------
+main() {
+  init_check
+
+  case "${1}" in
+    add|a)     add_favorite ;;
+    remove|rm) remove_favorite "${2}" ;;
+    list|l)    list_favorites ;;
+    html|h)    generate_html ;;
+    set)       set_background "${2}" ;;
+    random|r)  random_pic ;;
+    locate|lo) locate_file ;;
+    search|s)  fuzzy_search "${2}" ;;
+    thumb|t)   show_thumbnail "${2}" ;;
+    *)
+      echo "使用方法: ${0##*/} [command]"
+      echo "可用命令:"
+      echo "  add    / a   添加当前背景到收藏"
+      echo "  remove / rm  删除收藏"
+      echo "  list   / l   显示收藏列表"
+      echo "  html   / h   生成HTML相册"
+      echo "  set          设置指定图片为背景"
+      echo "  random / r   随机切换背景"
+      echo "  locate / lo  在Finder中定位文件"
+      echo "  search / s   模糊搜索图片"
+      echo "  thumb  / t   显示缩略图"
       ;;
-	  "help"|"h"|*)
+  esac
+}
 
-		command=$(basename $0)
-    echo "$command :"
-    printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
-    printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] [num / n] or [ html / h] " ""
-    printf "%-25s%-25s%-35s\n" "          [添加]:" " [add / a] " ""
-    printf "%-25s%-25s%-35s\n" "          [设置]:" " [set / s] [filename] " ""
-    printf "%-25s%-25s%-35s\n" "          [删除]:" " [del / d] [*number] " ""
-    printf "%-25s%-25s%-35s\n" "          [选择]:" " [chose / c] [*number] " ""
-    printf "%-25s%-25s%-35s\n" "          [清空]:" " [truncate / trun] " ""
-    printf "%-25s%-25s%-35s\n" "          [定位]:" " [posit / p] " ""
-    printf "%-25s%-25s%-35s\n" "          [随机]:" " [rand / r] [pre / p] or [next / n] " ""
-    printf "%-25s%-25s%-35s\n" "          [重构]:" " [rebuild / b] " ""
-    printf "%-25s%-25s%-35s\n" "          [当前]:" " [setcurent / scur] " ""
-    printf "%-25s%-25s%-35s\n" "          [打开]:" " [open / o / locate] [filename] " ""
-    printf "%-25s%-25s%-35s\n" "          [预览]:" " [cat] [filename] " ""
-    printf "%-25s%-25s%-35s\n" "          [文件名]:" "  [name] " ""
-    printf "%-25s%-25s%-35s\n" "          [回收站]:" "  [trash/rm] [filename] " ""
-    printf "%-25s%-25s%-35s\n" "          [缩略图]:" "  [thumb / t] [filename] [width*height] " ""
-    printf "%-25s%-25s%-35s\n" "          [随机欣赏]:" "   [show / s5] [*number] " ""
-    printf "%-25s%-25s%-35s\n" "          [收藏数量]:" "   [num / n] " ""
-    printf "%-25s%-25s%-35s\n" "          [HTML显示]:" " [html] " ""
-    printf "%-25s%-25s%-35s\n" "          [桌面背景]:" "   [wallpaper / w] [filename] " ""
-    printf "%-25s%-25s%-35s\n" "          [模糊操作]:" "   [search / f] [filename (without full direcotry and extension)] " ""
-    printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help] " ""
-		echo ""
-		;;
-esac
-echo " "
+main "$@"
