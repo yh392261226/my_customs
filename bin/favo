@@ -182,13 +182,15 @@ generate_html() {
       position: absolute;
       top: 10%;
       left: 20%;
+      right: 20%;
+      bottom: 10%;
       max-width: 1200px;
-      max-height: 800px;
+      max-height: 675px;
       object-fit: contain;
       box-shadow: 0 0 30px rgba(255,255,255,0.2);
       border-radius: 4px;
-      width: 1200px;
-      height: 800px;
+      width: 900px;
+      height: 506px;
     }
   </style>
   <script>
