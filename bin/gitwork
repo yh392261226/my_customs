@@ -41,21 +41,26 @@ function listRecord() {
     bat $RECORDDATA
 }
 
-if [ "$#" -ne "1"  ]; then
-    gitAction
-else
-    case "$1" in
-        "s"|"set")
-            setRecord
 
-        ;;
-        "l"|"list")
-            listRecord
-        ;;
-        *)
-            echo "Usage:"
-            echo "$0 set/s | list/l | help/h"
-            echo "命令 设置 | 列表 | 帮助"
-        ;;
-    esac
-fi
+case "$1" in
+    "s"|"set")
+        setRecord
+
+    ;;
+    "l"|"list")
+        listRecord
+    ;;
+    "a"|"action")
+        gitAction
+    ;;
+    *)
+        echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  action / a   执行
+│  set    / s   设置
+│  list   / l   列表
+│  help   / h   帮助
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
+    ;;
+esac

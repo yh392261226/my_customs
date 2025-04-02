@@ -287,27 +287,29 @@ main() {
   init_check
 
   case "${1}" in
-    add|a)     add_favorite ;;
-    remove|rm) remove_favorite "${2}" ;;
-    list|l)    list_favorites ;;
-    html|h)    generate_html ;;
+    add|a)     add_favorite "${2}"   ;;
+    remove|rm) remove_favorite "${2}";;
+    list|l)    list_favorites        ;;
+    html|h)    generate_html         ;;
     set)       set_background "${2}" ;;
-    random|r)  random_pic ;;
-    locate|lo) locate_file ;;
-    search|s)  fuzzy_search "${2}" ;;
+    random|r)  random_pic            ;;
+    locate|lo) locate_file           ;;
+    search|s)  fuzzy_search "${2}"   ;;
     thumb|t)   show_thumbnail "${2}" ;;
     *)
-      echo "使用方法: ${0##*/} [command]"
-      echo "可用命令:"
-      echo "  add    / a   添加当前背景到收藏"
-      echo "  remove / rm  删除收藏"
-      echo "  list   / l   显示收藏列表"
-      echo "  html   / h   生成HTML相册"
-      echo "  set          设置指定图片为背景"
-      echo "  random / r   随机切换背景"
-      echo "  locate / lo  在Finder中定位文件"
-      echo "  search / s   模糊搜索图片"
-      echo "  thumb  / t   显示缩略图"
+      echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  add    / a   添加当前背景到收藏
+│  remove / rm  删除收藏
+│  list   / l   显示收藏列表
+│  html   / h   生成HTML相册
+│  set          设置指定图片为背景
+│  random / r   随机切换背景
+│  locate / lo  在Finder中定位文件
+│  search / s   模糊搜索图片
+│  thumb  / t   显示缩略图
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
       ;;
   esac
 }

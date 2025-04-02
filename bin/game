@@ -141,8 +141,12 @@ function lottery() {
     }
     
     if [ "$1" = "" ]; then
-        echo "Usage:game l/lottery 彩种 条数"
-        echo "可选彩种：ssq/doubleball | lt/lotto"
+        echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} lottery / l
+│ 可用命令:
+│  doubleball / ssq   双色球 [生成数量 | result / r]    [开奖期号]
+│  lotto      / lt    大乐透 [生成数量]
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
         return
     fi
     
@@ -196,8 +200,13 @@ function websites() {
     }
     
     if [ "$1" = "" ]; then
-        echo "Usage:game w/web o/open|r/record|l/list"
-        echo "用法:game   网站  选择 |  记录  | 列表"
+        echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} web / w
+│ 可用命令:
+│  open   / o   选择
+│  record / r   记录
+│  list   / l   列表
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
         return
     fi
     
@@ -263,8 +272,12 @@ function sehuatang() {
 
 
 if [ "$#" -lt "1" ]; then
-    echo "Usage:game l/lottery | w/web"
-    echo "使用:game 彩票 | 网站"
+    echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  lottery / l   彩票
+│  web     / w   网站
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
 fi
 
 case "$1" in

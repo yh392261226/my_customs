@@ -27,11 +27,15 @@ case "$1" in
         open $(config dir)
     ;;
     *)
-        echo "Usage:"
-        echo "aria2 start 启动"
-        echo "aria2 web   打开WebUI"
-        echo "aria2 secret读取配置文件中的密钥"
-        echo "aria2 dir   打开下载目录"
+        help="╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  start   启动
+│  web     打开WebUI
+│  secret  读取配置文件中的密钥
+│  dir     打开下载目录
+╰───────────────────────────────────────────────────"
+        echo "$help" | lolcat -f -F 0.05
     ;;
 esac
 

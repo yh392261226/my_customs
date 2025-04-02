@@ -114,10 +114,10 @@ actioner_archive() {
         *.tar.bz2)   tar cvjf "$archive_path" "$source" ;;
         *.tar.gz)    tar cvzf "$archive_path" "$source" ;;
         *.tar.xz)    tar cvJf "$archive_path" "$source" ;;
-        *.tar)       tar cvf "$archive_path" "$source" ;;
-        *.zip)       zip -r "$archive_path" "$source" ;;
-        *.7z)        7z a "$archive_path" "$source" ;;
-        *)           echo "不支持的压缩格式"; return 1 ;;
+        *.tar)       tar cvf "$archive_path" "$source"  ;;
+        *.zip)       zip -r "$archive_path" "$source"   ;;
+        *.7z)        7z a "$archive_path" "$source"     ;;
+        *)           echo "不支持的压缩格式"; return 1     ;;
     esac
     
     echo "压缩完成 → $archive_path"
@@ -139,11 +139,11 @@ actioner_extract() {
     case "$archive" in
         *.tar.bz2|*.tbz2)  tar xvjf "$archive" -C "$extract_to" ;;
         *.tar.gz|*.tgz)    tar xvzf "$archive" -C "$extract_to" ;;
-        *.tar.xz)         tar xvJf "$archive" -C "$extract_to" ;;
-        *.zip)             unzip "$archive" -d "$extract_to" ;;
-        *.7z)              7z x "$archive" -o"$extract_to" ;;
-        *.rar)            unrar x "$archive" "$extract_to" ;;
-        *)                 echo "不支持的压缩格式"; return 1 ;;
+        *.tar.xz)          tar xvJf "$archive" -C "$extract_to" ;;
+        *.zip)             unzip "$archive" -d "$extract_to"    ;;
+        *.7z)              7z x "$archive" -o"$extract_to"      ;;
+        *.rar)             unrar x "$archive" "$extract_to"     ;;
+        *)                 echo "不支持的压缩格式"; return 1       ;;
     esac
     
     echo "解压完成 → $extract_to"
@@ -153,10 +153,10 @@ actioner_extract() {
 actioner_archive_peek() {
     local archive="$1"
     case "$archive" in
-        *.tar.*)    tar tvf "$archive" ;;
-        *.zip)      unzip -l "$archive" ;;
-        *.7z)       7z l "$archive" ;;
-        *.rar)      unrar l "$archive" ;;
+        *.tar.*)    tar tvf "$archive"             ;;
+        *.zip)      unzip -l "$archive"            ;;
+        *.7z)       7z l "$archive"                ;;
+        *.rar)      unrar l "$archive"             ;;
         *)          echo "不支持的压缩格式"; return 1 ;;
     esac
 }
@@ -175,17 +175,17 @@ detect_filetype() {
     local mime_type=$(file --mime-type -b "$path" 2>/dev/null)
     
     case "$mime_type" in
-        text/*|*/xml|application/json)    echo "text" ;;
-        image/*)                          echo "image" ;;
-        video/*)                          echo "video" ;;
-        audio/*)                          echo "audio" ;;
-        application/pdf)                  echo "pdf" ;;
-        application/epub+zip)             echo "ebook" ;;
-        application/vnd.openxmlformats*)  echo "office" ;;
+        text/*|*/xml|application/json)    echo "text"    ;;
+        image/*)                          echo "image"   ;;
+        video/*)                          echo "video"   ;;
+        audio/*)                          echo "audio"   ;;
+        application/pdf)                  echo "pdf"     ;;
+        application/epub+zip)             echo "ebook"   ;;
+        application/vnd.openxmlformats*)  echo "office"  ;;
         application/zip|application/x-*)  echo "archive" ;;
-        application/x-shellscript)        echo "script" ;;
-        application/x-executable)         echo "binary" ;;
-        *)                                echo "other" ;;
+        application/x-shellscript)        echo "script"  ;;
+        application/x-executable)         echo "binary"  ;;
+        *)                                echo "other"   ;;
     esac
 }
 
@@ -205,7 +205,7 @@ generate_menu() {
         "archive")
             echo "解压 查看内容 复制 移动 删除 取消" ;;
         "image")
-            echo "预览图片 打开文件 复制 移动 删除 压缩 取消" ;;
+            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 取消" ;;
         "video"|"audio")
             echo "终端播放 打开文件 复制 移动 删除 取消" ;;
         "script")
@@ -250,23 +250,23 @@ actioner() {
 
     # 执行操作
     case "$action" in
-        删除*)        actioner_delete "$filepath" ;;
-        复制*)        actioner_copy "$filepath" ;;
-        移动*)        actioner_move "$filepath" ;;
-        重命名*)      actioner_rename "$filepath" ;;
-        压缩*)        actioner_archive "$filepath" ;;
-        解压*)        actioner_extract "$filepath" ;;
-        查看内容*)    actioner_archive_peek "$filepath" ;;
-        进入目录*)    cd "$filepath" && exec $SHELL ;;
+        删除*)           actioner_delete "$filepath"       ;;
+        复制*)           actioner_copy "$filepath"         ;;
+        移动*)           actioner_move "$filepath"         ;;
+        重命名*)         actioner_rename "$filepath"        ;;
+        压缩*)           actioner_archive "$filepath"      ;;
+        解压*)           actioner_extract "$filepath"      ;;
+        查看内容*)        actioner_archive_peek "$filepath" ;;
+        进入目录*)        cd "$filepath" && exec $SHELL     ;;
         编辑*)        
             case $action in
-                *Nvim*) nvim +$line_num "$filepath" ;;
-                *Code*) code --goto "$filepath:$line_num" ;;
+                *Nvim*) nvim +$line_num "$filepath"        ;;
+                *Code*) code --goto "$filepath:$line_num"  ;;
             esac ;;
         查看*)
             case $action in
-                *Bat*) bat --style=full "$filepath" ;;
-                *Cat*) cat "$filepath" ;;
+                *Bat*)  bat --style=full "$filepath"       ;;
+                *Cat*)  cat "$filepath"                    ;;
                 *终端*)
                     if [ "$(file -b --mime-encoding $filepath)" != "utf-8" ]; then
                         piconv -f GB2312 -t UTF-8 "$filepath" | bat --theme=gruvbox-dark --color=always --style=full
@@ -278,11 +278,18 @@ actioner() {
         执行脚本*)    
             echo -n "确认执行脚本？(y/N) "
             [[ $(safe_read "") =~ ^[Yy]$ ]] && bash "$filepath" ;;
-        打开文件*)    open "$filepath" ;;
-        打开位置*)    open -R "$filepath" ;;
-        终端播放*)    mpv --vo=tct "$filepath" ;;
-        预览图片*)    viu "$filepath" || open "$filepath" ;;
-        文本预览*)    $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
+        打开文件*)        open "$filepath"                        ;;
+        打开位置*)        open -R "$filepath"                     ;;
+        终端播放*)        mpv --vo=tct "$filepath"                ;;
+        预览图片*)        viu "$filepath" || open "$filepath"     ;;
+        收藏图片*)
+            if [ -f "${PWD}/$(basename $filepath)" ]; then
+                $MYRUNTIME/customs/bin/favo a "${PWD}/$(basename $filepath)"
+            else
+                $MYRUNTIME/customs/bin/favo a "$filepath"
+            fi
+            ;;
+        文本预览*)        $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
     esac
     
     restore_terminal

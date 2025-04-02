@@ -63,10 +63,14 @@ openApp() {
 }
 
 helpApp() {
-  command=$(basename $0)
-  echo "Usage: $command list/l | del/d | open/o | help/h";
-	echo "用法： $command 列表   | 删除  |  打开  | 帮助"
-  echo ""
+  echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  list      / l   列表
+│  del       / d   删除
+│  open      / o   打开
+│  help      / h   帮助
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
 }
 
 source $MYRUNTIME/customs/bin/mymessage

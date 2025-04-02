@@ -48,26 +48,26 @@ for iterm in $TMPLOGS; do
 done
 
 function help() {
-	echo "''''''''''''''''''''''''''''''''''''''''"
-	echo "Command: webmanager [m]"
-	echo "  Iterm:(\$1)"
+	echo "╭───────────────────────────────────────────────────"
+	echo "│ Command: webmanager [m]"
+	echo "│   Iterm:(\$1)"
 	for ((i = 0; i < ${#LOGARR[@]}; i++)); do
-		echo "      $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
+		echo "│       $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
 	done
-	echo "      create 创建新记录"
-	echo "      dir    打开目录"
-	echo "      la     列出全部记录"
-	echo ""
-	echo "  Action:(\$2)"
-	echo "      edit|e|add|a 编辑记录"
-	echo "      help|e       帮助信息"
-	echo "      list         列出记录"
-	echo "      cat          显示记录"
-	echo "      filename     配合create创建文件"
-	echo "Eg.:"
-	echo "  webmanager soft list"
-	echo ""
-	echo "''''''''''''''''''''''''''''''''''''''''"
+	echo "│       create 创建新记录"
+	echo "│       dir    打开目录"
+	echo "│       la     列出全部记录"
+	echo "│ "
+	echo "│   Action:(\$2)"
+	echo "│       edit|e|add|a 编辑记录"
+	echo "│       help|e       帮助信息"
+	echo "│       list         列出记录"
+	echo "│       cat          显示记录"
+	echo "│       filename     配合create创建文件"
+	echo "│ Eg.:"
+	echo "│   webmanager soft list"
+	echo "│ "
+	echo "╰───────────────────────────────────────────────────"
 }
 
 function viewContentOfFiles() {
@@ -87,7 +87,7 @@ if [[ "${LOGARR[*]}" =~ "$tmp_iterm" ]]; then
 	if [[ -f $WEBSITELOGS/${tmp_iterm}_websites.log ]]; then
 		WEBSITES="$WEBSITELOGS/${tmp_iterm}_websites.log"
 	else
-		help
+		help | lolcat -f -F 0.05
 		exit 0
 	fi
 elif [[ "create" = "$tmp_iterm" ]]; then
@@ -100,7 +100,7 @@ elif [[ "dir" = "$tmp_iterm" ]]; then
 elif [[ "la" = "$tmp_iterm" ]]; then
 	viewContentOfFiles
 else
-	help
+	help | lolcat -f -F 0.05
 	exit 0
 fi
 

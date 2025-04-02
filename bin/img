@@ -291,14 +291,21 @@ case "$1" in
     ;;
 
     *)
-        echo "全目录记录->去重并记录->重复文件分离 最终文件都在duplicate文件夹中"
-        hr '-'
-        hr '*'
-        hr '-'
-        echo "Usage:"
-        hr '-'
-        echo " r/record  |   u/uniq   |    m/move    |  o/open  | un/unfull |  a/after | dr/duprecord | du'|'dupuniq | da/dupafter | e/empty"
-        echo "全目录记录 | 去重并记录 | 重复文件分离 | 打开目录 |   未满    | 展示重复 |  去重后记录  | 去重后再去重 | 去重后展示重复 | 查找空文件"
-        hr '-'
+        echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  record    / r   全目录记录
+│  uniq      / u   去重并记录
+│  move      / m   重复文件分离
+│  open      / o   打开目录
+│  unfull    / un  未满
+│  after     / a   展示重复
+│  duprecord / dr  去重后记录
+│  dupuniq   / du  去重后再去重
+│  dupafter  / da   去重后展示重复
+│  empty     / e   查找空文件
+│ *顺序：全目录记录->去重并记录->重复文件分离*
+│ *最终文件都在duplicate文件夹中*
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
     ;;
 esac

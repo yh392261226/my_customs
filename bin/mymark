@@ -116,13 +116,14 @@ case "$1" in
     list_mark
     ;;
   "help"|"h"|*)
-	command=$(basename $0)
-    echo "$command :"
-    printf "%-25s%-25s%-35s\n" "----Usage [使用方法]:" " " ""
-    printf "%-25s%-25s%-35s\n" "          [列表]:" " [list / l] " ""
-    printf "%-25s%-25s%-35s\n" "          [添加]:" " [add / a] " ""
-    printf "%-25s%-25s%-35s\n" "          [删除]:" " [delete / del / d] " ""
-    printf "%-25s%-25s%-35s\n" "          [帮助]:" " [help / h] " ""
+	  echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  list      / l   列表
+│  del       / d   删除
+│  add       / a   添加
+│  help      / h   帮助
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
 	echo ""
     list_mark
 	;;

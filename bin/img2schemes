@@ -95,10 +95,17 @@ _deleteScheme() {
 #help messages
 _help() {
   source $MYRUNTIME/customs/bin/mymessage
-  command=$(basename $0)
-  echo "Usage: $command  create/c | delete/d | use/u | wallpaper/w | list/l | help/h";
-	echo "用法： 图片转主题     创建   |   删除   |  使用 |   桌面背景  |  列表  |  帮助"
-  echo ""
+  echo "╭───────────────────────────────────────────────────
+│ 作用：图片转主题
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  create    / c   创建
+│  delete    / d   删除
+│  use       / u   使用
+│  wallpaper / w   桌面背景
+│  list      / l   列表
+│  help      / h   帮助
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
 }
 
 if [ ! -d $COMMANDPATH ]; then

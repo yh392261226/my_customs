@@ -43,13 +43,13 @@ case "$1" in
         openVedio
         ;;
     *)
-        hr '-'
-        hr '*'
-        hr '-'
-        echo "Usage:"
-        hr '-'
-        echo "      s/statistics    |       g/get        |           w/watch        |     dir/directory"
-        echo "统计数量及磁盘占用量  ｜      下载视频     ｜       观看视频文件夹    ｜    打开视频文件夹"
-        hr '-'
+        echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  statistics      / s   统计数量及磁盘占用量
+│  get             / g   下载视频
+│  watch           / w   观看视频文件夹
+│  directory       / dir 打开视频文件夹
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
         ;;
 esac

@@ -15,15 +15,17 @@ SEPARATOR=$(echo -e "\x01")
 #   EXTENDED_HISTORY format
 
 usage() {
-    echo "Usage: hist <subcommand>" >&2
-    echo "subcommands:" >&2
-    echo "  config           show config" >&2
-    echo "  count            count items in history" >&2
-    echo "  import           import to db" >&2
-    echo "  shell            launch sqlite3 shell with db" >&2
-    echo "  search <term>    search for <term>" >&2
-    echo "    /term          search for <term>" >&2
-    echo "  version          show the version" >&2
+    echo "╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  config           show config
+│  count            count items in history
+│  import           import to db
+│  shell            launch sqlite3 shell with db
+│  search <term>    search for <term>
+│  /term            search for <term>
+│  version          show the version
+╰───────────────────────────────────────────────────" | lolcat -f -F 0.05 >&2
 }
 
 preflight_check() {
