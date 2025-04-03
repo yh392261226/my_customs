@@ -300,7 +300,7 @@ case "$1" in
 │  open      / o   打开目录
 │  unfull    / un  未满
 │  after     / a   展示重复
-│  duprecord / dr  去重后记录
+│  duprecord / dr  记录去重后重复的
 │  dupuniq   / du  去重后再去重
 │  dupafter  / da   去重后展示重复
 │  empty     / e   查找空文件
