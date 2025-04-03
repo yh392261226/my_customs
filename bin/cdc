@@ -156,14 +156,15 @@ rebuild_mark() {
 
 chose_mark() {
 	check_mark
+	local header="$'Usage: list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h  \n 用法: 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助'"
 
 	choose=$(cat $MYRUNTIME/tools/m_mark | fzf $FZF_CUSTOM_PARAMS \
 		--preview-window right:70%:rounded:hidden:wrap \
 		--preview "if [ -f {}/.descfile ]; then; cat {}/.descfile;fi;$MYRUNTIME/customs/bin/_previewer {}" \
 		--header-first \
-		--header $'Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h  \n  用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助' \
+		--header "$header" \
 		--bind="ctrl-y:execute-silent(echo {} | pbcopy)+abort" \
-		--bind="focus:transform-header:echo $'Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h  \n  用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助'" \
+		--bind="focus:transform-header:echo $header | lolcat -f -F 0.05 " \
 		--bind='ctrl-d:execute((cat $MYRUNTIME/tools/m_mark | grep -vFx {}) > /tmp/m_cmark_temp && mv /tmp/m_cmark_temp $MYRUNTIME/tools/m_mark)+reload(cat $MYRUNTIME/tools/m_mark)')
 
 	if [ "$choose" != "" ]; then
@@ -194,9 +195,19 @@ truncate_mark() {
 }
 
 help_mark() {
-	command=$(basename $0)
-	echo "Usage: $command list/l | num/n | add/a | del/d | chose/c | trun/t | rebuild/r | help/h" | lolcat -f -F 1.4
-	echo "用法： $command 列表   | 数量  | 添加  | 删除  | 选择    | 清空   |   重置    | 帮助" | lolcat -f -F 1.4
+	help="╭───────────────────────────────────────────────────
+│ 使用方法: ${0##*/} [command]
+│ 可用命令:
+│  list		/	l   	列表
+│  num		/	n   	数量
+│  add		/	a   	添加
+│  del		/	d   	删除
+│  chose	/	c   	选择
+│  trun		/	t   	清空
+│  rebuild	/	r		重置
+│  help		/	h   	帮助
+╰───────────────────────────────────────────────────"
+        echo "$help" | lolcat -f -F 0.05
 }
 
 check_mark() {
@@ -209,7 +220,7 @@ check_mark() {
 
 init_mark() {
 	# source $MYRUNTIME/customs/bin/mymessage
-	hr '*' | lolcat -f -F 1.4
+	# hr '*' | lolcat -f -F 1.4
 	case "$action" in
 	[0-9]*) #直接填写数字
 		chose_mark $action

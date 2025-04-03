@@ -1,11 +1,10 @@
 #fzf 相关
-[[ "zsh" = "$nowshell" ]] && eval $(fzf --zsh)
-[[ "bash" = "$nowshell" ]] && eval $(fzf --bash)
 
 export FZF_PREVIEW_FILE_CMD="bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never"
-export FZF_PREVIEW_DIR_CMD="tree -C"
+export FZF_PREVIEW_DIR_CMD="tree -C -L 3"
 export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
-export FZF_DEFAULT_COMMAND="fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
+export FZF_DEFAULT_COMMAND="fd --hidden --no-ignore-vcs --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export FZF_GIT_COMMAND="git ls-files --exclude-standard"
 #export FZF_CURRENT_COMMAND_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_current_command_swap
 #[[ -f $FZF_CURRENT_COMMAND_SWAP_FILE ]] && chmod +x $FZF_CURRENT_COMMAND_SWAP_FILE
 export TMP_FZF_SEARCH_TYPES_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_types_swap
@@ -16,7 +15,7 @@ _fzf_comprun() {
     local tmp_command=$1
     shift
     case "$tmp_command" in
-        cd)           fzf "$@" --preview 'tree -C {} | head -200' ;;
+        cd)           fzf "$@" --preview 'tree -C -L 3 {} | head -200' ;;
         export|unset) fzf "$@" --preview "eval 'echo \$'{}" ;;
         ssh)          fzf "$@" --preview 'dig {}' ;;
         tree)         find . -type d | fzf --preview 'tree -C {}' "$@";;
@@ -57,15 +56,15 @@ _fzf_compgen_dir() {
     fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
-export fzf_transformer_filter_all="fd --type f --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_files="fd --type f -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_directories="fd --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_all="fd --type f --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_files="fd --type f -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_directories="fd --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export fzf_transformer_filter_hiddens="fd --type f --type d --hidden --glob '.*' "
-export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' "
 
 export fzf_transformer='
@@ -143,97 +142,97 @@ export fzf_transformer_search_swap_type='
 
 #FZF_DEFAULT
 FZF_DEFAULT_OPTS=' --reverse '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --smart-case '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --exact '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --multi '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --cycle '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --scheme=path '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --inline-info '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --tmux '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --track '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --highlight-line '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --ansi '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-first '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --no-input '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-border '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-border '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-border '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --gap '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --min-height=40 '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --style=full:double '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border=rounded '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --layout=reverse-list '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --padding="2" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --margin="8%" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --marker=" ✓" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --marker-multi-line="╻┃╹" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --pointer=" ➤" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --separator="┈┉" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --scrollbar="▌▐" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --prompt="Search  ❯ " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --ghost="Type your search words ┈┉ " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info="inline-right: 💱 " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label-pos="bottom,4" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label-pos="bottom,4" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header=" ⚕️ F1 Help Infomation ⚕️ " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-lines-border=bottom '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --history=$HOME/.fzf_history "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --walker-skip=".git,.vscode,.idea,target,\$RECYCLE.BIN" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview-label="╢ Preview ╟" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-label "╢ Result ╟" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --list-label-pos=top,4 '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-label "╢ Header ╟" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --header-label-pos=top,4 '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --gap-line=\"$(lolcat -f -F 1.4 <<< -----------------)\"  "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) 👣  \"" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --border-label="╢ Command ╟" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --preview="(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|up,90%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|down,90%,border-horizontal|hidden|right)" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f1,ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind 'f2,ctrl-f:transform:$fzf_transformer_search_swap_type'"
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f3,ctrl-a:toggle-all" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f4,ctrl-t:toggle-preview" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f5:change-preview-window(down,99%)" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f6,ctrl-s:toggle-sort" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f7,ctrl-o:become(${MYRUNTIME}/customs/bin/_operator {})" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f8,ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {})" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f9:page-up" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f10:page-down" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f11,ctrl-l:select-all+execute:less {+f}" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f11,ctrl-l:+deselect-all" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="f12:execute-silent(echo -n {} | pbcopy)+deselect-all+abort" '
+FZF_DEFAULT_OPTS+=' --smart-case '
+FZF_DEFAULT_OPTS+=' --exact '
+FZF_DEFAULT_OPTS+=' --multi '
+FZF_DEFAULT_OPTS+=' --cycle '
+FZF_DEFAULT_OPTS+=' --scheme=path '
+FZF_DEFAULT_OPTS+=' --inline-info '
+FZF_DEFAULT_OPTS+=' --tmux '
+FZF_DEFAULT_OPTS+=' --track '
+FZF_DEFAULT_OPTS+=' --highlight-line '
+FZF_DEFAULT_OPTS+=' --ansi '
+FZF_DEFAULT_OPTS+=' --header-first '
+FZF_DEFAULT_OPTS+=' --no-input '
+FZF_DEFAULT_OPTS+=' --list-border '
+FZF_DEFAULT_OPTS+=' --header-border '
+FZF_DEFAULT_OPTS+=' --input-border '
+FZF_DEFAULT_OPTS+=' --gap '
+FZF_DEFAULT_OPTS+=' --min-height=40 '
+FZF_DEFAULT_OPTS+=' --style=full:double '
+FZF_DEFAULT_OPTS+=' --border=rounded '
+FZF_DEFAULT_OPTS+=' --layout=reverse-list '
+FZF_DEFAULT_OPTS+=' --padding="2" '
+FZF_DEFAULT_OPTS+=' --margin="8%" '
+FZF_DEFAULT_OPTS+=' --marker=" ✓" '
+FZF_DEFAULT_OPTS+=' --marker-multi-line="╻┃╹" '
+FZF_DEFAULT_OPTS+=' --pointer=" ➤" '
+FZF_DEFAULT_OPTS+=' --separator="┈┉" '
+FZF_DEFAULT_OPTS+=' --scrollbar="▌▐" '
+FZF_DEFAULT_OPTS+=' --prompt="Search  ❯ " '
+FZF_DEFAULT_OPTS+=' --ghost="Type your search words ┈┉ " '
+FZF_DEFAULT_OPTS+=' --info="inline-right: 💱 " '
+FZF_DEFAULT_OPTS+=' --border-label-pos="bottom,4" '
+FZF_DEFAULT_OPTS+=' --preview-label-pos="bottom,4" '
+FZF_DEFAULT_OPTS+=' --header=" ⚕️ F1 Help Infomation ⚕️ " '
+FZF_DEFAULT_OPTS+=' --header-lines-border=bottom '
+FZF_DEFAULT_OPTS+=" --history=$HOME/.fzf_history "
+FZF_DEFAULT_OPTS+=' --preview-window="right:70%:border-rounded,hidden,~3" '
+FZF_DEFAULT_OPTS+=' --walker="file,dir,hidden,follow" '
+FZF_DEFAULT_OPTS+=' --walker-skip=".git,.vscode,.idea,target,\$RECYCLE.BIN" '
+FZF_DEFAULT_OPTS+=' --preview-label="╢ Preview ╟" '
+FZF_DEFAULT_OPTS+=' --list-label "╢ Result ╟" '
+FZF_DEFAULT_OPTS+=' --list-label-pos=top,4 '
+FZF_DEFAULT_OPTS+=' --header-label "╢ Header ╟" '
+FZF_DEFAULT_OPTS+=' --header-label-pos=top,4 '
+FZF_DEFAULT_OPTS+=' --input-label "╢ Input ╟" '
+FZF_DEFAULT_OPTS+=' --input-label-pos=top,4 '
+FZF_DEFAULT_OPTS+=" --gap-line=\"$(lolcat -f -F 1.4 <<< -----------------)\"  "
+FZF_DEFAULT_OPTS+=' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) 👣  \"" '
+FZF_DEFAULT_OPTS+=' --border-label="╢ Command ╟" '
+FZF_DEFAULT_OPTS+=' --preview="(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" '
+FZF_DEFAULT_OPTS+=' --bind="focus:transform-preview-label:echo -n \"╢ Preview: {}  ╟\";" '
+FZF_DEFAULT_OPTS+=' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|up,90%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|down,90%,border-horizontal|hidden|right)" '
+FZF_DEFAULT_OPTS+=' --bind="f1,ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS+=' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS+=" --bind 'f2,ctrl-f:transform:$fzf_transformer_search_swap_type'"
+FZF_DEFAULT_OPTS+=' --bind="f3,ctrl-a:toggle-all" '
+FZF_DEFAULT_OPTS+=' --bind="f4,ctrl-t:toggle-preview" '
+FZF_DEFAULT_OPTS+=' --bind="f5:change-preview-window(down,99%)" '
+FZF_DEFAULT_OPTS+=' --bind="f6,ctrl-s:toggle-sort" '
+FZF_DEFAULT_OPTS+=' --bind="f7,ctrl-o:become(${MYRUNTIME}/customs/bin/_operator {})" '
+FZF_DEFAULT_OPTS+=' --bind="f8,ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {})" '
+FZF_DEFAULT_OPTS+=' --bind="f9:page-up" '
+FZF_DEFAULT_OPTS+=' --bind="f10:page-down" '
+FZF_DEFAULT_OPTS+=' --bind="f11,ctrl-l:select-all+execute:less {+f}" '
+FZF_DEFAULT_OPTS+=' --bind="f11,ctrl-l:+deselect-all" '
+FZF_DEFAULT_OPTS+=' --bind="f12,ctrl-y:execute-silent(echo -n {} | pbcopy)+deselect-all+abort" '
 
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="j:down,k:up,/:show-input+unbind(j,k,/)" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="space:change-header( 🔝 Type jump label )+jump,jump-cancel:change-header: Jump cancelled " '
+FZF_DEFAULT_OPTS+=' --bind="j:down,k:up,/:show-input+unbind(j,k,/)" '
+FZF_DEFAULT_OPTS+=" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
+FZF_DEFAULT_OPTS+=' --bind="space:change-header( 🔝 Type jump label )+jump,jump-cancel:change-header: Jump cancelled " '
 
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="∆:preview-down" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="˚:preview-up" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="¬:preview-half-page-down" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="˙:preview-half-page-up" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="…:preview-bottom" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="©:preview-top" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≈:exclude-multi" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="†:toggle-track" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="÷:toggle-header" '
-#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS" --bind='®:reload($FZF_CURRENT_COMMAND_SWAP_FILE)' "
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≥:next-selected" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="≤:prev-selected" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-up:first" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="shift-down:last" '
+FZF_DEFAULT_OPTS+=' --bind="∆:preview-down" '
+FZF_DEFAULT_OPTS+=' --bind="˚:preview-up" '
+FZF_DEFAULT_OPTS+=' --bind="¬:preview-half-page-down" '
+FZF_DEFAULT_OPTS+=' --bind="˙:preview-half-page-up" '
+FZF_DEFAULT_OPTS+=' --bind="…:preview-bottom" '
+FZF_DEFAULT_OPTS+=' --bind="©:preview-top" '
+FZF_DEFAULT_OPTS+=' --bind="≈:exclude-multi" '
+FZF_DEFAULT_OPTS+=' --bind="†:toggle-track" '
+FZF_DEFAULT_OPTS+=' --bind="÷:toggle-header" '
+#FZF_DEFAULT_OPTS+=" --bind='®:reload($FZF_CURRENT_COMMAND_SWAP_FILE)' "
+FZF_DEFAULT_OPTS+=' --bind="≥:next-selected" '
+FZF_DEFAULT_OPTS+=' --bind="≤:prev-selected" '
+FZF_DEFAULT_OPTS+=' --bind="shift-up:first" '
+FZF_DEFAULT_OPTS+=' --bind="shift-down:last" '
 
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="load:change-prompt: 🔛 Loaded, Search ➤ " '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="result:transform:$fzf_transformer" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transformer" '
-#FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="change:first" '
-FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS' --bind="zero:clear-query+change-input-label(No Match ! 🔚 )+change-prompt:⏳️ Retype, Search ➤ " '
+FZF_DEFAULT_OPTS+=' --bind="load:change-prompt: 🔛 Loaded, Search ➤ " '
+FZF_DEFAULT_OPTS+=' --bind="result:transform:$fzf_transformer" '
+FZF_DEFAULT_OPTS+=' --bind="resize:transform:$fzf_transformer" '
+#FZF_DEFAULT_OPTS+=' --bind="focus:transform-header:file --brief {}" '
+FZF_DEFAULT_OPTS+=' --bind="change:first" '
+FZF_DEFAULT_OPTS+=' --bind="zero:clear-query+change-input-label(No Match ! 🔚 )+change-prompt:⏳️ Retype, Search ➤ " '
 
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 

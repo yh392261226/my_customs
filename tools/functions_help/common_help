@@ -20,7 +20,7 @@ ${bold}${italic}F8${reset}              Use selected command from _actioner to d
 ${bold}${italic}F9${reset}              Page up.
 ${bold}${italic}F10${reset}             Page down.
 ${bold}${italic}F11${reset}             Long list to show all of lines (Unusual in some functions). ${d}[can also use Ctrl-L]${d}${reset}
-${bold}${italic}F12${reset}             Copy.
+${bold}${italic}F12${reset}             Copy. ${d}[can also use Ctrl-Y]${d}${reset}
 ${bold}${italic}/${reset}               Show the input window."
 
 

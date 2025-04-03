@@ -132,10 +132,10 @@ fi
 ###zoxide
 if [ "" != "$(brew --prefix zoxide)" ]; then
     if [ "zsh" = "$nowshell" ]; then
-        eval "$(zoxide init zsh)"
+        eval "$(zoxide init --cmd 'c' zsh)"
     fi
     if [ "bash" = "$nowshell" ]; then
-        eval "$(zoxide init bash)"
+        eval "$(zoxide init --cmd 'c' bash)"
     fi
 fi
 

@@ -94,7 +94,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     # 延迟加载
     zinit ice lucid wait='3'
     # 快速目录跳转
-    zinit light skywind3000/z.lua
+    # zinit light skywind3000/z.lua
     # 自动补全
     # zinit light zsh-users/zsh-completions
     # 根据输入进行命令预测
