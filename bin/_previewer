@@ -167,7 +167,9 @@ main() {
     
     # 目录处理
     if [[ $type =~ /directory ]]; then
-        if command -v tree >/dev/null; then
+        if command -v eza >/dev/null; then
+            eza --tree --level=3 --icons --group-directories-first "$file"
+        elif command -v tree >/dev/null; then
             tree -C "$file"
         else
             ls -R | grep :$ | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/' "$file"

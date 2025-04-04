@@ -1,15 +1,15 @@
 #fzf 相关
 
 export FZF_PREVIEW_FILE_CMD="bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never"
-export FZF_PREVIEW_DIR_CMD="tree -C -L 3"
+export FZF_PREVIEW_DIR_CMD="eza --tree --level=3 --icons --group-directories-first"
 export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
 export FZF_DEFAULT_COMMAND="fd --hidden --no-ignore-vcs --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export FZF_GIT_COMMAND="git ls-files --exclude-standard"
-#export FZF_CURRENT_COMMAND_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_current_command_swap
-#[[ -f $FZF_CURRENT_COMMAND_SWAP_FILE ]] && chmod +x $FZF_CURRENT_COMMAND_SWAP_FILE
-export TMP_FZF_SEARCH_TYPES_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_types_swap
-export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header_swap
-export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_swap
+#export FZF_CURRENT_COMMAND_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_current_command.swap
+export TMP_FZF_SEARCH_TYPES_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_types.swap
+export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header.swap
+export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search.swap
+
 
 _fzf_comprun() {
     local tmp_command=$1
@@ -148,7 +148,7 @@ FZF_DEFAULT_OPTS+=' --multi '
 FZF_DEFAULT_OPTS+=' --cycle '
 FZF_DEFAULT_OPTS+=' --scheme=path '
 FZF_DEFAULT_OPTS+=' --inline-info '
-FZF_DEFAULT_OPTS+=' --tmux '
+FZF_DEFAULT_OPTS+=' --tmux="center" '
 FZF_DEFAULT_OPTS+=' --track '
 FZF_DEFAULT_OPTS+=' --highlight-line '
 FZF_DEFAULT_OPTS+=' --ansi '
@@ -251,27 +251,18 @@ export FZF_COMPLETION_OPTS=$FZF_COMPLETION_OPTS
 
 if [ "zsh" = "$nowshell" ]; then
     #FZF_TAB_OPTS
-    # disable sort when completing `git checkout`
     zstyle ':completion:*:git-checkout:*' sort false
-    # set descriptions format to enable group support
-    # NOTE: don't use escape sequences (like '%F{red}%d%f') here, fzf-tab will ignore them
     zstyle ':completion:*:descriptions' format '[%d]'
-    # set list-colors to enable filename colorizing
     zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-    # force zsh not to show completion menu, which allows fzf-tab to capture the unambiguous prefix
     zstyle ':completion:*' menu no
-    # preview directory's content with eza when completing cd
     zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
-    # custom fzf flags
-    # NOTE: fzf-tab does not follow FZF_DEFAULT_OPTS by default
+    zstyle ':fzf-tab:*' fzf-pad 4
     zstyle ':fzf-tab:*' fzf-flags --color=fg:1,fg+:2 --bind=tab:accept
-    # To make fzf-tab follow FZF_DEFAULT_OPTS.
-    # NOTE: This may lead to unexpected behavior since some flags break this plugin. See Aloxaf/fzf-tab#455.
     zstyle ':fzf-tab:*' use-fzf-default-opts no
-    # switch group using `<` and `>`
     zstyle ':fzf-tab:*' switch-group '<' '>'
     zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
     zstyle ':fzf-tab:complete:*:*' fzf-preview 'less ${(Q)realpath}'
+    zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --icons $realpath'
     export LESSOPEN='|$HOME/.lessfilter %s'
     zstyle ':fzf-tab:complete:git-(add|diff|restore):*' fzf-preview \
         'git diff $word | delta'|
@@ -298,17 +289,22 @@ FZF_CTRL_T_OPTS=" --preview='($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null
 export FZF_CTRL_T_OPTS=$FZF_CTRL_T_OPTS
 
 FZF_CTRL_R_OPTS=" --bind='enter:accept-or-print-query' "
-FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS" --reverse"
+FZF_CTRL_R_OPTS+=" --reverse "
+FZF_CTRL_R_OPTS+=" --border-label='╢ 🕰 History ╟' "
+FZF_CTRL_R_OPTS+=" --header-label='╢ 🕰 History ╟' "
+FZF_CTRL_R_OPTS+=" --preview='echo {}' "
+FZF_CTRL_R_OPTS+=" --preview-window='down:3:wrap:nohidden' "
 export FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS
 
 export FZF_ALT_C_COMMAND='fd --type d . --color=never'
 export FZF_ALT_C_OPTS="--reverse"
+
 export FZF_TMUX_OPTS="-p"
 
 FZF_HELP_OPTS=" --multi "
-FZF_HELP_OPTS=$FZF_HELP_OPTS" --layout='reverse-list' "
-FZF_HELP_OPTS=$FZF_HELP_OPTS" --preview-window='right,75%,wrap' "
-FZF_HELP_OPTS=$FZF_HELP_OPTS" --bind='ctrl-m:change-preview-window(down,75%,nowrap|right,75%,nowrap)' "
+FZF_HELP_OPTS+=" --layout='reverse-list' "
+FZF_HELP_OPTS+=" --preview-window='right,75%,wrap' "
+FZF_HELP_OPTS+=" --bind='ctrl-m:change-preview-window(down,75%,nowrap|right,75%,nowrap)' "
 export FZF_HELP_OPTS=$FZF_HELP_OPTS
 export FZF_HELP_SYNTAX='help'
 
