@@ -199,7 +199,7 @@ FZF_DEFAULT_OPTS+=" --bind 'f2,ctrl-f:transform:$fzf_transformer_search_swap_typ
 FZF_DEFAULT_OPTS+=' --bind="f3,ctrl-a:toggle-all" '
 FZF_DEFAULT_OPTS+=' --bind="f4,ctrl-t:toggle-preview" '
 FZF_DEFAULT_OPTS+=' --bind="f5:change-preview-window(down,99%)" '
-FZF_DEFAULT_OPTS+=' --bind="f6,ctrl-s:toggle-sort" '
+FZF_DEFAULT_OPTS+=' --bind="f6:toggle-sort" '
 FZF_DEFAULT_OPTS+=' --bind="f7,ctrl-o:become(${MYRUNTIME}/customs/bin/_operator {})" '
 FZF_DEFAULT_OPTS+=' --bind="f8,ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {})" '
 FZF_DEFAULT_OPTS+=' --bind="f9:page-up" '
@@ -227,7 +227,6 @@ FZF_DEFAULT_OPTS+=' --bind="≤:prev-selected" '
 FZF_DEFAULT_OPTS+=' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS+=' --bind="shift-down:last" '
 FZF_DEFAULT_OPTS+=" --bind='ctrl-s:select-all+execute(cat {+f} > $HOME/Desktop/fzf_save.log)+abort' "
-
 FZF_DEFAULT_OPTS+=' --bind="load:change-prompt: 🔛 Loaded, Search ➤ " '
 FZF_DEFAULT_OPTS+=' --bind="result:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS+=' --bind="resize:transform:$fzf_transformer" '

@@ -14,7 +14,7 @@ ${bold}${italic}F2${reset}              Switch search types(All、Files、Direct
 ${bold}${italic}F3${reset}              Toggle select all. ${d}[can also use Ctrl-A]${d}${reset}
 ${bold}${italic}F4${reset}              Toggle show/hide the preview window. ${d}[can also use Ctrl-T]${d}${reset}
 ${bold}${italic}F5${reset}              Change to Preview bigger to view.
-${bold}${italic}F6${reset}              Toggle sort. ${d}[can also use Ctrl-S]${d}${reset}
+${bold}${italic}F6${reset}              Toggle sort. 
 ${bold}${italic}F7${reset}              Open selected by command _operator with file type. ${d}[can also use Ctrl-O]${d}${reset}
 ${bold}${italic}F8${reset}              Use selected command from _actioner to deal with file. ${d}[can also use Ctrl-U]${d}${reset}
 ${bold}${italic}F9${reset}              Page up.
