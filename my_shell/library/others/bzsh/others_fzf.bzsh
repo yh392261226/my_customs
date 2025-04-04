@@ -290,8 +290,8 @@ export FZF_CTRL_T_OPTS=$FZF_CTRL_T_OPTS
 
 FZF_CTRL_R_OPTS=" --bind='enter:accept-or-print-query' "
 FZF_CTRL_R_OPTS+=" --reverse "
-FZF_CTRL_R_OPTS+=" --border-label='╢ 🕰 History ╟' "
-FZF_CTRL_R_OPTS+=" --header-label='╢ 🕰 History ╟' "
+FZF_CTRL_R_OPTS+=" --border-label='╢ 👣 History ╟' "
+FZF_CTRL_R_OPTS+=" --header-label='╢ 👣 History ╟' "
 FZF_CTRL_R_OPTS+=" --preview='echo {}' "
 FZF_CTRL_R_OPTS+=" --preview-window='down:3:wrap:nohidden' "
 export FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS
