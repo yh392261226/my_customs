@@ -150,3 +150,16 @@ function fzf_brew_install_or_remove() {                                         
 
 }
 alias fbm="fzf_brew_install_or_remove"                                                 # Desc: alias: fbm: fzf_brew_install_or_remove命令的别名,Fully manage brew installation and suppression, and then some.
+
+function fzf_fuzzy_package_install() {                                                 # Desc: function: fzf_fuzzy_package_install: 终极包管理器（支持 brew 和 npm）
+    local pkg=$(printf "%s\n" "brew" "npm" | fzf --header="选择包管理器")
+    case $pkg in
+        brew)
+            brew formulae | fzf --multi --preview 'brew info {}' --bind 'ctrl-a:execute-silent(brew install {})'
+            ;;
+        npm)
+            npm list -g --depth=0 | sed '1d' | awk '{print $2}' | cut -d@ -f1 | fzf --multi --preview 'npm view {}' --bind 'ctrl-a:execute-silent(npm install -g {})'
+            ;;
+    esac
+}
+alias ffpi="fzf_fuzzy_package_install"                                                 # Desc: alias: ffpi: fzf_fuzzy_package_install命令的别,终极包管理器（支持 brew 和 npm）

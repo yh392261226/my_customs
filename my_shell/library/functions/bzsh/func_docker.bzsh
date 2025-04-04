@@ -10,3 +10,13 @@ function docker_init() {                                                        
 function docker_stop() {                                                             # Desc: function: dockerstop:docker停止
     docker-machine stop default
 }
+
+function fzf_fuzzy_docker() {                                                        # Desc: function: fzf_fuzzy_docker: Docker 管理
+    local containers=$(docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}")
+    echo "$containers" | fzf --header-lines=1 --preview 'docker logs {1}' --bind 'enter:execute(docker exec -it {1} sh)'
+}
+
+function fzf_fuzzy_k8s() {                                                           # Desc: function: fzf_fuzzy_k8s: Kubernetes 支持
+    local pods=$(kubectl get pods | fzf --header-lines=1 --preview 'kubectl describe pod {1}')
+    [ -n "$pods" ] && kubectl exec -it $(echo $pods | awk '{print $1}') -- sh
+}

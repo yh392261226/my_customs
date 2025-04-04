@@ -226,6 +226,7 @@ FZF_DEFAULT_OPTS+=' --bind="≥:next-selected" '
 FZF_DEFAULT_OPTS+=' --bind="≤:prev-selected" '
 FZF_DEFAULT_OPTS+=' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS+=' --bind="shift-down:last" '
+FZF_DEFAULT_OPTS+=" --bind='ctrl-s:select-all+execute(cat {+f} > $HOME/Desktop/fzf_save.log)+abort' "
 
 FZF_DEFAULT_OPTS+=' --bind="load:change-prompt: 🔛 Loaded, Search ➤ " '
 FZF_DEFAULT_OPTS+=' --bind="result:transform:$fzf_transformer" '

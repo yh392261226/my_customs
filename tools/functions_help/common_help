@@ -26,6 +26,7 @@ ${bold}${italic}/${reset}               Show the input window."
 
 readonly help_bottom="
 ${bold}${italic}Ctrl-/${reset}          Change preview window size (Multiple styles).
+${bold}${italic}Ctrl-S${reset}          Save result list to file $HOME/Desktop/fzf_save.log
 ${bold}${italic}OPTION-J${reset}        Scroll up in the preview window.
 ${bold}${italic}OPTION-K${reset}        Scroll down in the preview window.
 ${bold}${italic}OPTION-H${reset}        Scroll half page up in the preview window.

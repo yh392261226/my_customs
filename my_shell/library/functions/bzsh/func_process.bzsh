@@ -4,12 +4,12 @@
 function fzf_process_kill() {                                                       # Desc: function: fzf_process_kill: kill processes - list only the ones you can kill. Modified the earlier script.
     local pid
     local PARAMS
-    PARAMS=($FZF_CUSTOM_PARAMS --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'f12:execute-silent(echo -n {2}| pbcopy)+abort' --header="$(_buildFzfHeader '' 'fzf_process_kill')")
+    PARAMS=($FZF_CUSTOM_PARAMS --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' --bind 'f12:execute-silent(echo -n {2}| pbcopy)+abort' --bind "ctrl-n:preview(netstat -anv | grep {1})" --bind "ctrl-r:preview(ps -M {1} | tail -n +2)" --header="$(_buildFzfHeader 'a+ \n│    Ctrl-N 网络情况 \n│    Ctrl-R 内存情况' 'fzf_process_kill')")
 
     if [ "$UID" != "0" ]; then
         pid=$(ps -f -u $UID | sed 1d | fzf -m $PARAMS | awk '{print $2}')
     else
-        pid=$(ps -ef | sed 1d | fzf -m $PARAMS | awk '{print $2}')
+        pid=$(ps ax -o "pid,user,%cpu,%mem,start,time,command" | sed 1d | fzf -m $PARAMS | awk '{print $1}')
     fi
 
     if [ "x$pid" != "x" ]

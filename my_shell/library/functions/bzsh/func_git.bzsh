@@ -195,7 +195,7 @@ git log --graph --color=always \
 --tiebreak=index \
 --bind 'focus:transform-preview-label:echo -n "[ {2} ]";' \
 --bind 'f12:execute-silent(echo -n {2}| pbcopy)+abort' \
---bind "ctrl-m:execute:(grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
+--bind "ctrl-m:execute:(grep -o '[a-f0-9]\{7\}' | head -1 | xargs -I % sh -c 'git show --color=always % | delta') << 'FZF-EOF'
 {}" \
 --header="$(_buildFzfHeader '' 'fzf_git_commit_browser')"
 }
@@ -227,7 +227,7 @@ function fzf_gitlog_multi() {                                                   
   eval "$git_cmd | $fzf_cmd" \
     | grep -o '[a-f0-9]\{7\}' \
     | xargs -I % sh -c 'git show % --color' \
-    | cat
+    | delta
 }
 alias fgm='fzf_gitlog_multi'                                                            # Desc: alias: fgm: fzf_gitlog_multi命令的别名,利用fzf列出git log,选中后直接显示
 
@@ -324,3 +324,68 @@ function git_submodule_remove2() {                                              
     rm -rf $1
 }
 alias gsr2="git_submodule_remove2"                                                      # Desc: alias: gsr2: git_submodule_remove2命令的别名,删除git子模块,同时删除本地文件
+
+function fzf_hyper_git() {                                                              # Desc: function:fzf-hyper-git:超维 Git 操作（集成 GitHub CLI 和语义分析）
+    local action=$(echo "commit-fixup\nbranch-fusion\npr-orbit\nconflict-solver\nblame-explorer" | \
+        fzf --reverse --header "超维 Git 控制台")
+
+    case $action in
+        commit-fixup)
+            git log --oneline | fzf --multi --preview 'git show {1}' \
+                --bind 'enter:execute(git commit --fixup={1})+abort'
+            ;;
+        branch-fusion)
+            git branch --all | fzf --multi --preview 'git log --graph --oneline {1}' \
+                --bind 'enter:execute(git merge {1} --no-ff)+abort'
+            ;;
+        pr-orbit)
+            gh pr list | fzf --preview 'gh pr view {1}' \
+                --bind 'enter:execute(gh pr checkout {1})'
+            ;;
+        conflict-solver)
+            git diff --name-only --diff-filter=U | \
+                fzf --preview 'git diff --color=always {} | delta' \
+                --bind 'enter:execute(code --wait {})'
+            ;;
+        blame-explorer)
+            local file=$(fzf)
+            git blame "$file" | fzf --preview "echo {} | cut -d' ' -f1 | xargs git show | delta"
+            ;;
+    esac
+}
+alias fhg="fzf_hyper_git"                                                               # Desc: alias: fhg:fzf-hyper-git命令的别名,超维 Git 操作（集成 GitHub CLI 和语义分析）
+
+function fzf_fuzzy_git_tools() {                                                        # Desc: function:fzf_fuzzy_git_tools:Git 超级工具集
+    local choices=(
+        "branch: 切换分支"
+        "log: 查看提交历史"
+        "reflog: 查看操作历史"
+        "status: 查看状态"
+        "stash: 储藏管理"
+        "reset: 重置提交"
+    )
+
+    local cmd=$(printf "%s\n" "${choices[@]}" | fzf --height 40% --reverse --header="Git 操作面板" | cut -d: -f1)
+
+    case $cmd in
+        branch)
+            git checkout $(git branch -a | fzf --height 40% --reverse --preview 'git log --oneline --graph -n 10 $(sed "s/.* //" <<< {})' | sed 's#^remotes/##' | awk '{print $1}')
+            ;;
+        log)
+            git log --graph --color=always --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" | fzf --ansi --reverse --preview 'grep -o "[a-f0-9]\{7\}" <<< {} | xargs git show --color=always' --bind "enter:execute:grep -o '[a-f0-9]\{7\}' <<< {} | xargs -I % sh -c 'git show % | delta'"
+            ;;
+        reflog)
+            git reflog --color=always | fzf --ansi --reverse --preview 'echo {} | cut -d" " -f1 | xargs git show --color=always' --bind "enter:execute:echo {} | cut -d' ' -f1 | xargs -I % sh -c 'git show % | delta'"
+            ;;
+        status)
+            git -c color.status=always status -s | fzf --ansi --reverse --preview 'git diff --color=always -- {-1}' --bind "enter:execute:git diff -- {-1} | delta"
+            ;;
+        stash)
+            git stash list | fzf --ansi --reverse --preview 'git stash show -p $(echo {} | cut -d: -f1)' --bind "enter:execute:git stash show -p $(echo {} | cut -d: -f1) | delta"
+            ;;
+        reset)
+            git log --oneline --graph | fzf --ansi --reverse --multi --preview 'git show --color=always {1}' | awk '{print $1}' | xargs -I % git reset %~1
+            ;;
+    esac
+}
+alias ffgt="fzf_fuzzy_git_tools"                                                        # Desc: alias: ffgt: fzf_fuzzy_git_tools命令的别名,Git 超级工具集

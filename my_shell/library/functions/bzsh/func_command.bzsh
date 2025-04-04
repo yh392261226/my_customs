@@ -395,6 +395,10 @@ else
     bind '"\C-H":"fzf_man;\n"'   #//Ctrl H 执行fzf_man_widget函数
 fi
 
+function fzf_fuzzy_cheat() {                                                        # Desc: function:fzf_fuzzy_cheat:利用 fzf 的Cheat Sheet 搜索器
+    curl -s https://cheat.sh/:list | fzf --height 40% --reverse --preview 'curl -s https://cheat.sh/{} | bat --color=always -l man' --preview-window right:60%
+}
+alias ffc="fzf_fuzzy_cheat"                                                         # Desc: alias: ffc: fzf_fuzzy_cheat命令的别名,利用 fzf 的Cheat Sheet 搜索器
 
 function mark_by_cheatsh() {                                                        # Desc: function: mark_by_cheatsh:依托于cheat.sh的备忘录
     if [ $# -lt 1 ]; then
@@ -526,6 +530,14 @@ function fzf_open_app() {                                                       
 --bind 'f12:execute-silent(echo "open /Applications/{}"| pbcopy)+abort'
 }
 alias foa="fzf_open_app"                                                            # Desc: alias: foa: fzf_open_app命令的别名,利用fzf通过终端打开App
+
+# macOS 应用启动器
+function fzf_fuzzy_launch() {                                                       # Desc: function: fzf_fuzzy_launch: 利用fzf通过终端打开App
+    mdfind kMDItemContentTypeTree=com.apple.application-bundle -onlyin /Applications \
+    | fzf --height 40% --reverse --preview 'mdls -name kMDItemDisplayName -name kMDItemVersion -name kMDItemLastUsedDate {}' \
+    | xargs -o open
+}
+alias foa2="fzf_fuzzy_launch"                                                       # Desc: alias: foa2: fzf_fuzzy_launch命令的别名,利用fzf通过终端打开App
 
 function cp_forward() {                                                             # Desc: function: cp_forward: cp复制完成后跳转至目录
     cp "$@" && go2 "$_";

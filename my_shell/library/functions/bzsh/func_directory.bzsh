@@ -79,11 +79,15 @@ function fzf_cd_to_select() {                                                   
 }
 alias fcd="fzf_cd_to_select"                                                      # Desc: alias: fcd:fzf_cd_to_select命令的别名,利用fzf选择并进入文件夹
 
-function fzf_cd_to_select2() {                                                    # Desc: function: fzf_cd_to_select2:另一款利用fzf进入选择的文件夹
-    DIR=`find ${1:-*} -path '*/\.*' -prune -o -type d -print 2> /dev/null | fzf $FZF_CUSTOM_PARAMS --header-first --header="$(_buildFzfHeader '' 'fzf_cd_to_select2')"` \
-        && cd "$DIR"
+
+# 
+function fzf_fuzzy_cd() {                                                         # Desc: function: fzf_fuzzy_cd:智能目录跳转（自动排除.git .idea .vscode .sass-cache node_modules build .pyc __pycache__ .DS_Store目录）
+    local dir
+    dir=$(fd --type d --hidden --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store} 2> /dev/null | fzf --height 40% --reverse --preview 'tree -C {} | head -200') &&
+    builtin cd "$dir"
+    [ -n "$FZF_CD_POST_HOOK" ] && eval "$FZF_CD_POST_HOOK"  # 可配置后置钩子
 }
-alias fcd2="fzf_cd_to_select2"                                                    # Desc: alias: fcd2:fzf_cd_to_select2命令的别名,另一款利用fzf进入选择的文件夹
+alias fcd2="fzf_fuzzy_cd"                                                         # Desc: alias: fcd2:fzf_fuzzy_cd命令的别名,智能目录跳转（自动排除.git .idea .vscode .sass-cache node_modules build .pyc __pycache__ .DS_Store目录）
 
 function fzf_cd_to_file() {                                                       # Desc: function: fzf_cd_to_file:进入到利用fzf选择的文件的同级文件夹
     local file
