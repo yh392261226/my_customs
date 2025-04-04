@@ -846,8 +846,9 @@ function fzf_full_files_manager() {                                             
             "💻 开发(Develop)" \
             "📝 全文搜索(Content)" \
             "📦️ 压缩文件(Archive)" \
+            "⚒️ 自定义FZF函数(Function)" \
             "🛠️ 自定义函数(Function)" \
-            "⚒️ 自定义别名(Alias)" \
+            "⚒️ 自定义别名(Alia)" \
             "🚪 退出系统(Exit)" | \
             fzf --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
@@ -868,6 +869,7 @@ function fzf_full_files_manager() {                                             
             *媒体*) ___fzf_manage_all "medias" ;;
             *开发*) ___fzf_manage_all "languages" ;;
             *全文搜索*) ___fzf_manage_all "contents" ;;
+            *自定义FZF函数*) fzf_customs_fzf_awesome_functions_list ;;
             *自定义函数*) fzf_search_custom_functions_by_desc ;;
             *自定义别名*) fzf_search_custom_alias_by_desc ;;
             *退出系统*) break 1 && return ;;
