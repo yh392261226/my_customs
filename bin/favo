@@ -116,6 +116,7 @@ list_favorites() {
        --reverse \
        --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
        --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+       --bind="ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {2})" \
        --prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
        --ansi)
   [[ -z "${selected}" ]] && return
