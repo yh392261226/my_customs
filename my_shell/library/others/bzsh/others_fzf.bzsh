@@ -284,8 +284,8 @@ if [ "zsh" = "$nowshell" ]; then
     zstyle ':fzf-tab:complete:(\\|*/|)man:*' fzf-preview 'man $word'
 fi
 
-FZF_CTRL_T_OPTS=" --preview='($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null | head -200' "
-export FZF_CTRL_T_OPTS=$FZF_CTRL_T_OPTS
+# FZF_CTRL_T_OPTS=" --preview='($MYRUNTIME/customs/bin/_previewer {}) 2> /dev/null | head -200' "
+export FZF_CTRL_T_OPTS=$FZF_DEFAULT_OPTS
 
 FZF_CTRL_R_OPTS=" --bind='enter:accept-or-print-query' "
 FZF_CTRL_R_OPTS+=" --reverse "
