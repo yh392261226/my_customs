@@ -893,7 +893,6 @@ function brew_services_manage() {                                               
     local ismysql="true"
     if [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ] && [[ $myservice != mysql* ]]; then
         ismysql=""
-        services=$(brew services list | awk '{print $1}' | grep -v 'Name')
     fi
 
     custom_title() {
@@ -906,11 +905,13 @@ function brew_services_manage() {                                               
     }
 
     if [[ $# -lt 1 ]]; then
+        local services=$(brew services list | awk '{print $1}' | grep -v 'Name')
+
         echo ""
         custom_title "Installed services:"
 
         echo "╭───────────────────────────────────────────────────────────────────────────────────────────────────────\n│" | lolcat -f
-        for service in $(brew services list | awk '{print $1}' | grep -v 'Name'); do
+        for service in $(echo $services | awk '{print $1}' | grep -v 'Name'); do
             echo "│    $service  " | lolcat -f
         done
         echo "│\n╰───────────────────────────────────────────────────────────────────────────────────────────────────────\n" | lolcat -f
@@ -959,6 +960,8 @@ function brew_services_manage() {                                               
 │   Stop (if necessary) and start the service immediately and register it to launch at login (or boot).
 │   \n╰───────────────────────────────────────────────────────────────────────────────────────────────────────\n" | lolcat -f
         return 1
+    elif [ "status" = "$1" ]; then
+        brew services list | lolcat -f
     else
         #******************************************************************#
         # mysql 启动与重启独立处理
