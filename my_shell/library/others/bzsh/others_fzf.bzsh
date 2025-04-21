@@ -142,13 +142,14 @@ export fzf_transformer_search_swap_type='
 
 #FZF_DEFAULT
 FZF_DEFAULT_OPTS=' --reverse '
+FZF_DEFAULT_OPTS+=' --no-tty-default '
 FZF_DEFAULT_OPTS+=' --smart-case '
 FZF_DEFAULT_OPTS+=' --exact '
 FZF_DEFAULT_OPTS+=' --multi '
 FZF_DEFAULT_OPTS+=' --cycle '
 FZF_DEFAULT_OPTS+=' --scheme=path '
 FZF_DEFAULT_OPTS+=' --inline-info '
-FZF_DEFAULT_OPTS+=' --tmux="center" '
+FZF_DEFAULT_OPTS+=' --tmux=center,100% '
 FZF_DEFAULT_OPTS+=' --track '
 FZF_DEFAULT_OPTS+=' --highlight-line '
 FZF_DEFAULT_OPTS+=' --ansi '
@@ -298,7 +299,7 @@ export FZF_CTRL_R_OPTS=$FZF_CTRL_R_OPTS
 export FZF_ALT_C_COMMAND='fd --type d . --color=never'
 export FZF_ALT_C_OPTS="--reverse"
 
-export FZF_TMUX_OPTS="-p"
+export FZF_TMUX_OPTS=" -p $FZF_DEFAULT_OPTS"
 
 FZF_HELP_OPTS=" --multi "
 FZF_HELP_OPTS+=" --layout='reverse-list' "
