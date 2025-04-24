@@ -215,8 +215,10 @@ generate_html() {
 HTML_HEAD
 
   while IFS= read -r img; do
-    # 修改图片链接为调用JavaScript函数
-    echo "<div class=\"img-container\"><img src=\"file://${img}\" alt=\"${img##*/}\" onclick=\"openModal('file://${img}')\"></div>" >> "${FAVO_HTML}"
+    if [ -f $img ]; then
+      # 修改图片链接为调用JavaScript函数
+      echo "<div class=\"img-container\"><img src=\"file://${img}\" alt=\"${img##*/}\" onclick=\"openModal('file://${img}')\"></div>" >> "${FAVO_HTML}"
+    fi
   done < "${FAVO_MARK}"
 
   echo "</div></body></html>" >> "${FAVO_HTML}"
@@ -283,6 +285,39 @@ fuzzy_search() {
   set_background $selected
 }
 
+# 去除不存在的文件
+rebuild_favorite() {
+  echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
+  read choice
+  if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
+      favolists=`cat ${FAVO_MARK}`
+      favo_array[0]=''
+      posit=0
+      if [ -f $TMPFILE ]; then
+          rm -f $TMPFILE
+      fi
+      for i in ${favolists[*]}; do
+          if [ "$i" != "" ] && [ -f $i ]; then
+              echo $i >> $TMPFILE
+          fi
+          ((posit+=1))
+      done
+
+      if [ -f $TMPFILE ]; then
+          mv $TMPFILE ${FAVO_MARK}
+      fi
+      if [ "$?" = "0" ]; then
+          echo "Done ...";
+          return 0;
+      else
+          echo "Failure ...";
+          return 1;
+      fi
+  else
+      return 1
+  fi
+}
+
 # --------------------------
 # 主程序
 # --------------------------
@@ -290,15 +325,16 @@ main() {
   init_check
 
   case "${1}" in
-    add|a)     add_favorite "${2}"   ;;
-    remove|rm) remove_favorite "${2}";;
-    list|l)    list_favorites        ;;
-    html|h)    generate_html         ;;
-    set)       set_background "${2}" ;;
-    random|r)  random_pic            ;;
-    locate|lo) locate_file           ;;
-    search|s)  fuzzy_search "${2}"   ;;
-    thumb|t)   show_thumbnail "${2}" ;;
+    add|a)      add_favorite "${2}"   ;;
+    remove|rm)  remove_favorite "${2}";;
+    list|l)     list_favorites        ;;
+    html|h)     generate_html         ;;
+    set)        set_background "${2}" ;;
+    random|r)   random_pic            ;;
+    locate|lo)  locate_file           ;;
+    search|s)   fuzzy_search "${2}"   ;;
+    thumb|t)    show_thumbnail "${2}" ;;
+    rebuild|re) rebuild_favorite "${2}" ;;
     *)
       echo "╭───────────────────────────────────────────────────
 │ 使用方法: ${0##*/} [command]
@@ -312,6 +348,7 @@ main() {
 │  locate / lo  在Finder中定位文件
 │  search / s   模糊搜索图片
 │  thumb  / t   显示缩略图
+│  rebuild / re 重建收藏列表(去除已经不存在的文件)
 ╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
       ;;
   esac
