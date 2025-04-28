@@ -1,125 +1,168 @@
 #!/usr/bin/env bash
-### Desc: 网址管理器: 通过向网址目录增加以_websites.log结尾的文件名自动形成网址管理
+### Desc: 交互式网址管理器：通过fzf进行两级选择
 
 WEBSITELOGS="$MYRUNTIME/tools/websites"
 OPENBROWSER="/Applications/Safari.app"
-#OPENBROWSER="/Applications/Google Chrome.app"
+FZF_DEFAULT_OPTS="--height 40% --reverse --border rounded --margin 2,5% --info=hidden"
+VALID_EXT=_websites.log
 
-[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
-tmp_iterm=""
-tmp_action="list"
-LOGARR=()
-[[ ! -d $WEBSITELOGS ]] && mkdir -p $WEBSITELOGS
-TMPLOGS=$(ls $WEBSITELOGS | grep '.*_websites.log' | sed 's/_websites.log//g')
+[ -f "$MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh" ] && \
+  source "$MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh"
+[ -f "$MYRUNTIME/customs/my_shell/library/others/bzsh/others_fzf.bzsh" ] && \
+  source "$MYRUNTIME/customs/my_shell/library/others/bzsh/others_fzf.bzsh"
 
-# [[ -f $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/functions/bzsh/func_browser.bzsh
-[[ -n "$1" ]] && tmp_iterm=$1
-[[ -n "$2" ]] && tmp_action=$2
-[[ "" != "$3" ]] && OPENBROWSER="/Applications/Google Chrome.app"
+# 初始化目录
+[[ ! -d $WEBSITELOGS ]] && mkdir -p "$WEBSITELOGS"
 
-function list() {
-	[[ -z "$1" ]] && return
-	local WEBSITES=$1
-	local BROWSER="$2"
-	if [ ! -s "$WEBSITES" ]; then
-		echo "It's empty in websites records !!!"
-		exit 0
-	fi
-	choose=$(cat $WEBSITES | fzf $FZF_CUSTOM_PARAMS --delimiter '#' \
-		--preview='echo {} | sed "s/#/\\n/g"' \
-		--preview="echo \"{1}\n{2}\"" \
-		--bind='focus:transform-preview-label:echo -n "[ {1} ]";' \
-		--bind='ctrl-y:execute-silent(echo -n {2} | pbcopy)+abort' \
-		--bind="ctrl-e:execute(nvim $WEBSITES < /dev/tty > /dev/tty)+reload(cat $WEBSITES)" \
-		--header=$"网址管理工具: Ctrl-H 帮助中心" \
-		--header-first --header-lines=1)
-	if [[ -n $choose ]]; then
-		for url in $choose; do
-			url=$(echo $url | grep -E 'http[s]?://.*')
-			if [ "" != "$url" ] && [ "#" != "$url" ]; then
-				/usr/bin/open -a "$OPENBROWSER" "$url"
-			fi
-		done
-	fi
+# 颜色定义
+COLOR_HEADER=$'\033[38;5;228m'
+COLOR_RESET=$'\033[0m'
+
+# 帮助信息
+function __help() {
+  echo "${COLOR_HEADER}"
+  cat << EOF
+╭───────────────────────────────────────────────────
+│
+│ ${COLOR_HEADER}📚 网址管理器 v2.0${COLOR_RESET}
+│ 
+│ 使用方式：
+│   web [命令]
+│ 
+│ 可用命令：
+│   ${COLOR_HEADER}create <名称>${COLOR_RESET}  - 创建新分类
+│   ${COLOR_HEADER}edit   <名称>${COLOR_RESET}  - 编辑分类
+│   ${COLOR_HEADER}dir${COLOR_RESET}           - 打开分类目录
+│   ${COLOR_HEADER}help${COLOR_RESET}          - 显示帮助信息
+│ 
+│ 交互模式：
+│   直接运行 web 进入交互选择：
+│   1. 选择分类 → 2. 选择网址（支持多选）
+│ 
+│ 快捷键说明：
+│   ${COLOR_HEADER}分类选择界面${COLOR_RESET}
+│   - Ctrl+H 显示帮助
+│   - Ctrl+O 打开分类目录
+│   - Ctrl+N 创建新分类
+│ 
+│   ${COLOR_HEADER}网址选择界面${COLOR_RESET}
+│   - Tab     多选
+│   - Ctrl+Y  复制选中网址
+│   - Ctrl+E  编辑当前分类
+│   - Ctrl+O  在Finder中显示文件
+╰───────────────────────────────────────────────────
+EOF
+  echo "${COLOR_RESET}"
 }
 
-for iterm in $TMPLOGS; do
-	LOGARR+=("$iterm")
-done
-
-function help() {
-	echo "╭───────────────────────────────────────────────────"
-	echo "│ Command: webmanager [m]"
-	echo "│   Iterm:(\$1)"
-	for ((i = 0; i < ${#LOGARR[@]}; i++)); do
-		echo "│       $(/usr/bin/head -n 1 $WEBSITELOGS/${LOGARR[i]}_websites.log)"
-	done
-	echo "│       create 创建新记录"
-	echo "│       dir    打开目录"
-	echo "│       la     列出全部记录"
-	echo "│ "
-	echo "│   Action:(\$2)"
-	echo "│       edit|e|add|a 编辑记录"
-	echo "│       help|e       帮助信息"
-	echo "│       list         列出记录"
-	echo "│       cat          显示记录"
-	echo "│       filename     配合create创建文件"
-	echo "│ Eg.:"
-	echo "│   webmanager soft list"
-	echo "│ "
-	echo "╰───────────────────────────────────────────────────"
+# 获取分类列表
+function __get_categories() {
+  local categories=()
+  for f in $(ls $WEBSITELOGS/*${VALID_EXT}); do
+    if [[ -f $f ]]; then
+		local title=$(head -n1 "$f" | cut -d'#' -f1 | sed 's/#/ /g')
+		categories+=("$(basename "$f" | sed "s/${VALID_EXT}//")#$title")
+	fi
+  done
+  printf "%s\n" "${categories[@]}"
 }
 
-function viewContentOfFiles() {
-	for file in ${WEBSITELOGS}/*.log; do
-		if [ -f "$file" ]; then
-			echo "文件内容: $file"
-			echo "-----------------------------"
-			# 输出文件内容
-			cat "$file"
-			echo "-----------------------------"
-			echo ""
-		fi
-	done
+# 分类选择界面
+function __select_category() {
+  local categories=($(__get_categories))
+  [[ ${#categories[@]} -eq 0 ]] && {
+    echo "没有找到任何分类，使用 web create <名称> 创建新分类"
+    return 1
+  }
+
+  IFS=$'\n' sorted=($(sort <<< "${categories[*]}"))
+  unset IFS
+
+  printf "%s\n" "${sorted[@]}" | fzf $FZF_CUSTOM_PARAMS \
+	--height=95% \
+    --delimiter='#' \
+    --with-nth=2 \
+    --header="${COLOR_HEADER}📂 选择分类 (Ctrl-H 帮助)${COLOR_RESET}" \
+    --preview="bat --style=numbers --color=always ${WEBSITELOGS}/{1}${VALID_EXT}" \
+    --preview-window="right:70%:wrap" \
+    --bind="ctrl-o:execute(open \"$WEBSITELOGS\")+abort" \
+	--bind="ctrl-h:change-preview($MYRUNTIME/customs/bin/web help)+show-preview" \
+    --bind="ctrl-n:execute($MYRUNTIME/customs/bin/web create)+abort" \
+    --expect=ctrl-e
 }
 
-if [[ "${LOGARR[*]}" =~ "$tmp_iterm" ]]; then
-	if [[ -f $WEBSITELOGS/${tmp_iterm}_websites.log ]]; then
-		WEBSITES="$WEBSITELOGS/${tmp_iterm}_websites.log"
-	else
-		help | lolcat -f -F 0.05
-		exit 0
-	fi
-elif [[ "create" = "$tmp_iterm" ]]; then
-	touch $WEBSITELOGS/${tmp_action}_websites.log
-	nvim $WEBSITELOGS/${tmp_action}_websites.log
-elif [[ "dir" = "$tmp_iterm" ]]; then
-	# echo "$WEBSITELOGS"
-	# builtin cd $WEBSITELOGS && exa .
-	gotoPath $WEBSITELOGS
-elif [[ "la" = "$tmp_iterm" ]]; then
-	viewContentOfFiles
-else
-	help | lolcat -f -F 0.05
-	exit 0
-fi
+# 网址选择界面
+function __select_urls() {
+  local file="$1"
+  [[ -s "$file" ]] || {
+    echo "空分类文件：$file"
+    return 1
+  }
 
-case "$tmp_action" in
-"e" | "edit" | "a" | "add")
-	nvim $WEBSITES
-	;;
-"c" | "cat")
-	if [ "command -v ccat" = "" ]; then
-		cat $WEBSITES
-	else
-		ccat $WEBSITES
-	fi
-	;;
-"h" | "help")
-	help
-	exit 0
-	;;
-*)
-	list $WEBSITES
-	;;
-esac
+  local header=$(head -n1 "$file")
+  local format="%-20s %s"
+  
+  cat "$file" | tail -n +2 | fzf \
+    --multi \
+    --delimiter='#' \
+    --with-nth=1 \
+    --header="${COLOR_HEADER}🌐 选择网址 (Tab多选) [${header%%#*}]${COLOR_RESET}" \
+    --preview='echo "{1}\n{2}"' \
+    --preview-window="right:70%:wrap" \
+	--height=95% \
+    --bind="ctrl-y:execute-silent(printf '%s' {2} | pbcopy)+abort" \
+    --bind="ctrl-e:execute(nvim \"$file\" < /dev/tty > /dev/tty)+reload(cat \"$file\")" \
+    --bind="ctrl-o:execute(open -R \"$file\")+abort" \
+    --bind="ctrl-h:change-preview($MYRUNTIME/customs/bin/web help)+show-preview" \
+    --header-first \
+    --prompt="➤ " | \
+    awk -F'#' '{print $2}'
+}
+
+# 主逻辑
+function main() {
+  case $1 in
+    help|--help|-h)
+      __help
+      ;;
+    create)
+      local name="${2:-$(date +%s)}"
+      local target="$WEBSITELOGS/${name}${VALID_EXT}"
+      [[ ! -f "$target" ]] && echo "# 新分类描述（首行作为标题）" > "$target"
+      nvim "$target"
+      ;;
+    edit)
+      local target="$WEBSITELOGS/${2}${VALID_EXT}"
+      [[ -f "$target" ]] && nvim "$target" || echo "分类不存在"
+      ;;
+    dir)
+      open "$WEBSITELOGS"
+      ;;
+    *)
+      local result=$(__select_category)
+      [[ -z "$result" ]] && return
+
+      local key=$(head -1 <<< "$result")
+      local category=$(tail -1 <<< "$result" | cut -d'#' -f1)
+      local target="$WEBSITELOGS/${category}${VALID_EXT}"
+
+      # 处理特殊按键
+      case $key in
+        ctrl-e)
+          nvim "$target"
+          return
+          ;;
+      esac
+
+      # 选择网址
+      local urls=$(__select_urls "$target")
+      [[ -z "$urls" ]] && return
+
+      while read -r url; do
+        [[ -n "$url" ]] && open -a "$OPENBROWSER" "$url"
+      done <<< "$urls"
+      ;;
+  esac
+}
+
+main "$@"
