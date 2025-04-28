@@ -86,7 +86,7 @@ function __select_category() {
     --preview="bat --style=numbers --color=always ${WEBSITELOGS}/{1}${VALID_EXT}" \
     --preview-window="right:70%:wrap" \
     --bind="ctrl-o:execute(open \"$WEBSITELOGS\")+abort" \
-	--bind="ctrl-h:change-preview($MYRUNTIME/customs/bin/web help)+show-preview" \
+	  --bind="ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview($MYRUNTIME/customs/bin/web help)+show-preview" \
     --bind="ctrl-n:execute($MYRUNTIME/customs/bin/web create)+abort" \
     --expect=ctrl-e
 }
@@ -113,7 +113,7 @@ function __select_urls() {
     --bind="ctrl-y:execute-silent(printf '%s' {2} | pbcopy)+abort" \
     --bind="ctrl-e:execute(nvim \"$file\" < /dev/tty > /dev/tty)+reload(cat \"$file\")" \
     --bind="ctrl-o:execute(open -R \"$file\")+abort" \
-    --bind="ctrl-h:change-preview($MYRUNTIME/customs/bin/web help)+show-preview" \
+    --bind="ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview($MYRUNTIME/customs/bin/web help)+show-preview" \
     --header-first \
     --prompt="➤ " | \
     awk -F'#' '{print $2}'
