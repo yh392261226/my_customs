@@ -55,6 +55,10 @@ plugins=(
 	copypath
 	copyfile
 	copybuffer
+	web-search
+	copypath
+	copyfile
+	dirhistory
     # fzf-brew
 	# zsh-autosuggestions
 	# zsh-syntax-highlighting
