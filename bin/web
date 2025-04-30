@@ -139,7 +139,7 @@ function main() {
       open "$WEBSITELOGS"
       ;;
     *)
-      local result=$(__select_category)
+      local result=${1:-$(__select_category)}
       [[ -z "$result" ]] && return
 
       local key=$(head -1 <<< "$result")
