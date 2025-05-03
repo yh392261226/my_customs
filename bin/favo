@@ -335,7 +335,7 @@ table_favorate() {
     local -a image_buffer
     local -a name_buffer
 
-    for file in "$@"; do
+    for file in $(cat ${FAVO_MARK}); do
         # 验证文件存在性
         [[ ! -f "$file" ]] && echo "文件不存在: $file" >&2 && continue
 
