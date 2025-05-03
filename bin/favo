@@ -320,8 +320,8 @@ rebuild_favorite() {
 
 # 表格形式展示
 table_favorate() {
-    # 配置参数
-    local cols=3                  # 每行显示列数
+     # 配置参数
+    local cols=5                  # 每行显示列数
     local max_width=300           # 最大显示宽度（像素）
     local char_width=6            # 每个字符的像素宽度估算值
 
@@ -330,47 +330,71 @@ table_favorate() {
     local max_term_width=$(( term_cols * char_width - 20 ))
     local display_width=$(( max_width < max_term_width ? max_width : max_term_width ))
 
-    # 初始化缓冲
+    # 初始化行缓冲
     local count=0
-    local -a image_buffer
+    local -a line_buffer
     local -a name_buffer
 
-    for file in $(cat ${FAVO_MARK}); do
+    # 遍历收藏文件
+    while IFS= read -r file; do
         # 验证文件存在性
-        [[ ! -f "$file" ]] && echo "文件不存在: $file" >&2 && continue
+        [[ ! -f "$file" ]] && continue
 
-        # 获取文件名（处理含空格文件名）
-        local filename=$(basename "$file")
+        # 获取文件名（处理特殊字符）
+        local filename=$(basename "$file" | sed 's/[\"\\]//g')
 
-        # 兼容性base64编码处理
-        local img_data=$(base64 --encode "$file" | tr -d '\n')  # 编码后删除换行
-        local filesize=$(wc -c < "$file" | tr -d ' ')           # 跨平台文件大小获取
+        # 生成图片转义序列（兼容macOS base64）
+        local img_data=$(base64 --encode "$file" 2>/dev/null || base64 "$file" | tr -d '\n')
+        local filesize=$(wc -c < "$file" | tr -d ' ')
         
-        # 构建iTerm2图片序列
+        # 构建转义序列（关键：末尾不换行）
         local esc_seq="\033]1337;File=name=${filename};size=${filesize};inline=1;width=${display_width}px;preserveAspectRatio=1:${img_data}\a"
-        
-        # 缓冲数据
-        image_buffer+=("$esc_seq")
+
+        # 存入行缓冲
+        line_buffer+=("$esc_seq")
         name_buffer+=("$filename")
         ((count++))
 
-        # 整行输出处理
+        # 整行输出（关键点1：同一行图片连续输出）
         if (( count % cols == 0 )); then
-            echo -ne "${image_buffer[@]}\n\033[0m"
-            printf "%-$(( display_width/char_width + 2 ))s" ""
-            # printf "%-$(( display_width/char_width ))s   " "${name_buffer[@]}"
-            echo -e "\n"
-            image_buffer=()
+            # 输出图片行（关键点2：-ne参数+不换行）
+            echo -ne "${line_buffer[@]}"
+            
+            # 输出文件名行（关键点3：精确计算占位）
+            echo -en "\n\033[0m"
+            local col_width=$(( display_width / char_width + 2 ))
+            printf "%-${col_width}s" "${name_buffer[@]}" | 
+                awk -v width=$col_width -v cols=$cols '
+                    {
+                        gsub(/ /, "  "); 
+                        for(i=1; i<=cols; i++) {
+                            printf "%-"width"s", substr($0, (i-1)*width+1, width)
+                        }
+                        print ""
+                    }'
+            echo
+            
+            # 清空缓冲
+            line_buffer=()
             name_buffer=()
         fi
-    done
+    done < "${FAVO_MARK}"
 
     # 处理剩余图片
-    if (( ${#image_buffer[@]} > 0 )); then
-        echo -ne "${image_buffer[@]}\n\033[0m"
-        printf "%-$(( display_width/char_width + 2 ))s" ""
-        # printf "%-$(( display_width/char_width ))s   " "${name_buffer[@]}"
-        echo -e "\n"
+    if (( ${#line_buffer[@]} > 0 )); then
+        echo -ne "${line_buffer[@]}"
+        echo -en "\n\033[0m"
+        local col_width=$(( display_width / char_width + 2 ))
+        printf "%-${col_width}s" "${name_buffer[@]}" | 
+            awk -v width=$col_width -v cols=${#line_buffer[@]} '
+                {
+                    gsub(/ /, "  "); 
+                    for(i=1; i<=cols; i++) {
+                        printf "%-"width"s", substr($0, (i-1)*width+1, width)
+                    }
+                    print ""
+                }'
+        echo
     fi
 }
 # 使用示例：
