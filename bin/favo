@@ -318,6 +318,64 @@ rebuild_favorite() {
   fi
 }
 
+# 表格形式展示
+table_favorate() {
+    # 配置参数
+    local cols=3                  # 每行显示列数
+    local max_width=300           # 最大显示宽度（像素）
+    local char_width=6            # 每个字符的像素宽度估算值
+
+    # 计算实际显示宽度
+    local term_cols=$(tput cols)
+    local max_term_width=$(( term_cols * char_width - 20 ))
+    local display_width=$(( max_width < max_term_width ? max_width : max_term_width ))
+
+    # 初始化缓冲
+    local count=0
+    local -a image_buffer
+    local -a name_buffer
+
+    for file in "$@"; do
+        # 验证文件存在性
+        [[ ! -f "$file" ]] && echo "文件不存在: $file" >&2 && continue
+
+        # 获取文件名（处理含空格文件名）
+        local filename=$(basename "$file")
+
+        # 兼容性base64编码处理
+        local img_data=$(base64 --encode "$file" | tr -d '\n')  # 编码后删除换行
+        local filesize=$(wc -c < "$file" | tr -d ' ')           # 跨平台文件大小获取
+        
+        # 构建iTerm2图片序列
+        local esc_seq="\033]1337;File=name=${filename};size=${filesize};inline=1;width=${display_width}px;preserveAspectRatio=1:${img_data}\a"
+        
+        # 缓冲数据
+        image_buffer+=("$esc_seq")
+        name_buffer+=("$filename")
+        ((count++))
+
+        # 整行输出处理
+        if (( count % cols == 0 )); then
+            echo -ne "${image_buffer[@]}\n\033[0m"
+            printf "%-$(( display_width/char_width + 2 ))s" ""
+            # printf "%-$(( display_width/char_width ))s   " "${name_buffer[@]}"
+            echo -e "\n"
+            image_buffer=()
+            name_buffer=()
+        fi
+    done
+
+    # 处理剩余图片
+    if (( ${#image_buffer[@]} > 0 )); then
+        echo -ne "${image_buffer[@]}\n\033[0m"
+        printf "%-$(( display_width/char_width + 2 ))s" ""
+        # printf "%-$(( display_width/char_width ))s   " "${name_buffer[@]}"
+        echo -e "\n"
+    fi
+}
+# 使用示例：
+# imgtable *.jpg *.png
+
 # --------------------------
 # 主程序
 # --------------------------
@@ -335,6 +393,7 @@ main() {
     search|s)   fuzzy_search "${2}"   ;;
     thumb|t)    show_thumbnail "${2}" ;;
     rebuild|re) rebuild_favorite "${2}" ;;
+    table|ta)   table_favorate "${@}" ;;
     *)
       echo "╭───────────────────────────────────────────────────
 │ 使用方法: ${0##*/} [command]
@@ -349,6 +408,7 @@ main() {
 │  search / s   模糊搜索图片
 │  thumb  / t   显示缩略图
 │  rebuild / re 重建收藏列表(去除已经不存在的文件)
+│  table / ta   表格形式展示图片
 ╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
       ;;
   esac
