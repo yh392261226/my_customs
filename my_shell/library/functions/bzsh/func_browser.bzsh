@@ -438,7 +438,7 @@ EOF
                     tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
                     if [ "$tmpresult" -gt "1" ]; then
                         msg="Already deleted ..."
-                        trash $fullfilename
+                        rm -f $fullfilename
                     fi
                 else
                     local tmp_path=$(dirname $fullfilename)
