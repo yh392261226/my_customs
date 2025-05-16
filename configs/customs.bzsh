@@ -28,7 +28,7 @@ export GOARCH=arm64
 export GO111MODULE=on
 #export GOBOOK=$HOME/go-develop/gobook
 #. $GOBOOK/env.sh
-alias goweb="godoc -http=:9900 >> /dev/null &"                                                                      # Desc: alias: goweb:godoc的web版别名
+alias goweb="godoc -http=:9900 >> /dev/null &; open http://127.0.0.1:9900"                                                                      # Desc: alias: goweb:godoc的web版别名
 #alias gopl="open $HOME/Documents/golang/gopl-zh/_book/index.html"
 
 #####java
@@ -110,6 +110,11 @@ export NVM_DIR="$HOME/.nvm"
 export LDFLAGS="-L/opt/homebrew/opt/zlib/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/zlib/include"
 export PKG_CONFIG_PATH="/opt/homebrew/opt/zlib/lib/pkgconfig"
+
+export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+export LDFLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib/unwind -lunwind"
+export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
 
 
 
