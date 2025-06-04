@@ -986,3 +986,4 @@ brew install duti
 brew install viu # 缩率图查看器
 brew install csvtk
 brew install audio-fingerprint parallel tesseract whisper
+brew install --no-quarantine syntax-highlight
