@@ -16,24 +16,24 @@ CURRENT_PIC="${RUNTIME_DIR}/current_picturename"
 TMPFILE=/tmp/favo_tmp
 DEFAULT_BROWSER="/Applications/Safari.app"
 BACKUP_BROWSER="/Applications/Google Chrome.app"
-THUMB_SIZE="40"  # 默认缩略图尺寸
+THUMB_SIZE="40" # 默认缩略图尺寸
 
 # --------------------------
 # 初始化检查
 # --------------------------
 init_check() {
-  [[ ! -d "${RUNTIME_DIR}" ]] && mkdir -p "${RUNTIME_DIR}"
-  
-  local required_commands=("trash" "fzf" "viu")
-  for cmd in "${required_commands[@]}"; do
-    if ! command -v "${cmd}" &> /dev/null; then
-      echo "错误: 缺少依赖命令 ${cmd}"
-      exit 1
-    fi
-  done
+	[[ ! -d "${RUNTIME_DIR}" ]] && mkdir -p "${RUNTIME_DIR}"
 
-  [[ ! -f "${CURRENT_PIC}" ]] && touch "${CURRENT_PIC}"
-  [[ ! -f "${FAVO_MARK}" ]] && touch "${FAVO_MARK}"
+	local required_commands=("trash" "fzf" "viu")
+	for cmd in "${required_commands[@]}"; do
+		if ! command -v "${cmd}" &>/dev/null; then
+			echo "错误: 缺少依赖命令 ${cmd}"
+			exit 1
+		fi
+	done
+
+	[[ ! -f "${CURRENT_PIC}" ]] && touch "${CURRENT_PIC}"
+	[[ ! -f "${FAVO_MARK}" ]] && touch "${FAVO_MARK}"
 }
 
 # --------------------------
@@ -42,92 +42,91 @@ init_check() {
 
 # 获取当前图片路径
 get_current_pic() {
-  [[ -f "${CURRENT_PIC}" ]] && cat "${CURRENT_PIC}" || echo ""
+	[[ -f "${CURRENT_PIC}" ]] && cat "${CURRENT_PIC}" || echo ""
 }
 
 # 显示缩略图
 show_thumbnail() {
-  local img_path="${1:-$(get_current_pic)}"
-  [[ -z "${img_path}" ]] && return 1
-  
-  viu --width "${THUMB_SIZE}" "${img_path}"
+	local img_path="${1:-$(get_current_pic)}"
+	[[ -z "${img_path}" ]] && return 1
+
+	viu --width "${THUMB_SIZE}" "${img_path}"
 }
 
 # 添加收藏
 add_favorite() {
-  local target_pic="${1:-$(get_current_pic)}"
-  [[ -z "${target_pic}" ]] && return 1
+	local target_pic="${1:-$(get_current_pic)}"
+	[[ -z "${target_pic}" ]] && return 1
 
-  if grep -qF "${target_pic}" "${FAVO_MARK}"; then
-    echo "图片已存在收藏!"
-    return 1
-  fi
+	if grep -qF "${target_pic}" "${FAVO_MARK}"; then
+		echo "图片已存在收藏!"
+		return 1
+	fi
 
-  echo "${target_pic}" >> "${FAVO_MARK}" && sort -u "${FAVO_MARK}" -o "${FAVO_MARK}"
-  echo "成功添加收藏!"
+	echo "${target_pic}" >>"${FAVO_MARK}" && sort -u "${FAVO_MARK}" -o "${FAVO_MARK}"
+	echo "成功添加收藏!"
 }
 
 # 删除收藏
 remove_favorite() {
-  local target_id="${1}"
-  if [[ -z "${target_id}" ]]; then
-    interactive_remove
-  else
-    remove_by_id "${target_id}"
-  fi
+	local target_id="${1}"
+	if [[ -z "${target_id}" ]]; then
+		interactive_remove
+	else
+		remove_by_id "${target_id}"
+	fi
 }
 
 interactive_remove() {
-  local header="🖼️ 图片收藏 (共 $(wc -l < "${FAVO_MARK}") 张)"
-  local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
-  local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | fzf $FZF_CUSTOM_PARAMS --header="选择要删除的图片 (按ESC退出)" +m \
-       --delimiter='│' \
-       --border-label="╢ Favorate Images ╟" \
-       --ghost="Type your search words ┈┉ " \
-       --preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3"  \
-       --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
-       --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
-       --header "${header}" \
-       --preview "${preview_cmd} ")
-  [[ -z "${selected}" ]] && return
-  selected=$(basename $(echo "$selected" | awk -F'│' '{print $2}'))
-  cat ${FAVO_MARK} | grep -v "$selected" > $TMPFILE
-  [[ -f $TMPFILE ]] && rm -f ${FAVO_MARK} && mv $TMPFILE ${FAVO_MARK}
+	local header="🖼️ 图片收藏 (共 $(wc -l <"${FAVO_MARK}") 张)"
+	local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
+	local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | fzf $FZF_CUSTOM_PARAMS --header="选择要删除的图片 (按ESC退出)" +m \
+		--delimiter='│' \
+		--border-label="╢ Favorate Images ╟" \
+		--ghost="Type your search words ┈┉ " \
+		--preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3" \
+		--bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
+		--bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+		--header "${header}" \
+		--preview "${preview_cmd} ")
+	[[ -z "${selected}" ]] && return
+	selected=$(basename $(echo "$selected" | awk -F'│' '{print $2}'))
+	cat ${FAVO_MARK} | grep -v "$selected" >$TMPFILE
+	[[ -f $TMPFILE ]] && rm -f ${FAVO_MARK} && mv $TMPFILE ${FAVO_MARK}
 }
 
 # --------------------------
 # 交互式列表 (带预览)
 # --------------------------
 list_favorites() {
-  [[ ! -s "${FAVO_MARK}" ]] && echo "收藏列表为空" && return 1
+	[[ ! -s "${FAVO_MARK}" ]] && echo "收藏列表为空" && return 1
 
-  local header="🖼️ 图片收藏 (共 $(wc -l < "${FAVO_MARK}") 张)"
-  local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
-  
-  # 构建带序号的列表
-  local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | \
-    fzf $FZF_CUSTOM_PARAMS +m\
-       --delimiter='│' \
-       --border-label="╢ Favorate Images ╟" \
-       --ghost="Type your search words ┈┉ " \
-       --preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3"  \
-       --preview "${preview_cmd} " \
-       --header "${header}" \
-       --reverse \
-       --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
-       --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
-       --bind="ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {2})" \
-       --prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
-       --ansi)
-  [[ -z "${selected}" ]] && return
-  selected=$(echo "$selected" | awk -F'│' '{print $2}')
-  set_background $selected
+	local header="🖼️ 图片收藏 (共 $(wc -l <"${FAVO_MARK}") 张)"
+	local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
+
+	# 构建带序号的列表
+	local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" |
+		fzf $FZF_CUSTOM_PARAMS +m --delimiter='│' \
+			--border-label="╢ Favorate Images ╟" \
+			--ghost="Type your search words ┈┉ " \
+			--preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3" \
+			--preview "${preview_cmd} " \
+			--header "${header}" \
+			--reverse \
+			--bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
+			--bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+			--bind="ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {2})" \
+			--prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
+			--ansi)
+	[[ -z "${selected}" ]] && return
+	selected=$(echo "$selected" | awk -F'│' '{print $2}')
+	set_background $selected
 }
 
 generate_html() {
-  [[ ! -s "${FAVO_MARK}" ]] && return 1
+	[[ ! -s "${FAVO_MARK}" ]] && return 1
 
-  cat <<HTML_HEAD > "${FAVO_HTML}"
+	cat <<HTML_HEAD >"${FAVO_HTML}"
 <!DOCTYPE html>
 <html>
 <head>
@@ -247,27 +246,27 @@ generate_html() {
   </script>
 </head>
 <body>
-  <h1>我的图片收藏 ($(wc -l < "${FAVO_MARK}"))</h1>
+  <h1>我的图片收藏 ($(wc -l <"${FAVO_MARK}"))</h1>
   <div class="gallery">
 HTML_HEAD
 
-  while IFS= read -r img; do
-    if [ -f $img ]; then
-      echo "<div class=\"img-container\"><img src=\"file://${img}\" alt=\"${img##*/}\" onclick=\"openModal('file://${img}')\"></div>" >> "${FAVO_HTML}"
-    fi
-  done < "${FAVO_MARK}"
+	while IFS= read -r img; do
+		if [ -f $img ]; then
+			echo "<div class=\"img-container\"><img src=\"file://${img}\" alt=\"${img##*/}\" onclick=\"openModal('file://${img}')\"></div>" >>"${FAVO_HTML}"
+		fi
+	done <"${FAVO_MARK}"
 
-  echo "</div></body></html>" >> "${FAVO_HTML}"
-  open "${FAVO_HTML}" -a "${DEFAULT_BROWSER:-${BACKUP_BROWSER}}" --args --allow-file-access-from-files
+	echo "</div></body></html>" >>"${FAVO_HTML}"
+	open "${FAVO_HTML}" -a "${DEFAULT_BROWSER:-${BACKUP_BROWSER}}" --args --allow-file-access-from-files
 }
 
 # 设置背景
 set_background() {
-  local img_path="${1}"
-  [[ ! -f "${img_path}" ]] && return 1
+	local img_path="${1}"
+	[[ ! -f "${img_path}" ]] && return 1
 
-  echo "${img_path}" > "${CURRENT_PIC}"
-  osascript <<APPLESCRIPT
+	echo "${img_path}" >"${CURRENT_PIC}"
+	osascript <<APPLESCRIPT
   tell application "iTerm"
     tell current window
       tell current session
@@ -284,123 +283,122 @@ APPLESCRIPT
 
 # 随机切换
 random_pic() {
-  local total=$(wc -l < "${FAVO_MARK}")
-  [[ "${total}" -eq 0 ]] && return 1
-  local rand_num=$((RANDOM % total))
-  echo "Random Change Background Done ."
-  set_background "$(sed -n "${rand_num}p" "${FAVO_MARK}")"
+	local total=$(wc -l <"${FAVO_MARK}")
+	[[ "${total}" -eq 0 ]] && return 1
+	local rand_num=$((RANDOM % total))
+	echo "Random Change Background Done ."
+	set_background "$(sed -n "${rand_num}p" "${FAVO_MARK}")"
 }
 
 # 文件定位
 locate_file() {
-  open -R "$(get_current_pic)"
+	open -R "$(get_current_pic)"
 }
 
 # 模糊搜索
 fuzzy_search() {
-  local keyword="${1}"
-  [[ -z "${keyword}" ]] && read -p "输入搜索关键词: " keyword
-  [[ -z "${keyword}" ]] && return
-  local header="🖼️ 图片收藏 (共 $(wc -l < "${FAVO_MARK}") 张)"
-  local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
-  local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | grep "${keyword}" | fzf $FZF_CUSTOM_PARAMS +m\
-       --delimiter='│' \
-       --border-label="╢ Favorate Images ╟" \
-       --ghost="Type your search words ┈┉ " \
-       --preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3"  \
-       --preview "${preview_cmd} " \
-       --header "${header}" \
-       --reverse \
-       --bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
-       --bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
-       --prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
-       --ansi)
-  [[ -z "${selected}" ]] && return
-  selected=$(echo "$selected" | awk -F'│' '{print $2}')
-  # echo $selected; return
-  set_background $selected
+	local keyword="${1}"
+	[[ -z "${keyword}" ]] && read -p "输入搜索关键词: " keyword
+	[[ -z "${keyword}" ]] && return
+	local header="🖼️ 图片收藏 (共 $(wc -l <"${FAVO_MARK}") 张)"
+	local preview_cmd='viu --width 100 $(echo {} | awk -F"│" "{print \$2}")'
+	local selected=$(nl -w2 -s' │ ' "${FAVO_MARK}" | grep "${keyword}" | fzf $FZF_CUSTOM_PARAMS +m --delimiter='│' \
+		--border-label="╢ Favorate Images ╟" \
+		--ghost="Type your search words ┈┉ " \
+		--preview-window="right,50%,border-left,<50(up,30%,border-bottom),nohidden,~3" \
+		--preview "${preview_cmd} " \
+		--header "${header}" \
+		--reverse \
+		--bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
+		--bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
+		--prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
+		--ansi)
+	[[ -z "${selected}" ]] && return
+	selected=$(echo "$selected" | awk -F'│' '{print $2}')
+	# echo $selected; return
+	set_background $selected
 }
 
 # 去除不存在的文件
 rebuild_favorite() {
-  echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO";
-  read choice
-  if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
-      favolists=`cat ${FAVO_MARK}`
-      favo_array[0]=''
-      posit=0
-      if [ -f $TMPFILE ]; then
-          rm -f $TMPFILE
-      fi
-      for i in ${favolists[*]}; do
-          if [ "$i" != "" ] && [ -f $i ]; then
-              echo $i >> $TMPFILE
-          fi
-          ((posit+=1))
-      done
+	echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO"
+	read choice
+	if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
+		favolists=$(cat ${FAVO_MARK})
+		favo_array[0]=''
+		posit=0
+		if [ -f $TMPFILE ]; then
+			rm -f $TMPFILE
+		fi
+		for i in ${favolists[*]}; do
+			if [ "$i" != "" ] && [ -f $i ]; then
+				echo $i >>$TMPFILE
+			fi
+			((posit += 1))
+		done
 
-      if [ -f $TMPFILE ]; then
-          mv $TMPFILE ${FAVO_MARK}
-      fi
-      if [ "$?" = "0" ]; then
-          echo "Done ...";
-          return 0;
-      else
-          echo "Failure ...";
-          return 1;
-      fi
-  else
-      return 1
-  fi
+		if [ -f $TMPFILE ]; then
+			mv $TMPFILE ${FAVO_MARK}
+		fi
+		if [ "$?" = "0" ]; then
+			echo "Done ..."
+			return 0
+		else
+			echo "Failure ..."
+			return 1
+		fi
+	else
+		return 1
+	fi
 }
 
 # 表格形式展示
 table_favorate() {
-     # 配置参数
-    local cols=5                  # 每行显示列数
-    local max_width=300           # 最大显示宽度（像素）
-    local char_width=6            # 每个字符的像素宽度估算值
+	# 配置参数
+	local cols=5        # 每行显示列数
+	local max_width=300 # 最大显示宽度（像素）
+	local char_width=6  # 每个字符的像素宽度估算值
 
-    # 计算实际显示宽度
-    local term_cols=$(tput cols)
-    local max_term_width=$(( term_cols * char_width - 20 ))
-    local display_width=$(( max_width < max_term_width ? max_width : max_term_width ))
+	# 计算实际显示宽度
+	local term_cols=$(tput cols)
+	local max_term_width=$((term_cols * char_width - 20))
+	local display_width=$((max_width < max_term_width ? max_width : max_term_width))
 
-    # 初始化行缓冲
-    local count=0
-    local -a line_buffer
-    local -a name_buffer
+	# 初始化行缓冲
+	local count=0
+	local -a line_buffer
+	local -a name_buffer
 
-    # 遍历收藏文件
-    while IFS= read -r file; do
-        # 验证文件存在性
-        [[ ! -f "$file" ]] && continue
+	# 遍历收藏文件
+	while IFS= read -r file; do
+		# 验证文件存在性
+		[[ ! -f "$file" ]] && continue
 
-        # 获取文件名（处理特殊字符）
-        local filename=$(basename "$file" | sed 's/[\"\\]//g')
+		# 获取文件名（处理特殊字符）
+		local filename=$(basename "$file" | sed 's/[\"\\]//g')
 
-        # 生成图片转义序列（兼容macOS base64）
-        local img_data=$(base64 --encode "$file" 2>/dev/null || base64 "$file" | tr -d '\n')
-        local filesize=$(wc -c < "$file" | tr -d ' ')
-        
-        # 构建转义序列（关键：末尾不换行）
-        local esc_seq="\033]1337;File=name=${filename};size=${filesize};inline=1;width=${display_width}px;preserveAspectRatio=1:${img_data}\a"
+		# 生成图片转义序列（兼容macOS base64）
+		local img_data=$(base64 --encode "$file" 2>/dev/null || base64 "$file" | tr -d '\n')
+		local filesize=$(wc -c <"$file" | tr -d ' ')
 
-        # 存入行缓冲
-        line_buffer+=("$esc_seq")
-        name_buffer+=("$filename")
-        ((count++))
+		# 构建转义序列（关键：末尾不换行）
+		local esc_seq="\033]1337;File=name=${filename};size=${filesize};inline=1;width=${display_width}px;preserveAspectRatio=1:${img_data}\a"
 
-        # 整行输出（关键点1：同一行图片连续输出）
-        if (( count % cols == 0 )); then
-            # 输出图片行（关键点2：-ne参数+不换行）
-            echo -ne "${line_buffer[@]}"
-            
-            # 输出文件名行（关键点3：精确计算占位）
-            echo -en "\n\033[0m"
-            local col_width=$(( display_width / char_width + 2 ))
-            printf "%-${col_width}s" "${name_buffer[@]}" | 
-                awk -v width=$col_width -v cols=$cols '
+		# 存入行缓冲
+		line_buffer+=("$esc_seq")
+		name_buffer+=("$filename")
+		((count++))
+
+		# 整行输出（关键点1：同一行图片连续输出）
+		if ((count % cols == 0)); then
+			# 输出图片行（关键点2：-ne参数+不换行）
+			echo -ne "${line_buffer[@]}"
+
+			# 输出文件名行（关键点3：精确计算占位）
+			echo -en "\n\033[0m"
+			local col_width=$((display_width / char_width + 2))
+			printf "%-${col_width}s" "${name_buffer[@]}" |
+				awk -v width=$col_width -v cols=$cols '
                     {
                         gsub(/ /, "  "); 
                         for(i=1; i<=cols; i++) {
@@ -408,21 +406,21 @@ table_favorate() {
                         }
                         print ""
                     }'
-            echo
-            
-            # 清空缓冲
-            line_buffer=()
-            name_buffer=()
-        fi
-    done < "${FAVO_MARK}"
+			echo
 
-    # 处理剩余图片
-    if (( ${#line_buffer[@]} > 0 )); then
-        echo -ne "${line_buffer[@]}"
-        echo -en "\n\033[0m"
-        local col_width=$(( display_width / char_width + 2 ))
-        printf "%-${col_width}s" "${name_buffer[@]}" | 
-            awk -v width=$col_width -v cols=${#line_buffer[@]} '
+			# 清空缓冲
+			line_buffer=()
+			name_buffer=()
+		fi
+	done <"${FAVO_MARK}"
+
+	# 处理剩余图片
+	if ((${#line_buffer[@]} > 0)); then
+		echo -ne "${line_buffer[@]}"
+		echo -en "\n\033[0m"
+		local col_width=$((display_width / char_width + 2))
+		printf "%-${col_width}s" "${name_buffer[@]}" |
+			awk -v width=$col_width -v cols=${#line_buffer[@]} '
                 {
                     gsub(/ /, "  "); 
                     for(i=1; i<=cols; i++) {
@@ -430,8 +428,8 @@ table_favorate() {
                     }
                     print ""
                 }'
-        echo
-    fi
+		echo
+	fi
 }
 # 使用示例：
 # imgtable *.jpg *.png
@@ -440,22 +438,22 @@ table_favorate() {
 # 主程序
 # --------------------------
 main() {
-  init_check
+	init_check
 
-  case "${1}" in
-    add|a)      add_favorite "${2}"   ;;
-    remove|rm)  remove_favorite "${2}";;
-    list|l)     list_favorites        ;;
-    html|h)     generate_html         ;;
-    set)        set_background "${2}" ;;
-    random|r)   random_pic            ;;
-    locate|lo)  locate_file           ;;
-    search|s)   fuzzy_search "${2}"   ;;
-    thumb|t)    show_thumbnail "${2}" ;;
-    rebuild|re) rebuild_favorite "${2}" ;;
-    table|ta)   table_favorate "${@}" ;;
-    *)
-      echo "╭───────────────────────────────────────────────────
+	case "${1}" in
+	add | a) add_favorite "${2}" ;;
+	remove | rm) remove_favorite "${2}" ;;
+	list | l) list_favorites ;;
+	html | h) generate_html ;;
+	set) set_background "${2}" ;;
+	random | r) random_pic ;;
+	locate | lo) locate_file ;;
+	search | s) fuzzy_search "${2}" ;;
+	thumb | t) show_thumbnail "${2}" ;;
+	rebuild | re) rebuild_favorite "${2}" ;;
+	table | ta) table_favorate "${@}" ;;
+	*)
+		echo "╭───────────────────────────────────────────────────
 │ 使用方法: ${0##*/} [command]
 │ 可用命令:
 │  add    / a   添加当前背景到收藏
@@ -470,8 +468,8 @@ main() {
 │  rebuild / re 重建收藏列表(去除已经不存在的文件)
 │  table / ta   表格形式展示图片
 ╰───────────────────────────────────────────────────" | lolcat -f -F 0.05
-      ;;
-  esac
+		;;
+	esac
 }
 
 main "$@"
