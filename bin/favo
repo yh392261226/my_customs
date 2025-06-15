@@ -183,7 +183,7 @@ generate_html() {
       top: 10%;
       left: 20%;
       right: 20%;
-      bottom: 15%; /* 增加底部空间给按钮 */
+      bottom: 15%;
       max-width: 1200px;
       max-height: 675px;
       object-fit: contain;
@@ -192,7 +192,6 @@ generate_html() {
       width: 900px;
       height: 506px;
     }
-    /* 新增按钮容器样式 */
     .modal-buttons {
       position: absolute;
       bottom: 10px;
@@ -200,7 +199,6 @@ generate_html() {
       text-align: center;
       padding: 10px 0;
     }
-    /* 新增按钮样式 */
     .modal-btn {
       padding: 8px 20px;
       margin: 0 10px;
@@ -209,9 +207,14 @@ generate_html() {
       cursor: pointer;
       font-size: 16px;
       transition: all 0.2s;
+      min-width: 100px;
     }
     .detail-btn {
       background-color: #4CAF50;
+      color: white;
+    }
+    .copy-btn {
+      background-color: #2196F3;
       color: white;
     }
     .close-btn {
@@ -222,27 +225,128 @@ generate_html() {
       opacity: 0.9;
       transform: translateY(-2px);
     }
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      z-index: 1000;
+      display: none;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: fadeInOut 2.5s ease-in-out;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; top: 10px; }
+      15% { opacity: 1; top: 20px; }
+      85% { opacity: 1; top: 20px; }
+      100% { opacity: 0; top: 10px; }
+    }
+    .filename-display {
+      position: absolute;
+      bottom: 60px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #fff;
+      font-size: 16px;
+      padding: 5px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 4px;
+      margin: 0 20%;
+    }
   </style>
   <script>
-    function openModal(imgSrc) {
+    function openModal(imgSrc, rawPath) {
       const modal = document.createElement('div');
       modal.className = 'modal';
+      
+      // 提取文件名用于显示
+      const fileName = rawPath.split('/').pop() || '未命名图片';
+      
       modal.innerHTML = \`
         <img class="modal-content" src="\${imgSrc}" onclick="event.stopPropagation()">
+        <div class="filename-display">\${fileName}</div>
         <div class="modal-buttons">
-          <button class="modal-btn detail-btn" onclick="window.open('\${imgSrc}', '_blank')">查看详情</button>
-          <button class="modal-btn close-btn" onclick="closeModal()">关闭</button>
+          <button class="modal-btn detail-btn" onclick="window.open('\${imgSrc}', '_blank'); event.stopPropagation()">查看详情</button>
+          <button class="modal-btn copy-btn" onclick="copyImageUrl('\${rawPath.replace(/'/g, "\\\\'")}'); event.stopPropagation()">复制地址</button>
+          <button class="modal-btn close-btn" onclick="closeModal(); event.stopPropagation()">关闭</button>
         </div>
       \`;
-      modal.onclick = closeModal; // 点击背景关闭
+      modal.onclick = closeModal;
       document.body.appendChild(modal);
       modal.style.display = "block";
+      document.body.style.overflow = 'hidden'; // 防止背景滚动
     }
     
     function closeModal() {
       const modal = document.querySelector('.modal');
-      if(modal) modal.remove();
+      if(modal) {
+        modal.remove();
+        document.body.style.overflow = ''; // 恢复滚动
+      }
     }
+    
+    // 复制图片地址功能
+    function copyImageUrl(path) {
+      // 优先使用新的 Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(path)
+          .then(() => showToast('✓ 路径已复制到剪贴板'))
+          .catch(err => {
+            console.error('复制失败:', err);
+            showToast('复制失败，请手动复制');
+          });
+      } 
+      // 降级方案：使用传统方法
+      else {
+        const textArea = document.createElement('textarea');
+        textArea.value = path;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = 0;
+        document.body.appendChild(textArea);
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand('copy');
+          showToast(successful ? '✓ 路径已复制到剪贴板' : '复制失败，请手动复制');
+        } catch (err) {
+          showToast('复制失败: ' + err);
+        }
+        document.body.removeChild(textArea);
+      }
+    }
+    
+    // 显示操作提示
+    function showToast(message) {
+      // 移除现有提示
+      const existingToast = document.querySelector('.toast');
+      if (existingToast) existingToast.remove();
+      
+      // 创建新提示
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      // 自动移除提示
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 2500);
+    }
+    
+    // 支持ESC键关闭模态框
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    });
   </script>
 </head>
 <body>
@@ -251,8 +355,12 @@ generate_html() {
 HTML_HEAD
 
 	while IFS= read -r img; do
-		if [ -f $img ]; then
-			echo "<div class=\"img-container\"><img src=\"file://${img}\" alt=\"${img##*/}\" onclick=\"openModal('file://${img}')\"></div>" >>"${FAVO_HTML}"
+		if [ -f "$img" ]; then
+			# 处理特殊字符：HTML转义
+			html_safe_img=$(printf '%s' "$img" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&#39;/g')
+			
+			# 生成带原始路径的调用
+			echo "<div class=\"img-container\"><img src=\"file://${html_safe_img}\" alt=\"${img##*/}\" onclick=\"openModal('file://${html_safe_img}', '${html_safe_img}')\"></div>" >>"${FAVO_HTML}"
 		fi
 	done <"${FAVO_MARK}"
 
