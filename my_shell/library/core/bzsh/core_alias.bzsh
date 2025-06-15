@@ -217,3 +217,4 @@ alias fishlogs="nvim $MYRUNTIME/customs/logs/fish_logs"                         
 [[ -f $MYRUNTIME/customs/bin/webmanager ]] && alias wm="$MYRUNTIME/customs/bin/webmanager"                       # Desc: alias: wm:webmanager命令的别名
 [[ -f $MYRUNTIME/customs/bin/webmanager ]] && alias soft="$MYRUNTIME/customs/bin/webmanager soft"                # Desc: alias: soft:webmanager命令中软件网址管理的别名
 [[ -f $MYRUNTIME/customs/bin/webmanager ]] && alias learn="$MYRUNTIME/customs/bin/webmanager learn"              # Desc: alias: learn:webmanager命令中学习网址管
+alias bgc="bg_change"                                                                                            # Desc: alias: bgc:bg_change更换 iterm 的背景图片
