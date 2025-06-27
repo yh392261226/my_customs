@@ -349,113 +349,139 @@ function goodfon() {                                                            
 alias gfon="goodfon"                                                                # Desc: alias: gf:goodfon命令的别名,打开goodfon.ru
 
 function _checkDirFull() {                                                          # Desc: function: _checkDirFull:验证文件夹内文件数量是否到达指定数值
-    if [ "" != "$1" ]; then
-        local maxsize=2000
-        local picpath=$(dirname $1)
-        local cursize=$(ls $picpath | wc -l)
-
-        if [ "$cursize" -ge "$maxsize" ]; then
-            curcount=$(echo $picpath | tr -cd "[0-9]")
-            tmpmiddlecount=$curcount
-            curcount=$(($curcount+1))
-            [[ $curcount -le 9 ]] && curcount=0$curcount
-            prefixpath=$(echo $picpath | sed "s,${tmpmiddlecount},,g")
-            newpath="${prefixpath}$curcount"
-            [[ ! -d $newpath ]] && mkdir $newpath
-            mv $1 $newpath/$(basename $1)
-            echo "$1 $newpath/$(basename $1)"
-        fi
+    [[ -z "$1" ]] && return
+    
+    local fullfilename="$1"
+    local picpath=$(dirname "$fullfilename")
+    local maxsize=2000
+    
+    # 确保文件仍然存在
+    [[ ! -f "$fullfilename" ]] && return
+    
+    local cursize=$(ls -1 "$picpath" | wc -l | tr -d ' ')
+    
+    if (( cursize >= maxsize )); then
+        local curcount=$(basename "$picpath" | tr -cd '0-9')
+        [[ -z "$curcount" ]] && curcount=0
+        
+        local nextcount=$((curcount + 1))
+        [[ $nextcount -le 9 ]] && nextcount="0$nextcount"
+        
+        local prefixpath=$(dirname "$picpath")
+        local newpath="${prefixpath}/${nextcount}"
+        
+        mkdir -p "$newpath"
+        mv -f "$fullfilename" "$newpath/$(basename "$fullfilename")"
+        
+        logger -t "PicMonitor" "Moved $fullfilename to $newpath"
     fi
 }
 
 function autoDiffDownloadPicureByName() {                                           # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
     ##图片文件夹路径
-    local PICPATH=$(cat $HOME/.picpath)
-    local MYRUNTIME=$(cat $HOME/.myruntime)
+    local PICPATH=$(cat "$HOME/.picpath")
+    local MYRUNTIME=$(cat "$HOME/.myruntime")
     ##数据库文件路径
-    local DBFILE=$MYRUNTIME/tools/pictures_db.log
+    local DBFILE="$MYRUNTIME/tools/pictures_db.log"
     ##去重文件数据库文件路径（仅有文件名）
-    local FULLFILENAMESDB=$MYRUNTIME/tools/pictures_fullfilenames_db.log
+    local FULLFILENAMESDB="$MYRUNTIME/tools/pictures_fullfilenames_db.log"
     local COMMANDBIN=sqlite3
-    local FULLFILENAMESDB2=$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb
+    local FULLFILENAMESDB2="$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb"
     IFSHOWTHUMB=0
     RECORDTYPE=0
     local msg=""
 
-    [[ "" != "$1" ]] && IFSHOWTHUMB=$1
-    [[ "" != "$2" ]] && RECORDTYPE=$2
+    [[ -n "$1" ]] && IFSHOWTHUMB=$1
+    [[ -n "$2" ]] && RECORDTYPE=$2
 
-    curprocessid=$$
-    #调起后台脚本，监控火狐浏览器状态，如果浏览器进程消失，则杀死下面的进程
-    tmpshell=$(mktemp)
-    # echo $tmpshell
-    if [ -f $tmpshell ]; then
-        echo "#!/usr/bin/env bash\n" > $tmpshell
-        echo "curfierfoxcounts=1\n" >> $tmpshell
-        echo "while [ \"\$curfierfoxcounts\" -gt \"0\" ]; do\n" >> $tmpshell
-        echo "    curfierfoxcounts=\$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)\n" >> $tmpshell
-        echo "    sleep 1\n" >> $tmpshell
-        echo "done\n" >> $tmpshell
-        echo "if [ \"\$curfierfoxcounts\" -lt \"1\" ]; then\n" >> $tmpshell
-        echo "    ps -ef | grep \"fswatch -0 \$PICPATH\" | grep -v grep | awk '{print \$2}' | xargs kill\n" >> $tmpshell
-        echo "fi\n" >> $tmpshell
-    fi
-    bash $tmpshell > /dev/null 2>&1 &
+    # 创建必要的目录和文件
+    mkdir -p "$(dirname "$DBFILE")"
+    touch "$DBFILE" "$FULLFILENAMESDB"
 
-    if [[ ! -f $FULLFILENAMESDB2 ]]; then
+    if [[ ! -f "$FULLFILENAMESDB2" ]]; then
         local SQL="CREATE TABLE pictures ('id' INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 'pic_name' TEXT DEFAULT NULL, 'created_at' DATETIME NOT NULL DEFAULT CURRENT_TIME, 'pic_path' TEXT DEFAULT NULL);"
-        $COMMANDBIN $FULLFILENAMESDB2 <<EOF
+        $COMMANDBIN "$FULLFILENAMESDB2" <<EOF
 $SQL
 EOF
     fi
 
-    fswatch -0 $PICPATH | while read -d "" event; do
-        if [ "$(ps -ef | grep 'Firefox.app/Contents/MacOS/firefox' | grep -v grep | wc -l)" -gt "0" ]; then
-            fullfilename=${event}
-            filename=$(basename $fullfilename)
-            showtype=0
-            if [ "0" = "$RECORDTYPE" ]; then
-                if [ "$(grep -w $filename $FULLFILENAMESDB)" != "" ]; then
-                    tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
-                    if [ "$tmpresult" -gt "1" ]; then
-                        msg="Already deleted ..."
-                        trash $fullfilename
-                    fi
-                else
-                    echo $filename >> $FULLFILENAMESDB
-                    msg="Already recorded ..."
-                    showtype=1
-                    echo $fullfilename >> $DBFILE
-                fi
-            elif [ "1" = "$RECORDTYPE" ]; then
-                [[ ! -f $FULLFILENAMESDB2 ]] && echo "The sqlite db file does not exists !" && return 1
-                local SQL="select * from pictures where pic_name = '"${filename}"';"
-                local tmpresult=$($COMMANDBIN $FULLFILENAMESDB2 <<EOF
-$SQL
-EOF
-)
-                if [ "$tmpresult" != "" ]; then
-                    tmpresult=$(find $PICPATH/ -type f -name "$filename"  | grep -v "$fullfilename" | wc -l)
-                    if [ "$tmpresult" -gt "1" ]; then
-                        msg="Already deleted ..."
-                        rm -f $fullfilename
-                    fi
-                else
-                    local tmp_path=$(dirname $fullfilename)
-                    # SQL='insert into pictures (pic_name, pic_path) values ("'"$filename"'", "'"$tmp_path"'");'
-                    SQL="insert into pictures (pic_name, pic_path) values ('"$filename"', '"$tmp_path"');"
-                    $COMMANDBIN $FULLFILENAMESDB2 <<EOF
-$SQL
-EOF
-                    msg="Already recorded ..."
-                    showtype=1
-                    echo $fullfilename >> $DBFILE
-                fi
+    # 更健壮的火狐进程监控
+    (
+        while true; do
+            # 使用pgrep更可靠地检查进程
+            if ! pgrep -f 'Firefox\.app/Contents/MacOS/firefox' >/dev/null; then
+                pkill -f "fswatch -0.*${PICPATH}"
+                break
             fi
-            echo $msg
-            _checkDirFull $fullfilename #存放目录满的情况下自动生成目录并迁移新文件
-            if [ "$IFSHOWTHUMB" -eq "1" ] && [ "$showtype" -eq "1" ]; then
-                #展示图片
+            sleep 2
+        done
+    ) &
+
+    # 使用更可靠的文件监控方式
+    fswatch -0 "$PICPATH" | while IFS= read -r -d '' event; do
+        # 确保事件是文件且存在
+        [[ ! -f "$event" ]] && continue
+        
+        local fullfilename="$event"
+        local filename=$(basename -- "$fullfilename")
+        
+        # 跳过临时文件
+        [[ "$filename" =~ ^\._ ]] && continue
+
+        local showtype=0
+        local tmpresult=""
+        
+        case $RECORDTYPE in
+            0)
+                # 文本数据库模式
+                if grep -q --fixed-strings -- "$filename" "$FULLFILENAMESDB"; then
+                    tmpresult=$(find "$PICPATH" -type f -name "$filename" ! -path "$fullfilename" | wc -l)
+                    if (( tmpresult > 0 )); then
+                        msg="Duplicate found, deleting..."
+                        /bin/rm -f "$fullfilename"
+                    else
+                        msg="File exists but no duplicate found"
+                    fi
+                else
+                    echo "$filename" >> "$FULLFILENAMESDB"
+                    msg="New file recorded"
+                    showtype=1
+                    echo "$fullfilename" >> "$DBFILE"
+                fi
+                ;;
+            1)
+                # SQLite数据库模式
+                local SQL="SELECT COUNT(*) FROM pictures WHERE pic_name = '${filename//\'/\'\'}';"
+                tmpresult=$($COMMANDBIN "$FULLFILENAMESDB2" "$SQL")
+                
+                if (( tmpresult > 0 )); then
+                    tmpresult=$(find "$PICPATH" -type f -name "$filename" ! -path "$fullfilename" | wc -l)
+                    if (( tmpresult > 0 )); then
+                        msg="Duplicate found (SQL), deleting..."
+                        /bin/rm -f "$fullfilename"
+                    else
+                        msg="File exists in DB but no duplicate found"
+                    fi
+                else
+                    local tmp_path=$(dirname "$fullfilename")
+                    SQL="INSERT INTO pictures (pic_name, pic_path) VALUES ('${filename//\'/\'\'}', '${tmp_path//\'/\'\'}');"
+                    $COMMANDBIN "$FULLFILENAMESDB2" "$SQL"
+                    msg="New file recorded in SQLite"
+                    showtype=1
+                    echo "$fullfilename" >> "$DBFILE"
+                fi
+                ;;
+        esac
+        
+        # 记录日志
+        logger -t "PicMonitor" "$msg: $filename"
+        
+        # 自动目录管理
+        _checkDirFull "$fullfilename"
+        
+        # 缩略图显示
+        if (( IFSHOWTHUMB == 1 && showtype == 1 )); then
+            if [[ -f "$fullfilename" ]]; then
                 printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
                 printf ":"
                 base64 < "$fullfilename"
@@ -463,8 +489,9 @@ EOF
             fi
         fi
     done
-    rm -f $tmpshell
-    ps -ef | grep "fswatch -0 $PICPATH" | grep -v grep | awk '{print $2}' | xargs kill > /dev/null
+    
+    # 清理进程
+    pkill -f "fswatch -0.*${PICPATH}"
 }
 
 function goodfonWithAutoDiff() {                                                    # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
@@ -474,7 +501,20 @@ function goodfonWithAutoDiff() {                                                
 alias gfa="goodfonWithAutoDiff"                                                     # Desc: alias: gfa:goodfonWithAutoDiff命令的别名,打开goodfon.ru后 通过目录监控自动过滤重名文件
 
 function goodfonWithAutoDiff2() {                                                   # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
-    goodfon
+    # 启动火狐浏览器
+    local BROWSERPATH="/Applications/Firefox.app"
+    local URL="https://www.goodfon.ru/"
+    
+    if [[ -d "$BROWSERPATH" ]]; then
+        open -a "$BROWSERPATH" "$URL"
+        # 添加延迟确保浏览器完全启动
+        sleep 3
+    else
+        echo "Firefox not found at $BROWSERPATH"
+        return 1
+    fi
+    
+    # 启动监控
     autoDiffDownloadPicureByName 0 1
 }
 alias gfa2="goodfonWithAutoDiff2"                                                   # Desc: alias: gfa2:goodfonWithAutoDiff2命令的别名,打开goodfon.ru后通过目录监控自动过滤重名文件
