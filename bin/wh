@@ -1,14 +1,69 @@
 #!/usr/bin/env bash
 
-if [ "" != "$1" ]; then
-    echo "which $1 : "
-    /usr/bin/which $1
-    echo "whereis $1 : "
-    /usr/bin/whereis $1
-    echo "type $1 : "
-    /usr/bin/type $1
-    echo "command $1 :"
-    /usr/bin/command $1
+# 极简版命令查找工具
+# 用法: cmdinfo <command>
+
+if [[ -z "$1" ]]; then
+    echo "Usage: ${0##*/} <command>" | lolcat -f -F 0.05
+    
 else
-    echo "Usage:$0 command"
+
+cmd="$1"
+
+	# 创建临时函数来捕获环境
+	capture_environment() {
+		{
+			echo "#!/usr/bin/env bash"
+			echo "echo '===== ALIASES ====='"
+			echo "alias '$cmd' 2>/dev/null || echo 'No alias found'"
+			echo "echo"
+			echo "echo '===== FUNCTIONS ====='"
+			echo "declare -f '$cmd' 2>/dev/null || echo 'No function found'"
+			echo "echo"
+			echo "echo '===== EXECUTABLES ====='"
+			echo "command -v -a '$cmd' 2>/dev/null || echo 'No executable found'"
+			echo "echo"
+			echo "echo '===== MAN PAGES ====='"
+			echo "man -w '$cmd' 2>/dev/null || echo 'No man page found'"
+			echo "echo"
+			echo "echo '===== BREW INFO ====='"
+			echo "if command -v brew &>/dev/null; then"
+			echo "  brew_path=\"\$(brew --prefix)/bin/$cmd\""
+			echo "  if [[ -x \"\$brew_path\" ]]; then"
+			echo "    echo \"Homebrew command: \$brew_path\""
+			echo "  else"
+			echo "    echo 'No Homebrew command found'"
+			echo "  fi"
+			echo "else"
+			echo "  echo 'Homebrew not installed'"
+			echo "fi"
+		} > "/tmp/cmdinfo_$$.sh"
+		chmod +x "/tmp/cmdinfo_$$.sh"
+	}
+
+	# 主函数
+	main() {
+		# 检测是否以source方式运行
+		if [[ ${BASH_SOURCE[0]} != "$0" ]]; then
+			# 以source方式运行 - 直接获取信息
+			echo "🔍 Analyzing command: $cmd (full environment access)" | lolcat -f -F 0.05
+			alias "$cmd" 2>/dev/null || echo "● No alias found"
+			declare -f "$cmd" 2>/dev/null || echo "● No function found"
+		else
+			# 直接运行 - 使用临时脚本
+			echo "🔍 Analyzing command: $cmd" | lolcat -f -F 0.05
+			capture_environment
+			source "/tmp/cmdinfo_$$.sh"
+			rm -f "/tmp/cmdinfo_$$.sh"
+		fi
+
+		# 其他检测（在所有模式下都有效）
+		echo "● Executable paths:" | lolcat -f -F 0.05
+		command -v -a "$cmd" 2>/dev/null || echo "  No executable found"
+		
+		echo "● Man page:" | lolcat -f -F 0.05
+		man -w "$cmd" 2>/dev/null || echo "  No man page found"
+	}
+
+	main
 fi
