@@ -14,6 +14,12 @@ cmd="$1"
 	capture_environment() {
 		{
 			echo "#!/usr/bin/env bash"
+			echo "echo '===== WHICH ====='"
+			echo "which '$cmd' 2>/dev/null || echo 'No which found'"
+			echo "echo"
+			echo "echo '===== TYPE ====='"
+			echo "type '$cmd' 2>/dev/null || echo 'No type found'"
+			echo "echo"
 			echo "echo '===== ALIASES ====='"
 			echo "alias '$cmd' 2>/dev/null || echo 'No alias found'"
 			echo "echo"
@@ -47,8 +53,14 @@ cmd="$1"
 		if [[ ${BASH_SOURCE[0]} != "$0" ]]; then
 			# 以source方式运行 - 直接获取信息
 			echo "🔍 Analyzing command: $cmd (full environment access)" | lolcat -f -F 0.05
+			echo "===== ALIASES =====" | lolcat -f -F 0.05
 			alias "$cmd" 2>/dev/null || echo "● No alias found"
+			echo '===== FUNCTIONS =====' | lolcat -f -F 0.05
 			declare -f "$cmd" 2>/dev/null || echo "● No function found"
+			echo '===== WHICH =====' | lolcat -f -F 0.05
+			which "$cmd" 2>/dev/null || echo "● No which found"
+			echo '===== TYPE =====' | lolcat -f -F 0.05
+			type "$cmd" 2>/dev/null || echo "● No type found"
 		else
 			# 直接运行 - 使用临时脚本
 			echo "🔍 Analyzing command: $cmd" | lolcat -f -F 0.05
@@ -59,10 +71,10 @@ cmd="$1"
 
 		# 其他检测（在所有模式下都有效）
 		echo "● Executable paths:" | lolcat -f -F 0.05
-		command -v -a "$cmd" 2>/dev/null || echo "  No executable found"
+		command -v -a "$cmd" 2>/dev/null || echo "  No executable found" | lolcat -f -F 0.05
 		
 		echo "● Man page:" | lolcat -f -F 0.05
-		man -w "$cmd" 2>/dev/null || echo "  No man page found"
+		man -w "$cmd" 2>/dev/null || echo "  No man page found" | lolcat -f -F 0.05
 	}
 
 	main
