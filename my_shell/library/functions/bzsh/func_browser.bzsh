@@ -378,12 +378,9 @@ function _checkDirFull() {                                                      
 }
 
 function autoDiffDownloadPicureByName() {                                           # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
-    ##图片文件夹路径
-    local PICPATH=$(cat "$HOME/.picpath")
+        local PICPATH=$(cat "$HOME/.picpath")
     local MYRUNTIME=$(cat "$HOME/.myruntime")
-    ##数据库文件路径
     local DBFILE="$MYRUNTIME/tools/pictures_db.log"
-    ##去重文件数据库文件路径（仅有文件名）
     local FULLFILENAMESDB="$MYRUNTIME/tools/pictures_fullfilenames_db.log"
     local COMMANDBIN=sqlite3
     local FULLFILENAMESDB2="$MYRUNTIME/tools/fullfilenames_db.log.sqlitedb"
@@ -393,6 +390,24 @@ function autoDiffDownloadPicureByName() {                                       
 
     [[ -n "$1" ]] && IFSHOWTHUMB=$1
     [[ -n "$2" ]] && RECORDTYPE=$2
+
+    # 锁文件路径
+    local LOCKFILE="$MYRUNTIME/tools/pic_monitor.lock"
+    
+    # 检查是否已有实例运行
+    if [[ -f "$LOCKFILE" ]]; then
+        local pid=$(cat "$LOCKFILE")
+        if ps -p "$pid" >/dev/null; then
+            echo "监控进程已在运行 (PID: $pid)"
+            return 1
+        else
+            rm -f "$LOCKFILE"
+        fi
+    fi
+    
+    # 创建锁文件
+    echo $$ > "$LOCKFILE"
+    trap "rm -f '$LOCKFILE'" EXIT
 
     # 创建必要的目录和文件
     mkdir -p "$(dirname "$DBFILE")"
@@ -405,93 +420,87 @@ $SQL
 EOF
     fi
 
-    # 更健壮的火狐进程监控
+    # 浏览器进程检测函数
+    is_browser_running() {
+        pgrep -f 'Firefox\.app/Contents/MacOS/firefox' >/dev/null
+    }
+
+    # 启动文件监控（后台进程）
     (
-        while true; do
-            # 使用pgrep更可靠地检查进程
-            if ! pgrep -f 'Firefox\.app/Contents/MacOS/firefox' >/dev/null; then
-                pkill -f "fswatch -0.*${PICPATH}"
-                break
+        # 文件监控进程
+        fswatch -0 "$PICPATH" | while IFS= read -r -d '' event; do
+            [[ ! -f "$event" ]] && continue
+            local fullfilename="$event"
+            local filename=$(basename -- "$fullfilename")
+            [[ "$filename" =~ ^\._ ]] && continue
+
+            local showtype=0
+            local tmpresult=""
+            
+            case $RECORDTYPE in
+                0)
+                    if grep -q --fixed-strings -- "$filename" "$FULLFILENAMESDB"; then
+                        tmpresult=$(find "$PICPATH" -type f -name "$filename" ! -path "$fullfilename" | wc -l)
+                        if (( tmpresult > 0 )); then
+                            msg="Duplicate found, deleting..."
+                            /bin/rm -f "$fullfilename"
+                        else
+                            msg="File exists but no duplicate found"
+                        fi
+                    else
+                        echo "$filename" >> "$FULLFILENAMESDB"
+                        msg="New file recorded"
+                        showtype=1
+                        echo "$fullfilename" >> "$DBFILE"
+                    fi
+                    ;;
+                1)
+                    local SQL="SELECT COUNT(*) FROM pictures WHERE pic_name = '${filename//\'/\'\'}';"
+                    tmpresult=$($COMMANDBIN "$FULLFILENAMESDB2" "$SQL")
+                    
+                    if (( tmpresult > 0 )); then
+                        tmpresult=$(find "$PICPATH" -type f -name "$filename" ! -path "$fullfilename" | wc -l)
+                        if (( tmpresult > 0 )); then
+                            msg="Duplicate found (SQL), deleting..."
+                            /bin/rm -f "$fullfilename"
+                        else
+                            msg="File exists in DB but no duplicate found"
+                        fi
+                    else
+                        local tmp_path=$(dirname "$fullfilename")
+                        SQL="INSERT INTO pictures (pic_name, pic_path) VALUES ('${filename//\'/\'\'}', '${tmp_path//\'/\'\'}');"
+                        $COMMANDBIN "$FULLFILENAMESDB2" "$SQL"
+                        msg="New file recorded in SQLite"
+                        showtype=1
+                        echo "$fullfilename" >> "$DBFILE"
+                    fi
+                    ;;
+            esac
+            
+            logger -t "PicMonitor" "$msg: $filename"
+            _checkDirFull "$fullfilename"
+            
+            if (( IFSHOWTHUMB == 1 && showtype == 1 )); then
+                if [[ -f "$fullfilename" ]]; then
+                    printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
+                    printf ":"
+                    base64 < "$fullfilename"
+                    printf '\a\n'
+                fi
             fi
-            sleep 2
         done
     ) &
-
-    # 使用更可靠的文件监控方式
-    fswatch -0 "$PICPATH" | while IFS= read -r -d '' event; do
-        # 确保事件是文件且存在
-        [[ ! -f "$event" ]] && continue
-        
-        local fullfilename="$event"
-        local filename=$(basename -- "$fullfilename")
-        
-        # 跳过临时文件
-        [[ "$filename" =~ ^\._ ]] && continue
-
-        local showtype=0
-        local tmpresult=""
-        
-        case $RECORDTYPE in
-            0)
-                # 文本数据库模式
-                if grep -q --fixed-strings -- "$filename" "$FULLFILENAMESDB"; then
-                    tmpresult=$(find "$PICPATH" -type f -name "$filename" ! -path "$fullfilename" | wc -l)
-                    if (( tmpresult > 0 )); then
-                        msg="Duplicate found, deleting..."
-                        /bin/rm -f "$fullfilename"
-                    else
-                        msg="File exists but no duplicate found"
-                    fi
-                else
-                    echo "$filename" >> "$FULLFILENAMESDB"
-                    msg="New file recorded"
-                    showtype=1
-                    echo "$fullfilename" >> "$DBFILE"
-                fi
-                ;;
-            1)
-                # SQLite数据库模式
-                local SQL="SELECT COUNT(*) FROM pictures WHERE pic_name = '${filename//\'/\'\'}';"
-                tmpresult=$($COMMANDBIN "$FULLFILENAMESDB2" "$SQL")
-                
-                if (( tmpresult > 0 )); then
-                    tmpresult=$(find "$PICPATH" -type f -name "$filename" ! -path "$fullfilename" | wc -l)
-                    if (( tmpresult > 0 )); then
-                        msg="Duplicate found (SQL), deleting..."
-                        /bin/rm -f "$fullfilename"
-                    else
-                        msg="File exists in DB but no duplicate found"
-                    fi
-                else
-                    local tmp_path=$(dirname "$fullfilename")
-                    SQL="INSERT INTO pictures (pic_name, pic_path) VALUES ('${filename//\'/\'\'}', '${tmp_path//\'/\'\'}');"
-                    $COMMANDBIN "$FULLFILENAMESDB2" "$SQL"
-                    msg="New file recorded in SQLite"
-                    showtype=1
-                    echo "$fullfilename" >> "$DBFILE"
-                fi
-                ;;
-        esac
-        
-        # 记录日志
-        logger -t "PicMonitor" "$msg: $filename"
-        
-        # 自动目录管理
-        _checkDirFull "$fullfilename"
-        
-        # 缩略图显示
-        if (( IFSHOWTHUMB == 1 && showtype == 1 )); then
-            if [[ -f "$fullfilename" ]]; then
-                printf '\033]1337;File=inline=1;width=20%%;preserveAspectRatio=0'
-                printf ":"
-                base64 < "$fullfilename"
-                printf '\a\n'
-            fi
-        fi
-    done
+    local fswatch_pid=$!
     
-    # 清理进程
-    pkill -f "fswatch -0.*${PICPATH}"
+    # 浏览器监控循环（主进程）
+    while true; do
+        if ! is_browser_running; then
+            kill -TERM $fswatch_pid 2>/dev/null
+            wait $fswatch_pid 2>/dev/null
+            break
+        fi
+        sleep 5
+    done
 }
 
 function goodfonWithAutoDiff() {                                                    # Desc: function: 打开goodfon.ru后 通过目录监控自动过滤重名文件
