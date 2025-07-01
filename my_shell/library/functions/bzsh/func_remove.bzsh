@@ -57,3 +57,15 @@ function fzf_remove() {                                                         
     [[ $hasgum = 1 ]] && (gum confirm "确认删除?" && ((echo $TMPCHOOSE | xargs -I '{}' rm -rf {}) && echo "Action success !") || echo "Action aborted !") || (echo $TMPCHOOSE | xargs -I '{}' rm -rf {} && echo "Action success !")
 }
 alias fr="fzf_remove"                                                               # Desc: alias: fr: fzf_remove的别名,find找出文件或文件夹选中删除
+
+function remove_bad_links() {                                                       # Desc: function: remove_bad_links:删除所有失效的链接
+    local ACTPATH="${1:-$PWD}"
+    find $ACTPATH -type l -exec sh -c '
+    for link; do
+        if [ ! -e "$link" ]; then
+        rm -v -- "$link"
+        fi
+    done
+    ' sh {} +
+}
+alias rml="remove_bad_links"                                                        # Desc: alias: rml:remove_bad_links命令的别名,删除所有失效的链接
