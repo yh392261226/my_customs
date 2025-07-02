@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}利用fzf选择文件并用nvim进行编辑.${reset}"
-readonly help_content="${bold}${italic}CTRL-R${reset}          Edit."
+readonly help_infomation="│ ${c}利用fzf选择文件并用nvim进行编辑.${reset}"
+readonly help_content="│ ${bold}${italic}CTRL-R${reset}          Edit."
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}

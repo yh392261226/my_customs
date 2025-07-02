@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行.${reset}"
-readonly help_content=""
+readonly help_infomation="│ ${c}Git版本中全部文件内容展示,并利用fzf选择后由vim打开并定位到行.${reset}"
+readonly help_content="│ "
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}

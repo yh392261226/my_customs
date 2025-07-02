@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Desc: Fzf自定义命令的帮助信息
 source $MYRUNTIME/customs/tools/functions_help/common_help
-readonly help_infomation="${c}利用 fzf 根据自定义的描述和函数名查询自定义命令.${reset}"
-readonly help_content="${bold}${italic}CTRL-E${reset}          Show all result."
+readonly help_infomation="│ ${c}利用 fzf 根据自定义的描述和函数名查询自定义命令.${reset}"
+readonly help_content="│ ${bold}${italic}CTRL-E${reset}          Show all result."
 readonly help="${help_header}
 ${help_content}
 ${help_bottom}
