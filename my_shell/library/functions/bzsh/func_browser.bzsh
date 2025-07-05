@@ -378,7 +378,7 @@ function _checkDirFull() {                                                      
 }
 
 function autoDiffDownloadPicureByName() {                                           # Desc: function: 利用fswatch监控目录，通过比对文本中文件名，实现自动去重下载的图片
-        local PICPATH=$(cat "$HOME/.picpath")
+    local PICPATH=$(cat "$HOME/.picpath")
     local MYRUNTIME=$(cat "$HOME/.myruntime")
     local DBFILE="$MYRUNTIME/tools/pictures_db.log"
     local FULLFILENAMESDB="$MYRUNTIME/tools/pictures_fullfilenames_db.log"
