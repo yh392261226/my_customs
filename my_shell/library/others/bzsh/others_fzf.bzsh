@@ -245,7 +245,7 @@ FZF_DEFAULT_OPTS+=' --bind="≤:prev-selected" '
 FZF_DEFAULT_OPTS+=' --bind="shift-up:first" '
 FZF_DEFAULT_OPTS+=' --bind="shift-down:last" '
 FZF_DEFAULT_OPTS+=" --bind='ctrl-s:select-all+execute(cat {+f} > $HOME/Desktop/fzf_save.log)+abort' "
-FZF_DEFAULT_OPTS+=" --bind='multi:transform-footer:(( FZF_SELECT_COUNT )) && echo \"Selected $FZF_SELECT_COUNT item(s)\"' "
+FZF_DEFAULT_OPTS+=" --bind='multi:transform-footer:(( FZF_SELECT_COUNT )) && echo \"Selected \$FZF_SELECT_COUNT item(s)\"' "
 
 # 响应事件
 FZF_DEFAULT_OPTS+=' --bind="load:change-prompt: 🔛 加载, 搜索 ➤ " '
