@@ -836,6 +836,7 @@ function fzf_full_files_manager() {                                             
 
     while true; do
         local action=$(printf "%s\n" \
+            $(if [ "$TERM_PROGRAM" = "iTerm.app" ]; then echo "背景图收藏（collection）"; fi) \
             "🔎 所有文件(All)" \
             "📁 文件夹(Directory)" \
             "📄 文件(File)" \
@@ -859,6 +860,7 @@ function fzf_full_files_manager() {                                             
                 --reverse)
 
         case $action in
+            *背景图收藏*) $MYRUNTIME/customs/bin/favo add && return && echo "" ;;
             *所有文件*) ___fzf_manage_all "all" ;;
             *文件夹*) ___fzf_manage_all "directories" ;;
             *隐藏文件*) ___fzf_manage_all "hiddens" ;;
