@@ -860,7 +860,7 @@ function fzf_full_files_manager() {                                             
                 --reverse)
 
         case $action in
-            *背景图收藏*) $MYRUNTIME/customs/bin/favo add && return && echo "" ;;
+            *背景图收藏*) $MYRUNTIME/customs/bin/favo add && return || return ;;
             *所有文件*) ___fzf_manage_all "all" ;;
             *文件夹*) ___fzf_manage_all "directories" ;;
             *隐藏文件*) ___fzf_manage_all "hiddens" ;;
