@@ -854,21 +854,21 @@ function fzf_full_files_manager() {                                             
     while true; do
         local action=$(printf "%s\n" \
             $(if [ "$TERM_PROGRAM" = "iTerm.app" ]; then echo "背景图收藏（collection）"; fi) \
-            "🔎 所有文件(All)" \
-            "📁 文件夹(Directory)" \
+            "🔍️ 所有文件(All)" \
+            "📂 文件夹(Directory)" \
             "📄 文件(File)" \
-            "🪬 隐藏文件(Hidden)" \
+            "🥷 隐藏文件(Hidden)" \
             "🖼️ 图片(Image)" \
             "📖 文本(Document)" \
-            "🎶 媒体(Media)" \
-            "💻 开发(Develop)" \
+            "📻️ 媒体(Media)" \
+            "🧾 开发(Develop)" \
             "📝 全文搜索(Content)" \
-            "📦️ 压缩文件(Archive)" \
-            "⚒️ 自定义FZF函数(Function)" \
-            "⚙️ 自定义函数(Function)" \
-            "🔗 自定义别名(Alia)" \
+            "🗜️ 压缩文件(Archive)" \
+            "™️ 自定义FZF函数(Function)" \
+            "®️ 自定义函数(Function)" \
+            "©️ 自定义别名(Alia)" \
             "🗃️ 查看书签(BookMark)" \
-            "🚪 退出系统(Exit)" | \
+            "🔚 退出系统(Exit)" | \
             fzf --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
                 --preview-window=up:30% \
