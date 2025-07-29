@@ -161,6 +161,28 @@ actioner_archive_peek() {
     esac
 }
 
+# 添加书签
+actioner_add_bookmark() {
+    local name="$1"
+    local path="$2"
+    local desc="$3"
+
+    # 检查书签名称是否有效
+    if [[ -z "$name" ]]; then
+        echo "错误：书签名称不能为空"
+        return 1
+    fi
+    if [ ! -f ${name} ]; then
+        # 添加新书签
+        touch ${TMP_FZF_BOOKMARKS_PATH}/${name}
+        echo "${path}" > "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+        echo "#Desc:${desc}" >> "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+    else
+        echo "${path}" > "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+        echo "#Desc:${desc}" >> "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+    fi
+}
+
 #----------------------- 文件类型处理 -----------------------#
 
 # 识别文件类型
@@ -195,23 +217,23 @@ generate_menu() {
     
     case "$filetype" in
         "directory")
-            echo "进入目录 删除 复制 移动 重命名 压缩 打开位置 取消" ;;
+            echo "进入目录 删除 复制 移动 重命名 压缩 打开位置 收藏 取消" ;;
         "text")
-            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 复制 移动 删除 压缩 取消" ;;
+            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 复制 移动 删除 压缩 收藏 取消" ;;
         "pdf")
-            echo "文本预览 打开文件 复制 移动 删除 压缩 取消" ;;
+            echo "文本预览 打开文件 复制 移动 删除 压缩 收藏 取消" ;;
         "office")
-            echo "打开文件 复制 移动 删除 压缩 取消" ;;
+            echo "打开文件 复制 移动 删除 压缩 收藏 取消" ;;
         "archive")
-            echo "解压 查看内容 复制 移动 删除 取消" ;;
+            echo "解压 查看内容 复制 移动 删除 收藏 取消" ;;
         "image")
-            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 取消" ;;
+            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 收藏 取消" ;;
         "video"|"audio")
-            echo "终端播放 打开文件 复制 移动 删除 取消" ;;
+            echo "终端播放 打开文件 复制 移动 删除 收藏 取消" ;;
         "script")
-            echo "执行脚本 编辑 查看 复制 移动 删除 取消" ;;
+            echo "执行脚本 编辑 查看 复制 移动 删除 收藏 取消" ;;
         *)
-            echo "打开文件 复制 移动 删除 压缩 取消" ;;
+            echo "打开文件 复制 移动 删除 压缩 收藏 取消" ;;
     esac
 }
 
@@ -289,6 +311,14 @@ actioner() {
                 $MYRUNTIME/customs/bin/favo a "$filepath"
             fi
             ;;
+        收藏*)
+            local name
+            read -r -p "输入书签名: " name
+            [ -z "$name" ] && return
+            local desc
+            read -r -p "输入描述：" desc
+            actioner_add_bookmark "$name" "$filepath" "$desc"
+        ;;
         文本预览*)        $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
     esac
     

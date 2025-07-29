@@ -37,6 +37,8 @@ show_help() {
         else
             bash "$MYRUNTIME/customs/tools/functions_help/default_help"
         fi
+    else
+        bash "$MYRUNTIME/customs/tools/functions_help/default_help"
     fi
     echo ""
 }

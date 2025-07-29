@@ -9,6 +9,8 @@ export FZF_GIT_COMMAND="git ls-files --exclude-standard"
 export TMP_FZF_SEARCH_TYPES_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_types.swap
 export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header.swap
 export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search.swap
+export TMP_FZF_BOOKMARKS_PATH=${HOME}/.fzf_bookmarks
+[[ ! -d $TMP_FZF_BOOKMARKS_PATH ]] && mkdir -p $TMP_FZF_BOOKMARKS_PATH
 
 
 _fzf_comprun() {
@@ -215,6 +217,7 @@ FZF_DEFAULT_OPTS+=' --bind="focus:bg-transform-footer(file {})" '
 FZF_DEFAULT_OPTS+=' --bind="ctrl-/:change-preview-window(left|left,40%|left,60%|left,80%|right,40%|right,60%|right,80%|up,20%,border-horizontal|up,40%,border-horizontal|up,60%,border-horizontal|up,80%,border-horizontal|up,90%,border-horizontal|down,20%,border-horizontal|down,40%,border-horizontal|down,60%,border-horizontal|down,80%,border-horizontal|down,90%,border-horizontal|hidden|right)" '
 FZF_DEFAULT_OPTS+=' --bind="f1,ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS+=' --bind="click-header:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
+FZF_DEFAULT_OPTS+=' --bind="click-footer:change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \"help\")" '
 FZF_DEFAULT_OPTS+=" --bind 'f2,ctrl-f:transform:$fzf_transformer_search_swap_type'"
 FZF_DEFAULT_OPTS+=' --bind="f3,ctrl-a:toggle-all" '
 FZF_DEFAULT_OPTS+=' --bind="f4,ctrl-t:toggle-preview" '
