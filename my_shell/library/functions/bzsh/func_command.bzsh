@@ -818,6 +818,36 @@ function fzf_view_bookmarks_list() {                                            
 }
 alias fvb="fzf_view_bookmarks_list"                                                 # Desc: alias: fvb: fzf_view_bookmarks_list命令的别名，利用fzf查看终端收藏
 
+function get_iterm2_current_background_image() {                                    # Desc: function: get_iterm2_current_background_image: 获取当前iterm的session中背景图地址
+    bg_path=$(osascript -e '
+tell application "iTerm"
+    if current window is missing value then
+        return ""
+    end if
+    
+    tell current window
+        if current session is missing value then
+            return ""
+        end if
+        
+        tell current session
+            if background image is not missing value then
+                return background image
+            else
+                return ""
+            end if
+        end tell
+    end tell
+end tell')
+
+    # 检查结果
+    if [[ -n "$bg_path" && "$bg_path" != "missing value" ]]; then
+        echo "$bg_path"
+    fi
+    return
+}
+alias gicbg="get_iterm2_current_background_image"                                   # Desc: alias: gicbg: get_iterm2_current_background_image命令的别名，获取当前iterm的session中背景图地址
+
 function fzf_full_files_manager() {                                                 # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
     ___fzf_manage_all() {
         local Action="$1"
@@ -853,7 +883,7 @@ function fzf_full_files_manager() {                                             
 
     while true; do
         local action=$(printf "%s\n" \
-            $(if [ "$TERM_PROGRAM" = "iTerm.app" ]; then echo "背景图收藏（collection）"; fi) \
+            $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ]; then echo "背景图收藏（collection）"; fi) \
             "🔍️ 所有文件(All)" \
             "📂 文件夹(Directory)" \
             "📄 文件(File)" \
