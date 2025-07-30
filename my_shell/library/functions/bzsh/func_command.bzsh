@@ -805,6 +805,8 @@ function fzf_view_bookmarks_list() {                                            
     local ifbreak="${1:-0}"
     cd ${TMP_FZF_BOOKMARKS_PATH}/ 
     local selected=$(ls . | fzf $FZF_CUSTOM_PARAMS +m \
+    --bind="ctrl-d:execute(rm -f ${TMP_FZF_BOOKMARKS_PATH}/{})+reload(ls .)" \
+    --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
     --preview-window="right:70%:border-rounded,nohidden,~3" \
     --preview="(${MYRUNTIME}/customs/bin/_previewer ${TMP_FZF_BOOKMARKS_PATH}/{}) 2> /dev/null | head -500")
     cd -
