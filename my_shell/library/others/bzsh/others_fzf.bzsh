@@ -92,6 +92,11 @@ export fzf_transformer_input_switcher='
     fi
 '
 
+export fzf_transformer_history_searcher='
+    search_query=$(FZF_DEFAULT_OPTS="" && cat $HOME/.fzf_history | fzf --sync --history="$HOME/.fzf_history" +m --tac --no-sort --height=40% --layout=reverse --border-label="╢ HISTORY ╟" --header="▲ 选择历史查询 ▼" --prompt="历史记录 ❯ ")
+    [[ -n "$search_query" ]] && echo "change-query:$search_query"
+'
+
 export fzf_transformer_search_swap_type='
     if [ -f $TMP_FZF_SEARCH_SWAP_FILE ]; then
         local action=$(cat $TMP_FZF_SEARCH_SWAP_FILE)
@@ -257,6 +262,7 @@ FZF_DEFAULT_OPTS+=' --bind="resize:transform:$fzf_transformer" '
 FZF_DEFAULT_OPTS+=' --bind="focus:transform-footer:file --brief {}; echo -n \"╢ 选中: \$(echo {+} | wc -w) 项 ╟\";"'
 FZF_DEFAULT_OPTS+=' --bind="change:first" '
 FZF_DEFAULT_OPTS+=' --bind="zero:clear-query+change-input-label(无结果 ! 🔚 )+change-prompt:⏳️ 重新输入, 搜索 ➤ " '
+FZF_DEFAULT_OPTS+=" --bind='ctrl-e:transform:$fzf_transformer_history_searcher' "
 
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 
