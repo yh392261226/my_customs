@@ -9,6 +9,10 @@ set -gx FZF_PREVIEW_IMG_CMD 'chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREV
 set -gx FZF_DEFAULT_COMMAND "fd --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build}"
 set -gx TMP_FZF_HEADER_SWAP_FILE /tmp/fzf_header_swap.tmp
 set -gx TMP_FZF_SEARCH_SWAP_FILE /tmp/fzf_search_swap.tmp
+set -gx TMP_FZF_BOOKMARKS_PATH {$HOME}/.fzf_bookmarks
+if test ! -d $TMP_FZF_BOOKMARKS_PATH
+    mkdir -p $TMP_FZF_BOOKMARKS_PATH
+end
 
 # ========================
 # 核心函数定义
@@ -32,25 +36,35 @@ end
 
 function _buildFzfHeader
     rm -f $TMP_FZF_HEADER_SWAP_FILE
-    set -l newheader " CTRL-H Search Infomation "
+    # 使用双引号确保换行符被解析
+    set -l newheader "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･"
+    set newheader "$newheader
+│   CTRL-H Search Information "
     set -l post_header $argv[1]
     set -l custom_header $argv[2]
 
     if test -n "$post_header"
         if string match -qr '^a+' "$post_header"
-            set newheader "$newheader "(string sub -s 4 -- "$post_header")" "
+            set newheader "$newheader"(string sub -s 4 -- "$post_header")" "
         else if string match -qr '^r-' "$post_header"
             set newheader (string sub -s 4 -- "$post_header")" "
         end
     end
 
     if test -n "$custom_header"
-        set newheader "$newheader\n⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊⇊
-⇉ $custom_header 搜索内容
-⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈⇈ "
+        # 使用双引号跨行字符串确保换行符被保留
+        set newheader "$newheader
+│   
+│   $custom_header 搜索内容
+│   "
         echo $custom_header > $TMP_FZF_HEADER_SWAP_FILE
     end
-    echo "$newheader "
+    # 确保末尾添加换行符
+    set newheader "$newheader
+╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･"
+
+    # 使用 printf 确保输出原始换行符
+    printf "%s" "$newheader"
 end
 
 function _fzf_compgen_path
@@ -118,7 +132,7 @@ fi"
 # ========================
 # FZF 默认选项配置
 # ========================
-set -gx FZF_DEFAULT_OPTS " --reverse --min-height='40' "
+set -gx FZF_DEFAULT_OPTS " --min-height='40' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --multi "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --style=full:double "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --cycle "
@@ -127,7 +141,7 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --tmux "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --highlight-line "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --ansi "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --border=rounded "
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --layout=reverse-list "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --layout=reverse "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --padding='2' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --margin='8%' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --marker=' ✔' "
@@ -146,15 +160,18 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --no-input '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --walker-skip=".git,.vscode,.idea,target,\$RECYCLE.BIN" '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-label="╢ Preview ╟" '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label "╢ Result ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-label="╢ 预览 ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label "╢ 结果 ╟" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-border '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label-pos=top,4 '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-border '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label "╢ Header ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label "╢ 搜索 ╟" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label-pos=top,4 '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer=" ⚕️ F1 Help Infomation ⚕️ " '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer-label "╢ 搜索 ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer-label-pos=top,4 '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-border '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-label "╢ Input ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-label "╢ 过滤 ╟" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-label-pos=top,4 '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --gap '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --gap-line=\"$(echo '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈' | lolcat -f -F 1.4)\"  "
@@ -186,7 +203,8 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="resize:transform:$fzf_transforme
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='j:down,k:up,/:show-input+unbind(j,k,/)' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_transformer_input_switcher' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
+#set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='multi:transform-footer:(( FZF_SELECT_COUNT )) && echo \"Selected \$FZF_SELECT_COUNT item(s)\"' "
 
 set -gx FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS
 

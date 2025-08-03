@@ -551,6 +551,61 @@ end
 
 alias fsa="fzf_search_custom_alias_by_desc"
 
+# 书签查看
+function fzf_view_bookmarks_list
+    set -l ifbreak "$argv[1]"
+    if test -z "$ifbreak"
+        set ifbreak 0
+    end
+    
+    pushd "$TMP_FZF_BOOKMARKS_PATH" || return
+    set -l selected (ls . | fzf $FZF_CUSTOM_PARAMS +m \
+    --bind="ctrl-d:execute(rm -f $TMP_FZF_BOOKMARKS_PATH/{})+reload(ls .)" \
+    --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
+    --preview-window="right:70%:border-rounded,nohidden,~3" \
+    --preview "($MYRUNTIME/customs/bin/_previewer $TMP_FZF_BOOKMARKS_PATH/{}) 2> /dev/null | head -500")
+    popd
+    
+    if test -n "$selected"
+        head -n 1 "$TMP_FZF_BOOKMARKS_PATH/$selected" | pbcopy
+    end
+    
+    # if test "$ifbreak" != "0"
+    #     break 2
+    # end
+    return 1
+end
+alias fvb="fzf_view_bookmarks_list"
+
+# 获取 iTerm2 背景图片
+function get_iterm2_current_background_image
+    set -l bg_path (osascript -e '
+tell application "iTerm"
+    if current window is missing value then
+        return ""
+    end if
+    
+    tell current window
+        if current session is missing value then
+            return ""
+        end if
+        
+        tell current session
+            if background image is not missing value then
+                return background image
+            else
+                return ""
+            end if
+        end tell
+    end tell
+end tell')
+
+    if test -n "$bg_path" && test "$bg_path" != "missing value"
+        echo "$bg_path"
+    end
+end
+alias gicbg="get_iterm2_current_background_image"
+
 function fzf_full_files_manager
     function ___fzf_manage_all -a Action
         # set -l TMP_FZF_SEARCH_SWAP_FILE "/tmp/fzf_search_swap"
@@ -588,48 +643,97 @@ function fzf_full_files_manager
     end
 
     while true
-        set -l action (printf "%s\n" \
-            "🔎 所有文件" \
-            "📁 文件夹搜索" \
-            "📄 文件搜索" \
-            "🫥 隐藏文件搜索" \
-            "🖼️ 图片搜索" \
-            "📖 文本搜索" \
-            "🎶 媒体操作" \
-            "💻 开发语言" \
-            "📝 全文搜索" \
-            "📚 压缩文件" \
-            "🚪 退出系统" | \
+        # 构建菜单选项数组
+        # 获取背景图片路径
+        set -l bg_image (get_iterm2_current_background_image)
+        
+        # 构建菜单选项数组
+        set -l actions
+        if test "$TERM_PROGRAM" = "iTerm.app" && test -n "$bg_image"
+            set -a actions "收藏背景图（collection）"
+        end
+        
+        set -a actions \
+            "🔍️ 所有文件(All)" \
+            "📂 文件夹(Directory)" \
+            "📄 文件(File)" \
+            "🥷 隐藏文件(Hidden)" \
+            "🖼️ 图片(Image)" \
+            "📖 文本(Document)" \
+            "📻️ 媒体(Media)" \
+            "🧾 开发(Develop)" \
+            "📝 全文搜索(Content)" \
+            "🗜️ 压缩文件(Archive)" \
+            "™️ 自定义FZF函数(Function)" \
+            "®️ 自定义函数(Function)" \
+            "©️ 自定义别名(Alia)" \
+            "🗃️ 查看书签(BookMark)" \
+            "🔚 退出系统(Exit)"
+        
+        # 使用 fzf 选择菜单项
+        set -l action (printf "%s\n" $actions | \
             fzf --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
-                --preview-window=up:30% \
-                --preview "echo '选择操作类型'" \
-                --height=15% \
+                --preview-window "up:30%" \
+                --preview "echo '请选择操作类型'" \
+                --height "15%" \
+                --bind "space:jump,jump:accept" \
                 --reverse)
-
+        
+        # 处理用户选择
+        if not test -n "$action"
+            break
+        end
+        
         switch "$action"
-            case '*所有文件*'
-                ___fzf_manage_all "all"
-            case '*文件夹搜索*'
-                ___fzf_manage_all "directories"
-            case '*隐藏文件搜索*'
-                ___fzf_manage_all "hiddens"
-            case '*文件搜索*'
-                ___fzf_manage_all "files"
-            case '*图片搜索*'
-                ___fzf_manage_all "images"
-            case '*文本搜索*'
-                ___fzf_manage_all "documents"
-            case '*媒体操作*'
-                ___fzf_manage_all "medias"
-            case '*开发语言*'
-                ___fzf_manage_all "languages"
-            case '*全文搜索*'
-                ___fzf_manage_all "contents"
-            case '*压缩文件*'
-                ___fzf_manage_all "archives"
-            case '*退出系统*'
+            case "*收藏背景图*"
+                $MYRUNTIME/customs/bin/favo add
                 return
+                
+            case "*所有文件*"
+                ___fzf_manage_all "all"
+                
+            case "*文件夹*"
+                ___fzf_manage_all "directories"
+                
+            case "*隐藏文件*"
+                ___fzf_manage_all "hiddens"
+                
+            case "*压缩文件*"
+                ___fzf_manage_all "archives"
+                
+            case "*文件*"
+                ___fzf_manage_all "files"
+                
+            case "*图片*"
+                ___fzf_manage_all "images"
+                
+            case "*文本*"
+                ___fzf_manage_all "documents"
+                
+            case "*媒体*"
+                ___fzf_manage_all "medias"
+                
+            case "*开发*"
+                ___fzf_manage_all "languages"
+                
+            case "*全文搜索*"
+                ___fzf_manage_all "contents"
+                
+            case "*自定义FZF函数*"
+                fzf_customs_fzf_awesome_functions_list
+                
+            case "*自定义函数*"
+                fzf_search_custom_functions_by_desc
+                
+            case "*自定义别名*"
+                fzf_search_custom_alias_by_desc
+                
+            case "*查看书签*"
+                fzf_view_bookmarks_list 1
+                
+            case "*退出系统*"
+                break
         end
     end
 end

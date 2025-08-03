@@ -152,7 +152,6 @@ export fzf_transformer_search_swap_type='
 # ========================
 FZF_DEFAULT_OPTS=''
 # 基础行为
-FZF_DEFAULT_OPTS+=' --reverse '
 FZF_DEFAULT_OPTS+=' --no-tty-default '
 FZF_DEFAULT_OPTS+=' --smart-case '
 FZF_DEFAULT_OPTS+=' --exact '
@@ -208,7 +207,7 @@ FZF_DEFAULT_OPTS+=' --input-label-pos=top,4 '
 FZF_DEFAULT_OPTS+=' --border-label="╢ fzf $FZF_VERSION ╟" '
 FZF_DEFAULT_OPTS+=' --header=" ⚕️ F1 Help Infomation ⚕️ " '
 FZF_DEFAULT_OPTS+=' --footer=" ⚕️ F1 Help Infomation ⚕️ " '
-FZF_DEFAULT_OPTS+=' --footer-label "╢ Footer ╟" '
+FZF_DEFAULT_OPTS+=' --footer-label "╢ 搜索 ╟" '
 FZF_DEFAULT_OPTS+=' --footer-label-pos=top,4 '
 FZF_DEFAULT_OPTS+=" --gap-line=\"$(lolcat -f -F 1.4 <<< -----------------)\"  "
 FZF_DEFAULT_OPTS+=' --info-command="echo -e \"\\x1b[32;1m$FZF_POS\\x1b[m/$FZF_INFO Current/Matches/Total (Selected) 👣  \"" '
