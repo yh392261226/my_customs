@@ -617,7 +617,7 @@ function fzf_full_files_manager
         end
 
         echo "$Action" > $TMP_FZF_SEARCH_SWAP_FILE
-        set -l Operate (eval $Cmd | fzf $FZF_CUSTOM_PARAMS \
+        set -l Operate (eval $Cmd | fzf $FZF_CUSTOM_PARAMS +m \
             --preview "$MYRUNTIME/customs/bin/_previewer {} 2> /dev/null | head -500" \
             --header="$(_buildFzfHeader '' 'fzf_full_files_manager')")
 
@@ -672,7 +672,8 @@ function fzf_full_files_manager
         
         # 使用 fzf 选择菜单项
         set -l action (printf "%s\n" $actions | \
-            fzf --header " 文件管理系统 " \
+            fzf +m \
+                --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
                 --preview-window "up:30%" \
                 --preview "echo '请选择操作类型'" \

@@ -165,10 +165,10 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label "╢ 结果 ╟" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-border '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --list-label-pos=top,4 '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-border '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label "╢ 搜索 ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label "╢ 页头 ╟" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-label-pos=top,4 '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer=" ⚕️ F1 Help Infomation ⚕️ " '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer-label "╢ 搜索 ╟" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer=" [ Help ] / [ Copy ] / [ Open ] " '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer-label "╢ 页脚 ╟" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --footer-label-pos=top,4 '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-border '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --input-label "╢ 过滤 ╟" '
@@ -205,7 +205,11 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='enter,esc,ctrl-c:transform:$fzf_
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="space:change-header(╢ Type jump label ╟)+jump,jump-cancel:change-header:╢ Jump cancelled ╟" '
 #set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="focus:transform-header:file --brief {}" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --bind='multi:transform-footer:(( FZF_SELECT_COUNT )) && echo \"Selected \$FZF_SELECT_COUNT item(s)\"' "
-
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="click-footer:transform:(
+    [[ $FZF_CLICK_FOOTER_WORD =~ Help ]] && echo \"change-preview-label( ╢ Help Infomation ╟ )+preview:(${MYRUNTIME}/customs/bin/_previewer \\\"help\\\")\"
+    [[ $FZF_CLICK_FOOTER_WORD =~ Copy ]] && echo \"execute-silent(echo -n \{} | pbcopy)+abort\"
+    [[ $FZF_CLICK_FOOTER_WORD =~ Open ]] && echo \"execute:open \{} \"
+)" '
 set -gx FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS
 
 
