@@ -859,7 +859,7 @@ function fzf_full_files_manager() {                                             
         echo "$Action" > $TMP_FZF_SEARCH_SWAP_FILE
         [[ -n "$BASH_VERSION" ]] && Cmd="${!Varname}"
         [[ -n "$ZSH_VERSION" ]] && Cmd="${(P)Varname}"
-        Operate=$(eval "$Cmd" | fzf $FZF_CUSTOM_PARAMS \
+        Operate=$(eval "$Cmd" | fzf $FZF_CUSTOM_PARAMS +m \
         --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
         --header="$(_buildFzfHeader '' 'fzf_full_files_manager')" )
         if [ "" != "$Operate" ]; then
@@ -901,7 +901,8 @@ function fzf_full_files_manager() {                                             
             "©️ 自定义别名(Alia)" \
             "🗃️ 查看书签(BookMark)" \
             "🔚 退出系统(Exit)" | \
-            fzf --header " 文件管理系统 " \
+            fzf +m \
+                --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
                 --preview-window=up:30% \
                 --preview "echo '请选择操作类型'" \
