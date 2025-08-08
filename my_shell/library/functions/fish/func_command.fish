@@ -661,7 +661,7 @@ function fzf_full_files_manager
         end
     end
 
-    while true
+    # while true
         # 构建菜单选项数组
         # 获取背景图片路径
         set -l bg_image (get_iterm2_current_background_image)
@@ -702,7 +702,7 @@ function fzf_full_files_manager
         
         # 处理用户选择
         if not test -n "$action"
-            break
+            return
         end
         
         switch "$action"
@@ -750,12 +750,12 @@ function fzf_full_files_manager
                 fzf_search_custom_alias_by_desc
                 
             case "*查看书签*"
-                fzf_view_bookmarks_list 1
+                fzf_view_bookmarks_list
                 
             case "*退出系统*"
-                break
+                return
         end
-    end
+    # end
 end
 
 alias ffm="fzf_full_files_manager"

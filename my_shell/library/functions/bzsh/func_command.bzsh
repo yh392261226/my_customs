@@ -897,7 +897,7 @@ function fzf_full_files_manager() {                                             
         fi
     }
 
-    while true; do
+#    while true; do
         local action=$(printf "%s\n" \
             $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ] && [ "1" != "$(check_favo_exists)" ]; then echo "收藏背景图（collection）"; fi) \
             "🔍️ 所有文件(All)" \
@@ -942,10 +942,10 @@ function fzf_full_files_manager() {                                             
             *自定义FZF函数*) fzf_customs_fzf_awesome_functions_list ;;
             *自定义函数*) fzf_search_custom_functions_by_desc ;;
             *自定义别名*) fzf_search_custom_alias_by_desc ;;
-            *查看书签*) fzf_view_bookmarks_list 1;;
+            *查看书签*) fzf_view_bookmarks_list;;
             *退出系统*) break 1 && return ;;
         esac
-    done
+#    done
 }
 alias ffm="fzf_full_files_manager"                                                  # Desc: alias: ffm: fzf_full_files_manager命令的别名,利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
 
