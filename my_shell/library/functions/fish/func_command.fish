@@ -606,6 +606,25 @@ end tell')
 end
 alias gicbg="get_iterm2_current_background_image"
 
+function check_favo_exists
+    set MYRUNTIME (cat $HOME/.myruntime)
+    set RUNTIME_DIR "$MYRUNTIME/tools"
+    set curmark (basename (readlink $MYRUNTIME/pictures))
+    set FAVO_MARK "$RUNTIME_DIR/m_favorate_$curmark"
+
+    # 获取当前背景图片路径
+    set current_bg (get_iterm2_current_background_image)
+
+    # 检查文件是否存在且包含指定内容
+    if test -e "$FAVO_MARK" && grep -qF "$current_bg" "$FAVO_MARK"
+        echo "1"
+        return 1
+    else
+        echo "0"
+        return 0
+    end
+end
+
 function fzf_full_files_manager
     function ___fzf_manage_all -a Action
         # set -l TMP_FZF_SEARCH_SWAP_FILE "/tmp/fzf_search_swap"
@@ -646,10 +665,10 @@ function fzf_full_files_manager
         # 构建菜单选项数组
         # 获取背景图片路径
         set -l bg_image (get_iterm2_current_background_image)
-        
+        set -l favo_check_exists (check_favo_exists)
         # 构建菜单选项数组
         set -l actions
-        if test "$TERM_PROGRAM" = "iTerm.app" && test -n "$bg_image"
+        if test "$TERM_PROGRAM" = "iTerm.app" && test -n "$bg_image" && test "0" = "$favo_check_exists"
             set -a actions "收藏背景图（collection）"
         end
         

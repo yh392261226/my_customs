@@ -850,6 +850,20 @@ end tell')
 }
 alias gicbg="get_iterm2_current_background_image"                                   # Desc: alias: gicbg: get_iterm2_current_background_image命令的别名，获取当前iterm的session中背景图地址
 
+check_favo_exists() {
+    MYRUNTIME=$(cat ${HOME}/.myruntime)
+    RUNTIME_DIR="${MYRUNTIME}/tools"
+    curmark=$(basename $(readlink $MYRUNTIME/pictures))
+    FAVO_MARK="${RUNTIME_DIR}/m_favorate_${curmark}"
+
+    if grep -qF "$(get_iterm2_current_background_image)" "${FAVO_MARK}"; then
+        echo "1"
+        return 1
+    fi
+    echo "0"
+    return 0
+}
+
 function fzf_full_files_manager() {                                                 # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
     ___fzf_manage_all() {
         local Action="$1"
@@ -885,7 +899,7 @@ function fzf_full_files_manager() {                                             
 
     while true; do
         local action=$(printf "%s\n" \
-            $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ]; then echo "收藏背景图（collection）"; fi) \
+            $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ] && [ "1" != "$(check_favo_exists)" ]; then echo "收藏背景图（collection）"; fi) \
             "🔍️ 所有文件(All)" \
             "📂 文件夹(Directory)" \
             "📄 文件(File)" \
