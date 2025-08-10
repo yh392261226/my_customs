@@ -158,7 +158,7 @@ function fzf_safari_bookmarks() {                                               
         --preview ' echo -n {}' \
         --bind 'focus:transform-preview-label:echo -n {} ' \
         --bind 'f12:execute-silent(echo {} | grep -E "http[s]?://.*" | pbcopy)+abort' \
-        --bind 'enter:become(open $(echo {} | grep -Eo "https?://[^[:space:]]+"))' \
+        --bind 'enter:become(open -a "/Applications/Safari.app" $(echo {} | grep -Eo "https?://[^[:space:]]+"))' \
         --header="$(_buildFzfHeader '' 'fzf_safari_bookmarks')"
 }
 alias fsb="fzf_safari_bookmarks"                                                    # Desc: alias: fsb: fzf_safari_bookmarks命令的别名,读取当前用户的safari浏览器书签
@@ -209,7 +209,7 @@ function brave_default_history() {                                              
 alias bdh="brave_default_history"                                                   # Desc: alias: bdh:brave_default_history命令的别名,列出Brave默认账户的浏览器的历史
 
 function browser_history_manage() {                                                 # Desc: function: browser_history_manage:利用fzf管理Safari、Chrome、Brave浏览器的历史
-    while true; do
+#    while true; do
         local action=$(printf "%s\n" \
             "🔎 Safari" \
             "🔎 Chrome_Default" \
@@ -231,7 +231,7 @@ function browser_history_manage() {                                             
             *Brave_Default*) brave_default_history ;;
             *退出系统*) break 1 && return ;;
         esac
-    done
+#    done
 }
 alias bh="browser_history_manage"                                                   # Desc: alias: bh:browser_history_manage命令的别名,利用fzf管理Safari、Chrome、Brave浏览器的历史
 if [[ -n "$ZSH_VERSION" ]]; then
@@ -298,7 +298,7 @@ function fzf_mark_by_buku() {                                                   
 alias fmb="fzf_mark_by_buku"                                                        # Desc: alias: fmb:fzf_mark_by_buku命令的别名,buku数据库配合fzf列出网址收藏
 
 function browser_bookmarks_manage() {                                               # Desc: function: browser_bookmarks_manage:利用fzf管理Safari、Chrome、Brave浏览器的收藏
-    while true; do
+#    while true; do
         local action=$(printf "%s\n" \
             "🔎 Safari" \
             "🔎 Chrome_Default" \
@@ -322,7 +322,7 @@ function browser_bookmarks_manage() {                                           
             *Bubu*) fzf_mark_by_buku ;;
             *退出系统*) break 1 && return ;;
         esac
-    done
+#    done
 }
 alias bm="browser_bookmarks_manage"                                                 # Desc: alias: bm:browser_bookmarks_manage命令的别名,利用fzf管理Safari、Chrome、Brave浏览器的收藏
 if [ "zsh" = "$nowshell" ]; then
@@ -374,6 +374,7 @@ function _checkDirFull() {                                                      
         mv -f "$fullfilename" "$newpath/$(basename "$fullfilename")"
         
         logger -t "PicMonitor" "Moved $fullfilename to $newpath"
+        echo "PicMonitor Moved $fullfilename to $newpath"
     fi
 }
 
@@ -478,6 +479,7 @@ EOF
             esac
             
             logger -t "PicMonitor" "$msg: $filename"
+            echo "PicMonitor $msg: $filename"
             _checkDirFull "$fullfilename"
             
             if (( IFSHOWTHUMB == 1 && showtype == 1 )); then
