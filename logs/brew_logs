@@ -989,3 +989,4 @@ brew install audio-fingerprint parallel tesseract whisper
 brew install --no-quarantine syntax-highlight
 brew install pup
 brew install ffmpegthumbnailer poppler
+brew install --cask raycast
