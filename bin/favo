@@ -116,7 +116,8 @@ list_favorites() {
 			--bind "ctrl-d:execute(echo {} | awk -F'│' '{print \$2}' | xargs trash)+abort" \
 			--bind "ctrl-o:execute(echo {} | awk -F'│' '{print \$2}' | xargs open -R)+abort" \
 			--bind="ctrl-u:become(${MYRUNTIME}/customs/bin/_actioner {2})" \
-			--prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位) > " \
+      --bind "ctrl-y:execute(echo {} | awk -F'│' '{print \$2}' | pbcopy)+abort" \
+			--prompt="❯ 选择图片 (CTRL+D删除 CTRL+O定位 CTRL+Y复制 CTRL+U操作) > " \
 			--ansi)
 	[[ -z "${selected}" ]] && return
 	selected=$(echo "$selected" | awk -F'│' '{print $2}')
@@ -429,35 +430,29 @@ fuzzy_search() {
 
 # 去除不存在的文件
 rebuild_favorite() {
-	echo "Make sure your choice: y|Y|yes|YES/|n|N|no|NO"
-	read choice
-	if [ "$choice" = "yes" ] || [ "$choice" = "y" ] || [ "$choice" = "Y" ] || [ "$choice" = "YES" ]; then
-		favolists=$(cat ${FAVO_MARK})
-		favo_array[0]=''
-		posit=0
-		if [ -f $TMPFILE ]; then
-			rm -f $TMPFILE
-		fi
-		for i in ${favolists[*]}; do
-			if [ "$i" != "" ] && [ -f $i ]; then
-				echo $i >>$TMPFILE
-			fi
-			((posit += 1))
-		done
+  favolists=$(cat ${FAVO_MARK})
+  favo_array[0]=''
+  posit=0
+  if [ -f $TMPFILE ]; then
+    rm -f $TMPFILE
+  fi
+  for i in ${favolists[*]}; do
+    if [ "$i" != "" ] && [ -f $i ]; then
+      echo $i >>$TMPFILE
+    fi
+    ((posit += 1))
+  done
 
-		if [ -f $TMPFILE ]; then
-			mv $TMPFILE ${FAVO_MARK}
-		fi
-		if [ "$?" = "0" ]; then
-			echo "Done ..."
-			return 0
-		else
-			echo "Failure ..."
-			return 1
-		fi
-	else
-		return 1
-	fi
+  if [ -f $TMPFILE ]; then
+    mv $TMPFILE ${FAVO_MARK}
+  fi
+  if [ "$?" = "0" ]; then
+    echo "Done ..."
+    return 0
+  else
+    echo "Failure ..."
+    return 1
+  fi
 }
 
 # 表格形式展示

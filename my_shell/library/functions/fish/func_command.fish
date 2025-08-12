@@ -188,7 +188,7 @@ alias stnt="sign_tnt_code_name"
 function speaking_by_osx_voice
     set words $argv
     if test "" = "$words"
-        if test (ifHasCommand gum) = "1"
+        if command -q gum
             gum input --placeholder "Type something..."
         else
             echo "请输入要说的话 \n例如：$argv[1] haha "
@@ -285,28 +285,37 @@ alias fhp="fzf_history_print"
 
 function command_sl_selector
     echo "执行命令行小火车：1, ls命令：2"
-    if test (ifHasCommand gum) = "1"
-        set -l choose (gum choose "1" "2")
+    
+    # 检查gum是否存在
+    if command -q gum
+        set choose (gum choose "1" "2" | string trim)
     else
-        read -l choose
+        read -p "echo '请选择: '" -l choose
+        set choose (string trim "$choose")
     end
 echo $choose
     switch "$choose"
         case "1"
+            # 检查sl是否存在
             if test -f /opt/homebrew/bin/sl
                 /opt/homebrew/bin/sl
-            end
-            if test -f /usr/local/bin/sl
+            else if test -f /usr/local/bin/sl
                 /usr/local/bin/sl
+            else
+                echo "未找到sl命令"
             end
+            
         case "2"
+            # 检查lsd是否存在
             if test -f /usr/local/bin/lsd
                 /usr/local/bin/lsd -la
-            end
-            if test -f /opt/homebrew/bin/lsd
+            else if test -f /opt/homebrew/bin/lsd
                 /opt/homebrew/bin/lsd -la
+            else
+                echo "未找到lsd命令"
             end
-        case "*"
+            
+        case '*'
             echo "无效选择，自动退出..."
     end
 end
@@ -482,7 +491,7 @@ function fzf_manage
     if test -n "$argv[1]"; set DIRPATH $argv[1]; end
 
     set ACTIONCOMMAND
-    if test (ifHasCommand gum) = "1"
+    if command -q gum
         set -l ACTIONCOMMAND 'gum confirm "确认删除?" && rm -f '
     else
         set -l ACTIONCOMMAND 'rm -f '
@@ -663,14 +672,8 @@ function fzf_full_files_manager
 
     # while true
         # 构建菜单选项数组
-        # 获取背景图片路径
-        set -l bg_image (get_iterm2_current_background_image)
-        set -l favo_check_exists (check_favo_exists)
         # 构建菜单选项数组
         set -l actions
-        if test "$TERM_PROGRAM" = "iTerm.app" && test -n "$bg_image" && test "0" = "$favo_check_exists"
-            set -a actions "收藏背景图（collection）"
-        end
         
         set -a actions \
             "🔍️ 所有文件(All)" \
@@ -760,6 +763,92 @@ end
 
 alias ffm="fzf_full_files_manager"
 bind -M insert \cf fzf_full_files_manager
+
+function fzf_favorate_image_manager
+    set -l bg_image (get_iterm2_current_background_image)
+    set -l favo_check_exists (check_favo_exists)
+    # 构建菜单选项数组
+    set -l actions
+    if test "$TERM_PROGRAM" = "iTerm.app" && test -n "$bg_image" && test "0" = "$favo_check_exists"
+        set -a actions "🗂️收藏背景图（collection）"
+    end
+    
+    set -a actions \
+        "🌐 所有收藏(All)" \
+        "🔍️ 模糊搜索(Search)" \
+        "📃 生成HTML相册(HTML)" \
+        "🖼️ 设置指定图片为背景(Set)" \
+        "🔀 随机切换背景(Random)" \
+        "📍 在Finder中定位文件(Locate)" \
+        "🗺️ 显示缩略图(Thumb)" \
+        "🛠️ 重建收藏列表(Rebuild)" \
+        "🗓️ 表格形式展示收藏(Table)" \
+        "🗑️ 删除(Remove)" \
+        "💡 帮助(Help)" \
+        "🔚 退出系统(Exit)"
+    
+    # 使用 fzf 选择菜单项
+    set -l action (printf "%s\n" $actions | \
+        fzf +m \
+            --header " 背景图收藏管理系统 " \
+            --prompt "主菜单 ❯ " \
+            --preview-window "up:30%" \
+            --preview "echo '请选择操作类型'" \
+            --height "15%" \
+            --bind "space:jump,jump:accept" \
+            --reverse)
+    
+    # 处理用户选择
+    if not test -n "$action"
+        return
+    end
+    
+    switch "$action"
+        case "*收藏背景图*"
+            $MYRUNTIME/customs/bin/favo add
+            return
+        case "*所有收藏*"
+            $MYRUNTIME/customs/bin/favo list
+        case "*模糊搜索*"
+            if command -q gum
+                set text (gum choose "1" "2")
+            else
+                read text
+            end
+            
+            if test "" != "$text"
+                $MYRUNTIME/customs/bin/favo search "$text"
+            end
+        case "*生成HTML相册*"
+            $MYRUNTIME/customs/bin/favo html
+        case "*设置指定图片为背景*"
+            if command -q gum
+                set img (gum input --placeholder "Type image location")
+            else
+                read img
+            end
+            
+            $MYRUNTIME/customs/bin/favo set "$img"
+        case "*随机切换背景*"
+            $MYRUNTIME/customs/bin/favo random
+        case "*在Finder中定位文件*"
+            $MYRUNTIME/customs/bin/favo locate
+        case "*显示缩略图*"
+            $MYRUNTIME/customs/bin/favo thumb
+        case "*重建收藏列表*"
+            $MYRUNTIME/customs/bin/favo rebuild
+        case "*表格形式展示收藏*"
+            $MYRUNTIME/customs/bin/favo table
+        case "*删除*"
+            $MYRUNTIME/customs/bin/favo remove
+        case "*帮助*"
+            $MYRUNTIME/customs/bin/favo help
+        case "*退出系统*"
+            return
+    end
+end
+alias ffi="fzf_favorate_image_manager"
+bind -M insert \cp fzf_favorate_image_manager
 
 function type_whereis_command
     if not test (ifHasCommand $argv) = "1"
