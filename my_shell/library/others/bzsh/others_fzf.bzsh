@@ -6,6 +6,7 @@ export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVI
 export FZF_DEFAULT_COMMAND="fd --hidden --no-ignore-vcs --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export FZF_GIT_COMMAND="git ls-files --exclude-standard"
 #export FZF_CURRENT_COMMAND_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_current_command.swap
+export FZF_CURRENT_DIR=$PWD
 export TMP_FZF_SEARCH_TYPES_FILE=${TMPDIR:-/tmp}/tmp_fzf_search_types.swap
 export TMP_FZF_HEADER_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_header.swap
 export TMP_FZF_SEARCH_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_search.swap
@@ -58,15 +59,16 @@ _fzf_compgen_dir() {
     fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
-export fzf_transformer_filter_all="fd --type f --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_files="fd --type f -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_directories="fd --type d -d 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_all="fd --type f --type d -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_files="fd --type f -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_directories="fd --type d -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_symbolic_links="fd --type l -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export fzf_transformer_filter_hiddens="fd --type f --type d --hidden --glob '.*' "
-export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' "
 
 export fzf_transformer='
@@ -121,8 +123,12 @@ export fzf_transformer_search_swap_type='
                 echo "change-list-label(╢ Filter Files Only ╟)+change-ghost(Type Filter Files Words ...)+change-pointer( ⇝)+reload($fzf_transformer_filter_files)" 
                 ;;
             "directories")  
-                echo 'hiddens'      > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo 'symbolic_link'      > $TMP_FZF_SEARCH_SWAP_FILE 
                 echo "change-list-label(╢ Filter Directories Only ╟)+change-ghost(Type Filter Directories Words ...)+change-pointer( ⇛)+reload($fzf_transformer_filter_directories)" 
+                ;;
+            "symbolic_link")
+                echo 'hiddens'      > $TMP_FZF_SEARCH_SWAP_FILE 
+                echo "change-list-label(╢ Filter Symbolic Link Only ╟)+change-ghost(Type Filter Symbolic Link Words ...)+change-pointer( ⇛)+reload($fzf_transformer_filter_symbolic_links)" 
                 ;;
             "hiddens")      
                 echo 'images'       > $TMP_FZF_SEARCH_SWAP_FILE 

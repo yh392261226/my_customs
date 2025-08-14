@@ -812,6 +812,7 @@ function fzf_view_bookmarks_list() {                                            
     cd -
     if [ "" != "${selected}" ]; then
         head -n 1 ${TMP_FZF_BOOKMARKS_PATH}/${selected} | pbcopy
+        return
     fi
     if [ "$ifbreak" != "0" ]; then
         break 2
@@ -873,28 +874,54 @@ function fzf_full_files_manager() {                                             
         echo "$Action" > $TMP_FZF_SEARCH_SWAP_FILE
         [[ -n "$BASH_VERSION" ]] && Cmd="${!Varname}"
         [[ -n "$ZSH_VERSION" ]] && Cmd="${(P)Varname}"
-        Operate=$(eval "$Cmd" | fzf $FZF_CUSTOM_PARAMS +m \
+        FZF_CURRENT_DIR=$PWD
+
+        while true; do
+        Operate=$(eval "$Cmd" | awk -v dir="$FZF_CURRENT_DIR" '
+            BEGIN { print ".." }
+            { print }
+            END { print "↩️ 返回" }
+        ' | fzf $FZF_CUSTOM_PARAMS +m \
         --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
         --header="$(_buildFzfHeader '' 'fzf_full_files_manager')" )
-        if [ "" != "$Operate" ]; then
-            if [ "$Action" = "contents" ]; then
-                local tmpfilepath=$(echo "$Operate" | awk -F':' '{print $1}')
-                local tmplinenum=$(echo "$Operate" | awk -F':' '{print $2}')
-                if command -v code > /dev/null; then
-                    /usr/local/bin/code --new-window --goto ${tmpfilepath}:${tmplinenum}
-                elif command -v nvim > /dev/null; then
-                    nvim +${tmplinenum} ${tmpfilepath}
-                elif command -v vim > /dev/null; then
-                    vim  +${tmplinenum} ${tmpfilepath}
-                else
-                    bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style='full' --color=always --pager=never "${tmpfilepath}"
+        
+        if [ -n "$Operate" ]; then
+            if [[ "$Operate" == "↩️ 返回" ]]; then
+                return  # 直接退出函数
+            elif [[ "$Operate" == ".." ]]; then
+                # 处理根目录情况
+                if [[ "$FZF_CURRENT_DIR" != "/" ]]; then
+                    FZF_CURRENT_DIR=$(dirname "$FZF_CURRENT_DIR")
                 fi
+                #PWD=$FZF_CURRENT_DIR
+                cd "$FZF_CURRENT_DIR"  # 刷新工作目录
+            elif [[ -d "${FZF_CURRENT_DIR}/${Operate}" ]]; then
+                FZF_CURRENT_DIR="${FZF_CURRENT_DIR}/${Operate}"
+                #PWD=$FZF_CURRENT_DIR
+                cd "$FZF_CURRENT_DIR"  # 刷新工作目录
             else
-                echo $Operate
+                if [ "$Action" = "contents" ]; then
+                    local tmpfilepath=$(echo "$Operate" | awk -F':' '{print $1}')
+                    local tmplinenum=$(echo "$Operate" | awk -F':' '{print $2}')
+                    if command -v code > /dev/null; then
+                        /usr/local/bin/code --new-window --goto ${tmpfilepath}:${tmplinenum}
+                    elif command -v nvim > /dev/null; then
+                        nvim +${tmplinenum} ${tmpfilepath}
+                    elif command -v vim > /dev/null; then
+                        vim  +${tmplinenum} ${tmpfilepath}
+                    else
+                        bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style='full' --color=always --pager=never "${tmpfilepath}"
+                    fi
+                else
+                    # 添加文件打开逻辑
+                    #open "${FZF_CURRENT_DIR}/${Operate}" &>/dev/null
+                    echo $Operate
+                fi
             fi
         else
             return
         fi
+        done
     }
 
 #    while true; do
@@ -902,6 +929,7 @@ function fzf_full_files_manager() {                                             
             "🔍️ 所有文件(All)" \
             "📂 文件夹(Directory)" \
             "📄 文件(File)" \
+            "🔗 软连接(Symbolic Link)" \
             "🥷 隐藏文件(Hidden)" \
             "🖼️ 图片(Image)" \
             "📖 文本(Document)" \
@@ -930,6 +958,7 @@ function fzf_full_files_manager() {                                             
                 ;;
             *所有文件*) ___fzf_manage_all "all" ;;
             *文件夹*) ___fzf_manage_all "directories" ;;
+            *软连接*) ___fzf_manage_all "symbolic_links" ;;
             *隐藏文件*) ___fzf_manage_all "hiddens" ;;
             *压缩文件*) ___fzf_manage_all "archives" ;;
             *文件*) ___fzf_manage_all "files" ;;

@@ -165,9 +165,20 @@ main() {
     fi
 
     # 文件类型检测
+    if [ -L "$file" ]; then
+        local iflink="symlink"
+    fi
+
     local type=$(file --dereference --mime -- "$file")
     
     # 目录处理
+    if [[ $iflink == "symlink" ]]; then
+        # 获取原身
+        local target=$(readlink "$file")
+        type=$(file --dereference --mime -- "$target")
+        file="$target"
+    fi
+
     if [[ $type =~ /directory ]]; then
         if command -v eza >/dev/null; then
             eza --tree --level=3 --icons --group-directories-first "$file"

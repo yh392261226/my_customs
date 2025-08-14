@@ -31,8 +31,24 @@ restore_terminal() {
 # 安全读取输入
 safe_read() {
     local prompt=$1
-    read -rep "$prompt" input </dev/tty
+    if command -v gum >/dev/null; then
+        input=$(gum input --placeholder "$prompt")
+    else
+        read -rep "$prompt" input </dev/tty
+    fi
     echo "$input"
+}
+
+# 安全读取选择
+safe_choose() {
+    local prompt=$1
+    if command -v gum >/dev/null; then
+        echo "$prompt"
+        choose=$(gum choose "yes" "no")
+    else
+        read -rep "$prompt" choose </dev/tty
+    fi
+    echo "$choose"
 }
 
 #----------------------- 核心操作函数 -----------------------#
@@ -40,9 +56,10 @@ safe_read() {
 # 删除操作
 actioner_delete() {
     local target="$1"
-    echo -n "确认删除 '$target' 吗？(y/N) "
-    local confirm=$(safe_read "")
-    if [[ $confirm =~ ^[Yy]$ ]]; then
+    # echo -n "确认删除 '$target' 吗？(y/N) "
+    local confirm=$(safe_choose "确认删除 '$target' 吗？")
+    
+    if [[ $confirm =~ yes ]]; then
         rm -rfv "$target"
     else
         echo "取消删除操作"
@@ -172,7 +189,7 @@ actioner_add_bookmark() {
         echo "错误：书签名称不能为空"
         return 1
     fi
-    if [ ! -f ${name} ]; then
+    if [ ! -f ${TMP_FZF_BOOKMARKS_PATH}/${name} ]; then
         # 添加新书签
         touch ${TMP_FZF_BOOKMARKS_PATH}/${name}
         echo "${path}" > "${TMP_FZF_BOOKMARKS_PATH}/${name}"
@@ -180,6 +197,50 @@ actioner_add_bookmark() {
     else
         echo "${path}" > "${TMP_FZF_BOOKMARKS_PATH}/${name}"
         echo "#Desc:${desc}" >> "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+    fi
+}
+
+# 查看权限
+actioner_get_private() {
+    local path="$1"
+    echo "$path"
+    echo $(stat -f "%Sp -> %OLp" "$path")
+    echo ""
+    echo ""
+    echo ""
+}
+
+# 设置权限
+actioner_set_private() {
+    local path="$1"
+    local private_value=$(safe_read "输入权限 (如 755): ")
+    if [[ -z "$private_value" ]]; then
+        echo "错误：未指定权限"
+        return 1
+    fi
+    chmod $private_value "$path"
+    echo "Done ..."
+}
+
+# 创建
+actioner_create() {
+    local path=$1
+    local name
+    local type
+    local prompt="创建类型（dir/file）"
+    local prompt1="输入文件名"
+    if command -v gum >/dev/null; then
+        echo "$prompt"
+        type=$(gum choose "目录" "文件")
+        name=$(safe_read "$prompt1")
+    else
+        read -rep "$prompt" type </dev/tty
+        read -rep "$prompt1" name </dev/tty
+    fi
+    if [[ $type == "dir" ]] || [[ $type == "目录" ]]; then
+        mkdir $path/$name
+    elif [[ $type == "file" ]] || [[ $type == "文件" ]]; then
+        touch $path/$name
     fi
 }
 
@@ -217,23 +278,23 @@ generate_menu() {
     
     case "$filetype" in
         "directory")
-            echo "进入目录 删除 复制 移动 重命名 压缩 打开位置 收藏 取消" ;;
+            echo "进入目录 创建 删除 复制 移动 重命名 压缩 打开位置 收藏 查看权限 设置权限 取消" ;;
         "text")
-            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 复制 移动 删除 压缩 收藏 取消" ;;
+            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
         "pdf")
-            echo "文本预览 打开文件 复制 移动 删除 压缩 收藏 取消" ;;
+            echo "文本预览 打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
         "office")
-            echo "打开文件 复制 移动 删除 压缩 收藏 取消" ;;
+            echo "打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
         "archive")
-            echo "解压 查看内容 复制 移动 删除 收藏 取消" ;;
+            echo "解压 查看内容 复制 移动 删除 收藏 查看权限 设置权限 取消" ;;
         "image")
-            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 收藏 取消" ;;
+            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
         "video"|"audio")
-            echo "终端播放 打开文件 复制 移动 删除 收藏 取消" ;;
+            echo "终端播放 打开文件 复制 移动 删除 收藏 查看权限 设置权限 取消" ;;
         "script")
-            echo "执行脚本 编辑 查看 复制 移动 删除 收藏 取消" ;;
+            echo "执行脚本 创建 编辑 查看 复制 移动 删除 收藏 查看权限 设置权限 取消" ;;
         *)
-            echo "打开文件 复制 移动 删除 压缩 收藏 取消" ;;
+            echo "打开文件 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
     esac
 }
 
@@ -266,10 +327,14 @@ actioner() {
     # 生成上下文菜单
     local menu_options=$(generate_menu "$filetype")
     
-    # 显示交互菜单
-    local action=$(echo "$menu_options" | tr ' ' '\n' | \
+    # 显示交互菜单 , 如果有第二个参数则 action 采用第二个参数的值，否则由用户选择 action
+    local action
+    if [ "" != "$2" ]; then
+        action="$2"
+    else
+        action=$(echo "$menu_options" | tr ' ' '\n' | \
         fzf --height 20% --reverse --header " 操作菜单 ($filetype) ")
-
+    fi
     # 执行操作
     case "$action" in
         删除*)           actioner_delete "$filepath"       ;;
@@ -279,6 +344,7 @@ actioner() {
         压缩*)           actioner_archive "$filepath"      ;;
         解压*)           actioner_extract "$filepath"      ;;
         查看内容*)        actioner_archive_peek "$filepath" ;;
+        查看权限*)        actioner_get_private "$filepath" ;;
         进入目录*)        cd "$filepath" && exec $SHELL     ;;
         编辑*)        
             case $action in
@@ -298,8 +364,7 @@ actioner() {
                  ;;
             esac ;;
         执行脚本*)    
-            echo -n "确认执行脚本？(y/N) "
-            [[ $(safe_read "") =~ ^[Yy]$ ]] && bash "$filepath" ;;
+            [[ $(safe_choose "确认执行脚本？") =~ yes ]] && bash "$filepath" ;;
         打开文件*)        open "$filepath"                        ;;
         打开位置*)        open -R "$filepath"                     ;;
         终端播放*)        mpv --vo=tct "$filepath"                ;;
@@ -313,13 +378,23 @@ actioner() {
             ;;
         收藏*)
             local name
-            read -r -p "输入书签名: " name
-            [ -z "$name" ] && return
             local desc
-            read -r -p "输入描述：" desc
+            if command -v gum >> /dev/null; then
+                name=$(gum input --placeholder "输入书签名称")
+            else
+                read -r -p "输入书签名: " name
+            fi
+            [ -z "$name" ] && return
+            if command -v gum >> /dev/null; then
+                desc=$(gum write --placeholder "输入描述")
+            else
+                read -r -p "输入描述：" desc
+            fi
             actioner_add_bookmark "$name" "$filepath" "$desc"
         ;;
+        设置权限*)        actioner_set_private "$filepath" ;;
         文本预览*)        $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
+        创建*)           actioner_create "$filepath" ;;
     esac
     
     restore_terminal
