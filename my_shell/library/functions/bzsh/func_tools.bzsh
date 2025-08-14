@@ -113,7 +113,7 @@ function fzf_monitor_manager() {                                                
         "进程"
         "网络"
         "温度"
-        "↩️ 返回"
+        "🔙 返回"
     )
     
     while true; do
@@ -134,7 +134,7 @@ function fzf_monitor_manager() {                                                
             "进程") process_monitor ;;
             "网络") network_monitor ;;
             "温度") temprature_monitor ;;
-            "↩️ 返回"|*)
+            "🔙 返回"|*)
                 break
                 ;;
         esac

@@ -5,14 +5,14 @@ function fzf_bookmark_list() {                                                  
     cd ${TMP_FZF_BOOKMARKS_PATH}/ 
     local selected=$(ls . | awk -v test="$test" '
             { print }
-            END { print "↩️ 返回" }
+            END { print "🔙 返回" }
 			' | fzf $FZF_CUSTOM_PARAMS +m \
     --bind="ctrl-d:execute(rm -f ${TMP_FZF_BOOKMARKS_PATH}/{})+reload(ls .)" \
     --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
     --preview-window="right:70%:border-rounded,nohidden,~3" \
     --preview="(${MYRUNTIME}/customs/bin/_previewer ${TMP_FZF_BOOKMARKS_PATH}/{}) 2> /dev/null | head -500")
     cd -
-    if [ "" != "${selected}" ] && [ "↩️ 返回" != "${selected}" ]; then
+    if [ "" != "${selected}" ] && [ "🔙 返回" != "${selected}" ]; then
         head -n 1 ${TMP_FZF_BOOKMARKS_PATH}/${selected} | pbcopy
         return
     fi
@@ -68,14 +68,14 @@ function fzf_bookmark_delete() {                                                
     cd ${TMP_FZF_BOOKMARKS_PATH}/ 
     local selected=$(ls . | awk -v process="$processes" '
             { print }
-            END { print "↩️ 返回" }
+            END { print "🔙 返回" }
 			' | fzf $FZF_CUSTOM_PARAMS \
     --bind="ctrl-d:execute(rm -f ${TMP_FZF_BOOKMARKS_PATH}/{})+reload(ls .)" \
     --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
     --preview-window="right:70%:border-rounded,nohidden,~3" \
     --preview="(${MYRUNTIME}/customs/bin/_previewer ${TMP_FZF_BOOKMARKS_PATH}/{}) 2> /dev/null | head -500")
     cd -
-    if [ "" != "${selected}" ] && [ "↩️ 返回" != "${selected}" ]; then
+    if [ "" != "${selected}" ] && [ "🔙 返回" != "${selected}" ]; then
         rm -f ${selected}
         return
     fi
@@ -88,7 +88,7 @@ function fzf_bookmark_manager() {                                               
         "列表"
         "添加"
         "删除"
-        "↩️ 返回"
+        "🔙 返回"
     )
     
     while true; do
@@ -124,12 +124,12 @@ function fzf_customs_manager() {                                                
         "™️ 自定义FZF函数(Function)"
         "®️ 自定义函数(Function)"
         "©️ 自定义别名(Alia)"
-        "↩️ 返回"
+        "🔙 返回"
     )
     
     # while true; do
         clear
-        echo -e "${THEME_HEADER} fzf-ultimate - 设置 ${COLOR_RESET}"
+        echo -e "${THEME_HEADER} 自定义 ${COLOR_RESET}"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -138,13 +138,10 @@ function fzf_customs_manager() {                                                
         )
         case $selection in
             *自定义FZF函数*) 
-                source $MYRUNTIME/customs/my_shell/rcfile 2>/dev/null
                 fzf_customs_fzf_awesome_functions_list ;;
             *自定义函数*) 
-                source $MYRUNTIME/customs/my_shell/rcfile 2>/dev/null
                 fzf_search_custom_functions_by_desc ;;
             *自定义别名*) 
-                source $MYRUNTIME/customs/my_shell/rcfile 2>/dev/null
                 fzf_search_custom_alias_by_desc ;;
             *返回*|*)
                 break

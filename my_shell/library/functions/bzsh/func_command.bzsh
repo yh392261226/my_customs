@@ -816,13 +816,13 @@ function fzf_full_files_manager() {                                             
         Operate=$(eval "$Cmd" | awk -v dir="$FZF_CURRENT_DIR" '
             BEGIN { print ".." }
             { print }
-            END { print "↩️ 返回" }
+            END { print "🔙 返回" }
         ' | fzf $FZF_CUSTOM_PARAMS +m \
         --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
         --header="$(_buildFzfHeader '' 'fzf_full_files_manager')" )
         
         if [ -n "$Operate" ]; then
-            if [[ "$Operate" == "↩️ 返回" ]]; then
+            if [[ "$Operate" == "🔙 返回" ]]; then
                 return  # 直接退出函数
             elif [[ "$Operate" == ".." ]]; then
                 # 处理根目录情况
@@ -877,7 +877,7 @@ function fzf_full_files_manager() {                                             
             "®️ 自定义函数(Function)" \
             "©️ 自定义别名(Alia)" \
             "🗃️ 查看书签(BookMark)" \
-            "🔚 退出系统(Exit)" | \
+            "🔙 返回(Back)" | \
             fzf +m \
                 --header " 文件管理系统 " \
                 --prompt "主菜单 ❯ " \
@@ -892,33 +892,74 @@ function fzf_full_files_manager() {                                             
                 $MYRUNTIME/customs/bin/favo add
                 return 
                 ;;
-            *所有文件*) ___fzf_manage_all "all" ;;
-            *文件夹*) ___fzf_manage_all "directories" ;;
-            *软连接*) ___fzf_manage_all "symbolic_links" ;;
-            *隐藏文件*) ___fzf_manage_all "hiddens" ;;
-            *压缩文件*) ___fzf_manage_all "archives" ;;
-            *文件*) ___fzf_manage_all "files" ;;
-            *图片*) ___fzf_manage_all "images" ;;
-            *文本*) ___fzf_manage_all "documents" ;;
-            *媒体*) ___fzf_manage_all "medias" ;;
-            *开发*) ___fzf_manage_all "languages" ;;
-            *全文搜索*) ___fzf_manage_all "contents" ;;
+            *所有文件*)     ___fzf_manage_all "all" ;;
+            *文件夹*)       ___fzf_manage_all "directories" ;;
+            *软连接*)       ___fzf_manage_all "symbolic_links" ;;
+            *隐藏文件*)      ___fzf_manage_all "hiddens" ;;
+            *压缩文件*)      ___fzf_manage_all "archives" ;;
+            *文件*)         ___fzf_manage_all "files" ;;
+            *图片*)         ___fzf_manage_all "images" ;;
+            *文本*)         ___fzf_manage_all "documents" ;;
+            *媒体*)         ___fzf_manage_all "medias" ;;
+            *开发*)         ___fzf_manage_all "languages" ;;
+            *全文搜索*)     ___fzf_manage_all "contents" ;;
             *自定义FZF函数*) fzf_customs_fzf_awesome_functions_list ;;
             *自定义函数*) fzf_search_custom_functions_by_desc ;;
             *自定义别名*) fzf_search_custom_alias_by_desc ;;
             *查看书签*) fzf_bookmark_list;;
-            *退出系统*) return ;;
+            *返回*) return ;;
         esac
 #    done
 }
 alias ffm="fzf_full_files_manager"                                                  # Desc: alias: ffm: fzf_full_files_manager命令的别名,利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
 
+function fzf_manager() {
+    local options=(
+        "📁 文件"
+        "🔄 版本"
+        "🅿️ 进程"
+        "🎛️ 监控"
+        "🖼️ 图片"
+        "🗃️ 书签"
+        "©️ 自定义"
+        "🔚 退出"
+    )
+    
+    while true; do
+        clear
+        echo -e "${THEME_HEADER} 管理工具 ${COLOR_RESET}"
+        echo ""
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --ansi \
+            --height=40% \
+            --reverse \
+            --prompt="➤ 主菜单 > " \
+            --header="请选择功能模块" \
+            --color="header:${THEME_HEADER_COLOR}" \
+            --preview="echo -e '\n${THEME_PREVIEW}按 Enter 选择功能模块${COLOR_RESET}'"
+        )
+        
+        case $selection in
+            *文件*) fzf_full_files_manager ;;
+            *版本*) fzf_version_manager ;;
+            *进程*) fzf_process_manager ;;
+            *监控*) fzf_monitor_manager ;;
+            *图片*) fzf_image_manager ;;
+            *书签*) fzf_bookmark_manager ;;
+            *自定义*) fzf_customs_manager ;;
+            *退出*|*) break ;;
+        esac
+    done
+}
+alias fm="fzf_manager"
+
 if [ "zsh" = "$nowshell" ]; then
-    zle -N fzf_full_files_manager
-    bindkey '^F' fzf_full_files_manager   #//Ctrl F 执行fzf_full_files_manager函数
+    zle -N fzf_manager
+    bindkey '^F' fzf_manager   #//Ctrl F 执行fzf_manager函数
 else
-    export -f fzf_full_files_manager
-    bind '"\C-F":"fzf_full_files_manager;\n"'   #//Ctrl F 执行fzf_full_files_manager函数
+    export -f fzf_manager
+    bind '"\C-F":"fzf_manager;\n"'   #//Ctrl F 执行fzf_manager函数
 fi
 
 function fzf_favorate_image_manager() {                                             # Desc: function: fzf_favorate_image_manager利用fzf 配合自定义的 favo 命令管理 iterm2 的背景图

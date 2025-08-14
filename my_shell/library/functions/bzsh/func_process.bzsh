@@ -43,9 +43,9 @@ alias fpi="fzf_process_magnifier"                                               
 
 function fzf_process_manager() {                                                    # Desc: function: fzf_process_manager: 利用fzf管理进程
 	while true; do
-		local processes=$(ps -eo pid,user,pcpu,pmem,comm,args | sed 1d | awk -v process="$processes" '
+		local processes=$(ps -eo pid,user,pcpu,pmem,comm,args | sed 1d | awk -v test="$test" '
             { print }
-            END { print "↩️ 返回" }
+            END { print "🔙 返回" }
 			')
 
 		if [[ -z "$processes" ]]; then
@@ -70,7 +70,7 @@ function fzf_process_manager() {                                                
 				--header=$'快捷键: \n[Ctrl+K]终止 | \n[Ctrl+S]暂停 | \n[Ctrl+C]继续 | \n[Ctrl+I]降低优先级 | \n[Ctrl+R]提高优先级 | \n[Ctrl+O]打开工作目录'
 		)
 
-		if [[ -z "$selection" ]] || [[ "$selection" == "↩️ 返回" ]]; then
+		if [[ -z "$selection" ]] || [[ "$selection" == "🔙 返回" ]]; then
 			break
 		fi
 	done

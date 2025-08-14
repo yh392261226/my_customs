@@ -139,7 +139,7 @@ function fzf_favo_manager() {                                                   
         "🗓️ 表格形式展示收藏(Table)" \
         "🗑️ 删除(Remove)" \
         "💡 帮助(Help)" \
-        "↩️ 返回" | \
+        "🔙 返回" | \
         fzf +m \
             --header " 背景图收藏管理系统 " \
             --prompt "主菜单 ❯ " \
@@ -220,7 +220,7 @@ function fzf_img_manager() {                                                    
         "去重后展示重复(dupafter)"
         "查找空文件(empty)"
         "帮助(help)"
-        "↩️ 返回"
+        "🔙 返回"
     )
     
     while true; do
@@ -245,7 +245,7 @@ function fzf_img_manager() {                                                    
             *dupafter*) $MYRUNTIME/customs/bin/img dupafter ;;
             *empty*) $MYRUNTIME/customs/bin/img empty ;;
             *help*) $MYRUNTIME/customs/bin/img help ;;
-            "↩️ 返回"|*)
+            "🔙 返回"|*)
                 break
                 ;;
         esac
@@ -257,7 +257,7 @@ function fzf_image_manager() {                                                  
     local options=(
         "图片收藏(favo)"
         "下载图片(img)"
-        "↩️ 返回"
+        "🔙 返回"
     )
     
     while true; do
@@ -277,7 +277,7 @@ function fzf_image_manager() {                                                  
             *img*)
                 fzf_img_manager
                 ;;
-            "↩️ 返回"|*)
+            "🔙 返回"|*)
                 break
                 ;;
         esac
