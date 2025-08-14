@@ -244,55 +244,84 @@ actioner_create() {
     fi
 }
 
+# 查看原身
+actioner_view_origin() {
+    local file="$1"
+    echo "source: $file" | lolcat -f -F 0.05
+    local target=$(readlink "$file")
+    echo "target: $target" | lolcat -f -F 0.05
+    file $target  | lolcat -f -F 0.05
+    return
+}
+
 #----------------------- 文件类型处理 -----------------------#
 
 # 识别文件类型
 detect_filetype() {
     local path="$1"
-    
-    if [[ -d "$path" ]]; then
+    local islink=0
+    local result
+
+    # 验证是否是软链接
+    if [[ -L $path ]]; then
+        islink=1
+        path=$(readlink $path)
+    fi
+
+    # 验证文件夹
+    if [[ -d "$path" ]] && [ "1" = "$islink" ]; then
+        echo "symlink_directory"
+        return
+    elif [[ -d "$path" ]]; then
         echo "directory"
         return
     fi
     
+    # 其他文件类型
     local mime_type=$(file --mime-type -b "$path" 2>/dev/null)
     
     case "$mime_type" in
-        text/*|*/xml|application/json)    echo "text"    ;;
-        image/*)                          echo "image"   ;;
-        video/*)                          echo "video"   ;;
-        audio/*)                          echo "audio"   ;;
-        application/pdf)                  echo "pdf"     ;;
-        application/epub+zip)             echo "ebook"   ;;
-        application/vnd.openxmlformats*)  echo "office"  ;;
-        application/zip|application/x-*)  echo "archive" ;;
-        application/x-shellscript)        echo "script"  ;;
-        application/x-executable)         echo "binary"  ;;
-        *)                                echo "other"   ;;
+        text/*|*/xml|application/json)    result="text"    ;;
+        image/*)                          result="image"   ;;
+        video/*)                          result="video"   ;;
+        audio/*)                          result="audio"   ;;
+        application/pdf)                  result="pdf"     ;;
+        application/epub+zip)             result="ebook"   ;;
+        application/vnd.openxmlformats*)  result="office"  ;;
+        application/zip|application/x-*)  result="archive" ;;
+        application/x-shellscript)        result="script"  ;;
+        application/x-executable)         result="binary"  ;;
+        *)                                result="other"   ;;
     esac
+
+    if [ "1" = "$islink" ]; then
+        result="symlink_$result"
+    fi
+    echo $result
 }
 
 # 生成上下文菜单
 generate_menu() {
     local filetype="$1"
-    
+    local text=''
+    [[ $filetype =~ symlink_ ]] && text=' 查看原身'
     case "$filetype" in
-        "directory")
-            echo "进入目录 创建 删除 复制 移动 重命名 压缩 打开位置 收藏 查看权限 设置权限 取消" ;;
-        "text")
-            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
-        "pdf")
-            echo "文本预览 打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
-        "office")
-            echo "打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
-        "archive")
-            echo "解压 查看内容 复制 移动 删除 收藏 查看权限 设置权限 取消" ;;
-        "image")
-            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
-        "video"|"audio")
-            echo "终端播放 打开文件 复制 移动 删除 收藏 查看权限 设置权限 取消" ;;
-        "script")
-            echo "执行脚本 创建 编辑 查看 复制 移动 删除 收藏 查看权限 设置权限 取消" ;;
+        "directory"|"symlink_directory")
+            echo "进入目录 创建 删除 复制 移动 重命名 压缩 打开位置 收藏 查看权限 设置权限${text} 取消" ;;
+        "text"|"symlink_text")
+            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 取消" ;;
+        "pdf"|"symlink_pdf")
+            echo "文本预览 打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 取消" ;;
+        "office"|"symlink_office")
+            echo "打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 取消" ;;
+        "archive"|"symlink_archive")
+            echo "解压 查看内容 复制 移动 删除 收藏 查看权限 设置权限${text} 取消" ;;
+        "image"|"symlink_image")
+            echo "预览图片 打开文件 收藏图片 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 取消" ;;
+        "video"|"audio"|"symlink_video"|"symlink_audio")
+            echo "终端播放 打开文件 复制 移动 删除 收藏 查看权限 设置权限${text} 取消" ;;
+        "script"|"symlink_script")
+            echo "执行脚本 创建 编辑 查看 复制 移动 删除 收藏 查看权限 设置权限${text} 取消" ;;
         *)
             echo "打开文件 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限 取消" ;;
     esac
@@ -351,6 +380,7 @@ actioner() {
                 *Nvim*) nvim +$line_num "$filepath"        ;;
                 *Code*) code --goto "$filepath:$line_num"  ;;
             esac ;;
+        查看原身*)        actioner_view_origin "$filepath"   ;;
         查看*)
             case $action in
                 *Bat*)  bat --style=full "$filepath"       ;;
