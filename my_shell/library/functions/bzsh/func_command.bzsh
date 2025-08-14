@@ -801,70 +801,6 @@ function fzf_search_custom_alias_by_desc() {                                    
 }
 alias fsa="fzf_search_custom_alias_by_desc"                                         # Desc: alias: fsa: fzf_search_custom_alias_by_desc命令的别名,根据自定义的描述和别名查询自定义命令
 
-function fzf_view_bookmarks_list() {                                                # Desc: function: fzf_view_bookmarks_list: 利用fzf查看终端收藏
-    local ifbreak="${1:-0}"
-    cd ${TMP_FZF_BOOKMARKS_PATH}/ 
-    local selected=$(ls . | fzf $FZF_CUSTOM_PARAMS +m \
-    --bind="ctrl-d:execute(rm -f ${TMP_FZF_BOOKMARKS_PATH}/{})+reload(ls .)" \
-    --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
-    --preview-window="right:70%:border-rounded,nohidden,~3" \
-    --preview="(${MYRUNTIME}/customs/bin/_previewer ${TMP_FZF_BOOKMARKS_PATH}/{}) 2> /dev/null | head -500")
-    cd -
-    if [ "" != "${selected}" ]; then
-        head -n 1 ${TMP_FZF_BOOKMARKS_PATH}/${selected} | pbcopy
-        return
-    fi
-    if [ "$ifbreak" != "0" ]; then
-        break 2
-    fi
-    return 1
-}
-alias fvb="fzf_view_bookmarks_list"                                                 # Desc: alias: fvb: fzf_view_bookmarks_list命令的别名，利用fzf查看终端收藏
-
-function get_iterm2_current_background_image() {                                    # Desc: function: get_iterm2_current_background_image: 获取当前iterm的session中背景图地址
-    bg_path=$(osascript -e '
-tell application "iTerm"
-    if current window is missing value then
-        return ""
-    end if
-    
-    tell current window
-        if current session is missing value then
-            return ""
-        end if
-        
-        tell current session
-            if background image is not missing value then
-                return background image
-            else
-                return ""
-            end if
-        end tell
-    end tell
-end tell')
-
-    # 检查结果
-    if [[ -n "$bg_path" && "$bg_path" != "missing value" ]]; then
-        echo "$bg_path"
-    fi
-    return
-}
-alias gicbg="get_iterm2_current_background_image"                                   # Desc: alias: gicbg: get_iterm2_current_background_image命令的别名，获取当前iterm的session中背景图地址
-
-check_favo_exists() {
-    MYRUNTIME=$(cat ${HOME}/.myruntime)
-    RUNTIME_DIR="${MYRUNTIME}/tools"
-    curmark=$(basename $(readlink $MYRUNTIME/pictures))
-    FAVO_MARK="${RUNTIME_DIR}/m_favorate_${curmark}"
-
-    if grep -qF "$(get_iterm2_current_background_image)" "${FAVO_MARK}"; then
-        echo "1"
-        return 1
-    fi
-    echo "0"
-    return 0
-}
-
 function fzf_full_files_manager() {                                                 # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
     ___fzf_manage_all() {
         local Action="$1"
@@ -970,7 +906,7 @@ function fzf_full_files_manager() {                                             
             *自定义FZF函数*) fzf_customs_fzf_awesome_functions_list ;;
             *自定义函数*) fzf_search_custom_functions_by_desc ;;
             *自定义别名*) fzf_search_custom_alias_by_desc ;;
-            *查看书签*) fzf_view_bookmarks_list;;
+            *查看书签*) fzf_bookmark_list;;
             *退出系统*) return ;;
         esac
 #    done

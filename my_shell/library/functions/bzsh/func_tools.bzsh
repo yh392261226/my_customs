@@ -18,3 +18,126 @@ function create_tmp_aliases() {                                                 
     fi
 }
 alias cta="create_tmp_aliases"                                                        # Desc: alias: cta:create_tmp_aliases命令的别名,以a+数字形式创建临时别名命令
+
+function temprature_monitor() {                                                       # Desc: function: temprature_monitor: 温度监控
+    while true; do
+        clear
+        # 先安装: brew install osx-cpu-temp
+        if command -v osx-cpu-temp &>/dev/null; then
+            temp=$(osx-cpu-temp | grep -oE '[0-9.]+')
+            echo "CPU 温度: ${temp}°C"
+        # 高温警告
+            if (( $(echo "$temp > 80" | bc -l) )); then
+                echo "警告: CPU 温度过高!"
+            fi
+        else
+            echo "请先安装: brew install osx-cpu-temp"
+        fi
+    done
+}
+alias tm="temprature_monitor"                                                         # Desc: alias: tm: temprature_monitor命令的别名，温度监控
+
+function net_port_monitor() {                                                         # Desc: function: net_port_monitor: 网络端口监控
+    # 监控特定端口
+    local text='请输入要监控的端口号 '
+    if command -v gum >/dev/null; then
+        port=$(gum input --placeholder "$text")
+    else
+        read -rep "$text" port </dev/tty
+    fi
+
+    # port=8080
+    while true; do
+        clear
+        if lsof -i :$port >/dev/null; then
+            echo "$(date) - 端口 $port 正在监听"
+        else
+            echo "$(date) - 警告: 端口 $port 未监听!"
+        fi
+
+        # 监控网络响应
+        if ping -c1 -t2 8.8.8.8 &>/dev/null; then
+            echo "外网连接正常"
+        else
+            echo "警告: 外网连接失败!"
+        fi
+    done
+}
+alias mnp="net_port_monitor"                                                          # Desc: alias: mnp: net_port_monitor命令的别名，网络端口监控
+
+function disk_monitor() {                                                             # Desc: function: disk_monitor: 硬盘监控
+    # 检查根目录使用率
+    while true; do
+        clear
+        disk_usage=$(/bin/df -h / | tail -1 | awk '{print $5}' | tr -d '%')
+        threshold=85
+
+        if [[ "$disk_usage" -gt "$threshold" ]]; then
+            echo "警告: 根目录使用率 ${disk_usage}% > ${threshold}%"
+        else
+            echo "磁盘正常: ${disk_usage}%"
+        fi
+    done
+    # 可选：监控特定挂载点
+    # df -h /Volumes/YourDrive
+}
+alias dm="disk_monitor"                                                               # Desc: alias: dm: disk_monitor命令的别名，硬盘监控
+
+function real_time_cup_memory_monitor() {                                             # Desc: function: real_time_cup_memory_monitor: 实时监控CPU和内存
+    # 兼容 bash 和 zsh
+    while true; do
+    clear
+    echo "===== $(date) ====="
+    
+    # CPU 使用率 (macOS 适配)
+    cpu_usage=$(ps -A -o %cpu | awk '{s+=$1} END {printf "%.1f%%", s}')
+    echo "CPU Usage: $cpu_usage"
+
+    # 内存使用情况 (使用 vm_stat)
+    total_mem=$(sysctl -n hw.memsize)
+    page_size=$(vm_stat | grep 'page size' | awk '{print $8}')
+    free_pages=$(vm_stat | grep 'Pages free' | awk '{print $3}' | sed 's/.//g')
+    used_mem=$(( (total_mem - (free_pages * page_size)) / 1024 / 1024 ))
+    total_mem=$(( total_mem / 1024 / 1024 ))
+    echo "Memory: ${used_mem}MB / ${total_mem}MB"
+
+    sleep 2
+    done
+}
+alias rcmm="real_time_cup_memory_monitor"                                             # Desc: alias: rcmm: real_time_cup_memory_monitor命令的别名，实时监控CPU和内存
+
+function fzf_monitor_manager() {                                                      # Desc: function: fzf_monitor_manager: 利用fzf管理监控命令
+    local options=(
+        "实时CPU和内存"
+        "磁盘"
+        "进程"
+        "网络"
+        "温度"
+        "↩️ 返回"
+    )
+    
+    while true; do
+        clear
+        echo -e "${THEME_HEADER} fzf-ultimate - 设置 ${COLOR_RESET}"
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 监控 > " \
+            --preview="echo -e '\n${THEME_PREVIEW}当前主题: ${THEME_NAME}${COLOR_RESET}'" \
+            --preview-window="top:3:wrap"
+        )
+        
+        case "$selection" in
+            "实时CPU和内存") real_time_cup_memory_monitor ;;
+            "磁盘") disk_monitor ;;
+            "进程") process_monitor ;;
+            "网络") network_monitor ;;
+            "温度") temprature_monitor ;;
+            "↩️ 返回"|*)
+                break
+                ;;
+        esac
+    done
+}
+alias fmm="fzf_monitor_manager"                                                       # Desc: alias: fmm: fzf_monitor_manager命令的别名，利用fzf管理监控命令

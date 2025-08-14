@@ -1,2 +1,155 @@
 ### Package Desc: 其他自定义命令
 
+function fzf_bookmark_list() {                                                  # Desc: function: fzf_bookmark_list: 利用fzf实现的书签
+    local ifbreak="${1:-0}"
+    cd ${TMP_FZF_BOOKMARKS_PATH}/ 
+    local selected=$(ls . | awk -v test="$test" '
+            { print }
+            END { print "↩️ 返回" }
+			' | fzf $FZF_CUSTOM_PARAMS +m \
+    --bind="ctrl-d:execute(rm -f ${TMP_FZF_BOOKMARKS_PATH}/{})+reload(ls .)" \
+    --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
+    --preview-window="right:70%:border-rounded,nohidden,~3" \
+    --preview="(${MYRUNTIME}/customs/bin/_previewer ${TMP_FZF_BOOKMARKS_PATH}/{}) 2> /dev/null | head -500")
+    cd -
+    if [ "" != "${selected}" ] && [ "↩️ 返回" != "${selected}" ]; then
+        head -n 1 ${TMP_FZF_BOOKMARKS_PATH}/${selected} | pbcopy
+        return
+    fi
+    return 1
+}
+alias fbl="fzf_bookmark_list"                                                   # Desc: alias: fbl: fzf_bookmark_list命令的别命，利用fzf实现的书签
+
+function bookmark_add() {                                                       # Desc: function: bookmark_add:书签添加
+    local name
+    local path
+    local desc
+    
+    local text='请输入书签名 '
+    if command -v gum >/dev/null; then
+        name=$(gum input --placeholder "$text")
+    else
+        read -rep "$text" name </dev/tty
+    fi
+
+    # 检查书签名称是否有效
+    if [[ -z "$name" ]]; then
+        echo "错误：书签名称不能为空"
+        return 1
+    fi
+
+    text='请输入书签文件地址 '
+    if command -v gum >/dev/null; then
+        path=$(gum input --placeholder "$text")
+    else
+        read -rep "$text" path </dev/tty
+    fi
+
+    text='请输入书签描述 '
+    if command -v gum >/dev/null; then
+        desc=$(gum write --placeholder "$text")
+    else
+        read -rep "$text" desc </dev/tty
+    fi
+
+    if [ ! -f ${TMP_FZF_BOOKMARKS_PATH}/${name} ]; then
+        # 添加新书签
+        touch ${TMP_FZF_BOOKMARKS_PATH}/${name}
+        echo "${path}" > "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+        echo "#Desc:${desc}" >> "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+    else
+        echo "${path}" > "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+        echo "#Desc:${desc}" >> "${TMP_FZF_BOOKMARKS_PATH}/${name}"
+    fi
+}
+alias ba2="bookmark_add"                                                        # Desc: alias: ba2: bookmark_add命令的别名，书签添加
+
+function fzf_bookmark_delete() {                                                # Desc: function: fzf_bookmark_delete: 利用fzf删除书签
+    cd ${TMP_FZF_BOOKMARKS_PATH}/ 
+    local selected=$(ls . | awk -v process="$processes" '
+            { print }
+            END { print "↩️ 返回" }
+			' | fzf $FZF_CUSTOM_PARAMS \
+    --bind="ctrl-d:execute(rm -f ${TMP_FZF_BOOKMARKS_PATH}/{})+reload(ls .)" \
+    --header="$(_buildFzfHeader '' 'fzf_view_bookmarks_list')" \
+    --preview-window="right:70%:border-rounded,nohidden,~3" \
+    --preview="(${MYRUNTIME}/customs/bin/_previewer ${TMP_FZF_BOOKMARKS_PATH}/{}) 2> /dev/null | head -500")
+    cd -
+    if [ "" != "${selected}" ] && [ "↩️ 返回" != "${selected}" ]; then
+        rm -f ${selected}
+        return
+    fi
+    return 1
+}
+alias fbd2="fzf_bookmark_delete"                                                # Desc: alias: fbd2: fzf_bookmark_delete命令别名，利用fzf删除书签
+
+function fzf_bookmark_manager() {                                               # Desc: function: fzf_bookmark_manager: 利用fzf管理书签
+    local options=(
+        "列表"
+        "添加"
+        "删除"
+        "↩️ 返回"
+    )
+    
+    while true; do
+        clear
+        echo -e "${THEME_HEADER} 书签 ${COLOR_RESET}"
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 书签 > "
+        )
+        
+        case $selection in
+            *列表*)
+                fzf_bookmark_list
+                ;;
+            *添加*)
+                bookmark_add
+                ;;
+            *删除*)
+                fzf_bookmark_delete
+                ;;
+            *返回*|*)
+                break
+                ;;
+        esac
+    done
+}
+alias fbm2="fzf_bookmark_manager"                                               # Desc: alias: fbm2: fzf_bookmark_manager命令的别名，利用fzf管理书签
+
+function fzf_customs_manager() {                                                # Desc: function: fzf_customs_manager: 利用fzf管理自定义命令
+    local options=(
+        "™️ 自定义FZF函数(Function)"
+        "®️ 自定义函数(Function)"
+        "©️ 自定义别名(Alia)"
+        "↩️ 返回"
+    )
+    
+    # while true; do
+        clear
+        echo -e "${THEME_HEADER} fzf-ultimate - 设置 ${COLOR_RESET}"
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 自定义 > "
+        )
+        case $selection in
+            *自定义FZF函数*) 
+                source $MYRUNTIME/customs/my_shell/rcfile 2>/dev/null
+                fzf_customs_fzf_awesome_functions_list ;;
+            *自定义函数*) 
+                source $MYRUNTIME/customs/my_shell/rcfile 2>/dev/null
+                fzf_search_custom_functions_by_desc ;;
+            *自定义别名*) 
+                source $MYRUNTIME/customs/my_shell/rcfile 2>/dev/null
+                fzf_search_custom_alias_by_desc ;;
+            *返回*|*)
+                break
+                ;;
+        esac
+    # done
+}
+alias fcm="fzf_customs_manager"                                                 # Desc: alias: fcm: fzf_customs_manager命令的别名,利用fzf管理自定义命令

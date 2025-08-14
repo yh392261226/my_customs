@@ -39,4 +39,60 @@ function fzf_process_magnifier() {                                              
 --header="$(_buildFzfHeader '' 'fzf_process_magnifier')" \
 | awk '{print $2}' | xargs kill -9
 }
-alias fpm="fzf_process_magnifier"                                                   # Desc: alias: fpm: fzf_process_magnifier命令的别名,进程放大镜
+alias fpi="fzf_process_magnifier"                                                   # Desc: alias: fpi: fzf_process_magnifier命令的别名,进程放大镜
+
+function fzf_process_manager() {                                                    # Desc: function: fzf_process_manager: 利用fzf管理进程
+	while true; do
+		local processes=$(ps -eo pid,user,pcpu,pmem,comm,args | sed 1d | awk -v process="$processes" '
+            { print }
+            END { print "↩️ 返回" }
+			')
+
+		if [[ -z "$processes" ]]; then
+			echo "没有运行的进程"
+			sleep 1
+			return
+		fi
+
+		local selection=$(
+			echo "$processes" | fzf \
+				--multi \
+				--height=80% \
+				--header-lines=0 \
+				--header="PID      USER     CPU%   MEM%   COMMAND" \
+				--preview="echo '完整命令行: {6,7,8,9,10,11,12,13,14,15}' | fold -s -w 80" \
+				--bind "ctrl-k:execute-silent(kill -9 {1})" \
+				--bind "ctrl-s:execute-silent(kill -STOP {1})" \
+				--bind "ctrl-c:execute-silent(kill -CONT {1})" \
+				--bind "ctrl-i:execute-silent(renice +5 -p {1})" \
+				--bind "ctrl-r:execute-silent(renice -5 -p {1})" \
+				--bind "ctrl-o:execute-silent(open -R /proc/{1}/cwd)" \
+				--header=$'快捷键: \n[Ctrl+K]终止 | \n[Ctrl+S]暂停 | \n[Ctrl+C]继续 | \n[Ctrl+I]降低优先级 | \n[Ctrl+R]提高优先级 | \n[Ctrl+O]打开工作目录'
+		)
+
+		if [[ -z "$selection" ]] || [[ "$selection" == "↩️ 返回" ]]; then
+			break
+		fi
+	done
+}
+alias fpm="fzf_process_manager"                                                     # Desc: alias: fpm: fzf_process_manager命令的别名,利用fzf管理进程 
+
+
+function process_monitor() {                                                        # Desc: function: process_monitor: 进程监控
+    # 监控特定端口
+    local text='请输入要监控的进程名 '
+    if command -v gum >/dev/null; then
+        process_name=$(gum input --placeholder "$text")
+    else
+        read -rep "$text" process_name </dev/tty
+    fi
+
+    if pgrep -q "$process_name"; then
+    echo "$(date) - $process_name 正在运行"
+    else
+    echo "$(date) - 警告: $process_name 未运行!"
+    # 可选：自动启动进程
+    # open -a "$process_name"
+    fi
+}
+alias pm="process_monitor"                                                          # Desc: alias: pm: process_monitor命令的别名，进程监控

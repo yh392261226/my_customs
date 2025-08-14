@@ -78,3 +78,209 @@ function fzf_iterm2_background_image_selector() {                               
     #echo "Ctrl - V to paste the command, then press enter to execute."
 }
 alias fbg="fzf_iterm2_background_image_selector"                                     # Desc: alias: fbg: fzf_iterm2_background_image_selector命令的别名,利用fzf选择iterm2的背景图片
+
+
+function get_iterm2_current_background_image() {                                     # Desc: function: get_iterm2_current_background_image: 获取当前iterm的session中背景图地址
+    bg_path=$(osascript -e '
+tell application "iTerm"
+    if current window is missing value then
+        return ""
+    end if
+    
+    tell current window
+        if current session is missing value then
+            return ""
+        end if
+        
+        tell current session
+            if background image is not missing value then
+                return background image
+            else
+                return ""
+            end if
+        end tell
+    end tell
+end tell')
+
+    # 检查结果
+    if [[ -n "$bg_path" && "$bg_path" != "missing value" ]]; then
+        echo "$bg_path"
+    fi
+    return
+}
+alias gicbg="get_iterm2_current_background_image"                                    # Desc: alias: gicbg: get_iterm2_current_background_image命令的别名，获取当前iterm的session中背景图地址
+
+check_favo_exists() {
+    MYRUNTIME=$(cat ${HOME}/.myruntime)
+    RUNTIME_DIR="${MYRUNTIME}/tools"
+    curmark=$(basename $(readlink $MYRUNTIME/pictures))
+    FAVO_MARK="${RUNTIME_DIR}/m_favorate_${curmark}"
+
+    if grep -qF "$(get_iterm2_current_background_image)" "${FAVO_MARK}"; then
+        echo "1"
+        return 1
+    fi
+    echo "0"
+    return 0
+}
+
+
+function fzf_favo_manager() {                                                       # Desc: function: fzf_favo_manager: 利用fzf管理自定义的favo命令
+    local action=$(printf "%s\n" \
+        $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ] && [ "1" != "$(check_favo_exists)" ]; then echo "🗂️收藏背景图（collection）"; fi) \
+        "🌐 所有收藏(All)" \
+        "🔍️ 模糊搜索(Search)" \
+        "📃 生成HTML相册(HTML)" \
+        "🖼️ 设置指定图片为背景(Set)" \
+        "🔀 随机切换背景(Random)" \
+        "📍 在Finder中定位文件(Locate)" \
+        "🗺️ 显示缩略图(Thumb)" \
+        "🛠️ 重建收藏列表(Rebuild)" \
+        "🗓️ 表格形式展示收藏(Table)" \
+        "🗑️ 删除(Remove)" \
+        "💡 帮助(Help)" \
+        "↩️ 返回" | \
+        fzf +m \
+            --header " 背景图收藏管理系统 " \
+            --prompt "主菜单 ❯ " \
+            --preview-window=up:30% \
+            --preview "echo '请选择操作类型'" \
+            --height=15% \
+            --bind='space:jump,jump:accept' \
+            --reverse)
+
+    case $action in
+        *收藏背景图*) 
+            $MYRUNTIME/customs/bin/favo add
+            return 
+            ;;
+        *所有收藏*) $MYRUNTIME/customs/bin/favo list
+            return 
+            ;;
+        *模糊搜索*) 
+            local text
+            if command -v gum >/dev/null; then
+                text=$(gum input --placeholder "Type search text")
+            else
+                read text
+            fi
+            
+            [[ "" != "$text" ]] && $MYRUNTIME/customs/bin/favo search "$text"
+            return 
+            ;;
+        *生成HTML相册*) $MYRUNTIME/customs/bin/favo html
+            return 
+            ;;
+        *设置指定图片为背景*) 
+            local img
+            if command -v gum >/dev/null; then
+                img=$(gum input --placeholder "Type image location")
+            else
+                read img
+            fi
+            $MYRUNTIME/customs/bin/favo set "$img"
+            return 
+            ;;
+        *随机切换背景*) $MYRUNTIME/customs/bin/favo random
+            return 
+            ;;
+        *在Finder中定位文件*) $MYRUNTIME/customs/bin/favo locate
+            return 
+            ;;
+        *显示缩略图*) $MYRUNTIME/customs/bin/favo thumb
+            return 
+            ;;
+        *重建收藏列表*) $MYRUNTIME/customs/bin/favo rebuild
+            return 
+            ;;
+        *表格形式展示收藏*) $MYRUNTIME/customs/bin/favo table
+            return 
+            ;;
+        *删除*) $MYRUNTIME/customs/bin/favo remove
+            return 
+            ;;
+        *帮助*) $MYRUNTIME/customs/bin/favo help
+            return 
+            ;;
+        *返回*) return ;;
+    esac
+}
+alias ffm2="fzf_favo_manager"                                                       # Desc: alias: ffm2: fzf_favo_manager命令的别名，利用fzf管理自定义的favo命令
+
+function fzf_img_manager() {                                                        # Desc: function: fzf_img_manager: 利用fzf管理自定义的img命令
+    local options=(
+        "全目录记录(record)"
+        "去重并记录(uniq)"
+        "重复文件分离(move)"
+        "打开目录(open)"
+        "未满状态查看(unfull)"
+        "展示重复(after)"
+        "记录去重后重复的(duprecord)"
+        "去重后再去重(dupuniq)"
+        "去重后展示重复(dupafter)"
+        "查找空文件(empty)"
+        "帮助(help)"
+        "↩️ 返回"
+    )
+    
+    while true; do
+        clear
+        echo -e "${THEME_HEADER} 图片 ${COLOR_RESET}"
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 图片 > " 
+        )
+        
+        case $selection in
+            *record*) $MYRUNTIME/customs/bin/img record ;;
+            *uniq*) $MYRUNTIME/customs/bin/img uniq ;;
+            *move*) $MYRUNTIME/customs/bin/img move ;;
+            *open*) $MYRUNTIME/customs/bin/img open ;;
+            *unfull*) $MYRUNTIME/customs/bin/img unfull ;;
+            *after*) $MYRUNTIME/customs/bin/img after ;;
+            *duprecord*) $MYRUNTIME/customs/bin/img duprecord ;;
+            *dupuniq*) $MYRUNTIME/customs/bin/img dupuniq ;;
+            *dupafter*) $MYRUNTIME/customs/bin/img dupafter ;;
+            *empty*) $MYRUNTIME/customs/bin/img empty ;;
+            *help*) $MYRUNTIME/customs/bin/img help ;;
+            "↩️ 返回"|*)
+                break
+                ;;
+        esac
+    done
+}
+alias fim="fzf_img_manager"                                                         # Desc: alias: fim: fzf_img_manager命令的别名，利用fzf管理自定义的img命令
+
+function fzf_image_manager() {                                                      # Desc: function: fzf_image_manager: 利用fzf管理自定义的图片命令
+    local options=(
+        "图片收藏(favo)"
+        "下载图片(img)"
+        "↩️ 返回"
+    )
+    
+    while true; do
+        clear
+        echo -e "${THEME_HEADER} 图片 ${COLOR_RESET}"
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 图片 > " 
+        )
+        
+        case $selection in
+            *favo*)
+                fzf_favo_manager
+                ;;
+            *img*)
+                fzf_img_manager
+                ;;
+            "↩️ 返回"|*)
+                break
+                ;;
+        esac
+    done
+}
+alias fimg="fzf_image_manager"                                                      # Desc: alias: fimg: fzf_image_manager命令的别名，利用fzf管理自定义的图片命令
