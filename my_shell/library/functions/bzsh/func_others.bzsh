@@ -80,7 +80,6 @@ function fzf_bookmark_manager() {                                               
     )
     
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "书签管理" || echo -e "书签管理"
-    echo -e "==========================================="
     while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -115,7 +114,6 @@ function fzf_customs_manager() {                                                
     )
     
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "自定义管理" || echo -e "自定义管理"
-    echo -e "==========================================="
     while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \

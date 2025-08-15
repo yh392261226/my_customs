@@ -127,7 +127,6 @@ check_favo_exists() {
 
 function fzf_favo_manager() {                                                       # Desc: function: fzf_favo_manager: 利用fzf管理自定义的favo命令
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "背景图收藏管理" || echo -e "背景图收藏管理"
-    echo -e "==========================================="
     local action=$(printf "%s\n" \
         $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ] && [ "1" != "$(check_favo_exists)" ]; then echo "🗂️收藏背景图（collection）"; fi) \
         "🌐 所有收藏(All)" \
@@ -211,7 +210,6 @@ alias ffm2="fzf_favo_manager"                                                   
 
 function fzf_img_manager() {                                                        # Desc: function: fzf_img_manager: 利用fzf管理自定义的img命令
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "图片下载管理" || echo -e "图片下载管理"
-    echo -e "==========================================="
     local options=(
         "全目录记录(record)"
         "去重并记录(uniq)"
@@ -223,6 +221,7 @@ function fzf_img_manager() {                                                    
         "去重后再去重(dupuniq)"
         "去重后展示重复(dupafter)"
         "查找空文件(empty)"
+        "监控(watch)"
         "帮助(help)"
         "🔙 返回"
     )
@@ -244,6 +243,13 @@ function fzf_img_manager() {                                                    
             *dupuniq*) $MYRUNTIME/customs/bin/img dupuniq ;;
             *dupafter*) $MYRUNTIME/customs/bin/img dupafter ;;
             *empty*) $MYRUNTIME/customs/bin/img empty ;;
+            *watch*) 
+                while true; do
+                    echo "===== $(date) ====="    
+                    $MYRUNTIME/customs/bin/img unfull
+                    sleep 5
+                done
+            ;;
             *help*) $MYRUNTIME/customs/bin/img help ;;
             "🔙 返回"|*)
                 break
@@ -260,7 +266,6 @@ function fzf_image_manager() {                                                  
         "🔙 返回"
     )
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "图片管理" || echo -e "图片管理"
-    echo -e "==========================================="
     while true; do
         echo -e "${THEME_HEADER} 图片 ${COLOR_RESET}"
         

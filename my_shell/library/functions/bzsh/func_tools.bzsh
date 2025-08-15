@@ -21,7 +21,6 @@ alias cta="create_tmp_aliases"                                                  
 
 function temprature_monitor() {                                                       # Desc: function: temprature_monitor: 温度监控
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "温度监控" || echo -e "温度监控"
-    echo -e "==========================================="
     while true; do
         
         # 先安装: brew install osx-cpu-temp
@@ -47,7 +46,6 @@ function net_port_monitor() {                                                   
     # port=8080
 
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "网络端口监控" || echo -e "网络端口监控"
-    echo -e "==========================================="
     while true; do
         if lsof -i :$port >/dev/null; then
             echo "$(date) - 端口 $port 正在监听"
@@ -68,7 +66,6 @@ alias mnp="net_port_monitor"                                                    
 function disk_monitor() {                                                             # Desc: function: disk_monitor: 硬盘监控
     # 检查根目录使用率
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "硬盘监控" || echo -e "硬盘监控"
-    echo -e "==========================================="
     while true; do
         disk_usage=$(/bin/df -h / | tail -1 | awk '{print $5}' | tr -d '%')
         threshold=85
@@ -117,7 +114,6 @@ function fzf_monitor_manager() {                                                
     )
     
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "监控管理" || echo -e "监控管理"
-    echo -e "==========================================="
     while true; do
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -145,7 +141,6 @@ vedio_list_manager() {
     local current_dir=$HOME/data/Vedioes/
     local tmp_current_dir=$PWD
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "视频列表" || echo -e "视频列表"
-    echo -e "==========================================="
     while true; do
         cd $current_dir
         local selection=$(ls $current_dir | awk -v dir="$current_dir" '
@@ -169,7 +164,6 @@ vedio_list_manager() {
 
 vedio_web_manager() {
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "视频网站管理" || echo -e "视频网站管理"
-    echo -e "==========================================="
     local vediomark=$MYRUNTIME/tools/m_vedio_mark
     [[ ! -f $vediomark ]] && touch $vediomark
     urls=$(cat "$vediomark" | awk -v dir="$current_dir" '
@@ -198,16 +192,38 @@ vedio_web_manager() {
     done <<< "$urls"
 }
 
+ofen_used_soft_manager() {
+    local ofenmark=$MYRUNTIME/tools/m_ofen_used_soft
+    [[ ! -f $ofenmark ]] && touch $ofenmark
+
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "常用软件管理" || echo -e "常用软件管理"
+    
+    local selection=$(cat $ofenmark | awk -v dir="$FZF_CURRENT_DIR" '
+            { print }
+            END { print "🔙 返回" }
+        ' | fzf --reverse \
+            --bind="ctrl-o:execute(open {})+abort" \
+            --bind="ctrl-e:execute(nvim \"$ofenmark\" < /dev/tty > /dev/tty)+reload(cat \"$ofenmark\" | awk -v dir=\"$FZF_CURRENT_DIR\" '
+            { print }
+            END { print \"🔙 返回\" }
+        ')" \
+            --prompt="➤ 常用软件管理 > ")
+    [[ -z "$selection" ]] && return
+    while read -r selected; do
+        [[ -n $selected ]] && open "$selected"
+    done <<< $selection
+}
+
 fzf_recreation_manager() {
     local options=(
         "列表"
         "常看视频网站"
         "打开目录"
+        "常用软件"
         "↩️ 返回"
     )
     
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "娱乐管理" || echo -e "娱乐管理"
-    echo -e "==========================================="
     while true; do
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -216,19 +232,11 @@ fzf_recreation_manager() {
         )
         
         case $selection in
-            *视频列表*)
-                vedio_list_manager
-                ;;
-            *常看视频网站*)
-                vedio_web_manager
-                ;;
-            *打开目录*)
-                open $HOME/data/Vedioes
-                return
-                ;;
-            *返回*|*)
-                break
-                ;;
+            *视频列表*) vedio_list_manager ;;
+            *常看视频网站*) vedio_web_manager ;;
+            *打开目录*) open $HOME/data/Vedioes && return ;;
+            *常用软件*) ofen_used_soft_manager ;;
+            *返回*|*) break ;;
         esac
     done
 }

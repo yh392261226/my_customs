@@ -914,18 +914,17 @@ function fzf_manager() {
         "🔚 退出"
     )
     
-    while true; do
-        echo -e "${THEME_HEADER} 管理工具 ${COLOR_RESET}"
-        echo ""
-        
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "管理工具" || echo -e "管理工具"
+
+    while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --ansi \
             --height=40% \
             --reverse \
             --prompt="➤ 主菜单 > " \
             --header="请选择功能模块" \
-            --color="header:${THEME_HEADER_COLOR}" \
-            --preview="echo -e '\n${THEME_PREVIEW}按 Enter 选择功能模块${COLOR_RESET}'"
+            --color="header:" \
+            --preview="echo -e '\n按 Enter 选择功能模块'"
         )
         
         case $selection in

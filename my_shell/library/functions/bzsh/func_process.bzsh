@@ -43,7 +43,6 @@ alias fpi="fzf_process_magnifier"                                               
 
 function fzf_process_manager() {                                                    # Desc: function: fzf_process_manager: 利用fzf管理进程
 	$USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "进程管理" || echo -e "进程管理"
-    echo -e "==========================================="
     while true; do
 		local processes=$(ps -eo pid,user,pcpu,pmem,comm,args | sed 1d | awk -v test="$test" '
             { print }
