@@ -922,11 +922,11 @@ function fzf_manager() {
         "🖼️ 图片"
         "🗃️ 书签"
         "©️ 自定义"
+        "🔞 娱乐"
         "🔚 退出"
     )
     
     while true; do
-        clear
         echo -e "${THEME_HEADER} 管理工具 ${COLOR_RESET}"
         echo ""
         
@@ -948,6 +948,7 @@ function fzf_manager() {
             *图片*) fzf_image_manager ;;
             *书签*) fzf_bookmark_manager ;;
             *自定义*) fzf_customs_manager ;;
+            *娱乐*) fzf_recreation_manager ;;
             *退出*|*) break ;;
         esac
     done

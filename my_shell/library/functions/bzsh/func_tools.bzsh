@@ -141,3 +141,91 @@ function fzf_monitor_manager() {                                                
     done
 }
 alias fmm="fzf_monitor_manager"                                                       # Desc: alias: fmm: fzf_monitor_manager命令的别名，利用fzf管理监控命令
+
+vedio_list_manager() {
+    local current_dir=$HOME/data/Vedioes/
+    local tmp_current_dir=$PWD
+    while true; do
+        cd $current_dir
+        local selection=$(ls $current_dir | awk -v dir="$current_dir" '
+                BEGIN { print ".." }
+                { print }
+                END { print "↩️ 返回" }
+            ' | fzf)
+        # 处理选择结果
+        if [[ "$selection" == "↩️ 返回" ]]; then
+            break
+        elif [[ "$selection" == ".." ]]; then
+            current_dir=$(dirname "$current_dir")
+        elif [[ -d "${current_dir}/${selection}" ]]; then
+            current_dir="${current_dir}/${selection}"
+        else
+            $MYRUNTIME/customs/bin/_operator "${current_dir}/${selection}"
+        fi
+    done
+    cd $tmp_current_dir
+}
+
+vedio_web_manager() {
+    local vediomark=$MYRUNTIME/tools/m_vedio_mark
+    [[ ! -f $vediomark ]] && touch $vediomark
+    urls=$(cat "$vediomark" | awk -v dir="$current_dir" '
+                { print }
+                END { print "↩️ 返回" }
+            ' | fzf \
+    --multi \
+    --delimiter='#' \
+    --with-nth=1 \
+    --header="🌐 选择网址 (Tab多选) [${header%%#*}]" \
+    --preview='echo "{1}\n{2}"' \
+    --preview-window="right:70%:wrap" \
+	--height=95% \
+    --bind="ctrl-y:execute-silent(printf '%s' {2} | pbcopy)+abort" \
+    --bind="ctrl-e:execute(nvim \"$vediomark\" < /dev/tty > /dev/tty)+reload(cat \"$vediomark\")" \
+    --bind="ctrl-o:execute(open -R \"$vediomark\")+abort" \
+    --bind="ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview($MYRUNTIME/customs/bin/web help)+show-preview" \
+    --header-first \
+    --prompt="➤ " | \
+    awk -F'#' '{print $2}')
+    
+    [[ -z "$urls" ]] && return
+    local OPENBROWSER='Brave Browser'
+    while read -r url; do
+        [[ -n "$url" ]] && open -a "$OPENBROWSER" "$url"
+    done <<< "$urls"
+}
+
+fzf_recreation_manager() {
+    local options=(
+        "列表"
+        "常看视频网站"
+        "打开目录"
+        "↩️ 返回"
+    )
+    
+    while true; do
+        echo -e " 娱乐 "
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 娱乐 > "
+        )
+        
+        case $selection in
+            *列表*)
+                vedio_list_manager
+                ;;
+            *常看视频网站*)
+                vedio_web_manager
+                ;;
+            *打开目录*)
+                open $HOME/data/Vedioes
+                return
+                ;;
+            *返回*|*)
+                break
+                ;;
+        esac
+    done
+}

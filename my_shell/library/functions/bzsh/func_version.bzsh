@@ -399,30 +399,3702 @@ function fzf_version_manager() {
     )
     
     while true; do
-        clear
-        echo -e "${THEME_HEADER} fzf-ultimate - 设置 ${COLOR_RESET}"
+        echo -e " fzf-ultimate - 设置 "
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
             --prompt="➤ 设置 > " \
-            --preview="echo -e '\n${THEME_PREVIEW}当前主题: ${THEME_NAME}${COLOR_RESET}'" \
+            --preview="echo -e '\n${THEME_PREVIEW}当前主题: ${THEME_NAME}'" \
             --preview-window="top:3:wrap"
         )
         
         case "$selection" in
             "Git")
-                fzf_git_manager
+                git_manager
                 ;;
             "Svn")
-                fzf_svn_manager
+                svn_manager
                 ;;
             "Hg")
-                fzf_hg_manager
+                hg_manager
                 ;;
             "🔙 返回"|*)
                 break
                 ;;
+        esac
+    done
+}
+
+# 检测 gum 是否安装
+if command -v gum &>/dev/null; then
+    USE_GUM=true
+else
+    USE_GUM=false
+fi
+
+# 通用输入函数
+user_input() {
+    local prompt="$1"
+    local default_value="$2"
+    local secret="$3"
+    
+    if $USE_GUM; then
+        if [ "$secret" = "secret" ]; then
+            gum input --password --prompt "$prompt" --placeholder "$default_value"
+        else
+            gum input --prompt "$prompt" --placeholder "$default_value"
+        fi
+    else
+        if [ "$secret" = "secret" ]; then
+            read -rsp "$prompt" value
+            echo
+        else
+            read -rp "$prompt" value
+        fi
+        echo "${value:-$default_value}"
+    fi
+}
+
+# 通用等待按键函数 (兼容 macOS bash)
+wait_for_key() {
+    if $USE_GUM; then
+        gum spin --spinner dot --title "按任意键继续..." -- sleep 0.1
+    else
+        echo -n "按任意键继续..."
+        IFS= read -r -n1 -s
+        echo
+    fi
+}
+
+# 确认对话框函数
+confirm_action() {
+    local message="$1"
+    
+    if $USE_GUM; then
+        gum confirm "$message" && return 0
+        return 1
+    else
+        read -rp "$message (y/n): " confirm
+        [[ "$confirm" =~ ^[Yy]$ ]]
+    fi
+}
+
+# 多选函数
+multi_select() {
+    local prompt="$1"
+    shift
+    local options=("$@")
+    
+    if $USE_GUM; then
+        gum choose --no-limit --cursor-prefix "○ " --selected-prefix "◉ " --unselected-prefix "○ " --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "$prompt" "${options[@]}"
+    else
+        echo "$prompt"
+        PS3="请选择 (空格选中/取消, 回车确认): "
+        select item in "${options[@]}"; do
+            if [ -n "$item" ]; then
+                echo "$item"
+            fi
+        done
+    fi
+}
+
+# ======================================================
+# Git 管理主函数
+# ======================================================
+
+# 主Git管理器
+git_manager() {
+#    if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+#        $USE_GUM && gum style --foreground 196 "当前目录不是 Git 仓库!" || echo -e "\033[31m当前目录不是 Git 仓库!\033[0m"
+#        sleep 2
+#        return
+#    fi
+
+    local options=(
+        "仓库管理"
+        "快照管理"
+        "提交历史"
+        "分支管理"
+        "远程协作"
+        "合并与重写历史"
+        "临时存储"
+        "标签管理"
+        "高级操作"
+        "诊断与维护"
+        "配置工具"
+        "底层命令 (Plumbing)"
+        "辅助工具"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 管理器: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 管理器: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ Git > ")
+
+        case "$selection" in
+        *仓库管理*)
+            git_repository_manager
+            ;;
+        *快照管理*)
+            git_snapshot_manager
+            ;;
+        *提交历史*)
+            git_commit_history_manager
+            ;;
+        *分支管理*)
+            git_branch_manager
+            ;;
+        *远程协作*)
+            git_remote_manager
+            ;;
+        *合并与重写历史*)
+            git_merge_rebase_manager
+            ;;
+        *临时存储*)
+            git_stash_manager
+            ;;
+        *标签管理*)
+            git_tag_manager
+            ;;
+        *高级操作*)
+            git_advanced_manager
+            ;;
+        *诊断与维护*)
+            git_maintenance_manager
+            ;;
+        *配置工具*)
+            git_config_manager
+            ;;
+        *底层命令*)
+            git_plumbing_manager
+            ;;
+        *辅助工具*)
+            git_helper_tools_manager
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 仓库管理功能
+# ======================================================
+
+# 仓库管理
+git_repository_manager() {
+    local options=(
+        "初始化新仓库(init)"
+        "克隆远程仓库(clone)"
+        "多工作区管理"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 仓库管理: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 仓库管理: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 仓库管理 > ")
+
+        case "$selection" in
+        *初始化新仓库*)
+            git_init
+            ;;
+        *克隆远程仓库*)
+            git_clone
+            ;;
+        *多工作区管理*)
+            git_worktree_manager
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# 初始化仓库
+git_init() {
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "初始化新 Git 仓库" || echo -e "初始化新 Git 仓库"
+    
+    local repo_path=$(user_input "请输入仓库路径（默认为当前目录）: " ".")
+    
+    if [ ! -d "$repo_path" ]; then
+        mkdir -p "$repo_path" || {
+            $USE_GUM && gum style --foreground 196 "创建目录失败!" || echo -e "\033[31m创建目录失败!\033[0m"
+            sleep 2
+            return
+        }
+    fi
+    
+    if git -C "$repo_path" init; then
+        $USE_GUM && gum style --foreground 46 "仓库初始化成功!" || echo -e "\033[32m仓库初始化成功!\033[0m"
+    else
+        $USE_GUM && gum style --foreground 196 "仓库初始化失败!" || echo -e "\033[31m仓库初始化失败!\033[0m"
+    fi
+    sleep 2
+}
+
+# 克隆仓库
+git_clone() {
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "克隆远程 Git 仓库" || echo -e "克隆远程 Git 仓库"
+    
+    local repo_url=$(user_input "请输入远程仓库URL: " "")
+    if [ -z "$repo_url" ]; then
+        $USE_GUM && gum style --foreground 196 "URL 不能为空!" || echo -e "\033[31mURL 不能为空!\033[0m"
+        sleep 2
+        return
+    fi
+    
+    local local_dir=$(user_input "请输入本地目录（默认为当前目录）: " ".")
+    
+    if git clone "$repo_url" "$local_dir"; then
+        $USE_GUM && gum style --foreground 46 "仓库克隆成功!" || echo -e "\033[32m仓库克隆成功!\033[0m"
+    else
+        $USE_GUM && gum style --foreground 196 "仓库克隆失败!" || echo -e "\033[31m仓库克隆失败!\033[0m"
+    fi
+    sleep 2
+}
+
+# 工作区管理
+git_worktree_manager() {
+    local options=(
+        "添加工作树(add <path> <branch>)"
+        "列出工作树(list)"
+        "移除工作树(remove)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 多工作区管理: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 多工作区管理: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 工作区管理 > ")
+
+        case "$selection" in
+        *添加工作树*)
+            local path=$(user_input "请输入工作树路径: " "")
+            local branch=$(user_input "请输入分支名: " "")
+            
+            if [ -n "$path" ] && [ -n "$branch" ]; then
+                git worktree add "$path" "$branch"
+            else
+                $USE_GUM && gum style --foreground 196 "路径和分支名不能为空!" || echo -e "\033[31m路径和分支名不能为空!\033[0m"
+            fi
+            wait_for_key
+            ;;
+        *列出工作树*)
+            clear
+            git worktree list
+            wait_for_key
+            ;;
+        *移除工作树*)
+            local worktrees=$(git worktree list | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$worktrees" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要移除的工作树: ")
+            else
+                selected=$(echo "$worktrees" | fzf --ansi --prompt="选择要移除的工作树> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git worktree remove "$selected"
+            fi
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 快照管理功能
+# ======================================================
+
+# 快照管理
+git_snapshot_manager() {
+    local options=(
+        "添加文件到暂存区(add)"
+        "交互式添加(-p)"
+        "重置当前状态(reset)"
+        "恢复文件(restore)"
+        "删除文件(rm)"
+        "移动/重命名文件(mv)"
+        "查看状态(status)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 快照管理: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 快照管理: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 快照管理 > ")
+
+        case "$selection" in
+        *添加文件*)
+            local files
+            if $USE_GUM; then
+                files=$(git status -s | awk '{print $2}' | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要添加的文件: ")
+            else
+                files=$(git status -s | awk '{print $2}' | fzf -m --ansi --prompt="选择要添加的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs git add
+            fi
+            ;;
+        *交互式添加*)
+            git add -p
+            ;;
+        *重置当前状态*)
+            git_reset_manager
+            ;;
+        *恢复文件*)
+            git_restore_manager
+            ;;
+        *删除文件*)
+            local files
+            if $USE_GUM; then
+                files=$(git ls-files | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的文件: ")
+            else
+                files=$(git ls-files | fzf -m --ansi --prompt="选择要删除的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs git rm
+            fi
+            ;;
+        *移动/重命名*)
+            local files
+            if $USE_GUM; then
+                files=$(git ls-files | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要移动的文件: ")
+            else
+                files=$(git ls-files | fzf -m --ansi --prompt="选择要移动的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                local new_path=$(user_input "请输入新路径: " "")
+                git mv "$files" "$new_path"
+            fi
+            ;;
+        *查看状态*)
+            clear
+            git -c color.status=always status
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# 重置管理器
+git_reset_manager() {
+    local options=(
+        "软重置(--soft HEAD^)"
+        "混合重置(--mixed)"
+        "硬重置(--hard)"
+        "重置特定文件"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 重置管理: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 重置管理: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 重置管理 > ")
+
+        case "$selection" in
+        *软重置*)
+            git reset --soft HEAD^
+            $USE_GUM && gum style --foreground 46 "软重置完成!" || echo -e "\033[32m软重置完成!\033[0m"
+            sleep 1
+            ;;
+        *混合重置*)
+            git reset --mixed HEAD
+            $USE_GUM && gum style --foreground 46 "混合重置完成!" || echo -e "\033[32m混合重置完成!\033[0m"
+            sleep 1
+            ;;
+        *硬重置*)
+            if confirm_action "警告: 硬重置将丢弃所有未提交的更改! 确定执行硬重置吗?"; then
+                git reset --hard HEAD
+                $USE_GUM && gum style --foreground 46 "硬重置完成!" || echo -e "\033[32m硬重置完成!\033[0m"
+            fi
+            sleep 1
+            ;;
+        *重置特定文件*)
+            local files
+            if $USE_GUM; then
+                files=$(git diff --name-only --cached | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要重置的文件: ")
+            else
+                files=$(git diff --name-only --cached | fzf -m --ansi --prompt="选择要重置的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                git reset HEAD -- $files
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# 恢复管理器
+git_restore_manager() {
+    local options=(
+        "恢复工作区文件"
+        "恢复暂存区文件(--staged)"
+        "从指定提交恢复(--source)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 恢复管理: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 恢复管理: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 恢复管理 > ")
+
+        case "$selection" in
+        *恢复工作区文件*)
+            local files
+            if $USE_GUM; then
+                files=$(git status -s | awk '/^ M/{print $2}' | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要恢复的文件: ")
+            else
+                files=$(git status -s | awk '/^ M/{print $2}' | fzf -m --ansi --prompt="选择要恢复的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                git restore $files
+            fi
+            ;;
+        *恢复暂存区文件*)
+            local files
+            if $USE_GUM; then
+                files=$(git status -s | awk '/^M |^A /{print $2}' | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要取消暂存的文件: ")
+            else
+                files=$(git status -s | awk '/^M |^A /{print $2}' | fzf -m --ansi --prompt="选择要取消暂存的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                git restore --staged $files
+            fi
+            ;;
+        *从指定提交恢复*)
+            local commit
+            if $USE_GUM; then
+                commit=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择提交: " | awk '{print $1}')
+            else
+                commit=$(git log --oneline -n 50 | fzf --ansi --prompt="选择提交> " | awk '{print $1}')
+            fi
+            
+            if [ -n "$commit" ]; then
+                local files
+                if $USE_GUM; then
+                    files=$(git diff --name-only "$commit" | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要恢复的文件: ")
+                else
+                    files=$(git diff --name-only "$commit" | fzf -m --ansi --prompt="选择要恢复的文件> ")
+                fi
+                
+                if [ -n "$files" ]; then
+                    git restore --source="$commit" $files
+                fi
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 分支管理功能
+# ======================================================
+
+git_branch_manager() {
+    local options=(
+        "查看本地分支"
+        "查看远程分支(-r)"
+        "查看所有分支(-a)"
+        "创建新分支"
+        "切换分支"
+        "删除本地分支(-d)"
+        "强制删除分支(-D)"
+        "重命名分支(-m)"
+        "设置上游分支(--set-upstream-to)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 分支管理: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 分支管理: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 分支管理 > ")
+
+        case "$selection" in
+        *查看本地分支*)
+            clear
+            git branch -vv
+            wait_for_key
+            ;;
+        *查看远程分支*)
+            clear
+            git branch -rv
+            wait_for_key
+            ;;
+        *查看所有分支*)
+            clear
+            git branch -avv
+            wait_for_key
+            ;;
+        *创建新分支*)
+            local branch_name=$(user_input "请输入新分支名: " "")
+            if [ -n "$branch_name" ]; then
+                git branch "$branch_name"
+            fi
+            ;;
+        *切换分支*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要切换的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要切换的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git checkout "$selected"
+            fi
+            ;;
+        *删除本地分支*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的分支: ")
+            else
+                selected=$(echo "$branches" | fzf -m --ansi --prompt="选择要删除的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                echo "$selected" | xargs git branch -d
+            fi
+            ;;
+        *强制删除分支*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要强制删除的分支: ")
+            else
+                selected=$(echo "$branches" | fzf -m --ansi --prompt="选择要强制删除的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                echo "$selected" | xargs git branch -D
+            fi
+            ;;
+        *重命名分支*)
+            local current_branch=$(git branch --show-current)
+            local new_name=$(user_input "请输入新分支名 (当前: $current_branch): " "$current_branch")
+            if [ -n "$new_name" ]; then
+                git branch -m "$new_name"
+            fi
+            ;;
+        *设置上游分支*)
+            local remote_branches=$(git branch -r | sed 's/^ *//')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remote_branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择上游分支: ")
+            else
+                selected=$(echo "$remote_branches" | fzf --ansi --prompt="选择上游分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git branch --set-upstream-to="$selected"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 提交历史管理功能
+# ======================================================
+
+git_commit_history_manager() {
+    local options=(
+        "查看提交日志(log)"
+        "简洁模式(--oneline)"
+        "图形化模式(--graph)"
+        "文件变更历史(--follow)"
+        "按内容搜索(-S)"
+        "引用日志(reflog)"
+        "差异比较(diff)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 提交历史管理: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 提交历史管理: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 提交历史 > ")
+
+        case "$selection" in
+        *查看提交日志*)
+            clear
+            git -c color.ui=always log
+            wait_for_key
+            ;;
+        *简洁模式*)
+            clear
+            git log --oneline
+            wait_for_key
+            ;;
+        *图形化模式*)
+            clear
+            git log --graph --oneline --all
+            wait_for_key
+            ;;
+        *文件变更历史*)
+            local file
+            if $USE_GUM; then
+                file=$(git ls-files | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择文件: ")
+            else
+                file=$(git ls-files | fzf --ansi --prompt="选择文件> ")
+            fi
+            
+            if [ -n "$file" ]; then
+                clear
+                git log --follow -- "$file"
+                wait_for_key
+            fi
+            ;;
+        *按内容搜索*)
+            local search_string=$(user_input "请输入搜索内容: " "")
+            if [ -n "$search_string" ]; then
+                clear
+                git log -S"$search_string"
+                wait_for_key
+            fi
+            ;;
+        *引用日志*)
+            clear
+            git reflog
+            wait_for_key
+            ;;
+        *差异比较*)
+            git_diff_manager
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 差异比较管理功能
+# ======================================================
+
+git_diff_manager() {
+    local options=(
+        "工作区差异"
+        "暂存区差异(--cached)"
+        "单词级差异(--word-diff)"
+        "比较两个提交"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 差异比较: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 差异比较: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 差异比较 > ")
+
+        case "$selection" in
+        *工作区差异*)
+            clear
+            git diff
+            wait_for_key
+            ;;
+        *暂存区差异*)
+            clear
+            git diff --cached
+            wait_for_key
+            ;;
+        *单词级差异*)
+            clear
+            git diff --word-diff
+            wait_for_key
+            ;;
+        *比较两个提交*)
+            local commits
+            if $USE_GUM; then
+                commits=$(git log --oneline -n 50 | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择两个提交 (用Tab键多选): " | awk '{print $1}')
+            else
+                commits=$(git log --oneline -n 50 | fzf -m --ansi --prompt="选择两个提交 (用Tab键多选)> " | awk '{print $1}')
+            fi
+            
+            if [ $(echo "$commits" | wc -l) -eq 2 ]; then
+                clear
+                local commit1=$(echo "$commits" | head -n1)
+                local commit2=$(echo "$commits" | tail -n1)
+                git diff "$commit1" "$commit2"
+                wait_for_key
+            else
+                $USE_GUM && gum style --foreground 196 "请选择两个提交进行比较!" || echo -e "\033[31m请选择两个提交进行比较!\033[0m"
+                sleep 1
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 远程协作管理功能
+# ======================================================
+
+git_remote_manager() {
+    local options=(
+        "查看远程仓库(-v)"
+        "添加远程仓库(add)"
+        "修改远程URL(set-url)"
+        "重命名远程仓库(rename)"
+        "删除远程仓库(remove)"
+        "获取远程变更(fetch)"
+        "拉取远程变更(pull)"
+        "推送本地变更(push)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 远程协作: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 远程协作: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 远程协作 > ")
+
+        case "$selection" in
+        *查看远程仓库*)
+            clear
+            git remote -v
+            wait_for_key
+            ;;
+        *添加远程仓库*)
+            local remote_name=$(user_input "请输入远程名称: " "")
+            local remote_url=$(user_input "请输入远程URL: " "")
+            if [ -n "$remote_name" ] && [ -n "$remote_url" ]; then
+                git remote add "$remote_name" "$remote_url"
+            fi
+            ;;
+        *修改远程URL*)
+            local remotes=$(git remote)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remotes" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要修改的远程: ")
+            else
+                selected=$(echo "$remotes" | fzf --ansi --prompt="选择要修改的远程> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                local new_url=$(user_input "请输入新URL: " "")
+                git remote set-url "$selected" "$new_url"
+            fi
+            ;;
+        *重命名远程仓库*)
+            local remotes=$(git remote)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remotes" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要重命名的远程: ")
+            else
+                selected=$(echo "$remotes" | fzf --ansi --prompt="选择要重命名的远程> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                local new_name=$(user_input "请输入新名称: " "")
+                git remote rename "$selected" "$new_name"
+            fi
+            ;;
+        *删除远程仓库*)
+            local remotes=$(git remote)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remotes" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的远程: ")
+            else
+                selected=$(echo "$remotes" | fzf --ansi --prompt="选择要删除的远程> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git remote remove "$selected"
+            fi
+            ;;
+        *获取远程变更*)
+            local remotes=$(git remote)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remotes" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要获取的远程: ")
+            else
+                selected=$(echo "$remotes" | fzf --ansi --prompt="选择要获取的远程> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git fetch "$selected"
+            fi
+            ;;
+        *拉取远程变更*)
+            local remotes=$(git remote)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remotes" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要拉取的远程: ")
+            else
+                selected=$(echo "$remotes" | fzf --ansi --prompt="选择要拉取的远程> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git pull "$selected" "$current_branch"
+            fi
+            ;;
+        *推送本地变更*)
+            local remotes=$(git remote)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$remotes" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要推送的远程: ")
+            else
+                selected=$(echo "$remotes" | fzf --ansi --prompt="选择要推送的远程> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git push "$selected" "$current_branch"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 合并与重写历史管理功能
+# ======================================================
+
+git_merge_rebase_manager() {
+    local options=(
+        "合并分支(merge)"
+        "禁用快进合并(--no-ff)"
+        "压缩合并(--squash)"
+        "变基操作(rebase)"
+        "交互式变基(-i)"
+        "拣选提交(cherry-pick)"
+        "反转提交(revert)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 合并与重写历史: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 合并与重写历史: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 合并/重写 > ")
+
+        case "$selection" in
+        *合并分支*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要合并的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要合并的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git merge "$selected"
+            fi
+            ;;
+        *禁用快进合并*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要合并的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要合并的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git merge --no-ff "$selected"
+            fi
+            ;;
+        *压缩合并*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要压缩合并的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要压缩合并的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git merge --squash "$selected"
+            fi
+            ;;
+        *变基操作*)
+            local branches=$(git branch | sed 's/^* //' | sort)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择基准分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择基准分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                git rebase "$selected"
+            fi
+            ;;
+        *交互式变基*)
+            local commit_count=$(user_input "请输入要变基的提交数量: " "5")
+            if [[ "$commit_count" =~ ^[0-9]+$ ]]; then
+                git rebase -i HEAD~"$commit_count"
+            fi
+            ;;
+        *拣选提交*)
+            local commit
+            if $USE_GUM; then
+                commit=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要拣选的提交: " | awk '{print $1}')
+            else
+                commit=$(git log --oneline -n 50 | fzf --ansi --prompt="选择要拣选的提交> " | awk '{print $1}')
+            fi
+            
+            if [ -n "$commit" ]; then
+                git cherry-pick "$commit"
+            fi
+            ;;
+        *反转提交*)
+            local commit
+            if $USE_GUM; then
+                commit=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要反转的提交: " | awk '{print $1}')
+            else
+                commit=$(git log --oneline -n 50 | fzf --ansi --prompt="选择要反转的提交> " | awk '{print $1}')
+            fi
+            
+            if [ -n "$commit" ]; then
+                git revert "$commit"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 临时存储管理功能
+# ======================================================
+
+git_stash_manager() {
+    local options=(
+        "储藏更改(push)"
+        "查看储藏列表(list)"
+        "应用储藏(apply)"
+        "应用并删除储藏(pop)"
+        "删除储藏(drop)"
+        "清空储藏(clear)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 临时存储: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 临时存储: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 储藏管理 > ")
+
+        case "$selection" in
+        *储藏更改*)
+            local stash_message=$(user_input "请输入储藏信息: " "临时储藏")
+            if [ -z "$stash_message" ]; then
+                git stash push
+            else
+                git stash push -m "$stash_message"
+            fi
+            ;;
+        *查看储藏列表*)
+            clear
+            git stash list
+            wait_for_key
+            ;;
+        *应用储藏*)
+            local stash
+            if $USE_GUM; then
+                stash=$(git stash list | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要应用的储藏: " | cut -d':' -f1)
+            else
+                stash=$(git stash list | fzf --ansi --prompt="选择要应用的储藏> " | cut -d':' -f1)
+            fi
+            
+            if [ -n "$stash" ]; then
+                git stash apply "$stash"
+            fi
+            ;;
+        *应用并删除储藏*)
+            local stash
+            if $USE_GUM; then
+                stash=$(git stash list | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要应用的储藏: " | cut -d':' -f1)
+            else
+                stash=$(git stash list | fzf --ansi --prompt="选择要应用的储藏> " | cut -d':' -f1)
+            fi
+            
+            if [ -n "$stash" ]; then
+                git stash pop "$stash"
+            fi
+            ;;
+        *删除储藏*)
+            local stash
+            if $USE_GUM; then
+                stash=$(git stash list | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的储藏: " | cut -d':' -f1)
+            else
+                stash=$(git stash list | fzf --ansi --prompt="选择要删除的储藏> " | cut -d':' -f1)
+            fi
+            
+            if [ -n "$stash" ]; then
+                git stash drop "$stash"
+            fi
+            ;;
+        *清空储藏*)
+            git stash clear
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 标签管理功能
+# ======================================================
+
+git_tag_manager() {
+    local options=(
+        "查看本地标签"
+        "创建轻量标签"
+        "创建附注标签(-a)"
+        "创建签名标签(-s)"
+        "推送标签到远程(push --tags)"
+        "删除本地标签"
+        "删除远程标签"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 标签管理: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 标签管理: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 标签管理 > ")
+
+        case "$selection" in
+        *查看本地标签*)
+            clear
+            git tag -l
+            wait_for_key
+            ;;
+        *创建轻量标签*)
+            local tag_name=$(user_input "请输入标签名: " "")
+            if [ -n "$tag_name" ]; then
+                git tag "$tag_name"
+            fi
+            ;;
+        *创建附注标签*)
+            local tag_name=$(user_input "请输入标签名: " "")
+            if [ -n "$tag_name" ]; then
+                local tag_message=$(user_input "请输入标签信息: " "发布标签 $tag_name")
+                git tag -a "$tag_name" -m "$tag_message"
+            fi
+            ;;
+        *创建签名标签*)
+            local tag_name=$(user_input "请输入标签名: " "")
+            if [ -n "$tag_name" ]; then
+                git tag -s "$tag_name"
+            fi
+            ;;
+        *推送标签到远程*)
+            git push --tags
+            ;;
+        *删除本地标签*)
+            local tags=$(git tag -l)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$tags" | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的标签: ")
+            else
+                selected=$(echo "$tags" | fzf -m --ansi --prompt="选择要删除的标签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                echo "$selected" | xargs git tag -d
+            fi
+            ;;
+        *删除远程标签*)
+            local tags=$(git tag -l)
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$tags" | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的远程标签: ")
+            else
+                selected=$(echo "$tags" | fzf -m --ansi --prompt="选择要删除的远程标签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                for tag in $selected; do
+                    git push origin :refs/tags/"$tag"
+                done
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 高级操作管理功能
+# ======================================================
+
+git_advanced_manager() {
+    local options=(
+        "二分查找(bisect)"
+        "子模块管理(submodule)"
+        "仓库重写(filter-repo)"
+        "打包传输(bundle)"
+        "对象替换(replace)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        local current_branch=$(git branch --show-current)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 高级操作: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Git 高级操作: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 高级操作 > ")
+
+        case "$selection" in
+        *二分查找*)
+            git_bisect_manager
+            ;;
+        *子模块管理*)
+            git_submodule_manager
+            ;;
+        *仓库重写*)
+            if confirm_action "警告: 仓库重写是危险操作! 确定要使用filter-repo吗?"; then
+                git filter-repo
+            fi
+            ;;
+        *打包传输*)
+            git_bundle_manager
+            ;;
+        *对象替换*)
+            git_replace_manager
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 二分查找管理功能
+# ======================================================
+
+git_bisect_manager() {
+    local options=(
+        "开始二分查找(start)"
+        "标记为正确(good)"
+        "标记为错误(bad)"
+        "跳过当前(skip)"
+        "重置(reset)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 二分查找" || echo -e "Git 二分查找"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 二分查找 > ")
+
+        case "$selection" in
+        *开始二分查找*)
+            git bisect start
+            ;;
+        *标记为正确*)
+            git bisect good
+            ;;
+        *标记为错误*)
+            git bisect bad
+            ;;
+        *跳过当前*)
+            git bisect skip
+            ;;
+        *重置*)
+            git bisect reset
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 子模块管理功能
+# ======================================================
+
+git_submodule_manager() {
+    local options=(
+        "添加子模块(add)"
+        "初始化子模块(init)"
+        "更新子模块(update)"
+        "递归更新(--recursive)"
+        "遍历执行命令(foreach)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 子模块管理" || echo -e "Git 子模块管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 子模块 > ")
+
+        case "$selection" in
+        *添加子模块*)
+            local sub_url=$(user_input "请输入子模块URL: " "")
+            local sub_path=$(user_input "请输入子模块路径: " "")
+            if [ -n "$sub_url" ] && [ -n "$sub_path" ]; then
+                git submodule add "$sub_url" "$sub_path"
+            fi
+            ;;
+        *初始化子模块*)
+            git submodule init
+            ;;
+        *更新子模块*)
+            git submodule update
+            ;;
+        *递归更新*)
+            git submodule update --init --recursive
+            ;;
+        *遍历执行命令*)
+            local command=$(user_input "请输入要执行的命令: " "git pull")
+            if [ -n "$command" ]; then
+                git submodule foreach "$command"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 打包传输管理功能
+# ======================================================
+
+git_bundle_manager() {
+    local options=(
+        "创建打包文件(create)"
+        "解包文件(unbundle)"
+        "验证打包文件(verify)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 打包传输" || echo -e "Git 打包传输"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 打包 > ")
+
+        case "$selection" in
+        *创建打包文件*)
+            local bundle_file=$(user_input "请输入打包文件名: " "repo.bundle")
+            local refspec=$(user_input "请输入分支或提交范围: " "HEAD")
+            if [ -n "$bundle_file" ] && [ -n "$refspec" ]; then
+                git bundle create "$bundle_file" "$refspec"
+            fi
+            ;;
+        *解包文件*)
+            local bundle_files=$(ls *.bundle 2>/dev/null)
+            if [ -z "$bundle_files" ]; then
+                $USE_GUM && gum style --foreground 196 "没有找到打包文件!" || echo -e "\033[31m没有找到打包文件!\033[0m"
+                sleep 1
+                continue
+            fi
+            local selected
+            if $USE_GUM; then
+                selected=$(echo "$bundle_files" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择打包文件: ")
+            else
+                selected=$(echo "$bundle_files" | fzf --ansi --prompt="选择打包文件> ")
+            fi
+            if [ -n "$selected" ]; then
+                git bundle unbundle "$selected"
+            fi
+            ;;
+        *验证打包文件*)
+            local bundle_files=$(ls *.bundle 2>/dev/null)
+            if [ -z "$bundle_files" ]; then
+                $USE_GUM && gum style --foreground 196 "没有找到打包文件!" || echo -e "\033[31m没有找到打包文件!\033[0m"
+                sleep 1
+                continue
+            fi
+            local selected
+            if $USE_GUM; then
+                selected=$(echo "$bundle_files" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择打包文件: ")
+            else
+                selected=$(echo "$bundle_files" | fzf --ansi --prompt="选择打包文件> ")
+            fi
+            if [ -n "$selected" ]; then
+                git bundle verify "$selected"
+                wait_for_key
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 对象替换管理功能
+# ======================================================
+
+git_replace_manager() {
+    local options=(
+        "创建替换对象"
+        "列出所有替换对象"
+        "删除替换对象"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 对象替换" || echo -e "Git 对象替换"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 替换对象 > ")
+
+        case "$selection" in
+        *创建替换对象*)
+            local old_object
+            if $USE_GUM; then
+                old_object=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择被替换的对象: " | awk '{print $1}')
+            else
+                old_object=$(git log --oneline -n 50 | fzf --ansi --prompt="选择被替换的对象> " | awk '{print $1}')
+            fi
+            
+            local new_object
+            if $USE_GUM; then
+                new_object=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择替换对象: " | awk '{print $1}')
+            else
+                new_object=$(git log --oneline -n 50 | fzf --ansi --prompt="选择替换对象> " | awk '{print $1}')
+            fi
+            
+            if [ -n "$old_object" ] && [ -n "$new_object" ]; then
+                git replace "$old_object" "$new_object"
+            fi
+            ;;
+        *列出所有替换对象*)
+            clear
+            git replace -l
+            wait_for_key
+            ;;
+        *删除替换对象*)
+            local replaces=$(git replace -l)
+            if [ -z "$replaces" ]; then
+                $USE_GUM && gum style --foreground 196 "没有替换对象!" || echo -e "\033[31m没有替换对象!\033[0m"
+                sleep 1
+                continue
+            fi
+            local selected
+            if $USE_GUM; then
+                selected=$(echo "$replaces" | gum choose --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的替换对象: ")
+            else
+                selected=$(echo "$replaces" | fzf --ansi --prompt="选择要删除的替换对象> ")
+            fi
+            if [ -n "$selected" ]; then
+                git replace -d "$selected"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 诊断与维护管理功能
+# ======================================================
+
+git_maintenance_manager() {
+    local options=(
+        "垃圾回收(gc)"
+        "自动垃圾回收(gc --auto)"
+        "验证对象(fsck)"
+        "统计对象(count-objects)"
+        "验证签名(verify-commit)"
+        "维护任务(run)"
+        "启动维护任务(start)"
+        "停止维护任务(stop)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 诊断与维护: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 诊断与维护: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 维护 > ")
+
+        case "$selection" in
+        *垃圾回收*)
+            git gc
+            ;;
+        *自动垃圾回收*)
+            git gc --auto
+            ;;
+        *验证对象*)
+            clear
+            git fsck
+            wait_for_key
+            ;;
+        *统计对象*)
+            clear
+            git count-objects -v
+            wait_for_key
+            ;;
+        *验证签名*)
+            local commit
+            if $USE_GUM; then
+                commit=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择提交验证签名: " | awk '{print $1}')
+            else
+                commit=$(git log --oneline -n 50 | fzf --ansi --prompt="选择提交验证签名> " | awk '{print $1}')
+            fi
+            if [ -n "$commit" ]; then
+                git verify-commit "$commit"
+                wait_for_key
+            fi
+            ;;
+        *维护任务*)
+            git maintenance run
+            ;;
+        *启动维护任务*)
+            git maintenance start
+            ;;
+        *停止维护任务*)
+            git maintenance stop
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 配置工具管理功能
+# ======================================================
+
+git_config_manager() {
+    local options=(
+        "查看所有配置(--list)"
+        "设置用户名(user.name)"
+        "设置邮箱(user.email)"
+        "设置别名(alias)"
+        "设置换行符处理(core.autocrlf)"
+        "编辑配置文件(edit)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 配置管理" || echo -e "Git 配置管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 配置 > ")
+
+        case "$selection" in
+        *查看所有配置*)
+            clear
+            git config --list
+            wait_for_key
+            ;;
+        *设置用户名*)
+            local username=$(user_input "请输入用户名: " "")
+            if [ -n "$username" ]; then
+                git config --global user.name "$username"
+            fi
+            ;;
+        *设置邮箱*)
+            local email=$(user_input "请输入邮箱: " "")
+            if [ -n "$email" ]; then
+                git config --global user.email "$email"
+            fi
+            ;;
+        *设置别名*)
+            local alias_name=$(user_input "请输入别名 (如: co): " "")
+            local command=$(user_input "请输入命令 (如: checkout): " "")
+            if [ -n "$alias_name" ] && [ -n "$command" ]; then
+                git config --global alias."$alias_name" "$command"
+            fi
+            ;;
+        *设置换行符处理*)
+            local options=("input" "true" "false")
+            local crlf
+            if $USE_GUM; then
+                crlf=$(printf '%s\n' "${options[@]}" | gum choose --height 5 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择autocrlf值: ")
+            else
+                crlf=$(printf '%s\n' "${options[@]}" | fzf --ansi --prompt="选择autocrlf值> ")
+            fi
+            if [ -n "$crlf" ]; then
+                git config --global core.autocrlf "$crlf"
+            fi
+            ;;
+        *编辑配置文件*)
+            git config --global --edit
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 底层命令管理功能
+# ======================================================
+
+git_plumbing_manager() {
+    local options=(
+        "查看原始对象(cat-file)"
+        "创建对象(hash-object)"
+        "查看树对象(ls-tree)"
+        "操作索引(update-index)"
+        "构建树对象(mktree)"
+        "创建提交对象(commit-tree)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 底层命令: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 底层命令: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 底层命令 > ")
+
+        case "$selection" in
+        *查看原始对象*)
+            local object
+            if $USE_GUM; then
+                object=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择对象: " | awk '{print $1}')
+            else
+                object=$(git log --oneline -n 50 | fzf --ansi --prompt="选择对象> " | awk '{print $1}')
+            fi
+            if [ -n "$object" ]; then
+                clear
+                git cat-file -p "$object"
+                wait_for_key
+            fi
+            ;;
+        *创建对象*)
+            local file_name=$(user_input "请输入文件名: " "")
+            if [ -f "$file_name" ]; then
+                git hash-object -w "$file_name"
+            else
+                $USE_GUM && gum style --foreground 196 "文件不存在!" || echo -e "\033[31m文件不存在!\033[0m"
+            fi
+            sleep 1
+            ;;
+        *查看树对象*)
+            local tree
+            if $USE_GUM; then
+                tree=$(git log --oneline -n 50 | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择树对象: " | awk '{print $1}')
+            else
+                tree=$(git log --oneline -n 50 | fzf --ansi --prompt="选择树对象> " | awk '{print $1}')
+            fi
+            if [ -n "$tree" ]; then
+                clear
+                git ls-tree "$tree"
+                wait_for_key
+            fi
+            ;;
+        *操作索引*)
+            $USE_GUM && gum style --foreground 196 "警告: 直接操作索引是高级操作!" || echo -e "\033[31m警告: 直接操作索引是高级操作!\033[0m"
+            local command=$(user_input "请输入命令 (如: --add): " "")
+            if [ -n "$command" ]; then
+                git update-index $command
+            fi
+            ;;
+        *构建树对象*)
+            echo -e "输入树对象内容 (格式: 模式 类型 SHA 文件名)"
+            echo -e "输入完成后按Ctrl+D结束"
+            git mktree
+            ;;
+        *创建提交对象*)
+            local tree_sha=$(user_input "请输入树对象SHA: " "")
+            local parent_sha=$(user_input "请输入父提交SHA (可选): " "")
+            local commit_msg=$(user_input "请输入提交信息: " "新提交")
+            if [ -n "$tree_sha" ] && [ -n "$commit_msg" ]; then
+                if [ -n "$parent_sha" ]; then
+                    echo "$commit_msg" | git commit-tree "$tree_sha" -p "$parent_sha"
+                else
+                    echo "$commit_msg" | git commit-tree "$tree_sha"
+                fi
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 辅助工具管理功能
+# ======================================================
+
+git_helper_tools_manager() {
+    local options=(
+        "图形界面(gui)"
+        "可视化浏览器(k)"
+        "提交工具(citool)"
+        "启动Web界面(instaweb)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 辅助工具: $(gum style --foreground 212 "$repo_name")"
+        else
+            echo -e "Git 辅助工具: $repo_name"
+            echo -e "==========================================="
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 辅助工具 > ")
+
+        case "$selection" in
+        *图形界面*)
+            git gui
+            ;;
+        *可视化浏览器*)
+            gitk
+            ;;
+        *提交工具*)
+            git citool
+            ;;
+        *启动Web界面*)
+            git instaweb --start
+            $USE_GUM && gum style --foreground 99 "Web界面已启动，按任意键停止..." || echo -e "\033[35mWeb界面已启动，按任意键停止...\033[0m"
+            wait_for_key
+            git instaweb --stop
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# SVN 管理主函数
+# ======================================================
+
+# 主SVN管理器
+svn_manager() {
+#    if ! svn info &>/dev/null; then
+#        $USE_GUM && gum style --foreground 196 "当前目录不是 SVN 工作副本!" || echo -e "\033[31m当前目录不是 SVN 工作副本!\033[0m"
+#        sleep 2
+#        return
+#    fi
+
+    local options=(
+        "仓库操作"
+        "工作副本管理"
+        "提交管理"
+        "分支与标签"
+        "更新与同步"
+        "日志管理"
+        "差异比较"
+        "属性管理"
+        "高级操作"
+        "配置工具"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_url=$(svn info --show-item repos-root-url)
+        local current_rev=$(svn info --show-item revision)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "SVN 管理器: $(gum style --foreground 212 "$repo_url")"
+            gum style --border normal --margin "1" --padding "1 2" "当前版本: $(gum style --foreground 99 "r$current_rev")"
+        else
+            echo -e "SVN 管理器: $repo_url"
+            echo -e "==========================================="
+            echo -e "当前版本: \033[1;35mr$current_rev\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ SVN > ")
+
+        case "$selection" in
+        *仓库操作*)
+            svn_repository_manager
+            ;;
+        *工作副本管理*)
+            svn_working_copy_manager
+            ;;
+        *提交管理*)
+            svn_commit_manager
+            ;;
+        *分支与标签*)
+            svn_branch_tag_manager
+            ;;
+        *更新与同步*)
+            svn_update_sync_manager
+            ;;
+        *日志管理*)
+            svn_log_manager
+            ;;
+        *差异比较*)
+            svn_diff_manager
+            ;;
+        *属性管理*)
+            svn_property_manager
+            ;;
+        *高级操作*)
+            svn_advanced_manager
+            ;;
+        *配置工具*)
+            svn_config_manager
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 仓库操作功能
+# ======================================================
+
+svn_repository_manager() {
+    local options=(
+        "检出仓库(checkout)"
+        "创建新仓库(create)"
+        "导入项目(import)"
+        "查看仓库信息(info)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 仓库操作" || echo -e "SVN 仓库操作"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 仓库操作 > ")
+
+        case "$selection" in
+        *检出仓库*)
+            local repo_url=$(user_input "请输入仓库URL: " "")
+            local local_dir=$(user_input "请输入本地目录 (默认为当前目录): " ".")
+            
+            if [ -n "$repo_url" ]; then
+                svn checkout "$repo_url" "$local_dir"
+            else
+                $USE_GUM && gum style --foreground 196 "仓库URL不能为空!" || echo -e "\033[31m仓库URL不能为空!\033[0m"
+            fi
+            wait_for_key
+            ;;
+        *创建新仓库*)
+            $USE_GUM && gum style --foreground 196 "SVN仓库创建需要服务器权限，通常通过svnadmin创建!" || echo -e "\033[31mSVN仓库创建需要服务器权限，通常通过svnadmin创建!\033[0m"
+            wait_for_key
+            ;;
+        *导入项目*)
+            local local_path=$(user_input "请输入本地项目路径: " ".")
+            local repo_url=$(user_input "请输入目标仓库URL: " "")
+            local message=$(user_input "请输入提交信息: " "初始导入")
+            
+            if [ -n "$repo_url" ]; then
+                svn import "$local_path" "$repo_url" -m "$message"
+            else
+                $USE_GUM && gum style --foreground 196 "仓库URL不能为空!" || echo -e "\033[31m仓库URL不能为空!\033[0m"
+            fi
+            wait_for_key
+            ;;
+        *查看仓库信息*)
+            clear
+            svn info
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 工作副本管理功能
+# ======================================================
+
+svn_working_copy_manager() {
+    local options=(
+        "状态检查(status)"
+        "添加文件(add)"
+        "删除文件(delete)"
+        "恢复文件(revert)"
+        "移动/重命名(move)"
+        "清理工作副本(cleanup)"
+        "解决冲突(resolved)"
+        "忽略文件/目录(ignore)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 工作副本管理" || echo -e "SVN 工作副本管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 工作副本 > ")
+
+        case "$selection" in
+        *状态检查*)
+            clear
+            svn status
+            wait_for_key
+            ;;
+        *添加文件*)
+            local files
+            if $USE_GUM; then
+                files=$(svn status | awk '/^\?/{print $2}' | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要添加的文件: ")
+            else
+                files=$(svn status | awk '/^\?/{print $2}' | fzf -m --ansi --prompt="选择要添加的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs svn add
+            fi
+            ;;
+        *删除文件*)
+            local files
+            if $USE_GUM; then
+                files=$(svn list -R | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的文件: ")
+            else
+                files=$(svn list -R | fzf -m --ansi --prompt="选择要删除的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs svn delete
+            fi
+            ;;
+        *恢复文件*)
+            local files
+            if $USE_GUM; then
+                files=$(svn status | awk '/^[MA]/{print $2}' | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要恢复的文件: ")
+            else
+                files=$(svn status | awk '/^[MA]/{print $2}' | fzf -m --ansi --prompt="选择要恢复的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs svn revert
+            fi
+            ;;
+        *移动/重命名*)
+            local source=$(user_input "请输入源文件/目录路径: " "")
+            local dest=$(user_input "请输入目标路径: " "")
+            
+            if [ -n "$source" ] && [ -n "$dest" ]; then
+                svn move "$source" "$dest"
+            fi
+            ;;
+        *清理工作副本*)
+            svn cleanup
+            $USE_GUM && gum style --foreground 46 "工作副本已清理!" || echo -e "\033[32m工作副本已清理!\033[0m"
+            sleep 1
+            ;;
+        *解决冲突*)
+            local files
+            if $USE_GUM; then
+                files=$(svn status | awk '/^C/{print $2}' | gum choose --no-limit --height 10 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择已解决冲突的文件: ")
+            else
+                files=$(svn status | awk '/^C/{print $2}' | fzf -m --ansi --prompt="选择已解决冲突的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs svn resolved
+            fi
+            ;;
+        *忽略文件/目录*)
+            local path=$(user_input "请输入要忽略的文件/目录路径: " "")
+            if [ -n "$path" ]; then
+                svn propset svn:ignore "$path" .
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 提交管理功能
+# ======================================================
+
+svn_commit_manager() {
+    local options=(
+        "提交更改(commit)"
+        "查看待提交内容(diff)"
+        "选择性提交(部分文件)"
+        "空提交(仅修改属性)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 提交管理" || echo -e "SVN 提交管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 提交管理 > ")
+
+        case "$selection" in
+        *提交更改*)
+            local message=$(user_input "请输入提交信息: " "更新")
+            svn commit -m "$message"
+            ;;
+        *查看待提交内容*)
+            clear
+            svn diff
+            wait_for_key
+            ;;
+        *选择性提交*)
+            local files
+            if $USE_GUM; then
+                files=$(svn status | awk '/^[MA]/{print $2}' | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要提交的文件: ")
+            else
+                files=$(svn status | awk '/^[MA]/{print $2}' | fzf -m --ansi --prompt="选择要提交的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                local message=$(user_input "请输入提交信息: " "部分更新")
+                echo "$files" | xargs svn commit -m "$message"
+            fi
+            ;;
+        *空提交*)
+            local message=$(user_input "请输入提交信息: " "属性修改")
+            svn commit -m "$message" --depth empty .
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 分支与标签管理功能
+# ======================================================
+
+svn_branch_tag_manager() {
+    local options=(
+        "创建分支(copy)"
+        "创建标签(copy)"
+        "切换分支(switch)"
+        "合并分支(merge)"
+        "查看分支列表(list)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 分支与标签" || echo -e "SVN 分支与标签"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 分支/标签 > ")
+
+        case "$selection" in
+        *创建分支*)
+            local source_url=$(user_input "请输入源URL (默认为当前路径): " "")
+            local branch_name=$(user_input "请输入分支名称: " "")
+            local trunk_url=$(svn info --show-item repos-root-url)/trunk
+            local branches_url=$(svn info --show-item repos-root-url)/branches
+            
+            if [ -z "$source_url" ]; then
+                source_url="."
+            fi
+            
+            if [ -n "$branch_name" ]; then
+                svn copy "$source_url" "$branches_url/$branch_name" -m "创建分支: $branch_name"
+            fi
+            ;;
+        *创建标签*)
+            local source_url=$(user_input "请输入源URL (默认为当前路径): " "")
+            local tag_name=$(user_input "请输入标签名称: " "")
+            local trunk_url=$(svn info --show-item repos-root-url)/trunk
+            local tags_url=$(svn info --show-item repos-root-url)/tags
+            
+            if [ -z "$source_url" ]; then
+                source_url="."
+            fi
+            
+            if [ -n "$tag_name" ]; then
+                svn copy "$source_url" "$tags_url/$tag_name" -m "创建标签: $tag_name"
+            fi
+            ;;
+        *切换分支*)
+            local branches_url=$(svn info --show-item repos-root-url)/branches
+            local branches=$(svn list "$branches_url" 2>/dev/null)
+            
+            if [ -z "$branches" ]; then
+                $USE_GUM && gum style --foreground 196 "没有找到分支!" || echo -e "\033[31m没有找到分支!\033[0m"
+                sleep 1
+                continue
+            fi
+            
+            local selected
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                svn switch "$branches_url/$selected"
+            fi
+            ;;
+        *合并分支*)
+            local branches_url=$(svn info --show-item repos-root-url)/branches
+            local branches=$(svn list "$branches_url" 2>/dev/null)
+            
+            if [ -z "$branches" ]; then
+                $USE_GUM && gum style --foreground 196 "没有找到分支!" || echo -e "\033[31m没有找到分支!\033[0m"
+                sleep 1
+                continue
+            fi
+            
+            local selected
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要合并的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要合并的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                svn merge "$branches_url/$selected"
+            fi
+            ;;
+        *查看分支列表*)
+            clear
+            local branches_url=$(svn info --show-item repos-root-url)/branches
+            echo "=== 分支列表 ==="
+            svn list "$branches_url"
+            echo ""
+            
+            local tags_url=$(svn info --show-item repos-root-url)/tags
+            echo "=== 标签列表 ==="
+            svn list "$tags_url"
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 更新与同步管理功能
+# ======================================================
+
+svn_update_sync_manager() {
+    local options=(
+        "更新工作副本(update)"
+        "更新到特定版本(-r)"
+        "查看更新内容(diff)"
+        "查看远程变更(status -u)"
+        "锁定文件(lock)"
+        "解锁文件(unlock)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 更新与同步" || echo -e "SVN 更新与同步"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 更新/同步 > ")
+
+        case "$selection" in
+        *更新工作副本*)
+            svn update
+            ;;
+        *更新到特定版本*)
+            local revision=$(user_input "请输入版本号: " "")
+            if [[ "$revision" =~ ^[0-9]+$ ]]; then
+                svn update -r "$revision"
+            else
+                $USE_GUM && gum style --foreground 196 "无效的版本号!" || echo -e "\033[31m无效的版本号!\033[0m"
+            fi
+            ;;
+        *查看更新内容*)
+            clear
+            svn diff
+            wait_for_key
+            ;;
+        *查看远程变更*)
+            clear
+            svn status -u
+            wait_for_key
+            ;;
+        *锁定文件*)
+            local file=$(user_input "请输入要锁定的文件路径: " "")
+            local message=$(user_input "请输入锁定信息: " "锁定编辑")
+            
+            if [ -n "$file" ]; then
+                svn lock "$file" -m "$message"
+            fi
+            ;;
+        *解锁文件*)
+            local file=$(user_input "请输入要解锁的文件路径: " "")
+            
+            if [ -n "$file" ]; then
+                svn unlock "$file"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 日志管理功能
+# ======================================================
+
+svn_log_manager() {
+    local options=(
+        "查看完整日志(log)"
+        "查看简化日志(-v)"
+        "查看特定文件日志"
+        "按作者查看日志(-r)"
+        "按日期范围查看日志"
+        "搜索日志消息(-s)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 日志管理" || echo -e "SVN 日志管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 日志管理 > ")
+
+        case "$selection" in
+        *查看完整日志*)
+            clear
+            svn log
+            wait_for_key
+            ;;
+        *查看简化日志*)
+            clear
+            svn log -v
+            wait_for_key
+            ;;
+        *查看特定文件日志*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                svn log "$file"
+                wait_for_key
+            fi
+            ;;
+        *按作者查看日志*)
+            local author=$(user_input "请输入作者名称: " "")
+            if [ -n "$author" ]; then
+                clear
+                svn log --search "$author"
+                wait_for_key
+            fi
+            ;;
+        *按日期范围查看日志*)
+            local start_date=$(user_input "请输入开始日期 (YYYY-MM-DD): " "")
+            local end_date=$(user_input "请输入结束日期 (YYYY-MM-DD): " "$(date +%Y-%m-%d)")
+            
+            if [ -n "$start_date" ]; then
+                clear
+                svn log -r "{$start_date}:{$end_date}"
+                wait_for_key
+            fi
+            ;;
+        *搜索日志消息*)
+            local search_term=$(user_input "请输入搜索关键词: " "")
+            if [ -n "$search_term" ]; then
+                clear
+                svn log --search "$search_term"
+                wait_for_key
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 差异比较功能
+# ======================================================
+
+svn_diff_manager() {
+    local options=(
+        "比较工作副本与基础版本"
+        "比较两个版本(-r)"
+        "比较特定文件"
+        "与特定版本比较"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 差异比较" || echo -e "SVN 差异比较"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 差异比较 > ")
+
+        case "$selection" in
+        *比较工作副本与基础版本*)
+            clear
+            svn diff
+            wait_for_key
+            ;;
+        *比较两个版本*)
+            local rev1=$(user_input "请输入起始版本号: " "")
+            local rev2=$(user_input "请输入结束版本号: " "")
+            
+            if [[ "$rev1" =~ ^[0-9]+$ ]] && [[ "$rev2" =~ ^[0-9]+$ ]]; then
+                clear
+                svn diff -r "$rev1:$rev2"
+                wait_for_key
+            else
+                $USE_GUM && gum style --foreground 196 "无效的版本号!" || echo -e "\033[31m无效的版本号!\033[0m"
+            fi
+            ;;
+        *比较特定文件*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                svn diff "$file"
+                wait_for_key
+            fi
+            ;;
+        *与特定版本比较*)
+            local revision=$(user_input "请输入版本号: " "")
+            if [[ "$revision" =~ ^[0-9]+$ ]]; then
+                clear
+                svn diff -r "$revision"
+                wait_for_key
+            else
+                $USE_GUM && gum style --foreground 196 "无效的版本号!" || echo -e "\033[31m无效的版本号!\033[0m"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 属性管理功能
+# ======================================================
+
+svn_property_manager() {
+    local options=(
+        "设置属性(pset)"
+        "获取属性(pget)"
+        "列出所有属性(plist)"
+        "删除属性(pdel)"
+        "编辑属性(pedit)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 属性管理" || echo -e "SVN 属性管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 属性管理 > ")
+
+        case "$selection" in
+        *设置属性*)
+            local path=$(user_input "请输入文件/目录路径: " ".")
+            local prop_name=$(user_input "请输入属性名: " "")
+            local prop_value=$(user_input "请输入属性值: " "")
+            
+            if [ -n "$prop_name" ] && [ -n "$prop_value" ]; then
+                svn propset "$prop_name" "$prop_value" "$path"
+            fi
+            ;;
+        *获取属性*)
+            local path=$(user_input "请输入文件/目录路径: " ".")
+            local prop_name=$(user_input "请输入属性名: " "")
+            
+            if [ -n "$prop_name" ]; then
+                clear
+                svn propget "$prop_name" "$path"
+                wait_for_key
+            fi
+            ;;
+        *列出所有属性*)
+            local path=$(user_input "请输入文件/目录路径: " ".")
+            clear
+            svn proplist "$path" -v
+            wait_for_key
+            ;;
+        *删除属性*)
+            local path=$(user_input "请输入文件/目录路径: " ".")
+            local prop_name=$(user_input "请输入属性名: " "")
+            
+            if [ -n "$prop_name" ]; then
+                svn propdel "$prop_name" "$path"
+            fi
+            ;;
+        *编辑属性*)
+            local path=$(user_input "请输入文件/目录路径: " ".")
+            local prop_name=$(user_input "请输入属性名: " "")
+            
+            if [ -n "$prop_name" ]; then
+                svn propedit "$prop_name" "$path"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 高级操作功能
+# ======================================================
+
+svn_advanced_manager() {
+    local options=(
+        "导出工作副本(export)"
+        "创建补丁(patch)"
+        "应用补丁(patch)"
+        "查看文件内容(cat)"
+        "查看文件历史(blame)"
+        "仓库同步(sync)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 高级操作" || echo -e "SVN 高级操作"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 高级操作 > ")
+
+        case "$selection" in
+        *导出工作副本*)
+            local export_dir=$(user_input "请输入导出目录: " "")
+            if [ -n "$export_dir" ]; then
+                svn export . "$export_dir"
+            fi
+            ;;
+        *创建补丁*)
+            local patch_file=$(user_input "请输入补丁文件名: " "changes.patch")
+            svn diff > "$patch_file"
+            $USE_GUM && gum style --foreground 46 "补丁已创建: $patch_file" || echo -e "\033[32m补丁已创建: $patch_file\033[0m"
+            sleep 1
+            ;;
+        *应用补丁*)
+            local patch_file=$(user_input "请输入补丁文件名: " "changes.patch")
+            if [ -f "$patch_file" ]; then
+                patch -p0 < "$patch_file"
+            else
+                $USE_GUM && gum style --foreground 196 "文件不存在: $patch_file" || echo -e "\033[31m文件不存在: $patch_file\033[0m"
+            fi
+            sleep 1
+            ;;
+        *查看文件内容*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                svn cat "$file"
+                wait_for_key
+            fi
+            ;;
+        *查看文件历史*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                svn blame "$file"
+                wait_for_key
+            fi
+            ;;
+        *仓库同步*)
+            $USE_GUM && gum style --foreground 196 "警告: 此操作将同步整个仓库，可能需要较长时间!" || echo -e "\033[31m警告: 此操作将同步整个仓库，可能需要较长时间!\033[0m"
+            if confirm_action "确定要同步整个仓库吗?"; then
+                svn update --force
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 配置工具功能
+# ======================================================
+
+svn_config_manager() {
+    local options=(
+        "查看配置(config)"
+        "设置默认编辑器"
+        "设置自动属性(auto-props)"
+        "设置忽略模式(ignore)"
+        "设置全局忽略(global-ignores)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 配置工具" || echo -e "SVN 配置工具"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 配置 > ")
+
+        case "$selection" in
+        *查看配置*)
+            clear
+            svn config list
+            wait_for_key
+            ;;
+        *设置默认编辑器*)
+            local editor=$(user_input "请输入编辑器命令 (如: vim, nano): " "vim")
+            svn config set editor "$editor"
+            ;;
+        *设置自动属性*)
+            local pattern=$(user_input "请输入文件模式 (如: *.txt): " "")
+            local props=$(user_input "请输入属性 (如: svn:eol-style=native): " "")
+            
+            if [ -n "$pattern" ] && [ -n "$props" ]; then
+                svn config set auto-props "$pattern = $props"
+            fi
+            ;;
+        *设置忽略模式*)
+            local pattern=$(user_input "请输入忽略模式 (如: *.tmp): " "")
+            if [ -n "$pattern" ]; then
+                svn config set ignore "$pattern"
+            fi
+            ;;
+        *设置全局忽略*)
+            local patterns=$(user_input "请输入全局忽略模式 (如: *.log *.bak): " "")
+            if [ -n "$patterns" ]; then
+                svn config set global-ignores "$patterns"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# Mercurial (hg) 管理主函数
+# ======================================================
+
+# 主hg管理器
+hg_manager() {
+#    if ! hg root &>/dev/null; then
+#        $USE_GUM && gum style --foreground 196 "当前目录不是 Mercurial 仓库!" || echo -e "\033[31m当前目录不是 Mercurial 仓库!\033[0m"
+#        sleep 2
+#        return
+#    fi
+
+    local options=(
+        "仓库管理"
+        "工作副本管理"
+        "提交管理"
+        "分支管理"
+        "标签管理"
+        "更新与同步"
+        "日志管理"
+        "差异比较"
+        "书签管理"
+        "补丁管理"
+        "高级操作"
+        "配置工具"
+        "↩️ 返回"
+    )
+
+    while true; do
+        local repo_path=$(hg root)
+        local repo_name=$(basename "$repo_path")
+        local current_branch=$(hg branch)
+        
+        if $USE_GUM; then
+            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Mercurial 管理器: $(gum style --foreground 212 "$repo_name")"
+            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+        else
+            echo -e "Mercurial 管理器: $repo_name"
+            echo -e "==========================================="
+            echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        fi
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ Hg > ")
+
+        case "$selection" in
+        *仓库管理*)
+            hg_repository_manager
+            ;;
+        *工作副本管理*)
+            hg_working_copy_manager
+            ;;
+        *提交管理*)
+            hg_commit_manager
+            ;;
+        *分支管理*)
+            hg_branch_manager
+            ;;
+        *标签管理*)
+            hg_tag_manager
+            ;;
+        *更新与同步*)
+            hg_update_sync_manager
+            ;;
+        *日志管理*)
+            hg_log_manager
+            ;;
+        *差异比较*)
+            hg_diff_manager
+            ;;
+        *书签管理*)
+            hg_bookmark_manager
+            ;;
+        *补丁管理*)
+            hg_patch_manager
+            ;;
+        *高级操作*)
+            hg_advanced_manager
+            ;;
+        *配置工具*)
+            hg_config_manager
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 仓库管理功能
+# ======================================================
+
+hg_repository_manager() {
+    local options=(
+        "初始化新仓库(init)"
+        "克隆远程仓库(clone)"
+        "查看仓库信息(summary)"
+        "归档仓库(archive)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 仓库管理" || echo -e "Mercurial 仓库管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 仓库管理 > ")
+
+        case "$selection" in
+        *初始化新仓库*)
+            local repo_path=$(user_input "请输入仓库路径（默认为当前目录）: " ".")
+            hg init "$repo_path"
+            $USE_GUM && gum style --foreground 46 "仓库初始化成功!" || echo -e "\033[32m仓库初始化成功!\033[0m"
+            sleep 1
+            ;;
+        *克隆远程仓库*)
+            local repo_url=$(user_input "请输入远程仓库URL: " "")
+            local local_dir=$(user_input "请输入本地目录（默认为当前目录）: " ".")
+            
+            if [ -n "$repo_url" ]; then
+                hg clone "$repo_url" "$local_dir"
+            else
+                $USE_GUM && gum style --foreground 196 "URL 不能为空!" || echo -e "\033[31mURL 不能为空!\033[0m"
+            fi
+            sleep 1
+            ;;
+        *查看仓库信息*)
+            clear
+            hg summary
+            wait_for_key
+            ;;
+        *归档仓库*)
+            local archive_path=$(user_input "请输入归档路径: " "repo_archive.zip")
+            hg archive "$archive_path"
+            $USE_GUM && gum style --foreground 46 "仓库已归档: $archive_path" || echo -e "\033[32m仓库已归档: $archive_path\033[0m"
+            sleep 1
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 工作副本管理功能
+# ======================================================
+
+hg_working_copy_manager() {
+    local options=(
+        "状态检查(status)"
+        "添加文件(add)"
+        "删除文件(remove)"
+        "重命名文件(rename)"
+        "恢复文件(revert)"
+        "清除未跟踪文件(purge)"
+        "忽略文件/目录(ignore)"
+        "查看忽略文件(ignored)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 工作副本管理" || echo -e "Mercurial 工作副本管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 工作副本 > ")
+
+        case "$selection" in
+        *状态检查*)
+            clear
+            hg status
+            wait_for_key
+            ;;
+        *添加文件*)
+            local files
+            if $USE_GUM; then
+                files=$(hg status -un | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要添加的文件: ")
+            else
+                files=$(hg status -un | fzf -m --ansi --prompt="选择要添加的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs hg add
+            fi
+            ;;
+        *删除文件*)
+            local files
+            if $USE_GUM; then
+                files=$(hg status -mn | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的文件: ")
+            else
+                files=$(hg status -mn | fzf -m --ansi --prompt="选择要删除的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs hg remove
+            fi
+            ;;
+        *重命名文件*)
+            local source=$(user_input "请输入源文件路径: " "")
+            local dest=$(user_input "请输入目标路径: " "")
+            
+            if [ -n "$source" ] && [ -n "$dest" ]; then
+                hg rename "$source" "$dest"
+            fi
+            ;;
+        *恢复文件*)
+            local files
+            if $USE_GUM; then
+                files=$(hg status -mn | gum choose --no-limit --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要恢复的文件: ")
+            else
+                files=$(hg status -mn | fzf -m --ansi --prompt="选择要恢复的文件> ")
+            fi
+            
+            if [ -n "$files" ]; then
+                echo "$files" | xargs hg revert
+            fi
+            ;;
+        *清除未跟踪文件*)
+            if confirm_action "确定要清除所有未跟踪文件吗?"; then
+                hg purge
+            fi
+            ;;
+        *忽略文件/目录*)
+            local pattern=$(user_input "请输入要忽略的模式 (如: *.tmp): " "")
+            if [ -n "$pattern" ]; then
+                echo "$pattern" >> .hgignore
+                $USE_GUM && gum style --foreground 46 "已添加到.hgignore" || echo -e "\033[32m已添加到.hgignore\033[0m"
+            fi
+            sleep 1
+            ;;
+        *查看忽略文件*)
+            clear
+            hg ignored
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 提交管理功能
+# ======================================================
+
+hg_commit_manager() {
+    local options=(
+        "提交更改(commit)"
+        "修改最近提交(--amend)"
+        "查看提交历史(log)"
+        "查看提交详情(show)"
+        "回滚提交(rollback)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 提交管理" || echo -e "Mercurial 提交管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 提交管理 > ")
+
+        case "$selection" in
+        *提交更改*)
+            local message=$(user_input "请输入提交信息: " "更新")
+            hg commit -m "$message"
+            ;;
+        *修改最近提交*)
+            local message=$(user_input "请输入新的提交信息: " "修正提交")
+            hg commit --amend -m "$message"
+            $USE_GUM && gum style --foreground 46 "最近提交已修改!" || echo -e "\033[32m最近提交已修改!\033[0m"
+            sleep 1
+            ;;
+        *查看提交历史*)
+            clear
+            hg log
+            wait_for_key
+            ;;
+        *查看提交详情*)
+            local rev
+            if $USE_GUM; then
+                rev=$(hg log --template "{rev}: {desc|firstline}\n" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择提交: " | cut -d':' -f1)
+            else
+                rev=$(hg log --template "{rev}: {desc|firstline}\n" | fzf --ansi --prompt="选择提交> " | cut -d':' -f1)
+            fi
+            
+            if [ -n "$rev" ]; then
+                clear
+                hg show "$rev"
+                wait_for_key
+            fi
+            ;;
+        *回滚提交*)
+            if confirm_action "警告: 回滚操作将撤销最后一次提交! 确定继续吗?"; then
+                hg rollback
+                $USE_GUM && gum style --foreground 46 "最后一次提交已回滚!" || echo -e "\033[32m最后一次提交已回滚!\033[0m"
+            fi
+            sleep 1
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 分支管理功能
+# ======================================================
+
+hg_branch_manager() {
+    local options=(
+        "查看分支列表"
+        "创建新分支"
+        "切换分支"
+        "合并分支"
+        "关闭分支"
+        "查看活动分支"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 分支管理" || echo -e "Mercurial 分支管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 分支管理 > ")
+
+        case "$selection" in
+        *查看分支列表*)
+            clear
+            hg branches
+            wait_for_key
+            ;;
+        *创建新分支*)
+            local branch_name=$(user_input "请输入新分支名: " "")
+            if [ -n "$branch_name" ]; then
+                hg branch "$branch_name"
+            fi
+            ;;
+        *切换分支*)
+            local branches=$(hg branches | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要切换的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要切换的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg update "$selected"
+            fi
+            ;;
+        *合并分支*)
+            local branches=$(hg branches | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要合并的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要合并的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg merge "$selected"
+            fi
+            ;;
+        *关闭分支*)
+            local branches=$(hg branches | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$branches" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要关闭的分支: ")
+            else
+                selected=$(echo "$branches" | fzf --ansi --prompt="选择要关闭的分支> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg update "$selected"
+                hg commit --close-branch -m "关闭分支: $selected"
+                hg update default
+            fi
+            ;;
+        *查看活动分支*)
+            clear
+            hg branch
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 标签管理功能
+# ======================================================
+
+hg_tag_manager() {
+    local options=(
+        "查看标签列表"
+        "创建标签"
+        "删除标签"
+        "切换到标签"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 标签管理" || echo -e "Mercurial 标签管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 标签管理 > ")
+
+        case "$selection" in
+        *查看标签列表*)
+            clear
+            hg tags
+            wait_for_key
+            ;;
+        *创建标签*)
+            local tag_name=$(user_input "请输入标签名: " "")
+            local message=$(user_input "请输入标签信息: " "标签: $tag_name")
+            
+            if [ -n "$tag_name" ]; then
+                hg tag -m "$message" "$tag_name"
+            fi
+            ;;
+        *删除标签*)
+            local tags=$(hg tags | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$tags" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的标签: ")
+            else
+                selected=$(echo "$tags" | fzf --ansi --prompt="选择要删除的标签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg tag --remove "$selected"
+            fi
+            ;;
+        *切换到标签*)
+            local tags=$(hg tags | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$tags" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要切换的标签: ")
+            else
+                selected=$(echo "$tags" | fzf --ansi --prompt="选择要切换的标签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg update "$selected"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 更新与同步功能
+# ======================================================
+
+hg_update_sync_manager() {
+    local options=(
+        "拉取变更(pull)"
+        "推送变更(push)"
+        "查看远程仓库(path)"
+        "添加远程仓库"
+        "查看变更状态(incoming)"
+        "查看推送状态(outgoing)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 更新与同步" || echo -e "Mercurial 更新与同步"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 更新/同步 > ")
+
+        case "$selection" in
+        *拉取变更*)
+            hg pull
+            ;;
+        *推送变更*)
+            hg push
+            ;;
+        *查看远程仓库*)
+            clear
+            hg paths
+            wait_for_key
+            ;;
+        *添加远程仓库*)
+            local name=$(user_input "请输入远程名称: " "default")
+            local url=$(user_input "请输入远程URL: " "")
+            
+            if [ -n "$name" ] && [ -n "$url" ]; then
+                echo "[paths]" >> .hg/hgrc
+                echo "$name = $url" >> .hg/hgrc
+                $USE_GUM && gum style --foreground 46 "远程仓库已添加!" || echo -e "\033[32m远程仓库已添加!\033[0m"
+            fi
+            sleep 1
+            ;;
+        *查看变更状态*)
+            clear
+            hg incoming
+            wait_for_key
+            ;;
+        *查看推送状态*)
+            clear
+            hg outgoing
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 日志管理功能
+# ======================================================
+
+hg_log_manager() {
+    local options=(
+        "查看完整日志"
+        "查看简化日志"
+        "按作者查看日志"
+        "按日期范围查看日志"
+        "按文件查看日志"
+        "按关键字搜索日志"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 日志管理" || echo -e "Mercurial 日志管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 日志管理 > ")
+
+        case "$selection" in
+        *查看完整日志*)
+            clear
+            hg log
+            wait_for_key
+            ;;
+        *查看简化日志*)
+            clear
+            hg log --template "{rev}: {desc|firstline}\n"
+            wait_for_key
+            ;;
+        *按作者查看日志*)
+            local author=$(user_input "请输入作者名称: " "")
+            if [ -n "$author" ]; then
+                clear
+                hg log -u "$author"
+                wait_for_key
+            fi
+            ;;
+        *按日期范围查看日志*)
+            local start_date=$(user_input "请输入开始日期 (YYYY-MM-DD): " "")
+            local end_date=$(user_input "请输入结束日期 (YYYY-MM-DD): " "$(date +%Y-%m-%d)")
+            
+            if [ -n "$start_date" ]; then
+                clear
+                hg log -d "$start_date to $end_date"
+                wait_for_key
+            fi
+            ;;
+        *按文件查看日志*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                hg log "$file"
+                wait_for_key
+            fi
+            ;;
+        *按关键字搜索日志*)
+            local keyword=$(user_input "请输入搜索关键词: " "")
+            if [ -n "$keyword" ]; then
+                clear
+                hg log -k "$keyword"
+                wait_for_key
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 差异比较功能
+# ======================================================
+
+hg_diff_manager() {
+    local options=(
+        "比较工作副本与基础版本"
+        "比较两个版本"
+        "比较特定文件"
+        "与特定版本比较"
+        "统计变更(stat)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 差异比较" || echo -e "Mercurial 差异比较"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 差异比较 > ")
+
+        case "$selection" in
+        *比较工作副本与基础版本*)
+            clear
+            hg diff
+            wait_for_key
+            ;;
+        *比较两个版本*)
+            local rev1=$(user_input "请输入起始版本号: " "")
+            local rev2=$(user_input "请输入结束版本号: " "")
+            
+            if [[ "$rev1" =~ ^[0-9]+$ ]] && [[ "$rev2" =~ ^[0-9]+$ ]]; then
+                clear
+                hg diff -r "$rev1:$rev2"
+                wait_for_key
+            else
+                $USE_GUM && gum style --foreground 196 "无效的版本号!" || echo -e "\033[31m无效的版本号!\033[0m"
+            fi
+            ;;
+        *比较特定文件*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                hg diff "$file"
+                wait_for_key
+            fi
+            ;;
+        *与特定版本比较*)
+            local revision=$(user_input "请输入版本号: " "")
+            if [[ "$revision" =~ ^[0-9]+$ ]]; then
+                clear
+                hg diff -r "$revision"
+                wait_for_key
+            else
+                $USE_GUM && gum style --foreground 196 "无效的版本号!" || echo -e "\033[31m无效的版本号!\033[0m"
+            fi
+            ;;
+        *统计变更*)
+            clear
+            hg diff --stat
+            wait_for_key
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 书签管理功能
+# ======================================================
+
+hg_bookmark_manager() {
+    local options=(
+        "查看书签列表"
+        "创建书签"
+        "删除书签"
+        "切换到书签"
+        "重命名书签"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 书签管理" || echo -e "Mercurial 书签管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 书签管理 > ")
+
+        case "$selection" in
+        *查看书签列表*)
+            clear
+            hg bookmarks
+            wait_for_key
+            ;;
+        *创建书签*)
+            local bookmark_name=$(user_input "请输入书签名: " "")
+            if [ -n "$bookmark_name" ]; then
+                hg bookmark "$bookmark_name"
+            fi
+            ;;
+        *删除书签*)
+            local bookmarks=$(hg bookmarks | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$bookmarks" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要删除的书签: ")
+            else
+                selected=$(echo "$bookmarks" | fzf --ansi --prompt="选择要删除的书签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg bookmark -d "$selected"
+            fi
+            ;;
+        *切换到书签*)
+            local bookmarks=$(hg bookmarks | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$bookmarks" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要切换的书签: ")
+            else
+                selected=$(echo "$bookmarks" | fzf --ansi --prompt="选择要切换的书签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                hg update "$selected"
+            fi
+            ;;
+        *重命名书签*)
+            local bookmarks=$(hg bookmarks | awk '{print $1}')
+            local selected
+            
+            if $USE_GUM; then
+                selected=$(echo "$bookmarks" | gum choose --height 15 --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "选择要重命名的书签: ")
+            else
+                selected=$(echo "$bookmarks" | fzf --ansi --prompt="选择要重命名的书签> ")
+            fi
+            
+            if [ -n "$selected" ]; then
+                local new_name=$(user_input "请输入新名称: " "")
+                hg bookmark -m "$selected" "$new_name"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 补丁管理功能
+# ======================================================
+
+hg_patch_manager() {
+    local options=(
+        "创建补丁(export)"
+        "应用补丁(import)"
+        "查看补丁内容"
+        "列出所有补丁(queue)"
+        "删除补丁(remove)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 补丁管理" || echo -e "Mercurial 补丁管理"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 补丁管理 > ")
+
+        case "$selection" in
+        *创建补丁*)
+            local rev1=$(user_input "请输入起始版本号: " "")
+            local rev2=$(user_input "请输入结束版本号: " "")
+            local patch_file=$(user_input "请输入补丁文件名: " "changes.patch")
+            
+            if [[ "$rev1" =~ ^[0-9]+$ ]] && [[ "$rev2" =~ ^[0-9]+$ ]]; then
+                hg export -r "$rev1:$rev2" -o "$patch_file"
+                $USE_GUM && gum style --foreground 46 "补丁已创建: $patch_file" || echo -e "\033[32m补丁已创建: $patch_file\033[0m"
+            else
+                $USE_GUM && gum style --foreground 196 "无效的版本号!" || echo -e "\033[31m无效的版本号!\033[0m"
+            fi
+            sleep 1
+            ;;
+        *应用补丁*)
+            local patch_file=$(user_input "请输入补丁文件名: " "changes.patch")
+            if [ -f "$patch_file" ]; then
+                hg import "$patch_file"
+            else
+                $USE_GUM && gum style --foreground 196 "文件不存在: $patch_file" || echo -e "\033[31m文件不存在: $patch_file\033[0m"
+            fi
+            sleep 1
+            ;;
+        *查看补丁内容*)
+            local patch_file=$(user_input "请输入补丁文件名: " "changes.patch")
+            if [ -f "$patch_file" ]; then
+                clear
+                cat "$patch_file"
+                wait_for_key
+            else
+                $USE_GUM && gum style --foreground 196 "文件不存在: $patch_file" || echo -e "\033[31m文件不存在: $patch_file\033[0m"
+                sleep 1
+            fi
+            ;;
+        *列出所有补丁*)
+            clear
+            hg qseries
+            wait_for_key
+            ;;
+        *删除补丁*)
+            local patch_name=$(user_input "请输入补丁名: " "")
+            if [ -n "$patch_name" ]; then
+                hg qremove "$patch_name"
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 高级操作功能
+# ======================================================
+
+hg_advanced_manager() {
+    local options=(
+        "二分查找(bisect)"
+        "转换仓库(convert)"
+        "查找文件副本(trace)"
+        "查看文件历史(annotate)"
+        "查看文件内容(cat)"
+        "查找文件副本(trace)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 高级操作" || echo -e "Mercurial 高级操作"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 高级操作 > ")
+
+        case "$selection" in
+        *二分查找*)
+            hg_bisect_manager
+            ;;
+        *转换仓库*)
+            $USE_GUM && gum style --foreground 196 "警告: 仓库转换是高级操作!" || echo -e "\033[31m警告: 仓库转换是高级操作!\033[0m"
+            local source_repo=$(user_input "请输入源仓库路径: " "")
+            local dest_repo=$(user_input "请输入目标仓库路径: " "")
+            
+            if [ -n "$source_repo" ] && [ -n "$dest_repo" ]; then
+                hg convert "$source_repo" "$dest_repo"
+            fi
+            ;;
+        *查找文件副本*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                hg trace "$file"
+                wait_for_key
+            fi
+            ;;
+        *查看文件历史*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                hg annotate "$file"
+                wait_for_key
+            fi
+            ;;
+        *查看文件内容*)
+            local file=$(user_input "请输入文件路径: " "")
+            if [ -n "$file" ]; then
+                clear
+                hg cat "$file"
+                wait_for_key
+            fi
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 二分查找管理功能
+# ======================================================
+
+hg_bisect_manager() {
+    local options=(
+        "开始二分查找(reset)"
+        "标记为好版本(good)"
+        "标记为坏版本(bad)"
+        "跳过当前版本(skip)"
+        "结束二分查找(reset)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 二分查找" || echo -e "Mercurial 二分查找"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 二分查找 > ")
+
+        case "$selection" in
+        *开始二分查找*)
+            hg bisect --reset
+            $USE_GUM && gum style --foreground 46 "二分查找已重置!" || echo -e "\033[32m二分查找已重置!\033[0m"
+            sleep 1
+            ;;
+        *标记为好版本*)
+            hg bisect --good
+            ;;
+        *标记为坏版本*)
+            hg bisect --bad
+            ;;
+        *跳过当前版本*)
+            hg bisect --skip
+            ;;
+        *结束二分查找*)
+            hg bisect --reset
+            $USE_GUM && gum style --foreground 46 "二分查找已结束!" || echo -e "\033[32m二分查找已结束!\033[0m"
+            sleep 1
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
+        esac
+    done
+}
+
+# ======================================================
+# 配置工具功能
+# ======================================================
+
+hg_config_manager() {
+    local options=(
+        "查看配置(showconfig)"
+        "设置用户名(username)"
+        "设置编辑器(editor)"
+        "设置忽略文件(ignore)"
+        "设置扩展(extensions)"
+        "编辑配置文件(edit)"
+        "↩️ 返回"
+    )
+
+    while true; do
+        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 配置工具" || echo -e "Mercurial 配置工具"
+        echo -e "==========================================="
+
+        local selection
+        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 配置 > ")
+
+        case "$selection" in
+        *查看配置*)
+            clear
+            hg showconfig
+            wait_for_key
+            ;;
+        *设置用户名*)
+            local username=$(user_input "请输入用户名: " "")
+            if [ -n "$username" ]; then
+                echo "[ui]" >> .hg/hgrc
+                echo "username = $username" >> .hg/hgrc
+                $USE_GUM && gum style --foreground 46 "用户名已设置!" || echo -e "\033[32m用户名已设置!\033[0m"
+            fi
+            sleep 1
+            ;;
+        *设置编辑器*)
+            local editor=$(user_input "请输入编辑器命令: " "vim")
+            echo "[ui]" >> .hg/hgrc
+            echo "editor = $editor" >> .hg/hgrc
+            $USE_GUM && gum style --foreground 46 "编辑器已设置!" || echo -e "\033[32m编辑器已设置!\033[0m"
+            sleep 1
+            ;;
+        *设置忽略文件*)
+            local ignore_file=$(user_input "请输入忽略文件路径: " ".hgignore")
+            echo "[ui]" >> .hg/hgrc
+            echo "ignore = $ignore_file" >> .hg/hgrc
+            $USE_GUM && gum style --foreground 46 "忽略文件已设置!" || echo -e "\033[32m忽略文件已设置!\033[0m"
+            sleep 1
+            ;;
+        *设置扩展*)
+            local extension=$(user_input "请输入扩展名: " "color")
+            echo "[extensions]" >> .hg/hgrc
+            echo "$extension = " >> .hg/hgrc
+            $USE_GUM && gum style --foreground 46 "扩展已启用!" || echo -e "\033[32m扩展已启用!\033[0m"
+            sleep 1
+            ;;
+        *编辑配置文件*)
+            hg config --edit
+            ;;
+        "↩️ 返回"|*)
+            break
+            ;;
         esac
     done
 }
