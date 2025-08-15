@@ -20,8 +20,10 @@ function create_tmp_aliases() {                                                 
 alias cta="create_tmp_aliases"                                                        # Desc: alias: cta:create_tmp_aliases命令的别名,以a+数字形式创建临时别名命令
 
 function temprature_monitor() {                                                       # Desc: function: temprature_monitor: 温度监控
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "温度监控" || echo -e "温度监控"
+    echo -e "==========================================="
     while true; do
-        clear
+        
         # 先安装: brew install osx-cpu-temp
         if command -v osx-cpu-temp &>/dev/null; then
             temp=$(osx-cpu-temp | grep -oE '[0-9.]+')
@@ -40,15 +42,13 @@ alias tm="temprature_monitor"                                                   
 function net_port_monitor() {                                                         # Desc: function: net_port_monitor: 网络端口监控
     # 监控特定端口
     local text='请输入要监控的端口号 '
-    if command -v gum >/dev/null; then
-        port=$(gum input --placeholder "$text")
-    else
-        read -rep "$text" port </dev/tty
-    fi
+    $USE_GUM && port=$(gum input --placeholder "$text") || read -rep "$text" port </dev/tty
 
     # port=8080
+
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "网络端口监控" || echo -e "网络端口监控"
+    echo -e "==========================================="
     while true; do
-        clear
         if lsof -i :$port >/dev/null; then
             echo "$(date) - 端口 $port 正在监听"
         else
@@ -67,8 +67,9 @@ alias mnp="net_port_monitor"                                                    
 
 function disk_monitor() {                                                             # Desc: function: disk_monitor: 硬盘监控
     # 检查根目录使用率
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "硬盘监控" || echo -e "硬盘监控"
+    echo -e "==========================================="
     while true; do
-        clear
         disk_usage=$(/bin/df -h / | tail -1 | awk '{print $5}' | tr -d '%')
         threshold=85
 
@@ -85,23 +86,22 @@ alias dm="disk_monitor"                                                         
 
 function real_time_cup_memory_monitor() {                                             # Desc: function: real_time_cup_memory_monitor: 实时监控CPU和内存
     # 兼容 bash 和 zsh
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "实时监控CPU和内存" || echo -e "实时监控CPU和内存"
     while true; do
-    clear
-    echo "===== $(date) ====="
-    
-    # CPU 使用率 (macOS 适配)
-    cpu_usage=$(ps -A -o %cpu | awk '{s+=$1} END {printf "%.1f%%", s}')
-    echo "CPU Usage: $cpu_usage"
+        echo "===== $(date) ====="    
+        # CPU 使用率 (macOS 适配)
+        cpu_usage=$(ps -A -o %cpu | awk '{s+=$1} END {printf "%.1f%%", s}')
+        echo "CPU Usage: $cpu_usage"
 
-    # 内存使用情况 (使用 vm_stat)
-    total_mem=$(sysctl -n hw.memsize)
-    page_size=$(vm_stat | grep 'page size' | awk '{print $8}')
-    free_pages=$(vm_stat | grep 'Pages free' | awk '{print $3}' | sed 's/.//g')
-    used_mem=$(( (total_mem - (free_pages * page_size)) / 1024 / 1024 ))
-    total_mem=$(( total_mem / 1024 / 1024 ))
-    echo "Memory: ${used_mem}MB / ${total_mem}MB"
+        # 内存使用情况 (使用 vm_stat)
+        total_mem=$(sysctl -n hw.memsize)
+        page_size=$(vm_stat | grep 'page size' | awk '{print $8}')
+        free_pages=$(vm_stat | grep 'Pages free' | awk '{print $3}' | sed 's/.//g')
+        used_mem=$(( (total_mem - (free_pages * page_size)) / 1024 / 1024 ))
+        total_mem=$(( total_mem / 1024 / 1024 ))
+        echo "Memory: ${used_mem}MB / ${total_mem}MB"
 
-    sleep 2
+        sleep 2
     done
 }
 alias rcmm="real_time_cup_memory_monitor"                                             # Desc: alias: rcmm: real_time_cup_memory_monitor命令的别名，实时监控CPU和内存
@@ -116,10 +116,9 @@ function fzf_monitor_manager() {                                                
         "🔙 返回"
     )
     
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "监控管理" || echo -e "监控管理"
+    echo -e "==========================================="
     while true; do
-        clear
-        echo -e "${THEME_HEADER} fzf-ultimate - 设置 ${COLOR_RESET}"
-        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
@@ -145,6 +144,8 @@ alias fmm="fzf_monitor_manager"                                                 
 vedio_list_manager() {
     local current_dir=$HOME/data/Vedioes/
     local tmp_current_dir=$PWD
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "视频列表" || echo -e "视频列表"
+    echo -e "==========================================="
     while true; do
         cd $current_dir
         local selection=$(ls $current_dir | awk -v dir="$current_dir" '
@@ -167,6 +168,8 @@ vedio_list_manager() {
 }
 
 vedio_web_manager() {
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "视频网站管理" || echo -e "视频网站管理"
+    echo -e "==========================================="
     local vediomark=$MYRUNTIME/tools/m_vedio_mark
     [[ ! -f $vediomark ]] && touch $vediomark
     urls=$(cat "$vediomark" | awk -v dir="$current_dir" '
@@ -203,17 +206,17 @@ fzf_recreation_manager() {
         "↩️ 返回"
     )
     
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "娱乐管理" || echo -e "娱乐管理"
+    echo -e "==========================================="
     while true; do
-        echo -e " 娱乐 "
-        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
-            --prompt="➤ 娱乐 > "
+            --prompt="➤ 娱乐管理 > "
         )
         
         case $selection in
-            *列表*)
+            *视频列表*)
                 vedio_list_manager
                 ;;
             *常看视频网站*)

@@ -26,11 +26,7 @@ function bookmark_add() {                                                       
     local desc
     
     local text='请输入书签名 '
-    if command -v gum >/dev/null; then
-        name=$(gum input --placeholder "$text")
-    else
-        read -rep "$text" name </dev/tty
-    fi
+    $USE_GUM && name=$(gum input --placeholder "$text") || read -rep "$text" name </dev/tty
 
     # 检查书签名称是否有效
     if [[ -z "$name" ]]; then
@@ -39,18 +35,10 @@ function bookmark_add() {                                                       
     fi
 
     text='请输入书签文件地址 '
-    if command -v gum >/dev/null; then
-        path=$(gum input --placeholder "$text")
-    else
-        read -rep "$text" path </dev/tty
-    fi
+    $USE_GUM && path=$(gum input --placeholder "$text") || read -rep "$text" path </dev/tty
 
     text='请输入书签描述 '
-    if command -v gum >/dev/null; then
-        desc=$(gum write --placeholder "$text")
-    else
-        read -rep "$text" desc </dev/tty
-    fi
+    $USE_GUM && desc=$(gum input --placeholder "$text") || read -rep "$text" desc </dev/tty
 
     if [ ! -f ${TMP_FZF_BOOKMARKS_PATH}/${name} ]; then
         # 添加新书签
@@ -91,10 +79,9 @@ function fzf_bookmark_manager() {                                               
         "🔙 返回"
     )
     
-    while true; do
-        clear
-        echo -e "${THEME_HEADER} 书签 ${COLOR_RESET}"
-        
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "书签管理" || echo -e "书签管理"
+    echo -e "==========================================="
+    while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
@@ -121,16 +108,15 @@ alias fbm2="fzf_bookmark_manager"                                               
 
 function fzf_customs_manager() {                                                # Desc: function: fzf_customs_manager: 利用fzf管理自定义命令
     local options=(
-        "™️ 自定义FZF函数(Function)"
+        "™️ 自定义FZF函数(Fzf Function)"
         "®️ 自定义函数(Function)"
         "©️ 自定义别名(Alia)"
         "🔙 返回"
     )
     
-    # while true; do
-        clear
-        echo -e "${THEME_HEADER} 自定义 ${COLOR_RESET}"
-        
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "自定义管理" || echo -e "自定义管理"
+    echo -e "==========================================="
+    while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
@@ -147,6 +133,6 @@ function fzf_customs_manager() {                                                
                 break
                 ;;
         esac
-    # done
+    done
 }
 alias fcm="fzf_customs_manager"                                                 # Desc: alias: fcm: fzf_customs_manager命令的别名,利用fzf管理自定义命令

@@ -397,10 +397,9 @@ function fzf_version_manager() {
         "Hg"
         "🔙 返回"
     )
-    
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "版本管理" || echo -e "版本管理"
+    echo -e "==========================================="
     while true; do
-        echo -e " fzf-ultimate - 设置 "
-        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
