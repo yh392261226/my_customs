@@ -267,7 +267,6 @@ function fzf_image_manager() {                                                  
     )
     $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "图片管理" || echo -e "图片管理"
     while true; do
-        echo -e "${THEME_HEADER} 图片 ${COLOR_RESET}"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -289,3 +288,95 @@ function fzf_image_manager() {                                                  
     done
 }
 alias fimg="fzf_image_manager"                                                      # Desc: alias: fimg: fzf_image_manager命令的别名，利用fzf管理自定义的图片命令
+
+function fzf_favorate_image_manager() {                                             # Desc: function: fzf_favorate_image_manager利用fzf 配合自定义的 favo 命令管理 iterm2 的背景图
+    local action=$(printf "%s\n" \
+        $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ] && [ "1" != "$(check_favo_exists)" ]; then echo "🗂️收藏背景图（collection）"; fi) \
+        "🌐 所有收藏(All)" \
+        "🔍️ 模糊搜索(Search)" \
+        "📃 生成HTML相册(HTML)" \
+        "🖼️ 设置指定图片为背景(Set)" \
+        "🔀 随机切换背景(Random)" \
+        "📍 在Finder中定位文件(Locate)" \
+        "🗺️ 显示缩略图(Thumb)" \
+        "🛠️ 重建收藏列表(Rebuild)" \
+        "🗓️ 表格形式展示收藏(Table)" \
+        "🗑️ 删除(Remove)" \
+        "💡 帮助(Help)" \
+        "🔚 退出系统(Exit)" | \
+        fzf +m \
+            --header " 背景图收藏管理系统 " \
+            --prompt "主菜单 ❯ " \
+            --preview-window=up:30% \
+            --preview "echo '请选择操作类型'" \
+            --height=15% \
+            --bind='space:jump,jump:accept' \
+            --reverse)
+
+    case $action in
+        *收藏背景图*) 
+            $MYRUNTIME/customs/bin/favo add
+            return 
+            ;;
+        *所有收藏*) $MYRUNTIME/customs/bin/favo list
+            return 
+            ;;
+        *模糊搜索*) 
+            hascommand=$(ifHasCommand gum)
+            local text
+            if [ $hascommand = 1 ]; then
+                text=$(gum input --placeholder "Type search text")
+            else
+                read text
+            fi
+            
+            [[ "" != "$text" ]] && $MYRUNTIME/customs/bin/favo search "$text"
+            return 
+            ;;
+        *生成HTML相册*) $MYRUNTIME/customs/bin/favo html
+            return 
+            ;;
+        *设置指定图片为背景*) 
+            hascommand=$(ifHasCommand gum)
+            local img
+            if [ $hascommand = 1 ]; then
+                img=$(gum input --placeholder "Type image location")
+            else
+                read img
+            fi
+            $MYRUNTIME/customs/bin/favo set "$img"
+            return 
+            ;;
+        *随机切换背景*) $MYRUNTIME/customs/bin/favo random
+            return 
+            ;;
+        *在Finder中定位文件*) $MYRUNTIME/customs/bin/favo locate
+            return 
+            ;;
+        *显示缩略图*) $MYRUNTIME/customs/bin/favo thumb
+            return 
+            ;;
+        *重建收藏列表*) $MYRUNTIME/customs/bin/favo rebuild
+            return 
+            ;;
+        *表格形式展示收藏*) $MYRUNTIME/customs/bin/favo table
+            return 
+            ;;
+        *删除*) $MYRUNTIME/customs/bin/favo remove
+            return 
+            ;;
+        *帮助*) $MYRUNTIME/customs/bin/favo help
+            return 
+            ;;
+        *退出系统*) return ;;
+    esac
+}
+alias ffi="fzf_favorate_image_manager"                                              # Desc: alias: ffi: fzf_favorate_image_manager命令的别名，利用fzf 配合自定义的 favo 命令管理 iterm2 的背景图
+
+if [ "zsh" = "$nowshell" ]; then
+    zle -N fzf_favorate_image_manager
+    bindkey '^P' fzf_favorate_image_manager   #//Ctrl P 执行fzf_favorate_image_manager函数
+else
+    export -f fzf_favorate_image_manager
+    bind '"\C-P":"fzf_favorate_image_manager;\n"'   #//Ctrl P 执行fzf_favorate_image_manager函数
+fi

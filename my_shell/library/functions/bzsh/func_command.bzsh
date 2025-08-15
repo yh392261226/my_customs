@@ -802,6 +802,7 @@ function fzf_search_custom_alias_by_desc() {                                    
 alias fsa="fzf_search_custom_alias_by_desc"                                         # Desc: alias: fsa: fzf_search_custom_alias_by_desc命令的别名,根据自定义的描述和别名查询自定义命令
 
 function fzf_full_files_manager() {                                                 # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "文件管理" || echo -e "文件管理"
     ___fzf_manage_all() {
         local Action="$1"
         local Varname="fzf_transformer_filter_$Action"

@@ -138,3 +138,104 @@ function file_kind() {                                                          
     return 0
 }
 alias fkind="file_kind"                                                                # Desc: alias: fkind: file_kind命令的别名,获取文件类型的后一段,如application/image中的image
+
+function fzf_full_files_manager() {                                                    # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
+    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "文件管理" || echo -e "文件管理"
+    ___fzf_manage_all() {
+        local Action="$1"
+        local Varname="fzf_transformer_filter_$Action"
+        local Cmd=$fzf_transformer_filter_all
+        local Operate
+        echo "$Action" > $TMP_FZF_SEARCH_SWAP_FILE
+        [[ -n "$BASH_VERSION" ]] && Cmd="${!Varname}"
+        [[ -n "$ZSH_VERSION" ]] && Cmd="${(P)Varname}"
+        FZF_CURRENT_DIR=$PWD
+
+        while true; do
+        Operate=$(eval "$Cmd" | awk -v dir="$FZF_CURRENT_DIR" '
+            BEGIN { print ".." }
+            { print }
+            END { print "🔙 返回" }
+        ' | fzf $FZF_CUSTOM_PARAMS +m \
+        --preview "(${MYRUNTIME}/customs/bin/_previewer {}) 2> /dev/null | head -500" \
+        --header="$(_buildFzfHeader '' 'fzf_full_files_manager')" )
+        
+        if [ -n "$Operate" ]; then
+            if [[ "$Operate" == "🔙 返回" ]]; then
+                return  # 直接退出函数
+            elif [[ "$Operate" == ".." ]]; then
+                # 处理根目录情况
+                if [[ "$FZF_CURRENT_DIR" != "/" ]]; then
+                    FZF_CURRENT_DIR=$(dirname "$FZF_CURRENT_DIR")
+                fi
+                #PWD=$FZF_CURRENT_DIR
+                cd "$FZF_CURRENT_DIR"  # 刷新工作目录
+            elif [[ -d "${FZF_CURRENT_DIR}/${Operate}" ]]; then
+                FZF_CURRENT_DIR="${FZF_CURRENT_DIR}/${Operate}"
+                #PWD=$FZF_CURRENT_DIR
+                cd "$FZF_CURRENT_DIR"  # 刷新工作目录
+            else
+                if [ "$Action" = "contents" ]; then
+                    local tmpfilepath=$(echo "$Operate" | awk -F':' '{print $1}')
+                    local tmplinenum=$(echo "$Operate" | awk -F':' '{print $2}')
+                    if command -v code > /dev/null; then
+                        /usr/local/bin/code --new-window --goto ${tmpfilepath}:${tmplinenum}
+                    elif command -v nvim > /dev/null; then
+                        nvim +${tmplinenum} ${tmpfilepath}
+                    elif command -v vim > /dev/null; then
+                        vim  +${tmplinenum} ${tmpfilepath}
+                    else
+                        bat --highlight-line="${tmplinenum}" --theme=gruvbox-dark --style='full' --color=always --pager=never "${tmpfilepath}"
+                    fi
+                else
+                    # 添加文件打开逻辑
+                    #open "${FZF_CURRENT_DIR}/${Operate}" &>/dev/null
+                    echo $Operate
+                fi
+            fi
+        else
+            return
+        fi
+        done
+    }
+
+#    while true; do
+        local action=$(printf "%s\n" \
+            "🔍️ 所有文件(All)" \
+            "📂 文件夹(Directory)" \
+            "📄 文件(File)" \
+            "🔗 软连接(Symbolic Link)" \
+            "🥷 隐藏文件(Hidden)" \
+            "🖼️ 图片(Image)" \
+            "📖 文本(Document)" \
+            "📻️ 媒体(Media)" \
+            "🧾 开发(Develop)" \
+            "📝 全文搜索(Content)" \
+            "🗜️ 压缩文件(Archive)" \
+            "🔙 返回(Back)" | \
+            fzf +m \
+                --header " 文件管理系统 " \
+                --prompt "主菜单 ❯ " \
+                --preview-window=up:30% \
+                --preview "echo '请选择操作类型'" \
+                --height=15% \
+                --bind='space:jump,jump:accept' \
+                --reverse)
+
+        case $action in
+            *所有文件*)     ___fzf_manage_all "all" ;;
+            *文件夹*)       ___fzf_manage_all "directories" ;;
+            *软连接*)       ___fzf_manage_all "symbolic_links" ;;
+            *隐藏文件*)      ___fzf_manage_all "hiddens" ;;
+            *压缩文件*)      ___fzf_manage_all "archives" ;;
+            *文件*)         ___fzf_manage_all "files" ;;
+            *图片*)         ___fzf_manage_all "images" ;;
+            *文本*)         ___fzf_manage_all "documents" ;;
+            *媒体*)         ___fzf_manage_all "medias" ;;
+            *开发*)         ___fzf_manage_all "languages" ;;
+            *全文搜索*)     ___fzf_manage_all "contents" ;;
+            *返回*) return ;;
+        esac
+#    done
+}
+alias ffm="fzf_full_files_manager"                                                     # Desc: alias: ffm: fzf_full_files_manager命令的别名,利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
