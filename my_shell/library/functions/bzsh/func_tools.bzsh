@@ -209,6 +209,7 @@ ofen_used_soft_manager() {
         ')" \
             --prompt="➤ 常用软件管理 > ")
     [[ -z "$selection" ]] && return
+    [[ "$selection" = "🔙 返回" ]] && return
     while read -r selected; do
         [[ -n $selected ]] && open "$selected"
     done <<< $selection
