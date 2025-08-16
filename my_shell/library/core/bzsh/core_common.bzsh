@@ -123,3 +123,80 @@ function gotoPath() {
         end tell"
     fi
 }
+
+# 检测 gum 是否安装
+[[ "1" = "$(ifHasCommand gum)" ]] && USE_GUM=true || USE_GUM=false
+
+# 通用输入函数
+function user_input() {
+    local prompt="$1"
+    local default_value="$2"
+    local secret="$3"
+    
+    if $USE_GUM; then
+        if [ "$secret" = "secret" ]; then
+            gum input --password --prompt "$prompt" --placeholder "$default_value"
+        else
+            gum input --prompt "$prompt" --placeholder "$default_value"
+        fi
+    else
+        if [ "$secret" = "secret" ]; then
+            read -rsp "$prompt" value
+            echo
+        else
+            read -rp "$prompt" value
+        fi
+        echo "${value:-$default_value}"
+    fi
+}
+
+# 通用等待按键函数 (兼容 macOS bash)
+function wait_for_key() {
+    if $USE_GUM; then
+        gum spin --spinner dot --title "按任意键继续..." -- sleep 0.1
+    else
+        echo -n "按任意键继续..."
+        IFS= read -r -n1 -s
+        echo
+    fi
+}
+
+# 确认对话框函数
+function confirm_action() {
+    local message="$1"
+    
+    if $USE_GUM; then
+        gum confirm "$message" && return 0
+        return 1
+    else
+        read -rp "$message (y/n): " confirm
+        [[ "$confirm" =~ ^[Yy]$ ]]
+    fi
+}
+
+# 多选函数
+function multi_select() {
+    local prompt="$1"
+    shift
+    local options=("$@")
+    
+    if $USE_GUM; then
+        gum choose --no-limit --cursor-prefix "○ " --selected-prefix "◉ " --unselected-prefix "○ " --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "$prompt" "${options[@]}"
+    else
+        echo "$prompt"
+        PS3="请选择 (空格选中/取消, 回车确认): "
+        select item in "${options[@]}"; do
+            if [ -n "$item" ]; then
+                echo "$item"
+            fi
+        done
+    fi
+}
+
+# 利用gum style输出带有边框和颜色的header
+function custom_gum_header() {
+    local text="$1"
+    echo ""
+    gum style --border thick --border-foreground "#00FF00" --align center --padding "1 4" --width 98 "$text"
+    echo ""
+}

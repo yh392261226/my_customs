@@ -325,71 +325,6 @@ function git_submodule_remove2() {                                              
 }
 alias gsr2="git_submodule_remove2"                                                      # Desc: alias: gsr2: git_submodule_remove2命令的别名,删除git子模块,同时删除本地文件
 
-function fzf_hyper_git() {                                                              # Desc: function:fzf-hyper-git:超维 Git 操作（集成 GitHub CLI 和语义分析）
-    local action=$(echo "commit-fixup\nbranch-fusion\npr-orbit\nconflict-solver\nblame-explorer" | \
-        fzf --reverse --header "超维 Git 控制台")
-
-    case $action in
-        commit-fixup)
-            git log --oneline | fzf --multi --preview 'git show {1}' \
-                --bind 'enter:execute(git commit --fixup={1})+abort'
-            ;;
-        branch-fusion)
-            git branch --all | fzf --multi --preview 'git log --graph --oneline {1}' \
-                --bind 'enter:execute(git merge {1} --no-ff)+abort'
-            ;;
-        pr-orbit)
-            gh pr list | fzf --preview 'gh pr view {1}' \
-                --bind 'enter:execute(gh pr checkout {1})'
-            ;;
-        conflict-solver)
-            git diff --name-only --diff-filter=U | \
-                fzf --preview 'git diff --color=always {} | delta' \
-                --bind 'enter:execute(code --wait {})'
-            ;;
-        blame-explorer)
-            local file=$(fzf)
-            git blame "$file" | fzf --preview "echo {} | cut -d' ' -f1 | xargs git show | delta"
-            ;;
-    esac
-}
-alias fhg="fzf_hyper_git"                                                               # Desc: alias: fhg:fzf-hyper-git命令的别名,超维 Git 操作（集成 GitHub CLI 和语义分析）
-
-function fzf_fuzzy_git_tools() {                                                        # Desc: function:fzf_fuzzy_git_tools:Git 超级工具集
-    local choices=(
-        "branch: 切换分支"
-        "log: 查看提交历史"
-        "reflog: 查看操作历史"
-        "status: 查看状态"
-        "stash: 储藏管理"
-        "reset: 重置提交"
-    )
-
-    local cmd=$(printf "%s\n" "${choices[@]}" | fzf --height 40% --reverse --header="Git 操作面板" | cut -d: -f1)
-
-    case $cmd in
-        branch)
-            git checkout $(git branch -a | fzf --height 40% --reverse --preview 'git log --oneline --graph -n 10 $(sed "s/.* //" <<< {})' | sed 's#^remotes/##' | awk '{print $1}')
-            ;;
-        log)
-            git log --graph --color=always --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" | fzf --ansi --reverse --preview 'grep -o "[a-f0-9]\{7\}" <<< {} | xargs git show --color=always' --bind "enter:execute:grep -o '[a-f0-9]\{7\}' <<< {} | xargs -I % sh -c 'git show % | delta'"
-            ;;
-        reflog)
-            git reflog --color=always | fzf --ansi --reverse --preview 'echo {} | cut -d" " -f1 | xargs git show --color=always' --bind "enter:execute:echo {} | cut -d' ' -f1 | xargs -I % sh -c 'git show % | delta'"
-            ;;
-        status)
-            git -c color.status=always status -s | fzf --ansi --reverse --preview 'git diff --color=always -- {-1}' --bind "enter:execute:git diff -- {-1} | delta"
-            ;;
-        stash)
-            git stash list | fzf --ansi --reverse --preview 'git stash show -p $(echo {} | cut -d: -f1)' --bind "enter:execute:git stash show -p $(echo {} | cut -d: -f1) | delta"
-            ;;
-        reset)
-            git log --oneline --graph | fzf --ansi --reverse --multi --preview 'git show --color=always {1}' | awk '{print $1}' | xargs -I % git reset %~1
-            ;;
-    esac
-}
-alias ffgt="fzf_fuzzy_git_tools"                                                        # Desc: alias: ffgt: fzf_fuzzy_git_tools命令的别名,Git 超级工具集
-
 function fzf_version_manager() {
     local options=(
         "Git"
@@ -397,7 +332,7 @@ function fzf_version_manager() {
         "Hg"
         "🔙 返回"
     )
-    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "版本管理" || echo -e "版本管理"
+    $USE_GUM && custom_gum_header "版本管理" || echo -e "版本管理"
     while true; do
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -420,79 +355,6 @@ function fzf_version_manager() {
                 ;;
         esac
     done
-}
-
-# 检测 gum 是否安装
-if command -v gum &>/dev/null; then
-    USE_GUM=true
-else
-    USE_GUM=false
-fi
-
-# 通用输入函数
-user_input() {
-    local prompt="$1"
-    local default_value="$2"
-    local secret="$3"
-    
-    if $USE_GUM; then
-        if [ "$secret" = "secret" ]; then
-            gum input --password --prompt "$prompt" --placeholder "$default_value"
-        else
-            gum input --prompt "$prompt" --placeholder "$default_value"
-        fi
-    else
-        if [ "$secret" = "secret" ]; then
-            read -rsp "$prompt" value
-            echo
-        else
-            read -rp "$prompt" value
-        fi
-        echo "${value:-$default_value}"
-    fi
-}
-
-# 通用等待按键函数 (兼容 macOS bash)
-wait_for_key() {
-    if $USE_GUM; then
-        gum spin --spinner dot --title "按任意键继续..." -- sleep 0.1
-    else
-        echo -n "按任意键继续..."
-        IFS= read -r -n1 -s
-        echo
-    fi
-}
-
-# 确认对话框函数
-confirm_action() {
-    local message="$1"
-    
-    if $USE_GUM; then
-        gum confirm "$message" && return 0
-        return 1
-    else
-        read -rp "$message (y/n): " confirm
-        [[ "$confirm" =~ ^[Yy]$ ]]
-    fi
-}
-
-# 多选函数
-multi_select() {
-    local prompt="$1"
-    shift
-    local options=("$@")
-    
-    if $USE_GUM; then
-        gum choose --no-limit --cursor-prefix "○ " --selected-prefix "◉ " --unselected-prefix "○ " --cursor.foreground 212 --item.foreground 99 --selected.foreground 212 --prompt "$prompt" "${options[@]}"
-    else
-        echo "$prompt"
-        PS3="请选择 (空格选中/取消, 回车确认): "
-        select item in "${options[@]}"; do
-            if [ -n "$item" ]; then
-                echo "$item"
-            fi
-        done
-    fi
 }
 
 # ======================================================
@@ -529,8 +391,8 @@ git_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 管理器: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 管理器: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 管理器: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -607,7 +469,7 @@ git_repository_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 仓库管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 仓库管理: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 仓库管理: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -638,7 +500,7 @@ git_repository_manager() {
 
 # 初始化仓库
 git_init() {
-    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "初始化新 Git 仓库" || echo -e "初始化新 Git 仓库"
+    $USE_GUM && custom_gum_header "初始化新 Git 仓库" || echo -e "初始化新 Git 仓库"
     
     local repo_path=$(user_input "请输入仓库路径（默认为当前目录）: " ".")
     
@@ -660,7 +522,7 @@ git_init() {
 
 # 克隆仓库
 git_clone() {
-    $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "克隆远程 Git 仓库" || echo -e "克隆远程 Git 仓库"
+    $USE_GUM && custom_gum_header "克隆远程 Git 仓库" || echo -e "克隆远程 Git 仓库"
     
     local repo_url=$(user_input "请输入远程仓库URL: " "")
     if [ -z "$repo_url" ]; then
@@ -693,7 +555,7 @@ git_worktree_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 多工作区管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 多工作区管理: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 多工作区管理: $repo_name"
         fi
@@ -765,8 +627,8 @@ git_snapshot_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 快照管理: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 快照管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 快照管理: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -851,7 +713,7 @@ git_reset_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 重置管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 重置管理: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 重置管理: $repo_name"
         fi
@@ -912,7 +774,7 @@ git_restore_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 恢复管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 恢复管理: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 恢复管理: $repo_name"
         fi
@@ -999,8 +861,8 @@ git_branch_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 分支管理: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 分支管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 分支管理: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1125,8 +987,8 @@ git_commit_history_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 提交历史管理: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 提交历史管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 提交历史管理: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1208,7 +1070,7 @@ git_diff_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 差异比较: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 差异比较: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 差异比较: $repo_name"
         fi
@@ -1283,8 +1145,8 @@ git_remote_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 远程协作: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 远程协作: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 远程协作: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1423,8 +1285,8 @@ git_merge_rebase_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 合并与重写历史: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 合并与重写历史: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 合并与重写历史: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1550,8 +1412,8 @@ git_stash_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 临时存储: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 临时存储: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 临时存储: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1644,8 +1506,8 @@ git_tag_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 标签管理: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 标签管理: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 标签管理: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1741,8 +1603,8 @@ git_advanced_manager() {
         local current_branch=$(git branch --show-current)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 高级操作: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Git 高级操作: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Git 高级操作: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -1794,7 +1656,7 @@ git_bisect_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 二分查找" || echo -e "Git 二分查找"
+        $USE_GUM && custom_gum_header "Git 二分查找" || echo -e "Git 二分查找"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1840,7 +1702,7 @@ git_submodule_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 子模块管理" || echo -e "Git 子模块管理"
+        $USE_GUM && custom_gum_header "Git 子模块管理" || echo -e "Git 子模块管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1891,7 +1753,7 @@ git_bundle_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 打包传输" || echo -e "Git 打包传输"
+        $USE_GUM && custom_gum_header "Git 打包传输" || echo -e "Git 打包传输"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1962,7 +1824,7 @@ git_replace_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 对象替换" || echo -e "Git 对象替换"
+        $USE_GUM && custom_gum_header "Git 对象替换" || echo -e "Git 对象替换"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2040,7 +1902,7 @@ git_maintenance_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 诊断与维护: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 诊断与维护: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 诊断与维护: $repo_name"
         fi
@@ -2112,7 +1974,7 @@ git_config_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 配置管理" || echo -e "Git 配置管理"
+        $USE_GUM && custom_gum_header "Git 配置管理" || echo -e "Git 配置管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2186,7 +2048,7 @@ git_plumbing_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 底层命令: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 底层命令: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 底层命令: $repo_name"
         fi
@@ -2281,7 +2143,7 @@ git_helper_tools_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Git 辅助工具: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "Git 辅助工具: $(gum style --foreground 212 "$repo_name")"
         else
             echo -e "Git 辅助工具: $repo_name"
         fi
@@ -2346,8 +2208,8 @@ svn_manager() {
         local current_rev=$(svn info --show-item revision)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "SVN 管理器: $(gum style --foreground 212 "$repo_url")"
-            gum style --border normal --margin "1" --padding "1 2" "当前版本: $(gum style --foreground 99 "r$current_rev")"
+            custom_gum_header "SVN 管理器: $(gum style --foreground 212 "$repo_url")"
+            custom_gum_header "当前版本: $(gum style --foreground 99 "r$current_rev")"
         else
             echo -e "SVN 管理器: $repo_url"
             echo -e "当前版本: \033[1;35mr$current_rev\033[0m"
@@ -2411,7 +2273,7 @@ svn_repository_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 仓库操作" || echo -e "SVN 仓库操作"
+        $USE_GUM && custom_gum_header "SVN 仓库操作" || echo -e "SVN 仓库操作"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2477,7 +2339,7 @@ svn_working_copy_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 工作副本管理" || echo -e "SVN 工作副本管理"
+        $USE_GUM && custom_gum_header "SVN 工作副本管理" || echo -e "SVN 工作副本管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2579,7 +2441,7 @@ svn_commit_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 提交管理" || echo -e "SVN 提交管理"
+        $USE_GUM && custom_gum_header "SVN 提交管理" || echo -e "SVN 提交管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2636,7 +2498,7 @@ svn_branch_tag_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 分支与标签" || echo -e "SVN 分支与标签"
+        $USE_GUM && custom_gum_header "SVN 分支与标签" || echo -e "SVN 分支与标签"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2750,7 +2612,7 @@ svn_update_sync_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 更新与同步" || echo -e "SVN 更新与同步"
+        $USE_GUM && custom_gum_header "SVN 更新与同步" || echo -e "SVN 更新与同步"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2818,7 +2680,7 @@ svn_log_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 日志管理" || echo -e "SVN 日志管理"
+        $USE_GUM && custom_gum_header "SVN 日志管理" || echo -e "SVN 日志管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2892,7 +2754,7 @@ svn_diff_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 差异比较" || echo -e "SVN 差异比较"
+        $USE_GUM && custom_gum_header "SVN 差异比较" || echo -e "SVN 差异比较"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2958,7 +2820,7 @@ svn_property_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 属性管理" || echo -e "SVN 属性管理"
+        $USE_GUM && custom_gum_header "SVN 属性管理" || echo -e "SVN 属性管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3031,7 +2893,7 @@ svn_advanced_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 高级操作" || echo -e "SVN 高级操作"
+        $USE_GUM && custom_gum_header "SVN 高级操作" || echo -e "SVN 高级操作"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3105,7 +2967,7 @@ svn_config_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 配置工具" || echo -e "SVN 配置工具"
+        $USE_GUM && custom_gum_header "SVN 配置工具" || echo -e "SVN 配置工具"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3184,8 +3046,8 @@ hg_manager() {
         local current_branch=$(hg branch)
         
         if $USE_GUM; then
-            gum style --border double --margin "1" --padding "1 4" --border-foreground 99 "Mercurial 管理器: $(gum style --foreground 212 "$repo_name")"
-            gum style --border normal --margin "1" --padding "1 2" "当前分支: $(gum style --foreground 99 "$current_branch")"
+            custom_gum_header "Mercurial 管理器: $(gum style --foreground 212 "$repo_name")"
+            custom_gum_header "当前分支: $(gum style --foreground 99 "$current_branch")"
         else
             echo -e "Mercurial 管理器: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
@@ -3255,7 +3117,7 @@ hg_repository_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 仓库管理" || echo -e "Mercurial 仓库管理"
+        $USE_GUM && custom_gum_header "Mercurial 仓库管理" || echo -e "Mercurial 仓库管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3317,7 +3179,7 @@ hg_working_copy_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 工作副本管理" || echo -e "Mercurial 工作副本管理"
+        $USE_GUM && custom_gum_header "Mercurial 工作副本管理" || echo -e "Mercurial 工作副本管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3415,7 +3277,7 @@ hg_commit_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 提交管理" || echo -e "Mercurial 提交管理"
+        $USE_GUM && custom_gum_header "Mercurial 提交管理" || echo -e "Mercurial 提交管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3483,7 +3345,7 @@ hg_branch_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 分支管理" || echo -e "Mercurial 分支管理"
+        $USE_GUM && custom_gum_header "Mercurial 分支管理" || echo -e "Mercurial 分支管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3573,7 +3435,7 @@ hg_tag_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 标签管理" || echo -e "Mercurial 标签管理"
+        $USE_GUM && custom_gum_header "Mercurial 标签管理" || echo -e "Mercurial 标签管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3646,7 +3508,7 @@ hg_update_sync_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 更新与同步" || echo -e "Mercurial 更新与同步"
+        $USE_GUM && custom_gum_header "Mercurial 更新与同步" || echo -e "Mercurial 更新与同步"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3710,7 +3572,7 @@ hg_log_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 日志管理" || echo -e "Mercurial 日志管理"
+        $USE_GUM && custom_gum_header "Mercurial 日志管理" || echo -e "Mercurial 日志管理"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3785,7 +3647,7 @@ hg_diff_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 差异比较" || echo -e "Mercurial 差异比较"
+        $USE_GUM && custom_gum_header "Mercurial 差异比较" || echo -e "Mercurial 差异比较"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3856,7 +3718,7 @@ hg_bookmark_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 书签管理" || echo -e "Mercurial 书签管理"
+        $USE_GUM && custom_gum_header "Mercurial 书签管理" || echo -e "Mercurial 书签管理"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3941,7 +3803,7 @@ hg_patch_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 补丁管理" || echo -e "Mercurial 补丁管理"
+        $USE_GUM && custom_gum_header "Mercurial 补丁管理" || echo -e "Mercurial 补丁管理"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -4017,7 +3879,7 @@ hg_advanced_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 高级操作" || echo -e "Mercurial 高级操作"
+        $USE_GUM && custom_gum_header "Mercurial 高级操作" || echo -e "Mercurial 高级操作"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -4084,7 +3946,7 @@ hg_bisect_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 二分查找" || echo -e "Mercurial 二分查找"
+        $USE_GUM && custom_gum_header "Mercurial 二分查找" || echo -e "Mercurial 二分查找"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -4135,7 +3997,7 @@ hg_config_manager() {
     )
 
     while true; do
-        $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 配置工具" || echo -e "Mercurial 配置工具"
+        $USE_GUM && custom_gum_header "Mercurial 配置工具" || echo -e "Mercurial 配置工具"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
