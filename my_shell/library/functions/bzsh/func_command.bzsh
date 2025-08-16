@@ -836,7 +836,10 @@ function fzf_manager() {
             *书签*) fzf_bookmark_manager ;;
             *自定义*) fzf_customs_manager ;;
             *娱乐*) fzf_recreation_manager ;;
-            *退出*|*) break ;;
+            *退出*|*) 
+                custom_gum_hidden_header2 " 👋🏻 下次再见 " 1
+                break 
+            ;;
         esac
     done
 }
