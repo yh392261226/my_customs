@@ -217,7 +217,7 @@ ofen_used_soft_manager() {
 
 fzf_recreation_manager() {
     local options=(
-        "列表"
+        "视频列表"
         "常看视频网站"
         "打开目录"
         "常用软件"
