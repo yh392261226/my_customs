@@ -402,9 +402,7 @@ function fzf_version_manager() {
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
             --reverse \
-            --prompt="➤ 设置 > " \
-            --preview="echo -e '\n${THEME_PREVIEW}当前主题: ${THEME_NAME}'" \
-            --preview-window="top:3:wrap"
+            --prompt="➤ 版本管理 > "
         )
         
         case "$selection" in
@@ -538,8 +536,11 @@ git_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ Git > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 管理器 > "
+        )
 
         case "$selection" in
         *仓库管理*)
@@ -612,8 +613,11 @@ git_repository_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 仓库管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 仓库管理 > "
+        )
 
         case "$selection" in
         *初始化新仓库*)
@@ -694,8 +698,11 @@ git_worktree_manager() {
             echo -e "Git 多工作区管理: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 工作区管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 工作区管理 > "
+        )
 
         case "$selection" in
         *添加工作树*)
@@ -765,8 +772,11 @@ git_snapshot_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 快照管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 快照管理 > "
+        )
 
         case "$selection" in
         *添加文件*)
@@ -846,8 +856,11 @@ git_reset_manager() {
             echo -e "Git 重置管理: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 重置管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 重置管理 > "
+        )
 
         case "$selection" in
         *软重置*)
@@ -904,8 +917,11 @@ git_restore_manager() {
             echo -e "Git 恢复管理: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 恢复管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 恢复管理 > "
+        )
 
         case "$selection" in
         *恢复工作区文件*)
@@ -989,9 +1005,12 @@ git_branch_manager() {
             echo -e "Git 分支管理: $repo_name"
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
-
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 分支管理 > ")
+        
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 分支管理 > "
+        )
 
         case "$selection" in
         *查看本地分支*)
@@ -1113,8 +1132,11 @@ git_commit_history_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 提交历史 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 提交历史 > "
+        )
 
         case "$selection" in
         *查看提交日志*)
@@ -1191,8 +1213,11 @@ git_diff_manager() {
             echo -e "Git 差异比较: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 差异比较 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 差异比较 > "
+        )
 
         case "$selection" in
         *工作区差异*)
@@ -1265,8 +1290,11 @@ git_remote_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 远程协作 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 远程协作 > "
+        )
 
         case "$selection" in
         *查看远程仓库*)
@@ -1402,8 +1430,11 @@ git_merge_rebase_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 合并/重写 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 合并/重写 > "
+        )
 
         case "$selection" in
         *合并分支*)
@@ -1526,8 +1557,11 @@ git_stash_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 储藏管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 储藏管理 > "
+        )
 
         case "$selection" in
         *储藏更改*)
@@ -1617,8 +1651,11 @@ git_tag_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 标签管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 标签管理 > "
+        )
 
         case "$selection" in
         *查看本地标签*)
@@ -1711,8 +1748,11 @@ git_advanced_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 高级操作 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 高级操作 > "
+        )
 
         case "$selection" in
         *二分查找*)
@@ -1756,8 +1796,11 @@ git_bisect_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 二分查找" || echo -e "Git 二分查找"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 二分查找 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 二分查找 > "
+        )
 
         case "$selection" in
         *开始二分查找*)
@@ -1799,8 +1842,11 @@ git_submodule_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 子模块管理" || echo -e "Git 子模块管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 子模块 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 子模块 > "
+        )
 
         case "$selection" in
         *添加子模块*)
@@ -1847,8 +1893,11 @@ git_bundle_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 打包传输" || echo -e "Git 打包传输"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 打包 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 打包 > "
+        )
 
         case "$selection" in
         *创建打包文件*)
@@ -1915,8 +1964,11 @@ git_replace_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 对象替换" || echo -e "Git 对象替换"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 替换对象 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 替换对象 > "
+        )
 
         case "$selection" in
         *创建替换对象*)
@@ -1993,8 +2045,11 @@ git_maintenance_manager() {
             echo -e "Git 诊断与维护: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 维护 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 维护 > "
+        )
 
         case "$selection" in
         *垃圾回收*)
@@ -2059,8 +2114,11 @@ git_config_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Git 配置管理" || echo -e "Git 配置管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 配置 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 配置管理 > "
+        )
 
         case "$selection" in
         *查看所有配置*)
@@ -2133,8 +2191,11 @@ git_plumbing_manager() {
             echo -e "Git 底层命令: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 底层命令 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 底层命令 > "
+        )
 
         case "$selection" in
         *查看原始对象*)
@@ -2225,8 +2286,11 @@ git_helper_tools_manager() {
             echo -e "Git 辅助工具: $repo_name"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 辅助工具 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Git 辅助工具 > "
+        )
 
         case "$selection" in
         *图形界面*)
@@ -2289,8 +2353,11 @@ svn_manager() {
             echo -e "当前版本: \033[1;35mr$current_rev\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ SVN > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN > "
+        )
 
         case "$selection" in
         *仓库操作*)
@@ -2346,8 +2413,11 @@ svn_repository_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 仓库操作" || echo -e "SVN 仓库操作"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 仓库操作 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 仓库操作 > "
+        )
 
         case "$selection" in
         *检出仓库*)
@@ -2409,8 +2479,11 @@ svn_working_copy_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 工作副本管理" || echo -e "SVN 工作副本管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 工作副本 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 工作副本管理 > "
+        )
 
         case "$selection" in
         *状态检查*)
@@ -2508,8 +2581,11 @@ svn_commit_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 提交管理" || echo -e "SVN 提交管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 提交管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 提交管理 > "
+        )
 
         case "$selection" in
         *提交更改*)
@@ -2562,8 +2638,11 @@ svn_branch_tag_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 分支与标签" || echo -e "SVN 分支与标签"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 分支/标签 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 分支/标签 > "
+        )
 
         case "$selection" in
         *创建分支*)
@@ -2673,8 +2752,11 @@ svn_update_sync_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 更新与同步" || echo -e "SVN 更新与同步"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 更新/同步 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 更新/同步 > "
+        )
 
         case "$selection" in
         *更新工作副本*)
@@ -2738,9 +2820,12 @@ svn_log_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 日志管理" || echo -e "SVN 日志管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 日志管理 > ")
-
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 日志管理 > "
+        )
+        
         case "$selection" in
         *查看完整日志*)
             clear
@@ -2809,8 +2894,11 @@ svn_diff_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 差异比较" || echo -e "SVN 差异比较"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 差异比较 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 差异比较 > "
+        )
 
         case "$selection" in
         *比较工作副本与基础版本*)
@@ -2872,8 +2960,11 @@ svn_property_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 属性管理" || echo -e "SVN 属性管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 属性管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 属性管理 > "
+        )
 
         case "$selection" in
         *设置属性*)
@@ -2942,8 +3033,11 @@ svn_advanced_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 高级操作" || echo -e "SVN 高级操作"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 高级操作 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 高级操作 > "
+        )
 
         case "$selection" in
         *导出工作副本*)
@@ -3013,8 +3107,11 @@ svn_config_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "SVN 配置工具" || echo -e "SVN 配置工具"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 配置 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ SVN 配置工具 > "
+        )
 
         case "$selection" in
         *查看配置*)
@@ -3094,8 +3191,11 @@ hg_manager() {
             echo -e "当前分支: \033[1;35m$current_branch\033[0m"
         fi
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ Hg > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 管理器 > "
+        )
 
         case "$selection" in
         *仓库管理*)
@@ -3157,8 +3257,11 @@ hg_repository_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 仓库管理" || echo -e "Mercurial 仓库管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 仓库管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 仓库管理 > "
+        )
 
         case "$selection" in
         *初始化新仓库*)
@@ -3216,8 +3319,11 @@ hg_working_copy_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 工作副本管理" || echo -e "Mercurial 工作副本管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 工作副本 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 工作副本管理 > "
+        )
 
         case "$selection" in
         *状态检查*)
@@ -3311,8 +3417,11 @@ hg_commit_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 提交管理" || echo -e "Mercurial 提交管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 提交管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 提交管理 > "
+        )
 
         case "$selection" in
         *提交更改*)
@@ -3376,8 +3485,11 @@ hg_branch_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 分支管理" || echo -e "Mercurial 分支管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 分支管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 分支管理 > "
+        )
 
         case "$selection" in
         *查看分支列表*)
@@ -3463,8 +3575,11 @@ hg_tag_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 标签管理" || echo -e "Mercurial 标签管理"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 标签管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 标签管理 > "
+        )
 
         case "$selection" in
         *查看标签列表*)
@@ -3533,8 +3648,11 @@ hg_update_sync_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 更新与同步" || echo -e "Mercurial 更新与同步"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 更新/同步 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 更新与同步 > "
+        )
 
         case "$selection" in
         *拉取变更*)
@@ -3594,8 +3712,11 @@ hg_log_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 日志管理" || echo -e "Mercurial 日志管理"
         
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 日志管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 日志管理 > "
+        )
 
         case "$selection" in
         *查看完整日志*)
@@ -3666,8 +3787,11 @@ hg_diff_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 差异比较" || echo -e "Mercurial 差异比较"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 差异比较 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 差异比较 > "
+        )
 
         case "$selection" in
         *比较工作副本与基础版本*)
@@ -3734,8 +3858,11 @@ hg_bookmark_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 书签管理" || echo -e "Mercurial 书签管理"
         
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 书签管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 书签管理 > "
+        )
 
         case "$selection" in
         *查看书签列表*)
@@ -3816,8 +3943,11 @@ hg_patch_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 补丁管理" || echo -e "Mercurial 补丁管理"
         
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 补丁管理 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 补丁管理 > "
+        )
 
         case "$selection" in
         *创建补丁*)
@@ -3889,8 +4019,11 @@ hg_advanced_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 高级操作" || echo -e "Mercurial 高级操作"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 高级操作 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 高级操作 > "
+        )
 
         case "$selection" in
         *二分查找*)
@@ -3953,8 +4086,11 @@ hg_bisect_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 二分查找" || echo -e "Mercurial 二分查找"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 二分查找 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 二分查找 > "
+        )
 
         case "$selection" in
         *开始二分查找*)
@@ -4001,8 +4137,11 @@ hg_config_manager() {
     while true; do
         $USE_GUM && gum style --border normal --margin "1" --padding "1 2" --border-foreground 99 "Mercurial 配置工具" || echo -e "Mercurial 配置工具"
 
-        local selection
-        selection=$(printf '%s\n' "${options[@]}" | fzf --height=30% --reverse --ansi --prompt="➤ 配置 > ")
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ Mercurial 配置工具 > "
+        )
 
         case "$selection" in
         *查看配置*)
