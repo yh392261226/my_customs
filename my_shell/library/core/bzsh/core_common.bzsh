@@ -200,3 +200,19 @@ function custom_gum_header() {
     gum style --border rounded --border-foreground "#3f633fff" --align center --padding "1 4" --width 98 "$text"
     echo ""
 }
+
+# 利用gum spin输出显示一会再隐藏的header
+function custom_gum_hidden_header() {
+    local text="$1"
+    gum spin --title "$(gum style --foreground '#c3573cff' \"$text\")" -- sleep 1
+    echo ""
+}
+
+# 利用gum spin输出显示一会再隐藏的header
+function custom_gum_show2hide_header() {
+    local text="$1"
+    local duration=${2:-0.5}
+    gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --width 98 \"$text\")" -- sleep $duration
+    gum style --border rounded --border-foreground "#3f633fff" --align center --width 98 "$text"
+    echo ""
+}
