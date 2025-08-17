@@ -34,6 +34,7 @@ function temprature_monitor() {                                                 
         else
             echo "请先安装: brew install osx-cpu-temp"
         fi
+        sleep 20
     done
 }
 alias tm="temprature_monitor"                                                         # Desc: alias: tm: temprature_monitor命令的别名，温度监控
@@ -47,7 +48,7 @@ function net_port_monitor() {                                                   
 
     $USE_GUM && custom_gum_show2hide_header "网络端口监控" || echo -e "网络端口监控"
     while true; do
-        if lsof -i :$port >/dev/null; then
+        if lsof -i :${port} >/dev/null; then
             echo "$(date) - 端口 $port 正在监听"
         else
             echo "$(date) - 警告: 端口 $port 未监听!"
@@ -59,6 +60,7 @@ function net_port_monitor() {                                                   
         else
             echo "警告: 外网连接失败!"
         fi
+        sleep 10
     done
 }
 alias mnp="net_port_monitor"                                                          # Desc: alias: mnp: net_port_monitor命令的别名，网络端口监控
@@ -75,6 +77,7 @@ function disk_monitor() {                                                       
         else
             echo "磁盘正常: ${disk_usage}%"
         fi
+        sleep 60
     done
     # 可选：监控特定挂载点
     # df -h /Volumes/YourDrive
@@ -127,7 +130,7 @@ function fzf_monitor_manager() {                                                
             "实时CPU和内存") real_time_cup_memory_monitor ;;
             "磁盘") disk_monitor ;;
             "进程") process_monitor ;;
-            "网络") network_monitor ;;
+            "网络") net_port_monitor ;;
             "温度") temprature_monitor ;;
             "🔙 返回"|*)
                 break

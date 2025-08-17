@@ -88,12 +88,12 @@ function process_monitor() {                                                    
         read -rep "$text" process_name </dev/tty
     fi
 
-    if pgrep -q "$process_name"; then
-    echo "$(date) - $process_name 正在运行"
+    if pgrep "$process_name" | grep -q .; then
+        echo "$(date) - $process_name 正在运行"
     else
-    echo "$(date) - 警告: $process_name 未运行!"
-    # 可选：自动启动进程
-    # open -a "$process_name"
+        echo "$(date) - 警告: $process_name 未运行!"
+        # 可选：自动启动进程
+        # open -a "$process_name"
     fi
 }
 alias pm="process_monitor"                                                          # Desc: alias: pm: process_monitor命令的别名，进程监控
