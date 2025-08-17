@@ -702,6 +702,7 @@ git_snapshot_manager() {
 # 重置管理器
 git_reset_manager() {
     local options=(
+        "只改commit信息(commit --amend)"
         "软重置(--soft HEAD^|uncommit)"
         "混合重置(--mixed)"
         "硬重置(--hard)"
@@ -725,6 +726,9 @@ git_reset_manager() {
         )
 
         case "$selection" in
+        *只改commit信息*)
+            git commit --amend
+            ;;
         *软重置*)
             git reset --soft HEAD^
             $USE_GUM && gum style --foreground 46 "软重置完成!" || echo -e "\033[32m软重置完成!\033[0m"
