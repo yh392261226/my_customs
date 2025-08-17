@@ -143,6 +143,21 @@ function fzf_full_files_manager() {                                             
     $USE_GUM && custom_gum_show2hide_header "文件管理" || echo -e "文件管理"
     ___fzf_manage_all() {
         local Action="$1"
+        local text
+        [[ "$Action" = "files" ]] && text=文件
+        [[ "$Action" = "all" ]] && text=所有文件
+        [[ "$Action" = "directories" ]] && text=文件夹
+        [[ "$Action" = "symbolic_link" ]] && text=软连接
+        [[ "$Action" = "directories" ]] && text=文件夹
+        [[ "$Action" = "hiddens" ]] && text=隐藏文件
+        [[ "$Action" = "images" ]] && text=图片
+        [[ "$Action" = "medias" ]] && text=媒体
+        [[ "$Action" = "languages" ]] && text=开发
+        [[ "$Action" = "documents" ]] && text=文本
+        [[ "$Action" = "contents" ]] && text=全文搜索
+        [[ "$Action" = "archives" ]] && text=压缩文件
+        $USE_GUM && custom_gum_show2hide_header $text || echo -e $text
+
         local Varname="fzf_transformer_filter_$Action"
         local Cmd=$fzf_transformer_filter_all
         local Operate
