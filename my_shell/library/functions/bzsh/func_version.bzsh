@@ -702,7 +702,7 @@ git_snapshot_manager() {
 # 重置管理器
 git_reset_manager() {
     local options=(
-        "软重置(--soft HEAD^)"
+        "软重置(--soft HEAD^|uncommit)"
         "混合重置(--mixed)"
         "硬重置(--hard)"
         "重置特定文件"
