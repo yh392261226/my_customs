@@ -814,7 +814,7 @@ function fzf_manager() {
         "🔚 退出"
     )
     
-    $USE_GUM && custom_gum_show2hide_header "管理工具" || echo -e "管理工具"
+    custom_gum_show2hide_header "管理工具" || echo -e "管理工具"
 
     while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
@@ -837,7 +837,7 @@ function fzf_manager() {
             *自定义*) fzf_customs_manager ;;
             *娱乐*) fzf_recreation_manager ;;
             *退出*|*) 
-                custom_gum_hidden_header2 " 👋🏻 下次再见 " 1
+                custom_gum_hidden_header2 " 👋🏻 下次再见 " 1  || echo -e " 👋🏻 下次再见 "
                 break 
             ;;
         esac
