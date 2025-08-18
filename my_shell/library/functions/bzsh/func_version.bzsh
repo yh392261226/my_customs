@@ -944,6 +944,7 @@ git_branch_manager() {
 
 git_commit_history_manager() {
     local options=(
+        "查看提交日志tig命令"
         "查看提交日志(log)"
         "简洁模式(--oneline)"
         "图形化模式(--graph)"
@@ -968,6 +969,9 @@ git_commit_history_manager() {
         )
 
         case "$selection" in
+        *查看提交日志tig*)
+            tig < /dev/tty
+            ;;
         *查看提交日志*)
             clear
             git -c color.ui=always log
