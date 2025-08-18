@@ -78,7 +78,10 @@ function __select_category() {
   IFS=$'\n' sorted=($(sort <<< "${categories[*]}"))
   unset IFS
 
-  printf "%s\n" "${sorted[@]}" | fzf $FZF_CUSTOM_PARAMS \
+  printf "%s\n" "${sorted[@]}" | awk -v dir="$FZF_CURRENT_DIR" '
+            { print }
+            END { print "#🔙 返回" }
+        ' | fzf $FZF_CUSTOM_PARAMS \
 	--height=95% \
     --delimiter='#' \
     --with-nth=2 \
@@ -102,7 +105,10 @@ function __select_urls() {
   local header=$(head -n1 "$file")
   local format="%-20s %s"
   
-  cat "$file" | tail -n +2 | fzf \
+  cat "$file" | awk -v dir="$FZF_CURRENT_DIR" '
+            { print }
+            END { print "🔙 返回" }
+        ' | tail -n +2 | fzf \
     --multi \
     --delimiter='#' \
     --with-nth=1 \
@@ -140,7 +146,9 @@ function main() {
       ;;
     *)
       local result=${1:-$(__select_category)}
+      
       [[ -z "$result" ]] && return
+      [[ $result =~ 返回 ]] && return
 
       local key=$(head -1 <<< "$result")
       local category=$(tail -1 <<< "$result" | cut -d'#' -f1)
@@ -158,6 +166,7 @@ function main() {
       # 选择网址
       local urls=$(__select_urls "$target")
       [[ -z "$urls" ]] && return
+      [[ $urls =~ 返回 ]] && return
 
       while read -r url; do
         [[ -n "$url" ]] && open -a "$OPENBROWSER" "$url"
