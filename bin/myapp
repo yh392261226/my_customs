@@ -2,6 +2,8 @@
 ##Desc:管理自己的app
 ##Author:杨浩
 MYAPPPATH=$MYRUNTIME/myapps
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "管理自己的app"
 
 applists=$(ls $MYAPPPATH)
 posit=0

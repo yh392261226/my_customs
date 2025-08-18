@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 ### Desc: 所有常用命令选择器
 ### Date: 2023-03-01
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "所有常用snippet选择器"
 
 #!!!#-- 终端主题、背景
 #!!#|- 选择终端主题样式	theme -i

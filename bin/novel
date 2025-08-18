@@ -8,6 +8,10 @@ PYTHONCOMMAND=/usr/bin/python
 NOVELPYTHON=$MYRUNTIME/customs/others/getnovel.py
 NOVELEXT=txt
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "小说管理"
+
+
 novellists=$(ls ${NOVELPATH}/*${NOVELEXT})
 posit=0
 for novel in $novellists; do

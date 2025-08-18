@@ -6,10 +6,10 @@ OPENBROWSER="/Applications/Safari.app"
 FZF_DEFAULT_OPTS="--height 40% --reverse --border rounded --margin 2,5% --info=hidden"
 VALID_EXT=_websites.log
 
-[ -f "$MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh" ] && \
-  source "$MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh"
-[ -f "$MYRUNTIME/customs/my_shell/library/others/bzsh/others_fzf.bzsh" ] && \
-  source "$MYRUNTIME/customs/my_shell/library/others/bzsh/others_fzf.bzsh"
+[[ -f "$MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh" ]] && source "$MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh"
+[[ -f "$MYRUNTIME/customs/my_shell/library/others/bzsh/others_fzf.bzsh" ]] && source "$MYRUNTIME/customs/my_shell/library/others/bzsh/others_fzf.bzsh"
+
+custom_gum_show2hide_header "交互式网址管理器"
 
 # 初始化目录
 [[ ! -d $WEBSITELOGS ]] && mkdir -p "$WEBSITELOGS"
@@ -146,6 +146,7 @@ function main() {
       local category=$(tail -1 <<< "$result" | cut -d'#' -f1)
       local target="$WEBSITELOGS/${category}${VALID_EXT}"
 
+      custom_gum_show2hide_header "分类：$category"
       # 处理特殊按键
       case $key in
         ctrl-e)

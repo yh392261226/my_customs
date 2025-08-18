@@ -9,6 +9,9 @@ RED='\033[31m'
 BLUE='\033[34m'
 END='\033[0m'
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "游戏脚本"
+
 function lottery() {
     ### 双色球
     function doubleBall() {

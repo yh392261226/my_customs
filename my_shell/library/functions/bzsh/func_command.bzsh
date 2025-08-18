@@ -838,6 +838,7 @@ function fzf_manager() {
             *娱乐*) fzf_recreation_manager ;;
             *退出*|*) 
                 custom_gum_hidden_header2 " 👋🏻 下次再见 " 1
+                clear
                 break 
             ;;
         esac

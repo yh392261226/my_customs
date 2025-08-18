@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Desc: 利用ffmpeg向rtmp服务器推视频,实现无人直播
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "利用ffmpeg向rtmp服务器推视频,实现无人直播"
+
 # ffmpeg命令位置
 FFMPEGCOMMAND=ffmpeg
 # rtmp服务器及参数连接地址

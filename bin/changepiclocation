@@ -39,6 +39,8 @@ _checkLink() {
 
 _checkLink
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "变更背景图文件夹位置"
 
 RED="0;31m"
 GREEN="0;33m"

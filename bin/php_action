@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
 ## Desc:php-fpm 管理脚本 启动|关闭|重启
 ## Author: 杨浩
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "php-fpm 管理脚本 启动|关闭|重启"
+
 param=$1
 
 start()

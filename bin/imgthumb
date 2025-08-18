@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "图片缩略图"
+
+
 thumb() {
 	if [ "$1" = "" ] || [ ! -f $1 ]; then
 		echo "Image file does not exists !";

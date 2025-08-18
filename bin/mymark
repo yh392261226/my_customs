@@ -6,6 +6,10 @@ MARKFILE=$MYRUNTIME/tools/m_note_mark #记录文件
 IFORDER=1
 TMPFILE=/tmp/m_note_mark_tmp
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "我的文本记录"
+
+
 #添加备注
 add_mark() {
   CURCOMMAND=$1

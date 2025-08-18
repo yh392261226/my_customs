@@ -1,10 +1,11 @@
 #!/bin/bash
-# Desc              : 工作目录Git拉取代码更新s
+# Desc              : 工作目录Git拉取代码更新
 # File              : gitwork
 # Date              : 05.08.2021
 # Last Modified Date: 05.08.2021
 RECORDDATA=$MYRUNTIME/tools/working_record.log
-source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "工作目录Git拉取代码更新管理"
 
 function gitWork() {
     title=$1

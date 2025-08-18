@@ -7,7 +7,6 @@
 # Find a broken theme? Want to add a missing one? PRs are welcome.
 
 VERSION=v1.1.5
-
 # Use truecolor sequences to simulate the end result.
 
 preview() {

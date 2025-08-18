@@ -2,6 +2,8 @@
 
 # 极简版命令查找工具
 # 用法: cmdinfo <command>
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "极简版命令查找工具"
 
 if [[ -z "$1" ]]; then
     echo "Usage: ${0##*/} <command>" | lolcat -f -F 0.05

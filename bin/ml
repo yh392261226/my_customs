@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "图片版的ls"
+
+
 function get_images_type() { # Desc:get_image_type:获取图片类型
     if [ $# = 1 ]; then
         local len3=$(/usr/bin/xxd -p -l 3 $1)

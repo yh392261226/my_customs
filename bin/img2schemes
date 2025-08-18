@@ -9,6 +9,11 @@ PREVIEWCOMMAND=$MYRUNTIME/customs/others/preview.rb
 CURPICNAME=$MYRUNTIME/tools/current_picturename       #current background of iterm2 mark file
 BACKGROUNDIMG=$(cat $CURPICNAME)     #background image file name
 SCHEMEMARKFILE=$MYRUNTIME/tools/m_scheme
+
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "将图片转换成mac使用的主题"
+
+
 option=$1
 if [ "" != "$2" ]; then
   img=$2

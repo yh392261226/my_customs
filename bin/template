@@ -12,6 +12,9 @@ LANGUAGE=$1
 # create new filename
 CREATEPATH=$2
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "create language template"
+
 ###create path
 createPath() {
     createpath=$1

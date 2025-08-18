@@ -7,7 +7,10 @@ else
   GSEDCOMMAND=/usr/local/bin/gsed
 fi
 
-source $MYRUNTIME/customs/bin/mymessage
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "get my IP address from ipinfo.io"
+[[ -f $MYRUNTIME/customs/bin/mymessage ]] && source $MYRUNTIME/customs/bin/mymessage
+
 echo "External:"
 echo "-----------------------------------------"
 curl myip.ipip.net

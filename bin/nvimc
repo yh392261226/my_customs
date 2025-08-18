@@ -24,6 +24,8 @@ EXT=_nvimfiles
 FROMURL=fromurl
 #执行软连接脚本名称
 SYMLINKSHELL=set_to_my_symlink
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "neovim 配置文件的更替管理"
 
 ##删除已存在的配置软连接
 UnSymlink() {

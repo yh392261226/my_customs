@@ -4,6 +4,10 @@
 MYRUNTIME=$(cat $HOME/.myruntime)
 CUSTOMSBIN=${MYRUNTIME}/customs/bin
 
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
+custom_gum_show2hide_header "列出所有自定义命令"
+
+
 if [ -d "${CUSTOMSBIN}" ]; then
     cd "${CUSTOMSBIN}" || exit
     tmp_choose=$(ls "${CUSTOMSBIN}" | sort | fzf --exact +m $FZF_CUSTOM_PARAMS)

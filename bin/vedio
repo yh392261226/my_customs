@@ -3,7 +3,7 @@
 ### Desc:下载视频及打开视频文件夹
 ### Author:yh392261226
 ### Date:2023-06-14
-
+[[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
 VEDIOPATH=$(cat $HOME/.vediopath)
 DOWNAPP="/Applications/Downie 4.app"
 
@@ -18,41 +18,130 @@ if [ ! -d "$DOWNAPP" ]; then
 fi
 
 function openVedio() {
-    local choose=$(ls $VEDIOPATH | fzf +m $FZF_CUSTOM_PARAMS --preview="$MYRUNTIME/customs/bin/_previewer $VEDIOPATH/{}")
-    if [ "" != "$choose" ]; then
+    custom_gum_show2hide_header "视频列表"
+    local choose=$(ls $VEDIOPATH | awk -v dir="$current_dir" '
+                { print }
+                END { print "↩️ 返回" }
+            ' | fzf +m $FZF_CUSTOM_PARAMS --preview="$MYRUNTIME/customs/bin/_previewer $VEDIOPATH/{}")
+    if [[ "$choose" == "↩️ 返回" ]]; then
+        return
+    elif [ "" != "$choose" ]; then
         /usr/bin/open $VEDIOPATH/$choose
     fi
 }
 
+function vedio_web_manager() {
+    custom_gum_show2hide_header "视频网站管理"
+    local vediomark=$MYRUNTIME/tools/m_vedio_mark
+    [[ ! -f $vediomark ]] && touch $vediomark
+    urls=$(cat "$vediomark" | awk -v dir="$current_dir" '
+                { print }
+                END { print "↩️ 返回" }
+            ' | fzf \
+    --multi \
+    --delimiter='#' \
+    --with-nth=1 \
+    --header="🌐 选择网址 (Tab多选) [${header%%#*}]" \
+    --preview='echo "{1}\n{2}"' \
+    --preview-window="right:70%:wrap" \
+	--height=95% \
+    --bind="ctrl-y:execute-silent(printf '%s' {2} | pbcopy)+abort" \
+    --bind="ctrl-e:execute(nvim \"$vediomark\" < /dev/tty > /dev/tty)+reload(cat \"$vediomark\")" \
+    --bind="ctrl-o:execute(open -R \"$vediomark\")+abort" \
+    --bind="ctrl-h:change-preview-label( ╢ Help Infomation ╟ )+preview($MYRUNTIME/customs/bin/web help)+show-preview" \
+    --header-first \
+    --footer="Ctrl-Y 复制 | Ctrl-E 编辑 | Ctrl-O 打开所在位置 | Ctrl-h 帮助" \
+    --prompt="➤ " | \
+    awk -F'#' '{print $2}')
+    
+    [[ -z "$urls" ]] && return
+    local OPENBROWSER='Brave Browser'
+    while read -r url; do
+        [[ -n "$url" ]] && open -a "$OPENBROWSER" "$url"
+    done <<< "$urls"
+}
 
-case "$1" in
-    "statistics" | "s")
+function ofen_used_soft_manager() {
+    local ofenmark=$MYRUNTIME/tools/m_ofen_used_soft
+    [[ ! -f $ofenmark ]] && touch $ofenmark
+
+    custom_gum_show2hide_header "常用软件管理"
+    
+    local selection=$(cat $ofenmark | awk -v dir="$FZF_CURRENT_DIR" '
+            { print }
+            END { print "🔙 返回" }
+        ' | fzf --reverse \
+            --bind="ctrl-o:execute(open {})+abort" \
+            --bind="ctrl-e:execute(nvim \"$ofenmark\" < /dev/tty > /dev/tty)+reload(cat \"$ofenmark\" | awk -v dir=\"$FZF_CURRENT_DIR\" '
+            { print }
+            END { print \"🔙 返回\" }
+        ')" \
+            --prompt="➤ 常用软件管理 > ")
+    [[ -z "$selection" ]] && return
+    [[ "$selection" = "🔙 返回" ]] && return
+    while read -r selected; do
+        [[ -n $selected ]] && open "$selected"
+    done <<< $selection
+}
+
+function vedio_help() {
+    custom_gum_show2hide_header "帮助"
+    echo "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･
+│ 使用方法: ${0##*/} [command(可用命令)]
+╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･" | lolcat -f -F 0.05
+    echo "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･
+│ 使用方法: ${0##*/} [command]
+│ command(可用命令):
+│  statistics      / s   统计数量及磁盘占用量
+│  tools           / t   常用软件
+│  choose          / c   视频列表
+│  directory       / d   打开视频文件夹
+│  web             / w   视频网址
+│  help            / h   帮助
+╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･" | lolcat -f -F 0.05
+}
+
+options=(
+    "统计数量及磁盘占用量"
+    "常用软件"
+    "视频列表"
+    "打开视频文件夹"
+    "视频网址"
+    "帮助"
+)
+
+selected=${1-$(printf '%s\n' "${options[@]}" | fzf \
+        --ansi \
+        --height=40% \
+        --reverse \
+        --prompt="➤ 主菜单 > " \
+        --header="请选择功能模块" \
+        --color="header:" \
+        --preview="echo -e '\n按 Enter 选择功能模块'"
+    )}
+
+case "$selected" in
+    "statistics" | "s" | *统计数量及磁盘占用量*)
+        custom_gum_show2hide_header "统计数量及磁盘占用量"
         echo "Vedio Num:"
         ls $VEDIOPATH/ | wc -l
         echo "Vedio Size:"
         /usr/bin/du -sh $VEDIOPATH | awk '{print $1}'
         ;;
-    "get" | "g")
-        /usr/bin/open -a "$DOWNAPP"
-        
+    "tools" | "t" | *常用软件*)
+        ofen_used_soft_manager
         ;;
-    "directory" | "dir")
+    "directory" | "d" | *打开视频文件夹*)
+        custom_gum_show2hide_header "打开视频文件夹"
         open $VEDIOPATH
         ;;
-    "watch" | "w")
+    "choose" | "c" | *视频列表*)
         openVedio
         ;;
+    "web" | "w" | *视频网址*)
+        vedio_web_manager
+        ;;
     *)
-        echo "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･
-│ 使用方法: ${0##*/} [command(可用命令)]
-╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･" | lolcat -f -F 0.05
-echo "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･
-│ 使用方法: ${0##*/} [command]
-│ command(可用命令):
-│  statistics      / s   统计数量及磁盘占用量
-│  get             / g   下载视频
-│  watch           / w   观看视频文件夹
-│  directory       / dir 打开视频文件夹
-╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･" | lolcat -f -F 0.05
+        vedio_help
         ;;
 esac
