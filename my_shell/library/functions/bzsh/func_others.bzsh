@@ -79,7 +79,7 @@ function fzf_bookmark_manager() {                                               
         "🔙 返回"
     )
     
-    custom_gum_show2hide_header "书签管理" || echo -e "书签管理"
+    custom_gum_show2hide_header "书签管理"
     while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -113,7 +113,7 @@ function fzf_customs_manager() {                                                
         "🔙 返回"
     )
     
-    custom_gum_show2hide_header "自定义管理" || echo -e "自定义管理"
+    custom_gum_show2hide_header "自定义管理"
     while true; do        
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \

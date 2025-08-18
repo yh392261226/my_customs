@@ -195,8 +195,8 @@ function multi_select() {
 
 # 利用gum style输出带有边框和颜色的header
 function custom_gum_header() {
-    [[ ! $USE_GUM ]] && return 
     local text="$1"
+    [[ ! $USE_GUM ]] && echo -e "$text" && return 
     echo ""
     gum style --border rounded --border-foreground "#3f633fff" --align center --padding "1 4" --width 98 "$text"
     echo ""
@@ -204,8 +204,8 @@ function custom_gum_header() {
 
 # 利用gum spin输出显示一会再隐藏的header
 function custom_gum_hidden_header() {
-    [[ ! $USE_GUM ]] && return 
     local text="$1"
+    [[ ! $USE_GUM ]] && echo -e "$text" && return 
     local duration=${2:-0.5}
     gum spin --title "$(gum style --foreground '#c3573cff' \"$text\")" -- sleep $duration
     echo ""
@@ -213,8 +213,8 @@ function custom_gum_hidden_header() {
 
 # 利用gum spin输出显示一会再隐藏的header(带border)
 function custom_gum_hidden_header2() {
-    [[ ! $USE_GUM ]] && return 
     local text="$1"
+    [[ ! $USE_GUM ]] && echo -e "$text" && return 
     local duration=${2:-0.5}
     gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --width 98 \"$text\")" -- sleep $duration
     echo ""
@@ -222,8 +222,8 @@ function custom_gum_hidden_header2() {
 
 # 利用gum spin输出显示一会再隐藏的header
 function custom_gum_show2hide_header() {
-    [[ ! $USE_GUM ]] && return 
     local text="$1"
+    [[ ! $USE_GUM ]] && echo -e "$text" && return 
     local duration=${2:-0.5}
     gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --width 98 \"$text\")" -- sleep $duration
     gum style --border rounded --border-foreground "#3f633fff" --align center --width 98 "$text" ' ⬇ ⬇ ⬇ '

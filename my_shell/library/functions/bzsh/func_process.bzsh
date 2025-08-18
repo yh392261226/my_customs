@@ -42,7 +42,7 @@ function fzf_process_magnifier() {                                              
 alias fpi="fzf_process_magnifier"                                                   # Desc: alias: fpi: fzf_process_magnifier命令的别名,进程放大镜
 
 function fzf_process_manager() {                                                    # Desc: function: fzf_process_manager: 利用fzf管理进程
-	custom_gum_show2hide_header "进程管理" || echo -e "进程管理"
+	custom_gum_show2hide_header "进程管理"
     while true; do
 		local processes=$(ps -eo pid,user,pcpu,pmem,comm,args | sed 1d | awk -v test="$test" '
             { print }

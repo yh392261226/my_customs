@@ -332,7 +332,7 @@ function fzf_version_manager() {
         "Hg"
         "🔙 返回"
     )
-    custom_gum_show2hide_header "版本管理" || echo -e "版本管理"
+    custom_gum_show2hide_header "版本管理"
     while true; do
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -390,8 +390,8 @@ git_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 管理器: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 管理器: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 管理器: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -463,8 +463,8 @@ git_repository_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 仓库管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 仓库管理: $repo_name"
-        custom_gum_show2hide_header "$(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 仓库管理: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -491,7 +491,7 @@ git_repository_manager() {
 
 # 初始化仓库
 git_init() {
-    custom_gum_show2hide_header "初始化新 Git 仓库" || echo -e "初始化新 Git 仓库"
+    custom_gum_show2hide_header "初始化新 Git 仓库"
     
     local repo_path=$(user_input "请输入仓库路径（默认为当前目录）: " ".")
     
@@ -513,7 +513,7 @@ git_init() {
 
 # 克隆仓库
 git_clone() {
-    custom_gum_show2hide_header "克隆远程 Git 仓库" || echo -e "克隆远程 Git 仓库"
+    custom_gum_show2hide_header "克隆远程 Git 仓库"
     
     local repo_url=$(user_input "请输入远程仓库URL: " "")
     if [ -z "$repo_url" ]; then
@@ -545,7 +545,7 @@ git_worktree_manager() {
         
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
-        custom_gum_show2hide_header "Git 多工作区管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 多工作区管理: $repo_name"
+        custom_gum_show2hide_header "Git 多工作区管理: $repo_name"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -613,8 +613,8 @@ git_snapshot_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 快照管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 快照管理: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 快照管理: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -695,7 +695,7 @@ git_reset_manager() {
     while true; do
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
-        custom_gum_show2hide_header "Git 重置管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 重置管理: $repo_name"
+        custom_gum_show2hide_header "Git 重置管理: $repo_name"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -754,7 +754,7 @@ git_restore_manager() {
 
     while true; do
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
-        custom_gum_show2hide_header "Git 恢复管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 恢复管理: $repo_name"
+        custom_gum_show2hide_header "Git 恢复管理: $repo_name"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -837,8 +837,8 @@ git_branch_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 分支管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 分支管理: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 分支管理: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -958,8 +958,8 @@ git_commit_history_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 提交历史管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 提交历史管理: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 提交历史管理: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1036,7 +1036,7 @@ git_diff_manager() {
     while true; do
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
-        custom_gum_show2hide_header "Git 差异比较: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 差异比较: $repo_name"
+        custom_gum_show2hide_header "Git 差异比较: $repo_name"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1107,8 +1107,8 @@ git_remote_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 远程协作: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 远程协作: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 远程协作: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1242,8 +1242,8 @@ git_merge_rebase_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 合并与重写历史: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 合并与重写历史: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 合并与重写历史: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1364,8 +1364,8 @@ git_stash_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
     
-        custom_gum_show2hide_header "Git 临时存储: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 临时存储: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 临时存储: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
             
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1453,8 +1453,8 @@ git_tag_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 标签管理: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 标签管理: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 标签管理: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1545,8 +1545,8 @@ git_advanced_manager() {
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         local current_branch=$(git branch --show-current)
         
-        custom_gum_show2hide_header "Git 高级操作: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 高级操作: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Git 高级操作: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1594,7 +1594,7 @@ git_bisect_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Git 二分查找" || echo -e "Git 二分查找"
+        custom_gum_show2hide_header "Git 二分查找"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1640,7 +1640,7 @@ git_submodule_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Git 子模块管理" || echo -e "Git 子模块管理"
+        custom_gum_show2hide_header "Git 子模块管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1691,7 +1691,7 @@ git_bundle_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Git 打包传输" || echo -e "Git 打包传输"
+        custom_gum_show2hide_header "Git 打包传输"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1762,7 +1762,7 @@ git_replace_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Git 对象替换" || echo -e "Git 对象替换"
+        custom_gum_show2hide_header "Git 对象替换"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1839,7 +1839,7 @@ git_maintenance_manager() {
     while true; do
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
-        custom_gum_show2hide_header "Git 诊断与维护: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 诊断与维护: $repo_name"
+        custom_gum_show2hide_header "Git 诊断与维护: $repo_name"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1908,7 +1908,7 @@ git_config_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Git 配置管理" || echo -e "Git 配置管理"
+        custom_gum_show2hide_header "Git 配置管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -1981,7 +1981,7 @@ git_plumbing_manager() {
     while true; do
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
-        custom_gum_show2hide_header "Git 底层命令: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 底层命令: $repo_name"
+        custom_gum_show2hide_header "Git 底层命令: $repo_name"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2072,7 +2072,7 @@ git_helper_tools_manager() {
     while true; do
         local repo_name=$(basename "$(git rev-parse --show-toplevel)")
         
-        custom_gum_show2hide_header "Git 辅助工具: $(gum style --foreground 212 "$repo_name")" || echo -e "Git 辅助工具: $repo_name"
+        custom_gum_show2hide_header "Git 辅助工具: $repo_name"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2133,8 +2133,8 @@ svn_manager() {
         local repo_url=$(svn info --show-item repos-root-url)
         local current_rev=$(svn info --show-item revision)
         
-        custom_gum_show2hide_header "SVN 管理器: $(gum style --foreground 212 "$repo_url")" || echo -e "SVN 管理器: $repo_url"
-        custom_gum_show2hide_header "当前版本: $(gum style --foreground 99 "r$current_rev")" || echo -e "当前版本: \033[1;35mr$current_rev\033[0m"
+        custom_gum_show2hide_header "SVN 管理器: $repo_url"
+        custom_gum_show2hide_header "当前版本: $current_rev"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2194,7 +2194,7 @@ svn_repository_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 仓库操作" || echo -e "SVN 仓库操作"
+        custom_gum_show2hide_header "SVN 仓库操作"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2260,7 +2260,7 @@ svn_working_copy_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 工作副本管理" || echo -e "SVN 工作副本管理"
+        custom_gum_show2hide_header "SVN 工作副本管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2362,7 +2362,7 @@ svn_commit_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 提交管理" || echo -e "SVN 提交管理"
+        custom_gum_show2hide_header "SVN 提交管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2419,7 +2419,7 @@ svn_branch_tag_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 分支与标签" || echo -e "SVN 分支与标签"
+        custom_gum_show2hide_header "SVN 分支与标签"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2533,7 +2533,7 @@ svn_update_sync_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 更新与同步" || echo -e "SVN 更新与同步"
+        custom_gum_show2hide_header "SVN 更新与同步"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2601,7 +2601,7 @@ svn_log_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 日志管理" || echo -e "SVN 日志管理"
+        custom_gum_show2hide_header "SVN 日志管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2675,7 +2675,7 @@ svn_diff_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 差异比较" || echo -e "SVN 差异比较"
+        custom_gum_show2hide_header "SVN 差异比较"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2741,7 +2741,7 @@ svn_property_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 属性管理" || echo -e "SVN 属性管理"
+        custom_gum_show2hide_header "SVN 属性管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2814,7 +2814,7 @@ svn_advanced_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 高级操作" || echo -e "SVN 高级操作"
+        custom_gum_show2hide_header "SVN 高级操作"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2888,7 +2888,7 @@ svn_config_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "SVN 配置工具" || echo -e "SVN 配置工具"
+        custom_gum_show2hide_header "SVN 配置工具"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -2966,8 +2966,8 @@ hg_manager() {
         local repo_name=$(basename "$repo_path")
         local current_branch=$(hg branch)
         
-        custom_gum_show2hide_header "Mercurial 管理器: $(gum style --foreground 212 "$repo_name")" || echo -e "Mercurial 管理器: $repo_name"
-        custom_gum_show2hide_header "当前分支: $(gum style --foreground 99 "$current_branch")" || echo -e "当前分支: \033[1;35m$current_branch\033[0m"
+        custom_gum_show2hide_header "Mercurial 管理器: $repo_name"
+        custom_gum_show2hide_header "当前分支: $current_branch"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3033,7 +3033,7 @@ hg_repository_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 仓库管理" || echo -e "Mercurial 仓库管理"
+        custom_gum_show2hide_header "Mercurial 仓库管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3095,7 +3095,7 @@ hg_working_copy_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 工作副本管理" || echo -e "Mercurial 工作副本管理"
+        custom_gum_show2hide_header "Mercurial 工作副本管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3193,7 +3193,7 @@ hg_commit_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 提交管理" || echo -e "Mercurial 提交管理"
+        custom_gum_show2hide_header "Mercurial 提交管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3261,7 +3261,7 @@ hg_branch_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 分支管理" || echo -e "Mercurial 分支管理"
+        custom_gum_show2hide_header "Mercurial 分支管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3351,7 +3351,7 @@ hg_tag_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 标签管理" || echo -e "Mercurial 标签管理"
+        custom_gum_show2hide_header "Mercurial 标签管理"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3424,7 +3424,7 @@ hg_update_sync_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 更新与同步" || echo -e "Mercurial 更新与同步"
+        custom_gum_show2hide_header "Mercurial 更新与同步"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3488,7 +3488,7 @@ hg_log_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 日志管理" || echo -e "Mercurial 日志管理"
+        custom_gum_show2hide_header "Mercurial 日志管理"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3563,7 +3563,7 @@ hg_diff_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 差异比较" || echo -e "Mercurial 差异比较"
+        custom_gum_show2hide_header "Mercurial 差异比较"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3634,7 +3634,7 @@ hg_bookmark_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 书签管理" || echo -e "Mercurial 书签管理"
+        custom_gum_show2hide_header "Mercurial 书签管理"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3719,7 +3719,7 @@ hg_patch_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 补丁管理" || echo -e "Mercurial 补丁管理"
+        custom_gum_show2hide_header "Mercurial 补丁管理"
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3795,7 +3795,7 @@ hg_advanced_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 高级操作" || echo -e "Mercurial 高级操作"
+        custom_gum_show2hide_header "Mercurial 高级操作"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3862,7 +3862,7 @@ hg_bisect_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 二分查找" || echo -e "Mercurial 二分查找"
+        custom_gum_show2hide_header "Mercurial 二分查找"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -3913,7 +3913,7 @@ hg_config_manager() {
     )
 
     while true; do
-        custom_gum_show2hide_header "Mercurial 配置工具" || echo -e "Mercurial 配置工具"
+        custom_gum_show2hide_header "Mercurial 配置工具"
 
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \

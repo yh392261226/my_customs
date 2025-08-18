@@ -20,7 +20,7 @@ function create_tmp_aliases() {                                                 
 alias cta="create_tmp_aliases"                                                        # Desc: alias: cta:create_tmp_aliases命令的别名,以a+数字形式创建临时别名命令
 
 function temprature_monitor() {                                                       # Desc: function: temprature_monitor: 温度监控
-    $USE_GUM && custom_gum_show2hide_header "温度监控" || echo -e "温度监控"
+    custom_gum_show2hide_header "温度监控"
     while true; do
         
         # 先安装: brew install osx-cpu-temp
@@ -46,7 +46,7 @@ function net_port_monitor() {                                                   
 
     # port=8080
 
-    custom_gum_show2hide_header "网络端口监控" || echo -e "网络端口监控"
+    custom_gum_show2hide_header "网络端口监控"
     while true; do
         if lsof -i :${port} >/dev/null; then
             echo "$(date) - 端口 $port 正在监听"
@@ -67,7 +67,7 @@ alias mnp="net_port_monitor"                                                    
 
 function disk_monitor() {                                                             # Desc: function: disk_monitor: 硬盘监控
     # 检查根目录使用率
-    custom_gum_show2hide_header "硬盘监控" || echo -e "硬盘监控"
+    custom_gum_show2hide_header "硬盘监控"
     while true; do
         disk_usage=$(/bin/df -h / | tail -1 | awk '{print $5}' | tr -d '%')
         threshold=85
@@ -86,7 +86,7 @@ alias dm="disk_monitor"                                                         
 
 function real_time_cup_memory_monitor() {                                             # Desc: function: real_time_cup_memory_monitor: 实时监控CPU和内存
     # 兼容 bash 和 zsh
-    custom_gum_show2hide_header "实时监控CPU和内存" || echo -e "实时监控CPU和内存"
+    custom_gum_show2hide_header "实时监控CPU和内存"
     while true; do
         echo "===== $(date) ====="    
         # CPU 使用率 (macOS 适配)
@@ -116,7 +116,7 @@ function fzf_monitor_manager() {                                                
         "🔙 返回"
     )
     
-    custom_gum_show2hide_header "监控管理" || echo -e "监控管理"
+    custom_gum_show2hide_header "监控管理"
     while true; do
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \
@@ -143,7 +143,7 @@ alias fmm="fzf_monitor_manager"                                                 
 vedio_list_manager() {
     local current_dir=$HOME/data/Vedioes/
     local tmp_current_dir=$PWD
-    custom_gum_show2hide_header "视频列表" || echo -e "视频列表"
+    custom_gum_show2hide_header "视频列表"
     while true; do
         cd $current_dir
         local selection=$(ls $current_dir | awk -v dir="$current_dir" '
@@ -166,7 +166,7 @@ vedio_list_manager() {
 }
 
 vedio_web_manager() {
-    custom_gum_show2hide_header "视频网站管理" || echo -e "视频网站管理"
+    custom_gum_show2hide_header "视频网站管理"
     local vediomark=$MYRUNTIME/tools/m_vedio_mark
     [[ ! -f $vediomark ]] && touch $vediomark
     urls=$(cat "$vediomark" | awk -v dir="$current_dir" '
@@ -199,7 +199,7 @@ ofen_used_soft_manager() {
     local ofenmark=$MYRUNTIME/tools/m_ofen_used_soft
     [[ ! -f $ofenmark ]] && touch $ofenmark
 
-    custom_gum_show2hide_header "常用软件管理" || echo -e "常用软件管理"
+    custom_gum_show2hide_header "常用软件管理"
     
     local selection=$(cat $ofenmark | awk -v dir="$FZF_CURRENT_DIR" '
             { print }
@@ -227,7 +227,7 @@ fzf_recreation_manager() {
         "↩️ 返回"
     )
     
-    custom_gum_show2hide_header "娱乐管理" || echo -e "娱乐管理"
+    custom_gum_show2hide_header "娱乐管理"
     while true; do
         local selection=$(printf '%s\n' "${options[@]}" | fzf \
             --height=30% \

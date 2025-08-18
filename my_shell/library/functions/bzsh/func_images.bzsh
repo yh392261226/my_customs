@@ -125,7 +125,7 @@ check_favo_exists() {
 }
 
 function fzf_favo_manager() {                                                       # Desc: function: fzf_favo_manager: 利用fzf管理自定义的favo命令
-    custom_gum_show2hide_header "背景图收藏管理" || echo -e "背景图收藏管理"
+    custom_gum_show2hide_header "背景图收藏管理"
     local action=$(printf "%s\n" \
         $(if [ "$TERM_PROGRAM" = "iTerm.app" ] && [ "" != "$(get_iterm2_current_background_image)" ] && [ "1" != "$(check_favo_exists)" ]; then echo "🗂️收藏背景图（collection）"; fi) \
         "🌐 所有收藏(All)" \
@@ -208,7 +208,7 @@ function fzf_favo_manager() {                                                   
 alias ffm2="fzf_favo_manager"                                                       # Desc: alias: ffm2: fzf_favo_manager命令的别名，利用fzf管理自定义的favo命令
 
 function fzf_img_manager() {                                                        # Desc: function: fzf_img_manager: 利用fzf管理自定义的img命令
-    custom_gum_show2hide_header "图片下载管理" || echo -e "图片下载管理"
+    custom_gum_show2hide_header "图片下载管理"
     local options=(
         "全目录记录(record)"
         "去重并记录(uniq)"
@@ -264,7 +264,7 @@ function fzf_image_manager() {                                                  
         "下载图片(img)"
         "🔙 返回"
     )
-    custom_gum_show2hide_header "图片管理" || echo -e "图片管理"
+    custom_gum_show2hide_header "图片管理"
     while true; do
         
         local selection=$(printf '%s\n' "${options[@]}" | fzf \

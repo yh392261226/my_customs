@@ -140,7 +140,7 @@ function file_kind() {                                                          
 alias fkind="file_kind"                                                                # Desc: alias: fkind: file_kind命令的别名,获取文件类型的后一段,如application/image中的image
 
 function fzf_full_files_manager() {                                                    # Desc: function: fzf_full_files_manager:利用fzf管理文件夹、文件、图片、文本搜索、影音文件等
-    custom_gum_show2hide_header "文件管理" || echo -e "文件管理"
+    custom_gum_show2hide_header "文件管理"
     ___fzf_manage_all() {
         local Action="$1"
         local text
@@ -156,7 +156,7 @@ function fzf_full_files_manager() {                                             
         [[ "$Action" = "documents" ]] && text=文本
         [[ "$Action" = "contents" ]] && text=全文搜索
         [[ "$Action" = "archives" ]] && text=压缩文件
-        custom_gum_show2hide_header $text || echo -e $text
+        custom_gum_show2hide_header $text
 
         local Varname="fzf_transformer_filter_$Action"
         local Cmd=$fzf_transformer_filter_all
