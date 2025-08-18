@@ -803,15 +803,15 @@ alias fsa="fzf_search_custom_alias_by_desc"                                     
 
 function fzf_manager() {
     local options=(
-        "📁 文件"
-        "🔄 版本"
-        "🅿️ 进程"
-        "🎛️ 监控"
-        "🖼️ 图片"
-        "🗃️ 书签"
-        "🧭 自定义"
-        "🔞 娱乐"
-        "🌏️ 网址"
+        "📁 文件管理"
+        "🔄 版本管理"
+        "🅿️ 进程管理"
+        "🎛️ 监控管理"
+        "🖼️ 图片管理"
+        "🗃️ 书签管理"
+        "🧭 自定义管理"
+        "🔞 娱乐管理"
+        "🌏️ 网址管理"
         "🔚 退出"
     )
     
@@ -861,6 +861,7 @@ function brew_services_manage() {                                               
     local myservice=$1
     local myoption=$2
     local ismysql="true"
+    custom_gum_show2hide_header "brew services服务管理"
     if [ "$myservice" != "mysql" ] && [ "$myservice" != "mysqladmin" ] && [[ $myservice != mysql* ]]; then
         ismysql=""
     fi
