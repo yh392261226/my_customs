@@ -127,6 +127,49 @@ function gotoPath() {
 # 检测 gum 是否安装
 [[ "1" = "$(ifHasCommand gum)" ]] && USE_GUM=true || USE_GUM=false
 
+function get_stty_size() {
+    # 获取终端尺寸信息
+    local size
+    size=$(stty size 2>/dev/null)
+    
+    if [[ -n "$size" ]]; then  # 修复条件判断：当size不为空时使用stty
+        STTY_WIDTH=$(echo $size | awk '{print $2}') 
+        STTY_HEIGHT=$(echo $size | awk '{print $1}') 
+    else  # 当stty size失败时使用tput
+        STTY_WIDTH=$(tput cols 2>/dev/null || echo 80)
+        STTY_HEIGHT=$(tput lines 2>/dev/null || echo 24)
+    fi
+    
+    # 确保有合理的默认值
+    : ${STTY_WIDTH:=80} ${STTY_HEIGHT:=80}
+    
+    # 计算其他尺寸 - 使用正确的变量名STTY_WIDTH/STTY_HEIGHT
+    STTY_HALF_WIDTH=$((STTY_WIDTH / 2))
+    STTY_HALF_HEIGHT=$((STTY_HEIGHT / 2))
+    STTY_ONE_THIRD_WIDTH=$((STTY_WIDTH / 3))
+    STTY_ONE_THIRD_HEIGHT=$((STTY_HEIGHT / 3))
+    STTY_MARGIN_TOP=0
+    STTY_MARGIN_RIGHT=$((STTY_WIDTH / 4))
+    STTY_MARGIN_BOTTOM=0
+    STTY_MARGIN_LEFT=$((STTY_HEIGHT / 4))
+    # 导出所有变量
+    export STTY_WIDTH STTY_HEIGHT STTY_HALF_WIDTH STTY_HALF_HEIGHT STTY_ONE_THIRD_WIDTH STTY_ONE_THIRD_HEIGHT STTY_MARGIN_TOP STTY_MARGIN_RIGHT STTY_MARGIN_BOTTOM STTY_MARGIN_LEFT
+}
+
+# 初始化
+get_stty_size
+
+# Zsh 实时更新
+if [ -n "$ZSH_VERSION" ]; then
+    TRAPWINCH() {
+        get_stty_size
+    }
+# Bash 实时更新
+elif [ -n "$BASH_VERSION" ]; then
+    # 安全地追加到PROMPT_COMMAND
+    PROMPT_COMMAND="get_stty_size${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+fi
+
 # 通用输入函数
 function user_input() {
     local prompt="$1"
@@ -198,7 +241,7 @@ function custom_gum_header() {
     local text="$1"
     [[ ! $USE_GUM ]] && echo -e "$text" && return 
     echo ""
-    gum style --border rounded --border-foreground "#3f633fff" --align center --padding "1 4" --width 98 "$text"
+    gum style --border rounded --border-foreground "#3f633fff" --align center --margin "$STTY_MARGIN_TOP $STTY_MARGIN_RIGHT $STTY_MARGIN_BOTTOM $STTY_MARGIN_LEFT" --padding "1 4" --width $STTY_HALF_WIDTH "$text"
     echo ""
 }
 
@@ -216,7 +259,7 @@ function custom_gum_hidden_header2() {
     local text="$1"
     [[ ! $USE_GUM ]] && echo -e "$text" && return 
     local duration=${2:-0.5}
-    gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --width 98 \"$text\")" -- sleep $duration
+    gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --margin "$STTY_MARGIN_TOP $STTY_MARGIN_RIGHT $STTY_MARGIN_BOTTOM $STTY_MARGIN_LEFT" --width $STTY_HALF_WIDTH \"$text\")" -- sleep $duration
     echo ""
 }
 
@@ -225,7 +268,7 @@ function custom_gum_show2hide_header() {
     local text="$1"
     [[ ! $USE_GUM ]] && echo -e "$text" && return 
     local duration=${2:-1}
-    gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --width 98 $text)" -- sleep $duration
-    gum style --border rounded --border-foreground "#3f633fff" --align center --width 98 "$text" ' ⬇ ⬇ ⬇ '
+    gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --margin "$STTY_MARGIN_TOP $STTY_MARGIN_RIGHT $STTY_MARGIN_BOTTOM $STTY_MARGIN_LEFT" --width $STTY_HALF_WIDTH $text)" -- sleep $duration
+    gum style --border rounded --border-foreground "#3f633fff" --margin "$STTY_MARGIN_TOP $STTY_MARGIN_RIGHT $STTY_MARGIN_BOTTOM $STTY_MARGIN_LEFT" --align center --width $STTY_HALF_WIDTH "$text" ' ⬇ ⬇ ⬇ '
     echo ""
 }
