@@ -7,10 +7,8 @@
 VEDIOPATH=$(cat $HOME/.vediopath)
 DOWNAPP="/Applications/Downie 4.app"
 
-
-if [ "" = "$VEDIOPATH" ]; then
-    mkdir $VEDIOPATH
-fi
+[[ "" = "$VEDIOPATH" ]] && echo "Vedio path does not set ..." && exit 1
+[[ ! -d "$VEDIOPATH" ]] && mkdir -p $VEDIOPATH
 
 if [ ! -d "$DOWNAPP" ]; then
     echo "Does not have App Downie !"
@@ -108,40 +106,48 @@ options=(
     "打开视频文件夹"
     "视频网址"
     "帮助"
+    "↩️ 返回"
 )
 
-selected=${1-$(printf '%s\n' "${options[@]}" | fzf \
-        --ansi \
-        --height=40% \
-        --reverse \
-        --prompt="➤ 主菜单 > " \
-        --header="请选择功能模块" \
-        --color="header:" \
-        --preview="echo -e '\n按 Enter 选择功能模块'"
-    )}
+while true; do
+    selected=${1-$(printf '%s\n' "${options[@]}" | fzf \
+            --ansi \
+            --height=40% \
+            --reverse \
+            --prompt="➤ 主菜单 > " \
+            --header="请选择功能模块" \
+            --color="header:" \
+            --preview="echo -e '\n按 Enter 选择功能模块'"
+        )}
 
-case "$selected" in
-    "statistics" | "s" | *统计数量及磁盘占用量*)
-        custom_gum_show2hide_header "统计数量及磁盘占用量"
-        echo "Vedio Num:"
-        ls $VEDIOPATH/ | wc -l
-        echo "Vedio Size:"
-        /usr/bin/du -sh $VEDIOPATH | awk '{print $1}'
-        ;;
-    "tools" | "t" | *常用软件*)
-        ofen_used_soft_manager
-        ;;
-    "directory" | "d" | *打开视频文件夹*)
-        custom_gum_show2hide_header "打开视频文件夹"
-        open $VEDIOPATH
-        ;;
-    "choose" | "c" | *视频列表*)
-        openVedio
-        ;;
-    "web" | "w" | *视频网址*)
-        vedio_web_manager
-        ;;
-    *)
-        vedio_help
-        ;;
-esac
+    [[ -z "$selected" ]] && break
+    [[ $selected =~ 返回 ]] && break
+    case "$selected" in
+        "statistics" | "s" | *统计数量及磁盘占用量*)
+            custom_gum_show2hide_header "统计数量及磁盘占用量"
+            echo "Vedio Num:"
+            ls $VEDIOPATH/ | wc -l
+            echo "Vedio Size:"
+            /usr/bin/du -sh $VEDIOPATH | awk '{print $1}'
+            ;;
+        "tools" | "t" | *常用软件*)
+            ofen_used_soft_manager
+            ;;
+        "directory" | "d" | *打开视频文件夹*)
+            custom_gum_show2hide_header "打开视频文件夹"
+            open $VEDIOPATH
+            ;;
+        "choose" | "c" | *视频列表*)
+            openVedio
+            ;;
+        "web" | "w" | *视频网址*)
+            vedio_web_manager
+            ;;
+        "help" | "h" | *帮助*)
+            vedio_help
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
