@@ -1,0 +1,785 @@
+#!/usr/bin/env bash
+# 小说阅读器 - 非交互式版本，适合与 fzf 集成
+
+# 配置文件路径
+CONFIG_DIR="$HOME/.novel_reader"
+PROGRESS_FILE="$CONFIG_DIR/progress"
+BOOKMARKS_FILE="$CONFIG_DIR/bookmarks"
+CONFIG_FILE="$CONFIG_DIR/config"
+WRAP_CACHE_DIR="$CONFIG_DIR/wrap_cache"
+
+# 全局变量
+declare -g original_file wrapped_file total_lines current_line page_lines page_cols wrap_width
+
+# 初始化配置
+init_config() {
+    mkdir -p "$CONFIG_DIR" "$WRAP_CACHE_DIR"
+    touch "$PROGRESS_FILE" "$BOOKMARKS_FILE"
+    
+    # 默认配置
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        cat > "$CONFIG_FILE" <<EOF
+text_color=7
+border_color=6
+title_color=3
+status_color=4
+bookmark_color=1
+progress_color=2
+border_style=rounded
+page_size=auto
+show_progress=1
+show_bookmarks=1
+wrap_width=40
+EOF
+    fi
+}
+
+# 加载配置
+load_config() {
+    source "$CONFIG_FILE"
+    
+    # 设置默认颜色 (ANSI颜色码)
+    declare -g text_color border_color title_color status_color 
+    declare -g bookmark_color progress_color border_style page_size
+    declare -g show_progress show_bookmarks wrap_width
+    
+    # 设置默认值
+    : ${text_color:=7}    # 白色
+    : ${border_color:=6}  # 青色
+    : ${title_color:=3}   # 黄色
+    : ${status_color:=4}  # 蓝色
+    : ${bookmark_color:=1}# 红色
+    : ${progress_color:=2}# 绿色
+    : ${border_style:=rounded}
+    : ${page_size:=auto}
+    : ${show_progress:=1}
+    : ${show_bookmarks:=1}
+    : ${wrap_width:=40}   # 更适合中文的默认宽度
+    
+    # 定义边框符号
+    case "$border_style" in
+        rounded)
+            declare -gA border_chars=(
+                [top_left]="╭" [top_right]="╮" 
+                [bottom_left]="╰" [bottom_right]="╯"
+                [horizontal]="─" [vertical]="│"
+            )
+            ;;
+        single)
+            declare -gA border_chars=(
+                [top_left]="┌" [top_right]="┐" 
+                [bottom_left]="└" [bottom_right]="┘"
+                [horizontal]="─" [vertical]="│"
+            )
+            ;;
+        double)
+            declare -gA border_chars=(
+                [top_left]="╔" [top_right]="╗" 
+                [bottom_left]="╚" [bottom_right]="╝"
+                [horizontal]="═" [vertical]="║"
+            )
+            ;;
+        *)
+            declare -gA border_chars=(
+                [top_left]=" " [top_right]=" " 
+                [bottom_left]=" " [bottom_right]=" "
+                [horizontal]=" " [vertical]=" "
+            )
+            ;;
+    esac
+}
+
+# 跨平台的获取文件大小函数
+get_file_size() {
+    local file="$1"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        # macOS
+        stat -f%z "$file"
+    else
+        # Linux
+        stat -c%s "$file"
+    fi
+}
+
+# ANSI颜色函数
+set_color() {
+    local color_code=$1
+    echo -ne "\033[0;3${color_code}m"
+}
+
+reset_color() {
+    echo -ne "\033[0m"
+}
+
+# 计算显示宽度（考虑中文字符）
+display_width() {
+    local str="$1"
+    # 去除ANSI颜色代码
+    local clean_str=$(echo -n "$str" | sed 's/\x1b\[[0-9;]*m//g')
+    # 计算中文字符数量（每个占2宽度）
+    local chinese_chars=$(echo -n "$clean_str" | grep -oP '[\p{Han}]' | wc -l 2>/dev/null || echo 0)
+    # 计算总字符数
+    local total_chars=${#clean_str}
+    # 计算非中文字符
+    local non_chinese=$((total_chars - chinese_chars))
+    # 返回总显示宽度
+    echo $((non_chinese + chinese_chars * 2))
+}
+
+# 绘制边框
+draw_border() {
+    local width=$1
+    local title=$2
+    
+    local top_left=${border_chars[top_left]}
+    local top_right=${border_chars[top_right]}
+    local horizontal=${border_chars[horizontal]}
+    local vertical=${border_chars[vertical]}
+
+    # 顶部边框
+    set_color "$border_color"
+    echo -n "$top_left"
+    for ((i=0; i<width-2; i++)); do
+        echo -n "$horizontal"
+    done
+    echo -n "$top_right"
+    reset_color
+    echo
+
+    # 标题行
+    if [[ -n "$title" ]]; then
+        set_color "$border_color"
+        echo -n "$vertical"
+        set_color "$title_color"
+        printf " %-*s " $((width-4)) "$title"
+        set_color "$border_color"
+        echo -n "$vertical"
+        reset_color
+        echo
+        
+        # 标题分隔线
+        set_color "$border_color"
+        echo -n "$vertical"
+        for ((i=0; i<width-2; i++)); do
+            echo -n "$horizontal"
+        done
+        echo -n "$vertical"
+        reset_color
+        echo
+    fi
+}
+
+# 计算页面大小
+calculate_page_size() {
+    if [[ "$page_size" == "auto" ]]; then
+        # 获取终端尺寸
+        lines=$(tput lines 2>/dev/null || echo 24)
+        cols=$(tput cols 2>/dev/null || echo 80)
+        local size=$(stty size 2>/dev/null)
+        if [[ -n "$size" ]]; then
+            read lines cols <<< "$size"
+        fi
+        
+        # 减去边框和状态行
+        page_lines=$((lines - 5))
+        page_cols=$((cols - 4))
+        
+        # 确保最小值
+        [[ $page_lines -lt 5 ]] && page_lines=5
+        [[ $page_cols -lt 20 ]] && page_cols=20
+    else
+        # 格式: 行x列 或 行
+        if [[ "$page_size" == *x* ]]; then
+            page_lines=${page_size%x*}
+            page_cols=${page_size#*x}
+        else
+            page_lines=$page_size
+            page_cols=80
+        fi
+    fi
+    
+    # 设置换行宽度
+    if [[ "$wrap_width" == "auto" ]]; then
+        wrap_width=$((page_cols - 4))
+    fi
+    # 确保换行宽度合理
+    [[ $wrap_width -gt $page_cols ]] && wrap_width=$page_cols
+    [[ $wrap_width -lt 10 ]] && wrap_width=10
+}
+
+# 预处理文件：添加换行
+preprocess_file() {
+    local file="$1"
+    local cache_file="$WRAP_CACHE_DIR/$(basename "$file").wrap"
+    
+    # 检查缓存文件是否存在且有效 (macOS 兼容)
+    if [[ -f "$cache_file" && "$cache_file" -nt "$file" && $(get_file_size "$cache_file") -gt 0 ]]; then
+        echo "$cache_file"
+        return
+    fi
+    
+    # 创建临时文件
+    local temp_file="${file}.temp.$$"
+    
+    # 检查文件编码，如果不是UTF-8则转换
+    local encoding=$(file -b --mime-encoding "$file" 2>/dev/null || echo "unknown")
+    if [[ "$encoding" != "utf-8" && "$encoding" != "us-ascii" && "$encoding" != "unknown" ]]; then
+        if command -v iconv &>/dev/null; then
+            iconv -f "$encoding" -t UTF-8 "$file" > "$temp_file"
+            if [[ $? -eq 0 ]]; then
+                file="$temp_file"
+            else
+                echo "警告: 编码转换失败，使用原始文件" >&2
+                rm -f "$temp_file"
+            fi
+        else
+            echo "警告: iconv未找到，跳过编码转换" >&2
+        fi
+    fi
+    
+    # 使用Python进行中文友好的换行处理
+    if command -v python3 &>/dev/null; then
+        python3 -c "import sys
+def wrap_text(text, width):
+    result = []
+    for line in text.split('\n'):
+        while len(line) > width:
+            # 优先在标点处分行
+            pos = max(line.rfind('，', 0, width), line.rfind('。', 0, width), 
+                     line.rfind('！', 0, width), line.rfind('？', 0, width),
+                     line.rfind('；', 0, width), line.rfind('、', 0, width))
+            if pos > 0:
+                result.append(line[:pos+1])
+                line = line[pos+1:]
+            else:
+                result.append(line[:width])
+                line = line[width:]
+        result.append(line)
+    return '\n'.join(result)
+
+try:
+    with open(sys.argv[1], 'r', encoding='utf-8') as f:
+        text = f.read()
+    wrapped = wrap_text(text, $wrap_width)
+    with open(sys.argv[2], 'w', encoding='utf-8') as f:
+        f.write(wrapped)
+except Exception as e:
+    print(f'换行处理失败: {e}', file=sys.stderr)
+    exit(1)
+" "$file" "$cache_file"
+        
+        if [[ $? -ne 0 ]]; then
+            echo "警告: Python换行处理失败，使用简单换行" >&2
+            # 回退到简单的换行处理
+            awk -v width="$wrap_width" '
+            {
+                line = $0
+                while (length(line) > width) {
+                    print substr(line, 1, width)
+                    line = substr(line, width + 1)
+                }
+                if (line != "") print line
+            }' "$file" > "$cache_file"
+        fi
+    else
+        # 简单的bash换行实现
+        awk -v width="$wrap_width" '
+        {
+            line = $0
+            while (length(line) > width) {
+                print substr(line, 1, width)
+                line = substr(line, width + 1)
+            }
+            if (line != "") print line
+        }' "$file" > "$cache_file"
+    fi
+    
+    # 清理临时文件
+    [[ -f "$temp_file" ]] && rm -f "$temp_file"
+    
+    echo "$cache_file"
+}
+
+# 显示页面
+display_page() {
+    local start_line=$1
+    local file=$2
+    local total_lines=$3
+    
+    # 计算当前页码和总页数
+    local current_page=$(( (start_line + page_lines - 1) / page_lines ))
+    local total_pages=$(( (total_lines + page_lines - 1) / page_lines ))
+    
+    # 清屏
+    clear
+    
+    # 绘制顶部边框
+    local title="《${original_file##*/}》 - 第 $((current_page))/$total_pages 页"
+    draw_border "$page_cols" "$title"
+    
+    # 显示内容
+    set_color "$text_color"
+    
+    # 使用awk处理内容显示，确保正确对齐
+    awk -v start="$start_line" -v lines="$page_lines" -v width="$((page_cols - 4))" \
+        -v vertical="${border_chars[vertical]}" -v border_color="$border_color" \
+        -v text_color="$text_color" '
+    function strip_ansi(text) {
+        gsub(/\033\[[0-9;]*m/, "", text)
+        return text
+    }
+    function display_width(str) {
+        # 计算中文字符数量（每个占2宽度）
+        # 简单方法：统计非ASCII字符数量（中文字符通常是3字节）
+        chinese_chars = gsub(/[^\x00-\x7F]/, "&", str)
+        total_chars = length(str)
+        non_chinese = total_chars - chinese_chars
+        return non_chinese + chinese_chars * 2
+    }
+    BEGIN { 
+        line_count = 0
+        border_start = "\033[0;3" border_color "m"
+        text_start = "\033[0;3" text_color "m"
+        reset = "\033[0m"
+    }
+    NR >= start {
+        if (line_count >= lines) exit
+        
+        # 输出左侧边框
+        printf "%s%s%s", border_start, vertical, reset
+        
+        # 显示文本内容
+        printf "%s%s%s", text_start, $0, reset
+        
+        # 计算实际文本长度（去除ANSI代码）
+        plain = strip_ansi($0)
+        len = display_width(plain)
+        
+        # 填充剩余空格
+        if (len < width) {
+            printf "%*s", width - len, ""
+        }
+        
+        # 输出右侧边框
+        printf "%s%s%s\n", border_start, vertical, reset
+        
+        line_count++
+    }' "$file"
+    
+    # 填充剩余行
+    local displayed_lines=$(awk -v start="$start_line" -v lines="$page_lines" 'NR >= start { c++ } c >= lines { exit } END { print c+0 }' "$file")
+    for ((i=displayed_lines; i<page_lines; i++)); do
+        set_color "$border_color"
+        echo -n "${border_chars[vertical]}"
+        printf "%*s" $((page_cols - 2)) " "
+        echo -n "${border_chars[vertical]}"
+        reset_color
+        echo
+    done
+    
+    # 绘制底部边框
+    set_color "$border_color"
+    echo -n "${border_chars[bottom_left]}"
+    for ((i=0; i<page_cols-2; i++)); do
+        echo -n "${border_chars[horizontal]}"
+    done
+    echo -n "${border_chars[bottom_right]}"
+    reset_color
+    echo
+    
+    # 显示状态信息 - 精简为一行
+    set_color "$status_color"
+    echo -n "命令: [n]下一页 [p]上一页 [j]跳转 [b]书签 [s]设置 [q]退出"
+    
+    if [[ "$show_progress" == "1" ]]; then
+        set_color "$progress_color"
+        printf " | 进度: %.1f%%" $(echo "scale=2; $start_line / $total_lines * 100" | bc 2>/dev/null || echo "0")
+    fi
+    
+    if [[ "$show_bookmarks" == "1" ]] && grep -q "^${original_file}:" "$BOOKMARKS_FILE" 2>/dev/null; then
+        set_color "$bookmark_color"
+        echo -n " | 书签: "
+        grep "^${original_file}:" "$BOOKMARKS_FILE" 2>/dev/null | cut -d: -f3 | tr '\n' ',' | sed 's/,$//'
+    fi
+    
+    reset_color
+    echo
+}
+
+# 保存进度
+save_progress() {
+    local file=$1
+    local line=$2
+    
+    # 删除旧记录
+    grep -v "^${file}:" "$PROGRESS_FILE" > "$PROGRESS_FILE.tmp" 2>/dev/null
+    mv "$PROGRESS_FILE.tmp" "$PROGRESS_FILE" 2>/dev/null
+    
+    # 添加新记录
+    echo "${file}:${line}" >> "$PROGRESS_FILE"
+}
+
+# 获取进度
+get_progress() {
+    local file=$1
+    grep "^${file}:" "$PROGRESS_FILE" 2>/dev/null | cut -d: -f2
+}
+
+# 添加书签
+add_bookmark() {
+    local file=$1
+    local line=$2
+    local name=$3
+    
+    echo "${file}:${line}:${name}" >> "$BOOKMARKS_FILE"
+}
+
+# 跳转到书签
+goto_bookmark() {
+    local file=$1
+    local name=$2
+    
+    grep "^${file}:.*:${name}$" "$BOOKMARKS_FILE" 2>/dev/null | cut -d: -f2
+}
+
+# macOS兼容的sed函数
+mac_sed() {
+    if [[ "$(uname)" == "Darwin" ]]; then
+        sed -i '' "$@"
+    else
+        sed -i "$@"
+    fi
+}
+
+# 初始化阅读器
+init_reader() {
+    local file="$1"
+    
+    init_config
+    load_config
+    
+    original_file=$(realpath "$file" 2>/dev/null || echo "$file")
+    if [[ ! -f "$original_file" ]]; then
+        echo "文件不存在: $original_file" >&2
+        return 1
+    fi
+    
+    # 计算页面大小
+    calculate_page_size
+    
+    # 预处理文件：添加换行
+    wrapped_file=$(preprocess_file "$original_file")
+    
+    # 获取总行数
+    total_lines=$(wc -l < "$wrapped_file" 2>/dev/null || echo 1)
+    
+    # 获取上次阅读位置
+    current_line=$(get_progress "$original_file")
+    [[ -z "$current_line" ]] && current_line=1
+    
+    # 确保位置有效
+    if [[ $current_line -gt $total_lines ]]; then
+        current_line=$total_lines
+    elif [[ $current_line -lt 1 ]]; then
+        current_line=1
+    fi
+    
+    return 0
+}
+
+# 显示当前页
+show_page() {
+    display_page "$current_line" "$wrapped_file" "$total_lines"
+}
+
+# 下一页
+next_page() {
+    if [[ $((current_line + page_lines)) -le $total_lines ]]; then
+        current_line=$((current_line + page_lines))
+        return 0
+    else
+        return 1  # 已经是最后一页
+    fi
+}
+
+# 上一页
+prev_page() {
+    if [[ $((current_line - page_lines)) -ge 1 ]]; then
+        current_line=$((current_line - page_lines))
+        return 0
+    else
+        current_line=1
+        return 1  # 已经是第一页
+    fi
+}
+
+# 跳转到指定行
+goto_line() {
+    local target="$1"
+    
+    if [[ "$target" == *% ]]; then
+        local percent=${target%\%}
+        current_line=$((total_lines * percent / 100))
+    else
+        current_line=$target
+    fi
+    
+    # 范围检查
+    [[ $current_line -lt 1 ]] && current_line=1
+    [[ $current_line -gt $total_lines ]] && current_line=$total_lines
+}
+
+# 跳转到书签
+goto_bookmark_by_name() {
+    local name="$1"
+    local line=$(goto_bookmark "$original_file" "$name")
+    
+    if [[ -n "$line" ]]; then
+        current_line=$line
+        return 0
+    else
+        return 1  # 书签不存在
+    fi
+}
+
+# 添加书签
+add_bookmark_by_name() {
+    local name="$1"
+    add_bookmark "$original_file" "$current_line" "$name"
+}
+
+# 删除书签
+delete_bookmark() {
+    local name="$1"
+    local bm_line=$(grep "^${original_file}:.*:${name}$" "$BOOKMARKS_FILE" 2>/dev/null)
+    
+    if [[ -n "$bm_line" ]]; then
+        grep -v "$bm_line" "$BOOKMARKS_FILE" > "$BOOKMARKS_FILE.tmp" 2>/dev/null
+        mv "$BOOKMARKS_FILE.tmp" "$BOOKMARKS_FILE" 2>/dev/null
+        return 0
+    else
+        return 1  # 书签不存在
+    fi
+}
+
+# 列出书签
+list_bookmarks() {
+    grep "^${original_file}:" "$BOOKMARKS_FILE" 2>/dev/null | cut -d: -f3 | cat -n
+}
+
+# 保存当前进度
+save_current_progress() {
+    save_progress "$original_file" "$current_line"
+}
+
+# 获取当前行号
+get_current_line() {
+    echo "$current_line"
+}
+
+# 获取总行数
+get_total_lines() {
+    echo "$total_lines"
+}
+
+# 获取当前页信息
+get_page_info() {
+    local current_page=$(( (current_line + page_lines - 1) / page_lines ))
+    local total_pages=$(( (total_lines + page_lines - 1) / page_lines ))
+    echo "$current_page/$total_pages"
+}
+
+# 书签管理菜单
+bookmark_menu() {
+    echo "书签:"
+    list_bookmarks
+    echo
+    echo "1) 添加书签"
+    echo "2) 跳转到书签"
+    echo "3) 删除书签"
+    echo "4) 返回"
+    
+    read -p "选择操作: " choice
+    case $choice in
+        1)
+            read -p "输入书签名称: " bm_name
+            add_bookmark_by_name "$bm_name"
+            echo "书签已添加"
+            ;;
+        2)
+            read -p "输入书签编号: " bm_num
+            bm_name=$(list_bookmarks | sed -n "${bm_num}p" | awk '{print $2}')
+            if [[ -n "$bm_name" ]]; then
+                goto_bookmark_by_name "$bm_name"
+            else
+                echo "无效的书签编号"
+            fi
+            ;;
+        3)
+            read -p "输入书签编号: " bm_num
+            bm_name=$(list_bookmarks | sed -n "${bm_num}p" | awk '{print $2}')
+            if [[ -n "$bm_name" ]]; then
+                delete_bookmark "$bm_name"
+                echo "书签已删除"
+            else
+                echo "无效的书签编号"
+            fi
+            ;;
+        4)
+            return
+            ;;
+        *)
+            echo "无效的选择"
+            ;;
+    esac
+    
+    read -n 1 -s -p "按任意键继续..."
+}
+
+# 设置菜单
+settings_menu() {
+    echo "当前配置:"
+    cat "$CONFIG_FILE" 2>/dev/null
+    echo
+    echo "1) 修改设置"
+    echo "2) 重置为默认"
+    echo "3) 返回"
+    
+    read -p "选择操作: " choice
+    case $choice in
+        1)
+            read -p "输入设置名: " cfg_name
+            read -p "输入新值: " cfg_value
+            
+            # 更新配置
+            if grep -q "^${cfg_name}=" "$CONFIG_FILE" 2>/dev/null; then
+                mac_sed "s/^${cfg_name}=.*/${cfg_name}=${cfg_value}/" "$CONFIG_FILE"
+            else
+                echo "${cfg_name}=${cfg_value}" >> "$CONFIG_FILE"
+            fi
+            
+            # 重新加载配置
+            load_config
+            calculate_page_size
+            
+            # 重新处理文件
+            wrapped_file=$(preprocess_file "$original_file")
+            total_lines=$(wc -l < "$wrapped_file" 2>/dev/null || echo 1)
+            
+            echo "配置已更新，重新加载文件"
+            ;;
+        2)
+            rm -f "$CONFIG_FILE"
+            init_config
+            load_config
+            calculate_page_size
+            
+            # 重新处理文件
+            wrapped_file=$(preprocess_file "$original_file")
+            total_lines=$(wc -l < "$wrapped_file" 2>/dev/null || echo 1)
+            
+            echo "配置已重置为默认值"
+            ;;
+        3)
+            return
+            ;;
+        *)
+            echo "无效的选择"
+            ;;
+    esac
+    
+    read -n 1 -s -p "按任意键继续..."
+}
+
+# 非交互式阅读模式
+non_interactive_reader() {
+    local file="$1"
+    
+    # 初始化阅读器
+    if ! init_reader "$file"; then
+        exit 1
+    fi
+    
+    # 显示第一页
+    show_page
+    
+    # 保存进度函数
+    trap 'save_current_progress; echo "阅读进度已保存"; exit 0' INT TERM EXIT
+    
+    # 简单的按键处理
+    while IFS= read -r -n 1 -s key; do
+        case "$key" in
+            n|N)
+                # 下一页
+                if next_page; then
+                    show_page
+                else
+                    echo "已经是最后一页"
+                fi
+                ;;
+            p|P)
+                # 上一页
+                if prev_page; then
+                    show_page
+                else
+                    echo "已经是第一页"
+                fi
+                ;;
+            j|J)
+                # 跳转
+                echo -n "输入行号或百分比 (e.g. 100 or 50%): "
+                read target
+                goto_line "$target"
+                show_page
+                ;;
+            b|B)
+                # 书签管理
+                bookmark_menu
+                show_page
+                ;;
+            s|S)
+                # 设置
+                settings_menu
+                show_page
+                ;;
+            q|Q)
+                # 保存进度并退出
+                save_current_progress
+                # echo "阅读进度已保存"
+                exit 0
+                ;;
+            *)
+                echo "未知命令: $key"
+                echo "可用命令: [n]下一页 [p]上一页 [j]跳转 [b]书签 [s]设置 [q]退出"
+                ;;
+        esac
+    done
+}
+
+# 主函数
+main() {
+    if [[ $# -eq 0 ]]; then
+        echo "使用: $0 小说文件"
+        exit 1
+    fi
+    
+    # 检查是否在交互式终端中运行
+    if [[ -t 0 ]]; then
+        # 交互式模式
+        non_interactive_reader "$1"
+    else
+        # 非交互式模式（从管道或脚本调用）
+        # 只显示当前页，不进入交互循环
+        if init_reader "$1"; then
+            show_page
+            save_current_progress
+        else
+            exit 1
+        fi
+    fi
+}
+
+# 如果直接执行脚本，则调用主函数
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+fi

@@ -109,45 +109,50 @@ options=(
     "↩️ 返回"
 )
 
-while true; do
-    selected=${1-$(printf '%s\n' "${options[@]}" | fzf \
-            --ansi \
-            --height=40% \
-            --reverse \
-            --prompt="➤ 主菜单 > " \
-            --header="请选择功能模块" \
-            --color="header:" \
-            --preview="echo -e '\n按 Enter 选择功能模块'"
-        )}
 
+selected=${1-$(printf '%s\n' "${options[@]}" | fzf \
+        --ansi \
+        --height=40% \
+        --reverse \
+        --prompt="➤ 主菜单 > " \
+        --header="请选择功能模块" \
+        --color="header:" \
+        --preview="echo -e '\n按 Enter 选择功能模块'"
+    )}
+
+if [ ! -z "$2" ] && [ "$2" = "source" ]; then
     [[ -z "$selected" ]] && break
     [[ $selected =~ 返回 ]] && break
-    case "$selected" in
-        "statistics" | "s" | *统计数量及磁盘占用量*)
-            custom_gum_show2hide_header "统计数量及磁盘占用量"
-            echo "Vedio Num:"
-            ls $VEDIOPATH/ | wc -l
-            echo "Vedio Size:"
-            /usr/bin/du -sh $VEDIOPATH | awk '{print $1}'
-            ;;
-        "tools" | "t" | *常用软件*)
-            ofen_used_soft_manager
-            ;;
-        "directory" | "d" | *打开视频文件夹*)
-            custom_gum_show2hide_header "打开视频文件夹"
-            open $VEDIOPATH
-            ;;
-        "choose" | "c" | *视频列表*)
-            openVedio
-            ;;
-        "web" | "w" | *视频网址*)
-            vedio_web_manager
-            ;;
-        "help" | "h" | *帮助*)
-            vedio_help
-            ;;
-        *)
+fi
+
+case "$selected" in
+    "statistics" | "s" | *统计数量及磁盘占用量*)
+        custom_gum_show2hide_header "统计数量及磁盘占用量"
+        echo "Vedio Num:"
+        ls $VEDIOPATH/ | wc -l
+        echo "Vedio Size:"
+        /usr/bin/du -sh $VEDIOPATH | awk '{print $1}'
+        ;;
+    "tools" | "t" | *常用软件*)
+        ofen_used_soft_manager
+        ;;
+    "directory" | "d" | *打开视频文件夹*)
+        custom_gum_show2hide_header "打开视频文件夹"
+        open $VEDIOPATH
+        ;;
+    "choose" | "c" | *视频列表*)
+        openVedio
+        ;;
+    "web" | "w" | *视频网址*)
+        vedio_web_manager
+        ;;
+    "help" | "h" | *帮助*)
+        vedio_help
+        ;;
+    *)
+        if [ ! -z "$2" ] && [ "$2" = "source" ]; then
             break
-            ;;
-    esac
-done
+            return
+        fi
+        ;;
+esac

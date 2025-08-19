@@ -139,13 +139,76 @@ function fzf_monitor_manager() {                                                
 }
 alias fmm="fzf_monitor_manager"                                                       # Desc: alias: fmm: fzf_monitor_manager命令的别名，利用fzf管理监控命令
 
-fzf_recreation_manager() {
+fzf_vedios_manager() {
     local options=(
-        "视频管理"
+        "视频列表"
         "常看视频网站"
         "打开目录"
         "常用软件"
         "统计数量及磁盘占用量"
+        "↩️ 返回"
+    )
+    
+    custom_gum_show2hide_header "视频管理"
+    while true; do
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 视频管理 > "
+        )
+        
+        case $selection in
+            *视频列表*) $MYRUNTIME/customs/bin/vedio choose "source" ;;
+            *常看视频网站*) $MYRUNTIME/customs/bin/vedio web "source" ;;
+            *打开目录*) $MYRUNTIME/customs/bin/vedio directory "source" ;;
+            *常用软件*) $MYRUNTIME/customs/bin/vedio tools "source" ;;
+            *统计数量及磁盘占用量*) $MYRUNTIME/customs/bin/vedio statistics "source" ;;
+            *返回*|*) break ;;
+        esac
+    done
+}
+
+fzf_novels_manager() {
+    local options=(
+        "小说阅读列表"
+        "小说网站管理"
+        "打开小说文件夹"
+        "统计数量及磁盘占用量"
+        "↩️ 返回"
+    )
+    
+    custom_gum_show2hide_header "小说管理"
+    while true; do
+        local selection=$(printf '%s\n' "${options[@]}" | fzf \
+            --height=30% \
+            --reverse \
+            --prompt="➤ 小说管理 > "
+        )
+        
+        case $selection in
+            *小说阅读列表*) 
+                echo "请手动执行:"
+                echo "novel choose" | pbcopy
+                echo "novel choose"
+                pbpaste
+                #$MYRUNTIME/customs/bin/novel choose "source"
+                echo ""
+                #break 3
+                #$MYRUNTIME/customs/bin/novel choose "source"
+                return
+                ;;
+            *小说网站管理*) $MYRUNTIME/customs/bin/novel web "source" ;;
+            *打开小说文件夹*) $MYRUNTIME/customs/bin/novel directory "source" ;;
+            *统计数量及磁盘占用量*) $MYRUNTIME/customs/bin/novel statistics "source" ;;
+            *返回*|*) break ;;
+        esac
+    done
+}
+
+fzf_recreation_manager() {
+    local options=(
+        "视频管理"
+        "小说管理"
         "↩️ 返回"
     )
     
@@ -158,11 +221,8 @@ fzf_recreation_manager() {
         )
         
         case $selection in
-            *视频管理*) $MYRUNTIME/customs/bin/vedio choose ;;
-            *常看视频网站*) $MYRUNTIME/customs/bin/vedio web ;;
-            *打开目录*) $MYRUNTIME/customs/bin/vedio directory ;;
-            *常用软件*) $MYRUNTIME/customs/bin/vedio tools ;;
-            *统计数量及磁盘占用量*) $MYRUNTIME/customs/bin/vedio statistics ;;
+            *视频管理*) fzf_vedios_manager ;;
+            *小说管理*) fzf_novels_manager ;;
             *返回*|*) break ;;
         esac
     done
