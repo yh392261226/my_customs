@@ -23,6 +23,7 @@ type Config struct {
 	FontColor       string `json:"font_color"`
 	BackgroundColor string `json:"background_color"`
 	BorderColor     string `json:"border_color"`
+	BorderStyle     string `json:"border_style"` // 边框样式
 	FontSize        int    `json:"font_size"`
 	MarginTop       int    `json:"margin_top"`
 	MarginBottom    int    `json:"margin_bottom"`
@@ -30,14 +31,18 @@ type Config struct {
 	MarginRight     int    `json:"margin_right"`
 	PaddingTop      int    `json:"padding_top"`
 	PaddingBottom   int    `json:"padding_bottom"`
-	PaddingLeft     int    `json:"padding_left"`
-	PaddingRight    int    `json:"padding_right"`
+	PaddingLeft      int    `json:"padding_left"`
+	PaddingRight     int    `json:"padding_right"`
 	Width           int    `json:"width"`
 	Height          int    `json:"height"`
+	HeightPercent   int    `json:"height_percent"` // 屏幕高度百分比
+	TransparentBg   bool   `json:"transparent_bg"` // 透明背景
+	UsePercent      bool   `json:"use_percent"`    // 使用百分比模式
 }
 
 // 书签结构体
 type Bookmark struct {
+	FilePath string `json:"file_path"` // 文件路径
 	Page     int    `json:"page"`
 	Position int    `json:"position"`
 	Note     string `json:"note"`
@@ -50,6 +55,7 @@ type NovelReader struct {
 	contentView *tview.TextView
 	statusBar   *tview.TextView
 	titleBar    *tview.TextView
+	flex        *tview.Flex // 主布局
 	config      Config
 	bookmarks   []Bookmark
 	content     []string
@@ -60,6 +66,7 @@ type NovelReader struct {
 	width       int
 	height      int
 	configFile  string
+	screen      tcell.Screen
 }
 
 // 检测文件编码
@@ -204,6 +211,7 @@ func NewNovelReader() *NovelReader {
 			FontColor:       "white",
 			BackgroundColor: "black",
 			BorderColor:     "gray",
+			BorderStyle:     "default",
 			FontSize:        1,
 			MarginTop:       1,
 			MarginBottom:    1,
@@ -215,11 +223,17 @@ func NewNovelReader() *NovelReader {
 			PaddingRight:    2,
 			Width:           80,
 			Height:          24,
+			HeightPercent:   100,
+			TransparentBg:   false,
+			UsePercent:      false,
 		},
 	}
 
 	// 加载配置
 	nr.loadConfig()
+	
+	// 加载书签
+	nr.loadBookmarks()
 
 	nr.setupUI()
 	return nr
@@ -247,7 +261,7 @@ func (nr *NovelReader) setupUI() {
 		SetTextAlign(tview.AlignRight)
 
 	// 创建主布局
-	flex := tview.NewFlex().
+	nr.flex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(nr.titleBar, 1, 0, false).
 		AddItem(nr.contentView, 0, 1, true).
@@ -257,7 +271,7 @@ func (nr *NovelReader) setupUI() {
 	nr.applyConfig()
 
 	// 添加主页面
-	nr.pages.AddPage("main", flex, true, true)
+	nr.pages.AddPage("main", nr.flex, true, true)
 
 	// 设置输入处理
 	nr.setupInputHandlers()
@@ -267,11 +281,29 @@ func (nr *NovelReader) setupUI() {
 func (nr *NovelReader) applyConfig() {
 	// 设置颜色
 	nr.contentView.SetTextColor(tcell.GetColor(nr.config.FontColor))
-	nr.contentView.SetBackgroundColor(tcell.GetColor(nr.config.BackgroundColor))
+	
+	// 设置背景颜色（支持透明背景）
+	if nr.config.TransparentBg {
+		nr.contentView.SetBackgroundColor(tcell.ColorDefault)
+		nr.titleBar.SetBackgroundColor(tcell.ColorDefault)
+		nr.statusBar.SetBackgroundColor(tcell.ColorDefault)
+	} else {
+		nr.contentView.SetBackgroundColor(tcell.GetColor(nr.config.BackgroundColor))
+		nr.titleBar.SetBackgroundColor(tcell.GetColor(nr.config.BackgroundColor))
+		nr.statusBar.SetBackgroundColor(tcell.GetColor(nr.config.BackgroundColor))
+	}
 
 	// 设置边框
 	nr.contentView.SetBorder(true)
 	nr.contentView.SetBorderColor(tcell.GetColor(nr.config.BorderColor))
+	
+	// 设置边框样式 - 使用默认样式
+	// tview的SetBorderStyle方法只需要一个tcell.Style参数
+	// 这里我们使用默认样式
+	style := tcell.StyleDefault.
+		Foreground(tcell.GetColor(nr.config.BorderColor)).
+		Background(tcell.GetColor(nr.config.BackgroundColor))
+	nr.contentView.SetBorderStyle(style)
 
 	// 设置边距
 	nr.contentView.SetBorderPadding(
@@ -281,8 +313,29 @@ func (nr *NovelReader) applyConfig() {
 		nr.config.PaddingRight)
 	
 	// 设置宽高
-	nr.width = nr.config.Width
-	nr.height = nr.config.Height
+	if nr.config.UsePercent && nr.screen != nil {
+		// 使用百分比模式
+		_, screenHeight := nr.screen.Size()
+		nr.height = int(float64(screenHeight) * float64(nr.config.HeightPercent) / 100.0)
+	} else {
+		// 使用固定宽高模式
+		nr.width = nr.config.Width
+		nr.height = nr.config.Height
+	}
+	
+	// 更新布局
+	nr.updateLayout()
+}
+
+// 更新布局
+func (nr *NovelReader) updateLayout() {
+	// 清除现有布局
+	nr.flex.Clear()
+	
+	// 重新添加组件
+	nr.flex.AddItem(nr.titleBar, 1, 0, false)
+	nr.flex.AddItem(nr.contentView, 0, 1, true)
+	nr.flex.AddItem(nr.statusBar, 1, 0, false)
 }
 
 // 设置输入处理器
@@ -524,12 +577,16 @@ func (nr *NovelReader) goToPage() {
 // 添加书签
 func (nr *NovelReader) addBookmark() {
 	bookmark := Bookmark{
+		FilePath: nr.filePath,
 		Page:     nr.currentPage,
 		Position: 0,
 		Note:     fmt.Sprintf("Page %d", nr.currentPage+1),
 	}
 
 	nr.bookmarks = append(nr.bookmarks, bookmark)
+	
+	// 保存书签
+	nr.saveBookmarks()
 
 	// 显示提示信息
 	modal := tview.NewModal().
@@ -547,25 +604,48 @@ func (nr *NovelReader) showBookmarks() {
 	list := tview.NewList().
 		AddItem("Back", "Return to reading", 'q', func() {
 			nr.pages.SwitchToPage("main")
+		}).
+		AddItem("Add new bookmark", "Add current file to bookmarks", 'a', func() {
+			nr.addBookmark()
 		})
 
+	// 添加书签项
 	for i, bookmark := range nr.bookmarks {
 		// 创建闭包内的局部变量
 		bm := bookmark
 		index := i
+		
+		// 获取文件名
+		fileName := filepath.Base(bm.FilePath)
+		
 		list.AddItem(
-			fmt.Sprintf("Page %d: %s", bm.Page+1, bm.Note),
-			fmt.Sprintf("Position: %d", bm.Position),
+			fmt.Sprintf("%s - Page %d: %s", fileName, bm.Page+1, bm.Note),
+			fmt.Sprintf("Path: %s", bm.FilePath),
 			0,
 			func() {
-				nr.currentPage = bm.Page
-				nr.updateUI()
-				nr.pages.SwitchToPage("main")
+				// 加载书签对应的文件
+				if err := nr.LoadNovel(bm.FilePath); err != nil {
+					// 显示错误信息
+					modal := tview.NewModal().
+						SetText(fmt.Sprintf("Error loading file: %v", err)).
+						AddButtons([]string{"OK"}).
+						SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+							nr.pages.SwitchToPage("bookmarks")
+						})
+					nr.pages.AddPage("load_error", modal, true, true)
+				} else {
+					// 跳转到书签位置
+					nr.currentPage = bm.Page
+					nr.updateUI()
+					nr.pages.SwitchToPage("main")
+				}
 			}).
 		AddItem("Delete this bookmark", "", 'd', func() {
 			// 删除书签
 			if index < len(nr.bookmarks) {
 				nr.bookmarks = append(nr.bookmarks[:index], nr.bookmarks[index+1:]...)
+				// 保存书签
+				nr.saveBookmarks()
 				// 重新显示书签列表
 				nr.showBookmarks()
 			}
@@ -588,8 +668,8 @@ func (nr *NovelReader) showSettings() {
 			nr.applyConfig()
 		})
 
-	form.AddDropDown("Background color", []string{"black", "white", "red", "green", "blue", "yellow", "cyan", "magenta"},
-		getIndex(nr.config.BackgroundColor, []string{"black", "white", "red", "green", "blue", "yellow", "cyan", "magenta"}),
+	form.AddDropDown("Background color", []string{"black", "white", "red", "green", "blue", "yellow", "cyan", "magenta", "default"},
+		getIndex(nr.config.BackgroundColor, []string{"black", "white", "red", "green", "blue", "yellow", "cyan", "magenta", "default"}),
 		func(option string, index int) {
 			nr.config.BackgroundColor = option
 			nr.applyConfig()
@@ -601,6 +681,34 @@ func (nr *NovelReader) showSettings() {
 			nr.config.BorderColor = option
 			nr.applyConfig()
 		})
+
+	// 添加边框样式选项
+	form.AddDropDown("Border style", []string{"default", "rounded", "double", "thin", "bold"},
+		getIndex(nr.config.BorderStyle, []string{"default", "rounded", "double", "thin", "bold"}),
+		func(option string, index int) {
+			nr.config.BorderStyle = option
+			nr.applyConfig()
+		})
+
+	// 添加透明背景选项
+	form.AddCheckbox("Transparent background", nr.config.TransparentBg, func(checked bool) {
+		nr.config.TransparentBg = checked
+		nr.applyConfig()
+	})
+
+	// 添加显示模式选项
+	form.AddCheckbox("Use percentage mode", nr.config.UsePercent, func(checked bool) {
+		nr.config.UsePercent = checked
+		nr.applyConfig()
+	})
+
+	// 添加高度百分比设置
+	form.AddInputField("Height percentage", strconv.Itoa(nr.config.HeightPercent), 3, nil, func(text string) {
+		if val, err := strconv.Atoi(text); err == nil && val > 0 && val <= 100 {
+			nr.config.HeightPercent = val
+			nr.applyConfig()
+		}
+	})
 
 	// 添加边距和填充设置
 	form.AddInputField("Margin Top", strconv.Itoa(nr.config.MarginTop), 2, nil, func(text string) {
@@ -655,14 +763,14 @@ func (nr *NovelReader) showSettings() {
 	form.AddInputField("Width", strconv.Itoa(nr.config.Width), 3, nil, func(text string) {
 		if val, err := strconv.Atoi(text); err == nil && val > 0 {
 			nr.config.Width = val
-			nr.width = val
+			nr.applyConfig()
 		}
 	})
 
 	form.AddInputField("Height", strconv.Itoa(nr.config.Height), 3, nil, func(text string) {
 		if val, err := strconv.Atoi(text); err == nil && val > 0 {
 			nr.config.Height = val
-			nr.height = val
+			nr.applyConfig()
 		}
 	})
 
@@ -767,6 +875,10 @@ func (nr *NovelReader) showInfo() {
   Font Color: %s
   Background Color: %s
   Border Color: %s
+  Border Style: %s
+  Transparent Background: %v
+  Height Percentage: %d%%
+  Use Percentage Mode: %v
   Margins: T:%d B:%d L:%d R:%d
   Padding: T:%d B:%d L:%d R:%d
 
@@ -781,6 +893,10 @@ Press any key to return.
 		nr.config.FontColor,
 		nr.config.BackgroundColor,
 		nr.config.BorderColor,
+		nr.config.BorderStyle,
+		nr.config.TransparentBg,
+		nr.config.HeightPercent,
+		nr.config.UsePercent,
 		nr.config.MarginTop, nr.config.MarginBottom, nr.config.MarginLeft, nr.config.MarginRight,
 		nr.config.PaddingTop, nr.config.PaddingBottom, nr.config.PaddingLeft, nr.config.PaddingRight)
 
@@ -871,9 +987,37 @@ func (nr *NovelReader) loadConfig() {
 	}
 }
 
+// 保存书签
+func (nr *NovelReader) saveBookmarks() {
+	bookmarkFile := filepath.Join(filepath.Dir(nr.configFile), ".novel_reader_bookmarks.json")
+	data, _ := json.MarshalIndent(nr.bookmarks, "", "  ")
+	_ = os.WriteFile(bookmarkFile, data, 0644)
+}
+
+// 加载书签
+func (nr *NovelReader) loadBookmarks() {
+	bookmarkFile := filepath.Join(filepath.Dir(nr.configFile), ".novel_reader_bookmarks.json")
+	if _, err := os.Stat(bookmarkFile); err == nil {
+		data, err := os.ReadFile(bookmarkFile)
+		if err == nil {
+			_ = json.Unmarshal(data, &nr.bookmarks)
+		}
+	}
+}
+
 // 运行阅读器
 func (nr *NovelReader) Run() error {
-	return nr.app.SetRoot(nr.pages, true).Run()
+	// 获取屏幕对象
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		return err
+	}
+	nr.screen = screen
+	
+	// 应用配置（设置高度百分比）
+	nr.applyConfig()
+	
+	return nr.app.SetRoot(nr.pages, true).SetScreen(screen).Run()
 }
 
 // 非交互模式显示
@@ -888,13 +1032,37 @@ func (nr *NovelReader) DisplayPage(pageNum int) {
 	fmt.Println(nr.contentView.GetText(false))
 }
 
+// 显示书签选择界面（当没有文件传入时）
+func (nr *NovelReader) showBookmarkSelection() {
+	// 如果没有书签，显示提示信息
+	if len(nr.bookmarks) == 0 {
+		modal := tview.NewModal().
+			SetText("No bookmarks available. Please open a file first to create bookmarks.").
+			AddButtons([]string{"OK"}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				nr.app.Stop()
+			})
+		modal.SetBorder(true).SetTitle("No Bookmarks")
+		nr.pages.AddPage("no_bookmarks", modal, true, true)
+		return
+	}
+	
+	// 显示书签列表
+	nr.showBookmarks()
+}
+
 func main() {
+	reader := NewNovelReader()
+
+	// 检查是否有文件参数传入
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: novel-reader <novel-file-path> [page-number]")
-		fmt.Println("Options:")
-		fmt.Println("  -h, --help     Show this help message")
-		fmt.Println("  -v, --version  Show version information")
-		os.Exit(1)
+		// 没有文件参数，显示书签选择界面
+		reader.showBookmarkSelection()
+		if err := reader.Run(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
 	}
 
 	// 检查帮助参数
@@ -932,7 +1100,6 @@ func main() {
 	}
 
 	filePath := os.Args[1]
-	reader := NewNovelReader()
 
 	// 加载小说
 	if err := reader.LoadNovel(filePath); err != nil {
