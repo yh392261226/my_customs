@@ -309,7 +309,7 @@ generate_menu() {
         "directory"|"symlink_directory")
             echo "进入目录 创建 删除 复制 移动 重命名 压缩 打开位置 收藏 查看权限 设置权限${text} 取消" ;;
         "text"|"symlink_text")
-            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 取消" ;;
+            echo "编辑(Nvim) 编辑(Code) 查看(Bat) 查看(Cat) 查看(终端) 创建 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 当小说读 取消" ;;
         "pdf"|"symlink_pdf")
             echo "文本预览 打开文件 复制 移动 删除 压缩 收藏 查看权限 设置权限${text} 取消" ;;
         "office"|"symlink_office")
@@ -425,6 +425,7 @@ actioner() {
         设置权限*)        actioner_set_private "$filepath" ;;
         文本预览*)        $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
         创建*)           actioner_create "$filepath" ;;
+        当小说读*)        $MYRUNTIME/customs/bin/reader "$filepath" ;;
     esac
     
     restore_terminal
