@@ -425,7 +425,7 @@ actioner() {
         设置权限*)        actioner_set_private "$filepath" ;;
         文本预览*)        $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
         创建*)           actioner_create "$filepath" ;;
-        当小说读*)        $MYRUNTIME/customs/bin/reader "$filepath" ;;
+        当小说读*)        $MYRUNTIME/customs/bin/greader "$filepath" ;;
     esac
     
     restore_terminal

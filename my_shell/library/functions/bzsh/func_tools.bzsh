@@ -186,17 +186,7 @@ fzf_novels_manager() {
         )
         
         case $selection in
-            *小说阅读列表*) 
-                echo "请手动执行:"
-                echo "novel choose" | pbcopy
-                echo "novel choose"
-                pbpaste
-                #$MYRUNTIME/customs/bin/novel choose "source"
-                echo ""
-                #break 3
-                #$MYRUNTIME/customs/bin/novel choose "source"
-                return
-                ;;
+            *小说阅读列表*) $MYRUNTIME/customs/bin/novel choose "source" ;;
             *小说网站管理*) $MYRUNTIME/customs/bin/novel web "source" ;;
             *打开小说文件夹*) $MYRUNTIME/customs/bin/novel directory "source" ;;
             *统计数量及磁盘占用量*) $MYRUNTIME/customs/bin/novel statistics "source" ;;

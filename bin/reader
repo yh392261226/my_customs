@@ -691,6 +691,51 @@ settings_menu() {
     read -n 1 -s -p "按任意键继续..."
 }
 
+do_next() {
+    # 下一页
+    if next_page; then
+        show_page
+    else
+        echo "已经是最后一页"
+    fi
+}
+
+do_pre() {
+    # 上一页
+    if prev_page; then
+        show_page
+    else
+        echo "已经是第一页"
+    fi
+}
+
+do_jump() {
+    # 跳转
+    echo -n "输入行号或百分比 (e.g. 100 or 50%): "
+    read target
+    goto_line "$target"
+    show_page
+}
+
+do_book() {
+    # 书签管理
+    bookmark_menu
+    show_page
+}
+
+do_setting() {
+    # 设置
+    settings_menu
+    show_page
+}
+
+do_quit() {
+    # 保存进度并退出
+    save_current_progress
+    # echo "阅读进度已保存"
+    exit 0
+}
+
 # 非交互式阅读模式
 non_interactive_reader() {
     local file="$1"
@@ -705,48 +750,26 @@ non_interactive_reader() {
     
     # 保存进度函数
     trap 'save_current_progress; echo "阅读进度已保存"; exit 0' INT TERM EXIT
-    
     # 简单的按键处理
     while IFS= read -r -n 1 -s key; do
         case "$key" in
             n|N)
-                # 下一页
-                if next_page; then
-                    show_page
-                else
-                    echo "已经是最后一页"
-                fi
+                do_next
                 ;;
             p|P)
-                # 上一页
-                if prev_page; then
-                    show_page
-                else
-                    echo "已经是第一页"
-                fi
+                do_pre
                 ;;
             j|J)
-                # 跳转
-                echo -n "输入行号或百分比 (e.g. 100 or 50%): "
-                read target
-                goto_line "$target"
-                show_page
+                do_jump
                 ;;
             b|B)
-                # 书签管理
-                bookmark_menu
-                show_page
+                do_book
                 ;;
             s|S)
-                # 设置
-                settings_menu
-                show_page
+                do_setting
                 ;;
             q|Q)
-                # 保存进度并退出
-                save_current_progress
-                # echo "阅读进度已保存"
-                exit 0
+                do_quit
                 ;;
             *)
                 echo "未知命令: $key"

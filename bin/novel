@@ -6,20 +6,22 @@
 [[ -f $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh ]] && source $MYRUNTIME/customs/my_shell/library/core/bzsh/core_common.bzsh
 
 NOVELSPATH=$(cat $HOME/.novelspath)
+NOVELSDATAPATH=${NOVELSPATH}/datas
 
 [[ "" = "$NOVELSPATH" ]] && echo "Novels path does not set ..." && exit 1
 [[ ! -d "$NOVELSPATH" ]] && mkdir -p $NOVELSPATH
 
 function novels_read() {
     custom_gum_show2hide_header "小说阅读列表"
-    local choose=$(ls $NOVELSPATH/ | awk -v dir="$current_dir" '
+    local choose=$(ls $NOVELSDATAPATH/ | awk -v dir="$current_dir" '
                 { print }
                 END { print "↩️ 返回" }
-            ' | fzf +m $FZF_CUSTOM_PARAMS --preview="$MYRUNTIME/customs/bin/_previewer $NOVELSPATH/{}")
+            ' | fzf +m $FZF_CUSTOM_PARAMS --preview="$MYRUNTIME/customs/bin/_previewer $NOVELSDATAPATH/{}")
     if [[ "$choose" == "↩️ 返回" ]]; then
         return
     elif [ "" != "$choose" ]; then
-        $MYRUNTIME/customs/bin/reader $NOVELSPATH/$choose
+        echo "$NOVELSDATAPATH/$choose"
+        $MYRUNTIME/customs/bin/greader $NOVELSDATAPATH/$choose
     fi
 }
 
