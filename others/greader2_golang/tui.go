@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
@@ -17,6 +18,11 @@ var isWindowHidden bool = false
 
 // 初始化终端UI
 func initUI() error {
+	// 检查标准输入是否是终端设备
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return nil // 不是终端设备，跳过设置
+	}
+
 	// 切换到原始模式并保存原始终端状态
 	var err error
 	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
@@ -164,6 +170,14 @@ func getColorCode(fgColor, bgColor string) string {
 
 // getInput 获取输入
 func getInput() (string, error) {
+    // 检查标准输入是否是终端设备
+    if !term.IsTerminal(int(os.Stdin.Fd())) {
+        // 如果不是终端设备，等待一段时间后返回空输入
+        // 这样可以避免阻塞，同时允许程序继续运行
+        time.Sleep(100 * time.Millisecond)
+        return "", nil
+    }
+
     buffer := make([]byte, 10)
     n, err := os.Stdin.Read(buffer)
     if err != nil {
@@ -313,6 +327,12 @@ func displayProgressBar(x, y, width, current, total int, fgColor, bgColor string
 
 // showInputPrompt 显示输入提示
 func showInputPrompt(prompt string) string {
+    // 检查标准输入是否是终端设备
+    if !term.IsTerminal(int(os.Stdin.Fd())) {
+        // 如果不是终端设备，返回空字符串
+        return ""
+    }
+
     // 先恢复终端状态，以便正常回显
     if oldState != nil {
         term.Restore(int(os.Stdin.Fd()), oldState)

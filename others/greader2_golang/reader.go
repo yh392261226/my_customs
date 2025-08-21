@@ -251,11 +251,16 @@ func (r *Reader) Run() error {
 	// 记录开始阅读时间
 	startTime := time.Now().Unix()
 
-	// 初始化UI
-	if err := initUI(); err != nil {
-		return err
+	// 检查标准输入是否是终端设备
+	isTerminal := term.IsTerminal(int(os.Stdin.Fd()))
+	
+	// 只有在终端设备上才初始化UI
+	if isTerminal {
+		if err := initUI(); err != nil {
+			return err
+		}
+		defer cleanupUI()
 	}
-	defer cleanupUI()
 
     // 确保书籍被关闭
 	defer r.Book.Close()
@@ -263,16 +268,15 @@ func (r *Reader) Run() error {
     // 确保自动翻页被停止
     defer r.stopAutoFlip()
 
-    // 确保提醒计时器被停止
-    defer r.stopRemindTimer()
-
     // 如果配置启用了自动翻页，启动它
     if r.Config.AutoFlipEnabled && r.Config.AutoFlipInterval > 0 {
         r.startAutoFlip()
     }
 
-	// 渲染第一页
-	r.RenderPage()
+	// 只有在终端设备上才渲染页面
+	if isTerminal {
+		r.RenderPage()
+	}
 
 	// 主事件循环
 	for {
@@ -300,15 +304,25 @@ func (r *Reader) Run() error {
 		case "down", "right":
 			r.NextPage()
 		case "s":
-			r.ShowSettings()
+			if isTerminal {
+				r.ShowSettings()
+			}
 		case "h":
-			r.ShowHelp()
+			if isTerminal {
+				r.ShowHelp()
+			}
 		case "f":
-			r.ShowBookmarks()
+			if isTerminal {
+				r.ShowBookmarks()
+			}
 		case "b":
-			r.ToggleBookmark()
+			if isTerminal {
+				r.ToggleBookmark()
+			}
 		case "/":
-			r.StartSearch()
+			if isTerminal {
+				r.StartSearch()
+			}
 		case "r":
 			r.ToggleReadAloud()
 		case "q":
@@ -316,23 +330,37 @@ func (r *Reader) Run() error {
 			r.updateReadingStats(startTime)
 			return nil
 		case "i":  // 隐藏/显示窗口
-			r.HideWindow()
+			if isTerminal {
+				r.HideWindow()
+			}
 		case "g":
-			r.GoToBookmark()
+			if isTerminal {
+				r.GoToBookmark()
+			}
 		case "l":
-			r.GoToPage()
+			if isTerminal {
+				r.GoToPage()
+			}
 		case "n":
 			r.NextSearchResult()
 		case "p":
 			r.PreviousSearchResult()
 		case "t": // 添加笔记
-			r.AddNote()
+			if isTerminal {
+				r.AddNote()
+			}
 		case "v": // 查看笔记
-			r.ShowNotes()
+			if isTerminal {
+				r.ShowNotes()
+			}
 		case "e": // 导出数据
-			r.ExportData()
+			if isTerminal {
+				r.ExportData()
+			}
 		case "x": // 查看阅读统计
-			r.ShowReadingStats()
+			if isTerminal {
+				r.ShowReadingStats()
+			}
         case "a": // 自动翻页
             if r.Config.AutoFlipEnabled {
                 r.stopAutoFlip()
@@ -340,7 +368,9 @@ func (r *Reader) Run() error {
                 r.startAutoFlip()
             }
             // 立即重新渲染以显示状态变化
-            r.RenderPage()
+            if isTerminal {
+				r.RenderPage()
+			}
 		case "esc":
 			if r.IsInSetting || r.IsInBookmark || r.IsInSearch {
                 r.IsInSetting = false
@@ -355,8 +385,10 @@ func (r *Reader) Run() error {
             }
 		}
 
-		// 重新渲染页面
-		r.RenderPage()
+		// 只有在终端设备上才重新渲染页面
+		if isTerminal {
+			r.RenderPage()
+		}
 	}
 }
 

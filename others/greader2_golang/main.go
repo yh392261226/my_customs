@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"golang.org/x/term"
 )
 
 // Config 阅读器配置
@@ -82,6 +84,18 @@ func startReaderWithFile(filePath string) {
 	if err != nil {
 		fmt.Printf("无法打开文件: %v\n", err)
 		os.Exit(1)
+	}
+	
+	// 检查是否是终端设备
+	isTerminal := term.IsTerminal(int(os.Stdin.Fd()))
+	if !isTerminal {
+		// 如果不是终端设备，直接输出内容并退出
+		// 使用 reader.Content 而不是 reader.GetContent()
+		for _, page := range reader.Content {
+			fmt.Println(page)
+			fmt.Println("---")
+		}
+		return
 	}
 	
 	// 启动阅读器

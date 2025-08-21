@@ -74,15 +74,29 @@ func readFileWithEncodingDetection(filePath string) ([]string, error) {
 	// 使用检测到的编码读取文件
 	reader := transform.NewReader(file, decoder)
 	
-	// 对于大文件，使用缓冲读取器逐行读取
+	// 使用 bufio.Reader 而不是 Scanner 来避免 "token too long" 错误
+	bufReader := bufio.NewReader(reader)
 	var lines []string
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
 	
-	if err := scanner.Err(); err != nil {
-		return nil, err
+	for {
+		line, err := bufReader.ReadString('\n')
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		
+		// 去除行尾的换行符
+		if len(line) > 0 && line[len(line)-1] == '\n' {
+			line = line[:len(line)-1]
+		}
+		if len(line) > 0 && line[len(line)-1] == '\r' {
+			line = line[:len(line)-1]
+		}
+		
+		lines = append(lines, line)
+		
+		if err == io.EOF {
+			break
+		}
 	}
 
 	return lines, nil
