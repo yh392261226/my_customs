@@ -23,6 +23,7 @@ type Config struct {
 	AutoReadAloud bool
 	AutoFlipInterval int    // 自动翻页间隔（秒）
 	AutoFlipEnabled  bool   // 自动翻页是否启用
+	RemindInterval   int    // 阅读提醒间隔（分钟）
 }
 
 // Bookmark 书签结构
@@ -48,6 +49,7 @@ var defaultConfig = Config{
 	AutoReadAloud: false,
 	AutoFlipInterval: 5,    // 默认5秒
 	AutoFlipEnabled:  false, // 默认禁用
+	RemindInterval:   0,    // 默认不提醒
 }
 
 func main() {

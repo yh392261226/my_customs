@@ -62,6 +62,9 @@ type Reader struct {
 	BookTitle      string        // 书籍标题
     AutoFlipTicker   *time.Ticker  // 自动翻页计时器
 	AutoFlipQuit     chan struct{} // 自动翻页退出通道
+    RemindTicker     *time.Ticker  // 提醒计时器
+	RemindQuit       chan struct{} // 提醒退出通道
+	StartReadingTime time.Time     // 开始阅读时间
 }
 
 // NewTTSPlayer 创建新的TTS播放器
@@ -206,7 +209,12 @@ func NewReader(filePath string) (*Reader, error) {
 		Config:      config,
 		Book:        book, // 保存书籍实例
 		BookTitle:   metadata.Title, // 保存书籍标题
+        StartReadingTime: time.Now(), // 记录开始阅读时间
 	}
+    // 启动提醒计时器
+    if config.RemindInterval > 0 {
+        reader.startRemindTimer()
+    }
 
 	// 加载书签
 	reader.Bookmarks = loadBookmarksForFile(filePath)
@@ -254,6 +262,9 @@ func (r *Reader) Run() error {
 
     // 确保自动翻页被停止
     defer r.stopAutoFlip()
+
+    // 确保提醒计时器被停止
+    defer r.stopRemindTimer()
 
     // 如果配置启用了自动翻页，启动它
     if r.Config.AutoFlipEnabled && r.Config.AutoFlipInterval > 0 {
@@ -477,6 +488,7 @@ func (r *Reader) ShowSettings() {
         "自动朗读: " + strconv.FormatBool(r.Config.AutoReadAloud),
         "自动翻页间隔: " + strconv.Itoa(r.Config.AutoFlipInterval) + "秒",
         "自动翻页: " + strconv.FormatBool(r.Config.AutoFlipEnabled),
+        "阅读提醒间隔: " + strconv.Itoa(r.Config.RemindInterval) + "分钟",
         "保存并退出",
     }
     
@@ -534,6 +546,7 @@ func (r *Reader) ShowSettings() {
                 "自动朗读: " + strconv.FormatBool(r.Config.AutoReadAloud),
                 "自动翻页间隔: " + strconv.Itoa(r.Config.AutoFlipInterval) + "秒",
                 "自动翻页: " + strconv.FormatBool(r.Config.AutoFlipEnabled),
+                "阅读提醒间隔: " + strconv.Itoa(r.Config.RemindInterval) + "分钟",
                 "保存并退出",
             }
         case "esc":
@@ -644,7 +657,18 @@ func (r *Reader) modifySetting(selected int) {
         } else {
             r.stopAutoFlip()
         }
-    case 14: // 保存并退出
+    case 14: // 阅读提醒间隔
+        input := showInputPrompt("请输入阅读提醒间隔(分钟，0表示不提醒): ")
+        if interval, err := strconv.Atoi(input); err == nil && interval >= 0 {
+            r.Config.RemindInterval = interval
+            // 根据设置启动或停止提醒计时器
+            if r.Config.RemindInterval > 0 {
+                r.startRemindTimer()
+            } else {
+                r.stopRemindTimer()
+            }
+        }
+    case 15: // 保存并退出
 		saveConfig(r.Config)
 		r.IsInSetting = false
 	}
@@ -1685,4 +1709,136 @@ func (r *Reader) toggleAutoFlip() {
 	} else {
 		r.startAutoFlip()
 	}
+}
+
+// startRemindTimer 启动提醒计时器
+func (r *Reader) startRemindTimer() {
+    // 如果已经启动，先停止
+    r.stopRemindTimer()
+    
+    interval := time.Duration(r.Config.RemindInterval) * time.Minute
+    if interval <= 0 {
+        return
+    }
+    
+    // 创建计时器和退出通道
+    r.RemindTicker = time.NewTicker(interval)
+    r.RemindQuit = make(chan struct{})
+    
+    // 启动goroutine处理提醒
+    go func() {
+        for {
+            select {
+            case <-r.RemindTicker.C:
+                r.showRemindAlert()
+            case <-r.RemindQuit:
+                if r.RemindTicker != nil {
+                    r.RemindTicker.Stop()
+                }
+                return
+            }
+        }
+    }()
+}
+
+// stopRemindTimer 停止提醒计时器
+func (r *Reader) stopRemindTimer() {
+    if r.RemindQuit != nil {
+        close(r.RemindQuit)
+        r.RemindQuit = nil
+    }
+    if r.RemindTicker != nil {
+        r.RemindTicker.Stop()
+        r.RemindTicker = nil
+    }
+}
+
+// showRemindAlert 显示提醒弹窗
+func (r *Reader) showRemindAlert() {
+    // 恢复终端状态以显示提醒
+    if oldState != nil {
+        term.Restore(int(os.Stdin.Fd()), oldState)
+    }
+    
+    defer func() {
+        // 恢复原始模式
+        if oldState != nil {
+            term.MakeRaw(int(os.Stdin.Fd()))
+        }
+        // 重新渲染页面
+        r.RenderPage()
+    }()
+    
+    clearScreen()
+    
+    // 获取终端大小
+    width, height, _ := getTerminalSize()
+    
+    // 计算弹窗位置和大小
+    popupWidth := 50
+    popupHeight := 7
+    popupX := (width - popupWidth) / 2
+    popupY := (height - popupHeight) / 2
+    
+    // 绘制弹窗边框
+    drawPopup(popupX, popupY, popupWidth, popupHeight, r.Config.BorderStyle)
+    
+    // 显示提醒消息
+    message := fmt.Sprintf("已经阅读%d分钟了,休息会眼睛吧!", r.Config.RemindInterval)
+    messageX := popupX + (popupWidth-len(message))/2
+    displayText(messageX, popupY+2, message, r.Config.FontColor, r.Config.BgColor)
+    
+    // 显示确认提示
+    prompt := "按任意键继续阅读..."
+    promptX := popupX + (popupWidth-len(prompt))/2
+    displayText(promptX, popupY+4, prompt, r.Config.FontColor, r.Config.BgColor)
+    
+    // 等待按键
+    getInput()
+    
+    // 重置提醒计时器
+    r.stopRemindTimer()
+    r.startRemindTimer()
+}
+
+// drawPopup 绘制弹窗
+func drawPopup(x, y, width, height int, style string) {
+    var topLeft, topRight, bottomLeft, bottomRight, horizontal, vertical string
+
+    switch style {
+    case "round":
+        topLeft, topRight, bottomLeft, bottomRight = "╭", "╮", "╰", "╯"
+        horizontal, vertical = "─", "│"
+    case "bold":
+        topLeft, topRight, bottomLeft, bottomRight = "┏", "┓", "┗", "┛"
+        horizontal, vertical = "━", "┃"
+    case "double":
+        topLeft, topRight, bottomLeft, bottomRight = "╔", "╗", "╚", "╝"
+        horizontal, vertical = "═", "║"
+    case "thin":
+        topLeft, topRight, bottomLeft, bottomRight = "┌", "┐", "└", "┘"
+        horizontal, vertical = "─", "│"
+    default:
+        return // 无边框
+    }
+
+    // 绘制上边框
+    fmt.Printf("\033[%d;%dH%s", y+1, x+1, topLeft)
+    for i := 0; i < width-2; i++ {
+        fmt.Print(horizontal)
+    }
+    fmt.Print(topRight)
+
+    // 绘制左右边框
+    for i := 1; i < height-1; i++ {
+        fmt.Printf("\033[%d;%dH%s", y+i+1, x+1, vertical)
+        fmt.Printf("\033[%d;%dH%s", y+i+1, x+width, vertical)
+    }
+
+    // 绘制下边框
+    fmt.Printf("\033[%d;%dH%s", y+height, x+1, bottomLeft)
+    for i := 0; i < width-2; i++ {
+        fmt.Print(horizontal)
+    }
+    fmt.Print(bottomRight)
 }
