@@ -20,8 +20,12 @@ function novels_read() {
     if [[ "$choose" == "↩️ 返回" ]]; then
         return
     elif [ "" != "$choose" ]; then
-        echo "$NOVELSDATAPATH/$choose"
-        $MYRUNTIME/customs/bin/greader $NOVELSDATAPATH/$choose
+        # 如果是其他命令或脚本引入的就使用greader来阅读
+        if [ ! -z $1 ] && [ "$1" = "source" ]; then
+            $MYRUNTIME/customs/bin/greader $NOVELSDATAPATH/$choose
+        else # 否则使用全功能的reader来阅读
+            $MYRUNTIME/customs/bin/reader $NOVELSDATAPATH/$choose
+        fi
     fi
 }
 
@@ -168,7 +172,7 @@ case "$selected" in
         open $NOVELSPATH
         ;;
     "choose" | "c" | *小说阅读列表*)
-        novels_read
+        novels_read "$2"
         ;;
     "web" | "w" | *小说网站管理*)
         novels_web_manager

@@ -1,4 +1,4 @@
-module greader2
+module reader
 
 go 1.25.0
 
