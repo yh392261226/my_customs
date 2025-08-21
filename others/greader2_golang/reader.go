@@ -58,6 +58,10 @@ type Reader struct {
 	IsInSearch     bool
 	Notes          []Note
 	ReadingStats   *ReadingStats
+	Book           Book          // 书籍实例
+	BookTitle      string        // 书籍标题
+    AutoFlipTicker   *time.Ticker  // 自动翻页计时器
+	AutoFlipQuit     chan struct{} // 自动翻页退出通道
 }
 
 // NewTTSPlayer 创建新的TTS播放器
@@ -175,46 +179,55 @@ func mapSpeedToRate(speed int) string {
 
 // NewReader 创建新的阅读器实例
 func NewReader(filePath string) (*Reader, error) {
-    // 加载配置
-    config := loadConfig()
+	// 加载配置
+	config := loadConfig()
 
-    // 读取文件内容
-    content, err := readFileWithEncodingDetection(filePath)
-    if err != nil {
-        return nil, err
-    }
+	// 打开书籍文件
+	book, err := OpenBook(filePath)
+	if err != nil {
+		return nil, err
+	}
 
-    // 处理内容换行和分页
-    processedContent := processContent(content, config)
+	// 获取书籍内容
+	content, err := book.GetContent()
+	if err != nil {
+		book.Close()
+		return nil, err
+	}
 
-    reader := &Reader{
-        FilePath:    filePath,
-        Content:     processedContent,
-        CurrentPage: 0, // 默认从第一页开始
-        TotalPages:  len(processedContent),
-        Config:      config,
-    }
+	// 获取书籍元数据
+	metadata := book.GetMetadata()
 
-    // 加载书签
-    reader.Bookmarks = loadBookmarksForFile(filePath)
+	reader := &Reader{
+		FilePath:    filePath,
+		Content:     content,
+		CurrentPage: 0,
+		TotalPages:  len(content),
+		Config:      config,
+		Book:        book, // 保存书籍实例
+		BookTitle:   metadata.Title, // 保存书籍标题
+	}
 
-    // 加载笔记
-    reader.Notes = loadNotes(filePath)
+	// 加载书签
+	reader.Bookmarks = loadBookmarksForFile(filePath)
 
-    // 加载阅读统计
-    reader.ReadingStats = loadReadingStats(filePath)
-    
-    // 如果存在阅读统计，恢复上次阅读位置
-    if reader.ReadingStats != nil && reader.ReadingStats.LastPage > 0 {
-        // 确保页码在有效范围内
-        if reader.ReadingStats.LastPage < reader.TotalPages {
-            reader.CurrentPage = reader.ReadingStats.LastPage
-        } else {
-            reader.CurrentPage = reader.TotalPages - 1
-        }
-    }
+	// 加载笔记
+	reader.Notes = loadNotes(filePath)
 
-    return reader, nil
+	// 加载阅读统计
+	reader.ReadingStats = loadReadingStats(filePath)
+	
+	// 如果存在阅读统计，恢复上次阅读位置
+	if reader.ReadingStats != nil && reader.ReadingStats.LastPage > 0 {
+		// 确保页码在有效范围内
+		if reader.ReadingStats.LastPage < reader.TotalPages {
+			reader.CurrentPage = reader.ReadingStats.LastPage
+		} else {
+			reader.CurrentPage = reader.TotalPages - 1
+		}
+	}
+
+	return reader, nil
 }
 
 // Run 启动阅读器主循环
@@ -235,6 +248,17 @@ func (r *Reader) Run() error {
 		return err
 	}
 	defer cleanupUI()
+
+    // 确保书籍被关闭
+	defer r.Book.Close()
+
+    // 确保自动翻页被停止
+    defer r.stopAutoFlip()
+
+    // 如果配置启用了自动翻页，启动它
+    if r.Config.AutoFlipEnabled && r.Config.AutoFlipInterval > 0 {
+        r.startAutoFlip()
+    }
 
 	// 渲染第一页
 	r.RenderPage()
@@ -298,16 +322,26 @@ func (r *Reader) Run() error {
 			r.ExportData()
 		case "x": // 查看阅读统计
 			r.ShowReadingStats()
+        case "a": // 自动翻页
+            if r.Config.AutoFlipEnabled {
+                r.stopAutoFlip()
+            } else {
+                r.startAutoFlip()
+            }
+            // 立即重新渲染以显示状态变化
+            r.RenderPage()
 		case "esc":
 			if r.IsInSetting || r.IsInBookmark || r.IsInSearch {
-				r.IsInSetting = false
-				r.IsInBookmark = false
-				r.IsInSearch = false
-			} else {
-				// 更新阅读统计
-				r.updateReadingStats(startTime)
-				return nil
-			}
+                r.IsInSetting = false
+                r.IsInBookmark = false
+                r.IsInSearch = false
+            } else {
+                // 更新阅读统计
+                r.updateReadingStats(startTime)
+                // 停止自动翻页
+                r.stopAutoFlip()
+                return nil
+            }
 		}
 
 		// 重新渲染页面
@@ -333,7 +367,12 @@ func (r *Reader) RenderPage() {
     contentHeight := r.Config.Height - 2*r.Config.Margin - 2*r.Config.Padding - 4 // 增加底部信息行
 
     // 显示标题
-    title := fmt.Sprintf("《%s》", getFileName(r.FilePath))
+    var title string
+    if r.BookTitle == "" {
+        title = fmt.Sprintf("《%s》", getFileName(r.FilePath))
+    } else {
+        title = fmt.Sprintf("《%s》", r.BookTitle)
+    }
     displayText(1+r.Config.Margin, 0+r.Config.Margin, title, r.Config.FontColor, r.Config.BgColor)
 
     // 显示内容
@@ -392,6 +431,16 @@ func (r *Reader) RenderPage() {
         statusText := "朗读中..."
         displayText(r.Config.Width-len(statusText)-r.Config.Margin-1, 0, statusText, r.Config.FontColor, r.Config.BgColor)
     }
+
+    // 显示自动翻页状态
+    if r.Config.AutoFlipEnabled {
+        statusText := fmt.Sprintf("自动翻页中(%ds)", r.Config.AutoFlipInterval)
+        // 确保状态文本不会超出屏幕
+        if len(statusText) > r.Config.Width-2 {
+            statusText = statusText[:r.Config.Width-2]
+        }
+        displayText(r.Config.Width-len(statusText)-r.Config.Margin-1, 1, statusText, r.Config.FontColor, r.Config.BgColor)
+    }
 }
 
 // PreviousPage 上一页
@@ -426,6 +475,8 @@ func (r *Reader) ShowSettings() {
         "行间距: " + strconv.Itoa(r.Config.LineSpacing),
         "朗读速度: " + strconv.Itoa(r.Config.TTSSpeed),
         "自动朗读: " + strconv.FormatBool(r.Config.AutoReadAloud),
+        "自动翻页间隔: " + strconv.Itoa(r.Config.AutoFlipInterval) + "秒",
+        "自动翻页: " + strconv.FormatBool(r.Config.AutoFlipEnabled),
         "保存并退出",
     }
     
@@ -481,6 +532,8 @@ func (r *Reader) ShowSettings() {
                 "行间距: " + strconv.Itoa(r.Config.LineSpacing),
                 "朗读速度: " + strconv.Itoa(r.Config.TTSSpeed),
                 "自动朗读: " + strconv.FormatBool(r.Config.AutoReadAloud),
+                "自动翻页间隔: " + strconv.Itoa(r.Config.AutoFlipInterval) + "秒",
+                "自动翻页: " + strconv.FormatBool(r.Config.AutoFlipEnabled),
                 "保存并退出",
             }
         case "esc":
@@ -567,13 +620,36 @@ func (r *Reader) modifySetting(selected int) {
 		}
 	case 11: // 自动朗读
 		r.Config.AutoReadAloud = !r.Config.AutoReadAloud
-	case 12: // 保存并退出
+	case 12: // 自动翻页间隔
+        input := showInputPrompt("请输入自动翻页间隔(秒): ")
+        if interval, err := strconv.Atoi(input); err == nil && interval > 0 {
+            r.Config.AutoFlipInterval = interval
+        } else {
+            // 如果输入无效，设置为默认值
+            r.Config.AutoFlipInterval = 5
+        }
+        // 保存配置
+        saveConfig(r.Config)
+    case 13: // 自动翻页
+        r.Config.AutoFlipEnabled = !r.Config.AutoFlipEnabled
+        // 如果启用自动翻页，确保有合理的间隔
+        if r.Config.AutoFlipEnabled && r.Config.AutoFlipInterval <= 0 {
+            r.Config.AutoFlipInterval = 5
+        }
+        // 保存配置
+        saveConfig(r.Config)
+        // 根据设置启动或停止自动翻页
+        if r.Config.AutoFlipEnabled {
+            r.startAutoFlip()
+        } else {
+            r.stopAutoFlip()
+        }
+    case 14: // 保存并退出
 		saveConfig(r.Config)
 		r.IsInSetting = false
 	}
 }
 
-// ShowHelp 显示帮助
 func (r *Reader) ShowHelp() {
     clearScreen()
     
@@ -598,7 +674,10 @@ func (r *Reader) ShowHelp() {
         "v: 查看笔记",
         "e: 导出数据",
         "x: 查看阅读统计",
+        "a: 自动翻页/取消自动翻页", // 新增自动翻页快捷键
         "ESC: 返回",
+        "",
+        "支持格式: TXT, EPUB, PDF, MOBI",
         "",
         "按任意键继续...",
     }
@@ -1540,4 +1619,70 @@ func getStatsPath() string {
 
 func getFileName(path string) string {
 	return filepath.Base(path)
+}
+
+// startAutoFlip 启动自动翻页
+func (r *Reader) startAutoFlip() {
+    // 如果已经启动，先停止
+    r.stopAutoFlip()
+    
+    // 确保间隔大于0
+    interval := r.Config.AutoFlipInterval
+    if interval <= 0 {
+        interval = 5 // 默认5秒
+        r.Config.AutoFlipInterval = interval
+    }
+    
+    // 创建计时器和退出通道
+    r.AutoFlipTicker = time.NewTicker(time.Duration(interval) * time.Second)
+    r.AutoFlipQuit = make(chan struct{})
+    
+    // 启动goroutine处理自动翻页
+    go func() {
+        for {
+            select {
+            case <-r.AutoFlipTicker.C:
+                // 如果不是最后一页，翻到下一页
+                if r.CurrentPage < r.TotalPages-1 {
+                    r.CurrentPage++
+                    r.RenderPage()
+                } else {
+                    // 如果是最后一页，停止自动翻页
+                    r.stopAutoFlip()
+                    r.Config.AutoFlipEnabled = false
+                    saveConfig(r.Config)
+                }
+            case <-r.AutoFlipQuit:
+                if r.AutoFlipTicker != nil {
+                    r.AutoFlipTicker.Stop()
+                }
+                return
+            }
+        }
+    }()
+    
+    r.Config.AutoFlipEnabled = true
+}
+
+// stopAutoFlip 停止自动翻页
+func (r *Reader) stopAutoFlip() {
+    if r.AutoFlipQuit != nil {
+        close(r.AutoFlipQuit)
+        r.AutoFlipQuit = nil
+    }
+    if r.AutoFlipTicker != nil {
+        r.AutoFlipTicker.Stop()
+        r.AutoFlipTicker = nil
+    }
+    r.Config.AutoFlipEnabled = false
+    fmt.Println("自动翻页已停止")
+}
+
+// toggleAutoFlip 切换自动翻页状态
+func (r *Reader) toggleAutoFlip() {
+	if r.Config.AutoFlipEnabled {
+		r.stopAutoFlip()
+	} else {
+		r.startAutoFlip()
+	}
 }

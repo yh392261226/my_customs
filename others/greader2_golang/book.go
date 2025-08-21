@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -264,4 +266,81 @@ func processContent(lines []string, config *Config) []string {
 	}
 
 	return processedPages
+}
+
+// BookMetadata 书籍元数据
+type BookMetadata struct {
+	Title       string   `json:"title"`
+	Author      string   `json:"author"`
+	Description string   `json:"description"`
+	Publisher   string   `json:"publisher"`
+	Published   string   `json:"published"`
+	Language    string   `json:"language"`
+	ISBN        string   `json:"isbn"`
+	Cover       []byte   `json:"cover"`
+	Chapters    []string `json:"chapters"`
+}
+
+// Book 书籍接口
+type Book interface {
+	// 元数据
+	GetMetadata() *BookMetadata
+	// 内容
+	GetContent() ([]string, error)
+	// 获取特定章节
+	GetChapter(index int) ([]string, error)
+	// 获取封面
+	GetCover() ([]byte, error)
+	// 关闭书籍
+	Close() error
+}
+
+// BookType 书籍类型
+type BookType int
+
+const (
+	BookTypeTXT BookType = iota
+	BookTypeEPUB
+	BookTypePDF
+	BookTypeMOBI
+	BookTypeUnknown
+)
+
+// 根据文件扩展名检测书籍类型
+func detectBookType(filePath string) BookType {
+    ext := strings.ToLower(filepath.Ext(filePath))
+    switch ext {
+    case ".txt":
+        return BookTypeTXT
+    case ".epub":
+        return BookTypeEPUB
+    case ".mobi", ".pdf", ".azw", ".azw3":
+        // 暂时不支持MOBI格式
+        return BookTypeUnknown
+    default:
+        return BookTypeUnknown
+    }
+}
+
+// OpenBook 打开书籍文件
+func OpenBook(filePath string) (Book, error) {
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil, errors.New("文件不存在")
+	}
+
+	bookType := detectBookType(filePath)
+	
+	switch bookType {
+	case BookTypeTXT:
+		return NewTxtBook(filePath)
+	case BookTypeEPUB:
+		return NewEpubBook(filePath)
+	// case BookTypePDF:
+	// 	return nil, errors.New("PDF格式支持暂时不可用")
+	// case BookTypeMOBI:
+	// 	return NewMobiBook(filePath)
+	default:
+		return nil, errors.New("不支持的格式")
+	}
 }

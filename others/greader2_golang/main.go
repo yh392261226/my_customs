@@ -21,6 +21,8 @@ type Config struct {
 	LineSpacing   int
 	TTSSpeed      int
 	AutoReadAloud bool
+	AutoFlipInterval int    // 自动翻页间隔（秒）
+	AutoFlipEnabled  bool   // 自动翻页是否启用
 }
 
 // Bookmark 书签结构
@@ -44,6 +46,8 @@ var defaultConfig = Config{
 	LineSpacing:   1,
 	TTSSpeed:      5,
 	AutoReadAloud: false,
+	AutoFlipInterval: 5,    // 默认5秒
+	AutoFlipEnabled:  false, // 默认禁用
 }
 
 func main() {
@@ -61,6 +65,13 @@ func startReaderWithFile(filePath string) {
 	// 检查文件是否存在
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		fmt.Printf("文件不存在: %s\n", filePath)
+		os.Exit(1)
+	}
+	
+	// 检测文件格式
+	bookType := detectBookType(filePath)
+	if bookType == BookTypeUnknown {
+		fmt.Printf("不支持的格式: %s\n", filePath)
 		os.Exit(1)
 	}
 	

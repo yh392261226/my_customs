@@ -311,23 +311,23 @@ func displayProgressBar(x, y, width, current, total int, fgColor, bgColor string
 	displayText(x, y, bar, fgColor, bgColor)
 }
 
-// 显示输入提示
+// showInputPrompt 显示输入提示
 func showInputPrompt(prompt string) string {
     // 先恢复终端状态，以便正常回显
     if oldState != nil {
         term.Restore(int(os.Stdin.Fd()), oldState)
     }
-
+    
     defer func() {
         // 输入完成后重新设置原始模式
         if oldState != nil {
             term.MakeRaw(int(os.Stdin.Fd()))
         }
     }()
-
+    
     clearScreen()
     fmt.Print(prompt)
-
+    
     reader := bufio.NewReader(os.Stdin)
     input, _ := reader.ReadString('\n')
     return strings.TrimSpace(input)
