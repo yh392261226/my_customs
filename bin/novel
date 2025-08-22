@@ -7,6 +7,7 @@
 
 NOVELSPATH=$(cat $HOME/.novelspath)
 NOVELSDATAPATH=${NOVELSPATH}/datas
+OPENBROWSER='Brave Browser'
 
 [[ "" = "$NOVELSPATH" ]] && echo "Novels path does not set ..." && exit 1
 [[ ! -d "$NOVELSPATH" ]] && mkdir -p $NOVELSPATH
@@ -20,12 +21,36 @@ function novels_read() {
     if [[ "$choose" == "↩️ 返回" ]]; then
         return
     elif [ "" != "$choose" ]; then
-        # 如果是其他命令或脚本引入的就使用greader来阅读
-        if [ ! -z $1 ] && [ "$1" = "source" ]; then
-            $MYRUNTIME/customs/bin/greader $NOVELSDATAPATH/$choose
-        else # 否则使用全功能的reader来阅读
-            $MYRUNTIME/customs/bin/reader $NOVELSDATAPATH/$choose
-        fi
+        local options=(
+            "终端阅读"
+            "浏览器阅读"
+            "↩️ 返回"
+        )
+        local choose_reader=$(printf '%s\n' "${options[@]}" | fzf \
+            --ansi \
+            --height=40% \
+            --reverse \
+            --prompt="➤ 主菜单 > " \
+            --header="请选择阅读器" \
+            --color="header:" \
+            --preview="echo -e '\n按 Enter 选择阅读器'"
+        )
+        case "$choose_reader" in
+            *终端阅读*)
+                # 如果是其他命令或脚本引入的就使用greader来阅读
+                if [ ! -z $1 ] && [ "$1" = "source" ]; then
+                    $MYRUNTIME/customs/bin/ureader --mode tui $NOVELSDATAPATH/$choose
+                else # 否则使用全功能的reader来阅读
+                    $MYRUNTIME/customs/bin/ureader $NOVELSDATAPATH/$choose
+                fi
+                ;;
+            *浏览器阅读*)
+                open -a "$OPENBROWSER" "$NOVELSDATAPATH/$choose"
+                ;;
+            *)
+                return
+                ;;
+        esac
     fi
 }
 
@@ -51,7 +76,6 @@ function __clean_url() {
 function novels_web_manager() {
     custom_gum_show2hide_header "小说网站管理"
     local novelsmark=$MYRUNTIME/tools/m_novels_mark
-    local OPENBROWSER='Brave Browser'
     [[ ! -f $novelsmark ]] && touch $novelsmark
 
     builtin cd $NOVELSPATH
