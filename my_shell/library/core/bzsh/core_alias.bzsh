@@ -9,12 +9,6 @@
 [[ -f /opt/homebrew/bin/nvim ]] && alias nvi="/opt/homebrew/bin/nvim"                                            # Desc: alias: nvi:(M1)设置环境变量为/opt/homebrew/bin/nvim
 [[ -f /usr/local/bin/nvim ]] && alias nvi="/usr/local/bin/nvim"                                                  # Desc: alias: vi:(Intel)设置环境变量为/usr/local/bin/nvim
 alias vi2='vi -O2 '                                                                                              # Desc: alias: vi2:同时打开两个vim窗口
-alias ephp='vim'                                                                                                 # Desc: alias: ephp:用vim打开
-alias epy='vim'                                                                                                  # Desc: alias: epy:用vim打开
-alias erb='vim'                                                                                                  # Desc: alias: erb:用vim打开
-alias ehtml='vim'                                                                                                # Desc: alias: ehtml:用vim打开
-alias vom='vim'                                                                                                  # Desc: alias: vom:用vim打开
-alias vum='vim'                                                                                                  # Desc: alias: vum:用vim打开
 [[ -f /opt/homebrew/opt/macvim/bin/mvim ]] && alias mvim='/opt/homebrew/opt/macvim/bin/mvim -v'                  # Desc: alias: mvim:(M1)设置环境变量为/opt/homebrew/opt/macvim/bin/mvim -v
 [[ -f /usr/local/opt/macvim/bin/mvim ]] && alias mvim='/usr/local/opt/macvim/bin/mvim -v'                        # Desc: alias: mvim:(Intel)设置环境变量为/usr/local/opt/macvim/bin/mvim -v
 [[ -f /opt/homebrew/opt/macvim/bin/mvim ]] && alias mvi='/opt/homebrew/opt/macvim/bin/mvim -v'                   # Desc: alias: mvi:(M1)设置环境变量为/opt/homebrew/opt/macvim/bin/mvim -v
