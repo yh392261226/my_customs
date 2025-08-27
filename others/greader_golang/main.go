@@ -417,8 +417,8 @@ func (nr *NovelReader) LoadNovel(filePath string) error {
 
 	// 检测编码
 	encoding := detectEncoding(content)
-	fmt.Fprintf(os.Stderr, "Detected encoding: %s\n", encoding)
-	fmt.Fprintf(os.Stderr, "File size: %d bytes\n", len(content))
+	// fmt.Fprintf(os.Stderr, "Detected encoding: %s\n", encoding)
+	// fmt.Fprintf(os.Stderr, "File size: %d bytes\n", len(content))
 
 	// 转换为UTF-8
 	utf8Content, err := convertToUTF8(content, encoding)
@@ -431,7 +431,7 @@ func (nr *NovelReader) LoadNovel(filePath string) error {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Converted content size: %d characters\n", len(utf8Content))
+	// fmt.Fprintf(os.Stderr, "Converted content size: %d characters\n", len(utf8Content))
 	
 	// 检查转换后的内容是否为空
 	if len(utf8Content) == 0 {
@@ -446,7 +446,7 @@ func (nr *NovelReader) LoadNovel(filePath string) error {
 	if len(utf8Content) < previewLength {
 		previewLength = len(utf8Content)
 	}
-	fmt.Fprintf(os.Stderr, "Content preview: %s\n", string(utf8Content[:previewLength]))
+	// fmt.Fprintf(os.Stderr, "Content preview: %s\n", string(utf8Content[:previewLength]))
 
 	// 保存文件名和路径
 	nr.fileName = filepath.Base(absPath)
@@ -477,7 +477,7 @@ func (nr *NovelReader) processContent(content string) {
 		rowsPerPage = 10 // 默认值
 	}
 
-	fmt.Fprintf(os.Stderr, "Rows per page: %d, Total lines: %d\n", rowsPerPage, len(lines))
+	// fmt.Fprintf(os.Stderr, "Rows per page: %d, Total lines: %d\n", rowsPerPage, len(lines))
 
 	// 分割为页面
 	nr.content = []string{}
@@ -496,7 +496,7 @@ func (nr *NovelReader) processContent(content string) {
 		nr.content = []string{"No content - 文件可能为空或编码检测有误"}
 	}
 	
-	fmt.Fprintf(os.Stderr, "Total pages: %d\n", nr.totalPages)
+	// fmt.Fprintf(os.Stderr, "Total pages: %d\n", nr.totalPages)
 }
 
 // 更新UI显示
