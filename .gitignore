@@ -3,3 +3,4 @@ worklist
 .vscode
 my_shell/customs.sh
 starship/cache/
+others/preader_python/__pycache__/

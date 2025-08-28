@@ -7,7 +7,6 @@ from stats import StatsManager
 from ui_theme import init_colors, BORDER_CHARS, color_pair_idx
 from lang import get_text
 from epub_utils import parse_epub
-from stats import StatsManager
 
 KEYS_HELP = [
     "←/→/PgUp/PgDn/j/k 翻页",
@@ -17,13 +16,35 @@ KEYS_HELP = [
     "g 跳页",
     "m 书架",
     "s 设置",
-    "t 查看本书统计",
-    "T 查看全部统计",
     "r 朗读",
     "/ 搜索",
     "? 帮助",
-    "q 退出"
+    "q 退出",
+    "t 阅读统计",
+    "T 全部统计"
 ]
+
+def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None):
+    """美化输入框，居中显示"""
+    max_y, max_x = stdscr.getmaxyx()
+    if y is None:
+        y = max_y // 2 - 1
+    if x is None:
+        x = max_x // 2 - len(prompt) // 2 - 8
+    box_width = max(len(prompt) + maxlen + 8, 30)
+    stdscr.attron(curses.color_pair(color_pair) | curses.A_BOLD)
+    # 边框
+    stdscr.addstr(y, x, "╭" + "─" * (box_width-2) + "╮")
+    stdscr.addstr(y+1, x, "│" + " " * (box_width-2) + "│")
+    stdscr.addstr(y+2, x, "╰" + "─" * (box_width-2) + "╯")
+    # 提示
+    stdscr.addstr(y+1, x+2, prompt)
+    stdscr.attroff(curses.color_pair(color_pair) | curses.A_BOLD)
+    stdscr.refresh()
+    curses.echo()
+    val = stdscr.getstr(y+1, x+2+len(prompt), maxlen).decode().strip()
+    curses.noecho()
+    return val
 
 class NovelReader:
     def __init__(self, stdscr, bookshelf, settings):
@@ -66,18 +87,22 @@ class NovelReader:
     def show_bookshelf(self):
         books_per_page = max(1, self.settings["height"] - 10)
         page = 0
+        search_keyword = ""
+        filtered_books = self.bookshelf.books
         while True:
             self.stdscr.clear()
             max_y, max_x = self.stdscr.getmaxyx()
-            total_books = len(self.bookshelf.books)
-            total_pages = (total_books + books_per_page - 1) // books_per_page
+            total_books = len(filtered_books)
+            total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
             start_idx = page * books_per_page
             end_idx = min(start_idx + books_per_page, total_books)
             title_str = "📚 " + get_text("bookshelf", self.lang) + f" [{page+1}/{total_pages}]"
+            if search_keyword:
+                title_str += f" | 搜索: {search_keyword}"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-            for idx, book in enumerate(self.bookshelf.books[start_idx:end_idx]):
+            for idx, book in enumerate(filtered_books[start_idx:end_idx]):
                 line = f" {start_idx+idx+1:02d} | {book['title'][:30]:<30} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | 标签:{book['tags']}"
                 color = curses.color_pair(2) if idx % 2 else curses.color_pair(1)
                 self.stdscr.attron(color | curses.A_BOLD)
@@ -85,23 +110,24 @@ class NovelReader:
                 self.stdscr.attroff(color | curses.A_BOLD)
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.addstr(books_per_page+3, 2,
-                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)}  [n]下一页  [p]上一页  [q]{get_text('exit', self.lang)}")
+                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)}  [n]下一页  [p]上一页  [/]搜索书名  [q]{get_text('exit', self.lang)}")
             self.stdscr.addstr(books_per_page+5, 2, "输入小说序号并回车可选书")
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
             c = self.stdscr.getch()
             if c == ord('a'):
-                self.stdscr.addstr(books_per_page+6, 2, get_text("input_path", self.lang)[:max_x-3])
-                curses.echo()
-                path = self.stdscr.getstr(books_per_page+6, 10, 100).decode()
-                curses.noecho()
+                path = input_box(self.stdscr, get_text("input_path", self.lang), maxlen=120)
                 self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
             elif c == ord('d'):
-                self.stdscr.addstr(books_per_page+7, 2, get_text("input_dir", self.lang)[:max_x-3])
-                curses.echo()
-                dir_path = self.stdscr.getstr(books_per_page+7, 10, 100).decode()
-                curses.noecho()
+                dir_path = input_box(self.stdscr, get_text("input_dir", self.lang), maxlen=120)
                 self.bookshelf.add_dir(dir_path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
+            elif c == ord('/'):
+                kw = input_box(self.stdscr, "请输入书名关键词：", maxlen=30)
+                search_keyword = kw
+                page = 0
+                filtered_books = self.bookshelf.search_books(search_keyword) if search_keyword else self.bookshelf.books
             elif c == ord('q'):
                 self.running = False
                 break
@@ -110,14 +136,11 @@ class NovelReader:
             elif c == ord('p') and page > 0:
                 page -= 1
             elif c in [10, 13]:
-                self.stdscr.addstr(books_per_page+8, 2, "序号: ")
-                curses.echo()
-                idx_str = self.stdscr.getstr(books_per_page+8, 8, 8).decode().strip()
-                curses.noecho()
+                idx_str = input_box(self.stdscr, "序号: ", maxlen=8)
                 try:
                     idx = int(idx_str) - 1
                     if 0 <= idx < total_books:
-                        self.load_book(self.bookshelf.books[idx])
+                        self.load_book(filtered_books[idx])
                         break
                     else:
                         self.stdscr.addstr(books_per_page+9, 2, "序号超范围！")
@@ -152,94 +175,6 @@ class NovelReader:
             self.stdscr.addstr(max_y-2, max_x-2, c)
             self.stdscr.attroff(border_color_pair)
 
-    def show_bookshelf(self):
-        books_per_page = max(1, self.settings["height"] - 10)
-        page = 0
-        search_keyword = ""
-        filtered_books = self.bookshelf.books
-        while True:
-            self.stdscr.clear()
-            max_y, max_x = self.stdscr.getmaxyx()
-            total_books = len(filtered_books)
-            total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
-            start_idx = page * books_per_page
-            end_idx = min(start_idx + books_per_page, total_books)
-            title_str = "📚 " + get_text("bookshelf", self.lang) + f" [{page+1}/{total_pages}]"
-            if search_keyword:
-                title_str += f" | 搜索: {search_keyword}"
-            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-            self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
-            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-            for idx, book in enumerate(filtered_books[start_idx:end_idx]):
-                line = f" {start_idx+idx+1:02d} | {book['title'][:30]:<30} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | 标签:{book['tags']}"
-                color = curses.color_pair(2) if idx % 2 else curses.color_pair(1)
-                self.stdscr.attron(color | curses.A_BOLD)
-                self.stdscr.addstr(idx+2, 2, line[:max_x-3])
-                self.stdscr.attroff(color | curses.A_BOLD)
-            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-            self.stdscr.addstr(books_per_page+3, 2,
-                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)}  [n]下一页  [p]上一页  [/]搜索书名  [q]{get_text('exit', self.lang)}")
-            self.stdscr.addstr(books_per_page+5, 2, "输入小说序号并回车可选书")
-            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
-            self.stdscr.refresh()
-            c = self.stdscr.getch()
-            if c == ord('a'):
-                self.stdscr.addstr(books_per_page+6, 2, get_text("input_path", self.lang)[:max_x-3])
-                curses.echo()
-                path = self.stdscr.getstr(books_per_page+6, 10, 100).decode()
-                curses.noecho()
-                self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
-                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
-                total_books = len(filtered_books)
-                total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
-                end_idx = min(start_idx + books_per_page, total_books)
-            elif c == ord('d'):
-                self.stdscr.addstr(books_per_page+7, 2, get_text("input_dir", self.lang)[:max_x-3])
-                curses.echo()
-                dir_path = self.stdscr.getstr(books_per_page+7, 10, 100).decode()
-                curses.noecho()
-                self.bookshelf.add_dir(dir_path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
-                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
-                total_books = len(filtered_books)
-                total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
-                end_idx = min(start_idx + books_per_page, total_books)
-            elif c == ord('/'):
-                self.stdscr.addstr(books_per_page+8, 2, "请输入书名关键词：")
-                curses.echo()
-                kw = self.stdscr.getstr(books_per_page+8, 12, 30).decode().strip()
-                curses.noecho()
-                search_keyword = kw
-                page = 0
-                filtered_books = self.bookshelf.search_books(search_keyword) if search_keyword else self.bookshelf.books
-                total_books = len(filtered_books)
-                total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
-                end_idx = min(start_idx + books_per_page, total_books)
-            elif c == ord('q'):
-                self.running = False
-                break
-            elif c == ord('n') and page < total_pages - 1:
-                page += 1
-            elif c == ord('p') and page > 0:
-                page -= 1
-            elif c in [10, 13]:
-                self.stdscr.addstr(books_per_page+9, 2, "序号: ")
-                curses.echo()
-                idx_str = self.stdscr.getstr(books_per_page+9, 8, 8).decode().strip()
-                curses.noecho()
-                try:
-                    idx = int(idx_str) - 1
-                    if 0 <= idx < total_books:
-                        self.load_book(filtered_books[idx])
-                        break
-                    else:
-                        self.stdscr.addstr(books_per_page+10, 2, "序号超范围！")
-                        self.stdscr.refresh()
-                        time.sleep(1)
-                except:
-                    self.stdscr.addstr(books_per_page+10, 2, "输入无效！")
-                    self.stdscr.refresh()
-                    time.sleep(1)
-
     def display(self):
         self.stdscr.clear()
         max_y, max_x = self.stdscr.getmaxyx()
@@ -247,13 +182,11 @@ class NovelReader:
         padding = self.settings["padding"]
         self.draw_border()
         page_lines = self.current_pages[self.current_page_idx] if self.current_pages else []
-        # 显示书名
         if self.current_book:
             title_str = f"《{self.current_book['title']}》"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin, max_x // 2 - len(title_str)//2, title_str[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        # 显示正文
         for idx, line in enumerate(page_lines):
             y = idx + margin + 2
             x = padding + 2
@@ -276,7 +209,6 @@ class NovelReader:
                     self.stdscr.attroff(curses.color_pair(1))
             except curses.error:
                 pass
-        # 显示进度条
         if self.current_pages:
             progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
             bar_len = int(progress / 5)
@@ -284,57 +216,16 @@ class NovelReader:
             self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
             self.stdscr.addstr(self.settings["height"]+margin, 2, bar[:max_x-4])
             self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
-        # 显示状态栏
         if self.settings["status_bar"]:
             status = f"📖 {self.current_book['title']} | {get_text('author', self.lang)}: {self.current_book['author']} | {get_text('current_page', self.lang)}: {self.current_page_idx+1}/{len(self.current_pages)}"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(self.settings["height"]+margin+1, 2, status[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        # 显示键位帮助
         help_str = " | ".join(KEYS_HELP)
         self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
         self.stdscr.addstr(self.settings["height"]+margin+2, 2, help_str[:max_x-4])
         self.stdscr.attroff(curses.color_pair(2) | curses.A_DIM)
         self.stdscr.refresh()
-
-    def show_stats(self):
-        # 当前书的统计
-        stats = self.stats.get_book_stats(self.current_book["id"])
-        max_y, max_x = self.stdscr.getmaxyx()
-        self.stdscr.clear()
-        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(0, max_x // 2 - 6, "📊 阅读统计")
-        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(2, 4, f"小说：{self.current_book['title']}")
-        self.stdscr.addstr(3, 4, f"累计阅读时间：{stats['total_time']//60} 分钟")
-        self.stdscr.addstr(4, 4, f"阅读天数：{stats['days']} 天")
-        self.stdscr.addstr(6, 4, f"每日统计：")
-        for idx, (date, sec) in enumerate(stats["records"][:max_y-12]):
-            self.stdscr.addstr(7+idx, 6, f"{date}: {sec//60} 分钟")
-        self.stdscr.addstr(max_y-2, 4, "任意键返回")
-        self.stdscr.refresh()
-        self.stdscr.getch()
-
-    def show_all_books_stats(self):
-        all_stats = self.stats.get_all_books_stats()
-        max_y, max_x = self.stdscr.getmaxyx()
-        self.stdscr.clear()
-        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(0, max_x // 2 - 7, "📚 全部书籍阅读统计")
-        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        books = self.bookshelf.books
-        y = 2
-        for book in books:
-            book_id = book["id"]
-            stat = all_stats.get(book_id, {"total_time":0, "days":0})
-            line = f"{book['title'][:20]:<20} | {stat['total_time']//60:>4} 分钟 | {stat['days']} 天"
-            self.stdscr.addstr(y, 4, line[:max_x-8])
-            y += 1
-            if y >= max_y-2:
-                break
-        self.stdscr.addstr(max_y-2, 4, "任意键返回")
-        self.stdscr.refresh()
-        self.stdscr.getch()
 
     def handle_input(self):
         c = self.stdscr.getch()
@@ -362,13 +253,10 @@ class NovelReader:
             self.show_help()
         elif c == ord('g'):
             self.jump_page()
-        elif c == ord('t'):            # 新增 t 查看本书统计
+        elif c == ord('t'):
             self.show_stats()
-        elif c == ord('T'):            # 新增 T 查看全部统计
+        elif c == ord('T'):
             self.show_all_books_stats()
-
-    def get_keys_help():
-        return KEYS_HELP + ["t 阅读统计", "T 全部统计"]
 
     def next_page(self):
         if self.current_page_idx < len(self.current_pages)-1:
@@ -399,10 +287,7 @@ class NovelReader:
         if c == ord('q'):
             return
         elif c in [10, 13]:
-            self.stdscr.addstr(max_y-3, 4, "序号: ")
-            curses.echo()
-            idx_str = self.stdscr.getstr(max_y-3, 10, 8).decode().strip()
-            curses.noecho()
+            idx_str = input_box(self.stdscr, "序号: ", maxlen=8)
             try:
                 idx = int(idx_str) - 1
                 if 0 <= idx < len(bookmarks):
@@ -418,10 +303,7 @@ class NovelReader:
 
     def jump_page(self):
         max_y, max_x = self.stdscr.getmaxyx()
-        self.stdscr.addstr(max_y-4, 2, get_text("input_jump_page", self.lang))
-        curses.echo()
-        page_str = self.stdscr.getstr(max_y-4, 24, 10).decode().strip()
-        curses.noecho()
+        page_str = input_box(self.stdscr, get_text("input_jump_page", self.lang), maxlen=10)
         try:
             page_num = int(page_str)
             if 1 <= page_num <= len(self.current_pages):
@@ -436,10 +318,7 @@ class NovelReader:
             time.sleep(1)
 
     def add_bookmark(self):
-        self.stdscr.addstr(self.settings["height"]+self.settings["margin"]+4, 2, get_text("input_comment", self.lang))
-        curses.echo()
-        comment = self.stdscr.getstr(self.settings["height"]+self.settings["margin"]+4, 18, 100).decode()
-        curses.noecho()
+        comment = input_box(self.stdscr, get_text("input_comment", self.lang), maxlen=100)
         self.db.add_bookmark(self.current_book["id"], self.current_page_idx, comment)
 
     def read_aloud(self):
@@ -448,10 +327,7 @@ class NovelReader:
         self.engine.runAndWait()
 
     def search(self):
-        self.stdscr.addstr(self.settings["height"]+self.settings["margin"]+3, 2, get_text("input_search", self.lang))
-        curses.echo()
-        kw = self.stdscr.getstr(self.settings["height"]+self.settings["margin"]+3, 18, 50).decode()
-        curses.noecho()
+        kw = input_box(self.stdscr, get_text("input_search", self.lang), maxlen=50)
         self.search_keyword = kw
         self.highlight_lines = set()
         page_lines = self.current_pages[self.current_page_idx]
@@ -527,10 +403,7 @@ class NovelReader:
                 break
             elif c in (curses.KEY_ENTER, 10, 13):
                 key, desc, typ, *meta = options[curr]
-                self.stdscr.addstr(len(options)+6, 4, f"请输入新值：")
-                curses.echo()
-                newval = self.stdscr.getstr(len(options)+6, 16, 20).decode().strip()
-                curses.noecho()
+                newval = input_box(self.stdscr, f"{desc}新值: ", maxlen=20)
                 valid = False
                 if typ == int:
                     try:
@@ -569,7 +442,57 @@ class NovelReader:
         self.stdscr.refresh()
         self.stdscr.getch()
 
-    
+    def show_stats(self):
+        stats = self.stats.get_book_stats(self.current_book["id"])
+        max_y, max_x = self.stdscr.getmaxyx()
+        self.stdscr.clear()
+        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(0, max_x // 2 - 6, "📊 阅读统计")
+        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(2, 4, f"小说：{self.current_book['title']}")
+        self.stdscr.addstr(3, 4, f"累计阅读时间：{stats['total_time']//60} 分钟")
+        self.stdscr.addstr(4, 4, f"阅读天数：{stats['days']} 天")
+        self.stdscr.addstr(6, 4, f"每日统计：")
+        for idx, (date, sec) in enumerate(stats["records"][:max_y-12]):
+            self.stdscr.addstr(7+idx, 6, f"{date}: {sec//60} 分钟")
+        self.stdscr.addstr(max_y-2, 4, "任意键返回")
+        self.stdscr.refresh()
+        self.stdscr.getch()
+
+    def show_all_books_stats(self):
+        all_stats = self.stats.get_all_books_stats()
+        books = self.bookshelf.books
+        max_y, max_x = self.stdscr.getmaxyx()
+        stats_per_page = max(1, max_y - 7)
+        page = 0
+        total_books = len(books)
+        total_pages = (total_books + stats_per_page - 1) // stats_per_page if total_books else 1
+        while True:
+            self.stdscr.clear()
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - 7, "📚 全部书籍阅读统计")
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            start_idx = page * stats_per_page
+            end_idx = min(start_idx + stats_per_page, total_books)
+            y = 2
+            for book in books[start_idx:end_idx]:
+                book_id = book["id"]
+                stat = all_stats.get(book_id, {"total_time":0, "days":0})
+                line = f"{book['title'][:20]:<20} | {stat['total_time']//60:>4} 分钟 | {stat['days']} 天"
+                self.stdscr.addstr(y, 4, line[:max_x-8])
+                y += 1
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            page_info = f"第{page+1}/{total_pages}页 [n]下一页 [p]上一页 [q]返回"
+            self.stdscr.addstr(max_y-3, 4, page_info[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.refresh()
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c == ord('n') and page < total_pages - 1:
+                page += 1
+            elif c == ord('p') and page > 0:
+                page -= 1
 
     def run(self):
         if self.current_book:
