@@ -159,8 +159,8 @@ oldtool=icdiff
 [include]
   path = .gitconfig.user
 [user]
-	name = 空格不在
-	email = yh392261226@sina.com
+	name = yh392261226
+	email = yh392261226@gmail.com
 [filter "lfs"]
   required = true
   clean = git-lfs clean -- %f
