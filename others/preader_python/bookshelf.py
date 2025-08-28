@@ -48,3 +48,7 @@ class Bookshelf:
             if b["id"] == book_id:
                 return b
         return None
+
+    def search_books(self, keyword):
+        keyword = keyword.strip().lower()
+        return [book for book in self.books if keyword in book["title"].lower()]

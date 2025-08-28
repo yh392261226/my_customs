@@ -18,3 +18,12 @@ class StatsManager:
             "days": days,
             "records": records
         }
+
+    def get_all_books_stats(self):
+        # Returns stats for all books as {book_id: {total_time, days, records}}
+        all_books = self.db.get_books()
+        result = {}
+        for book in all_books:
+            book_id = book[0]
+            result[book_id] = self.get_book_stats(book_id)
+        return result

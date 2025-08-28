@@ -1,6 +1,6 @@
 {
   "width": 80,
-  "height": 35,
+  "height": 40,
   "font_color": "green",
   "bg_color": "transparent",
   "bg_transparent": false,
@@ -12,5 +12,6 @@
   "theme": "dark",
   "lang": "zh",
   "border_style": "round",
-  "border_color": "white"
+  "border_color": "white",
+  "remind_interval": 30
 }
