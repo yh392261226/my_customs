@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# python文件所在目录
+LIBPATH=$MYRUNTIME/customs/others/preader_python
+PYBIN=/opt/homebrew/bin/python3
+
+$PYBIN $LIBPATH/main.py "$@"
