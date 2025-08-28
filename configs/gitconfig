@@ -207,3 +207,7 @@ cmd=\"/Applications/UltraCompare.app/Contents/MacOS/UltraCompare\" -gitdt "$LOCA
 	directory = /opt/homebrew/Library/Taps/homebrew/homebrew-core
 [url "git@github.com:"]
 	insteadOf = https://github.com/
+[https]
+	proxy = https://127.0.0.1:7890
+[url "ssh://git@ssh.github.com:443/"]
+	insteadOf = git@github.com:
