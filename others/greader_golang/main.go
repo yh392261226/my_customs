@@ -6,8 +6,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/gdamore/tcell/v2"
@@ -20,24 +22,25 @@ import (
 
 // 配置结构体
 type Config struct {
-	FontColor       string `json:"font_color"`
-	BackgroundColor string `json:"background_color"`
-	BorderColor     string `json:"border_color"`
-	BorderStyle     string `json:"border_style"` // 边框样式
-	FontSize        int    `json:"font_size"`
-	MarginTop       int    `json:"margin_top"`
-	MarginBottom    int    `json:"margin_bottom"`
-	MarginLeft      int    `json:"margin_left"`
-	MarginRight     int    `json:"margin_right"`
-	PaddingTop      int    `json:"padding_top"`
-	PaddingBottom   int    `json:"padding_bottom"`
-	PaddingLeft      int    `json:"padding_left"`
-	PaddingRight     int    `json:"padding_right"`
-	Width           int    `json:"width"`
-	Height          int    `json:"height"`
-	HeightPercent   int    `json:"height_percent"` // 屏幕高度百分比
-	TransparentBg   bool   `json:"transparent_bg"` // 透明背景
-	UsePercent      bool   `json:"use_percent"`    // 使用百分比模式
+	FontColor       string   `json:"font_color"`
+	BackgroundColor string   `json:"background_color"`
+	BorderColor     string   `json:"border_color"`
+	BorderStyle     string   `json:"border_style"` // 边框样式
+	FontSize        int      `json:"font_size"`
+	MarginTop       int      `json:"margin_top"`
+	MarginBottom    int      `json:"margin_bottom"`
+	MarginLeft      int      `json:"margin_left"`
+	MarginRight     int      `json:"margin_right"`
+	PaddingTop      int      `json:"padding_top"`
+	PaddingBottom   int      `json:"padding_bottom"`
+	PaddingLeft     int      `json:"padding_left"`
+	PaddingRight    int      `json:"padding_right"`
+	Width           int      `json:"width"`
+	Height          int      `json:"height"`
+	HeightPercent   int      `json:"height_percent"` // 屏幕高度百分比
+	TransparentBg   bool     `json:"transparent_bg"` // 透明背景
+	UsePercent      bool     `json:"use_percent"`    // 使用百分比模式
+	BookshelfPaths  []string `json:"bookshelf_paths"` // 书架路径列表
 }
 
 // 书签结构体
@@ -48,25 +51,35 @@ type Bookmark struct {
 	Note     string `json:"note"`
 }
 
+// 书籍结构体
+type Book struct {
+	FilePath string `json:"file_path"` // 文件路径
+	Title    string `json:"title"`     // 书籍标题
+	Progress int    `json:"progress"`  // 阅读进度（百分比）
+	LastRead int64  `json:"last_read"` // 最后阅读时间（时间戳）
+}
+
 // 阅读器结构体
 type NovelReader struct {
-	app         *tview.Application
-	pages       *tview.Pages
-	contentView *tview.TextView
-	statusBar   *tview.TextView
-	titleBar    *tview.TextView
-	flex        *tview.Flex // 主布局
-	config      Config
-	bookmarks   []Bookmark
-	content     []string
-	currentPage int
-	totalPages  int
-	fileName    string
-	filePath    string
-	width       int
-	height      int
-	configFile  string
-	screen      tcell.Screen
+	app          *tview.Application
+	pages        *tview.Pages
+	contentView  *tview.TextView
+	statusBar    *tview.TextView
+	titleBar     *tview.TextView
+	flex         *tview.Flex // 主布局
+	config       Config
+	bookmarks    []Bookmark
+	books        []Book // 书架中的书籍
+	content      []string
+	currentPage  int
+	totalPages   int
+	fileName     string
+	filePath     string
+	width        int
+	height       int
+	configFile   string
+	bookshelfFile string // 书架数据文件
+	screen       tcell.Screen
 }
 
 // 检测文件编码
@@ -195,18 +208,20 @@ func NewNovelReader() *NovelReader {
 	// 获取配置文件的路径
 	configDir, _ := os.UserHomeDir()
 	configFile := filepath.Join(configDir, ".novel_reader_config.json")
+	bookshelfFile := filepath.Join(configDir, ".novel_reader_bookshelf.json")
 	
 	nr := &NovelReader{
-		app:         tview.NewApplication(),
-		pages:       tview.NewPages(),
-		contentView: tview.NewTextView(),
-		statusBar:   tview.NewTextView(),
-		titleBar:    tview.NewTextView(),
-		currentPage: 0,
-		totalPages:  0,
-		width:       80,
-		height:      24,
-		configFile:  configFile,
+		app:           tview.NewApplication(),
+		pages:         tview.NewPages(),
+		contentView:   tview.NewTextView(),
+		statusBar:     tview.NewTextView(),
+		titleBar:      tview.NewTextView(),
+		currentPage:   0,
+		totalPages:    0,
+		width:         80,
+		height:        24,
+		configFile:    configFile,
+		bookshelfFile: bookshelfFile,
 		config: Config{
 			FontColor:       "white",
 			BackgroundColor: "black",
@@ -226,6 +241,7 @@ func NewNovelReader() *NovelReader {
 			HeightPercent:   100,
 			TransparentBg:   false,
 			UsePercent:      false,
+			BookshelfPaths:  []string{},
 		},
 	}
 
@@ -234,6 +250,9 @@ func NewNovelReader() *NovelReader {
 	
 	// 加载书签
 	nr.loadBookmarks()
+	
+	// 加载书架
+	nr.loadBookshelf()
 
 	nr.setupUI()
 	return nr
@@ -356,10 +375,10 @@ func (nr *NovelReader) setupInputHandlers() {
 			return nil
 		case tcell.KeyRune:
 			switch event.Rune() {
-			case ' ', 'f', 'n': // 空格、f、n 都可以翻页
+			case 'n': // 空格、f、n 都可以翻页
 				nr.nextPage()
 				return nil
-			case 'b', 'p': // b、p 可以上一页
+			case 'p': // b、p 可以上一页
 				nr.previousPage()
 				return nil
 			case 'q', 'Q':
@@ -390,6 +409,9 @@ func (nr *NovelReader) setupInputHandlers() {
 			case 'i', 'I': // 显示信息
 				nr.showInfo()
 				return nil
+			case 'B', 'b': // 显示书架
+				nr.showBookshelf()
+				return nil
 			}
 		}
 		return event
@@ -417,8 +439,6 @@ func (nr *NovelReader) LoadNovel(filePath string) error {
 
 	// 检测编码
 	encoding := detectEncoding(content)
-	// fmt.Fprintf(os.Stderr, "Detected encoding: %s\n", encoding)
-	// fmt.Fprintf(os.Stderr, "File size: %d bytes\n", len(content))
 
 	// 转换为UTF-8
 	utf8Content, err := convertToUTF8(content, encoding)
@@ -430,23 +450,13 @@ func (nr *NovelReader) LoadNovel(filePath string) error {
 			return fmt.Errorf("failed to convert to UTF-8: %v", err)
 		}
 	}
-
-	// fmt.Fprintf(os.Stderr, "Converted content size: %d characters\n", len(utf8Content))
 	
 	// 检查转换后的内容是否为空
 	if len(utf8Content) == 0 {
 		fmt.Fprintf(os.Stderr, "Warning: Converted content is empty, trying raw content\n")
 		// 尝试直接使用原始内容
 		utf8Content = string(content)
-		fmt.Fprintf(os.Stderr, "Raw content size: %d characters\n", len(utf8Content))
 	}
-
-	// 打印前100字符用于调试
-	previewLength := 100
-	if len(utf8Content) < previewLength {
-		previewLength = len(utf8Content)
-	}
-	// fmt.Fprintf(os.Stderr, "Content preview: %s\n", string(utf8Content[:previewLength]))
 
 	// 保存文件名和路径
 	nr.fileName = filepath.Base(absPath)
@@ -457,6 +467,9 @@ func (nr *NovelReader) LoadNovel(filePath string) error {
 
 	// 尝试加载阅读进度
 	nr.loadProgress()
+
+	// 更新书架中的书籍信息
+	nr.updateBookInBookshelf(absPath)
 
 	// 更新UI
 	nr.updateUI()
@@ -477,8 +490,6 @@ func (nr *NovelReader) processContent(content string) {
 		rowsPerPage = 10 // 默认值
 	}
 
-	// fmt.Fprintf(os.Stderr, "Rows per page: %d, Total lines: %d\n", rowsPerPage, len(lines))
-
 	// 分割为页面
 	nr.content = []string{}
 	for i := 0; i < len(lines); i += rowsPerPage {
@@ -495,8 +506,6 @@ func (nr *NovelReader) processContent(content string) {
 		nr.totalPages = 1
 		nr.content = []string{"No content - 文件可能为空或编码检测有误"}
 	}
-	
-	// fmt.Fprintf(os.Stderr, "Total pages: %d\n", nr.totalPages)
 }
 
 // 更新UI显示
@@ -520,7 +529,7 @@ func (nr *NovelReader) updateUI() {
 		float64(nr.currentPage+1)/float64(nr.totalPages)*100)
 	
 	// 更详细的帮助信息
-	helpText := fmt.Sprintf("[grey]%s | Q:Quit | ←→/Space:Page | M:Bookmark | L:List | S:Settings | G:Goto | +/-:Size | H:Help[-]", progress)
+	helpText := fmt.Sprintf("[grey]%s | Q:Quit | ←→/Space:Page | M:Bookmark | L:List | S:Settings | G:Goto | +/-:Size | H:Help | B:Bookshelf[-]", progress)
 	nr.statusBar.SetText(helpText)
 }
 
@@ -774,6 +783,16 @@ func (nr *NovelReader) showSettings() {
 		}
 	})
 
+	// 添加书架路径设置
+	form.AddInputField("Bookshelf Paths (comma separated)", strings.Join(nr.config.BookshelfPaths, ","), 50, nil, func(text string) {
+		paths := strings.Split(text, ",")
+		// 清理路径
+		for i, path := range paths {
+			paths[i] = strings.TrimSpace(path)
+		}
+		nr.config.BookshelfPaths = paths
+	})
+
 	form.AddButton("Save", func() {
 		nr.saveConfig()
 		// 重新处理内容以适应新的设置
@@ -826,15 +845,18 @@ func (nr *NovelReader) showHelp() {
 [::b]Terminal Novel Reader Help[::-]
 
 [::b]Navigation:[-]
-  Space, f, n, Right Arrow, Ctrl+N  - Next page
-  b, p, Left Arrow, Ctrl+P          - Previous page
-  Home                              - First page
-  End                               - Last page
-  g                                 - Go to page
+  n, Right Arrow, Ctrl+N  - Next page
+  p, Left  Arrow, Ctrl+P  - Previous page
+  Home                    - First page
+  End                     - Last page
+  g                       - Go to page
 
 [::b]Bookmarks:[-]
   m - Add bookmark
   l - List bookmarks
+
+[::b]Bookshelf:[-]
+  b - Show bookshelf
 
 [::b]Settings:[-]
   s - Settings
@@ -868,6 +890,7 @@ func (nr *NovelReader) showInfo() {
 [::b]File:[-] %s
 [::b]Current Page:[-] %d/%d
 [::b]Config File:[-] %s
+[::b]Bookshelf File:[-] %s
 [::b]Terminal Size:[-] %dx%d
 [::b]Content Size:[-] %dx%d (with margins)
 
@@ -887,6 +910,7 @@ Press any key to return.
 		nr.fileName,
 		nr.currentPage+1, nr.totalPages,
 		nr.configFile,
+		nr.bookshelfFile,
 		nr.width, nr.height,
 		nr.width-nr.config.MarginLeft-nr.config.MarginRight,
 		nr.height-nr.config.MarginTop-nr.config.MarginBottom,
@@ -1005,6 +1029,271 @@ func (nr *NovelReader) loadBookmarks() {
 	}
 }
 
+// 加载书架
+func (nr *NovelReader) loadBookshelf() {
+	if _, err := os.Stat(nr.bookshelfFile); err == nil {
+		data, err := os.ReadFile(nr.bookshelfFile)
+		if err == nil {
+			_ = json.Unmarshal(data, &nr.books)
+		}
+	}
+}
+
+// 保存书架
+func (nr *NovelReader) saveBookshelf() {
+	data, _ := json.MarshalIndent(nr.books, "", "  ")
+	_ = os.WriteFile(nr.bookshelfFile, data, 0644)
+}
+
+// 扫描书架路径中的小说文件
+func (nr *NovelReader) scanBookshelfPaths() {
+	nr.books = []Book{} // 清空当前书籍列表
+
+	for _, path := range nr.config.BookshelfPaths {
+		// 检查路径是否存在
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			continue
+		}
+
+		// 扫描路径中的文本文件
+		filepath.Walk(path, func(filePath string, info os.FileInfo, err error) error {
+			if err != nil {
+				return nil
+			}
+
+			// 只处理文件，跳过目录
+			if info.IsDir() {
+				return nil
+			}
+
+			// 检查文件扩展名
+			ext := strings.ToLower(filepath.Ext(filePath))
+			if ext == ".txt" || ext == ".md" {
+				// 检查是否已经在书籍列表中
+				found := false
+				for _, book := range nr.books {
+					if book.FilePath == filePath {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					// 添加到书籍列表
+					book := Book{
+						FilePath: filePath,
+						Title:    strings.TrimSuffix(info.Name(), ext),
+						Progress: 0,
+						LastRead: 0,
+					}
+					nr.books = append(nr.books, book)
+				}
+			}
+
+			return nil
+		})
+	}
+
+	// 保存书架
+	nr.saveBookshelf()
+}
+
+// 更新书架中的书籍信息
+func (nr *NovelReader) updateBookInBookshelf(filePath string) {
+	for i, book := range nr.books {
+		if book.FilePath == filePath {
+			// 更新阅读进度和最后阅读时间
+			nr.books[i].Progress = int(float64(nr.currentPage+1) / float64(nr.totalPages) * 100)
+			nr.books[i].LastRead = getCurrentTimestamp()
+			nr.saveBookshelf()
+			return
+		}
+	}
+
+	// 如果书籍不在书架中，添加它
+	book := Book{
+		FilePath: filePath,
+		Title:    strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath)),
+		Progress: int(float64(nr.currentPage+1) / float64(nr.totalPages) * 100),
+		LastRead: getCurrentTimestamp(),
+	}
+	nr.books = append(nr.books, book)
+	nr.saveBookshelf()
+}
+
+// 获取当前时间戳
+func getCurrentTimestamp() int64 {
+	return int64(time.Now().Unix())
+}
+
+// 显示书架界面
+func (nr *NovelReader) showBookshelf() {
+	list := tview.NewList().
+		AddItem("Back", "Return to reading", 'q', func() {
+			nr.pages.SwitchToPage("main")
+		}).
+		AddItem("Scan Bookshelf", "Scan bookshelf paths for new books", 's', func() {
+			nr.scanBookshelfPaths()
+			nr.showBookshelf() // 刷新书架
+		}).
+		AddItem("Add Bookshelf Path", "Add a new path to bookshelf", 'a', func() {
+			nr.showAddBookshelfPath()
+		})
+
+	// 按最后阅读时间排序书籍（最近阅读的在前）
+	sort.Slice(nr.books, func(i, j int) bool {
+		return nr.books[i].LastRead > nr.books[j].LastRead
+	})
+
+	// 添加书籍项
+	for i, book := range nr.books {
+		// 创建闭包内的局部变量
+		b := book
+		index := i
+		
+		// 格式化最后阅读时间
+		lastRead := "Never read"
+		if b.LastRead > 0 {
+			lastRead = time.Unix(b.LastRead, 0).Format("2006-01-02 15:04")
+		}
+		
+		list.AddItem(
+			fmt.Sprintf("%s (%d%%)", b.Title, b.Progress),
+			fmt.Sprintf("Path: %s | Last read: %s", b.FilePath, lastRead),
+			0,
+			func() {
+				// 加载书籍
+				if err := nr.LoadNovel(b.FilePath); err != nil {
+					// 显示错误信息
+					modal := tview.NewModal().
+						SetText(fmt.Sprintf("Error loading book: %v", err)).
+						AddButtons([]string{"OK"}).
+						SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+							nr.pages.SwitchToPage("bookshelf")
+						})
+					nr.pages.AddPage("load_error", modal, true, true)
+				} else {
+					nr.pages.SwitchToPage("main")
+				}
+			}).
+		AddItem("Remove from Bookshelf", "", 'd', func() {
+			// 从书架中删除书籍
+			if index < len(nr.books) {
+				nr.books = append(nr.books[:index], nr.books[index+1:]...)
+				// 保存书架
+				nr.saveBookshelf()
+				// 重新显示书架
+				nr.showBookshelf()
+			}
+		})
+	}
+
+	list.SetBorder(true).SetTitle("Bookshelf")
+	nr.pages.AddPage("bookshelf", list, true, true)
+}
+
+// 显示添加书架路径界面
+func (nr *NovelReader) showAddBookshelfPath() {
+    // 保存原来的输入处理器
+    originalInputHandler := nr.app.GetInputCapture()
+    
+    // 创建表单
+    form := tview.NewForm()
+    
+    // 添加输入字段
+    pathInput := tview.NewInputField().SetLabel("Path").SetFieldWidth(50)
+    form.AddFormItem(pathInput)
+    
+    // 完全禁用应用程序级别的输入处理
+    nr.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+        // 只允许ESC键用于返回
+        if event.Key() == tcell.KeyEsc {
+            // 恢复输入处理器
+            nr.app.SetInputCapture(originalInputHandler)
+            nr.showBookshelf()
+            return nil
+        }
+        
+        // 允许所有其他按键事件传递给表单处理
+        return event
+    })
+    
+    // 设置表单的输入处理
+    form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+        // 允许ESC键返回
+        if event.Key() == tcell.KeyEsc {
+            // 恢复输入处理器
+            nr.app.SetInputCapture(originalInputHandler)
+            nr.showBookshelf()
+            return nil
+        }
+        
+        // 允许所有其他按键
+        return event
+    })
+    
+    // 添加"Add"按钮
+    form.AddButton("Add", func() {
+        // 获取输入框的值
+        path := pathInput.GetText()
+        
+        if path != "" {
+            // 检查路径是否存在
+            if _, err := os.Stat(path); os.IsNotExist(err) {
+                // 显示错误信息
+                modal := tview.NewModal().
+                    SetText(fmt.Sprintf("Path does not exist: %s", path)).
+                    AddButtons([]string{"OK"}).
+                    SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+                        // 保持当前输入处理器不变
+                        nr.pages.SwitchToPage("add_bookshelf_path")
+                    })
+                nr.pages.AddPage("path_error", modal, true, true)
+                return
+            }
+
+            // 添加到书架路径
+            nr.config.BookshelfPaths = append(nr.config.BookshelfPaths, path)
+            // 保存配置
+            nr.saveConfig()
+            // 扫描新路径
+            nr.scanBookshelfPaths()
+            // 恢复输入处理器
+            nr.app.SetInputCapture(originalInputHandler)
+            // 返回书架
+            nr.showBookshelf()
+        }
+    })
+    
+    // 添加"Cancel"按钮
+    form.AddButton("Cancel", func() {
+        // 恢复输入处理器
+        nr.app.SetInputCapture(originalInputHandler)
+        nr.showBookshelf()
+    })
+
+    form.SetBorder(true).SetTitle("Add Bookshelf Path")
+    nr.pages.AddPage("add_bookshelf_path", form, true, true)
+    
+    // 手动跟踪页面变化而不是使用 GetChangedFunc
+    currentPage, _ := nr.pages.GetFrontPage()
+    go func() {
+        for {
+            time.Sleep(100 * time.Millisecond)
+            newPage, _ := nr.pages.GetFrontPage()
+            if newPage != currentPage && newPage != "add_bookshelf_path" {
+                // 如果离开了添加书架路径页面，恢复输入处理器
+                nr.app.SetInputCapture(originalInputHandler)
+                break
+            }
+            currentPage = newPage
+        }
+    }()
+    
+    // 设置表单焦点
+    nr.app.SetFocus(form)
+}
+
 // 运行阅读器
 func (nr *NovelReader) Run() error {
 	// 获取屏幕对象
@@ -1056,8 +1345,8 @@ func main() {
 
 	// 检查是否有文件参数传入
 	if len(os.Args) < 2 {
-		// 没有文件参数，显示书签选择界面
-		reader.showBookmarkSelection()
+		// 没有文件参数，显示书架
+		reader.showBookshelf()
 		if err := reader.Run(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -1080,6 +1369,9 @@ func main() {
 		fmt.Println("Bookmarks:")
 		fmt.Println("  m - Add bookmark")
 		fmt.Println("  l - List bookmarks")
+		fmt.Println()
+		fmt.Println("Bookshelf:")
+		fmt.Println("  B - Show bookshelf")
 		fmt.Println()
 		fmt.Println("Settings:")
 		fmt.Println("  s - Settings")
