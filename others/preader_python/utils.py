@@ -1,4 +1,5 @@
 import chardet
+import cjkwrap
 
 def detect_encoding(file_path):
     with open(file_path, "rb") as f:
@@ -7,28 +8,32 @@ def detect_encoding(file_path):
     encoding = res["encoding"] if res and res["encoding"] else "utf-8"
     return encoding
 
-def stream_lines_utf8(file_path):
+def stream_file_as_text(file_path):
     encoding = detect_encoding(file_path)
     with open(file_path, "r", encoding=encoding, errors="ignore") as f:
-        for line in f:
-            yield line.rstrip("\r\n")
+        return f.read()
 
 def build_pages_from_file(file_path, width, height, line_spacing):
-    page = []
+    """
+    完全不丢失内容的分页算法（逐显示行流式分页，支持中英文混合宽度）。
+    width: 每行显示宽度
+    height: 每页最大行数
+    line_spacing: 行间距
+    """
+    text = stream_file_as_text(file_path)
+    display_lines = []
+    # 合并所有文本为显示行列表
+    for rawline in text.replace('\r\n', '\n').replace('\r', '\n').split('\n'):
+        # cjkwrap.wrap 返回每行不超过 width 的字符串列表
+        for sub_line in cjkwrap.wrap(rawline, width):
+            display_lines.append(sub_line)
+            for _ in range(line_spacing - 1):
+                display_lines.append("")
+    # 逐页切分，不丢任何内容
     pages = []
-    for line in stream_lines_utf8(file_path):
-        while len(line) > width:
-            page.append(line[:width])
-            line = line[width:]
-            if len(page) >= height:
-                pages.append(page)
-                page = []
-        page.append(line)
-        for _ in range(line_spacing-1):
-            page.append("")
-        if len(page) >= height:
-            pages.append(page)
-            page = []
-    if page:
+    idx = 0
+    while idx < len(display_lines):
+        page = display_lines[idx:idx+height]
         pages.append(page)
+        idx += height
     return pages

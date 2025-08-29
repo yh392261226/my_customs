@@ -2,3 +2,4 @@ pyttsx3
 chardet
 ebooklib
 beautifulsoup4
+cjkwrap

@@ -67,9 +67,15 @@ class NovelReader:
         self.remind_minutes = self.settings["remind_interval"]
         init_colors(theme=self.settings["theme"], settings=self.settings)
 
+    def get_safe_height(self):
+        max_y, _ = self.stdscr.getmaxyx()
+        margin = self.settings["margin"]
+        # 预留顶部/底部/状态栏空间（7行）
+        return max(1, min(self.settings["height"], max_y - margin - 7))
+
     def load_book(self, book):
         width = self.settings["width"]
-        height = self.settings["height"]
+        height = self.get_safe_height()
         line_spacing = self.settings["line_spacing"]
         if book["type"] == "epub":
             chapters = parse_epub(book["path"], width, height, line_spacing)
@@ -79,13 +85,14 @@ class NovelReader:
                 pages.extend(ch["pages"])
             self.current_pages = pages
         else:
+            # 这里调用新版 utils.build_pages_from_file，确保不丢失任何内容
             self.current_pages = build_pages_from_file(book["path"], width, height, line_spacing)
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
         self.highlight_lines = set()
 
     def show_bookshelf(self):
-        books_per_page = max(1, self.settings["height"] - 10)
+        books_per_page = max(1, self.get_safe_height() - 8)
         page = 0
         search_keyword = ""
         filtered_books = self.bookshelf.books
@@ -180,6 +187,7 @@ class NovelReader:
         max_y, max_x = self.stdscr.getmaxyx()
         margin = self.settings["margin"]
         padding = self.settings["padding"]
+        height = self.get_safe_height()
         self.draw_border()
         page_lines = self.current_pages[self.current_page_idx] if self.current_pages else []
         if self.current_book:
@@ -187,7 +195,7 @@ class NovelReader:
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin, max_x // 2 - len(title_str)//2, title_str[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        for idx, line in enumerate(page_lines):
+        for idx, line in enumerate(page_lines[:height]):
             y = idx + margin + 2
             x = padding + 2
             if y >= max_y - 7:
@@ -214,16 +222,16 @@ class NovelReader:
             bar_len = int(progress / 5)
             bar = f"[{'█'*bar_len}{'-'*(20-bar_len)}] {progress:3d}%"
             self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
-            self.stdscr.addstr(self.settings["height"]+margin, 2, bar[:max_x-4])
+            self.stdscr.addstr(margin+height+1, 2, bar[:max_x-4])
             self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
         if self.settings["status_bar"]:
             status = f"📖 {self.current_book['title']} | {get_text('author', self.lang)}: {self.current_book['author']} | {get_text('current_page', self.lang)}: {self.current_page_idx+1}/{len(self.current_pages)}"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-            self.stdscr.addstr(self.settings["height"]+margin+1, 2, status[:max_x-4])
+            self.stdscr.addstr(margin+height+2, 2, status[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
         help_str = " | ".join(KEYS_HELP)
         self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
-        self.stdscr.addstr(self.settings["height"]+margin+2, 2, help_str[:max_x-4])
+        self.stdscr.addstr(margin+height+3, 2, help_str[:max_x-4])
         self.stdscr.attroff(curses.color_pair(2) | curses.A_DIM)
         self.stdscr.refresh()
 
