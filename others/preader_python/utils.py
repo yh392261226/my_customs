@@ -13,14 +13,10 @@ def stream_file_as_text(file_path):
     with open(file_path, "r", encoding=encoding, errors="ignore") as f:
         return f.read()
 
-def build_pages_from_file(file_path, width, height, line_spacing):
+def build_pages_from_text(text, width, height, line_spacing):
     """
-    完全不丢失内容的分页算法（逐显示行流式分页，支持中英文混合宽度）。
-    width: 每行显示宽度
-    height: 每页最大行数
-    line_spacing: 行间距
+    将文本内容分页，考虑行间距和页面高度
     """
-    text = stream_file_as_text(file_path)
     display_lines = []
     # 合并所有文本为显示行列表
     for rawline in text.replace('\r\n', '\n').replace('\r', '\n').split('\n'):
@@ -37,3 +33,13 @@ def build_pages_from_file(file_path, width, height, line_spacing):
         pages.append(page)
         idx += height
     return pages
+
+def build_pages_from_file(file_path, width, height, line_spacing):
+    """
+    完全不丢失内容的分页算法（逐显示行流式分页，支持中英文混合宽度）。
+    width: 每行显示宽度
+    height: 每页最大行数
+    line_spacing: 行间距
+    """
+    text = stream_file_as_text(file_path)
+    return build_pages_from_text(text, width, height, line_spacing)

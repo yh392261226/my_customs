@@ -68,25 +68,31 @@ class NovelReader:
         init_colors(theme=self.settings["theme"], settings=self.settings)
 
     def get_safe_height(self):
+        """计算安全的显示高度，考虑边框和边距"""
         max_y, _ = self.stdscr.getmaxyx()
         margin = self.settings["margin"]
-        # 预留顶部/底部/状态栏空间（7行）
-        return max(1, min(self.settings["height"], max_y - margin - 7))
+        # 预留顶部/底部/状态栏空间（9行）
+        return max(1, min(self.settings["height"], max_y - margin - 9))
 
     def load_book(self, book):
+        # 使用设置的宽度，而不是有效宽度
         width = self.settings["width"]
         height = self.get_safe_height()
         line_spacing = self.settings["line_spacing"]
+        
         if book["type"] == "epub":
             chapters = parse_epub(book["path"], width, height, line_spacing)
             pages = []
             for ch in chapters:
+                # 添加章节标题页
                 pages.append([f"《{ch['title']}》"])
+                # 添加章节内容页
                 pages.extend(ch["pages"])
             self.current_pages = pages
         else:
-            # 这里调用新版 utils.build_pages_from_file，确保不丢失任何内容
+            # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
             self.current_pages = build_pages_from_file(book["path"], width, height, line_spacing)
+            
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
         self.highlight_lines = set()
@@ -189,18 +195,21 @@ class NovelReader:
         padding = self.settings["padding"]
         height = self.get_safe_height()
         self.draw_border()
+        
         page_lines = self.current_pages[self.current_page_idx] if self.current_pages else []
         if self.current_book:
             title_str = f"《{self.current_book['title']}》"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin, max_x // 2 - len(title_str)//2, title_str[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
         for idx, line in enumerate(page_lines[:height]):
             y = idx + margin + 2
             x = padding + 2
             if y >= max_y - 7:
                 break
             safe_line = line.replace('\r', '').replace('\n', '').replace('\t', ' ')
+            # 显示时截断到屏幕宽度
             safe_line = safe_line[:max_x - x - 3] if len(safe_line) > (max_x - x - 3) else safe_line
             try:
                 if safe_line.startswith("《") and safe_line.endswith("》"):
@@ -217,6 +226,7 @@ class NovelReader:
                     self.stdscr.attroff(curses.color_pair(1))
             except curses.error:
                 pass
+                
         if self.current_pages:
             progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
             bar_len = int(progress / 5)
@@ -224,11 +234,13 @@ class NovelReader:
             self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
             self.stdscr.addstr(margin+height+1, 2, bar[:max_x-4])
             self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+            
         if self.settings["status_bar"]:
             status = f"📖 {self.current_book['title']} | {get_text('author', self.lang)}: {self.current_book['author']} | {get_text('current_page', self.lang)}: {self.current_page_idx+1}/{len(self.current_pages)}"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin+height+2, 2, status[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
         help_str = " | ".join(KEYS_HELP)
         self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
         self.stdscr.addstr(margin+height+3, 2, help_str[:max_x-4])
@@ -359,7 +371,7 @@ class NovelReader:
         box_left = max_x // 2 - len(msg) // 2 - 2
         self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
         self.stdscr.addstr(box_top, box_left, "╭" + "─" * (len(msg)+2) + "╮")
-        self.stdscr.addstr(box_top+1, box_left, "│ " + msg + " │")
+        self.stdscr.addstr(box_top+1, box_left, "│" + msg + " │")
         self.stdscr.addstr(box_top+2, box_left, "╰" + "─" * (len(msg)+2) + "╯")
         self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
         self.stdscr.refresh()
@@ -408,6 +420,9 @@ class NovelReader:
                 init_colors(theme=self.settings["theme"], settings=self.settings)
                 self.lang = self.settings["lang"]
                 self.remind_minutes = self.settings["remind_interval"]
+                # 重新加载当前书籍以适应新设置
+                if self.current_book:
+                    self.load_book(self.current_book)
                 break
             elif c in (curses.KEY_ENTER, 10, 13):
                 key, desc, typ, *meta = options[curr]
@@ -437,6 +452,9 @@ class NovelReader:
                         self.lang = self.settings["lang"]
                     if key == "remind_interval":
                         self.remind_minutes = self.settings["remind_interval"]
+                    # 重新加载当前书籍以适应新设置
+                    if self.current_book and key in ["width", "height", "line_spacing"]:
+                        self.load_book(self.current_book)
 
     def show_help(self):
         max_y, max_x = self.stdscr.getmaxyx()
@@ -462,6 +480,7 @@ class NovelReader:
         self.stdscr.addstr(4, 4, f"阅读天数：{stats['days']} 天")
         self.stdscr.addstr(6, 4, f"每日统计：")
         for idx, (date, sec) in enumerate(stats["records"][:max_y-12]):
+           
             self.stdscr.addstr(7+idx, 6, f"{date}: {sec//60} 分钟")
         self.stdscr.addstr(max_y-2, 4, "任意键返回")
         self.stdscr.refresh()
