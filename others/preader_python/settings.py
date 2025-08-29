@@ -8,8 +8,8 @@ def get_config_path():
     return os.path.join(config_dir, "settings.json")
 
 DEFAULT_SETTINGS = {
-    "width": 80,
-    "height": 25,
+    "width": 200,
+    "height": 50,
     "theme": "dark",
     "lang": "zh",
     "font_color": "white",

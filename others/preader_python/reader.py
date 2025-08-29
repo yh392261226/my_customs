@@ -198,7 +198,10 @@ class NovelReader:
         
         page_lines = self.current_pages[self.current_page_idx] if self.current_pages else []
         if self.current_book:
-            title_str = f"《{self.current_book['title']}》"
+            progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
+            bar_len = int(progress / 5)
+            
+            title_str = f"《{self.current_book['title']}》阅读进度:[{'█'*bar_len}{'-'*(20-bar_len)}] {progress:3d}%"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin, max_x // 2 - len(title_str)//2, title_str[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -228,14 +231,12 @@ class NovelReader:
                 pass
                 
         if self.current_pages:
-            progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
-            bar_len = int(progress / 5)
-            bar = f"[{'█'*bar_len}{'-'*(20-bar_len)}] {progress:3d}%"
+            bar = f""
             self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
             self.stdscr.addstr(margin+height+1, 2, bar[:max_x-4])
             self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
             
-        if self.settings["status_bar"]:
+        if self.settings["status_bar"] and self.current_book:
             status = f"📖 {self.current_book['title']} | {get_text('author', self.lang)}: {self.current_book['author']} | {get_text('current_page', self.lang)}: {self.current_page_idx+1}/{len(self.current_pages)}"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin+height+2, 2, status[:max_x-4])
@@ -379,7 +380,7 @@ class NovelReader:
 
     def change_settings(self):
         options = [
-            ("width", "宽度", int, 40, 200),
+            ("width", "宽度", int, 40, 300),
             ("height", "高度", int, 10, 80),
             ("theme", get_text("input_theme", self.lang), str, ["dark", "light", "eye"]),
             ("lang", get_text("input_lang", self.lang), str, ["zh", "en"]),
@@ -389,6 +390,7 @@ class NovelReader:
             ("border_color", get_text("input_border_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
             ("line_spacing", "行距", int, 1, 5),
             ("auto_page_interval", "自动翻页秒", int, 1, 60),
+            ("status_bar", "状态栏显示", bool, [0, 1]),
             ("remind_interval", get_text("input_remind_interval", self.lang), int, 0, 120),
         ]
         curr = 0
@@ -436,6 +438,13 @@ class NovelReader:
                             valid = True
                     except:
                         pass
+                elif typ == bool:
+                    if newval.lower() in ['1', 'true', 'yes', 'y', '开', '是']:
+                        self.settings[key] = True
+                        valid = True
+                    elif newval.lower() in ['0', 'false', 'no', 'n', '关', '否']:
+                        self.settings[key] = False
+                        valid = True
                 elif typ == str:
                     if isinstance(meta[0], list) and newval in meta[0]:
                         self.settings[key] = newval
