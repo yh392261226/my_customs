@@ -1,13 +1,13 @@
 import curses
 import time
 import pyttsx3
+import threading
 from utils import build_pages_from_file
 from db import DBManager
 from stats import StatsManager
 from ui_theme import init_colors, BORDER_CHARS, color_pair_idx
 from lang import get_text
 from epub_utils import parse_epub
-from alive_progress import alive_bar
 
 KEYS_HELP = [
     "←/→/PgUp/PgDn/j/k 翻页",
@@ -17,7 +17,7 @@ KEYS_HELP = [
     "g 跳页",
     "m 书架",
     "s 设置",
-    "r 朗读",
+    "r 朗读/停止",
     "/ 搜索",
     "? 帮助",
     "q 退出",
@@ -66,6 +66,8 @@ class NovelReader:
         self.lang = self.settings["lang"]
         self.last_remind_time = time.time()
         self.remind_minutes = self.settings["remind_interval"]
+        self.is_reading = False  # 添加朗读状态标志
+        self.reading_thread = None  # 添加朗读线程
         init_colors(theme=self.settings["theme"], settings=self.settings)
 
     def get_safe_height(self):
@@ -75,33 +77,49 @@ class NovelReader:
         # 预留顶部/底部/状态栏空间（9行）
         return max(1, min(self.settings["height"], max_y - margin - 9))
 
+    def show_loading_screen(self, message):
+        """显示加载屏幕 - 左对齐"""
+        self.stdscr.clear()
+        max_y, max_x = self.stdscr.getmaxyx()
+        # 清空屏幕并显示左对齐的消息
+        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(1, 2, message.ljust(max_x-4))  # 左对齐，填充空格
+        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.refresh()
+
     def load_book(self, book):
         # 使用设置的宽度，而不是有效宽度
         width = self.settings["width"]
         height = self.get_safe_height()
         line_spacing = self.settings["line_spacing"]
         
-        # 显示加载动画
-        with alive_bar(title=get_text("loading_book", self.lang), bar='smooth', spinner='dots') as bar:
-            if book["type"] == "epub":
-                bar.text = get_text("parsing_epub", self.lang)
-                chapters = parse_epub(book["path"], width, height, line_spacing)
-                bar()
-                
-                pages = []
-                bar.text = get_text("processing_chapter", self.lang)
-                for ch in chapters:
-                    # 添加章节标题页
-                    pages.append([f"《{ch['title']}》"])
-                    # 添加章节内容页
-                    pages.extend(ch["pages"])
-                    bar()
-                self.current_pages = pages
-            else:
-                # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
-                bar.text = "处理文本文件..."
-                self.current_pages = build_pages_from_file(book["path"], width, height, line_spacing)
-                bar()
+        # 显示加载屏幕
+        self.show_loading_screen("📖 加载书籍中...")
+        
+        # 进度回调函数
+        def progress_callback(message):
+            self.show_loading_screen(message)
+        
+        if book["type"] == "epub":
+            self.show_loading_screen("📖 解析EPUB文件...")
+            chapters = parse_epub(book["path"], width, height, line_spacing)
+            
+            pages = []
+            self.show_loading_screen("📖 处理章节内容...")
+            for i, ch in enumerate(chapters):
+                # 添加章节标题页
+                pages.append([f"《{ch['title']}》"])
+                # 添加章节内容页
+                pages.extend(ch["pages"])
+                # 每处理5章更新一次显示
+                if i % 5 == 0:
+                    self.show_loading_screen(f"📖 处理章节内容... ({i+1}/{len(chapters)})")
+            self.current_pages = pages
+        else:
+            # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
+            self.current_pages = build_pages_from_file(
+                book["path"], width, height, line_spacing, progress_callback
+            )
                 
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
@@ -112,7 +130,9 @@ class NovelReader:
         page = 0
         search_keyword = ""
         filtered_books = self.bookshelf.books
-        while True:
+        book_selected = False
+        
+        while not book_selected and self.running:
             self.stdscr.clear()
             max_y, max_x = self.stdscr.getmaxyx()
             total_books = len(filtered_books)
@@ -125,27 +145,32 @@ class NovelReader:
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
             for idx, book in enumerate(filtered_books[start_idx:end_idx]):
                 line = f" {start_idx+idx+1:02d} | {book['title'][:30]:<30} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | 标签:{book['tags']}"
                 color = curses.color_pair(2) if idx % 2 else curses.color_pair(1)
                 self.stdscr.attron(color | curses.A_BOLD)
                 self.stdscr.addstr(idx+2, 2, line[:max_x-3])
                 self.stdscr.attroff(color | curses.A_BOLD)
+                
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.addstr(books_per_page+3, 2,
                 f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)}  [n]下一页  [p]上一页  [/]搜索书名  [q]{get_text('exit', self.lang)}")
             self.stdscr.addstr(books_per_page+5, 2, "输入小说序号并回车可选书")
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
+            
             c = self.stdscr.getch()
             if c == ord('a'):
                 path = input_box(self.stdscr, get_text("input_path", self.lang), maxlen=120)
-                self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
-                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
+                if path:
+                    self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                    filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
             elif c == ord('d'):
                 dir_path = input_box(self.stdscr, get_text("input_dir", self.lang), maxlen=120)
-                self.bookshelf.add_dir(dir_path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
-                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
+                if dir_path:
+                    self.bookshelf.add_dir(dir_path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                    filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
             elif c == ord('/'):
                 kw = input_box(self.stdscr, "请输入书名关键词：", maxlen=30)
                 search_keyword = kw
@@ -158,13 +183,13 @@ class NovelReader:
                 page += 1
             elif c == ord('p') and page > 0:
                 page -= 1
-            elif c in [10, 13]:
+            elif c in [10, 13]:  # 回车键
                 idx_str = input_box(self.stdscr, "序号: ", maxlen=8)
                 try:
                     idx = int(idx_str) - 1
                     if 0 <= idx < total_books:
                         self.load_book(filtered_books[idx])
-                        break
+                        book_selected = True
                     else:
                         self.stdscr.addstr(books_per_page+9, 2, "序号超范围！")
                         self.stdscr.refresh()
@@ -252,41 +277,72 @@ class NovelReader:
             self.stdscr.addstr(margin+height+2, 2, status[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             
+        # 显示朗读状态
+        if self.is_reading:
+            reading_status = "🔊 朗读中 - 按r停止"
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(margin+height+3, 2, reading_status[:max_x-4])
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            
         help_str = " | ".join(KEYS_HELP)
         self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
-        self.stdscr.addstr(margin+height+3, 2, help_str[:max_x-4])
+        self.stdscr.addstr(margin+height+4, 2, help_str[:max_x-4])
         self.stdscr.attroff(curses.color_pair(2) | curses.A_DIM)
         self.stdscr.refresh()
 
     def handle_input(self):
         c = self.stdscr.getch()
         if c in (curses.KEY_RIGHT, curses.KEY_NPAGE, ord('j')):
+            if self.is_reading:
+                self.stop_reading()
             self.next_page()
         elif c in (curses.KEY_LEFT, curses.KEY_PPAGE, ord('k')):
+            if self.is_reading:
+                self.stop_reading()
             self.prev_page()
         elif c == ord('a'):
+            if self.is_reading:
+                self.stop_reading()
             self.auto_page = not self.auto_page
         elif c == ord('b'):
+            if self.is_reading:
+                self.stop_reading()
             self.add_bookmark()
         elif c == ord('B'):
+            if self.is_reading:
+                self.stop_reading()
             self.show_bookmarks()
         elif c == ord('m'):
+            if self.is_reading:
+                self.stop_reading()
             self.show_bookshelf()
         elif c == ord('q'):
             self.running = False
         elif c == ord('r'):
-            self.read_aloud()
+            self.toggle_reading()  # 修改为切换朗读状态
         elif c == ord('/'):
+            if self.is_reading:
+                self.stop_reading()
             self.search()
         elif c == ord('s'):
+            if self.is_reading:
+                self.stop_reading()
             self.change_settings()
         elif c == ord('?'):
+            if self.is_reading:
+                self.stop_reading()
             self.show_help()
         elif c == ord('g'):
+            if self.is_reading:
+                self.stop_reading()
             self.jump_page()
         elif c == ord('t'):
+            if self.is_reading:
+                self.stop_reading()
             self.show_stats()
         elif c == ord('T'):
+            if self.is_reading:
+                self.stop_reading()
             self.show_all_books_stats()
 
     def next_page(self):
@@ -350,21 +406,60 @@ class NovelReader:
 
     def add_bookmark(self):
         comment = input_box(self.stdscr, get_text("input_comment", self.lang), maxlen=100)
-        self.db.add_bookmark(self.current_book["id"], self.current_page_idx, comment)
+        if comment:
+            self.db.add_bookmark(self.current_book["id"], self.current_page_idx, comment)
 
-    def read_aloud(self):
+    def toggle_reading(self):
+        """切换朗读状态"""
+        if self.is_reading:
+            self.stop_reading()
+        else:
+            self.start_reading()
+
+    def start_reading(self):
+        """开始朗读"""
+        if self.is_reading:
+            return
+            
+        # 开始朗读
+        self.is_reading = True
         txt = "\n".join(self.current_pages[self.current_page_idx])
-        self.engine.say(txt)
-        self.engine.runAndWait()
+        
+        # 使用线程来运行朗读，避免阻塞主线程
+        def run_reading():
+            try:
+                self.engine.say(txt)
+                self.engine.runAndWait()
+            except Exception as e:
+                # 忽略所有异常，特别是KeyboardInterrupt
+                pass
+            finally:
+                self.is_reading = False
+                
+        self.reading_thread = threading.Thread(target=run_reading)
+        self.reading_thread.daemon = True
+        self.reading_thread.start()
+
+    def stop_reading(self):
+        """停止朗读"""
+        if self.is_reading:
+            try:
+                self.engine.stop()
+                # 等待一小段时间让引擎停止
+                time.sleep(0.1)
+                self.is_reading = False
+            except Exception:
+                self.is_reading = False
 
     def search(self):
         kw = input_box(self.stdscr, get_text("input_search", self.lang), maxlen=50)
-        self.search_keyword = kw
-        self.highlight_lines = set()
-        page_lines = self.current_pages[self.current_page_idx]
-        for idx, line in enumerate(page_lines):
-            if kw in line:
-                self.highlight_lines.add(idx)
+        if kw:
+            self.search_keyword = kw
+            self.highlight_lines = set()
+            page_lines = self.current_pages[self.current_page_idx]
+            for idx, line in enumerate(page_lines):
+                if kw in line:
+                    self.highlight_lines.add(idx)
 
     def check_remind(self):
         remind_interval = self.settings["remind_interval"]
@@ -564,3 +659,6 @@ class NovelReader:
                 if self.auto_page:
                     time.sleep(self.settings["auto_page_interval"])
                     self.next_page()
+                    
+        # 确保在退出前停止朗读
+        self.stop_reading()

@@ -1,12 +1,19 @@
 import curses
 import sys
 import os
+import signal  # 添加signal导入
 from bookshelf import Bookshelf
 from settings import Settings
 from reader import NovelReader
 
+def signal_handler(sig, frame):
+    # 清理工作
+    sys.exit(0)
+
 def main(stdscr):
     curses.curs_set(0)
+    # 设置信号处理
+    signal.signal(signal.SIGINT, signal_handler)
     settings = Settings()
     bookshelf = Bookshelf()
     reader = NovelReader(stdscr, bookshelf, settings)
