@@ -1,3 +1,7 @@
+import subprocess
+import shlex
+import tempfile
+import os
 import curses
 import time
 import pyttsx3
@@ -68,6 +72,9 @@ class NovelReader:
         self.remind_minutes = self.settings["remind_interval"]
         self.is_reading = False  # 添加朗读状态标志
         self.reading_thread = None  # 添加朗读线程
+        self.boss_mode = False  # 老板键模式标志
+        self.terminal_history = []  # 终端命令历史
+        self.terminal_position = 0  # 终端历史位置
         init_colors(theme=self.settings["theme"], settings=self.settings)
 
     def get_safe_height(self):
@@ -358,7 +365,20 @@ class NovelReader:
 
     def handle_input(self):
         c = self.stdscr.getch()
-        if c in (curses.KEY_RIGHT, curses.KEY_NPAGE, ord('j')):
+        if self.boss_mode:
+            # 老板模式关闭自动翻页、朗读
+            if self.is_reading:
+                self.stop_reading()
+            if self.is_reading:
+                self.stop_reading()
+
+            # 在老板键模式下处理输入
+            self.handle_terminal_input(c)
+            return
+
+        if c == ord(' '):  # 空格键 - 老板键
+            self.toggle_boss_mode()
+        elif c in (curses.KEY_RIGHT, curses.KEY_NPAGE, ord('j')):
             if self.is_reading:
                 self.stop_reading()
             self.next_page()
@@ -694,6 +714,14 @@ class NovelReader:
                 ]
             },
             {
+                "title": "👔 老板键功能",
+                "items": [
+                    ("空格键", "隐藏/显示阅读器"),
+                    ("空格+回车", "从终端返回阅读器"),
+                    ("↑↓", "浏览命令历史")
+                ]
+            },
+            {
                 "title": "⚙️ 系统操作",
                 "items": [
                     ("?", "显示帮助"),
@@ -794,30 +822,187 @@ class NovelReader:
             elif c == ord('p') and page > 0:
                 page -= 1
 
+    def toggle_boss_mode(self):
+        """切换老板键模式"""
+        self.boss_mode = not self.boss_mode
+        if self.boss_mode:
+            # 进入老板键模式
+            self.terminal_input = ""
+            self.terminal_output = ["终端模拟器已启动", "输入命令或按空格+回车返回阅读器", "----------------------------------------"]
+            self.terminal_cursor = 0
+        else:
+            # 退出老板键模式
+            self.terminal_history = []
+            self.terminal_position = 0
+
+    def handle_terminal_input(self, c):
+        """处理终端模式下的输入"""
+        if c == curses.KEY_ENTER or c == 10 or c == 13:  # 回车键
+            self.execute_terminal_command()
+        elif c == curses.KEY_BACKSPACE or c == 127:  # 退格键
+            if self.terminal_input:
+                self.terminal_input = self.terminal_input[:-1]
+        elif c == curses.KEY_UP:  # 上箭头 - 历史命令
+            if self.terminal_history and self.terminal_position > 0:
+                self.terminal_position -= 1
+                self.terminal_input = self.terminal_history[self.terminal_position]
+        elif c == curses.KEY_DOWN:  # 下箭头 - 历史命令
+            if self.terminal_history and self.terminal_position < len(self.terminal_history) - 1:
+                self.terminal_position += 1
+                self.terminal_input = self.terminal_history[self.terminal_position]
+            elif self.terminal_position == len(self.terminal_history) - 1:
+                self.terminal_position = len(self.terminal_history)
+                self.terminal_input = ""
+        elif 32 <= c <= 126:  # 可打印字符
+            self.terminal_input += chr(c)
+            
+        self.display_terminal()
+
+    def execute_terminal_command(self):
+        """执行终端命令"""
+        command = self.terminal_input.strip()
+        
+        # 如果命令为空或只有空格，则退出老板键模式
+        if not command or command.isspace():
+            self.toggle_boss_mode()
+            return
+            
+        # 将命令添加到历史
+        if not self.terminal_history or self.terminal_history[-1] != command:
+            self.terminal_history.append(command)
+        self.terminal_position = len(self.terminal_history)
+        
+        # 执行命令
+        try:
+            if command.lower() in ['exit', 'quit']:
+                self.terminal_output.append(f"$ {command}")
+                self.terminal_output.append("使用空格+回车退出终端模式")
+            else:
+                self.terminal_output.append(f"$ {command}")
+                
+                # 使用subprocess执行命令
+                result = subprocess.run(
+                    command, 
+                    shell=True, 
+                    capture_output=True, 
+                    text=True, 
+                    timeout=30
+                )
+                
+                if result.stdout:
+                    self.terminal_output.extend(result.stdout.splitlines())
+                if result.stderr:
+                    self.terminal_output.extend(result.stderr.splitlines())
+                if result.returncode != 0:
+                    self.terminal_output.append(f"命令退出代码: {result.returncode}")
+                    
+        except subprocess.TimeoutExpired:
+            self.terminal_output.append("命令执行超时")
+        except Exception as e:
+            self.terminal_output.append(f"执行错误: {str(e)}")
+        
+        # 限制输出行数
+        if len(self.terminal_output) > 100:
+            self.terminal_output = self.terminal_output[-100:]
+        
+        self.terminal_input = ""
+        self.display_terminal()
+
+    def display_terminal(self):
+        """显示终端界面"""
+        self.stdscr.clear()
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 显示终端标题
+        title = "💻 终端模拟器 (老板键模式)"
+        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+        
+        # 显示分隔线
+        sep_line = "─" * (max_x - 4)
+        self.stdscr.attron(curses.color_pair(10))
+        self.stdscr.addstr(1, 2, sep_line)
+        self.stdscr.attroff(curses.color_pair(10))
+        
+        # 显示终端输出
+        start_line = max(0, len(self.terminal_output) - (max_y - 6))
+        for i, line in enumerate(self.terminal_output[start_line:]):
+            if i < max_y - 5:
+                # 截断过长的行
+                display_line = line[:max_x-4] if len(line) > max_x-4 else line
+                self.stdscr.addstr(i + 2, 2, display_line)
+        
+        # 显示分隔线
+        self.stdscr.attron(curses.color_pair(10))
+        self.stdscr.addstr(max_y - 3, 2, sep_line)
+        self.stdscr.attroff(curses.color_pair(10))
+        
+        # 显示命令输入行
+        prompt = "$ "
+        input_line = prompt + self.terminal_input
+        # 如果输入行太长，截断并显示光标位置
+        if len(input_line) > max_x - 4:
+            start_pos = max(0, len(self.terminal_input) - (max_x - 6))
+            display_input = input_line[start_pos:start_pos + max_x - 4]
+            cursor_pos = len(prompt) + len(self.terminal_input) - start_pos
+        else:
+            display_input = input_line
+            cursor_pos = len(display_input)
+        
+        self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+        self.stdscr.addstr(max_y - 2, 2, display_input)
+        self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+        
+        # 显示光标
+        if time.time() % 1 < 0.5:  # 闪烁光标
+            try:
+                self.stdscr.addstr(max_y - 2, 2 + cursor_pos, "_")
+            except:
+                pass
+        
+        # 显示帮助提示
+        help_text = "按空格+回车返回阅读器 | ↑↓浏览历史命令"
+        self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
+        self.stdscr.addstr(max_y - 1, max_x // 2 - len(help_text) // 2, help_text)
+        self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
+        
+        self.stdscr.refresh()
+
     def run(self):
         if self.current_book:
             while self.running:
-                self.display()
-                self.handle_input()
-                self.save_progress()
-                self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
-                self.check_remind()
-                self.start_time = time.time()
-                if self.auto_page:
-                    time.sleep(self.settings["auto_page_interval"])
-                    self.next_page()
+                if self.boss_mode:
+                    self.display_terminal()
+                    c = self.stdscr.getch()
+                    self.handle_terminal_input(c)
+                else:
+                    self.display()
+                    self.handle_input()
+                    self.save_progress()
+                    self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
+                    self.check_remind()
+                    self.start_time = time.time()
+                    if self.auto_page:
+                        time.sleep(self.settings["auto_page_interval"])
+                        self.next_page()
         else:
             self.show_bookshelf()
             while self.running:
-                self.display()
-                self.handle_input()
-                self.save_progress()
-                self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
-                self.check_remind()
-                self.start_time = time.time()
-                if self.auto_page:
-                    time.sleep(self.settings["auto_page_interval"])
-                    self.next_page()
-                    
+                if self.boss_mode:
+                    self.display_terminal()
+                    c = self.stdscr.getch()
+                    self.handle_terminal_input(c)
+                else:
+                    self.display()
+                    self.handle_input()
+                    self.save_progress()
+                    self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
+                    self.check_remind()
+                    self.start_time = time.time()
+                    if self.auto_page:
+                        time.sleep(self.settings["auto_page_interval"])
+                        self.next_page()
+                        
         # 确保在退出前停止朗读
         self.stop_reading()
