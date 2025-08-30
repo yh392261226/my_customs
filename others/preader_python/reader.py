@@ -77,14 +77,66 @@ class NovelReader:
         # 预留顶部/底部/状态栏空间（9行）
         return max(1, min(self.settings["height"], max_y - margin - 9))
 
-    def show_loading_screen(self, message):
-        """显示加载屏幕 - 左对齐"""
+    def show_loading_screen(self, message, progress=None):
+        """显示美观的加载屏幕，支持进度显示"""
         self.stdscr.clear()
         max_y, max_x = self.stdscr.getmaxyx()
-        # 清空屏幕并显示左对齐的消息
+        
+        # 绘制边框
+        self.draw_border()
+        
+        # 显示标题
+        title = "📖 小说阅读器 - 加载中"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(1, 2, message.ljust(max_x-4))  # 左对齐，填充空格
+        self.stdscr.addstr(2, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+        
+        # 显示消息
+        self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+        self.stdscr.addstr(max_y // 2 - 2, max_x // 2 - len(message) // 2, message)
+        self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+        
+        # 显示动态旋转图标
+        spinner_chars = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
+        spinner = spinner_chars[int(time.time() * 8) % len(spinner_chars)]
+        self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+        self.stdscr.addstr(max_y // 2, max_x // 2 - 1, spinner)
+        self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+        
+        # 显示进度条（如果有进度信息）
+        if progress is not None:
+            # 解析进度信息
+            if "/" in progress:
+                current, total = progress.split("/")
+                try:
+                    current_val = int(current)
+                    total_val = int(total)
+                    percent = current_val / total_val if total_val > 0 else 0
+                    
+                    # 绘制进度条
+                    bar_width = min(40, max_x - 10)
+                    filled = int(bar_width * percent)
+                    bar = "[" + "█" * filled + "░" * (bar_width - filled) + "]"
+                    bar_text = f"{bar} {int(percent*100)}%"
+                    
+                    self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+                    self.stdscr.addstr(max_y // 2 + 2, max_x // 2 - len(bar_text) // 2, bar_text)
+                    self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+                    
+                    # 显示详细进度
+                    detail_text = f"{current_val}/{total_val}"
+                    self.stdscr.attron(curses.color_pair(3))
+                    self.stdscr.addstr(max_y // 2 + 4, max_x // 2 - len(detail_text) // 2, detail_text)
+                    self.stdscr.attroff(curses.color_pair(3))
+                except:
+                    pass
+        
+        # 显示提示信息
+        tip = "请稍候，正在努力加载..."
+        self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
+        self.stdscr.addstr(max_y - 3, max_x // 2 - len(tip) // 2, tip)
+        self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
+        
         self.stdscr.refresh()
 
     def load_book(self, book):
@@ -94,32 +146,46 @@ class NovelReader:
         line_spacing = self.settings["line_spacing"]
         
         # 显示加载屏幕
-        self.show_loading_screen("📖 加载书籍中...")
+        self.show_loading_screen("初始化书籍加载")
+        time.sleep(0.5)  # 短暂延迟让用户看到初始画面
         
         # 进度回调函数
         def progress_callback(message):
-            self.show_loading_screen(message)
+            # 解析消息中的进度信息
+            progress = None
+            if ":" in message and "/" in message:
+                parts = message.split(":")
+                if len(parts) > 1 and "/" in parts[1]:
+                    progress = parts[1].strip()
+            
+            self.show_loading_screen(message, progress)
         
         if book["type"] == "epub":
-            self.show_loading_screen("📖 解析EPUB文件...")
+            self.show_loading_screen("解析EPUB文件结构")
             chapters = parse_epub(book["path"], width, height, line_spacing)
             
             pages = []
-            self.show_loading_screen("📖 处理章节内容...")
+            total_chapters = len(chapters)
             for i, ch in enumerate(chapters):
                 # 添加章节标题页
                 pages.append([f"《{ch['title']}》"])
                 # 添加章节内容页
                 pages.extend(ch["pages"])
-                # 每处理5章更新一次显示
-                if i % 5 == 0:
-                    self.show_loading_screen(f"📖 处理章节内容... ({i+1}/{len(chapters)})")
+                
+                # 每处理一章更新一次显示
+                if i % 2 == 0:  # 每两章更新一次，避免过于频繁
+                    self.show_loading_screen(f"处理章节内容: {i+1}/{total_chapters}")
+            
             self.current_pages = pages
+            self.show_loading_screen("EPUB处理完成")
+            time.sleep(0.5)
         else:
             # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
             self.current_pages = build_pages_from_file(
                 book["path"], width, height, line_spacing, progress_callback
             )
+            self.show_loading_screen("文本处理完成")
+            time.sleep(0.5)
                 
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
@@ -573,12 +639,106 @@ class NovelReader:
     def show_help(self):
         max_y, max_x = self.stdscr.getmaxyx()
         self.stdscr.clear()
+        
+        # 绘制边框
+        self.draw_border()
+        
+        # 标题
+        title = "💡 帮助中心"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(0, max_x // 2 - 3, "💡 帮助")
+        self.stdscr.addstr(2, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        for idx, h in enumerate(KEYS_HELP):
-            self.stdscr.addstr(idx+2, 4, h)
-        self.stdscr.addstr(len(KEYS_HELP)+4, 4, get_text("exit", self.lang))
+        
+        # 分隔线
+        sep_line = "─" * (max_x - 6)
+        self.stdscr.attron(curses.color_pair(10))
+        self.stdscr.addstr(4, 3, sep_line)
+        self.stdscr.attroff(curses.color_pair(10))
+        
+        # 分类显示帮助信息
+        categories = [
+            {
+                "title": "📖 阅读控制",
+                "items": [
+                    ("←/→/PgUp/PgDn/j/k", "翻页"),
+                    ("a", "自动翻页"),
+                    ("g", "跳转到指定页"),
+                    ("/", "搜索文本")
+                ]
+            },
+            {
+                "title": "🔖 书签功能",
+                "items": [
+                    ("b", "添加书签"),
+                    ("B", "查看书签列表")
+                ]
+            },
+            {
+                "title": "🎵 朗读功能",
+                "items": [
+                    ("r", "开始/停止朗读")
+                ]
+            },
+            {
+                "title": "📚 书籍管理",
+                "items": [
+                    ("m", "返回书架"),
+                    ("s", "设置选项")
+                ]
+            },
+            {
+                "title": "📊 统计信息",
+                "items": [
+                    ("t", "本书阅读统计"),
+                    ("T", "全部书籍统计")
+                ]
+            },
+            {
+                "title": "⚙️ 系统操作",
+                "items": [
+                    ("?", "显示帮助"),
+                    ("q", "退出程序")
+                ]
+            }
+        ]
+        
+        y_pos = 6
+        for category in categories:
+            # 显示分类标题
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(y_pos, 5, category["title"])
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            
+            y_pos += 1
+            
+            # 显示分类中的项目
+            for key, desc in category["items"]:
+                key_part = f"[{key}]"
+                desc_part = f" {desc}"
+                
+                self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+                self.stdscr.addstr(y_pos, 7, key_part)
+                self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+                
+                self.stdscr.attron(curses.color_pair(1))
+                self.stdscr.addstr(y_pos, 7 + len(key_part), desc_part)
+                self.stdscr.attroff(curses.color_pair(1))
+                
+                y_pos += 1
+            
+            y_pos += 1  # 分类之间的间隔
+        
+        # 底部提示
+        tip = "按任意键返回阅读界面"
+        self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
+        self.stdscr.addstr(max_y - 3, max_x // 2 - len(tip) // 2, tip)
+        self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
+        
+        # 装饰性边框
+        self.stdscr.attron(curses.color_pair(10))
+        self.stdscr.addstr(max_y - 5, 3, sep_line)
+        self.stdscr.attroff(curses.color_pair(10))
+        
         self.stdscr.refresh()
         self.stdscr.getch()
 
@@ -594,7 +754,6 @@ class NovelReader:
         self.stdscr.addstr(4, 4, f"阅读天数：{stats['days']} 天")
         self.stdscr.addstr(6, 4, f"每日统计：")
         for idx, (date, sec) in enumerate(stats["records"][:max_y-12]):
-           
             self.stdscr.addstr(7+idx, 6, f"{date}: {sec//60} 分钟")
         self.stdscr.addstr(max_y-2, 4, "任意键返回")
         self.stdscr.refresh()

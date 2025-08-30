@@ -57,11 +57,11 @@ def build_pages_from_file(file_path, width, height, line_spacing, progress_callb
     line_spacing: 行间距
     """
     if progress_callback:
-        progress_callback("读取文件...")
+        progress_callback("读取文件内容")
     text = stream_file_as_text(file_path)
     
     if progress_callback:
-        progress_callback("处理文本内容...")
+        progress_callback("处理文本内容")
     pages = build_pages_from_text(text, width, height, line_spacing, progress_callback)
     
     return pages
