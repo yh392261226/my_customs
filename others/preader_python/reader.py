@@ -7,6 +7,7 @@ from stats import StatsManager
 from ui_theme import init_colors, BORDER_CHARS, color_pair_idx
 from lang import get_text
 from epub_utils import parse_epub
+from alive_progress import alive_bar
 
 KEYS_HELP = [
     "←/→/PgUp/PgDn/j/k 翻页",
@@ -80,19 +81,28 @@ class NovelReader:
         height = self.get_safe_height()
         line_spacing = self.settings["line_spacing"]
         
-        if book["type"] == "epub":
-            chapters = parse_epub(book["path"], width, height, line_spacing)
-            pages = []
-            for ch in chapters:
-                # 添加章节标题页
-                pages.append([f"《{ch['title']}》"])
-                # 添加章节内容页
-                pages.extend(ch["pages"])
-            self.current_pages = pages
-        else:
-            # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
-            self.current_pages = build_pages_from_file(book["path"], width, height, line_spacing)
-            
+        # 显示加载动画
+        with alive_bar(title=get_text("loading_book", self.lang), bar='smooth', spinner='dots') as bar:
+            if book["type"] == "epub":
+                bar.text = get_text("parsing_epub", self.lang)
+                chapters = parse_epub(book["path"], width, height, line_spacing)
+                bar()
+                
+                pages = []
+                bar.text = get_text("processing_chapter", self.lang)
+                for ch in chapters:
+                    # 添加章节标题页
+                    pages.append([f"《{ch['title']}》"])
+                    # 添加章节内容页
+                    pages.extend(ch["pages"])
+                    bar()
+                self.current_pages = pages
+            else:
+                # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
+                bar.text = "处理文本文件..."
+                self.current_pages = build_pages_from_file(book["path"], width, height, line_spacing)
+                bar()
+                
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
         self.highlight_lines = set()
