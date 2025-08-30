@@ -828,7 +828,7 @@ class NovelReader:
         if self.boss_mode:
             # 进入老板键模式
             self.terminal_input = ""
-            self.terminal_output = ["终端模拟器已启动", "输入命令或按空格+回车返回阅读器", "----------------------------------------"]
+            self.terminal_output = ["终端模拟器已启动", "输入命令或按空格+回车返回", "----------------------------------------"]
             self.terminal_cursor = 0
         else:
             # 退出老板键模式
@@ -914,7 +914,7 @@ class NovelReader:
         max_y, max_x = self.stdscr.getmaxyx()
         
         # 显示终端标题
-        title = "💻 终端模拟器 (老板键模式)"
+        title = "💻 终端模式"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
         self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -962,7 +962,7 @@ class NovelReader:
                 pass
         
         # 显示帮助提示
-        help_text = "按空格+回车返回阅读器 | ↑↓浏览历史命令"
+        help_text = "按空格+回车返回 | ↑↓浏览历史命令"
         self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
         self.stdscr.addstr(max_y - 1, max_x // 2 - len(help_text) // 2, help_text)
         self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
