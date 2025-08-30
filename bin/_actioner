@@ -14,6 +14,7 @@
 # - termpdf: PDF预览
 # - viu: 图片预览
 ##############################################
+OPENBROWSER='Brave Browser'
 
 # 初始化操作环境
 init_terminal() {
@@ -254,6 +255,52 @@ actioner_view_origin() {
     return
 }
 
+actioner_read_novel() {
+    local file="$1"
+    local options=(
+        "PReader阅读"
+        "UReader阅读"
+        "Reader阅读"
+        "GReader阅读"
+        "浏览器阅读"
+        "↩️ 返回"
+    )
+    local choose_reader=$(printf '%s\n' "${options[@]}" | fzf \
+        --ansi \
+        --height=40% \
+        --reverse \
+        --prompt="➤ 主菜单 > " \
+        --header="请选择阅读器" \
+        --color="header:" \
+        --preview="echo -e '\n按 Enter 选择阅读器'"
+    )
+    case "$choose_reader" in
+        *PReader阅读*)
+            $MYRUNTIME/customs/bin/preader "$file"
+            ;;
+        *UReader阅读*)
+            # 如果是其他命令或脚本引入的就使用greader来阅读
+            if [ ! -z $1 ] && [ "$1" = "source" ]; then
+                $MYRUNTIME/customs/bin/ureader --mode tui $file
+            else # 否则使用全功能的reader来阅读
+                $MYRUNTIME/customs/bin/ureader $file
+            fi
+            ;;
+        *Reader阅读*)
+            $MYRUNTIME/customs/bin/reader "$file"
+            ;;
+        *GReader阅读*)
+            $MYRUNTIME/customs/bin/greader "$file"
+            ;;
+        *浏览器阅读*)
+            open -a "$OPENBROWSER" "$file"
+            ;;
+        *)
+            return
+            ;;
+    esac
+}
+
 #----------------------- 文件类型处理 -----------------------#
 
 # 识别文件类型
@@ -425,7 +472,7 @@ actioner() {
         设置权限*)        actioner_set_private "$filepath" ;;
         文本预览*)        $MYRUNTIME/customs/bin/termpdf -sixel "$filepath" ;;
         创建*)           actioner_create "$filepath" ;;
-        当小说读*)        $MYRUNTIME/customs/bin/greader "$filepath" ;;
+        当小说读*)        actioner_read_novel "$filepath" ;;
     esac
     
     restore_terminal
