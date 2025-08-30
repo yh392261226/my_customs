@@ -22,7 +22,10 @@ function novels_read() {
         return
     elif [ "" != "$choose" ]; then
         local options=(
-            "终端阅读"
+            "PReader阅读"
+            "UReader阅读"
+            "Reader阅读"
+            "GReader阅读"
             "浏览器阅读"
             "↩️ 返回"
         )
@@ -36,13 +39,22 @@ function novels_read() {
             --preview="echo -e '\n按 Enter 选择阅读器'"
         )
         case "$choose_reader" in
-            *终端阅读*)
+            *PReader阅读*)
+                $MYRUNTIME/customs/bin/preader "$NOVELSDATAPATH/$choose"
+                ;;
+            *UReader阅读*)
                 # 如果是其他命令或脚本引入的就使用greader来阅读
                 if [ ! -z $1 ] && [ "$1" = "source" ]; then
                     $MYRUNTIME/customs/bin/ureader --mode tui $NOVELSDATAPATH/$choose
                 else # 否则使用全功能的reader来阅读
                     $MYRUNTIME/customs/bin/ureader $NOVELSDATAPATH/$choose
                 fi
+                ;;
+            *Reader阅读*)
+                $MYRUNTIME/customs/bin/reader "$NOVELSDATAPATH/$choose"
+                ;;
+            *GReader阅读*)
+                $MYRUNTIME/customs/bin/greader "$NOVELSDATAPATH/$choose"
                 ;;
             *浏览器阅读*)
                 open -a "$OPENBROWSER" "$NOVELSDATAPATH/$choose"
