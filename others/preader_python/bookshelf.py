@@ -23,6 +23,8 @@ class Bookshelf:
                 "type": book_type,
                 "tags": tags
             })
+        # 按照标题升序排序
+        result.sort(key=lambda x: x["title"].lower())
         return result
 
     def add_book(self, file_path, tags="", width=80, height=25, line_spacing=1):
@@ -68,4 +70,7 @@ class Bookshelf:
 
     def search_books(self, keyword):
         keyword = keyword.strip().lower()
-        return [book for book in self.books if keyword in book["title"].lower()]
+        result = [book for book in self.books if keyword in book["title"].lower()]
+        # 搜索结果也按照标题升序排序
+        result.sort(key=lambda x: x["title"].lower())
+        return result

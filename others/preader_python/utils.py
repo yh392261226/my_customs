@@ -17,6 +17,11 @@ def build_pages_from_text(text, width, height, line_spacing, progress_callback=N
     """
     将文本内容分页，考虑行间距和页面高度
     """
+
+    # 检查文本是否为空
+    if not text or not text.strip():
+        return [["空文件或文件内容为空"]]
+
     display_lines = []
     # 合并所有文本为显示行列表
     lines = text.replace('\r\n', '\n').replace('\r', '\n').split('\n')
@@ -60,6 +65,10 @@ def build_pages_from_file(file_path, width, height, line_spacing, progress_callb
         progress_callback("读取文件内容")
     text = stream_file_as_text(file_path)
     
+    # 检查文本是否为空
+    if not text or not text.strip():
+        return [["空文件或文件内容为空"]]
+
     if progress_callback:
         progress_callback("处理文本内容")
     pages = build_pages_from_text(text, width, height, line_spacing, progress_callback)

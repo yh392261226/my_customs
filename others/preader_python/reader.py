@@ -193,7 +193,11 @@ class NovelReader:
             )
             self.show_loading_screen("文本处理完成")
             time.sleep(0.5)
-                
+        # 在解析完成后检查是否为空
+        if not self.current_pages:
+            self.current_pages = [["空文件或文件内容为空"]]
+        
+
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
         self.highlight_lines = set()
@@ -202,7 +206,8 @@ class NovelReader:
         books_per_page = max(1, self.get_safe_height() - 8)
         page = 0
         search_keyword = ""
-        filtered_books = self.bookshelf.books
+        # 修改排序方式为按标题升序
+        filtered_books = sorted(self.bookshelf.books, key=lambda x: x["title"].lower())
         book_selected = False
         
         while not book_selected and self.running:
@@ -303,9 +308,18 @@ class NovelReader:
         padding = self.settings["padding"]
         height = self.get_safe_height()
         self.draw_border()
+
+        # 添加对空页面的检查
+        if not self.current_pages:
+            empty_msg = "文件为空或无法解析内容"
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(margin + height // 2, max_x // 2 - len(empty_msg) // 2, empty_msg)
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.refresh()
+            return
         
         page_lines = self.current_pages[self.current_page_idx] if self.current_pages else []
-        if self.current_book:
+        if self.current_pages and self.current_book:
             progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
             bar_len = int(progress / 5)
             
@@ -789,7 +803,8 @@ class NovelReader:
 
     def show_all_books_stats(self):
         all_stats = self.stats.get_all_books_stats()
-        books = self.bookshelf.books
+        # 修改排序方式为按标题升序
+        books = sorted(self.bookshelf.books, key=lambda x: x["title"].lower())
         max_y, max_x = self.stdscr.getmaxyx()
         stats_per_page = max(1, max_y - 7)
         page = 0
