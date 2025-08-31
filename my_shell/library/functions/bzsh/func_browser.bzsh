@@ -575,4 +575,45 @@ function fzf_change_default_browser() {                                         
     fi
 }
 
-alias fcdb="fzf_change_default_browser"                                             # Desc: alias: fzf_change_default_browser命令的别名，利用fzf和duti修改默认浏览器
+alias fcdb="fzf_change_default_browser"                                             # Desc: alias: fcdb: fzf_change_default_browser命令的别名，利用fzf和duti修改默认浏览器
+
+__check_browser_process() {
+    ps -ef | grep "$1" | grep -v grep >> /dev/null
+}
+
+function get_safari_urls() {                                                        # Desc: function: get_safari_urls: 获取当前Safari浏览器打开的网址
+    if __check_browser_process "Safari"; then
+        echo "Safari 打开的网址:"
+        osascript -e 'tell application "Safari" to get URL of every tab of every window' 2>/dev/null
+    else
+        echo "Safari 浏览器未开启..."
+    fi
+}
+alias gsu="get_safari_urls"                                                         # Desc: alias: gsu: get_safari_urls命令的别名，获取当前Safari浏览器打开的网址
+
+get_chromium_urls() {
+    local app_name=$1
+    osascript -e "tell application \"$app_name\" to get URL of every tab of every window" 2>/dev/null
+}
+
+function get_chrome_urls() {                                                        # Desc: function: get_chrome_urls: 获取当前谷歌浏览器打开的网址
+    local BROWSERNAME="Google Chrome"
+    if __check_browser_process $BROWSERNAME; then
+        echo "$BROWSERNAME 打开的网址:"
+        get_chromium_urls $BROWSERNAME
+    else
+        echo "$BROWSERNAME 浏览器未开启..."
+    fi
+}
+alias gcu="get_chrome_urls"                                                         # Desc: alias: gcu: get_chrome_urls命令的别名，获取当前谷歌浏览器打开的网址
+
+function get_brave_urls() {                                                         # Desc: function: get_brave_urls: 获取当前Brave浏览器打开的网址
+    local BROWSERNAME="Brave Browser"
+    if __check_browser_process $BROWSERNAME; then
+        echo "$BROWSERNAME 打开的网址:"
+        get_chromium_urls $BROWSERNAME
+    else
+        echo "$BROWSERNAME 浏览器未开启..."
+    fi
+}
+alias gbu="get_brave_urls"                                                          # Desc: alias: gbu: get_chrome_urls命令的别名，获取当前Brave浏览器打开的网址
