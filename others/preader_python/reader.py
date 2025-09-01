@@ -89,9 +89,17 @@ class NovelReader:
         self.remind_minutes = self.settings["remind_interval"]
         self.is_reading = False  # 添加朗读状态标志
         self.reading_thread = None  # 添加朗读线程
-        self.boss_mode = False  # 老板键模式标志
-        self.terminal_history = []  # 终端命令历史
-        self.terminal_position = 0  # 终端历史位置
+        # 老板键模式相关属性
+        self.boss_mode = False
+        self.terminal_input = ""
+        self.terminal_output = []
+        self.terminal_cursor = 0
+        self.terminal_history = []
+        self.terminal_position = 0
+        self.terminal_cursor_pos = 0  # 光标在输入行中的位置
+        self.terminal_scroll_offset = 0  # 输出滚动偏移
+        self.terminal_suggestions = []  # 自动补全建议
+        self.terminal_suggestion_index = 0  # 当前选中的建议索引
         self.selected_tags = set() # 存储选中的标签
         init_colors(theme=self.settings["theme"], settings=self.settings)
 
@@ -1225,43 +1233,123 @@ class NovelReader:
                 page -= 1
 
     def toggle_boss_mode(self):
-        """切换老板键模式"""
+        """切换老板键模式 - 增强版"""
         self.boss_mode = not self.boss_mode
         if self.boss_mode:
             # 进入老板键模式
             self.terminal_input = ""
-            self.terminal_output = [f"{get_text('terminal_mode_started', self.lang)}", f"{get_text('terminal_help_text2', self.lang)}", "----------------------------------------"]
-            self.terminal_cursor = 0
+            self.terminal_output = [
+                f"{get_text('terminal_mode_started', self.lang)}", 
+                f"当前目录: {os.getcwd()}",
+                f"{get_text('terminal_help_text2', self.lang)}", 
+                "----------------------------------------"
+            ]
+            self.terminal_cursor_pos = 0
+            self.terminal_scroll_offset = 0
+            self.terminal_suggestions = []
+            self.terminal_suggestion_index = 0
         else:
             # 退出老板键模式
             self.terminal_history = []
             self.terminal_position = 0
 
     def handle_terminal_input(self, c):
-        """处理终端模式下的输入"""
+        """处理终端模式下的输入 - 增强版"""
         if c == curses.KEY_ENTER or c == 10 or c == 13:  # 回车键
             self.execute_terminal_command()
         elif c == curses.KEY_BACKSPACE or c == 127:  # 退格键
-            if self.terminal_input:
-                self.terminal_input = self.terminal_input[:-1]
-        elif c == curses.KEY_UP:  # 上箭头 - 历史命令
-            if self.terminal_history and self.terminal_position > 0:
+            if self.terminal_input and self.terminal_cursor_pos > 0:
+                # 删除光标前的一个字符
+                self.terminal_input = self.terminal_input[:self.terminal_cursor_pos-1] + self.terminal_input[self.terminal_cursor_pos:]
+                self.terminal_cursor_pos -= 1
+                self.update_terminal_suggestions()
+        elif c == curses.KEY_LEFT:  # 左箭头
+            if self.terminal_cursor_pos > 0:
+                self.terminal_cursor_pos -= 1
+        elif c == curses.KEY_RIGHT:  # 右箭头
+            if self.terminal_cursor_pos < len(self.terminal_input):
+                self.terminal_cursor_pos += 1
+        elif c == curses.KEY_UP:  # 上箭头 - 历史命令或输出滚动
+            if self.terminal_suggestions:
+                # 在自动补全模式下，上箭头选择上一个建议
+                self.terminal_suggestion_index = max(0, self.terminal_suggestion_index - 1)
+            elif self.terminal_history and self.terminal_position > 0:
+                # 浏览历史命令
                 self.terminal_position -= 1
                 self.terminal_input = self.terminal_history[self.terminal_position]
-        elif c == curses.KEY_DOWN:  # 下箭头 - 历史命令
-            if self.terminal_history and self.terminal_position < len(self.terminal_history) - 1:
+                self.terminal_cursor_pos = len(self.terminal_input)
+            else:
+                # 滚动输出
+                self.terminal_scroll_offset = max(0, self.terminal_scroll_offset - 1)
+        elif c == curses.KEY_DOWN:  # 下箭头 - 历史命令或输出滚动
+            if self.terminal_suggestions:
+                # 在自动补全模式下，下箭头选择下一个建议
+                self.terminal_suggestion_index = min(len(self.terminal_suggestions) - 1, self.terminal_suggestion_index + 1)
+            elif self.terminal_history and self.terminal_position < len(self.terminal_history) - 1:
+                # 浏览历史命令
                 self.terminal_position += 1
                 self.terminal_input = self.terminal_history[self.terminal_position]
+                self.terminal_cursor_pos = len(self.terminal_input)
             elif self.terminal_position == len(self.terminal_history) - 1:
+                # 回到空白输入
                 self.terminal_position = len(self.terminal_history)
                 self.terminal_input = ""
+                self.terminal_cursor_pos = 0
+            else:
+                # 滚动输出
+                self.terminal_scroll_offset = min(len(self.terminal_output) - self.get_terminal_output_height(), 
+                                                self.terminal_scroll_offset + 1)
+        elif c == ord('\t'):  # Tab键 - 自动补全
+            self.auto_complete()
+        elif c == curses.KEY_PPAGE:  # Page Up - 向上滚动输出
+            self.terminal_scroll_offset = max(0, self.terminal_scroll_offset - self.get_terminal_output_height() // 2)
+        elif c == curses.KEY_NPAGE:  # Page Down - 向下滚动输出
+            max_scroll = max(0, len(self.terminal_output) - self.get_terminal_output_height())
+            self.terminal_scroll_offset = min(max_scroll, 
+                                            self.terminal_scroll_offset + self.get_terminal_output_height() // 2)
+        elif c == 12:  # Ctrl+L - 清屏
+            self.terminal_output = []
+            self.terminal_scroll_offset = 0
         elif 32 <= c <= 126:  # 可打印字符
-            self.terminal_input += chr(c)
-            
+            # 在光标处插入字符
+            self.terminal_input = (self.terminal_input[:self.terminal_cursor_pos] + 
+                                chr(c) + 
+                                self.terminal_input[self.terminal_cursor_pos:])
+            self.terminal_cursor_pos += 1
+            self.update_terminal_suggestions()
+        
         self.display_terminal()
 
+    def update_terminal_suggestions(self):
+        """更新自动补全建议"""
+        if not self.terminal_input:
+            self.terminal_suggestions = []
+            self.terminal_suggestion_index = 0
+            return
+        
+        # 简单的命令自动补全
+        common_commands = [
+            "ls", "cd", "pwd", "cat", "echo", "grep", "find", 
+            "ps", "top", "kill", "mkdir", "rm", "cp", "mv",
+            "python", "pip", "git", "ssh", "scp", "curl", "wget"
+        ]
+        
+        # 过滤匹配的命令
+        self.terminal_suggestions = [cmd for cmd in common_commands 
+                                    if cmd.startswith(self.terminal_input)]
+        self.terminal_suggestion_index = 0
+
+    def auto_complete(self):
+        """执行自动补全"""
+        if self.terminal_suggestions:
+            # 使用当前选中的建议
+            self.terminal_input = self.terminal_suggestions[self.terminal_suggestion_index]
+            self.terminal_cursor_pos = len(self.terminal_input)
+            self.terminal_suggestions = []  # 清空建议列表
+            self.terminal_suggestion_index = 0
+
     def execute_terminal_command(self):
-        """执行终端命令"""
+        """执行终端命令 - 增强版"""
         command = self.terminal_input.strip()
         
         # 如果命令为空或只有空格，则退出老板键模式
@@ -1276,25 +1364,37 @@ class NovelReader:
         
         # 执行命令
         try:
-            if command.lower() in ['exit', 'quit']:
-                self.terminal_output.append(f"$ {command}")
-                self.terminal_output.append(f"{get_text('terminal_help_text2', self.lang)}")
+            self.terminal_output.append(f"$ {command}")
+            
+            # 特殊处理cd命令
+            if command.startswith("cd "):
+                try:
+                    new_dir = command[3:].strip()
+                    if new_dir:
+                        os.chdir(new_dir)
+                        self.terminal_output.append(f"Changed directory to {os.getcwd()}")
+                    else:
+                        os.chdir(os.path.expanduser("~"))
+                        self.terminal_output.append(f"Changed directory to home")
+                except Exception as e:
+                    self.terminal_output.append(f"cd: {str(e)}")
             else:
-                self.terminal_output.append(f"$ {command}")
-                
                 # 使用subprocess执行命令
                 result = subprocess.run(
                     command, 
                     shell=True, 
                     capture_output=True, 
                     text=True, 
-                    timeout=30
+                    timeout=30,
+                    cwd=os.getcwd()  # 使用当前工作目录
                 )
                 
                 if result.stdout:
-                    self.terminal_output.extend(result.stdout.splitlines())
+                    for line in result.stdout.splitlines():
+                        self.terminal_output.append(line)
                 if result.stderr:
-                    self.terminal_output.extend(result.stderr.splitlines())
+                    for line in result.stderr.splitlines():
+                        self.terminal_output.append(f"\033[91m{line}\033[0m")  # 红色错误信息
                 if result.returncode != 0:
                     self.terminal_output.append(f"{get_text('command_exists_code', self.lang)}: {result.returncode}")
                     
@@ -1304,19 +1404,30 @@ class NovelReader:
             self.terminal_output.append(f"{get_text('execute_fail', self.lang)}: {str(e)}")
         
         # 限制输出行数
-        if len(self.terminal_output) > 100:
-            self.terminal_output = self.terminal_output[-100:]
+        if len(self.terminal_output) > 1000:
+            self.terminal_output = self.terminal_output[-1000:]
+        
+        # 自动滚动到最底部
+        self.terminal_scroll_offset = max(0, len(self.terminal_output) - self.get_terminal_output_height())
         
         self.terminal_input = ""
+        self.terminal_cursor_pos = 0
+        self.terminal_suggestions = []
+        self.terminal_suggestion_index = 0
         self.display_terminal()
 
+    def get_terminal_output_height(self):
+        """获取终端输出区域的高度"""
+        max_y, _ = self.stdscr.getmaxyx()
+        return max_y - 5  # 预留顶部标题、分隔线和底部输入行空间
+
     def display_terminal(self):
-        """显示终端界面"""
+        """显示终端界面 - 增强版"""
         self.stdscr.clear()
         max_y, max_x = self.stdscr.getmaxyx()
         
         # 显示终端标题
-        title = f"💻 {get_text('terminal_title', self.lang)}"
+        title = f"💻 {get_text('terminal_title', self.lang)} - {os.getcwd()}"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
         self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -1328,12 +1439,21 @@ class NovelReader:
         self.stdscr.attroff(curses.color_pair(10))
         
         # 显示终端输出
-        start_line = max(0, len(self.terminal_output) - (max_y - 6))
-        for i, line in enumerate(self.terminal_output[start_line:]):
-            if i < max_y - 5:
-                # 截断过长的行
-                display_line = line[:max_x-4] if len(line) > max_x-4 else line
-                self.stdscr.addstr(i + 2, 2, display_line)
+        output_height = self.get_terminal_output_height()
+        start_line = max(0, min(self.terminal_scroll_offset, len(self.terminal_output) - output_height))
+        
+        for i, line in enumerate(self.terminal_output[start_line:start_line + output_height]):
+            if i < output_height:
+                # 处理ANSI颜色代码（简化版）
+                if '\033[91m' in line:  # 红色错误信息
+                    parts = line.split('\033[91m')
+                    self.stdscr.attron(curses.color_pair(3))  # 红色
+                    self.stdscr.addstr(i + 2, 2, parts[1].replace('\033[0m', '')[:max_x-4])
+                    self.stdscr.attroff(curses.color_pair(3))
+                else:
+                    # 截断过长的行
+                    display_line = line[:max_x-4] if len(line) > max_x-4 else line
+                    self.stdscr.addstr(i + 2, 2, display_line)
         
         # 显示分隔线
         self.stdscr.attron(curses.color_pair(10))
@@ -1341,33 +1461,52 @@ class NovelReader:
         self.stdscr.attroff(curses.color_pair(10))
         
         # 显示命令输入行
-        prompt = "$ "
+        prompt = f"{os.getcwd()}$ "
         input_line = prompt + self.terminal_input
+        
+        # 计算光标在屏幕上的位置
+        cursor_screen_pos = len(prompt) + self.terminal_cursor_pos
+        
         # 如果输入行太长，截断并显示光标位置
         if len(input_line) > max_x - 4:
-            start_pos = max(0, len(self.terminal_input) - (max_x - 6))
-            display_input = input_line[start_pos:start_pos + max_x - 4]
-            cursor_pos = len(prompt) + len(self.terminal_input) - start_pos
+            if cursor_screen_pos >= max_x - 4:
+                start_pos = cursor_screen_pos - (max_x - 4) + 1
+                display_input = input_line[start_pos:start_pos + max_x - 4]
+                cursor_screen_pos = max_x - 5  # 光标在显示区域的最右边
+            else:
+                display_input = input_line[:max_x-4]
         else:
             display_input = input_line
-            cursor_pos = len(display_input)
         
         self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
         self.stdscr.addstr(max_y - 2, 2, display_input)
         self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
         
+        # 显示自动补全建议
+        if self.terminal_suggestions:
+            suggestions_text = " | ".join(self.terminal_suggestions)
+            # 高亮当前选中的建议
+            if self.terminal_suggestion_index < len(self.terminal_suggestions):
+                selected = self.terminal_suggestions[self.terminal_suggestion_index]
+                suggestions_text = suggestions_text.replace(selected, f"[{selected}]")
+            
+            # 显示在底部
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(max_y - 1, 2, suggestions_text[:max_x-4])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+        else:
+            # 显示帮助提示
+            help_text = f"{get_text('terminal_help_text', self.lang)} | Tab: 自动补全 | Ctrl+L: 清屏"
+            self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
+            self.stdscr.addstr(max_y - 1, max_x // 2 - len(help_text) // 2, help_text)
+            self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
+        
         # 显示光标
         if time.time() % 1 < 0.5:  # 闪烁光标
             try:
-                self.stdscr.addstr(max_y - 2, 2 + cursor_pos, "_")
+                self.stdscr.addstr(max_y - 2, 2 + cursor_screen_pos, "_")
             except:
                 pass
-        
-        # 显示帮助提示
-        help_text = f"{get_text('terminal_help_text', self.lang)}"
-        self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
-        self.stdscr.addstr(max_y - 1, max_x // 2 - len(help_text) // 2, help_text)
-        self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
         
         self.stdscr.refresh()
 
