@@ -134,6 +134,8 @@ LANGS = {
         "multype_update_failed": "批量更新失败",
         "update_success_books": "成功更新 {count} 本书籍",
         "deal_book_id_error": "处理书籍 {id} 时出错",
+        "auto_complete": "自动补全",
+        "clear_screen": "清屏",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -270,6 +272,8 @@ LANGS = {
         "multype_update_failed": "Multype update failed",
         "update_success_books": "Updated success books {count}",
         "deal_book_id_error": "Deal with book {id} error",
+        "auto_complete": "Auto complete",
+        "clear_screen": "Clear screen",
     }
 }
 

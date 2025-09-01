@@ -1496,7 +1496,7 @@ class NovelReader:
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
         else:
             # 显示帮助提示
-            help_text = f"{get_text('terminal_help_text', self.lang)} | Tab: 自动补全 | Ctrl+L: 清屏"
+            help_text = f"{get_text('terminal_help_text', self.lang)} | Tab: {get_text('auto_complete', self.lang)} | Ctrl+L: {get_text('clear_screen', self.lang)}"
             self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
             self.stdscr.addstr(max_y - 1, max_x // 2 - len(help_text) // 2, help_text)
             self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
