@@ -4,6 +4,7 @@ import os
 import signal  # 添加signal导入
 from bookshelf import Bookshelf
 from settings import Settings
+from lang import get_text
 from reader import NovelReader
 
 def signal_handler(sig, frame):
@@ -15,14 +16,14 @@ def main(stdscr):
     # 设置信号处理
     signal.signal(signal.SIGINT, signal_handler)
     settings = Settings()
-    bookshelf = Bookshelf()
+    bookshelf = Bookshelf(settings["lang"])
     reader = NovelReader(stdscr, bookshelf, settings)
 
     # 支持命令行直接打开文件
     if len(sys.argv) > 1:
         novel_path = sys.argv[1]
         if not os.path.isfile(novel_path):
-            stdscr.addstr(0, 0, f"文件不存在: {novel_path}")
+            stdscr.addstr(0, 0, f"{get_text('file_not_exists', settings['lang'])}: {novel_path}")
             stdscr.refresh()
             stdscr.getch()
             return
@@ -30,7 +31,7 @@ def main(stdscr):
         if bookshelf.books:
             reader.load_book(bookshelf.books[-1])
         else:
-            stdscr.addstr(0, 0, f"无法加载小说: {novel_path}")
+            stdscr.addstr(0, 0, f"{get_text('cannot_load_novel', settings['lang'])}: {novel_path}")
             stdscr.refresh()
             stdscr.getch()
             return

@@ -1,8 +1,9 @@
 from ebooklib import epub
 from bs4 import BeautifulSoup
 from utils import build_pages_from_text
+from lang import get_text
 
-def parse_epub(file_path, width, height, line_spacing):
+def parse_epub(file_path, width, height, line_spacing, lang="zh"):
     book = epub.read_epub(file_path)
     
     chapters = []
@@ -15,7 +16,7 @@ def parse_epub(file_path, width, height, line_spacing):
             text = soup.get_text()
             
             # 使用统一的文本分页函数
-            pages = build_pages_from_text(text, width, height, line_spacing)
+            pages = build_pages_from_text(text, width, height, line_spacing, lang=lang)
             chapters.append({"title": title, "pages": pages})
             
     return chapters

@@ -87,3 +87,30 @@ class DBManager:
         c = self.conn.cursor()
         c.execute("SELECT date, seconds FROM stats WHERE book_id=? ORDER BY date", (book_id,))
         return c.fetchall()
+
+    def delete_book(self, book_id):
+        c = self.conn.cursor()
+        c.execute("DELETE FROM books WHERE id=?", (book_id,))
+        c.execute("DELETE FROM progress WHERE book_id=?", (book_id,))
+        c.execute("DELETE FROM bookmarks WHERE book_id=?", (book_id,))
+        c.execute("DELETE FROM stats WHERE book_id=?", (book_id,))
+        self.conn.commit()
+
+    def update_book_path(self, book_id, new_path):
+        """更新书籍路径"""
+        c = self.conn.cursor()
+        c.execute("UPDATE books SET path=? WHERE id=?", (new_path, book_id))
+        self.conn.commit()
+
+    def delete_book(self, book_id):
+        """删除书籍及其所有相关数据"""
+        c = self.conn.cursor()
+        # 删除书籍
+        c.execute("DELETE FROM books WHERE id=?", (book_id,))
+        # 删除阅读进度
+        c.execute("DELETE FROM progress WHERE book_id=?", (book_id,))
+        # 删除书签
+        c.execute("DELETE FROM bookmarks WHERE book_id=?", (book_id,))
+        # 删除阅读统计
+        c.execute("DELETE FROM stats WHERE book_id=?", (book_id,))
+        self.conn.commit()

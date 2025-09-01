@@ -26,7 +26,9 @@ KEYS_HELP = [
     "? 帮助",
     "q 退出",
     "t 阅读统计",
-    "T 全部统计"
+    "T 全部统计",
+    "x 删除书籍",
+    "空格 老板键"
 ]
 
 def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None):
@@ -46,8 +48,23 @@ def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None):
     stdscr.addstr(y+1, x+2, prompt)
     stdscr.attroff(curses.color_pair(color_pair) | curses.A_BOLD)
     stdscr.refresh()
+    
+    # 使用更安全的方法处理输入
     curses.echo()
-    val = stdscr.getstr(y+1, x+2+len(prompt), maxlen).decode().strip()
+    try:
+        # 使用getstr但捕获可能的解码错误
+        val_bytes = stdscr.getstr(y+1, x+2+len(prompt), maxlen)
+        
+        # 尝试UTF-8解码，如果失败则使用替代方法
+        try:
+            val = val_bytes.decode('utf-8').strip()
+        except UnicodeDecodeError:
+            # 如果UTF-8解码失败，尝试使用latin-1编码
+            val = val_bytes.decode('latin-1').strip()
+    except Exception as e:
+        # 如果出现任何异常，返回空字符串
+        val = ""
+    
     curses.noecho()
     return val
 
@@ -93,7 +110,7 @@ class NovelReader:
         self.draw_border()
         
         # 显示标题
-        title = "📖 小说阅读器 - 加载中"
+        title = f"📖 {get_text('novel_reader', self.lang)} - {get_text('loading', self.lang)}"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
         self.stdscr.addstr(2, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -139,7 +156,7 @@ class NovelReader:
                     pass
         
         # 显示提示信息
-        tip = "请稍候，正在努力加载..."
+        tip = f"{get_text('wait_for_loading', self.lang)}..."
         self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
         self.stdscr.addstr(max_y - 3, max_x // 2 - len(tip) // 2, tip)
         self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
@@ -153,7 +170,7 @@ class NovelReader:
         line_spacing = self.settings["line_spacing"]
         
         # 显示加载屏幕
-        self.show_loading_screen("初始化书籍加载")
+        self.show_loading_screen(get_text("loading_books", self.lang))
         time.sleep(0.5)  # 短暂延迟让用户看到初始画面
         
         # 进度回调函数
@@ -168,8 +185,8 @@ class NovelReader:
             self.show_loading_screen(message, progress)
         
         if book["type"] == "epub":
-            self.show_loading_screen("解析EPUB文件结构")
-            chapters = parse_epub(book["path"], width, height, line_spacing)
+            self.show_loading_screen(get_text("parsing_epub_data", self.lang))
+            chapters = parse_epub(book["path"], width, height, line_spacing, self.lang)
             
             pages = []
             total_chapters = len(chapters)
@@ -181,21 +198,21 @@ class NovelReader:
                 
                 # 每处理一章更新一次显示
                 if i % 2 == 0:  # 每两章更新一次，避免过于频繁
-                    self.show_loading_screen(f"处理章节内容: {i+1}/{total_chapters}")
+                    self.show_loading_screen(f"{get_text('action_document_line', self.lang)}: {i+1}/{total_chapters}")
             
             self.current_pages = pages
-            self.show_loading_screen("EPUB处理完成")
+            self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         else:
             # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
             self.current_pages = build_pages_from_file(
-                book["path"], width, height, line_spacing, progress_callback
+                book["path"], width, height, line_spacing, progress_callback, self.lang
             )
-            self.show_loading_screen("文本处理完成")
+            self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         # 在解析完成后检查是否为空
         if not self.current_pages:
-            self.current_pages = [["空文件或文件内容为空"]]
+            self.current_pages = [[get_text("empty_file_or_cannot_read", self.lang)]]
         
 
         self.current_book = book
@@ -203,11 +220,14 @@ class NovelReader:
         self.highlight_lines = set()
 
     def show_bookshelf(self):
+        """显示书架界面，支持方向键导航和回车选择"""
         books_per_page = max(1, self.get_safe_height() - 8)
         page = 0
         search_keyword = ""
-        # 修改排序方式为按标题升序
+        # 检查书籍存在状态
+        self.bookshelf.check_books_existence()
         filtered_books = sorted(self.bookshelf.books, key=lambda x: x["title"].lower())
+        current_selection = 0  # 当前选中的行在当前页的索引
         book_selected = False
         
         while not book_selected and self.running:
@@ -217,24 +237,37 @@ class NovelReader:
             total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
             start_idx = page * books_per_page
             end_idx = min(start_idx + books_per_page, total_books)
+            current_page_books = filtered_books[start_idx:end_idx]
+            
             title_str = "📚 " + get_text("bookshelf", self.lang) + f" [{page+1}/{total_pages}]"
             if search_keyword:
-                title_str += f" | 搜索: {search_keyword}"
+                title_str += f" | {get_text("search", self.lang)}: {search_keyword}"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             
-            for idx, book in enumerate(filtered_books[start_idx:end_idx]):
-                line = f" {start_idx+idx+1:02d} | {book['title'][:30]:<30} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | 标签:{book['tags']}"
-                color = curses.color_pair(2) if idx % 2 else curses.color_pair(1)
+            for idx, book in enumerate(current_page_books):
+                exists = "" if book["exists"] else "❌"
+                line = f" {start_idx+idx+1:02d} | {exists} {book['title'][:30]:<30} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | {get_text('tag', self.lang)}:{book['tags']}"
+                
+                # 根据文件是否存在设置颜色
+                if not book["exists"]:
+                    color = curses.color_pair(3)  # 红色，表示文件不存在
+                else:
+                    color = curses.color_pair(2) if idx % 2 else curses.color_pair(1)
+                
+                # 如果是当前选中的行，添加反色效果
+                if idx == current_selection:
+                    color |= curses.A_REVERSE
+                    
                 self.stdscr.attron(color | curses.A_BOLD)
                 self.stdscr.addstr(idx+2, 2, line[:max_x-3])
                 self.stdscr.attroff(color | curses.A_BOLD)
-                
+                    
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.addstr(books_per_page+3, 2,
-                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)}  [n]下一页  [p]上一页  [/]搜索书名  [q]{get_text('exit', self.lang)}")
-            self.stdscr.addstr(books_per_page+5, 2, "输入小说序号并回车可选书")
+                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)}  [/] {get_text('search', self.lang)}  [x] {get_text('delete', self.lang)}  [q] {get_text('exit', self.lang)}")
+            self.stdscr.addstr(books_per_page+5, 2, f"[↑↓] {get_text('move', self.lang)} [Enter] {get_text('select', self.lang)}")
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
             
@@ -243,37 +276,92 @@ class NovelReader:
                 path = input_box(self.stdscr, get_text("input_path", self.lang), maxlen=120)
                 if path:
                     self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                    # 刷新书籍列表
+                    self.bookshelf.books = self.bookshelf.load_books()
                     filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
             elif c == ord('d'):
                 dir_path = input_box(self.stdscr, get_text("input_dir", self.lang), maxlen=120)
                 if dir_path:
                     self.bookshelf.add_dir(dir_path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                    # 刷新书籍列表
+                    self.bookshelf.books = self.bookshelf.load_books()
                     filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
             elif c == ord('/'):
-                kw = input_box(self.stdscr, "请输入书名关键词：", maxlen=30)
+                kw = input_box(self.stdscr, get_text("input_search", self.lang), maxlen=30)
                 search_keyword = kw
                 page = 0
+                current_selection = 0
                 filtered_books = self.bookshelf.search_books(search_keyword) if search_keyword else self.bookshelf.books
+            elif c == ord('x'):  # 进入删除界面
+                self.show_book_deletion()
+                # 刷新书籍列表
+                self.bookshelf.books = self.bookshelf.load_books()
+                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
+                current_selection = 0
             elif c == ord('q'):
                 self.running = False
                 break
-            elif c == ord('n') and page < total_pages - 1:
-                page += 1
-            elif c == ord('p') and page > 0:
-                page -= 1
-            elif c in [10, 13]:  # 回车键
-                idx_str = input_box(self.stdscr, "序号: ", maxlen=8)
-                try:
-                    idx = int(idx_str) - 1
-                    if 0 <= idx < total_books:
-                        self.load_book(filtered_books[idx])
-                        book_selected = True
+            elif c == curses.KEY_UP:  # 上箭头
+                if current_selection > 0:
+                    current_selection -= 1
+                # 如果当前在第一行，且不是第一页，可以翻到上一页并选中最后一本书
+                elif current_selection == 0 and page > 0:
+                    page -= 1
+                    current_selection = books_per_page - 1
+            elif c == curses.KEY_DOWN:  # 下箭头
+                if current_selection < len(current_page_books) - 1:
+                    current_selection += 1
+                # 如果当前在最后一行的下一页还有书，则翻到下一页并选中第一本书
+                elif current_selection == len(current_page_books) - 1 and page < total_pages - 1:
+                    page += 1
+                    current_selection = 0
+            elif c == curses.KEY_NPAGE or c == ord('n'):  # Page Down键
+                if page < total_pages - 1:
+                    page += 1
+                    current_selection = 0
+            elif c == curses.KEY_PPAGE or c == ord('p'):  # Page Up键
+                if page > 0:
+                    page -= 1
+                    current_selection = 0
+            elif c in (10, 13):  # 回车键选择当前书籍
+                if current_page_books:
+                    book = current_page_books[current_selection]
+                    if not book["exists"]:
+                        # 文件不存在，提示更新路径
+                        self.update_missing_book_path(book["id"])
                     else:
-                        self.stdscr.addstr(books_per_page+9, 2, "序号超范围！")
+                        self.load_book(book)
+                        book_selected = True
+            elif c in range(48, 58):  # 数字键0-9，支持快速跳转
+                # 保存当前按键
+                key_char = chr(c)
+                # 显示输入的数字
+                self.stdscr.addstr(books_per_page+7, 2, f"{get_text('input_no', self.lang)}: {key_char}")
+                self.stdscr.refresh()
+                
+                # 等待可能的第二个数字（两位数）
+                second_c = self.stdscr.getch()
+                if second_c in range(48, 58):  # 第二个数字
+                    key_char += chr(second_c)
+                    self.stdscr.addstr(books_per_page+7, 2, f"{get_text('input_no', self.lang)}: {key_char}")
+                    self.stdscr.refresh()
+                    
+                try:
+                    idx = int(key_char) - 1
+                    if 0 <= idx < total_books:
+                        book = filtered_books[idx]
+                        if not book["exists"]:
+                            # 文件不存在，提示更新路径
+                            self.update_missing_book_path(book["id"])
+                        else:
+                            self.load_book(book)
+                            book_selected = True
+                    else:
+                        self.stdscr.addstr(books_per_page+7, 2, get_text('no_limited', self.lang))
                         self.stdscr.refresh()
                         time.sleep(1)
                 except:
-                    self.stdscr.addstr(books_per_page+9, 2, "输入无效！")
+                    self.stdscr.addstr(books_per_page+7, 2, get_text('invalid', self.lang))
                     self.stdscr.refresh()
                     time.sleep(1)
 
@@ -311,7 +399,7 @@ class NovelReader:
 
         # 添加对空页面的检查
         if not self.current_pages:
-            empty_msg = "文件为空或无法解析内容"
+            empty_msg = f"{get_text('empty_file_or_cannot_read', self.lang)}"
             self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
             self.stdscr.addstr(margin + height // 2, max_x // 2 - len(empty_msg) // 2, empty_msg)
             self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
@@ -323,7 +411,7 @@ class NovelReader:
             progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
             bar_len = int(progress / 5)
             
-            title_str = f"《{self.current_book['title']}》阅读进度:[{'█'*bar_len}{'-'*(20-bar_len)}] {progress:3d}%"
+            title_str = f"《{self.current_book['title']}》{get_text('reading_progress', self.lang)}:[{'█'*bar_len}{'-'*(20-bar_len)}] {progress:3d}%"
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(margin, max_x // 2 - len(title_str)//2, title_str[:max_x-4])
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -366,7 +454,7 @@ class NovelReader:
             
         # 显示朗读状态
         if self.is_reading:
-            reading_status = "🔊 朗读中 - 按r停止"
+            reading_status = f"🔊 {get_text('aloud_r2_stop', self.lang)}"
             self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
             self.stdscr.addstr(margin+height+3, 2, reading_status[:max_x-4])
             self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
@@ -465,26 +553,26 @@ class NovelReader:
         self.stdscr.addstr(0, max_x // 2 - 5, get_text("bookmark_list", self.lang))
         self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
         for i, (page, comment) in enumerate(bookmarks[:max_y-8]):
-            self.stdscr.addstr(i+2, 4, f"{i+1:02d}. 第{page+1}页: {comment}"[:max_x-8])
+            self.stdscr.addstr(i+2, 4, f"{i+1:02d}. {get_text('page_no', self.lang).format(page=page+1)}: {comment}"[:max_x-8])
         self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-        self.stdscr.addstr(max_y-4, 4, "输入书签序号并回车跳转，q退出")
+        self.stdscr.addstr(max_y-4, 4, get_text('input_jump_page_quit', self.lang))
         self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
         self.stdscr.refresh()
         c = self.stdscr.getch()
         if c == ord('q'):
             return
         elif c in [10, 13]:
-            idx_str = input_box(self.stdscr, "序号: ", maxlen=8)
+            idx_str = input_box(self.stdscr, f"{get_text('number', self.lang)}: ", maxlen=8)
             try:
                 idx = int(idx_str) - 1
                 if 0 <= idx < len(bookmarks):
                     self.current_page_idx = bookmarks[idx][0]
                 else:
-                    self.stdscr.addstr(max_y-2, 4, "序号超范围！")
+                    self.stdscr.addstr(max_y-2, 4, get_text('no_unlimited', self.lang))
                     self.stdscr.refresh()
                     time.sleep(1)
             except:
-                self.stdscr.addstr(max_y-2, 4, "输入无效！")
+                self.stdscr.addstr(max_y-2, 4, get_text('invalid', self.lang))
                 self.stdscr.refresh()
                 time.sleep(1)
 
@@ -813,7 +901,7 @@ class NovelReader:
         while True:
             self.stdscr.clear()
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-            self.stdscr.addstr(0, max_x // 2 - 7, "📚 全部书籍阅读统计")
+            self.stdscr.addstr(0, max_x // 2 - 7, f"📚 {get_text('stats_all', self.lang)}")
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             start_idx = page * stats_per_page
             end_idx = min(start_idx + stats_per_page, total_books)
@@ -821,11 +909,11 @@ class NovelReader:
             for book in books[start_idx:end_idx]:
                 book_id = book["id"]
                 stat = all_stats.get(book_id, {"total_time":0, "days":0})
-                line = f"{book['title'][:20]:<20} | {stat['total_time']//60:>4} 分钟 | {stat['days']} 天"
+                line = f"{book['title'][:20]:<20} | {stat['total_time']//60:>4} {get_text('minutes', self.lang)} | {stat['days']} {get_text('day', self.lang)}"
                 self.stdscr.addstr(y, 4, line[:max_x-8])
                 y += 1
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-            page_info = f"第{page+1}/{total_pages}页 [n]下一页 [p]上一页 [q]返回"
+            page_info = f"{get_text('page_no', self.lang).format(page=f'{page+1}/{total_pages}')} [n] {get_text('next_page', self.lang)} [p] {get_text('pre_page', self.lang)} [q] {get_text('back', self.lang)}"
             self.stdscr.addstr(max_y-3, 4, page_info[:max_x-8])
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
@@ -843,7 +931,7 @@ class NovelReader:
         if self.boss_mode:
             # 进入老板键模式
             self.terminal_input = ""
-            self.terminal_output = ["终端模拟器已启动", "输入命令或按空格+回车返回", "----------------------------------------"]
+            self.terminal_output = [f"{get_text('terminal_mode_started', self.lang)}", f"{get_text('terminal_help_text2', self.lang)}", "----------------------------------------"]
             self.terminal_cursor = 0
         else:
             # 退出老板键模式
@@ -891,7 +979,7 @@ class NovelReader:
         try:
             if command.lower() in ['exit', 'quit']:
                 self.terminal_output.append(f"$ {command}")
-                self.terminal_output.append("使用空格+回车退出终端模式")
+                self.terminal_output.append(f"{get_text('terminal_help_text2', self.lang)}")
             else:
                 self.terminal_output.append(f"$ {command}")
                 
@@ -909,12 +997,12 @@ class NovelReader:
                 if result.stderr:
                     self.terminal_output.extend(result.stderr.splitlines())
                 if result.returncode != 0:
-                    self.terminal_output.append(f"命令退出代码: {result.returncode}")
+                    self.terminal_output.append(f"{get_text('command_exists_code', self.lang)}: {result.returncode}")
                     
         except subprocess.TimeoutExpired:
-            self.terminal_output.append("命令执行超时")
+            self.terminal_output.append(f"{get_text('command_time_unlimit', self.lang)}")
         except Exception as e:
-            self.terminal_output.append(f"执行错误: {str(e)}")
+            self.terminal_output.append(f"{get_text('execute_fail', self.lang)}: {str(e)}")
         
         # 限制输出行数
         if len(self.terminal_output) > 100:
@@ -929,7 +1017,7 @@ class NovelReader:
         max_y, max_x = self.stdscr.getmaxyx()
         
         # 显示终端标题
-        title = "💻 终端模式"
+        title = f"💻 {get_text('terminal_title', self.lang)}"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
         self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -977,12 +1065,156 @@ class NovelReader:
                 pass
         
         # 显示帮助提示
-        help_text = "按空格+回车返回 | ↑↓浏览历史命令"
+        help_text = f"{get_text('terminal_help_text', self.lang)}"
         self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
         self.stdscr.addstr(max_y - 1, max_x // 2 - len(help_text) // 2, help_text)
         self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
         
         self.stdscr.refresh()
+
+    def show_book_deletion(self):
+        """显示书籍删除界面"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        books_per_page = max(1, self.get_safe_height() - 8)
+        page = 0
+        selected_books = set()  # 存储选中的书籍ID
+        current_selection = 0   # 当前选中的行在当前页的索引
+        
+        while True:
+            self.stdscr.clear()
+            
+            # 检查书籍存在状态
+            self.bookshelf.check_books_existence()
+            
+            # 显示标题
+            title = f"🗑️ {get_text('book_deletion_title', self.lang)}"
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示书籍列表
+            total_books = len(self.bookshelf.books)
+            total_pages = (total_books + books_per_page - 1) // books_per_page if total_books else 1
+            start_idx = page * books_per_page
+            end_idx = min(start_idx + books_per_page, total_books)
+            current_page_books = self.bookshelf.books[start_idx:end_idx]
+            
+            for idx, book in enumerate(current_page_books):
+                line_num = start_idx + idx + 1
+                selected = "[✓]" if book["id"] in selected_books else "[ ]"
+                exists = "" if book["exists"] else "❌"
+                line = f" {selected} {line_num:02d} | {exists} {book['title'][:25]:<25} | {book['author'][:15]:<15}"
+                
+                # 根据选择状态和存在状态设置颜色
+                if not book["exists"]:
+                    color = curses.color_pair(3)  # 红色，表示文件不存在
+                elif book["id"] in selected_books:
+                    color = curses.color_pair(2) | curses.A_BOLD  # 高亮，表示已选择
+                else:
+                    color = curses.color_pair(1)  # 普通颜色
+                    
+                # 如果是当前选中的行，添加反色效果
+                if idx == current_selection:
+                    color |= curses.A_REVERSE
+                    
+                self.stdscr.attron(color)
+                self.stdscr.addstr(idx + 2, 2, line[:max_x-4])
+                self.stdscr.attroff(color)
+            
+            # 显示页码和帮助信息
+            page_info = f"{get_text('page_no', self.lang).format(page=f'{page+1}/{total_pages}')}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(books_per_page + 3, 2, page_info)
+            help_text = f"{get_text('book_deletion_help', self.lang)}"
+            self.stdscr.addstr(books_per_page + 4, 2, help_text[:max_x-4])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            # 处理输入
+            c = self.stdscr.getch()
+            if c == ord('q'):  # 退出
+                break
+            elif c == curses.KEY_UP:  # 上箭头
+                if current_selection > 0:
+                    current_selection -= 1
+                # 如果当前在第一行，且不是第一页，可以翻到上一页并选中最后一本书
+                elif current_selection == 0 and page > 0:
+                    page -= 1
+                    current_selection = books_per_page - 1
+            elif c == curses.KEY_DOWN:  # 下箭头
+                if current_selection < len(current_page_books) - 1:
+                    current_selection += 1
+                # 如果当前在最后一行的下一页还有书，则翻到下一页并选中第一本书
+                elif current_selection == len(current_page_books) - 1 and page < total_pages - 1:
+                    page += 1
+                    current_selection = 0
+            elif c == ord('n') and page < total_pages - 1:  # 下一页
+                page += 1
+                current_selection = 0  # 翻页后重置选中行为第一行
+            elif c == ord('p') and page > 0:  # 上一页
+                page -= 1
+                current_selection = 0  # 翻页后重置选中行为第一行
+            elif c == ord('a'):  # 全选
+                selected_books = set(book["id"] for book in self.bookshelf.books)
+            elif c == ord('c'):  # 取消全选
+                selected_books.clear()
+            elif c == ord(' '):  # 选择/取消选择当前行
+                if current_page_books:
+                    book_id = current_page_books[current_selection]["id"]
+                    if book_id in selected_books:
+                        selected_books.remove(book_id)
+                    else:
+                        selected_books.add(book_id)
+            elif c in (10, 13):  # 回车键，确认删除
+                if selected_books:
+                    selected_books_len=len(selected_books)
+                    # 确认删除
+                    confirm = input_box(self.stdscr, f"{get_text('book_deletion_confirm', self.lang).format(books=selected_books_len)} (y/N): ", maxlen=1)
+                    if confirm.lower() == 'y':
+                        self.bookshelf.delete_books(selected_books)
+                        selected_books.clear()
+                        # 显示删除成功消息
+                        msg = f"{get_text('book_deletion_success', self.lang).format(books=selected_books_len)}"
+                        self.stdscr.addstr(books_per_page + 6, 2, msg)
+                        self.stdscr.refresh()
+                        time.sleep(1)
+                        # 删除后重新加载书籍列表
+                        self.bookshelf.books = self.bookshelf.load_books()
+                        # 如果当前页没有书籍了，且不是第一页，则回到上一页
+                        if not self.bookshelf.books and page > 0:
+                            page -= 1
+                        # 调整当前选中行，确保不越界
+                        if current_selection >= len(current_page_books):
+                            current_selection = max(0, len(current_page_books) - 1)
+        
+        # 返回书架主界面
+        self.show_bookshelf()
+
+    def update_missing_book_path(self, book_id):
+        """更新丢失书籍的路径"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        book = self.bookshelf.get_book_by_id(book_id)
+        if not book:
+            return
+            
+        new_path = input_box(self.stdscr, f"{get_text('books', self.lang)} '{book['title']}' {get_text('unfind_type_new', self.lang)}: ", maxlen=200)
+        if new_path and os.path.exists(new_path):
+            if self.bookshelf.update_book_path(book_id, new_path):
+                msg = f"{get_text('update_path_success', self.lang)}"
+                self.stdscr.addstr(max_y-2, 2, msg)
+                self.stdscr.refresh()
+                time.sleep(1)
+            else:
+                msg = f"{get_text('update_path_fail', self.lang)}"
+                self.stdscr.addstr(max_y-2, 2, msg)
+                self.stdscr.refresh()
+                time.sleep(1)
+        else:
+            msg = f"{get_text('path_not_exists', self.lang)}"
+            self.stdscr.addstr(max_y-2, 2, msg)
+            self.stdscr.refresh()
+            time.sleep(1)
 
     def run(self):
         if self.current_book:
