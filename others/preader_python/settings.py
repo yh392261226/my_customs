@@ -21,6 +21,7 @@ DEFAULT_SETTINGS = {
     "line_spacing": 1,
     "status_bar": True,
     "auto_page_interval": 5,
+    "speech_rate": 200,  # 添加语速设置，默认200（pyttsx3的默认值）
     "remind_interval": 0
 }
 

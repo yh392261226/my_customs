@@ -3,3 +3,4 @@ chardet
 ebooklib
 beautifulsoup4
 cjkwrap
+rich

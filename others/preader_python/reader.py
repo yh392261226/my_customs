@@ -1,3 +1,13 @@
+try:
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich import box
+    from rich.text import Text
+    from rich.layout import Layout
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
 import subprocess
 import shlex
 import tempfile
@@ -12,27 +22,10 @@ from stats import StatsManager
 from ui_theme import init_colors, BORDER_CHARS, color_pair_idx
 from lang import get_text
 from epub_utils import parse_epub
+from chart_utils import display_rich_chart_in_terminal
 
-KEYS_HELP = [
-    "←/→/PgUp/PgDn/j/k 翻页",
-    "a 自动翻页",
-    "b 添加书签",
-    "B 书签列表",
-    "g 跳页",
-    "m 书架",
-    "s 设置",
-    "r 朗读/停止",
-    "/ 搜索",
-    "? 帮助",
-    "q 退出",
-    "t 阅读统计",
-    "T 全部统计",
-    "x 删除书籍",
-    "空格 老板键"
-]
-
-def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None):
-    """美化输入框，居中显示"""
+def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None, default=""):
+    """美化输入框，居中显示，支持默认值"""
     max_y, max_x = stdscr.getmaxyx()
     if y is None:
         y = max_y // 2 - 1
@@ -47,6 +40,11 @@ def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None):
     # 提示
     stdscr.addstr(y+1, x+2, prompt)
     stdscr.attroff(curses.color_pair(color_pair) | curses.A_BOLD)
+    
+    # 显示默认值
+    if default:
+        stdscr.addstr(y+1, x+2+len(prompt), default)
+    
     stdscr.refresh()
     
     # 使用更安全的方法处理输入
@@ -66,6 +64,11 @@ def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None):
         val = ""
     
     curses.noecho()
+    
+    # 如果用户没有输入任何内容，返回默认值
+    if not val and default:
+        return default
+        
     return val
 
 class NovelReader:
@@ -76,6 +79,8 @@ class NovelReader:
         self.db = DBManager()
         self.stats = StatsManager()
         self.engine = pyttsx3.init()
+        # 设置初始语速
+        self.engine.setProperty('rate', self.settings["speech_rate"])
         self.current_book = None
         self.current_pages = []
         self.current_page_idx = 0
@@ -766,7 +771,7 @@ class NovelReader:
             self.stdscr.addstr(margin+height+3, 2, reading_status[:max_x-4])
             self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
             
-        help_str = " | ".join(KEYS_HELP)
+        help_str = " | ".join(self.get_help_list())
         self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
         self.stdscr.addstr(margin+height+4, 2, help_str[:max_x-4])
         self.stdscr.attroff(curses.color_pair(2) | curses.A_DIM)
@@ -839,6 +844,17 @@ class NovelReader:
             if self.is_reading:
                 self.stop_reading()
             self.show_all_books_stats()
+        elif c == ord('x'):
+            if self.is_reading:
+                self.stop_reading()
+            self.show_book_deletion()
+        elif c == ord('R'):  # 大写R键 - 显示Rich统计图表
+            if self.is_reading:
+                self.stop_reading()
+            if self.current_book:
+                self.show_rich_statistics(self.current_book["id"])
+            else:
+                self.show_rich_statistics()
 
     def next_page(self):
         if self.current_page_idx < len(self.current_pages)-1:
@@ -853,35 +869,135 @@ class NovelReader:
             self.db.save_progress(self.current_book["id"], self.current_page_idx)
 
     def show_bookmarks(self):
+        """显示书签列表，支持编辑和删除"""
         bookmarks = self.db.get_bookmarks(self.current_book["id"])
         max_y, max_x = self.stdscr.getmaxyx()
-        self.stdscr.clear()
-        self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
-        self.stdscr.addstr(0, max_x // 2 - 5, get_text("bookmark_list", self.lang))
-        self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
-        for i, (page, comment) in enumerate(bookmarks[:max_y-8]):
-            self.stdscr.addstr(i+2, 4, f"{i+1:02d}. {get_text('page_no', self.lang).format(page=page+1)}: {comment}"[:max_x-8])
-        self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-        self.stdscr.addstr(max_y-4, 4, get_text('input_jump_page_quit', self.lang))
-        self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
-        self.stdscr.refresh()
-        c = self.stdscr.getch()
-        if c == ord('q'):
+        
+        if not bookmarks:
+            self.stdscr.clear()
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - 10, f"📑 {get_text('bookmark_list', self.lang)}")
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(2, 4, f"{get_text('none_bookmark', self.lang)}")
+            self.stdscr.addstr(4, 4, f"{get_text('press_anykey_back', self.lang)}")
+            self.stdscr.refresh()
+            self.stdscr.getch()
             return
-        elif c in [10, 13]:
-            idx_str = input_box(self.stdscr, f"{get_text('number', self.lang)}: ", maxlen=8)
-            try:
-                idx = int(idx_str) - 1
-                if 0 <= idx < len(bookmarks):
-                    self.current_page_idx = bookmarks[idx][0]
+            
+        current_selection = 0
+        bookmarks_per_page = max(1, max_y - 8)
+        page = 0
+        
+        while True:
+            self.stdscr.clear()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            # 显示标题
+            title = f"📑 {get_text('bookmark_list', self.lang)} ({page+1}/{(len(bookmarks) + bookmarks_per_page - 1) // bookmarks_per_page})"
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示书签列表
+            start_idx = page * bookmarks_per_page
+            end_idx = min(start_idx + bookmarks_per_page, len(bookmarks))
+            
+            for idx, (page_idx, comment) in enumerate(bookmarks[start_idx:end_idx]):
+                line = f"{start_idx+idx+1:02d}. {get_text('page_no', self.lang).format(page=f'{page_idx+1}')}: {comment}"
+                if idx == current_selection:
+                    self.stdscr.attron(curses.color_pair(2) | curses.A_REVERSE)
+                    self.stdscr.addstr(idx+2, 4, line[:max_x-8])
+                    self.stdscr.attroff(curses.color_pair(2) | curses.A_REVERSE)
                 else:
-                    self.stdscr.addstr(max_y-2, 4, get_text('no_unlimited', self.lang))
-                    self.stdscr.refresh()
-                    time.sleep(1)
-            except:
-                self.stdscr.addstr(max_y-2, 4, get_text('invalid', self.lang))
-                self.stdscr.refresh()
-                time.sleep(1)
+                    self.stdscr.addstr(idx+2, 4, line[:max_x-8])
+            
+            # 显示操作提示
+            help_text = f"[Enter] {get_text('Jump', self.lang)} [e] {get_text('edit', self.lang)} [d] {get_text('delete', self.lang)} [q] {get_text('back', self.lang)} [n] {get_text('next_page', self.lang)} [p] {get_text('pre_page', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(max_y-3, 4, help_text[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c == curses.KEY_UP:
+                if current_selection > 0:
+                    current_selection -= 1
+                elif page > 0:
+                    page -= 1
+                    current_selection = bookmarks_per_page - 1
+            elif c == curses.KEY_DOWN:
+                if current_selection < min(bookmarks_per_page, len(bookmarks) - page * bookmarks_per_page) - 1:
+                    current_selection += 1
+                elif page < (len(bookmarks) - 1) // bookmarks_per_page:
+                    page += 1
+                    current_selection = 0
+            elif c == ord('n') and page < (len(bookmarks) - 1) // bookmarks_per_page:
+                page += 1
+                current_selection = 0
+            elif c == ord('p') and page > 0:
+                page -= 1
+                current_selection = 0
+            elif c in (10, 13):  # 回车键 - 跳转到书签
+                selected_bookmark = bookmarks[start_idx + current_selection]
+                self.current_page_idx = selected_bookmark[0]
+                break
+            elif c == ord('e'):  # 编辑书签
+                selected_bookmark = bookmarks[start_idx + current_selection]
+                self.edit_bookmark(selected_bookmark)
+                # 刷新书签列表
+                bookmarks = self.db.get_bookmarks(self.current_book["id"])
+            elif c == ord('d'):  # 删除书签
+                selected_bookmark = bookmarks[start_idx + current_selection]
+                self.delete_bookmark(selected_bookmark)
+                # 刷新书签列表
+                bookmarks = self.db.get_bookmarks(self.current_book["id"])
+                # 如果当前页没有书签了，且不是第一页，则回到上一页
+                if not bookmarks and page > 0:
+                    page -= 1
+                # 调整当前选中行，确保不越界
+                if current_selection >= len(bookmarks) - page * bookmarks_per_page:
+                    current_selection = max(0, len(bookmarks) - page * bookmarks_per_page - 1)
+
+    def edit_bookmark(self, bookmark):
+        """编辑书签"""
+        page_idx, comment = bookmark
+        new_comment = input_box(self.stdscr, f"{get_text('edit_bookmark_comment', self.lang)}: ", maxlen=100, default=comment)
+        if new_comment is not None:
+            # 获取书签ID
+            all_bookmarks = self.db.get_bookmarks(self.current_book["id"])
+            bookmark_id = None
+            for i, (bm_page, bm_comment) in enumerate(all_bookmarks):
+                if bm_page == page_idx and bm_comment == comment:
+                    # 假设书签ID是行号+1（因为书签列表从1开始）
+                    bookmark_id = i + 1
+                    break
+            
+            if bookmark_id:
+                # 更新书签
+                self.db.update_bookmark(bookmark_id, page_idx, new_comment)
+
+    def delete_bookmark(self, bookmark):
+        """删除书签"""
+        page_idx, comment = bookmark
+        
+        # 确认删除
+        confirm = input_box(self.stdscr, f"{get_text('confirm_delete_bookmark', self.lang)} '{comment}'? (y/N): ", maxlen=1)
+        if confirm and confirm.lower() == 'y':
+            # 获取书签ID
+            all_bookmarks = self.db.get_bookmarks(self.current_book["id"])
+            bookmark_id = None
+            for i, (bm_page, bm_comment) in enumerate(all_bookmarks):
+                if bm_page == page_idx and bm_comment == comment:
+                    # 假设书签ID是行号+1（因为书签列表从1开始）
+                    bookmark_id = i + 1
+                    break
+            
+            if bookmark_id:
+                # 删除书签
+                self.db.delete_bookmark(bookmark_id)
 
     def jump_page(self):
         max_y, max_x = self.stdscr.getmaxyx()
@@ -980,17 +1096,18 @@ class NovelReader:
 
     def change_settings(self):
         options = [
-            ("width", "宽度", int, 40, 300),
-            ("height", "高度", int, 10, 80),
+            ("width", f"{get_text('width', self.lang)}", int, 40, 300),
+            ("height", f"{get_text('height', self.lang)}", int, 10, 80),
             ("theme", get_text("input_theme", self.lang), str, ["dark", "light", "eye"]),
             ("lang", get_text("input_lang", self.lang), str, ["zh", "en"]),
             ("font_color", get_text("input_font_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
             ("bg_color", get_text("input_bg_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
             ("border_style", get_text("input_border_style", self.lang), str, ["round","double","single","bold","none"]),
             ("border_color", get_text("input_border_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
-            ("line_spacing", "行距", int, 1, 5),
-            ("auto_page_interval", "自动翻页秒", int, 1, 60),
-            ("status_bar", "状态栏显示", bool, [0, 1]),
+            ("line_spacing", f"{get_text('line_spacing', self.lang)}", int, 1, 5),
+            ("auto_page_interval", f"{get_text('auto_pager_sec', self.lang)}", int, 1, 60),
+            ("speech_rate", f"{get_text('speech_rate', self.lang)}", int, 50, 400),  # 添加语速设置
+            ("status_bar", f"{get_text('statusbar_switch', self.lang)}", bool, [0, 1]),
             ("remind_interval", get_text("input_remind_interval", self.lang), int, 0, 120),
         ]
         curr = 0
@@ -998,7 +1115,7 @@ class NovelReader:
             self.stdscr.clear()
             max_y, max_x = self.stdscr.getmaxyx()
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-            self.stdscr.addstr(0, max_x // 2 - 6, "⚙️ 设置界面")
+            self.stdscr.addstr(0, max_x // 2 - 6, f"⚙️ {get_text('setting_page', self.lang)}")
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             for idx, (key, desc, typ, *meta) in enumerate(options):
                 val = self.settings[key]
@@ -1010,7 +1127,7 @@ class NovelReader:
                 else:
                     self.stdscr.addstr(idx+2, 4, line[:max_x-8])
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-            self.stdscr.addstr(len(options)+4, 4, "回车修改，q返回")
+            self.stdscr.addstr(len(options)+4, 4, f"{get_text('enter_confirm_q_back', self.lang)}")
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
             c = self.stdscr.getch()
@@ -1028,7 +1145,7 @@ class NovelReader:
                 break
             elif c in (curses.KEY_ENTER, 10, 13):
                 key, desc, typ, *meta = options[curr]
-                newval = input_box(self.stdscr, f"{desc}新值: ", maxlen=20)
+                newval = input_box(self.stdscr, f"{desc}{get_text('new_val', self.lang)}: ", maxlen=20)
                 valid = False
                 if typ == int:
                     try:
@@ -1036,6 +1153,9 @@ class NovelReader:
                         if len(meta)==2 and (meta[0] <= v <= meta[1]):
                             self.settings[key] = v
                             valid = True
+                            # 如果是语速设置，立即应用
+                            if key == "speech_rate":
+                                self.set_speech_rate(v)
                     except:
                         pass
                 elif typ == bool:
@@ -1073,7 +1193,7 @@ class NovelReader:
         self.draw_border()
         
         # 标题
-        title = "💡 帮助中心"
+        title = f"💡 {get_text('help_center', self.lang)}"
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
         self.stdscr.addstr(2, max_x // 2 - len(title) // 2, title)
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
@@ -1087,54 +1207,55 @@ class NovelReader:
         # 分类显示帮助信息
         categories = [
             {
-                "title": "📖 阅读控制",
+                "title": f"📖 {get_text('help_t1', self.lang)}",
                 "items": [
                     ("←/→/PgUp/PgDn/j/k", "翻页"),
-                    ("a", "自动翻页"),
-                    ("g", "跳转到指定页"),
-                    ("/", "搜索文本")
+                    ("a", f"{get_text('help_t1_a', self.lang)}"),
+                    ("g", f"{get_text('help_t1_g', self.lang)}"),
+                    ("/", f"{get_text('help_t1_line', self.lang)}")
                 ]
             },
             {
-                "title": "🔖 书签功能",
+                "title": f"🔖 {get_text('help_t2', self.lang)}",
                 "items": [
-                    ("b", "添加书签"),
-                    ("B", "查看书签列表")
+                    ("b", f"{get_text('help_t2_b', self.lang)}"),
+                    ("B", f"{get_text('help_t2_bigb', self.lang)}")
                 ]
             },
             {
-                "title": "🎵 朗读功能",
+                "title": f"🎵 {get_text('help_t3', self.lang)}",
                 "items": [
-                    ("r", "开始/停止朗读")
+                    ("r", f"{get_text('help_t3_r', self.lang)}")
                 ]
             },
             {
-                "title": "📚 书籍管理",
+                "title": f"📚 {get_text('help_t4', self.lang)}",
                 "items": [
-                    ("m", "返回书架"),
-                    ("s", "设置选项")
+                    ("m", f"{get_text('help_t4_m', self.lang)}"),
+                    ("s", f"{get_text('help_t4_s', self.lang)}")
                 ]
             },
             {
-                "title": "📊 统计信息",
+                "title": f"📊 {get_text('help_t5', self.lang)}",
                 "items": [
-                    ("t", "本书阅读统计"),
-                    ("T", "全部书籍统计")
+                    ("t", f"{get_text('help_t5_t', self.lang)}"),
+                    ("T", f"{get_text('help_t5_bigt', self.lang)}"),
+                    ("R", f"{get_text('help_t5_bigr', self.lang)}")
                 ]
             },
             {
-                "title": "👔 老板键功能",
+                "title": f"👔 {get_text('help_t6', self.lang)}",
                 "items": [
-                    ("空格键", "隐藏/显示阅读器"),
-                    ("空格+回车", "从终端返回阅读器"),
-                    ("↑↓", "浏览命令历史")
+                    (f"{get_text('help_t6_key_space', self.lang)}", f"{get_text('help_t6_key_space_desc', self.lang)}"),
+                    (f"{get_text('help_t6_key_space_enter', self.lang)}", f"{get_text('help_t6_key_space_enter_desc', self.lang)}"),
+                    ("↑↓", f"{get_text('help_t6_key_move_desc', self.lang)}")
                 ]
             },
             {
-                "title": "⚙️ 系统操作",
+                "title": f"⚙️ {get_text('help_t7', self.lang)}",
                 "items": [
-                    ("?", "显示帮助"),
-                    ("q", "退出程序")
+                    ("?", f"{get_text('help_t7_ask', self.lang)}"),
+                    ("q", f"{get_text('help_t7_q', self.lang)}")
                 ]
             }
         ]
@@ -1166,7 +1287,7 @@ class NovelReader:
             y_pos += 1  # 分类之间的间隔
         
         # 底部提示
-        tip = "按任意键返回阅读界面"
+        tip = f"{get_text('press_anykey_back_reading', self.lang)}"
         self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
         self.stdscr.addstr(max_y - 3, max_x // 2 - len(tip) // 2, tip)
         self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
@@ -1180,25 +1301,45 @@ class NovelReader:
         self.stdscr.getch()
 
     def show_stats(self):
+        """显示书籍阅读统计，增加查看Rich图表的选项"""
         stats = self.stats.get_book_stats(self.current_book["id"])
         max_y, max_x = self.stdscr.getmaxyx()
         self.stdscr.clear()
         self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(0, max_x // 2 - 6, "📊 阅读统计")
+        self.stdscr.addstr(0, max_x // 2 - 6, f"📊 {get_text('stats', self.lang)}")
         self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(2, 4, f"小说：{self.current_book['title']}")
-        self.stdscr.addstr(3, 4, f"累计阅读时间：{stats['total_time']//60} 分钟")
-        self.stdscr.addstr(4, 4, f"阅读天数：{stats['days']} 天")
-        self.stdscr.addstr(6, 4, f"每日统计：")
-        for idx, (date, sec) in enumerate(stats["records"][:max_y-12]):
-            self.stdscr.addstr(7+idx, 6, f"{date}: {sec//60} 分钟")
-        self.stdscr.addstr(max_y-2, 4, "任意键返回")
+        self.stdscr.addstr(2, 4, f"{get_text('novel', self.lang)}：{self.current_book['title']}")
+        self.stdscr.addstr(3, 4, f"{get_text('stats_time', self.lang)}：{stats['total_time']//60} {get_text('minutes', self.lang)}")
+        self.stdscr.addstr(4, 4, f"{get_text('stats_days', self.lang)}：{stats['days']} {get_text('day', self.lang)}")
+        self.stdscr.addstr(6, 4, f"{get_text('stats_daily', self.lang)}：")
+        for idx, (date, sec) in enumerate(stats["records"][:max(max_y-12, 0)]):
+            if idx + 7 < max_y:
+                try:
+                    self.stdscr.addstr(7+idx, 6, f"{date}: {sec//60} {get_text('minutes', self.lang)}")
+                except curses.error:
+                    pass
+        
+        # 添加查看Rich图表的提示（仅在Rich可用时显示）
+        if RICH_AVAILABLE:
+            prompt = get_text('press_anykey_back_r_rich', self.lang)
+        else:
+            prompt = get_text('press_anykey_back', self.lang)
+        
+        if max_y - 4 >= 0:
+            try:
+                self.stdscr.addstr(max_y-4, 4, prompt[:max_x-8])
+            except curses.error:
+                pass
+        
         self.stdscr.refresh()
-        self.stdscr.getch()
+        
+        c = self.stdscr.getch()
+        if c == ord('R') and RICH_AVAILABLE:
+            self.show_rich_statistics(self.current_book["id"])
 
     def show_all_books_stats(self):
+        """显示所有书籍统计，增加查看Rich图表的选项"""
         all_stats = self.stats.get_all_books_stats()
-        # 修改排序方式为按标题升序
         books = sorted(self.bookshelf.books, key=lambda x: x["title"].lower())
         max_y, max_x = self.stdscr.getmaxyx()
         stats_per_page = max(1, max_y - 7)
@@ -1214,14 +1355,32 @@ class NovelReader:
             end_idx = min(start_idx + stats_per_page, total_books)
             y = 2
             for book in books[start_idx:end_idx]:
-                book_id = book["id"]
-                stat = all_stats.get(book_id, {"total_time":0, "days":0})
-                line = f"{book['title'][:20]:<20} | {stat['total_time']//60:>4} {get_text('minutes', self.lang)} | {stat['days']} {get_text('day', self.lang)}"
-                self.stdscr.addstr(y, 4, line[:max_x-8])
-                y += 1
+                if y < max_y:
+                    book_id = book["id"]
+                    stat = all_stats.get(book_id, {"total_time":0, "days":0})
+                    line = f"{book['title'][:20]:<20} | {stat['total_time']//60:>4} {get_text('minutes', self.lang)} | {stat['days']} {get_text('day', self.lang)}"
+                    try:
+                        self.stdscr.addstr(y, 4, line[:max_x-8])
+                    except curses.error:
+                        pass
+                    y += 1
+            
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
             page_info = f"{get_text('page_no', self.lang).format(page=f'{page+1}/{total_pages}')} [n] {get_text('next_page', self.lang)} [p] {get_text('pre_page', self.lang)} [q] {get_text('back', self.lang)}"
-            self.stdscr.addstr(max_y-3, 4, page_info[:max_x-8])
+            
+            if max_y - 4 >= 0:
+                try:
+                    self.stdscr.addstr(max_y-4, 4, page_info[:max_x-8])
+                except curses.error:
+                    pass
+            
+            # 添加查看Rich图表的提示（仅在Rich可用时显示）
+            if RICH_AVAILABLE and max_y - 3 >= 0:
+                try:
+                    self.stdscr.addstr(max_y-3, 4, get_text('r_view_all_charts', self.lang))
+                except curses.error:
+                    pass
+            
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
             c = self.stdscr.getch()
@@ -1231,6 +1390,8 @@ class NovelReader:
                 page += 1
             elif c == ord('p') and page > 0:
                 page -= 1
+            elif c == ord('R') and RICH_AVAILABLE:
+                self.show_rich_statistics()
 
     def toggle_boss_mode(self):
         """切换老板键模式 - 增强版"""
@@ -1240,7 +1401,7 @@ class NovelReader:
             self.terminal_input = ""
             self.terminal_output = [
                 f"{get_text('terminal_mode_started', self.lang)}", 
-                f"当前目录: {os.getcwd()}",
+                f"{get_text('current_dir', self.lang)}: {os.getcwd()}",
                 f"{get_text('terminal_help_text2', self.lang)}", 
                 "----------------------------------------"
             ]
@@ -1774,6 +1935,391 @@ class NovelReader:
                     else:
                         # 清空输入以便输入下一个标签
                         tag_input = ""
+
+    def set_speech_rate(self, rate):
+        """设置朗读语速"""
+        self.engine.setProperty('rate', rate)
+        self.settings["speech_rate"] = rate
+        self.settings.save()
+
+    def show_detailed_stats(self, book_id=None):
+        """显示详细的阅读统计图表"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        current_view = "daily"  # daily, weekly, monthly
+        time_unit = 0  # 0: 分钟, 1: 小时
+        
+        # 获取书籍标题
+        if book_id:
+            book = self.bookshelf.get_book_by_id(book_id)
+            title = f"📊 {book['title']} - {get_text('stats', self.lang)}"
+        else:
+            title = f"📊 {get_text('stats_all', self.lang)}"
+        
+        while True:
+            self.stdscr.clear()
+            
+            # 显示标题
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 获取统计数据
+            if current_view == "daily":
+                stats = self.stats.get_daily_stats(book_id)
+                view_title = get_text('daily_stats', self.lang)
+            elif current_view == "weekly":
+                stats = self.stats.get_weekly_stats(book_id)
+                view_title = get_text('weekly_stats', self.lang)
+            else:  # monthly
+                stats = self.stats.get_monthly_stats(book_id)
+                view_title = get_text('monthly_stats', self.lang)
+            
+            # 转换时间单位
+            if time_unit == 0:  # 分钟
+                stats_display = [(period, seconds // 60) for period, seconds in stats]
+                unit = get_text('minutes', self.lang)
+            else:  # 小时
+                stats_display = [(period, seconds // 3600) for period, seconds in stats]
+                unit = get_text('hours', self.lang)
+            
+            # 显示图表
+            self.display_stats_chart(stats_display, view_title, unit, max_y, max_x)
+            
+            # 显示操作提示
+            help_text = f"[d] {get_text('day_view', self.lang)} [w] {get_text('week_view', self.lang)} [m] {get_text('month_view', self.lang)} [u] {get_text('switch_unit', self.lang)}({unit}) [q] {get_text('back', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(max_y-2, 4, help_text[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c == ord('d'):
+                current_view = "daily"
+            elif c == ord('w'):
+                current_view = "weekly"
+            elif c == ord('m'):
+                current_view = "monthly"
+            elif c == ord('u'):
+                time_unit = 1 - time_unit  # 切换单位
+
+    def display_stats_chart(self, stats, title, unit, max_y, max_x):
+        """显示统计图表 - 修复位置计算错误"""
+        if not stats:
+            # 没有数据时显示提示
+            no_data_msg = get_text('none_stats', self.lang)
+            try:
+                self.stdscr.addstr(max_y // 2, max_x // 2 - len(no_data_msg) // 2, no_data_msg)
+            except curses.error:
+                pass  # 忽略绘制错误
+            return
+        
+        # 计算图表区域大小，确保不超出屏幕范围
+        chart_height = min(max(5, max_y - 10), max_y - 6)  # 图表高度
+        chart_width = min(max(20, max_x - 20), max_x - 8)  # 图表宽度
+        
+        # 找出最大值用于缩放
+        max_value = max(value for _, value in stats) if stats else 1
+        if max_value == 0:
+            max_value = 1  # 避免除以零
+        
+        # 显示标题
+        try:
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(2, max(0, min(max_x // 2 - len(title) // 2, max_x - len(title) - 1)), title)
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+        except curses.error:
+            pass
+        
+        # 显示图表
+        chart_top = 4
+        chart_left = 4
+        
+        # 确保不超出屏幕范围
+        if chart_top + chart_height >= max_y or chart_left + chart_width >= max_x:
+            return  # 屏幕太小，无法显示图表
+        
+        # 绘制Y轴和刻度
+        y_axis_width = 8
+        for i in range(chart_height):
+            y_pos = chart_top + chart_height - i - 1
+            if y_pos >= max_y:
+                continue  # 跳过超出屏幕的行
+                
+            if i % max(1, chart_height // 5) == 0:  # 每1/5高度显示一个刻度
+                value = int(max_value * i / chart_height)
+                value_str = f"{value:4d} {unit}"
+                try:
+                    x_pos = max(0, min(chart_left - len(value_str) - 1, max_x - len(value_str) - 1))
+                    self.stdscr.addstr(y_pos, x_pos, value_str)
+                    self.stdscr.addstr(y_pos, chart_left, "┤")
+                except curses.error:
+                    pass
+            else:
+                try:
+                    self.stdscr.addstr(y_pos, chart_left, "│")
+                except curses.error:
+                    pass
+        
+        # 绘制X轴
+        try:
+            x_axis_y = chart_top + chart_height
+            if x_axis_y < max_y:
+                self.stdscr.addstr(x_axis_y, chart_left, "└")
+                for i in range(min(chart_width, max_x - chart_left - 1)):
+                    self.stdscr.addstr(x_axis_y, chart_left + i + 1, "─")
+        except curses.error:
+            pass
+        
+        # 绘制数据条
+        bar_width = max(1, min(3, chart_width // max(1, len(stats)) - 1))
+        for i, (period, value) in enumerate(stats):
+            if i * (bar_width + 1) >= chart_width:
+                break  # 超出图表宽度
+            
+            # 计算条形高度
+            bar_height = int(value * chart_height / max_value)
+            
+            # 绘制条形
+            bar_left = chart_left + 1 + i * (bar_width + 1)
+            for j in range(bar_height):
+                y_pos = chart_top + chart_height - j - 1
+                if y_pos >= max_y:
+                    continue  # 跳过超出屏幕的行
+                    
+                for k in range(bar_width):
+                    try:
+                        x_pos = bar_left + k
+                        if x_pos < max_x:
+                            self.stdscr.addstr(y_pos, x_pos, "█")
+                    except curses.error:
+                        pass
+            
+            # 显示周期标签（每隔几个显示一个，避免重叠）
+            if i % max(1, len(stats) // 10) == 0 or i == len(stats) - 1:
+                label_y = chart_top + chart_height + 1
+                if label_y >= max_y:
+                    continue  # 跳过超出屏幕的行
+                    
+                label = period
+                if len(label) > bar_width + 2:
+                    label = label[:bar_width + 2] + ".."
+                try:
+                    x_pos = bar_left + bar_width // 2 - len(label) // 2
+                    if x_pos >= 0 and x_pos + len(label) < max_x:
+                        self.stdscr.addstr(label_y, x_pos, label)
+                except curses.error:
+                    pass
+        
+        # 显示统计摘要
+        total_value = sum(value for _, value in stats) if stats else 0
+        avg_value = total_value / len(stats) if stats else 0
+        
+        summary_y = chart_top + chart_height + 3
+        if summary_y < max_y:
+            summary = f"{get_text('total', self.lang)}: {total_value} {unit} | {get_text('avg', self.lang)}: {avg_value:.1f} {unit}/{get_text('cycle', self.lang)} | {get_text('cycle_count', self.lang)}: {len(stats)}"
+            try:
+                x_pos = max(0, min(max_x // 2 - len(summary) // 2, max_x - len(summary) - 1))
+                self.stdscr.addstr(summary_y, x_pos, summary)
+            except curses.error:
+                pass
+
+    def show_rich_statistics(self, book_id=None):
+        """显示Rich统计图表"""
+        if not RICH_AVAILABLE:
+            # 如果Rich不可用，显示错误信息
+            max_y, max_x = self.stdscr.getmaxyx()
+            error_msg = "No module named Rich, Install it run : pip install rich"
+            try:
+                self.stdscr.addstr(max_y // 2, max_x // 2 - len(error_msg) // 2, error_msg)
+                self.stdscr.refresh()
+                self.stdscr.getch()
+            except curses.error:
+                pass
+            return
+        
+        # 退出curses模式
+        curses.endwin()
+        
+        try:
+            # 获取统计数据 - 添加错误处理
+            try:
+                daily_stats = self.stats.get_daily_stats_for_chart(book_id)
+            except AttributeError:
+                daily_stats = []
+                # print("警告: get_daily_stats_for_chart 方法不存在")
+            
+            try:
+                weekly_stats = self.stats.get_weekly_stats_for_chart(book_id)
+            except AttributeError:
+                weekly_stats = []
+                # print("警告: get_weekly_stats_for_chart 方法不存在")
+            
+            try:
+                monthly_stats = self.stats.get_monthly_stats_for_chart(book_id)
+            except AttributeError:
+                monthly_stats = []
+                # print("警告: get_monthly_stats_for_chart 方法不存在")
+            
+            # 获取书籍标题
+            book_title = None
+            if book_id:
+                book = self.bookshelf.get_book_by_id(book_id)
+                if book:
+                    book_title = book["title"]
+            
+            # 使用Rich显示图表
+            self.display_rich_chart(daily_stats, weekly_stats, monthly_stats, book_title)
+            
+        except Exception as e:
+            # print(f"显示统计图表时出错: {e}")
+            import traceback
+            traceback.print_exc()  # 打印完整的错误堆栈
+            input(f"{get_text('press_enter_to_back', self.lang)}...")
+        
+        # 重新初始化curses
+        self.stdscr = curses.initscr()
+        curses.cbreak()
+        curses.noecho()
+        self.stdscr.keypad(True)
+        curses.curs_set(0)
+        
+        # 重新初始化颜色
+        init_colors(theme=self.settings["theme"], settings=self.settings)
+
+    def display_rich_chart(self, daily_stats, weekly_stats, monthly_stats, book_title=None):
+        """使用Rich显示统计图表"""
+        from rich.console import Console
+        from rich.table import Table
+        from rich.panel import Panel
+        from rich import box
+        from rich.text import Text
+        from rich.layout import Layout
+        
+        console = Console()
+        
+        # 创建布局
+        layout = Layout()
+        layout.split(
+            Layout(name="header", size=3),
+            Layout(name="main", ratio=1),
+            Layout(name="footer", size=7)
+        )
+        
+        layout["main"].split_row(
+            Layout(name="daily", ratio=1),
+            Layout(name="weekly", ratio=1),
+            Layout(name="monthly", ratio=1)
+        )
+        
+        # 头部标题
+        title = f"📊 {get_text('stats', self.lang)}"
+        if book_title:
+            title += f" - {book_title}"
+        
+        layout["header"].update(
+            Panel(Text(title, justify="center", style="bold yellow"), style="on blue")
+        )
+        
+        # 每日统计
+        daily_table = Table(title=get_text('nearly_ten_days', self.lang), box=box.ROUNDED, show_header=True, header_style="bold magenta")
+        daily_table.add_column(get_text('date', self.lang), style="dim", width=12)
+        daily_table.add_column(get_text('reading_time_minutes', self.lang), justify="right")
+        daily_table.add_column(get_text('chart', self.lang), width=30)
+        
+        if daily_stats and len(daily_stats) > 0:
+            max_daily = max(minutes for _, minutes in daily_stats[-10:]) if daily_stats[-10:] else 1
+            for date, minutes in daily_stats[-10:]:
+                bar_length = int(minutes * 30 / max_daily)
+                bar = "█" * bar_length + "░" * (30 - bar_length)
+                daily_table.add_row(date, f"{minutes}", f"{bar} {minutes}{get_text('minutes', self.lang)}")
+        else:
+            daily_table.add_row(get_text('none_data', self.lang), "0", get_text('none_data', self.lang))
+        
+        layout["daily"].update(daily_table)
+        
+        # 每周统计
+        weekly_table = Table(title=get_text('nearly_eight_weeks', self.lang), box=box.ROUNDED, show_header=True, header_style="bold magenta")
+        weekly_table.add_column(get_text('week', self.lang), style="dim", width=12)
+        weekly_table.add_column(get_text('reading_time_minutes', self.lang), justify="right")
+        weekly_table.add_column(get_text('chart', self.lang), width=30)
+        
+        if weekly_stats and len(weekly_stats) > 0:
+            max_weekly = max(minutes for _, minutes in weekly_stats[-8:]) if weekly_stats[-8:] else 1
+            for week, minutes in weekly_stats[-8:]:
+                bar_length = int(minutes * 30 / max_weekly)
+                bar = "█" * bar_length + "░" * (30 - bar_length)
+                weekly_table.add_row(week, f"{minutes}", f"{bar} {minutes}{get_text('minutes', self.lang)}")
+        else:
+            weekly_table.add_row(get_text('none_data', self.lang), "0", get_text('none_data', self.lang))
+        
+        layout["weekly"].update(weekly_table)
+        
+        # 每月统计
+        monthly_table = Table(title=get_text('nearly_tweleve_month', self.lang), box=box.ROUNDED, show_header=True, header_style="bold magenta")
+        monthly_table.add_column(get_text('month', self.lang), style="dim", width=12)
+        monthly_table.add_column(get_text('reading_time_minutes', self.lang), justify="right")
+        monthly_table.add_column(get_text('chart', self.lang), width=30)
+        
+        if monthly_stats and len(monthly_stats) > 0:
+            max_monthly = max(minutes for _, minutes in monthly_stats[-12:]) if monthly_stats[-12:] else 1
+            for month, minutes in monthly_stats[-12:]:
+                bar_length = int(minutes * 30 / max_monthly)
+                bar = "█" * bar_length + "░" * (30 - bar_length)
+                monthly_table.add_row(month, f"{minutes}", f"{bar} {minutes}{get_text('minutes', self.lang)}")
+        else:
+            monthly_table.add_row(get_text('none_data', self.lang), "0", get_text('none_data', self.lang))
+        
+        layout["monthly"].update(monthly_table)
+        
+        # 底部摘要
+        if daily_stats and len(daily_stats) > 0:
+            total_minutes = sum(minutes for _, minutes in daily_stats)
+            avg_minutes = total_minutes / len(daily_stats) if daily_stats else 0
+            max_minutes = max(minutes for _, minutes in daily_stats) if daily_stats else 0
+            min_minutes = min(minutes for _, minutes in daily_stats) if daily_stats else 0
+            
+            summary_text = Text()
+            summary_text.append(f"{get_text('total', self.lang)}: {total_minutes} {get_text('minutes', self.lang)}\n", style="bold")
+            summary_text.append(f"{get_text('avg', self.lang)}: {avg_minutes:.1f} {get_text('minutes', self.lang)}/天\n")
+            summary_text.append(f"{get_text('highest', self.lang)}: {max_minutes} {get_text('minutes', self.lang)}\n")
+            summary_text.append(f"{get_text('lowest', self.lang)}: {min_minutes} {get_text('minutes', self.lang)}\n")
+            summary_text.append(f"{get_text('days', self.lang)}: {len(daily_stats)}")
+            
+            summary_panel = Panel(summary_text, title=get_text('every_day_stats', self.lang))
+        else:
+            summary_panel = Panel(get_text('none_data', self.lang), title=get_text('every_day_stats', self.lang))
+        
+        layout["footer"].update(summary_panel)
+        
+        # 显示所有内容
+        console.print(layout)
+        
+        # 显示操作提示
+        console.print(f"\n{get_text('press_anykey_back_reading', self.lang)}...", style="bold dim")
+        input()
+
+    def get_help_list(self):
+        """返回当前语言的帮助键列表"""
+        return [
+            get_text("help_key_page", self.lang),
+            get_text("help_key_auto_page", self.lang),
+            get_text("help_key_add_bookmark", self.lang),
+            get_text("help_key_bookmark_list", self.lang),
+            get_text("help_key_jump_page", self.lang),
+            get_text("help_key_bookshelf", self.lang),
+            get_text("help_key_settings", self.lang),
+            get_text("help_key_read_aloud", self.lang),
+            get_text("help_key_search", self.lang),
+            get_text("help_key_help", self.lang),
+            get_text("help_key_exit", self.lang),
+            get_text("help_key_stats", self.lang),
+            get_text("help_key_all_stats", self.lang),
+            get_text("help_key_delete_book", self.lang),
+            get_text("help_key_boss_key", self.lang)
+        ]
 
     def run(self):
         if self.current_book:

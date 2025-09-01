@@ -225,3 +225,22 @@ class DBManager:
         c.execute("SELECT id FROM tags WHERE name=?", (tag_name,))
         result = c.fetchone()
         return result[0] if result else None
+    
+    def update_bookmark(self, bookmark_id, page_idx, comment):
+        """更新书签"""
+        c = self.conn.cursor()
+        c.execute("UPDATE bookmarks SET page_idx=?, comment=? WHERE rowid=?", 
+                (page_idx, comment, bookmark_id))
+        self.conn.commit()
+
+    def delete_bookmark(self, bookmark_id):
+        """删除书签"""
+        c = self.conn.cursor()
+        c.execute("DELETE FROM bookmarks WHERE rowid=?", (bookmark_id,))
+        self.conn.commit()
+
+    def get_bookmark_by_id(self, bookmark_id):
+        """根据ID获取书签"""
+        c = self.conn.cursor()
+        c.execute("SELECT rowid, book_id, page_idx, comment FROM bookmarks WHERE rowid=?", (bookmark_id,))
+        return c.fetchone()
