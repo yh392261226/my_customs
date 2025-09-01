@@ -4,3 +4,4 @@ worklist
 my_shell/customs.sh
 starship/cache/
 others/preader_python/__pycache__/
+others/preader_python/record.log
