@@ -23,6 +23,18 @@ class DBManager:
             type TEXT,
             tags TEXT
         )""")
+        # 添加标签表
+        c.execute("""CREATE TABLE IF NOT EXISTS tags (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE
+        )""")
+        c.execute("""CREATE TABLE IF NOT EXISTS book_tags (
+            book_id INTEGER,
+            tag_id INTEGER,
+            PRIMARY KEY(book_id, tag_id),
+            FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE,
+            FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+        )""")
         c.execute("""CREATE TABLE IF NOT EXISTS progress (
             book_id INTEGER,
             page_idx INTEGER,
@@ -40,12 +52,94 @@ class DBManager:
             PRIMARY KEY(book_id, date)
         )""")
         self.conn.commit()
+    
+    # 添加标签相关方法
+    def get_all_tags(self):
+        """获取所有标签"""
+        c = self.conn.cursor()
+        c.execute("SELECT id, name FROM tags ORDER BY name")
+        return c.fetchall()
+
+    def add_tag(self, tag_name):
+        """添加标签，如果已存在则返回现有标签的ID"""
+        c = self.conn.cursor()
+        
+        # 首先尝试插入标签
+        c.execute("INSERT OR IGNORE INTO tags (name) VALUES (?)", (tag_name,))
+        
+        # 然后获取标签ID（无论是否是新插入的还是已存在的）
+        c.execute("SELECT id FROM tags WHERE name = ?", (tag_name,))
+        result = c.fetchone()
+        
+        self.conn.commit()
+        
+        if result:
+            return result[0]
+        else:
+            # 如果插入失败且无法获取ID，返回None
+            return None
+    
+    def get_book_tags(self, book_id):
+        """获取书籍的标签"""
+        c = self.conn.cursor()
+        c.execute("""SELECT t.id, t.name FROM tags t 
+                    JOIN book_tags bt ON t.id = bt.tag_id 
+                    WHERE bt.book_id = ?""", (book_id,))
+        return c.fetchall()
+
+    def add_book_tag(self, book_id, tag_id):
+        """为书籍添加标签"""
+        c = self.conn.cursor()
+        try:
+            c.execute("INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?)", (book_id, tag_id))
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            # 标签已存在，忽略错误
+            return False
+
+    def remove_book_tag(self, book_id, tag_id):
+        """移除书籍的标签"""
+        c = self.conn.cursor()
+        c.execute("DELETE FROM book_tags WHERE book_id=? AND tag_id=?", (book_id, tag_id))
+        self.conn.commit()
+        return c.rowcount > 0
+    
+    def update_book_metadata(self, book_id, title, author, tags):
+        """更新书籍元数据（标题、作者、标签）"""
+        c = self.conn.cursor()
+        # 更新标题和作者
+        c.execute("UPDATE books SET title=?, author=? WHERE id=?", (title, author, book_id))
+        
+        # 清空现有标签
+        c.execute("DELETE FROM book_tags WHERE book_id=?", (book_id,))
+        
+        # 添加新标签
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+            for tag_name in tag_list:
+                # 确保标签存在
+                tag_id = self.add_tag(tag_name)
+                # 关联标签和书籍
+                self.add_book_tag(book_id, tag_id)
+        
+        self.conn.commit()
 
     def add_book(self, path, title, author, book_type, tags):
         c = self.conn.cursor()
         c.execute("INSERT OR IGNORE INTO books (path, title, author, type, tags) VALUES (?, ?, ?, ?, ?)",
                   (path, title, author, book_type, tags))
+        book_id = c.lastrowid
+        
+        # 处理标签
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+            for tag_name in tag_list:
+                tag_id = self.add_tag(tag_name)
+                self.add_book_tag(book_id, tag_id)
+        
         self.conn.commit()
+        return book_id
 
     def get_books(self):
         c = self.conn.cursor()
@@ -114,3 +208,20 @@ class DBManager:
         # 删除阅读统计
         c.execute("DELETE FROM stats WHERE book_id=?", (book_id,))
         self.conn.commit()
+
+    def delete_tag(self, tag_id):
+        """删除标签及其所有关联"""
+        c = self.conn.cursor()
+        # 先删除书籍标签关联
+        c.execute("DELETE FROM book_tags WHERE tag_id=?", (tag_id,))
+        # 再删除标签本身
+        c.execute("DELETE FROM tags WHERE id=?", (tag_id,))
+        self.conn.commit()
+        return True
+    
+    def get_tag_id(self, tag_name):
+        """根据标签名称获取标签ID"""
+        c = self.conn.cursor()
+        c.execute("SELECT id FROM tags WHERE name=?", (tag_name,))
+        result = c.fetchone()
+        return result[0] if result else None

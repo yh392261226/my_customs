@@ -14,20 +14,136 @@ class Bookshelf:
     def load_books(self):
         books = self.db.get_books()
         result = []
-        for id_, path, title, author, book_type, tags in books:
+        for id_, path, title, author, book_type, old_tags in books:  # 注意这里改为old_tags
             exists = os.path.exists(path)
+            # 获取书籍的标签列表 - 从数据库实时获取
+            book_tags = self.db.get_book_tags(id_)
+            tag_names = [tag[1] for tag in book_tags]  # 获取标签名称列表
+            
             result.append({
                 "id": id_,
                 "path": path,
                 "title": title,
                 "author": author,
                 "type": book_type,
-                "tags": tags,
-                "exists": exists  # 添加存在状态标记
+                "tags": tag_names,  # 使用实时获取的标签列表
+                "exists": exists
             })
         # 按照标题升序排序
         result.sort(key=lambda x: x["title"].lower())
         return result
+
+    # 添加标签相关方法
+    def get_all_tags(self):
+        """获取所有标签"""
+        tags = self.db.get_all_tags()
+        return [tag[1] for tag in tags]
+
+    def filter_books_by_tag(self, tag_name):
+        """按标签过滤书籍 - 修复筛选逻辑"""
+        if not tag_name:  # 如果标签为空，返回所有书籍
+            return self.books
+            
+        return [book for book in self.books if tag_name in book["tags"]]
+
+    def update_book_metadata(self, book_id, title, author, tags):
+        """更新书籍元数据（标题、作者、标签）"""
+        # 使用 self.db.conn 而不是 self.conn
+        c = self.db.conn.cursor()
+        
+        # 使用事务确保所有操作要么全部成功，要么全部失败
+        try:
+            # 更新标题和作者
+            c.execute("UPDATE books SET title=?, author=? WHERE id=?", (title, author, book_id))
+            
+            # 清空现有标签
+            c.execute("DELETE FROM book_tags WHERE book_id=?", (book_id,))
+            
+            # 添加新标签
+            if tags:
+                tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+                for tag_name in tag_list:
+                    # 确保标签存在
+                    tag_id = self.db.add_tag(tag_name)
+                    # 关联标签和书籍
+                    c.execute("INSERT OR IGNORE INTO book_tags (book_id, tag_id) VALUES (?, ?)", (book_id, tag_id))
+            
+            # 提交事务
+            self.db.conn.commit()
+            return True
+            
+        except Exception as e:
+            # 发生错误时回滚
+            self.db.conn.rollback()
+            print(f"{get_text('update_books_source_failed', self.lang)}: {str(e)}")
+            return False
+
+    def batch_update_tags(self, book_ids, action, tag_name):
+        """批量更新标签 - 修复已存在标签无法添加的问题"""
+        success_count = 0
+        
+        # 首先处理标签
+        if action == "add":
+            # 确保标签存在并获取标签ID
+            tag_id = self.db.add_tag(tag_name)
+            if tag_id is None:
+                print(f"{get_text('cannot_create_tag', self.lang).format(tag=tag_name)}")
+                return 0
+        elif action == "remove":
+            # 获取标签ID
+            all_tags = self.db.get_all_tags()
+            tag_id = None
+            for tag in all_tags:
+                if tag[1] == tag_name:
+                    tag_id = tag[0]
+                    break
+            if not tag_id:
+                # 标签不存在，无需继续
+                print(f"{get_text('tag', self.lang)} '{tag_name}' {get_text('not_exists', self,lang)}")
+                return 0
+        
+        # 使用事务处理批量操作
+        conn = self.db.conn
+        c = conn.cursor()
+        
+        try:
+            for book_id in book_ids:
+                try:
+                    if action == "add":
+                        # 检查是否已经存在该标签关联
+                        c.execute("SELECT COUNT(*) FROM book_tags WHERE book_id=? AND tag_id=?", (book_id, tag_id))
+                        exists = c.fetchone()[0] > 0
+                        
+                        if not exists:
+                            c.execute("INSERT INTO book_tags (book_id, tag_id) VALUES (?, ?)", (book_id, tag_id))
+                            # print(f"添加标签成功: 书籍ID={book_id}, 标签ID={tag_id}")
+                            success_count += 1
+                        else:
+                            # print(f"标签已存在: 书籍ID={book_id}, 标签ID={tag_id}")
+                            # 即使标签已存在，我们也认为操作成功
+                            success_count += 1
+                    elif action == "remove":
+                        c.execute("DELETE FROM book_tags WHERE book_id=? AND tag_id=?", (book_id, tag_id))
+                        if c.rowcount > 0:
+                            # print(f"移除标签成功: 书籍ID={book_id}, 标签ID={tag_id}")
+                            success_count += 1
+                        # else:
+                            # print(f"标签不存在: 书籍ID={book_id}, 标签ID={tag_id}")
+                except Exception as e:
+                    print(f"{get_text('deal_book_id_error', self.lang).format(id=book_id)}: {str(e)}")
+            
+            # 提交事务
+            conn.commit()
+            print(f"{get_text('multype_update_success', self.lang)}: {get_text('update_success_books', self.lang).format(count=success_count)}")
+            
+        except Exception as e:
+            # 发生错误时回滚
+            conn.rollback()
+            print(f"{get_text('multype_update_failed', self.lang)}: {str(e)}")
+        
+        # 重新加载书籍列表
+        self.books = self.load_books()
+        return success_count
 
     def check_books_existence(self):
         """检查所有书籍文件是否存在"""
@@ -119,3 +235,19 @@ class Bookshelf:
     def delete_book(self, book_id):
         self.db.delete_book(book_id)
         self.books = self.load_books()
+
+    def get_books_by_ids(self, book_ids):
+        """根据ID列表获取书籍信息"""
+        return [book for book in self.books if book["id"] in book_ids]
+    
+    def get_all_books(self):
+        """获取所有书籍"""
+        return self.books
+    
+    def delete_tag(self, tag_name):
+        """删除标签"""
+        # 获取标签ID
+        tag_id = self.db.get_tag_id(tag_name)
+        if tag_id:
+            return self.db.delete_tag(tag_id)
+        return False

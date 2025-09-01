@@ -92,6 +92,7 @@ class NovelReader:
         self.boss_mode = False  # 老板键模式标志
         self.terminal_history = []  # 终端命令历史
         self.terminal_position = 0  # 终端历史位置
+        self.selected_tags = set() # 存储选中的标签
         init_colors(theme=self.settings["theme"], settings=self.settings)
 
     def get_safe_height(self):
@@ -220,15 +221,35 @@ class NovelReader:
         self.highlight_lines = set()
 
     def show_bookshelf(self):
-        """显示书架界面，支持方向键导航和回车选择"""
+        """显示书架界面，支持标签过滤和批量编辑"""
         books_per_page = max(1, self.get_safe_height() - 8)
         page = 0
         search_keyword = ""
-        # 检查书籍存在状态
-        self.bookshelf.check_books_existence()
-        filtered_books = sorted(self.bookshelf.books, key=lambda x: x["title"].lower())
-        current_selection = 0  # 当前选中的行在当前页的索引
+        
+        # 初始过滤书籍列表
+        filtered_books = self.bookshelf.books
+        
+        # 如果有选中的标签，按标签过滤
+        if self.selected_tags:
+            filtered_books = [
+                book for book in filtered_books 
+                if any(tag in book["tags"] for tag in self.selected_tags)
+            ]
+        
+        # 如果有搜索关键词，进一步过滤
+        if search_keyword:
+            filtered_books = [
+                book for book in filtered_books 
+                if search_keyword.lower() in book["title"].lower()
+            ]
+        
+        # 按标题排序
+        filtered_books.sort(key=lambda x: x["title"].lower())
+        
+        current_selection = 0
         book_selected = False
+        tag_mode = False  # 标签模式标志
+        selected_book_ids = set()  # 存储选中的书籍ID
         
         while not book_selected and self.running:
             self.stdscr.clear()
@@ -239,16 +260,25 @@ class NovelReader:
             end_idx = min(start_idx + books_per_page, total_books)
             current_page_books = filtered_books[start_idx:end_idx]
             
+            # 显示标题和标签信息
             title_str = "📚 " + get_text("bookshelf", self.lang) + f" [{page+1}/{total_pages}]"
             if search_keyword:
-                title_str += f" | {get_text("search", self.lang)}: {search_keyword}"
+                title_str += f" | {get_text('search', self.lang)}: {search_keyword}"
+            if self.selected_tags:
+                title_str += f" | {get_text('tag', self.lang)}: {', '.join(self.selected_tags)}"
+            if tag_mode:
+                title_str += f" | {get_text('multype_mode', self.lang)}: {get_text('already_selected_books', self.lang).format(books=f'{len(selected_book_ids)}')}"
+                
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             
+            # 显示书籍列表
             for idx, book in enumerate(current_page_books):
                 exists = "" if book["exists"] else "❌"
-                line = f" {start_idx+idx+1:02d} | {exists} {book['title'][:30]:<30} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | {get_text('tag', self.lang)}:{book['tags']}"
+                selected = "[✓]" if book["id"] in selected_book_ids else ""
+                tags_str = ",".join(book["tags"]) if book["tags"] else get_text('no_tags', self.lang)
+                line = f" {selected} {start_idx+idx+1:02d} | {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | {get_text('tag', self.lang)}:{tags_str}"
                 
                 # 根据文件是否存在设置颜色
                 if not book["exists"]:
@@ -264,66 +294,169 @@ class NovelReader:
                 self.stdscr.addstr(idx+2, 2, line[:max_x-3])
                 self.stdscr.attroff(color | curses.A_BOLD)
                     
-            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-            self.stdscr.addstr(books_per_page+3, 2,
-                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)}  [/] {get_text('search', self.lang)}  [x] {get_text('delete', self.lang)}  [q] {get_text('exit', self.lang)}")
-            self.stdscr.addstr(books_per_page+5, 2, f"[↑↓] {get_text('move', self.lang)} [Enter] {get_text('select', self.lang)}")
-            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            # 显示操作提示
+            help_lines = [
+                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [/] {get_text('search', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)}",
+                f"[t] {get_text('tag_management', self.lang)} [e] {get_text('edit_book', self.lang)} [x] {get_text('delete', self.lang)}  [q] {get_text('exit', self.lang)}",
+            ]
+            
+            if tag_mode:
+                help_lines.append(f"[l] {get_text('out_multype_mode', self.lang)} [{get_text('space', self.lang)}] {get_text('select_or_unselect', self.lang)} [b] {get_text('multype_tags_edit', self.lang)} [a] {get_text('select_all', self.lang)} [c] {get_text('unselect_all', self.lang)}")
+            else:
+                help_lines.append(f"[l] {get_text('in_multype_mode', self.lang)} [Enter] {get_text('select', self.lang)}")
+            
+            for i, line in enumerate(help_lines):
+                self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+                self.stdscr.addstr(books_per_page+3+i, 2, line[:max_x-3])
+                self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+                
             self.stdscr.refresh()
             
             c = self.stdscr.getch()
             if c == ord('a'):
-                path = input_box(self.stdscr, get_text("input_path", self.lang), maxlen=120)
-                if path:
-                    self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
-                    # 刷新书籍列表
-                    self.bookshelf.books = self.bookshelf.load_books()
-                    filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
+                if tag_mode:
+                    # 在多选模式下，全选当前页
+                    for book in current_page_books:
+                        selected_book_ids.add(book["id"])
+                else:
+                    # 正常模式下添加书籍
+                    path = input_box(self.stdscr, get_text("input_path", self.lang), maxlen=120)
+                    if path:
+                        self.bookshelf.add_book(path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
+                        # 刷新书籍列表
+                        self.bookshelf.books = self.bookshelf.load_books()
+                        # 重新应用过滤
+                        filtered_books = self.bookshelf.books
+                        if search_keyword:
+                            filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                        if self.selected_tags:
+                            filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
             elif c == ord('d'):
                 dir_path = input_box(self.stdscr, get_text("input_dir", self.lang), maxlen=120)
                 if dir_path:
                     self.bookshelf.add_dir(dir_path, width=self.settings["width"], height=self.settings["height"], line_spacing=self.settings["line_spacing"])
                     # 刷新书籍列表
                     self.bookshelf.books = self.bookshelf.load_books()
-                    filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
+                    # 重新应用过滤
+                    filtered_books = self.bookshelf.books
+                    if search_keyword:
+                        filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                    if self.selected_tags:
+                        filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
             elif c == ord('/'):
                 kw = input_box(self.stdscr, get_text("input_search", self.lang), maxlen=30)
                 search_keyword = kw
                 page = 0
                 current_selection = 0
-                filtered_books = self.bookshelf.search_books(search_keyword) if search_keyword else self.bookshelf.books
-            elif c == ord('x'):  # 进入删除界面
-                self.show_book_deletion()
+                # 重新应用过滤
+                filtered_books = self.bookshelf.books
+                if search_keyword:
+                    filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                if self.selected_tags:
+                    filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
+            elif c == ord('x'):
+                if tag_mode and selected_book_ids:
+                    # 在多选模式下删除选中的书籍
+                    confirm = input_box(self.stdscr, f"{get_text('book_deletion_confirm', self.lang).format(books=f'{len(selected_book_ids)}')} (y/N): ", maxlen=1)
+                    if confirm.lower() == 'y':
+                        self.bookshelf.delete_books(list(selected_book_ids))
+                        selected_book_ids.clear()
+                        # 刷新书籍列表
+                        self.bookshelf.books = self.bookshelf.load_books()
+                        # 重新应用过滤
+                        filtered_books = self.bookshelf.books
+                        if search_keyword:
+                            filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                        if self.selected_tags:
+                            filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
+                else:
+                    self.show_book_deletion()
+                    # 刷新书籍列表
+                    self.bookshelf.books = self.bookshelf.load_books()
+                    # 重新应用过滤
+                    filtered_books = self.bookshelf.books
+                    if search_keyword:
+                        filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                    if self.selected_tags:
+                        filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
+            elif c == ord('t'):
+                self.show_tag_management()
                 # 刷新书籍列表
                 self.bookshelf.books = self.bookshelf.load_books()
-                filtered_books = self.bookshelf.books if not search_keyword else self.bookshelf.search_books(search_keyword)
-                current_selection = 0
+                # 重新应用过滤
+                filtered_books = self.bookshelf.books
+                if search_keyword:
+                    filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                if self.selected_tags:
+                    filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
+            elif c == ord('e'):
+                if current_page_books:
+                    book = current_page_books[current_selection]
+                    self.edit_book_metadata(book["id"])
+                    # 刷新书籍列表
+                    self.bookshelf.books = self.bookshelf.load_books()
+                    # 重新应用过滤
+                    filtered_books = self.bookshelf.books
+                    if search_keyword:
+                        filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                    if self.selected_tags:
+                        filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
+            elif c == ord('l'):
+                # 切换多选模式
+                tag_mode = not tag_mode
+                if not tag_mode:
+                    # 退出多选模式时清空选择
+                    selected_book_ids.clear()
+                else:
+                    # 进入多选模式时，可以选择当前页的所有书籍
+                    for book in current_page_books:
+                        selected_book_ids.add(book["id"])
+            elif c == ord('b') and tag_mode and selected_book_ids:
+                # 批量编辑标签
+                self.show_batch_tag_edit(list(selected_book_ids))
+                # 刷新书籍列表
+                self.bookshelf.books = self.bookshelf.load_books()
+                # 重新应用过滤
+                filtered_books = self.bookshelf.books
+                if search_keyword:
+                    filtered_books = [book for book in filtered_books if search_keyword.lower() in book["title"].lower()]
+                if self.selected_tags:
+                    filtered_books = [book for book in filtered_books if any(tag in book["tags"] for tag in self.selected_tags)]
+            elif c == ord('c') and tag_mode:
+                # 取消全选
+                selected_book_ids.clear()
             elif c == ord('q'):
                 self.running = False
                 break
-            elif c == curses.KEY_UP:  # 上箭头
+            elif c == curses.KEY_UP:
                 if current_selection > 0:
                     current_selection -= 1
-                # 如果当前在第一行，且不是第一页，可以翻到上一页并选中最后一本书
                 elif current_selection == 0 and page > 0:
                     page -= 1
                     current_selection = books_per_page - 1
-            elif c == curses.KEY_DOWN:  # 下箭头
+            elif c == curses.KEY_DOWN:
                 if current_selection < len(current_page_books) - 1:
                     current_selection += 1
-                # 如果当前在最后一行的下一页还有书，则翻到下一页并选中第一本书
                 elif current_selection == len(current_page_books) - 1 and page < total_pages - 1:
                     page += 1
                     current_selection = 0
-            elif c == curses.KEY_NPAGE or c == ord('n'):  # Page Down键
+            elif c == curses.KEY_NPAGE or c == ord('n'):
                 if page < total_pages - 1:
                     page += 1
                     current_selection = 0
-            elif c == curses.KEY_PPAGE or c == ord('p'):  # Page Up键
+            elif c == curses.KEY_PPAGE or c == ord('p'):
                 if page > 0:
                     page -= 1
                     current_selection = 0
-            elif c in (10, 13):  # 回车键选择当前书籍
+            elif c == ord(' ') and tag_mode:
+                # 在多选模式下，空格键选择/取消选择当前书籍
+                if current_page_books:
+                    book = current_page_books[current_selection]
+                    if book["id"] in selected_book_ids:
+                        selected_book_ids.remove(book["id"])
+                    else:
+                        selected_book_ids.add(book["id"])
+            elif c in (10, 13) and not tag_mode:  # 回车键选择当前书籍（非多选模式）
                 if current_page_books:
                     book = current_page_books[current_selection]
                     if not book["exists"]:
@@ -364,6 +497,172 @@ class NovelReader:
                     self.stdscr.addstr(books_per_page+7, 2, get_text('invalid', self.lang))
                     self.stdscr.refresh()
                     time.sleep(1)
+
+    def show_tag_management(self):
+        """显示标签管理界面 - 修复删除功能"""
+        all_tags = self.bookshelf.get_all_tags()
+        selected_tags = self.selected_tags.copy()
+        current_selection = 0
+        
+        while True:
+            self.stdscr.clear()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            # 显示标题
+            title = f"🏷️ {get_text('tag_management', self.lang)}"
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示分隔线
+            sep_line = "─" * (max_x - 4)
+            self.stdscr.attron(curses.color_pair(10))
+            self.stdscr.addstr(1, 2, sep_line)
+            self.stdscr.attroff(curses.color_pair(10))
+            
+            # 显示标签列表
+            for idx, tag in enumerate(all_tags):
+                selected = "[✓]" if tag in selected_tags else "[ ]"
+                line = f" {selected} {tag}"
+                
+                color = curses.color_pair(2) if idx % 2 else curses.color_pair(1)
+                if idx == current_selection:
+                    color |= curses.A_REVERSE
+                    
+                self.stdscr.attron(color)
+                self.stdscr.addstr(idx+3, 4, line[:max_x-8])
+                self.stdscr.attroff(color)
+            
+            # 显示操作提示
+            help_text = f"[{get_text('space', self.lang)}] {get_text('select_or_unselect', self.lang)} [a] {get_text('add_tag', self.lang)} [d] {get_text('remove_tag', self.lang)} [Enter] {get_text('use_filter', self.lang)} [q] {get_text('back', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(max_y-3, 4, help_text[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            # 显示分隔线
+            self.stdscr.attron(curses.color_pair(10))
+            self.stdscr.addstr(max_y-4, 2, sep_line)
+            self.stdscr.attroff(curses.color_pair(10))
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c == curses.KEY_UP:
+                if current_selection > 0:
+                    current_selection -= 1
+            elif c == curses.KEY_DOWN:
+                if current_selection < len(all_tags) - 1:
+                    current_selection += 1
+            elif c == ord(' '):  # 空格键选择/取消选择标签
+                if all_tags:
+                    tag = all_tags[current_selection]
+                    if tag in selected_tags:
+                        selected_tags.remove(tag)
+                    else:
+                        selected_tags.add(tag)
+            elif c == ord('a'):  # 添加新标签
+                new_tag = input_box(self.stdscr, f"{get_text('type_new_tag_name', self.lang)}: ", maxlen=20)
+                if new_tag:
+                    # 检查标签是否已存在
+                    if new_tag not in all_tags:
+                        self.bookshelf.db.add_tag(new_tag)
+                        all_tags = self.bookshelf.get_all_tags()  # 刷新标签列表
+                    else:
+                        # 显示错误消息
+                        self.stdscr.addstr(max_y-2, 4, f"{get_text('tag_already_exists', self.lang)}!")
+                        self.stdscr.refresh()
+                        time.sleep(1)
+            elif c == ord('d'):  # 删除标签
+                if all_tags:
+                    tag = all_tags[current_selection]
+                    confirm = input_box(self.stdscr, f"{get_text('confirm_remove_tags', self.lang)} '{tag}'? (y/N): ", maxlen=1)
+                    if confirm.lower() == 'y':
+                        if self.bookshelf.delete_tag(tag):
+                            # 从所有标签列表中移除
+                            all_tags = self.bookshelf.get_all_tags()
+                            # 从选中标签中移除
+                            if tag in selected_tags:
+                                selected_tags.remove(tag)
+                            # 显示成功消息
+                            self.stdscr.addstr(max_y-2, 4, f"{get_text('already_deleted_tag', self.lang)}: {tag}")
+                            self.stdscr.refresh()
+                            time.sleep(1)
+                        else:
+                            # 显示错误消息
+                            self.stdscr.addstr(max_y-2, 4, f"{get_text('remove_tag_failed', self.lang)}!")
+                            self.stdscr.refresh()
+                            time.sleep(1)
+            elif c in (10, 13):  # 回车键应用筛选
+                self.selected_tags = selected_tags
+                break
+        
+        # 返回书架主界面
+        self.show_bookshelf()
+
+    def edit_book_metadata(self, book_id):
+        """编辑书籍元数据"""
+        book = self.bookshelf.get_book_by_id(book_id)
+        if not book:
+            return
+            
+        # 获取当前信息
+        current_title = book["title"]
+        current_author = book["author"]
+        current_tags = ",".join(book["tags"])
+        
+        # 显示编辑界面
+        self.stdscr.clear()
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        title = f"📝 {get_text('edit_book_info', self.lang)}"
+        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+        
+        # 显示当前信息
+        self.stdscr.addstr(2, 4, f"{get_text('book_name', self.lang)}: {current_title}")
+        self.stdscr.addstr(3, 4, f"{get_text('book_author', self.lang)}: {current_author}")
+        self.stdscr.addstr(4, 4, f"{get_text('tag', self.lang)}: {current_tags}")
+        
+        # 显示操作提示
+        help_text = f"[t] {get_text('edit_title', self.lang)} [a] {get_text('edit_author', self.lang)} [g] {get_text('edit_tags', self.lang)} [Enter] {get_text('save_changes', self.lang)} [q] {get_text('back', self.lang)}"
+        self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+        self.stdscr.addstr(6, 4, help_text[:max_x-8])
+        self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+        
+        self.stdscr.refresh()
+        
+        while True:
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c == ord('t'):  # 编辑标题
+                new_title = input_box(self.stdscr, f"{get_text('new_book_name', self.lang)}: ", maxlen=100, y=2, x=10)
+                if new_title:
+                    current_title = new_title
+                    self.stdscr.addstr(2, 10, " " * (max_x-20))
+                    self.stdscr.addstr(2, 10, current_title)
+                    self.stdscr.refresh()
+            elif c == ord('a'):  # 编辑作者
+                new_author = input_box(self.stdscr, f"{get_text('new_book_author', self.lang)}: ", maxlen=50, y=3, x=10)
+                if new_author:
+                    current_author = new_author
+                    self.stdscr.addstr(3, 10, " " * (max_x-20))
+                    self.stdscr.addstr(3, 10, current_author)
+                    self.stdscr.refresh()
+            elif c == ord('g'):  # 编辑标签
+                new_tags = input_box(self.stdscr, f"{get_text('new_book_tags', self.lang)}: ", maxlen=100, y=4, x=10)
+                if new_tags is not None:
+                    current_tags = new_tags
+                    self.stdscr.addstr(4, 10, " " * (max_x-20))
+                    self.stdscr.addstr(4, 10, current_tags)
+                    self.stdscr.refresh()
+            elif c in (10, 13):  # 回车键保存
+                # 确保即使只修改了标签也能保存
+                self.bookshelf.update_book_metadata(book_id, current_title, current_author, current_tags)
+                break
 
     def draw_border(self):
         style = self.settings["border_style"]
@@ -1215,6 +1514,127 @@ class NovelReader:
             self.stdscr.addstr(max_y-2, 2, msg)
             self.stdscr.refresh()
             time.sleep(1)
+
+    def show_batch_tag_edit(self, book_ids):
+        """显示批量标签编辑界面 - 修复输入问题"""
+        if not book_ids:
+            return
+            
+        current_action = 0  # 0: 添加标签, 1: 移除标签
+        tag_input = ""
+        continue_editing = True
+        
+        while continue_editing:
+            self.stdscr.clear()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            # 显示标题
+            title = f"🏷️ {get_text('multype_tags_edit_books', self.lang).format(books=f'({len(book_ids)})')}"
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示分隔线
+            sep_line = "─" * (max_x - 4)
+            self.stdscr.attron(curses.color_pair(10))
+            self.stdscr.addstr(1, 2, sep_line)
+            self.stdscr.attroff(curses.color_pair(10))
+            
+            # 显示操作选项
+            actions = [f"{get_text('add_tag', self.lang)}", f"{get_text('remove_tag', self.lang)}"]
+            for idx, action in enumerate(actions):
+                line = f"{'→' if idx == current_action else ' '} {action}"
+                color = curses.color_pair(2) if idx == current_action else curses.color_pair(1)
+                self.stdscr.attron(color)
+                self.stdscr.addstr(3 + idx, 4, line)
+                self.stdscr.attroff(color)
+            
+            # 显示标签输入框
+            self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+            self.stdscr.addstr(6, 4, f"{get_text('type_tag_name', self.lang)}:")
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+            
+            # 绘制输入框
+            input_width = min(40, max_x - 10)
+            self.stdscr.attron(curses.color_pair(2))
+            self.stdscr.addstr(7, 4, "╭" + "─" * input_width + "╮")
+            self.stdscr.addstr(8, 4, "│" + " " * input_width + "│")
+            self.stdscr.addstr(9, 4, "╰" + "─" * input_width + "╯")
+            
+            # 显示输入内容
+            display_input = tag_input[:input_width]
+            if len(tag_input) > input_width:
+                display_input = "..." + tag_input[-input_width+3:]
+                
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(8, 6, display_input)
+            
+            # 显示光标
+            if time.time() % 1 < 0.5:  # 闪烁光标
+                cursor_pos = min(len(display_input), input_width - 2)
+                try:
+                    self.stdscr.addstr(8, 6 + cursor_pos, "_")
+                except:
+                    pass
+                    
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            
+            # 显示操作提示
+            help_text = f"[↑↓] {get_text('select', self.lang)} [Enter] {get_text('confirm', self.lang)} [q] {get_text('back', self.lang)} [c] {get_text('clear_input', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(11, 4, help_text[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            # 显示分隔线
+            self.stdscr.attron(curses.color_pair(10))
+            self.stdscr.addstr(12, 2, sep_line)
+            self.stdscr.attroff(curses.color_pair(10))
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            
+            # 处理字符输入
+            if 32 <= c <= 126:  # 可打印字符
+                tag_input += chr(c)
+                continue  # 继续循环以更新显示
+            
+            # 处理特殊按键
+            if c == ord('q'):
+                continue_editing = False
+            elif c == ord('c'):
+                # 清除输入
+                tag_input = ""
+            elif c == curses.KEY_UP:
+                if current_action > 0:
+                    current_action -= 1
+            elif c == curses.KEY_DOWN:
+                if current_action < len(actions) - 1:
+                    current_action += 1
+            elif c == curses.KEY_BACKSPACE or c == 127:  # 退格键
+                if tag_input:
+                    tag_input = tag_input[:-1]
+            elif c in (10, 13):  # 回车键
+                if tag_input:
+                    action = "add" if current_action == 0 else "remove"
+                    success_count = self.bookshelf.batch_update_tags(book_ids, action, tag_input)
+                    
+                    # 显示操作结果
+                    result_msg = f"{get_text('already_success_books', self.lang).format(books=success_count)}{actions[current_action]} '{tag_input}'"
+                    self.stdscr.addstr(14, 4, result_msg)
+                    
+                    # 询问是否继续
+                    continue_msg = f"{get_text('type_anykey_or_quit', self.lang)}"
+                    self.stdscr.addstr(15, 4, continue_msg)
+                    self.stdscr.refresh()
+                    
+                    # 等待用户响应
+                    key = self.stdscr.getch()
+                    if key == ord('q'):
+                        continue_editing = False
+                    else:
+                        # 清空输入以便输入下一个标签
+                        tag_input = ""
 
     def run(self):
         if self.current_book:
