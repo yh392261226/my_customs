@@ -21,7 +21,8 @@ class DBManager:
             title TEXT,
             author TEXT,
             type TEXT,
-            tags TEXT
+            tags TEXT,
+            last_read_time INTEGER  -- 添加最后阅读时间字段
         )""")
         # 添加标签表
         c.execute("""CREATE TABLE IF NOT EXISTS tags (

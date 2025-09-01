@@ -251,3 +251,28 @@ class Bookshelf:
         if tag_id:
             return self.db.delete_tag(tag_id)
         return False
+
+    def get_recent_books(self, limit=3):
+        """获取最近阅读的书籍"""
+        c = self.db.conn.cursor()
+        c.execute("SELECT id, path, title, author, type, tags FROM books WHERE last_read_time IS NOT NULL ORDER BY last_read_time DESC LIMIT ?", (limit,))
+        books = c.fetchall()
+        
+        result = []
+        for id_, path, title, author, book_type, tags in books:
+            exists = os.path.exists(path)
+            # 获取书籍的标签列表
+            book_tags = self.db.get_book_tags(id_)
+            tag_names = [tag[1] for tag in book_tags]
+            
+            result.append({
+                "id": id_,
+                "path": path,
+                "title": title,
+                "author": author,
+                "type": book_type,
+                "tags": tag_names,
+                "exists": exists,
+                "recent": True  # 标记为最近阅读的书籍
+            })
+        return result

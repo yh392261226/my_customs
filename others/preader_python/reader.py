@@ -232,12 +232,21 @@ class NovelReader:
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
         self.highlight_lines = set()
+        
+        # 记录最后阅读时间
+        self.record_last_read_time(book["id"])
 
     def show_bookshelf(self):
         """显示书架界面，支持标签过滤和批量编辑"""
-        books_per_page = max(1, self.get_safe_height() - 8)
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 计算可用空间
+        books_per_page = max(1, max_y - 15)  # 为最近阅读区域和帮助信息留出空间
         page = 0
         search_keyword = ""
+        
+        # 获取最近阅读的书籍
+        recent_books = self.get_recent_books(limit=3)
         
         # 初始过滤书籍列表
         filtered_books = self.bookshelf.books
@@ -286,7 +295,57 @@ class NovelReader:
             self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             
+            y_offset = 2
+            
+            # 显示最近阅读的书籍区域
+            if recent_books:
+                # 计算最近阅读区域的高度
+                recent_height = 4 + len(recent_books)  # 标题+分隔线+书籍列表+底部间距
+                
+                # 确保有足够的空间显示最近阅读区域
+                if y_offset + recent_height < max_y - 10:  # 预留10行给帮助信息
+                    # 绘制最近阅读区域的边框
+                    self.draw_section_border(y_offset, 1, recent_height, max_x - 2, get_text("recent_books", self.lang))
+                    
+                    # 显示最近阅读的书籍列表
+                    for i, book in enumerate(recent_books):
+                        exists = "" if book["exists"] else "❌"
+                        line = f" [{i+1}] {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{book['author'][:15]:<15}"
+                        
+                        # 根据文件是否存在设置颜色
+                        if not book["exists"]:
+                            color = curses.color_pair(3)  # 红色，表示文件不存在
+                        else:
+                            color = curses.color_pair(2)  # 高亮显示最近阅读的书籍
+                            
+                        self.stdscr.attron(color | curses.A_BOLD)
+                        self.stdscr.addstr(y_offset + 2 + i, 4, line[:max_x-8])
+                        self.stdscr.attroff(color | curses.A_BOLD)
+                    
+                    y_offset += recent_height + 1
+            
+            # 计算书架区域的高度
+            bookshelf_height = min(books_per_page + 4, max_y - y_offset - 7)  # 预留7行给帮助信息
+            
+            # 绘制书架区域的边框
+            self.draw_section_border(y_offset, 1, bookshelf_height, max_x - 2, get_text("bookshelf", self.lang))
+            
+            # 显示书架列表标题
+            bookshelf_title = "📖 " + get_text("bookshelf", self.lang)
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(y_offset + 1, 4, bookshelf_title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示分隔线
+            sep_line = "─" * (max_x - 6)
+            self.stdscr.attron(curses.color_pair(10))
+            self.stdscr.addstr(y_offset + 2, 3, sep_line)
+            self.stdscr.attroff(curses.color_pair(10))
+            
             # 显示书籍列表
+            actual_books_per_page = min(books_per_page, bookshelf_height - 4)  # 调整实际显示的书籍数量
+            current_page_books = filtered_books[start_idx:start_idx + actual_books_per_page]
+            
             for idx, book in enumerate(current_page_books):
                 exists = "" if book["exists"] else "❌"
                 selected = "[✓]" if book["id"] in selected_book_ids else ""
@@ -304,29 +363,49 @@ class NovelReader:
                     color |= curses.A_REVERSE
                     
                 self.stdscr.attron(color | curses.A_BOLD)
-                self.stdscr.addstr(idx+2, 2, line[:max_x-3])
+                self.stdscr.addstr(y_offset + 3 + idx, 4, line[:max_x-8])
                 self.stdscr.attroff(color | curses.A_BOLD)
-                    
-            # 显示操作提示
-            help_lines = [
-                f"[a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [/] {get_text('search', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)}",
-                f"[t] {get_text('tag_management', self.lang)} [e] {get_text('edit_book', self.lang)} [x] {get_text('delete', self.lang)}  [q] {get_text('exit', self.lang)}",
-            ]
             
-            if tag_mode:
-                help_lines.append(f"[l] {get_text('out_multype_mode', self.lang)} [{get_text('space', self.lang)}] {get_text('select_or_unselect', self.lang)} [b] {get_text('multype_tags_edit', self.lang)} [a] {get_text('select_all', self.lang)} [c] {get_text('unselect_all', self.lang)}")
-            else:
-                help_lines.append(f"[l] {get_text('in_multype_mode', self.lang)} [Enter] {get_text('select', self.lang)}")
+            # 计算帮助信息的位置
+            help_y = y_offset + bookshelf_height + 1
             
-            for i, line in enumerate(help_lines):
-                self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
-                self.stdscr.addstr(books_per_page+3+i, 2, line[:max_x-3])
-                self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            # 确保帮助信息不会超出屏幕
+            if help_y < max_y - 4:
+                # 显示操作提示
+                help_lines = [
+                    f"[1-3] {get_text('recent_books_short', self.lang)}  [a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [/] {get_text('search', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)} [t] {get_text('tag_management', self.lang)} [e] {get_text('edit_book', self.lang)} [x] {get_text('delete', self.lang)} [q] {get_text('exit', self.lang)} [Enter] {get_text('select', self.lang)}"
+                ]
                 
+                if tag_mode:
+                    help_lines.append(f"[l] {get_text('out_multype_mode', self.lang)} [{get_text('space', self.lang)}] {get_text('select_or_unselect', self.lang)} [b] {get_text('multype_tags_edit', self.lang)} [a] {get_text('select_all', self.lang)} [c] {get_text('unselect_all', self.lang)}")
+                else:
+                    help_lines.append(f"[l] {get_text('in_multype_mode', self.lang)}")
+                
+                # 确保帮助信息不会超出屏幕
+                max_help_lines = max_y - help_y - 1
+                help_lines_to_show = help_lines[:max_help_lines]
+                
+                for i, line in enumerate(help_lines_to_show):
+                    self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+                    self.stdscr.addstr(help_y + i, 2, line[:max_x-4])
+                    self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
             self.stdscr.refresh()
             
             c = self.stdscr.getch()
-            if c == ord('a'):
+            # 处理数字键1-3选择最近阅读的书籍
+            if c in [ord('1'), ord('2'), ord('3')] and recent_books:
+                idx = c - ord('1')
+                if idx < len(recent_books):
+                    book = recent_books[idx]
+                    if not book["exists"]:
+                        # 文件不存在，提示更新路径
+                        self.update_missing_book_path(book["id"])
+                    else:
+                        self.load_book(book)
+                        book_selected = True
+                        continue
+            elif c == ord('a'):
                 if tag_mode:
                     # 在多选模式下，全选当前页
                     for book in current_page_books:
@@ -2320,6 +2399,94 @@ class NovelReader:
             get_text("help_key_delete_book", self.lang),
             get_text("help_key_boss_key", self.lang)
         ]
+
+    def record_last_read_time(self, book_id):
+        """记录书籍的最后阅读时间"""
+        if book_id:
+            # 获取当前时间戳
+            current_time = int(time.time())
+            # 更新数据库中的最后阅读时间
+            c = self.db.conn.cursor()
+            c.execute("UPDATE books SET last_read_time=? WHERE id=?", (current_time, book_id))
+            self.db.conn.commit()
+
+    def get_recent_books(self, limit=3):
+        """获取最近阅读的书籍"""
+        c = self.db.conn.cursor()
+        c.execute("SELECT id, path, title, author, type, tags FROM books WHERE last_read_time IS NOT NULL ORDER BY last_read_time DESC LIMIT ?", (limit,))
+        books = c.fetchall()
+        
+        result = []
+        for id_, path, title, author, book_type, tags in books:
+            exists = os.path.exists(path)
+            # 获取书籍的标签列表
+            book_tags = self.db.get_book_tags(id_)
+            tag_names = [tag[1] for tag in book_tags]
+            
+            result.append({
+                "id": id_,
+                "path": path,
+                "title": title,
+                "author": author,
+                "type": book_type,
+                "tags": tag_names,
+                "exists": exists,
+                "recent": True  # 标记为最近阅读的书籍
+            })
+        return result
+
+    def draw_section_border(self, top, left, height, width, title=None):
+        """绘制一个区域的边框"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 确保不超出屏幕范围
+        if top + height >= max_y or left + width >= max_x:
+            return
+        
+        # 绘制边框
+        v, h, c = BORDER_CHARS.get("round", BORDER_CHARS["round"])
+        border_color_pair = color_pair_idx(10, self.settings["border_color"], self.settings["bg_color"])
+        
+        # 绘制垂直边框
+        for i in range(top + 1, top + height - 1):
+            self.stdscr.attron(border_color_pair)
+            try:
+                self.stdscr.addstr(i, left, v)
+                self.stdscr.addstr(i, left + width - 1, v)
+            except curses.error:
+                pass
+            self.stdscr.attroff(border_color_pair)
+        
+        # 绘制水平边框
+        for i in range(left + 1, left + width - 1):
+            self.stdscr.attron(border_color_pair)
+            try:
+                self.stdscr.addstr(top, i, h)
+                self.stdscr.addstr(top + height - 1, i, h)
+            except curses.error:
+                pass
+            self.stdscr.attroff(border_color_pair)
+        
+        # 绘制角落
+        self.stdscr.attron(border_color_pair)
+        try:
+            self.stdscr.addstr(top, left, c)
+            self.stdscr.addstr(top, left + width - 1, c)
+            self.stdscr.addstr(top + height - 1, left, c)
+            self.stdscr.addstr(top + height - 1, left + width - 1, c)
+        except curses.error:
+            pass
+        self.stdscr.attroff(border_color_pair)
+        
+        # 绘制标题（如果有）
+        if title:
+            title_str = f" {title} "
+            try:
+                self.stdscr.attron(border_color_pair | curses.A_BOLD)
+                self.stdscr.addstr(top, left + 2, title_str)
+                self.stdscr.attroff(border_color_pair | curses.A_BOLD)
+            except curses.error:
+                pass
 
     def run(self):
         if self.current_book:

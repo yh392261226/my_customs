@@ -224,6 +224,8 @@ LANGS = {
         "help_key_all_stats": "T 全部统计",
         "help_key_delete_book": "x 删除书籍",
         "help_key_boss_key": "空格 老板键",
+        "recent_books": "最近阅读",
+        "recent_books_short": "最近",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -448,6 +450,8 @@ LANGS = {
         "help_key_all_stats": "T All stats",
         "help_key_delete_book": "x Delete book",
         "help_key_boss_key": "Space Boss key",
+        "recent_books": "Recently Read",
+        "recent_books_short": "Recent",
     }
 }
 
