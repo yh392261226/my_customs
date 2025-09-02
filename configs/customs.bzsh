@@ -8,7 +8,7 @@
 # 利用theme命令 自动更换喜欢的主题
 #eval $($MYRUNTIME/customs/bin/theme frontend-delight)
 # 利用theme命令 自动更换主题为上一次选择的主题
-eval $($MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)")
+#eval $($MYRUNTIME/customs/bin/theme "$($MYRUNTIME/customs/bin/theme -l|tail -n1)")
 
 
 # languages
