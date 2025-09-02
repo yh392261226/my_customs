@@ -251,6 +251,16 @@ class NovelReader:
     def show_bookshelf(self):
         """显示书架界面，支持标签过滤和批量编辑"""
         max_y, max_x = self.stdscr.getmaxyx()
+
+        # 检查终端大小是否足够
+        if max_y < 10 or max_x < 40:
+            self.stdscr.clear()
+            msg = get_text('window_size_warnning', self.lang)
+            self.stdscr.addstr(0, 0, msg)
+            self.stdscr.refresh()
+            self.stdscr.getch()
+            return
+
         # 考虑缩放因子计算可用空间
         zoom_factor = self.get_setting("font_scale", 1.0)
         books_per_page = max(1, int((max_y - 15) / zoom_factor))  # 为最近阅读区域和帮助信息留出空间
@@ -374,9 +384,11 @@ class NovelReader:
                 if idx == current_selection:
                     color |= curses.A_REVERSE
                     
-                self.stdscr.attron(color | curses.A_BOLD)
-                self.stdscr.addstr(y_offset + 3 + idx, 4, line[:max_x-8])
-                self.stdscr.attroff(color | curses.A_BOLD)
+                line_num = y_offset + 3 + idx
+                if line_num < max_y:  # 添加边界检查
+                    self.stdscr.attron(color)
+                    self.stdscr.addstr(line_num, 4, line[:max_x-8])
+                    self.stdscr.attroff(color)
             
             # 计算帮助信息的位置
             help_y = y_offset + bookshelf_height + 1
