@@ -772,7 +772,19 @@ class NovelReader:
         style = self.settings["border_style"]
         color = self.settings["border_color"]
         max_y, max_x = self.stdscr.getmaxyx()
-        v, h, c = BORDER_CHARS.get(style, BORDER_CHARS["round"])
+
+        # 获取边框字符
+        if style in ["curved", "thick", "shadow", "fancy", "minimal", "classic"]:
+            # 特殊边框样式，需要四个不同的角字符
+            v, h, corners = BORDER_CHARS.get(style, BORDER_CHARS["round"])
+            if len(corners) >= 4:
+                tl, tr, bl, br = corners[0], corners[1], corners[2], corners[3]
+            else:
+                tl, tr, bl, br = corners, corners, corners, corners
+        else:
+            v, h, c = BORDER_CHARS.get(style, BORDER_CHARS["round"])
+            tl, tr, bl, br = c, c, c, c
+        
         border_color_pair = color_pair_idx(10, color, self.settings["bg_color"])
         if style != "none":
             for i in range(1, max_y-2):
@@ -786,10 +798,10 @@ class NovelReader:
                 self.stdscr.addstr(max_y-2, i, h)
                 self.stdscr.attroff(border_color_pair)
             self.stdscr.attron(border_color_pair)
-            self.stdscr.addstr(0, 0, c)
-            self.stdscr.addstr(0, max_x-2, c)
-            self.stdscr.addstr(max_y-2, 0, c)
-            self.stdscr.addstr(max_y-2, max_x-2, c)
+            self.stdscr.addstr(0, 0, tl)
+            self.stdscr.addstr(0, max_x-2, tr)
+            self.stdscr.addstr(max_y-2, 0, bl)
+            self.stdscr.addstr(max_y-2, max_x-2, br)
             self.stdscr.attroff(border_color_pair)
 
     def display(self):
@@ -1254,11 +1266,11 @@ class NovelReader:
         options = [
             ("width", f"{get_text('width', self.lang)}", int, 40, 300),
             ("height", f"{get_text('height', self.lang)}", int, 10, 80),
-            ("theme", get_text("input_theme", self.lang), str, ["dark", "light", "eye"]),
+            ("theme", get_text("input_theme", self.lang), str, ["dark", "light", "eye", "midnight", "sepia", "forest", "amethyst", "ocean", "crimson", "slate", "transparent-dark", "transparent-light", "transparent-blue"]),
             ("lang", get_text("input_lang", self.lang), str, ["zh", "en"]),
             ("font_color", get_text("input_font_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
-            ("bg_color", get_text("input_bg_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
-            ("border_style", get_text("input_border_style", self.lang), str, ["round","double","single","bold","none"]),
+            ("bg_color", get_text("input_bg_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white", "transparent"]),
+            ("border_style", get_text("input_border_style", self.lang), str, ["round","double","single","bold","dotted","dashed","curved","thick","shadow","fancy","minimal","classic","none"]),
             ("border_color", get_text("input_border_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
             ("line_spacing", f"{get_text('line_spacing', self.lang)}", int, 1, 5),
             ("auto_page_interval", f"{get_text('auto_pager_sec', self.lang)}", int, 1, 60),
