@@ -12,7 +12,17 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 def main(stdscr):
-    curses.curs_set(0)
+    # 初始化 curses
+    curses.curs_set(0)  # 隐藏光标
+    curses.start_color()  # 启用颜色支持
+    curses.use_default_colors()  # 使用默认颜色
+    stdscr.keypad(True)  # 启用特殊键
+    stdscr.nodelay(0)  # 阻塞模式
+    
+    # 启用滚动（如果需要）
+    stdscr.scrollok(True)
+    stdscr.idlok(True)
+    
     # 设置信号处理
     signal.signal(signal.SIGINT, signal_handler)
     settings = Settings()

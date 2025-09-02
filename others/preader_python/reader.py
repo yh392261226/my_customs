@@ -107,18 +107,30 @@ class NovelReader:
         self.terminal_suggestion_index = 0  # 当前选中的建议索引
         self.selected_tags = set() # 存储选中的标签
         init_colors(theme=self.settings["theme"], settings=self.settings)
+        # 添加这些属性来跟踪显示状态
+        self.display_start_line = 0  # 当前显示起始行
+        self.display_start_col = 0   # 当前显示起始列
+        self.max_display_lines = 0   # 最大可显示行数
+        self.max_display_cols = 0    # 最大可显示列数
 
     def get_safe_height(self):
-        """计算安全的显示高度，考虑边框和边距"""
+        """计算安全的显示高度，考虑边框、边距和缩放因子"""
         max_y, _ = self.stdscr.getmaxyx()
         margin = self.settings["margin"]
-        # 预留顶部/底部/状态栏空间（9行）
-        return max(1, min(self.settings["height"], max_y - margin - 9))
+        
+        # 考虑缩放因子
+        zoom_factor = max(0.1, self.get_setting("font_scale", 1.0))  # 确保最小缩放因子为0.1
+        
+        # 预留顶部/底部/状态栏空间（9行），并考虑缩放因子
+        return max(1, min(self.settings["height"], int((max_y - margin - 9) / zoom_factor)))
 
     def show_loading_screen(self, message, progress=None):
         """显示美观的加载屏幕，支持进度显示"""
         self.stdscr.clear()
         max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 考虑缩放因子
+        zoom_factor = self.get_setting("font_scale", 1.0)
         
         # 绘制边框
         self.draw_border()
@@ -131,9 +143,9 @@ class NovelReader:
         
         # 显示消息
         self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
-        self.stdscr.addstr(max_y // 2 - 2, max_x // 2 - len(message) // 2, message)
+        self.stdscr.addstr(int(max_y * 0.5 / zoom_factor) - 2, max_x // 2 - len(message) // 2, message)
         self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
-        
+
         # 显示动态旋转图标
         spinner_chars = ["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]
         spinner = spinner_chars[int(time.time() * 8) % len(spinner_chars)]
@@ -178,70 +190,70 @@ class NovelReader:
         self.stdscr.refresh()
 
     def load_book(self, book):
-        # 使用设置的宽度，而不是有效宽度
-        width = self.settings["width"]
-        height = self.get_safe_height()
-        line_spacing = self.settings["line_spacing"]
+        """加载书籍，基于固定字符数进行分页（不考虑缩放因子）"""
+        # 使用固定的字符数进行分页（不考虑缩放）
+        base_width = max(10, self.settings["width"])  # 每行字符数，最小10
+        base_height = max(5, self.settings["height"])  # 每页行数，最小5
+        line_spacing = max(0, self.settings["line_spacing"])
+        paragraph_spacing = max(0, self.get_setting("paragraph_spacing", 0))
         
         # 显示加载屏幕
         self.show_loading_screen(get_text("loading_books", self.lang))
-        time.sleep(0.5)  # 短暂延迟让用户看到初始画面
+        time.sleep(0.5)
         
         # 进度回调函数
         def progress_callback(message):
-            # 解析消息中的进度信息
             progress = None
             if ":" in message and "/" in message:
                 parts = message.split(":")
                 if len(parts) > 1 and "/" in parts[1]:
                     progress = parts[1].strip()
-            
             self.show_loading_screen(message, progress)
         
         if book["type"] == "epub":
             self.show_loading_screen(get_text("parsing_epub_data", self.lang))
-            chapters = parse_epub(book["path"], width, height, line_spacing, self.lang)
+            # EPUB解析需要传递字符宽度和高度
+            chapters = parse_epub(book["path"], base_width, base_height, line_spacing, self.lang)
             
             pages = []
             total_chapters = len(chapters)
             for i, ch in enumerate(chapters):
-                # 添加章节标题页
                 pages.append([f"《{ch['title']}》"])
-                # 添加章节内容页
                 pages.extend(ch["pages"])
                 
-                # 每处理一章更新一次显示
-                if i % 2 == 0:  # 每两章更新一次，避免过于频繁
+                if i % 2 == 0:
                     self.show_loading_screen(f"{get_text('action_document_line', self.lang)}: {i+1}/{total_chapters}")
             
             self.current_pages = pages
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         else:
-            # 使用新版 utils.build_pages_from_file，确保不丢失任何内容
+            # 文本文件使用改进的分页函数
             self.current_pages = build_pages_from_file(
-                book["path"], width, height, line_spacing, progress_callback, self.lang
+                book["path"], base_width, base_height, line_spacing, paragraph_spacing, progress_callback, self.lang
             )
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
-        # 在解析完成后检查是否为空
+        
         if not self.current_pages:
             self.current_pages = [[get_text("empty_file_or_cannot_read", self.lang)]]
         
-
         self.current_book = book
         self.current_page_idx = self.db.get_progress(book["id"])
         self.highlight_lines = set()
-        
-        # 记录最后阅读时间
+        self.display_start_line = 0
+        self.display_start_col = 0
         self.record_last_read_time(book["id"])
+        
+        # 计算最大可显示行数和列数
+        self.calculate_display_limits()
 
     def show_bookshelf(self):
         """显示书架界面，支持标签过滤和批量编辑"""
         max_y, max_x = self.stdscr.getmaxyx()
-        
-        # 计算可用空间
-        books_per_page = max(1, max_y - 15)  # 为最近阅读区域和帮助信息留出空间
+        # 考虑缩放因子计算可用空间
+        zoom_factor = self.get_setting("font_scale", 1.0)
+        books_per_page = max(1, int((max_y - 15) / zoom_factor))  # 为最近阅读区域和帮助信息留出空间
         page = 0
         search_keyword = ""
         
@@ -781,44 +793,82 @@ class NovelReader:
             self.stdscr.attroff(border_color_pair)
 
     def display(self):
+        """显示当前页面，考虑缩放因子但保持内容完整"""
         self.stdscr.clear()
         max_y, max_x = self.stdscr.getmaxyx()
-        margin = self.settings["margin"]
-        padding = self.settings["padding"]
-        height = self.get_safe_height()
+        
+        # 重新计算显示限制
+        self.calculate_display_limits()
+        
+        # 获取缩放因子
+        zoom_factor = max(0.1, self.get_setting("font_scale", 1.0))
+        
+        # 计算边距和填充
+        margin = max(0, self.settings["margin"])
+        padding = max(0, self.settings["padding"])
+        
         self.draw_border()
 
-        # 添加对空页面的检查
         if not self.current_pages:
             empty_msg = f"{get_text('empty_file_or_cannot_read', self.lang)}"
+            y_pos = max(0, min(max_y // 2, max_y - 1))
+            x_pos = max(0, min(max_x // 2 - len(empty_msg) // 2, max_x - len(empty_msg) - 1))
+            
             self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
-            self.stdscr.addstr(margin + height // 2, max_x // 2 - len(empty_msg) // 2, empty_msg)
+            self.stdscr.addstr(y_pos, x_pos, empty_msg)
             self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
             self.stdscr.refresh()
             return
         
+        # 获取当前页的内容（基于原始分页）
         page_lines = self.current_pages[self.current_page_idx] if self.current_pages else []
+        
+        # 显示标题和进度
         if self.current_pages and self.current_book:
             progress = int((self.current_page_idx+1)/len(self.current_pages)*100)
             bar_len = int(progress / 5)
             
             title_str = f"《{self.current_book['title']}》{get_text('reading_progress', self.lang)}:[{'█'*bar_len}{'-'*(20-bar_len)}] {progress:3d}%"
-            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-            self.stdscr.addstr(margin, max_x // 2 - len(title_str)//2, title_str[:max_x-4])
-            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            y_pos = max(0, min(margin, max_y - 1))
+            x_pos = max(0, min(max_x // 2 - len(title_str)//2, max_x - len(title_str) - 1))
             
-        for idx, line in enumerate(page_lines[:height]):
-            y = idx + margin + 2
-            x = padding + 2
-            if y >= max_y - 7:
-                break
-            safe_line = line.replace('\r', '').replace('\n', '').replace('\t', ' ')
-            # 显示时截断到屏幕宽度
-            safe_line = safe_line[:max_x - x - 3] if len(safe_line) > (max_x - x - 3) else safe_line
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(y_pos, x_pos, title_str)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+        
+        # 计算可以显示的行范围
+        start_line = self.display_start_line
+        end_line = min(start_line + self.max_display_lines, len(page_lines))
+        
+        # 显示内容行
+        for idx in range(start_line, end_line):
+            line = page_lines[idx]
+            
+            # 计算实际显示位置（考虑缩放）
+            y = max(0, min(margin + 2 + int((idx - start_line) * zoom_factor), max_y - 1))
+            
+            # 处理行内容
+            safe_line = line
+            
+            # 处理列偏移
+            if self.display_start_col > 0 and self.display_start_col < len(safe_line):
+                safe_line = safe_line[self.display_start_col:]
+            
+            # 计算可以显示的字符数
+            max_chars = min(len(safe_line), self.max_display_cols)
+            safe_line = safe_line[:max_chars]
+            
+            # 如果需要，添加省略号
+            if len(safe_line) < len(line) - self.display_start_col:
+                safe_line = safe_line[:-3] + "..." if len(safe_line) > 3 else "..."
+            
+            # 计算列位置
+            x = max(0, min(padding + 2, max_x - 1))
+            
             try:
                 if safe_line.startswith("《") and safe_line.endswith("》"):
                     self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
-                    self.stdscr.addstr(y, x, safe_line.center(self.settings["width"])[:max_x - x - 3])
+                    self.stdscr.addstr(y, x, safe_line)
                     self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
                 elif idx in self.highlight_lines:
                     self.stdscr.attron(curses.color_pair(2) | curses.A_REVERSE)
@@ -829,35 +879,31 @@ class NovelReader:
                     self.stdscr.addstr(y, x, safe_line)
                     self.stdscr.attroff(curses.color_pair(1))
             except curses.error:
-                pass
+                pass  # 忽略绘制错误
+        
+        # 显示导航提示
+        self.show_navigation_hints(page_lines, max_y, max_x)
                 
-        if self.current_pages:
-            bar = f""
-            self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
-            self.stdscr.addstr(margin+height+1, 2, bar[:max_x-4])
-            self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
-            
-        if self.settings["status_bar"] and self.current_book:
-            status = f"📖 {self.current_book['title']} | {get_text('author', self.lang)}: {self.current_book['author']} | {get_text('current_page', self.lang)}: {self.current_page_idx+1}/{len(self.current_pages)}"
-            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-            self.stdscr.addstr(margin+height+2, 2, status[:max_x-4])
-            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-            
-        # 显示朗读状态
-        if self.is_reading:
-            reading_status = f"🔊 {get_text('aloud_r2_stop', self.lang)}"
-            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
-            self.stdscr.addstr(margin+height+3, 2, reading_status[:max_x-4])
-            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
-            
-        help_str = " | ".join(self.get_help_list())
-        self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
-        self.stdscr.addstr(margin+height+4, 2, help_str[:max_x-4])
-        self.stdscr.attroff(curses.color_pair(2) | curses.A_DIM)
+        # 显示状态栏
+        self.show_status_bar(max_y, max_x)
+        
         self.stdscr.refresh()
 
     def handle_input(self):
         c = self.stdscr.getch()
+        # 处理终端尺寸变化
+        if c == curses.KEY_RESIZE:
+            self.handle_resize()
+            return
+
+        # 处理导航键
+        if self.handle_navigation_keys(c):
+            return
+        
+        # 然后处理字体快捷键
+        if self.handle_font_shortcuts(c):
+            return
+
         if self.boss_mode:
             # 老板模式关闭自动翻页、朗读
             if self.is_reading:
@@ -871,6 +917,8 @@ class NovelReader:
 
         if c == ord(' '):  # 空格键 - 老板键
             self.toggle_boss_mode()
+        elif c == ord('f'):  # 添加字体设置快捷键
+            self.show_font_settings()
         elif c in (curses.KEY_RIGHT, curses.KEY_NPAGE, ord('j')):
             if self.is_reading:
                 self.stop_reading()
@@ -935,13 +983,31 @@ class NovelReader:
             else:
                 self.show_rich_statistics()
 
+    def handle_resize(self):
+        """处理终端尺寸变化"""
+        self.stdscr.clear()
+        curses.update_lines_cols()  # 更新行数和列数
+        self.calculate_display_limits()  # 重新计算显示限制
+        
+        # 重绘界面
+        if self.current_book:
+            self.display()
+        else:
+            self.show_bookshelf()
+
     def next_page(self):
         if self.current_page_idx < len(self.current_pages)-1:
             self.current_page_idx += 1
+            # 翻页后重置显示位置到顶部
+            self.display_start_line = 0
+            self.display_start_col = 0
 
     def prev_page(self):
         if self.current_page_idx > 0:
             self.current_page_idx -= 1
+            # 翻页后重置显示位置到顶部
+            self.display_start_line = 0
+            self.display_start_col = 0
 
     def save_progress(self):
         if self.current_book:
@@ -1022,6 +1088,9 @@ class NovelReader:
             elif c in (10, 13):  # 回车键 - 跳转到书签
                 selected_bookmark = bookmarks[start_idx + current_selection]
                 self.current_page_idx = selected_bookmark[0]
+                # 跳转到书签后重置显示位置到顶部
+                self.display_start_line = 0
+                self.display_start_col = 0
                 break
             elif c == ord('e'):  # 编辑书签
                 selected_bookmark = bookmarks[start_idx + current_selection]
@@ -1150,6 +1219,14 @@ class NovelReader:
             for idx, line in enumerate(page_lines):
                 if kw in line:
                     self.highlight_lines.add(idx)
+            
+            # 如果有匹配项，滚动到第一个匹配项
+            if self.highlight_lines:
+                first_match = min(self.highlight_lines)
+                if first_match > self.max_display_lines:
+                    self.display_start_line = first_match - self.max_display_lines // 2
+                else:
+                    self.display_start_line = 0
 
     def check_remind(self):
         remind_interval = self.settings["remind_interval"]
@@ -1188,6 +1265,7 @@ class NovelReader:
             ("speech_rate", f"{get_text('speech_rate', self.lang)}", int, 50, 400),  # 添加语速设置
             ("status_bar", f"{get_text('statusbar_switch', self.lang)}", bool, [0, 1]),
             ("remind_interval", get_text("input_remind_interval", self.lang), int, 0, 120),
+            ("font_settings", get_text("font_settings", self.lang), "menu", []),  # 添加字体设置菜单选项
         ]
         curr = 0
         while True:
@@ -1224,6 +1302,9 @@ class NovelReader:
                 break
             elif c in (curses.KEY_ENTER, 10, 13):
                 key, desc, typ, *meta = options[curr]
+                if key == "font_settings":
+                    self.show_font_settings()
+                    continue
                 newval = input_box(self.stdscr, f"{desc}{get_text('new_val', self.lang)}: ", maxlen=20)
                 valid = False
                 if typ == int:
@@ -1265,30 +1346,12 @@ class NovelReader:
                         self.load_book(self.current_book)
 
     def show_help(self):
-        max_y, max_x = self.stdscr.getmaxyx()
-        self.stdscr.clear()
-        
-        # 绘制边框
-        self.draw_border()
-        
-        # 标题
-        title = f"💡 {get_text('help_center', self.lang)}"
-        self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
-        self.stdscr.addstr(2, max_x // 2 - len(title) // 2, title)
-        self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-        
-        # 分隔线
-        sep_line = "─" * (max_x - 6)
-        self.stdscr.attron(curses.color_pair(10))
-        self.stdscr.addstr(4, 3, sep_line)
-        self.stdscr.attroff(curses.color_pair(10))
-        
-        # 分类显示帮助信息
+        # 构建帮助内容的所有行
         categories = [
             {
                 "title": f"📖 {get_text('help_t1', self.lang)}",
                 "items": [
-                    ("←/→/PgUp/PgDn/j/k", "翻页"),
+                    ("←/→/PgUp/PgDn/j/k", f"{get_text('turn_page', self.lang)}"),
                     ("a", f"{get_text('help_t1_a', self.lang)}"),
                     ("g", f"{get_text('help_t1_g', self.lang)}"),
                     ("/", f"{get_text('help_t1_line', self.lang)}")
@@ -1336,48 +1399,113 @@ class NovelReader:
                     ("?", f"{get_text('help_t7_ask', self.lang)}"),
                     ("q", f"{get_text('help_t7_q', self.lang)}")
                 ]
+            },
+            {
+                "title": f"🎨 {get_text('font_settings', self.lang)}",
+                "items": [
+                    ("f", get_text('font_settings', self.lang)),
+                    ("+/-", f"{get_text('increase', self.lang)}/{get_text('decrease', self.lang)} {get_text('font_scale', self.lang)}"),
+                    ("[/]", f"{get_text('increase', self.lang)}/{get_text('decrease', self.lang)} {get_text('line_spacing_setting', self.lang)}")
+                ]
             }
         ]
         
-        y_pos = 6
+        # 计算总行数
+        total_lines = 0
         for category in categories:
-            # 显示分类标题
-            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
-            self.stdscr.addstr(y_pos, 5, category["title"])
-            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
-            
-            y_pos += 1
-            
-            # 显示分类中的项目
-            for key, desc in category["items"]:
-                key_part = f"[{key}]"
-                desc_part = f" {desc}"
-                
-                self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
-                self.stdscr.addstr(y_pos, 7, key_part)
-                self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
-                
-                self.stdscr.attron(curses.color_pair(1))
-                self.stdscr.addstr(y_pos, 7 + len(key_part), desc_part)
-                self.stdscr.attroff(curses.color_pair(1))
-                
-                y_pos += 1
-            
-            y_pos += 1  # 分类之间的间隔
+            total_lines += 1  # 分类标题
+            total_lines += len(category["items"])  # 分类项目
+            total_lines += 1  # 分类之间的间隔
         
-        # 底部提示
-        tip = f"{get_text('press_anykey_back_reading', self.lang)}"
-        self.stdscr.attron(curses.color_pair(1) | curses.A_DIM)
-        self.stdscr.addstr(max_y - 3, max_x // 2 - len(tip) // 2, tip)
-        self.stdscr.attroff(curses.color_pair(1) | curses.A_DIM)
+        # 初始化滚动位置
+        scroll_offset = 0
+        max_y, max_x = self.stdscr.getmaxyx()
+        available_lines = max_y - 6  # 预留顶部和底部空间
         
-        # 装饰性边框
-        self.stdscr.attron(curses.color_pair(10))
-        self.stdscr.addstr(max_y - 5, 3, sep_line)
-        self.stdscr.attroff(curses.color_pair(10))
-        
-        self.stdscr.refresh()
-        self.stdscr.getch()
+        while True:
+            max_y, max_x = self.stdscr.getmaxyx()
+            available_lines = max_y - 6  # 重新计算可用行数
+            
+            self.stdscr.clear()
+            
+            # 绘制边框
+            self.draw_border()
+            
+            # 标题
+            title = f"💡 {get_text('help_center', self.lang)}"
+            if total_lines > available_lines:
+                title += f" ({scroll_offset//available_lines + 1}/{(total_lines + available_lines - 1) // available_lines})"
+            
+            title_y = 2
+            title_x = max(0, min(max_x // 2 - len(title) // 2, max_x - len(title) - 1))
+            
+            self.safe_addstr(self.stdscr, title_y, title_x, title, curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示当前可见的帮助内容
+            y_pos = 4
+            current_line = 0
+            
+            for category in categories:
+                # 检查是否在当前可见范围内
+                if current_line >= scroll_offset and current_line < scroll_offset + available_lines:
+                    self.safe_addstr(self.stdscr, y_pos, 5, category["title"], curses.color_pair(2) | curses.A_BOLD)
+                    y_pos += 1
+                
+                current_line += 1
+                
+                # 显示分类中的项目
+                for key, desc in category["items"]:
+                    # 检查是否在当前可见范围内
+                    if current_line >= scroll_offset and current_line < scroll_offset + available_lines:
+                        key_part = f"[{key}]"
+                        desc_part = f" {desc}"
+                        
+                        self.safe_addstr(self.stdscr, y_pos, 7, key_part, curses.color_pair(3) | curses.A_BOLD)
+                        self.safe_addstr(self.stdscr, y_pos, 7 + len(key_part), desc_part, curses.color_pair(1))
+                        
+                        y_pos += 1
+                    
+                    current_line += 1
+                
+                # 检查分类之间的间隔是否在当前可见范围内
+                if current_line >= scroll_offset and current_line < scroll_offset + available_lines:
+                    y_pos += 1
+                
+                current_line += 1
+            
+            # 底部提示
+            tip = f"{get_text('press_anykey_back_reading', self.lang)}"
+            if total_lines > available_lines:
+                tip = f"↑↓: {get_text('turn_page', self.lang)} | Q: {get_text('back', self.lang)}"
+            
+            tip_y = max(0, min(max_y - 3, max_y - 1))
+            tip_x = max(0, min(max_x // 2 - len(tip) // 2, max_x - len(tip) - 1))
+            
+            self.safe_addstr(self.stdscr, tip_y, tip_x, tip, curses.color_pair(1) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            # 处理输入
+            c = self.stdscr.getch()
+            
+            # 上下键滚动
+            if c == curses.KEY_UP:
+                scroll_offset = max(0, scroll_offset - 1)
+            elif c == curses.KEY_DOWN:
+                scroll_offset = min(total_lines - available_lines, scroll_offset + 1)
+            elif c == curses.KEY_PPAGE:  # Page Up
+                scroll_offset = max(0, scroll_offset - available_lines)
+            elif c == curses.KEY_NPAGE:  # Page Down
+                scroll_offset = min(total_lines - available_lines, scroll_offset + available_lines)
+            elif c == curses.KEY_HOME:  # Home键回到顶部
+                scroll_offset = 0
+            elif c == curses.KEY_END:  # End键到底部
+                scroll_offset = max(0, total_lines - available_lines)
+            elif c == ord('q') or c == ord('Q'):
+                break
+            elif c == curses.KEY_RESIZE:
+                # 终端尺寸变化，重新计算
+                continue
 
     def show_stats(self):
         """显示书籍阅读统计，增加查看Rich图表的选项"""
@@ -2382,7 +2510,7 @@ class NovelReader:
 
     def get_help_list(self):
         """返回当前语言的帮助键列表"""
-        return [
+        help_items = [
             get_text("help_key_page", self.lang),
             get_text("help_key_auto_page", self.lang),
             get_text("help_key_add_bookmark", self.lang),
@@ -2397,8 +2525,10 @@ class NovelReader:
             get_text("help_key_stats", self.lang),
             get_text("help_key_all_stats", self.lang),
             get_text("help_key_delete_book", self.lang),
-            get_text("help_key_boss_key", self.lang)
+            get_text("help_key_boss_key", self.lang),
+            f"r:{get_text('reset_position', self.lang)}"  # 添加重置功能的说明
         ]
+        return help_items
 
     def record_last_read_time(self, book_id):
         """记录书籍的最后阅读时间"""
@@ -2488,40 +2618,782 @@ class NovelReader:
             except curses.error:
                 pass
 
-    def run(self):
+    def get_effective_width(self):
+        """获取有效的显示宽度，考虑缩放因子"""
+        base_width = self.get_setting("width", 200)
+        zoom_factor = self.get_setting("font_scale", 1.0)
+        return max(10, int(base_width * zoom_factor))
+
+    def get_effective_height(self):
+        """获取有效的显示高度，考虑缩放因子"""
+        base_height = self.get_setting("height", 50)
+        zoom_factor = self.get_setting("font_scale", 1.0)
+        return max(5, int(base_height * zoom_factor))
+
+    def show_font_settings(self):
+        """显示字体设置主界面"""
+        options = [
+            ("presets", get_text("font_presets", self.lang)),
+            ("scale", get_text("font_scale", self.lang)),
+            ("line_spacing", get_text("line_spacing_setting", self.lang)),
+            ("paragraph_spacing", get_text("paragraph_spacing_setting", self.lang)),
+            ("auto_adjust", get_text("auto_adjust", self.lang)),
+        ]
+        
+        current_selection = 0
+        
+        while True:
+            self.stdscr.clear()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            title = get_text("font_settings", self.lang)
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示当前设置值
+            scale = getattr(self.settings, "font_scale", 1.0)
+            line_spacing = getattr(self.settings, "line_spacing", 1)
+            paragraph_spacing = getattr(self.settings, "paragraph_spacing", 1)
+            
+            current_settings = f"{get_text('font_scale', self.lang)}: {scale:.1f}x | {get_text('line_spacing_setting', self.lang)}: {line_spacing} | {get_text('paragraph_spacing_setting', self.lang)}: {paragraph_spacing}"
+            self.stdscr.attron(curses.color_pair(3))
+            self.stdscr.addstr(1, max_x // 2 - len(current_settings) // 2, current_settings)
+            self.stdscr.attroff(curses.color_pair(3))
+            
+            # 显示选项
+            for idx, (key, desc) in enumerate(options):
+                line = f"{'→' if idx == current_selection else ' '} {desc}"
+                color = curses.color_pair(2) if idx == current_selection else curses.color_pair(1)
+                self.stdscr.attron(color)
+                self.stdscr.addstr(idx + 3, 4, line)
+                self.stdscr.attroff(color)
+            
+            help_text = f"[↑↓]{get_text('select', self.lang)} [Enter]{get_text('confirm', self.lang)} [q]{get_text('back', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(len(options) + 5, 4, help_text)
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c in (curses.KEY_UP, ord('k')):
+                current_selection = (current_selection - 1) % len(options)
+            elif c in (curses.KEY_DOWN, ord('j')):
+                current_selection = (current_selection + 1) % len(options)
+            elif c in (curses.KEY_ENTER, 10, 13):
+                selected_option = options[current_selection][0]
+                
+                if selected_option == "presets":
+                    self.show_font_presets()
+                elif selected_option == "scale":
+                    self.adjust_font_scale()
+                elif selected_option == "line_spacing":
+                    self.adjust_line_spacing()
+                elif selected_option == "paragraph_spacing":
+                    self.adjust_paragraph_spacing()
+                elif selected_option == "auto_adjust":
+                    self.auto_adjust_font_settings()
+
+    def show_font_presets(self):
+        """显示字体预设方案界面"""
+        presets = [
+            {
+                "name": get_text("font_preset_small", self.lang),
+                "scale": 0.8,
+                "line_spacing": 0,
+                "paragraph_spacing": 0
+            },
+            {
+                "name": get_text("font_preset_standard", self.lang),
+                "scale": 1.0,
+                "line_spacing": 1,
+                "paragraph_spacing": 1
+            },
+            {
+                "name": get_text("font_preset_large", self.lang),
+                "scale": 1.3,
+                "line_spacing": 1,
+                "paragraph_spacing": 1
+            },
+            {
+                "name": get_text("font_preset_comfort", self.lang),
+                "scale": 1.1,
+                "line_spacing": 2,
+                "paragraph_spacing": 2
+            },
+            {
+                "name": get_text("font_preset_compact", self.lang),
+                "scale": 0.9,
+                "line_spacing": 0,
+                "paragraph_spacing": 0
+            }
+        ]
+        
+        current_selection = 0
+        
+        while True:
+            self.stdscr.clear()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            title = get_text("font_presets", self.lang)
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示预设选项
+            for idx, preset in enumerate(presets):
+                line = f"{'→' if idx == current_selection else ' '} {preset['name']}"
+                color = curses.color_pair(2) if idx == current_selection else curses.color_pair(1)
+                self.stdscr.attron(color)
+                self.stdscr.addstr(idx + 2, 4, line)
+                self.stdscr.attroff(color)
+                
+                # 显示预设的详细参数
+                details = f"  {get_text('font_scale', self.lang)}: {preset['scale']}x, {get_text('line_spacing_setting', self.lang)}: {preset['line_spacing']}, {get_text('paragraph_spacing_setting', self.lang)}: {preset['paragraph_spacing']}"
+                self.stdscr.addstr(idx + 2, 4 + len(line) + 2, details[:max_x - len(line) - 6])
+            
+            help_text = f"[↑↓]{get_text('select', self.lang)} [Enter]{get_text('apply', self.lang)} [q]{get_text('back', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(len(presets) + 4, 4, help_text)
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                break
+            elif c in (curses.KEY_UP, ord('k')):
+                current_selection = (current_selection - 1) % len(presets)
+            elif c in (curses.KEY_DOWN, ord('j')):
+                current_selection = (current_selection + 1) % len(presets)
+            elif c in (curses.KEY_ENTER, 10, 13):
+                # 应用选中的预设
+                preset = presets[current_selection]
+                self.settings["font_scale"] = preset["scale"]
+                self.settings["line_spacing"] = preset["line_spacing"]
+                self.settings["paragraph_spacing"] = preset["paragraph_spacing"]
+                self.settings.save()
+                
+                # 重新加载当前书籍
+                if self.current_book:
+                    self.load_book(self.current_book)
+                
+                # 显示应用成功消息
+                self.show_message(get_text("settings_applied", self.lang), 
+                                get_text("font_settings_applied", self.lang))
+                break
+
+    def adjust_font_scale(self):
+        """调整字体缩放因子"""
+        current_scale = self.get_setting("font_scale", 1.0)
+        new_scale = self.show_slider_setting(
+            get_text("font_scale", self.lang),
+            current_scale,
+            0.5,  # 最小值
+            2.0,  # 最大值
+            0.1,  # 步长
+            get_text("font_scale_desc", self.lang)
+        )
+        
+        if new_scale is not None:
+            # 检查缩放因子是否会导致界面问题
+            max_y, max_x = self.stdscr.getmaxyx()
+            min_scale = max(0.5, 10 / max_x, 5 / max_y)  # 确保至少能显示10个字符和5行
+            max_scale = min(2.0, max_x / 10, max_y / 5)  # 确保不会超出屏幕
+            
+            if new_scale < min_scale:
+                self.show_message(get_text("invalid", self.lang), 
+                                f"{get_text('font_scale', self.lang)} {get_text('cannot_be_less_than', self.lang)} {min_scale:.1f}")
+                return
+            elif new_scale > max_scale:
+                self.show_message(get_text("invalid", self.lang), 
+                                f"{get_text('font_scale', self.lang)} {get_text('cannot_be_greater_than', self.lang)} {max_scale:.1f}")
+                return
+            
+            self.settings["font_scale"] = new_scale
+            self.settings.save()
+            
+            # 重新加载当前书籍
+            if self.current_book:
+                self.load_book(self.current_book)
+            
+            self.show_message(get_text("settings_applied", self.lang), 
+                            f"{get_text('font_scale', self.lang)}: {new_scale:.1f}x")
+
+    def adjust_line_spacing(self):
+        """调整行距"""
+        current_spacing = getattr(self.settings, "line_spacing", 1)
+        new_spacing = self.show_slider_setting(
+            get_text("line_spacing_setting", self.lang),
+            current_spacing,
+            0,  # 最小值
+            3,  # 最大值
+            1,  # 步长
+            get_text("line_spacing_desc", self.lang)
+        )
+        
+        if new_spacing is not None:
+            self.settings["line_spacing"] = new_spacing
+            self.settings.save()
+            
+            # 重新加载当前书籍
+            if self.current_book:
+                self.load_book(self.current_book)
+            
+            self.show_message(get_text("settings_applied", self.lang), 
+                            f"{get_text('line_spacing_setting', self.lang)}: {new_spacing}")
+
+    def adjust_paragraph_spacing(self):
+        """调整段落间距"""
+        current_spacing = getattr(self.settings, "paragraph_spacing", 1)
+        new_spacing = self.show_slider_setting(
+            get_text("paragraph_spacing_setting", self.lang),
+            current_spacing,
+            0,  # 最小值
+            3,  # 最大值
+            1,  # 步长
+            get_text("paragraph_spacing_desc", self.lang)
+        )
+        
+        if new_spacing is not None:
+            self.settings["paragraph_spacing"] = new_spacing
+            self.settings.save()
+            
+            # 重新加载当前书籍
+            if self.current_book:
+                self.load_book(self.current_book)
+            
+            self.show_message(get_text("settings_applied", self.lang), 
+                            f"{get_text('paragraph_spacing_setting', self.lang)}: {new_spacing}")
+
+    def show_slider_setting(self, title, current_value, min_value, max_value, step, description):
+        """显示滑块设置界面"""
+        value = current_value
+        
+        while True:
+            self.stdscr.clear()
+            max_y, max_x = self.stdscr.getmaxyx()
+            
+            # 显示标题
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示描述
+            self.stdscr.attron(curses.color_pair(3))
+            self.stdscr.addstr(2, 4, description[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3))
+            
+            # 显示当前值
+            value_str = f"{get_text('current_value', self.lang)}: {value}"
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(4, 4, value_str)
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            
+            # 显示滑块
+            slider_width = min(40, max_x - 10)
+            slider_pos = int((value - min_value) / (max_value - min_value) * slider_width)
+            
+            slider = "[" + "=" * slider_pos + "○" + "=" * (slider_width - slider_pos - 1) + "]"
+            self.stdscr.attron(curses.color_pair(1))
+            self.stdscr.addstr(6, 4, slider)
+            self.stdscr.attroff(curses.color_pair(1))
+            
+            # 显示最小值、最大值和步长
+            range_info = f"{min_value} ← {step} → {max_value}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(7, 4 + (slider_width - len(range_info)) // 2, range_info)
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            # 显示操作提示
+            help_text = f"[←→]{get_text('adjust', self.lang)} [Enter]{get_text('apply', self.lang)} [q]{get_text('cancel', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(9, 4, help_text)
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                return None
+            elif c in (curses.KEY_ENTER, 10, 13):
+                return value
+            elif c == curses.KEY_RIGHT:
+                value = min(max_value, value + step)
+            elif c == curses.KEY_LEFT:
+                value = max(min_value, value - step)
+
+    def auto_adjust_font_settings(self):
+        """根据屏幕大小自动调整字体设置"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 根据屏幕大小推荐设置
+        if max_y < 25 or max_x < 80:  # 小屏幕
+            recommended_scale = 0.8
+            recommended_spacing = 0
+        elif max_y < 35 or max_x < 100:  # 中等屏幕
+            recommended_scale = 1.0
+            recommended_spacing = 1
+        else:  # 大屏幕
+            recommended_scale = 1.2
+            recommended_spacing = 1
+        
+        # 询问用户是否应用推荐设置
+        message = f"{get_text('get_screen_size', self.lang)}: {max_x}x{max_y}, {get_text('recommend_use', self.lang)}: {get_text('font_scale', self.lang)}{recommended_scale}x, {get_text('line_spacing_setting', self.lang)}{recommended_spacing}"
+        choice = self.show_confirm_dialog(get_text("auto_adjust", self.lang), message)
+        
+        if choice:
+            self.settings["font_scale"] = recommended_scale
+            self.settings["line_spacing"] = recommended_spacing
+            self.settings.save()
+            
+            # 重新加载当前书籍
+            if self.current_book:
+                self.load_book(self.current_book)
+            
+            self.show_message(get_text("settings_applied", self.lang), 
+                            get_text("font_settings_auto_adjusted", self.lang))
+
+    def show_confirm_dialog(self, title, message):
+        """显示确认对话框"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 计算对话框大小
+        dialog_width = min(max_x - 4, len(message) + 4)
+        dialog_height = 6
+        
+        # 计算对话框位置
+        dialog_x = (max_x - dialog_width) // 2
+        dialog_y = (max_y - dialog_height) // 2
+        
+        # 绘制对话框
+        self.draw_section_border(dialog_y, dialog_x, dialog_height, dialog_width, title)
+        
+        # 显示消息
+        self.stdscr.attron(curses.color_pair(1))
+        self.stdscr.addstr(dialog_y + 2, dialog_x + 2, message[:dialog_width-4])
+        self.stdscr.attroff(curses.color_pair(1))
+        
+        # 显示选项
+        yes_option = f"[Y] {get_text('apply', self.lang)}"
+        no_option = f"[N] {get_text('cancel', self.lang)}"
+        
+        options_line = f"{yes_option}   {no_option}"
+        self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+        self.stdscr.addstr(dialog_y + 4, dialog_x + (dialog_width - len(options_line)) // 2, options_line)
+        self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+        
+        self.stdscr.refresh()
+        
+        # 等待用户选择
+        while True:
+            c = self.stdscr.getch()
+            if c in (ord('y'), ord('Y')):
+                return True
+            elif c in (ord('n'), ord('N'), ord('q')):
+                return False
+
+    def show_message(self, title, message, duration=2):
+        """显示消息对话框"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 计算对话框大小
+        dialog_width = min(max_x - 4, len(message) + 4)
+        dialog_height = 5
+        
+        # 计算对话框位置
+        dialog_x = (max_x - dialog_width) // 2
+        dialog_y = (max_y - dialog_height) // 2
+        
+        # 绘制对话框
+        self.draw_section_border(dialog_y, dialog_x, dialog_height, dialog_width, title)
+        
+        # 显示消息
+        self.stdscr.attron(curses.color_pair(1))
+        self.stdscr.addstr(dialog_y + 2, dialog_x + 2, message[:dialog_width-4])
+        self.stdscr.attroff(curses.color_pair(1))
+        
+        self.stdscr.refresh()
+        time.sleep(duration)
+
+    def handle_font_shortcuts(self, c):
+        """处理字体大小调整快捷键"""
+        if c == ord('+') or c == ord('='):  # 增大字体
+            current_scale = getattr(self.settings, "font_scale", 1.0)
+            new_scale = min(2.0, current_scale + 0.1)
+            self.settings["font_scale"] = new_scale
+            self.apply_font_settings()
+            return True
+        elif c == ord('-'):  # 减小字体
+            current_scale = getattr(self.settings, "font_scale", 1.0)
+            new_scale = max(0.5, current_scale - 0.1)
+            self.settings["font_scale"] = new_scale
+            self.apply_font_settings()
+            return True
+        elif c == ord('['):  # 减小行距
+            current_spacing = getattr(self.settings, "line_spacing", 1)
+            new_spacing = max(0, current_spacing - 1)
+            self.settings["line_spacing"] = new_spacing
+            self.apply_font_settings()
+            return True
+        elif c == ord(']'):  # 增加行距
+            current_spacing = getattr(self.settings, "line_spacing", 1)
+            new_spacing = min(3, current_spacing + 1)
+            self.settings["line_spacing"] = new_spacing
+            self.apply_font_settings()
+            return True
+        return False
+
+    def apply_font_settings(self):
+        """应用字体设置并重新加载当前书籍"""
+        self.settings.save()
         if self.current_book:
-            while self.running:
-                if self.boss_mode:
-                    self.display_terminal()
-                    c = self.stdscr.getch()
-                    self.handle_terminal_input(c)
-                else:
-                    self.display()
-                    self.handle_input()
-                    self.save_progress()
-                    self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
-                    self.check_remind()
-                    self.start_time = time.time()
-                    if self.auto_page:
-                        time.sleep(self.settings["auto_page_interval"])
-                        self.next_page()
-        else:
-            self.show_bookshelf()
-            while self.running:
-                if self.boss_mode:
-                    self.display_terminal()
-                    c = self.stdscr.getch()
-                    self.handle_terminal_input(c)
-                else:
-                    self.display()
-                    self.handle_input()
-                    self.save_progress()
-                    self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
-                    self.check_remind()
-                    self.start_time = time.time()
-                    if self.auto_page:
-                        time.sleep(self.settings["auto_page_interval"])
-                        self.next_page()
-                        
-        # 确保在退出前停止朗读
-        self.stop_reading()
+            self.load_book(self.current_book)
+        
+        # 显示临时提示
+        max_y, max_x = self.stdscr.getmaxyx()
+        scale = getattr(self.settings, "font_scale", 1.0)
+        spacing = getattr(self.settings, "line_spacing", 1)
+        message = f"{get_text('font_scale', self.lang)}: {scale:.1f}x, {get_text('line_spacing_setting', self.lang)}: {spacing}"
+        self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+        self.stdscr.addstr(max_y - 2, max_x // 2 - len(message) // 2, message)
+        self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+        self.stdscr.refresh()
+        time.sleep(1)  # 显示1秒后消失
+
+    def get_setting(self, key, default=None):
+        """安全地获取设置值"""
+        try:
+            return self.settings[key]
+        except (KeyError, AttributeError):
+            return default
+
+    def get_display_width(self):
+        """获取考虑缩放因子的显示宽度"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        zoom_factor = self.get_setting("font_scale", 1.0)
+        return max(10, min(self.settings["width"], int(max_x * 0.9 / zoom_factor)))
+
+    def get_display_height(self):
+        """获取考虑缩放因子的显示高度"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        zoom_factor = self.get_setting("font_scale", 1.0)
+        return max(5, min(self.settings["height"], int(max_y * 0.8 / zoom_factor)))
+
+    def get_scaled_coordinates(self, y, x):
+        """将逻辑坐标转换为考虑缩放因子的实际屏幕坐标"""
+        zoom_factor = self.get_setting("font_scale", 1.0)
+        return int(y * zoom_factor), int(x * zoom_factor)
+
+    def get_safe_content_area(self):
+        """计算安全的内容显示区域"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        margin = self.settings["margin"]
+        padding = self.settings["padding"]
+        
+        # 获取缩放因子
+        zoom_factor = max(0.1, self.get_setting("font_scale", 1.0))
+        
+        # 计算有效的内容区域
+        content_height = max(1, int((max_y - margin * 2) / zoom_factor))
+        content_width = max(1, int((max_x - padding * 2) / zoom_factor))
+        
+        return content_height, content_width
+
+    def get_display_coordinates(self, logical_y, logical_x):
+        """将逻辑坐标转换为实际显示坐标"""
+        margin = self.settings["margin"]
+        padding = self.settings["padding"]
+        
+        # 获取缩放因子
+        zoom_factor = max(0.1, self.get_setting("font_scale", 1.0))
+        
+        # 计算实际坐标
+        actual_y = margin + int(logical_y * zoom_factor)
+        actual_x = padding + int(logical_x * zoom_factor)
+        
+        # 确保坐标在屏幕范围内
+        max_y, max_x = self.stdscr.getmaxyx()
+        actual_y = max(0, min(actual_y, max_y - 1))
+        actual_x = max(0, min(actual_x, max_x - 1))
+        
+        return actual_y, actual_x
+
+    def get_display_info(self):
+        """获取显示信息，包括可显示的行数和列数"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 获取缩放因子
+        zoom_factor = max(0.1, self.get_setting("font_scale", 1.0))
+        
+        # 计算可用的显示区域（考虑边距）
+        margin = self.settings["margin"]
+        padding = self.settings["padding"]
+        
+        # 可显示的行数和列数
+        display_height = max(1, int((max_y - margin * 2 - 6) / zoom_factor))  # 6行用于标题和状态栏
+        display_width = max(1, int((max_x - padding * 2) / zoom_factor))
+        
+        return display_height, display_width
+
+    def show_content_warning(self):
+        """显示内容警告（如果内容超出屏幕）"""
+        if not self.current_pages:
+            return
+            
+        page_lines = self.current_pages[self.current_page_idx]
+        display_height, display_width = self.get_display_info()
+        
+        # 检查是否有内容超出屏幕
+        lines_outside = max(0, len(page_lines) - display_height)
+        chars_outside = 0
+        
+        for line in page_lines:
+            chars_outside += max(0, len(line) - display_width)
+        
+        # 如果有内容超出屏幕，显示警告
+        if lines_outside > 0 or chars_outside > 0:
+            max_y, max_x = self.stdscr.getmaxyx()
+            warning = f"⚠️ {get_text('content_outside_warning', self.lang)}"
+            
+            if lines_outside > 0:
+                warning += f" {lines_outside} {get_text('lines', self.lang)}"
+            if chars_outside > 0:
+                warning += f" {chars_outside} {get_text('chars', self.lang)}"
+            
+            y_pos = max(0, min(max_y - 1, max_y - 1))
+            x_pos = max(0, min(2, max_x - len(warning) - 1))
+            
+            self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+            self.stdscr.addstr(y_pos, x_pos, warning)
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+
+    def calculate_display_limits(self):
+        """计算最大可显示行数和列数"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        
+        # 获取缩放因子
+        zoom_factor = max(0.1, self.get_setting("font_scale", 1.0))
+        
+        # 计算边距和填充
+        margin = max(0, self.settings["margin"])
+        padding = max(0, self.settings["padding"])
+        
+        # 计算可用的显示区域
+        self.max_display_lines = max(1, int((max_y - margin * 2 - 6) / zoom_factor))  # 6行用于标题和状态栏
+        self.max_display_cols = max(1, int((max_x - padding * 2) / zoom_factor))
+
+    def show_navigation_hints(self, page_lines, max_y, max_x):
+        """显示导航提示"""
+        # 如果有内容超出屏幕，显示导航提示
+        hints = []
+        
+        # 行导航提示
+        if self.display_start_line > 0:
+            hints.append("↑")
+        if self.display_start_line + self.max_display_lines < len(page_lines):
+            hints.append("↓")
+        
+        # 列导航提示
+        if self.display_start_col > 0:
+            hints.append("←")
+        
+        max_line_length = max([len(line) for line in page_lines]) if page_lines else 0
+        if self.display_start_col + self.max_display_cols < max_line_length:
+            hints.append("→")
+        
+        # 添加重置提示
+        if self.display_start_line > 0 or self.display_start_col > 0:
+            hints.append(f"r:{get_text('reset', self.lang)}")
+        
+        if hints:
+            hint_text = " ".join(hints)
+            y_pos = max(0, min(max_y - 5, max_y - 1))
+            x_pos = max(0, min(max_x - len(hint_text) - 2, max_x - 1))
+            
+            self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+            self.stdscr.addstr(y_pos, x_pos, hint_text)
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+
+    def show_status_bar(self, max_y, max_x):
+        """显示状态栏"""
+        if self.settings["status_bar"] and self.current_book:
+            status = f"📖 {self.current_book['title']} | {get_text('author', self.lang)}: {self.current_book['author']} | {get_text('current_page', self.lang)}: {self.current_page_idx+1}/{len(self.current_pages)}"
+            y_pos = max(0, min(max_y - 4, max_y - 1))
+            x_pos = max(0, min(2, max_x - len(status) - 1))
+            
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(y_pos, x_pos, status)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+        # 显示朗读状态
+        if self.is_reading:
+            reading_status = f"🔊 {get_text('aloud_r2_stop', self.lang)}"
+            y_pos = max(0, min(max_y - 3, max_y - 1))
+            x_pos = max(0, min(2, max_x - len(reading_status) - 1))
+            
+            self.stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
+            self.stdscr.addstr(y_pos, x_pos, reading_status)
+            self.stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
+            
+        # 显示帮助信息
+        help_str = " | ".join(self.get_help_list())
+        y_pos = max(0, min(max_y - 2, max_y - 1))
+        x_pos = max(0, min(2, max_x - len(help_str) - 1))
+        
+        self.stdscr.attron(curses.color_pair(2) | curses.A_DIM)
+        self.stdscr.addstr(y_pos, x_pos, help_str)
+        self.stdscr.attroff(curses.color_pair(2) | curses.A_DIM)
+
+    def handle_navigation_keys(self, c):
+        """处理导航键"""
+        if not self.current_pages:
+            return False
+            
+        page_lines = self.current_pages[self.current_page_idx]
+        
+        # 重置键 - 回到顶部和左侧
+        if c == ord('r') or c == ord('R'):  # 重置显示位置
+            self.display_start_line = 0
+            self.display_start_col = 0
+            return True
+            
+        # 行导航
+        if c == curses.KEY_UP:
+            if self.display_start_line > 0:
+                self.display_start_line -= 1
+                return True
+        elif c == curses.KEY_DOWN:
+            if self.display_start_line + self.max_display_lines < len(page_lines):
+                self.display_start_line += 1
+                return True
+        elif c == curses.KEY_PPAGE:  # Page Up
+            if self.display_start_line > 0:
+                self.display_start_line = max(0, self.display_start_line - self.max_display_lines)
+                return True
+        elif c == curses.KEY_NPAGE:  # Page Down
+            if self.display_start_line + self.max_display_lines < len(page_lines):
+                self.display_start_line = min(len(page_lines) - self.max_display_lines, 
+                                            self.display_start_line + self.max_display_lines)
+                return True
+                
+        # 列导航
+        max_line_length = max([len(line) for line in page_lines]) if page_lines else 0
+        if c == curses.KEY_LEFT:
+            if self.display_start_col > 0:
+                self.display_start_col -= 1
+                return True
+        elif c == curses.KEY_RIGHT:
+            if self.display_start_col + self.max_display_cols < max_line_length:
+                self.display_start_col += 1
+                return True
+                
+        # Home 键 - 回到行首
+        elif c == curses.KEY_HOME:
+            if self.display_start_col > 0:
+                self.display_start_col = 0
+                return True
+                
+        # End 键 - 到行尾
+        elif c == curses.KEY_END:
+            if self.display_start_col + self.max_display_cols < max_line_length:
+                self.display_start_col = max(0, max_line_length - self.max_display_cols)
+                return True
+                
+        return False
+
+    def safe_addstr(self, win, y, x, text, attr=None):
+        """安全地添加字符串到窗口，避免边界错误"""
+        max_y, max_x = win.getmaxyx()
+        
+        # 检查 y 坐标是否有效
+        if y < 0 or y >= max_y:
+            return False
+        
+        # 检查 x 坐标是否有效
+        if x < 0 or x >= max_x:
+            return False
+        
+        # 截断文本以适应屏幕
+        max_length = max_x - x
+        if max_length <= 0:
+            return False
+        
+        safe_text = text[:max_length]
+        
+        try:
+            if attr:
+                win.addstr(y, x, safe_text, attr)
+            else:
+                win.addstr(y, x, safe_text)
+            return True
+        except curses.error:
+            return False
+
+    def safe_addstr_simple(self, y, x, text, attr=None):
+        """简化版本的安全添加字符串方法，直接使用 self.stdscr"""
+        return self.safe_addstr(self.stdscr, y, x, text, attr)
+
+    def safe_addstr_centered(self, y, text, attr=None):
+        """在指定行居中显示文本"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        x = max(0, min(max_x // 2 - len(text) // 2, max_x - len(text) - 1))
+        return self.safe_addstr(self.stdscr, y, x, text, attr)
+
+    def run(self):
+        try:
+            if self.current_book:
+                while self.running:
+                    if self.boss_mode:
+                        self.display_terminal()
+                        c = self.stdscr.getch()
+                        self.handle_terminal_input(c)
+                    else:
+                        self.display()
+                        self.handle_input()
+                        self.save_progress()
+                        self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
+                        self.check_remind()
+                        self.start_time = time.time()
+                        if self.auto_page:
+                            time.sleep(self.settings["auto_page_interval"])
+                            self.next_page()
+            else:
+                self.show_bookshelf()
+                while self.running:
+                    if self.boss_mode:
+                        self.display_terminal()
+                        c = self.stdscr.getch()
+                        self.handle_terminal_input(c)
+                    else:
+                        self.display()
+                        self.handle_input()
+                        self.save_progress()
+                        self.stats.record_reading(self.current_book["id"], int(time.time() - self.start_time))
+                        self.check_remind()
+                        self.start_time = time.time()
+                        if self.auto_page:
+                            time.sleep(self.settings["auto_page_interval"])
+                            self.next_page()
+                            
+            # 确保在退出前停止朗读
+            self.stop_reading()
+            
+        except Exception as e:
+            # 记录错误并尝试恢复
+            import traceback
+            error_msg = f"错误: {str(e)}"
+            self.stdscr.clear()
+            self.stdscr.addstr(0, 0, error_msg)
+            self.stdscr.addstr(1, 0, "按任意键继续...")
+            self.stdscr.refresh()
+            self.stdscr.getch()
+            
+            # 尝试恢复界面
+            if self.current_book:
+                self.display()
+            else:
+                self.show_bookshelf()
