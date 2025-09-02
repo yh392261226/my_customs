@@ -1263,42 +1263,67 @@ class NovelReader:
         time.sleep(3)
 
     def change_settings(self):
-        options = [
+        # 定义选项类型的设置项
+        option_settings = [
+            ("theme", get_text("input_theme", self.lang), 
+            ["dark", "light", "eye", "midnight", "sepia", "forest", "amethyst", "ocean", "crimson", "slate", "transparent-dark", "transparent-light", "transparent-blue"]),
+            ("lang", get_text("input_lang", self.lang), ["zh", "en"]),
+            ("font_color", get_text("input_font_color", self.lang), 
+            ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]),
+            ("bg_color", get_text("input_bg_color", self.lang), 
+            ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "transparent"]),
+            ("border_style", get_text("input_border_style", self.lang), 
+            ["round", "double", "single", "bold", "dotted", "dashed", "curved", "thick", "shadow", "fancy", "minimal", "classic", "none"]),
+            ("border_color", get_text("input_border_color", self.lang), 
+            ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"]),
+            ("status_bar", f"{get_text('statusbar_switch', self.lang)}", ["True", "False"])
+        ]
+        
+        # 定义输入值类型的设置项
+        input_settings = [
             ("width", f"{get_text('width', self.lang)}", int, 40, 300),
             ("height", f"{get_text('height', self.lang)}", int, 10, 80),
-            ("theme", get_text("input_theme", self.lang), str, ["dark", "light", "eye", "midnight", "sepia", "forest", "amethyst", "ocean", "crimson", "slate", "transparent-dark", "transparent-light", "transparent-blue"]),
-            ("lang", get_text("input_lang", self.lang), str, ["zh", "en"]),
-            ("font_color", get_text("input_font_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
-            ("bg_color", get_text("input_bg_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white", "transparent"]),
-            ("border_style", get_text("input_border_style", self.lang), str, ["round","double","single","bold","dotted","dashed","curved","thick","shadow","fancy","minimal","classic","none"]),
-            ("border_color", get_text("input_border_color", self.lang), str, ["black","red","green","yellow","blue","magenta","cyan","white"]),
             ("line_spacing", f"{get_text('line_spacing', self.lang)}", int, 1, 5),
             ("auto_page_interval", f"{get_text('auto_pager_sec', self.lang)}", int, 1, 60),
-            ("speech_rate", f"{get_text('speech_rate', self.lang)}", int, 50, 400),  # 添加语速设置
-            ("status_bar", f"{get_text('statusbar_switch', self.lang)}", bool, [0, 1]),
+            ("speech_rate", f"{get_text('speech_rate', self.lang)}", int, 50, 400),
             ("remind_interval", get_text("input_remind_interval", self.lang), int, 0, 120),
-            ("font_settings", get_text("font_settings", self.lang), "menu", []),  # 添加字体设置菜单选项
+            ("font_settings", get_text("font_settings", self.lang), "menu", [])
         ]
+        
+        # 合并所有设置项
+        options = option_settings + input_settings
         curr = 0
+        
         while True:
             self.stdscr.clear()
             max_y, max_x = self.stdscr.getmaxyx()
             self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
             self.stdscr.addstr(0, max_x // 2 - 6, f"⚙️ {get_text('setting_page', self.lang)}")
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
-            for idx, (key, desc, typ, *meta) in enumerate(options):
+            
+            for idx, item in enumerate(options):
+                key, desc, *meta = item
                 val = self.settings[key]
-                line = f"{desc} [{val}]"
+                
+                # 对于选项类型的设置项，显示当前值
+                if idx < len(option_settings):
+                    line = f"{desc} [{val}]"
+                # 对于输入值类型的设置项，也显示当前值
+                else:
+                    line = f"{desc} [{val}]"
+                    
                 if idx == curr:
                     self.stdscr.attron(curses.color_pair(2) | curses.A_REVERSE)
                     self.stdscr.addstr(idx+2, 4, line[:max_x-8])
                     self.stdscr.attroff(curses.color_pair(2) | curses.A_REVERSE)
                 else:
                     self.stdscr.addstr(idx+2, 4, line[:max_x-8])
+                    
             self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.addstr(len(options)+4, 4, f"{get_text('enter_confirm_q_back', self.lang)}")
             self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
             self.stdscr.refresh()
+            
             c = self.stdscr.getch()
             if c in (curses.KEY_DOWN, ord('j')):
                 curr = (curr + 1) % len(options)
@@ -1308,44 +1333,64 @@ class NovelReader:
                 init_colors(theme=self.settings["theme"], settings=self.settings)
                 self.lang = self.settings["lang"]
                 self.remind_minutes = self.settings["remind_interval"]
-                # 重新加载当前书籍以适应新设置
                 if self.current_book:
                     self.load_book(self.current_book)
                 break
             elif c in (curses.KEY_ENTER, 10, 13):
-                key, desc, typ, *meta = options[curr]
-                if key == "font_settings":
-                    self.show_font_settings()
-                    continue
-                newval = input_box(self.stdscr, f"{desc}{get_text('new_val', self.lang)}: ", maxlen=20)
-                valid = False
-                if typ == int:
-                    try:
-                        v = int(newval)
-                        if len(meta)==2 and (meta[0] <= v <= meta[1]):
-                            self.settings[key] = v
-                            valid = True
-                            # 如果是语速设置，立即应用
-                            if key == "speech_rate":
-                                self.set_speech_rate(v)
-                    except:
-                        pass
-                elif typ == bool:
-                    if newval.lower() in ['1', 'true', 'yes', 'y', '开', '是']:
-                        self.settings[key] = True
-                        valid = True
-                    elif newval.lower() in ['0', 'false', 'no', 'n', '关', '否']:
-                        self.settings[key] = False
-                        valid = True
-                elif typ == str:
-                    if isinstance(meta[0], list) and newval in meta[0]:
-                        self.settings[key] = newval
-                        valid = True
-                if not valid:
-                    self.stdscr.addstr(len(options)+7, 4, get_text("invalid", self.lang))
-                    self.stdscr.refresh()
-                    time.sleep(1)
+                key, desc, *meta = options[curr]
+                valid = False  # 初始化 valid 变量
+                
+                # 处理选项类型的设置项
+                if curr < len(option_settings):
+                    # 显示选项列表供用户选择
+                    options_list = meta[0]
+                    current_index = options_list.index(str(self.settings[key])) if str(self.settings[key]) in options_list else 0
+                    new_index = self.show_option_selection(desc, options_list, current_index)
+                    
+                    if new_index is not None:
+                        new_val = options_list[new_index]
+                        # 对于布尔值，需要转换为Python的布尔类型
+                        if key == "status_bar":
+                            self.settings[key] = (new_val == "True")
+                        else:
+                            self.settings[key] = new_val
+                        valid = True  # 选项类型设置项总是有效的
+                # 处理输入值类型的设置项
                 else:
+                    if key == "font_settings":
+                        self.show_font_settings()
+                        continue
+                        
+                    newval = input_box(self.stdscr, f"{desc}{get_text('new_val', self.lang)}: ", maxlen=20)
+                    
+                    if meta[0] == int:
+                        try:
+                            v = int(newval)
+                            if len(meta)==3 and (meta[1] <= v <= meta[2]):
+                                self.settings[key] = v
+                                valid = True
+                                if key == "speech_rate":
+                                    self.set_speech_rate(v)
+                        except:
+                            pass
+                    elif meta[0] == bool:
+                        if newval.lower() in ['1', 'true', 'yes', 'y', f"{get_text('on', self.lang)}", f"{get_text('yes', self.lang)}"]:
+                            self.settings[key] = True
+                            valid = True
+                        elif newval.lower() in ['0', 'false', 'no', 'n', f"{get_text('off', self.lang)}", f"{get_text('no', self.lang)}"]:
+                            self.settings[key] = False
+                            valid = True
+                    elif meta[0] == str:
+                        if isinstance(meta[1], list) and newval in meta[1]:
+                            self.settings[key] = newval
+                            valid = True
+                            
+                    if not valid:
+                        self.stdscr.addstr(len(options)+7, 4, get_text("invalid", self.lang))
+                        self.stdscr.refresh()
+                        time.sleep(1)
+                        
+                if valid:
                     self.settings.save()
                     if key in ["theme","font_color","bg_color","border_style","border_color"]:
                         init_colors(theme=self.settings["theme"], settings=self.settings)
@@ -1353,9 +1398,47 @@ class NovelReader:
                         self.lang = self.settings["lang"]
                     if key == "remind_interval":
                         self.remind_minutes = self.settings["remind_interval"]
-                    # 重新加载当前书籍以适应新设置
                     if self.current_book and key in ["width", "height", "line_spacing"]:
                         self.load_book(self.current_book)
+
+    def show_option_selection(self, title, options, current_index=0):
+        """显示选项列表供用户选择"""
+        max_y, max_x = self.stdscr.getmaxyx()
+        selection = current_index
+        
+        while True:
+            self.stdscr.clear()
+            
+            # 显示标题
+            self.stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+            self.stdscr.addstr(0, max_x // 2 - len(title) // 2, title)
+            self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
+            # 显示选项
+            for idx, option in enumerate(options):
+                line = f"{'→' if idx == selection else ' '} {option}"
+                color = curses.color_pair(2) if idx == selection else curses.color_pair(1)
+                self.stdscr.attron(color)
+                self.stdscr.addstr(idx + 2, 4, line[:max_x-8])
+                self.stdscr.attroff(color)
+            
+            # 显示操作提示
+            help_text = f"[↑↓]{get_text('select', self.lang)} [Enter]{get_text('confirm', self.lang)} [q]{get_text('cancel', self.lang)}"
+            self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+            self.stdscr.addstr(len(options) + 4, 4, help_text[:max_x-8])
+            self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            self.stdscr.refresh()
+            
+            c = self.stdscr.getch()
+            if c == ord('q'):
+                return None
+            elif c in (curses.KEY_UP, ord('k')):
+                selection = (selection - 1) % len(options)
+            elif c in (curses.KEY_DOWN, ord('j')):
+                selection = (selection + 1) % len(options)
+            elif c in (curses.KEY_ENTER, 10, 13):
+                return selection
 
     def show_help(self):
         # 构建帮助内容的所有行

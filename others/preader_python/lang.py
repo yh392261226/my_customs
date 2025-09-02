@@ -264,6 +264,10 @@ LANGS = {
         "reset_position": "重置显示位置",
         "reset": "重置",
         "turn_page": "翻页",
+        "on": "开",
+        "off": "关",
+        "yes": "是",
+        "no": "否",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -527,6 +531,10 @@ LANGS = {
         "reset_position": "Reset position",
         "reset": "Reset",
         "turn_page": "Turn Page",
+        "on": "ON",
+        "off": "OFF",
+        "yes": "Yes",
+        "no": "No",
     }
 }
 
