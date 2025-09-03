@@ -23,6 +23,9 @@ from ui_theme import init_colors, BORDER_CHARS, color_pair_idx
 from lang import get_text
 from epub_utils import parse_epub
 from chart_utils import display_rich_chart_in_terminal
+from epub_utils import parse_epub
+from pdf_utils import parse_pdf
+from mobi_utils import parse_mobi
 
 def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None, default=""):
     """美化输入框，居中显示，支持默认值"""
@@ -213,8 +216,6 @@ class NovelReader:
         if book["type"] == "epub":
             self.show_loading_screen(get_text("parsing_epub_data", self.lang))
             # EPUB解析需要传递字符宽度和高度
-            # 添加 paragraph_spacing 参数
-            paragraph_spacing = max(0, self.get_setting("paragraph_spacing", 0))
             chapters = parse_epub(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
             
             pages = []
@@ -227,6 +228,18 @@ class NovelReader:
                     self.show_loading_screen(f"{get_text('action_document_line', self.lang)}: {i+1}/{total_chapters}")
             
             self.current_pages = pages
+            self.show_loading_screen(get_text("action_pages", self.lang))
+            time.sleep(0.5)
+        elif book["type"] == "pdf":
+            self.show_loading_screen("解析PDF数据...")
+            # PDF解析
+            self.current_pages = parse_pdf(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
+            self.show_loading_screen(get_text("action_pages", self.lang))
+            time.sleep(0.5)
+        elif book["type"] == "mobi":
+            self.show_loading_screen("解析MOBI数据...")
+            # MOBI解析
+            self.current_pages = parse_mobi(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         else:

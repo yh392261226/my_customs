@@ -4,3 +4,6 @@ ebooklib
 beautifulsoup4
 cjkwrap
 rich
+PyPDF2
+pdfplumber
+mobi

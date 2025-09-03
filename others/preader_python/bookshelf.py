@@ -1,9 +1,12 @@
 import os
+import time
 from db import DBManager
 from utils import build_pages_from_file
 from epub_utils import parse_epub, get_epub_metadata
 from lang import get_text
-import time
+from epub_utils import parse_epub, get_epub_metadata
+from pdf_utils import parse_pdf, get_pdf_metadata
+from mobi_utils import parse_mobi, get_mobi_metadata
 
 class Bookshelf:
     def __init__(self, lang="zh"):
@@ -191,11 +194,23 @@ class Bookshelf:
             
         # 简单的加载提示
         print(f"{get_text('loading_books', self.lang)}...")
+        
+        # 根据文件类型处理
         if ext == ".epub":
             print(f"{get_text('parsing_epub_data', self.lang)}...")
             title, author = get_epub_metadata(file_path)
             print(f"{get_text('save_to_db', self.lang)}...")
             self.db.add_book(file_path, title or os.path.basename(file_path), author, "epub", tags)
+        elif ext == ".pdf":
+            print(f"{get_text('parsing_epub_data', self.lang)}...")  # 复用提示文本
+            title, author = get_pdf_metadata(file_path)
+            print(f"{get_text('save_to_db', self.lang)}...")
+            self.db.add_book(file_path, title or os.path.basename(file_path), author, "pdf", tags)
+        elif ext == ".mobi":
+            print(f"{get_text('parsing_epub_data', self.lang)}...")  # 复用提示文本
+            title, author = get_mobi_metadata(file_path)
+            print(f"{get_text('save_to_db', self.lang)}...")
+            self.db.add_book(file_path, title or os.path.basename(file_path), author, "mobi", tags)
         else:
             print(f"{get_text('save_to_db', self.lang)}...")
             self.db.add_book(file_path, os.path.basename(file_path), "", "txt", tags)
@@ -210,7 +225,7 @@ class Bookshelf:
         files = []
         for fname in os.listdir(dir_path):
             fpath = os.path.join(dir_path, fname)
-            if os.path.isfile(fpath) and fname.lower().endswith(('.txt', '.epub', '.md')):
+            if os.path.isfile(fpath) and fname.lower().endswith(('.txt', '.epub', '.pdf', '.mobi', '.md')):
                 files.append(fpath)
                 
         # 简单的加载提示
