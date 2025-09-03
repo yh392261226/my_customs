@@ -26,6 +26,7 @@ from chart_utils import display_rich_chart_in_terminal
 from epub_utils import parse_epub
 from pdf_utils import parse_pdf
 from mobi_utils import parse_mobi
+from azw_utils import parse_azw
 
 def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None, default=""):
     """美化输入框，居中显示，支持默认值"""
@@ -231,15 +232,21 @@ class NovelReader:
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         elif book["type"] == "pdf":
-            self.show_loading_screen("解析PDF数据...")
+            self.show_loading_screen(f"{get_text('parsing_pdf_data', self.lang)}...")
             # PDF解析
             self.current_pages = parse_pdf(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         elif book["type"] == "mobi":
-            self.show_loading_screen("解析MOBI数据...")
+            self.show_loading_screen(f"{get_text('parsing_mobi_data', self.lang)}...")
             # MOBI解析
             self.current_pages = parse_mobi(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
+            self.show_loading_screen(get_text("action_pages", self.lang))
+            time.sleep(0.5)
+        elif book["type"] == "azw":
+            self.show_loading_screen(get_text("parsing_azw_data", self.lang))
+            # AZW/AZW3解析
+            self.current_pages = parse_azw(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         else:

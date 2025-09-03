@@ -7,6 +7,7 @@ from lang import get_text
 from epub_utils import parse_epub, get_epub_metadata
 from pdf_utils import parse_pdf, get_pdf_metadata
 from mobi_utils import parse_mobi, get_mobi_metadata
+from azw_utils import parse_azw, get_azw_metadata
 
 class Bookshelf:
     def __init__(self, lang="zh"):
@@ -211,6 +212,11 @@ class Bookshelf:
             title, author = get_mobi_metadata(file_path)
             print(f"{get_text('save_to_db', self.lang)}...")
             self.db.add_book(file_path, title or os.path.basename(file_path), author, "mobi", tags)
+        elif ext in [".azw", ".azw3"]:
+            print(f"{get_text('parsing_azw_data', self.lang)}...")  # 新增提示
+            title, author = get_azw_metadata(file_path)
+            print(f"{get_text('save_to_db', self.lang)}...")
+            self.db.add_book(file_path, title or os.path.basename(file_path), author, "azw", tags)
         else:
             print(f"{get_text('save_to_db', self.lang)}...")
             self.db.add_book(file_path, os.path.basename(file_path), "", "txt", tags)
@@ -225,7 +231,7 @@ class Bookshelf:
         files = []
         for fname in os.listdir(dir_path):
             fpath = os.path.join(dir_path, fname)
-            if os.path.isfile(fpath) and fname.lower().endswith(('.txt', '.epub', '.pdf', '.mobi', '.md')):
+            if os.path.isfile(fpath) and fname.lower().endswith(('.txt', '.epub', '.pdf', '.mobi', '.azw', '.azw3', '.md')):
                 files.append(fpath)
                 
         # 简单的加载提示

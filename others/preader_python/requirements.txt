@@ -7,3 +7,5 @@ rich
 PyPDF2
 pdfplumber
 mobi
+lxml 
+cssselect

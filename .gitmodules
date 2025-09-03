@@ -209,3 +209,6 @@
 [submodule "others/lincheney_fzf-tab-completion"]
 	path = others/lincheney_fzf-tab-completion
 	url = git@github.com:lincheney/fzf-tab-completion.git
+[submodule "others/preader_python/KindleUnpack"]
+	path = others/preader_python/KindleUnpack
+	url = git@github.com:kevinhendricks/KindleUnpack.git
