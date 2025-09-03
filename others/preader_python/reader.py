@@ -354,7 +354,8 @@ class NovelReader:
                     # 显示最近阅读的书籍列表
                     for i, book in enumerate(recent_books):
                         exists = "" if book["exists"] else "❌"
-                        line = f" [{i+1}] {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{book['author'][:15]:<15}"
+                        author = book['author'] or ''  # 如果 author 为 None，使用空字符串
+                        line = f" [{i+1}] {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{author[:15]:<15}"
                         
                         # 根据文件是否存在设置颜色
                         if not book["exists"]:
@@ -394,7 +395,8 @@ class NovelReader:
                 exists = "" if book["exists"] else "❌"
                 selected = "[✓]" if book["id"] in selected_book_ids else ""
                 tags_str = ",".join(book["tags"]) if book["tags"] else get_text('no_tags', self.lang)
-                line = f" {selected} {start_idx+idx+1:02d} | {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{book['author'][:15]:<15} | {get_text('tag', self.lang)}:{tags_str}"
+                author = book['author'] or ''  # 如果 author 为 None，使用空字符串
+                line = f" {selected} {start_idx+idx+1:02d} | {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{author[:15]:<15} | {get_text('tag', self.lang)}:{tags_str}"
                 
                 # 根据文件是否存在设置颜色
                 if not book["exists"]:
@@ -2038,7 +2040,8 @@ class NovelReader:
                 line_num = start_idx + idx + 1
                 selected = "[✓]" if book["id"] in selected_books else "[ ]"
                 exists = "" if book["exists"] else "❌"
-                line = f" {selected} {line_num:02d} | {exists} {book['title'][:25]:<25} | {book['author'][:15]:<15}"
+                author = book['author'] or ''  # 如果 author 为 None，使用空字符串
+                line = f" {selected} {line_num:02d} | {exists} {book['title'][:25]:<25} | {author[:15]:<15}"
                 
                 # 根据选择状态和存在状态设置颜色
                 if not book["exists"]:
@@ -3514,10 +3517,10 @@ class NovelReader:
         except Exception as e:
             # 记录错误并尝试恢复
             import traceback
-            error_msg = f"错误: {str(e)}"
+            error_msg = f"Error : {str(e)}"
             self.stdscr.clear()
             self.stdscr.addstr(0, 0, error_msg)
-            self.stdscr.addstr(1, 0, "按任意键继续...")
+            self.stdscr.addstr(1, 0, f"{get_text('press_any_key_to_continue', self.lang)}...")
             self.stdscr.refresh()
             self.stdscr.getch()
             

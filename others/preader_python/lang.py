@@ -273,6 +273,7 @@ LANGS = {
         "yes": "是",
         "no": "否",
         "window_size_warnning": "终端窗口太小，请调整大小后重试",
+        "press_any_key_to_continue": "按任意键继续",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -545,6 +546,7 @@ LANGS = {
         "yes": "Yes",
         "no": "No",
         "window_size_warnning": "Terminal Window is too small, Please adjust and try again",
+        "press_any_key_to_continue": "Press any key to continue",
     }
 }
 
