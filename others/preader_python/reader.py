@@ -28,8 +28,8 @@ from pdf_utils import parse_pdf
 from mobi_utils import parse_mobi
 from azw_utils import parse_azw
 
-def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None, default=""):
-    """美化输入框，居中显示，支持默认值"""
+def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None, default="", hide=False):
+    """美化输入框，居中显示，支持默认值和密码隐藏"""
     max_y, max_x = stdscr.getmaxyx()
     if y is None:
         y = max_y // 2 - 1
@@ -47,12 +47,16 @@ def input_box(stdscr, prompt, maxlen=50, color_pair=2, y=None, x=None, default="
     
     # 显示默认值
     if default:
-        stdscr.addstr(y+1, x+2+len(prompt), default)
+        display_default = default if not hide else "*" * len(default)
+        stdscr.addstr(y+1, x+2+len(prompt), display_default)
     
     stdscr.refresh()
     
     # 使用更安全的方法处理输入
     curses.echo()
+    if hide:
+        curses.noecho()  # 密码模式下不显示输入
+    
     try:
         # 使用getstr但捕获可能的解码错误
         val_bytes = stdscr.getstr(y+1, x+2+len(prompt), maxlen)
@@ -232,9 +236,56 @@ class NovelReader:
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         elif book["type"] == "pdf":
-            self.show_loading_screen(f"{get_text('parsing_pdf_data', self.lang)}...")
-            # PDF解析
-            self.current_pages = parse_pdf(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
+            # 检查PDF是否加密
+            try:
+                from pdf_utils import is_pdf_encrypted, EncryptedPDFError
+                
+                if is_pdf_encrypted(book["path"]):
+                    # PDF已加密，提示输入密码
+                    password = None
+                    attempts = 0
+                    max_attempts = 3
+                    
+                    while attempts < max_attempts:
+                        # 显示密码输入提示
+                        self.show_loading_screen(get_text("pdf_password_prompt", self.lang))
+                        time.sleep(1)
+                        
+                        # 获取密码输入
+                        password = input_box(
+                            self.stdscr, 
+                            get_text("pdf_password_input", self.lang), 
+                            maxlen=50, 
+                            hide=True  # 隐藏输入（密码）
+                        )
+                        
+                        if password is None:  # 用户取消
+                            break
+                            
+                        try:
+                            # 尝试使用密码解析PDF
+                            self.current_pages = parse_pdf(
+                                book["path"], base_width, base_height, 
+                                line_spacing, paragraph_spacing, self.lang, password
+                            )
+                            break  # 密码正确，跳出循环
+                        except EncryptedPDFError:
+                            attempts += 1
+                            if attempts < max_attempts:
+                                self.show_loading_screen(get_text("pdf_password_incorrect", self.lang))
+                                time.sleep(1)
+                            else:
+                                self.show_loading_screen(get_text("pdf_password_max_attempts", self.lang))
+                                time.sleep(2)
+                                self.current_pages = [[get_text("pdf_password_failed", self.lang)]]
+                else:
+                    # PDF未加密，正常解析
+                    self.current_pages = parse_pdf(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
+                    
+            except Exception as e:
+                error_msg = f"{get_text('cannot_load_novel', self.lang)}: {str(e)}"
+                self.current_pages = [[error_msg]]
+                
             self.show_loading_screen(get_text("action_pages", self.lang))
             time.sleep(0.5)
         elif book["type"] == "mobi":

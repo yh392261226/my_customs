@@ -203,10 +203,26 @@ class Bookshelf:
             print(f"{get_text('save_to_db', self.lang)}...")
             self.db.add_book(file_path, title or os.path.basename(file_path), author, "epub", tags)
         elif ext == ".pdf":
-            print(f"{get_text('parsing_epub_data', self.lang)}...")  # 复用提示文本
-            title, author = get_pdf_metadata(file_path)
-            print(f"{get_text('save_to_db', self.lang)}...")
-            self.db.add_book(file_path, title or os.path.basename(file_path), author, "pdf", tags)
+            print(f"{get_text('parsing_pdf_data', self.lang)}...")
+
+            # 处理可能的加密PDF
+            try:
+                title, author = get_pdf_metadata(file_path)
+                
+                # 如果PDF加密，设置一个标志，稍后在加载时处理
+                if title is None and author is None:
+                    # 可能是加密的PDF，使用文件名作为标题
+                    title = os.path.basename(file_path)
+                    author = "加密PDF - 需要密码"
+                    
+                print(f"{get_text('save_to_db', self.lang)}...")
+                self.db.add_book(file_path, title or os.path.basename(file_path), author, "pdf", tags)
+            except Exception as e:
+                # 处理PDF解析错误，但仍将书籍添加到数据库
+                print(f"{get_text('parsing_pdf_data', self.lang)} 错误: {str(e)}")
+                title = os.path.basename(file_path)
+                author = f"PDF解析错误: {str(e)[:30]}..."
+                self.db.add_book(file_path, title, author, "pdf", tags)
         elif ext == ".mobi":
             print(f"{get_text('parsing_epub_data', self.lang)}...")  # 复用提示文本
             title, author = get_mobi_metadata(file_path)

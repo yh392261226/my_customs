@@ -274,6 +274,12 @@ LANGS = {
         "no": "否",
         "window_size_warnning": "终端窗口太小，请调整大小后重试",
         "press_any_key_to_continue": "按任意键继续",
+        "pdf_password_prompt": "检测到PDF已加密，请输入密码",
+        "pdf_password_input": "PDF密码: ",
+        "pdf_password_incorrect": "密码不正确，请重试",
+        "pdf_password_max_attempts": "密码错误次数过多",
+        "pdf_password_failed": "无法打开加密的PDF文件",
+        "pdf_encrypted_prompt": "检测到PDF已加密，请在书架中选择并输入密码",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -547,6 +553,12 @@ LANGS = {
         "no": "No",
         "window_size_warnning": "Terminal Window is too small, Please adjust and try again",
         "press_any_key_to_continue": "Press any key to continue",
+        "pdf_password_prompt": "PDF is encrypted, please enter password",
+        "pdf_password_input": "PDF password: ",
+        "pdf_password_incorrect": "Incorrect password, please try again",
+        "pdf_password_max_attempts": "Too many failed attempts",
+        "pdf_password_failed": "Unable to open encrypted PDF",
+        "pdf_encrypted_prompt": "PDF is encrypted, please select it from bookshelf and enter password",
     }
 }
 

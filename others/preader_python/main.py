@@ -37,9 +37,25 @@ def main(stdscr):
             stdscr.refresh()
             stdscr.getch()
             return
+            
+        # 添加书籍到书架
         bookshelf.add_book(novel_path, width=settings["width"], height=settings["height"], line_spacing=settings["line_spacing"])
+        
+        # 尝试加载最后添加的书籍
         if bookshelf.books:
-            reader.load_book(bookshelf.books[-1])
+            # 获取最后添加的书籍
+            book_to_load = bookshelf.books[-1]
+            
+            # 检查是否是加密PDF
+            if book_to_load["type"] == "pdf" and "加密PDF" in book_to_load.get("author", ""):
+                # 这是加密PDF，显示提示信息
+                stdscr.addstr(0, 0, f"{get_text('pdf_encrypted_prompt', settings['lang'])}: {novel_path}")
+                stdscr.refresh()
+                stdscr.getch()
+                # 不自动加载加密PDF，让用户从书架中选择并输入密码
+            else:
+                # 正常加载书籍
+                reader.load_book(book_to_load)
         else:
             stdscr.addstr(0, 0, f"{get_text('cannot_load_novel', settings['lang'])}: {novel_path}")
             stdscr.refresh()
