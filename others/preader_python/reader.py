@@ -1652,7 +1652,8 @@ class NovelReader:
             # 标题
             title = f"💡 {get_text('help_center', self.lang)}"
             if total_lines > available_lines:
-                title += f" ({scroll_offset//available_lines + 1}/{(total_lines + available_lines - 1) // available_lines})"
+                # title += f" ({scroll_offset//available_lines + 1}/{(total_lines + available_lines - 1) // available_lines})"
+                title += f" (1/1)"
             
             title_y = 2
             title_x = max(0, min(max_x // 2 - len(title) // 2, max_x - len(title) - 1))
@@ -1698,6 +1699,26 @@ class NovelReader:
             
             tip_y = max(0, min(max_y - 3, max_y - 1))
             tip_x = max(0, min(max_x // 2 - len(tip) // 2, max_x - len(tip) - 1))
+
+            # 如果有内容超出屏幕，显示导航提示
+            hints = []
+            # 行导航提示
+            # 如果上面不是0(证明还可以向上滚动)则显示↑
+            if scroll_offset > 0:
+                hints.append("↑")
+            # 如果下面还有没显示的(证明还可以向下滚动)则展示↓
+            if total_lines - scroll_offset > available_lines:
+                hints.append("↓")
+
+            if hints:
+                hint_text = " ".join(hints)
+                y_pos = max(0, min(max_y - 5, max_y - 1))
+                x_pos = max(0, min(max_x - len(hint_text) - 2, max_x - 1))
+                
+                self.stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+                self.stdscr.addstr(y_pos, x_pos, hint_text)
+                self.stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+
             
             self.safe_addstr(self.stdscr, tip_y, tip_x, tip, curses.color_pair(1) | curses.A_DIM)
             
