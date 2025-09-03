@@ -213,7 +213,9 @@ class NovelReader:
         if book["type"] == "epub":
             self.show_loading_screen(get_text("parsing_epub_data", self.lang))
             # EPUB解析需要传递字符宽度和高度
-            chapters = parse_epub(book["path"], base_width, base_height, line_spacing, self.lang)
+            # 添加 paragraph_spacing 参数
+            paragraph_spacing = max(0, self.get_setting("paragraph_spacing", 0))
+            chapters = parse_epub(book["path"], base_width, base_height, line_spacing, paragraph_spacing, self.lang)
             
             pages = []
             total_chapters = len(chapters)
