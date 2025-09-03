@@ -245,3 +245,20 @@ class DBManager:
         c = self.conn.cursor()
         c.execute("SELECT rowid, book_id, page_idx, comment FROM bookmarks WHERE rowid=?", (bookmark_id,))
         return c.fetchone()
+
+    def clear_last_read_time(self, book_ids):
+        """清除指定书籍的最后阅读时间"""
+        if not book_ids:
+            return False
+            
+        c = self.conn.cursor()
+        try:
+            # 使用IN操作符批量更新
+            placeholders = ','.join(['?'] * len(book_ids))
+            c.execute(f"UPDATE books SET last_read_time = NULL WHERE id IN ({placeholders})", book_ids)
+            self.conn.commit()
+            return c.rowcount > 0
+        except Exception as e:
+            self.conn.rollback()
+            print(f"Error clearing last read time: {str(e)}")
+            return False

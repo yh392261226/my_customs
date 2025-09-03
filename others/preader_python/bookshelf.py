@@ -313,3 +313,7 @@ class Bookshelf:
                 "recent": True  # 标记为最近阅读的书籍
             })
         return result
+
+    def clear_recent_reading(self, book_ids):
+        """清除指定书籍的最近阅读记录"""
+        return self.db.clear_last_read_time(book_ids)

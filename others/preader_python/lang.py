@@ -280,6 +280,10 @@ LANGS = {
         "pdf_password_max_attempts": "密码错误次数过多",
         "pdf_password_failed": "无法打开加密的PDF文件",
         "pdf_encrypted_prompt": "检测到PDF已加密，请在书架中选择并输入密码",
+        "delete_recent": "删除最近阅读记录",
+        "delete_recent_d": "删除最近阅读记录(首先按l进入多选模式, 用1-3的数字键选择要删除的记录,再按D进行删除)",
+        "confirm_clear_recent": "确认清除 {books} 本书籍的最近阅读记录?",
+        "clear_recent_success": "已成功清除 {books} 本书籍的最近阅读记录",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -559,6 +563,10 @@ LANGS = {
         "pdf_password_max_attempts": "Too many failed attempts",
         "pdf_password_failed": "Unable to open encrypted PDF",
         "pdf_encrypted_prompt": "PDF is encrypted, please select it from bookshelf and enter password",
+        "delete_recent": "Delete Recent Reading",
+        "delete_recent_d": "Delete Recent Reading(First:Press key l into multype mode, Use Num key 1-3 to choose which to delete, then press D to execute)",
+        "confirm_clear_recent": "Confirm to clear recent reading records of {books} books?",
+        "clear_recent_success": "Cleared recent reading records of {books} books successfully",
     }
 }
 

@@ -322,7 +322,7 @@ class NovelReader:
         self.calculate_display_limits()
 
     def show_bookshelf(self):
-        """显示书架界面，支持标签过滤和批量编辑"""
+        """显示书架界面，支持标签过滤和批量编辑，增加删除最近阅读记录功能"""
         max_y, max_x = self.stdscr.getmaxyx()
 
         # 检查终端大小是否足够
@@ -368,6 +368,10 @@ class NovelReader:
         tag_mode = False  # 标签模式标志
         selected_book_ids = set()  # 存储选中的书籍ID
         
+        # 添加变量来跟踪最近阅读区域的选择
+        recent_selection = -1  # -1表示没有选择最近阅读书籍
+        recent_selected_ids = set()  # 存储选中的最近阅读书籍ID
+        
         while not book_selected and self.running:
             self.stdscr.clear()
             max_y, max_x = self.stdscr.getmaxyx()
@@ -405,14 +409,18 @@ class NovelReader:
                     # 显示最近阅读的书籍列表
                     for i, book in enumerate(recent_books):
                         exists = "" if book["exists"] else "❌"
-                        author = book['author'] or ''  # 如果 author 为 None，使用空字符串
-                        line = f" [{i+1}] {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{author[:15]:<15}"
+                        selected = "[✓]" if book["id"] in recent_selected_ids else ""
+                        line = f" {selected} [{i+1}] {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{(book['author'] or '')[:15]:<15}"
                         
                         # 根据文件是否存在设置颜色
                         if not book["exists"]:
                             color = curses.color_pair(3)  # 红色，表示文件不存在
                         else:
                             color = curses.color_pair(2)  # 高亮显示最近阅读的书籍
+                            
+                        # 如果是当前选中的行，添加反色效果
+                        if i == recent_selection:
+                            color |= curses.A_REVERSE
                             
                         self.stdscr.attron(color | curses.A_BOLD)
                         self.stdscr.addstr(y_offset + 2 + i, 4, line[:max_x-8])
@@ -446,8 +454,7 @@ class NovelReader:
                 exists = "" if book["exists"] else "❌"
                 selected = "[✓]" if book["id"] in selected_book_ids else ""
                 tags_str = ",".join(book["tags"]) if book["tags"] else get_text('no_tags', self.lang)
-                author = book['author'] or ''  # 如果 author 为 None，使用空字符串
-                line = f" {selected} {start_idx+idx+1:02d} | {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{author[:15]:<15} | {get_text('tag', self.lang)}:{tags_str}"
+                line = f" {selected} {start_idx+idx+1:02d} | {exists} {book['title'][:25]:<25} | {get_text('author', self.lang)}:{(book['author'] or '')[:15]:<15} | {get_text('tag', self.lang)}:{tags_str}"
                 
                 # 根据文件是否存在设置颜色
                 if not book["exists"]:
@@ -472,11 +479,11 @@ class NovelReader:
             if help_y < max_y - 4:
                 # 显示操作提示
                 help_lines = [
-                    f"[1-3] {get_text('recent_books_short', self.lang)}  [a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [/] {get_text('search', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)} [t] {get_text('tag_management', self.lang)} [e] {get_text('edit_book', self.lang)} [x] {get_text('delete', self.lang)} [q] {get_text('exit', self.lang)} [Enter] {get_text('select', self.lang)}"
+                    f"[1-3] {get_text('recent_books_short', self.lang)}  [a] {get_text('add_book', self.lang)}  [d] {get_text('add_dir', self.lang)} [/] {get_text('search', self.lang)} [p] {get_text('pre_page', self.lang)} [n] {get_text('next_page', self.lang)} [t] {get_text('tag_management', self.lang)} [e] {get_text('edit_book', self.lang)} [x] {get_text('delete', self.lang)} [q] {get_text('exit', self.lang)} [Enter] {get_text('select', self.lang)} [?] {get_text('help', self.lang)}"
                 ]
                 
                 if tag_mode:
-                    help_lines.append(f"[l] {get_text('out_multype_mode', self.lang)} [{get_text('space', self.lang)}] {get_text('select_or_unselect', self.lang)} [b] {get_text('multype_tags_edit', self.lang)} [a] {get_text('select_all', self.lang)} [c] {get_text('unselect_all', self.lang)}")
+                    help_lines.append(f"[l] {get_text('out_multype_mode', self.lang)} [{get_text('space', self.lang)}] {get_text('select_or_unselect', self.lang)} [b] {get_text('multype_tags_edit', self.lang)} [a] {get_text('select_all', self.lang)} [c] {get_text('unselect_all', self.lang)} [D] {get_text('delete_recent', self.lang)}")
                 else:
                     help_lines.append(f"[l] {get_text('in_multype_mode', self.lang)}")
                 
@@ -497,13 +504,36 @@ class NovelReader:
                 idx = c - ord('1')
                 if idx < len(recent_books):
                     book = recent_books[idx]
-                    if not book["exists"]:
-                        # 文件不存在，提示更新路径
-                        self.update_missing_book_path(book["id"])
+                    if tag_mode:
+                        # 在多选模式下，选择/取消选择最近阅读书籍
+                        if book["id"] in recent_selected_ids:
+                            recent_selected_ids.remove(book["id"])
+                        else:
+                            recent_selected_ids.add(book["id"])
+                        recent_selection = idx
                     else:
-                        self.load_book(book)
-                        book_selected = True
-                        continue
+                        # 正常模式下加载书籍
+                        if not book["exists"]:
+                            # 文件不存在，提示更新路径
+                            self.update_missing_book_path(book["id"])
+                        else:
+                            self.load_book(book)
+                            book_selected = True
+                            continue
+            elif c == ord('D') and tag_mode and recent_selected_ids:
+                # 删除选中的最近阅读记录
+                confirm = input_box(self.stdscr, f"{get_text('confirm_clear_recent', self.lang).format(books=f'{len(recent_selected_ids)}')} (y/N): ", maxlen=1)
+                if confirm.lower() == 'y':
+                    if self.bookshelf.clear_recent_reading(list(recent_selected_ids)):
+                        # 清除选择并刷新最近阅读列表
+                        recent_selected_ids.clear()
+                        recent_books = self.get_recent_books(limit=3)
+                        # 显示成功消息
+                        self.stdscr.addstr(help_y + 2, 4, f"{get_text('clear_recent_success', self.lang).format(books=f'{len(recent_selected_ids)}')}")
+                        self.stdscr.refresh()
+                        time.sleep(1)
+            elif c == ord('?'):
+                self.show_help()
             elif c == ord('a'):
                 if tag_mode:
                     # 在多选模式下，全选当前页
@@ -1550,6 +1580,12 @@ class NovelReader:
                 "title": f"🎵 {get_text('help_t3', self.lang)}",
                 "items": [
                     ("r", f"{get_text('help_t3_r', self.lang)}")
+                ]
+            },
+            {
+                "title": f"🗑️ {get_text('delete_recent', self.lang)}",
+                "items": [
+                    ("D", f"{get_text('delete_recent_d', self.lang)}")
                 ]
             },
             {
