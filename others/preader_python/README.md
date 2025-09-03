@@ -2,7 +2,7 @@
 
 ## 功能亮点
 
-- 支持 txt 小说导入
+- 支持 txt、pdf、mobi、azw/azw3、epub 小说导入
 - 多主题（暗色/浅色/护眼绿）
 - 中英文界面切换
 - 书架、标签、历史、书签
@@ -27,11 +27,12 @@
 ## 安装依赖
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt --break-system-packages
+git clone git@github.com:kevinhendricks/KindleUnpack.git ./KindleUnpack
 ```
 
 ## 运行
 
 ```bash
-python main.py
+python3 main.py [文件名]
 ```
