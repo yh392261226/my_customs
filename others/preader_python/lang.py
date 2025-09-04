@@ -284,6 +284,13 @@ LANGS = {
         "delete_recent_d": "删除最近阅读记录(首先按l进入多选模式, 用1-3的数字键选择要删除的记录,再按D进行删除)",
         "confirm_clear_recent": "确认清除 {books} 本书籍的最近阅读记录?",
         "clear_recent_success": "已成功清除 {books} 本书籍的最近阅读记录",
+        "navigation_hints": "导航提示",
+        "scroll_up": "向上滚动",
+        "scroll_down": "向下滚动",
+        "scroll_left": "向左滚动",
+        "scroll_right": "向右滚动",
+        "go_to_beginning": "回到行首",
+        "go_to_end": "转到行尾",
     },
     "en": {
         "bookshelf": "Bookshelf",
@@ -567,6 +574,13 @@ LANGS = {
         "delete_recent_d": "Delete Recent Reading(First:Press key l into multype mode, Use Num key 1-3 to choose which to delete, then press D to execute)",
         "confirm_clear_recent": "Confirm to clear recent reading records of {books} books?",
         "clear_recent_success": "Cleared recent reading records of {books} books successfully",
+        "navigation_hints": "Navigation Hints",
+        "scroll_up": "Scroll up",
+        "scroll_down": "Scroll down",
+        "scroll_left": "Scroll left",
+        "scroll_right": "Scroll right",
+        "go_to_beginning": "Go to beginning",
+        "go_to_end": "Go to end",
     }
 }
 
