@@ -1,0 +1,9 @@
+/* [暂未使用] ModernReaderScreen样式 */
+ModernReaderScreen {
+    background: $surface;
+}
+
+#book-content {
+    color: $text;
+    background: $surface;
+}

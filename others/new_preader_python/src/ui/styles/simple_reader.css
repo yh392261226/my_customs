@@ -1,0 +1,66 @@
+Screen {
+    layout: vertical;
+}
+
+#reader-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+#reader-header {
+    layout: horizontal;
+    height: 3;
+    align: center middle;
+    padding: 0 1;
+    background: $panel;
+    border-bottom: solid $primary-lighten-3;
+}
+
+#book-title {
+    width: 40%;
+    color: $text;
+    text-style: bold;
+}
+
+#book-author {
+    width: 30%;
+    color: $secondary;
+}
+
+#reading-stats {
+    width: 30%;
+    color: $warning;
+    text-style: italic;
+}
+
+#reading-progress {
+    width: 100%;
+    height: 1;
+}
+
+#content-container {
+    width: 100%;
+    height: 1fr;
+    background: $surface;
+    overflow-y: auto;
+    padding: 1;
+}
+
+#book-content {
+    color: $text;
+    line-height: 1.6;
+}
+
+#reader-controls {
+    layout: horizontal;
+    height: 3;
+    align: center middle;
+    padding: 0 1;
+    background: $panel;
+    border-top: solid $primary-lighten-3;
+}
+
+#reader-controls > Button {
+    margin: 0 1;
+}

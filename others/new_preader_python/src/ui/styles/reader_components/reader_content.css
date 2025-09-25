@@ -1,0 +1,11 @@
+/* 阅读器内容区域样式 */
+.content-renderer-container {
+    width: 100%;
+    height: 1fr;
+    overflow-y: auto;
+    padding: 1em;
+}
+
+.content-renderer-text {
+    color: $text;
+}

@@ -1,0 +1,82 @@
+/* 书签列表屏幕样式 */
+Screen {
+    layout: vertical;
+}
+
+#bookmarks-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+#header-container {
+    height: 3;
+    border-bottom: solid blue;
+    align: center middle;
+    background: $surface;
+}
+
+#screen-title {
+    text-align: center;
+    text-style: bold;
+    width: 80%;
+}
+
+#back-button {
+    width: 20%;
+}
+
+#action-buttons {
+    height: 3;
+    align: center middle;
+    background: $surface;
+    border-bottom: solid gray;
+}
+
+#action-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+    width: auto;
+}
+
+#bookmarks-list {
+    width: 100%;
+    height: 1fr;
+    border: round blue;
+    background: $surface;
+}
+
+#bookmarks-list > ListItem {
+    padding: 1;
+    margin: 0 1;
+    border-bottom: solid gray;
+    min-height: 3;
+}
+
+#bookmarks-list > ListItem:hover {
+    background: $primary;
+}
+
+#bookmarks-list > ListItem:focus {
+    background: $accent;
+}
+
+#footer-container {
+    height: 4;
+    background: $surface;
+    border-top: solid gray;
+}
+
+#stats-info {
+    height: 2;
+    text-align: center;
+    padding: 1;
+    text-style: bold;
+}
+
+#help-info {
+    height: 2;
+    text-align: center;
+    padding: 0 1;
+    text-style: italic;
+}

@@ -1,0 +1,27 @@
+/* BatchInputDialog 样式 */
+BatchInputDialog {
+    layout: vertical;
+    padding: 1;
+}
+
+BatchInputDialog > Label {
+    width: 100%;
+    text-align: center;
+    padding: 1 0;
+}
+
+BatchInputDialog > Input {
+    width: 100%;
+    margin: 1 0;
+}
+
+BatchInputDialog > Horizontal {
+    width: 100%;
+    height: auto;
+    align: center middle;
+    margin: 1 0;
+}
+
+BatchInputDialog Button {
+    margin: 0 1;
+}

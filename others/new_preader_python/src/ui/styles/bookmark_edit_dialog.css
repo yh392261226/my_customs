@@ -1,0 +1,50 @@
+BookmarkEditDialog {
+    align: center middle;
+}
+
+#dialog {
+    width: 70;
+    height: 15;
+    border: thick white;
+    background: black;
+    padding: 1;
+}
+
+#title {
+    width: 100%;
+    text-align: center;
+    background: blue;
+    color: white;
+    padding: 0 1;
+    margin-bottom: 1;
+}
+
+#input-container {
+    width: 100%;
+    height: 4;
+    margin-bottom: 1;
+}
+
+#note-input {
+    width: 100%;
+    height: 3;
+    border: solid white;
+}
+
+#buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#buttons Button {
+    margin: 0 1;
+    min-width: 10;
+}
+
+#info {
+    width: 100%;
+    text-align: center;
+    color: white;
+    margin-bottom: 1;
+}

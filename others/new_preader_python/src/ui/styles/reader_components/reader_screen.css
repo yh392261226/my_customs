@@ -1,0 +1,65 @@
+/* 阅读器屏幕样式 - 专为内容阅读设计 */
+.reader-screen {
+    width: 100%;
+    height: 100%;
+}
+
+.reader-header {
+    width: 100%;
+    height: 3;
+}
+
+.reader-title {
+    width: 1fr;
+    text-align: center;
+}
+
+.reader-author {
+    width: 1fr;
+    text-align: center;
+}
+
+.reader-progress-container {
+    width: 100%;
+    height: 2;
+}
+
+.reader-progress-bar {
+    width: 1fr;
+    height: 1;
+}
+
+.reader-progress-text {
+    width: auto;
+}
+
+.reader-content-container {
+    width: 100%;
+    height: 1fr;
+    overflow-y: auto;
+    padding: 1 2;
+}
+
+.reader-content-text {
+    text-align: left;
+}
+
+.reader-controls {
+    width: 100%;
+    height: 4;
+}
+
+.reader-control-button {
+    min-width: 12;
+    margin: 0 1;
+}
+
+.reader-status {
+    width: 100%;
+    height: 2;
+}
+
+.reader-status-item {
+    width: 1fr;
+    text-align: center;
+}

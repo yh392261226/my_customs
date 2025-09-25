@@ -1,0 +1,58 @@
+/* 老板键屏幕样式 */
+BossKeyScreen {
+    background: black;
+    color: green;
+}
+
+#terminal-container {
+    width: 100%;
+    height: 100%;
+    background: black;
+    color: green;
+    padding: 1;
+}
+
+#terminal-output {
+    width: 100%;
+    height: 1fr;
+    background: black;
+    color: green;
+    scrollbar-background: black;
+    scrollbar-color: green;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+#terminal-input-container {
+    width: 100%;
+    height: 1;
+    background: black;
+    layout: horizontal;
+}
+
+#terminal-prompt {
+    width: auto;
+    height: 1;
+    background: black;
+    color: green;
+    content-align: left middle;
+    padding: 0;
+    margin: 0;
+}
+
+#terminal-input {
+    width: 1fr;
+    height: 1;
+    background: black;
+    color: green;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+#terminal-input:focus {
+    border: none;
+    background: black;
+    color: green;
+}

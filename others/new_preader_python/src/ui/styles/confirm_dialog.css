@@ -1,0 +1,37 @@
+/* ConfirmDialog 样式 */
+ConfirmDialog {
+    layout: vertical;
+    padding: 1;
+    width: 80%;
+    max-width: 50;
+    height: auto;
+    min-height: 20;
+    background: $panel;
+    border: round $primary;
+}
+
+ConfirmDialog > Label {
+    width: 100%;
+    text-align: center;
+    padding: 1 0;
+}
+
+ConfirmDialog > Horizontal {
+    width: 100%;
+    height: auto;
+    align: center middle;
+    margin: 1 0;
+}
+
+ConfirmDialog Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+ConfirmDialog Button#confirm-btn {
+    background: $success;
+}
+
+ConfirmDialog Button#cancel-btn {
+    background: $error;
+}

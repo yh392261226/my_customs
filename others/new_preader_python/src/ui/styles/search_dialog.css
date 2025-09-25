@@ -1,0 +1,57 @@
+#search-dialog {
+    width: 85%;
+    height: 75%;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    layout: vertical;
+}
+
+#search-title {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#search-filters {
+    width: 100%;
+    layout: vertical;
+    margin-bottom: 1;
+}
+
+#search-input {
+    width: 100%;
+    height: 3;
+    margin-bottom: 1;
+}
+
+#format-filter {
+    width: 100%;
+    height: 3;
+}
+
+#results-table {
+    width: 100%;
+    height: 1fr;
+    margin-bottom: 1;
+}
+
+#search-buttons {
+    width: 100%;
+    height: 3;
+}
+
+#search-buttons > Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+#select-btn {
+    background: $success;
+}
+
+#cancel-btn {
+    background: $error;
+}

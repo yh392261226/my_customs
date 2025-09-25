@@ -1,0 +1,8 @@
+ModernReaderScreen {
+    background: $surface;
+}
+
+#book-content {
+    color: $text;
+    background: $surface;
+}

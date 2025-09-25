@@ -1,0 +1,81 @@
+/* 终端阅读器样式 - 专为现代化终端阅读设计 */
+.terminal-reader-screen {
+    width: 100%;
+    height: 100%;
+}
+
+.reader-header {
+    width: 100%;
+    height: 3;
+    padding: 0 2;
+}
+
+.reader-title {
+    width: 70%;
+}
+
+.reader-author {
+    width: 30%;
+}
+
+.reader-progress-container {
+    width: 100%;
+    height: 2;
+    padding: 0 2;
+}
+
+.reader-progress-bar {
+    width: 80%;
+    height: 1;
+}
+
+.reader-progress-text {
+    width: 20%;
+}
+
+.reader-content-container {
+    width: 100%;
+    height: 1fr;
+    padding: 1 2;
+}
+
+.reader-controls {
+    width: 100%;
+    height: 3;
+    padding: 0 2;
+}
+
+.reader-control-button {
+    margin: 0 1;
+    min-width: 10;
+}
+
+.reader-status {
+    width: 100%;
+    height: 2;
+    padding: 0 2;
+}
+
+.reader-status-item {
+    opacity: 0.8;
+}
+
+.shortcut-bar {
+    width: 100%;
+    height: 2;
+    padding: 0 2;
+    background: $surface;
+    border-top: solid $accent;
+}
+
+.shortcut-item {
+    margin: 0 1;
+    opacity: 0.7;
+    text-style: italic;
+}
+
+.shortcut-item {
+    margin: 0 1;
+    opacity: 0.7;
+    text-style: italic;
+}

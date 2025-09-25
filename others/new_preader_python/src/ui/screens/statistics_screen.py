@@ -1,0 +1,387 @@
+"""
+统计屏幕
+"""
+
+
+from typing import Dict, Any, Optional, List, ClassVar
+from datetime import datetime, timedelta
+from webbrowser import get
+
+from textual.app import ComposeResult
+from textual.screen import Screen
+from textual.containers import Container, Vertical, Horizontal, Grid
+from textual.widgets import Static, Button, Label, DataTable, ProgressBar, TabbedContent, TabPane
+from textual.reactive import reactive
+from textual import on, events
+
+from src.locales.i18n import I18n
+from src.locales.i18n_manager import get_global_i18n
+from src.themes.theme_manager import ThemeManager
+from src.core.statistics_direct import StatisticsManagerDirect
+
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+class StatisticsScreen(Screen[None]):
+    """统计屏幕"""
+    
+    def __init__(self, theme_manager: ThemeManager, statistics_manager: StatisticsManagerDirect):
+        """
+        初始化统计屏幕
+        
+        Args:
+            theme_manager: 主题管理器
+            statistics_manager: 直接数据库统计管理器
+        """
+        super().__init__()
+        self.theme_manager = theme_manager
+        self.statistics_manager = statistics_manager
+        self.screen_title = get_global_i18n().t("statistics.title")
+        
+        # 初始化统计数据（直接从数据库获取）
+        self.global_stats = self.statistics_manager.get_total_stats()
+        self.book_stats = self.statistics_manager.get_most_read_books()
+    
+    def compose(self) -> ComposeResult:
+        """
+        组合统计屏幕界面
+        
+        Returns:
+            ComposeResult: 组合结果
+        """
+        yield Container(
+            TabbedContent(
+                id="stats-tabs"
+            ),
+            
+            Horizontal(
+                Button(get_global_i18n().t("statistics.refresh"), id="refresh-btn"),
+                Button(get_global_i18n().t("statistics.export"), id="export-btn"),
+                Button(get_global_i18n().t("statistics.reset"), id="reset-btn"),
+                Button(get_global_i18n().t("statistics.back"), id="back-btn"),
+                id="stats-controls"
+            ),
+            
+            # 快捷键状态栏
+            Horizontal(
+                Label("R: 刷新", id="shortcut-r"),
+                Label("E: 导出", id="shortcut-e"),
+                Label("ESC: 返回", id="shortcut-esc"),
+                id="shortcuts-bar"
+            ),
+            
+            id="stats-container"
+        )
+    
+    def on_mount(self) -> None:
+        """屏幕挂载时的回调"""
+        # 应用主题
+        self.theme_manager.apply_theme_to_screen(self)
+        
+        # 获取 TabbedContent 并添加标签页
+        tabbed_content = self.query_one("#stats-tabs", TabbedContent)
+        
+        # 添加全局统计标签页
+        tabbed_content.add_pane(
+            TabPane(
+                get_global_i18n().t("statistics.global_stats"),
+                Vertical(
+                    Static(self._format_global_stats(), id="global-stats-content"),
+                    
+                    Label(get_global_i18n().t("statistics.reading_trend"), id="trend-title"),
+                    Static(self._format_reading_trend(), id="trend-content"),
+                    
+                    Label(get_global_i18n().t("statistics.most_read_authors"), id="authors-title"),
+                    DataTable(id="authors-table"),
+                    
+                    id="global-tab"
+                ),
+                id="global-stats-tab"
+            )
+        )
+        
+        # 添加书籍统计标签页
+        tabbed_content.add_pane(
+            TabPane(
+                get_global_i18n().t("statistics.book_stats"),
+                Vertical(
+                    Label(get_global_i18n().t("statistics.most_read_books"), id="books-title"),
+                    DataTable(id="book-stats-table"),
+                    
+                    Label(get_global_i18n().t("statistics.reading_progress"), id="progress-title"),
+                    DataTable(id="progress-table"),
+                    
+                    id="books-tab"
+                ),
+                id="book-stats-tab"
+            )
+        )
+        
+        # 添加详细统计标签页
+        tabbed_content.add_pane(
+            TabPane(
+                get_global_i18n().t("statistics.detailed_stats"),
+                Vertical(
+                    Label(get_global_i18n().t("statistics.daily_stats"), id="daily-title"),
+                    Static(self._format_daily_stats(), id="daily-content"),
+                    
+                    Label(get_global_i18n().t("statistics.weekly_monthly"), id="period-title"),
+                    Static(self._format_period_stats(), id="period-content"),
+                    
+                    id="detailed-tab"
+                ),
+                id="detailed-stats-tab"
+            )
+        )
+        
+        # 使用定时器延迟初始化数据表，确保 DOM 已完全构建
+        self.set_timer(0.1, self._initialize_tables)
+    
+    def _format_global_stats(self) -> str:
+        """格式化全局统计数据"""
+        total_time = self.global_stats.get("total_reading_time", 0)
+        total_books = self.global_stats.get("total_books", 0)
+        total_pages = self.global_stats.get("total_pages", 0)
+        
+        return f"""
+{get_global_i18n().t("statistics.total_reading_time")}: {self._format_time(total_time)}
+{get_global_i18n().t("statistics.total_books")}: {total_books}
+{get_global_i18n().t("statistics.total_pages")}: {total_pages}
+"""
+    
+    def _format_time(self, seconds: int) -> str:
+        """格式化时间"""
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        return f"{hours} {get_global_i18n().t('statistics.hours')} {minutes} {get_global_i18n().t('statistics.minutes')}"
+    
+    def _load_all_stats(self) -> None:
+        """加载所有统计数据（直接从数据库获取）"""
+        # 从数据库获取最新数据
+        self.global_stats = self.statistics_manager.get_total_stats()
+        self.book_stats = self.statistics_manager.get_most_read_books()
+        
+        # 加载各个数据表
+        self._load_book_stats()
+        self._load_authors_stats()
+        self._load_progress_stats()
+        
+        # 更新静态内容
+        self._update_static_content()
+        
+        # 如果没有数据，显示提示信息
+        if not self.book_stats and not self.global_stats.get("books_read", 0):
+            self.notify(get_global_i18n().t('statistics.no_data'), severity="information")
+    
+    def _load_book_stats(self) -> None:
+        """加载书籍统计数据"""
+        table = self.query_one("#book-stats-table", DataTable)
+        table.clear()
+        
+        if not self.book_stats:
+            # 如果没有数据，显示提示信息
+            table.add_row("No", "data", "", "")
+            return
+            
+        for book_stats in self.book_stats:
+            reading_time = book_stats.get("reading_time", 0)
+            pages_read = int(book_stats.get("progress", 0) * 100)  # 估算已读页数
+            progress = book_stats.get("progress", 0)
+            
+            table.add_row(
+                book_stats.get("title", "Unknown"),
+                self._format_time(reading_time),
+                f"{pages_read}%",
+                f"{progress * 100:.1f}%"
+            )
+    
+    def _load_authors_stats(self) -> None:
+        """加载作者统计数据"""
+        table = self.query_one("#authors-table", DataTable)
+        table.clear()
+        
+        authors_stats = self.statistics_manager.get_most_read_authors()
+        if not authors_stats:
+            # 如果没有数据，显示提示信息
+            table.add_row("No", "data", "")
+            return
+            
+        for author_stats in authors_stats:
+            table.add_row(
+                author_stats.get("author", "Unknown"),
+                self._format_time(author_stats.get("reading_time", 0)),
+                str(author_stats.get("book_count", 0))
+            )
+    
+    def _load_progress_stats(self) -> None:
+        """加载阅读进度统计数据"""
+        table = self.query_one("#progress-table", DataTable)
+        table.clear()
+        
+        # 由于直接数据库版本没有bookshelf引用，简化进度显示
+        # 只显示最常阅读书籍的进度信息
+        if not self.book_stats:
+            table.add_row("No", "data", "", "")
+            return
+            
+        for book in self.book_stats[:10]:  # 只显示前10本
+            progress = book.get("progress", 0)
+            table.add_row(
+                book.get("title", "Unknown"),
+                "",  # 当前页数信息需要从数据库获取，暂时留空
+                "",  # 总页数信息需要从数据库获取，暂时留空
+                f"{progress * 100:.1f}%"
+            )
+    
+    def _update_static_content(self) -> None:
+        """更新静态内容"""
+        # 更新全局统计
+        global_content = self.query_one("#global-stats-content", Static)
+        global_content.update(self._format_global_stats())
+        
+        # 更新趋势内容
+        trend_content = self.query_one("#trend-content", Static)
+        trend_content.update(self._format_reading_trend())
+        
+        # 更新每日统计
+        daily_content = self.query_one("#daily-content", Static)
+        daily_content.update(self._format_daily_stats())
+        
+        # 更新周期统计
+        period_content = self.query_one("#period-content", Static)
+        period_content.update(self._format_period_stats())
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        按钮按下时的回调
+        
+        Args:
+            event: 按钮按下事件
+        """
+        if event.button.id == "refresh-btn":
+            self._refresh_stats()
+        elif event.button.id == "export-btn":
+            self._export_stats()
+        elif event.button.id == "reset-btn":
+            self._reset_stats()
+        elif event.button.id == "back-btn":
+            self.app.pop_screen()
+    
+    def _refresh_stats(self) -> None:
+        """刷新统计数据"""
+        self._load_all_stats()
+        self.notify(get_global_i18n().t("statistics.refreshed"), severity="information")
+    
+    def _export_stats(self) -> None:
+        """导出统计数据（直接数据库版本暂不支持导出）"""
+        self.notify(get_global_i18n().t('statistics.export_not_supported'), severity="information")
+    
+    def _reset_stats(self) -> None:
+        """重置统计数据（直接数据库版本不支持重置）"""
+        self.notify(get_global_i18n().t('statistics.not_suppose_reset'), severity="information")
+    
+    def on_key(self, event) -> None:
+        """
+        处理键盘事件
+        
+        Args:
+            event: 键盘事件
+        """
+        if event.key == "escape":
+            self.app.pop_screen()
+            event.prevent_default()
+        elif event.key == "r":
+            self._refresh_stats()
+            event.prevent_default()
+        elif event.key == "e":
+            self._export_stats()
+            event.prevent_default()
+    
+    def _format_reading_trend(self) -> str:
+        """格式化阅读趋势数据"""
+        try:
+            trend_data = self.statistics_manager.get_reading_trend(7)  # 最近7天
+            if not trend_data:
+                return get_global_i18n().t("statistics.no_trend_data")
+            
+            trend_text = f"{get_global_i18n().t("statistics.trend_7days_data")}:\n"
+            for date, minutes in trend_data:
+                hours = minutes // 60
+                mins = minutes % 60
+                trend_text += f"{date}: {hours}{get_global_i18n().t("statistics.hours")}{mins}{get_global_i18n().t("statistics.minutes")}\n"
+            
+            return trend_text.strip()
+        except Exception as e:
+            logger.error(f"{get_global_i18n().t("statistics.format_trend_failed")}: {e}")
+            return get_global_i18n().t("statistics.load_trend_failed")
+    
+    def _format_daily_stats(self) -> str:
+        """格式化每日统计数据"""
+        try:
+            daily_stats = self.statistics_manager.get_daily_stats()
+            
+            reading_time = daily_stats.get("reading_time", 0)
+            books_read = daily_stats.get("books_read", 0)
+            
+            return f"""{get_global_i18n().t("statistics.today_stats")}:
+{get_global_i18n().t("statistics.reading_time")}: {self._format_time(reading_time)}
+{get_global_i18n().t("statistics.reading_books")}: {books_read} {get_global_i18n().t("bookshelf.books")}"""
+        except Exception as e:
+            logger.error(f"{get_global_i18n().t("statistics.format_daily_failed")}: {e}")
+            return get_global_i18n().t("statistics.load_daily_failed")
+    
+    def _format_period_stats(self) -> str:
+        """格式化周期统计数据"""
+        try:
+            # 获取最近7天和30天的统计数据
+            today = datetime.now()
+            week_ago = (today - timedelta(days=7)).strftime("%Y-%m-%d")
+            month_ago = (today - timedelta(days=30)).strftime("%Y-%m-%d")
+            
+            weekly_stats = self.statistics_manager.get_period_stats(week_ago, today.strftime("%Y-%m-%d"))
+            monthly_stats = self.statistics_manager.get_period_stats(month_ago, today.strftime("%Y-%m-%d"))
+            
+            return f"""{get_global_i18n().t("statistics.period_stats")}:
+{get_global_i18n().t("statistics.nearly_7days")}: {self._format_time(weekly_stats.get('reading_time', 0))} ({weekly_stats.get('books_read', 0)} {get_global_i18n().t("statistics.books_unit")})
+{get_global_i18n().t("statistics.nearly_30days")}: {self._format_time(monthly_stats.get('reading_time', 0))} ({monthly_stats.get('books_read', 0)} {get_global_i18n().t("statistics.books_unit")})"""
+        except Exception as e:
+            logger.error(f"{get_global_i18n().t("statistics.format_period_data_failed")}: {e}")
+            return get_global_i18n().t("statistics.load_period_data_failed")
+    
+    def _initialize_tables(self) -> None:
+        """初始化数据表"""
+        try:
+            # 初始化书籍统计数据表
+            book_table = self.query_one("#book-stats-table", DataTable)
+            book_table.add_columns(
+                get_global_i18n().t("statistics.book_title"),
+                get_global_i18n().t("statistics.reading_time"),
+                get_global_i18n().t("statistics.pages_read"),
+                get_global_i18n().t("statistics.progress")
+            )
+            
+            # 初始化作者统计数据表
+            authors_table = self.query_one("#authors-table", DataTable)
+            authors_table.add_columns(
+                get_global_i18n().t("statistics.author"),
+                get_global_i18n().t("statistics.reading_time"),
+                get_global_i18n().t("statistics.book_count")
+            )
+            
+            # 初始化阅读进度数据表
+            progress_table = self.query_one("#progress-table", DataTable)
+            progress_table.add_columns(
+                get_global_i18n().t("statistics.book_title"),
+                get_global_i18n().t("statistics.current_page"),
+                get_global_i18n().t("statistics.total_pages"),
+                get_global_i18n().t("statistics.progress")
+            )
+            
+            # 加载所有统计数据
+            self._load_all_stats()
+            
+        except Exception as e:
+            logger.error(f"{get_global_i18n().t("statistics.init_failed")}: {e}")
+            # 如果初始化失败，再次尝试
+            self.set_timer(0.5, self._initialize_tables)
