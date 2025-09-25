@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 class SettingsScreen(Screen[Any]):
     """现代化设置屏幕"""
     
-    CSS_PATH = "../styles/styles.css"
+    CSS_PATH = "../styles/settings_screen.css"
     
 
     

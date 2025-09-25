@@ -1,0 +1,81 @@
+Screen {
+    layout: vertical;
+}
+
+#settings-container {
+    width: 60%;
+    height: 100%;
+    layout: grid;
+    grid-size: 1 3;
+    grid-rows: 1fr auto auto;
+}
+
+#settings-controls {
+    width: 100%;
+    height: 5;
+    layout: horizontal;
+    align-horizontal: center;
+    content-align: center middle;
+    background: $panel;
+    border-top: solid $primary;
+}
+
+#settings-controls Button {
+    margin: 0 1;
+    min-width: 10;
+    height: 3;
+}
+
+#shortcuts-bar {
+    width: 100%;
+    height: 2;
+    layout: horizontal;
+    align-horizontal: center;
+    content-align: center middle;
+    background: $panel-darken-1;
+}
+
+#shortcuts-bar Label {
+    margin: 0 2;
+    text-style: italic;
+    color: $text-muted;
+}
+
+TabbedContent {
+    width: 100%;
+    height: 100%;
+}
+
+TabPane {
+    width: 100%;
+    height: 100%;
+}
+
+ScrollableContainer {
+    width: 100%;
+    height: 100%;
+}
+
+.setting-label {
+    width: 100%;
+    height: 1;
+    margin: 1 0;
+}
+
+Select {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+Input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+Switch {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}

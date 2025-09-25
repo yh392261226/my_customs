@@ -84,12 +84,6 @@ Horizontal.footer {
     color: $text-muted;
 }
 
-/* 设置屏幕滚动容器样式 */
-.settings-scrollable {
-    width: 100%;
-    height: 100%;
-}
-
 /* ScrollableContainer 样式 */
 ScrollableContainer {
     width: 100%;
@@ -104,40 +98,10 @@ Grid {
     grid-rows: 2fr 12fr 1fr 1fr;
 }
 
-/* 设置项标签样式 */
-.setting-label {
-    width: 100%;
-    height: 1;
-    margin: 1 0;
-}
-
-/* 设置控件样式 */
-Select, Input, Switch {
-    width: 100%;
-    height: 3;
-    margin: 1 0;
-}
-
 /* 标签页内容样式 */
 TabPane {
     width: 100%;
     height: 100%;
-}
-
-/* 控制按钮容器样式 */
-#settings-controls {
-    width: 100%;
-    height: 3;
-    dock: bottom;
-    layout: horizontal;
-    align-horizontal: center;
-    content-align: center middle;
-}
-
-/* 控制按钮样式 */
-#settings-controls > Button {
-    margin: 0 1;
-    min-width: 8;
 }
 
 /* 快捷键状态栏样式 */
@@ -155,13 +119,6 @@ TabPane {
 #shortcuts-bar > Label {
     margin: 0 2;
     text-style: bold;
-}
-
-/* 设置容器样式 */
-#settings-container {
-    width: 60%;
-    height: 100%;
-    layout: vertical;
 }
 
 /* TabbedContent 样式 */
@@ -228,9 +185,6 @@ WelcomeScreen {
     background: $accent;
 }
 
-#settings-btn {
-    background: $warning;
-}
 
 #statistics-btn {
     background: $accent-darken-1;
