@@ -5,3 +5,15 @@ my_shell/customs.sh
 starship/cache/
 others/preader_python/__pycache__/
 others/preader_python/record.log
+others/new_preader_python/src/config/__pycache__/
+others/new_preader_python/src/config/settings/__pycache__/
+others/new_preader_python/src/core/__pycache__/
+others/new_preader_python/src/core/pagination/__pycache__/
+others/new_preader_python/src/locales/__pycache__/
+others/new_preader_python/src/themes/__pycache__/
+others/new_preader_python/src/ui/__pycache__/
+others/new_preader_python/src/ui/components/__pycache__/
+others/new_preader_python/src/ui/dialogs/__pycache__/
+others/new_preader_python/src/ui/screens/__pycache__/
+others/new_preader_python/src/utils/__pycache__/
+
