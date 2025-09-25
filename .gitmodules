@@ -212,3 +212,6 @@
 [submodule "others/preader_python/KindleUnpack"]
 	path = others/preader_python/KindleUnpack
 	url = git@github.com:kevinhendricks/KindleUnpack.git
+[submodule "others/new_preader_python/src/parsers/KindleUnpack"]
+	path = others/new_preader_python/src/parsers/KindleUnpack
+	url = git@github.com:kevinhendricks/KindleUnpack.git
