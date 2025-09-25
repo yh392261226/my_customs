@@ -22,7 +22,7 @@ function novels_read() {
         return
     elif [ "" != "$choose" ]; then
         local options=(
-            "New PReader阅读"
+            "NewPReader阅读"
             "PReader阅读"
             "UReader阅读"
             "Reader阅读"
@@ -40,8 +40,9 @@ function novels_read() {
             --preview="echo -e '\n按 Enter 选择阅读器'"
         )
         case "$choose_reader" in
-            *New PReader阅读*)
+            *NewPReader阅读*)
                 $MYRUNTIME/customs/bin/npreader "$NOVELSDATAPATH/$choose"
+                ;;
             *PReader阅读*)
                 $MYRUNTIME/customs/bin/preader "$NOVELSDATAPATH/$choose"
                 ;;

@@ -258,7 +258,7 @@ actioner_view_origin() {
 actioner_read_novel() {
     local file="$1"
     local options=(
-        "New PReader阅读"
+        "NewPReader阅读"
         "PReader阅读"
         "UReader阅读"
         "Reader阅读"
@@ -276,7 +276,7 @@ actioner_read_novel() {
         --preview="echo -e '\n按 Enter 选择阅读器'"
     )
     case "$choose_reader" in
-        *New PReader阅读*)
+        *NewPReader阅读*)
             $MYRUNTIME/customs/bin/npreader "$file"
             ;;
         *PReader阅读*)
