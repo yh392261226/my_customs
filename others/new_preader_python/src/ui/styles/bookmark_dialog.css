@@ -1,10 +1,13 @@
 #dialog-container {
-    width: 60%;
-    height: 50%;
+    width: 80%;
+    height: auto;
+    min-height: 10;
+    max-height: 20;
     background: $panel;
     border: round $primary;
     padding: 1;
     layout: vertical;
+    align: center middle;
 }
 
 #dialog-title {
@@ -12,6 +15,12 @@
     height: 1;
     text-align: center;
     text-style: bold;
+    margin-bottom: 1;
+}
+
+#page-input {
+    width: 100%;
+    height: 3;
     margin-bottom: 1;
 }
 

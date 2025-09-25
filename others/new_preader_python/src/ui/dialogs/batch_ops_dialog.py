@@ -63,6 +63,12 @@ class BatchInputDialog(ModalScreen[str]):
         """输入框回车提交"""
         input_widget = self.query_one("#batch-input", Input)
         self.dismiss(input_widget.value.strip())
+    
+    def on_key(self, event: events.Key) -> None:
+        """按键事件处理"""
+        if event.key == "escape":
+            self.dismiss("")
+            event.prevent_default()
 
 class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     """批量操作对话框"""
@@ -612,5 +618,6 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 清除DataTable的选中状态
         if hasattr(table, 'cursor_row') and table.cursor_row is not None:
             # 通过移动光标到第一行来清除选中状态
-            table.cursor_coordinate = (0, 0)
+            from textual.coordinate import Coordinate
+            table.cursor_coordinate = Coordinate(0, 0)
 

@@ -8,6 +8,8 @@ from textual.containers import Container, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Static, Button, Input, Label
 from textual import on
+from textual import events
+from textual.events import Key
 
 from src.locales.i18n_manager import get_global_i18n
 
@@ -70,3 +72,9 @@ class BatchInputDialog(ModalScreen[str]):
             self.callback(value)
         
         self.dismiss(value)
+    
+    def on_key(self, event: events.Key) -> None:
+        """按键事件处理"""
+        if event.key == "escape":
+            self.dismiss(None)
+            event.prevent_default()

@@ -185,21 +185,12 @@ WelcomeScreen {
     background: $accent;
 }
 
-
 #statistics-btn {
     background: $accent-darken-1;
 }
 
 #help-btn {
     background: $secondary;
-}
-
-#features-container {
-    width: 100%;
-    margin: 2 2 2 2;
-    border: round $primary;
-    padding: 1;
-    align: center middle;
 }
 
 #features-title {
@@ -233,15 +224,84 @@ WelcomeScreen {
     margin: 0 1;
 }
 
-#shortcuts-bar {
-    dock: bottom;
-    layout: horizontal;
-    align-horizontal: center;
-}
-
 #shortcuts-bar Label {
     margin: 0 2;
     text-style: italic;
     color: $text-muted;
 }
 
+/* 简单文件输入对话框样式 */
+#simple-file-dialog {
+    width: 80%;
+    height: auto;
+    min-height: 10;
+    max-height: 20;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    align: center middle;
+}
+
+#dialog-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#file-input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+#dialog-buttons {
+    width: 100%;
+    layout: horizontal;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#dialog-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+/* 目录选择对话框样式 */
+#directory-dialog {
+    width: 80%;
+    height: auto;
+    min-height: 10;
+    max-height: 20;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    align: center middle;
+}
+
+#directory-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#directory-input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+#directory-buttons {
+    width: 100%;
+    layout: horizontal;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#directory-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}

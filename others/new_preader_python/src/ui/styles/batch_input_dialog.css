@@ -1,27 +1,33 @@
 /* BatchInputDialog 样式 */
-BatchInputDialog {
+#batch-input-dialog {
     layout: vertical;
     padding: 1;
+    width: 80%;
+    height: auto;
+    min-height: 10;
+    max-height: 20;
+    align: center middle;
 }
 
-BatchInputDialog > Label {
+#batch-input-dialog > Label {
     width: 100%;
     text-align: center;
     padding: 1 0;
 }
 
-BatchInputDialog > Input {
+#batch-input-dialog > Input {
     width: 100%;
+    height: 3;
     margin: 1 0;
 }
 
-BatchInputDialog > Horizontal {
+#batch-input-dialog > Horizontal {
     width: 100%;
     height: auto;
     align: center middle;
     margin: 1 0;
 }
 
-BatchInputDialog Button {
+#batch-input-dialog Button {
     margin: 0 1;
 }
