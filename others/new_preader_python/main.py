@@ -64,7 +64,8 @@ def main():
     # 如果命令行指定了debug，覆盖配置
     if args.debug:
         config = config_manager.get_config()
-        config["app.debug"] = True
+        config["advanced"] = config.get("advanced", {})
+        config["advanced"]["debug_mode"] = True
         config_manager.save_config(config)
     
     # 设置日志

@@ -32,7 +32,7 @@ class LoggerSetup:
         
         # 根据debug开关设置日志级别
         debug_mode = config_manager.get_config().get("advanced", {}).get("debug_mode", False)
-        log_level = logging.DEBUG if debug_mode else logging.INFO
+        log_level = logging.DEBUG if debug_mode else logging.WARNING
         logger.setLevel(log_level)
         
         # 清除现有的处理器
@@ -153,7 +153,7 @@ def set_debug_mode(debug_mode: bool) -> None:
     Args:
         debug_mode: 是否启用调试模式
     """
-    log_level = logging.DEBUG if debug_mode else logging.INFO
+    log_level = logging.DEBUG if debug_mode else logging.WARNING
     
     # 完全重置logging配置
     for handler in logging.root.handlers[:]:
@@ -176,24 +176,11 @@ def set_debug_mode(debug_mode: bool) -> None:
     handler.setLevel(log_level)
     root_logger.addHandler(handler)
     
-    print(f" Debug mode {'enabled' if debug_mode else 'disabled'}, log level set to: {logging.getLevelName(log_level)}")
+    if debug_mode:
+        print(f" Debug mode enabled, log level set to: {logging.getLevelName(log_level)}")
 
 
-def set_silent_mode(silent_mode: bool) -> None:
-    """
-    设置静默模式，完全关闭所有日志输出
-    
-    Args:
-        silent_mode: 是否启用静默模式
-    """
-    if silent_mode:
-        # 完全关闭所有日志输出
-        logging.disable(logging.CRITICAL + 1)  # 禁用所有级别的日志
-        # print("静默模式已启用，所有日志输出已关闭")
-    else:
-        # 恢复日志输出
-        logging.disable(logging.NOTSET)
-        print("Silient mode disabled, logging output restored")
+
 
 
 def setup_logging_from_config(config_manager) -> None:
@@ -207,19 +194,19 @@ def setup_logging_from_config(config_manager) -> None:
         config = config_manager.get_config()
         advanced_config = config.get("advanced", {})
         
-        # 首先检查静默模式
-        silent_mode = advanced_config.get("silent_mode", False)
-        if silent_mode:
-            set_silent_mode(True)
-        else:
-            # 如果没有启用静默模式，再检查debug模式
-            debug_mode = advanced_config.get("debug_mode", False)
-            set_debug_mode(debug_mode)
-            
+        # 统一使用debug_mode控制日志
+        debug_mode = advanced_config.get("debug_mode", False)
+        
+        if debug_mode:
+            # 启用调试模式
+            set_debug_mode(True)
             # 设置文件日志输出
             LoggerSetup.setup_logger("main", config_manager, 
                                    console_output=True, 
                                    file_output=True)
+        else:
+            # 禁用调试模式（静默模式）
+            set_debug_mode(False)
             
     except Exception as e:
         logger = get_logger(__name__)
