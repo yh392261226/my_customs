@@ -87,7 +87,7 @@ if [ -f $MYRUNTIME/customs/others/zinit/zinit.zsh ]; then
     # zinit snippet OMZP::colored-man-pages/colored-man-pages.plugin.zsh
     # zinit snippet OMZP::extract
     zinit snippet OMZP::pip/pip.plugin.zsh
-    zinit snippet OMZP::command-not-found/command-not-found.plugin.zsh
+    # zinit snippet OMZP::command-not-found/command-not-found.plugin.zsh
     # zinit snippet OMZP::tmux/tmux.plugin.zsh
     #zinit snippet https://gist.githubusercontent.com/Hill-98/93db00b01327a0226955c2c6b3b7e137/raw/auto-bin-path.zsh
 

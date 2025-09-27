@@ -32,7 +32,7 @@ plugins=(
     # bbedit
     colored-man-pages
     colorize
-    command-not-found
+    # command-not-found
     copyfile
     copypath
     dnote
