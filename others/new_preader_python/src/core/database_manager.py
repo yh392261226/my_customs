@@ -99,6 +99,56 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_last_read ON books(last_read_date)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_history_date ON reading_history(read_date)")
             
+            # 创建代理设置表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS proxy_settings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    enabled BOOLEAN NOT NULL DEFAULT 0,
+                    type TEXT NOT NULL DEFAULT 'HTTP',
+                    host TEXT NOT NULL DEFAULT '127.0.0.1',
+                    port TEXT NOT NULL DEFAULT '7890',
+                    username TEXT DEFAULT '',
+                    password TEXT DEFAULT '',
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            
+            # 创建书籍网站表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS novel_sites (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE,
+                    url TEXT NOT NULL,
+                    storage_folder TEXT NOT NULL,
+                    proxy_enabled BOOLEAN NOT NULL DEFAULT 0,
+                    parser TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
+            
+            # 创建爬取历史表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS crawl_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL,
+                    novel_id TEXT NOT NULL,
+                    novel_title TEXT NOT NULL,
+                    crawl_time TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    file_path TEXT,
+                    error_message TEXT,
+                    FOREIGN KEY (site_id) REFERENCES novel_sites (id) ON DELETE CASCADE
+                )
+            """)
+            
+            # 创建索引
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_name ON novel_sites(name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_url ON novel_sites(url)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_site_id ON crawl_history(site_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_novel_id ON crawl_history(novel_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_crawl_time ON crawl_history(crawl_time)")
+            
             conn.commit()
     
     def add_book(self, book: Book) -> bool:
@@ -489,4 +539,363 @@ class DatabaseManager:
                 return cursor.rowcount > 0
         except sqlite3.Error as e:
             logger.error(f"更新书签备注失败: {e}")
+            return False
+
+    # 代理设置相关方法
+    def save_proxy_settings(self, settings: Dict[str, Any]) -> bool:
+        """
+        保存代理设置
+        
+        Args:
+            settings: 代理设置字典
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                updated_at = datetime.now().isoformat()
+                
+                # 先删除现有设置（只保留一条记录）
+                cursor.execute("DELETE FROM proxy_settings")
+                
+                cursor.execute("""
+                    INSERT INTO proxy_settings 
+                    (enabled, type, host, port, username, password, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    settings.get("enabled", False),
+                    settings.get("type", "HTTP"),
+                    settings.get("host", "127.0.0.1"),
+                    settings.get("port", "7890"),
+                    settings.get("username", ""),
+                    settings.get("password", ""),
+                    updated_at
+                ))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"保存代理设置失败: {e}")
+            return False
+
+    def get_proxy_settings(self) -> Dict[str, Any]:
+        """
+        获取代理设置
+        
+        Returns:
+            Dict[str, Any]: 代理设置字典
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM proxy_settings ORDER BY id DESC LIMIT 1")
+                row = cursor.fetchone()
+                
+                if row:
+                    return {
+                        "enabled": bool(row["enabled"]),
+                        "type": row["type"],
+                        "host": row["host"],
+                        "port": row["port"],
+                        "username": row["username"],
+                        "password": row["password"],
+                        "updated_at": row["updated_at"]
+                    }
+                else:
+                    # 返回默认设置
+                    return {
+                        "enabled": False,
+                        "type": "HTTP",
+                        "host": "127.0.0.1",
+                        "port": "7890",
+                        "username": "",
+                        "password": "",
+                        "updated_at": datetime.now().isoformat()
+                    }
+        except sqlite3.Error as e:
+            logger.error(f"获取代理设置失败: {e}")
+            return {
+                "enabled": False,
+                "type": "HTTP",
+                "host": "127.0.0.1",
+                "port": "7890",
+                "username": "",
+                "password": "",
+                "updated_at": datetime.now().isoformat()
+            }
+
+    # 书籍网站管理相关方法
+    def save_novel_site(self, site_data: Dict[str, Any]) -> bool:
+        """
+        保存书籍网站配置
+        
+        Args:
+            site_data: 网站配置字典
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                now = datetime.now().isoformat()
+                
+                if "id" in site_data and site_data["id"]:
+                    # 更新现有网站
+                    cursor.execute("""
+                        UPDATE novel_sites 
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, parser = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (
+                        site_data["name"],
+                        site_data["url"],
+                        site_data["storage_folder"],
+                        site_data["proxy_enabled"],
+                        site_data["parser"],
+                        now,
+                        site_data["id"]
+                    ))
+                else:
+                    # 插入新网站
+                    cursor.execute("""
+                        INSERT INTO novel_sites 
+                        (name, url, storage_folder, proxy_enabled, parser, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        site_data["name"],
+                        site_data["url"],
+                        site_data["storage_folder"],
+                        site_data["proxy_enabled"],
+                        site_data["parser"],
+                        now,
+                        now
+                    ))
+                
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"保存书籍网站配置失败: {e}")
+            return False
+
+    def get_novel_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有书籍网站配置
+        
+        Returns:
+            List[Dict[str, Any]]: 网站配置列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM novel_sites ORDER BY name")
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取书籍网站配置失败: {e}")
+            return []
+
+    def delete_novel_site(self, site_id: int) -> bool:
+        """
+        删除书籍网站配置
+        
+        Args:
+            site_id: 网站ID
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM novel_sites WHERE id = ?", (site_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"删除书籍网站配置失败: {e}")
+            return False
+
+    def delete_novel_site_by_id(self, site_id: int) -> bool:
+        """
+        根据ID删除书籍网站配置（别名方法）
+        
+        Args:
+            site_id: 网站ID
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        return self.delete_novel_site(site_id)
+
+    def get_novel_site_by_id(self, site_id: int) -> Optional[Dict[str, Any]]:
+        """
+        根据ID获取书籍网站配置
+        
+        Args:
+            site_id: 网站ID
+            
+        Returns:
+            Optional[Dict[str, Any]]: 网站配置字典，如果不存在则返回None
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM novel_sites WHERE id = ?", (site_id,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"根据ID获取书籍网站配置失败: {e}")
+            return None
+
+    # 爬取历史记录相关方法
+    def add_crawl_history(self, site_id: int, novel_id: str, novel_title: str, 
+                         status: str, file_path: Optional[str] = None, 
+                         error_message: Optional[str] = None) -> bool:
+        """
+        添加爬取历史记录
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            novel_title: 小说标题
+            status: 爬取状态（success/failed）
+            file_path: 文件路径（成功时）
+            error_message: 错误信息（失败时）
+            
+        Returns:
+            bool: 添加是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                crawl_time = datetime.now().isoformat()
+                
+                cursor.execute("""
+                    INSERT INTO crawl_history 
+                    (site_id, novel_id, novel_title, crawl_time, status, file_path, error_message)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    site_id,
+                    novel_id,
+                    novel_title,
+                    crawl_time,
+                    status,
+                    file_path,
+                    error_message
+                ))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"添加爬取历史记录失败: {e}")
+            return False
+
+    def get_crawl_history_by_site(self, site_id: int, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        获取指定网站的爬取历史记录
+        
+        Args:
+            site_id: 网站ID
+            limit: 返回的记录数量限制
+            
+        Returns:
+            List[Dict[str, Any]]: 爬取历史记录列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM crawl_history 
+                    WHERE site_id = ? 
+                    ORDER BY crawl_time DESC 
+                    LIMIT ?
+                """, (site_id, limit))
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取爬取历史记录失败: {e}")
+            return []
+
+    def get_crawl_history_by_novel_id(self, site_id: int, novel_id: str) -> List[Dict[str, Any]]:
+        """
+        根据小说ID获取爬取历史记录
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            
+        Returns:
+            List[Dict[str, Any]]: 爬取历史记录列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM crawl_history 
+                    WHERE site_id = ? AND novel_id = ? 
+                    ORDER BY crawl_time DESC
+                """, (site_id, novel_id))
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"根据小说ID获取爬取历史记录失败: {e}")
+            return []
+
+    def check_novel_exists(self, site_id: int, novel_id: str) -> bool:
+        """
+        检查小说是否已经下载过且文件存在
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            
+        Returns:
+            bool: 如果小说已下载且文件存在则返回True
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT file_path FROM crawl_history 
+                    WHERE site_id = ? AND novel_id = ? AND status = 'success'
+                    ORDER BY crawl_time DESC 
+                    LIMIT 1
+                """, (site_id, novel_id))
+                row = cursor.fetchone()
+                
+                if row and row["file_path"]:
+                    # 检查文件是否存在
+                    return os.path.exists(row["file_path"])
+                return False
+        except sqlite3.Error as e:
+            logger.error(f"检查小说是否存在失败: {e}")
+            return False
+
+    def delete_crawl_history(self, history_id: int) -> bool:
+        """
+        删除爬取历史记录
+        
+        Args:
+            history_id: 历史记录ID
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM crawl_history WHERE id = ?", (history_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"删除爬取历史记录失败: {e}")
             return False

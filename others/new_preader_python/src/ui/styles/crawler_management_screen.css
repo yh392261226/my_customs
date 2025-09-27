@@ -1,0 +1,148 @@
+/* 爬取管理屏幕样式 */
+Screen {
+    layout: vertical;
+}
+
+#crawler-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+#crawler-title {
+    text-align: center;
+    text-style: bold;
+    height: 3;
+    color: $accent;
+}
+
+#crawler-url {
+    text-align: center;
+    height: 2;
+    color: $text-muted;
+}
+
+#crawler-buttons {
+    height: 3;
+    align: center middle;
+}
+
+#crawler-buttons Button {
+    margin: 0 1;
+    min-width: 12;
+    width: auto;
+}
+
+#novel-id-section {
+    height: auto;
+    border: solid $primary;
+    padding: 1;
+    margin: 1 0;
+}
+
+#novel-id-label {
+    text-style: bold;
+    height: 2;
+}
+
+#novel-id-container {
+    height: 3;
+    align: center middle;
+}
+
+#novel-id-input {
+    width: 40;
+    height: 3;
+    margin-right: 1;
+}
+
+#start-crawl-btn {
+    min-width: 12;
+    width: auto;
+}
+
+#crawl-history-section {
+    height: auto;
+    border: solid $primary;
+    padding: 1;
+    margin: 0 0;
+}
+
+#crawl-history-title {
+    text-style: bold;
+    height: 2;
+}
+
+#crawl-history-table {
+    height: 10;
+    border: round $primary;
+}
+
+#pagination-controls {
+    height: 3;
+    align: center middle;
+}
+
+#pagination-controls Button {
+    margin: 0 1;
+    min-width: 10;
+    width: auto;
+}
+
+#page-info {
+    text-align: center;
+    width: 20;
+}
+
+#crawler-status {
+    text-align: center;
+    height: 2;
+}
+
+#shortcuts-bar {
+    height: 2;
+    align: center middle;
+    background: $panel-darken-1;
+}
+
+#shortcuts-bar Label {
+    margin: 0 1;
+    color: $text-muted;
+}
+
+Button {
+    height: 3;
+}
+
+Input {
+    height: 3;
+}
+
+DataTable {
+    border: round $primary;
+}
+
+DataTable > .datatable--header {
+    background: $surface;
+    color: $text;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $accent;
+    color: $text;
+}
+
+Button:focus {
+    background: $accent;
+    color: $text;
+}
+
+Button.-primary {
+    background: $success;
+    color: $text;
+}
+
+Button.-primary:focus {
+    background: $success-darken-1;
+}

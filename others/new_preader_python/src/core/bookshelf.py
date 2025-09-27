@@ -57,12 +57,13 @@ class Bookshelf:
         try:
             books = self.db_manager.get_all_books()
             for book in books:
-                # 检查书籍文件是否仍然存在
+                # 检查书籍文件是否仍然存在，但即使不存在也保留记录
                 if book.path and os.path.exists(book.path):
                     self.books[book.path] = book
                 else:
-                    logger.warning(f"书籍文件不存在，从数据库中移除: {book.path}")
-                    self.db_manager.delete_book(book.path)
+                    logger.warning(f"书籍文件不存在，但保留记录: {book.path}")
+                    # 即使文件不存在，也保留书籍记录，但标记为文件丢失
+                    self.books[book.path] = book
                     
             logger.info(f"已加载 {len(self.books)} 本书籍")
         except Exception as e:

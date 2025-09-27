@@ -134,6 +134,18 @@ class NewReaderApp(App[None]):
         self.install_screen(HelpScreen(), name="help")
         self.install_screen(StatisticsScreen(self.theme_manager, self.statistics_manager), name="statistics")
         
+        # 安装获取书籍相关屏幕
+        from src.ui.screens.get_books_screen import GetBooksScreen
+        from src.ui.screens.proxy_settings_screen import ProxySettingsScreen
+        from src.ui.screens.novel_sites_management_screen import NovelSitesManagementScreen
+        from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+        
+        self.install_screen(GetBooksScreen(self.theme_manager), name="get_books")
+        self.install_screen(ProxySettingsScreen(self.theme_manager), name="proxy_settings")
+        self.install_screen(NovelSitesManagementScreen(self.theme_manager), name="novel_sites_management")
+        # 爬取管理屏幕需要动态创建，所以只注册类
+        self.install_screen(CrawlerManagementScreen, name="crawler_management")
+        
         logger.info(get_global_i18n().t("app.screen_installed"))
     
     def _load_settings_from_config(self) -> None:

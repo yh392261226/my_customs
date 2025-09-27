@@ -57,6 +57,7 @@ class WelcomeScreen(Screen[None]):
                 Horizontal(
                     Button(get_global_i18n().t('welcome.open_book'), id="open-book-btn"),
                     Button(get_global_i18n().t('welcome.browse_library'), id="browse-library-btn"),
+                    Button(get_global_i18n().t('welcome.get_books'), id="get-books-btn"),
                     Button(get_global_i18n().t('welcome.settings'), id="settings-btn"),
                     Button(get_global_i18n().t('welcome.statistics'), id="statistics-btn"),
                     Button(get_global_i18n().t('welcome.help'), id="help-btn"),
@@ -79,6 +80,7 @@ class WelcomeScreen(Screen[None]):
                     Label(get_global_i18n().t('welcome.shortcut_f3'), id="shortcut-f3"),
                     Label(get_global_i18n().t('welcome.shortcut_f4'), id="shortcut-f4"),
                     Label(get_global_i18n().t('welcome.shortcut_f5'), id="shortcut-f5"),
+                    Label(get_global_i18n().t('welcome.shortcut_f6'), id="shortcut-f6"),
                     Label(get_global_i18n().t('welcome.shortcut_esc'), id="shortcut-esc"),
                     id="shortcuts-bar"
                 ),
@@ -103,6 +105,8 @@ class WelcomeScreen(Screen[None]):
             self._show_file_input()
         elif event.button.id == "browse-library-btn":
             self.app.push_screen("bookshelf")  # 使用标准方法切换屏幕
+        elif event.button.id == "get-books-btn":
+            self.app.push_screen("get_books")  # 打开获取书籍页面
         elif event.button.id == "settings-btn":
             self.app.push_screen("settings")  # 打开设置页面
         elif event.button.id == "statistics-btn":
@@ -202,7 +206,7 @@ class WelcomeScreen(Screen[None]):
                     self.notify(get_global_i18n().t('welcome.added_to_bookshelf'), severity="information")
                 
                 # 调用应用程序的文件打开方法
-                self.app._open_book_file(result)
+                self.app.open_book(result)
             except Exception as e:
                 self.notify(f"{get_global_i18n().t('welcome.open_failed')}: {str(e)}", severity="error")
     
@@ -226,7 +230,7 @@ class WelcomeScreen(Screen[None]):
             if book:
                 import os
                 book_name = os.path.basename(file_path)
-                self.notify(f"《{book_name}》{get_global_i18n().t('welcome.added_success')}", severity="success")
+                self.notify(f"《{book_name}》{get_global_i18n().t('welcome.added_success')}", severity="information")
             else:
                 self.notify(get_global_i18n().t('welcome.added_failed'), severity="error")
         except Exception as e:
@@ -237,15 +241,19 @@ class WelcomeScreen(Screen[None]):
         self.app.push_screen("bookshelf")
 
     def key_f3(self) -> None:
-        """F3快捷键 - 打开设置"""
-        self.app.push_screen("settings")
+        """F3快捷键 - 获取书籍"""
+        self.app.push_screen("get_books")
 
     def key_f4(self) -> None:
-        """F4快捷键 - 打开统计"""
-        self.app.push_screen("statistics")
+        """F4快捷键 - 打开设置"""
+        self.app.push_screen("settings")
 
     def key_f5(self) -> None:
-        """F5快捷键 - 打开帮助"""
+        """F5快捷键 - 打开统计"""
+        self.app.push_screen("statistics")
+
+    def key_f6(self) -> None:
+        """F6快捷键 - 打开帮助"""
         self.app.push_screen("help")
     
     def on_key(self, event: events.Key) -> None:

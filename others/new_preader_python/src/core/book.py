@@ -33,7 +33,8 @@ class Book:
         
         # 检查文件是否存在（允许空路径用于默认书籍）
         if path and not os.path.exists(path):
-            raise FileNotFoundError(f"书籍文件不存在: {path}")
+            logger.warning(f"书籍文件不存在: {path}")
+            # 不抛出异常，允许创建书籍对象但标记为文件不存在
         
         # 检查文件格式是否支持（允许空路径用于默认书籍）
         if path and self.format not in SUPPORTED_FORMATS:
@@ -43,7 +44,7 @@ class Book:
         self.title = title if title else os.path.splitext(self.file_name)[0]
         self.author = author if author else "未知作者"
         self.tags: Set[str] = set()
-        self.size = os.path.getsize(path) if path else 0
+        self.size = os.path.getsize(path) if path and os.path.exists(path) else 0
         self.add_date = datetime.now().isoformat()
         self.password = password  # 存储PDF密码
         
@@ -285,6 +286,12 @@ class Book:
         self._show_loading_animation("正在读取文件...")
         
         try:
+            # 首先检查文件是否存在
+            if not os.path.exists(self.path):
+                logger.error(f"书籍文件不存在: {self.path}")
+                self._hide_loading_animation()
+                return f"书籍文件不存在: {self.path}"
+            
             # 尝试多种编码读取文件
             encodings = ['utf-8', 'gbk', 'gb2312', 'big5', 'utf-16', 'ascii']
             
@@ -301,6 +308,10 @@ class Book:
                 except (UnicodeDecodeError, UnicodeError):
                     logger.debug(f"使用 {encoding} 编码读取文件失败，尝试下一种编码")
                     continue
+                except FileNotFoundError:
+                    logger.error(f"书籍文件不存在: {self.path}")
+                    self._hide_loading_animation()
+                    return f"书籍文件不存在: {self.path}"
                 except Exception as e:
                     logger.error(f"读取书籍内容时出错 (编码: {encoding}): {e}")
                     continue
@@ -322,6 +333,10 @@ class Book:
                     self._hide_loading_animation()
                     return content
                 
+            except FileNotFoundError:
+                logger.error(f"书籍文件不存在: {self.path}")
+                self._hide_loading_animation()
+                return f"书籍文件不存在: {self.path}"
             except ImportError:
                 logger.warning("chardet 库未安装，无法进行编码检测")
             except Exception as e:
@@ -337,9 +352,13 @@ class Book:
                 self._hide_loading_animation()
                 return content
                 
+            except FileNotFoundError:
+                logger.error(f"书籍文件不存在: {self.path}")
+                self._hide_loading_animation()
+                return f"书籍文件不存在: {self.path}"
             except Exception as e:
                 logger.error(f"所有编码尝试都失败: {e}")
-                raise RuntimeError(f"无法读取文件 {self.path}，请检查文件是否损坏或编码不支持")
+                return f"无法读取文件 {self.path}，请检查文件是否损坏或编码不支持"
                 
         finally:
             # 确保在任何情况下都隐藏加载动画

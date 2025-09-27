@@ -33,3 +33,12 @@ class RefreshContentMessage(Message):
     """刷新内容显示消息"""
     def __init__(self) -> None:
         super().__init__()
+
+
+class CrawlCompleteNotification(Message):
+    """爬取完成通知消息"""
+    def __init__(self, success: bool, novel_title: str, message: str = "") -> None:
+        super().__init__()
+        self.success = success
+        self.novel_title = novel_title
+        self.message = message

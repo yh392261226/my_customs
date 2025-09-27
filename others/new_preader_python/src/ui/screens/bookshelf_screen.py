@@ -100,6 +100,7 @@ class BookshelfScreen(Screen[None]):
                         Button(get_global_i18n().t("bookshelf.search"), id="search-btn"),
                         Button(get_global_i18n().t("bookshelf.sort.title"), id="sort-btn"),
                         Button(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-btn"),
+                        Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn"),
                         id="bookshelf-toolbar"
                     ),
                     id="bookshelf-header"
@@ -116,6 +117,7 @@ class BookshelfScreen(Screen[None]):
                     Horizontal(
                         Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn"),
                         Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn"),
+                        Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn"),
                         Button(get_global_i18n().t("bookshelf.back"), id="back-btn"),
                         id="bookshelf-controls"
                     ),
@@ -128,6 +130,7 @@ class BookshelfScreen(Screen[None]):
                         Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
                         Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
                         Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
+                        Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
                         Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
                         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
                         Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
@@ -254,7 +257,8 @@ class BookshelfScreen(Screen[None]):
         try:
             # 更新分页信息到统计标签
             stats_label = self.query_one("#books-stats-label", Label)
-            current_text = str(stats_label.renderable)
+            # 使用render()方法获取Label的文本内容
+            current_text = stats_label.render()
             
             # 移除可能存在的旧分页信息
             if "| 第" in current_text:
@@ -266,6 +270,16 @@ class BookshelfScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"更新分页信息失败: {e}")
+    
+    def _refresh_bookshelf(self) -> None:
+        """刷新书架内容"""
+        self.logger.info("刷新书架内容")
+        # 重置到第一页
+        self._current_page = 1
+        # 重新加载书籍数据
+        self._load_books()
+        # 显示刷新成功的提示
+        self.notify(get_global_i18n().t("bookshelf.refresh_success"))
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -286,6 +300,8 @@ class BookshelfScreen(Screen[None]):
             self._show_sort_menu()
         elif event.button.id == "batch-ops-btn":
             self._show_batch_ops_menu()
+        elif event.button.id == "refresh-btn":
+            self._refresh_bookshelf()
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
@@ -296,7 +312,10 @@ class BookshelfScreen(Screen[None]):
         """
         book_id = event.row_key.value
         self.logger.info(f"选择书籍: {book_id}")
-        self.app.open_book(book_id)
+        # 类型安全的open_book调用
+        app_instance = self.app
+        if hasattr(app_instance, 'open_book'):
+            app_instance.open_book(book_id)
         
     def on_key(self, event: events.Key) -> None:
         """
@@ -317,7 +336,8 @@ class BookshelfScreen(Screen[None]):
                     self.logger.info(get_global_i18n().t('bookshelf.press_enter_open_book', book_id=book_id))
                     # 类型安全的open_book调用
                     app_instance = self.app
-                    self.app.open_book(book_id)
+                    if hasattr(app_instance, 'open_book'):
+                        app_instance.open_book(book_id)
                     event.prevent_default()
         elif event.key == "s":
             # S键搜索
@@ -335,6 +355,10 @@ class BookshelfScreen(Screen[None]):
             event.prevent_default()
         elif event.key == "d":
             self._show_scan_directory_dialog()
+            event.prevent_default()
+        elif event.key == "f":
+            # F键刷新书架
+            self._refresh_bookshelf()
             event.prevent_default()
         elif event.key == "escape":
             # ESC键返回
@@ -380,7 +404,9 @@ class BookshelfScreen(Screen[None]):
                 book_path = self._book_index_mapping[book_index]
                 self.logger.info(f"按数字键 {book_index} 打开书籍: {book_path}")
                 # 直接调用open_book方法
-                self.app.open_book(book_path)
+                app_instance = self.app
+                if hasattr(app_instance, 'open_book'):
+                    app_instance.open_book(book_path)
                 event.prevent_default()
             else:
                 # 如果该序号没有对应的书籍，显示提示
@@ -399,7 +425,9 @@ class BookshelfScreen(Screen[None]):
                 # 搜索对话框返回的是SearchResult对象，直接打开对应的书籍
                 from src.core.search import SearchResult
                 if isinstance(result, SearchResult):
-                    self.app.open_book(result.book_id)
+                    app_instance = self.app
+                    if hasattr(app_instance, 'open_book'):
+                        app_instance.open_book(result.book_id)
         
         # 使用现有的搜索对话框
         from src.ui.dialogs.search_dialog import SearchDialog

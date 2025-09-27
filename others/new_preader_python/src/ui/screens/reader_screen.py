@@ -259,6 +259,15 @@ class ReaderScreen(Screen[None]):
                     self.notify(f"{get_global_i18n().t('reader.empty_book_content')}", severity="error")
                     self._hide_loading_animation()
                     return
+                
+                # 检查内容是否是错误信息（文件不存在）
+                if isinstance(content, str) and content.startswith("书籍文件不存在:"):
+                    self.notify(f"{get_global_i18n().t('reader.file_not_found')}: {content}", severity="error")
+                    self._hide_loading_animation()
+                    # 关闭阅读器屏幕，返回书架
+                    self.app.pop_screen()
+                    return
+                
                 content_len = len(content)
                 logger.debug(f"{get_global_i18n().t('reader.load_book_content_len', len=content_len)}")
                 

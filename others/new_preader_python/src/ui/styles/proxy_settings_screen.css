@@ -1,0 +1,254 @@
+/* 代理设置屏幕专用样式 */
+
+Screen {
+    layout: vertical;
+}
+
+#proxy-settings-container {
+    width: 90%;
+    height: 100%;
+    margin: 1 2;
+    layout: vertical;
+    padding: 1;
+}
+
+#proxy-settings-scroll-container {
+    width: 100%;
+    height: 1fr;
+    margin: 1 0;
+}
+
+#proxy-settings-scrollable-content {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+    padding: 1;
+}
+
+#proxy-settings-title {
+    width: 100;
+    height: 3;
+    text-align: left;
+    text-style: bold;
+    color: $accent;
+    margin: 1 0;
+}
+
+#proxy-settings-description {
+    width: 100;
+    height: 2;
+    text-align: left;
+    color: $text-muted;
+    margin: 0 0 1 0;
+}
+
+#proxy-enable-container {
+    width: 100;
+    height: 3;
+    layout: horizontal;
+    align-horizontal: left;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+#enable-proxy {
+    margin: 0 0 0 2;
+}
+
+#proxy-type-container {
+    width: 80%;
+    height: 3;
+    layout: horizontal;
+    align-horizontal: left;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+#proxy-type-label {
+    width: 25%;
+    height: 100%;
+    text-align: right;
+    content-align: center middle;
+    margin: 0 2 0 0;
+}
+
+#proxy-type-select {
+    width: 65%;
+    height: 100%;
+    margin: 0;
+}
+
+#server-settings-container {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+    margin: 1 0;
+    border: solid $primary;
+    padding: 1;
+}
+
+#auth-settings-container {
+    width: 100%;
+    height: auto;
+    layout: vertical;
+    margin: 1 0;
+    border: solid $primary;
+    padding: 1;
+}
+
+#host-container {
+    width: 100%;
+    height: 3;
+    layout: horizontal;
+    align-horizontal: left;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+#port-container {
+    width: 100%;
+    height: 3;
+    layout: horizontal;
+    align-horizontal: left;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+#username-container {
+    width: 100%;
+    height: 3;
+    layout: horizontal;
+    align-horizontal: left;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+#password-container {
+    width: 100%;
+    height: 3;
+    layout: horizontal;
+    align-horizontal: left;
+    margin: 1 0;
+    padding: 0 1;
+}
+
+#host-label {
+    width: 25%;
+    height: 100%;
+    text-align: right;
+    content-align: center middle;
+    margin: 0 2 0 0;
+}
+
+#port-label {
+    width: 25%;
+    height: 100%;
+    text-align: right;
+    content-align: center middle;
+    margin: 0 2 0 0;
+}
+
+#username-label {
+    width: 25%;
+    height: 100%;
+    text-align: right;
+    content-align: center middle;
+    margin: 0 2 0 0;
+}
+
+#password-label {
+    width: 25%;
+    height: 100%;
+    text-align: right;
+    content-align: center middle;
+    margin: 0 2 0 0;
+}
+
+#host-input {
+    width: 65%;
+    height: 100%;
+    margin: 0;
+}
+
+#port-input {
+    width: 65%;
+    height: 100%;
+    margin: 0;
+}
+
+#username-input {
+    width: 65%;
+    height: 100%;
+    margin: 0;
+}
+
+#password-input {
+    width: 65%;
+    height: 100%;
+    margin: 0;
+}
+
+#proxy-settings-buttons {
+    width: 100%;
+    height: 4;
+    layout: horizontal;
+    align-horizontal: center;
+    margin: 2 0;
+}
+
+#proxy-status-info {
+    width: 100%;
+    height: 2;
+    text-align: center;
+    margin: 1 0;
+}
+
+#shortcuts-bar {
+    width: 100%;
+    height: 2;
+    layout: horizontal;
+    align-horizontal: center;
+    content-align: center middle;
+    background: $panel-darken-1;
+    margin: 1 0;
+}
+
+ScrollableContainer {
+    width: 100%;
+    height: 100%;
+}
+
+Button {
+    margin: 0 1;
+    min-width: 12;
+    height: 3;
+}
+
+Input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+    border: round $primary;
+    background: $surface;
+    color: $text;
+}
+
+Select {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+Checkbox {
+    width: auto;
+    height: 3;
+    margin: 1 0;
+}
+
+Label {
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+    text-style: italic;
+    color: $text-muted;
+}

@@ -1,0 +1,394 @@
+"""
+书籍网站管理屏幕
+"""
+
+from typing import Dict, Any, Optional, List, ClassVar
+from textual.screen import Screen
+from textual.containers import Container, Vertical, Horizontal, Grid
+from textual.widgets import Static, Button, Label, DataTable, Input, Select, Checkbox
+from textual.app import ComposeResult
+from textual.reactive import reactive
+from textual import events
+
+from src.locales.i18n_manager import get_global_i18n, t
+from src.themes.theme_manager import ThemeManager
+from src.utils.logger import get_logger
+from src.core.database_manager import DatabaseManager
+
+logger = get_logger(__name__)
+
+class NovelSitesManagementScreen(Screen[None]):
+    """书籍网站管理屏幕"""
+    
+    CSS_PATH = "../styles/novel_sites_management_screen.css"
+    
+    def __init__(self, theme_manager: ThemeManager):
+        """
+        初始化书籍网站管理屏幕
+        
+        Args:
+            theme_manager: 主题管理器
+        """
+        super().__init__()
+        try:
+            self.title = get_global_i18n().t('novel_sites.title')
+        except RuntimeError:
+            # 如果全局i18n未初始化，使用默认标题
+            self.title = "书籍网站管理"
+        self.theme_manager = theme_manager
+        self.database_manager = DatabaseManager()
+        self.novel_sites = []  # 书籍网站列表
+        self.selected_sites = set()  # 选中的网站索引
+    
+    def compose(self) -> ComposeResult:
+        """
+        组合书籍网站管理屏幕界面
+        
+        Returns:
+            ComposeResult: 组合结果
+        """
+        yield Container(
+            Vertical(
+                Label(get_global_i18n().t('novel_sites.title'), id="novel-sites-title"),
+                Label(get_global_i18n().t('novel_sites.description'), id="novel-sites-description"),
+                
+                # 操作按钮区域
+                Horizontal(
+                    Button(get_global_i18n().t('novel_sites.add'), id="add-btn"),
+                    Button(get_global_i18n().t('novel_sites.edit'), id="edit-btn"),
+                    Button(get_global_i18n().t('novel_sites.delete'), id="delete-btn"),
+                    Button(get_global_i18n().t('novel_sites.batch_delete'), id="batch-delete-btn"),
+                    Button(get_global_i18n().t('novel_sites.back'), id="back-btn"),
+                    id="novel-sites-buttons"
+                ),
+                
+                # 书籍网站列表
+                DataTable(id="novel-sites-table"),
+                
+                # 状态信息
+                Label("", id="novel-sites-status"),
+                
+                # 快捷键状态栏
+                Horizontal(
+                    Label(get_global_i18n().t('novel_sites.shortcut_a'), id="shortcut-a"),
+                    Label(get_global_i18n().t('novel_sites.shortcut_e'), id="shortcut-e"),
+                    Label(get_global_i18n().t('novel_sites.shortcut_d'), id="shortcut-d"),
+                    Label(get_global_i18n().t('novel_sites.shortcut_b'), id="shortcut-b"),
+                    Label(get_global_i18n().t('novel_sites.shortcut_space'), id="shortcut-space"),
+                    Label(get_global_i18n().t('novel_sites.shortcut_enter'), id="shortcut-enter"),
+                    Label(get_global_i18n().t('novel_sites.shortcut_esc'), id="shortcut-esc"),
+                    id="shortcuts-bar"
+                ),
+                id="novel-sites-container"
+            )
+        )
+    
+    def on_mount(self) -> None:
+        """屏幕挂载时的回调"""
+        # 应用主题
+        self.theme_manager.apply_theme_to_screen(self)
+        
+        # 初始化数据表
+        table = self.query_one("#novel-sites-table", DataTable)
+        table.add_columns(
+            get_global_i18n().t('novel_sites.selected'),
+            get_global_i18n().t('novel_sites.site_name'),
+            get_global_i18n().t('novel_sites.site_url'),
+            get_global_i18n().t('novel_sites.storage_folder'),
+            get_global_i18n().t('novel_sites.proxy_enabled'),
+            get_global_i18n().t('novel_sites.parser')
+        )
+        
+        # 加载书籍网站数据
+        self._load_novel_sites()
+    
+    def _load_novel_sites(self) -> None:
+        """从数据库加载书籍网站数据"""
+        self.novel_sites = self.database_manager.get_novel_sites()
+        
+        # 更新数据表
+        self._update_table()
+    
+    def _update_table(self) -> None:
+        """更新数据表显示"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        table.clear()
+        
+        for index, site in enumerate(self.novel_sites):
+            selected = "✓" if index in self.selected_sites else ""
+            proxy_status = get_global_i18n().t('common.yes') if site["proxy_enabled"] else get_global_i18n().t('common.no')
+            table.add_row(
+                selected,
+                site["name"],
+                site["url"],
+                site["storage_folder"],
+                proxy_status,
+                site["parser"],
+                key=str(index)
+            )
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        按钮按下时的回调
+        
+        Args:
+            event: 按钮按下事件
+        """
+        if event.button.id == "add-btn":
+            self._show_add_dialog()
+        elif event.button.id == "edit-btn":
+            self._show_edit_dialog()
+        elif event.button.id == "delete-btn":
+            self._delete_selected()
+        elif event.button.id == "batch-delete-btn":
+            self._batch_delete()
+        elif event.button.id == "back-btn":
+            self.app.pop_screen()  # 返回上一页
+    
+    def _show_add_dialog(self) -> None:
+        """显示添加书籍网站对话框"""
+        from src.ui.dialogs.novel_site_dialog import NovelSiteDialog
+        dialog = NovelSiteDialog(self.theme_manager, None)
+        self.app.push_screen(dialog, self._handle_add_result)
+    
+    def _show_edit_dialog(self) -> None:
+        """显示编辑书籍网站对话框"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None and table.cursor_row < len(table.rows):
+            # 获取选中的行数据
+            row_data = table.get_row_at(table.cursor_row)
+            if row_data and len(row_data) > 0:
+                # 第一列是网站名称，我们通过名称来查找对应的网站
+                site_name = row_data[1]  # 第二列是网站名称
+                site_index = -1
+                for i, site in enumerate(self.novel_sites):
+                    if site["name"] == site_name:
+                        site_index = i
+                        break
+                
+                if site_index >= 0 and site_index < len(self.novel_sites):
+                    site = self.novel_sites[site_index]
+                    from src.ui.dialogs.novel_site_dialog import NovelSiteDialog
+                    dialog = NovelSiteDialog(self.theme_manager, site)
+                    self.app.push_screen(dialog, lambda result: self._handle_edit_result(result, site_index))
+                else:
+                    self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+        else:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+    
+    def _handle_add_result(self, result: Optional[Dict[str, Any]]) -> None:
+        """处理添加结果"""
+        if result:
+            # 保存到数据库
+            success = self.database_manager.save_novel_site(result)
+            if success:
+                # 重新加载数据
+                self._load_novel_sites()
+                self._update_status(get_global_i18n().t('novel_sites.added_success'))
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.add_failed'), "error")
+        else:
+            # 如果结果为None，说明用户取消了操作
+            self._update_status(get_global_i18n().t('novel_sites.add_cancelled'))
+    
+    def _handle_edit_result(self, result: Optional[Dict[str, Any]], site_index: int) -> None:
+        """处理编辑结果"""
+        if result and 0 <= site_index < len(self.novel_sites):
+            # 保存到数据库
+            success = self.database_manager.save_novel_site(result)
+            if success:
+                # 重新加载数据
+                self._load_novel_sites()
+                self._update_status(get_global_i18n().t('novel_sites.edited_success'))
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.edit_failed'), "error")
+    
+    def _delete_selected(self) -> None:
+        """删除选中的书籍网站"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None and table.cursor_row < len(table.rows):
+            row_data = table.get_row_at(table.cursor_row)
+            if row_data and len(row_data) > 0:
+                site_name = row_data[1]  # 第二列是网站名称
+                site_index = -1
+                for i, site in enumerate(self.novel_sites):
+                    if site["name"] == site_name:
+                        site_index = i
+                        break
+                
+                if site_index >= 0 and site_index < len(self.novel_sites):
+                    # 显示确认对话框
+                    from src.ui.dialogs.confirm_dialog import ConfirmDialog
+                    dialog = ConfirmDialog(
+                        self.theme_manager,
+                        get_global_i18n().t('novel_sites.confirm_delete'),
+                        f"{get_global_i18n().t('novel_sites.confirm_delete_message')}: {site_name}"
+                    )
+                    self.app.push_screen(dialog, lambda result: self._handle_delete_confirm(result, site_index))
+                else:
+                    self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+        else:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+    
+    def _batch_delete(self) -> None:
+        """批量删除选中的书籍网站"""
+        if not self.selected_sites:
+            self._update_status(get_global_i18n().t('novel_sites.select_sites_first'))
+            return
+        
+        # 显示确认对话框
+        from src.ui.dialogs.confirm_dialog import ConfirmDialog
+        dialog = ConfirmDialog(
+            self.theme_manager,
+            get_global_i18n().t('novel_sites.confirm_batch_delete'),
+            f"{get_global_i18n().t('novel_sites.confirm_batch_delete_message')}: {len(self.selected_sites)}"
+        )
+        self.app.push_screen(dialog, self._handle_batch_delete_confirm)
+    
+    def _handle_delete_confirm(self, result: Optional[bool], site_index: int) -> None:
+        """处理删除确认"""
+        if result and 0 <= site_index < len(self.novel_sites):
+            site = self.novel_sites[site_index]
+            site_id = site.get("id")
+            if site_id:
+                # 从数据库删除
+                success = self.database_manager.delete_novel_site(site_id)
+                if success:
+                    # 重新加载数据
+                    self._load_novel_sites()
+                    self._update_status(f"{get_global_i18n().t('novel_sites.deleted_success')}: {site['name']}")
+                else:
+                    self._update_status(get_global_i18n().t('novel_sites.delete_failed'), "error")
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.delete_failed'), "error")
+    
+    def _handle_batch_delete_confirm(self, result: Optional[bool]) -> None:
+        """处理批量删除确认"""
+        if result and self.selected_sites:
+            deleted_count = 0
+            failed_count = 0
+            
+            # 按索引从大到小删除，避免索引变化
+            for index in sorted(self.selected_sites, reverse=True):
+                if 0 <= index < len(self.novel_sites):
+                    site = self.novel_sites[index]
+                    site_id = site.get("id")
+                    if site_id:
+                        # 从数据库删除
+                        success = self.database_manager.delete_novel_site(site_id)
+                        if success:
+                            deleted_count += 1
+                        else:
+                            failed_count += 1
+            
+            self.selected_sites.clear()
+            # 重新加载数据
+            self._load_novel_sites()
+            
+            if failed_count == 0:
+                self._update_status(f"{get_global_i18n().t('novel_sites.batch_deleted_success')}: {deleted_count}")
+            else:
+                self._update_status(f"{get_global_i18n().t('novel_sites.batch_deleted_partial')}: {deleted_count}成功, {failed_count}失败", "error")
+    
+    def on_data_table_row_selected(self, event) -> None:
+        """
+        数据表行选择时的回调
+        
+        Args:
+            event: 行选择事件
+        """
+        if event is None:
+            # 处理从 key_enter 调用的情况
+            table = self.query_one("#novel-sites-table", DataTable)
+            if table.cursor_row is not None and table.cursor_row < len(table.rows):
+                row_data = table.get_row_at(table.cursor_row)
+                if row_data and len(row_data) > 0:
+                    site_name = row_data[1]  # 第二列是网站名称
+                    for site in self.novel_sites:
+                        if site["name"] == site_name:
+                            # 进入爬取管理页面
+                            self.app.push_screen("crawler_management", site)
+                            break
+        elif event.row_key and hasattr(event.row_key, 'value'):
+            site_index = int(event.row_key.value)
+            if 0 <= site_index < len(self.novel_sites):
+                # 进入爬取管理页面
+                site = self.novel_sites[site_index]
+                self.app.push_screen("crawler_management", site)
+    
+    def on_data_table_cell_selected(self, event) -> None:
+        """
+        数据表单元格选择时的回调
+        
+        Args:
+            event: 单元格选择事件
+        """
+        if event.coordinate and event.coordinate.row < len(self.novel_sites):
+            # 通过行索引直接获取网站
+            site_index = event.coordinate.row
+            
+            # 切换选择状态（第一列）
+            if event.coordinate.column == 0:
+                if site_index in self.selected_sites:
+                    self.selected_sites.remove(site_index)
+                else:
+                    self.selected_sites.add(site_index)
+                self._update_table()
+    
+    def _update_status(self, message: str, severity: str = "information") -> None:
+        """更新状态信息"""
+        status_label = self.query_one("#novel-sites-status", Label)
+        status_label.update(message)
+        
+        # 根据严重程度设置样式
+        if severity == "success":
+            status_label.styles.color = "green"
+        elif severity == "error":
+            status_label.styles.color = "red"
+        else:
+            status_label.styles.color = "blue"
+    
+    def key_a(self) -> None:
+        """A键 - 添加书籍网站"""
+        self._show_add_dialog()
+    
+    def key_e(self) -> None:
+        """E键 - 编辑选中的书籍网站"""
+        self._show_edit_dialog()
+    
+    def key_d(self) -> None:
+        """D键 - 删除选中的书籍网站"""
+        self._delete_selected()
+    
+    def key_b(self) -> None:
+        """B键 - 批量删除"""
+        self._batch_delete()
+    
+    def key_space(self) -> None:
+        """空格键 - 切换选择状态"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None and table.cursor_row < len(table.rows):
+            # 使用行索引而不是key.value
+            site_index = table.cursor_row
+            if site_index in self.selected_sites:
+                self.selected_sites.remove(site_index)
+            else:
+                self.selected_sites.add(site_index)
+            self._update_table()
+    
+    def key_enter(self) -> None:
+        """Enter键 - 进入爬取管理页面"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            self.on_data_table_row_selected(None)
+    
+    def on_key(self, event: events.Key) -> None:
+        """处理键盘事件"""
+        if event.key == "escape":
+            # ESC键返回
+            self.app.pop_screen()
+            event.prevent_default()
