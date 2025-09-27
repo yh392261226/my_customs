@@ -850,7 +850,7 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(f"{get_global_i18n().t('crawler.open_file_failed')}: {str(e)}", "error")
     
     def _delete_file_only(self, history_item: Dict[str, Any]) -> None:
-        """只删除文件，不删除数据库记录"""
+        """只删除文件，不删除数据库记录（同时删除书架中的对应书籍）"""
         try:
             file_path = history_item.get('file_path')
             if not file_path:
@@ -864,26 +864,49 @@ class CrawlerManagementScreen(Screen[None]):
                 
             # 确认删除
             from src.ui.dialogs.confirm_dialog import ConfirmDialog
-            def handle_delete_confirmation(confirmed: bool) -> None:
+            def handle_delete_confirmation(confirmed: bool | None) -> None:
                 if confirmed:
                     try:
                         # 只删除文件，不删除数据库记录
                         os.remove(file_path)
                         
+                        # 同时删除书架中的对应书籍
+                        try:
+                            # 直接使用文件路径删除书架中的书籍
+                            if self.db_manager.delete_book(file_path):
+                                # 发送刷新书架消息
+                                try:
+                                    from src.ui.messages import RefreshBookshelfMessage
+                                    self.app.post_message(RefreshBookshelfMessage())
+                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，书架中的书籍已删除")
+                                except Exception as msg_error:
+                                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，书架书籍删除但刷新失败")
+                            else:
+                                # 如果删除失败，检查书籍是否存在于书架中
+                                books = self.db_manager.get_all_books()
+                                book_exists = any(book.path == file_path for book in books)
+                                if book_exists:
+                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，但删除书架书籍失败")
+                                else:
+                                    self._update_status(get_global_i18n().t('crawler.file_deleted'))
+                        except Exception as shelf_error:
+                            logger.error(f"删除书架书籍失败: {shelf_error}")
+                            self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，但删除书架书籍时出错")
+                        
                         # 刷新历史记录
                         self._load_crawl_history()
-                        self._update_status(get_global_i18n().t('crawler.file_deleted'))
                     except Exception as e:
                         self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
-                else:
+                elif confirmed is False:
                     self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
             
             # 显示确认对话框
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（只删除文件）",
-                    f"{get_global_i18n().t('crawler.confirm_delete_message')}"
+                    f"{get_global_i18n().t('crawler.confirm_delete')}（删除文件及书架书籍）",
+                    f"{get_global_i18n().t('crawler.confirm_delete_message')}\n\n注意：此操作将同时删除书架中的对应书籍。"
                 ),
                 handle_delete_confirmation
             )
@@ -896,7 +919,7 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             # 确认删除
             from src.ui.dialogs.confirm_dialog import ConfirmDialog
-            def handle_delete_confirmation(confirmed: bool) -> None:
+            def handle_delete_confirmation(confirmed: bool | None) -> None:
                 if confirmed:
                     try:
                         # 只删除数据库记录，不删除文件
@@ -909,7 +932,7 @@ class CrawlerManagementScreen(Screen[None]):
                         self._update_status(get_global_i18n().t('crawler.file_deleted'))
                     except Exception as e:
                         self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
-                else:
+                elif confirmed is False:
                     self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
             
             # 显示确认对话框
@@ -940,7 +963,7 @@ class CrawlerManagementScreen(Screen[None]):
                 
             # 确认删除
             from src.ui.dialogs.confirm_dialog import ConfirmDialog
-            def handle_delete_confirmation(confirmed: bool) -> None:
+            def handle_delete_confirmation(confirmed: bool | None) -> None:
                 if confirmed:
                     try:
                         # 先删除文件
@@ -956,7 +979,7 @@ class CrawlerManagementScreen(Screen[None]):
                         self._update_status(get_global_i18n().t('crawler.file_deleted'))
                     except Exception as e:
                         self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
-                else:
+                elif confirmed is False:
                     self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
             
             # 显示确认对话框
