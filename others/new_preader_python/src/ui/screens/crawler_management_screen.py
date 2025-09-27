@@ -136,6 +136,7 @@ class CrawlerManagementScreen(Screen[None]):
             get_global_i18n().t('crawler.status'),
             get_global_i18n().t('crawler.file_path'),
             get_global_i18n().t('crawler.view_file'),
+            get_global_i18n().t('crawler.read_book'),
             get_global_i18n().t('crawler.delete_file'),
             get_global_i18n().t('crawler.delete_record')
         )
@@ -206,17 +207,20 @@ class CrawlerManagementScreen(Screen[None]):
                 # 使用唯一标识符作为行键，避免重复
                 row_key = f"{item['novel_id']}_{item['crawl_time']}_{i}"
                 
-                # 为成功的数据添加三个独立的操作按钮，为失败的数据添加删除记录按钮
+                # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮
                 if item["status"] == get_global_i18n().t('crawler.status_success') and item["file_path"]:
                     view_file_text = get_global_i18n().t('crawler.view_file')
+                    read_book_text = get_global_i18n().t('crawler.read_book')
                     delete_file_text = get_global_i18n().t('crawler.delete_file')
                     delete_record_text = get_global_i18n().t('crawler.delete_record')
                 elif item["status"] == get_global_i18n().t('crawler.status_failed'):
                     view_file_text = ""
+                    read_book_text = ""
                     delete_file_text = ""
                     delete_record_text = get_global_i18n().t('crawler.delete_record')
                 else:
                     view_file_text = ""
+                    read_book_text = ""
                     delete_file_text = ""
                     delete_record_text = ""
                     
@@ -227,6 +231,7 @@ class CrawlerManagementScreen(Screen[None]):
                     item["status"],
                     item["file_path"],
                     view_file_text,
+                    read_book_text,
                     delete_file_text,
                     delete_record_text,
                     key=row_key
@@ -291,8 +296,8 @@ class CrawlerManagementScreen(Screen[None]):
         row_index = event.coordinate.row
         column_index = event.coordinate.column
         
-        # 只处理操作列（第6、7、8列）
-        if column_index not in [5, 6, 7]:  # 查看文件、删除文件、删除记录列
+        # 只处理操作列（第6、7、8、9列）
+        if column_index not in [5, 6, 7, 8]:  # 查看文件、阅读书籍、删除文件、删除记录列
             return
             
         # 直接使用行索引访问数据（参考get_books_screen.py的实现）
@@ -307,9 +312,11 @@ class CrawlerManagementScreen(Screen[None]):
         # 根据列索引执行不同的操作
         if column_index == 5:  # 查看文件列
             self._view_file(history_item)
-        elif column_index == 6:  # 删除文件列
+        elif column_index == 6:  # 阅读书籍列
+            self._read_book(history_item)
+        elif column_index == 7:  # 删除文件列
             self._delete_file_only(history_item)
-        elif column_index == 7:  # 删除记录列
+        elif column_index == 8:  # 删除记录列
             self._delete_record_only(history_item)
     
     def _open_browser(self) -> None:
@@ -1011,3 +1018,37 @@ class CrawlerManagementScreen(Screen[None]):
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()
             event.prevent_default()
+    
+    def _read_book(self, history_item: Dict[str, Any]) -> None:
+        """阅读书籍"""
+        try:
+            file_path = history_item.get('file_path')
+            if not file_path:
+                self._update_status(get_global_i18n().t('crawler.no_file_path'))
+                return
+                
+            import os
+            if not os.path.exists(file_path):
+                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                return
+            
+            # 从文件路径创建书籍对象
+            from src.core.book import Book
+            book_title = history_item.get('novel_title', '未知书籍')
+            book_source = self.novel_site.get('name', '未知来源')
+            book = Book(file_path, book_title, book_source)
+            
+            # 检查书籍是否有效
+            if not book.path or not os.path.exists(book.path):
+                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                return
+            
+            # 使用app的open_book方法打开书籍
+            if hasattr(self.app, 'open_book'):
+                self.app.open_book(file_path)
+                self._update_status(f"正在阅读: {book_title}", "success")
+            else:
+                self._update_status("无法打开阅读器", "error")
+                
+        except Exception as e:
+            self._update_status(f"打开书籍失败: {str(e)}", "error")

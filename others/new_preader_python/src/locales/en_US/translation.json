@@ -719,6 +719,7 @@
         "no_crawl_in_progress": "No crawl in progress",
         "novel_already_exists": "Book already exists, no need to download again",
         "view_file": "View File",
+        "read_book": "Read",
         "delete_file": "Delete File",
         "no_file_path": "No file path",
         "file_not_exists": "File does not exist",
