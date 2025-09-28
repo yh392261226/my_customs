@@ -755,5 +755,22 @@
     "confirm_dialog": {
         "confirm": "Confirm",
         "cancel": "Cancel"
+    },
+    "file_explorer": {
+        "title": "File Explorer",
+        "directory_tree": "Directory Tree",
+        "file_list": "File List",
+        "enter_path": "Enter Path",
+        "go": "Go",
+        "home": "Home Directory",
+        "open_book": "Open Book",
+        "add_to_bookshelf": "Add to Bookshelf",
+        "no_file_selected": "No file selected",
+        "unsupported_format": "Unsupported file format",
+        "book_added": "Book 《{title}》 added",
+        "add_failed": "Add failed",
+        "invalid_directory": "Invalid directory path",
+        "access_denied": "Access denied",
+        "empty_directory": "Empty directory"
     }
 }

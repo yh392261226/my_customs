@@ -101,8 +101,8 @@ class WelcomeScreen(Screen[None]):
             event: 按钮按下事件
         """
         if event.button.id == "open-book-btn":
-            # 显示文件路径输入框
-            self._show_file_input()
+            # 直接跳转到文件资源管理器
+            self._open_file_explorer()
         elif event.button.id == "browse-library-btn":
             self.app.push_screen("bookshelf")  # 使用标准方法切换屏幕
         elif event.button.id == "get-books-btn":
@@ -119,122 +119,36 @@ class WelcomeScreen(Screen[None]):
 
     def key_f1(self) -> None:
         """F1快捷键 - 打开书籍"""
-        # 显示文件路径输入框
-        self._show_file_input()
+        # 直接跳转到文件资源管理器
+        self._open_file_explorer()
 
-    def _show_file_input(self) -> None:
-        """显示文件选择对话框"""
-        # 创建一个简单的输入对话框，不使用复杂的文件选择器
-        from textual.screen import ModalScreen
-        from textual.containers import Vertical, Horizontal
-        from textual.widgets import Input, Button, Label
-        from textual.app import ComposeResult
-        
-        class SimpleFileInputDialog(ModalScreen[Optional[str]]):
-            """简单的文件输入对话框"""
-            
-            def __init__(self, title: str, placeholder: str):
-                super().__init__()
-                self.title = title
-                self.placeholder = placeholder
-            
-            def compose(self) -> ComposeResult:
-                with Vertical(id="simple-file-dialog"):
-                    yield Label(self.title, id="dialog-title")
-                    yield Input(placeholder=self.placeholder, id="file-input")
-                    with Horizontal(id="dialog-buttons"):
-                        yield Button(get_global_i18n().t('common.select'), id="select-btn", variant="primary")
-                        yield Button(get_global_i18n().t('common.cancel'), id="cancel-btn")
-            
-            def on_button_pressed(self, event: Button.Pressed) -> None:
-                if event.button.id == "select-btn":
-                    file_input = self.query_one("#file-input", Input)
-                    file_path = file_input.value.strip()
-                    if file_path:
-                        self.dismiss(file_path)
-                    else:
-                        self.notify(get_global_i18n().t('welcome.notify_warning'), severity="warning")
-                elif event.button.id == "cancel-btn":
-                    self.dismiss(None)
-            
-            def on_key(self, event) -> None:
-                """处理键盘事件"""
-                if event.key == "escape":
-                    # ESC键返回，效果与点击取消按钮相同
-                    self.dismiss(None)
-                    event.prevent_default()
-        
-        # 创建并显示对话框
-        dialog = SimpleFileInputDialog(
-            title=get_global_i18n().t('welcome.select_book_title'),
-            placeholder=get_global_i18n().t('welcome.select_book_placeholder')
-        )
-        
-        self.app.push_screen(dialog, self._handle_simple_file_selection)
-    
-    def _handle_simple_file_selection(self, result: Optional[str]) -> None:
-        """
-        处理简单文件选择结果
-        
-        Args:
-            result: 选择的文件路径，如果取消则为None
-        """
-        if result:
-            try:
-                # 验证文件是否存在
-                import os
-                if not os.path.exists(result):
-                    self.notify(get_global_i18n().t('welcome.file_does_not_exists'), severity="error")
-                    return
-                
-                if not os.path.isfile(result):
-                    self.notify(get_global_i18n().t('welcome.path_not_file'), severity="error")
-                    return
-                
-                # 检查文件格式
-                from src.utils.file_utils import FileUtils
-                file_ext = FileUtils.get_file_extension(result)
-                supported_formats = ['.txt', '.epub', '.pdf', '.mobi', '.azw3', '.azw', '.md']
-                if file_ext not in supported_formats:
-                    self.notify(f"{get_global_i18n().t('welcome.not_suppose_ext', ext=file_ext)}: {', '.join(supported_formats)}", severity="error")
-                    return
-                
-                # 验证书籍是否在书架中
-                if not self._is_book_in_bookshelf(result):
-                    # 如果不在书架中，自动添加到书架
-                    self._add_book_to_bookshelf(result)
-                    self.notify(get_global_i18n().t('welcome.added_to_bookshelf'), severity="information")
-                
-                # 调用应用程序的文件打开方法
-                self.app.open_book(result)
-            except Exception as e:
-                self.notify(f"{get_global_i18n().t('welcome.open_failed')}: {str(e)}", severity="error")
-    
-
-
-    def _is_book_in_bookshelf(self, file_path: str) -> bool:
-        """检查书籍是否在书架中"""
+    def _open_file_explorer(self) -> None:
+        """打开文件资源管理器"""
         try:
-            # 使用应用程序的书架实例检查书籍是否存在
-            book = self.app.bookshelf.get_book(file_path)
-            return book is not None
+            # 导入文件资源管理器屏幕
+            from src.ui.screens.file_explorer_screen import FileExplorerScreen
+            from src.core.statistics_direct import StatisticsManagerDirect
+            from src.core.database_manager import DatabaseManager
+            
+            # 创建数据库管理器实例
+            db_manager = DatabaseManager()
+            
+            # 创建统计管理器实例
+            statistics_manager = StatisticsManagerDirect(db_manager)
+            
+            # 创建文件资源管理器屏幕
+            file_explorer_screen = FileExplorerScreen(
+                theme_manager=self.theme_manager,
+                bookshelf=self.bookshelf,
+                statistics_manager=statistics_manager
+            )
+            
+            # 跳转到文件资源管理器
+            self.app.push_screen(file_explorer_screen)
+            
         except Exception as e:
-            self.notify(f"{get_global_i18n().t('welcome.check_bookshelf_error')}: {str(e)}", severity="error")
-            return False
-
-    def _add_book_to_bookshelf(self, file_path: str) -> None:
-        """将书籍添加到书架"""
-        try:
-            # 使用应用程序的书架实例添加书籍
-            book = self.app.bookshelf.add_book(file_path)
-            if book:
-                import os
-                book_name = os.path.basename(file_path)
-                self.notify(f"《{book_name}》{get_global_i18n().t('welcome.added_success')}", severity="information")
-            else:
-                self.notify(get_global_i18n().t('welcome.added_failed'), severity="error")
-        except Exception as e:
-            self.notify(f"{get_global_i18n().t('welcome.added_error')}: {str(e)}", severity="error")
+            logger.error(f"打开文件资源管理器失败: {e}")
+            self.notify(f"打开文件资源管理器失败: {str(e)}", severity="error")
 
     def key_f2(self) -> None:
         """F2快捷键 - 浏览书库"""

@@ -120,6 +120,7 @@ class BookshelfScreen(Screen[None]):
                         Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn"),
                         Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn"),
                         Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn"),
+                        Button("📁 文件管理器", id="file-explorer-btn"),
                         Button(get_global_i18n().t("bookshelf.back"), id="back-btn"),
                         id="bookshelf-controls"
                     ),
@@ -133,6 +134,7 @@ class BookshelfScreen(Screen[None]):
                         Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
                         Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
                         Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
+                        Label(f"E: 文件管理器", id="shortcut-e"),
                         Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
                         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
                         Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
@@ -301,6 +303,19 @@ class BookshelfScreen(Screen[None]):
         # 获取书籍列表
         self.app.push_screen("get_books")  # 打开获取书籍页面
     
+    def _show_file_explorer(self) -> None:
+        """显示文件资源管理器"""
+        self.logger.info("打开文件资源管理器")
+        # 导入文件资源管理器屏幕
+        from src.ui.screens.file_explorer_screen import FileExplorerScreen
+        # 打开文件资源管理器
+        file_explorer_screen = FileExplorerScreen(
+            self.theme_manager,
+            self.bookshelf,
+            self.statistics_manager
+        )
+        self.app.push_screen(file_explorer_screen)
+    
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -324,6 +339,8 @@ class BookshelfScreen(Screen[None]):
             self._refresh_bookshelf()
         elif event.button.id == "get-books-btn":
             self._get_books()
+        elif event.button.id == "file-explorer-btn":
+            self._show_file_explorer()
     
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
@@ -511,6 +528,10 @@ class BookshelfScreen(Screen[None]):
         elif event.key == "f":
             # F键刷新书架
             self._refresh_bookshelf()
+            event.prevent_default()
+        elif event.key == "e":
+            # E键打开文件资源管理器
+            self._show_file_explorer()
             event.prevent_default()
         elif event.key == "escape":
             # ESC键返回

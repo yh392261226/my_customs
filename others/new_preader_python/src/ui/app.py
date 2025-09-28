@@ -25,6 +25,7 @@ from src.ui.screens.settings_screen import SettingsScreen
 from src.ui.screens.help_screen import HelpScreen
 from src.ui.screens.statistics_screen import StatisticsScreen
 from src.ui.screens.boss_key_screen import BossKeyScreen
+from src.ui.screens.file_explorer_screen import FileExplorerScreen
 from src.core.bookshelf import Bookshelf
 from src.core.database_manager import DatabaseManager
 from src.core.statistics_direct import StatisticsManagerDirect
@@ -145,6 +146,9 @@ class NewReaderApp(App[None]):
         self.install_screen(NovelSitesManagementScreen(self.theme_manager), name="novel_sites_management")
         # 爬取管理屏幕需要动态创建，所以只注册类
         self.install_screen(CrawlerManagementScreen, name="crawler_management")
+        
+        # 安装文件资源管理器屏幕
+        self.install_screen(FileExplorerScreen(self.theme_manager, self.bookshelf, self.statistics_manager), name="file_explorer")
         
         logger.info(get_global_i18n().t("app.screen_installed"))
     
