@@ -207,8 +207,3 @@ ListItem > Label {
 Tree:focus {
     border: thick $accent;
 }
-
-/* 输入框焦点样式 */
-Input:focus {
-    border: thick $accent;
-}
