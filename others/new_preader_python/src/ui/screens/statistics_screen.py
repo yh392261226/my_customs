@@ -102,6 +102,10 @@ class StatisticsScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 应用样式隔离
+        from src.ui.styles.style_manager import apply_style_isolation
+        apply_style_isolation(self)
+        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         

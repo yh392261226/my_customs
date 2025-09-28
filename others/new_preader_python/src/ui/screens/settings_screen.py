@@ -301,6 +301,10 @@ class SettingsScreen(Screen[Any]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 应用样式隔离
+        from src.ui.styles.style_manager import apply_style_isolation
+        apply_style_isolation(self)
+        
         # 调试信息：检查设置项是否被正确加载
         all_settings = self.setting_registry.get_all_settings()
         logger.debug(f"{get_global_i18n().t('settings.settings_count')}: {len(all_settings)}")

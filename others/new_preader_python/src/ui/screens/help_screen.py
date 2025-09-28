@@ -82,6 +82,12 @@ class HelpScreen(Screen[None]):
             )
         )
     
+    def on_mount(self) -> None:
+        """屏幕挂载时的回调"""
+        # 应用样式隔离
+        from src.ui.styles.style_manager import apply_style_isolation
+        apply_style_isolation(self)
+    
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调

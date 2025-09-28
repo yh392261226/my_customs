@@ -35,8 +35,8 @@ class ContentRenderer(Static):
         self.container_height = container_height
         self.config = config or {}
         
-        # 分页器 - 使用智能文本分页策略
-        self.paginator = TerminalPaginator(strategy="smart")
+        # 分页器 - 使用原有的终端分页器
+        self.paginator = TerminalPaginator()
         
         # 内容相关属性 - 使用_original_content避免与Static的content冲突
         self._original_content: str = ""
@@ -63,8 +63,8 @@ class ContentRenderer(Static):
             height: 容器高度（行数）
         """
         # 使用传入的尺寸，但确保最小可用尺寸
-        self.container_width = max(40, width)  # 最小20字符宽度（降低限制）
-        self.container_height = max(5, height - 2)  # 最小5行高度（降低限制）
+        self.container_width = max(40, width)  # 最小40字符宽度
+        self.container_height = max(10, height)  # 最小10行高度，不减去额外行数
         self.visible_lines = self.container_height
         
         print(f"DEBUG: ContentRenderer.set_container_size: 传入尺寸={width}x{height}, 最终尺寸={self.container_width}x{self.container_height}")
@@ -125,27 +125,26 @@ class ContentRenderer(Static):
         logger.debug(f"ContentRenderer._paginate: 开始分页，有效区域={effective_width}x{effective_height}")
         
         # 计算页面度量并设置到分页器 - 应用用户设置
-        # 确保间距值为整数，因为SmartTextPagination期望整数间距
-        line_spacing = int(self.config.get("line_spacing", 1.0))
-        paragraph_spacing = int(self.config.get("paragraph_spacing", 1.0))
+        line_spacing = int(self.config.get("line_spacing", 0))  # 默认行间距为0
+        paragraph_spacing = int(self.config.get("paragraph_spacing", 1))  # 默认段落间距为1
         
         self.paginator.calculate_metrics(
             container_width=effective_width,
             container_height=effective_height,
-            font_size=self.config.get("font_size", 16),
             line_spacing=line_spacing,
-            paragraph_spacing=paragraph_spacing,
-            margin_left=0,  # 内容渲染器内部不需要额外边距
-            margin_right=0,
-            margin_top=0,
-            margin_bottom=0
+            paragraph_spacing=paragraph_spacing
         )
         
         logger.debug(f"分页间距设置: 行间距={line_spacing}, 段落间距={paragraph_spacing}")
         
-        # 使用智能分页策略
-        self.paginator.update_strategy("smart")
+        # 使用简单分页策略，确保充分利用容器空间
         pages = self.paginator.paginate(self._original_content)
+        
+        # 调试信息：显示分页结果
+        if pages:
+            logger.debug(f"分页结果: 总页数={len(pages)}, 第一页行数={len(pages[0])}")
+            if len(pages[0]) > 0:
+                logger.debug(f"第一页示例内容: {pages[0][:3]}...")
         
         # 确保至少有一页
         if not pages:
@@ -176,7 +175,6 @@ class ContentRenderer(Static):
             content_width=self.container_width,
             content_height=len(self.current_page_lines),
             chars_per_line=self.container_width,
-            chars_per_page=sum(len(line) for line in self.current_page_lines),
             lines_per_page=len(self.current_page_lines)
         )
     

@@ -75,12 +75,12 @@ class SmartTextPagination(PaginationStrategy):
         # 计算间距对内容容量的影响
         # 行间距：每行内容之间会添加line_spacing个空行
         # 段落间距：每个段落之间会添加paragraph_spacing个空行
-        # 为了确保所有内容都能显示，我们需要调整实际的内容行数限制
-        # 使用更保守的计算方法：每行内容需要 (1 + line_spacing) 的显示行数
+        # 使用更合理的计算方法：考虑间距但不过度限制内容行数
         if line_spacing > 0 or paragraph_spacing > 0:
-            # 保守估计：考虑最坏情况下的间距占用
-            spacing_factor = max(1, line_spacing + 1)
-            effective_content_lines = max(1, max_lines_per_page // spacing_factor)
+            # 更合理的估计：考虑间距但保留更多内容行数
+            # 每页至少保留大部分内容行数，间距只占用部分空间
+            spacing_reduction = min(max_lines_per_page // 4, line_spacing + paragraph_spacing)
+            effective_content_lines = max(5, max_lines_per_page - spacing_reduction)
         else:
             effective_content_lines = max_lines_per_page
         
@@ -239,7 +239,7 @@ class SmartTextPagination(PaginationStrategy):
         current_line = ""
         current_width = 0
         
-        # 扩展的中文标点符号处理
+        # 优化的中文标点符号处理
         # 不能在行首的标点
         no_line_start = "，。；：！？、）】》"
         # 不能在行尾的标点  
@@ -250,33 +250,29 @@ class SmartTextPagination(PaginationStrategy):
             char = line[i]
             char_width = self._get_char_width(char)
             
-            # 检查是否需要换行
+            # 检查是否需要换行（使用更宽松的条件）
             if current_width + char_width > width and current_line:
-                # 避免标点符号在行首
+                # 如果当前行已经有内容，尝试寻找更好的换行点
+                # 优先在标点符号或空格处换行
                 if char in no_line_start:
-                    # 如果当前字符是不能在行首的标点，强制加入当前行
+                    # 标点符号不能出现在行首，强制加入当前行
                     current_line += char
                     current_width += char_width
                     i += 1
-                    # 完成当前行
-                    lines.append(current_line)
-                    current_line = ""
-                    current_width = 0
                 else:
-                    # 检查当前行最后一个字符是否不能在行尾
-                    if current_line and current_line[-1] in no_line_end:
-                        # 如果最后一个字符不能在行尾，将其移到下一行
-                        last_char = current_line[-1]
-                        current_line = current_line[:-1]
-                        lines.append(current_line)
-                        current_line = last_char + char
-                        current_width = self._get_char_width(last_char) + char_width
-                    else:
-                        # 完成当前行，开始新行
+                    # 寻找合适的换行点
+                    # 如果当前字符是空格或标点，直接换行
+                    if char in " \t" or char in no_line_end:
                         lines.append(current_line)
                         current_line = char
                         current_width = char_width
-                    i += 1
+                        i += 1
+                    else:
+                        # 尝试在当前字符前换行
+                        lines.append(current_line)
+                        current_line = char
+                        current_width = char_width
+                        i += 1
             else:
                 current_line += char
                 current_width += char_width
@@ -289,7 +285,7 @@ class SmartTextPagination(PaginationStrategy):
         return lines if lines else [""]
     
     def _get_char_width(self, char: str) -> int:
-        """获取字符显示宽度 - 更精确的中文字符宽度计算"""
+        """获取字符显示宽度 - 优化的中文字符宽度计算"""
         # 中文字符范围（更全面）
         if '\u4e00' <= char <= '\u9fff':  # CJK统一汉字
             return 2
@@ -305,6 +301,9 @@ class SmartTextPagination(PaginationStrategy):
             return 2
         elif char in "　":  # 全角空格
             return 2
+        # 对于半角标点符号，使用更合理的宽度计算
+        elif char in ".,;:!?()[]{}<>\"'":  # 半角标点符号
+            return 1
         else:
             return 1
     

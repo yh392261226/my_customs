@@ -34,12 +34,13 @@ from src.ui.screens.search_results_screen import SearchResultsScreen
 from src.utils.text_to_speech import TextToSpeech as TTSManager
 from src.config.settings.setting_registry import SettingRegistry
 from src.ui.messages import RefreshBookshelfMessage, RefreshContentMessage
+from src.ui.styles.style_manager import ScreenStyleMixin
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class ReaderScreen(Screen[None]):
+class ReaderScreen(ScreenStyleMixin, Screen[None]):
     """终端阅读器屏幕 - 简化版本"""
     CSS_PATH = "../styles/terminal_reader.css"
     
@@ -165,6 +166,10 @@ class ReaderScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 应用简单样式隔离
+        from src.ui.styles.simple_style_isolation import apply_simple_style_isolation
+        apply_simple_style_isolation(self)
+        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         

@@ -1,0 +1,202 @@
+/*
+样式隔离CSS文件
+为每个屏幕创建独立的样式命名空间，防止样式污染
+*/
+
+/* 欢迎屏幕样式隔离 */
+.screen-welcome {
+    /* 欢迎屏幕特定的样式规则 */
+}
+
+.screen-welcome .container {
+    /* 欢迎屏幕容器的样式 */
+}
+
+/* 书架屏幕样式隔离 */
+.screen-bookshelf {
+    /* 书架屏幕特定的样式规则 */
+}
+
+.screen-bookshelf .book-item {
+    /* 书架屏幕书籍项的样式 */
+}
+
+.screen-bookshelf .book-list {
+    /* 书架屏幕书籍列表的样式 */
+}
+
+/* 阅读器屏幕样式隔离 */
+.screen-reader {
+    /* 阅读器屏幕特定的样式规则 */
+}
+
+.screen-reader .reader-content {
+    /* 阅读器内容的样式 */
+}
+
+.screen-reader .reader-controls {
+    /* 阅读器控制栏的样式 */
+}
+
+/* 设置屏幕样式隔离 */
+.screen-settings {
+    /* 设置屏幕特定的样式规则 */
+}
+
+.screen-settings .settings-tab {
+    /* 设置标签页的样式 */
+}
+
+.screen-settings .settings-control {
+    /* 设置控件的样式 */
+}
+
+/* 文件资源管理器屏幕样式隔离 */
+.screen-fileexplorer {
+    /* 文件资源管理器屏幕特定的样式规则 */
+}
+
+.screen-fileexplorer .file-tree {
+    /* 文件树的样式 */
+}
+
+.screen-fileexplorer .file-item {
+    /* 文件项的样式 */
+}
+
+/* 统计屏幕样式隔离 */
+.screen-statistics {
+    /* 统计屏幕特定的样式规则 */
+}
+
+.screen-statistics .stat-chart {
+    /* 统计图表的样式 */
+}
+
+.screen-statistics .stat-item {
+    /* 统计项的样式 */
+}
+
+/* 帮助屏幕样式隔离 */
+.screen-help {
+    /* 帮助屏幕特定的样式规则 */
+}
+
+.screen-help .help-content {
+    /* 帮助内容的样式 */
+}
+
+.screen-help .help-section {
+    /* 帮助章节的样式 */
+}
+
+/* 老板键屏幕样式隔离 */
+.screen-bosskey {
+    /* 老板键屏幕特定的样式规则 */
+}
+
+.screen-bosskey .boss-content {
+    /* 老板键内容的样式 */
+}
+
+/* 获取书籍屏幕样式隔离 */
+.screen-getbooks {
+    /* 获取书籍屏幕特定的样式规则 */
+}
+
+.screen-getbooks .book-source {
+    /* 书籍来源的样式 */
+}
+
+/* 代理设置屏幕样式隔离 */
+.screen-proxysettings {
+    /* 代理设置屏幕特定的样式规则 */
+}
+
+.screen-proxysettings .proxy-config {
+    /* 代理配置的样式 */
+}
+
+/* 小说网站管理屏幕样式隔离 */
+.screen-novelsitesmanagement {
+    /* 小说网站管理屏幕特定的样式规则 */
+}
+
+.screen-novelsitesmanagement .site-item {
+    /* 网站项的样式 */
+}
+
+/* 爬虫管理屏幕样式隔离 */
+.screen-crawlermanagement {
+    /* 爬虫管理屏幕特定的样式规则 */
+}
+
+.screen-crawlermanagement .crawler-config {
+    /* 爬虫配置的样式 */
+}
+
+/* 通用样式隔离规则 */
+.screen-welcome *,
+.screen-bookshelf *,
+.screen-reader *,
+.screen-settings *,
+.screen-fileexplorer *,
+.screen-statistics *,
+.screen-help *,
+.screen-bosskey *,
+.screen-getbooks *,
+.screen-proxysettings *,
+.screen-novelsitesmanagement *,
+.screen-crawlermanagement * {
+    /* 确保每个屏幕的样式不会泄漏到其他屏幕 */
+    box-sizing: border-box;
+}
+
+/* 屏幕切换时的过渡效果 */
+.screen-welcome,
+.screen-bookshelf,
+.screen-reader,
+.screen-settings,
+.screen-fileexplorer,
+.screen-statistics,
+.screen-help,
+.screen-bosskey,
+.screen-getbooks,
+.screen-proxysettings,
+.screen-novelsitesmanagement,
+.screen-crawlermanagement {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* 隐藏非活动屏幕的样式 */
+.screen-welcome:not(.active),
+.screen-bookshelf:not(.active),
+.screen-reader:not(.active),
+.screen-settings:not(.active),
+.screen-fileexplorer:not(.active),
+.screen-statistics:not(.active),
+.screen-help:not(.active),
+.screen-bosskey:not(.active),
+.screen-getbooks:not(.active),
+.screen-proxysettings:not(.active),
+.screen-novelsitesmanagement:not(.active),
+.screen-crawlermanagement:not(.active) {
+    display: none;
+}
+
+/* 活动屏幕的样式 */
+.screen-welcome.active,
+.screen-bookshelf.active,
+.screen-reader.active,
+.screen-settings.active,
+.screen-fileexplorer.active,
+.screen-statistics.active,
+.screen-help.active,
+.screen-bosskey.active,
+.screen-getbooks.active,
+.screen-proxysettings.active,
+.screen-novelsitesmanagement.active,
+.screen-crawlermanagement.active {
+    display: block;
+    opacity: 1;
+}

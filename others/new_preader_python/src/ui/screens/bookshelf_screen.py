@@ -28,12 +28,13 @@ from src.ui.dialogs.directory_dialog import DirectoryDialog
 from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
 from src.ui.dialogs.scan_progress_dialog import ScanProgressDialog
 from src.ui.messages import RefreshBookshelfMessage
+from src.ui.styles.style_manager import ScreenStyleMixin
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class BookshelfScreen(Screen[None]):
+class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     """书架屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
@@ -147,6 +148,10 @@ class BookshelfScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 应用简单样式隔离
+        from src.ui.styles.simple_style_isolation import apply_simple_style_isolation
+        apply_simple_style_isolation(self)
+        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         

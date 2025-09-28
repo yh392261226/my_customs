@@ -305,3 +305,39 @@ WelcomeScreen {
     margin: 0 1;
     min-width: 8;
 }
+
+/* ===== 样式隔离规则 ===== */
+
+/* 欢迎屏幕样式隔离 */
+.screen-welcome {
+    /* 欢迎屏幕特定的样式规则 */
+}
+
+/* 书架屏幕样式隔离 */
+.screen-bookshelf {
+    /* 书架屏幕特定的样式规则 */
+}
+
+/* 阅读器屏幕样式隔离 */
+.screen-reader {
+    /* 阅读器屏幕特定的样式规则 */
+}
+
+/* 设置屏幕样式隔离 */
+.screen-settings {
+    /* 设置屏幕特定的样式规则 */
+}
+
+/* 文件资源管理器屏幕样式隔离 */
+.screen-fileexplorer {
+    /* 文件资源管理器屏幕特定的样式规则 */
+}
+
+/* 通用样式隔离规则 - 确保每个屏幕的样式不会泄漏 */
+.screen-welcome *,
+.screen-bookshelf *,
+.screen-reader *,
+.screen-settings *,
+.screen-fileexplorer * {
+    box-sizing: border-box;
+}

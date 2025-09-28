@@ -39,6 +39,7 @@ from src.core.statistics import StatisticsManager
 from src.config.settings.setting_registry import SettingRegistry
 from src.config.settings.setting_factory import initialize_settings_registry
 from src.ui.messages import RefreshBookshelfMessage, RequestPasswordMessage, RefreshContentMessage
+from src.ui.styles.style_manager import initialize_style_manager
 
 from src.utils.logger import get_logger
 
@@ -103,6 +104,9 @@ class NewReaderApp(App[None]):
         
         # 初始化统计管理器
         self.statistics_manager = StatisticsManagerDirect(self.db_manager)
+        
+        # 初始化样式管理器（暂时注释掉，使用新的样式隔离方案）
+        # self.style_manager = initialize_style_manager(self)
         
         # 初始化书签管理器
         from src.core.bookmark import BookmarkManager

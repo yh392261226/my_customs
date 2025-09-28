@@ -17,12 +17,13 @@ from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.statistics_direct import StatisticsManagerDirect
+from src.ui.styles.style_manager import ScreenStyleMixin
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class WelcomeScreen(Screen[None]):
+class WelcomeScreen(ScreenStyleMixin, Screen[None]):
     """欢迎屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
@@ -37,11 +38,9 @@ class WelcomeScreen(Screen[None]):
         """
         super().__init__()
         try:
-            WelcomeScreen.TITLE = get_global_i18n().t('welcome.title')
             self.screen_title = t("welcome.title")
         except RuntimeError:
             # 如果i18n未初始化，使用默认标题
-            WelcomeScreen.TITLE = "欢迎"
             self.screen_title = "欢迎"
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
@@ -94,6 +93,10 @@ class WelcomeScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 应用简单样式隔离
+        from src.ui.styles.simple_style_isolation import apply_simple_style_isolation
+        apply_simple_style_isolation(self)
+        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
     
