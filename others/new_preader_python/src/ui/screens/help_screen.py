@@ -12,20 +12,21 @@ from textual.widgets import Static, Button, Label, MarkdownViewer
 from textual.reactive import reactive
 
 from src.locales.i18n import I18n
-from src.locales.i18n_manager import get_global_i18n
+from src.locales.i18n_manager import get_global_i18n, t
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 class HelpScreen(Screen[None]):
     """帮助屏幕"""
+    CSS_PATH = "../styles/help_screen.css"
     
     def __init__(self):
         """
         初始化帮助屏幕
         """
         super().__init__()
-        self.screen_title = get_global_i18n().t("help.title")
+        self.screen_title = "帮助中心"
         
         # 准备帮助内容
         self.help_content = f"""

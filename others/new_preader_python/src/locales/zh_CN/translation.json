@@ -390,7 +390,8 @@
         "paragraph_spacing": "段落间距",
         "about": "关于",
         "about_content": "关于内容",
-        "open_bookmark_list": "书签列表"
+        "open_bookmark_list": "书签列表",
+        "back": "返回"
     },
     "statistics": {
         "title": "统计",
@@ -438,7 +439,11 @@
         "books_unit": "本书",
         "format_period_data_failed": "格式化周期统计失败",
         "load_period_data_failed": "周期统计数据加载失败",
-        "init_failed": "初始化数据表失败"
+        "init_failed": "初始化数据表失败",
+        "unknown_book": "未知书籍",
+        "unknown_author": "未知作者",
+        "open_count": "打开次数",
+        "total_pages": "总页数"
     },
     "error": {
         "error": "错误",

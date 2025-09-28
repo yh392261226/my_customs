@@ -9,7 +9,7 @@ from webbrowser import get
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal, Grid
+from textual.containers import Container, Vertical, Horizontal, Grid, ScrollableContainer
 from textual.widgets import Static, Button, Label, DataTable, ProgressBar, TabbedContent, TabPane
 from textual.reactive import reactive
 from textual import on, events
@@ -21,10 +21,14 @@ from src.core.statistics_direct import StatisticsManagerDirect
 
 from src.utils.logger import get_logger
 
+# 导入统计页面样式
+from pathlib import Path
+
 logger = get_logger(__name__)
 
 class StatisticsScreen(Screen[None]):
     """统计屏幕"""
+    CSS_PATH = "../styles/statistics.css"
     
     def __init__(self, theme_manager: ThemeManager, statistics_manager: StatisticsManagerDirect):
         """
@@ -50,92 +54,58 @@ class StatisticsScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
-        yield Container(
-            TabbedContent(
-                id="stats-tabs"
-            ),
+        with Container(id="stats-container"):
+            with TabbedContent():
+                # 全局统计标签页
+                with TabPane(get_global_i18n().t("statistics.global_stats"), id="global-stats-tab"):
+                    yield Vertical(
+                        Static(self._format_global_stats(), id="global-stats-content"),
+                        Label(get_global_i18n().t("statistics.reading_trend"), id="trend-title"),
+                        Static(self._format_reading_trend(), id="trend-content"),
+                        Label(get_global_i18n().t("statistics.most_read_authors"), id="authors-title"),
+                        DataTable(id="authors-table"),
+                        id="global-tab"
+                    )
+                
+                # 书籍统计标签页
+                with TabPane(get_global_i18n().t("statistics.book_stats"), id="book-stats-tab"):
+                    yield Vertical(
+                        Label(get_global_i18n().t("statistics.most_read_books"), id="books-title"),
+                        DataTable(id="book-stats-table"),
+                        Label(get_global_i18n().t("statistics.reading_progress"), id="progress-title"),
+                        DataTable(id="progress-table"),
+                        id="books-tab"
+                    )
+                
+                # 详细统计标签页
+                with TabPane(get_global_i18n().t("statistics.detailed_stats"), id="detailed-stats-tab"):
+                    yield Vertical(
+                        Label(get_global_i18n().t("statistics.daily_stats"), id="daily-title"),
+                        Static(self._format_daily_stats(), id="daily-content"),
+                        Label(get_global_i18n().t("statistics.weekly_monthly"), id="period-title"),
+                        Static(self._format_period_stats(), id="period-content"),
+                        id="detailed-tab"
+                    )
             
-            Horizontal(
-                Button(get_global_i18n().t("statistics.refresh"), id="refresh-btn"),
-                Button(get_global_i18n().t("statistics.export"), id="export-btn"),
-                Button(get_global_i18n().t("statistics.reset"), id="reset-btn"),
-                Button(get_global_i18n().t("statistics.back"), id="back-btn"),
-                id="stats-controls"
-            ),
+            # 底部控制按钮区域
+            with Horizontal(id="stats-controls"):
+                yield Button(get_global_i18n().t("statistics.refresh"), id="refresh-btn")
+                yield Button(get_global_i18n().t("statistics.export"), id="export-btn")
+                yield Button(get_global_i18n().t("statistics.reset"), id="reset-btn")
+                yield Button(get_global_i18n().t("statistics.back"), id="back-btn")
             
             # 快捷键状态栏
-            Horizontal(
-                Label("R: 刷新", id="shortcut-r"),
-                Label("E: 导出", id="shortcut-e"),
-                Label("ESC: 返回", id="shortcut-esc"),
-                id="shortcuts-bar"
-            ),
-            
-            id="stats-container"
-        )
+            with Horizontal(id="shortcuts-bar"):
+                yield Label("R: 刷新", id="shortcut-r")
+                yield Label("E: 导出", id="shortcut-e")
+                yield Label("ESC: 返回", id="shortcut-esc")
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
-        # 获取 TabbedContent 并添加标签页
-        tabbed_content = self.query_one("#stats-tabs", TabbedContent)
-        
-        # 添加全局统计标签页
-        tabbed_content.add_pane(
-            TabPane(
-                get_global_i18n().t("statistics.global_stats"),
-                Vertical(
-                    Static(self._format_global_stats(), id="global-stats-content"),
-                    
-                    Label(get_global_i18n().t("statistics.reading_trend"), id="trend-title"),
-                    Static(self._format_reading_trend(), id="trend-content"),
-                    
-                    Label(get_global_i18n().t("statistics.most_read_authors"), id="authors-title"),
-                    DataTable(id="authors-table"),
-                    
-                    id="global-tab"
-                ),
-                id="global-stats-tab"
-            )
-        )
-        
-        # 添加书籍统计标签页
-        tabbed_content.add_pane(
-            TabPane(
-                get_global_i18n().t("statistics.book_stats"),
-                Vertical(
-                    Label(get_global_i18n().t("statistics.most_read_books"), id="books-title"),
-                    DataTable(id="book-stats-table"),
-                    
-                    Label(get_global_i18n().t("statistics.reading_progress"), id="progress-title"),
-                    DataTable(id="progress-table"),
-                    
-                    id="books-tab"
-                ),
-                id="book-stats-tab"
-            )
-        )
-        
-        # 添加详细统计标签页
-        tabbed_content.add_pane(
-            TabPane(
-                get_global_i18n().t("statistics.detailed_stats"),
-                Vertical(
-                    Label(get_global_i18n().t("statistics.daily_stats"), id="daily-title"),
-                    Static(self._format_daily_stats(), id="daily-content"),
-                    
-                    Label(get_global_i18n().t("statistics.weekly_monthly"), id="period-title"),
-                    Static(self._format_period_stats(), id="period-content"),
-                    
-                    id="detailed-tab"
-                ),
-                id="detailed-stats-tab"
-            )
-        )
-        
-        # 使用定时器延迟初始化数据表，确保 DOM 已完全构建
+        # 延迟初始化数据表，确保DOM完全构建
         self.set_timer(0.1, self._initialize_tables)
     
     def _format_global_stats(self) -> str:
@@ -176,63 +146,85 @@ class StatisticsScreen(Screen[None]):
     
     def _load_book_stats(self) -> None:
         """加载书籍统计数据"""
-        table = self.query_one("#book-stats-table", DataTable)
-        table.clear()
-        
-        if not self.book_stats:
-            # 如果没有数据，显示提示信息
-            table.add_row("No", "data", "", "")
-            return
+        try:
+            table = self.query_one("#book-stats-table", DataTable)
+            table.clear()
             
-        for book_stats in self.book_stats:
-            reading_time = book_stats.get("reading_time", 0)
-            pages_read = int(book_stats.get("progress", 0) * 100)  # 估算已读页数
-            progress = book_stats.get("progress", 0)
-            
-            table.add_row(
-                book_stats.get("title", "Unknown"),
-                self._format_time(reading_time),
-                f"{pages_read}%",
-                f"{progress * 100:.1f}%"
-            )
+            if not self.book_stats:
+                # 如果没有数据，显示提示信息
+                table.add_row(
+                    get_global_i18n().t("statistics.no_data"),
+                    "-",
+                    "-",
+                    "-"
+                )
+                return
+                
+            for book_stats in self.book_stats:
+                reading_time = book_stats.get("reading_time", 0)
+                progress = book_stats.get("progress", 0)
+                
+                table.add_row(
+                    book_stats.get("title", get_global_i18n().t("statistics.unknown_book")),
+                    self._format_time(reading_time),
+                    f"{book_stats.get('open_count', 0)}",
+                    f"{progress * 100:.1f}%"
+                )
+        except Exception as e:
+            logger.error(f"加载书籍统计数据失败: {e}")
     
     def _load_authors_stats(self) -> None:
         """加载作者统计数据"""
-        table = self.query_one("#authors-table", DataTable)
-        table.clear()
-        
-        authors_stats = self.statistics_manager.get_most_read_authors()
-        if not authors_stats:
-            # 如果没有数据，显示提示信息
-            table.add_row("No", "data", "")
-            return
+        try:
+            table = self.query_one("#authors-table", DataTable)
+            table.clear()
             
-        for author_stats in authors_stats:
-            table.add_row(
-                author_stats.get("author", "Unknown"),
-                self._format_time(author_stats.get("reading_time", 0)),
-                str(author_stats.get("book_count", 0))
-            )
+            authors_stats = self.statistics_manager.get_most_read_authors()
+            if not authors_stats:
+                # 如果没有数据，显示提示信息
+                table.add_row(
+                    get_global_i18n().t("statistics.no_data"),
+                    "-",
+                    "-"
+                )
+                return
+                
+            for author_stats in authors_stats:
+                table.add_row(
+                    author_stats.get("author", get_global_i18n().t("statistics.unknown_author")),
+                    self._format_time(author_stats.get("reading_time", 0)),
+                    str(author_stats.get("book_count", 0))
+                )
+        except Exception as e:
+            logger.error(f"加载作者统计数据失败: {e}")
     
     def _load_progress_stats(self) -> None:
         """加载阅读进度统计数据"""
-        table = self.query_one("#progress-table", DataTable)
-        table.clear()
-        
-        # 由于直接数据库版本没有bookshelf引用，简化进度显示
-        # 只显示最常阅读书籍的进度信息
-        if not self.book_stats:
-            table.add_row("No", "data", "", "")
-            return
+        try:
+            table = self.query_one("#progress-table", DataTable)
+            table.clear()
             
-        for book in self.book_stats[:10]:  # 只显示前10本
-            progress = book.get("progress", 0)
-            table.add_row(
-                book.get("title", "Unknown"),
-                "",  # 当前页数信息需要从数据库获取，暂时留空
-                "",  # 总页数信息需要从数据库获取，暂时留空
-                f"{progress * 100:.1f}%"
-            )
+            # 由于直接数据库版本没有bookshelf引用，简化进度显示
+            # 只显示最常阅读书籍的进度信息
+            if not self.book_stats:
+                table.add_row(
+                    get_global_i18n().t("statistics.no_data"),
+                    "-",
+                    "-",
+                    "-"
+                )
+                return
+                
+            for book in self.book_stats[:10]:  # 只显示前10本
+                progress = book.get("progress", 0)
+                table.add_row(
+                    book.get("title", get_global_i18n().t("statistics.unknown_book")),
+                    "-",  # 当前页数信息需要从数据库获取，暂时留空
+                    "-",  # 总页数信息需要从数据库获取，暂时留空
+                    f"{progress * 100:.1f}%"
+                )
+        except Exception as e:
+            logger.error(f"加载阅读进度统计数据失败: {e}")
     
     def _update_static_content(self) -> None:
         """更新静态内容"""
@@ -353,35 +345,47 @@ class StatisticsScreen(Screen[None]):
         """初始化数据表"""
         try:
             # 初始化书籍统计数据表
-            book_table = self.query_one("#book-stats-table", DataTable)
-            book_table.add_columns(
-                get_global_i18n().t("statistics.book_title"),
-                get_global_i18n().t("statistics.reading_time"),
-                get_global_i18n().t("statistics.pages_read"),
-                get_global_i18n().t("statistics.progress")
-            )
+            try:
+                book_table = self.query_one("#book-stats-table", DataTable)
+                if not book_table.columns:  # 避免重复添加列
+                    book_table.add_columns(
+                        get_global_i18n().t("statistics.book_title"),
+                        get_global_i18n().t("statistics.reading_time"),
+                        get_global_i18n().t("statistics.open_count"),
+                        get_global_i18n().t("statistics.progress")
+                    )
+            except Exception as e:
+                logger.warning(f"初始化书籍统计表失败: {e}")
             
             # 初始化作者统计数据表
-            authors_table = self.query_one("#authors-table", DataTable)
-            authors_table.add_columns(
-                get_global_i18n().t("statistics.author"),
-                get_global_i18n().t("statistics.reading_time"),
-                get_global_i18n().t("statistics.book_count")
-            )
+            try:
+                authors_table = self.query_one("#authors-table", DataTable)
+                if not authors_table.columns:  # 避免重复添加列
+                    authors_table.add_columns(
+                        get_global_i18n().t("statistics.author"),
+                        get_global_i18n().t("statistics.reading_time"),
+                        get_global_i18n().t("statistics.book_count")
+                    )
+            except Exception as e:
+                logger.warning(f"初始化作者统计表失败: {e}")
             
             # 初始化阅读进度数据表
-            progress_table = self.query_one("#progress-table", DataTable)
-            progress_table.add_columns(
-                get_global_i18n().t("statistics.book_title"),
-                get_global_i18n().t("statistics.current_page"),
-                get_global_i18n().t("statistics.total_pages"),
-                get_global_i18n().t("statistics.progress")
-            )
+            try:
+                progress_table = self.query_one("#progress-table", DataTable)
+                if not progress_table.columns:  # 避免重复添加列
+                    progress_table.add_columns(
+                        get_global_i18n().t("statistics.book_title"),
+                        get_global_i18n().t("statistics.current_page"),
+                        get_global_i18n().t("statistics.total_pages"),
+                        get_global_i18n().t("statistics.progress")
+                    )
+            except Exception as e:
+                logger.warning(f"初始化进度统计表失败: {e}")
             
-            # 加载所有统计数据
-            self._load_all_stats()
+            # 延迟加载统计数据，确保表格完全初始化
+            self.set_timer(0.1, self._load_all_stats)
             
         except Exception as e:
-            logger.error(f"{get_global_i18n().t("statistics.init_failed")}: {e}")
+            logger.error(f"{get_global_i18n().t('statistics.init_failed')}: {e}")
             # 如果初始化失败，再次尝试
-            self.set_timer(0.5, self._initialize_tables)
+            self.set_timer(0.3, self._initialize_tables)

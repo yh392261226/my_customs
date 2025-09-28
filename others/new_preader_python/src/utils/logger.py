@@ -169,15 +169,27 @@ def set_debug_mode(debug_mode: bool) -> None:
         logger = logging.getLogger(logger_name)
         logger.setLevel(log_level)
     
-    # 为根logger添加一个处理器
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    handler.setLevel(log_level)
-    root_logger.addHandler(handler)
-    
+    # 为根logger添加一个文件处理器，不添加控制台处理器
     if debug_mode:
-        print(f" Debug mode enabled, log level set to: {logging.getLevelName(log_level)}")
+        # 创建日志目录
+        log_dir = os.path.join(os.path.expanduser("~"), ".config", "new_preader", "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, 'application.log')
+        
+        # 创建文件处理器
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, 
+            maxBytes=10 * 1024 * 1024,  # 10MB
+            backupCount=5,
+            encoding='utf-8'
+        )
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(log_level)
+        root_logger.addHandler(file_handler)
+        
+        # 只在文件记录调试模式启用信息
+        root_logger.info(f"Debug mode enabled, log level set to: {logging.getLevelName(log_level)}")
 
 
 
@@ -200,9 +212,9 @@ def setup_logging_from_config(config_manager) -> None:
         if debug_mode:
             # 启用调试模式
             set_debug_mode(True)
-            # 设置文件日志输出
+            # 设置文件日志输出，禁用控制台输出
             LoggerSetup.setup_logger("main", config_manager, 
-                                   console_output=True, 
+                                   console_output=False, 
                                    file_output=True)
         else:
             # 禁用调试模式（静默模式）

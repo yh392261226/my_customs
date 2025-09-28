@@ -390,7 +390,8 @@
         "paragraph_spacing": "Paragraph Spacing",
         "about": "About",
         "about_content": "About Content",
-        "open_bookmark_list": "Bookmark List"
+        "open_bookmark_list": "Bookmark List",
+        "back": "Back"
     },
     "statistics": {
         "title": "Statistics",
