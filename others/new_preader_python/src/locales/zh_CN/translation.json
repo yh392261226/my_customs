@@ -282,7 +282,9 @@
         "load_animation_failed": "加载动画组件导入失败: {error}",
         "init_animation_error": "初始化加载动画组件失败: {error}",
         "yes": "是",
-        "no": "否"
+        "no": "否",
+        "book": "书籍",
+        "book_name": "书籍名称"
     },
     "reader": {
         "author": "作者",

@@ -282,7 +282,9 @@
         "load_animation_failed": "Failed to import loading animation component: {error}",
         "init_animation_error": "Failed to initialize loading animation component: {error}",
         "yes": "Yes",
-        "no": "No"
+        "no": "No",
+        "book": "Book",
+        "book_name": "Book Name"
     },
     "reader": {
         "author": "Author",

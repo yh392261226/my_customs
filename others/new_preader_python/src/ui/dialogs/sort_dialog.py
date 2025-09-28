@@ -40,7 +40,7 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
             # 排序字段选择
             yield Label(get_global_i18n().t("sort.sort_by"), id="sort-by-label")
             with RadioSet(id="sort-key-radio"):
-                yield RadioButton(get_global_i18n().t("bookshelf.title"), value=True, id="title-radio")
+                yield RadioButton(get_global_i18n().t("common.book_name"), value=True, id="title-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.author"), id="author-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.add_date"), id="add-date-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.last_read"), id="last-read-radio")
