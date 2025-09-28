@@ -138,7 +138,10 @@
         "books": "本",
         "press_enter_open_book": "按Enter键打开书籍: {book_id}",
         "adding_books": "正在添加书籍...",
-        "add_books_failed": "添加书籍失败"
+        "add_books_failed": "添加书籍失败",
+        "actions": "操作",
+        "read": "阅读",
+        "get_books": "获取书籍"
     },
     "batch_ops": {
         "title": "批量操作",

@@ -73,15 +73,15 @@ class BookshelfScreen(Screen[None]):
         self._all_books: List[Book] = []
         
         # 初始化数据表列
-        i18n = get_global_i18n()
         self.columns = [
             ("ID", "id"),
-            (i18n.t("bookshelf.title"), "title"),
-            (i18n.t("bookshelf.author"), "author"),
-            (i18n.t("bookshelf.format"), "format"),
-            (i18n.t("bookshelf.last_read"), "last_read"),
-            (i18n.t("bookshelf.progress"), "progress"),
-            (i18n.t("bookshelf.tags"), "tags"),
+            (get_global_i18n().t("bookshelf.title"), "title"),
+            (get_global_i18n().t("bookshelf.author"), "author"),
+            (get_global_i18n().t("bookshelf.format"), "format"),
+            (get_global_i18n().t("bookshelf.last_read"), "last_read"),
+            (get_global_i18n().t("bookshelf.progress"), "progress"),
+            (get_global_i18n().t("bookshelf.tags"), "tags"),
+            (get_global_i18n().t("bookshelf.actions"), "actions"),  # 添加操作列
         ]
     
     def compose(self) -> ComposeResult:
@@ -117,7 +117,7 @@ class BookshelfScreen(Screen[None]):
                     Horizontal(
                         Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn"),
                         Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn"),
-                        Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn"),
+                        Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn"),
                         Button(get_global_i18n().t("bookshelf.back"), id="back-btn"),
                         id="bookshelf-controls"
                     ),
@@ -203,6 +203,9 @@ class BookshelfScreen(Screen[None]):
             # 格式化标签显示（逗号分隔）
             tags_display = ", ".join(book.tags) if book.tags else ""
             
+            # 添加阅读按钮
+            read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
+            
             table.add_row(
                 str(index),  # 显示数字序号而不是路径
                 book.title,
@@ -211,6 +214,7 @@ class BookshelfScreen(Screen[None]):
                 last_read,
                 f"{progress:.1f}%",
                 tags_display,
+                read_button,  # 阅读按钮
                 key=book.path  # 仍然使用路径作为行键
             )
         
@@ -257,8 +261,14 @@ class BookshelfScreen(Screen[None]):
         try:
             # 更新分页信息到统计标签
             stats_label = self.query_one("#books-stats-label", Label)
-            # 使用render()方法获取Label的文本内容
-            current_text = stats_label.render()
+            # 获取当前显示的文本内容
+            current_text = ""
+            try:
+                # 尝试获取renderable的字符串表示
+                current_text = str(stats_label.renderable)
+            except:
+                # 如果失败，使用空字符串
+                current_text = ""
             
             # 移除可能存在的旧分页信息
             if "| 第" in current_text:
@@ -280,6 +290,12 @@ class BookshelfScreen(Screen[None]):
         self._load_books()
         # 显示刷新成功的提示
         self.notify(get_global_i18n().t("bookshelf.refresh_success"))
+
+    def _get_books(self) -> None:
+        """获取书籍列表"""
+        self.logger.info("获取书籍列表")
+        # 获取书籍列表
+        self.app.push_screen("get_books")  # 打开获取书籍页面
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -302,6 +318,61 @@ class BookshelfScreen(Screen[None]):
             self._show_batch_ops_menu()
         elif event.button.id == "refresh-btn":
             self._refresh_bookshelf()
+        elif event.button.id == "get-books-btn":
+            self._get_books()
+    
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        """
+        数据表单元格选择时的回调
+        
+        Args:
+            event: 单元格选择事件
+        """
+        # 获取选中的单元格信息
+        cell_value = event.value
+        coordinate = event.coordinate
+        cell_key = event.cell_key
+        
+        # 如果是操作列的阅读按钮被点击
+        if cell_key.column_key.value == "actions" and cell_value == f"[{get_global_i18n().t('bookshelf.read')}]":
+            book_id = cell_key.row_key.value
+            self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
+            # 类型安全的open_book调用
+            app_instance = self.app
+            if hasattr(app_instance, 'open_book'):
+                app_instance.open_book(book_id)  # type: ignore
+            else:
+                # 如果app没有open_book方法，尝试其他方式打开书籍
+                if book_id:
+                    self._open_book_fallback(book_id)
+                else:
+                    self.logger.error("书籍ID为空，无法打开书籍")
+    
+    def _open_book_fallback(self, book_path: str) -> None:
+        """备用方法打开书籍"""
+        try:
+            # 从书架中获取书籍对象
+            book = self.bookshelf.get_book(book_path)
+            if book:
+                # 创建阅读器屏幕并推入
+                from src.ui.screens.reader_screen import ReaderScreen
+                from src.core.bookmark import BookmarkManager
+                
+                bookmark_manager = BookmarkManager()
+                reader_screen = ReaderScreen(
+                    book=book,
+                    theme_manager=self.theme_manager,
+                    statistics_manager=self.statistics_manager,
+                    bookmark_manager=bookmark_manager,
+                    bookshelf=self.bookshelf
+                )
+                self.app.push_screen(reader_screen)
+            else:
+                self.logger.error(f"未找到书籍: {book_path}")
+                self.notify(f"未找到书籍: {book_path}", severity="error")
+        except Exception as e:
+            self.logger.error(f"打开书籍失败: {e}")
+            self.notify(f"打开书籍失败: {e}", severity="error")
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
@@ -315,7 +386,7 @@ class BookshelfScreen(Screen[None]):
         # 类型安全的open_book调用
         app_instance = self.app
         if hasattr(app_instance, 'open_book'):
-            app_instance.open_book(book_id)
+            app_instance.open_book(book_id)  # type: ignore
         
     def on_key(self, event: events.Key) -> None:
         """
@@ -406,7 +477,7 @@ class BookshelfScreen(Screen[None]):
                 # 直接调用open_book方法
                 app_instance = self.app
                 if hasattr(app_instance, 'open_book'):
-                    app_instance.open_book(book_path)
+                    app_instance.open_book(book_path)  # type: ignore
                 event.prevent_default()
             else:
                 # 如果该序号没有对应的书籍，显示提示

@@ -138,7 +138,10 @@
         "books": "books",
         "press_enter_open_book": "Press Enter to open book: {book_id}",
         "adding_books": "Adding books...",
-        "add_books_failed": "Failed to add books"
+        "add_books_failed": "Failed to add books",
+        "actions": "Actions",
+        "read": "Read",
+        "get_books": "Get Books"
     },
     "batch_ops": {
         "title": "Batch Operations",
