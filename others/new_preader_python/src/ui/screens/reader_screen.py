@@ -286,18 +286,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     saved_page = getattr(self.book, 'current_page', 0) + 1
                     # saved_page是0-based的，如果大于0说明有保存的位置
                     if saved_page > 0 and saved_page < self.renderer.total_pages:
-                        # goto_page接受0-based参数，直接使用saved_page
-                        self.renderer.goto_page(saved_page)
+                        # goto_page接受1-based参数，需要转换为1-based页码
+                        self.renderer.goto_page(saved_page + 1)
                         self.current_page = self.renderer.current_page  # 这是0-based的
                         logger.info(get_global_i18n().t("reader.restore_page", page=saved_page + 1, saved=saved_page, current=self.current_page))
                     else:
                         # 如果没有保存的位置或位置无效，从第一页开始
-                        self.renderer.goto_page(0)  # 0-based，0表示第1页
+                        self.renderer.goto_page(1)  # 1-based，1表示第1页
                         self.current_page = self.renderer.current_page  # 应该是0
                         logger.info(get_global_i18n().t("reader.read_from_first", current=self.current_page))
                 else:
                     # 如果不记住位置，总是从第一页开始
-                    self.renderer.goto_page(0)  # 0-based，0表示第1页
+                    self.renderer.goto_page(1)  # 1-based，1表示第1页
                     self.current_page = self.renderer.current_page  # 应该是0
                     logger.info(get_global_i18n().t("reader.unknown_read_from_first", current=self.current_page))
                 
@@ -419,13 +419,17 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     def _prev_page(self) -> None:
         """上一页"""
         if self.renderer.prev_page():
+            # 同步页码状态
             self.current_page = self.renderer.current_page
+            self.total_pages = self.renderer.total_pages
             self._on_page_change(self.current_page)
     
     def _next_page(self) -> None:
         """下一页"""
         if self.renderer.next_page():
+            # 同步页码状态
             self.current_page = self.renderer.current_page
+            self.total_pages = self.renderer.total_pages
             self._on_page_change(self.current_page)
     
     def _scroll_up(self, lines: int = 1) -> None:
@@ -448,9 +452,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         def on_result(result: Optional[int]) -> None:
             if result is not None:
-                # result 是 0-based 索引，直接传给 renderer（renderer.goto_page 接受 0-based 参数）
-                if self.renderer.goto_page(result):
-                    self.current_page = result
+                # result 是 0-based 索引，直接传给 renderer.goto_page（它接受 1-based 参数）
+                target_page = result + 1  # 转换为 1-based 页码
+                if self.renderer.goto_page(target_page):
+                    self.current_page = result  # 保存 0-based 页码
                     self._on_page_change(self.current_page)
                     self._update_ui()
         
@@ -708,12 +713,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     
     def _on_page_change(self, new_page: int) -> None:
         """页面变化回调"""
-        # 更新状态
-        self.current_page = new_page
+        # 更新状态，确保与renderer同步
+        self.current_page = self.renderer.current_page
+        self.total_pages = self.renderer.total_pages
         
         # 更新状态管理器
         if hasattr(self, 'status_manager') and self.status_manager:
-            self.status_manager.update_reading_position(new_page)
+            self.status_manager.update_reading_position(self.current_page)
             
         # 更新界面
         self._update_ui()
@@ -762,10 +768,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             header = self.query_one("#header", Static)
             book_title = getattr(self.book, 'title', get_global_i18n().t('reader.unknow_book'))
             progress = 0
-            if self.total_pages > 0:
-                # 修复进度计算：current_page是从0开始的，所以需要+1
+            if self.renderer.total_pages > 0:
+                # 修复进度计算：renderer.current_page是从0开始的，所以需要+1
                 # 当在最后一页时，进度应该是100%
-                progress = ((self.current_page + 1) / self.total_pages) * 100
+                progress = ((self.renderer.current_page + 1) / self.renderer.total_pages) * 100
                 # 确保进度不超过100%
                 progress = min(progress, 100.0)
             
@@ -790,11 +796,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             if statistics_enabled:
                 # 显示统计信息
                 stats = self.status_manager.get_statistics()
-                status_text = f"第{self.current_page + 1}/{self.total_pages}页 "
+                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 "
                 status.update(status_text)
             else:
                 # 统计功能关闭，只显示基本页面信息
-                status_text = f"第{self.current_page + 1}/{self.total_pages}页 (统计已关闭)"
+                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 (统计已关闭)"
                 status.update(status_text)
         except Exception as e:
             logger.error(f"更新状态栏失败: {e}")
@@ -803,10 +809,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 更新按钮状态
         try:
             prev_btn = self.query_one("#prev-btn", Button)
-            prev_btn.disabled = self.current_page <= 0
+            prev_btn.disabled = self.renderer.current_page <= 0
             
             next_btn = self.query_one("#next-btn", Button)
-            next_btn.disabled = self.current_page >= self.total_pages - 1
+            next_btn.disabled = self.renderer.current_page >= self.renderer.total_pages - 1
         except Exception:
             pass
     

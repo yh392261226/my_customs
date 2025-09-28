@@ -332,11 +332,21 @@ class ContentRenderer(Static):
         """
         # 转换为0-based页码
         target_page = page_num - 1
-        if 0 <= target_page < len(self.all_pages):
-            self.current_page = target_page
-            self._load_page_content(self.current_page)
-            return True
-        return False
+        
+        # 调试信息
+        logger.debug(f"goto_page: 用户输入页码={page_num}, 转换后页码={target_page}, 总页数={len(self.all_pages)}")
+        
+        # 检查页码有效性
+        if target_page < 0 or target_page >= len(self.all_pages):
+            logger.warning(f"goto_page: 页码无效，目标页={target_page}, 有效范围=[0, {len(self.all_pages)-1}]")
+            return False
+            
+        # 跳转到目标页面
+        self.current_page = target_page
+        self._load_page_content(self.current_page)
+        
+        logger.debug(f"goto_page: 成功跳转到第{page_num}页（内部页码={target_page}）")
+        return True
     
     def content_scroll_down(self, lines: int = 1) -> bool:
         """
