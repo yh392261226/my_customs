@@ -141,6 +141,8 @@
         "add_books_failed": "Failed to add books",
         "actions": "Actions",
         "read": "Read",
+        "view_file": "View File",
+        "delete": "Delete",
         "get_books": "Get Books"
     },
     "batch_ops": {

@@ -81,7 +81,9 @@ class BookshelfScreen(Screen[None]):
             (get_global_i18n().t("bookshelf.last_read"), "last_read"),
             (get_global_i18n().t("bookshelf.progress"), "progress"),
             (get_global_i18n().t("bookshelf.tags"), "tags"),
-            (get_global_i18n().t("bookshelf.actions"), "actions"),  # 添加操作列
+            (get_global_i18n().t("bookshelf.read"), "read_action"),  # 阅读按钮列
+            (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
+            (get_global_i18n().t("bookshelf.delete"), "delete_action"),  # 删除按钮列
         ]
     
     def compose(self) -> ComposeResult:
@@ -203,8 +205,10 @@ class BookshelfScreen(Screen[None]):
             # 格式化标签显示（逗号分隔）
             tags_display = ", ".join(book.tags) if book.tags else ""
             
-            # 添加阅读按钮
+            # 添加操作按钮
             read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
+            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+            delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
             
             table.add_row(
                 str(index),  # 显示数字序号而不是路径
@@ -215,6 +219,8 @@ class BookshelfScreen(Screen[None]):
                 f"{progress:.1f}%",
                 tags_display,
                 read_button,  # 阅读按钮
+                view_file_button,  # 查看文件按钮
+                delete_button,  # 删除按钮
                 key=book.path  # 仍然使用路径作为行键
             )
         
@@ -262,12 +268,10 @@ class BookshelfScreen(Screen[None]):
             # 更新分页信息到统计标签
             stats_label = self.query_one("#books-stats-label", Label)
             # 获取当前显示的文本内容
-            current_text = ""
-            try:
-                # 尝试获取renderable的字符串表示
-                current_text = str(stats_label.renderable)
-            except:
-                # 如果失败，使用空字符串
+            current_text = stats_label.renderable if hasattr(stats_label.renderable, '__str__') else ""
+            if current_text:
+                current_text = str(current_text)
+            else:
                 current_text = ""
             
             # 移除可能存在的旧分页信息
@@ -333,20 +337,25 @@ class BookshelfScreen(Screen[None]):
         coordinate = event.coordinate
         cell_key = event.cell_key
         
-        # 如果是操作列的阅读按钮被点击
-        if cell_key.column_key.value == "actions" and cell_value == f"[{get_global_i18n().t('bookshelf.read')}]":
+        # 检查是否是操作按钮列
+        column_key = cell_key.column_key.value
+        if column_key in ["read_action", "view_action", "delete_action"]:
             book_id = cell_key.row_key.value
-            self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
-            # 类型安全的open_book调用
-            app_instance = self.app
-            if hasattr(app_instance, 'open_book'):
-                app_instance.open_book(book_id)  # type: ignore
-            else:
-                # 如果app没有open_book方法，尝试其他方式打开书籍
-                if book_id:
-                    self._open_book_fallback(book_id)
-                else:
-                    self.logger.error("书籍ID为空，无法打开书籍")
+            if not book_id:
+                self.logger.error("书籍ID为空，无法执行操作")
+                return
+                
+            # 根据列键判断点击的是哪个按钮
+            if column_key == "read_action":
+                self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
+                # 直接使用备用方法打开书籍
+                self._open_book_fallback(book_id)
+            elif column_key == "view_action":
+                self.logger.info(f"点击查看文件按钮: {book_id}")
+                self._view_file(book_id)
+            elif column_key == "delete_action":
+                self.logger.info(f"点击删除按钮: {book_id}")
+                self._delete_book(book_id)
     
     def _open_book_fallback(self, book_path: str) -> None:
         """备用方法打开书籍"""
@@ -373,6 +382,80 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"打开书籍失败: {e}")
             self.notify(f"打开书籍失败: {e}", severity="error")
+    
+    def _view_file(self, book_path: str) -> None:
+        """查看书籍文件"""
+        try:
+            import os
+            import subprocess
+            import platform
+            
+            # 检查文件是否存在
+            if not os.path.exists(book_path):
+                self.notify(f"文件不存在: {book_path}", severity="error")
+                return
+            
+            # 根据操作系统打开文件管理器
+            system = platform.system()
+            if system == "Darwin":  # macOS
+                subprocess.run(["open", "-R", book_path], check=False)
+            elif system == "Windows":
+                subprocess.run(["explorer", "/select,", book_path], check=False)
+            elif system == "Linux":
+                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
+            else:
+                # 通用方法：打开文件所在目录
+                folder_path = os.path.dirname(book_path)
+                if os.path.exists(folder_path):
+                    subprocess.run(["open", folder_path], check=False)
+                else:
+                    self.notify("无法打开文件所在目录", severity="warning")
+                    return
+            
+            self.notify(f"已在文件管理器中打开: {os.path.basename(book_path)}", severity="information")
+            
+        except Exception as e:
+            self.logger.error(f"查看文件失败: {e}")
+            self.notify(f"查看文件失败: {e}", severity="error")
+    
+    def _delete_book(self, book_path: str) -> None:
+        """删除书籍"""
+        try:
+            # 显示确认对话框
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            
+            def handle_delete_result(result: Optional[bool]) -> None:
+                """处理删除确认结果"""
+                if result:
+                    # 确认删除
+                    try:
+                        # 从书架中删除书籍
+                        success = self.bookshelf.remove_book(book_path)
+                        if success:
+                            self.notify("书籍删除成功", severity="information")
+                            # 刷新书架列表
+                            self._load_books()
+                        else:
+                            self.notify("书籍删除失败", severity="error")
+                    except Exception as e:
+                        self.logger.error(f"删除书籍时发生错误: {e}")
+                        self.notify(f"删除书籍失败: {e}", severity="error")
+            
+            # 显示确认对话框
+            book = self.bookshelf.get_book(book_path)
+            if book:
+                confirm_dialog = ConfirmDialog(
+                    self.theme_manager,
+                    "确认删除",
+                    f"确定要删除书籍《{book.title}》吗？此操作不可撤销。"
+                )
+                self.app.push_screen(confirm_dialog, handle_delete_result)  # type: ignore
+            else:
+                self.notify("未找到要删除的书籍", severity="error")
+                
+        except Exception as e:
+            self.logger.error(f"删除书籍失败: {e}")
+            self.notify(f"删除书籍失败: {e}", severity="error")
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
@@ -405,10 +488,8 @@ class BookshelfScreen(Screen[None]):
                 if row_key and row_key.value:
                     book_id = row_key.value  # 使用行键（书籍路径）而不是第一列数据
                     self.logger.info(get_global_i18n().t('bookshelf.press_enter_open_book', book_id=book_id))
-                    # 类型安全的open_book调用
-                    app_instance = self.app
-                    if hasattr(app_instance, 'open_book'):
-                        app_instance.open_book(book_id)
+                    # 使用备用方法打开书籍
+                    self._open_book_fallback(book_id)
                     event.prevent_default()
         elif event.key == "s":
             # S键搜索
@@ -474,10 +555,8 @@ class BookshelfScreen(Screen[None]):
             if book_index in self._book_index_mapping:
                 book_path = self._book_index_mapping[book_index]
                 self.logger.info(f"按数字键 {book_index} 打开书籍: {book_path}")
-                # 直接调用open_book方法
-                app_instance = self.app
-                if hasattr(app_instance, 'open_book'):
-                    app_instance.open_book(book_path)  # type: ignore
+                # 使用备用方法打开书籍
+                self._open_book_fallback(book_path)
                 event.prevent_default()
             else:
                 # 如果该序号没有对应的书籍，显示提示
