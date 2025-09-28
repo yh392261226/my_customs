@@ -36,11 +36,15 @@ class WelcomeScreen(Screen[None]):
             bookshelf: 书架
         """
         super().__init__()
-        WelcomeScreen.TITLE = get_global_i18n().t('welcome.title')
-        # self.i18n = get_global_i18n()
+        try:
+            WelcomeScreen.TITLE = get_global_i18n().t('welcome.title')
+            self.screen_title = t("welcome.title")
+        except RuntimeError:
+            # 如果i18n未初始化，使用默认标题
+            WelcomeScreen.TITLE = "欢迎"
+            self.screen_title = "欢迎"
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
-        self.screen_title = t("welcome.title")
     
     def compose(self) -> ComposeResult:
         """
@@ -136,14 +140,22 @@ class WelcomeScreen(Screen[None]):
             # 创建统计管理器实例
             statistics_manager = StatisticsManagerDirect(db_manager)
             
-            # 创建文件资源管理器屏幕
+            # 创建文件资源管理器屏幕 - 使用文件选择模式，并设置直接打开功能
+            try:
+                title = get_global_i18n().t("welcome.open_book")
+            except RuntimeError:
+                title = "打开书籍"
+                
             file_explorer_screen = FileExplorerScreen(
                 theme_manager=self.theme_manager,
                 bookshelf=self.bookshelf,
-                statistics_manager=statistics_manager
+                statistics_manager=statistics_manager,
+                selection_mode="file",  # 文件选择模式
+                title=title,  # 使用打开书籍的标题
+                direct_open=True  # 直接打开文件进行阅读
             )
             
-            # 跳转到文件资源管理器
+            # 跳转到文件资源管理器 - 不处理返回结果，保持原有的直接打开功能
             self.app.push_screen(file_explorer_screen)
             
         except Exception as e:

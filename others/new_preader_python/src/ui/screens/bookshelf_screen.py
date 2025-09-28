@@ -120,7 +120,6 @@ class BookshelfScreen(Screen[None]):
                         Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn"),
                         Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn"),
                         Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn"),
-                        Button("📁 文件管理器", id="file-explorer-btn"),
                         Button(get_global_i18n().t("bookshelf.back"), id="back-btn"),
                         id="bookshelf-controls"
                     ),
@@ -134,7 +133,6 @@ class BookshelfScreen(Screen[None]):
                         Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
                         Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
                         Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
-                        Label(f"E: 文件管理器", id="shortcut-e"),
                         Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
                         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
                         Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
@@ -339,8 +337,6 @@ class BookshelfScreen(Screen[None]):
             self._refresh_bookshelf()
         elif event.button.id == "get-books-btn":
             self._get_books()
-        elif event.button.id == "file-explorer-btn":
-            self._show_file_explorer()
     
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
@@ -529,10 +525,6 @@ class BookshelfScreen(Screen[None]):
             # F键刷新书架
             self._refresh_bookshelf()
             event.prevent_default()
-        elif event.key == "e":
-            # E键打开文件资源管理器
-            self._show_file_explorer()
-            event.prevent_default()
         elif event.key == "escape":
             # ESC键返回
             self.app.pop_screen()
@@ -688,43 +680,45 @@ class BookshelfScreen(Screen[None]):
         self.app.push_screen(dialog, handle_batch_ops)
         
     def _show_add_book_dialog(self) -> None:
-        """显示添加书籍对话框"""
-        def handle_add_book_result(result: Optional[List[str]]) -> None:
+        """显示添加书籍对话框 - 使用文件资源管理器屏幕"""
+        def handle_add_book_result(result: Optional[str]) -> None:
             """处理添加书籍结果"""
             if result:
                 # 显示加载动画
                 self._show_loading_animation(get_global_i18n().t("bookshelf.adding_books"))
                 
-                added_count = 0
-                for file_path in result:
-                    try:
-                        book = self.bookshelf.add_book(file_path)
-                        if book:
-                            added_count += 1
-                    except Exception as e:
-                        logger.error(f"{get_global_i18n().t('bookshelf.add_book_failed')}: {e}")
+                try:
+                    book = self.bookshelf.add_book(result)
+                    if book:
+                        self.notify(
+                            get_global_i18n().t("bookshelf.book_added", count=1),
+                            severity="information"
+                        )
+                        self._load_books()
+                    else:
+                        self.notify(get_global_i18n().t("bookshelf.add_failed"), severity="error")
+                except Exception as e:
+                    logger.error(f"{get_global_i18n().t('bookshelf.add_book_failed')}: {e}")
+                    self.notify(f"添加书籍失败: {e}", severity="error")
                 
                 # 隐藏加载动画
                 self._hide_loading_animation()
-                
-                if added_count > 0:
-                    self.notify(
-                        get_global_i18n().t("bookshelf.book_added", count=added_count),
-                        severity="information"
-                    )
-                    self._load_books()
         
-        # 显示文件选择器对话框
-        dialog = FileChooserDialog(
-            self.theme_manager,
-            get_global_i18n().t("bookshelf.add_single_book"),
-            get_global_i18n().t("bookshelf.file_path"),
-            multiple=True
+        # 使用文件资源管理器屏幕
+        from src.ui.screens.file_explorer_screen import FileExplorerScreen
+        
+        file_explorer_screen = FileExplorerScreen(
+            theme_manager=self.theme_manager,
+            bookshelf=self.bookshelf,
+            statistics_manager=self.statistics_manager,
+            selection_mode="file",
+            title=get_global_i18n().t("bookshelf.add_single_book")
         )
-        self.app.push_screen(dialog, handle_add_book_result)
+        
+        self.app.push_screen(file_explorer_screen, handle_add_book_result)
         
     def _show_scan_directory_dialog(self) -> None:
-        """显示扫描目录对话框"""
+        """显示扫描目录对话框 - 使用文件资源管理器屏幕"""
         def handle_directory_result(result: Optional[str]) -> None:
             """处理目录选择结果"""
             if result:
@@ -752,11 +746,18 @@ class BookshelfScreen(Screen[None]):
                 )
                 self.app.push_screen(scan_dialog, handle_scan_result)
         
-        # 显示目录选择对话框
-        dialog = DirectoryDialog(
-            self.theme_manager
+        # 使用文件资源管理器屏幕
+        from src.ui.screens.file_explorer_screen import FileExplorerScreen
+        
+        file_explorer_screen = FileExplorerScreen(
+            theme_manager=self.theme_manager,
+            bookshelf=self.bookshelf,
+            statistics_manager=self.statistics_manager,
+            selection_mode="directory",
+            title=get_global_i18n().t("bookshelf.scan_directory")
         )
-        self.app.push_screen(dialog, handle_directory_result)
+        
+        self.app.push_screen(file_explorer_screen, handle_directory_result)
     
     def _show_loading_animation(self, message: Optional[str] = None) -> None:
         """显示加载动画"""

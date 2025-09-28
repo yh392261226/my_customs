@@ -26,7 +26,7 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class FileExplorerScreen(Screen[None]):
+class FileExplorerScreen(Screen[Optional[str]]):
     """文件资源管理器屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
@@ -35,7 +35,8 @@ class FileExplorerScreen(Screen[None]):
     # 支持的书籍文件扩展名
     SUPPORTED_EXTENSIONS = {'.txt', '.pdf', '.epub', '.mobi', '.azw', '.azw3', '.md'}
     
-    def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect):
+    def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect,
+                 selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False):
         """
         初始化文件资源管理器屏幕
         
@@ -43,12 +44,24 @@ class FileExplorerScreen(Screen[None]):
             theme_manager: 主题管理器
             bookshelf: 书架
             statistics_manager: 统计管理器
+            selection_mode: 选择模式，"file" 或 "directory"
+            title: 自定义标题
         """
         super().__init__()
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
         self.statistics_manager = statistics_manager
-        self.title = get_global_i18n().t("file_explorer.title")
+        self.selection_mode = selection_mode
+        self.direct_open = direct_open  # 使用传入的direct_open参数
+        
+        # 设置标题
+        if title:
+            self.title = title
+        elif selection_mode == "file":
+            self.title = get_global_i18n().t("file_explorer.select_file")
+        else:
+            self.title = get_global_i18n().t("file_explorer.select_directory")
+            
         self.__class__.TITLE = self.title
         self.logger = get_logger(__name__)
         
@@ -94,9 +107,11 @@ class FileExplorerScreen(Screen[None]):
             with Container(id="footer-container"):
                 yield Static("", id="status-info")
                 with Horizontal(id="action-buttons"):
-                    yield Button(get_global_i18n().t("file_explorer.open_book"), id="open-btn")
-                    yield Button(get_global_i18n().t("file_explorer.add_to_bookshelf"), id="add-btn")
-                    yield Button(get_global_i18n().t("common.back"), id="back-to-bookshelf-btn")
+                    if self.selection_mode == "file":
+                        yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
+                    else:
+                        yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
+                    yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
@@ -225,6 +240,22 @@ class FileExplorerScreen(Screen[None]):
         except (PermissionError, OSError):
             status_info.update("无法访问")
     
+    def _update_selection_status(self) -> None:
+        """更新选择状态显示"""
+        status_info = self.query_one("#status-info", Static)
+        if self.selected_file:
+            if self.selection_mode == "file":
+                status_info.update(f"已选择文件: {os.path.basename(self.selected_file)}")
+            else:
+                status_info.update(f"已选择目录: {os.path.basename(self.selected_file)}")
+        else:
+            try:
+                file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
+                dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
+                status_info.update(f"文件: {file_count} | 目录: {dir_count}")
+            except (PermissionError, OSError):
+                status_info.update("无法访问")
+    
     def _navigate_to_path(self, path: str) -> None:
         """导航到指定路径"""
         try:
@@ -238,69 +269,32 @@ class FileExplorerScreen(Screen[None]):
         except Exception as e:
             self.notify(f"导航失败: {e}", severity="error")
     
-    def _open_selected_file(self) -> None:
-        """打开选中的文件"""
+    def _validate_selection(self) -> bool:
+        """验证选择是否有效"""
         if not self.selected_file:
-            self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
-            return
+            return False
         
-        try:
-            # 检查文件是否为支持的格式
-            ext = FileUtils.get_file_extension(self.selected_file)
-            if ext not in self.SUPPORTED_EXTENSIONS:
-                self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="error")
-                return
-            
-            # 创建书籍对象并打开
-            from src.core.book import Book
-            from src.ui.screens.reader_screen import ReaderScreen
-            
-            file_name = os.path.basename(self.selected_file)
-            book_name = FileUtils.get_file_name(self.selected_file)
-            
-            book = Book(self.selected_file, book_name, get_global_i18n().t("app.unknown_author"))
-            bookmark_manager = BookmarkManager()
-            
-            # 打开阅读器
-            reader_screen = ReaderScreen(
-                book=book,
-                theme_manager=self.theme_manager,
-                statistics_manager=self.statistics_manager,
-                bookmark_manager=bookmark_manager,
-                bookshelf=self.bookshelf
-            )
-            self.app.push_screen(reader_screen)
-            
-        except Exception as e:
-            self.logger.error(f"打开文件失败: {e}")
-            self.notify(f"打开文件失败: {e}", severity="error")
+        if self.selection_mode == "file":
+            return os.path.isfile(self.selected_file)
+        else:
+            return os.path.isdir(self.selected_file)
     
-    def _add_to_bookshelf(self) -> None:
-        """将选中的文件添加到书架"""
-        if not self.selected_file:
-            self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
+    def _handle_selection(self) -> None:
+        """处理选择操作"""
+        if not self._validate_selection():
+            if self.selection_mode == "file":
+                self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
+            else:
+                self.notify(get_global_i18n().t("file_explorer.no_directory_selected"), severity="warning")
             return
         
-        try:
-            # 检查文件是否为支持的格式
-            ext = FileUtils.get_file_extension(self.selected_file)
-            if ext not in self.SUPPORTED_EXTENSIONS:
-                self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="error")
-                return
-            
-            # 添加到书架
-            book = self.bookshelf.add_book(self.selected_file)
-            if book:
-                self.notify(
-                    get_global_i18n().t("file_explorer.book_added", title=book.title),
-                    severity="information"
-                )
-            else:
-                self.notify(get_global_i18n().t("file_explorer.add_failed"), severity="error")
-                
-        except Exception as e:
-            self.logger.error(f"添加到书架失败: {e}")
-            self.notify(f"添加到书架失败: {e}", severity="error")
+        # 根据模式决定行为
+        if self.direct_open and self.selection_mode == "file":
+            # 直接打开模式下，打开选中的文件
+            self._open_selected_file()
+        else:
+            # 普通模式下，返回选中的路径
+            self.dismiss(self.selected_file)
     
     @on(Tree.NodeExpanded)
     def on_tree_node_expanded(self, message: Tree.NodeExpanded) -> None:
@@ -334,8 +328,19 @@ class FileExplorerScreen(Screen[None]):
         try:
             # 使用节点存储的数据获取路径
             node_path = message.node.data
-            if node_path and node_path != "placeholder" and os.path.isdir(node_path):
-                self._navigate_to_path(node_path)
+            if node_path and node_path != "placeholder":
+                if os.path.isdir(node_path):
+                    if self.selection_mode == "directory":
+                        # 在目录选择模式下，直接选中该目录
+                        self.selected_file = node_path
+                        self._update_selection_status()
+                    else:
+                        # 在文件选择模式下，进入该目录
+                        self._navigate_to_path(node_path)
+                elif os.path.isfile(node_path) and self.selection_mode == "file":
+                    # 在文件选择模式下，选中文件
+                    self.selected_file = node_path
+                    self._update_selection_status()
         except Exception as e:
             logger.error(f"处理树节点选择失败: {e}")
     
@@ -382,23 +387,19 @@ class FileExplorerScreen(Screen[None]):
             # 返回主目录
             self._navigate_to_path(FileUtils.get_home_dir())
             
-        elif event.button.id == "open-btn":
-            # 打开选中的文件
-            self._open_selected_file()
+        elif event.button.id == "select-btn":
+            # 选择操作
+            self._handle_selection()
             
-        elif event.button.id == "add-btn":
-            # 添加到书架
-            self._add_to_bookshelf()
-            
-        elif event.button.id == "back-to-bookshelf-btn":
-            # 返回书架
-            self.app.pop_screen()
+        elif event.button.id == "cancel-btn":
+            # 取消操作
+            self.dismiss(None)
     
     def on_key(self, event: events.Key) -> None:
         """键盘事件处理"""
         if event.key == "escape":
-            # ESC键返回书架
-            self.app.pop_screen()
+            # ESC键取消
+            self.dismiss(None)
             event.prevent_default()
         
         elif event.key == "enter":
@@ -416,14 +417,9 @@ class FileExplorerScreen(Screen[None]):
             self._select_next_file()
             event.prevent_default()
         
-        elif event.key == "a":
-            # A键添加到书架
-            self._add_to_bookshelf()
-            event.prevent_default()
-        
-        elif event.key == "o":
-            # O键打开文件
-            self._open_selected_file()
+        elif event.key == "s":
+            # S键选择
+            self._handle_selection()
             event.prevent_default()
     
     def _show_loading_animation(self, message: Optional[str] = None) -> None:
@@ -490,6 +486,45 @@ class FileExplorerScreen(Screen[None]):
             else:
                 self.selected_file = None
     
+    def _open_selected_file(self) -> None:
+        """打开选中的文件进行阅读"""
+        if not self.selected_file:
+            self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
+            return
+        
+        try:
+            # 检查文件是否为支持的格式
+            ext = FileUtils.get_file_extension(self.selected_file)
+            if ext not in self.SUPPORTED_EXTENSIONS:
+                self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="error")
+                return
+            
+            # 创建书籍对象并打开
+            from src.core.book import Book
+            from src.ui.screens.reader_screen import ReaderScreen
+            
+            file_name = os.path.basename(self.selected_file)
+            book_name = FileUtils.get_file_name(self.selected_file)
+            
+            book = Book(self.selected_file, book_name, get_global_i18n().t("app.unknown_author"))
+            bookmark_manager = BookmarkManager()
+            
+            # 打开阅读器并关闭当前文件资源管理器
+            reader_screen = ReaderScreen(
+                book=book,
+                theme_manager=self.theme_manager,
+                statistics_manager=self.statistics_manager,
+                bookmark_manager=bookmark_manager,
+                bookshelf=self.bookshelf
+            )
+            # 先关闭当前屏幕，然后打开阅读器
+            self.app.pop_screen()  # 关闭文件资源管理器
+            self.app.push_screen(reader_screen)  # 打开阅读器
+            
+        except Exception as e:
+            self.logger.error(f"打开文件失败: {e}")
+            self.notify(f"打开文件失败: {e}", severity="error")
+    
     def _handle_selected_item(self) -> None:
         """处理选中的项目"""
         if not self.file_items or self.selected_file_index < 0:
@@ -497,15 +532,30 @@ class FileExplorerScreen(Screen[None]):
         
         selected_item = self.file_items[self.selected_file_index]
         
-        if selected_item["type"] == "directory":
-            # 如果是目录，进入该目录
-            self._navigate_to_path(selected_item["path"])
-        elif selected_item["type"] == "book":
-            # 如果是书籍文件，打开它
-            self._open_selected_file()
+        if self.selection_mode == "directory":
+            # 目录选择模式下，只能选择目录
+            if selected_item["type"] == "directory":
+                self.selected_file = selected_item["path"]
+                self._update_selection_status()
+            else:
+                self.notify(get_global_i18n().t("file_explorer.select_directory_only"), severity="warning")
         else:
-            # 其他文件类型，显示不支持的提示
-            self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="warning")
+            # 文件选择模式下
+            if selected_item["type"] == "directory":
+                # 如果是目录，进入该目录
+                self._navigate_to_path(selected_item["path"])
+            elif selected_item["type"] == "book":
+                # 如果是书籍文件，根据direct_open参数决定行为
+                if self.direct_open:
+                    # 直接打开文件进行阅读
+                    self._open_selected_file()
+                else:
+                    # 选中文件但不打开，等待用户确认
+                    self.selected_file = selected_item["path"]
+                    self._update_selection_status()
+            else:
+                # 其他文件类型，显示不支持的提示
+                self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="warning")
     
     @on(ListView.Selected)
     def on_file_list_selected(self, message: ListView.Selected) -> None:
@@ -515,10 +565,21 @@ class FileExplorerScreen(Screen[None]):
                 self.selected_file_index = message.list_view.index
                 if 0 <= self.selected_file_index < len(self.file_items):
                     selected_item = self.file_items[self.selected_file_index]
-                    if selected_item["type"] in ["book", "file"]:
-                        self.selected_file = selected_item["path"]
+                    
+                    if self.selection_mode == "file":
+                        # 文件选择模式下，只能选择文件
+                        if selected_item["type"] in ["book", "file"]:
+                            self.selected_file = selected_item["path"]
+                        else:
+                            self.selected_file = None
                     else:
-                        self.selected_file = None
+                        # 目录选择模式下，只能选择目录
+                        if selected_item["type"] == "directory":
+                            self.selected_file = selected_item["path"]
+                        else:
+                            self.selected_file = None
+                    
+                    self._update_selection_status()
         except Exception as e:
             logger.error(f"处理文件列表选择失败: {e}")
     
@@ -530,9 +591,20 @@ class FileExplorerScreen(Screen[None]):
                 self.selected_file_index = message.list_view.index
                 if 0 <= self.selected_file_index < len(self.file_items):
                     selected_item = self.file_items[self.selected_file_index]
-                    if selected_item["type"] in ["book", "file"]:
-                        self.selected_file = selected_item["path"]
+                    
+                    if self.selection_mode == "file":
+                        # 文件选择模式下，只能选择文件
+                        if selected_item["type"] in ["book", "file"]:
+                            self.selected_file = selected_item["path"]
+                        else:
+                            self.selected_file = None
                     else:
-                        self.selected_file = None
+                        # 目录选择模式下，只能选择目录
+                        if selected_item["type"] == "directory":
+                            self.selected_file = selected_item["path"]
+                        else:
+                            self.selected_file = None
+                    
+                    self._update_selection_status()
         except Exception as e:
             logger.error(f"处理文件列表高亮失败: {e}")

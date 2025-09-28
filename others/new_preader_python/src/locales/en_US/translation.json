@@ -771,6 +771,9 @@
         "add_failed": "Add failed",
         "invalid_directory": "Invalid directory path",
         "access_denied": "Access denied",
-        "empty_directory": "Empty directory"
+        "empty_directory": "Empty directory",
+        "select_directory": "Select Directory",
+        "select_file": "Select File",
+        "no_directory_selected": "No directory selected"
     }
 }

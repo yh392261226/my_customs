@@ -775,6 +775,9 @@
         "add_failed": "添加失败",
         "invalid_directory": "无效的目录路径",
         "access_denied": "访问被拒绝",
-        "empty_directory": "空目录"
+        "empty_directory": "空目录",
+        "select_directory": "选择目录",
+        "select_file": "选择文件",
+        "no_directory_selected": "未选择目录"
     }
 }
