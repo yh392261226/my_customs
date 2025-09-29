@@ -47,7 +47,6 @@ class BookmarksScreen(Screen[None]):
                 # 标题栏
                 Horizontal(
                     Label(self.screen_title, id="screen-title"),
-                    Button(get_global_i18n().t("common.back"), id="back-button", variant="error"),
                     id="header-container"
                 ),
                 
@@ -57,6 +56,7 @@ class BookmarksScreen(Screen[None]):
                     Button(get_global_i18n().t("common.delete"), id="delete-selected-btn", variant="error"),
                     Button(get_global_i18n().t("common.edit"), id="edit-note-btn", variant="default"),
                     Button(get_global_i18n().t("bookmarks.clear_all"), id="clear-all-btn", variant="warning"),
+                    Button(get_global_i18n().t("common.back"), id="back-button", variant="error"),
                     id="action-buttons"
                 ),
                 

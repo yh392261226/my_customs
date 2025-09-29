@@ -51,7 +51,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                  bookshelf: Optional[Any] = None):
         """初始化阅读器屏幕"""
         super().__init__()
-        ReaderScreen.TITLE = get_global_i18n().t('reader.title')
+        # 使用实例变量而不是类变量来避免重新定义常量
+        self._title = get_global_i18n().t('reader.title')
         self.book = book
         self.theme_manager = theme_manager
         self.statistics_manager = statistics_manager
@@ -781,8 +782,14 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         except Exception:
             pass
         
-        # 更新状态栏
+        # 更新状态栏 - 添加更安全的查询方式
         try:
+            # 先检查状态栏是否存在
+            status_widgets = self.query("#status")
+            if not status_widgets:
+                logger.warning("状态栏元素未找到，可能尚未渲染完成")
+                return
+                
             status = self.query_one("#status", Static)
             
             # 调试信息：检查分页值
@@ -965,7 +972,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         except Exception as e:
             logger.error(f"{get_global_i18n().t('reader.regedite_watcher_cancel_failed')}: {e}")
     
-    def _show_loading_animation(self, message: str = None) -> None:
+    def _show_loading_animation(self, message: Optional[str] = None) -> None:
         """显示加载动画"""
         if message is None:
             message = get_global_i18n().t('common.on_action')
