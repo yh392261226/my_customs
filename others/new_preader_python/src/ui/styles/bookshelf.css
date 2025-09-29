@@ -17,16 +17,29 @@ DataTable {
 /* 顶部标题区域 */
 #bookshelf-header {
     height: auto;
+    align: center middle;
+}
+
+/* 顶部工具栏按钮居中 */
+#bookshelf-toolbar {
+    align: center middle;
 }
 
 /* 统计信息区域 */
 #books-stats-area {
     height: auto;
+    align: center middle;
 }
 
 /* 底部控制区域 */
 #bookshelf-footer {
     height: auto;
+    align: center middle;
+}
+
+/* 底部控制栏按钮居中 */
+#bookshelf-controls {
+    align: center middle;
 }
 
 
