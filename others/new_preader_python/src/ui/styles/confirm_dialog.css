@@ -1,50 +1,36 @@
+/* 确认对话框专用样式 */
+
 Screen {
     layout: vertical;
 }
 
 #confirm-container {
     width: 50%;
-    height: 30%;
-    margin: 10 10 10 10;
+    height: auto;
     border: round $primary;
     background: $surface;
-    layout: vertical;
-    padding: 1;
 }
 
 #confirm-title {
     width: 100%;
-    height: 3;
-    text-align: center;
-    text-style: bold;
-    color: $accent;
-    margin: 1 0;
+    height: auto;
+    content-align: center middle;
 }
 
 #confirm-message {
     width: 100%;
-    height: 5;
-    text-align: center;
-    color: $text;
-    margin: 1 0;
+    height: auto;
+    content-align: center middle;
 }
 
 #confirm-buttons {
     width: 100%;
-    height: 4;
+    height: auto;
     layout: horizontal;
     align-horizontal: center;
-    margin: 1 0;
 }
 
 Button {
-    margin: 0 1;
-    min-width: 12;
-    height: 3;
-}
-
-Label {
-    width: 100%;
-    height: auto;
-    margin: 1 0;
+    margin: 1;
+    min-width: 10;
 }
