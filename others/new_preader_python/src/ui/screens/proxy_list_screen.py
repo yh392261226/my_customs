@@ -62,11 +62,7 @@ class ProxyListScreen(Screen[None]):
             delete_proxy = i18n.t('proxy_list.delete_proxy')
             enable_proxy = i18n.t('proxy_list.enable_proxy')
             back = i18n.t('proxy_list.back')
-            shortcut_a = i18n.t('proxy_list.shortcut_a')
-            shortcut_t = i18n.t('proxy_list.shortcut_t')
-            shortcut_e = i18n.t('proxy_list.shortcut_e')
-            shortcut_d = i18n.t('proxy_list.shortcut_d')
-            shortcut_esc = i18n.t('proxy_list.shortcut_esc')
+            shortcut_a = f"{i18n.t('proxy_list.shortcut_a') } {i18n.t('proxy_list.shortcut_t')} {i18n.t('proxy_list.shortcut_e')} {i18n.t('proxy_list.shortcut_d')} {i18n.t('proxy_list.shortcut_esc')}"
         except RuntimeError:
             # 使用默认值
             title = "代理列表管理"
@@ -77,11 +73,7 @@ class ProxyListScreen(Screen[None]):
             delete_proxy = "删除"
             enable_proxy = "启用"
             back = "返回"
-            shortcut_a = "A: 添加代理"
-            shortcut_t = "T: 测试连接"
-            shortcut_e = "E: 编辑代理"
-            shortcut_d = "D: 删除代理"
-            shortcut_esc = "ESC: 返回"
+            shortcut_a = "A: 添加代理 T: 测试连接 E: 编辑代理 D: 删除代理 ESC: 返回"
         
         yield Container(
             Vertical(
@@ -108,10 +100,6 @@ class ProxyListScreen(Screen[None]):
                 # 快捷键状态栏
                 Horizontal(
                     Label(shortcut_a, id="shortcut-a"),
-                    Label(shortcut_t, id="shortcut-t"),
-                    Label(shortcut_e, id="shortcut-e"),
-                    Label(shortcut_d, id="shortcut-d"),
-                    Label(shortcut_esc, id="shortcut-esc"),
                     id="shortcuts-bar"
                 ),
                 id="proxy-list-container"
