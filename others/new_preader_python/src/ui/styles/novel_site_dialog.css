@@ -2,7 +2,7 @@
 NovelSiteDialog {
     layout: vertical;
     padding: 1;
-    width: 90%;
+    width: 100%;
     max-width: 60;
     height: auto;
     min-height: 25;

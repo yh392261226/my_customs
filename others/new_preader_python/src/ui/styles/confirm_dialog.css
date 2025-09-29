@@ -5,8 +5,8 @@ Screen {
 }
 
 #confirm-container {
-    width: 50%;
-    height: auto;
+    width: 90%;
+    height: 85%;
     border: round $primary;
     background: $surface;
 }

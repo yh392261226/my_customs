@@ -2,8 +2,8 @@
 #batch-input-dialog {
     layout: vertical;
     padding: 1;
-    width: 80%;
-    height: auto;
+    width: 90%;
+    height: 85%;
     min-height: 10;
     max-height: 20;
     align: center middle;

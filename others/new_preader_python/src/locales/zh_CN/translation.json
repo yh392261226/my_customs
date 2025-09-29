@@ -544,7 +544,8 @@
         "no_results": "未找到匹配结果",
         "goto_page": "跳转到此页",
         "column_page": "页码",
-        "column_preview": "预览内容"
+        "column_preview": "预览内容",
+        "page_info": "第{page}/{total_pages}页，共{total_results}个结果"
     },
     "pagination": {
         "start_pagination": "开始分页: 内容长度={content_length}, 容器尺寸={container_size}",

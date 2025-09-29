@@ -3,7 +3,7 @@ Screen {
 }
 
 #settings-container {
-    width: 60%;
+    width: 90%;
     height: 100%;
     layout: grid;
     grid-size: 1 3;

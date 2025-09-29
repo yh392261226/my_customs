@@ -1,6 +1,6 @@
 #dialog-container {
-    width: 80%;
-    height: auto;
+    width: 90%;
+    height: 85%;
     min-height: 10;
     max-height: 20;
     background: $panel;

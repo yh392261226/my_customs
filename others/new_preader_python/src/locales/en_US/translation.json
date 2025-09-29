@@ -544,7 +544,8 @@
         "no_results": "No matching results found",
         "goto_page": "Go to this page",
         "column_page": "Page",
-        "column_preview": "Preview Content"
+        "column_preview": "Preview Content",
+        "page_info": "Page {page}/{total_pages}，total {total_results} results"
     },
     "pagination": {
         "start_pagination": "Starting pagination: content length={content_length}, container size={container_size}",
