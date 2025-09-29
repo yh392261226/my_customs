@@ -443,7 +443,11 @@
         "books_unit": "books",
         "format_period_data_failed": "Failed to format period statistics",
         "load_period_data_failed": "Failed to load period statistics data",
-        "init_failed": "Failed to initialize data table"
+        "init_failed": "Failed to initialize data table",
+        "unknown_book": "Unknown Book",
+        "unknown_author": "Unknown Author",
+        "open_count": "Open Count",
+        "total_pages": "Total Pages"
     },
     "error": {
         "error": "Error",
@@ -617,6 +621,8 @@
     "proxy_settings": {
         "title": "Proxy Settings",
         "description": "Configure network proxy settings",
+        "name": "名称",
+        "name_placeholder": "请输入名称",
         "enable_proxy": "Enable Proxy",
         "proxy_type": "Proxy Type",
         "host": "Host Address",
@@ -642,6 +648,28 @@
         "shortcut_esc": "ESC: Back",
         "proxy_disabled": "Proxy disabled",
         "proxy_enabled": "Proxy enabled"
+    },
+    "proxy_list": {
+        "title": "代理列表",
+        "description": "管理多个代理设置",
+        "add_proxy": "添加代理",
+        "test_connection": "测试连接",
+        "edit_proxy": "编辑代理",
+        "delete_proxy": "删除代理",
+        "back": "返回",
+        "status": "状态",
+        "name": "名称",
+        "type": "类型",
+        "host": "主机",
+        "port": "端口",
+        "username": "用户名",
+        "updated": "更新时间",
+        "shortcut_a": "A: 添加代理",
+        "shortcut_t": "T: 测试连接",
+        "shortcut_e": "E: 编辑代理",
+        "shortcut_d": "D: 删除代理",
+        "shortcut_enter": "Enter: 选择代理",
+        "shortcut_esc": "ESC: 返回"
     },
     "novel_sites": {
         "title": "Book Websites Management",
