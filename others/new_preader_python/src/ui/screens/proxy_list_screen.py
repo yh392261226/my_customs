@@ -184,9 +184,9 @@ class ProxyListScreen(Screen[None]):
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """处理表格单元格选择事件"""
         self.selected_proxy_id = None
-        if event.cursor_row is not None:
+        if event.coordinate.row is not None:
             # 获取选中的代理ID
-            row_index = event.cursor_row
+            row_index = event.coordinate.row
             if 0 <= row_index < len(self.proxy_list):
                 self.selected_proxy_id = self.proxy_list[row_index].get("id")
                 logger.debug(f"选中代理ID: {self.selected_proxy_id}")
@@ -247,6 +247,13 @@ class ProxyListScreen(Screen[None]):
             self._update_status("未找到选中的代理", "error")
             return
         
+        # 确保代理ID是整数类型
+        try:
+            proxy_id = int(self.selected_proxy_id)
+        except (TypeError, ValueError):
+            self._update_status("代理ID格式错误", "error")
+            return
+        
         # 创建代理编辑对话框
         from src.ui.dialogs.proxy_edit_dialog import ProxyEditDialog
         
@@ -254,7 +261,7 @@ class ProxyListScreen(Screen[None]):
             """处理代理保存结果"""
             if updated_data:
                 # 更新代理
-                success = self.database_manager.update_proxy_setting(self.selected_proxy_id, updated_data)
+                success = self.database_manager.update_proxy_setting(proxy_id, updated_data)
                 if success:
                     self._update_status("代理更新成功", "success")
                     self._refresh_list()
@@ -272,14 +279,21 @@ class ProxyListScreen(Screen[None]):
             self._update_status("请先选择一个代理", "warning")
             return
         
+        # 确保代理ID是整数类型
+        try:
+            proxy_id = int(self.selected_proxy_id)
+        except (TypeError, ValueError):
+            self._update_status("代理ID格式错误", "error")
+            return
+        
         # 创建确认对话框
         from src.ui.dialogs.confirm_dialog import ConfirmDialog
         
-        def on_confirm(confirmed: bool) -> None:
+        def on_confirm(confirmed: Optional[bool]) -> None:
             """处理确认结果"""
             if confirmed:
                 # 删除代理
-                success = self.database_manager.delete_proxy_setting(self.selected_proxy_id)
+                success = self.database_manager.delete_proxy_setting(proxy_id)
                 if success:
                     self._update_status("代理删除成功", "success")
                     self._refresh_list()
@@ -313,16 +327,40 @@ class ProxyListScreen(Screen[None]):
             self._update_status("未找到选中的代理", "error")
             return
         
+        # 验证代理数据
+        if not proxy_data.get("host") or not proxy_data.get("port"):
+            self._update_status("代理设置不完整，请检查主机地址和端口号", "error")
+            return
+        
+        # 验证端口号格式
+        try:
+            port = int(proxy_data.get("port"))
+            if port < 1 or port > 65535:
+                self._update_status("端口号必须在1-65535之间", "error")
+                return
+        except (ValueError, TypeError):
+            self._update_status("端口号必须是数字", "error")
+            return
+        
         # 测试连接
         self._update_status("正在测试连接...", "information")
         
-        # 模拟测试（实际实现中应该进行真实的网络测试）
-        import time
-        time.sleep(1)
+        # 构建代理URL
+        proxy_type = proxy_data.get("type", "HTTP").lower()
+        host = proxy_data.get("host")
+        port = proxy_data.get("port")
+        username = proxy_data.get("username", "")
+        password = proxy_data.get("password", "")
         
-        # 随机返回结果
-        import random
-        if random.random() > 0.3:
+        if username and password:
+            proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
+        else:
+            proxy_url = f"{proxy_type}://{host}:{port}"
+        
+        # 执行真实的代理连接测试
+        test_result = self._real_test_proxy_connection(proxy_url)
+        
+        if test_result:
             self._update_status("连接测试成功", "success")
         else:
             self._update_status("连接测试失败", "error")
@@ -363,6 +401,53 @@ class ProxyListScreen(Screen[None]):
         """D键 - 删除代理"""
         self._delete_proxy()
     
+    def _real_test_proxy_connection(self, proxy_url: str) -> bool:
+        """
+        真实的代理连接测试
+        
+        Args:
+            proxy_url: 代理URL
+            
+        Returns:
+            bool: 代理是否可用
+        """
+        import requests
+        import time
+        
+        try:
+            # 设置代理
+            proxies = {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+            
+            # 测试连接 - 使用目标网站进行测试
+            test_url = "https://www.renqixiaoshuo.net"
+            
+            # 设置超时时间
+            timeout = 10
+            
+            start_time = time.time()
+            response = requests.get(test_url, proxies=proxies, timeout=timeout)
+            end_time = time.time()
+            
+            if response.status_code == 200:
+                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                return True
+            else:
+                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
+                return False
+                
+        except requests.exceptions.ConnectTimeout:
+            logger.error(f"代理连接超时: {proxy_url}")
+            return False
+        except requests.exceptions.ConnectionError:
+            logger.error(f"代理连接错误: {proxy_url}")
+            return False
+        except Exception as e:
+            logger.error(f"代理测试异常: {e}")
+            return False
+
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         table = self.query_one("#proxy-list-table", DataTable)
@@ -373,7 +458,7 @@ class ProxyListScreen(Screen[None]):
             event.prevent_default()
         elif event.key in ["up", "down"]:
             # 上下键移动时更新选中状态
-            if table.cursor_row is not None:
+            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
                 row_index = table.cursor_row
                 if 0 <= row_index < len(self.proxy_list):
                     self.selected_proxy_id = self.proxy_list[row_index].get("id")

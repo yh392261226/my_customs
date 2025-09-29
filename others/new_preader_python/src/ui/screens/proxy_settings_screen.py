@@ -346,20 +346,44 @@ class ProxySettingsScreen(Screen[None]):
                 self._update_status("请填写必填字段")
             return
         
-        # TODO: 实现代理连接测试
-        # 这里应该使用实际的网络请求来测试代理连接
+        # 验证端口号格式
+        try:
+            port = int(self.proxy_settings["port"])
+            if port < 1 or port > 65535:
+                try:
+                    self._update_status(get_global_i18n().t('proxy_settings.invalid_port'))
+                except RuntimeError:
+                    self._update_status("端口号必须在1-65535之间", "error")
+                return
+        except ValueError:
+            try:
+                self._update_status(get_global_i18n().t('proxy_settings.port_must_be_number'))
+            except RuntimeError:
+                self._update_status("端口号必须是数字", "error")
+            return
+        
+        # 使用真实的网络测试
         try:
             self._update_status(get_global_i18n().t('proxy_settings.testing_connection'))
         except RuntimeError:
             self._update_status("正在测试连接...")
         
-        # 模拟测试结果
-        import time
-        time.sleep(1)  # 模拟网络延迟
+        # 构建代理URL
+        proxy_type = self.proxy_settings["type"].lower()
+        host = self.proxy_settings["host"]
+        port = self.proxy_settings["port"]
+        username = self.proxy_settings["username"]
+        password = self.proxy_settings["password"]
         
-        # 随机返回成功或失败（实际实现中应该进行真实的网络测试）
-        import random
-        if random.random() > 0.3:  # 70%成功率
+        if username and password:
+            proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
+        else:
+            proxy_url = f"{proxy_type}://{host}:{port}"
+        
+        # 执行真实的代理连接测试
+        test_result = self._real_test_proxy_connection(proxy_url)
+        
+        if test_result:
             try:
                 self._update_status(get_global_i18n().t('proxy_settings.connection_success'), "success")
             except RuntimeError:
@@ -429,6 +453,53 @@ class ProxySettingsScreen(Screen[None]):
         """S键 - 保存设置"""
         self._save_settings()
     
+    def _real_test_proxy_connection(self, proxy_url: str) -> bool:
+        """
+        真实的代理连接测试
+        
+        Args:
+            proxy_url: 代理URL
+            
+        Returns:
+            bool: 代理是否可用
+        """
+        import requests
+        import time
+        
+        try:
+            # 设置代理
+            proxies = {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+            
+            # 测试连接 - 使用目标网站进行测试
+            test_url = "https://www.renqixiaoshuo.net"
+            
+            # 设置超时时间
+            timeout = 10
+            
+            start_time = time.time()
+            response = requests.get(test_url, proxies=proxies, timeout=timeout)
+            end_time = time.time()
+            
+            if response.status_code == 200:
+                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                return True
+            else:
+                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
+                return False
+                
+        except requests.exceptions.ConnectTimeout:
+            logger.error(f"代理连接超时: {proxy_url}")
+            return False
+        except requests.exceptions.ConnectionError:
+            logger.error(f"代理连接错误: {proxy_url}")
+            return False
+        except Exception as e:
+            logger.error(f"代理测试异常: {e}")
+            return False
+
     def key_t(self) -> None:
         """T键 - 测试连接"""
         self._test_connection()

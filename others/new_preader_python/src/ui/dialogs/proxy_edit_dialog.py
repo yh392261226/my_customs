@@ -266,23 +266,22 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # 显示测试中状态
         self._show_message("正在测试连接...", "info")
         
-        # TODO: 实现实际的代理连接测试
-        # 这里应该使用实际的网络请求来测试代理连接
-        # 构建代理配置
-        proxy_config = {
-            "type": type_select.value if type_select.value else "HTTP",
-            "host": host_input.value.strip(),
-            "port": port_input.value.strip(),
-            "username": username_input.value.strip(),
-            "password": password_input.value
-        }
+        # 构建代理URL
+        proxy_type = type_select.value if type_select.value else "HTTP"
+        host = host_input.value.strip()
+        port = port_input.value.strip()
+        username = username_input.value.strip()
+        password = password_input.value
         
-        # 模拟测试结果（实际实现中应该进行真实的网络测试）
-        import random
-        import time
-        time.sleep(1)  # 模拟网络延迟
+        if username and password:
+            proxy_url = f"{proxy_type.lower()}://{username}:{password}@{host}:{port}"
+        else:
+            proxy_url = f"{proxy_type.lower()}://{host}:{port}"
         
-        if random.random() > 0.3:  # 70%成功率
+        # 执行真实的代理连接测试
+        test_result = self._real_test_proxy_connection(proxy_url)
+        
+        if test_result:
             self._show_message("连接测试成功", "success")
         else:
             self._show_message("连接测试失败，请检查代理设置", "error")
@@ -309,6 +308,53 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
             else:
                 logger.info(message)
     
+    def _real_test_proxy_connection(self, proxy_url: str) -> bool:
+        """
+        真实的代理连接测试
+        
+        Args:
+            proxy_url: 代理URL
+            
+        Returns:
+            bool: 代理是否可用
+        """
+        import requests
+        import time
+        
+        try:
+            # 设置代理
+            proxies = {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+            
+            # 测试连接 - 使用目标网站进行测试
+            test_url = "https://www.renqixiaoshuo.net"
+            
+            # 设置超时时间
+            timeout = 10
+            
+            start_time = time.time()
+            response = requests.get(test_url, proxies=proxies, timeout=timeout)
+            end_time = time.time()
+            
+            if response.status_code == 200:
+                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                return True
+            else:
+                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
+                return False
+                
+        except requests.exceptions.ConnectTimeout:
+            logger.error(f"代理连接超时: {proxy_url}")
+            return False
+        except requests.exceptions.ConnectionError:
+            logger.error(f"代理连接错误: {proxy_url}")
+            return False
+        except Exception as e:
+            logger.error(f"代理测试异常: {e}")
+            return False
+
     def _show_error(self, message: str) -> None:
         """显示错误消息"""
         self._show_message(message, "error")
