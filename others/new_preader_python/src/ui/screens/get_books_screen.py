@@ -20,6 +20,9 @@ logger = get_logger(__name__)
 class GetBooksScreen(Screen[None]):
     """获取书籍主屏幕"""
     
+    # 加载CSS样式
+    CSS_PATH = "../styles/get_books_screen.css"
+    
     def __init__(self, theme_manager: ThemeManager):
         """
         初始化获取书籍屏幕

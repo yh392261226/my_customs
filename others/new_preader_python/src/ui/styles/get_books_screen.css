@@ -1,17 +1,17 @@
-/* 代理列表页面专用样式 */
+/* 获取书籍页面专用样式 */
 
 Screen {
     layout: vertical;
 }
 
-#proxy-list-container {
+#get-books-container {
     width: 90%;
     height: 100%;
     margin: 1 2;
     layout: vertical;
 }
 
-#proxy-list-title {
+#get-books-title {
     width: 100%;
     height: 3;
     content-align: center middle;
@@ -19,30 +19,50 @@ Screen {
     color: $accent;
 }
 
-#proxy-list-description {
+#get-books-description {
     width: 100%;
     height: 2;
     content-align: center middle;
     color: $text-muted;
 }
 
-#proxy-list-buttons {
+#get-books-buttons {
     width: 100%;
     height: 4;
     layout: horizontal;
     align-horizontal: center;
 }
 
-#proxy-list-status {
+#novel-sites-preview {
+    width: 100%;
+    height: 40%;
+    border: round $primary;
+}
+
+#novel-sites-list-title {
     width: 100%;
     height: 2;
     content-align: center middle;
+    text-style: bold;
 }
 
-#proxy-list-table {
+#proxy-settings-preview {
     width: 100%;
-    height: 1fr;
+    height: 20%;
     border: round $primary;
+}
+
+#proxy-status-title {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+    text-style: bold;
+}
+
+#proxy-status-info {
+    width: 100%;
+    height: auto;
+    content-align: center middle;
 }
 
 #shortcuts-bar {
