@@ -5,7 +5,14 @@ HelpScreen {
     height: 100%;
 }
 
-/* 标题样式 */
+/* 主容器使用垂直布局 */
+#help-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+/* 标题区域 */
 #help-title {
     width: 100%;
     height: 3;
@@ -18,26 +25,34 @@ HelpScreen {
 /* 内容区域样式 */
 #help-content {
     width: 100%;
-    height: 80%;
+    height: 70%;
     overflow-y: scroll;
     padding: 1;
 }
 
 /* 底部按钮区域样式 */
-#help-buttons {
+#help-controls {
     width: 100%;
-    height: auto;
-    min-height: 3;
-    dock: bottom;
-    align-horizontal: center;
+    height: 20%;
+    layout: horizontal;
+    align: center middle;
     background: $panel;
     border-top: solid $primary;
     padding: 1;
 }
 
+/* 快捷键状态栏 */
+#shortcuts-bar {
+    width: 100%;
+    height: 5%;
+    layout: horizontal;
+    align: center middle;
+    background: $panel-darken-1;
+}
+
 /* 按钮样式 */
-Button {
+#back-btn {
     width: auto;
-    height: auto;
+    height: 3;
     margin: 0 1;
 }

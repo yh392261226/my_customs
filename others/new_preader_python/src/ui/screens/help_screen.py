@@ -26,12 +26,10 @@ class HelpScreen(Screen[None]):
         初始化帮助屏幕
         """
         super().__init__()
-        self.screen_title = "帮助中心"
+        self.screen_title = get_global_i18n().t("help.title")
         
         # 准备帮助内容
         self.help_content = f"""
-# {get_global_i18n().t("help.title")}
-
 ## {get_global_i18n().t("help.keyboard_shortcuts")}
 
 ### {get_global_i18n().t("help.reading_operations")}
@@ -68,6 +66,11 @@ class HelpScreen(Screen[None]):
         """
         yield Container(
             Vertical(
+                Vertical(
+                    Label(get_global_i18n().t("help.title"), id="help-title"),
+                    Label("", id="help-info"),
+                    id="help-preview"
+                ),
                 MarkdownViewer(self.help_content, id="help-content"),
                 Horizontal(
                     Button(get_global_i18n().t("help.back"), id="back-btn"),

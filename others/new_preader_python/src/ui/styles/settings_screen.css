@@ -1,3 +1,5 @@
+/* 设置中心页面样式 */
+
 Screen {
     layout: vertical;
 }
@@ -7,15 +9,15 @@ Screen {
     height: 100%;
     layout: grid;
     grid-size: 1 3;
-    grid-rows: 1fr auto auto;
+    grid-rows: 1fr 5 2;
 }
 
+/* 设置控制按钮区域 */
 #settings-controls {
     width: 100%;
     height: 5;
     layout: horizontal;
-    align-horizontal: center;
-    content-align: center middle;
+    align: center middle;
     background: $panel;
     border-top: solid $primary;
 }
@@ -26,12 +28,12 @@ Screen {
     height: 3;
 }
 
+/* 快捷键状态栏 */
 #shortcuts-bar {
     width: 100%;
     height: 2;
     layout: horizontal;
-    align-horizontal: center;
-    content-align: center middle;
+    align: center middle;
     background: $panel-darken-1;
 }
 
@@ -41,6 +43,7 @@ Screen {
     color: $text-muted;
 }
 
+/* 标签页内容区域 */
 TabbedContent {
     width: 100%;
     height: 100%;
@@ -53,15 +56,17 @@ TabPane {
 
 ScrollableContainer {
     width: 100%;
-    height: 100%;
+    height: 90%;
 }
 
+/* 设置标签样式 */
 .setting-label {
     width: 100%;
     height: 1;
     margin: 1 0;
 }
 
+/* 设置控件样式 */
 Select {
     width: 100%;
     height: 3;
