@@ -1,23 +1,25 @@
 """
 确认对话框
+用于确认操作
 """
 
 from typing import Optional
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label
+from textual.widgets import Button, Label
 from textual.app import ComposeResult
-from textual.reactive import reactive
 from textual import events
 
-from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class ConfirmDialog(ModalScreen[bool]):
+class ConfirmDialog(ModalScreen[Optional[bool]]):
     """确认对话框"""
+    
+    # 加载CSS样式
+    CSS_PATH = "../styles/confirm_dialog.css"
     
     def __init__(self, theme_manager: ThemeManager, title: str, message: str):
         """
@@ -42,23 +44,33 @@ class ConfirmDialog(ModalScreen[bool]):
         """
         yield Container(
             Vertical(
-                Static(self.title, id="confirm-dialog-title"),
-                Static(self.message, id="confirm-dialog-message"),
+                # 标题
+                Label(self.title, id="confirm-title"),
                 
-                # 操作按钮
+                # 消息内容
+                Label(self.message, id="confirm-message"),
+                
+                # 按钮区域
                 Horizontal(
-                    Button(get_global_i18n().t('confirm_dialog.confirm'), id="confirm-btn", variant="primary"),
-                    Button(get_global_i18n().t('confirm_dialog.cancel'), id="cancel-btn"),
-                    id="confirm-dialog-buttons"
+                    Button("确认", id="confirm-btn", variant="primary"),
+                    Button("取消", id="cancel-btn"),
+                    id="confirm-buttons"
                 ),
-                id="confirm-dialog-container"
+                
+                id="confirm-container"
             )
         )
     
     def on_mount(self) -> None:
         """对话框挂载时的回调"""
+        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
+        
+        # 设置默认焦点到确认按钮
+        confirm_btn = self.query_one("#confirm-btn", Button)
+        if confirm_btn:
+            self.set_focus(confirm_btn)
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -68,9 +80,9 @@ class ConfirmDialog(ModalScreen[bool]):
             event: 按钮按下事件
         """
         if event.button.id == "confirm-btn":
-            self.dismiss(True)  # 确认
+            self.dismiss(True)
         elif event.button.id == "cancel-btn":
-            self.dismiss(False)  # 取消
+            self.dismiss(False)
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""

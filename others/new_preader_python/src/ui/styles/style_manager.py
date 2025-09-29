@@ -292,7 +292,7 @@ def initialize_style_manager(app: App) -> StyleManager:
         "HelpScreen": ["help_screen.css", "styles.css"],
         "BossKeyScreen": ["boss_key.css", "styles.css"],
         "GetBooksScreen": ["styles.css"],
-        "ProxySettingsScreen": ["proxy_settings_screen.css", "styles.css"],
+        "ProxyListScreen": ["proxy_list_screen.css", "styles.css"],
         "NovelSitesManagementScreen": ["novel_sites_management_screen.css", "styles.css"],
         "CrawlerManagementScreen": ["crawler_management_screen.css", "styles.css"],
     }

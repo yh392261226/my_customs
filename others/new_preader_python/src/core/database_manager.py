@@ -142,19 +142,33 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_last_read ON books(last_read_date)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_history_date ON reading_history(read_date)")
             
-            # 创建代理设置表
+            # 创建代理设置表（支持多条记录）
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS proxy_settings (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL DEFAULT '默认代理',
                     enabled BOOLEAN NOT NULL DEFAULT 0,
                     type TEXT NOT NULL DEFAULT 'HTTP',
                     host TEXT NOT NULL DEFAULT '127.0.0.1',
                     port TEXT NOT NULL DEFAULT '7890',
                     username TEXT DEFAULT '',
                     password TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
             """)
+            
+            # 检查并添加缺失的字段
+            cursor.execute("PRAGMA table_info(proxy_settings)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            # 如果缺少name字段，则添加
+            if 'name' not in columns:
+                cursor.execute("ALTER TABLE proxy_settings ADD COLUMN name TEXT NOT NULL DEFAULT '默认代理'")
+            
+            # 如果缺少created_at字段，则添加
+            if 'created_at' not in columns:
+                cursor.execute("ALTER TABLE proxy_settings ADD COLUMN created_at TEXT NOT NULL DEFAULT '2024-01-01T00:00:00'")
             
             # 创建书籍网站表
             cursor.execute("""
@@ -678,10 +692,10 @@ class DatabaseManager:
             logger.error(f"更新书签备注失败: {e}")
             return False
 
-    # 代理设置相关方法
+    # 代理设置相关方法（支持多条记录）
     def save_proxy_settings(self, settings: Dict[str, Any]) -> bool:
         """
-        保存代理设置
+        保存代理设置（兼容旧版本，只保存一条记录）
         
         Args:
             settings: 代理设置字典
@@ -693,21 +707,24 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 updated_at = datetime.now().isoformat()
+                created_at = datetime.now().isoformat()
                 
                 # 先删除现有设置（只保留一条记录）
                 cursor.execute("DELETE FROM proxy_settings")
                 
                 cursor.execute("""
                     INSERT INTO proxy_settings 
-                    (enabled, type, host, port, username, password, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (name, enabled, type, host, port, username, password, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
+                    settings.get("name", "默认代理"),
                     settings.get("enabled", False),
                     settings.get("type", "HTTP"),
                     settings.get("host", "127.0.0.1"),
                     settings.get("port", "7890"),
                     settings.get("username", ""),
                     settings.get("password", ""),
+                    created_at,
                     updated_at
                 ))
                 conn.commit()
@@ -718,7 +735,7 @@ class DatabaseManager:
 
     def get_proxy_settings(self) -> Dict[str, Any]:
         """
-        获取代理设置
+        获取代理设置（兼容旧版本，返回第一条记录）
         
         Returns:
             Dict[str, Any]: 代理设置字典
@@ -732,36 +749,216 @@ class DatabaseManager:
                 
                 if row:
                     return {
+                        "id": row["id"],
+                        "name": row["name"],
                         "enabled": bool(row["enabled"]),
                         "type": row["type"],
                         "host": row["host"],
                         "port": row["port"],
                         "username": row["username"],
                         "password": row["password"],
+                        "created_at": row["created_at"],
                         "updated_at": row["updated_at"]
                     }
                 else:
                     # 返回默认设置
                     return {
+                        "id": 0,
+                        "name": "默认代理",
                         "enabled": False,
                         "type": "HTTP",
                         "host": "127.0.0.1",
                         "port": "7890",
                         "username": "",
                         "password": "",
+                        "created_at": datetime.now().isoformat(),
                         "updated_at": datetime.now().isoformat()
                     }
         except sqlite3.Error as e:
             logger.error(f"获取代理设置失败: {e}")
             return {
+                "id": 0,
+                "name": "默认代理",
                 "enabled": False,
                 "type": "HTTP",
                 "host": "127.0.0.1",
                 "port": "7890",
                 "username": "",
                 "password": "",
+                "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat()
             }
+    
+    def get_all_proxy_settings(self) -> List[Dict[str, Any]]:
+        """
+        获取所有代理设置
+        
+        Returns:
+            List[Dict[str, Any]]: 代理设置列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM proxy_settings ORDER BY name")
+                rows = cursor.fetchall()
+                
+                # 确保每个代理设置都有name字段
+                proxy_list = []
+                for row in rows:
+                    proxy_data = dict(row)
+                    # 如果name字段为空，设置默认值
+                    if not proxy_data.get('name'):
+                        proxy_data['name'] = f"代理{proxy_data.get('id', '')}"
+                    proxy_list.append(proxy_data)
+                
+                return proxy_list
+        except sqlite3.Error as e:
+            logger.error(f"获取所有代理设置失败: {e}")
+            return []
+    
+    def add_proxy_setting(self, proxy_data: Dict[str, Any]) -> bool:
+        """
+        添加代理设置
+        
+        Args:
+            proxy_data: 代理设置数据
+            
+        Returns:
+            bool: 添加是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                created_at = datetime.now().isoformat()
+                updated_at = datetime.now().isoformat()
+                
+                cursor.execute("""
+                    INSERT INTO proxy_settings 
+                    (name, enabled, type, host, port, username, password, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    proxy_data.get("name", "新代理"),
+                    proxy_data.get("enabled", False),
+                    proxy_data.get("type", "HTTP"),
+                    proxy_data.get("host", "127.0.0.1"),
+                    proxy_data.get("port", "7890"),
+                    proxy_data.get("username", ""),
+                    proxy_data.get("password", ""),
+                    created_at,
+                    updated_at
+                ))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"添加代理设置失败: {e}")
+            return False
+    
+    def update_proxy_setting(self, proxy_id: int, proxy_data: Dict[str, Any]) -> bool:
+        """
+        更新代理设置
+        
+        Args:
+            proxy_id: 代理ID
+            proxy_data: 代理设置数据
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                updated_at = datetime.now().isoformat()
+                
+                cursor.execute("""
+                    UPDATE proxy_settings 
+                    SET name = ?, enabled = ?, type = ?, host = ?, port = ?, 
+                        username = ?, password = ?, updated_at = ?
+                    WHERE id = ?
+                """, (
+                    proxy_data.get("name", "新代理"),
+                    proxy_data.get("enabled", False),
+                    proxy_data.get("type", "HTTP"),
+                    proxy_data.get("host", "127.0.0.1"),
+                    proxy_data.get("port", "7890"),
+                    proxy_data.get("username", ""),
+                    proxy_data.get("password", ""),
+                    updated_at,
+                    proxy_id
+                ))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"更新代理设置失败: {e}")
+            return False
+    
+    def delete_proxy_setting(self, proxy_id: int) -> bool:
+        """
+        删除代理设置
+        
+        Args:
+            proxy_id: 代理ID
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM proxy_settings WHERE id = ?", (proxy_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"删除代理设置失败: {e}")
+            return False
+    
+    def enable_proxy_setting(self, proxy_id: int) -> bool:
+        """
+        启用代理设置（同时禁用其他所有代理）
+        
+        Args:
+            proxy_id: 代理ID
+            
+        Returns:
+            bool: 操作是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                updated_at = datetime.now().isoformat()
+                
+                # 禁用所有代理
+                cursor.execute("UPDATE proxy_settings SET enabled = 0, updated_at = ?", (updated_at,))
+                
+                # 启用指定代理
+                cursor.execute("UPDATE proxy_settings SET enabled = 1, updated_at = ? WHERE id = ?", (updated_at, proxy_id))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"启用代理设置失败: {e}")
+            return False
+    
+    def get_enabled_proxy(self) -> Optional[Dict[str, Any]]:
+        """
+        获取当前启用的代理设置
+        
+        Returns:
+            Optional[Dict[str, Any]]: 启用的代理设置，如果没有则返回None
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM proxy_settings WHERE enabled = 1 LIMIT 1")
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"获取启用的代理设置失败: {e}")
+            return None
 
     # 书籍网站管理相关方法
     def save_novel_site(self, site_data: Dict[str, Any]) -> bool:

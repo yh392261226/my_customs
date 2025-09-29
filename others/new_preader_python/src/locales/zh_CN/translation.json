@@ -621,6 +621,8 @@
     "proxy_settings": {
         "title": "代理设置",
         "description": "配置网络代理设置",
+        "name": "名称",
+        "name_placeholder": "请输入名称",
         "enable_proxy": "启用代理",
         "proxy_type": "代理类型",
         "host": "主机地址",
@@ -646,6 +648,28 @@
         "shortcut_esc": "ESC: 返回",
         "proxy_disabled":"代理未启用",
         "proxy_enabled":"代理已启用"
+    },
+    "proxy_list": {
+        "title": "代理列表",
+        "description": "管理多个代理设置",
+        "add_proxy": "添加代理",
+        "test_connection": "测试连接",
+        "edit_proxy": "编辑代理",
+        "delete_proxy": "删除代理",
+        "back": "返回",
+        "status": "状态",
+        "name": "名称",
+        "type": "类型",
+        "host": "主机",
+        "port": "端口",
+        "username": "用户名",
+        "updated": "更新时间",
+        "shortcut_a": "A: 添加代理",
+        "shortcut_t": "T: 测试连接",
+        "shortcut_e": "E: 编辑代理",
+        "shortcut_d": "D: 删除代理",
+        "shortcut_enter": "Enter: 选择代理",
+        "shortcut_esc": "ESC: 返回"
     },
     "novel_sites": {
         "title": "书籍网站管理",

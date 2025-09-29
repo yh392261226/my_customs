@@ -50,7 +50,7 @@ class CrawlerManagementScreen(Screen[None]):
             init_global_i18n('src/locales', 'zh_CN')
         
         # 设置屏幕标题
-        CrawlerManagementScreen.TITLE = f"{get_global_i18n().t('crawler.title')} - {novel_site['name']}"
+        self.title = f"{get_global_i18n().t('crawler.title')} - {novel_site['name']}"
     
     def compose(self) -> ComposeResult:
         """
@@ -369,6 +369,14 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.novel_already_exists'))
             return
         
+        # 检查代理要求
+        proxy_check_result = self._check_proxy_requirements_sync()
+        if not proxy_check_result['can_proceed']:
+            self._update_status(proxy_check_result['message'], "error")
+            return
+        
+        proxy_config = proxy_check_result['proxy_config']
+        
         # 清空之前的提示信息
         self._update_status("")
         
@@ -386,9 +394,213 @@ class CrawlerManagementScreen(Screen[None]):
         # 实现实际的爬取逻辑
         # 使用异步执行爬取任务，避免阻塞UI更新
         # 调用实际爬取方法 - 使用app级别的run_worker，确保页面卸载时爬取继续
-        self.app.run_worker(self._actual_crawl(novel_id), name="crawl-worker")
+        self.app.run_worker(self._actual_crawl(novel_id, proxy_config), name="crawl-worker")
     
-    async def _actual_crawl(self, novel_id: str) -> None:
+    def _check_proxy_requirements_sync(self) -> Dict[str, Any]:
+        """
+        同步检查代理要求
+        
+        Returns:
+            包含检查结果的字典
+        """
+        try:
+            # 检查网站是否启用了代理
+            proxy_enabled = self.novel_site.get('proxy_enabled', False)
+            
+            if not proxy_enabled:
+                # 网站未启用代理，返回空代理配置
+                return {
+                    'can_proceed': True,
+                    'proxy_config': {
+                        'enabled': False,
+                        'proxy_url': ''
+                    },
+                    'message': '网站未启用代理'
+                }
+            
+            # 网站启用了代理，获取可用的代理设置
+            enabled_proxy = self.db_manager.get_enabled_proxy()
+            
+            if not enabled_proxy:
+                # 没有启用的代理，提示用户
+                return {
+                    'can_proceed': False,
+                    'proxy_config': None,
+                    'message': '该网站需要代理访问，但没有找到启用的代理设置。请先在代理设置中启用一个代理。'
+                }
+            
+            # 构建代理URL
+            proxy_type = enabled_proxy.get('type', 'HTTP').lower()
+            host = enabled_proxy.get('host', '')
+            port = enabled_proxy.get('port', '')
+            username = enabled_proxy.get('username', '')
+            password = enabled_proxy.get('password', '')
+            
+            if not host or not port:
+                return {
+                    'can_proceed': False,
+                    'proxy_config': None,
+                    'message': '代理设置不完整，请检查主机地址和端口号。'
+                }
+            
+            # 构建代理URL
+            if username and password:
+                proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
+            else:
+                proxy_url = f"{proxy_type}://{host}:{port}"
+            
+            # 测试代理连接
+            proxy_test_result = self._test_proxy_connection(proxy_url)
+            if not proxy_test_result:
+                return {
+                    'can_proceed': False,
+                    'proxy_config': None,
+                    'message': f'代理连接测试失败: {proxy_url}，请检查代理服务器是否运行正常'
+                }
+            
+            return {
+                'can_proceed': True,
+                'proxy_config': {
+                    'enabled': True,
+                    'proxy_url': proxy_url,
+                    'name': enabled_proxy.get('name', '未命名代理')
+                },
+                'message': f"使用代理: {enabled_proxy.get('name', '未命名代理')} ({host}:{port})"
+            }
+            
+        except Exception as e:
+            logger.error(f"检查代理要求失败: {e}")
+            return {
+                'can_proceed': False,
+                'proxy_config': None,
+                'message': f'检查代理设置失败: {str(e)}'
+            }
+
+    def _test_proxy_connection(self, proxy_url: str) -> bool:
+        """
+        测试代理连接是否可用
+        
+        Args:
+            proxy_url: 代理URL
+            
+        Returns:
+            bool: 代理是否可用
+        """
+        import requests
+        import time
+        
+        try:
+            # 设置代理
+            proxies = {
+                'http': proxy_url,
+                'https': proxy_url
+            }
+            
+            # 测试连接 - 使用目标网站进行测试
+            test_url = "https://www.renqixiaoshuo.net"
+            
+            # 设置超时时间
+            timeout = 10
+            
+            start_time = time.time()
+            response = requests.get(test_url, proxies=proxies, timeout=timeout)
+            end_time = time.time()
+            
+            if response.status_code == 200:
+                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                return True
+            else:
+                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
+                return False
+                
+        except requests.exceptions.ConnectTimeout:
+            logger.error(f"代理连接超时: {proxy_url}")
+            return False
+        except requests.exceptions.ConnectionError:
+            logger.error(f"代理连接错误: {proxy_url}")
+            return False
+        except Exception as e:
+            logger.error(f"代理测试异常: {e}")
+            return False
+
+    async def _check_proxy_requirements(self, website: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        检查代理要求
+        
+        Args:
+            website: 网站信息
+            
+        Returns:
+            包含检查结果的字典
+        """
+        try:
+            # 检查网站是否启用了代理
+            proxy_enabled = website.get('proxy_enabled', False)
+            
+            if not proxy_enabled:
+                # 网站未启用代理，返回空代理配置
+                return {
+                    'can_proceed': True,
+                    'proxy_config': {
+                        'enabled': False,
+                        'proxy_url': ''
+                    },
+                    'message': '网站未启用代理'
+                }
+            
+            # 网站启用了代理，获取可用的代理设置
+            enabled_proxy = self.db_manager.get_enabled_proxy()
+            
+            if not enabled_proxy:
+                # 没有启用的代理，但允许用户选择是否继续不使用代理
+                return {
+                    'can_proceed': True,
+                    'proxy_config': {
+                        'enabled': False,
+                        'proxy_url': ''
+                    },
+                    'message': '该网站配置了代理访问，但没有找到启用的代理设置。将尝试不使用代理进行爬取。'
+                }
+            
+            # 构建代理URL
+            proxy_type = enabled_proxy.get('type', 'HTTP').lower()
+            host = enabled_proxy.get('host', '')
+            port = enabled_proxy.get('port', '')
+            username = enabled_proxy.get('username', '')
+            password = enabled_proxy.get('password', '')
+            
+            if not host or not port:
+                return {
+                    'can_proceed': False,
+                    'proxy_config': None,
+                    'message': '代理设置不完整，请检查主机地址和端口号。'
+                }
+            
+            # 构建代理URL
+            if username and password:
+                proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
+            else:
+                proxy_url = f"{proxy_type}://{host}:{port}"
+            
+            return {
+                'can_proceed': True,
+                'proxy_config': {
+                    'enabled': True,
+                    'proxy_url': proxy_url,
+                    'name': enabled_proxy.get('name', '未命名代理')
+                },
+                'message': f"使用代理: {enabled_proxy.get('name', '未命名代理')} ({host}:{port})"
+            }
+            
+        except Exception as e:
+            logger.error(f"检查代理要求失败: {e}")
+            return {
+                'can_proceed': False,
+                'proxy_config': None,
+                'message': f'检查代理设置失败: {str(e)}'
+            }
+
+    async def _actual_crawl(self, novel_id: str, proxy_config: Dict[str, Any]) -> None:
         """实际爬取小说（异步执行）"""
         import asyncio
         import os
@@ -406,12 +618,6 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 导入解析器
             from src.spiders import create_parser
-            
-            # 设置代理配置
-            proxy_config = {
-                'enabled': self.novel_site.get('proxy_enabled', False),
-                'proxy_url': ''  # 这里需要从代理设置中获取实际的代理URL
-            }
             
             # 创建解析器实例
             parser_instance = create_parser(parser_name, proxy_config)
@@ -488,7 +694,14 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.call_later(self._reset_crawl_state)
         except Exception as e:
             logger.error(f"爬取过程中发生错误: {e}")
-            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_failed')}: {str(e)}", "error")
+            logger.error(f"代理配置信息: {proxy_config}")
+            import traceback
+            logger.error(f"详细错误堆栈: {traceback.format_exc()}")
+            # 显示更详细的错误信息
+            error_message = f"{get_global_i18n().t('crawler.crawl_failed')}: {str(e)}"
+            if hasattr(e, '__cause__') and e.__cause__:
+                error_message += f"\n原因: {str(e.__cause__)}"
+            self.app.call_later(self._update_status, error_message, "error")
             self.app.call_later(self._reset_crawl_state)
     
     async def _async_parse_novel_detail(self, parser_instance, novel_id: str) -> Dict[str, Any]:
@@ -506,20 +719,12 @@ class CrawlerManagementScreen(Screen[None]):
             )
             return novel_content
         except Exception as e:
+            # 记录详细的错误信息
+            logger.error(f"解析小说详情失败: {e}")
+            import traceback
+            logger.error(f"详细错误堆栈: {traceback.format_exc()}")
             # 如果解析失败，抛出异常
             raise e
-            try:
-                from src.ui.messages import CrawlCompleteNotification
-                self.app.post_message(CrawlCompleteNotification(
-                    success=False,
-                    novel_title="",
-                    message=f"{get_global_i18n().t('crawler.crawl_failed')}: {error_message}"
-                ))
-            except Exception as msg_error:
-                logger.debug(f"发送爬取失败通知失败: {msg_error}")
-        finally:
-            # 重置爬取状态
-            self.app.call_later(self._reset_crawl_state)
     
     async def _simulate_crawl(self, novel_id: str) -> None:
         """模拟爬取过程（异步执行）"""
@@ -788,6 +993,62 @@ class CrawlerManagementScreen(Screen[None]):
                 self.loading_animation.hide()
         except Exception as e:
             logger.error(f"隐藏加载动画失败: {e}")
+    
+    def _check_proxy_settings(self) -> Optional[Dict[str, Any]]:
+        """
+        检查代理设置
+        
+        Returns:
+            代理配置字典，如果检查失败返回None
+        """
+        try:
+            # 检查网站是否启用了代理
+            proxy_enabled = self.novel_site.get('proxy_enabled', False)
+            
+            if not proxy_enabled:
+                # 网站未启用代理，返回空代理配置
+                return {
+                    'enabled': False,
+                    'proxy_url': ''
+                }
+            
+            # 网站启用了代理，获取可用的代理设置
+            enabled_proxy = self.db_manager.get_enabled_proxy()
+            
+            if not enabled_proxy:
+                # 没有启用的代理，提示用户
+                self._update_status("该网站需要代理访问，但没有找到启用的代理设置。请先在代理设置中启用一个代理。", "error")
+                return None
+            
+            # 构建代理URL
+            proxy_type = enabled_proxy.get('type', 'HTTP').lower()
+            host = enabled_proxy.get('host', '')
+            port = enabled_proxy.get('port', '')
+            username = enabled_proxy.get('username', '')
+            password = enabled_proxy.get('password', '')
+            
+            if not host or not port:
+                self._update_status("代理设置不完整，请检查主机地址和端口号。", "error")
+                return None
+            
+            # 构建代理URL
+            if username and password:
+                proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
+            else:
+                proxy_url = f"{proxy_type}://{host}:{port}"
+            
+            self._update_status(f"使用代理: {enabled_proxy.get('name', '未命名代理')} ({host}:{port})", "success")
+            
+            return {
+                'enabled': True,
+                'proxy_url': proxy_url,
+                'name': enabled_proxy.get('name', '未命名代理')
+            }
+            
+        except Exception as e:
+            logger.error(f"检查代理设置失败: {e}")
+            self._update_status(f"检查代理设置失败: {str(e)}", "error")
+            return None
     
     def _reset_crawl_state(self) -> None:
         """重置爬取状态"""

@@ -263,7 +263,8 @@ class ProxySettingsScreen(Screen[None]):
     
     def _load_proxy_settings(self) -> None:
         """从数据库加载代理设置"""
-        self.proxy_settings = self.database_manager.get_proxy_settings()
+        # 这个屏幕已经被新的代理列表屏幕替代，不再使用
+        self.proxy_settings = {}
     
     def _update_ui_from_settings(self) -> None:
         """根据设置更新界面"""

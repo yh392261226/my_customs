@@ -131,12 +131,13 @@ class GetBooksScreen(Screen[None]):
     def _load_proxy_settings(self) -> None:
         """加载代理设置"""
         # 从数据库加载代理设置
-        self.proxy_settings = self.database_manager.get_proxy_settings()
+        proxies = self.database_manager.get_all_proxy_settings()
+        enabled_proxy = next((proxy for proxy in proxies if proxy["enabled"]), None)
         
         # 更新代理状态显示
         status_label = self.query_one("#proxy-status-info", Label)
-        if self.proxy_settings.get("enabled", False):
-            status_text = f"{get_global_i18n().t('get_books.proxy_enabled')}: {self.proxy_settings.get('type', 'HTTP')} {self.proxy_settings.get('host', '')}:{self.proxy_settings.get('port', '')}"
+        if enabled_proxy:
+            status_text = f"{get_global_i18n().t('get_books.proxy_enabled')}: {enabled_proxy.get('name', '未知')} ({enabled_proxy.get('host', '未知')}:{enabled_proxy.get('port', '未知')})"
         else:
             status_text = get_global_i18n().t('get_books.proxy_disabled')
         status_label.update(status_text)
@@ -151,7 +152,7 @@ class GetBooksScreen(Screen[None]):
         if event.button.id == "novel-sites-btn":
             self.app.push_screen("novel_sites_management")  # 打开书籍网站管理页面
         elif event.button.id == "proxy-settings-btn":
-            self.app.push_screen("proxy_settings")  # 打开代理设置页面
+            self.app.push_screen("proxy_list")  # 打开代理列表页面
         elif event.button.id == "back-btn":
             self.app.pop_screen()  # 返回上一页
     
@@ -209,7 +210,7 @@ class GetBooksScreen(Screen[None]):
     
     def key_p(self) -> None:
         """P键 - 打开代理设置"""
-        self.app.push_screen("proxy_settings")
+        self.app.push_screen("proxy_list")
     
     def key_enter(self) -> None:
         """Enter键 - 打开选中的书籍网站"""
