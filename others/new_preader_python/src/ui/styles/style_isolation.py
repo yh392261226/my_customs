@@ -258,7 +258,7 @@ def apply_style_isolation(screen_instance) -> None:
     styles_dir = Path(__file__).parent
     
     # 创建样式隔离管理器
-    isolation_manager = StyleIsolationManager(styles_dir)
+    isolation_manager = StyleIsolationManager(str(styles_dir))
     
     # 生成隔离的CSS
     isolated_css = isolation_manager.create_isolated_css(screen_name)
@@ -268,9 +268,9 @@ def apply_style_isolation(screen_instance) -> None:
         namespace = isolation_manager.get_screen_namespace(screen_name)
         
         # 为屏幕容器添加命名空间类
-        if hasattr(screen_instance, 'styles'):
+        if hasattr(screen_instance, 'add_class'):
             # 添加命名空间类
-            screen_instance.styles.add_class(namespace)
+            screen_instance.add_class(namespace)
         
         logger.debug(f"为屏幕 {screen_name} 应用样式隔离，命名空间: {namespace}")
     

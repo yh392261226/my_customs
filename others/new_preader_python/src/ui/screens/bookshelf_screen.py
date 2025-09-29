@@ -272,20 +272,31 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         try:
             # 更新分页信息到统计标签
             stats_label = self.query_one("#books-stats-label", Label)
-            # 获取当前显示的文本内容
-            current_text = stats_label.renderable if hasattr(stats_label.renderable, '__str__') else ""
-            if current_text:
-                current_text = str(current_text)
-            else:
-                current_text = ""
             
-            # 移除可能存在的旧分页信息
-            if "| 第" in current_text:
-                current_text = current_text.split("| 第")[0].strip()
+            # 安全地获取当前显示的文本内容
+            # 由于Textual的Label组件没有renderable属性，我们直接构建新的文本
+            # 从统计信息重新构建，而不是尝试从Label中读取
+            total_count = len(self._all_books)
+            format_counts = {}
+            
+            for book in self._all_books:
+                format_name = book.format.upper()
+                format_counts[format_name] = format_counts.get(format_name, 0) + 1
+            
+            # 构建统计信息文本
+            stats_text = get_global_i18n().t("bookshelf.total_books", count=total_count)
+            
+            if format_counts:
+                format_parts = []
+                for format_name, count in sorted(format_counts.items()):
+                    format_parts.append(f"{format_name}: {count}{get_global_i18n().t('bookshelf.books')}")
+                
+                if format_parts:
+                    stats_text += " (" + ", ".join(format_parts) + ")"
             
             # 添加分页信息
             pagination_info = f" | 第 {self._current_page}/{self._total_pages} 页"
-            stats_label.update(current_text + pagination_info)
+            stats_label.update(stats_text + pagination_info)
             
         except Exception as e:
             logger.error(f"更新分页信息失败: {e}")

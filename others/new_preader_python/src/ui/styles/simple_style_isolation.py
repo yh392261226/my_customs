@@ -66,9 +66,9 @@ class SimpleStyleIsolation:
         
         # 为屏幕容器添加唯一的CSS类名
         try:
-            # 获取屏幕的主容器
-            if hasattr(screen_instance, 'styles'):
-                screen_instance.styles.add_class(screen_class)
+            # 直接为屏幕实例添加CSS类
+            if hasattr(screen_instance, 'add_class'):
+                screen_instance.add_class(screen_class)
                 logger.debug(f"为屏幕 {screen_name} 应用样式隔离类: {screen_class}")
             
             # 如果屏幕有特定的容器，也为该容器添加类名
@@ -76,7 +76,7 @@ class SimpleStyleIsolation:
                 try:
                     main_container = screen_instance.query_one("#main-container")
                     if main_container:
-                        main_container.styles.add_class(screen_class)
+                        main_container.add_class(screen_class)
                 except Exception:
                     # 如果找不到主容器，忽略错误
                     pass
