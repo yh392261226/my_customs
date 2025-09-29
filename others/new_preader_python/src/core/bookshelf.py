@@ -242,10 +242,29 @@ class Bookshelf:
     
     def sort_books(self, key: str, reverse: bool = False) -> List[Book]:
         """
-        排序书籍
+        排序书籍（使用数据库排序）
         
         Args:
             key: 排序键，可选值为"title", "author", "add_date", "last_read_date", "progress"
+            reverse: 是否倒序
+            
+        Returns:
+            List[Book]: 排序后的书籍列表
+        """
+        try:
+            # 使用数据库管理器进行排序
+            return self.db_manager.get_sorted_books(key, reverse)
+        except Exception as e:
+            logger.error(f"数据库排序失败，使用内存排序: {e}")
+            # 降级到内存排序
+            return self._sort_books_in_memory(key, reverse)
+    
+    def _sort_books_in_memory(self, key: str, reverse: bool = False) -> List[Book]:
+        """
+        内存排序（数据库排序失败时的降级方案）
+        
+        Args:
+            key: 排序键
             reverse: 是否倒序
             
         Returns:
@@ -265,7 +284,8 @@ class Bookshelf:
                 if book.last_read_date:
                     return book.last_read_date
                 # 返回一个极早的日期，确保没有阅读记录的书籍排在最后
-                return datetime.min.isoformat() if reverse else datetime.max.isoformat()
+                # 无论升序还是降序，没有阅读记录的都应该排在最后
+                return datetime.min.isoformat()
             return sorted(books, key=get_last_read_date, reverse=reverse)
         elif key == "progress":
             return sorted(books, key=lambda x: x.reading_progress or 0, reverse=reverse)
@@ -426,7 +446,8 @@ class Bookshelf:
             abs_path = os.path.abspath(path)
             if abs_path in self.books:
                 book = self.books[abs_path]
-                book.tags = set(tags)
+                # 将标签列表转换为逗号分隔的字符串
+                book.tags = ",".join(tags) if tags else ""
                 # 直接更新数据库
                 if self.db_manager.update_book(book):
                     success_count += 1
@@ -576,7 +597,7 @@ class Bookshelf:
             abs_path = os.path.abspath(book_path)
             if abs_path in self.books:
                 book = self.books[abs_path]
-                book.tags = set()  # 清空标签
+                book.tags = ""  # 清空标签，设置为空字符串
                 # 直接更新数据库
                 if self.db_manager.update_book(book):
                     success_count += 1

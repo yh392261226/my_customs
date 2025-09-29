@@ -18,6 +18,35 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# 拼音转换工具
+try:
+    from pypinyin import pinyin, Style
+    PY_PINYIN_AVAILABLE = True
+except ImportError:
+    PY_PINYIN_AVAILABLE = False
+    logger.warning("pypinyin库未安装，拼音功能将不可用")
+
+def convert_to_pinyin(text: str) -> str:
+    """
+    将中文转换为拼音
+    
+    Args:
+        text: 中文字符串
+        
+    Returns:
+        str: 拼音字符串
+    """
+    if not PY_PINYIN_AVAILABLE:
+        return ""
+    
+    try:
+        # 使用普通风格，不带声调
+        pinyin_list = pinyin(text, style=Style.NORMAL)
+        return "".join([item[0] for item in pinyin_list if item])
+    except Exception as e:
+        logger.error(f"拼音转换失败: {e}")
+        return ""
+
 class DatabaseManager:
     """数据库管理器类"""
     
@@ -38,8 +67,9 @@ class DatabaseManager:
             else:
                 self.db_path = os.path.expanduser(db_path)
             
-        # 确保数据库目录存在
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        # 确保数据库目录存在（如果是内存数据库则跳过）
+        if self.db_path != ':memory:':
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_database()
     
     def _init_database(self) -> None:
@@ -52,6 +82,7 @@ class DatabaseManager:
                 CREATE TABLE IF NOT EXISTS books (
                     path TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
+                    pinyin TEXT,
                     author TEXT NOT NULL,
                     format TEXT NOT NULL,
                     add_date TEXT NOT NULL,
@@ -59,6 +90,7 @@ class DatabaseManager:
                     reading_progress REAL DEFAULT 0,
                     total_pages INTEGER DEFAULT 0,
                     word_count INTEGER DEFAULT 0,
+                    tags TEXT,
                     metadata TEXT
                 )
             """)
@@ -92,8 +124,19 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookmarks_book ON bookmarks(book_path)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookmarks_timestamp ON bookmarks(timestamp)")
             
+            # 检查并添加pinyin列（如果不存在）
+            cursor.execute("PRAGMA table_info(books)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'pinyin' not in columns:
+                cursor.execute("ALTER TABLE books ADD COLUMN pinyin TEXT")
+            
+            # 检查并添加tags列（如果不存在）
+            if 'tags' not in columns:
+                cursor.execute("ALTER TABLE books ADD COLUMN tags TEXT")
+            
             # 创建索引以提高查询性能
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_title ON books(title)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_pinyin ON books(pinyin)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_author ON books(author)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_add_date ON books(add_date)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_last_read ON books(last_read_date)")
@@ -162,15 +205,19 @@ class DatabaseManager:
             bool: 添加是否成功
         """
         try:
+            # 生成书名拼音
+            pinyin_text = convert_to_pinyin(book.title) if book.title else ""
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO books 
-                    (path, title, author, format, add_date, last_read_date, reading_progress, total_pages, word_count, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (path, title, pinyin, author, format, add_date, last_read_date, reading_progress, total_pages, word_count, tags, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book.path,
                     book.title,
+                    pinyin_text,
                     book.author,
                     book.format,
                     book.add_date,
@@ -178,6 +225,7 @@ class DatabaseManager:
                     book.reading_progress,
                     book.total_pages,
                     book.word_count,
+                    book.tags if book.tags else "",  # 直接使用字符串
                     json.dumps(book.to_dict())
                 ))
                 conn.commit()
@@ -240,21 +288,26 @@ class DatabaseManager:
             bool: 更新是否成功
         """
         try:
+            # 生成书名拼音
+            pinyin_text = convert_to_pinyin(book.title) if book.title else ""
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE books 
-                    SET title = ?, author = ?, format = ?, last_read_date = ?, 
-                        reading_progress = ?, total_pages = ?, word_count = ?, metadata = ?
+                    SET title = ?, pinyin = ?, author = ?, format = ?, last_read_date = ?, 
+                        reading_progress = ?, total_pages = ?, word_count = ?, tags = ?, metadata = ?
                     WHERE path = ?
                 """, (
                     book.title,
+                    pinyin_text,
                     book.author,
                     book.format,
                     book.last_read_date,
                     book.reading_progress,
                     book.total_pages,
                     book.word_count,
+                    book.tags if book.tags else "",
                     json.dumps(book.to_dict()),
                     book.path
                 ))
@@ -286,7 +339,7 @@ class DatabaseManager:
     
     def search_books(self, keyword: str, format: Optional[str] = None) -> List[Book]:
         """
-        搜索书籍（按标题和作者）
+        搜索书籍（按标题、拼音、作者和标签）
         
         Args:
             keyword: 搜索关键词
@@ -304,15 +357,17 @@ class DatabaseManager:
                 if format:
                     cursor.execute("""
                         SELECT * FROM books 
-                        WHERE (title LIKE ? OR author LIKE ?) AND format = ?
+                        WHERE (title LIKE ? OR pinyin LIKE ? OR author LIKE ? OR tags LIKE ?) 
+                              AND format = ?
                         ORDER BY add_date DESC
-                    """, (search_pattern, search_pattern, format.lower()))
+                    """, (search_pattern, search_pattern, search_pattern, search_pattern, 
+                          format.lower()))
                 else:
                     cursor.execute("""
                         SELECT * FROM books 
-                        WHERE title LIKE ? OR author LIKE ?
+                        WHERE title LIKE ? OR pinyin LIKE ? OR author LIKE ? OR tags LIKE ?
                         ORDER BY add_date DESC
-                    """, (search_pattern, search_pattern))
+                    """, (search_pattern, search_pattern, search_pattern, search_pattern))
                     
                 rows = cursor.fetchall()
                 
@@ -320,6 +375,73 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"搜索书籍失败: {e}")
             return []
+    
+    def get_sorted_books(self, sort_key: str, reverse: bool = False) -> List[Book]:
+        """
+        获取排序后的书籍列表（使用数据库排序）
+        
+        Args:
+            sort_key: 排序键，可选值为"title", "author", "add_date", "last_read_date", "progress"
+            reverse: 是否倒序
+            
+        Returns:
+            List[Book]: 排序后的书籍列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                # 构建排序SQL
+                order_by_clause = self._build_order_by_clause(sort_key, reverse)
+                
+                cursor.execute(f"SELECT * FROM books {order_by_clause}")
+                rows = cursor.fetchall()
+                
+                return [self._row_to_book(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取排序书籍失败: {e}")
+            return []
+    
+    def _build_order_by_clause(self, sort_key: str, reverse: bool) -> str:
+        """
+        构建ORDER BY子句
+        
+        Args:
+            sort_key: 排序键
+            reverse: 是否倒序
+            
+        Returns:
+            str: ORDER BY子句
+        """
+        # 字段映射
+        field_mapping = {
+            "title": "pinyin",  # 按书名排序时使用拼音字段
+            "author": "author", 
+            "add_date": "add_date",
+            "last_read_date": "last_read_date",
+            "progress": "reading_progress"
+        }
+        
+        # 默认排序字段
+        field = field_mapping.get(sort_key, "add_date")
+        
+        # 排序方向
+        direction = "DESC" if reverse else "ASC"
+        
+        # 特殊处理：对于title，如果pinyin字段为空，则使用title字段
+        if sort_key == "title":
+            return f"ORDER BY CASE WHEN {field} IS NULL OR {field} = '' THEN title ELSE {field} END {direction}"
+        
+        # 特殊处理：对于last_read_date，NULL值排在最后
+        if sort_key == "last_read_date":
+            return f"ORDER BY CASE WHEN {field} IS NULL THEN 1 ELSE 0 END, {field} {direction}"
+        
+        # 特殊处理：对于progress，NULL值排在最后
+        if sort_key == "progress":
+            return f"ORDER BY CASE WHEN {field} IS NULL THEN 1 ELSE 0 END, {field} {direction}"
+        
+        return f"ORDER BY {field} {direction}"
     
     def add_reading_record(self, book_path: str, duration: int, pages_read: int = 0) -> bool:
         """
@@ -407,10 +529,12 @@ class DatabaseManager:
             logger.warning(f"从元数据恢复书籍失败，使用基本属性: {e}")
         
         # 如果元数据恢复失败，使用基本属性创建书籍对象
+        pinyin_value = row['pinyin'] if 'pinyin' in row else None
         book = Book(
             path=row['path'],
             title=row['title'],
-            author=row['author']
+            author=row['author'],
+            pinyin=pinyin_value
         )
         
         # 设置其他属性
@@ -423,6 +547,19 @@ class DatabaseManager:
         book.reading_progress = row['reading_progress'] or 0
         book.total_pages = row['total_pages'] or 0
         book.word_count = row['word_count'] or 0
+        
+        # 设置拼音字段（如果存在）
+        if 'pinyin' in row:
+            book.pinyin = row['pinyin']
+        
+        # 设置标签字段（如果存在）
+        if 'tags' in row and row['tags']:
+            try:
+                # 从逗号分隔的字符串解析标签
+                tags_data = row['tags'].split(",") if row['tags'] else []
+                book.tags = set(tags_data) if tags_data else set()
+            except Exception:
+                book.tags = set()
         
         return book
 

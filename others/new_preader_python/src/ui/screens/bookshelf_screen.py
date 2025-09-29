@@ -207,8 +207,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             last_read = book.last_read_date or ""
             progress = book.reading_progress * 100  # 转换为百分比
             
-            # 格式化标签显示（逗号分隔）
-            tags_display = ", ".join(book.tags) if book.tags else ""
+            # 格式化标签显示（直接显示逗号分隔的字符串）
+            tags_display = book.tags if book.tags else ""
             
             # 添加操作按钮
             read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
@@ -627,6 +627,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     last_read = book.last_read_date or ""
                     progress = book.reading_progress * 100  # 转换为百分比
                     
+                    # 格式化标签显示（直接显示逗号分隔的字符串）
+                    tags_display = book.tags if book.tags else ""
+                    
+                    # 添加操作按钮
+                    read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
+                    view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+                    delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                    
                     table.add_row(
                         str(index),  # 显示数字序号而不是路径
                         book.title,
@@ -634,6 +642,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         book.format.upper(),
                         last_read,
                         f"{progress:.1f}%",
+                        tags_display,
+                        read_button,  # 阅读按钮
+                        view_file_button,  # 查看文件按钮
+                        delete_button,  # 删除按钮
                         key=book.path  # 仍然使用路径作为行键
                     )
                 

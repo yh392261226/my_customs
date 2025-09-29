@@ -171,8 +171,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table.clear()
         
         for book in current_page_books:
-            # 格式化标签显示，用逗号分隔
-            tags_display = ", ".join(sorted(book.tags)) if book.tags else ""
+            # 格式化标签显示，直接显示逗号分隔的字符串
+            tags_display = book.tags if book.tags else ""
             
             # 检查书籍是否已经被选中
             is_selected = book.path in self.selected_books
@@ -487,6 +487,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             
             try:
                 # 解析标签（逗号分隔，去除空格）
+                # 注意：请勿将单个汉字用逗号分隔，应输入完整标签如"小说,科幻"
                 tags = [tag.strip() for tag in tags_input.split(',') if tag.strip()]
                 
                 # 调用bookshelf的批量设置标签方法
@@ -519,7 +520,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             BatchInputDialog(
                 get_global_i18n().t("batch_ops.set_tags"),
                 get_global_i18n().t("bookshelf.tags"),
-                get_global_i18n().t("batch_ops.set_tags") + "\n" + get_global_i18n().t("common.comma_separated")
+                get_global_i18n().t("batch_ops.set_tags") + "\n" + get_global_i18n().t("common.comma_separated") + "\n" + "请输入完整的标签，如：小说,科幻,经典"
             ),
             callback=on_tags_input
         )

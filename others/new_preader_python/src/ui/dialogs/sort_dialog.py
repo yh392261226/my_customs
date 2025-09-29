@@ -79,6 +79,8 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
                 self.sort_key = "last_read_date"
             elif pressed_button and pressed_button.id == "progress-radio":
                 self.sort_key = "progress"
+            elif pressed_button and pressed_button.id == "progress-radio":
+                self.sort_key = "progress"
         
         elif radio_set.id == "sort-order-radio":
             # 更新排序顺序

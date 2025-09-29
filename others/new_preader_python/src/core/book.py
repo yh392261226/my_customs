@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 class Book:
     """书籍类，表示一本书籍及其元数据"""
     
-    def __init__(self, path: str, title: Optional[str] = None, author: Optional[str] = None, password: Optional[str] = None):
+    def __init__(self, path: str, title: Optional[str] = None, author: Optional[str] = None, password: Optional[str] = None, pinyin: Optional[str] = None):
         """
         初始化书籍对象
         
@@ -26,6 +26,7 @@ class Book:
             title: 书籍标题，如果为None则使用文件名
             author: 书籍作者，如果为None则为"未知作者"
             password: PDF密码，用于加密PDF文件
+            pinyin: 书籍标题的拼音，如果为None则自动生成
         """
         self.path = os.path.abspath(path) if path else ""
         self.file_name = os.path.basename(path) if path else "default.txt"
@@ -43,10 +44,16 @@ class Book:
         # 基本信息
         self.title = title if title else os.path.splitext(self.file_name)[0]
         self.author = author if author else "未知作者"
-        self.tags: Set[str] = set()
+        self.tags: str = ""  # 存储逗号分隔的标签字符串
         self.size = os.path.getsize(path) if path and os.path.exists(path) else 0
         self.add_date = datetime.now().isoformat()
         self.password = password  # 存储PDF密码
+        
+        # 拼音字段
+        if pinyin is not None:
+            self.pinyin = pinyin
+        else:
+            self.pinyin = self._generate_pinyin(self.title)
         
         # 阅读信息
         self.last_read_date: Optional[str] = None
@@ -89,7 +96,8 @@ class Book:
             "format": self.format,
             "title": self.title,
             "author": self.author,
-            "tags": list(self.tags),
+            "pinyin": self.pinyin,
+            "tags": self.tags,  # 直接返回字符串
             "size": self.size,
             "add_date": self.add_date,
             "last_read_date": self.last_read_date,
@@ -115,10 +123,15 @@ class Book:
         Returns:
             Book: 书籍对象
         """
-        book = cls(data["path"], data["title"], data["author"])
+        book = cls(data["path"], data["title"], data["author"], pinyin=data.get("pinyin"))
         book.file_name = data["file_name"]
         book.format = data["format"]
-        book.tags = set(data.get("tags", []))
+        # 处理tags字段：如果是列表则转换为字符串，如果是字符串则直接使用
+        tags_data = data.get("tags", "")
+        if isinstance(tags_data, list):
+            book.tags = ",".join(tags_data)
+        else:
+            book.tags = tags_data
         book.size = data["size"]
         book.add_date = data["add_date"]
         book.last_read_date = data.get("last_read_date")
@@ -140,7 +153,10 @@ class Book:
         Args:
             tag: 标签名称
         """
-        self.tags.add(tag)
+        if not self.tags:
+            self.tags = tag
+        elif tag not in self.tags.split(","):
+            self.tags += f",{tag}"
     
     def remove_tag(self, tag: str) -> bool:
         """
@@ -152,9 +168,12 @@ class Book:
         Returns:
             bool: 是否成功移除
         """
-        if tag in self.tags:
-            self.tags.remove(tag)
-            return True
+        if self.tags:
+            tags_list = self.tags.split(",")
+            if tag in tags_list:
+                tags_list.remove(tag)
+                self.tags = ",".join(tags_list)
+                return True
         return False
     
     def add_bookmark(self, position: int, page: int, text: str, note: Optional[str] = None) -> Dict[str, Any]:
@@ -556,6 +575,53 @@ class Book:
             logger.warning("加载动画组件未找到，跳过隐藏动画")
         except Exception as e:
             logger.error(f"隐藏加载动画失败: {e}")
+
+    def _generate_pinyin(self, text: str) -> str:
+        """
+        生成中文文本的拼音
+        
+        Args:
+            text: 中文文本
+            
+        Returns:
+            str: 拼音字符串
+        """
+        try:
+            from pypinyin import pinyin, Style
+            
+            # 将中文转换为拼音，使用不带声调的格式
+            pinyin_list = pinyin(text, style=Style.NORMAL)
+            # 将拼音列表连接成字符串
+            pinyin_str = ''.join([item[0] for item in pinyin_list if item[0]])
+            
+            # 如果转换失败或为空，返回原始文本的ASCII表示
+            if not pinyin_str:
+                pinyin_str = text.encode('ascii', 'ignore').decode('ascii')
+            
+            return pinyin_str
+            
+        except ImportError:
+            logger.warning("pypinyin库未安装，使用简单拼音转换")
+            # 简单的拼音转换实现（仅处理基本汉字）
+            pinyin_map = {
+                '阿': 'a', '啊': 'a', '爱': 'ai', '安': 'an', '昂': 'ang',
+                '八': 'ba', '把': 'ba', '白': 'bai', '班': 'ban', '帮': 'bang',
+                # 这里可以添加更多基本汉字映射
+            }
+            
+            result = []
+            for char in text:
+                if '\u4e00' <= char <= '\u9fff':  # 中文字符范围
+                    result.append(pinyin_map.get(char, char))
+                else:
+                    result.append(char)
+            
+            return ''.join(result)
+            
+        except Exception as e:
+            logger.error(f"拼音转换失败: {e}")
+            # 如果转换失败，返回原始文本的ASCII表示
+            return text.encode('ascii', 'ignore').decode('ascii')
 
     def _handle_pdf_file(self) -> str:
         """处理PDF文件，区分加密和非加密"""
