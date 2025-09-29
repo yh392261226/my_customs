@@ -173,7 +173,8 @@
         "clear_tags_confirm": "Confirm Clear Tags",
         "clear_tags_confirm_message": "Are you sure you want to clear all tags for selected books? This action cannot be undone.",
         "page_info": "Page {page}/{total_pages}, total {total_books} books",
-        "status_info": " ↑/↓ Move cursor  Space Select  N Next Page P Previous Page ESC Back "
+        "status_info": " ↑/↓ Move cursor  Space Select  N Next Page P Previous Page ESC Back ",
+        "index": "Index"
     },
     "search": {
         "title": "Search",

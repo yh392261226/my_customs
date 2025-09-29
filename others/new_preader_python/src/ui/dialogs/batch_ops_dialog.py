@@ -141,6 +141,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table.clear(columns=True)
         
         # 添加带键的列
+        table.add_column(get_global_i18n().t("batch_ops.index"), key="index")
         table.add_column(get_global_i18n().t("bookshelf.title"), key="title")
         table.add_column(get_global_i18n().t("bookshelf.author"), key="author")
         table.add_column(get_global_i18n().t("bookshelf.format"), key="format")
@@ -170,7 +171,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table = self.query_one("#batch-ops-table", DataTable)
         table.clear()
         
-        for book in current_page_books:
+        for i, book in enumerate(current_page_books):
+            # 计算当前页的序号（从1开始）
+            index = (self._current_page - 1) * self._books_per_page + i + 1
+            
             # 格式化标签显示，直接显示逗号分隔的字符串
             tags_display = book.tags if book.tags else ""
             
@@ -179,6 +183,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             selection_marker = "✓" if is_selected else "□"
             
             table.add_row(
+                str(index),  # 序号
                 book.title,
                 book.author,
                 book.format.upper(),
