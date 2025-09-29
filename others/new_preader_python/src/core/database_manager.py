@@ -283,7 +283,7 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM books ORDER BY add_date DESC")
+                cursor.execute("SELECT * FROM books ORDER BY pinyin ASC")
                 rows = cursor.fetchall()
                 
                 return [self._row_to_book(row) for row in rows if row]
