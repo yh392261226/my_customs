@@ -76,8 +76,14 @@ class StyleIsolationManager:
                 
                 # 清除所有屏幕特定的样式
                 base_css = self._get_base_css()
-                app.stylesheet.parse(base_css)
-                app.stylesheet.update()
+                if hasattr(app.stylesheet, 'add_source'):
+                    app.stylesheet.add_source(base_css, read_from="base_style_reset")
+                    if hasattr(app, 'screen_stack') and app.screen_stack:
+                        app.stylesheet.update(app.screen_stack[-1])
+                    else:
+                        logger.warning("无法获取root节点，跳过样式更新")
+                else:
+                    logger.warning("stylesheet.add_source方法不可用，无法清除样式")
                 
         except Exception as e:
             logger.error(f"清除之前样式失败: {e}")
@@ -88,8 +94,14 @@ class StyleIsolationManager:
             if hasattr(app, 'stylesheet') and app.stylesheet:
                 # 重置为基础样式
                 base_css = self._get_base_css()
-                app.stylesheet.parse(base_css)
-                app.stylesheet.update()
+                if hasattr(app.stylesheet, 'add_source'):
+                    app.stylesheet.add_source(base_css, read_from=f"clear_{screen_name}_style")
+                    if hasattr(app, 'screen_stack') and app.screen_stack:
+                        app.stylesheet.update(app.screen_stack[-1])
+                    else:
+                        logger.warning("无法获取root节点，跳过样式更新")
+                else:
+                    logger.warning("stylesheet.add_source方法不可用，无法清除样式")
                 
         except Exception as e:
             logger.error(f"清除屏幕样式失败 {screen_name}: {e}")
@@ -203,9 +215,17 @@ class StyleIsolationManager:
         """将CSS应用到应用"""
         try:
             if hasattr(app, 'stylesheet') and app.stylesheet:
-                app.stylesheet.parse(css_content)
-                app.stylesheet.update()
-                
+                # 使用正确的方法添加CSS源
+                if hasattr(app.stylesheet, 'add_source'):
+                    app.stylesheet.add_source(css_content, read_from=f"comprehensive_style_{id(self)}")
+                    if hasattr(app, 'screen_stack') and app.screen_stack:
+                        app.stylesheet.update(app.screen_stack[-1])
+                    else:
+                        logger.warning("无法获取root节点，跳过样式更新")
+                else:
+                    # 备用方法
+                    logger.warning("stylesheet.add_source方法不可用，使用备用方法")
+                    
         except Exception as e:
             logger.error(f"应用CSS到应用失败: {e}")
             

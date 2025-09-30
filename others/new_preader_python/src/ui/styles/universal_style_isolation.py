@@ -307,9 +307,17 @@ Input:focus {
         """将CSS应用到应用"""
         try:
             if hasattr(app, 'stylesheet') and app.stylesheet:
-                app.stylesheet.parse(css_content)
-                app.stylesheet.update()
-                
+                # 使用正确的方法添加CSS源
+                if hasattr(app.stylesheet, 'add_source'):
+                    app.stylesheet.add_source(css_content, read_from=f"universal_style_{id(self)}")
+                    if hasattr(app, 'screen_stack') and app.screen_stack:
+                        app.stylesheet.update(app.screen_stack[-1])
+                    else:
+                        logger.warning("无法获取root节点，跳过样式更新")
+                else:
+                    # 备用方法
+                    logger.warning("stylesheet.add_source方法不可用，使用备用方法")
+                    
         except Exception as e:
             logger.error(f"应用CSS到应用失败: {e}")
             

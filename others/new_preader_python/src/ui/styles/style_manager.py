@@ -184,7 +184,9 @@ class StyleManager(Generic[AppType]):
             # 创建样式规则 - 使用更安全的Textual方法
             # 通过app.stylesheet.add_source方法添加样式
             if hasattr(self.app.stylesheet, 'add_source'):
-                self.app.stylesheet.add_source(css_content, path=str(full_path))
+                self.app.stylesheet.add_source(css_content, read_from=str(full_path))
+                if hasattr(self.app, 'screen_stack') and self.app.screen_stack:
+                    self.app.stylesheet.update(self.app.screen_stack[-1])
                 logger.debug(f"加载样式文件: {css_path}")
                 return True
             else:
