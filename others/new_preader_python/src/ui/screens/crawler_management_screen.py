@@ -663,10 +663,12 @@ class CrawlerManagementScreen(Screen[None]):
                 from src.core.book import Book
                 book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
                 if self.db_manager.add_book(book):
-                    # 发送刷新书架消息
+                    # 发送全局刷新书架消息，确保书架屏幕能够接收
                     try:
                         from src.ui.messages import RefreshBookshelfMessage
+                        # 使用更可靠的消息发送方式
                         self.app.post_message(RefreshBookshelfMessage())
+                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
                     except Exception as msg_error:
                         logger.debug(f"发送刷新书架消息失败: {msg_error}")
                     
@@ -1142,10 +1144,11 @@ class CrawlerManagementScreen(Screen[None]):
                         try:
                             # 直接使用文件路径删除书架中的书籍
                             if self.db_manager.delete_book(file_path):
-                                # 发送刷新书架消息
+                                # 发送全局刷新书架消息，确保书架屏幕能够接收
                                 try:
                                     from src.ui.messages import RefreshBookshelfMessage
                                     self.app.post_message(RefreshBookshelfMessage())
+                                    logger.info("已发送书架刷新消息，书籍已从书架删除")
                                     self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，书架中的书籍已删除")
                                 except Exception as msg_error:
                                     logger.debug(f"发送刷新书架消息失败: {msg_error}")

@@ -44,7 +44,17 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     @on(RefreshBookshelfMessage)
     def handle_refresh_message(self, message: RefreshBookshelfMessage) -> None:
         """处理刷新书架消息"""
+        self.logger.info("接收到书架刷新消息，正在重新加载书籍数据...")
+        # 强制重新加载书架数据，确保数据同步
+        try:
+            # 重新加载书架数据（从数据库重新获取）
+            self.bookshelf._load_books()
+            self.logger.info("书架数据已重新加载")
+        except Exception as e:
+            self.logger.warning(f"重新加载书架数据失败: {e}")
+        
         self._load_books()
+        self.logger.info("书架数据已刷新")
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect):
         """
@@ -183,6 +193,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         table = self.query_one("#books-table", DataTable)
         table.clear()
+        
+        # 确保书架数据是最新的，从数据库重新加载
+        try:
+            # 强制重新加载书架数据
+            self.bookshelf._load_books()
+            self.logger.debug("书架数据已重新加载")
+        except Exception as e:
+            self.logger.warning(f"重新加载书架数据失败: {e}")
         
         # 默认按照最后阅读时间倒序排序
         self._all_books = self.bookshelf.sort_books("last_read_date", reverse=True)
