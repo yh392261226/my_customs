@@ -69,7 +69,7 @@ ScrollableContainer {
 /* 设置控件样式 */
 Select {
     width: 100%;
-    height: 3;
+    height: 5;
     margin: 1 0;
 }
 
