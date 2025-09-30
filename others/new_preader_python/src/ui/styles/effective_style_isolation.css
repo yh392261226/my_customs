@@ -1,0 +1,227 @@
+/*
+有效样式隔离CSS文件
+通过CSS重置和命名空间隔离，彻底解决样式污染问题
+*/
+
+/* ===== 基础样式重置 ===== */
+
+/* 重置所有屏幕的默认样式 */
+.screen-welcome,
+.screen-bookshelf,
+.screen-reader,
+.screen-settings,
+.screen-fileexplorer,
+.screen-statistics,
+.screen-help,
+.screen-bosskey,
+.screen-getbooks,
+.screen-proxysettings,
+.screen-novelsitesmanagement,
+.screen-crawlermanagement {
+    /* 重置布局属性 */
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    
+    /* 重置文本属性 */
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: normal;
+    color: inherit;
+    text-align: left;
+    text-decoration: none;
+    
+    /* 重置其他属性 */
+    list-style: none;
+    outline: none;
+    cursor: default;
+}
+
+/* ===== 欢迎屏幕样式隔离 ===== */
+.screen-welcome {
+    background: $background;
+    color: $text;
+}
+
+.screen-welcome #welcome-container {
+    width: 100%;
+    height: 100%;
+}
+
+.screen-welcome #welcome-title {
+    color: $primary;
+    font-weight: bold;
+}
+
+/* ===== 书架屏幕样式隔离 ===== */
+.screen-bookshelf {
+    background: $background;
+    color: $text;
+}
+
+.screen-bookshelf .book-item {
+    background: $surface;
+    border: solid $primary;
+    margin: 1;
+}
+
+/* ===== 阅读器屏幕样式隔离 ===== */
+.screen-reader {
+    background: $background;
+    color: $text;
+    layout: vertical;
+}
+
+.screen-reader #header {
+    background: $primary;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+}
+
+.screen-reader #content {
+    background: $background;
+    color: $text;
+}
+
+.screen-reader #status {
+    background: $accent;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+}
+
+.screen-reader #buttons {
+    background: $surface;
+}
+
+.screen-reader .btn {
+    background: $primary;
+    color: white;
+    border: none;
+}
+
+.screen-reader .btn:hover {
+    background: $primary-lighten-1;
+}
+
+.screen-reader .btn:focus {
+    background: $primary-darken-1;
+}
+
+/* ===== 设置屏幕样式隔离 ===== */
+.screen-settings {
+    background: $background;
+    color: $text;
+}
+
+.screen-settings .settings-tab {
+    background: $surface;
+    border: solid $primary;
+}
+
+/* ===== 文件资源管理器屏幕样式隔离 ===== */
+.screen-fileexplorer {
+    background: $background;
+    color: $text;
+}
+
+.screen-fileexplorer .file-item {
+    background: $surface;
+    margin: 1;
+}
+
+/* ===== 其他屏幕样式隔离 ===== */
+.screen-statistics {
+    background: $background;
+    color: $text;
+}
+
+.screen-help {
+    background: $background;
+    color: $text;
+}
+
+.screen-bosskey {
+    background: $background;
+    color: $text;
+}
+
+.screen-getbooks {
+    background: $background;
+    color: $text;
+}
+
+.screen-proxysettings {
+    background: $background;
+    color: $text;
+}
+
+.screen-novelsitesmanagement {
+    background: $background;
+    color: $text;
+}
+
+.screen-crawlermanagement {
+    background: $background;
+    color: $text;
+}
+
+/* ===== 强制隔离规则 ===== */
+
+/* 确保样式不会泄漏到其他屏幕 */
+.screen-welcome *:not(.screen-welcome),
+.screen-bookshelf *:not(.screen-bookshelf),
+.screen-reader *:not(.screen-reader),
+.screen-settings *:not(.screen-settings),
+.screen-fileexplorer *:not(.screen-fileexplorer),
+.screen-statistics *:not(.screen-statistics),
+.screen-help *:not(.screen-help),
+.screen-bosskey *:not(.screen-bosskey),
+.screen-getbooks *:not(.screen-getbooks),
+.screen-proxysettings *:not(.screen-proxysettings),
+.screen-novelsitesmanagement *:not(.screen-novelsitesmanagement),
+.screen-crawlermanagement *:not(.screen-crawlermanagement) {
+    /* 重置所有可能继承的样式 */
+    all: unset;
+    box-sizing: border-box;
+}
+
+/* 屏幕切换时的视觉隔离 */
+.screen-welcome:not(.active),
+.screen-bookshelf:not(.active),
+.screen-reader:not(.active),
+.screen-settings:not(.active),
+.screen-fileexplorer:not(.active),
+.screen-statistics:not(.active),
+.screen-help:not(.active),
+.screen-bosskey:not(.active),
+.screen-getbooks:not(.active),
+.screen-proxysettings:not(.active),
+.screen-novelsitesmanagement:not(.active),
+.screen-crawlermanagement:not(.active) {
+    display: none;
+    visibility: hidden;
+}
+
+.screen-welcome.active,
+.screen-bookshelf.active,
+.screen-reader.active,
+.screen-settings.active,
+.screen-fileexplorer.active,
+.screen-statistics.active,
+.screen-help.active,
+.screen-bosskey.active,
+.screen-getbooks.active,
+.screen-proxysettings.active,
+.screen-novelsitesmanagement.active,
+.screen-crawlermanagement.active {
+    display: block;
+    visibility: visible;
+}

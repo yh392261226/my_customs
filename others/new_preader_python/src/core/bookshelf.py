@@ -336,6 +336,17 @@ class Bookshelf:
         # 更新书籍的阅读时间
         book.add_reading_time(effective_duration)
         
+        # 保存阅读记录到数据库
+        try:
+            self.db_manager.add_reading_record(
+                book_path=book.path,
+                duration=effective_duration,
+                pages_read=pages_read
+            )
+            logger.info(f"已保存阅读记录到数据库: {book.title}, 时长: {effective_duration}秒")
+        except Exception as e:
+            logger.error(f"保存阅读记录到数据库失败: {e}")
+        
         # 保存书架数据
         self.save()
     

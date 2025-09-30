@@ -2,8 +2,14 @@ from textual.app import ComposeResult
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, ListView, ListItem
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class ChapterDialog(ModalScreen[None]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """章节选择对话框"""
     
     def __init__(self, chapters: list[str], title: str = "选择章节") -> None:

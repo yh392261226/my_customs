@@ -17,13 +17,20 @@ from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.statistics_direct import StatisticsManagerDirect
-from src.ui.styles.style_manager import ScreenStyleMixin
+from src.ui.styles.quick_fix_isolation import QuickIsolationMixin
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class WelcomeScreen(ScreenStyleMixin, Screen[None]):
+class WelcomeScreen(QuickIsolationMixin, Screen[None]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """欢迎屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
@@ -93,9 +100,8 @@ class WelcomeScreen(ScreenStyleMixin, Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        # 应用简单样式隔离
-        from src.ui.styles.simple_style_isolation import apply_simple_style_isolation
-        apply_simple_style_isolation(self)
+        # 调用父类的on_mount方法（包含样式隔离）
+        super().on_mount()
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)

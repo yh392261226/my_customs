@@ -39,7 +39,7 @@ from src.core.statistics import StatisticsManager
 from src.config.settings.setting_registry import SettingRegistry
 from src.config.settings.setting_factory import initialize_settings_registry
 from src.ui.messages import RefreshBookshelfMessage, RequestPasswordMessage, RefreshContentMessage
-from src.ui.styles.style_manager import initialize_style_manager
+from src.ui.styles.quick_fix_isolation import reset_quick_isolation
 
 from src.utils.logger import get_logger
 
@@ -105,8 +105,12 @@ class NewReaderApp(App[None]):
         # 初始化统计管理器
         self.statistics_manager = StatisticsManagerDirect(self.db_manager)
         
-        # 初始化样式管理器（暂时注释掉，使用新的样式隔离方案）
-        # self.style_manager = initialize_style_manager(self)
+        # 初始化快速样式隔离系统
+        try:
+            reset_quick_isolation()
+            logger.info("快速样式隔离系统已初始化")
+        except Exception as e:
+            logger.error(f"快速样式隔离系统初始化失败: {e}")
         
         # 初始化书签管理器
         from src.core.bookmark import BookmarkManager
@@ -315,7 +319,7 @@ class NewReaderApp(App[None]):
                 return
             
             # 打开终端阅读器屏幕（使用新的现代化架构）
-            self.push_screen(ReaderScreen(book, self.theme_manager, self.statistics_manager, self.bookmark_manager))
+            self.push_screen(ReaderScreen(book, self.theme_manager, self.statistics_manager, self.bookmark_manager, self.bookshelf))
             
         except Exception as e:
             self.notify(f"{get_global_i18n().t("app.open_book_failed")}: {e}", severity="error")
@@ -355,7 +359,7 @@ class NewReaderApp(App[None]):
         book = self.bookshelf.get_book(book_id)
         if book:
             # 使用新的终端阅读器屏幕
-            self.push_screen(ReaderScreen(book, self.theme_manager, self.statistics_manager, self.bookmark_manager))
+            self.push_screen(ReaderScreen(book, self.theme_manager, self.statistics_manager, self.bookmark_manager, self.bookshelf))
         else:
             self.notify(get_global_i18n().t("error.book_not_found"), severity="error")
     

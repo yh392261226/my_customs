@@ -29,6 +29,7 @@ from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
 from src.ui.dialogs.scan_progress_dialog import ScanProgressDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import ScreenStyleMixin
+from src.ui.styles.comprehensive_style_isolation import apply_comprehensive_style_isolation, remove_comprehensive_style_isolation
 
 from src.utils.logger import get_logger
 
@@ -38,7 +39,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     """书架屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
-    CSS_PATH="../styles/bookshelf.css"
+    CSS_PATH="../styles/isolated_bookshelf.css"
     
     @on(RefreshBookshelfMessage)
     def handle_refresh_message(self, message: RefreshBookshelfMessage) -> None:
@@ -148,9 +149,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        # 应用简单样式隔离
-        from src.ui.styles.simple_style_isolation import apply_simple_style_isolation
-        apply_simple_style_isolation(self)
+        # 应用全面的样式隔离
+        apply_comprehensive_style_isolation(self)
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)

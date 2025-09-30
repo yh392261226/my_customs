@@ -9,9 +9,15 @@ from textual.widgets import Button, Label, Input
 from textual import events
 from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class PageDialog(ModalScreen[int]):
     """页面选择对话框"""
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     
     CSS_PATH = "../styles/bookmark_dialog.css"
     

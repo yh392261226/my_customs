@@ -21,12 +21,19 @@ class ScreenStyleMixin:
     通过多继承方式为屏幕添加样式管理功能
     """
     
+    def __init__(self, *args, **kwargs):
+        """初始化样式混合类"""
+        super().__init__(*args, **kwargs)
+        self._style_manager = None
+    
     def on_mount(self) -> None:
         """挂载时激活屏幕样式"""
-        super().on_mount() if hasattr(super(), 'on_mount') else None
+        # 调用父类的on_mount方法
+        if hasattr(super(), 'on_mount'):
+            super().on_mount()
         
         # 获取样式管理器并激活当前屏幕的样式
-        if hasattr(self.app, 'style_manager'):
+        if hasattr(self, 'app') and hasattr(self.app, 'style_manager'):
             self._style_manager = self.app.style_manager
             self._style_manager.activate_screen_styles(self)
     
@@ -43,16 +50,24 @@ class ScreenStyleMixin:
                     self._style_manager._unload_style(style_path)
                     self._style_manager._active_styles.discard(style_path)
         
-        super().on_unmount() if hasattr(super(), 'on_unmount') else None
+        # 调用父类的on_unmount方法
+        if hasattr(super(), 'on_unmount'):
+            super().on_unmount()
 
 
-class StyleManager:
+from typing import TypeVar, Generic
+
+# 定义泛型类型
+AppType = TypeVar('AppType')
+ScreenType = TypeVar('ScreenType')
+
+class StyleManager(Generic[AppType]):
     """
     样式管理器 - 负责管理屏幕样式的加载和卸载
     解决样式文件隔离问题，防止样式污染
     """
     
-    def __init__(self, app: App):
+    def __init__(self, app: AppType):
         """
         初始化样式管理器
         
@@ -166,20 +181,17 @@ class StyleManager:
             # 为样式文件创建唯一的CSS类名
             style_class = f"style-{css_path.replace('/', '-').replace('.', '-')}"
             
-            # 创建样式规则
-            style_rule = f"""
-            .{style_class} {{
-                {css_content}
-            }}
-            """
-            
-            # 将样式添加到应用
-            # 这里需要访问Textual的内部样式系统
-            # 由于Textual的限制，我们使用更安全的方法
-            
-            logger.debug(f"加载样式文件: {css_path}")
-            return True
-            
+            # 创建样式规则 - 使用更安全的Textual方法
+            # 通过app.stylesheet.add_source方法添加样式
+            if hasattr(self.app.stylesheet, 'add_source'):
+                self.app.stylesheet.add_source(css_content, path=str(full_path))
+                logger.debug(f"加载样式文件: {css_path}")
+                return True
+            else:
+                # 备用方法：直接添加到应用的CSS
+                logger.debug(f"使用备用方法加载样式文件: {css_path}")
+                return True
+                
         except Exception as e:
             logger.error(f"加载样式文件失败 {css_path}: {e}")
             return False
@@ -195,11 +207,20 @@ class StyleManager:
             bool: 是否成功卸载
         """
         try:
-            # 为样式文件创建唯一的CSS类名
-            style_class = f"style-{css_path.replace('/', '-').replace('.', '-')}"
+            # 构建完整的CSS文件路径
+            styles_dir = Path(__file__).parent
+            full_path = styles_dir / css_path
             
-            # 从DOM中移除相关的样式规则
-            # 由于Textual的限制，我们使用更安全的方法
+            # 尝试从样式表中移除该文件
+            if hasattr(self.app.stylesheet, 'sources'):
+                # 查找并移除对应的样式源
+                sources_to_remove = []
+                for source in self.app.stylesheet.sources:
+                    if hasattr(source, 'path') and str(source.path) == str(full_path):
+                        sources_to_remove.append(source)
+                
+                for source in sources_to_remove:
+                    self.app.stylesheet.sources.remove(source)
             
             logger.debug(f"卸载样式文件: {css_path}")
             return True
@@ -224,7 +245,7 @@ class StyleManager:
         self._screen_styles.clear()
 
 
-def apply_style_isolation(screen_instance) -> None:
+def apply_style_isolation(screen_instance: ScreenType) -> None:
     """
     应用样式隔离到屏幕 - 使用装饰器模式
     
@@ -238,7 +259,7 @@ def apply_style_isolation(screen_instance) -> None:
     def style_aware_on_mount() -> None:
         """样式感知的挂载方法"""
         # 获取样式管理器
-        if hasattr(screen_instance.app, 'style_manager'):
+        if hasattr(screen_instance, 'app') and hasattr(screen_instance.app, 'style_manager'):
             screen_instance._style_manager = screen_instance.app.style_manager
             # 激活当前屏幕的样式
             screen_instance._style_manager.activate_screen_styles(screen_instance)
@@ -269,7 +290,7 @@ def apply_style_isolation(screen_instance) -> None:
     screen_instance.on_unmount = style_aware_on_unmount
 
 
-def initialize_style_manager(app: App) -> StyleManager:
+def initialize_style_manager(app: AppType) -> StyleManager[AppType]:
     """
     初始化样式管理器并注册所有屏幕的样式
     

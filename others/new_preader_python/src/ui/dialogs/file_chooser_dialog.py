@@ -15,6 +15,7 @@ from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.utils.file_utils import FileUtils
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class FilePathValidator(Validator):
     """文件路径验证器"""
@@ -58,6 +59,11 @@ class FilePathValidator(Validator):
 
 
 class FileChooserDialog(ModalScreen[Optional[List[str]]]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """文件选择器对话框"""
     
     def __init__(self, theme_manager: ThemeManager, 

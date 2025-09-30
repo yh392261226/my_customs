@@ -12,6 +12,7 @@ from textual import events
 
 from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class SearchResultsDialog(ModalScreen[Optional[int]]):
     """搜索结果对话框，返回选择的页码"""
@@ -33,10 +34,17 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
         self.i18n = get_global_i18n()
         self.selected_page: Optional[int] = None
     
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        # 设置焦点到结果表格
+        self.query_one("#results-table").focus()
+    
     def compose(self) -> ComposeResult:
         """组合对话框组件"""
         with Vertical(id="search-results-dialog"):
-            yield Label(f"{get_global_i18n().t('common.search}: {self.search_query}", id="search-query")
+            yield Label(f"{get_global_i18n().t('common.search')}: {self.search_query}", id="search-query")
             yield Label(get_global_i18n().t("search_results_dialog.found_results", results=len(self.results)), id="search-count")
             
             # 结果表格
@@ -50,10 +58,6 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
             with Horizontal(id="search-buttons"):
                 yield Button(get_global_i18n().t("common.select"), id="select-button")
                 yield Button(get_global_i18n().t("common.cancel"), id="cancel-button")
-    
-    def on_mount(self) -> None:
-        """挂载时的回调"""
-        self.query_one("#results-table").focus()
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """行选择事件"""

@@ -17,10 +17,17 @@ from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.core.database_manager import DatabaseManager
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 logger = get_logger(__name__)
 
 class ProxyListScreen(Screen[None]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """代理列表管理屏幕"""
     
     # 加载CSS样式

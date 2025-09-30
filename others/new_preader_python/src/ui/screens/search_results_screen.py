@@ -6,8 +6,15 @@ from textual import on, events
 from typing import Optional, Any, Dict, List
 from src.core.pagination.terminal_paginator import TerminalPaginator
 from src.locales.i18n_manager import get_global_i18n
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class SearchResultsScreen(Screen[None]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """搜索结果展示屏幕"""
     
     def __init__(self, search_query: str, results: List[Dict[str, Any]], theme_manager, renderer=None) -> None:

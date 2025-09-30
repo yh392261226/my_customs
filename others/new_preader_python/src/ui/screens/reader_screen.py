@@ -35,6 +35,7 @@ from src.utils.text_to_speech import TextToSpeech as TTSManager
 from src.config.settings.setting_registry import SettingRegistry
 from src.ui.messages import RefreshBookshelfMessage, RefreshContentMessage
 from src.ui.styles.style_manager import ScreenStyleMixin
+from src.ui.styles.comprehensive_style_isolation import apply_comprehensive_style_isolation, remove_comprehensive_style_isolation
 
 from src.utils.logger import get_logger
 
@@ -42,7 +43,7 @@ logger = get_logger(__name__)
 
 class ReaderScreen(ScreenStyleMixin, Screen[None]):
     """终端阅读器屏幕 - 简化版本"""
-    CSS_PATH = "../styles/terminal_reader.css"
+    CSS_PATH = "../styles/isolated_reader.css"
     
     TITLE: ClassVar[Optional[str]] = None
     
@@ -166,10 +167,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         yield Static("", id="status")
     
     def on_mount(self) -> None:
-        """屏幕挂载时的回调"""
-        # 应用简单样式隔离
-        from src.ui.styles.simple_style_isolation import apply_simple_style_isolation
-        apply_simple_style_isolation(self)
+        # 应用全面的样式隔离
+        apply_comprehensive_style_isolation(self)
+        
+        # 调用父类的on_mount方法
+        super().on_mount()
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
@@ -202,7 +204,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self._update_ui()
     
     def _set_container_size(self) -> None:
-        """设置内容容器尺寸"""
         # 获取屏幕尺寸
         screen_width = self.size.width
         screen_height = self.size.height
@@ -237,7 +238,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self._update_ui()
     
     def _load_book_content_async(self) -> None:
-        """在后台线程加载书籍内容，完成后回到UI线程更新界面"""
         # 先在 UI 线程显示加载动画
         self._show_loading_animation("正在加载书籍内容...")
         
@@ -347,11 +347,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 self._hide_loading_animation()
     
     def on_resize(self, event: events.Resize) -> None:
-        """处理窗口尺寸变化"""
         self._set_container_size()
     
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
         # 添加调试信息
         logger.debug(f"键盘事件: {event.key}")
         
@@ -385,7 +383,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         event.stop()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """处理按钮点击事件"""
         button_id = event.button.id
         # 添加调试信息
         logger.debug(get_global_i18n().t("reader.button_event", button_id=button_id))
@@ -413,12 +410,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._back_to_library()
     
     def _activate_boss_key(self) -> None:
-        """激活老板键"""
         from src.ui.screens.boss_key_screen import BossKeyScreen
         self.app.push_screen(BossKeyScreen(self.theme_manager))
     
     def _prev_page(self) -> None:
-        """上一页"""
         if self.renderer.prev_page():
             # 同步页码状态
             self.current_page = self.renderer.current_page
@@ -426,7 +421,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._on_page_change(self.current_page)
     
     def _next_page(self) -> None:
-        """下一页"""
         if self.renderer.next_page():
             # 同步页码状态
             self.current_page = self.renderer.current_page
@@ -434,15 +428,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._on_page_change(self.current_page)
     
     def _scroll_up(self, lines: int = 1) -> None:
-        """向上滚动"""
         self.renderer.content_scroll_up(lines)
     
     def _scroll_down(self, lines: int = 1) -> None:
-        """向下滚动"""
         self.renderer.content_scroll_down(lines)
     
     def _goto_page(self) -> None:
-        """跳转到指定页"""
         # 添加调试信息
         logger.info(f"_goto_page{get_global_i18n().t('reader.on_use')}: total_pages={self.renderer.total_pages}, current_page={self.renderer.current_page}")
         
@@ -463,7 +454,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.app.push_screen(PageDialog(self.renderer.total_pages, self.renderer.current_page), on_result)
     
     def _toggle_bookmark(self) -> None:
-        """切换书签"""
         try:
             current_position = str(self.renderer.current_page)
             
@@ -513,21 +503,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.notify(get_global_i18n().t('reader.bookmark_action_failed', error=str(e)), severity="error")
     
     def _open_bookmark_list(self) -> None:
-        """打开书签列表"""
         try:
             self.app.push_screen(BookmarksScreen(self.book_id))
         except Exception as e:
             self.notify(f"{get_global_i18n().t('reader.open_bookmark_failed')}: {e}", severity="error")
     
     def _get_current_position_text(self) -> str:
-        """获取当前位置的文本片段"""
         content = self.renderer.get_current_page()
         if content:
             return content[:50].replace('\n', ' ') + "..."
         return f"{get_global_i18n().t('reader.page_current', page=self.renderer.current_page + 1)}"
     
     def _open_settings(self) -> None:
-        """打开设置中心"""
         try:
             # 保存当前页面位置
             current_page = self.current_page
@@ -548,13 +535,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.notify(f"{get_global_i18n().t('reader.open_setting_failed')}: {e}", severity="error")
     
     def _check_settings_closed(self) -> None:
-        """检查设置屏幕是否已关闭"""
         # 简单的检查方法：如果当前屏幕是阅读器屏幕，说明设置已关闭
         if self.app.screen is self:
             self._reload_settings()
     
     def _reload_settings(self) -> None:
-        """重新加载设置并应用到渲染器"""
         try:
             # 重新加载配置
             new_config = self._load_render_config_from_settings()
@@ -592,7 +577,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.notify(f"{get_global_i18n().t('reader.setting_effect_failed')}: {e}", severity="error")
     
     def _search_text(self) -> None:
-        """搜索文本"""
         def on_search(search_keyword: Optional[str]) -> None:
             if search_keyword and search_keyword.strip():
                 try:
@@ -642,7 +626,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.app.push_screen(ContentSearchDialog(self.theme_manager), on_search)
     
     def _toggle_auto_page(self) -> None:
-        """切换自动翻页"""
         self.auto_turn_enabled = not self.auto_turn_enabled
         
         if self.auto_turn_enabled:
@@ -653,7 +636,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.notify(f"{get_global_i18n().t('reader.auto_page_disabled')}", severity="information")
     
     def _start_auto_turn(self) -> None:
-        """开始自动翻页"""
         if self.auto_turn_timer:
             self.auto_turn_timer.stop()
         
@@ -662,13 +644,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.auto_turn_timer = self.set_interval(interval_float, self._auto_turn_page)
     
     def _stop_auto_turn(self) -> None:
-        """停止自动翻页"""
         if self.auto_turn_timer:
             self.auto_turn_timer.stop()
             self.auto_turn_timer = None
     
     def _auto_turn_page(self) -> None:
-        """自动翻页"""
         if not self.renderer.next_page():
             self.auto_turn_enabled = False
             self._stop_auto_turn()
@@ -678,7 +658,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._on_page_change(self.current_page)
     
     def _toggle_tts(self) -> None:
-        """切换文本朗读"""
         self.tts_enabled = not self.tts_enabled
         
         if self.tts_enabled:
@@ -689,7 +668,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.notify(f"{get_global_i18n().t('reader.aloud_disabled')}", severity="information")
     
     def _start_tts(self) -> None:
-        """开始文本朗读"""
         try:
             # 获取朗读音量设置
             from src.config.settings.setting_registry import SettingRegistry
@@ -706,14 +684,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.tts_enabled = False
     
     def _stop_tts(self) -> None:
-        """停止文本朗读"""
         try:
             self.tts_manager.stop()
         except Exception as e:
             logger.error(f"{get_global_i18n().t('reader.aloud_stop_failed')}: {e}")
     
     def _on_page_change(self, new_page: int) -> None:
-        """页面变化回调"""
         # 更新状态，确保与renderer同步
         self.current_page = self.renderer.current_page
         self.total_pages = self.renderer.total_pages
@@ -727,18 +703,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self._update_book_progress()
     
     def _on_auto_turn_change(self, auto_turn: bool) -> None:
-        """自动翻页状态变化回调"""
         self.auto_turn_enabled = auto_turn
     
     def _on_config_change(self, new_config: Dict[str, Any]) -> None:
-        """配置变化回调"""
         self.render_config = new_config
         self.renderer.config = self.render_config
         self.renderer._paginate()
         self.renderer.update_content()
     
     def _update_book_progress(self) -> None:
-        """更新书籍阅读进度"""
         # 只有在启用了记住阅读位置功能时才更新进度
         if self.render_config.get("remember_position", True):
             self.book.update_reading_progress(
@@ -754,16 +727,21 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             if reading_duration > 0:
                 # 添加阅读记录到书架（显式命名参数，避免类型检查报错）
                 if self.bookshelf:
-                    self.bookshelf.add_reading_record(
-                        book=self.book,
-                        duration=reading_duration,
-                        pages_read=1
-                    )
+                    try:
+                        self.bookshelf.add_reading_record(
+                            book=self.book,
+                            duration=reading_duration,
+                            pages_read=1
+                        )
+                        logger.debug(f"记录翻页阅读: {reading_duration}秒")
+                    except Exception as e:
+                        logger.error(f"记录翻页阅读失败: {e}")
+                else:
+                    logger.debug("bookshelf对象为None，跳过翻页阅读记录")
         
         self.last_progress_update = time.time()
     
     def _update_ui(self) -> None:
-        """更新界面显示"""
         # 更新标题栏
         try:
             header = self.query_one("#header", Static)
@@ -824,7 +802,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             pass
     
     def _format_progress_display(self, progress: float) -> str:
-        """根据设置格式化进度显示"""
         try:
             # 获取进度条样式设置
             from src.config.settings.setting_registry import SettingRegistry
@@ -858,7 +835,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             return f"{progress:.1f}%"
     
     def _back_to_library(self) -> None:
-        """返回书架"""
         # 停止阅读会话
         stats = self.status_manager.stop_reading()
         
@@ -868,7 +844,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.info(get_global_i18n().t('reader.reading_seconds').format(duration=reading_duration))
             
             # 记录阅读数据到数据库
-            if self.book and reading_duration > 5:  # 只记录超过5秒的阅读会话
+            if self.book and reading_duration > 0:  # 记录所有阅读会话，即使很短
                 try:
                     pages_read = max(1, self.current_page - getattr(self, 'initial_page', 1))
                     if self.bookshelf:
@@ -877,7 +853,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                             duration=reading_duration,
                             pages_read=pages_read
                         )
-                    logger.info(get_global_i18n().t('reader.record_session', title=self.book.title, pages=pages_read, duration=reading_duration))
+                        logger.info(get_global_i18n().t('reader.record_session', title=self.book.title, pages=pages_read, duration=reading_duration))
+                    else:
+                        logger.warning("bookshelf对象为None，无法记录阅读统计")
                 except Exception as e:
                     logger.error(f"{get_global_i18n().t('reader.record_data_failed')}: {e}")
         
@@ -893,12 +871,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 if self.bookshelf:
                     self.bookshelf.save()
                     
-                logger.info(get_global_i18n().t('reader.record_progress', title=self.book.title, page=self.current_page, total_pages=getattr(self.renderer, 'total_pages', 1), progress=f"{self.book.reading_progress:.1%}"))
+                logger.info(get_global_i18n().t('reader.record_progress', title=self.book.title, page=self.current_page, total=getattr(self.renderer, 'total_pages', 1), progress=f"{self.book.reading_progress:.1%}"))
             except Exception as e:
                 logger.error(f"{get_global_i18n().t('reader.record_progress_failed')}: {e}")
         
         # 取消注册设置观察者
         self._unregister_setting_observers()
+        
+        # 移除全面的样式隔离
+        remove_comprehensive_style_isolation(self)
         
         # 发送刷新书架消息
         from src.ui.messages import RefreshBookshelfMessage
@@ -908,10 +889,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.app.pop_screen()
     
     def _register_setting_observers(self) -> None:
-        """注册设置观察者"""
         try:
             from src.config.settings.setting_observer import global_observer_manager, SettingObserver, SettingChangeEvent
             
+
             class ReaderScreenObserver(SettingObserver):
                 def __init__(self, reader_screen):
                     self.reader_screen = reader_screen

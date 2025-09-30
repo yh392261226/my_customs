@@ -24,10 +24,17 @@ from src.core.bookmark import BookmarkManager
 from src.ui.messages import RefreshBookshelfMessage
 from src.utils.logger import get_logger
 from src.ui.styles.style_manager import ScreenStyleMixin
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 logger = get_logger(__name__)
 
 class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """文件资源管理器屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
@@ -117,7 +124,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
         # 应用样式隔离
-        from src.ui.styles.style_manager import apply_style_isolation
+        from src.ui.styles.isolation_manager import apply_style_isolation
         apply_style_isolation(self)
         
         # 应用主题

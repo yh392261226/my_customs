@@ -9,6 +9,7 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
 from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane
 from src.ui.components.slider import Slider
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from textual.reactive import reactive
 from textual import on, events
 from textual.app import ComposeResult
@@ -26,6 +27,12 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 class SettingsScreen(Screen[Any]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """现代化设置屏幕"""
     
     CSS_PATH = "../styles/settings_screen.css"
@@ -302,7 +309,7 @@ class SettingsScreen(Screen[Any]):
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
         # 应用样式隔离
-        from src.ui.styles.style_manager import apply_style_isolation
+        from src.ui.styles.isolation_manager import apply_style_isolation
         apply_style_isolation(self)
         
         # 调试信息：检查设置项是否被正确加载

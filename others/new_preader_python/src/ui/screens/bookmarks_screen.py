@@ -14,6 +14,7 @@ from textual.message import Message
 from src.locales.i18n_manager import set_global_locale, get_global_i18n, t
 from src.core.bookmark import BookmarkManager, Bookmark
 from src.ui.dialogs.bookmark_edit_dialog import BookmarkEditDialog
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 # 延迟导入以避免循环导入
 from typing import TYPE_CHECKING
@@ -21,6 +22,12 @@ if TYPE_CHECKING:
     from src.ui.screens.terminal_reader_screen import ReaderScreen
 
 class BookmarksScreen(Screen[None]):
+
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
     """书签列表屏幕 - 使用数据库存储"""
     
     TITLE: Optional[str] = None  # 在运行时设置

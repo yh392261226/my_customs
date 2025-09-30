@@ -1,0 +1,125 @@
+/* 爬取管理页面样式 - 修复版本 */
+
+CrawlerManagementScreen {
+    layout: vertical;
+    background: $surface;
+    color: $text;
+}
+
+CrawlerManagementScreen #crawler-title {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin: 1 0;
+}
+
+CrawlerManagementScreen #crawler-url {
+    text-align: center;
+    color: $text-muted;
+    margin: 0 0 1 0;
+}
+
+CrawlerManagementScreen #crawler-buttons {
+    align: center middle;
+    height: 3;
+    margin: 1 0;
+}
+
+CrawlerManagementScreen #novel-id-section {
+    align: center middle;
+    margin: 1 0;
+}
+
+CrawlerManagementScreen #novel-id-container {
+    align: center middle;
+    height: 3;
+    width: 100%;
+}
+
+CrawlerManagementScreen Input {
+    width: 30;
+    height: 1;
+    margin: 0 1;
+    background: $surface;
+    color: $text;
+    border: solid $primary;
+}
+
+CrawlerManagementScreen Button {
+    min-width: 10;
+    height: 1;
+    margin: 0 1;
+    background: $primary;
+    color: white;
+    border: none;
+    text-align: center;
+}
+
+CrawlerManagementScreen #crawl-history-section {
+    margin: 2 1;
+    height: 1fr;
+}
+
+CrawlerManagementScreen #crawl-history-title {
+    text-style: bold;
+    color: $primary;
+    margin: 0 0 1 0;
+}
+
+CrawlerManagementScreen DataTable {
+    height: 1fr;
+    border: solid $primary;
+    background: $surface;
+    color: $text;
+}
+
+CrawlerManagementScreen #pagination-controls {
+    layout: horizontal;
+    align: center middle;
+    height: 3;
+    margin: 1 0;
+    width: 100%;
+}
+
+CrawlerManagementScreen #prev-page-btn {
+    min-width: 8;
+    height: 1;
+    margin: 0 1;
+}
+
+CrawlerManagementScreen #next-page-btn {
+    min-width: 8;
+    height: 1;
+    margin: 0 1;
+}
+
+CrawlerManagementScreen #page-info {
+    margin: 0 2;
+    text-align: center;
+    min-width: 12;
+}
+
+CrawlerManagementScreen #shortcuts-bar {
+    layout: horizontal;
+    align: center middle;
+    height: 2;
+    margin: 1 0;
+    width: 100%;
+}
+
+CrawlerManagementScreen #shortcuts-bar Label {
+    margin: 0 1;
+    text-align: center;
+    min-width: 8;
+}
+
+CrawlerManagementScreen #crawler-status {
+    text-align: center;
+    margin: 1 0;
+    color: $text-muted;
+}
+
+CrawlerManagementScreen #loading-animation {
+    text-align: center;
+    margin: 1 0;
+}
