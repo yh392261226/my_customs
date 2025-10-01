@@ -94,32 +94,35 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
             # 可滚动的表单内容区域
             with ScrollableContainer(id="proxy-edit-scroll"):
                 with Vertical(id="proxy-edit-form"):
-                    # 代理名称
-                    with Horizontal(id="name-container"):
-                        yield Label(name_label, id="name-label")
-                        yield Input(
-                            placeholder=name_placeholder,
-                            id="name-input",
-                            value=self.proxy_data.get("name", "")
-                        )
+                    # 基础设置
+                    with Vertical(id="basic-container"):
+                        # 代理名称
+                        with Horizontal(id="name-container"):
+                            yield Label(name_label, id="name-label")
+                            yield Input(
+                                placeholder=name_placeholder,
+                                id="name-input",
+                                value=self.proxy_data.get("name", "")
+                            )
+                        
+                        # 代理类型
+                        with Horizontal(id="type-container"):
+                            yield Label(type_label, id="type-label")
+                            yield Select(
+                                [
+                                    ("HTTP", "HTTP"),
+                                    ("HTTPS", "HTTPS"),
+                                    ("SOCKS5", "SOCKS5")
+                                ],
+                                id="type-select",
+                                value=self.proxy_data.get("type", "HTTP")
+                            )
                     
                     # 启用开关
-                    with Horizontal(id="enable-container"):
-                        yield Checkbox(enable_label, id="enable-checkbox")
-                    
-                    # 代理类型
-                    with Horizontal(id="type-container"):
-                        yield Label(type_label, id="type-label")
-                        yield Select(
-                            [
-                                ("HTTP", "HTTP"),
-                                ("HTTPS", "HTTPS"),
-                                ("SOCKS5", "SOCKS5")
-                            ],
-                            id="type-select",
-                            value=self.proxy_data.get("type", "HTTP")
-                        )
-                    
+                    with Vertical(id="enable-container"):
+                        with Horizontal(id="enable-container"):
+                            yield Checkbox(enable_label, id="enable-checkbox")
+
                     # 服务器设置
                     with Vertical(id="server-container"):
                         with Horizontal(id="host-container"):

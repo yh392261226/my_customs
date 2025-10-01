@@ -73,7 +73,7 @@ Screen {
     border: round $primary-lighten-3;
 }
 
-#server-container, #auth-container {
+#enable-container, #basic-container, #server-container, #auth-container {
     width: 100%;
     height: auto;
     layout: vertical;
