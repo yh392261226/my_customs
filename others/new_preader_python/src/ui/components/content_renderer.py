@@ -2,6 +2,9 @@
 from typing import Dict, List, Optional, Any, Tuple
 from textual.widgets import Static
 from textual.reactive import reactive
+from textual.widgets import Static
+from rich.text import Text as RichText
+from rich.style import Style
 from src.core.pagination.terminal_paginator import TerminalPaginator, PageMetrics
 from src.config.settings.setting_observer import SettingObserver, SettingChangeEvent, register_component_observers
 
@@ -245,35 +248,97 @@ class ContentRenderer(Static):
     
     def _apply_theme_styles(self) -> None:
         """应用主题样式到内容渲染器"""
-        theme = self.config.get("theme", "dark")
-        
-        # 根据主题设置背景和文字颜色
-        if theme == "dark":
-            self.styles.background = "black"
-            self.styles.color = "white"
-        elif theme == "light":
+        try:
+            # 尝试从主题管理器获取当前主题样式
+            from src.themes.theme_manager import ThemeManager
+            theme_manager = ThemeManager()
+            
+            # 获取当前主题名称
+            theme_name = self.config.get("theme", theme_manager.get_current_theme_name())
+            
+            # 定义浅色主题列表
+            light_themes = [
+                "light", "github-light", "solarized-light", "transparent-light",
+                "paper-white", "cream", "sky-blue", "mint-green", "lavender"
+            ]
+            
+            # 根据主题名称设置对应的颜色 - 使用更多样化的字体颜色
+            if theme_name == "light":
+                self.styles.background = "white"
+                self.styles.color = "#2c3e50"  # 深蓝灰色，比纯黑更柔和
+            elif theme_name == "github-light":
+                self.styles.background = "#ffffff"
+                self.styles.color = "#1f2328"  # GitHub风格的深灰色
+            elif theme_name == "solarized-light":
+                self.styles.background = "#fdf6e3"
+                self.styles.color = "#586e75"  # 太阳能化的蓝灰色
+            elif theme_name == "transparent-light":
+                self.styles.background = "white"
+                self.styles.color = "#37474f"  # 材料设计的深蓝灰色
+            elif theme_name == "paper-white":
+                self.styles.background = "white"
+                self.styles.color = "#263238"  # 深石板灰色
+            elif theme_name == "cream":
+                self.styles.background = "#fff8e1"
+                self.styles.color = "#5d4037"  # 温暖的深棕色
+            elif theme_name == "sky-blue":
+                self.styles.background = "#e3f2fd"
+                self.styles.color = "#1565c0"  # 明亮的深蓝色
+            elif theme_name == "mint-green":
+                self.styles.background = "#e8f5e9"
+                self.styles.color = "#2e7d32"  # 清新的深绿色
+            elif theme_name == "lavender":
+                self.styles.background = "#f3e5f5"
+                self.styles.color = "#6a1b9a"  # 优雅的深紫色
+            else:
+                # 默认暗色主题 - 也使用更多样化的浅色
+                self.styles.background = "black"
+                if theme_name == "dark":
+                    self.styles.color = "#e0e0e0"  # 浅灰色
+                elif theme_name == "nord":
+                    self.styles.color = "#e5e9f0"  # 北极浅蓝色
+                elif theme_name == "dracula":
+                    self.styles.color = "#f8f8f2"  # 德古拉米色
+                elif theme_name == "material":
+                    self.styles.color = "#e0e0e0"  # 材料浅灰色
+                elif theme_name == "github-dark":
+                    self.styles.color = "#f0f6fc"  # GitHub浅蓝色
+                elif theme_name == "solarized-dark":
+                    self.styles.color = "#eee8d5"  # 太阳能化米色
+                elif theme_name == "amethyst":
+                    self.styles.color = "#e0d6ff"  # 紫水晶浅紫色
+                elif theme_name == "forest-green":
+                    self.styles.color = "#e8f5e9"  # 森林浅绿色
+                elif theme_name == "crimson":
+                    self.styles.color = "#ffe4e1"  # 深红浅粉色
+                elif theme_name == "slate":
+                    self.styles.color = "#f5f5f5"  # 石板浅灰色
+                elif theme_name == "transparent-dark":
+                    self.styles.color = "#e6e9ed"  # 透明浅灰色
+                else:
+                    self.styles.color = "white"  # 默认白色
+            
+            # 设置内边距
+            self.styles.padding = (0, 1)
+            
+            logger.debug(f"应用主题样式: {theme_name}, 背景: {self.styles.background}, 文字: {self.styles.color}")
+            
+        except Exception as e:
+            logger.error(f"应用主题样式失败: {e}")
+            # 出错时使用默认样式
             self.styles.background = "white"
             self.styles.color = "black"
-        elif theme == "blue":
-            self.styles.background = "navy"
-            self.styles.color = "cyan"
-        elif theme == "green":
-            self.styles.background = "dark_green"
-            self.styles.color = "bright_green"
-        else:
-            # 默认暗色主题
-            self.styles.background = "black"
-            self.styles.color = "white"
-        
-        # 设置内边距
-        self.styles.padding = (0, 1)
-        
-        logger.debug(f"应用主题样式: {theme}, 背景: {self.styles.background}, 文字: {self.styles.color}")
+            self.styles.padding = (0, 1)
     
     def _update_visible_content(self) -> None:
         """更新可见内容显示"""
         visible_content = self.get_visible_content()
+        
+        # 直接更新文本内容，Textual会自动应用CSS样式
         self.update(visible_content)
+        
+        # 强制刷新样式，确保字体颜色被应用
+        self.refresh()
     
     def next_page(self) -> bool:
         """
@@ -493,6 +558,11 @@ class ContentRenderer(Static):
                             self.renderer.config["paragraph_spacing"] = event.new_value
                         elif event.setting_key == "reading.font_size":
                             self.renderer.config["font_size"] = event.new_value
+                        elif event.setting_key == "theme":
+                            # 主题变更时重新应用主题样式
+                            self.renderer.config["theme"] = event.new_value
+                            self.renderer._apply_theme_styles()
+                            logger.debug(f"ContentRenderer: 已应用新主题: {event.new_value}")
                         
                         # 立即重新分页和刷新显示
                         if self.renderer._original_content:

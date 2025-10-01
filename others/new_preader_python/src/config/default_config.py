@@ -96,7 +96,8 @@ AVAILABLE_THEMES = [
     "dark", "light", "nord", "dracula", "material", 
     "github-dark", "github-light", "solarized-dark", 
     "solarized-light", "amethyst", "forest-green",
-    "crimson", "slate", "transparent-dark", "transparent-light"
+    "crimson", "slate", "transparent-dark", "transparent-light",
+    "paper-white", "cream", "sky-blue", "mint-green", "lavender"
 ]
 
 # 支持的边框样式
