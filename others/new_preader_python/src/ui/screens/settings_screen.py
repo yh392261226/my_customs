@@ -99,7 +99,7 @@ class SettingsScreen(Screen[Any]):
                 yield Button(get_global_i18n().t("settings.reset"), id="reset-btn", variant="warning")
             
             # 快捷键状态栏
-            with Horizontal(id="shortcuts-bar"):
+            with Horizontal(id="settings-shortcuts-bar"):
                 yield Label(f"Enter: {get_global_i18n().t("common.save")}", id="shortcut-enter")
                 yield Label(f"ESC: {get_global_i18n().t("common.cancel")}", id="shortcut-esc")
                 yield Label(f"R: {get_global_i18n().t("common.reset")}", id="shortcut-reset")

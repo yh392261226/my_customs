@@ -334,7 +334,7 @@ class ContentRenderer(Static):
         """更新可见内容显示"""
         visible_content = self.get_visible_content()
         
-        # 直接更新文本内容，Textual会自动应用CSS样式
+        # 直接更新文本内容，使用组件自身样式（self.styles.color）
         self.update(visible_content)
         
         # 强制刷新样式，确保字体颜色被应用
@@ -558,8 +558,8 @@ class ContentRenderer(Static):
                             self.renderer.config["paragraph_spacing"] = event.new_value
                         elif event.setting_key == "reading.font_size":
                             self.renderer.config["font_size"] = event.new_value
-                        elif event.setting_key == "theme":
-                            # 主题变更时重新应用主题样式
+                        elif event.setting_key == "theme" or event.setting_key == "appearance.theme":
+                            # 主题变更时重新应用主题样式（兼容设置中心键名）
                             self.renderer.config["theme"] = event.new_value
                             self.renderer._apply_theme_styles()
                             logger.debug(f"ContentRenderer: 已应用新主题: {event.new_value}")
@@ -591,7 +591,8 @@ class ContentRenderer(Static):
             reading_settings = [
                 "reading.line_spacing",
                 "reading.paragraph_spacing", 
-                "reading.font_size"
+                "reading.font_size",
+                "appearance.theme"
             ]
             
             for setting_key in reading_settings:

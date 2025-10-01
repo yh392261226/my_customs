@@ -32,38 +32,23 @@ class StyleIsolationManager:
         logger.debug(f"注销屏幕样式隔离: {screen_name}")
         
     def apply_screen_isolation(self, screen: Screen, screen_name: str) -> None:
-        """为屏幕应用样式隔离"""
+        """为屏幕应用样式隔离（仅命名空间，不注入CSS以避免解析错误）"""
         try:
-            # 注册屏幕
+            # 注册屏幕（添加命名空间类在调用处）
             self.register_screen(screen, screen_name)
-            
-            # 清除之前的样式
-            self._clear_previous_styles(screen.app)
-            
-            # 应用当前屏幕的隔离样式
-            isolated_css = self._generate_isolated_css(screen, screen_name)
-            if isolated_css:
-                self._apply_css_to_app(screen.app, isolated_css)
-                self._screen_styles[screen_name] = isolated_css
-                
-            logger.info(f"应用样式隔离成功: {screen_name}")
-            
+            # 跳过样式注入，避免样式表解析错误
+            logger.info(f"应用样式隔离成功(仅命名空间): {screen_name}")
         except Exception as e:
-            logger.error(f"应用样式隔离失败 {screen_name}: {e}")
+            logger.error(f"应用样式隔离失败(命名空间) {screen_name}: {e}")
             
     def remove_screen_isolation(self, screen: Screen, screen_name: str) -> None:
-        """移除屏幕的样式隔离"""
+        """移除屏幕的样式隔离（仅注销，不操作样式表）"""
         try:
-            # 清除当前屏幕的样式
-            self._clear_screen_styles(screen.app, screen_name)
-            
-            # 注销屏幕
+            # 仅注销屏幕，避免样式表操作导致解析错误
             self.unregister_screen(screen_name)
-            
-            logger.info(f"移除样式隔离成功: {screen_name}")
-            
+            logger.info(f"移除样式隔离成功(仅命名空间): {screen_name}")
         except Exception as e:
-            logger.error(f"移除样式隔离失败 {screen_name}: {e}")
+            logger.error(f"移除样式隔离失败(命名空间) {screen_name}: {e}")
             
     def _clear_previous_styles(self, app: App) -> None:
         """清除之前的样式"""
@@ -74,16 +59,8 @@ class StyleIsolationManager:
                 if self._original_css is None:
                     self._original_css = str(app.stylesheet)
                 
-                # 清除所有屏幕特定的样式
-                base_css = self._get_base_css()
-                if hasattr(app.stylesheet, 'add_source'):
-                    app.stylesheet.add_source(base_css, read_from="base_style_reset")
-                    if hasattr(app, 'screen_stack') and app.screen_stack:
-                        app.stylesheet.update(app.screen_stack[-1])
-                    else:
-                        logger.warning("无法获取root节点，跳过样式更新")
-                else:
-                    logger.warning("stylesheet.add_source方法不可用，无法清除样式")
+                # 清除所有屏幕特定的样式（跳过注入，避免解析错误）
+                logger.debug("跳过基础样式重置以避免样式表解析错误")
                 
         except Exception as e:
             logger.error(f"清除之前样式失败: {e}")
@@ -92,16 +69,8 @@ class StyleIsolationManager:
         """清除特定屏幕的样式"""
         try:
             if hasattr(app, 'stylesheet') and app.stylesheet:
-                # 重置为基础样式
-                base_css = self._get_base_css()
-                if hasattr(app.stylesheet, 'add_source'):
-                    app.stylesheet.add_source(base_css, read_from=f"clear_{screen_name}_style")
-                    if hasattr(app, 'screen_stack') and app.screen_stack:
-                        app.stylesheet.update(app.screen_stack[-1])
-                    else:
-                        logger.warning("无法获取root节点，跳过样式更新")
-                else:
-                    logger.warning("stylesheet.add_source方法不可用，无法清除样式")
+                # 重置为基础样式（跳过注入，避免解析错误）
+                logger.debug(f"跳过清除屏幕样式以避免样式表解析错误: {screen_name}")
                 
         except Exception as e:
             logger.error(f"清除屏幕样式失败 {screen_name}: {e}")
@@ -234,8 +203,6 @@ class StyleIsolationManager:
         return """
 /* 基础样式重置 */
 Screen {
-    background: $background;
-    color: $text;
 }
 
 Container {
@@ -243,34 +210,28 @@ Container {
 }
 
 Button {
-    background: $primary;
-    color: white;
 }
 
 Button:hover {
-    background: $primary-lighten-1;
 }
 
 Button:focus {
-    background: $primary-darken-1;
 }
 
 DataTable {
-    background: $surface;
-    color: $text;
 }
 
 Label {
-    color: $text;
+    /* respect widget styles */
+    color: inherit;
 }
 
 Static {
-    color: $text;
+    /* respect widget styles */
+    color: inherit;
 }
 
 Input {
-    background: $surface;
-    color: $text;
 }
 """
 

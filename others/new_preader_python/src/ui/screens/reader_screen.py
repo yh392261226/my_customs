@@ -151,7 +151,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         yield self.renderer
         
         # 按钮区域
-        with Horizontal(id="buttons"):
+        with Horizontal(id="reader-buttons"):
             yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
             yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
             yield Button(f"{get_global_i18n().t('reader.goto_page')}【g】", classes="btn", id="goto-btn")
@@ -164,7 +164,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="back-btn")
         
         # 状态栏
-        yield Static("", id="status")
+        yield Static("", id="reader-status")
     
     def on_mount(self) -> None:
         # 应用全面的样式隔离
@@ -763,12 +763,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 更新状态栏 - 添加更安全的查询方式
         try:
             # 先检查状态栏是否存在
-            status_widgets = self.query("#status")
+            status_widgets = self.query("#reader-status")
             if not status_widgets:
                 logger.warning("状态栏元素未找到，可能尚未渲染完成")
                 return
                 
-            status = self.query_one("#status", Static)
+            status = self.query_one("#reader-status", Static)
             
             # 调试信息：检查分页值
             logger.debug(f"状态栏更新: current_page={self.current_page}, total_pages={self.total_pages}, renderer.current_page={self.renderer.current_page}, renderer.total_pages={self.renderer.total_pages}")
@@ -887,6 +887,56 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 返回书架
         self.app.pop_screen()
+    
+    def _apply_theme_styles_to_css(self) -> None:
+        """根据当前主题注入CSS变量与强制规则，确保内容字体颜色生效"""
+        try:
+            tm = self.theme_manager
+            # 获取文字颜色（优先 reader.text，其次 content.text）
+            text_style = tm.get_style("reader.text") or tm.get_style("content.text")
+            text_color = str(getattr(text_style, "color", "")) if text_style else ""
+            # 背景与面板
+            bg_style = tm.get_style("ui.background")
+            bg_color = str(getattr(bg_style, "bgcolor", "")) if bg_style else ""
+            surface_style = tm.get_style("ui.panel")
+            surface_color = str(getattr(surface_style, "bgcolor", "")) if surface_style else ""
+            # 主色与强调色
+            primary_style = tm.get_style("app.accent")
+            primary_color = str(getattr(primary_style, "color", "")) if primary_style else ""
+            accent_style = tm.get_style("app.highlight")
+            accent_color = str(getattr(accent_style, "color", "")) if accent_style else ""
+            
+            # 合理兜底（根据 app.dark 判断）
+            is_dark = bool(getattr(self.app, "dark", False))
+            text_fallback = "#ffffff" if is_dark else "#000000"
+            bg_fallback = "#000000" if is_dark else "#ffffff"
+            
+            def pick(val: str, default: str) -> str:
+                return val if val else default
+            
+            css = f"""
+:root {{
+  --text: {pick(text_color, text_fallback)};
+  --background: {pick(bg_color, bg_fallback)};
+  --surface: {pick(surface_color, "transparent")};
+  --primary: {pick(primary_color, "#3b82f6")};
+  --accent: {pick(accent_color, "#f59e0b")};
+}}
+/* 强制阅读内容区采用主题文字颜色，避免被其他样式覆盖 */
+.reader-screen #content {{
+  color: var(--text) !important;
+  background: var(--background);
+}}
+.reader-screen Static {{
+  color: var(--text);
+}}
+"""
+            if hasattr(self.app, "stylesheet") and hasattr(self.app.stylesheet, "add_source"):
+                self.app.stylesheet.add_source(css, read_from="theme_dynamic_vars")
+                if hasattr(self.app, "screen_stack") and self.app.screen_stack:
+                    self.app.stylesheet.update(self.app.screen_stack[-1])
+        except Exception as e:
+            logger.error(f"注入主题CSS变量失败: {e}")
     
     def _register_setting_observers(self) -> None:
         try:

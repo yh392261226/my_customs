@@ -42,7 +42,7 @@ HelpScreen {
 }
 
 /* 快捷键状态栏 */
-#shortcuts-bar {
+#help-shortcuts-bar {
     width: 100%;
     height: 5%;
     layout: horizontal;

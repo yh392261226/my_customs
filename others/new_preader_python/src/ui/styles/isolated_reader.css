@@ -19,13 +19,12 @@
     width: 100%;
     height: 1fr;
     background: $background;
-    color: $text;
     padding: 0;
     margin: 0;
     border: none;
 }
 
-.reader-screen #status {
+.reader-screen #reader-status {
     width: 100%;
     height: 1;
     background: $accent;
@@ -34,7 +33,7 @@
     text-style: bold;
 }
 
-.reader-screen #buttons {
+.reader-screen #reader-buttons {
     width: 100%;
     height: 1;
     dock: bottom;
@@ -53,11 +52,11 @@
 }
 
 .reader-screen .btn:hover {
-    background: $primary-lighten-1;
+    background: $primary;
 }
 
 .reader-screen .btn:focus {
-    background: $primary-darken-1;
+    background: $primary;
 }
 
 .reader-screen Button {
@@ -67,23 +66,18 @@
 }
 
 .reader-screen Button:hover {
-    background: $primary-lighten-1;
+    background: $primary;
 }
 
 .reader-screen Button:focus {
-    background: $primary-darken-1;
+    background: $primary;
 }
 
-.reader-screen Label {
-    color: $text;
-}
 
-.reader-screen Static {
-    color: $text;
-}
+
+
 
 /* 加载动画样式 */
 .reader-screen #loading-animation {
     background: transparent;
-    color: $text;
 }

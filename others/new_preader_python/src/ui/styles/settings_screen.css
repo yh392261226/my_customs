@@ -29,7 +29,7 @@ Screen {
 }
 
 /* 快捷键状态栏 */
-#shortcuts-bar {
+#settings-shortcuts-bar {
     width: 100%;
     height: 2;
     layout: horizontal;
@@ -37,7 +37,7 @@ Screen {
     background: $panel-darken-1;
 }
 
-#shortcuts-bar Label {
+#settings-shortcuts-bar Label {
     margin: 0 2;
     text-style: italic;
     color: $text-muted;

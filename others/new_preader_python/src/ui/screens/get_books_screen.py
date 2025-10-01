@@ -20,12 +20,7 @@ logger = get_logger(__name__)
 
 class GetBooksScreen(Screen[None]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
-    """获取书籍主屏幕"""
+
     
     # 加载CSS样式
     CSS_PATH = "../styles/get_books_screen.css"
@@ -56,7 +51,7 @@ class GetBooksScreen(Screen[None]):
             ComposeResult: 组合结果
         """
         yield Container(
-            Vertical(
+            Horizontal(
                 Label(get_global_i18n().t('get_books.title'), id="get-books-title"),
                 Label(get_global_i18n().t('get_books.description'), id="get-books-description"),
                 
@@ -88,7 +83,7 @@ class GetBooksScreen(Screen[None]):
                     Label(get_global_i18n().t('get_books.shortcut_p'), id="shortcut-p"),
                     Label(get_global_i18n().t('get_books.shortcut_enter'), id="shortcut-enter"),
                     Label(get_global_i18n().t('get_books.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar"
+                    id="get-books-shortcuts-bar"
                 ),
                 id="get-books-container"
             )
@@ -96,6 +91,11 @@ class GetBooksScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 先应用样式隔离，防止本屏样式污染其他屏幕
+        try:
+            apply_universal_style_isolation(self)
+        except Exception:
+            pass
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
@@ -118,6 +118,13 @@ class GetBooksScreen(Screen[None]):
         # 重新加载代理设置，确保显示最新状态
         self._load_proxy_settings()
         self._load_novel_sites()
+        
+    def on_unmount(self) -> None:
+        """屏幕卸载时移除样式隔离，避免残留影响其他屏幕"""
+        try:
+            remove_universal_style_isolation(self)
+        except Exception:
+            pass
     
     def _load_novel_sites(self) -> None:
         """加载书籍网站数据"""

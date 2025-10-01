@@ -86,7 +86,7 @@ class HelpScreen(Screen[None]):
                 # 快捷键状态栏
                 Horizontal(
                     Label(f"ESC: {get_global_i18n().t('common.back')}", id="shortcut-esc"),
-                    id="shortcuts-bar"
+                    id="help-shortcuts-bar"
                 ),
                 id="help-container"
             )
