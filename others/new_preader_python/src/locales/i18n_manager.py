@@ -9,12 +9,12 @@ from .i18n import I18n
 # 全局i18n实例
 _global_i18n: Optional[I18n] = None
 
-def init_global_i18n(locale_dir: str, default_locale: str = "zh_CN") -> None:
+def init_global_i18n(locale_dir: str = "src/locales", default_locale: str = "zh_CN") -> None:
     """
     初始化全局i18n实例
     
     Args:
-        locale_dir: 语言包目录
+        locale_dir: 语言包目录（默认：src/locales）
         default_locale: 默认语言
     """
     global _global_i18n

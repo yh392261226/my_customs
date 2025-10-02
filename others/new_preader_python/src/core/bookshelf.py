@@ -155,7 +155,7 @@ class Bookshelf:
             self.db_manager.delete_book(abs_path)
             
             # 从阅读历史中移除相关记录
-            self.reading_history = [record for record in self.reading_history if record["path"] != abs_path]
+            self.reading_history = [record for record in self.reading_history if record.get("path") != abs_path and record.get("book_path") != abs_path]
             
             logger.info(f"已从数据库中移除书籍: {abs_path}")
             return True
@@ -614,3 +614,27 @@ class Bookshelf:
                     success_count += 1
         
         return success_count
+
+    def verify_and_remove_missing_books(self) -> Tuple[int, List[str]]:
+        """
+        验证并删除不存在的书籍
+        
+        Returns:
+            Tuple[int, List[str]]: (删除的书籍数量, 删除的书籍路径列表)
+        """
+        removed_count = 0
+        removed_books = []
+        
+        # 获取所有书籍
+        all_books = self.get_all_books()
+        
+        for book in all_books:
+            if not os.path.exists(book.path):
+                # 书籍文件不存在，删除该书籍
+                if self.remove_book(book.path):
+                    removed_count += 1
+                    removed_books.append(book.path)
+                    logger.info(f"删除不存在书籍: {book.title} ({book.path})")
+        
+        logger.info(f"验证完成: 删除了 {removed_count} 本不存在的书籍")
+        return removed_count, removed_books

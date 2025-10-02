@@ -121,6 +121,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_tags"), id="set-tags-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.clear_tags"), id="clear-tags-btn", variant="warning"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.delete"), id="delete-btn", variant="error"),
+                    Button(get_global_i18n().t("batch_ops.remove_missing"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.export"), id="export-btn"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.cancel"), id="cancel-btn"),
                     id="batch-ops-buttons"
@@ -382,6 +383,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             await self._set_tags_for_selected_books()
         elif event.button.id == "clear-tags-btn":
             await self._clear_tags_for_selected_books()
+        elif event.button.id == "remove-missing-btn":
+            await self._remove_missing_books()
         elif event.button.id == "export-btn":
             self._export_selected_books()
         elif event.button.id == "search-btn":
@@ -679,8 +682,69 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 弹出确认对话框
         self.app.push_screen(
             ConfirmDialog(
+                self.theme_manager,
                 get_global_i18n().t("batch_ops.clear_tags_confirm"),
                 get_global_i18n().t("batch_ops.clear_tags_confirm_message")
+            ),
+            callback=on_confirm
+        )
+    
+    async def _remove_missing_books(self) -> None:
+        """批量删除不存在的书籍"""
+        # 使用ConfirmDialog实现确认功能
+        def on_confirm(confirmed: Optional[bool]) -> None:
+            """处理确认结果"""
+            if not confirmed:
+                return
+            
+            async def remove_missing_async():
+                """异步删除不存在书籍"""
+                try:
+                    # 显示处理中消息
+                    self.notify(
+                        get_global_i18n().t("batch_ops.remove_missing_processing"),
+                        severity="information"
+                    )
+                    
+                    # 调用bookshelf的验证并删除不存在书籍方法
+                    removed_count, removed_books = self.bookshelf.verify_and_remove_missing_books()
+                    
+                    if removed_count > 0:
+                        self.notify(
+                            get_global_i18n().t("batch_ops.remove_missing_completed", count=removed_count),
+                            severity="information"
+                        )
+                    else:
+                        self.notify(
+                            get_global_i18n().t("batch_ops.remove_missing_no_books"),
+                            severity="information"
+                        )
+                    
+                    # 重新加载书籍列表
+                    self._load_books()
+                    self.selected_books.clear()  # 清空选中状态
+                    self._clear_table_selection()  # 清除表格的视觉选中状态
+                    self._update_status()
+                    
+                    # 设置返回结果为需要刷新
+                    self.dismiss({"refresh": True})
+                    
+                except Exception as e:
+                    logger.error(get_global_i18n().t("batch_ops.remove_missing_failed", error=str(e)))
+                    self.notify(
+                        get_global_i18n().t("batch_ops.remove_missing_failed", error=str(e)),
+                        severity="error"
+                    )
+            
+            # 执行异步操作
+            self.call_later(remove_missing_async)
+        
+        # 弹出确认对话框
+        self.app.push_screen(
+            ConfirmDialog(
+                self.theme_manager,
+                get_global_i18n().t("batch_ops.remove_missing_confirm"),
+                get_global_i18n().t("batch_ops.remove_missing_confirm_message")
             ),
             callback=on_confirm
         )
