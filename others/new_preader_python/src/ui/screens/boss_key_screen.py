@@ -92,7 +92,7 @@ class BossKeyScreen(Screen[None]):
             f"Last login: {datetime.now().strftime('%a %b %d %H:%M:%S')} on ttys000",
             f"{self.username}@{self.hostname}:~$ ",
             "",
-            "# Boss Key Mode - Type 'exit' or press Ctrl+C to return to reader",
+            "# Terminal Mode - Type 'exit' or press Ctrl+C to exit",
             "# Type 'help' for available commands",
             ""
         ]
@@ -259,7 +259,7 @@ class BossKeyScreen(Screen[None]):
         """显示帮助信息"""
         help_text = [
             "Available commands:",
-            "  exit, quit  - Exit boss key mode",
+            "  exit, quit  - Exit Terminal mode",
             "  clear, cls  - Clear screen",
             "  cd <dir>    - Change directory",
             "  pwd         - Print working directory",
@@ -268,7 +268,7 @@ class BossKeyScreen(Screen[None]):
             "  help, ?     - Show this help",
             "",
             "You can also run any system command available in your shell.",
-            "Press Ctrl+C or type 'exit' to return to the reader.",
+            "Press Ctrl+C or type 'exit' to exit Terminal mode.",
             ""
         ]
         self.output_lines.extend(help_text)
