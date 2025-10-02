@@ -150,18 +150,20 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.renderer.id = "content"
         yield self.renderer
         
-        # 按钮区域
-        with Horizontal(id="reader-buttons"):
-            yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
-            yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
-            yield Button(f"{get_global_i18n().t('reader.goto_page')}【g】", classes="btn", id="goto-btn")
-            yield Button(f"{get_global_i18n().t('reader.search')}【f】", classes="btn", id="search-btn")
-            yield Button(f"{get_global_i18n().t('reader.add_remove_bookmark')}【b】", classes="btn", id="bookmark-btn")
-            yield Button(f"{get_global_i18n().t('reader.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")
-            yield Button(f"{get_global_i18n().t('reader.aloud')}【R】", classes="btn", id="aloud-btn")
-            yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
-            yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
-            yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="back-btn")
+        # 按钮区域 - 使用HorizontalScroll实现水平滚动
+        from textual.containers import HorizontalScroll
+        with HorizontalScroll(id="reader-buttons-container"):
+            with Horizontal(id="reader-buttons"):
+                yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
+                yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
+                yield Button(f"{get_global_i18n().t('reader.goto_page')}【g】", classes="btn", id="goto-btn")
+                yield Button(f"{get_global_i18n().t('reader.search')}【f】", classes="btn", id="search-btn")
+                yield Button(f"{get_global_i18n().t('reader.add_remove_bookmark')}【b】", classes="btn", id="bookmark-btn")
+                yield Button(f"{get_global_i18n().t('reader.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")
+                yield Button(f"{get_global_i18n().t('reader.aloud')}【R】", classes="btn", id="aloud-btn")
+                yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
+                yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
+                yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="back-btn")
         
         # 状态栏
         yield Static("", id="reader-status")
@@ -288,7 +290,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     # saved_page是0-based的，如果大于0说明有保存的位置
                     if saved_page > 0 and saved_page < self.renderer.total_pages:
                         # goto_page接受1-based参数，需要转换为1-based页码
-                        self.renderer.goto_page(saved_page + 1)
+                        if saved_page <= 1:
+                            saved_page = 1
+                        self.renderer.goto_page(saved_page)
                         self.current_page = self.renderer.current_page  # 这是0-based的
                         logger.info(get_global_i18n().t("reader.restore_page", page=saved_page + 1, saved=saved_page, current=self.current_page))
                     else:
