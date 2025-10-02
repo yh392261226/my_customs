@@ -176,7 +176,7 @@
         "page_info_filtered": "第 {page}/{total_pages} 页，显示 {filtered_count}/{total_count} 本书籍",
         "status_info": " ↑/↓ 移动光标  空格键 选择  N 下一页 P 上一页 ESC 返回 ",
         "index": "序号",
-        "remove_missing": "删除不存在书籍",
+        "remove_missing": "清理无效",
         "remove_missing_confirm": "确认删除不存在书籍",
         "remove_missing_confirm_message": "确定要扫描并删除所有文件不存在的书籍记录吗？此操作将验证书库中所有书籍的文件是否存在，如果文件不存在则自动删除该条数据。",
         "remove_missing_processing": "正在验证书籍文件存在性...",
