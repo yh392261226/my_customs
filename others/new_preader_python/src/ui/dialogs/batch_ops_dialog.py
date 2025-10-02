@@ -320,13 +320,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """根据搜索关键词和文件格式过滤书籍"""
         filtered_books = books
         
-        # 按名称搜索
+        # 按名称搜索（支持标题、拼音、作者、标签）
         if self._search_keyword:
             keyword = self._search_keyword.lower()
             filtered_books = [
                 book for book in filtered_books
                 if (keyword in book.title.lower() or 
                     keyword in book.author.lower() or
+                    (hasattr(book, 'pinyin') and book.pinyin and keyword in book.pinyin.lower()) or
                     (book.tags and keyword in book.tags.lower()))
             ]
         
