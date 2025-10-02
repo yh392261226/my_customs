@@ -390,13 +390,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self.dismiss({"refresh": False})
     
     def _select_all_books(self) -> None:
-        """选择所有书籍"""
+        """选择当前显示的所有书籍（搜索过滤后的书籍）"""
         table = self.query_one("#batch-ops-table", DataTable)
-        self.selected_books.clear()
         
-        # 获取所有书籍并添加到选中集合
-        for book in self.bookshelf.get_all_books():
-            self.selected_books.add(book.path)
+        # 只选择当前显示的书籍（搜索过滤后的书籍）
+        for row_key in table.rows.keys():
+            # 从表格行键中获取书籍路径（RowKey转换为字符串）
+            book_path = str(row_key)
+            self.selected_books.add(book_path)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -407,10 +408,38 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         self._update_status()
     
-    def _deselect_all_books(self) -> None:
-        """取消选择所有书籍"""
+    def _invert_selection(self) -> None:
+        """反选当前显示的所有书籍（搜索过滤后的书籍）"""
         table = self.query_one("#batch-ops-table", DataTable)
-        self.selected_books.clear()
+        
+        # 获取列键对象（最后一列，选中状态列）
+        column_key = table.ordered_columns[-1].key
+        
+        # 反选当前显示的书籍（搜索过滤后的书籍）
+        for row_key in table.rows.keys():
+            # 从表格行键中获取书籍路径（RowKey转换为字符串）
+            book_path = str(row_key)
+            
+            if book_path in self.selected_books:
+                # 如果已选中，则取消选中
+                self.selected_books.discard(book_path)
+                table.update_cell(row_key, column_key, "□")
+            else:
+                # 如果未选中，则选中
+                self.selected_books.add(book_path)
+                table.update_cell(row_key, column_key, "✓")
+        
+        self._update_status()
+    
+    def _deselect_all_books(self) -> None:
+        """取消选择当前显示的所有书籍（搜索过滤后的书籍）"""
+        table = self.query_one("#batch-ops-table", DataTable)
+        
+        # 只取消选择当前显示的书籍（搜索过滤后的书籍）
+        for row_key in table.rows.keys():
+            # 从表格行键中获取书籍路径（RowKey转换为字符串）
+            book_path = str(row_key)
+            self.selected_books.discard(book_path)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
