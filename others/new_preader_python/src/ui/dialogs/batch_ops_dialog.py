@@ -10,7 +10,7 @@ from typing import List, Set, Optional, Dict, Any
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Checkbox, DataTable, Label, Input
+from textual.widgets import Static, Button, Checkbox, DataTable, Label, Input, Select
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -100,6 +100,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._books_per_page = 20
         self._total_pages = 1
         self._all_books: List[Any] = []
+        
+        # 搜索相关属性
+        self._search_keyword = ""
+        self._selected_format = "all"
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -120,6 +124,25 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("bookshelf.batch_ops.export"), id="export-btn"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.cancel"), id="cancel-btn"),
                     id="batch-ops-buttons"
+                ),
+
+                # 搜索框
+                Horizontal(
+                    Input(placeholder=get_global_i18n().t("bookshelf.search_placeholder"), id="search-input-field"),
+                    Select(
+                    [
+                        ("所有格式", "all"),
+                        ("TXT", "txt"),
+                        ("EPUB", "epub"),
+                        ("MOBI", "mobi"),
+                        ("PDF", "pdf")
+                    ],
+                    value="all",
+                    id="search-format-filter",
+                    prompt="文件格式"
+                ),
+                    Button(get_global_i18n().t("common.search"), id="search-btn"),
+                    id="batch-ops-search-contain"
                 ),
                 
                 # 分页信息显示
@@ -163,7 +186,11 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def _load_books(self) -> None:
         """加载书籍数据"""
         # 获取所有书籍
-        self._all_books = self.bookshelf.get_all_books()
+        all_books = self.bookshelf.get_all_books()
+        
+        # 应用搜索过滤
+        filtered_books = self._filter_books(all_books)
+        self._all_books = filtered_books
         
         # 计算总页数
         self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
@@ -289,15 +316,49 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             get_global_i18n().t("batch_ops.selected_count", count=selected_count)
         )
     
+    def _filter_books(self, books: List[Any]) -> List[Any]:
+        """根据搜索关键词和文件格式过滤书籍"""
+        filtered_books = books
+        
+        # 按名称搜索
+        if self._search_keyword:
+            keyword = self._search_keyword.lower()
+            filtered_books = [
+                book for book in filtered_books
+                if (keyword in book.title.lower() or 
+                    keyword in book.author.lower() or
+                    (book.tags and keyword in book.tags.lower()))
+            ]
+        
+        # 按文件格式过滤
+        if self._selected_format != "all":
+            filtered_books = [
+                book for book in filtered_books
+                if book.format.lower().lstrip('.') == self._selected_format.lower()
+            ]
+        
+        return filtered_books
+    
     def _update_pagination_info(self) -> None:
         """更新分页信息"""
         page_info_label = self.query_one("#batch-ops-page-info", Label)
-        page_info_label.update(
-            get_global_i18n().t("batch_ops.page_info", 
-                               page=self._current_page, 
-                               total_pages=self._total_pages,
-                               total_books=len(self._all_books))
-        )
+        
+        # 如果有搜索条件，显示过滤后的结果信息
+        if self._search_keyword or self._selected_format != "all":
+            page_info_label.update(
+                get_global_i18n().t("batch_ops.page_info_filtered", 
+                                   page=self._current_page, 
+                                   total_pages=self._total_pages,
+                                   filtered_count=len(self._all_books),
+                                   total_count=len(self.bookshelf.get_all_books()))
+            )
+        else:
+            page_info_label.update(
+                get_global_i18n().t("batch_ops.page_info", 
+                                   page=self._current_page, 
+                                   total_pages=self._total_pages,
+                                   total_books=len(self._all_books))
+            )
     
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -322,6 +383,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             await self._clear_tags_for_selected_books()
         elif event.button.id == "export-btn":
             self._export_selected_books()
+        elif event.button.id == "search-btn":
+            self._perform_search()
         elif event.button.id == "cancel-btn":
             self.dismiss({"refresh": False})
     
@@ -615,6 +678,34 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 table.update_cell(row_key, column_key, "□")
         
         self._update_status()
+    
+    def _perform_search(self) -> None:
+        """执行搜索操作"""
+        # 获取搜索关键词
+        search_input = self.query_one("#search-input-field", Input)
+        self._search_keyword = search_input.value.strip()
+        
+        # 获取文件格式筛选
+        format_select = self.query_one("#search-format-filter", Select)
+        if format_select.value:
+            self._selected_format = format_select.value
+        
+        # 重置到第一页并重新加载书籍
+        self._current_page = 1
+        self._load_books()
+    
+    @on(Input.Submitted, "#search-input-field")
+    def on_search_input_submitted(self) -> None:
+        """搜索输入框回车提交"""
+        self._perform_search()
+    
+    @on(Select.Changed, "#search-format-filter")
+    def on_format_filter_changed(self, event: Select.Changed) -> None:
+        """文件格式筛选器变化时自动搜索"""
+        if event.select.value:
+            self._selected_format = event.select.value
+            self._current_page = 1
+            self._load_books()
     
     def _clear_table_selection(self) -> None:
         """清除表格的视觉选中状态"""

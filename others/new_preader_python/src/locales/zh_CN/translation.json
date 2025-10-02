@@ -173,6 +173,7 @@
         "clear_tags_confirm": "确认清空标签",
         "clear_tags_confirm_message": "确定要清空选中书籍的所有标签吗？此操作不可撤销。",
         "page_info": "第 {page}/{total_pages} 页，共 {total_books} 本书籍",
+        "page_info_filtered": "第 {page}/{total_pages} 页，显示 {filtered_count}/{total_count} 本书籍",
         "status_info": " ↑/↓ 移动光标  空格键 选择  N 下一页 P 上一页 ESC 返回 ",
         "index": "序号"
     },
