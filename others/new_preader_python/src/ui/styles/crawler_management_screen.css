@@ -58,6 +58,15 @@ Screen {
 
 #start-crawl-btn {
     min-width: 12;
+    height: 3;
+    margin-right: 1;
+    width: auto;
+}
+
+#stop-crawl-btn {
+    min-width: 12;
+    height: 3;
+    margin-right: 1;
     width: auto;
 }
 
