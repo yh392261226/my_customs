@@ -738,6 +738,7 @@
         "back": "Back",
         "novel_id": "Book ID",
         "novel_id_placeholder": "Enter book ID to crawl",
+        "novel_id_placeholder_multi": "Enter book IDs (separate multiple IDs with commas)",
         "start_crawl": "Start Crawl",
         "stop_crawl": "Stop Crawl",
         "crawl_history": "Crawl History",

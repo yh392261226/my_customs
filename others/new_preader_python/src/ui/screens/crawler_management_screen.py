@@ -76,7 +76,7 @@ class CrawlerManagementScreen(Screen[None]):
                 Vertical(
                     # Label(get_global_i18n().t('crawler.novel_id'), id="novel-id-label"),
                     Horizontal(
-                        Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder'), id="novel-id-input"),
+                        Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                         Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
                         Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
                         id="novel-id-container"
@@ -352,21 +352,39 @@ class CrawlerManagementScreen(Screen[None]):
             return  # 如果正在爬取，忽略新的爬取请求
         
         novel_id_input = self.query_one("#novel-id-input", Input)
-        novel_id = novel_id_input.value.strip()
+        novel_ids_input = novel_id_input.value.strip()
         
-        if not novel_id:
+        if not novel_ids_input:
             self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
             return
         
-        # 验证小说ID格式
-        if not novel_id.isdigit():
-            self._update_status(get_global_i18n().t('crawler.invalid_novel_id'))
+        # 分割多个小说ID
+        novel_ids = [id.strip() for id in novel_ids_input.split(',') if id.strip()]
+        
+        if not novel_ids:
+            self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
+            return
+        
+        # 验证每个小说ID格式
+        invalid_ids = []
+        for novel_id in novel_ids:
+            if not novel_id.isdigit():
+                invalid_ids.append(novel_id)
+        
+        if invalid_ids:
+            self._update_status(f"{get_global_i18n().t('crawler.invalid_novel_id')}: {', '.join(invalid_ids)}")
             return
         
         # 检查是否已经下载过且文件存在
         site_id = self.novel_site.get('id')
-        if site_id and self.db_manager.check_novel_exists(site_id, novel_id):
-            self._update_status(get_global_i18n().t('crawler.novel_already_exists'))
+        existing_novels = []
+        if site_id:
+            for novel_id in novel_ids:
+                if self.db_manager.check_novel_exists(site_id, novel_id):
+                    existing_novels.append(novel_id)
+        
+        if existing_novels:
+            self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}")
             return
         
         # 检查代理要求
@@ -394,7 +412,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 实现实际的爬取逻辑
         # 使用异步执行爬取任务，避免阻塞UI更新
         # 调用实际爬取方法 - 使用app级别的run_worker，确保页面卸载时爬取继续
-        self.app.run_worker(self._actual_crawl(novel_id, proxy_config), name="crawl-worker")
+        self.app.run_worker(self._actual_crawl_multiple(novel_ids, proxy_config), name="crawl-worker")
     
     def _check_proxy_requirements_sync(self) -> Dict[str, Any]:
         """
@@ -600,8 +618,168 @@ class CrawlerManagementScreen(Screen[None]):
                 'message': f'检查代理设置失败: {str(e)}'
             }
 
+    async def _actual_crawl_multiple(self, novel_ids: List[str], proxy_config: Dict[str, Any]) -> None:
+        """实际爬取多个小说（异步执行）"""
+        import asyncio
+        import time
+        
+        # 开始爬取 - 使用app.call_later来安全地更新UI
+        self.app.call_later(self._update_status, f"开始爬取 {len(novel_ids)} 本小说...")
+        
+        try:
+            # 获取解析器名称
+            parser_name = self.novel_site.get('parser')
+            if not parser_name:
+                self.app.call_later(self._update_status, "未配置解析器", "error")
+                return
+            
+            # 导入解析器
+            from src.spiders import create_parser
+            
+            # 创建解析器实例
+            parser_instance = create_parser(parser_name, proxy_config)
+            
+            # 使用异步方式同时爬取多个小说
+            tasks = []
+            for novel_id in novel_ids:
+                task = self._crawl_single_novel(parser_instance, novel_id, proxy_config)
+                tasks.append(task)
+            
+            # 同时执行所有爬取任务
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # 统计结果
+            success_count = 0
+            failed_count = 0
+            
+            for i, result in enumerate(results):
+                novel_id = novel_ids[i]
+                if isinstance(result, Exception):
+                    logger.error(f"爬取小说 {novel_id} 失败: {result}")
+                    failed_count += 1
+                    
+                    # 记录失败到数据库
+                    site_id = self.novel_site.get('id')
+                    if site_id:
+                        self.db_manager.add_crawl_history(
+                            site_id=site_id,
+                            novel_id=novel_id,
+                            novel_title="",
+                            status='failed',
+                            file_path="",
+                            error_message=str(result)
+                        )
+                    
+                    # 添加到历史记录
+                    new_history = {
+                        "novel_id": novel_id,
+                        "novel_title": "",
+                        "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "status": get_global_i18n().t('crawler.status_failed'),
+                        "file_path": ""
+                    }
+                    self.crawler_history.insert(0, new_history)
+                else:
+                    success_count += 1
+            
+            # 更新历史记录表格
+            self.app.call_later(self._update_history_table)
+            
+            # 显示最终结果
+            if success_count > 0 and failed_count == 0:
+                self.app.call_later(self._update_status, f"成功爬取 {success_count} 本小说", "success")
+            elif success_count > 0 and failed_count > 0:
+                self.app.call_later(self._update_status, f"爬取完成: {success_count} 本成功, {failed_count} 本失败", "warning")
+            else:
+                self.app.call_later(self._update_status, f"所有 {failed_count} 本小说爬取失败", "error")
+            
+            # 发送全局爬取完成通知
+            try:
+                from src.ui.messages import CrawlCompleteNotification
+                self.app.post_message(CrawlCompleteNotification(
+                    success=success_count > 0,
+                    novel_title=f"{success_count}本小说",
+                    message=f"爬取完成: {success_count}本成功, {failed_count}本失败"
+                ))
+            except Exception as msg_error:
+                logger.debug(f"发送爬取完成通知失败: {msg_error}")
+            
+            # 重置爬取状态
+            self.app.call_later(self._reset_crawl_state)
+            
+        except Exception as e:
+            logger.error(f"多小说爬取过程中发生错误: {e}")
+            import traceback
+            logger.error(f"详细错误堆栈: {traceback.format_exc()}")
+            error_message = f"多小说爬取失败: {str(e)}"
+            self.app.call_later(self._update_status, error_message, "error")
+            self.app.call_later(self._reset_crawl_state)
+    
+    async def _crawl_single_novel(self, parser_instance, novel_id: str, proxy_config: Dict[str, Any]) -> Dict[str, Any]:
+        """爬取单个小说"""
+        import asyncio
+        import time
+        
+        try:
+            # 使用异步方式执行网络请求
+            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
+            
+            # 解析小说详情
+            novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
+            novel_title = novel_content['title']
+            
+            # 获取存储文件夹
+            storage_folder = self.novel_site.get('storage_folder', 'novels')
+            
+            # 保存小说到文件
+            file_path = parser_instance.save_to_file(novel_content, storage_folder)
+            
+            # 记录到数据库
+            site_id = self.novel_site.get('id')
+            if site_id:
+                self.db_manager.add_crawl_history(
+                    site_id=site_id,
+                    novel_id=novel_id,
+                    novel_title=novel_title,
+                    status='success',
+                    file_path=file_path
+                )
+            
+            # 添加到历史记录
+            new_history = {
+                "novel_id": novel_id,
+                "novel_title": novel_title,
+                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "status": get_global_i18n().t('crawler.status_success'),
+                "file_path": file_path
+            }
+            self.crawler_history.insert(0, new_history)
+            
+            # 自动将书籍加入书架
+            try:
+                from src.core.book import Book
+                book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
+                if self.db_manager.add_book(book):
+                    # 发送全局刷新书架消息
+                    try:
+                        from src.ui.messages import RefreshBookshelfMessage
+                        self.app.post_message(RefreshBookshelfMessage())
+                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
+                    except Exception as msg_error:
+                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                else:
+                    logger.warning(f"添加书籍到书架失败: {novel_title}")
+            except Exception as e:
+                logger.error(f"添加书籍到书架失败: {e}")
+            
+            return novel_content
+            
+        except Exception as e:
+            logger.error(f"爬取小说 {novel_id} 失败: {e}")
+            raise e
+    
     async def _actual_crawl(self, novel_id: str, proxy_config: Dict[str, Any]) -> None:
-        """实际爬取小说（异步执行）"""
+        """实际爬取小说（异步执行）- 保留单本爬取方法"""
         import asyncio
         import os
         import time
@@ -623,11 +801,9 @@ class CrawlerManagementScreen(Screen[None]):
             parser_instance = create_parser(parser_name, proxy_config)
             
             # 使用异步方式执行网络请求，避免阻塞UI
-            # 这里需要将同步的网络请求改为异步实现
-            # 暂时使用异步睡眠模拟网络延迟
             await asyncio.sleep(2)  # 模拟网络延迟
             
-            # 解析小说详情 - 这里需要改为异步实现
+            # 解析小说详情
             novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
             novel_title = novel_content['title']
             
@@ -666,7 +842,6 @@ class CrawlerManagementScreen(Screen[None]):
                     # 发送全局刷新书架消息，确保书架屏幕能够接收
                     try:
                         from src.ui.messages import RefreshBookshelfMessage
-                        # 使用更可靠的消息发送方式
                         self.app.post_message(RefreshBookshelfMessage())
                         logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
                     except Exception as msg_error:

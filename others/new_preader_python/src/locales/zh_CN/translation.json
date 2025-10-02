@@ -738,6 +738,7 @@
         "back": "返回",
         "novel_id": "书籍ID",
         "novel_id_placeholder": "输入要爬取的书籍ID",
+        "novel_id_placeholder_multi": "输入书籍ID（多个ID用英文逗号分隔）",
         "start_crawl": "开始爬取",
         "stop_crawl": "停止爬取",
         "crawl_history": "爬取历史",
