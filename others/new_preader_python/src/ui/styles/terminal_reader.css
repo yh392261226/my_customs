@@ -23,7 +23,7 @@ TerminalReaderScreen {
   border: none;
 }
 
-#status {
+#reader-status {
   width: 100%;
   height: 1;
   background: $accent;

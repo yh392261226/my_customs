@@ -238,7 +238,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self._update_ui()
     
     def _load_book_content_async(self) -> None:
-        # 先在 UI 线程显示加载动画
+        # 直接在 UI 线程中显示加载动画（因为我们在 on_mount 中调用）
         self._show_loading_animation("正在加载书籍内容...")
         
         async def _worker():
@@ -378,8 +378,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._toggle_tts()
         elif event.key == "q" or event.key == "escape":
             self._back_to_library()
-        elif event.key == "/":
+        elif event.key == "slash":
+            logger.info("检测到老板键 (slash)，调用 _activate_boss_key()")
             self._activate_boss_key()
+        elif event.key == "h":
+            logger.info("检测到帮助键 (h)，调用 _show_help()")
+            self._show_help()
         event.stop()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -410,8 +414,25 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._back_to_library()
     
     def _activate_boss_key(self) -> None:
-        from src.ui.screens.boss_key_screen import BossKeyScreen
-        self.app.push_screen(BossKeyScreen(self.theme_manager))
+        logger.info("执行 _activate_boss_key() 方法")
+        try:
+            from src.ui.screens.boss_key_screen import BossKeyScreen
+            logger.info("导入 BossKeyScreen 成功")
+            boss_screen = BossKeyScreen(self.theme_manager)
+            logger.info("创建 BossKeyScreen 实例成功")
+            self.app.push_screen(boss_screen)
+            logger.info("推入 BossKeyScreen 成功")
+        except Exception as e:
+            logger.error(f"打开老板键屏幕失败: {e}")
+            self.notify(f"打开老板键屏幕失败: {e}", severity="error")
+
+    def _show_help(self) -> None:
+        """显示帮助中心"""
+        try:
+            from src.ui.screens.help_screen import HelpScreen
+            self.app.push_screen(HelpScreen())
+        except Exception as e:
+            self.notify(f"打开帮助中心失败: {e}", severity="error")
     
     def _prev_page(self) -> None:
         if self.renderer.prev_page():
@@ -580,7 +601,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         def on_search(search_keyword: Optional[str]) -> None:
             if search_keyword and search_keyword.strip():
                 try:
-                    # 显示加载动画
+                    # 直接在 UI 线程显示加载动画
                     self._show_loading_animation(get_global_i18n().t("reader.searching"))
                     
                     # 获取当前小说的完整内容进行搜索
@@ -932,7 +953,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
 }}
 """
             if hasattr(self.app, "stylesheet") and hasattr(self.app.stylesheet, "add_source"):
-                self.app.stylesheet.add_source(css, read_from="theme_dynamic_vars")
+                self.app.stylesheet.add_source(css)
                 if hasattr(self.app, "screen_stack") and self.app.screen_stack:
                     self.app.stylesheet.update(self.app.screen_stack[-1])
         except Exception as e:
