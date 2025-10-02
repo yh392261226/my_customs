@@ -38,6 +38,7 @@
     height: 3;
     dock: bottom;
     background: $surface;
+    align: center middle;
 }
 
 .reader-screen #reader-buttons {
