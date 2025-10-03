@@ -789,7 +789,22 @@
         "shortcut_esc": "ESC: 返回",
         "confirm_delete_message": "此操作不可撤销，确定要继续吗？",
         "book_added_to_shelf": "已自动加入书架",
-        "book_add_failed": "加入书架失败"
+        "book_add_failed": "加入书架失败",
+        "note": "备注",
+        "note_saved": "备注已保存",
+        "save_note_failed": "保存备注失败",
+        "open_note_failed": "打开备注失败"
+    },
+    "note": {
+        "save": "保存",
+        "clear": "清除",
+        "cancel": "取消",
+        "title": "备注",
+        "enter_note": "请输入备注内容...",
+        "saved_success": "备注保存成功",
+        "save_failed": "保存备注失败",
+        "cleared": "备注已清除",
+        "cancelled": "已取消"
     },
     "confirm_dialog": {
         "confirm": "确认",

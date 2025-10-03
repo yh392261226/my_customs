@@ -14,6 +14,7 @@ from src.locales.i18n_manager import get_global_i18n, t, init_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
+from src.ui.dialogs.note_dialog import NoteDialog
 
 logger = get_logger(__name__)
 
@@ -68,6 +69,7 @@ class CrawlerManagementScreen(Screen[None]):
                 Horizontal(
                     Button(get_global_i18n().t('crawler.open_browser'), id="open-browser-btn"),
                     Button(get_global_i18n().t('crawler.view_history'), id="view-history-btn"),
+                    Button(get_global_i18n().t('crawler.note'), id="note-btn"),
                     Button(get_global_i18n().t('crawler.back'), id="back-btn"),
                     id="crawler-buttons"
                 ),
@@ -274,6 +276,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._open_browser()
         elif event.button.id == "view-history-btn":
             self._view_history()
+        elif event.button.id == "note-btn":
+            self._open_note_dialog()
         elif event.button.id == "start-crawl-btn":
             self._start_crawl()
         elif event.button.id == "stop-crawl-btn":
@@ -333,6 +337,41 @@ class CrawlerManagementScreen(Screen[None]):
         # 刷新历史记录
         self._load_crawl_history()
         self._update_status(get_global_i18n().t('crawler.history_loaded'))
+
+    def _open_note_dialog(self) -> None:
+        """打开备注对话框"""
+        try:
+            # 获取当前网站的备注内容
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status("无法获取网站ID", "error")
+                return
+            
+            # 从数据库加载现有备注
+            current_note = self.db_manager.get_novel_site_note(site_id) or ""
+            
+            # 打开备注对话框
+            def handle_note_dialog_result(result: Optional[str]) -> None:
+                if result is not None:
+                    # 保存备注到数据库
+                    if self.db_manager.save_novel_site_note(site_id, result):
+                        self._update_status("备注已保存", "success")
+                    else:
+                        self._update_status("保存备注失败", "error")
+                # 如果result为None，表示用户取消了操作
+            
+            self.app.push_screen(
+                NoteDialog(
+                    self.theme_manager,
+                    self.novel_site['name'],
+                    current_note
+                ),
+                handle_note_dialog_result
+            )
+            
+        except Exception as e:
+            logger.error(f"打开备注对话框失败: {e}")
+            self._update_status(f"打开备注对话框失败: {str(e)}", "error")
     
     def _stop_crawl(self) -> None:
         """停止爬取"""

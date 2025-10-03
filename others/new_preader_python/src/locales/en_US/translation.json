@@ -789,7 +789,22 @@
         "shortcut_esc": "ESC: Back",
         "confirm_delete_message": "This action cannot be undone, are you sure you want to continue?",
         "book_added_to_shelf": "Automatically added to bookshelf",
-        "book_add_failed": "Failed to add to bookshelf"
+        "book_add_failed": "Failed to add to bookshelf",
+        "note": "Note",
+        "note_saved": "Note saved",
+        "save_note_failed": "Failed to save note",
+        "open_note_failed": "Failed to open note"
+    },
+    "note": {
+        "save": "Save",
+        "clear": "Clear",
+        "cancel": "Cancel",
+        "title": "Note",
+        "enter_note": "Please enter note content...",
+        "saved_success": "Note saved successfully",
+        "save_failed": "Failed to save note",
+        "cleared": "Note cleared",
+        "cancelled": "Cancelled"
     },
     "confirm_dialog": {
         "confirm": "Confirm",

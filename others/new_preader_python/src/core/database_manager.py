@@ -206,6 +206,21 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_novel_id ON crawl_history(novel_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_crawl_time ON crawl_history(crawl_time)")
             
+            # 创建书籍网站备注表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS novel_site_notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    site_id INTEGER NOT NULL UNIQUE,
+                    note_content TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (site_id) REFERENCES novel_sites (id) ON DELETE CASCADE
+                )
+            """)
+            
+            # 创建备注表索引
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_site_notes_site_id ON novel_site_notes(site_id)")
+            
             conn.commit()
     
     def add_book(self, book: Book) -> bool:
@@ -1232,4 +1247,84 @@ class DatabaseManager:
                 return cursor.rowcount > 0
         except sqlite3.Error as e:
             logger.error(f"删除爬取历史记录失败: {e}")
+            return False
+
+    # 书籍网站备注相关方法
+    def save_novel_site_note(self, site_id: int, note_content: str) -> bool:
+        """
+        保存书籍网站备注
+        
+        Args:
+            site_id: 网站ID
+            note_content: 备注内容
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                now = datetime.now().isoformat()
+                
+                # 使用INSERT OR REPLACE来确保每个网站只有一个备注
+                cursor.execute("""
+                    INSERT OR REPLACE INTO novel_site_notes 
+                    (site_id, note_content, created_at, updated_at)
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    site_id,
+                    note_content,
+                    now,
+                    now
+                ))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"保存书籍网站备注失败: {e}")
+            return False
+
+    def get_novel_site_note(self, site_id: int) -> Optional[str]:
+        """
+        获取书籍网站备注
+        
+        Args:
+            site_id: 网站ID
+            
+        Returns:
+            Optional[str]: 备注内容，如果不存在则返回None
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT note_content FROM novel_site_notes 
+                    WHERE site_id = ?
+                """, (site_id,))
+                row = cursor.fetchone()
+                
+                if row:
+                    return row[0]
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"获取书籍网站备注失败: {e}")
+            return None
+
+    def delete_novel_site_note(self, site_id: int) -> bool:
+        """
+        删除书籍网站备注
+        
+        Args:
+            site_id: 网站ID
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM novel_site_notes WHERE site_id = ?", (site_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"删除书籍网站备注失败: {e}")
             return False
