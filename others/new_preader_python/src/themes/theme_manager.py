@@ -136,7 +136,7 @@ class ThemeManager:
             "reader.search_result": Style(color="white", bgcolor="yellow4"),
         }
         
-        # 加载Nord主题
+        # 加载Nord主题 - 使用多样化的颜色
         self.themes["nord"] = {
             "app.title": Style(color="#ECEFF4", bold=True),
             "app.subtitle": Style(color="#D8DEE9"),
@@ -148,10 +148,10 @@ class ThemeManager:
             "app.muted": Style(color="#4C566A"),
             
             "ui.border": Style(color="#4C566A"),
-            "ui.background": Style(bgcolor="#2E3440"),
+            "ui.background": Style(bgcolor="#2e3440"),  # 深蓝色背景
             "ui.panel": Style(bgcolor="#3B4252"),
             "ui.panel.title": Style(color="#ECEFF4", bold=True),
-            "ui.label": Style(color="#E5E9F0"),
+            "ui.label": Style(color="#e5e9f0"),  # 北极浅蓝色字体
             "ui.button": Style(color="#2E3440", bgcolor="#D8DEE9"),
             "ui.button.primary": Style(color="#ECEFF4", bgcolor="#5E81AC"),
             "ui.button.success": Style(color="#ECEFF4", bgcolor="#A3BE8C"),
@@ -161,7 +161,7 @@ class ThemeManager:
             "ui.input.focus": Style(color="#ECEFF4", bgcolor="#4C566A"),
             "ui.selection": Style(bgcolor="#434C5E"),
             
-            "content.text": Style(color="#E5E9F0"),
+            "content.text": Style(color="#e5e9f0"),  # 北极浅蓝色字体
             "content.heading": Style(color="#ECEFF4", bold=True),
             "content.subheading": Style(color="#D8DEE9", bold=True),
             "content.link": Style(color="#88C0D0", underline=True),
@@ -179,7 +179,7 @@ class ThemeManager:
             "bookshelf.tag": Style(color="#D8DEE9", bgcolor="#434C5E"),
             "bookshelf.selected": Style(bgcolor="#434C5E"),
             
-            "reader.text": Style(color="#E5E9F0"),
+            "reader.text": Style(color="#e5e9f0"),  # 北极浅蓝色字体
             "reader.chapter": Style(color="#ECEFF4", bold=True),
             "reader.page_number": Style(color="#4C566A"),
             "reader.bookmark": Style(color="#EBCB8B"),
@@ -211,7 +211,7 @@ class ThemeManager:
             "ui.input.focus": Style(color="#F1FA8C", bgcolor="#6272A4"),
             "ui.selection": Style(bgcolor="#44475A"),
             
-            "content.text": Style(color="#8BE9FD"),
+            "content.text": Style(color="#BD93F9"),  # 改为紫色字体
             "content.heading": Style(color="#BD93F9", bold=True),
             "content.subheading": Style(color="#F1FA8C", bold=True),
             "content.link": Style(color="#FF79C6", underline=True),
@@ -220,16 +220,16 @@ class ThemeManager:
             "content.highlight": Style(color="#282A36", bgcolor="#F1FA8C"),
             
             "progress.bar": Style(color="#BD93F9"),
-            "progress.text": Style(color="#BFBFBF"),
-            "progress.percentage": Style(color="#F8F8F2"),
+            "progress.text": Style(color="#BD93F9"),  # 改为紫色字体
+            "progress.percentage": Style(color="#BD93F9"),  # 改为紫色字体
             
             "bookshelf.title": Style(color="#BD93F9", bold=True),
-            "bookshelf.author": Style(color="#F1FA8C"),
+            "bookshelf.author": Style(color="#BD93F9"),  # 改为紫色字体
             "bookshelf.progress": Style(color="#FF79C6"),
-            "bookshelf.tag": Style(color="#8BE9FD", bgcolor="#44475A"),
+            "bookshelf.tag": Style(color="#8BE9FD", bgcolor="#44475A"),  # 浅蓝色字体
             "bookshelf.selected": Style(bgcolor="#6272A4"),
             
-            "reader.text": Style(color="#8BE9FD"),
+            "reader.text": Style(color="#BD93F9"),  # 改为紫色字体
             "reader.chapter": Style(color="#BD93F9", bold=True),
             "reader.page_number": Style(color="#F1FA8C"),
             "reader.bookmark": Style(color="#FF79C6"),
@@ -1074,6 +1074,23 @@ class ThemeManager:
         logger.info(f"当前主题已设置为: {theme_name}")
         return True
     
+    def convert_color_to_string(self, color_obj) -> str:
+        """将Rich Color对象转换为Textual颜色字符串"""
+        if hasattr(color_obj, 'name') and color_obj.name:
+            return color_obj.name
+        elif hasattr(color_obj, 'triplet'):
+            r, g, b = color_obj.triplet
+            return f"#{r:02x}{g:02x}{b:02x}"
+        else:
+            return "white"
+    
+    def get_simple_theme_colors(self, theme_name: str) -> tuple[str, str]:
+        """获取简单的主题颜色（没有theme_manager时的备用方案）"""
+        if "light" in theme_name.lower():
+            return "white", "black"
+        else:
+            return "black", "white"
+    
     def get_style(self, style_name: str) -> Optional[Style]:
         """
         获取指定样式
@@ -1201,6 +1218,100 @@ class ThemeManager:
             
             if surface_color:
                 screen.styles.set_rule("$surface", surface_color)
+                screen.styles.set_rule("$panel", surface_color)
+            
+            # 应用更多主题样式
+            self._apply_comprehensive_theme_styles(screen, theme_config)
+    
+    def _apply_comprehensive_theme_styles(self, screen, theme_config: Dict[str, Any]) -> None:
+        """应用全面的主题样式到屏幕组件"""
+        if not hasattr(screen, 'styles'):
+            return
+            
+        # 应用UI组件样式
+        self._apply_ui_component_styles(screen, theme_config)
+        
+        # 应用内容样式
+        self._apply_content_styles(screen, theme_config)
+        
+        # 应用特殊组件样式
+        self._apply_special_component_styles(screen, theme_config)
+    
+    def _apply_ui_component_styles(self, screen, theme_config: Dict[str, Any]) -> None:
+        """应用UI组件样式"""
+        # 按钮样式
+        button_style = theme_config.get("ui.button")
+        if button_style:
+            screen.styles.set_rule("Button", f"color: {self.convert_color_to_string(button_style.color)}; background: {self.convert_color_to_string(button_style.bgcolor)}")
+        
+        # 输入框样式
+        input_style = theme_config.get("ui.input")
+        if input_style:
+            screen.styles.set_rule("Input", f"color: {self.convert_color_to_string(input_style.color)}; background: {self.convert_color_to_string(input_style.bgcolor)}")
+        
+        # 标签样式
+        label_style = theme_config.get("ui.label")
+        if label_style:
+            screen.styles.set_rule("Label", f"color: {self.convert_color_to_string(label_style.color)}")
+    
+    def _apply_content_styles(self, screen, theme_config: Dict[str, Any]) -> None:
+        """应用内容样式"""
+        # 标题样式
+        title_style = theme_config.get("app.title")
+        if title_style:
+            screen.styles.set_rule(".title", f"color: {self.convert_color_to_string(title_style.color)}; font-weight: bold")
+        
+        # 副标题样式
+        subtitle_style = theme_config.get("app.subtitle")
+        if subtitle_style:
+            screen.styles.set_rule(".subtitle", f"color: {self.convert_color_to_string(subtitle_style.color)}")
+        
+        # 强调样式
+        accent_style = theme_config.get("app.accent")
+        if accent_style:
+            screen.styles.set_rule(".accent", f"color: {self.convert_color_to_string(accent_style.color)}")
+        
+        # 高亮样式
+        highlight_style = theme_config.get("app.highlight")
+        if highlight_style:
+            screen.styles.set_rule(".highlight", f"color: {self.convert_color_to_string(highlight_style.color)}")
+        
+        # 警告样式
+        warning_style = theme_config.get("app.warning")
+        if warning_style:
+            screen.styles.set_rule(".warning", f"color: {self.convert_color_to_string(warning_style.color)}")
+        
+        # 成功样式
+        success_style = theme_config.get("app.success")
+        if success_style:
+            screen.styles.set_rule(".success", f"color: {self.convert_color_to_string(success_style.color)}")
+        
+        # 信息样式
+        info_style = theme_config.get("app.info")
+        if info_style:
+            screen.styles.set_rule(".info", f"color: {self.convert_color_to_string(info_style.color)}")
+        
+        # 静音样式
+        muted_style = theme_config.get("app.muted")
+        if muted_style:
+            screen.styles.set_rule(".muted", f"color: {self.convert_color_to_string(muted_style.color)}")
+    
+    def _apply_special_component_styles(self, screen, theme_config: Dict[str, Any]) -> None:
+        """应用特殊组件样式"""
+        # 进度条样式
+        progress_bar_style = theme_config.get("progress.bar")
+        if progress_bar_style:
+            screen.styles.set_rule("ProgressBar", f"color: {self.convert_color_to_string(progress_bar_style.color)}")
+        
+        # 书架样式
+        bookshelf_title_style = theme_config.get("bookshelf.title")
+        if bookshelf_title_style:
+            screen.styles.set_rule(".bookshelf-title", f"color: {self.convert_color_to_string(bookshelf_title_style.color)}; font-weight: bold")
+        
+        # 阅读器样式
+        reader_text_style = theme_config.get("reader.text")
+        if reader_text_style:
+            screen.styles.set_rule(".reader-text", f"color: {self.convert_color_to_string(reader_text_style.color)}")
             
         # 刷新屏幕以应用主题变化
         screen.refresh()

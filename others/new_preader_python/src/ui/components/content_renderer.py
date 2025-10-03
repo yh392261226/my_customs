@@ -7,6 +7,7 @@ from rich.text import Text as RichText
 from rich.style import Style
 from src.core.pagination.terminal_paginator import TerminalPaginator, PageMetrics
 from src.config.settings.setting_observer import SettingObserver, SettingChangeEvent, register_component_observers
+from src.themes.theme_manager import ThemeManager
 
 from src.utils.logger import get_logger
 
@@ -19,11 +20,20 @@ class ContentRenderer(Static):
     # 配置项
     config = reactive({})
     
+    # 添加CSS类名，确保主题样式正确应用
+    DEFAULT_CSS = """
+    #content {
+        width: 100%;
+        height: 100%;
+    }
+    """
+    
     def __init__(
         self,
         container_width: int = 80,
         container_height: int = 24,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
+        theme_manager: Optional[ThemeManager] = None
     ) -> None:
         """
         初始化内容渲染器
@@ -32,11 +42,13 @@ class ContentRenderer(Static):
             container_width: 容器宽度（字符数）
             container_height: 容器高度（行数）
             config: 配置字典
+            theme_manager: 主题管理器实例
         """
-        super().__init__()
+        super().__init__(id="content")
         self.container_width = container_width
         self.container_height = container_height
         self.config = config or {}
+        self.theme_manager = theme_manager
         
         # 分页器 - 使用原有的终端分页器
         self.paginator = TerminalPaginator()
@@ -252,83 +264,55 @@ class ContentRenderer(Static):
             # 获取当前主题名称
             theme_name = self.config.get("theme", "dark")
             
-            # 定义浅色主题列表
-            light_themes = [
-                "light", "github-light", "solarized-light", "transparent-light",
-                "paper-white", "cream", "sky-blue", "mint-green", "lavender"
-            ]
-            
-            # 根据主题名称设置对应的颜色 - 使用更多样化的字体颜色
-            if theme_name == "light":
-                self.styles.background = "white"
-                self.styles.color = "#2c3e50"  # 深蓝灰色，比纯黑更柔和
-            elif theme_name == "github-light":
-                self.styles.background = "#ffffff"
-                self.styles.color = "#1f2328"  # GitHub风格的深灰色
-            elif theme_name == "solarized-light":
-                self.styles.background = "#fdf6e3"
-                self.styles.color = "#586e75"  # 太阳能化的蓝灰色
-            elif theme_name == "transparent-light":
-                self.styles.background = "white"
-                self.styles.color = "#37474f"  # 材料设计的深蓝灰色
-            elif theme_name == "paper-white":
-                self.styles.background = "white"
-                self.styles.color = "#263238"  # 深石板灰色
-            elif theme_name == "cream":
-                self.styles.background = "#fff8e1"
-                self.styles.color = "#5d4037"  # 温暖的深棕色
-            elif theme_name == "sky-blue":
-                self.styles.background = "#e3f2fd"
-                self.styles.color = "#1565c0"  # 明亮的深蓝色
-            elif theme_name == "mint-green":
-                self.styles.background = "#e8f5e9"
-                self.styles.color = "#2e7d32"  # 清新的深绿色
-            elif theme_name == "lavender":
-                self.styles.background = "#f3e5f5"
-                self.styles.color = "#6a1b9a"  # 优雅的深紫色
-            else:
-                # 默认暗色主题 - 使用多样化的背景和字体颜色
-                if theme_name == "dark":
-                    self.styles.background = "#1a1a1a"  # 深灰色背景
-                    self.styles.color = "#e0e0e0"  # 浅灰色字体
-                elif theme_name == "nord":
-                    self.styles.background = "#2e3440"  # Nord深蓝色背景
-                    self.styles.color = "#e5e9f0"  # 北极浅蓝色字体
-                elif theme_name == "dracula":
-                    self.styles.background = "#282a36"  # Dracula深紫色背景
-                    self.styles.color = "#8BE9FD"  # Dracula浅蓝色字体
-                elif theme_name == "material":
-                    self.styles.background = "#263238"  # Material深蓝灰色背景
-                    self.styles.color = "#e0e0e0"  # 材料浅灰色字体
-                elif theme_name == "github-dark":
-                    self.styles.background = "#0d1117"  # GitHub深蓝色背景
-                    self.styles.color = "#f0f6fc"  # GitHub浅蓝色字体
-                elif theme_name == "solarized-dark":
-                    self.styles.background = "#002b36"  # Solarized深蓝绿色背景
-                    self.styles.color = "#eee8d5"  # 太阳能化米色字体
-                elif theme_name == "amethyst":
-                    self.styles.background = "#2d1b69"  # 紫水晶深紫色背景
-                    self.styles.color = "#e0d6ff"  # 紫水晶浅紫色字体
-                elif theme_name == "forest-green":
-                    self.styles.background = "#1b4332"  # 森林深绿色背景
-                    self.styles.color = "#e8f5e9"  # 森林浅绿色字体
-                elif theme_name == "crimson":
-                    self.styles.background = "#590d22"  # 深红色背景
-                    self.styles.color = "#ffe4e1"  # 深红浅粉色字体
-                elif theme_name == "slate":
-                    self.styles.background = "#2f3e46"  # 石板深灰色背景
-                    self.styles.color = "#f5f5f5"  # 石板浅灰色字体
-                elif theme_name == "transparent-dark":
-                    self.styles.background = "black"  # 纯黑背景
-                    self.styles.color = "#e6e9ed"  # 透明浅灰色字体
+            # 如果有theme_manager，使用真实的主题颜色
+            if self.theme_manager and hasattr(self.theme_manager, 'themes'):
+                if theme_name in self.theme_manager.themes:
+                    theme = self.theme_manager.themes[theme_name]
+                    
+                    # 直接使用主题中明确定义的样式
+                    # 优先使用reader.text，如果没有则使用content.text
+                    text_style = theme.get("reader.text") or theme.get("content.text")
+                    background_style = theme.get("ui.background") or theme.get("ui.panel")
+                    
+                    # 获取文本颜色
+                    if text_style and hasattr(text_style, 'color') and text_style.color:
+                        text_color = self.theme_manager.convert_color_to_string(text_style.color)
+                    else:
+                        # 根据主题名称设置默认文本颜色
+                        if "light" in theme_name.lower():
+                            text_color = "black"
+                        else:
+                            text_color = "white"
+                    
+                    # 获取背景颜色
+                    if background_style and hasattr(background_style, 'bgcolor') and background_style.bgcolor:
+                        background_color = self.theme_manager.convert_color_to_string(background_style.bgcolor)
+                    else:
+                        # 根据主题名称设置默认背景颜色
+                        if "light" in theme_name.lower():
+                            background_color = "white"
+                        else:
+                            background_color = "black"
+                    
+                    self.styles.background = background_color
+                    self.styles.color = text_color
+                    
+                    logger.debug(f"使用theme_manager应用主题样式: {theme_name}, 背景: {background_color}, 文字: {text_color}")
                 else:
-                    self.styles.background = "black"  # 默认黑色背景
-                    self.styles.color = "white"  # 默认白色字体
+                    # 如果theme_manager中没有该主题，使用简单颜色
+                    background_color, text_color = self.theme_manager.get_simple_theme_colors(theme_name)
+                    self.styles.background = background_color
+                    self.styles.color = text_color
+                    logger.debug(f"使用简单主题样式: {theme_name}, 背景: {background_color}, 文字: {text_color}")
+            else:
+                # 没有theme_manager，使用简单颜色
+                background_color, text_color = ("white", "black") if "light" in theme_name.lower() else ("black", "white")
+                self.styles.background = background_color
+                self.styles.color = text_color
+                logger.debug(f"使用简单主题样式: {theme_name}, 背景: {background_color}, 文字: {text_color}")
             
             # 设置内边距
             self.styles.padding = (0, 1)
-            
-            logger.debug(f"应用主题样式: {theme_name}, 背景: {self.styles.background}, 文字: {self.styles.color}")
             
         except Exception as e:
             logger.error(f"应用主题样式失败: {e}")
@@ -337,11 +321,13 @@ class ContentRenderer(Static):
             self.styles.color = "black"
             self.styles.padding = (0, 1)
     
+
+    
     def _update_visible_content(self) -> None:
         """更新可见内容显示"""
         visible_content = self.get_visible_content()
         
-        # 直接更新文本内容，使用组件自身样式（self.styles.color）
+        # 直接使用Textual的update方法，让Textual自动应用组件样式
         self.update(visible_content)
         
         # 强制刷新样式，确保字体颜色被应用

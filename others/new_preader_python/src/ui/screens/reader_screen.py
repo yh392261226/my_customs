@@ -67,11 +67,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 从设置系统获取渲染配置
         self.render_config = self._load_render_config_from_settings()
         
-        # 创建内容渲染器
+        # 创建内容渲染器 - ID已在ContentRenderer构造函数中设置为"content"
         self.renderer = ContentRenderer(
             container_width=80,
             container_height=20,
-            config=self.render_config
+            config=self.render_config,
+            theme_manager=self.theme_manager
         )
         
         # 注册设置观察者
@@ -146,8 +147,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 加载动画 - 放在内容区域之前
         yield self.loading_animation
         
-        # 内容区域 - 设置ID为content以便CSS定位
-        self.renderer.id = "content"
+        # 内容区域 - 使用已设置的ID
         yield self.renderer
         
         # 按钮区域 - 使用HorizontalScroll实现水平滚动
@@ -180,6 +180,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 应用主题样式到CSS
         self._apply_theme_styles_to_css()
+        
+        # 强制应用ContentRenderer的主题样式
+        if hasattr(self, 'renderer') and hasattr(self.renderer, '_apply_theme_styles'):
+            self.renderer._apply_theme_styles()
         
         # 异步加载书籍内容（避免阻塞 UI 主线程）
         self._load_book_content_async()

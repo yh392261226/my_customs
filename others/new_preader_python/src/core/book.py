@@ -738,30 +738,36 @@ class Book:
             from src.ui.dialogs.password_dialog import PasswordDialog
             from src.ui.app import get_app_instance
             
-            app = get_app_instance()
-            if not app:
-                try:
-                    from textual.app import App as TextualApp
-                    app = TextualApp.get_app()
-                except Exception:
-                    app = None
-            
-            if app and hasattr(app, "request_password_async"):
-                from concurrent.futures import Future
-                future = Future()
+            try:
+                # 尝试获取应用程序实例
+                from src.ui.app import get_app_instance
+                app = get_app_instance()
+                if not app:
+                    try:
+                        from textual.app import App as TextualApp
+                        app = TextualApp.get_app()
+                    except Exception:
+                        app = None
                 
-                # 在UI线程中获取密码
-                if hasattr(app, "schedule_on_ui"):
-                    app.schedule_on_ui(lambda: app.request_password_async(self.path, 3, future))
-                elif hasattr(app, "call_from_thread"):
-                    app.call_from_thread(lambda: app.request_password_async(self.path, 3, future))
-                else:
-                    app.request_password_async(self.path, 3, future)
+                if app and hasattr(app, "request_password_async"):
+                    from concurrent.futures import Future
+                    future = Future()
+                    
+                    # 在UI线程中获取密码
+                    if hasattr(app, "schedule_on_ui"):
+                        app.schedule_on_ui(lambda: app.request_password_async(self.path, 3, future))
+                    elif hasattr(app, "call_from_thread"):
+                        app.call_from_thread(lambda: app.request_password_async(self.path, 3, future))
+                    else:
+                        app.request_password_async(self.path, 3, future)
+                    
+                    return future.result(timeout=300)
                 
-                return future.result(timeout=300)
-            
-            # 如果GUI模式失败，使用CLI模式
-            return self._get_password_cli()
+                # 如果GUI模式失败，使用CLI模式
+                return self._get_password_cli()
+            except ImportError:
+                # 如果无法导入，直接使用CLI模式
+                return self._get_password_cli()
             
         except Exception as e:
             logger.warning(f"GUI密码获取失败，使用CLI模式: {e}")
