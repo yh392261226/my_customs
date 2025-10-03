@@ -249,12 +249,8 @@ class ContentRenderer(Static):
     def _apply_theme_styles(self) -> None:
         """应用主题样式到内容渲染器"""
         try:
-            # 尝试从主题管理器获取当前主题样式
-            from src.themes.theme_manager import ThemeManager
-            theme_manager = ThemeManager()
-            
             # 获取当前主题名称
-            theme_name = self.config.get("theme", theme_manager.get_current_theme_name())
+            theme_name = self.config.get("theme", "dark")
             
             # 定义浅色主题列表
             light_themes = [
@@ -291,32 +287,43 @@ class ContentRenderer(Static):
                 self.styles.background = "#f3e5f5"
                 self.styles.color = "#6a1b9a"  # 优雅的深紫色
             else:
-                # 默认暗色主题 - 也使用更多样化的浅色
-                self.styles.background = "black"
+                # 默认暗色主题 - 使用多样化的背景和字体颜色
                 if theme_name == "dark":
-                    self.styles.color = "#e0e0e0"  # 浅灰色
+                    self.styles.background = "#1a1a1a"  # 深灰色背景
+                    self.styles.color = "#e0e0e0"  # 浅灰色字体
                 elif theme_name == "nord":
-                    self.styles.color = "#e5e9f0"  # 北极浅蓝色
+                    self.styles.background = "#2e3440"  # Nord深蓝色背景
+                    self.styles.color = "#e5e9f0"  # 北极浅蓝色字体
                 elif theme_name == "dracula":
-                    self.styles.color = "#f8f8f2"  # 德古拉米色
+                    self.styles.background = "#282a36"  # Dracula深紫色背景
+                    self.styles.color = "#8BE9FD"  # Dracula浅蓝色字体
                 elif theme_name == "material":
-                    self.styles.color = "#e0e0e0"  # 材料浅灰色
+                    self.styles.background = "#263238"  # Material深蓝灰色背景
+                    self.styles.color = "#e0e0e0"  # 材料浅灰色字体
                 elif theme_name == "github-dark":
-                    self.styles.color = "#f0f6fc"  # GitHub浅蓝色
+                    self.styles.background = "#0d1117"  # GitHub深蓝色背景
+                    self.styles.color = "#f0f6fc"  # GitHub浅蓝色字体
                 elif theme_name == "solarized-dark":
-                    self.styles.color = "#eee8d5"  # 太阳能化米色
+                    self.styles.background = "#002b36"  # Solarized深蓝绿色背景
+                    self.styles.color = "#eee8d5"  # 太阳能化米色字体
                 elif theme_name == "amethyst":
-                    self.styles.color = "#e0d6ff"  # 紫水晶浅紫色
+                    self.styles.background = "#2d1b69"  # 紫水晶深紫色背景
+                    self.styles.color = "#e0d6ff"  # 紫水晶浅紫色字体
                 elif theme_name == "forest-green":
-                    self.styles.color = "#e8f5e9"  # 森林浅绿色
+                    self.styles.background = "#1b4332"  # 森林深绿色背景
+                    self.styles.color = "#e8f5e9"  # 森林浅绿色字体
                 elif theme_name == "crimson":
-                    self.styles.color = "#ffe4e1"  # 深红浅粉色
+                    self.styles.background = "#590d22"  # 深红色背景
+                    self.styles.color = "#ffe4e1"  # 深红浅粉色字体
                 elif theme_name == "slate":
-                    self.styles.color = "#f5f5f5"  # 石板浅灰色
+                    self.styles.background = "#2f3e46"  # 石板深灰色背景
+                    self.styles.color = "#f5f5f5"  # 石板浅灰色字体
                 elif theme_name == "transparent-dark":
-                    self.styles.color = "#e6e9ed"  # 透明浅灰色
+                    self.styles.background = "black"  # 纯黑背景
+                    self.styles.color = "#e6e9ed"  # 透明浅灰色字体
                 else:
-                    self.styles.color = "white"  # 默认白色
+                    self.styles.background = "black"  # 默认黑色背景
+                    self.styles.color = "white"  # 默认白色字体
             
             # 设置内边距
             self.styles.padding = (0, 1)

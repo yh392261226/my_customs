@@ -178,6 +178,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
+        # 应用主题样式到CSS
+        self._apply_theme_styles_to_css()
+        
         # 异步加载书籍内容（避免阻塞 UI 主线程）
         self._load_book_content_async()
         
@@ -913,23 +916,61 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 返回书架
         self.app.pop_screen()
     
+    def _get_color_string(self, color_obj) -> str:
+        """
+        将Rich库的Color对象转换为十六进制颜色字符串
+        
+        Args:
+            color_obj: Rich库的Color对象或字符串
+            
+        Returns:
+            str: 十六进制颜色字符串，如 "#FFFFFF"
+        """
+        if color_obj is None:
+            return ""
+        
+        # 如果已经是字符串，直接返回
+        if isinstance(color_obj, str):
+            return color_obj
+        
+        # 如果是Rich库的Color对象，调用其get_truecolor方法
+        try:
+            from rich.color import Color
+            if isinstance(color_obj, Color):
+                # 获取RGB值并转换为十六进制
+                rgb = color_obj.get_truecolor()
+                if rgb:
+                    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}".upper()
+        except (ImportError, AttributeError):
+            pass
+        
+        # 尝试调用str方法
+        try:
+            color_str = str(color_obj)
+            if color_str.startswith("#") and len(color_str) in [4, 7, 9]:
+                return color_str
+        except:
+            pass
+        
+        return ""
+    
     def _apply_theme_styles_to_css(self) -> None:
         """根据当前主题注入CSS变量与强制规则，确保内容字体颜色生效"""
         try:
             tm = self.theme_manager
             # 获取文字颜色（优先 reader.text，其次 content.text）
             text_style = tm.get_style("reader.text") or tm.get_style("content.text")
-            text_color = str(getattr(text_style, "color", "")) if text_style else ""
+            text_color = self._get_color_string(getattr(text_style, "color", None)) if text_style else ""
             # 背景与面板
             bg_style = tm.get_style("ui.background")
-            bg_color = str(getattr(bg_style, "bgcolor", "")) if bg_style else ""
+            bg_color = self._get_color_string(getattr(bg_style, "bgcolor", None)) if bg_style else ""
             surface_style = tm.get_style("ui.panel")
-            surface_color = str(getattr(surface_style, "bgcolor", "")) if surface_style else ""
+            surface_color = self._get_color_string(getattr(surface_style, "bgcolor", None)) if surface_style else ""
             # 主色与强调色
             primary_style = tm.get_style("app.accent")
-            primary_color = str(getattr(primary_style, "color", "")) if primary_style else ""
+            primary_color = self._get_color_string(getattr(primary_style, "color", None)) if primary_style else ""
             accent_style = tm.get_style("app.highlight")
-            accent_color = str(getattr(accent_style, "color", "")) if accent_style else ""
+            accent_color = self._get_color_string(getattr(accent_style, "color", None)) if accent_style else ""
             
             # 合理兜底（根据 app.dark 判断）
             is_dark = bool(getattr(self.app, "dark", False))
@@ -940,20 +981,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 return val if val else default
             
             css = f"""
-:root {{
-  --text: {pick(text_color, text_fallback)};
-  --background: {pick(bg_color, bg_fallback)};
-  --surface: {pick(surface_color, "transparent")};
-  --primary: {pick(primary_color, "#3b82f6")};
-  --accent: {pick(accent_color, "#f59e0b")};
-}}
 /* 强制阅读内容区采用主题文字颜色，避免被其他样式覆盖 */
 .reader-screen #content {{
-  color: var(--text) !important;
-  background: var(--background);
+  color: {pick(text_color, text_fallback)} !important;
+  background: {pick(bg_color, bg_fallback)};
 }}
 .reader-screen Static {{
-  color: var(--text);
+  color: {pick(text_color, text_fallback)};
 }}
 """
             if hasattr(self.app, "stylesheet") and hasattr(self.app.stylesheet, "add_source"):
