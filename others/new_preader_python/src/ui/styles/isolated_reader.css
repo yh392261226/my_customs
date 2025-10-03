@@ -56,6 +56,7 @@
     background: $primary;
     color: white;
     border: none;
+    align: center middle;
 }
 
 .reader-screen .btn:hover {
