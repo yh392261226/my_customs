@@ -144,6 +144,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
                         Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
                         Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
+                        Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
                         Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
                         Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
                         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
@@ -554,6 +555,9 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             event.prevent_default()
         elif event.key == "d":
             self._show_scan_directory_dialog()
+            event.prevent_default()
+        elif event.key == "g":
+            self._get_books()
             event.prevent_default()
         elif event.key == "f":
             # F键刷新书架
