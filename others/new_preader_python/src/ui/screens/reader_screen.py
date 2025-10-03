@@ -602,7 +602,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
             logger.info(get_global_i18n().t("reader.setting_reloaded"))
             logger.debug(f"设置重载后: 当前页={self.current_page}, 总页数={self.total_pages}")
-            self.notify(f"{get_global_i18n().t('reader.setting_effected')}", severity="information")
+            # self.notify(f"{get_global_i18n().t('reader.setting_effected')}", severity="information")
             
         except Exception as e:
             logger.error(f"{get_global_i18n().t('reader.setting_reload_failed')}: {e}")

@@ -363,7 +363,7 @@ class SettingsScreen(Screen[Any]):
             notify_setting_change("reading.line_spacing", old_value, int(event.value), "settings_screen")
             
             # 显示设置已保存的提示
-            self.notify(get_global_i18n().t("settings.saved"), severity="information")
+            # self.notify(get_global_i18n().t("settings.saved"), severity="information")
             
         elif event.select.id == "reading-para-select" and event.value is not None:
             # 立即应用段落间距设置
@@ -372,7 +372,7 @@ class SettingsScreen(Screen[Any]):
             notify_setting_change("reading.paragraph_spacing", old_value, int(event.value), "settings_screen")
             
             # 显示设置已保存的提示
-            self.notify(get_global_i18n().t("settings.saved"), severity="information")
+            # self.notify(get_global_i18n().t("settings.saved"), severity="information")
     
 
     
