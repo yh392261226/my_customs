@@ -37,13 +37,13 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("f1", "open_book", "打开书籍"),
-        ("f2", "browse_library", "浏览书库"),
-        ("f3", "get_books", "获取书籍"),
-        ("f4", "open_settings", "打开设置"),
-        ("f5", "open_statistics", "打开统计"),
-        ("f6", "open_help", "打开帮助"),
-        ("escape", "exit_app", "退出")
+        ("1,f1", "open_book", "打开书籍"),
+        ("2,f2", "browse_library", "浏览书库"),
+        ("3,f3", "get_books", "获取书籍"),
+        ("4,f4", "open_settings", "打开设置"),
+        ("5,f5", "open_statistics", "打开统计"),
+        ("6,f6", "open_help", "打开帮助"),
+        ("q,escape", "exit_app", "退出")
     ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
