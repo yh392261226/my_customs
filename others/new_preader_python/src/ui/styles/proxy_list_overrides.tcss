@@ -1,0 +1,70 @@
+/* 代理列表页面 overrides - 仅保留个性化样式，通用布局由 utilities.tcss 提供 */
+
+#proxy-list-container {
+    width: 100%;
+    height: 100%;
+    margin: 1 2;
+    layout: vertical;
+}
+
+#proxy-list-title {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    color: $accent;
+    /* text-style 由 .section-title 提供 */
+}
+
+#proxy-list-description {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+    color: $text-muted;
+}
+
+#proxy-list-buttons {
+    width: 100%;
+    height: 4;
+    /* layout 与居中由 .btn-row 提供 */
+}
+
+#proxy-list-status {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+}
+
+#proxy-list-table {
+    width: 100%;
+    height: 1fr;
+    border: round $primary;
+}
+
+#shortcuts-bar {
+    width: 100%;
+    height: 2;
+    /* 使用 .status-bar 控制布局与居中 */
+    background: $panel-darken-1;
+}
+
+Button {
+    margin: 0 1;
+    min-width: 12;
+    height: 3;
+}
+
+DataTable {
+    width: 100%;
+    height: 100%;
+}
+
+Label {
+    width: 100%;
+    height: auto;
+}
+
+/* 修正快捷栏内标签的宽度与居中显示 */
+#shortcuts-bar Label {
+    width: auto;
+    content-align: center middle;
+}

@@ -1,0 +1,54 @@
+/* 帮助中心页面 overrides（初次迁移保持等效） */
+HelpScreen {
+    layout: vertical;
+    width: 100%;
+    height: 100%;
+}
+
+/* 主容器使用垂直布局 */
+#help-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+/* 标题区域 */
+#help-title {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    background: $accent;
+    color: $text;
+    text-style: bold;
+}
+
+/* 内容区域样式 */
+#help-content {
+    width: 100%;
+    height: 70%;
+    overflow-y: scroll;
+    padding: 1;
+}
+
+/* 底部按钮区域样式 */
+#help-controls {
+    width: 100%;
+    height: 20%;
+    background: $panel;
+    border-top: solid $primary;
+    padding: 1;
+}
+
+/* 快捷键状态栏 */
+#help-shortcuts-bar {
+    width: 100%;
+    height: 5%;
+    background: $panel-darken-1;
+}
+
+/* 按钮样式 */
+#back-btn {
+    width: auto;
+    height: 3;
+    margin: 0 1;
+}

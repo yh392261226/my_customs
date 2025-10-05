@@ -734,7 +734,7 @@
     "crawler": {
         "title": "爬取管理",
         "open_browser": "浏览器打开",
-        "view_history": "查看历史",
+        "view_history": "刷新历史",
         "back": "返回",
         "novel_id": "书籍ID",
         "novel_id_placeholder": "输入要爬取的书籍ID",

@@ -734,7 +734,7 @@
     "crawler": {
         "title": "Crawler Management",
         "open_browser": "Open Browser",
-        "view_history": "View History",
+        "view_history": "Refresh History",
         "back": "Back",
         "novel_id": "Book ID",
         "novel_id_placeholder": "Enter book ID to crawl",

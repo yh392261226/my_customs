@@ -43,7 +43,7 @@ logger = get_logger(__name__)
 
 class ReaderScreen(ScreenStyleMixin, Screen[None]):
     """终端阅读器屏幕 - 简化版本"""
-    CSS_PATH = "../styles/isolated_reader.css"
+    CSS_PATH = "../styles/reader_overrides.tcss"
     
     TITLE: ClassVar[Optional[str]] = None
     
@@ -153,7 +153,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 按钮区域 - 使用HorizontalScroll实现水平滚动
         from textual.containers import HorizontalScroll
         with HorizontalScroll(id="reader-buttons-container"):
-            with Horizontal(id="reader-buttons"):
+            with Horizontal(id="reader-buttons", classes="btn-row"):
                 yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
                 yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
                 yield Button(f"{get_global_i18n().t('reader.goto_page')}【g】", classes="btn", id="goto-btn")
@@ -389,6 +389,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._toggle_tts()
         elif event.key == "q" or event.key == "escape":
             self._back_to_library()
+            event.stop()
         elif event.key == "slash":
             logger.info("检测到老板键 (slash)，调用 _activate_boss_key()")
             self._activate_boss_key()

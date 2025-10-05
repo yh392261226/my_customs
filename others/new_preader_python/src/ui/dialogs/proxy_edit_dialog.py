@@ -6,7 +6,7 @@
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
-from textual.widgets import Static, Button, Label, Input, Select, Checkbox
+from textual.widgets import Static, Button, Label, Input, Select, Switch
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -27,7 +27,12 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
     """代理编辑对话框"""
     
     # 加载CSS样式
-    CSS_PATH = "../styles/proxy_edit_dialog.css"
+    CSS_PATH = "../styles/proxy_edit_dialog_overrides.tcss"
+
+    # 使用 BINDINGS：Esc 取消
+    BINDINGS = [
+        ("escape", "cancel", "取消"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager, proxy_data: Optional[Dict[str, Any]] = None):
         """
@@ -87,9 +92,9 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
             save_btn = "保存"
             cancel_btn = "取消"
         
-        with Vertical(id="proxy-edit-container"):
+        with Vertical(id="proxy-edit-container", classes="panel"):
             # 标题在边框外
-            yield Label(title, id="proxy-edit-title")
+            yield Label(title, id="proxy-edit-title", classes="section-title")
             
             # 可滚动的表单内容区域
             with ScrollableContainer(id="proxy-edit-scroll"):
@@ -97,17 +102,18 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
                     # 基础设置
                     with Vertical(id="basic-container"):
                         # 代理名称
-                        with Horizontal(id="name-container"):
-                            yield Label(name_label, id="name-label")
+                        with Horizontal(id="name-container", classes="form-row center-h"):
+                            yield Label(name_label, id="name-label", classes="label-right")
                             yield Input(
                                 placeholder=name_placeholder,
                                 id="name-input",
-                                value=self.proxy_data.get("name", "")
+                                value=self.proxy_data.get("name", ""),
+                                classes="input-std"
                             )
                         
                         # 代理类型
-                        with Horizontal(id="type-container"):
-                            yield Label(type_label, id="type-label")
+                        with Horizontal(id="type-container", classes="form-row center-h"):
+                            yield Label(type_label, id="type-label", classes="label-right")
                             yield Select(
                                 [
                                     ("HTTP", "HTTP"),
@@ -115,54 +121,64 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
                                     ("SOCKS5", "SOCKS5")
                                 ],
                                 id="type-select",
-                                value=self.proxy_data.get("type", "HTTP")
+                                value=self.proxy_data.get("type", "HTTP"),
+                                classes="select-std"
                             )
                     
                     # 启用开关
                     with Vertical(id="enable-container"):
-                        with Horizontal(id="enable-container"):
-                            yield Checkbox(enable_label, id="enable-checkbox")
+                        with Horizontal(id="enable-container-inside", classes="form-row center-h"):
+                            yield Label(enable_label, id="enable-label", classes="label-right")
+                            yield Switch(
+                                id="enable-checkbox",
+                                value=self.proxy_data.get("enabled", 0),
+                                classes="switch-std"
+                            )
 
                     # 服务器设置
                     with Vertical(id="server-container"):
-                        with Horizontal(id="host-container"):
-                            yield Label(host_label, id="host-label")
+                        with Horizontal(id="host-container", classes="form-row center-h"):
+                            yield Label(host_label, id="host-label", classes="label-right")
                             yield Input(
                                 placeholder=host_placeholder,
                                 id="host-input",
-                                value=self.proxy_data.get("host", "")
+                                value=self.proxy_data.get("host", ""),
+                                classes="input-std"
                             )
-                        with Horizontal(id="port-container"):
-                            yield Label(port_label, id="port-label")
+                        with Horizontal(id="port-container", classes="form-row center-h"):
+                            yield Label(port_label, id="port-label", classes="label-right")
                             yield Input(
                                 placeholder=port_placeholder,
                                 id="port-input",
-                                value=self.proxy_data.get("port", "")
+                                value=self.proxy_data.get("port", ""),
+                                classes="input-std"
                             )
                     
                     # 认证设置
                     with Vertical(id="auth-container"):
-                        with Horizontal(id="username-container"):
-                            yield Label(username_label, id="username-label")
+                        with Horizontal(id="username-container", classes="form-row center-h"):
+                            yield Label(username_label, id="username-label", classes="label-right")
                             yield Input(
                                 placeholder=username_placeholder,
                                 id="username-input",
-                                value=self.proxy_data.get("username", "")
+                                value=self.proxy_data.get("username", ""),
+                                classes="input-std"
                             )
-                        with Horizontal(id="password-container"):
-                            yield Label(password_label, id="password-label")
+                        with Horizontal(id="password-container", classes="form-row center-h"):
+                            yield Label(password_label, id="password-label", classes="label-right")
                             yield Input(
                                 placeholder=password_placeholder,
                                 id="password-input",
                                 password=True,
-                                value=self.proxy_data.get("password", "")
+                                value=self.proxy_data.get("password", ""),
+                                classes="input-std"
                             )
             
             # 状态信息显示区域
             yield Label("", id="proxy-status-info")
             
             # 按钮区域在边框外
-            with Horizontal(id="proxy-edit-buttons"):
+            with Horizontal(id="proxy-edit-buttons", classes="btn-row"):
                 yield Button(test_connection, id="test-btn")
                 yield Button(save_btn, id="save-btn", variant="primary")
                 yield Button(cancel_btn, id="cancel-btn")
@@ -174,7 +190,7 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         self.theme_manager.apply_theme_to_screen(self)
         
         # 设置启用复选框状态
-        enable_checkbox = self.query_one("#enable-checkbox", Checkbox)
+        enable_checkbox = self.query_one("#enable-checkbox", Switch)
         enable_checkbox.value = bool(self.proxy_data.get("enabled", False))
         
         # 设置默认焦点到名称输入框
@@ -182,6 +198,10 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         if name_input:
             self.set_focus(name_input)
     
+    # Actions for BINDINGS
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -200,7 +220,7 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         """保存代理设置"""
         # 获取表单数据
         name_input = self.query_one("#name-input", Input)
-        enable_checkbox = self.query_one("#enable-checkbox", Checkbox)
+        enable_checkbox = self.query_one("#enable-checkbox", Switch)
         type_select = self.query_one("#type-select", Select)
         host_input = self.query_one("#host-input", Input)
         port_input = self.query_one("#port-input", Input)
@@ -369,8 +389,5 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         self._show_message(message, "error")
     
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键取消
-            self.dismiss(None)
-            event.prevent_default()
+        """已由 BINDINGS 处理，避免重复触发"""
+        pass

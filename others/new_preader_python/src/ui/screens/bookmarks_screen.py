@@ -31,7 +31,7 @@ class BookmarksScreen(Screen[None]):
     """书签列表屏幕 - 使用数据库存储"""
     
     TITLE: Optional[str] = None  # 在运行时设置
-    CSS_PATH = "../styles/bookmarks.css"  # 这个文件存在
+    CSS_PATH = "../styles/bookmarks_overrides.tcss"  # 这个文件存在
     
     def __init__(self, book_id: str):
         super().__init__()
@@ -53,18 +53,19 @@ class BookmarksScreen(Screen[None]):
             Vertical(
                 # 标题栏
                 Horizontal(
-                    Label(self.screen_title, id="screen-title"),
+                    Label(self.screen_title, id="screen-title", classes="section-title"),
                     id="header-container"
                 ),
                 
                 # 操作按钮栏
                 Horizontal(
-                    Button(get_global_i18n().t("bookmarks.goto"), id="goto-selected-btn", variant="primary"),
-                    Button(get_global_i18n().t("common.delete"), id="delete-selected-btn", variant="error"),
-                    Button(get_global_i18n().t("common.edit"), id="edit-note-btn", variant="default"),
-                    Button(get_global_i18n().t("bookmarks.clear_all"), id="clear-all-btn", variant="warning"),
-                    Button(get_global_i18n().t("common.back"), id="back-button", variant="error"),
-                    id="action-buttons"
+                    Button(get_global_i18n().t("bookmarks.goto"), id="goto-selected-btn", variant="primary", classes="btn"),
+                    Button(get_global_i18n().t("common.delete"), id="delete-selected-btn", variant="error", classes="btn"),
+                    Button(get_global_i18n().t("common.edit"), id="edit-note-btn", variant="default", classes="btn"),
+                    Button(get_global_i18n().t("bookmarks.clear_all"), id="clear-all-btn", variant="warning", classes="btn"),
+                    Button(get_global_i18n().t("common.back"), id="back-button", variant="error", classes="btn"),
+                    id="action-buttons",
+                    classes="btn-row"
                 ),
                 
                 # 分页信息显示
@@ -224,6 +225,7 @@ class BookmarksScreen(Screen[None]):
         """处理键盘事件"""
         if event.key == "escape":
             self.app.pop_screen()
+            event.stop()
         elif event.key == "delete":
             self._delete_selected_bookmark()
         elif event.key == "enter":

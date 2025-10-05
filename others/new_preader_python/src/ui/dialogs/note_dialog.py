@@ -18,9 +18,14 @@ logger = get_logger(__name__)
 
 class NoteDialog(ModalScreen[Optional[str]]):
     """备注对话框"""
-    
-    # 加载CSS样式
-    CSS_PATH = "../styles/note_dialog.css"
+    CSS_PATH = ["../styles/utilities.tcss"]
+
+    # 使用 BINDINGS 替代 on_key（Esc 取消，Ctrl+S 保存）
+    BINDINGS = [
+        ("escape", "cancel", "取消"),
+        ("ctrl+s", "save", "保存"),
+    ]
+
     
     def __init__(self, theme_manager: ThemeManager, site_name: str, initial_note: str = ""):
         """
@@ -47,7 +52,7 @@ class NoteDialog(ModalScreen[Optional[str]]):
         yield Container(
             Vertical(
                 # 标题
-                Label(f"备注 - {self.site_name}", id="note-title"),
+                Label(f"备注 - {self.site_name}", id="note-title", classes="section-title"),
                 
                 # 文本域
                 TextArea(
@@ -56,7 +61,8 @@ class NoteDialog(ModalScreen[Optional[str]]):
                     language="markdown",
                     show_line_numbers=True,
                     tab_behavior="indent",
-                    placeholder=get_global_i18n().t('note.enter_note')
+                    placeholder=get_global_i18n().t('note.enter_note'),
+                    classes="textarea-std"
                 ),
                 
                 # 按钮区域
@@ -64,7 +70,7 @@ class NoteDialog(ModalScreen[Optional[str]]):
                     Button(get_global_i18n().t('note.save'), id="save-btn", variant="primary"),
                     Button(get_global_i18n().t('note.clear'), id="clear-btn"),
                     Button(get_global_i18n().t('note.cancel'), id="cancel-btn"),
-                    id="note-buttons"
+                    id="note-buttons", classes="btn-row"
                 ),
                 
                 id="note-container"
@@ -81,6 +87,15 @@ class NoteDialog(ModalScreen[Optional[str]]):
         if textarea:
             self.set_focus(textarea)
     
+    # Actions for BINDINGS
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+    def action_save(self) -> None:
+        textarea = self.query_one("#note-textarea", TextArea)
+        note_content = textarea.text
+        self.dismiss(note_content)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -102,14 +117,5 @@ class NoteDialog(ModalScreen[Optional[str]]):
             self.dismiss(None)
     
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键取消
-            self.dismiss(None)
-            event.prevent_default()
-        elif event.key == "ctrl+s":
-            # Ctrl+S保存
-            textarea = self.query_one("#note-textarea", TextArea)
-            note_content = textarea.text
-            self.dismiss(note_content)
-            event.prevent_default()
+        """已由 BINDINGS 处理，避免重复触发"""
+        pass

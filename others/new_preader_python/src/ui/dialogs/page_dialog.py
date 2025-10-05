@@ -19,7 +19,7 @@ class PageDialog(ModalScreen[int]):
         # 应用通用样式隔离
         apply_universal_style_isolation(self)
     
-    CSS_PATH = "../styles/bookmark_dialog.css"
+    CSS_PATH = "../styles/bookmark_dialog_overrides.tcss"
     
     def __init__(self, total_pages: int, current_page: int = 0) -> None:
         super().__init__()
@@ -65,4 +65,5 @@ class PageDialog(ModalScreen[int]):
         if event.key == "escape":
             # ESC键返回，效果与点击取消按钮相同
             self.dismiss(None)
+            event.stop()
             event.prevent_default()

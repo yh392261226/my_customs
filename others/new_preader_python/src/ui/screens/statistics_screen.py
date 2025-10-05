@@ -35,7 +35,13 @@ class StatisticsScreen(Screen[None]):
         # 应用通用样式隔离
         apply_universal_style_isolation(self)
     """统计屏幕"""
-    CSS_PATH = "../styles/statistics.css"
+    CSS_PATH = ["../styles/statistics_overrides.tcss"]
+    # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("escape", "press('#back-btn')", "返回"),
+        ("r", "press('#refresh-btn')", "刷新"),
+        ("e", "press('#export-btn')", "导出"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager, statistics_manager: StatisticsManagerDirect):
         """
@@ -67,9 +73,9 @@ class StatisticsScreen(Screen[None]):
                 with TabPane(get_global_i18n().t("statistics.global_stats"), id="global-stats-tab"):
                     yield Vertical(
                         Static(self._format_global_stats(), id="global-stats-content"),
-                        Label(get_global_i18n().t("statistics.reading_trend"), id="trend-title"),
+                        Label(get_global_i18n().t("statistics.reading_trend"), id="trend-title", classes="section-title"),
                         Static(self._format_reading_trend(), id="trend-content"),
-                        Label(get_global_i18n().t("statistics.most_read_authors"), id="authors-title"),
+                        Label(get_global_i18n().t("statistics.most_read_authors"), id="authors-title", classes="section-title"),
                         DataTable(id="authors-table"),
                         id="global-tab"
                     )
@@ -77,9 +83,9 @@ class StatisticsScreen(Screen[None]):
                 # 书籍统计标签页
                 with TabPane(get_global_i18n().t("statistics.book_stats"), id="book-stats-tab"):
                     yield Vertical(
-                        Label(get_global_i18n().t("statistics.most_read_books"), id="books-title"),
+                        Label(get_global_i18n().t("statistics.most_read_books"), id="books-title", classes="section-title"),
                         DataTable(id="book-stats-table"),
-                        Label(get_global_i18n().t("statistics.reading_progress"), id="progress-title"),
+                        Label(get_global_i18n().t("statistics.reading_progress"), id="progress-title", classes="section-title"),
                         DataTable(id="progress-table"),
                         id="books-tab"
                     )
@@ -87,22 +93,22 @@ class StatisticsScreen(Screen[None]):
                 # 详细统计标签页
                 with TabPane(get_global_i18n().t("statistics.detailed_stats"), id="detailed-stats-tab"):
                     yield Vertical(
-                        Label(get_global_i18n().t("statistics.daily_stats"), id="daily-title"),
+                        Label(get_global_i18n().t("statistics.daily_stats"), id="daily-title", classes="section-title"),
                         Static(self._format_daily_stats(), id="daily-content"),
-                        Label(get_global_i18n().t("statistics.weekly_monthly"), id="period-title"),
+                        Label(get_global_i18n().t("statistics.weekly_monthly"), id="period-title", classes="section-title"),
                         Static(self._format_period_stats(), id="period-content"),
                         id="detailed-tab"
                     )
             
             # 底部控制按钮区域
-            with Horizontal(id="stats-controls"):
+            with Horizontal(id="stats-controls", classes="btn-row"):
                 yield Button(get_global_i18n().t("statistics.refresh"), id="refresh-btn")
                 yield Button(get_global_i18n().t("statistics.export"), id="export-btn")
                 yield Button(get_global_i18n().t("statistics.reset"), id="reset-btn")
                 yield Button(get_global_i18n().t("statistics.back"), id="back-btn")
             
             # 快捷键状态栏
-            with Horizontal(id="shortcuts-bar"):
+            with Horizontal(id="shortcuts-bar", classes="status-bar"):
                 yield Label("R: 刷新", id="shortcut-r")
                 yield Label("E: 导出", id="shortcut-e")
                 yield Label("ESC: 返回", id="shortcut-esc")
@@ -293,7 +299,7 @@ class StatisticsScreen(Screen[None]):
         """
         if event.key == "escape":
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()
         elif event.key == "r":
             self._refresh_stats()
             event.prevent_default()

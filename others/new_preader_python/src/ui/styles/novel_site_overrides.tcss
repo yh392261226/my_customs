@@ -1,0 +1,125 @@
+/* NovelSiteDialog overrides - 公共布局由 utilities.tcss 提供 */
+NovelSiteDialog {
+    layout: vertical;
+    padding: 1;
+    width: 100%;
+    max-width: 60;
+    height: auto;
+    min-height: 25;
+    background: $panel;
+    border: round $primary;
+    align: center middle;
+}
+
+#novel-site-dialog-title {
+    width: 100%;
+    text-align: center;
+    padding: 1 0;
+    /* text-style 由 .section-title 提供 */
+}
+
+/* 基本信息容器 */
+#novel-site-dialog-body {
+    width: 100%;
+    height: 100%;
+    max-height: 20; /* 限制中部区域高度，避免遮挡底部按钮 */
+    margin: 1 0;
+}
+#basic-info-container {
+    layout: vertical;
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+}
+
+/* 每个输入行容器 */
+#site-name-container,
+#site-url-container,
+#storage-folder-container,
+#parser-container,
+#proxy-enable-container {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+    align: center middle;
+    /* layout 与对齐由 .form-row 提供（proxy-enable-container 高度会单独覆盖） */
+}
+
+/* 标签样式 */
+#site-name-label,
+#site-url-label,
+#storage-folder-label,
+#parser-label,
+#enable-proxy-label {
+    width: 30%;
+    height: 1;
+    text-align: right;
+    padding: 0 1;
+}
+
+/* 输入框样式 */
+#site-name-input,
+#site-url-input,
+#storage-folder-input {
+    width: 70%;
+    height: 3;
+    margin: 0;
+}
+
+/* 选择框样式 */
+#parser-select {
+    width: 70%;
+    height: 3;
+    margin: 0;
+}
+
+#enable-proxy {
+    width: 5%;
+    min-width: 4;
+    height: 3;
+    margin: 0;
+}
+
+/* 解析器设置容器 */
+#parser-settings-container {
+    layout: vertical;
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+}
+
+/* 代理设置容器 */
+#proxy-settings-container {
+    layout: vertical;
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+}
+
+/* 按钮容器 */
+#novel-site-dialog-buttons {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+#novel-site-dialog-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+#save-btn {
+    background: $success;
+}
+
+#cancel-btn {
+    background: $error;
+}
+
+/* 状态信息标签 */
+#novel-site-dialog-status {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    padding: 1 0;
+}

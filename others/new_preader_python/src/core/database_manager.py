@@ -206,7 +206,7 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_novel_id ON crawl_history(novel_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_crawl_time ON crawl_history(crawl_time)")
             
-            # 创建书籍网站备注表
+             # 创建书籍网站备注表
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS novel_site_notes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,7 +220,7 @@ class DatabaseManager:
             
             # 创建备注表索引
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_site_notes_site_id ON novel_site_notes(site_id)")
-            
+
             conn.commit()
     
     def add_book(self, book: Book) -> bool:
@@ -1248,7 +1248,7 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"删除爬取历史记录失败: {e}")
             return False
-
+    
     # 书籍网站备注相关方法
     def save_novel_site_note(self, site_id: int, note_content: str) -> bool:
         """

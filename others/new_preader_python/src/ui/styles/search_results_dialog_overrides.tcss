@@ -1,0 +1,48 @@
+/* 搜索结果对话框 overrides（初次迁移保持等效） */
+#search-results-dialog {
+    width: 90%;
+    height: 85%;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    layout: vertical;
+}
+
+#search-query {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#search-count {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#results-table {
+    width: 100%;
+    height: 1fr;
+    margin-bottom: 1;
+}
+
+#search-buttons {
+    width: 100%;
+    height: 3;
+}
+
+#search-buttons > Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+#select-button {
+    background: $success;
+}
+
+#cancel-button {
+    background: $error;
+}

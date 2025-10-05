@@ -39,7 +39,18 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     """书架屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
-    CSS_PATH="../styles/isolated_bookshelf.css"
+    CSS_PATH="../styles/bookshelf_overrides.tcss"
+    # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("s", "press('#search-btn')", "搜索"),
+        ("r", "press('#sort-btn')", "排序"),
+        ("l", "press('#batch-ops-btn')", "批量操作"),
+        ("f", "press('#refresh-btn')", "刷新"),
+        ("a", "press('#add-book-btn')", "添加"),
+        ("d", "press('#scan-directory-btn')", "扫描目录"),
+        ("g", "press('#get-books-btn')", "获取书籍"),
+
+    ]
     
     @on(RefreshBookshelfMessage)
     def handle_refresh_message(self, message: RefreshBookshelfMessage) -> None:
@@ -109,13 +120,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             Grid(
                 # 顶部标题和工具栏
                 Vertical(
-                    Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-title"),
+                    Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-title", classes="section-title"),
                     Horizontal(
-                        Button(get_global_i18n().t("bookshelf.search"), id="search-btn"),
-                        Button(get_global_i18n().t("bookshelf.sort.title"), id="sort-btn"),
-                        Button(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-btn"),
-                        Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn"),
-                        id="bookshelf-toolbar"
+                        Button(get_global_i18n().t("bookshelf.search"), id="search-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.sort.title"), id="sort-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn", classes="btn"),
+                        id="bookshelf-toolbar",
+                        classes="btn-row"
                     ),
                     id="bookshelf-header"
                 ),
@@ -129,11 +141,12 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 # 底部控制栏和状态栏
                 Vertical(
                     Horizontal(
-                        Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn"),
-                        Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn"),
-                        Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn"),
-                        Button(get_global_i18n().t("bookshelf.back"), id="back-btn"),
-                        id="bookshelf-controls"
+                        Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.back"), id="back-btn", classes="btn"),
+                        id="bookshelf-controls",
+                        classes="btn-row"
                     ),
                     # 快捷键状态栏
                     Horizontal(
@@ -150,7 +163,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
                         Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
                         id="shortcuts-bar",
-                        classes="footer"
+                        classes="footer status-bar"
                     ),
                     id="bookshelf-footer"
                 ),
@@ -517,7 +530,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         # 类型安全的open_book调用
         app_instance = self.app
         if hasattr(app_instance, 'open_book'):
-            app_instance.open_book(book_id)  # type: ignore
+            app_instance.open_book(book_id)  # type: ignore[attr-defined]
         
     def on_key(self, event: events.Key) -> None:
         """
@@ -564,9 +577,9 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             self._refresh_bookshelf()
             event.prevent_default()
         elif event.key == "escape":
-            # ESC键返回
+            # ESC键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()
         elif event.key == "n":
             # N键下一页
             if self._current_page < self._total_pages:
@@ -628,7 +641,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 if isinstance(result, SearchResult):
                     app_instance = self.app
                     if hasattr(app_instance, 'open_book'):
-                        app_instance.open_book(result.book_id)
+                        app_instance.open_book(result.book_id)  # type: ignore[attr-defined]
         
         # 使用现有的搜索对话框
         from src.ui.dialogs.search_dialog import SearchDialog

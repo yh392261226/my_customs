@@ -1,0 +1,34 @@
+/* BatchInputDialog overrides - 使用 .btn-row 管理按钮行 */
+
+#batch-input-dialog {
+    layout: vertical;
+    padding: 1;
+    width: 90%;
+    height: 85%;
+    min-height: 10;
+    max-height: 20;
+    align: center middle;
+}
+
+#batch-input-dialog > Label {
+    width: 100%;
+    text-align: center;
+    padding: 1 0;
+}
+
+#batch-input-dialog > Input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+/* 调整为针对 #input-buttons（Python 侧已使用 Container(id="input-buttons", classes="btn-row")） */
+#input-buttons {
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+}
+
+#batch-input-dialog Button {
+    margin: 0 1;
+}

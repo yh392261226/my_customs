@@ -33,7 +33,7 @@ class BossKeyScreen(Screen[None]):
         apply_universal_style_isolation(self)
     """老板键屏幕 - 模拟真实终端"""
     
-    CSS_PATH = "../styles/boss_key.css"
+    CSS_PATH = "../styles/boss_key_overrides.tcss"
     
     TITLE: ClassVar[Optional[str]] = "Terminal"
     

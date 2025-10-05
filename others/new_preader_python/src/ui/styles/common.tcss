@@ -1,0 +1,413 @@
+/* 公用样式（整合自 utilities.tcss 与 styles.tcss）
+   目标：统一通用变量/布局/组件规则，一处维护；页面 overrides 仅覆盖差异
+   加载顺序：先通用工具与基线 -> 再页面 overrides
+*/
+
+/* ===== 通用工具与组件基线（原 utilities.tcss） ===== */
+
+/* 公用样式：集中常用布局与控件尺寸，供全局复用 */
+
+/* 统一按钮行：水平排列，固定高，按钮有最小宽度 */
+.btn-row {
+    layout: horizontal;
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+.btn-row > * { margin-right: 1; }
+.btn-row Button {
+    height: 3;
+    min-width: 12;
+}
+
+/* 表单行：标签+输入/选择 水平排列 */
+.form-row {
+    layout: horizontal;
+    width: 100%;
+    height: 3;
+    align: left middle;
+}
+.form-row > * { margin-right: 1; }
+
+/* 区块标题：加粗+居中 */
+.section-title {
+    text-style: bold;
+    text-align: center;
+}
+
+/* 状态栏：细高、弱化色 */
+.status-bar {
+    height: 2;
+    align: center middle;
+    background: $panel-darken-1;
+}
+.status-bar Label {
+    margin: 0 1;
+    color: $text-muted;
+}
+
+/* 可纵向滚动容器（中部内容区常用） */
+.scroll-y {
+    overflow-y: auto;
+    width: 100%;
+}
+
+/* 常用输入/按钮基线高度 */
+Button { height: 3; }
+Input { height: 3; }
+
+/* DataTable 标准外观 */
+DataTable {
+    border: round $primary;
+}
+DataTable > .datatable--header {
+    background: $surface;
+    color: $text;
+    text-style: bold;
+}
+DataTable > .datatable--cursor {
+    background: $accent;
+    color: $text;
+}
+
+/* 焦点与主按钮色 */
+Button:focus {
+    background: $accent;
+    color: $text;
+}
+Button.-primary {
+    background: $success;
+    color: $text;
+}
+Button.-primary:focus {
+    background: $success-darken-1;
+}
+
+/* ===== 全局与页面基础样式（原 styles.tcss） ===== */
+
+Screen {
+    layout: vertical;
+    border: solid $panel;
+}
+
+Header {
+    dock: top;
+    height: 3;
+    background: $accent;
+    color: $text;
+}
+
+Footer {
+    dock: bottom;
+    height: 1;
+    background: $panel;
+    color: $text-muted;
+}
+
+Container {
+    width: 100%;
+    height: 100%;
+}
+
+Button {
+    width: auto;
+    margin: 1;
+    background: $primary;
+    color: $text;
+}
+
+Button.primary {
+    background: $primary;
+    color: $text;
+}
+
+Button.danger {
+    background: $error;
+    color: $text;
+}
+
+Button:hover {
+    background: $primary-lighten-1;
+}
+
+DataTable {
+    width: 100%;
+    height: 80;
+}
+
+Label {
+    width: auto;
+    height: auto;
+}
+
+Input {
+    width: 100%;
+    height: 3;
+    margin: 1;
+}
+
+ProgressBar {
+    width: 100%;
+    height: 1;
+    margin: 1;
+}
+
+Dialog {
+    width: auto;
+    height: auto;
+    background: $panel;
+    border: round $primary;
+}
+
+.highlight {
+    background: $accent;
+    color: $text;
+}
+
+Horizontal.footer {
+    dock: bottom;
+    height: auto;
+    min-height: 3;
+    background: $panel;
+    color: $text-muted;
+}
+
+/* ScrollableContainer 样式 */
+ScrollableContainer {
+    width: 100%;
+    height: 100%;
+}
+
+/* Grid 容器样式 - 书架页面专用 */
+Grid {
+    width: 100%;
+    height: 100%;
+    grid-size: 1 3;
+    grid-rows: 2fr 12fr 1fr 1fr;
+}
+
+/* 标签页内容样式 */
+TabPane {
+    width: 100%;
+    height: 100%;
+}
+
+/* 快捷键状态栏样式 */
+#shortcuts-bar {
+    width: 100%;
+    height: auto;
+    min-height: 3;
+    dock: bottom;
+    layout: horizontal;
+    align-horizontal: center;
+    content-align: center middle;
+}
+
+/* 快捷键标签样式 */
+#shortcuts-bar > Label {
+    margin: 0 2;
+    text-style: bold;
+}
+
+/* TabbedContent 样式 */
+TabbedContent {
+    width: 100%;
+    height: 100%;
+}
+
+WelcomeScreen {
+    align: center middle;
+}
+
+#welcome-container {
+    width: 100%;
+    height: 100%;
+    align: center middle;
+    content-align: center middle;
+}
+
+#welcome-title {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#welcome-subtitle {
+    text-align: center;
+    color: $accent;
+    text-style: italic;
+    margin-bottom: 1;
+}
+
+#welcome-description {
+    text-align: center;
+    color: $text-muted;
+    margin-bottom: 2;
+}
+
+#features-container {
+    width: 100%;
+    margin: 2 2 2 2;
+    border: round $primary;
+    padding: 1;
+    align: center middle;
+}
+
+#welcome-buttons {
+    layout: horizontal;
+    align: center middle;
+    margin-bottom: 2;
+}
+
+#welcome-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+#open-book-btn {
+    background: $success;
+}
+
+#browse-library-btn {
+    background: $accent;
+}
+
+#statistics-btn {
+    background: $accent-darken-1;
+}
+
+#help-btn {
+    background: $secondary;
+}
+
+#features-title {
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#feature-1, #feature-2, #feature-3, #feature-4 {
+    text-align: center;
+    color: $text-muted;
+    margin: 0 1;
+}
+
+#shortcuts-bar Label {
+    margin: 0 2;
+    text-style: italic;
+    color: $text-muted;
+}
+
+/* 简单文件输入对话框样式 */
+#simple-file-dialog {
+    width: 80%;
+    height: auto;
+    min-height: 10;
+    max-height: 20;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    align: center middle;
+}
+
+#dialog-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#file-input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+#dialog-buttons {
+    width: 100%;
+    layout: horizontal;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#dialog-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+/* 目录选择对话框样式 */
+#directory-dialog {
+    width: 80%;
+    height: auto;
+    min-height: 10;
+    max-height: 20;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    align: center middle;
+}
+
+#directory-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#directory-input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+#directory-buttons {
+    width: 100%;
+    layout: horizontal;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#directory-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+/* ===== 统一公共规则（全局追加，对所有页面生效） ====== */
+
+/* 统一按钮最小宽度，兼容各页面按钮布局 */
+Button {
+    min-width: 8;
+}
+
+/* 通用对话框标题与按钮容器（覆盖不同页面重复定义） */
+#dialog-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+}
+
+#dialog-buttons,
+#directory-buttons {
+    width: 100%;
+    layout: horizontal;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+#dialog-buttons Button,
+#directory-buttons Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+/* 常见：列表与树的滚动条配色（与主题一致） */
+ListView, Tree, DataTable {
+    scrollbar-background: $surface;
+    scrollbar-color: $primary;
+}

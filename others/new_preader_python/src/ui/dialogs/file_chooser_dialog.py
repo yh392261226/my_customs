@@ -7,7 +7,7 @@ from typing import Optional, List, Set
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Static, Checkbox
+from textual.widgets import Button, Input, Label, Static
 from textual.validation import Validator, ValidationResult
 from textual import events
 
@@ -90,7 +90,7 @@ class FileChooserDialog(ModalScreen[Optional[List[str]]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         with Vertical(id="file-chooser-dialog"):
-            yield Label(self.title, id="file-chooser-title")
+            yield Label(self.title or "", id="file-chooser-title")
             
             # 文件路径输入区域
             with Horizontal(id="file-input-section"):
@@ -186,9 +186,3 @@ class FileChooserDialog(ModalScreen[Optional[List[str]]]):
             else:
                 files_list.update("")
 
-    def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键返回
-            self.dismiss(None)
-            event.prevent_default()

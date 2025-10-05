@@ -1,0 +1,124 @@
+/* 爬取管理屏幕 overrides - 通用按钮行/表单行/标题由 utilities.tcss 提供 */
+
+#crawler-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+}
+
+#crawler-title {
+    text-align: center;
+    height: 3;
+    color: $accent;
+    /* text-style 由 .section-title 提供 */
+}
+
+#crawler-url {
+    text-align: center;
+    height: 2;
+    color: $text-muted;
+}
+
+#crawler-buttons {
+    height: 3;
+}
+
+#crawler-buttons Button {
+    margin: 0 1;
+    min-width: 12;
+    width: auto;
+}
+
+#crawler-scroll {
+    height: 1fr;           /* 占据剩余空间 */
+    min-height: 6;
+    margin: 1 0;
+}
+#novel-id-section {
+    height: auto;
+    border: solid $primary;
+    padding: 1;
+    margin: 1 0;
+}
+
+#novel-id-label {
+    text-style: bold;
+    height: 2;
+}
+
+#novel-id-container {
+    height: 3;
+    align: center middle;  /* 居中输入区域 */
+}
+
+#novel-id-input {
+    width: 40;
+    height: 3;
+    margin-right: 1;
+}
+
+#start-crawl-btn {
+    min-width: 12;
+    height: 3;
+    margin-right: 1;
+    width: auto;
+}
+
+#stop-crawl-btn {
+    min-width: 12;
+    height: 3;
+    margin-right: 1;
+    width: auto;
+}
+
+#crawl-history-section {
+    height: auto;
+    border: solid $primary;
+    padding: 1;
+    margin: 0 0;
+}
+
+#crawl-history-title {
+    text-style: bold;
+    height: 2;
+}
+
+#crawl-history-table {
+    height: 10;
+    border: round $primary;
+}
+
+#pagination-controls {
+    height: 3;
+    align: center middle;
+}
+
+#pagination-controls Button {
+    margin: 0 1;
+    min-width: 10;
+    width: auto;
+}
+
+#page-info {
+    text-align: center;
+    width: 20;
+}
+
+#crawler-status {
+    text-align: center;
+    height: 2;
+}
+
+#shortcuts-bar {
+    height: 2;
+    align: center middle;
+    background: $panel-darken-1;
+}
+
+#shortcuts-bar Label {
+    margin: 0 1;
+    color: $text-muted;
+}
+
+/* 下方通用控件外观已集中到 utilities.tcss：
+   Button/Input/DataTable/header/cursor/focus 等 */

@@ -22,6 +22,8 @@ class BatchInputDialog(ModalScreen[str]):
         apply_universal_style_isolation(self)
     """批量输入对话框"""
     
+    CSS_PATH = "../styles/batch_input_overrides.tcss"
+    
     def __init__(self, title: str, placeholder: str = "", callback: Optional[Callable[[str], None]] = None):
         """
         初始化输入对话框
@@ -42,10 +44,10 @@ class BatchInputDialog(ModalScreen[str]):
         
         with Container(id="batch-input-dialog"):
             with Vertical():
-                yield Label(self.title, id="input-title")
+                yield Label(self.title, id="input-title", classes="section-title")
                 yield Input(placeholder=self.placeholder, id="input-field")
                 
-                with Container(id="input-buttons"):
+                with Container(id="input-buttons", classes="btn-row"):
                     yield Button(i18n.t("common.confirm"), id="confirm-btn", variant="primary")
                     yield Button(i18n.t("common.cancel"), id="cancel-btn")
     
@@ -79,8 +81,3 @@ class BatchInputDialog(ModalScreen[str]):
         
         self.dismiss(value)
     
-    def on_key(self, event: events.Key) -> None:
-        """按键事件处理"""
-        if event.key == "escape":
-            self.dismiss(None)
-            event.prevent_default()

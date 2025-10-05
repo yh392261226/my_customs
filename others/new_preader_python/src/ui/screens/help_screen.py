@@ -26,7 +26,7 @@ class HelpScreen(Screen[None]):
         # 应用通用样式隔离
         apply_universal_style_isolation(self)
     """帮助屏幕"""
-    CSS_PATH = "../styles/help_screen.css"
+    CSS_PATH = "../styles/help_screen_overrides.tcss"
     
     def __init__(self):
         """
@@ -74,19 +74,19 @@ class HelpScreen(Screen[None]):
         yield Container(
             Vertical(
                 Vertical(
-                    Label(get_global_i18n().t("help.title"), id="help-title"),
+                    Label(get_global_i18n().t("help.title"), id="help-title", classes="section-title"),
                     Label("", id="help-info"),
                     id="help-preview"
                 ),
                 MarkdownViewer(self.help_content, id="help-content"),
                 Horizontal(
                     Button(get_global_i18n().t("help.back"), id="back-btn"),
-                    id="help-controls"
+                    id="help-controls", classes="btn-row"
                 ),
                 # 快捷键状态栏
                 Horizontal(
                     Label(f"ESC: {get_global_i18n().t('common.back')}", id="shortcut-esc"),
-                    id="help-shortcuts-bar"
+                    id="help-shortcuts-bar", classes="status-bar"
                 ),
                 id="help-container"
             )
@@ -117,4 +117,5 @@ class HelpScreen(Screen[None]):
         """
         if event.key == "escape":
             self.app.pop_screen()
+            event.stop()
             event.prevent_default()

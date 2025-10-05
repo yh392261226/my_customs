@@ -19,7 +19,7 @@ class BookmarkEditDialog(ModalScreen[str]):
         apply_universal_style_isolation(self)
     """书签编辑对话框"""
     
-    CSS_PATH = "../styles/bookmark_edit_dialog.css"
+    CSS_PATH = "../styles/bookmark_edit_dialog_overrides.tcss"
     
     def __init__(self, bookmark_info: str, current_note: str = ""):
         super().__init__()
@@ -30,13 +30,14 @@ class BookmarkEditDialog(ModalScreen[str]):
         """组合对话框界面"""
         yield Container(
             Vertical(
-                Label(get_global_i18n().t('bookmark_edit.title'), id="title"),
+                Label(get_global_i18n().t('bookmark_edit.title'), id="title", classes="section-title"),
                 Label(get_global_i18n().t('bookmark_edit.info', bookmark_info=self.bookmark_info), id="info"),
                 Container(
                     Input(
                         value=self.current_note,
                         placeholder=get_global_i18n().t('bookmark_edit.placeholder'),
-                        id="note-input"
+                        id="note-input",
+                        classes="input-std"
                     ),
                     id="input-container"
                 ),
@@ -44,7 +45,7 @@ class BookmarkEditDialog(ModalScreen[str]):
                     Button(get_global_i18n().t('common.ok'), variant="primary", id="confirm"),
                     Button(get_global_i18n().t('common.cancel'), variant="default", id="cancel"),
                     Button(get_global_i18n().t('bookmark_edit.clear'), variant="warning", id="clear"),
-                    id="buttons"
+                    id="buttons", classes="btn-row"
                 ),
                 id="dialog"
             )
@@ -86,5 +87,5 @@ class BookmarkEditDialog(ModalScreen[str]):
         """键盘事件处理"""
         if event.key == "escape":
             self.dismiss(None)
-        elif event.key == "ctrl+s":
+        elif event.key == "enter":
             self.on_confirm()

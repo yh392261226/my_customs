@@ -23,7 +23,11 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         apply_universal_style_isolation(self)
     """搜索对话框"""
     
-    CSS_PATH = "../styles/search_dialog.css"
+    CSS_PATH = "../styles/search_dialog_overrides.tcss"
+    BINDINGS = [
+        ("enter", "press('#select-btn')", "Select"),
+        ("escape", "press('#cancel-btn')", "Cancel"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager, 
                  book_id: Optional[str] = None):
@@ -43,8 +47,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         with Vertical(id="search-dialog"):
-            yield Label(get_global_i18n().t("search.title"), id="search-title")
-            with Horizontal(id="search-filters"):
+            yield Label(get_global_i18n().t("search.title"), id="search-title", classes="section-title")
+            with Horizontal(id="search-filters", classes="form-row"):
                 yield Input(placeholder=get_global_i18n().t("search.placeholder"), id="search-input")
                 yield Select(
                     [
@@ -59,7 +63,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                     prompt="文件格式"
                 )
             yield DataTable(id="results-table")
-            with Horizontal(id="search-buttons"):
+            with Horizontal(id="search-buttons", classes="btn-row"):
                 yield Button("← " + get_global_i18n().t("common.cancel"), id="cancel-btn", variant="primary")
                 yield Button(get_global_i18n().t("common.select"), id="select-btn", disabled=True)
     
@@ -146,14 +150,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
             
-    def on_key(self, event: events.Key) -> None:
-        """键盘事件处理"""
-        if event.key == "enter":
-            # 当焦点在搜索结果表格上时，回车选择当前结果
-            if self.query_one("#results-table", DataTable).has_focus:
-                self._select_current_result()
-        elif event.key == "escape":
-            self.dismiss(None)
+
             
     def _select_current_result(self) -> None:
         """选择当前选中的搜索结果"""
@@ -162,3 +159,13 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             selected_index = table.cursor_row
             if 0 <= selected_index < len(self.results):
                 self.dismiss(self.results[selected_index])
+
+    def on_key(self, event: events.Key) -> None:
+        """键盘事件处理：确保 ESC 能关闭，Enter 能选择"""
+        if event.key == "escape":
+            self.dismiss(None)
+            event.stop()
+        elif event.key == "enter":
+            # 与按钮一致的行为：选择当前结果
+            self._select_current_result()
+            event.stop()

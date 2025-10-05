@@ -71,9 +71,8 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
             # 在主线程更新进度
             self.app.call_from_thread(lambda: self._update_scan_progress(progress_percent))
             
-        def result_callback(result: Tuple[int, List[str]]):
+        def result_callback(added_count: int, failed_files: List[str]):
             """结果回调函数"""
-            added_count, failed_files = result
             
             self.scan_result = {
                 "added_count": added_count,
@@ -141,9 +140,3 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
             # 取消扫描（需要实现扫描取消逻辑）
             self.dismiss({"cancelled": True})
 
-    def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键返回
-            self.dismiss(None)
-            event.prevent_default()

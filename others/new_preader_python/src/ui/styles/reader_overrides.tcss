@@ -1,0 +1,75 @@
+/* 阅读器页面隔离样式 */
+
+.reader-screen {
+    layout: vertical;
+    background: $background;
+}
+
+.reader-screen #header {
+    width: 100%;
+    height: 1;
+    dock: top;
+    background: $primary;
+    color: $text;
+    content-align: center middle;
+    text-style: bold;
+}
+
+.reader-screen #content {
+    width: 100%;
+    height: 1fr;
+    background: $background;
+    color: $text;
+    padding: 0;
+    margin: 0;
+    border: none;
+}
+
+.reader-screen #reader-status {
+    width: 100%;
+    height: 1;
+    background: $accent;
+    color: $text;
+    content-align: center middle;
+    text-style: bold;
+}
+
+.reader-screen #reader-buttons-container {
+    width: 100%;
+    height: 3;
+    dock: bottom;
+    background: $surface;
+    align: center middle;
+}
+
+.reader-screen #reader-buttons {
+    width: auto;
+    height: auto; /* 自适应按钮高度，避免文本被裁切 */
+    background: $surface;
+    /* 使用 .btn-row 控制横向与居中 */
+}
+
+/* Reader uses small buttons */
+.reader-screen .btn-row Button {
+    height: 3;         /* 提升按钮高度以完整显示文本 */
+    min-width: 10;     /* 稍增宽度以容纳中文+快捷键提示 */
+    color: $text;      /* 强制按钮文字颜色 */
+    background: $primary; /* 统一按钮底色，确保对比度 */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* 加载动画样式 */
+.reader-screen #loading-animation {
+    background: transparent;
+}

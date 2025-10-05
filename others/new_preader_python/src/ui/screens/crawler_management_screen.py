@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class CrawlerManagementScreen(Screen[None]):
     """爬取管理屏幕"""
     
-    CSS_PATH = "../styles/crawler_management_screen.css"
+    CSS_PATH = ["../styles/utilities.tcss", "../styles/crawler_management_overrides.tcss"]
     TITLE: ClassVar[Optional[str]] = None
     
     def __init__(self, theme_manager: ThemeManager, novel_site: Dict[str, Any]):
@@ -62,51 +62,54 @@ class CrawlerManagementScreen(Screen[None]):
         """
         yield Container(
             Vertical(
-                Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title"),
+                Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
                 Label(self.novel_site['url'], id="crawler-url"),
-                
-                # 操作按钮区域
+
+                # 顶部操作按钮（固定）
                 Horizontal(
                     Button(get_global_i18n().t('crawler.open_browser'), id="open-browser-btn"),
                     Button(get_global_i18n().t('crawler.view_history'), id="view-history-btn"),
                     Button(get_global_i18n().t('crawler.note'), id="note-btn"),
                     Button(get_global_i18n().t('crawler.back'), id="back-btn"),
-                    id="crawler-buttons"
+                    id="crawler-buttons", classes="btn-row"
                 ),
-                
-                # 小说ID输入区域
+
+                # 中部可滚动区域：输入区 + 历史表格
                 Vertical(
-                    # Label(get_global_i18n().t('crawler.novel_id'), id="novel-id-label"),
-                    Horizontal(
-                        Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
-                        Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
-                        Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
-                        id="novel-id-container"
+                    # 小说ID输入区域
+                    Vertical(
+                        Horizontal(
+                            Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
+                            Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
+                            Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
+                            id="novel-id-container", classes="form-row"
+                        ),
+                        id="novel-id-section"
                     ),
-                    id="novel-id-section"
-                ),
-                
-                # 爬取历史区域
-                Vertical(
-                    Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
-                    DataTable(id="crawl-history-table"),
-                    
-                    # 分页控制
-                    Horizontal(
-                        Button(get_global_i18n().t('crawler.prev_page'), id="prev-page-btn"),
-                        Label("", id="page-info"),
-                        Button(get_global_i18n().t('crawler.next_page'), id="next-page-btn"),
-                        id="pagination-controls"
+
+                    # 爬取历史区域（不包含分页控件）
+                    Vertical(
+                        Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
+                        DataTable(id="crawl-history-table"),
+                        id="crawl-history-section"
                     ),
-                    id="crawl-history-section"
+                    id="crawler-scroll", classes="scroll-y"
                 ),
-                
+
+                # 分页控件（底部固定，始终可见）
+                Horizontal(
+                    Button(get_global_i18n().t('crawler.prev_page'), id="prev-page-btn"),
+                    Label("", id="page-info"),
+                    Button(get_global_i18n().t('crawler.next_page'), id="next-page-btn"),
+                    id="pagination-controls", classes="form-row"
+                ),
+
                 # 状态信息
                 Label("", id="crawler-status"),
-                
+
                 # 加载动画区域
                 Static("", id="loading-animation"),
-                
+
                 # 快捷键状态栏
                 Horizontal(
                     Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
@@ -115,7 +118,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
                     Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
                     Label(get_global_i18n().t('crawler.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar"
+                    id="shortcuts-bar", classes="status-bar"
                 ),
                 id="crawler-container"
             )
@@ -265,6 +268,34 @@ class CrawlerManagementScreen(Screen[None]):
             # 延迟重试
             self.set_timer(0.1, self._update_pagination_info)
     
+    # 统一快捷键绑定（含 ESC 返回）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("o", "open_browser", "打开浏览器"),
+        ("v", "view_history", "查看历史"),
+        ("s", "start_crawl", "开始爬取"),
+        ("p", "prev_page", "上一页"),
+        ("n", "next_page", "下一页"),
+        ("escape", "back", "返回"),
+    ]
+
+    def action_open_browser(self) -> None:
+        self._open_browser()
+
+    def action_view_history(self) -> None:
+        self._view_history()
+
+    def action_start_crawl(self) -> None:
+        self._start_crawl()
+
+    def action_prev_page(self) -> None:
+        self._prev_page()
+
+    def action_next_page(self) -> None:
+        self._next_page()
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -337,7 +368,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 刷新历史记录
         self._load_crawl_history()
         self._update_status(get_global_i18n().t('crawler.history_loaded'))
-
+    
     def _open_note_dialog(self) -> None:
         """打开备注对话框"""
         try:
@@ -372,7 +403,7 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"打开备注对话框失败: {e}")
             self._update_status(f"打开备注对话框失败: {str(e)}", "error")
-    
+
     def _stop_crawl(self) -> None:
         """停止爬取"""
         if not self.is_crawling:
@@ -1495,7 +1526,7 @@ class CrawlerManagementScreen(Screen[None]):
         if event.key == "escape":
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()
     
     def _read_book(self, history_item: Dict[str, Any]) -> None:
         """阅读书籍"""

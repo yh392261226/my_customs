@@ -23,7 +23,11 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
         apply_universal_style_isolation(self)
     """排序对话框"""
     
-    CSS_PATH = "../styles/sort_dialog.css"
+    CSS_PATH = "../styles/sort_dialog_overrides.tcss"
+    BINDINGS = [
+        ("enter", "press('#apply-btn')", "Apply"),
+        ("escape", "press('#cancel-btn')", "Cancel"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager):
         """
@@ -41,10 +45,10 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         with Vertical(id="sort-dialog"):
-            yield Label(get_global_i18n().t("sort.title"), id="sort-title")
+            yield Label(get_global_i18n().t("sort.title"), id="sort-title", classes="section-title")
             
             # 排序字段选择
-            yield Label(get_global_i18n().t("sort.sort_by"), id="sort-by-label")
+            yield Label(get_global_i18n().t("sort.sort_by"), id="sort-by-label", classes="section-title")
             with RadioSet(id="sort-key-radio"):
                 yield RadioButton(get_global_i18n().t("common.book_name"), value=True, id="title-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.author"), id="author-radio")
@@ -53,15 +57,15 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
                 yield RadioButton(get_global_i18n().t("bookshelf.progress"), id="progress-radio")
             
             # 排序顺序选择
-            yield Label(get_global_i18n().t("sort.order"), id="order-label")
+            yield Label(get_global_i18n().t("sort.order"), id="order-label", classes="section-title")
             with RadioSet(id="sort-order-radio"):
                 yield RadioButton(get_global_i18n().t("sort.ascending"), value=True, id="asc-radio")
                 yield RadioButton(get_global_i18n().t("sort.descending"), id="desc-radio")
             
             # 操作按钮
-            with Horizontal(id="sort-buttons"):
-                yield Button(get_global_i18n().t("common.apply"), id="apply-btn")
-                yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
+            with Horizontal(id="sort-buttons", classes="btn-row"):
+                yield Button(get_global_i18n().t("common.apply"), id="apply-btn", classes="btn")
+                yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn", classes="btn")
     
     def on_mount(self) -> None:
         """挂载时应用主题"""
@@ -108,8 +112,14 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
             self.dismiss(None)
 
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
+        """键盘事件处理：确保 ESC 能关闭，Enter 能应用"""
         if event.key == "escape":
-            # ESC键返回
             self.dismiss(None)
-            event.prevent_default()
+            event.stop()
+        elif event.key == "enter":
+            self.dismiss({
+                "sort_key": self.sort_key,
+                "reverse": self.reverse
+            })
+            event.stop()
+

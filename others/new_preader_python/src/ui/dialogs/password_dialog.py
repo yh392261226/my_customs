@@ -22,7 +22,7 @@ class PasswordDialog(ModalScreen[Optional[str]]):
         apply_universal_style_isolation(self)
     """密码输入对话框"""
     
-    CSS_PATH = "../styles/password_dialog.css"
+    CSS_PATH = "../styles/password_dialog_overrides.tcss"
     logger = get_logger(__name__)
     
     def __init__(self, file_path: str, max_attempts: int = 3) -> None:
@@ -35,10 +35,10 @@ class PasswordDialog(ModalScreen[Optional[str]]):
         """组合对话框UI"""
         self.logger.info(f"PasswordDialog.compose for file: {self.file_path}")
         with Vertical(id="password-dialog"):
-            yield Label(get_global_i18n().t("password_dialog.title"), id="password-title")
+            yield Label(get_global_i18n().t("password_dialog.title"), id="password-title", classes="section-title")
             yield Label(os.path.basename(self.file_path), id="password-filename")
             yield Input(placeholder=get_global_i18n().t("password_dialog.placeholder"), password=True, id="password-input")
-            with Horizontal(id="password-buttons"):
+            with Horizontal(id="password-buttons", classes="btn-row"):
                 yield Button(f"← {get_global_i18n().t('common.cancel')}", id="cancel-btn", variant="primary")
                 yield Button(get_global_i18n().t("common.ok"), id="submit-btn")
     

@@ -86,7 +86,7 @@ class StyleManager(Generic[AppType]):
         """初始化基础样式文件"""
         # 基础样式文件（所有屏幕都需要）
         self._base_styles = {
-            "styles/styles.css"  # 主样式文件
+            "styles/common.tcss"
         }
     
     def register_screen_styles(self, screen_name: str, css_paths: List[str]) -> None:
@@ -306,18 +306,18 @@ def initialize_style_manager(app: AppType) -> StyleManager[AppType]:
     
     # 注册各个屏幕的样式文件
     screen_styles = {
-        "WelcomeScreen": ["styles.css"],
-        "BookshelfScreen": ["bookshelf.css", "styles.css"],
-        "ReaderScreen": ["terminal_reader.css", "styles.css"],
-        "SettingsScreen": ["settings_screen.css", "styles.css"],
-        "FileExplorerScreen": ["file_explorer.css", "styles.css"],
-        "StatisticsScreen": ["statistics.css", "styles.css"],
-        "HelpScreen": ["help_screen.css", "styles.css"],
-        "BossKeyScreen": ["boss_key.css", "styles.css"],
-        "GetBooksScreen": ["styles.css"],
-        "ProxyListScreen": ["proxy_list_screen.css", "styles.css"],
-        "NovelSitesManagementScreen": ["novel_sites_management_screen.css", "styles.css"],
-        "CrawlerManagementScreen": ["crawler_management_screen.css", "styles.css"],
+        "WelcomeScreen": [],
+        "BookshelfScreen": ["bookshelf_overrides.tcss"],
+        "ReaderScreen": ["reader_overrides.tcss"],
+        "SettingsScreen": ["settings_overrides.tcss"],
+        "FileExplorerScreen": ["file_explorer_overrides.tcss"],
+        "StatisticsScreen": ["statistics_overrides.tcss"],
+        "HelpScreen": ["help_screen_overrides.tcss"],
+        "BossKeyScreen": ["boss_key_overrides.tcss"],
+        "GetBooksScreen": ["get_books_screen_overrides.tcss"],
+        "ProxyListScreen": ["proxy_list_overrides.tcss"],
+        "NovelSitesManagementScreen": ["novel_sites_management_overrides.tcss"],
+        "CrawlerManagementScreen": ["crawler_management_overrides.tcss"],
     }
     
     for screen_name, css_paths in screen_styles.items():

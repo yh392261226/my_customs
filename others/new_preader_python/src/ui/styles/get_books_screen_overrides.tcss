@@ -1,0 +1,97 @@
+/* 获取书籍页面专用样式 */
+
+
+
+#get-books-container {
+    width: 100%;
+    height: 100%;
+    margin: 1 2;
+    layout: vertical;
+}
+
+#get-books-title {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    text-style: bold;
+    color: $accent;
+}
+
+#get-books-description {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+    color: $text-muted;
+}
+
+#get-books-buttons {
+    width: 100%;
+    height: 4;
+    /* 使用 .btn-row 控制横向与居中 */
+}
+
+#novel-sites-preview {
+    width: 100%;
+    height: 40%;
+    border: round $primary;
+}
+
+#novel-sites-list-title {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+    text-style: bold;
+}
+
+#proxy-settings-preview {
+    width: 100%;
+    height: 20%;
+    border: round $primary;
+}
+
+#proxy-status-title {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+    text-style: bold;
+}
+
+#proxy-status-info {
+    width: 100%;
+    height: auto;
+    content-align: center middle;
+}
+
+#get-books-shortcuts-bar {
+    width: 100%;
+    height: 3;
+    /* 使用 .status-bar 控制居中 */
+    background: $panel-darken-1;
+}
+
+/* 确保快捷键标签在一行横向展示 */
+#get-books-shortcuts-bar > Label {
+    width: auto;
+    height: auto;
+    margin: 0 1;
+}
+
+/* 按钮统一使用 .btn，若需局部宽度可保留以下规则 */
+/* #get-books-container Button { min-width: 12; } */
+
+#get-books-container DataTable {
+    width: 100%;
+    height: 100%;
+}
+
+#get-books-container Label {
+    width: 100%;
+    height: auto;
+}
+
+/* 覆盖末尾的通用 Label 规则，确保快捷键横向展示 */
+#get-books-container #get-books-shortcuts-bar > Label {
+    width: auto;
+    height: auto;
+    margin: 0 1;
+}

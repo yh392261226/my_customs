@@ -20,6 +20,17 @@ logger = get_logger(__name__)
 
 class NovelSitesManagementScreen(Screen[None]):
 
+    # 使用 Textual BINDINGS 进行快捷键绑定
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("a", "add_site", "添加"),
+        ("e", "edit_site", "编辑"),
+        ("d", "delete_site", "删除"),
+        ("b", "batch_delete", "批量删除"),
+        ("space", "toggle_select", "选择"),
+        ("enter", "enter_crawler", "进入"),
+        
+    ]
+
     def on_mount(self) -> None:
         """组件挂载时应用样式隔离"""
         super().on_mount()
@@ -27,7 +38,7 @@ class NovelSitesManagementScreen(Screen[None]):
         apply_universal_style_isolation(self)
     """书籍网站管理屏幕"""
     
-    CSS_PATH = "../styles/novel_sites_management_screen.css"
+    CSS_PATH = "../styles/novel_sites_management_overrides.tcss"
     
     def __init__(self, theme_manager: ThemeManager):
         """
@@ -56,7 +67,7 @@ class NovelSitesManagementScreen(Screen[None]):
         """
         yield Container(
             Vertical(
-                Label(get_global_i18n().t('novel_sites.title'), id="novel-sites-title"),
+                Label(get_global_i18n().t('novel_sites.title'), id="novel-sites-title", classes="section-title"),
                 Label(get_global_i18n().t('novel_sites.description'), id="novel-sites-description"),
                 
                 # 操作按钮区域
@@ -66,7 +77,7 @@ class NovelSitesManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('novel_sites.delete'), id="delete-btn"),
                     Button(get_global_i18n().t('novel_sites.batch_delete'), id="batch-delete-btn"),
                     Button(get_global_i18n().t('novel_sites.back'), id="back-btn"),
-                    id="novel-sites-buttons"
+                    id="novel-sites-buttons", classes="btn-row"
                 ),
                 
                 # 书籍网站列表
@@ -84,7 +95,7 @@ class NovelSitesManagementScreen(Screen[None]):
                     Label(get_global_i18n().t('novel_sites.shortcut_space'), id="shortcut-space"),
                     Label(get_global_i18n().t('novel_sites.shortcut_enter'), id="shortcut-enter"),
                     Label(get_global_i18n().t('novel_sites.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar"
+                    id="shortcuts-bar", classes="status-bar"
                 ),
                 id="novel-sites-container"
             )
@@ -346,6 +357,37 @@ class NovelSitesManagementScreen(Screen[None]):
                     self.selected_sites.add(site_index)
                 self._update_table()
     
+    # Actions for BINDINGS
+    def action_add_site(self) -> None:
+        self._show_add_dialog()
+
+    def action_edit_site(self) -> None:
+        self._show_edit_dialog()
+
+    def action_delete_site(self) -> None:
+        self._delete_selected()
+
+    def action_batch_delete(self) -> None:
+        self._batch_delete()
+
+    def action_toggle_select(self) -> None:
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None and table.cursor_row < len(self.novel_sites):
+            site_index = table.cursor_row
+            if site_index in self.selected_sites:
+                self.selected_sites.remove(site_index)
+            else:
+                self.selected_sites.add(site_index)
+            self._update_table()
+
+    def action_enter_crawler(self) -> None:
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            self.on_data_table_row_selected(None)
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
     def _update_status(self, message: str, severity: str = "information") -> None:
         """更新状态信息"""
         status_label = self.query_one("#novel-sites-status", Label)
@@ -398,4 +440,4 @@ class NovelSitesManagementScreen(Screen[None]):
         if event.key == "escape":
             # ESC键返回
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()

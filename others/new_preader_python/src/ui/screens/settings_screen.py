@@ -4,7 +4,7 @@
 """
 
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
 from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane
@@ -35,7 +35,13 @@ class SettingsScreen(Screen[Any]):
         apply_universal_style_isolation(self)
     """现代化设置屏幕"""
     
-    CSS_PATH = "../styles/settings_screen.css"
+    CSS_PATH = ["../styles/settings_overrides.tcss"]
+    # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("enter", "press('#save-btn')", "保存"),
+        ("r", "press('#reset-btn')", "重置"),
+        ("ctrl+s", "press('#save-btn')", "保存"),
+    ]
     
 
     
@@ -93,13 +99,13 @@ class SettingsScreen(Screen[Any]):
 
             
             # 控制按钮
-            with Horizontal(id="settings-controls"):
+            with Horizontal(id="settings-controls", classes="btn-row"):
                 yield Button(get_global_i18n().t("settings.save"), id="save-btn", variant="primary")
                 yield Button(get_global_i18n().t("settings.cancel"), id="cancel-btn")
                 yield Button(get_global_i18n().t("settings.reset"), id="reset-btn", variant="warning")
             
             # 快捷键状态栏
-            with Horizontal(id="settings-shortcuts-bar"):
+            with Horizontal(id="settings-shortcuts-bar", classes="status-bar"):
                 yield Label(f"Enter: {get_global_i18n().t("common.save")}", id="shortcut-enter")
                 yield Label(f"ESC: {get_global_i18n().t("common.cancel")}", id="shortcut-esc")
                 yield Label(f"R: {get_global_i18n().t("common.reset")}", id="shortcut-reset")
@@ -344,9 +350,9 @@ class SettingsScreen(Screen[Any]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "escape":
-            # ESC键返回，效果与点击取消按钮相同
+            # ESC键返回（仅一次）
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()
     
     @on(Select.Changed)
     def on_select_changed(self, event: Select.Changed) -> None:

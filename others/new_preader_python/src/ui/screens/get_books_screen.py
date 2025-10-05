@@ -20,10 +20,17 @@ logger = get_logger(__name__)
 
 class GetBooksScreen(Screen[None]):
 
+    # 使用 Textual BINDINGS 进行快捷键绑定
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("n", "open_novel_sites", "书籍网站"),
+        ("p", "open_proxy_list", "代理设置"),
+        ("enter", "open_selected", "进入"),
+    ]
+
 
     
     # 加载CSS样式
-    CSS_PATH = "../styles/get_books_screen.css"
+    CSS_PATH = "../styles/get_books_screen_overrides.tcss"
     
     def __init__(self, theme_manager: ThemeManager):
         """
@@ -52,15 +59,16 @@ class GetBooksScreen(Screen[None]):
         """
         yield Container(
             Horizontal(
-                Label(get_global_i18n().t('get_books.title'), id="get-books-title"),
+                Label(get_global_i18n().t('get_books.title'), id="get-books-title", classes="section-title"),
                 Label(get_global_i18n().t('get_books.description'), id="get-books-description"),
                 
                 # 功能按钮区域
                 Horizontal(
-                    Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn"),
-                    Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn"),
-                    Button(get_global_i18n().t('get_books.back'), id="back-btn"),
-                    id="get-books-buttons"
+                    Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
+                    Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
+                    Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
+                    id="get-books-buttons",
+                    classes="btn-row"
                 ),
                 
                 # 书籍网站列表预览
@@ -83,7 +91,8 @@ class GetBooksScreen(Screen[None]):
                     Label(get_global_i18n().t('get_books.shortcut_p'), id="shortcut-p"),
                     Label(get_global_i18n().t('get_books.shortcut_enter'), id="shortcut-enter"),
                     Label(get_global_i18n().t('get_books.shortcut_esc'), id="shortcut-esc"),
-                    id="get-books-shortcuts-bar"
+                    id="get-books-shortcuts-bar",
+                    classes="status-bar"
                 ),
                 id="get-books-container"
             )
@@ -234,10 +243,25 @@ class GetBooksScreen(Screen[None]):
         table = self.query_one("#novel-sites-table", DataTable)
         if table.cursor_row is not None:
             self.on_data_table_row_selected(None)
-    
+
+    # Actions for BINDINGS
+    def action_open_novel_sites(self) -> None:
+        self.app.push_screen("novel_sites_management")
+
+    def action_open_proxy_list(self) -> None:
+        self.app.push_screen("proxy_list")
+
+    def action_open_selected(self) -> None:
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            self.on_data_table_row_selected(None)
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "escape":
-            # ESC键返回
+            # ESC键返回（仅一次）
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()

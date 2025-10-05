@@ -23,6 +23,15 @@ logger = get_logger(__name__)
 
 class ProxyListScreen(Screen[None]):
 
+    # 使用 Textual BINDINGS 进行快捷键绑定
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("a", "add_proxy", "添加"),
+        ("t", "test_connection", "测试"),
+        ("e", "edit_proxy", "编辑"),
+        ("d", "delete_proxy", "删除"),
+        
+    ]
+
     def on_mount(self) -> None:
         """组件挂载时应用样式隔离"""
         super().on_mount()
@@ -31,7 +40,7 @@ class ProxyListScreen(Screen[None]):
     """代理列表管理屏幕"""
     
     # 加载CSS样式
-    CSS_PATH = "../styles/proxy_list_screen.css"
+    CSS_PATH = "../styles/proxy_list_overrides.tcss"
     
     def __init__(self, theme_manager: ThemeManager):
         """
@@ -85,7 +94,7 @@ class ProxyListScreen(Screen[None]):
         yield Container(
             Vertical(
                 # 固定标题
-                Label(title, id="proxy-list-title"),
+                Label(title, id="proxy-list-title", classes="section-title"),
                 Label(description, id="proxy-list-description"),
                 
                 # 操作按钮区域
@@ -95,7 +104,7 @@ class ProxyListScreen(Screen[None]):
                     Button(edit_proxy, id="edit-proxy-btn"),
                     Button(delete_proxy, id="delete-proxy-btn", variant="warning"),
                     Button(back, id="back-btn"),
-                    id="proxy-list-buttons"
+                    id="proxy-list-buttons", classes="btn-row"
                 ),
                 
                 # 状态信息
@@ -107,7 +116,8 @@ class ProxyListScreen(Screen[None]):
                 # 快捷键状态栏
                 Horizontal(
                     Label(shortcut_a, id="shortcut-a"),
-                    id="shortcuts-bar"
+                    id="shortcuts-bar",
+                    classes="status-bar"
                 ),
                 id="proxy-list-container"
             )
@@ -372,6 +382,22 @@ class ProxyListScreen(Screen[None]):
         else:
             self._update_status("连接测试失败", "error")
     
+    # Actions for BINDINGS
+    def action_add_proxy(self) -> None:
+        self._add_proxy()
+
+    def action_test_connection(self) -> None:
+        self._test_connection()
+
+    def action_edit_proxy(self) -> None:
+        self._edit_proxy()
+
+    def action_delete_proxy(self) -> None:
+        self._delete_proxy()
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
     def _refresh_list(self) -> None:
         """刷新代理列表"""
         self._load_proxy_list()
@@ -462,7 +488,7 @@ class ProxyListScreen(Screen[None]):
         if event.key == "escape":
             # ESC键返回
             self.app.pop_screen()
-            event.prevent_default()
+            event.stop()
         elif event.key in ["up", "down"]:
             # 上下键移动时更新选中状态
             if hasattr(table, 'cursor_row') and table.cursor_row is not None:

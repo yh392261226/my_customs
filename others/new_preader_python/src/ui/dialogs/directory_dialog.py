@@ -59,9 +59,3 @@ class DirectoryDialog(ModalScreen[Optional[str]]):
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
             
-    def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键返回
-            self.dismiss(None)
-            event.prevent_default()

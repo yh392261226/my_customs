@@ -5,7 +5,7 @@
 from typing import Dict, Any, Optional, List
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Input, Select, Checkbox
+from textual.widgets import Static, Button, Label, Input, Select, Switch
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -26,7 +26,13 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         apply_universal_style_isolation(self)
     """书籍网站编辑对话框"""
     
-    CSS_PATH = "../styles/novel_site_dialog.css"
+    CSS_PATH = ["../styles/utilities.tcss", "../styles/novel_site_overrides.tcss"]
+
+    # 使用 BINDINGS：Enter 保存，Esc 取消
+    BINDINGS = [
+        ("enter", "save", "保存"),
+        ("escape", "cancel", "取消"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager, novel_site: Optional[Dict[str, Any]] = None):
         """
@@ -63,66 +69,71 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         """
         yield Container(
             Vertical(
-                Label(self.title, id="novel-site-dialog-title"),
-                
-                # 网站基本信息
+                Label(self.title or "", id="novel-site-dialog-title", classes="section-title"),
+
+                # 可滚动的中部内容
                 Vertical(
-                    Horizontal(
-                        Label(get_global_i18n().t('novel_site_dialog.site_name'), id="site-name-label"),
-                        Input(
-                            placeholder=get_global_i18n().t('novel_site_dialog.site_name_placeholder'),
-                            id="site-name-input"
+                    # 网站基本信息
+                    Vertical(
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.site_name'), id="site-name-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.site_name_placeholder'),
+                                id="site-name-input"
+                            ),
+                            id="site-name-container", classes="form-row"
                         ),
-                        id="site-name-container"
-                    ),
-                    Horizontal(
-                        Label(get_global_i18n().t('novel_site_dialog.site_url'), id="site-url-label"),
-                        Input(
-                            placeholder=get_global_i18n().t('novel_site_dialog.site_url_placeholder'),
-                            id="site-url-input"
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.site_url'), id="site-url-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.site_url_placeholder'),
+                                id="site-url-input"
+                            ),
+                            id="site-url-container", classes="form-row"
                         ),
-                        id="site-url-container"
-                    ),
-                    Horizontal(
-                        Label(get_global_i18n().t('novel_site_dialog.storage_folder'), id="storage-folder-label"),
-                        Input(
-                            placeholder=get_global_i18n().t('novel_site_dialog.storage_folder_placeholder'),
-                            id="storage-folder-input"
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.storage_folder'), id="storage-folder-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.storage_folder_placeholder'),
+                                id="storage-folder-input"
+                            ),
+                            id="storage-folder-container", classes="form-row"
                         ),
-                        id="storage-folder-container"
+                        id="basic-info-container"
                     ),
-                    id="basic-info-container"
+
+                    # 解析器设置
+                    Vertical(
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.parser'), id="parser-label"),
+                            Select(
+                                get_parser_options() or [("", "无可用解析器")],
+                                id="parser-select"
+                            ),
+                            id="parser-container", classes="form-row"
+                        ),
+                        id="parser-settings-container"
+                    ),
+
+                    # 代理设置
+                    Vertical(
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.enable_proxy'), id="enable-proxy-label"),
+                            Switch(id="enable-proxy"),
+                            id="proxy-enable-container", classes="form-row"
+                        ),
+                        id="proxy-settings-container"
+                    ),
+                    id="novel-site-dialog-body", classes="scroll-y"
                 ),
-                
-                # 解析器设置
-                Vertical(
-                    Horizontal(
-                        Label(get_global_i18n().t('novel_site_dialog.parser'), id="parser-label"),
-                        Select(
-                            get_parser_options() or [("", "无可用解析器")],  # 动态获取解析器选项，如果为空则显示提示
-                            id="parser-select"
-                        ),
-                        id="parser-container"
-                    ),
-                    id="parser-settings-container"
-                ),
-                
-                # 代理设置
-                Vertical(
-                    Horizontal(
-                        Checkbox(get_global_i18n().t('novel_site_dialog.enable_proxy'), id="enable-proxy"),
-                        id="proxy-enable-container"
-                    ),
-                    id="proxy-settings-container"
-                ),
-                
-                # 操作按钮
+
+                # 操作按钮（底部固定）
                 Horizontal(
                     Button(get_global_i18n().t('novel_site_dialog.save'), id="save-btn", variant="primary"),
                     Button(get_global_i18n().t('novel_site_dialog.cancel'), id="cancel-btn"),
-                    id="novel-site-dialog-buttons"
+                    id="novel-site-dialog-buttons", classes="btn-row"
                 ),
-                
+
                 # 状态信息
                 Label("", id="novel-site-dialog-status"),
                 id="novel-site-dialog-container"
@@ -171,9 +182,16 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             parser_select.clear()  # 清除选择
         
         # 代理设置
-        proxy_checkbox = self.query_one("#enable-proxy", Checkbox)
+        proxy_checkbox = self.query_one("#enable-proxy", Switch)
         proxy_checkbox.value = self.novel_site.get("proxy_enabled", False)
     
+    # Actions for BINDINGS
+    def action_save(self) -> None:
+        self._save_novel_site()
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -193,7 +211,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         url_input = self.query_one("#site-url-input", Input)
         folder_input = self.query_one("#storage-folder-input", Input)
         parser_select = self.query_one("#parser-select", Select)
-        proxy_checkbox = self.query_one("#enable-proxy", Checkbox)
+        proxy_checkbox = self.query_one("#enable-proxy", Switch)
         
         # 验证必填字段
         if not name_input.value.strip():
@@ -299,12 +317,5 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             status_label.styles.color = "blue"
     
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键取消
-            self.dismiss(None)
-            event.prevent_default()
-        elif event.key == "enter":
-            # Enter键保存
-            self._save_novel_site()
-            event.prevent_default()
+        """已由 BINDINGS 处理，避免重复触发"""
+        pass

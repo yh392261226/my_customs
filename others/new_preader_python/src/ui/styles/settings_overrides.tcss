@@ -1,0 +1,68 @@
+/* Settings screen minimal overrides (page-specific styles only) */
+
+#settings-container {
+    width: 100%;
+    height: 100%;
+    layout: grid;
+    grid-size: 1 3;
+    grid-rows: 1fr 5 2;
+}
+
+/* 控制按钮区域：布局/对齐由 .btn-row 提供，这里仅保留尺寸与外观 */
+#settings-controls {
+    width: 100%;
+    height: 5;
+    background: $panel;
+    border-top: solid $primary;
+}
+
+#settings-controls Button {
+    margin: 0 1;
+    min-width: 10;
+    height: 3;
+}
+
+/* 快捷键状态栏（保持页面自定义布局与配色） */
+#settings-shortcuts-bar {
+    width: 100%;
+    height: 2;
+    /* 使用 .status-bar 控制布局与居中 */
+    background: $panel-darken-1;
+}
+
+#settings-shortcuts-bar Label {
+    margin: 0 2;
+    text-style: italic;
+    color: $text-muted;
+}
+
+/* 标签页容器滚动区域 */
+ScrollableContainer {
+    width: 100%;
+    height: 90%;
+}
+
+/* 设置项标签与控件尺寸 */
+.setting-label {
+    width: 100%;
+    height: 1;
+    margin: 1 0;
+}
+
+Select {
+    width: 100%;
+    height: 5;
+    margin: 1 0;
+}
+
+Input {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}
+
+Switch {
+    width: 100%;
+    height: 3;
+    margin: 1 0;
+}

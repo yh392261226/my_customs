@@ -1,0 +1,31 @@
+/* 确认对话框专用样式 */
+
+
+
+#confirm-container {
+    width: 90%;
+    height: 85%;
+    border: round $primary;
+    background: $surface;
+}
+
+#confirm-title {
+    width: 100%;
+    height: auto;
+}
+
+#confirm-message {
+    width: 100%;
+    height: auto;
+    content-align: center middle;
+}
+
+#confirm-buttons {
+    width: 100%;
+    height: auto;
+}
+
+Button {
+    margin: 1;
+    min-width: 10;
+}

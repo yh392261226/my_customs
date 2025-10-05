@@ -29,16 +29,16 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 logger = get_logger(__name__)
 
 class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """文件资源管理器屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
-    CSS_PATH = "../styles/file_explorer.css"
+    CSS_PATH = "../styles/file_explorer_overrides.tcss"
+    # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("escape", "back", "返回"),
+        ("enter", "press('#select-btn')", "选择"),
+        ("s", "press('#select-btn')", "选择"),
+    ]
     
     # 支持的书籍文件扩展名
     SUPPORTED_EXTENSIONS = {'.txt', '.pdf', '.epub', '.mobi', '.azw', '.azw3', '.md'}
@@ -89,11 +89,11 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         with Container(id="main-container"):
             # 顶部标题区域
             with Container(id="header-container"):
-                yield Label(get_global_i18n().t("file_explorer.title"), id="title")
+                yield Label(get_global_i18n().t("file_explorer.title"), id="title", classes="section-title")
                 yield Static("", id="current-path")
             
             # 导航栏
-            with Horizontal(id="navigation-bar"):
+            with Horizontal(id="navigation-bar", classes="form-row"):
                 yield Button("←", id="back-btn")
                 yield Input(placeholder=get_global_i18n().t("file_explorer.enter_path"), id="path-input")
                 yield Button(get_global_i18n().t("file_explorer.go"), id="go-btn")
@@ -114,7 +114,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             # 底部状态和操作区域
             with Container(id="footer-container"):
                 yield Static("", id="status-info")
-                with Horizontal(id="action-buttons"):
+                with Horizontal(id="action-buttons", classes="btn-row"):
                     if self.selection_mode == "file":
                         yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
                     else:
@@ -124,6 +124,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
         # 应用样式隔离
+        apply_universal_style_isolation(self)
         from src.ui.styles.isolation_manager import apply_style_isolation
         apply_style_isolation(self)
         
@@ -379,6 +380,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             logger.error(f"获取节点路径失败: {e}")
             return None
     
+    def action_back(self) -> None:
+        """ESC 返回上一页"""
+        self.app.pop_screen()
+
     @on(Button.Pressed)
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮点击处理"""
@@ -404,35 +409,35 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             self._handle_selection()
             
         elif event.button.id == "cancel-btn":
-            # 取消操作
-            self.dismiss(None)
+            # 取消操作 -> 返回上一页
+            self.app.pop_screen()
     
     def on_key(self, event: events.Key) -> None:
         """键盘事件处理"""
         if event.key == "escape":
-            # ESC键取消
-            self.dismiss(None)
-            event.prevent_default()
+            # ESC键返回上一页（并阻止冒泡到 App 层，避免二次返回）
+            self.app.pop_screen()
+            event.stop()
         
         elif event.key == "enter":
             # 回车键处理选中项
             self._handle_selected_item()
-            event.prevent_default()
+            event.stop()
         
         elif event.key == "up":
             # 上箭头键选择上一个文件
             self._select_previous_file()
-            event.prevent_default()
+            event.stop()
         
         elif event.key == "down":
             # 下箭头键选择下一个文件
             self._select_next_file()
-            event.prevent_default()
+            event.stop()
         
         elif event.key == "s":
             # S键选择
             self._handle_selection()
-            event.prevent_default()
+            event.stop()
     
     def _show_loading_animation(self, message: Optional[str] = None) -> None:
         """显示加载动画"""

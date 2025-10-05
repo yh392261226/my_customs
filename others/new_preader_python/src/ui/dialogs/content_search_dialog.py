@@ -21,7 +21,11 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
         apply_universal_style_isolation(self)
     """简单搜索关键词对话框 - 用于在当前小说内容中搜索关键词"""
     
-    CSS_PATH = "../styles/search_dialog.css"
+    CSS_PATH = "../styles/search_dialog_overrides.tcss"
+    BINDINGS = [
+        ("enter", "press('#search-btn')", "Search"),
+        ("escape", "press('#cancel-btn')", "Cancel"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager):
         """
@@ -66,13 +70,13 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
             
+
     def on_key(self, event: events.Key) -> None:
-        """键盘事件处理"""
-        if event.key == "enter":
-            # 回车键执行搜索
-            search_input = self.query_one("#search-input", Input)
-            search_text = search_input.value.strip()
-            if search_text:
-                self.dismiss(search_text)
-        elif event.key == "escape":
+        """键盘事件处理：确保 ESC 能关闭，Enter 能选择"""
+        if event.key == "escape":
             self.dismiss(None)
+            event.stop()
+        elif event.key == "enter":
+            # 与按钮一致的行为：选择当前结果
+            self._select_current_result()
+            event.stop()

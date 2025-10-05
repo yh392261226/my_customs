@@ -51,7 +51,7 @@ class NewReaderApp(App[None]):
     TITLE = None
     SUB_TITLE = None
     
-    CSS_PATH = "styles/styles.css"
+    CSS_PATH = ["styles/common.tcss"]
     
     BINDINGS = [
         Binding("q", "quit", "退出"),
@@ -60,6 +60,7 @@ class NewReaderApp(App[None]):
         Binding("S", "show_settings", "设置"),
         Binding("c", "show_statistics", "统计"),
         Binding("/", "boss_key", "老板键"),
+        Binding("escape", "back", "返回/退出")
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None):
@@ -152,8 +153,8 @@ class NewReaderApp(App[None]):
         self.install_screen(GetBooksScreen(self.theme_manager), name="get_books")
         self.install_screen(ProxyListScreen(self.theme_manager), name="proxy_list")
         self.install_screen(NovelSitesManagementScreen(self.theme_manager), name="novel_sites_management")
-        # 爬取管理屏幕需要动态创建，所以只注册类
-        self.install_screen(CrawlerManagementScreen, name="crawler_management")
+        # 爬取管理屏幕需要动态创建，所以只注册类（Textual 支持注册类/工厂，运行时按 push_screen 传参实例化）
+        self.install_screen(CrawlerManagementScreen, name="crawler_management")  # type: ignore[arg-type]
         
         # 安装文件资源管理器屏幕
         self.install_screen(FileExplorerScreen(self.theme_manager, self.bookshelf, self.statistics_manager), name="file_explorer")
@@ -275,6 +276,25 @@ class NewReaderApp(App[None]):
         except Exception as e:
             logger.error(get_global_i18n().t("common.init_animation_error", error=str(e)))
     
+    def action_back(self) -> None:
+        """
+        统一 ESC 行为：
+        - 欢迎页：退出应用
+        - 其他页面/对话框：返回上一层
+        """
+        try:
+            # 若当前是欢迎页，退出
+            from src.ui.screens.welcome_screen import WelcomeScreen as _WS
+            if isinstance(self.screen, _WS):
+                self.exit()
+                return
+            # 非欢迎页：返回上一层
+            # 优先关闭模态或子屏幕
+            self.pop_screen()
+        except Exception:
+            # 兜底：如果没有可返回的页面，不执行退出
+            pass
+
     def action_boss_key(self) -> None:
         """激活老板键"""
         self.push_screen(BossKeyScreen(self.theme_manager))

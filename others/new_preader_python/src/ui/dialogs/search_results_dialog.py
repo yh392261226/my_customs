@@ -18,7 +18,12 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     """搜索结果对话框，返回选择的页码"""
     
     AUTO_FOCUS = None
-    CSS_PATH= "../styles/search_results_dialog.css"
+    CSS_PATH= "../styles/search_results_dialog_overrides.tcss"
+
+    # 使用 BINDINGS：Enter 选择
+    BINDINGS = [
+        ("enter", "select", "选择"),
+    ]
     
     def __init__(self, results: List[Tuple[int, str]], search_query: str):
         """
@@ -44,7 +49,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     def compose(self) -> ComposeResult:
         """组合对话框组件"""
         with Vertical(id="search-results-dialog"):
-            yield Label(f"{get_global_i18n().t('common.search')}: {self.search_query}", id="search-query")
+            yield Label(f"{get_global_i18n().t('common.search')}: {self.search_query}", id="search-query", classes="section-title")
             yield Label(get_global_i18n().t("search_results_dialog.found_results", results=len(self.results)), id="search-count")
             
             # 结果表格
@@ -55,7 +60,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
                 table.add_row(get_global_i18n().t("search_results_dialog.page", page=page + 1), context[:100] + "..." if len(context) > 100 else context)
             yield table
             
-            with Horizontal(id="search-buttons"):
+            with Horizontal(id="search-buttons", classes="btn-row"):
                 yield Button(get_global_i18n().t("common.select"), id="select-button")
                 yield Button(get_global_i18n().t("common.cancel"), id="cancel-button")
     
@@ -86,5 +91,10 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     
     def key_enter(self) -> None:
         """回车键选择当前结果"""
+        if self.selected_page is not None:
+            self.dismiss(self.selected_page)
+
+    # Actions for BINDINGS
+    def action_select(self) -> None:
         if self.selected_page is not None:
             self.dismiss(self.selected_page)

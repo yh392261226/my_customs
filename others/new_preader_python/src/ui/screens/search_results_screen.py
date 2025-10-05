@@ -3,12 +3,18 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Label, Button, Static
 from textual.containers import VerticalScroll, Horizontal, Container
 from textual import on, events
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, ClassVar, cast
 from src.core.pagination.terminal_paginator import TerminalPaginator
 from src.locales.i18n_manager import get_global_i18n
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class SearchResultsScreen(Screen[None]):
+    # 使用 Textual BINDINGS（逐步替代 on_key）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("escape", "press('#back-button')", "返回"),
+        ("n", "next_page", "下一页"),
+        ("p", "prev_page", "上一页"),
+    ]
 
     def on_mount(self) -> None:
         """组件挂载时应用样式隔离"""
@@ -70,7 +76,7 @@ class SearchResultsScreen(Screen[None]):
     def on_mount(self) -> None:
         """屏幕挂载时设置焦点"""
         if self.results:
-            table = self.query_one("#results-table")
+            table = self.query_one("#results-table", DataTable)
             if table:
                 table.focus()
                 # 默认选择第一行
@@ -81,6 +87,7 @@ class SearchResultsScreen(Screen[None]):
         """处理键盘导航"""
         if event.key == "escape":
             self.app.pop_screen()
+            event.stop()
         elif event.key == "n":
             # N键下一页
             if self._current_page < self._total_pages:
@@ -116,6 +123,17 @@ class SearchResultsScreen(Screen[None]):
                 for _ in range(len(table.rows) - 1):
                     table.action_cursor_down()  # 移动到最底部
                 event.prevent_default()
+
+    # Actions for BINDINGS
+    def action_next_page(self) -> None:
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._refresh_table()
+
+    def action_prev_page(self) -> None:
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._refresh_table()
 
     def _refresh_table(self) -> None:
         """刷新表格显示"""
@@ -167,8 +185,10 @@ class SearchResultsScreen(Screen[None]):
                     self.app.pop_screen()
                     # 通知阅读器页面已跳转
                     reader_screen = self.app.screen_stack[-1] if self.app.screen_stack else None
-                    if hasattr(reader_screen, '_on_page_change'):
-                        reader_screen._on_page_change(page)
+                    if reader_screen is not None:
+                        screen_any = cast(Any, reader_screen)
+                        if hasattr(screen_any, "_on_page_change"):
+                            screen_any._on_page_change(page)
             else:
                 # 返回到阅读器并传递跳转信息
                 self.dismiss(page)

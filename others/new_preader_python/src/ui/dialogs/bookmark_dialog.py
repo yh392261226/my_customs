@@ -20,22 +20,26 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
         apply_universal_style_isolation(self)
     """书签备注输入对话框"""
     
-    CSS_PATH = "../styles/bookmark_dialog.css"
+    CSS_PATH = "../styles/bookmark_dialog_overrides.tcss"
+    BINDINGS = [
+        ("enter", "press('#confirm-button')", "OK"),
+    ]
     
     def __init__(self, bookmark_data: Dict[str, Any]) -> None:
         super().__init__()
         self.bookmark_data = bookmark_data
 
     def compose(self) -> ComposeResult:
-        with Container(id="dialog-container"):
-            yield Label(get_global_i18n().t("add_bookmark_note"), id="dialog-title")
+        with Container(id="dialog-container", classes="panel"):
+            yield Label(get_global_i18n().t("add_bookmark_note"), id="dialog-title", classes="section-title")
             yield Input(
                 placeholder=get_global_i18n().t("enter_bookmark_note_optional"),
-                id="notes-input"
+                id="notes-input",
+                classes="input-std"
             )
-            with Container(id="dialog-buttons"):
-                yield Button(get_global_i18n().t("common.ok"), id="confirm-button", variant="primary")
-                yield Button(get_global_i18n().t("common.cancel"), id="cancel-button", variant="error")
+            with Container(id="dialog-buttons", classes="btn-row"):
+                yield Button(get_global_i18n().t("common.ok"), id="confirm-button", variant="primary", classes="btn")
+                yield Button(get_global_i18n().t("common.cancel"), id="cancel-button", variant="error", classes="btn")
 
     def on_mount(self) -> None:
         """对话框挂载时的回调"""

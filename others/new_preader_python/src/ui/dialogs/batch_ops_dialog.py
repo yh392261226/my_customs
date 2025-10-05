@@ -10,7 +10,7 @@ from typing import List, Set, Optional, Dict, Any
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Checkbox, DataTable, Label, Input, Select
+from textual.widgets import Static, Button, DataTable, Label, Input, Select
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -33,7 +33,7 @@ class BatchInputDialog(ModalScreen[str]):
         apply_universal_style_isolation(self)
     """批量输入对话框"""
     
-    CSS_PATH = "../styles/batch_input_dialog.css"
+    CSS_PATH = "../styles/batch_input_overrides.tcss"
     
     def __init__(self, title: str, placeholder: str, description: str = "") -> None:
         super().__init__()
@@ -74,12 +74,18 @@ class BatchInputDialog(ModalScreen[str]):
         """按键事件处理"""
         if event.key == "escape":
             self.dismiss("")
-            event.prevent_default()
+            event.stop()
 
 class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     """批量操作对话框"""
     
-    CSS_PATH = "../styles/batch_ops_dialog.css"
+    CSS_PATH = "../styles/batch_ops_overrides.tcss"
+    BINDINGS = [
+        ("space", "toggle_row", "ToggleRow"),
+        ("n", "next_page", "NextPage"),
+        ("p", "prev_page", "PrevPage"),
+        ("escape", "cancel", "Cancel"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
         """
@@ -110,7 +116,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         yield Container(
             Vertical(
                 # 标题
-                Label(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-title"),
+                Label(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-title", classes="section-title"),
                 
                 # 操作按钮区域
                 Horizontal(
@@ -124,7 +130,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("batch_ops.remove_missing"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.export"), id="export-btn"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.cancel"), id="cancel-btn"),
-                    id="batch-ops-buttons"
+                    id="batch-ops-buttons", classes="btn-row"
                 ),
 
                 # 搜索框
@@ -143,7 +149,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     prompt="文件格式"
                 ),
                     Button(get_global_i18n().t("common.search"), id="search-btn"),
-                    id="batch-ops-search-contain"
+                    id="batch-ops-search-contain", classes="form-row"
                 ),
                 
                 # 分页信息显示
@@ -251,23 +257,23 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 if row_key and row_key.value:
                     book_id = row_key.value
                     self._toggle_book_selection(book_id, table, table.cursor_row)
-            event.prevent_default()
+            event.stop()
         elif event.key == "escape":
             # ESC键返回，效果与点击取消按钮相同
             self.dismiss({"refresh": False})
-            event.prevent_default()
+            event.stop()
         elif event.key == "n":
             # N键下一页
             if self._current_page < self._total_pages:
                 self._current_page += 1
                 self._load_books()
-            event.prevent_default()
+            event.stop()
         elif event.key == "p":
             # P键上一页
             if self._current_page > 1:
                 self._current_page -= 1
                 self._load_books()
-            event.prevent_default()
+            event.stop()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             table = self.query_one("#batch-ops-table", DataTable)
@@ -279,7 +285,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 table = self.query_one("#batch-ops-table", DataTable)
                 table.action_cursor_down()  # 先向下移动一次
                 table.action_cursor_up()     # 再向上移动一次，确保在第一行
-                event.prevent_default()
+                event.stop()
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             table = self.query_one("#batch-ops-table", DataTable)
@@ -290,7 +296,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 table = self.query_one("#batch-ops-table", DataTable)
                 for _ in range(len(table.rows) - 1):
                     table.action_cursor_down()  # 移动到最底部
-                event.prevent_default()
+                event.stop()
     
     def _toggle_book_selection(self, book_id: str, table: DataTable[Any], row_index: int) -> None:
         """切换书籍选中状态"""
@@ -361,6 +367,33 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                                    total_pages=self._total_pages,
                                    total_books=len(self._all_books))
             )
+
+    # 通过 BINDINGS 触发的动作（保留 on_key 作为过渡）
+    def action_toggle_row(self) -> None:
+        """切换当前行选中状态"""
+        table = self.query_one("#batch-ops-table", DataTable)
+        if table.cursor_row is not None:
+            # 获取当前行的键（书籍路径）
+            row_key = list(table.rows.keys())[table.cursor_row]
+            if row_key and row_key.value:
+                book_id = row_key.value
+                self._toggle_book_selection(book_id, table, table.cursor_row)
+
+    def action_next_page(self) -> None:
+        """下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._load_books()
+
+    def action_prev_page(self) -> None:
+        """上一页"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._load_books()
+
+    def action_cancel(self) -> None:
+        """取消返回"""
+        self.dismiss({"refresh": False})
     
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """

@@ -34,6 +34,17 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
     """欢迎屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
+
+    # 使用 Textual BINDINGS 进行快捷键绑定
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("f1", "open_book", "打开书籍"),
+        ("f2", "browse_library", "浏览书库"),
+        ("f3", "get_books", "获取书籍"),
+        ("f4", "open_settings", "打开设置"),
+        ("f5", "open_statistics", "打开统计"),
+        ("f6", "open_help", "打开帮助"),
+        ("escape", "exit_app", "退出")
+    ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
         """
@@ -72,7 +83,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Button(get_global_i18n().t('welcome.statistics'), id="statistics-btn"),
                     Button(get_global_i18n().t('welcome.help'), id="help-btn"),
                     Button(get_global_i18n().t('welcome.exit'), id="exit-btn"),
-                    id="welcome-buttons"
+                    id="welcome-buttons", classes="btn-row"
                 ),
                 # 功能描述区域
                 Vertical(
@@ -92,7 +103,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Label(get_global_i18n().t('welcome.shortcut_f5'), id="shortcut-f5"),
                     Label(get_global_i18n().t('welcome.shortcut_f6'), id="shortcut-f6"),
                     Label(get_global_i18n().t('welcome.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar"
+                    id="shortcuts-bar", classes="status-bar"
                 ),
                 id="welcome-container"
             )
@@ -190,10 +201,30 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
     def key_f6(self) -> None:
         """F6快捷键 - 打开帮助"""
         self.app.push_screen("help")
-    
+
+    # Actions for BINDINGS
+    def action_open_book(self) -> None:
+        self._open_file_explorer()
+
+    def action_browse_library(self) -> None:
+        self.app.push_screen("bookshelf")
+
+    def action_get_books(self) -> None:
+        self.app.push_screen("get_books")
+
+    def action_open_settings(self) -> None:
+        self.app.push_screen("settings")
+
+    def action_open_statistics(self) -> None:
+        self.app.push_screen("statistics")
+
+    def action_open_help(self) -> None:
+        self.app.push_screen("help")
+
+    # 移除 ESC 直接退出，保留显式“退出”按钮行为
+    def action_exit_app(self) -> None:
+        self.app.exit()
+
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键退出阅读器
-            self.app.exit()
-            event.prevent_default()
+        """已由 BINDINGS 处理，避免重复触发"""
+        pass

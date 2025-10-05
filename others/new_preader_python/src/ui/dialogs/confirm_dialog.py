@@ -25,7 +25,11 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
     """确认对话框"""
     
     # 加载CSS样式
-    CSS_PATH = "../styles/confirm_dialog.css"
+    CSS_PATH = "../styles/confirm_dialog_overrides.tcss"
+    BINDINGS = [
+        ("enter", "press('#confirm-btn')", "Confirm"),
+        ("escape", "press('#cancel-btn')", "Cancel"),
+    ]
     
     def __init__(self, theme_manager: ThemeManager, title: str, message: str):
         """
@@ -51,7 +55,7 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
         yield Container(
             Vertical(
                 # 标题
-                Label(self.title, id="confirm-title"),
+                Label(self.title, id="confirm-title", classes="section-title"),
                 
                 # 消息内容
                 Label(self.message, id="confirm-message"),
@@ -60,7 +64,7 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
                 Horizontal(
                     Button("确认", id="confirm-btn", variant="primary"),
                     Button("取消", id="cancel-btn"),
-                    id="confirm-buttons"
+                    id="confirm-buttons", classes="btn-row"
                 ),
                 
                 id="confirm-container"
@@ -90,13 +94,3 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
         elif event.button.id == "cancel-btn":
             self.dismiss(False)
     
-    def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键取消
-            self.dismiss(False)
-            event.prevent_default()
-        elif event.key == "enter":
-            # Enter键确认
-            self.dismiss(True)
-            event.prevent_default()
