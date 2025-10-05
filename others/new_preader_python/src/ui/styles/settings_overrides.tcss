@@ -50,19 +50,22 @@ ScrollableContainer {
 }
 
 Select {
-    width: 100%;
+    width: 20%;
+    min-width: 10;
     height: 5;
     margin: 1 0;
 }
 
 Input {
-    width: 100%;
+    width: 20%;
+    min-width: 10;
     height: 3;
     margin: 1 0;
 }
 
 Switch {
-    width: 100%;
+    width: 20%;
+    min-width: 10;
     height: 3;
     margin: 1 0;
 }
