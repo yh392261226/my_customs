@@ -711,7 +711,8 @@
         "shortcut_b": "B: Batch Delete",
         "shortcut_space": "Space: Select",
         "shortcut_enter": "Enter: Enter Management",
-        "shortcut_esc": "ESC: Back"
+        "shortcut_esc": "ESC: Back",
+        "add_cancelled": "Add cancelled"
     },
     "novel_site_dialog": {
         "add_title": "Add Book Website",

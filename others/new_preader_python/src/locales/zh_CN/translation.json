@@ -711,7 +711,8 @@
         "shortcut_b": "B: 批量删除",
         "shortcut_space": "空格: 选择",
         "shortcut_enter": "Enter: 进入管理",
-        "shortcut_esc": "ESC: 返回"
+        "shortcut_esc": "ESC: 返回",
+        "add_cancelled": "取消添加"
     },
     "novel_site_dialog": {
         "add_title": "添加书籍网站",
