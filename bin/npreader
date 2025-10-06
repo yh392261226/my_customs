@@ -5,18 +5,16 @@ LIBPATH=$MYRUNTIME/customs/others/new_preader_python
 PYBIN=/opt/homebrew/bin/python3
 TEXTUALBIN=/opt/homebrew/bin/textual
 
-if [ "" != "$1" ]; then
-	case $1 in
-	--web | -web | -w | --w | w | web)
-		$TEXTUALBIN serve $LIBPATH/main.py >>/dev/null &
-		echo "Web Mode Started. Enjoy!"
-		sleep 2
-		open "http://localhost:8000"
-		;;
-	*)
-		$PYBIN $LIBPATH/main.py "$@"
-		;;
-	esac
-else
-	$PYBIN $LIBPATH/main.py "$@"
+has_web=false
+for arg in "$@"; do
+	if [ "$arg" = "--web" ]; then
+		has_web=true
+		break
+	fi
+done
+
+if $has_web; then
+	echo "Web Mode Started. Enjoy!"
+	open "http://localhost:8000"
 fi
+$PYBIN $LIBPATH/main.py "$@"

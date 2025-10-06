@@ -85,7 +85,9 @@ def main():
         
     if args.web:
         # 使用 textual-serve 启动 Web 模式
-        server = Server('python main.py "$@"')
+        import os
+        main_file = os.path.dirname(__file__)
+        server = Server(f'python {main_file}/main.py "$@"')
         server.serve()
         return
 
