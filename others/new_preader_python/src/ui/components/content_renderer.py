@@ -259,78 +259,155 @@ class ContentRenderer(Static):
         return formatted_lines
     
     def _apply_theme_styles(self) -> None:
-        """应用主题样式到内容渲染器"""
+        """应用主题样式到内容渲染器（同时构建富文本调色板）"""
         try:
-            # 获取当前主题名称
             theme_name = self.config.get("theme", "dark")
-            
-            # 如果有theme_manager，使用真实的主题颜色
-            if self.theme_manager and hasattr(self.theme_manager, 'themes'):
-                if theme_name in self.theme_manager.themes:
-                    theme = self.theme_manager.themes[theme_name]
-                    
-                    # 直接使用主题中明确定义的样式
-                    # 优先使用reader.text，如果没有则使用content.text
-                    text_style = theme.get("reader.text") or theme.get("content.text")
-                    background_style = theme.get("ui.background") or theme.get("ui.panel")
-                    
-                    # 获取文本颜色
-                    if text_style and hasattr(text_style, 'color') and text_style.color:
-                        text_color = self.theme_manager.convert_color_to_string(text_style.color)
-                    else:
-                        # 根据主题名称设置默认文本颜色
-                        if "light" in theme_name.lower():
-                            text_color = "black"
-                        else:
-                            text_color = "white"
-                    
-                    # 获取背景颜色
-                    if background_style and hasattr(background_style, 'bgcolor') and background_style.bgcolor:
-                        background_color = self.theme_manager.convert_color_to_string(background_style.bgcolor)
-                    else:
-                        # 根据主题名称设置默认背景颜色
-                        if "light" in theme_name.lower():
-                            background_color = "white"
-                        else:
-                            background_color = "black"
-                    
-                    self.styles.background = background_color
-                    self.styles.color = text_color
-                    
-                    logger.debug(f"使用theme_manager应用主题样式: {theme_name}, 背景: {background_color}, 文字: {text_color}")
-                else:
-                    # 如果theme_manager中没有该主题，使用简单颜色
-                    background_color, text_color = self.theme_manager.get_simple_theme_colors(theme_name)
-                    self.styles.background = background_color
-                    self.styles.color = text_color
-                    logger.debug(f"使用简单主题样式: {theme_name}, 背景: {background_color}, 文字: {text_color}")
-            else:
-                # 没有theme_manager，使用简单颜色
-                background_color, text_color = ("white", "black") if "light" in theme_name.lower() else ("black", "white")
-                self.styles.background = background_color
+
+            # 兜底
+            def light_dark(default_light: str, default_dark: str) -> str:
+                return default_light if "light" in theme_name.lower() else default_dark
+
+            # 默认调色
+            palette: Dict[str, Style] = {
+                "text": Style(color=light_dark("black", "white")),
+                "heading": Style(color=light_dark("black", "white")),
+                "link": Style(color="#3B82F6"),
+                "quote": Style(color=light_dark("#374151", "#D1D5DB")),
+                "code": Style(color="#10B981", bgcolor=light_dark("#E5E7EB", "#1F2937")),
+                "highlight": Style(color=light_dark("#000000", "#000000"), bgcolor=light_dark("#FFF8C5", "#EBCB8B")),
+            }
+
+            if self.theme_manager and hasattr(self.theme_manager, "themes") and theme_name in self.theme_manager.themes:
+                tm = self.theme_manager
+                theme = tm.themes[theme_name]
+
+                def pick_color(style_key: str, attr: str) -> Optional[str]:
+                    st = theme.get(style_key)
+                    if not st:
+                        return None
+                    val = getattr(st, attr, None)
+                    if not val:
+                        return None
+                    return tm.convert_color_to_string(val)
+
+                # 基础前景/背景
+                text_color = pick_color("reader.text", "color") or pick_color("content.text", "color") or light_dark("black", "white")
+                bg_color = pick_color("ui.background", "bgcolor") or pick_color("ui.panel", "bgcolor") or light_dark("white", "black")
+
+                # 细分色位
+                heading_color = pick_color("reader.chapter", "color") or pick_color("content.heading", "color") or pick_color("app.title", "color") or text_color
+                link_color = pick_color("content.link", "color") or pick_color("app.accent", "color") or "#3B82F6"
+                quote_color = pick_color("content.quote", "color") or text_color
+                code_fg = pick_color("content.code", "color") or "#10B981"
+                code_bg = pick_color("content.code", "bgcolor") or (pick_color("ui.panel", "bgcolor") or bg_color)
+                hl_fg = pick_color("reader.search_result", "color") or pick_color("content.highlight", "color") or light_dark("#000000", "#000000")
+                hl_bg = pick_color("reader.search_result", "bgcolor") or pick_color("content.highlight", "bgcolor") or light_dark("#FFF8C5", "#EBCB8B")
+
+                # 应用到组件样式
+                self.styles.background = bg_color
                 self.styles.color = text_color
-                logger.debug(f"使用简单主题样式: {theme_name}, 背景: {background_color}, 文字: {text_color}")
-            
-            # 设置内边距
+
+                # 构建 Rich 调色板
+                palette["text"] = Style(color=text_color)
+                palette["heading"] = Style(color=heading_color, bold=True)
+                palette["link"] = Style(color=link_color, underline=True)
+                palette["quote"] = Style(color=quote_color, italic=True)
+                palette["code"] = Style(color=code_fg, bgcolor=code_bg)
+                palette["highlight"] = Style(color=hl_fg, bgcolor=hl_bg)
+                logger.debug(f"应用主题样式: {theme_name}, 背景: {bg_color}, 文本: {text_color}")
+            else:
+                # 无主题管理器或未找到主题：仅基础色
+                bg_color, text_color = (("white", "black") if "light" in theme_name.lower() else ("black", "white"))
+                self.styles.background = bg_color
+                self.styles.color = text_color
+
+            # 存储调色板供渲染使用
+            self._palette = palette
+            # 代码块围栏状态
+            self._code_fence_open = False
+
+            # 内边距
             self.styles.padding = (0, 1)
-            
         except Exception as e:
             logger.error(f"应用主题样式失败: {e}")
-            # 出错时使用默认样式
             self.styles.background = "white"
             self.styles.color = "black"
             self.styles.padding = (0, 1)
+            # 基础调色板兜底
+            self._palette = {
+                "text": Style(color="black"),
+                "heading": Style(color="black", bold=True),
+                "link": Style(color="#3B82F6", underline=True),
+                "quote": Style(color="#374151", italic=True),
+                "code": Style(color="#10B981", bgcolor="#E5E7EB"),
+                "highlight": Style(color="#000000", bgcolor="#FFF8C5"),
+            }
     
 
     
     def _update_visible_content(self) -> None:
-        """更新可见内容显示"""
-        visible_content = self.get_visible_content()
-        
-        # 直接使用Textual的update方法，让Textual自动应用组件样式
-        self.update(visible_content)
-        
-        # 强制刷新样式，确保字体颜色被应用
+        """更新可见内容显示（使用 RichText 着色）"""
+        text = RichText()
+        palette = getattr(self, "_palette", None)
+
+        # 获取可见行（保留现有间距处理）
+        raw = self.get_visible_content()
+        lines = raw.split("\n")
+
+        import re
+        url_re = re.compile(r"(https?://[^\s]+)")
+
+        def is_heading(line: str) -> bool:
+            s = line.strip()
+            return (s.startswith("#")) or bool(re.match(r"^\s*(第.+章|Chapter|CHAPTER)\b", s))
+
+        def is_quote(line: str) -> bool:
+            return line.strip().startswith(">")
+
+        def is_code_line(line: str) -> bool:
+            s = line
+            return s.startswith("    ") or s.startswith("\t")
+
+        def toggle_code_fence(line: str) -> bool:
+            s = line.strip()
+            return s.startswith("```")
+
+        for i, line in enumerate(lines):
+            style = None
+
+            # 代码围栏切换
+            if toggle_code_fence(line):
+                self._code_fence_open = not getattr(self, "_code_fence_open", False)
+                # 围栏标记本身使用代码样式以示区分
+                style = palette and palette.get("code")
+            elif getattr(self, "_code_fence_open", False):
+                style = palette and palette.get("code")
+            elif is_heading(line):
+                style = palette and palette.get("heading")
+            elif is_quote(line):
+                style = palette and palette.get("quote")
+            elif is_code_line(line):
+                style = palette and palette.get("code")
+            else:
+                style = palette and palette.get("text")
+
+            # 添加行内容
+            segment = RichText(line, style=style)
+
+            # 链接着色（只在非代码块内进行）
+            if not getattr(self, "_code_fence_open", False):
+                for m in url_re.finditer(line):
+                    start, end = m.span()
+                    if palette and palette.get("link"):
+                        segment.stylize(palette["link"], start, end)
+
+            # 追加换行（除最后一行）
+            text.append(segment)
+            if i < len(lines) - 1:
+                text.append("\n")
+
+        # 输出为富文本
+        self.update(text)
         self.refresh()
     
     def next_page(self) -> bool:

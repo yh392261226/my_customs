@@ -38,6 +38,17 @@ def create_appearance_settings() -> SettingSection:
         category="appearance"
     ))
     
+    # UI主题设置（兼容性设置）
+    section.add_setting(SelectSetting(
+        key="appearance.ui_theme",
+        default_value="dark",
+        display_name="UI主题",
+        description="选择UI界面的主题风格",
+        options=AVAILABLE_THEMES,
+        option_labels=[theme.capitalize() for theme in AVAILABLE_THEMES],
+        category="appearance"
+    ))
+    
     # 边框样式
     section.add_setting(SelectSetting(
         key="appearance.border_style",

@@ -97,7 +97,8 @@ AVAILABLE_THEMES = [
     "github-dark", "github-light", "solarized-dark", 
     "solarized-light", "amethyst", "forest-green",
     "crimson", "slate", "transparent-dark", "transparent-light",
-    "paper-white", "cream", "sky-blue", "mint-green", "lavender"
+    "paper-white", "cream", "sky-blue", "mint-green", "lavender",
+    "neon-pop", "sunset", "ocean", "pastel-dream", "cyberpunk"
 ]
 
 # 支持的边框样式

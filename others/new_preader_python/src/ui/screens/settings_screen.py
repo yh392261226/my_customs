@@ -392,6 +392,42 @@ class SettingsScreen(Screen[Any]):
             if self.config_adapter.save_settings_to_config():
                 # 通知所有设置变更
                 self._notify_setting_changes()
+                # 设置中心保存后：强同步 app.theme 到 appearance.theme，并立即应用刷新与持久化
+                try:
+                    desired = self.setting_registry.get_value("appearance.theme", None)
+                    if desired and isinstance(desired, str):
+                        # 写入并应用到App与所有屏幕
+                        if self.theme_manager.set_theme(desired):
+                            # 应用到当前App
+                            try:
+                                self.theme_manager.apply_theme_to_screen(self.app)
+                            except Exception:
+                                pass
+                            # 应用到已安装的屏幕
+                            try:
+                                installed = getattr(self.app, "installed_screens", {})
+                                for scr in list(installed.values()):
+                                    self.theme_manager.apply_theme_to_screen(scr)
+                            except Exception:
+                                pass
+                            # 持久化 app.theme
+                            try:
+                                cfg = self.config_manager.get_config()
+                                app_cfg = cfg.get("app", {})
+                                app_cfg["theme"] = desired
+                                cfg["app"] = app_cfg
+                                if hasattr(self.config_manager, "save_config"):
+                                    self.config_manager.save_config(cfg)  # type: ignore[attr-defined]
+                            except Exception:
+                                pass
+                            # 刷新UI
+                            try:
+                                self.app.refresh(layout=True)
+                            except Exception:
+                                pass
+                except Exception as e:
+                    logger.debug(f"设置中心保存后同步主题失败（可忽略）：{e}")
+
                 self.notify(get_global_i18n().t("settings.saved"), severity="information")
                 self.app.pop_screen()
             else:

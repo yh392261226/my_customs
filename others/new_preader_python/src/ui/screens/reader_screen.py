@@ -960,47 +960,72 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         return ""
     
     def _apply_theme_styles_to_css(self) -> None:
-        """根据当前主题注入CSS变量与强制规则，确保内容字体颜色生效"""
+        """根据当前主题注入阅读内容的多色位规则，让正文不再只有黑白"""
         try:
             tm = self.theme_manager
-            # 获取文字颜色（优先 reader.text，其次 content.text）
+
+            # 基础文本与背景
             text_style = tm.get_style("reader.text") or tm.get_style("content.text")
             text_color = self._get_color_string(getattr(text_style, "color", None)) if text_style else ""
-            # 背景与面板
+
             bg_style = tm.get_style("ui.background")
             bg_color = self._get_color_string(getattr(bg_style, "bgcolor", None)) if bg_style else ""
+
+            # 标题
+            heading_style = tm.get_style("reader.chapter") or tm.get_style("content.heading") or tm.get_style("app.title")
+            heading_color = self._get_color_string(getattr(heading_style, "color", None)) if heading_style else ""
+
+            # 链接
+            link_style = tm.get_style("content.link") or tm.get_style("app.accent")
+            link_color = self._get_color_string(getattr(link_style, "color", None)) if link_style else ""
+
+            # 引用
+            quote_style = tm.get_style("content.quote")
+            quote_color = self._get_color_string(getattr(quote_style, "color", None)) if quote_style else ""
+
+            # 代码块（前景/背景）
+            code_style = tm.get_style("content.code")
+            code_fg = self._get_color_string(getattr(code_style, "color", None)) if code_style else ""
+            code_bg = self._get_color_string(getattr(code_style, "bgcolor", None)) if code_style else ""
+            # 兜底：若没有 code 背景，用面板/表面色
             surface_style = tm.get_style("ui.panel")
             surface_color = self._get_color_string(getattr(surface_style, "bgcolor", None)) if surface_style else ""
-            # 主色与强调色
-            primary_style = tm.get_style("app.accent")
-            primary_color = self._get_color_string(getattr(primary_style, "color", None)) if primary_style else ""
-            accent_style = tm.get_style("app.highlight")
-            accent_color = self._get_color_string(getattr(accent_style, "color", None)) if accent_style else ""
-            
+            if not code_bg:
+                code_bg = surface_color
+
+            # 高亮（前景/背景），优先 reader.search_result，其次 content.highlight
+            hl_style = tm.get_style("reader.search_result") or tm.get_style("content.highlight")
+            hl_fg = self._get_color_string(getattr(hl_style, "color", None)) if hl_style else ""
+            hl_bg = self._get_color_string(getattr(hl_style, "bgcolor", None)) if hl_style else ""
+
             # 合理兜底（根据 app.dark 判断）
             is_dark = bool(getattr(self.app, "dark", False))
-            text_fallback = "#ffffff" if is_dark else "#000000"
-            bg_fallback = "#000000" if is_dark else "#ffffff"
-            
+            text_fallback = "#FFFFFF" if is_dark else "#000000"
+            bg_fallback = "#000000" if is_dark else "#FFFFFF"
+
             def pick(val: str, default: str) -> str:
                 return val if val else default
-            
+
+            # 仅保留可用的部件/ID级规则，避免使用 HTML 标签选择器
             css = f"""
-/* 强制阅读内容区采用主题文字颜色，避免被其他样式覆盖 */
+/* 基础正文与背景（作用于内容 Static 部件本身） */
 .reader-screen #content {{
   color: {pick(text_color, text_fallback)} !important;
   background: {pick(bg_color, bg_fallback)};
 }}
+
+/* 作为兜底，所有 Static 默认文本色 */
 .reader-screen Static {{
   color: {pick(text_color, text_fallback)};
 }}
 """
+            # 注入到样式表
             if hasattr(self.app, "stylesheet") and hasattr(self.app.stylesheet, "add_source"):
                 self.app.stylesheet.add_source(css)
                 if hasattr(self.app, "screen_stack") and self.app.screen_stack:
                     self.app.stylesheet.update(self.app.screen_stack[-1])
         except Exception as e:
-            logger.error(f"注入主题CSS变量失败: {e}")
+            logger.error(f"注入阅读内容多色位CSS失败: {e}")
     
     def _register_setting_observers(self) -> None:
         try:
@@ -1021,6 +1046,24 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                             self.reader_screen._update_ui()
                             return
                         
+                        # 处理主题变更：同步 ThemeManager、Textual 主题与样式
+                        if event.setting_key == "appearance.theme":
+                            new_theme = str(event.new_value) if event.new_value is not None else ""
+                            tm = self.reader_screen.theme_manager
+                            if new_theme:
+                                try:
+                                    tm.set_theme(new_theme)
+                                    tm.apply_theme_to_screen(self.reader_screen)
+                                    # 注入 CSS 变量，保证文本/背景颜色立即生效
+                                    self.reader_screen._apply_theme_styles_to_css()
+                                    # 强制内容渲染器刷新其内部样式映射
+                                    if hasattr(self.reader_screen, 'renderer') and hasattr(self.reader_screen.renderer, '_apply_theme_styles'):
+                                        self.reader_screen.renderer._apply_theme_styles()
+                                    self.reader_screen._update_ui()
+                                except Exception as e:
+                                    logger.error(f"应用主题变更失败: {e}")
+                            return
+                        
                         # 更新渲染配置 - 对于影响分页的设置，调用完整的重载方法
                         if event.setting_key in ["reading.line_spacing", "reading.paragraph_spacing", "reading.font_size"]:
                             # 调用完整的设置重载方法，确保状态同步
@@ -1032,11 +1075,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             # 创建并注册观察者
             self._setting_observer = ReaderScreenObserver(self)
             
-            # 注册监听阅读相关设置
+            # 注册监听阅读/外观相关设置
             reading_settings = [
                 "reading.line_spacing",
                 "reading.paragraph_spacing", 
-                "reading.font_size"
+                "reading.font_size",
+                "appearance.theme",
+                "appearance.progress_bar_style"
             ]
             
             for setting_key in reading_settings:
@@ -1056,7 +1101,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 reading_settings = [
                     "reading.line_spacing",
                     "reading.paragraph_spacing", 
-                    "reading.font_size"
+                    "reading.font_size",
+                    "appearance.theme",
+                    "appearance.progress_bar_style"
                 ]
                 
                 for setting_key in reading_settings:

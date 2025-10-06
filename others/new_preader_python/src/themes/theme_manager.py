@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 from rich.style import Style
 from rich.color import Color
 from rich.theme import Theme as RichTheme
-
+from textual.theme import Theme
 from src.config.default_config import AVAILABLE_THEMES
 
 from src.utils.logger import get_logger
@@ -1036,6 +1036,252 @@ class ThemeManager:
             "reader.search_result": Style(color="#4A148C", bgcolor="#FFF59D"),
         }
         
+        # 额外增加色彩丰富主题
+        self.themes["neon-pop"] = {
+            "app.title": Style(color="#39FF14", bold=True),
+            "app.subtitle": Style(color="#FF6EC7"),
+            "app.accent": Style(color="#00FFFF"),
+            "app.highlight": Style(color="#FFD300"),
+            "app.warning": Style(color="#FF3131"),
+            "app.success": Style(color="#39FF14"),
+            "app.info": Style(color="#7DF9FF"),
+            "app.muted": Style(color="#808080"),
+
+            "ui.border": Style(color="#FF6EC7"),
+            "ui.background": Style(bgcolor="#0F0F0F"),
+            "ui.panel": Style(bgcolor="#1A1A1A"),
+            "ui.panel.title": Style(color="#39FF14", bold=True),
+            "ui.label": Style(color="#E0FFE0"),
+            "ui.button": Style(color="#0F0F0F", bgcolor="#39FF14"),
+            "ui.button.primary": Style(color="#0F0F0F", bgcolor="#00FFFF"),
+            "ui.button.success": Style(color="#0F0F0F", bgcolor="#39FF14"),
+            "ui.button.warning": Style(color="#0F0F0F", bgcolor="#FFD300"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FF3131"),
+            "ui.input": Style(color="#E0FFE0", bgcolor="#222222"),
+            "ui.input.focus": Style(color="#39FF14", bgcolor="#2B2B2B"),
+            "ui.selection": Style(bgcolor="#222222"),
+
+            "content.text": Style(color="#E0FFE0"),
+            "content.heading": Style(color="#39FF14", bold=True),
+            "content.subheading": Style(color="#FFD300", bold=True),
+            "content.link": Style(color="#00FFFF", underline=True),
+            "content.quote": Style(color="#FF6EC7", italic=True),
+            "content.code": Style(color="#39FF14", bgcolor="#1A1A1A"),
+            "content.highlight": Style(color="#0F0F0F", bgcolor="#FFD300"),
+
+            "progress.bar": Style(color="#00FFFF"),
+            "progress.text": Style(color="#E0FFE0"),
+            "progress.percentage": Style(color="#39FF14"),
+
+            "bookshelf.title": Style(color="#39FF14", bold=True),
+            "bookshelf.author": Style(color="#FF6EC7"),
+            "bookshelf.progress": Style(color="#00FFFF"),
+            "bookshelf.tag": Style(color="#FFD300", bgcolor="#222222"),
+            "bookshelf.selected": Style(bgcolor="#2B2B2B"),
+
+            "reader.text": Style(color="#E0FFE0"),
+            "reader.chapter": Style(color="#39FF14", bold=True),
+            "reader.page_number": Style(color="#FFD300"),
+            "reader.bookmark": Style(color="#00FFFF"),
+            "reader.search_result": Style(color="#0F0F0F", bgcolor="#FFD300"),
+        }
+
+        self.themes["sunset"] = {
+            "app.title": Style(color="#FF6E40", bold=True),
+            "app.subtitle": Style(color="#FAD6A5"),
+            "app.accent": Style(color="#FF9E80"),
+            "app.highlight": Style(color="#FFC13B"),
+            "app.warning": Style(color="#FF4E00"),
+            "app.success": Style(color="#78C091"),
+            "app.info": Style(color="#FF9E80"),
+            "app.muted": Style(color="#A36F4E"),
+
+            "ui.border": Style(color="#A36F4E"),
+            "ui.background": Style(bgcolor="#2B1D1A"),
+            "ui.panel": Style(bgcolor="#3A2622"),
+            "ui.panel.title": Style(color="#FFC13B", bold=True),
+            "ui.label": Style(color="#FAD6A5"),
+            "ui.button": Style(color="#2B1D1A", bgcolor="#FF6E40"),
+            "ui.button.primary": Style(color="#2B1D1A", bgcolor="#FFC13B"),
+            "ui.button.success": Style(color="#2B1D1A", bgcolor="#78C091"),
+            "ui.button.warning": Style(color="#2B1D1A", bgcolor="#FF9E80"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FF4E00"),
+            "ui.input": Style(color="#FAD6A5", bgcolor="#3A2622"),
+            "ui.input.focus": Style(color="#FFC13B", bgcolor="#4A302B"),
+            "ui.selection": Style(bgcolor="#3A2622"),
+
+            "content.text": Style(color="#FAD6A5"),
+            "content.heading": Style(color="#FFC13B", bold=True),
+            "content.subheading": Style(color="#FF9E80", bold=True),
+            "content.link": Style(color="#FF6E40", underline=True),
+            "content.quote": Style(color="#78C091", italic=True),
+            "content.code": Style(color="#78C091", bgcolor="#2B1D1A"),
+            "content.highlight": Style(color="#2B1D1A", bgcolor="#FFC13B"),
+
+            "progress.bar": Style(color="#FF9E80"),
+            "progress.text": Style(color="#FAD6A5"),
+            "progress.percentage": Style(color="#FFC13B"),
+
+            "bookshelf.title": Style(color="#FFC13B", bold=True),
+            "bookshelf.author": Style(color="#FAD6A5"),
+            "bookshelf.progress": Style(color="#FF6E40"),
+            "bookshelf.tag": Style(color="#78C091", bgcolor="#3A2622"),
+            "bookshelf.selected": Style(bgcolor="#4A302B"),
+
+            "reader.text": Style(color="#FAD6A5"),
+            "reader.chapter": Style(color="#FFC13B", bold=True),
+            "reader.page_number": Style(color="#FF9E80"),
+            "reader.bookmark": Style(color="#FF6E40"),
+            "reader.search_result": Style(color="#2B1D1A", bgcolor="#FFC13B"),
+        }
+
+        self.themes["ocean"] = {
+            "app.title": Style(color="#00B3D8", bold=True),
+            "app.subtitle": Style(color="#80D7E6"),
+            "app.accent": Style(color="#00D1FF"),
+            "app.highlight": Style(color="#FFDD57"),
+            "app.warning": Style(color="#FF6B6B"),
+            "app.success": Style(color="#2ECC71"),
+            "app.info": Style(color="#00D1FF"),
+            "app.muted": Style(color="#4CA3AF"),
+
+            "ui.border": Style(color="#4CA3AF"),
+            "ui.background": Style(bgcolor="#062C43"),
+            "ui.panel": Style(bgcolor="#0B3A53"),
+            "ui.panel.title": Style(color="#00D1FF", bold=True),
+            "ui.label": Style(color="#80D7E6"),
+            "ui.button": Style(color="#062C43", bgcolor="#00B3D8"),
+            "ui.button.primary": Style(color="#062C43", bgcolor="#00D1FF"),
+            "ui.button.success": Style(color="#062C43", bgcolor="#2ECC71"),
+            "ui.button.warning": Style(color="#062C43", bgcolor="#FFDD57"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FF6B6B"),
+            "ui.input": Style(color="#80D7E6", bgcolor="#0B3A53"),
+            "ui.input.focus": Style(color="#00D1FF", bgcolor="#104761"),
+            "ui.selection": Style(bgcolor="#0B3A53"),
+
+            "content.text": Style(color="#80D7E6"),
+            "content.heading": Style(color="#00D1FF", bold=True),
+            "content.subheading": Style(color="#2ECC71", bold=True),
+            "content.link": Style(color="#00B3D8", underline=True),
+            "content.quote": Style(color="#2ECC71", italic=True),
+            "content.code": Style(color="#2ECC71", bgcolor="#062C43"),
+            "content.highlight": Style(color="#062C43", bgcolor="#FFDD57"),
+
+            "progress.bar": Style(color="#00D1FF"),
+            "progress.text": Style(color="#80D7E6"),
+            "progress.percentage": Style(color="#00D1FF"),
+
+            "bookshelf.title": Style(color="#00D1FF", bold=True),
+            "bookshelf.author": Style(color="#80D7E6"),
+            "bookshelf.progress": Style(color="#00B3D8"),
+            "bookshelf.tag": Style(color="#2ECC71", bgcolor="#0B3A53"),
+            "bookshelf.selected": Style(bgcolor="#104761"),
+
+            "reader.text": Style(color="#80D7E6"),
+            "reader.chapter": Style(color="#00D1FF", bold=True),
+            "reader.page_number": Style(color="#2ECC71"),
+            "reader.bookmark": Style(color="#FFDD57"),
+            "reader.search_result": Style(color="#062C43", bgcolor="#FFDD57"),
+        }
+
+        self.themes["pastel-dream"] = {
+            "app.title": Style(color="#6C5B7B", bold=True),
+            "app.subtitle": Style(color="#C06C84"),
+            "app.accent": Style(color="#F8B195"),
+            "app.highlight": Style(color="#F6C1C1"),
+            "app.warning": Style(color="#E84A5F"),
+            "app.success": Style(color="#99B898"),
+            "app.info": Style(color="#F8B195"),
+            "app.muted": Style(color="#A8A7A7"),
+
+            "ui.border": Style(color="#A8A7A7"),
+            "ui.background": Style(bgcolor="#FDF1ED"),
+            "ui.panel": Style(bgcolor="#FEE9E1"),
+            "ui.panel.title": Style(color="#6C5B7B", bold=True),
+            "ui.label": Style(color="#6C5B7B"),
+            "ui.button": Style(color="#FFFFFF", bgcolor="#C06C84"),
+            "ui.button.primary": Style(color="#FFFFFF", bgcolor="#F8B195"),
+            "ui.button.success": Style(color="#FFFFFF", bgcolor="#99B898"),
+            "ui.button.warning": Style(color="#6C5B7B", bgcolor="#F6C1C1"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#E84A5F"),
+            "ui.input": Style(color="#6C5B7B", bgcolor="#FEE9E1"),
+            "ui.input.focus": Style(color="#6C5B7B", bgcolor="#FADCD7"),
+            "ui.selection": Style(bgcolor="#FEE9E1"),
+
+            "content.text": Style(color="#6C5B7B"),
+            "content.heading": Style(color="#6C5B7B", bold=True),
+            "content.subheading": Style(color="#C06C84", bold=True),
+            "content.link": Style(color="#F8B195", underline=True),
+            "content.quote": Style(color="#99B898", italic=True),
+            "content.code": Style(color="#99B898", bgcolor="#FDF1ED"),
+            "content.highlight": Style(color="#6C5B7B", bgcolor="#F6C1C1"),
+
+            "progress.bar": Style(color="#F8B195"),
+            "progress.text": Style(color="#6C5B7B"),
+            "progress.percentage": Style(color="#6C5B7B"),
+
+            "bookshelf.title": Style(color="#6C5B7B", bold=True),
+            "bookshelf.author": Style(color="#C06C84"),
+            "bookshelf.progress": Style(color="#F8B195"),
+            "bookshelf.tag": Style(color="#99B898", bgcolor="#FEE9E1"),
+            "bookshelf.selected": Style(bgcolor="#FADCD7"),
+
+            "reader.text": Style(color="#6C5B7B"),
+            "reader.chapter": Style(color="#6C5B7B", bold=True),
+            "reader.page_number": Style(color="#C06C84"),
+            "reader.bookmark": Style(color="#F8B195"),
+            "reader.search_result": Style(color="#6C5B7B", bgcolor="#F6C1C1"),
+        }
+
+        self.themes["cyberpunk"] = {
+            "app.title": Style(color="#00FFFF", bold=True),
+            "app.subtitle": Style(color="#FF00FF"),
+            "app.accent": Style(color="#FCEE09"),
+            "app.highlight": Style(color="#FCEE09"),
+            "app.warning": Style(color="#FF003C"),
+            "app.success": Style(color="#00FF9F"),
+            "app.info": Style(color="#00FFFF"),
+            "app.muted": Style(color="#A0A0A0"),
+
+            "ui.border": Style(color="#FF00FF"),
+            "ui.background": Style(bgcolor="#0A0F1E"),
+            "ui.panel": Style(bgcolor="#12172A"),
+            "ui.panel.title": Style(color="#00FFFF", bold=True),
+            "ui.label": Style(color="#FCEE09"),
+            "ui.button": Style(color="#0A0F1E", bgcolor="#00FFFF"),
+            "ui.button.primary": Style(color="#0A0F1E", bgcolor="#FCEE09"),
+            "ui.button.success": Style(color="#0A0F1E", bgcolor="#00FF9F"),
+            "ui.button.warning": Style(color="#0A0F1E", bgcolor="#FF00FF"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FF003C"),
+            "ui.input": Style(color="#FCEE09", bgcolor="#12172A"),
+            "ui.input.focus": Style(color="#00FFFF", bgcolor="#1B2240"),
+            "ui.selection": Style(bgcolor="#12172A"),
+
+            "content.text": Style(color="#D8F6FF"),
+            "content.heading": Style(color="#00FFFF", bold=True),
+            "content.subheading": Style(color="#FCEE09", bold=True),
+            "content.link": Style(color="#FF00FF", underline=True),
+            "content.quote": Style(color="#00FF9F", italic=True),
+            "content.code": Style(color="#00FF9F", bgcolor="#0A0F1E"),
+            "content.highlight": Style(color="#0A0F1E", bgcolor="#FCEE09"),
+
+            "progress.bar": Style(color="#00FFFF"),
+            "progress.text": Style(color="#FCEE09"),
+            "progress.percentage": Style(color="#00FFFF"),
+
+            "bookshelf.title": Style(color="#00FFFF", bold=True),
+            "bookshelf.author": Style(color="#FCEE09"),
+            "bookshelf.progress": Style(color="#FF00FF"),
+            "bookshelf.tag": Style(color="#00FF9F", bgcolor="#12172A"),
+            "bookshelf.selected": Style(bgcolor="#1B2240"),
+
+            "reader.text": Style(color="#D8F6FF"),
+            "reader.chapter": Style(color="#00FFFF", bold=True),
+            "reader.page_number": Style(color="#FCEE09"),
+            "reader.bookmark": Style(color="#FF00FF"),
+            "reader.search_result": Style(color="#0A0F1E", bgcolor="#FCEE09"),
+        }
+
         logger.info(f"已加载内置主题: {', '.join(self.themes.keys())}")
     
     def get_available_themes(self) -> List[str]:
@@ -1182,6 +1428,11 @@ class ThemeManager:
             screen.app.dark = True
         else:
             screen.app.dark = False
+        # 同步到 Textual 主题（尽力而为）
+        try:
+            self.apply_textual_theme(screen.app, self.current_theme_name)
+        except Exception as _e:
+            logger.debug(f"应用 Textual 主题失败（可忽略）：{_e}")
             
         # 获取当前主题的颜色配置
         theme_config = self.themes.get(self.current_theme_name, {})
@@ -1315,3 +1566,105 @@ class ThemeManager:
             
         # 刷新屏幕以应用主题变化
         screen.refresh()
+
+    def _build_textual_theme_payload(self, theme_name: str) -> Dict[str, str]:
+        """将内部主题映射为 Textual 主题字段负载"""
+        theme = self.themes.get(theme_name, {})
+        def pick(names: List[str]) -> Optional[str]:
+            for n in names:
+                st = theme.get(n)
+                if st and getattr(st, "color", None):
+                    return self.convert_color_to_string(st.color)
+                if st and getattr(st, "bgcolor", None):
+                    return self.convert_color_to_string(st.bgcolor)
+            return None
+
+        payload = {
+            # 基础/语义文本色
+            "text": pick(["reader.text", "content.text", "ui.label"]) or ("#ffffff" if "dark" in theme_name else "#000000"),
+            "text_muted": pick(["app.muted", "bookshelf.author"]) or ( "#9CA3AF" if "dark" in theme_name else "#6B7280"),
+            # 品牌与强调
+            "primary": pick(["app.accent", "app.primary"]) or "#3B82F6",
+            "accent": pick(["app.highlight", "app.accent"]) or "#F59E0B",
+            # 状态色
+            "success": pick(["app.success"]) or "#22C55E",
+            "warning": pick(["app.warning"]) or "#F59E0B",
+            "info": pick(["app.info"]) or "#0EA5E9",
+            # 背景与容器
+            "background": pick(["ui.background"]) or ("#000000" if "dark" in theme_name else "#ffffff"),
+            "surface": pick(["ui.panel"]) or pick(["ui.background"]) or ("#111827" if "dark" in theme_name else "#f3f4f6"),
+            "panel": pick(["ui.panel"]) or pick(["ui.background"]) or ("#111827" if "dark" in theme_name else "#f3f4f6"),
+            # 辅助语义
+            "border": pick(["ui.border"]) or ( "#4B5563" if "dark" in theme_name else "#D1D5DB"),
+            "link": pick(["content.link"]) or pick(["app.accent"]) or "#3B82F6",
+            "heading": pick(["content.heading", "app.title"]) or ( "#F9FAFB" if "dark" in theme_name else "#111827"),
+            "quote": pick(["content.quote"]) or pick(["text"]) or ( "#D1D5DB" if "dark" in theme_name else "#374151"),
+            "code": pick(["content.code"]) or pick(["success"]) or "#10B981",
+            "code_background": pick(["content.code"]) or pick(["surface"]) or ("#1F2937" if "dark" in theme_name else "#E5E7EB"),
+        }
+        return {k: v for k, v in payload.items() if v}
+
+
+    def apply_textual_theme(self, app, name: Optional[str] = None) -> None:
+        """应用主题到 Textual App（设置语义色或调用内置 API）"""
+        try:
+            theme_name = name or self.current_theme_name
+            payload = self._build_textual_theme_payload(theme_name)
+            # 尽力确保已注册（与 _register_one_with_textual 相同的多入口逻辑）
+            try:
+                import importlib
+                from typing import Any
+                theme_obj = None
+
+                def _try_module(module_name: str) -> bool:
+                    try:
+                        mod: Any = importlib.import_module(module_name)
+                    except Exception:
+                        return False
+                    for fn in ("register_theme", "add_theme", "register", "add"):
+                        callable_fn = getattr(mod, fn, None)
+                        if callable(callable_fn):
+                            try:
+                                callable_fn(theme_name, payload)
+                                logger.debug(f"确保注册：{module_name}.{fn} -> {theme_name}")
+                                return True
+                            except Exception:
+                                continue
+                    return False
+
+                ok = _try_module("textual.theme")
+                if not ok:
+                    ok = _try_module("textual.themes")
+                if not ok:
+                    # 兜底注入 textual.theme.THEMES
+                    try:
+                        import importlib
+                        mod = importlib.import_module("textual.theme")
+                        themes_dict = getattr(mod, "THEMES", None)
+                        if isinstance(themes_dict, dict):
+                            themes_dict[theme_name] = payload
+                            logger.debug(f"确保注册：textual.theme.THEMES -> {theme_name}")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            if hasattr(app, "set_theme") and callable(getattr(app, "set_theme")):
+                app.set_theme(theme_name)
+            elif hasattr(app, "theme"):
+                try:
+                    app.theme = theme_name
+                except Exception:
+                    pass
+
+            try:
+                if hasattr(app, "stylesheet") and hasattr(app.stylesheet, "add_source"):
+                    # 使用 Textual TSS 变量语法，顶层声明：$var: value;
+                    css_lines = [f"${k}: {v};" for k, v in payload.items()]
+                    app.stylesheet.add_source("\n".join(css_lines))
+                    if hasattr(app, "screen_stack") and app.screen_stack:
+                        app.stylesheet.update(app.screen_stack[-1])
+            except Exception as e:
+                logger.debug(f"注入主题 CSS 变量失败（可忽略）：{e}")
+        except Exception as e:
+            logger.debug(f"应用 Textual 主题失败（可忽略）：{e}")
