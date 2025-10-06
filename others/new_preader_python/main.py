@@ -7,6 +7,7 @@ import logging
 import sys
 import traceback
 from typing import NoReturn
+from textual_serve.server import Server
 
 def handle_error(message: str, exit_code: int = 1) -> NoReturn:
     """处理致命错误并退出"""
@@ -23,6 +24,7 @@ def main():
     # 解析命令行参数
     parser = argparse.ArgumentParser(description="NewReader - 现代化终端小说阅读器")
     parser.add_argument("--config", help="指定配置文件路径")
+    parser.add_argument("--web", action="store_true", help="启用浏览器模式")
     parser.add_argument("--debug", action="store_true", help="启用调试模式")
     parser.add_argument("book_file", nargs="?", help="直接打开指定的小说文件")
     args = parser.parse_args()
@@ -67,7 +69,7 @@ def main():
         config["advanced"] = config.get("advanced", {})
         config["advanced"]["debug_mode"] = True
         config_manager.save_config(config)
-    
+
     # 设置日志
     try:
         setup_logging_from_config(config_manager)
@@ -80,7 +82,13 @@ def main():
             
     except Exception as e:
         handle_error(f"日志初始化失败: {e}", 1)
-    
+        
+    if args.web:
+        # 使用 textual-serve 启动 Web 模式
+        server = Server('python main.py "$@"')
+        server.serve()
+        return
+
     # 创建并运行应用程序
     try:
         app = NewReaderApp(config_manager, args.book_file)
