@@ -698,7 +698,7 @@ class ThemeManager:
             "app.muted": Style(color="#656D78"),
             
             "ui.border": Style(color="#434A54", dim=True),
-            "ui.background": Style(bgcolor="black", dim=True),
+            "ui.background": Style(bgcolor=None),
             "ui.panel": Style(bgcolor="#2F2F2F", dim=True),
             "ui.panel.title": Style(color="#8BC1FF", bold=True),
             "ui.label": Style(color="#A6C6FF"),
@@ -1782,6 +1782,817 @@ class ThemeManager:
             "reader.search_result": Style(color="#121212", bgcolor="#FFBE0B"),
         }
 
+        # 玻璃感/透明主题：玻璃蓝（暗）
+        self.themes["glass-cyan"] = {
+            "app.title": Style(color="#8BE9FD", bold=True),
+            "app.subtitle": Style(color="#AEEBFF"),
+            "app.accent": Style(color="#00D1FF"),
+            "app.highlight": Style(color="#FADB14"),
+            "app.warning": Style(color="#FF4D4F"),
+            "app.success": Style(color="#36CFC9"),
+            "app.info": Style(color="#40A9FF"),
+            "app.muted": Style(color="#8C8C8C"),
+            
+            "ui.border": Style(color="#69C0FF", dim=True),
+            "ui.background": Style(bgcolor="black", dim=True),
+            "ui.panel": Style(bgcolor=None),
+            "ui.panel.title": Style(color="#8BE9FD", bold=True),
+            "ui.label": Style(color="#E6F7FF"),
+            "ui.button": Style(color="#0A0A0A", bgcolor="#40A9FF", dim=True),
+            "ui.button.primary": Style(color="#0A0A0A", bgcolor="#00D1FF", dim=True),
+            "ui.button.success": Style(color="#0A0A0A", bgcolor="#36CFC9", dim=True),
+            "ui.button.warning": Style(color="#0A0A0A", bgcolor="#FADB14", dim=True),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FF4D4F", dim=True),
+            "ui.input": Style(color="#E6F7FF", bgcolor="#1f1f1f", dim=True),
+            "ui.input.focus": Style(color="#8BE9FD", bgcolor="#2a2a2a", dim=True),
+            "ui.selection": Style(bgcolor=None),
+
+            "content.text": Style(color="#E6F7FF"),
+            "content.heading": Style(color="#8BE9FD", bold=True),
+            "content.subheading": Style(color="#00D1FF", bold=True),
+            "content.link": Style(color="#40A9FF", underline=True),
+            "content.quote": Style(color="#36CFC9", italic=True),
+            "content.code": Style(color="#36CFC9"),
+            "content.highlight": Style(color="#0A0A0A", bgcolor="#FADB14"),
+
+            "progress.bar": Style(color="#40A9FF", dim=True),
+            "progress.text": Style(color="#AEEBFF"),
+            "progress.percentage": Style(color="#8BE9FD"),
+
+            "bookshelf.title": Style(color="#8BE9FD", bold=True),
+            "bookshelf.author": Style(color="#AEEBFF"),
+            "bookshelf.progress": Style(color="#40A9FF"),
+            "bookshelf.tag": Style(color="#AEEBFF", bgcolor="#1f1f1f", dim=True),
+            "bookshelf.selected": Style(bgcolor="#1f1f1f", dim=True),
+
+            "reader.text": Style(color="#E6F7FF"),
+            "reader.chapter": Style(color="#8BE9FD", bold=True),
+            "reader.page_number": Style(color="#69C0FF"),
+            "reader.bookmark": Style(color="#FADB14"),
+            "reader.search_result": Style(color="#0A0A0A", bgcolor="#FADB14"),
+        }
+
+        # 玻璃感/透明主题：玻璃玫红（暗）
+        self.themes["glass-rose"] = {
+            "app.title": Style(color="#FF6EC7", bold=True),
+            "app.subtitle": Style(color="#FFC0E6"),
+            "app.accent": Style(color="#FF2D95"),
+            "app.highlight": Style(color="#FFD166"),
+            "app.warning": Style(color="#EF476F"),
+            "app.success": Style(color="#06D6A0"),
+            "app.info": Style(color="#7AD7F0"),
+            "app.muted": Style(color="#A0A0A0"),
+            
+            "ui.border": Style(color="#FF6EC7", dim=True),
+            "ui.background": Style(bgcolor=None),
+            "ui.panel": Style(bgcolor=None),
+            "ui.panel.title": Style(color="#FF6EC7", bold=True),
+            "ui.label": Style(color="#FFE6F5"),
+            "ui.button": Style(color="#141414", bgcolor="#FF2D95", dim=True),
+            "ui.button.primary": Style(color="#141414", bgcolor="#FFD166", dim=True),
+            "ui.button.success": Style(color="#141414", bgcolor="#06D6A0", dim=True),
+            "ui.button.warning": Style(color="#141414", bgcolor="#FF6EC7", dim=True),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#EF476F", dim=True),
+            "ui.input": Style(color="#FFE6F5", bgcolor="#232323", dim=True),
+            "ui.input.focus": Style(color="#FF6EC7", bgcolor="#2d2d2d", dim=True),
+            "ui.selection": Style(bgcolor=None),
+
+            "content.text": Style(color="#FFE6F5"),
+            "content.heading": Style(color="#FF6EC7", bold=True),
+            "content.subheading": Style(color="#FFD166", bold=True),
+            "content.link": Style(color="#FF2D95", underline=True),
+            "content.quote": Style(color="#06D6A0", italic=True),
+            "content.code": Style(color="#06D6A0"),
+            "content.highlight": Style(color="#141414", bgcolor="#FFD166"),
+
+            "progress.bar": Style(color="#FF6EC7", dim=True),
+            "progress.text": Style(color="#FFC0E6"),
+            "progress.percentage": Style(color="#FFD166"),
+
+            "bookshelf.title": Style(color="#FF6EC7", bold=True),
+            "bookshelf.author": Style(color="#FFC0E6"),
+            "bookshelf.progress": Style(color="#FF2D95"),
+            "bookshelf.tag": Style(color="#06D6A0", bgcolor="#232323", dim=True),
+            "bookshelf.selected": Style(bgcolor="#2d2d2d", dim=True),
+
+            "reader.text": Style(color="#FFE6F5"),
+            "reader.chapter": Style(color="#FF6EC7", bold=True),
+            "reader.page_number": Style(color="#FFD166"),
+            "reader.bookmark": Style(color="#FF2D95"),
+            "reader.search_result": Style(color="#141414", bgcolor="#FFD166"),
+        }
+
+        # 玻璃感/透明主题：玻璃琥珀（亮）
+        self.themes["glass-amber"] = {
+            "app.title": Style(color="#000000", bold=True),
+            "app.subtitle": Style(color="#7A7A7A"),
+            "app.accent": Style(color="#FFB200"),
+            "app.highlight": Style(color="#FFDD57"),
+            "app.warning": Style(color="#E63946"),
+            "app.success": Style(color="#2BC48A"),
+            "app.info": Style(color="#4098FF"),
+            "app.muted": Style(color="#A0A0A0"),
+            
+            "ui.border": Style(color="#E6E9ED", dim=True),
+            "ui.background": Style(bgcolor=None),
+            "ui.panel": Style(bgcolor=None),
+            "ui.panel.title": Style(color="#000000", bold=True),
+            "ui.label": Style(color="#4D4D4D"),
+            "ui.button": Style(color="#000000", bgcolor="#FFDD57", dim=True),
+            "ui.button.primary": Style(color="#000000", bgcolor="#FFB200", dim=True),
+            "ui.button.success": Style(color="#FFFFFF", bgcolor="#2BC48A", dim=True),
+            "ui.button.warning": Style(color="#000000", bgcolor="#FFD666", dim=True),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#E63946", dim=True),
+            "ui.input": Style(color="#000000", bgcolor="#FAFAFA", dim=True),
+            "ui.input.focus": Style(color="#000000", bgcolor="#EDEFF3", dim=True),
+            "ui.selection": Style(bgcolor=None),
+
+            "content.text": Style(color="#333333"),
+            "content.heading": Style(color="#000000", bold=True),
+            "content.subheading": Style(color="#7A7A7A", bold=True),
+            "content.link": Style(color="#FFB200", underline=True),
+            "content.quote": Style(color="#2BC48A", italic=True),
+            "content.code": Style(color="#2BC48A"),
+            "content.highlight": Style(color="#000000", bgcolor="#FFF7CC"),
+
+            "progress.bar": Style(color="#FFB200", dim=True),
+            "progress.text": Style(color="#7A7A7A"),
+            "progress.percentage": Style(color="#000000"),
+
+            "bookshelf.title": Style(color="#000000", bold=True),
+            "bookshelf.author": Style(color="#7A7A7A"),
+            "bookshelf.progress": Style(color="#FFB200"),
+            "bookshelf.tag": Style(color="#7A7A7A", bgcolor="#FAFAFA", dim=True),
+            "bookshelf.selected": Style(bgcolor="#FAFAFA", dim=True),
+
+            "reader.text": Style(color="#333333"),
+            "reader.chapter": Style(color="#000000", bold=True),
+            "reader.page_number": Style(color="#A0A0A0"),
+            "reader.bookmark": Style(color="#FFDD57"),
+            "reader.search_result": Style(color="#000000", bgcolor="#FFF7CC"),
+        }
+
+        # 玻璃感/透明主题：玻璃青柠（亮）
+        self.themes["glass-lime"] = {
+            "app.title": Style(color="#0F5132", bold=True),
+            "app.subtitle": Style(color="#2E7D32"),
+            "app.accent": Style(color="#82CD47"),
+            "app.highlight": Style(color="#C3F73A"),
+            "app.warning": Style(color="#D9480F"),
+            "app.success": Style(color="#2BC48A"),
+            "app.info": Style(color="#2EA6FF"),
+            "app.muted": Style(color="#6E7F74"),
+            
+            "ui.border": Style(color="#CFE8CF", dim=True),
+            "ui.background": Style(bgcolor=None),
+            "ui.panel": Style(bgcolor=None),
+            "ui.panel.title": Style(color="#0F5132", bold=True),
+            "ui.label": Style(color="#1B5E20"),
+            "ui.button": Style(color="#0F5132", bgcolor="#C3F73A", dim=True),
+            "ui.button.primary": Style(color="#0F5132", bgcolor="#82CD47", dim=True),
+            "ui.button.success": Style(color="#FFFFFF", bgcolor="#2BC48A", dim=True),
+            "ui.button.warning": Style(color="#0F5132", bgcolor="#FFCD3C", dim=True),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#D9480F", dim=True),
+            "ui.input": Style(color="#0F5132", bgcolor="#F3FFF3", dim=True),
+            "ui.input.focus": Style(color="#0F5132", bgcolor="#E5F9E5", dim=True),
+            "ui.selection": Style(bgcolor=None),
+
+            "content.text": Style(color="#1B5E20"),
+            "content.heading": Style(color="#0F5132", bold=True),
+            "content.subheading": Style(color="#2E7D32", bold=True),
+            "content.link": Style(color="#82CD47", underline=True),
+            "content.quote": Style(color="#2BC48A", italic=True),
+            "content.code": Style(color="#2BC48A"),
+            "content.highlight": Style(color="#0F5132", bgcolor="#F0FFCC"),
+
+            "progress.bar": Style(color="#82CD47", dim=True),
+            "progress.text": Style(color="#2E7D32"),
+            "progress.percentage": Style(color="#0F5132"),
+
+            "bookshelf.title": Style(color="#0F5132", bold=True),
+            "bookshelf.author": Style(color="#2E7D32"),
+            "bookshelf.progress": Style(color="#82CD47"),
+            "bookshelf.tag": Style(color="#2BC48A", bgcolor="#F3FFF3", dim=True),
+            "bookshelf.selected": Style(bgcolor="#E5F9E5", dim=True),
+
+            "reader.text": Style(color="#1B5E20"),
+            "reader.chapter": Style(color="#0F5132", bold=True),
+            "reader.page_number": Style(color="#6E7F74"),
+            "reader.bookmark": Style(color="#C3F73A"),
+            "reader.search_result": Style(color="#0F5132", bgcolor="#F0FFCC"),
+        }
+
+        # 玻璃感/更强通透主题：紫玻璃
+        self.themes["glass-violet"] = {
+            "app.title": Style(color="#B794F4", bold=True),
+            "app.subtitle": Style(color="#D6BCFA"),
+            "app.accent": Style(color="#8B5CF6"),
+            "app.highlight": Style(color="#F6E05E"),
+            "app.warning": Style(color="#F56565"),
+            "app.success": Style(color="#48BB78"),
+            "app.info": Style(color="#63B3ED"),
+            "app.muted": Style(color="#A3A3A3"),
+
+            "ui.border": Style(color="#C4B5FD", dim=True),
+            "ui.panel.title": Style(color="#B794F4", bold=True),
+            "ui.label": Style(color="#EDE9FE"),
+            "ui.button": Style(color="#EDE9FE"),
+            "ui.button.primary": Style(color="#8B5CF6"),
+            "ui.button.success": Style(color="#48BB78"),
+            "ui.button.warning": Style(color="#F6E05E"),
+            "ui.button.danger": Style(color="#F56565"),
+            "ui.input": Style(color="#EDE9FE"),
+            "ui.input.focus": Style(color="#B794F4"),
+
+            "content.text": Style(color="#EDE9FE"),
+            "content.heading": Style(color="#B794F4", bold=True),
+            "content.subheading": Style(color="#8B5CF6", bold=True),
+            "content.link": Style(color="#8B5CF6", underline=True),
+            "content.quote": Style(color="#48BB78", italic=True),
+            "content.code": Style(color="#48BB78"),
+            "content.highlight": Style(color="#B794F4"),
+
+            "progress.bar": Style(color="#8B5CF6"),
+            "progress.text": Style(color="#D6BCFA"),
+            "progress.percentage": Style(color="#B794F4"),
+
+            "bookshelf.title": Style(color="#B794F4", bold=True),
+            "bookshelf.author": Style(color="#D6BCFA"),
+            "bookshelf.progress": Style(color="#8B5CF6"),
+            "bookshelf.tag": Style(color="#48BB78"),
+            "bookshelf.selected": Style(color="#D6BCFA"),
+
+            "reader.text": Style(color="#EDE9FE"),
+            "reader.chapter": Style(color="#B794F4", bold=True),
+            "reader.page_number": Style(color="#C4B5FD"),
+            "reader.bookmark": Style(color="#F6E05E"),
+            "reader.search_result": Style(color="#B794F4"),
+        }
+
+        # 玻璃感/更强通透主题：翠玻璃
+        self.themes["glass-emerald"] = {
+            "app.title": Style(color="#6EE7B7", bold=True),
+            "app.subtitle": Style(color="#A7F3D0"),
+            "app.accent": Style(color="#10B981"),
+            "app.highlight": Style(color="#FBBF24"),
+            "app.warning": Style(color="#F87171"),
+            "app.success": Style(color="#34D399"),
+            "app.info": Style(color="#60A5FA"),
+            "app.muted": Style(color="#94A3B8"),
+
+            "ui.border": Style(color="#34D399", dim=True),
+            "ui.panel.title": Style(color="#6EE7B7", bold=True),
+            "ui.label": Style(color="#ECFDF5"),
+            "ui.button": Style(color="#ECFDF5"),
+            "ui.button.primary": Style(color="#10B981"),
+            "ui.button.success": Style(color="#34D399"),
+            "ui.button.warning": Style(color="#FBBF24"),
+            "ui.button.danger": Style(color="#F87171"),
+            "ui.input": Style(color="#ECFDF5"),
+            "ui.input.focus": Style(color="#6EE7B7"),
+
+            "content.text": Style(color="#ECFDF5"),
+            "content.heading": Style(color="#6EE7B7", bold=True),
+            "content.subheading": Style(color="#10B981", bold=True),
+            "content.link": Style(color="#10B981", underline=True),
+            "content.quote": Style(color="#34D399", italic=True),
+            "content.code": Style(color="#34D399"),
+            "content.highlight": Style(color="#6EE7B7"),
+
+            "progress.bar": Style(color="#10B981"),
+            "progress.text": Style(color="#A7F3D0"),
+            "progress.percentage": Style(color="#6EE7B7"),
+
+            "bookshelf.title": Style(color="#6EE7B7", bold=True),
+            "bookshelf.author": Style(color="#A7F3D0"),
+            "bookshelf.progress": Style(color="#10B981"),
+            "bookshelf.tag": Style(color="#34D399"),
+            "bookshelf.selected": Style(color="#A7F3D0"),
+
+            "reader.text": Style(color="#ECFDF5"),
+            "reader.chapter": Style(color="#6EE7B7", bold=True),
+            "reader.page_number": Style(color="#34D399"),
+            "reader.bookmark": Style(color="#FBBF24"),
+            "reader.search_result": Style(color="#6EE7B7"),
+        }
+
+        # 玻璃感/更强通透主题：珊瑚玻璃
+        self.themes["glass-coral"] = {
+            "app.title": Style(color="#FF8A80", bold=True),
+            "app.subtitle": Style(color="#FFD1C4"),
+            "app.accent": Style(color="#FF6F61"),
+            "app.highlight": Style(color="#FFD166"),
+            "app.warning": Style(color="#EF4444"),
+            "app.success": Style(color="#22C55E"),
+            "app.info": Style(color="#60A5FA"),
+            "app.muted": Style(color="#9CA3AF"),
+
+            "ui.border": Style(color="#FF8A80", dim=True),
+            "ui.panel.title": Style(color="#FF8A80", bold=True),
+            "ui.label": Style(color="#FFE2DC"),
+            "ui.button": Style(color="#FFE2DC"),
+            "ui.button.primary": Style(color="#FF6F61"),
+            "ui.button.success": Style(color="#22C55E"),
+            "ui.button.warning": Style(color="#FFD166"),
+            "ui.button.danger": Style(color="#EF4444"),
+            "ui.input": Style(color="#FFE2DC"),
+            "ui.input.focus": Style(color="#FF8A80"),
+
+            "content.text": Style(color="#FFE2DC"),
+            "content.heading": Style(color="#FF8A80", bold=True),
+            "content.subheading": Style(color="#FF6F61", bold=True),
+            "content.link": Style(color="#FF6F61", underline=True),
+            "content.quote": Style(color="#22C55E", italic=True),
+            "content.code": Style(color="#22C55E"),
+            "content.highlight": Style(color="#FF8A80"),
+
+            "progress.bar": Style(color="#FF6F61"),
+            "progress.text": Style(color="#FFD1C4"),
+            "progress.percentage": Style(color="#FF8A80"),
+
+            "bookshelf.title": Style(color="#FF8A80", bold=True),
+            "bookshelf.author": Style(color="#FFD1C4"),
+            "bookshelf.progress": Style(color="#FF6F61"),
+            "bookshelf.tag": Style(color="#22C55E"),
+            "bookshelf.selected": Style(color="#FFD1C4"),
+
+            "reader.text": Style(color="#FFE2DC"),
+            "reader.chapter": Style(color="#FF8A80", bold=True),
+            "reader.page_number": Style(color="#FF6F61"),
+            "reader.bookmark": Style(color="#FFD166"),
+            "reader.search_result": Style(color="#FF8A80"),
+        }
+
+        # 玻璃感/更强通透主题：天青玻璃
+        self.themes["glass-sky"] = {
+            "app.title": Style(color="#7DD3FC", bold=True),
+            "app.subtitle": Style(color="#BAE6FD"),
+            "app.accent": Style(color="#38BDF8"),
+            "app.highlight": Style(color="#FDE047"),
+            "app.warning": Style(color="#F87171"),
+            "app.success": Style(color="#34D399"),
+            "app.info": Style(color="#60A5FA"),
+            "app.muted": Style(color="#93A3B3"),
+
+            "ui.border": Style(color="#60A5FA", dim=True),
+            "ui.panel.title": Style(color="#7DD3FC", bold=True),
+            "ui.label": Style(color="#E0F2FE"),
+            "ui.button": Style(color="#E0F2FE"),
+            "ui.button.primary": Style(color="#38BDF8"),
+            "ui.button.success": Style(color="#34D399"),
+            "ui.button.warning": Style(color="#FDE047"),
+            "ui.button.danger": Style(color="#F87171"),
+            "ui.input": Style(color="#E0F2FE"),
+            "ui.input.focus": Style(color="#7DD3FC"),
+
+            "content.text": Style(color="#E0F2FE"),
+            "content.heading": Style(color="#7DD3FC", bold=True),
+            "content.subheading": Style(color="#38BDF8", bold=True),
+            "content.link": Style(color="#38BDF8", underline=True),
+            "content.quote": Style(color="#34D399", italic=True),
+            "content.code": Style(color="#34D399"),
+            "content.highlight": Style(color="#7DD3FC"),
+
+            "progress.bar": Style(color="#38BDF8"),
+            "progress.text": Style(color="#BAE6FD"),
+            "progress.percentage": Style(color="#7DD3FC"),
+
+            "bookshelf.title": Style(color="#7DD3FC", bold=True),
+            "bookshelf.author": Style(color="#BAE6FD"),
+            "bookshelf.progress": Style(color="#38BDF8"),
+            "bookshelf.tag": Style(color="#34D399"),
+            "bookshelf.selected": Style(color="#BAE6FD"),
+
+            "reader.text": Style(color="#E0F2FE"),
+            "reader.chapter": Style(color="#7DD3FC", bold=True),
+            "reader.page_number": Style(color="#60A5FA"),
+            "reader.bookmark": Style(color="#FDE047"),
+            "reader.search_result": Style(color="#7DD3FC"),
+        }
+
+        # 玻璃感/更强通透主题：莓果玻璃
+        self.themes["glass-berry"] = {
+            "app.title": Style(color="#FB6F92", bold=True),
+            "app.subtitle": Style(color="#FFC2D1"),
+            "app.accent": Style(color="#F72585"),
+            "app.highlight": Style(color="#FFD166"),
+            "app.warning": Style(color="#E63946"),
+            "app.success": Style(color="#06D6A0"),
+            "app.info": Style(color="#4CC9F0"),
+            "app.muted": Style(color="#A0A0A0"),
+
+            "ui.border": Style(color="#F72585", dim=True),
+            "ui.panel.title": Style(color="#FB6F92", bold=True),
+            "ui.label": Style(color="#FFE3EC"),
+            "ui.button": Style(color="#FFE3EC"),
+            "ui.button.primary": Style(color="#F72585"),
+            "ui.button.success": Style(color="#06D6A0"),
+            "ui.button.warning": Style(color="#FFD166"),
+            "ui.button.danger": Style(color="#E63946"),
+            "ui.input": Style(color="#FFE3EC"),
+            "ui.input.focus": Style(color="#FB6F92"),
+
+            "content.text": Style(color="#FFE3EC"),
+            "content.heading": Style(color="#FB6F92", bold=True),
+            "content.subheading": Style(color="#F72585", bold=True),
+            "content.link": Style(color="#4CC9F0", underline=True),
+            "content.quote": Style(color="#06D6A0", italic=True),
+            "content.code": Style(color="#06D6A0"),
+            "content.highlight": Style(color="#FB6F92"),
+
+            "progress.bar": Style(color="#4CC9F0"),
+            "progress.text": Style(color="#FFC2D1"),
+            "progress.percentage": Style(color="#FB6F92"),
+
+            "bookshelf.title": Style(color="#FB6F92", bold=True),
+            "bookshelf.author": Style(color="#FFC2D1"),
+            "bookshelf.progress": Style(color="#4CC9F0"),
+            "bookshelf.tag": Style(color="#06D6A0"),
+            "bookshelf.selected": Style(color="#FFC2D1"),
+
+            "reader.text": Style(color="#FFE3EC"),
+            "reader.chapter": Style(color="#FB6F92", bold=True),
+            "reader.page_number": Style(color="#4CC9F0"),
+            "reader.bookmark": Style(color="#FFD166"),
+            "reader.search_result": Style(color="#FB6F92"),
+        }
+
+        # 玻璃感/更强通透主题：芒果玻璃
+        self.themes["glass-mango"] = {
+            "app.title": Style(color="#FFB703", bold=True),
+            "app.subtitle": Style(color="#FFE7A1"),
+            "app.accent": Style(color="#FFA500"),
+            "app.highlight": Style(color="#FFF176"),
+            "app.warning": Style(color="#E76F51"),
+            "app.success": Style(color="#2A9D8F"),
+            "app.info": Style(color="#4EA8DE"),
+            "app.muted": Style(color="#9E9E9E"),
+
+            "ui.border": Style(color="#FFD166", dim=True),
+            "ui.panel.title": Style(color="#FFB703", bold=True),
+            "ui.label": Style(color="#FFF4CC"),
+            "ui.button": Style(color="#FFF4CC"),
+            "ui.button.primary": Style(color="#FFA500"),
+            "ui.button.success": Style(color="#2A9D8F"),
+            "ui.button.warning": Style(color="#FFF176"),
+            "ui.button.danger": Style(color="#E76F51"),
+            "ui.input": Style(color="#FFF4CC"),
+            "ui.input.focus": Style(color="#FFB703"),
+
+            "content.text": Style(color="#4E342E"),
+            "content.heading": Style(color="#FFB703", bold=True),
+            "content.subheading": Style(color="#FFA500", bold=True),
+            "content.link": Style(color="#FFA500", underline=True),
+            "content.quote": Style(color="#2A9D8F", italic=True),
+            "content.code": Style(color="#2A9D8F"),
+            "content.highlight": Style(color="#FFB703"),
+
+            "progress.bar": Style(color="#FFA500"),
+            "progress.text": Style(color="#FFE7A1"),
+            "progress.percentage": Style(color="#FFB703"),
+
+            "bookshelf.title": Style(color="#FFB703", bold=True),
+            "bookshelf.author": Style(color="#FFE7A1"),
+            "bookshelf.progress": Style(color="#FFA500"),
+            "bookshelf.tag": Style(color="#2A9D8F"),
+            "bookshelf.selected": Style(color="#FFE7A1"),
+
+            "reader.text": Style(color="#4E342E"),
+            "reader.chapter": Style(color="#FFB703", bold=True),
+            "reader.page_number": Style(color="#FFA500"),
+            "reader.bookmark": Style(color="#FFF176"),
+            "reader.search_result": Style(color="#FFB703"),
+        }
+
+        # 玻璃感/更强通透主题：薄荷玻璃
+        self.themes["glass-mint"] = {
+            "app.title": Style(color="#64E1DC", bold=True),
+            "app.subtitle": Style(color="#B2F1EF"),
+            "app.accent": Style(color="#2DD4BF"),
+            "app.highlight": Style(color="#FDE047"),
+            "app.warning": Style(color="#FB7185"),
+            "app.success": Style(color="#22C55E"),
+            "app.info": Style(color="#60A5FA"),
+            "app.muted": Style(color="#94A3B8"),
+
+            "ui.border": Style(color="#2DD4BF", dim=True),
+            "ui.panel.title": Style(color="#64E1DC", bold=True),
+            "ui.label": Style(color="#ECFEFF"),
+            "ui.button": Style(color="#ECFEFF"),
+            "ui.button.primary": Style(color="#2DD4BF"),
+            "ui.button.success": Style(color="#22C55E"),
+            "ui.button.warning": Style(color="#FDE047"),
+            "ui.button.danger": Style(color="#FB7185"),
+            "ui.input": Style(color="#ECFEFF"),
+            "ui.input.focus": Style(color="#64E1DC"),
+
+            "content.text": Style(color="#ECFEFF"),
+            "content.heading": Style(color="#64E1DC", bold=True),
+            "content.subheading": Style(color="#2DD4BF", bold=True),
+            "content.link": Style(color="#2DD4BF", underline=True),
+            "content.quote": Style(color="#22C55E", italic=True),
+            "content.code": Style(color="#22C55E"),
+            "content.highlight": Style(color="#64E1DC"),
+
+            "progress.bar": Style(color="#2DD4BF"),
+            "progress.text": Style(color="#B2F1EF"),
+            "progress.percentage": Style(color="#64E1DC"),
+
+            "bookshelf.title": Style(color="#64E1DC", bold=True),
+            "bookshelf.author": Style(color="#B2F1EF"),
+            "bookshelf.progress": Style(color="#2DD4BF"),
+            "bookshelf.tag": Style(color="#22C55E"),
+            "bookshelf.selected": Style(color="#B2F1EF"),
+
+            "reader.text": Style(color="#ECFEFF"),
+            "reader.chapter": Style(color="#64E1DC", bold=True),
+            "reader.page_number": Style(color="#2DD4BF"),
+            "reader.bookmark": Style(color="#FDE047"),
+            "reader.search_result": Style(color="#64E1DC"),
+        }
+
+        # 玻璃感/更强通透主题：岩浆玻璃
+        self.themes["glass-lava"] = {
+            "app.title": Style(color="#FF4D4F", bold=True),
+            "app.subtitle": Style(color="#FF9A8B"),
+            "app.accent": Style(color="#FF3B3B"),
+            "app.highlight": Style(color="#FFCA3A"),
+            "app.warning": Style(color="#E63946"),
+            "app.success": Style(color="#2ECC71"),
+            "app.info": Style(color="#339AF0"),
+            "app.muted": Style(color="#A8ADB4"),
+
+            "ui.border": Style(color="#FF4D4F", dim=True),
+            "ui.panel.title": Style(color="#FF4D4F", bold=True),
+            "ui.label": Style(color="#FFE5E5"),
+            "ui.button": Style(color="#FFE5E5"),
+            "ui.button.primary": Style(color="#FF3B3B"),
+            "ui.button.success": Style(color="#2ECC71"),
+            "ui.button.warning": Style(color="#FFCA3A"),
+            "ui.button.danger": Style(color="#E63946"),
+            "ui.input": Style(color="#FFE5E5"),
+            "ui.input.focus": Style(color="#FF4D4F"),
+
+            "content.text": Style(color="#FFE5E5"),
+            "content.heading": Style(color="#FF4D4F", bold=True),
+            "content.subheading": Style(color="#FF3B3B", bold=True),
+            "content.link": Style(color="#339AF0", underline=True),
+            "content.quote": Style(color="#2ECC71", italic=True),
+            "content.code": Style(color="#2ECC71"),
+            "content.highlight": Style(color="#FF4D4F"),
+
+            "progress.bar": Style(color="#339AF0"),
+            "progress.text": Style(color="#FF9A8B"),
+            "progress.percentage": Style(color="#FF4D4F"),
+
+            "bookshelf.title": Style(color="#FF4D4F", bold=True),
+            "bookshelf.author": Style(color="#FF9A8B"),
+            "bookshelf.progress": Style(color="#339AF0"),
+            "bookshelf.tag": Style(color="#2ECC71"),
+            "bookshelf.selected": Style(color="#FF9A8B"),
+
+            "reader.text": Style(color="#FFE5E5"),
+            "reader.chapter": Style(color="#FF4D4F", bold=True),
+            "reader.page_number": Style(color="#339AF0"),
+            "reader.bookmark": Style(color="#FFCA3A"),
+            "reader.search_result": Style(color="#FF4D4F"),
+        }
+
+        # 玻璃感/更强通透主题：水玻璃
+        self.themes["glass-aqua"] = {
+            "app.title": Style(color="#7DF9FF", bold=True),
+            "app.subtitle": Style(color="#C4F1F9"),
+            "app.accent": Style(color="#00E5FF"),
+            "app.highlight": Style(color="#FFF176"),
+            "app.warning": Style(color="#FF6B6B"),
+            "app.success": Style(color="#00E676"),
+            "app.info": Style(color="#4FC3F7"),
+            "app.muted": Style(color="#9AA7B2"),
+
+            "ui.border": Style(color="#00E5FF", dim=True),
+            "ui.panel.title": Style(color="#7DF9FF", bold=True),
+            "ui.label": Style(color="#E6FDFF"),
+            "ui.button": Style(color="#E6FDFF"),
+            "ui.button.primary": Style(color="#00E5FF"),
+            "ui.button.success": Style(color="#00E676"),
+            "ui.button.warning": Style(color="#FFF176"),
+            "ui.button.danger": Style(color="#FF6B6B"),
+            "ui.input": Style(color="#E6FDFF"),
+            "ui.input.focus": Style(color="#7DF9FF"),
+
+            "content.text": Style(color="#E6FDFF"),
+            "content.heading": Style(color="#7DF9FF", bold=True),
+            "content.subheading": Style(color="#00E5FF", bold=True),
+            "content.link": Style(color="#00E5FF", underline=True),
+            "content.quote": Style(color="#00E676", italic=True),
+            "content.code": Style(color="#00E676"),
+            "content.highlight": Style(color="#7DF9FF"),
+
+            "progress.bar": Style(color="#00E5FF"),
+            "progress.text": Style(color="#C4F1F9"),
+            "progress.percentage": Style(color="#7DF9FF"),
+
+            "bookshelf.title": Style(color="#7DF9FF", bold=True),
+            "bookshelf.author": Style(color="#C4F1F9"),
+            "bookshelf.progress": Style(color="#00E5FF"),
+            "bookshelf.tag": Style(color="#00E676"),
+            "bookshelf.selected": Style(color="#C4F1F9"),
+
+            "reader.text": Style(color="#E6FDFF"),
+            "reader.chapter": Style(color="#7DF9FF", bold=True),
+            "reader.page_number": Style(color="#00E5FF"),
+            "reader.bookmark": Style(color="#FFF176"),
+            "reader.search_result": Style(color="#7DF9FF"),
+        }
+
+        # 玻璃感/更强通透主题：石墨玻璃（单色系）
+        self.themes["glass-graphite"] = {
+            "app.title": Style(color="#E5E7EB", bold=True),
+            "app.subtitle": Style(color="#D1D5DB"),
+            "app.accent": Style(color="#9CA3AF"),
+            "app.highlight": Style(color="#FCD34D"),
+            "app.warning": Style(color="#F87171"),
+            "app.success": Style(color="#34D399"),
+            "app.info": Style(color="#60A5FA"),
+            "app.muted": Style(color="#9CA3AF"),
+
+            "ui.border": Style(color="#9CA3AF", dim=True),
+            "ui.panel.title": Style(color="#E5E7EB", bold=True),
+            "ui.label": Style(color="#F3F4F6"),
+            "ui.button": Style(color="#F3F4F6"),
+            "ui.button.primary": Style(color="#9CA3AF"),
+            "ui.button.success": Style(color="#34D399"),
+            "ui.button.warning": Style(color="#FCD34D"),
+            "ui.button.danger": Style(color="#F87171"),
+            "ui.input": Style(color="#F3F4F6"),
+            "ui.input.focus": Style(color="#E5E7EB"),
+
+            "content.text": Style(color="#F3F4F6"),
+            "content.heading": Style(color="#E5E7EB", bold=True),
+            "content.subheading": Style(color="#9CA3AF", bold=True),
+            "content.link": Style(color="#9CA3AF", underline=True),
+            "content.quote": Style(color="#34D399", italic=True),
+            "content.code": Style(color="#34D399"),
+            "content.highlight": Style(color="#E5E7EB"),
+
+            "progress.bar": Style(color="#9CA3AF"),
+            "progress.text": Style(color="#D1D5DB"),
+            "progress.percentage": Style(color="#E5E7EB"),
+
+            "bookshelf.title": Style(color="#E5E7EB", bold=True),
+            "bookshelf.author": Style(color="#D1D5DB"),
+            "bookshelf.progress": Style(color="#9CA3AF"),
+            "bookshelf.tag": Style(color="#34D399"),
+            "bookshelf.selected": Style(color="#D1D5DB"),
+
+            "reader.text": Style(color="#F3F4F6"),
+            "reader.chapter": Style(color="#E5E7EB", bold=True),
+            "reader.page_number": Style(color="#9CA3AF"),
+            "reader.bookmark": Style(color="#FCD34D"),
+            "reader.search_result": Style(color="#E5E7EB"),
+        }
+
+        # 玻璃感/更强通透主题：青柠薄荷玻璃
+        self.themes["glass-limefresh"] = {
+            "app.title": Style(color="#C6F432", bold=True),
+            "app.subtitle": Style(color="#E4FF8D"),
+            "app.accent": Style(color="#A3E635"),
+            "app.highlight": Style(color="#FFEA00"),
+            "app.warning": Style(color="#FB7185"),
+            "app.success": Style(color="#22C55E"),
+            "app.info": Style(color="#38BDF8"),
+            "app.muted": Style(color="#94A3B8"),
+
+            "ui.border": Style(color="#A3E635", dim=True),
+            "ui.panel.title": Style(color="#C6F432", bold=True),
+            "ui.label": Style(color="#F7FFCC"),
+            "ui.button": Style(color="#F7FFCC"),
+            "ui.button.primary": Style(color="#A3E635"),
+            "ui.button.success": Style(color="#22C55E"),
+            "ui.button.warning": Style(color="#FFEA00"),
+            "ui.button.danger": Style(color="#FB7185"),
+            "ui.input": Style(color="#F7FFCC"),
+            "ui.input.focus": Style(color="#C6F432"),
+
+            "content.text": Style(color="#1B5E20"),
+            "content.heading": Style(color="#C6F432", bold=True),
+            "content.subheading": Style(color="#A3E635", bold=True),
+            "content.link": Style(color="#A3E635", underline=True),
+            "content.quote": Style(color="#22C55E", italic=True),
+            "content.code": Style(color="#22C55E"),
+            "content.highlight": Style(color="#C6F432"),
+
+            "progress.bar": Style(color="#A3E635"),
+            "progress.text": Style(color="#E4FF8D"),
+            "progress.percentage": Style(color="#C6F432"),
+
+            "bookshelf.title": Style(color="#C6F432", bold=True),
+            "bookshelf.author": Style(color="#E4FF8D"),
+            "bookshelf.progress": Style(color="#A3E635"),
+            "bookshelf.tag": Style(color="#22C55E"),
+            "bookshelf.selected": Style(color="#E4FF8D"),
+
+            "reader.text": Style(color="#1B5E20"),
+            "reader.chapter": Style(color="#C6F432", bold=True),
+            "reader.page_number": Style(color="#A3E635"),
+            "reader.bookmark": Style(color="#FFEA00"),
+            "reader.search_result": Style(color="#C6F432"),
+        }
+
+        # 玻璃感/更强通透主题：极光玻璃
+        self.themes["glass-aurora"] = {
+            "app.title": Style(color="#7DF9FF", bold=True),
+            "app.subtitle": Style(color="#B5E8F7"),
+            "app.accent": Style(color="#80FFEA"),
+            "app.highlight": Style(color="#FFF176"),
+            "app.warning": Style(color="#FF6B6B"),
+            "app.success": Style(color="#9DFFAD"),
+            "app.info": Style(color="#A78BFA"),
+            "app.muted": Style(color="#A0AEC0"),
+
+            "ui.border": Style(color="#80FFEA", dim=True),
+            "ui.panel.title": Style(color="#7DF9FF", bold=True),
+            "ui.label": Style(color="#E6FDFF"),
+            "ui.button": Style(color="#E6FDFF"),
+            "ui.button.primary": Style(color="#80FFEA"),
+            "ui.button.success": Style(color="#9DFFAD"),
+            "ui.button.warning": Style(color="#FFF176"),
+            "ui.button.danger": Style(color="#FF6B6B"),
+            "ui.input": Style(color="#E6FDFF"),
+            "ui.input.focus": Style(color="#7DF9FF"),
+
+            "content.text": Style(color="#E6FDFF"),
+            "content.heading": Style(color="#7DF9FF", bold=True),
+            "content.subheading": Style(color="#80FFEA", bold=True),
+            "content.link": Style(color="#80FFEA", underline=True),
+            "content.quote": Style(color="#9DFFAD", italic=True),
+            "content.code": Style(color="#9DFFAD"),
+            "content.highlight": Style(color="#7DF9FF"),
+
+            "progress.bar": Style(color="#80FFEA"),
+            "progress.text": Style(color="#B5E8F7"),
+            "progress.percentage": Style(color="#7DF9FF"),
+
+            "bookshelf.title": Style(color="#7DF9FF", bold=True),
+            "bookshelf.author": Style(color="#B5E8F7"),
+            "bookshelf.progress": Style(color="#80FFEA"),
+            "bookshelf.tag": Style(color="#9DFFAD"),
+            "bookshelf.selected": Style(color="#B5E8F7"),
+
+            "reader.text": Style(color="#E6FDFF"),
+            "reader.chapter": Style(color="#7DF9FF", bold=True),
+            "reader.page_number": Style(color="#80FFEA"),
+            "reader.bookmark": Style(color="#FFF176"),
+            "reader.search_result": Style(color="#7DF9FF"),
+        }
+
+        # 玻璃感/更强通透主题：樱桃玻璃
+        self.themes["glass-cherry"] = {
+            "app.title": Style(color="#FF4D6D", bold=True),
+            "app.subtitle": Style(color="#FF9EB5"),
+            "app.accent": Style(color="#E5383B"),
+            "app.highlight": Style(color="#FFD166"),
+            "app.warning": Style(color="#EF4444"),
+            "app.success": Style(color="#06D6A0"),
+            "app.info": Style(color="#3A86FF"),
+            "app.muted": Style(color="#A3A3A3"),
+
+            "ui.border": Style(color="#FF4D6D", dim=True),
+            "ui.panel.title": Style(color="#FF4D6D", bold=True),
+            "ui.label": Style(color="#FFE3EA"),
+            "ui.button": Style(color="#FFE3EA"),
+            "ui.button.primary": Style(color="#E5383B"),
+            "ui.button.success": Style(color="#06D6A0"),
+            "ui.button.warning": Style(color="#FFD166"),
+            "ui.button.danger": Style(color="#EF4444"),
+            "ui.input": Style(color="#FFE3EA"),
+            "ui.input.focus": Style(color="#FF4D6D"),
+
+            "content.text": Style(color="#FFE3EA"),
+            "content.heading": Style(color="#FF4D6D", bold=True),
+            "content.subheading": Style(color="#E5383B", bold=True),
+            "content.link": Style(color="#3A86FF", underline=True),
+            "content.quote": Style(color="#06D6A0", italic=True),
+            "content.code": Style(color="#06D6A0"),
+            "content.highlight": Style(color="#FF4D6D"),
+
+            "progress.bar": Style(color="#3A86FF"),
+            "progress.text": Style(color="#FF9EB5"),
+            "progress.percentage": Style(color="#FF4D6D"),
+
+            "bookshelf.title": Style(color="#FF4D6D", bold=True),
+            "bookshelf.author": Style(color="#FF9EB5"),
+            "bookshelf.progress": Style(color="#3A86FF"),
+            "bookshelf.tag": Style(color="#06D6A0"),
+            "bookshelf.selected": Style(color="#FF9EB5"),
+
+            "reader.text": Style(color="#FFE3EA"),
+            "reader.chapter": Style(color="#FF4D6D", bold=True),
+            "reader.page_number": Style(color="#3A86FF"),
+            "reader.bookmark": Style(color="#FFD166"),
+            "reader.search_result": Style(color="#FF4D6D"),
+        }
+
         logger.info(f"已加载内置主题: {', '.join(self.themes.keys())}")
     
     def get_available_themes(self) -> List[str]:
@@ -1927,7 +2738,7 @@ class ThemeManager:
             return
             
         # 使用Textual内置的主题支持
-        if self.current_theme_name in ["dark", "dracula", "nord", "material", "github-dark", "solarized-dark", "amethyst", "forest-green", "crimson", "slate", "transparent-dark", "cyberpunk", "rainbow-bright", "tropical", "lime-punch", "electric-blue", "magenta-blast", "galaxy", "fiesta"]:
+        if self.current_theme_name in ["dark", "dracula", "nord", "material", "github-dark", "solarized-dark", "amethyst", "forest-green", "crimson", "slate", "transparent-dark", "cyberpunk", "rainbow-bright", "tropical", "lime-punch", "electric-blue", "magenta-blast", "galaxy", "fiesta", "glass-cyan", "glass-rose"]:
             screen.app.dark = True
         else:
             screen.app.dark = False
@@ -2198,6 +3009,10 @@ class ThemeManager:
             "code": pick(["content.code"]) or pick(["success"]) or "#10B981",
             "code_background": pick(["content.code"]) or pick(["surface"]) or ("#1F2937" if "dark" in theme_name else "#E5E7EB"),
         }
+        # 对玻璃感主题，不注入背景相关变量，避免填充背景
+        if theme_name.startswith("glass-"):
+            for k in ("background", "surface", "panel", "code_background"):
+                payload.pop(k, None)
         return {k: v for k, v in payload.items() if v}
 
 

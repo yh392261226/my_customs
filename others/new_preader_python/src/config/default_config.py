@@ -100,7 +100,11 @@ AVAILABLE_THEMES = [
     "paper-white", "cream", "sky-blue", "mint-green", "lavender",
     "neon-pop", "sunset", "ocean", "pastel-dream", "cyberpunk",
     "rainbow-bright", "tropical", "candy-pop", "flamingo", "lime-punch",
-    "electric-blue", "magenta-blast", "citrus-burst", "galaxy", "fiesta"
+    "electric-blue", "magenta-blast", "citrus-burst", "galaxy", "fiesta",
+    "glass-cyan", "glass-rose", "glass-amber", "glass-lime",
+    "glass-violet", "glass-emerald", "glass-coral", "glass-sky", "glass-berry",
+    "glass-mango", "glass-mint", "glass-lava", "glass-aqua", "glass-graphite",
+    "glass-limefresh", "glass-aurora", "glass-cherry"
 ]
 
 # 支持的边框样式
