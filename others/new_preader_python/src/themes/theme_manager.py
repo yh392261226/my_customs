@@ -77,7 +77,7 @@ class ThemeManager:
             "bookshelf.author": Style(color="#C8E6C9"),
             "bookshelf.progress": Style(color="#00BFFF"),
             "bookshelf.tag": Style(color="#708090", bgcolor="#3F3F3F"),
-            "bookshelf.selected": Style(bgcolor="grey23"),
+            "bookshelf.selected": Style(bgcolor="#3b3b3b"),
             
             "reader.text": Style(color="#C8E6C9"),
             "reader.chapter": Style(color="#90EE90", bold=True),
@@ -89,51 +89,51 @@ class ThemeManager:
         # 加载浅色主题
         self.themes["light"] = {
             "app.title": Style(color="black", bold=True),
-            "app.subtitle": Style(color="grey50"),
+            "app.subtitle": Style(color="#808080"),
             "app.accent": Style(color="blue"),
-            "app.highlight": Style(color="yellow4"),
+            "app.highlight": Style(color="#FFD700"),
             "app.warning": Style(color="red"),
             "app.success": Style(color="green"),
             "app.info": Style(color="cyan"),
-            "app.muted": Style(color="grey50"),
+            "app.muted": Style(color="#808080"),
             
-            "ui.border": Style(color="grey50"),
+            "ui.border": Style(color="#808080"),
             "ui.background": Style(bgcolor="white"),
-            "ui.panel": Style(bgcolor="grey93"),
+            "ui.panel": Style(bgcolor="#eeeeee"),
             "ui.panel.title": Style(color="black", bold=True),
-            "ui.label": Style(color="grey15"),
-            "ui.button": Style(color="white", bgcolor="grey50"),
+            "ui.label": Style(color="#262626"),
+            "ui.button": Style(color="white", bgcolor="#808080"),
             "ui.button.primary": Style(color="white", bgcolor="blue"),
             "ui.button.success": Style(color="white", bgcolor="green"),
-            "ui.button.warning": Style(color="white", bgcolor="yellow4"),
+            "ui.button.warning": Style(color="white", bgcolor="#FFD700"),
             "ui.button.danger": Style(color="white", bgcolor="red"),
-            "ui.input": Style(color="black", bgcolor="grey85"),
-            "ui.input.focus": Style(color="black", bgcolor="grey78"),
-            "ui.selection": Style(bgcolor="grey85"),
+            "ui.input": Style(color="black", bgcolor="#d9d9d9"),
+            "ui.input.focus": Style(color="black", bgcolor="#c7c7c7"),
+            "ui.selection": Style(bgcolor="#d9d9d9"),
             
-            "content.text": Style(color="grey15"),
+            "content.text": Style(color="#262626"),
             "content.heading": Style(color="black", bold=True),
-            "content.subheading": Style(color="grey30", bold=True),
+            "content.subheading": Style(color="#4d4d4d", bold=True),
             "content.link": Style(color="blue", underline=True),
-            "content.quote": Style(color="grey30", italic=True),
-            "content.code": Style(color="green", bgcolor="grey93"),
-            "content.highlight": Style(color="white", bgcolor="yellow4"),
+            "content.quote": Style(color="#4d4d4d", italic=True),
+            "content.code": Style(color="green", bgcolor="#eeeeee"),
+            "content.highlight": Style(color="white", bgcolor="#FFD700"),
             
             "progress.bar": Style(color="blue"),
-            "progress.text": Style(color="grey30"),
+            "progress.text": Style(color="#4d4d4d"),
             "progress.percentage": Style(color="black"),
             
             "bookshelf.title": Style(color="black", bold=True),
-            "bookshelf.author": Style(color="grey30"),
+            "bookshelf.author": Style(color="#4d4d4d"),
             "bookshelf.progress": Style(color="blue"),
-            "bookshelf.tag": Style(color="grey50", bgcolor="grey85"),
-            "bookshelf.selected": Style(bgcolor="grey85"),
+            "bookshelf.tag": Style(color="#808080", bgcolor="#d9d9d9"),
+            "bookshelf.selected": Style(bgcolor="#d9d9d9"),
             
-            "reader.text": Style(color="grey15"),
+            "reader.text": Style(color="#262626"),
             "reader.chapter": Style(color="black", bold=True),
-            "reader.page_number": Style(color="grey50"),
-            "reader.bookmark": Style(color="yellow4"),
-            "reader.search_result": Style(color="white", bgcolor="yellow4"),
+            "reader.page_number": Style(color="#808080"),
+            "reader.bookmark": Style(color="#FFD700"),
+            "reader.search_result": Style(color="white", bgcolor="#FFD700"),
         }
         
         # 加载Nord主题 - 使用多样化的颜色
@@ -1948,6 +1948,7 @@ class ThemeManager:
             accent_style = theme_config.get("app.highlight") or theme_config.get("app.accent")
             background_style = theme_config.get("ui.background")
             surface_style = theme_config.get("ui.panel")
+            border_style = theme_config.get("ui.border")
             
             # 提取颜色值
             text_color = getattr(text_style, "color", None) if text_style else None
@@ -1955,17 +1956,56 @@ class ThemeManager:
             accent_color = getattr(accent_style, "color", None) if accent_style else None
             background_color = getattr(background_style, "bgcolor", None) if background_style else None
             surface_color = getattr(surface_style, "bgcolor", None) if surface_style else None
+            border_color = getattr(border_style, "color", None) if border_style else None
             
             # 设置CSS变量
             if text_color:
                 screen.styles.set_rule("$text", text_color)
                 screen.styles.set_rule("$text-muted", text_color)
+                # 提供 $foreground 变量，供 TSS 使用
+                screen.styles.set_rule("$foreground", text_color)
+            else:
+                # 当正文颜色缺失时，提供 $foreground 回退（light 等主题）
+                _fg_fallback = primary_color or accent_color or surface_color or "#333333"
+                if _fg_fallback:
+                    screen.styles.set_rule("$foreground", _fg_fallback)
             
             if primary_color:
                 screen.styles.set_rule("$primary", primary_color)
+                # 提供主色的衍生变量，兼容 TSS 中的 lighten/darken 用法
+                def _adjust_hex_lightness(hex_color: str, delta: int) -> str:
+                    try:
+                        c = hex_color.strip()
+                        if c.startswith("#"):
+                            c = c[1:]
+                        # 支持简写 #rgb
+                        if len(c) == 3:
+                            c = "".join(ch*2 for ch in c)
+                        r = int(c[0:2], 16)
+                        g = int(c[2:4], 16)
+                        b = int(c[4:6], 16)
+                        def clamp(x): 
+                            return max(0, min(255, x))
+                        r = clamp(r + delta)
+                        g = clamp(g + delta)
+                        b = clamp(b + delta)
+                        return f"#{r:02x}{g:02x}{b:02x}"
+                    except Exception:
+                        # 回退原色
+                        return hex_color
+                screen.styles.set_rule("$primary-lighten-1", _adjust_hex_lightness(primary_color, 20))
+                screen.styles.set_rule("$primary-darken-1", _adjust_hex_lightness(primary_color, -20))
             
             if accent_color:
                 screen.styles.set_rule("$accent", accent_color)
+            if border_color:
+                # 提供 $border 变量，供 TSS 使用（如 border: tall $border）
+                screen.styles.set_rule("$border", border_color)
+            else:
+                # 主题缺少边框色时的回退（保证 TSS 的 border 解析）
+                _border_fallback = primary_color or text_color or accent_color or surface_color or "#808080"
+                if _border_fallback:
+                    screen.styles.set_rule("$border", _border_fallback)
             
             if background_color:
                 screen.styles.set_rule("$background", background_color)
@@ -1973,6 +2013,27 @@ class ThemeManager:
             if surface_color:
                 screen.styles.set_rule("$surface", surface_color)
                 screen.styles.set_rule("$panel", surface_color)
+                # 提供表面色的衍生变量（用于边框/hover 等）
+                def _adjust_hex_lightness(hex_color: str, delta: int) -> str:
+                    try:
+                        c = hex_color.strip()
+                        if c.startswith("#"):
+                            c = c[1:]
+                        if len(c) == 3:
+                            c = "".join(ch*2 for ch in c)
+                        r = int(c[0:2], 16)
+                        g = int(c[2:4], 16)
+                        b = int(c[4:6], 16)
+                        def clamp(x): 
+                            return max(0, min(255, x))
+                        r = clamp(r + delta)
+                        g = clamp(g + delta)
+                        b = clamp(b + delta)
+                        return f"#{r:02x}{g:02x}{b:02x}"
+                    except Exception:
+                        return hex_color
+                screen.styles.set_rule("$surface-lighten-1", _adjust_hex_lightness(surface_color, 20))
+                screen.styles.set_rule("$surface-darken-1", _adjust_hex_lightness(surface_color, -20))
             
             # 应用更多主题样式（稳健：若根节点未就绪则延迟）
             target_screen = getattr(screen.app, "screen", None) or screen

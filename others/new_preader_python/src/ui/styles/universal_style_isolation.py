@@ -311,6 +311,29 @@ Input:focus {
                 if hasattr(app.stylesheet, 'add_source'):
                     app.stylesheet.add_source(css_content, read_from=None)
                     if getattr(app, "is_running", True) and hasattr(app, 'screen_stack') and app.screen_stack:
+                        # 在更新前注入缺省主题变量，避免 TSS 解析边框/前景失败
+                        try:
+                            scr = app.screen_stack[-1]
+                            tm = getattr(app, "theme_manager", None)
+                            border_color = None
+                            foreground_color = None
+                            if tm and hasattr(tm, "themes"):
+                                cur = getattr(tm, "current_theme_name", None)
+                                theme_conf = tm.themes.get(cur, {}) if cur else {}
+                                bs = theme_conf.get("ui.border")
+                                if bs and getattr(bs, "color", None):
+                                    border_color = bs.color
+                                ts = theme_conf.get("content.text") or theme_conf.get("ui.label")
+                                if ts and getattr(ts, "color", None):
+                                    foreground_color = ts.color
+                            if not border_color:
+                                border_color = "#808080"
+                            if not foreground_color:
+                                foreground_color = "#333333"
+                            scr.styles.set_rule("$border", border_color)
+                            scr.styles.set_rule("$foreground", foreground_color)
+                        except Exception:
+                            pass
                         app.stylesheet.update(app.screen_stack[-1])
                     else:
                         return

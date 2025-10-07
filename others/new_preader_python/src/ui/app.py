@@ -375,33 +375,11 @@ class NewReaderApp(App[None]):
                                         pass
                             except Exception:
                                 pass
-                            # 同步 UI 与阅读内容主题名称（双向联动）
+                            # 临时主题切换：不同步设置中心、不持久化配置
                             try:
-                                if hasattr(self, "settings_registry") and self.settings_registry:
-                                    try:
-                                        # 设置中心的阅读内容主题
-                                        self.settings_registry.set_value("appearance.theme", chosen)
-                                    except Exception:
-                                        pass
-                                    try:
-                                        # UI 主题单独记录，供设置中心展示
-                                        self.settings_registry.set_value("appearance.ui_theme", chosen)
-                                    except Exception:
-                                        pass
+                                pass
                             except Exception:
                                 pass
-                            # 持久化到配置/数据库（下次启动自动应用）
-                            try:
-                                if hasattr(self, "config_manager") and self.config_manager:
-                                    cfg = self.config_manager.get_config()
-                                    app_cfg = cfg.get("app", {})
-                                    app_cfg["theme"] = chosen
-                                    cfg["app"] = app_cfg
-                                    # 保存配置
-                                    if hasattr(self.config_manager, "save_config"):
-                                        self.config_manager.save_config(cfg)  # type: ignore[attr-defined]
-                            except Exception as e:
-                                logger.debug(f"保存主题到配置失败（可忽略）：{e}")
                             # 提示
                             try:
                                 self.notify(f"已切换主题：{chosen}", severity="information")
@@ -470,9 +448,9 @@ class NewReaderApp(App[None]):
             if self.theme_manager.set_theme(chosen):
                 # 应用到 App（Textual + TSS 变量 + 现有样式注入）
                 self.theme_manager.apply_theme_to_screen(self)
-                # 同步到设置中心
+                # 临时主题切换：不同步设置中心、不持久化
                 try:
-                    self.settings_registry.set_value("appearance.theme", chosen)
+                    pass
                 except Exception:
                     pass
                 # 提示
