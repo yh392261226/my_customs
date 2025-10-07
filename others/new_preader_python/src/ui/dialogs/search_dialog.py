@@ -17,10 +17,7 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 
 class SearchDialog(ModalScreen[Optional[SearchResult]]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
+
     """搜索对话框"""
     
     CSS_PATH = "../styles/search_dialog_overrides.tcss"
@@ -48,7 +45,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         """组合对话框界面"""
         with Vertical(id="search-dialog"):
             yield Label(get_global_i18n().t("search.title"), id="search-title", classes="section-title")
-            with Horizontal(id="search-filters", classes="form-row"):
+            with Vertical(id="search-filters", classes="form-row"):
                 yield Input(placeholder=get_global_i18n().t("search.placeholder"), id="search-input")
                 yield Select(
                     [
@@ -56,7 +53,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                         ("TXT", "txt"),
                         ("EPUB", "epub"),
                         ("MOBI", "mobi"),
-                        ("PDF", "pdf")
+                        ("PDF", "pdf"),
+                        ("AZW3", "azw3")
                     ],
                     value="all",
                     id="format-filter",
@@ -69,6 +67,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     
     def on_mount(self) -> None:
         """挂载时应用主题并初始化表格"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         # 应用当前主题
         current_theme = self.theme_manager.get_current_theme_name()
         self.theme_manager.set_theme(current_theme)

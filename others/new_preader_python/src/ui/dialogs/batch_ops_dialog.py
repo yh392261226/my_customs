@@ -142,7 +142,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                         ("TXT", "txt"),
                         ("EPUB", "epub"),
                         ("MOBI", "mobi"),
-                        ("PDF", "pdf")
+                        ("PDF", "pdf"),
+                        ("AZW3", "azw3")
                     ],
                     value="all",
                     id="search-format-filter",
