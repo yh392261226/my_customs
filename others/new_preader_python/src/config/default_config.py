@@ -98,7 +98,9 @@ AVAILABLE_THEMES = [
     "solarized-light", "amethyst", "forest-green",
     "crimson", "slate", "transparent-dark", "transparent-light",
     "paper-white", "cream", "sky-blue", "mint-green", "lavender",
-    "neon-pop", "sunset", "ocean", "pastel-dream", "cyberpunk"
+    "neon-pop", "sunset", "ocean", "pastel-dream", "cyberpunk",
+    "rainbow-bright", "tropical", "candy-pop", "flamingo", "lime-punch",
+    "electric-blue", "magenta-blast", "citrus-burst", "galaxy", "fiesta"
 ]
 
 # 支持的边框样式

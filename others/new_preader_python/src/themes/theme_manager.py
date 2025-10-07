@@ -1282,6 +1282,506 @@ class ThemeManager:
             "reader.search_result": Style(color="#0A0F1E", bgcolor="#FCEE09"),
         }
 
+        # 颜色鲜艳主题 1：Rainbow Bright（深色）
+        self.themes["rainbow-bright"] = {
+            "app.title": Style(color="#FF3B3B", bold=True),
+            "app.subtitle": Style(color="#FFD93B"),
+            "app.accent": Style(color="#3B82F6"),
+            "app.highlight": Style(color="#F59E0B"),
+            "app.warning": Style(color="#F97316"),
+            "app.success": Style(color="#22C55E"),
+            "app.info": Style(color="#06B6D4"),
+            "app.muted": Style(color="#9CA3AF"),
+
+            "ui.border": Style(color="#9333EA"),
+            "ui.background": Style(bgcolor="#141414"),
+            "ui.panel": Style(bgcolor="#1F1F1F"),
+            "ui.panel.title": Style(color="#FF3B3B", bold=True),
+            "ui.label": Style(color="#FFD93B"),
+            "ui.button": Style(color="#141414", bgcolor="#3B82F6"),
+            "ui.button.primary": Style(color="#141414", bgcolor="#FF3B3B"),
+            "ui.button.success": Style(color="#141414", bgcolor="#22C55E"),
+            "ui.button.warning": Style(color="#141414", bgcolor="#F59E0B"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#F97316"),
+            "ui.input": Style(color="#FFD93B", bgcolor="#1F1F1F"),
+            "ui.input.focus": Style(color="#3B82F6", bgcolor="#262626"),
+            "ui.selection": Style(bgcolor="#1F1F1F"),
+
+            "content.text": Style(color="#E5E7EB"),
+            "content.heading": Style(color="#FF3B3B", bold=True),
+            "content.subheading": Style(color="#FFD93B", bold=True),
+            "content.link": Style(color="#3B82F6", underline=True),
+            "content.quote": Style(color="#22C55E", italic=True),
+            "content.code": Style(color="#22C55E", bgcolor="#141414"),
+            "content.highlight": Style(color="#141414", bgcolor="#FFD93B"),
+
+            "progress.bar": Style(color="#3B82F6"),
+            "progress.text": Style(color="#FFD93B"),
+            "progress.percentage": Style(color="#FF3B3B"),
+
+            "bookshelf.title": Style(color="#FF3B3B", bold=True),
+            "bookshelf.author": Style(color="#9CA3AF"),
+            "bookshelf.progress": Style(color="#3B82F6"),
+            "bookshelf.tag": Style(color="#22C55E", bgcolor="#1F1F1F"),
+            "bookshelf.selected": Style(bgcolor="#262626"),
+
+            "reader.text": Style(color="#E5E7EB"),
+            "reader.chapter": Style(color="#FF3B3B", bold=True),
+            "reader.page_number": Style(color="#FFD93B"),
+            "reader.bookmark": Style(color="#3B82F6"),
+            "reader.search_result": Style(color="#141414", bgcolor="#FFD93B"),
+        }
+
+        # 颜色鲜艳主题 2：Tropical（深色）
+        self.themes["tropical"] = {
+            "app.title": Style(color="#00C897", bold=True),
+            "app.subtitle": Style(color="#7AE582"),
+            "app.accent": Style(color="#FF6F5E"),
+            "app.highlight": Style(color="#FFC857"),
+            "app.warning": Style(color="#F94144"),
+            "app.success": Style(color="#43AA8B"),
+            "app.info": Style(color="#577590"),
+            "app.muted": Style(color="#8D99AE"),
+
+            "ui.border": Style(color="#577590"),
+            "ui.background": Style(bgcolor="#0F2E2E"),
+            "ui.panel": Style(bgcolor="#16403C"),
+            "ui.panel.title": Style(color="#00C897", bold=True),
+            "ui.label": Style(color="#7AE582"),
+            "ui.button": Style(color="#0F2E2E", bgcolor="#FF6F5E"),
+            "ui.button.primary": Style(color="#0F2E2E", bgcolor="#FFC857"),
+            "ui.button.success": Style(color="#0F2E2E", bgcolor="#43AA8B"),
+            "ui.button.warning": Style(color="#0F2E2E", bgcolor="#F94144"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#F94144"),
+            "ui.input": Style(color="#7AE582", bgcolor="#16403C"),
+            "ui.input.focus": Style(color="#00C897", bgcolor="#1C524C"),
+            "ui.selection": Style(bgcolor="#16403C"),
+
+            "content.text": Style(color="#D8F3DC"),
+            "content.heading": Style(color="#00C897", bold=True),
+            "content.subheading": Style(color="#FFC857", bold=True),
+            "content.link": Style(color="#FF6F5E", underline=True),
+            "content.quote": Style(color="#43AA8B", italic=True),
+            "content.code": Style(color="#43AA8B", bgcolor="#0F2E2E"),
+            "content.highlight": Style(color="#0F2E2E", bgcolor="#FFC857"),
+
+            "progress.bar": Style(color="#FF6F5E"),
+            "progress.text": Style(color="#7AE582"),
+            "progress.percentage": Style(color="#00C897"),
+
+            "bookshelf.title": Style(color="#00C897", bold=True),
+            "bookshelf.author": Style(color="#8D99AE"),
+            "bookshelf.progress": Style(color="#FF6F5E"),
+            "bookshelf.tag": Style(color="#43AA8B", bgcolor="#16403C"),
+            "bookshelf.selected": Style(bgcolor="#1C524C"),
+
+            "reader.text": Style(color="#D8F3DC"),
+            "reader.chapter": Style(color="#00C897", bold=True),
+            "reader.page_number": Style(color="#FFC857"),
+            "reader.bookmark": Style(color="#FF6F5E"),
+            "reader.search_result": Style(color="#0F2E2E", bgcolor="#FFC857"),
+        }
+
+        # 颜色鲜艳主题 3：Candy Pop（亮色）
+        self.themes["candy-pop"] = {
+            "app.title": Style(color="#E91E63", bold=True),
+            "app.subtitle": Style(color="#9C27B0"),
+            "app.accent": Style(color="#3F51B5"),
+            "app.highlight": Style(color="#FFC107"),
+            "app.warning": Style(color="#FF5722"),
+            "app.success": Style(color="#4CAF50"),
+            "app.info": Style(color="#00BCD4"),
+            "app.muted": Style(color="#616161"),
+
+            "ui.border": Style(color="#BDBDBD"),
+            "ui.background": Style(bgcolor="#FFF0F6"),
+            "ui.panel": Style(bgcolor="#FFE4EF"),
+            "ui.panel.title": Style(color="#E91E63", bold=True),
+            "ui.label": Style(color="#9C27B0"),
+            "ui.button": Style(color="#FFFFFF", bgcolor="#E91E63"),
+            "ui.button.primary": Style(color="#FFFFFF", bgcolor="#3F51B5"),
+            "ui.button.success": Style(color="#FFFFFF", bgcolor="#4CAF50"),
+            "ui.button.warning": Style(color="#9C27B0", bgcolor="#FFC107"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FF5722"),
+            "ui.input": Style(color="#9C27B0", bgcolor="#FFE4EF"),
+            "ui.input.focus": Style(color="#9C27B0", bgcolor="#FFD6E6"),
+            "ui.selection": Style(bgcolor="#FFE4EF"),
+
+            "content.text": Style(color="#6A1B9A"),
+            "content.heading": Style(color="#E91E63", bold=True),
+            "content.subheading": Style(color="#9C27B0", bold=True),
+            "content.link": Style(color="#3F51B5", underline=True),
+            "content.quote": Style(color="#4CAF50", italic=True),
+            "content.code": Style(color="#4CAF50", bgcolor="#FFE4EF"),
+            "content.highlight": Style(color="#6A1B9A", bgcolor="#FFF8E1"),
+
+            "progress.bar": Style(color="#3F51B5"),
+            "progress.text": Style(color="#9C27B0"),
+            "progress.percentage": Style(color="#E91E63"),
+
+            "bookshelf.title": Style(color="#E91E63", bold=True),
+            "bookshelf.author": Style(color="#616161"),
+            "bookshelf.progress": Style(color="#3F51B5"),
+            "bookshelf.tag": Style(color="#4CAF50", bgcolor="#FFE4EF"),
+            "bookshelf.selected": Style(bgcolor="#FFD6E6"),
+
+            "reader.text": Style(color="#6A1B9A"),
+            "reader.chapter": Style(color="#E91E63", bold=True),
+            "reader.page_number": Style(color="#3F51B5"),
+            "reader.bookmark": Style(color="#FFC107"),
+            "reader.search_result": Style(color="#6A1B9A", bgcolor="#FFF8E1"),
+        }
+
+        # 颜色鲜艳主题 4：Flamingo（亮色）
+        self.themes["flamingo"] = {
+            "app.title": Style(color="#F06292", bold=True),
+            "app.subtitle": Style(color="#CE93D8"),
+            "app.accent": Style(color="#26C6DA"),
+            "app.highlight": Style(color="#FFCA28"),
+            "app.warning": Style(color="#EF5350"),
+            "app.success": Style(color="#66BB6A"),
+            "app.info": Style(color="#29B6F6"),
+            "app.muted": Style(color="#8D6E63"),
+
+            "ui.border": Style(color="#D7CCC8"),
+            "ui.background": Style(bgcolor="#FFF3F5"),
+            "ui.panel": Style(bgcolor="#FFE9EE"),
+            "ui.panel.title": Style(color="#F06292", bold=True),
+            "ui.label": Style(color="#CE93D8"),
+            "ui.button": Style(color="#FFFFFF", bgcolor="#F06292"),
+            "ui.button.primary": Style(color="#FFFFFF", bgcolor="#26C6DA"),
+            "ui.button.success": Style(color="#FFFFFF", bgcolor="#66BB6A"),
+            "ui.button.warning": Style(color="#8D6E63", bgcolor="#FFCA28"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#EF5350"),
+            "ui.input": Style(color="#8D6E63", bgcolor="#FFE9EE"),
+            "ui.input.focus": Style(color="#8D6E63", bgcolor="#FFDDE3"),
+            "ui.selection": Style(bgcolor="#FFE9EE"),
+
+            "content.text": Style(color="#6D4C41"),
+            "content.heading": Style(color="#F06292", bold=True),
+            "content.subheading": Style(color="#CE93D8", bold=True),
+            "content.link": Style(color="#26C6DA", underline=True),
+            "content.quote": Style(color="#66BB6A", italic=True),
+            "content.code": Style(color="#66BB6A", bgcolor="#FFE9EE"),
+            "content.highlight": Style(color="#6D4C41", bgcolor="#FFF8E1"),
+
+            "progress.bar": Style(color="#26C6DA"),
+            "progress.text": Style(color="#CE93D8"),
+            "progress.percentage": Style(color="#F06292"),
+
+            "bookshelf.title": Style(color="#F06292", bold=True),
+            "bookshelf.author": Style(color="#8D6E63"),
+            "bookshelf.progress": Style(color="#26C6DA"),
+            "bookshelf.tag": Style(color="#66BB6A", bgcolor="#FFE9EE"),
+            "bookshelf.selected": Style(bgcolor="#FFDDE3"),
+
+            "reader.text": Style(color="#6D4C41"),
+            "reader.chapter": Style(color="#F06292", bold=True),
+            "reader.page_number": Style(color="#26C6DA"),
+            "reader.bookmark": Style(color="#FFCA28"),
+            "reader.search_result": Style(color="#6D4C41", bgcolor="#FFF8E1"),
+        }
+
+        # 颜色鲜艳主题 5：Lime Punch（深色）
+        self.themes["lime-punch"] = {
+            "app.title": Style(color="#B8FF3B", bold=True),
+            "app.subtitle": Style(color="#D7FF6B"),
+            "app.accent": Style(color="#00D8FF"),
+            "app.highlight": Style(color="#FFB703"),
+            "app.warning": Style(color="#FB5607"),
+            "app.success": Style(color="#80ED99"),
+            "app.info": Style(color="#48CAE4"),
+            "app.muted": Style(color="#94A3B8"),
+
+            "ui.border": Style(color="#10B981"),
+            "ui.background": Style(bgcolor="#0D0F0A"),
+            "ui.panel": Style(bgcolor="#141913"),
+            "ui.panel.title": Style(color="#B8FF3B", bold=True),
+            "ui.label": Style(color="#D7FF6B"),
+            "ui.button": Style(color="#0D0F0A", bgcolor="#B8FF3B"),
+            "ui.button.primary": Style(color="#0D0F0A", bgcolor="#00D8FF"),
+            "ui.button.success": Style(color="#0D0F0A", bgcolor="#80ED99"),
+            "ui.button.warning": Style(color="#0D0F0A", bgcolor="#FFB703"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#FB5607"),
+            "ui.input": Style(color="#D7FF6B", bgcolor="#141913"),
+            "ui.input.focus": Style(color="#00D8FF", bgcolor="#1A2018"),
+            "ui.selection": Style(bgcolor="#141913"),
+
+            "content.text": Style(color="#E2E8F0"),
+            "content.heading": Style(color="#B8FF3B", bold=True),
+            "content.subheading": Style(color="#00D8FF", bold=True),
+            "content.link": Style(color="#00D8FF", underline=True),
+            "content.quote": Style(color="#80ED99", italic=True),
+            "content.code": Style(color="#80ED99", bgcolor="#0D0F0A"),
+            "content.highlight": Style(color="#0D0F0A", bgcolor="#FFB703"),
+
+            "progress.bar": Style(color="#00D8FF"),
+            "progress.text": Style(color="#D7FF6B"),
+            "progress.percentage": Style(color="#B8FF3B"),
+
+            "bookshelf.title": Style(color="#B8FF3B", bold=True),
+            "bookshelf.author": Style(color="#94A3B8"),
+            "bookshelf.progress": Style(color="#00D8FF"),
+            "bookshelf.tag": Style(color="#80ED99", bgcolor="#141913"),
+            "bookshelf.selected": Style(bgcolor="#1A2018"),
+
+            "reader.text": Style(color="#E2E8F0"),
+            "reader.chapter": Style(color="#B8FF3B", bold=True),
+            "reader.page_number": Style(color="#00D8FF"),
+            "reader.bookmark": Style(color="#FFB703"),
+            "reader.search_result": Style(color="#0D0F0A", bgcolor="#FFB703"),
+        }
+
+        # 颜色鲜艳主题 6：Electric Blue（深色）
+        self.themes["electric-blue"] = {
+            "app.title": Style(color="#00A8E8", bold=True),
+            "app.subtitle": Style(color="#90E0EF"),
+            "app.accent": Style(color="#0077B6"),
+            "app.highlight": Style(color="#F9C74F"),
+            "app.warning": Style(color="#F94144"),
+            "app.success": Style(color="#43AA8B"),
+            "app.info": Style(color="#00A8E8"),
+            "app.muted": Style(color="#6C757D"),
+
+            "ui.border": Style(color="#0077B6"),
+            "ui.background": Style(bgcolor="#0B132B"),
+            "ui.panel": Style(bgcolor="#1C2541"),
+            "ui.panel.title": Style(color="#00A8E8", bold=True),
+            "ui.label": Style(color="#90E0EF"),
+            "ui.button": Style(color="#0B132B", bgcolor="#00A8E8"),
+            "ui.button.primary": Style(color="#0B132B", bgcolor="#F9C74F"),
+            "ui.button.success": Style(color="#0B132B", bgcolor="#43AA8B"),
+            "ui.button.warning": Style(color="#0B132B", bgcolor="#F94144"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#F94144"),
+            "ui.input": Style(color="#90E0EF", bgcolor="#1C2541"),
+            "ui.input.focus": Style(color="#00A8E8", bgcolor="#3A506B"),
+            "ui.selection": Style(bgcolor="#1C2541"),
+
+            "content.text": Style(color="#E0FBFC"),
+            "content.heading": Style(color="#00A8E8", bold=True),
+            "content.subheading": Style(color="#F9C74F", bold=True),
+            "content.link": Style(color="#0077B6", underline=True),
+            "content.quote": Style(color="#43AA8B", italic=True),
+            "content.code": Style(color="#43AA8B", bgcolor="#0B132B"),
+            "content.highlight": Style(color="#0B132B", bgcolor="#F9C74F"),
+
+            "progress.bar": Style(color="#00A8E8"),
+            "progress.text": Style(color="#90E0EF"),
+            "progress.percentage": Style(color="#F9C74F"),
+
+            "bookshelf.title": Style(color="#00A8E8", bold=True),
+            "bookshelf.author": Style(color="#6C757D"),
+            "bookshelf.progress": Style(color="#0077B6"),
+            "bookshelf.tag": Style(color="#43AA8B", bgcolor="#1C2541"),
+            "bookshelf.selected": Style(bgcolor="#3A506B"),
+
+            "reader.text": Style(color="#E0FBFC"),
+            "reader.chapter": Style(color="#00A8E8", bold=True),
+            "reader.page_number": Style(color="#F9C74F"),
+            "reader.bookmark": Style(color="#0077B6"),
+            "reader.search_result": Style(color="#0B132B", bgcolor="#F9C74F"),
+        }
+
+        # 颜色鲜艳主题 7：Magenta Blast（深色）
+        self.themes["magenta-blast"] = {
+            "app.title": Style(color="#FF2D95", bold=True),
+            "app.subtitle": Style(color="#FF7AC8"),
+            "app.accent": Style(color="#8A2BE2"),
+            "app.highlight": Style(color="#FFD166"),
+            "app.warning": Style(color="#EF476F"),
+            "app.success": Style(color="#06D6A0"),
+            "app.info": Style(color="#118AB2"),
+            "app.muted": Style(color="#A0AEC0"),
+
+            "ui.border": Style(color="#8A2BE2"),
+            "ui.background": Style(bgcolor="#1A1423"),
+            "ui.panel": Style(bgcolor="#2A1E35"),
+            "ui.panel.title": Style(color="#FF2D95", bold=True),
+            "ui.label": Style(color="#FF7AC8"),
+            "ui.button": Style(color="#1A1423", bgcolor="#FF2D95"),
+            "ui.button.primary": Style(color="#1A1423", bgcolor="#FFD166"),
+            "ui.button.success": Style(color="#1A1423", bgcolor="#06D6A0"),
+            "ui.button.warning": Style(color="#1A1423", bgcolor="#EF476F"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#EF476F"),
+            "ui.input": Style(color="#FF7AC8", bgcolor="#2A1E35"),
+            "ui.input.focus": Style(color="#8A2BE2", bgcolor="#352545"),
+            "ui.selection": Style(bgcolor="#2A1E35"),
+
+            "content.text": Style(color="#F1EAF1"),
+            "content.heading": Style(color="#FF2D95", bold=True),
+            "content.subheading": Style(color="#FFD166", bold=True),
+            "content.link": Style(color="#8A2BE2", underline=True),
+            "content.quote": Style(color="#06D6A0", italic=True),
+            "content.code": Style(color="#06D6A0", bgcolor="#1A1423"),
+            "content.highlight": Style(color="#1A1423", bgcolor="#FFD166"),
+
+            "progress.bar": Style(color="#8A2BE2"),
+            "progress.text": Style(color="#FF7AC8"),
+            "progress.percentage": Style(color="#FFD166"),
+
+            "bookshelf.title": Style(color="#FF2D95", bold=True),
+            "bookshelf.author": Style(color="#A0AEC0"),
+            "bookshelf.progress": Style(color="#8A2BE2"),
+            "bookshelf.tag": Style(color="#06D6A0", bgcolor="#2A1E35"),
+            "bookshelf.selected": Style(bgcolor="#352545"),
+
+            "reader.text": Style(color="#F1EAF1"),
+            "reader.chapter": Style(color="#FF2D95", bold=True),
+            "reader.page_number": Style(color="#FFD166"),
+            "reader.bookmark": Style(color="#8A2BE2"),
+            "reader.search_result": Style(color="#1A1423", bgcolor="#FFD166"),
+        }
+
+        # 颜色鲜艳主题 8：Citrus Burst（亮色）
+        self.themes["citrus-burst"] = {
+            "app.title": Style(color="#F59E0B", bold=True),
+            "app.subtitle": Style(color="#FB923C"),
+            "app.accent": Style(color="#10B981"),
+            "app.highlight": Style(color="#FCD34D"),
+            "app.warning": Style(color="#EF4444"),
+            "app.success": Style(color="#22C55E"),
+            "app.info": Style(color="#06B6D4"),
+            "app.muted": Style(color="#6B7280"),
+
+            "ui.border": Style(color="#E5E7EB"),
+            "ui.background": Style(bgcolor="#FFF7ED"),
+            "ui.panel": Style(bgcolor="#FFEDD5"),
+            "ui.panel.title": Style(color="#F59E0B", bold=True),
+            "ui.label": Style(color="#FB923C"),
+            "ui.button": Style(color="#FFFFFF", bgcolor="#F59E0B"),
+            "ui.button.primary": Style(color="#FFFFFF", bgcolor="#10B981"),
+            "ui.button.success": Style(color="#FFFFFF", bgcolor="#22C55E"),
+            "ui.button.warning": Style(color="#6B7280", bgcolor="#FCD34D"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#EF4444"),
+            "ui.input": Style(color="#6B7280", bgcolor="#FFEDD5"),
+            "ui.input.focus": Style(color="#6B7280", bgcolor="#FFE4D6"),
+            "ui.selection": Style(bgcolor="#FFEDD5"),
+
+            "content.text": Style(color="#7C2D12"),
+            "content.heading": Style(color="#F59E0B", bold=True),
+            "content.subheading": Style(color="#10B981", bold=True),
+            "content.link": Style(color="#10B981", underline=True),
+            "content.quote": Style(color="#22C55E", italic=True),
+            "content.code": Style(color="#22C55E", bgcolor="#FFEDD5"),
+            "content.highlight": Style(color="#7C2D12", bgcolor="#FEF3C7"),
+
+            "progress.bar": Style(color="#10B981"),
+            "progress.text": Style(color="#FB923C"),
+            "progress.percentage": Style(color="#F59E0B"),
+
+            "bookshelf.title": Style(color="#F59E0B", bold=True),
+            "bookshelf.author": Style(color="#6B7280"),
+            "bookshelf.progress": Style(color="#10B981"),
+            "bookshelf.tag": Style(color="#22C55E", bgcolor="#FFEDD5"),
+            "bookshelf.selected": Style(bgcolor="#FFE4D6"),
+
+            "reader.text": Style(color="#7C2D12"),
+            "reader.chapter": Style(color="#F59E0B", bold=True),
+            "reader.page_number": Style(color="#10B981"),
+            "reader.bookmark": Style(color="#FCD34D"),
+            "reader.search_result": Style(color="#7C2D12", bgcolor="#FEF3C7"),
+        }
+
+        # 颜色鲜艳主题 9：Galaxy（深色）
+        self.themes["galaxy"] = {
+            "app.title": Style(color="#7DD3FC", bold=True),
+            "app.subtitle": Style(color="#C4B5FD"),
+            "app.accent": Style(color="#22D3EE"),
+            "app.highlight": Style(color="#FDE68A"),
+            "app.warning": Style(color="#F87171"),
+            "app.success": Style(color="#34D399"),
+            "app.info": Style(color="#60A5FA"),
+            "app.muted": Style(color="#9CA3AF"),
+
+            "ui.border": Style(color="#6D28D9"),
+            "ui.background": Style(bgcolor="#0B1026"),
+            "ui.panel": Style(bgcolor="#161A35"),
+            "ui.panel.title": Style(color="#7DD3FC", bold=True),
+            "ui.label": Style(color="#C4B5FD"),
+            "ui.button": Style(color="#0B1026", bgcolor="#6D28D9"),
+            "ui.button.primary": Style(color="#0B1026", bgcolor="#22D3EE"),
+            "ui.button.success": Style(color="#0B1026", bgcolor="#34D399"),
+            "ui.button.warning": Style(color="#0B1026", bgcolor="#FDE68A"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#F87171"),
+            "ui.input": Style(color="#C4B5FD", bgcolor="#161A35"),
+            "ui.input.focus": Style(color="#22D3EE", bgcolor="#1E2449"),
+            "ui.selection": Style(bgcolor="#161A35"),
+
+            "content.text": Style(color="#E5E7EB"),
+            "content.heading": Style(color="#7DD3FC", bold=True),
+            "content.subheading": Style(color="#22D3EE", bold=True),
+            "content.link": Style(color="#6D28D9", underline=True),
+            "content.quote": Style(color="#34D399", italic=True),
+            "content.code": Style(color="#34D399", bgcolor="#0B1026"),
+            "content.highlight": Style(color="#0B1026", bgcolor="#FDE68A"),
+
+            "progress.bar": Style(color="#22D3EE"),
+            "progress.text": Style(color="#C4B5FD"),
+            "progress.percentage": Style(color="#FDE68A"),
+
+            "bookshelf.title": Style(color="#7DD3FC", bold=True),
+            "bookshelf.author": Style(color="#9CA3AF"),
+            "bookshelf.progress": Style(color="#6D28D9"),
+            "bookshelf.tag": Style(color="#34D399", bgcolor="#161A35"),
+            "bookshelf.selected": Style(bgcolor="#1E2449"),
+
+            "reader.text": Style(color="#E5E7EB"),
+            "reader.chapter": Style(color="#7DD3FC", bold=True),
+            "reader.page_number": Style(color="#22D3EE"),
+            "reader.bookmark": Style(color="#FDE68A"),
+            "reader.search_result": Style(color="#0B1026", bgcolor="#FDE68A"),
+        }
+
+        # 颜色鲜艳主题 10：Fiesta（深色）
+        self.themes["fiesta"] = {
+            "app.title": Style(color="#FF006E", bold=True),
+            "app.subtitle": Style(color="#FB5607"),
+            "app.accent": Style(color="#3A86FF"),
+            "app.highlight": Style(color="#FFBE0B"),
+            "app.warning": Style(color="#E63946"),
+            "app.success": Style(color="#06D6A0"),
+            "app.info": Style(color="#118AB2"),
+            "app.muted": Style(color="#A8A9AD"),
+
+            "ui.border": Style(color="#3A86FF"),
+            "ui.background": Style(bgcolor="#121212"),
+            "ui.panel": Style(bgcolor="#1E1E1E"),
+            "ui.panel.title": Style(color="#FF006E", bold=True),
+            "ui.label": Style(color="#FB5607"),
+            "ui.button": Style(color="#121212", bgcolor="#FF006E"),
+            "ui.button.primary": Style(color="#121212", bgcolor="#3A86FF"),
+            "ui.button.success": Style(color="#121212", bgcolor="#06D6A0"),
+            "ui.button.warning": Style(color="#121212", bgcolor="#FFBE0B"),
+            "ui.button.danger": Style(color="#FFFFFF", bgcolor="#E63946"),
+            "ui.input": Style(color="#FB5607", bgcolor="#1E1E1E"),
+            "ui.input.focus": Style(color="#3A86FF", bgcolor="#272727"),
+            "ui.selection": Style(bgcolor="#1E1E1E"),
+
+            "content.text": Style(color="#EAEAEA"),
+            "content.heading": Style(color="#FF006E", bold=True),
+            "content.subheading": Style(color="#3A86FF", bold=True),
+            "content.link": Style(color="#3A86FF", underline=True),
+            "content.quote": Style(color="#06D6A0", italic=True),
+            "content.code": Style(color="#06D6A0", bgcolor="#121212"),
+            "content.highlight": Style(color="#121212", bgcolor="#FFBE0B"),
+
+            "progress.bar": Style(color="#3A86FF"),
+            "progress.text": Style(color="#FB5607"),
+            "progress.percentage": Style(color="#FFBE0B"),
+
+            "bookshelf.title": Style(color="#FF006E", bold=True),
+            "bookshelf.author": Style(color="#A8A9AD"),
+            "bookshelf.progress": Style(color="#3A86FF"),
+            "bookshelf.tag": Style(color="#06D6A0", bgcolor="#1E1E1E"),
+            "bookshelf.selected": Style(bgcolor="#272727"),
+
+            "reader.text": Style(color="#EAEAEA"),
+            "reader.chapter": Style(color="#FF006E", bold=True),
+            "reader.page_number": Style(color="#3A86FF"),
+            "reader.bookmark": Style(color="#FFBE0B"),
+            "reader.search_result": Style(color="#121212", bgcolor="#FFBE0B"),
+        }
+
         logger.info(f"已加载内置主题: {', '.join(self.themes.keys())}")
     
     def get_available_themes(self) -> List[str]:
@@ -1422,9 +1922,12 @@ class ThemeManager:
         """
         if not hasattr(screen, "app"):
             return
+        # 应用未运行或正在退出时，不更新样式
+        if hasattr(screen.app, "is_running") and not screen.app.is_running:
+            return
             
         # 使用Textual内置的主题支持
-        if self.current_theme_name in ["dark", "dracula", "nord", "material", "github-dark", "solarized-dark", "amethyst", "forest-green", "crimson", "slate", "transparent-dark"]:
+        if self.current_theme_name in ["dark", "dracula", "nord", "material", "github-dark", "solarized-dark", "amethyst", "forest-green", "crimson", "slate", "transparent-dark", "cyberpunk", "rainbow-bright", "tropical", "lime-punch", "electric-blue", "magenta-blast", "galaxy", "fiesta"]:
             screen.app.dark = True
         else:
             screen.app.dark = False
@@ -1471,12 +1974,44 @@ class ThemeManager:
                 screen.styles.set_rule("$surface", surface_color)
                 screen.styles.set_rule("$panel", surface_color)
             
-            # 应用更多主题样式
-            self._apply_comprehensive_theme_styles(screen, theme_config)
+            # 应用更多主题样式（稳健：若根节点未就绪则延迟）
+            target_screen = getattr(screen.app, "screen", None) or screen
+
+            def _do_apply():
+                app_obj = getattr(target_screen, "app", None) or getattr(screen, "app", None)
+                if app_obj is None or (hasattr(app_obj, "is_running") and not app_obj.is_running):
+                    return
+                try:
+                    self._apply_comprehensive_theme_styles(target_screen, theme_config)
+                except Exception as _e:
+                    logger.debug(f"应用全面主题样式失败（可忽略）：{_e}")
+
+            if hasattr(target_screen, "styles") and getattr(target_screen, "is_mounted", True):
+                _do_apply()
+            elif hasattr(target_screen, "call_later"):
+                app_obj = getattr(target_screen, "app", None) or getattr(screen, "app", None)
+                if app_obj is None or (hasattr(app_obj, "is_running") and not app_obj.is_running):
+                    pass
+                else:
+                    try:
+                        target_screen.call_later(_do_apply)
+                    except Exception as _e:
+                        logger.debug(f"延迟应用主题样式失败（可忽略）：{_e}")
+            else:
+                return
     
     def _apply_comprehensive_theme_styles(self, screen, theme_config: Dict[str, Any]) -> None:
         """应用全面的主题样式到屏幕组件"""
-        if not hasattr(screen, 'styles'):
+        if not hasattr(screen, "styles"):
+            return
+
+        # 如果未挂载，延迟应用
+        if hasattr(screen, "is_mounted") and not screen.is_mounted:
+            if hasattr(screen, "call_later"):
+                try:
+                    screen.call_later(lambda: self._apply_comprehensive_theme_styles(screen, theme_config))
+                except Exception as _e:
+                    logger.debug(f"延迟应用全面样式失败（可忽略）：{_e}")
             return
             
         # 应用UI组件样式
@@ -1610,6 +2145,11 @@ class ThemeManager:
         try:
             theme_name = name or self.current_theme_name
             payload = self._build_textual_theme_payload(theme_name)
+
+            # 应用未运行或正在退出时，不继续主题注册/样式注入
+            if hasattr(app, "is_running") and not app.is_running:
+                return
+
             # 尽力确保已注册（与 _register_one_with_textual 相同的多入口逻辑）
             try:
                 import importlib
@@ -1663,7 +2203,14 @@ class ThemeManager:
                     css_lines = [f"${k}: {v};" for k, v in payload.items()]
                     app.stylesheet.add_source("\n".join(css_lines))
                     if hasattr(app, "screen_stack") and app.screen_stack:
-                        app.stylesheet.update(app.screen_stack[-1])
+                        target = app.screen_stack[-1]
+                        try:
+                            if hasattr(target, "is_mounted") and not target.is_mounted and hasattr(target, "call_later"):
+                                target.call_later(lambda: app.stylesheet.update(target))
+                            else:
+                                app.stylesheet.update(target)
+                        except Exception as e:
+                            logger.debug(f"更新样式表失败（可忽略）：{e}")
             except Exception as e:
                 logger.debug(f"注入主题 CSS 变量失败（可忽略）：{e}")
         except Exception as e:
