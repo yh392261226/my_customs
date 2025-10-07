@@ -186,11 +186,11 @@ class StyleIsolationManager:
             if hasattr(app, 'stylesheet') and app.stylesheet:
                 # 使用正确的方法添加CSS源
                 if hasattr(app.stylesheet, 'add_source'):
-                    app.stylesheet.add_source(css_content, read_from=f"comprehensive_style_{id(self)}")
-                    if hasattr(app, 'screen_stack') and app.screen_stack:
+                    app.stylesheet.add_source(css_content, read_from=None)
+                    if getattr(app, "is_running", True) and hasattr(app, 'screen_stack') and app.screen_stack:
                         app.stylesheet.update(app.screen_stack[-1])
                     else:
-                        logger.warning("无法获取root节点，跳过样式更新")
+                        return
                 else:
                     # 备用方法
                     logger.warning("stylesheet.add_source方法不可用，使用备用方法")
