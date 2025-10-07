@@ -119,7 +119,7 @@ class BookManager:
                     error_msg = f"目录不存在: {directory}"
                     logger.error(error_msg)
                     if result_callback:
-                        result_callback((0, [error_msg]))
+                        result_callback(0, [error_msg])
                     return
                     
                 # 查找所有支持的书籍文件
@@ -157,12 +157,12 @@ class BookManager:
                 logger.info(f"扫描完成: 成功添加 {success_count} 本书籍, 失败 {len(failed_files)} 个文件")
                 
                 if result_callback:
-                    result_callback((success_count, failed_files))
+                    result_callback(success_count, failed_files)
                     
             except Exception as e:
                 logger.error(f"扫描目录时发生错误: {e}")
                 if result_callback:
-                    result_callback((0, [str(e)]))
+                    result_callback(0, [str(e)])
                     
         # 在后台线程执行扫描任务
         threading.Thread(target=scan_task, daemon=True).start()

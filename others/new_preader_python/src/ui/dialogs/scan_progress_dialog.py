@@ -105,7 +105,7 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
     def _update_scan_complete(self) -> None:
         """更新扫描完成状态"""
         progress_bar = self.query_one("#scan-progress", ProgressBar)
-        progress_bar.advance(100)
+        progress_bar.update(progress=100)
         
         status = self.query_one("#scan-status", Static)
         results = self.query_one("#scan-results", Static)
