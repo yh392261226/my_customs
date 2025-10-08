@@ -24,7 +24,8 @@ class GetBooksScreen(Screen[None]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("n", "open_novel_sites", "书籍网站"),
         ("p", "open_proxy_list", "代理设置"),
-        ("enter", "open_selected", "进入"),
+        ("enter", "open_selected", "进入并打开浏览器"),
+        ("space", "open_selected", "进入"),
     ]
 
 
@@ -89,7 +90,7 @@ class GetBooksScreen(Screen[None]):
                 Horizontal(
                     Label(get_global_i18n().t('get_books.shortcut_n'), id="shortcut-n"),
                     Label(get_global_i18n().t('get_books.shortcut_p'), id="shortcut-p"),
-                    Label(get_global_i18n().t('get_books.shortcut_enter'), id="shortcut-enter"),
+                    Label(f"{get_global_i18n().t('get_books.shortcut_space')} {get_global_i18n().t('get_books.shortcut_enter')}", id="shortcut-enter"),
                     Label(get_global_i18n().t('get_books.shortcut_esc'), id="shortcut-esc"),
                     id="get-books-shortcuts-bar",
                     classes="status-bar"
