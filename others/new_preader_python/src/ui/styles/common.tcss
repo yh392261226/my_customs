@@ -6,7 +6,9 @@
 /* ===== 通用工具与组件基线（原 utilities.tcss） ===== */
 
 /* 公用样式：集中常用布局与控件尺寸，供全局复用 */
-
+.hidden {
+    display: none;
+}
 /* 统一按钮行：水平排列，固定高，按钮有最小宽度 */
 .btn-row {
     layout: horizontal;
@@ -87,7 +89,7 @@ Button.-primary:focus {
 
 Screen {
     layout: vertical;
-    border: solid $panel;
+    border: round $panel;
 }
 
 Header {

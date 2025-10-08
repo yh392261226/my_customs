@@ -1,5 +1,6 @@
 # 核心框架和UI
 textual>=0.40.0
+textual_serve>=1.1.2
 rich>=13.5.0
 
 # 文本处理和格式化

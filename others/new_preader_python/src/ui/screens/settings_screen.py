@@ -124,13 +124,14 @@ class SettingsScreen(Screen[Any]):
                 )
             
             # 边框样式
-            yield Label(get_global_i18n().t("settings.border_style"), classes="setting-label")
+            yield Label(get_global_i18n().t("settings.border_style"), classes="setting-label hidden")
             border_setting = self.setting_registry.get_setting("appearance.border_style")
             if border_setting and isinstance(border_setting, SelectSetting):
                 yield Select(
                     [(label, value) for value, label in zip(border_setting.options, border_setting.option_labels)],
                     value=border_setting.value,
-                    id="appearance-border-select"
+                    id="appearance-border-select",
+                    classes="hidden"
                 )
             
             # 显示图标
