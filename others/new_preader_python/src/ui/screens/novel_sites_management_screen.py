@@ -449,11 +449,6 @@ class NovelSitesManagementScreen(Screen[None]):
         """B键 - 批量删除"""
         self._batch_delete()
     
-    def key_space(self) -> None:
-        """空格键 - 交由 BINDINGS 的 action_toggle_select 处理，避免重复触发导致抵消"""
-        # 不在此处实现切换逻辑，防止与 BINDINGS(action_toggle_select) 重复执行
-        return
-    
     def key_enter(self) -> None:
         """Enter键 - 进入爬取管理页面"""
         table = self.query_one("#novel-sites-table", DataTable)
@@ -465,11 +460,5 @@ class NovelSitesManagementScreen(Screen[None]):
         if event.key == "escape":
             # ESC键返回
             self.app.pop_screen()
-            event.stop()
-            return
-
-        if event.key == "space":
-            # 优先在屏幕层截获空格，避免 DataTable 默认空格行为干扰
-            self.action_toggle_select()
             event.stop()
             return
