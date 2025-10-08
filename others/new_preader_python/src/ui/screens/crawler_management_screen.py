@@ -113,8 +113,9 @@ class CrawlerManagementScreen(Screen[None]):
                 # 快捷键状态栏
                 Horizontal(
                     Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
-                    Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
+                    Label(get_global_i18n().t('crawler.shortcut_r'), id="shortcut-r"),
                     Label(get_global_i18n().t('crawler.shortcut_s'), id="shortcut-s"),
+                    Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
                     Label(get_global_i18n().t('crawler.shortcut_b'), id="shortcut-b"),
                     Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
                     Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
@@ -272,8 +273,9 @@ class CrawlerManagementScreen(Screen[None]):
     # 统一快捷键绑定（含 ESC 返回）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("o", "open_browser", "打开浏览器"),
-        ("v", "view_history", "查看历史"),
+        ("r", "view_history", "刷新历史"),
         ("s", "start_crawl", "开始爬取"),
+        ("v", "stop_crawl", "停止爬取"),
         ("b", "note", "备注"),
         ("p", "prev_page", "上一页"),
         ("n", "next_page", "下一页"),
@@ -288,6 +290,9 @@ class CrawlerManagementScreen(Screen[None]):
 
     def action_start_crawl(self) -> None:
         self._start_crawl()
+
+    def action_stop_crawl(self) -> None:
+        self._stop_crawl()
 
     def action_note(self) -> None:
         self._open_note_dialog()
