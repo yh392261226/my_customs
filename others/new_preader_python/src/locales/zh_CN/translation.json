@@ -786,6 +786,7 @@
         "shortcut_o": "O: 打开浏览器",
         "shortcut_v": "V: 查看历史",
         "shortcut_s": "S: 开始爬取",
+        "shortcut_b": "B: 备注",
         "shortcut_p": "P: 上一页",
         "shortcut_n": "N: 下一页",
         "shortcut_esc": "ESC: 返回",

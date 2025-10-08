@@ -786,6 +786,7 @@
         "shortcut_o": "O: Open Browser",
         "shortcut_v": "V: View History",
         "shortcut_s": "S: Start Crawl",
+        "shortcut_b": "B: Note",
         "shortcut_p": "P: Previous Page",
         "shortcut_n": "N: Next Page",
         "shortcut_esc": "ESC: Back",
