@@ -119,6 +119,17 @@ class NovelSitesManagementScreen(Screen[None]):
         
         # 加载书籍网站数据
         self._load_novel_sites()
+
+        # 确保表格获得焦点并初始化光标到第一行
+        try:
+            table.focus()
+        except Exception:
+            pass
+        try:
+            if getattr(table, "cursor_row", None) is None and len(self.novel_sites) > 0:
+                table.cursor_row = 0
+        except Exception:
+            pass
     
     def _load_novel_sites(self) -> None:
         """从数据库加载书籍网站数据"""
@@ -128,8 +139,11 @@ class NovelSitesManagementScreen(Screen[None]):
         self._update_table()
     
     def _update_table(self) -> None:
-        """更新数据表显示"""
+        """更新数据表显示（保持光标行）"""
         table = self.query_one("#novel-sites-table", DataTable)
+        # 保存当前光标行（如果存在）
+        prev_cursor = table.cursor_row if getattr(table, "cursor_row", None) is not None else None
+
         table.clear()
         
         for index, site in enumerate(self.novel_sites):
@@ -144,6 +158,19 @@ class NovelSitesManagementScreen(Screen[None]):
                 site["parser"],
                 key=str(index)
             )
+
+        # 恢复光标行（尽可能回到原位置），如无则初始化到0
+        if len(self.novel_sites) > 0:
+            restored = 0
+            if prev_cursor is not None:
+                restored = min(prev_cursor, len(self.novel_sites) - 1)
+            try:
+                table.cursor_row = restored
+            except Exception:
+                try:
+                    table.move_cursor(restored, 0)
+                except Exception:
+                    pass
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -372,6 +399,11 @@ class NovelSitesManagementScreen(Screen[None]):
 
     def action_toggle_select(self) -> None:
         table = self.query_one("#novel-sites-table", DataTable)
+        # 确保表格获取焦点，这样按键行为与光标同步
+        try:
+            table.focus()
+        except Exception:
+            pass
         if table.cursor_row is not None and table.cursor_row < len(self.novel_sites):
             site_index = table.cursor_row
             if site_index in self.selected_sites:
@@ -418,16 +450,9 @@ class NovelSitesManagementScreen(Screen[None]):
         self._batch_delete()
     
     def key_space(self) -> None:
-        """空格键 - 切换选择状态"""
-        table = self.query_one("#novel-sites-table", DataTable)
-        if table.cursor_row is not None and table.cursor_row < len(table.rows):
-            # 使用行索引而不是key.value
-            site_index = table.cursor_row
-            if site_index in self.selected_sites:
-                self.selected_sites.remove(site_index)
-            else:
-                self.selected_sites.add(site_index)
-            self._update_table()
+        """空格键 - 交由 BINDINGS 的 action_toggle_select 处理，避免重复触发导致抵消"""
+        # 不在此处实现切换逻辑，防止与 BINDINGS(action_toggle_select) 重复执行
+        return
     
     def key_enter(self) -> None:
         """Enter键 - 进入爬取管理页面"""
@@ -441,3 +466,10 @@ class NovelSitesManagementScreen(Screen[None]):
             # ESC键返回
             self.app.pop_screen()
             event.stop()
+            return
+
+        if event.key == "space":
+            # 优先在屏幕层截获空格，避免 DataTable 默认空格行为干扰
+            self.action_toggle_select()
+            event.stop()
+            return
