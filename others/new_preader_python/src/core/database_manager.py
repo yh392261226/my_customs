@@ -20,10 +20,12 @@ logger = get_logger(__name__)
 
 # 拼音转换工具
 try:
-    from pypinyin import pinyin, Style
-    PY_PINYIN_AVAILABLE = True
-except ImportError:
-    PY_PINYIN_AVAILABLE = False
+    from pypinyin import pinyin, Style  # type: ignore[reportMissingImports]
+    _PY_PINYIN_AVAILABLE = True
+except Exception:
+    _PY_PINYIN_AVAILABLE = False
+    pinyin = None  # type: ignore[assignment]
+    Style = None   # type: ignore[assignment]
     logger.warning("pypinyin库未安装，拼音功能将不可用")
 
 def convert_to_pinyin(text: str) -> str:
@@ -36,7 +38,7 @@ def convert_to_pinyin(text: str) -> str:
     Returns:
         str: 拼音字符串
     """
-    if not PY_PINYIN_AVAILABLE:
+    if not _PY_PINYIN_AVAILABLE:
         return ""
     
     try:
@@ -116,6 +118,9 @@ class DatabaseManager:
                     note TEXT DEFAULT '',
                     timestamp REAL NOT NULL,
                     created_date TEXT NOT NULL,
+                    -- 新增：锚点字段（迁移时通过 PRAGMA+ALTER 添加）
+                    anchor_text TEXT DEFAULT '',
+                    anchor_hash TEXT DEFAULT '',
                     FOREIGN KEY (book_path) REFERENCES books (path) ON DELETE CASCADE
                 )
             """)
@@ -123,6 +128,13 @@ class DatabaseManager:
             # 创建书签索引
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookmarks_book ON bookmarks(book_path)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookmarks_timestamp ON bookmarks(timestamp)")
+            # 迁移：检查并添加缺失的锚点列
+            cursor.execute("PRAGMA table_info(bookmarks)")
+            bm_columns = [column[1] for column in cursor.fetchall()]
+            if 'anchor_text' not in bm_columns:
+                cursor.execute("ALTER TABLE bookmarks ADD COLUMN anchor_text TEXT DEFAULT ''")
+            if 'anchor_hash' not in bm_columns:
+                cursor.execute("ALTER TABLE bookmarks ADD COLUMN anchor_hash TEXT DEFAULT ''")
             
             # 检查并添加pinyin列（如果不存在）
             cursor.execute("PRAGMA table_info(books)")
@@ -584,17 +596,16 @@ class DatabaseManager:
         # 设置标签字段（如果存在）
         if 'tags' in row and row['tags']:
             try:
-                # 从逗号分隔的字符串解析标签
-                tags_data = row['tags'].split(",") if row['tags'] else []
-                book.tags = set(tags_data) if tags_data else set()
+                # 保持为数据库中的原始字符串，避免类型冲突
+                book.tags = row['tags']
             except Exception:
-                book.tags = set()
+                pass
         
         return book
 
-    def add_bookmark(self, book_path: str, position: str, note: str = "") -> bool:
+    def add_bookmark(self, book_path: str, position: str, note: str = "", anchor_text: Optional[str] = None, anchor_hash: Optional[str] = None) -> bool:
         """
-        添加书签
+        添加书签（支持锚点，可选）
         
         Args:
             book_path: 书籍路径
@@ -610,10 +621,19 @@ class DatabaseManager:
                 timestamp = time.time()
                 created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
-                cursor.execute("""
-                    INSERT INTO bookmarks (book_path, position, note, timestamp, created_date)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (book_path, position, note, timestamp, created_date))
+                # 兼容：如表结构已有锚点列则写入，否则写基础列
+                cursor.execute("PRAGMA table_info(bookmarks)")
+                bm_columns = [column[1] for column in cursor.fetchall()]
+                if 'anchor_text' in bm_columns and 'anchor_hash' in bm_columns:
+                    cursor.execute("""
+                        INSERT INTO bookmarks (book_path, position, note, timestamp, created_date, anchor_text, anchor_hash)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (book_path, position, note, timestamp, created_date, anchor_text or "", anchor_hash or ""))
+                else:
+                    cursor.execute("""
+                        INSERT INTO bookmarks (book_path, position, note, timestamp, created_date)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (book_path, position, note, timestamp, created_date))
                 
                 conn.commit()
                 return cursor.lastrowid is not None

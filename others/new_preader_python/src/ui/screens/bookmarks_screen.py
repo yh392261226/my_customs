@@ -16,18 +16,24 @@ from src.core.bookmark import BookmarkManager, Bookmark
 from src.ui.dialogs.bookmark_edit_dialog import BookmarkEditDialog
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
-# 延迟导入以避免循环导入
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from src.ui.screens.terminal_reader_screen import ReaderScreen
+# 类型与协议（消除对具体 ReaderScreen 的静态依赖）
+from typing import Protocol, runtime_checkable, cast, Any
+
+@runtime_checkable
+class ReaderLike(Protocol):
+    renderer: Any
+    current_page: int
+    total_pages: int
+    book: Any
+    def goto_offset_or_anchor(self, approx_offset: int, anchor_text: str, anchor_hash: str) -> bool: ...
+    def _rehydrate_offset_from_anchor(self, anchor_text: str, anchor_hash: str, original: str) -> int | None: ...
+    def _find_page_for_offset(self, offset: int) -> int: ...
+    _line_offsets_per_page: list[list[int]]
+    def _set_scroll_to_line(self, line_index: int) -> None: ...
+    def _on_page_change(self, page_index: int) -> None: ...
+    def _update_scroll_indicator(self) -> None: ...
 
 class BookmarksScreen(Screen[None]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """书签列表屏幕 - 使用数据库存储"""
     
     TITLE: Optional[str] = None  # 在运行时设置
@@ -102,21 +108,15 @@ class BookmarksScreen(Screen[None]):
     
     def _create_bookmark_item(self, bookmark: Bookmark) -> ListItem:
         """创建书签列表项"""
+        # 统一按绝对字符偏移显示位置（更稳健）
         try:
-            # 尝试将position转换为整数页码
-            page_num = int(bookmark.position)
-            page_text = f"📖 {get_global_i18n().t('reader.page_current', page=page_num + 1)}"
-        except (ValueError, TypeError):
-            # 如果position不是数字，直接显示
-            page_text = f"📍 位置: {bookmark.position}"
-            
-        time_text = self._format_timestamp(bookmark.created_date)
+            pos_val = int(getattr(bookmark, "position", 0) or 0)
+        except Exception:
+            pos_val = 0
+        page_text = f"📍 位置: {pos_val}"
+        time_text = self._format_timestamp(getattr(bookmark, "created_date", "") or "")
         notes_text = f"💭 {bookmark.note}" if bookmark.note else f"💭 {get_global_i18n().t('bookmarks.no_note')}"
-        
-        # 创建多行显示内容
         content = f"{page_text}  🕒 {time_text}\n{notes_text}"
-        
-        # 不设置ID，避免冲突
         return ListItem(Label(content))
     
     def _format_timestamp(self, timestamp: str) -> str:
@@ -139,6 +139,9 @@ class BookmarksScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        super().on_mount()
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         self.title = self.screen_title
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -176,48 +179,97 @@ class BookmarksScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t("bookmarks.select_bookmark_first"), severity="warning")
         except Exception as e:
-            self.notify(f"{get_global_i18n().t("bookmarks.goto_failed")}: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t('bookmarks.goto_failed')}: {e}", severity="error")
     
     def _goto_bookmark(self, bookmark: Bookmark) -> None:
-        """跳转到书签位置"""
+        """跳转到书签位置（优先用锚点纠偏 + 绝对偏移映射）"""
         try:
-            # bookmark.position 存储的是 0-based 页码索引
-            page_index = int(bookmark.position)
-            display_page = page_index + 1  # 显示用的 1-based 页码
-            
-            # 通过屏幕类名查找阅读器屏幕
-            reader_screen = None
+            # 通过屏幕类名查找阅读器屏幕，并按 ReaderLike 进行类型断言（仅类型层面）
+            _reader_obj = None
             for screen in self.app.screen_stack:
                 if screen.__class__.__name__ == "ReaderScreen":
-                    reader_screen = screen
+                    _reader_obj = screen
                     break
-            
-            if reader_screen is None:
+            if _reader_obj is None:
                 self.notify(get_global_i18n().t("bookmarks.reader_screen_not_found"), severity="error")
                 return
+            reader_screen = cast(ReaderLike, _reader_obj)
             
-            # 使用反射调用阅读器屏幕的方法
-            if hasattr(reader_screen, 'renderer') and hasattr(reader_screen.renderer, 'goto_page'):
-                # goto_page 期望 1-based 页码
-                success = reader_screen.renderer.goto_page(display_page)
-                if success:
-                    # 更新屏幕状态为 0-based 索引
-                    reader_screen.current_page = page_index
-                    reader_screen.total_pages = reader_screen.renderer.total_pages
-                    if hasattr(reader_screen, '_on_page_change'):
-                        reader_screen._on_page_change(page_index)
-                    if hasattr(reader_screen, '_update_scroll_indicator'):
-                        reader_screen._update_scroll_indicator()
-                    
-                    self.notify(get_global_i18n().t("bookmarks.jump_success", page=display_page), severity="information")
-                    # 只有跳转成功时才关闭书签列表
+            # 获取原文与辅助方法
+            try:
+                original = getattr(reader_screen.renderer, "_original_content", "") or (getattr(reader_screen, "book").get_content() if hasattr(reader_screen, "book") and hasattr(getattr(reader_screen, "book"), "get_content") else "")
+            except Exception:
+                original = getattr(reader_screen.renderer, "_original_content", "") or ""
+            approx_offset = 0
+            try:
+                approx_offset = int(getattr(bookmark, "position", 0) or 0)
+            except Exception:
+                approx_offset = 0
+            anchor_text = getattr(bookmark, "anchor_text", "") or ""
+            anchor_hash = getattr(bookmark, "anchor_hash", "") or ""
+            
+            # 若 ReaderScreen 暴露统一入口则优先用
+            if hasattr(reader_screen, "goto_offset_or_anchor"):
+                ok = reader_screen.goto_offset_or_anchor(approx_offset, anchor_text, anchor_hash)
+                if ok:
+                    self.notify(get_global_i18n().t("bookmarks.jump_success", page=getattr(reader_screen, "current_page", 0) + 1), severity="information")
                     self.app.pop_screen()
+                    return
                 else:
+                    self.notify(get_global_i18n().t("bookmarks.jump_failed", page=getattr(reader_screen, "current_page", 0) + 1), severity="error")
+                    return
+            
+            # 否则：本地使用 ReaderScreen 的内部方法组合实现
+            corrected_offset = approx_offset
+            try:
+                if hasattr(reader_screen, "_rehydrate_offset_from_anchor") and (anchor_text or anchor_hash):
+                    corrected = reader_screen._rehydrate_offset_from_anchor(anchor_text, anchor_hash, original)  # type: ignore[attr-defined]
+                    if isinstance(corrected, int) and corrected >= 0:
+                        corrected_offset = corrected
+            except Exception:
+                pass
+            
+            # 映射到页码
+            page_index = 0
+            if hasattr(reader_screen, "_find_page_for_offset"):
+                page_index = reader_screen._find_page_for_offset(corrected_offset)  # type: ignore[attr-defined]
+            display_page = page_index + 1
+            
+            # 跳转到页
+            if hasattr(reader_screen, "renderer") and hasattr(reader_screen.renderer, "goto_page"):
+                success = reader_screen.renderer.goto_page(display_page)
+                if not success:
                     self.notify(get_global_i18n().t("bookmarks.jump_failed", page=display_page), severity="error")
+                    return
+                # 页内精确滚动：利用行偏移二分定位
+                try:
+                    if hasattr(reader_screen, "_line_offsets_per_page"):
+                        lines = reader_screen._line_offsets_per_page[page_index]  # type: ignore[attr-defined]
+                        # 二分找到小于等于 corrected_offset 的最大行索引
+                        lo, hi, line_idx = 0, len(lines) - 1, 0
+                        while lo <= hi:
+                            mid = (lo + hi) // 2
+                            if lines[mid] <= corrected_offset:
+                                line_idx = mid
+                                lo = mid + 1
+                            else:
+                                hi = mid - 1
+                        if hasattr(reader_screen, "_set_scroll_to_line"):
+                            reader_screen._set_scroll_to_line(line_idx)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+                
+                # 更新状态并提示
+                if hasattr(reader_screen, "_on_page_change"):
+                    reader_screen._on_page_change(page_index)
+                if hasattr(reader_screen, "_update_scroll_indicator"):
+                    reader_screen._update_scroll_indicator()
+                reader_screen.current_page = page_index
+                reader_screen.total_pages = reader_screen.renderer.total_pages
+                self.notify(get_global_i18n().t("bookmarks.jump_success", page=display_page), severity="information")
+                self.app.pop_screen()
             else:
                 self.notify(get_global_i18n().t("bookmarks.page_jump_not_supported"), severity="error")
-        except (ValueError, TypeError) as e:
-            self.notify(get_global_i18n().t('bookmarks.cannot_jump_to_position', position=bookmark.position, error=str(e)), severity="error")
         except Exception as e:
             self.notify(get_global_i18n().t("bookmarks.jump_error", error=str(e)), severity="error")
     

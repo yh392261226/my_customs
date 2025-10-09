@@ -21,10 +21,14 @@ class Bookmark:
     """书签数据类"""
     id: Optional[int] = None  # 数据库ID
     book_id: str = ""
-    position: str = ""  # 可以是页码、位置或章节
+    # 统一为“绝对字符偏移”（跨屏幕尺寸更稳健）
+    position: int = 0
     note: str = ""
     timestamp: float = 0.0  # 创建时间戳
     created_date: str = ""  # 创建日期
+    # 锚点（用于跨分页纠偏）
+    anchor_text: str = ""
+    anchor_hash: str = ""
 
 class BookmarkManager:
     """书签管理器 - 使用数据库存储"""
@@ -52,9 +56,11 @@ class BookmarkManager:
         
         # 使用数据库管理器添加书签
         success = self.db_manager.add_bookmark(
-            bookmark.book_id, 
-            bookmark.position, 
-            bookmark.note
+            bookmark.book_id,
+            int(bookmark.position or 0),
+            bookmark.note,
+            bookmark.anchor_text,
+            bookmark.anchor_hash
         )
         
         if success:
@@ -81,13 +87,20 @@ class BookmarkManager:
         # 转换为Bookmark对象
         bookmarks = []
         for bm_data in db_bookmarks:
+            # 兼容旧库：position 可能是字符串
+            try:
+                pos_val = int(bm_data.get('position', 0) or 0)
+            except Exception:
+                pos_val = 0
             bookmark = Bookmark(
                 id=bm_data.get('id'),
                 book_id=bm_data.get('book_path', ''),
-                position=bm_data.get('position', ''),
+                position=pos_val,
                 note=bm_data.get('note', ''),
                 timestamp=bm_data.get('timestamp', 0.0),
-                created_date=bm_data.get('created_date', '')
+                created_date=bm_data.get('created_date', ''),
+                anchor_text=bm_data.get('anchor_text', '') if isinstance(bm_data, dict) else '',
+                anchor_hash=bm_data.get('anchor_hash', '') if isinstance(bm_data, dict) else ''
             )
             bookmarks.append(bookmark)
         
@@ -108,13 +121,19 @@ class BookmarkManager:
         # 转换为Bookmark对象
         bookmarks = []
         for bm_data in db_bookmarks:
+            try:
+                pos_val = int(bm_data.get('position', 0) or 0)
+            except Exception:
+                pos_val = 0
             bookmark = Bookmark(
                 id=bm_data.get('id'),
                 book_id=bm_data.get('book_path', ''),
-                position=bm_data.get('position', ''),
+                position=pos_val,
                 note=bm_data.get('note', ''),
                 timestamp=bm_data.get('timestamp', 0.0),
-                created_date=bm_data.get('created_date', '')
+                created_date=bm_data.get('created_date', ''),
+                anchor_text=bm_data.get('anchor_text', '') if isinstance(bm_data, dict) else '',
+                anchor_hash=bm_data.get('anchor_hash', '') if isinstance(bm_data, dict) else ''
             )
             bookmarks.append(bookmark)
         

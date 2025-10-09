@@ -90,6 +90,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 避免未初始化告警
         self.reading_start_time = 0.0
         self.last_progress_update = 0.0
+        # 页偏移缓存（用于将字符偏移映射到当前分页的页码）
+        self._page_offsets: List[int] = []
+        # 每页每行的绝对偏移列表（用于页内精准定位滚动行）
+        self._line_offsets_per_page: List[List[int]] = []
+        # 锚点（片段+hash）用于偏移纠偏
+        self._anchor_window: int = 32
         
         # 行级滚动状态
         self.can_scroll_up = False
@@ -212,6 +218,188 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 更新界面
         self._update_ui()
     
+    def _normalize_text(self, s: str) -> str:
+        """规范化文本：换行/制表/空白压缩/Unicode归一，提升匹配稳定性"""
+        try:
+            import unicodedata, re
+            s = s.replace("\r\n", "\n").replace("\r", "\n").expandtabs(4)
+            s = unicodedata.normalize("NFC", s)
+            # 压缩多空白为单空格，但保留换行以避免跨段过度粘连
+            s = re.sub(r"[ \t\f\v]+", " ", s)
+            return s
+        except Exception:
+            return s
+
+    def _calc_anchor(self, original: str, offset: int) -> tuple[str, str]:
+        """从原文offset附近提取锚点片段与hash"""
+        try:
+            import hashlib
+            n = len(original)
+            off = max(0, min(int(offset or 0), n))
+            win = int(getattr(self, "_anchor_window", 32) or 32)
+            start = max(0, off - win)
+            end = min(n, off + win)
+            raw = original[start:end]
+            norm = self._normalize_text(raw)
+            h = hashlib.sha1(norm.encode("utf-8", errors="ignore")).hexdigest()
+            return norm, h
+        except Exception:
+            return "", ""
+
+    def _rehydrate_offset_from_anchor(self, anchor_text: str, anchor_hash: str, original: str, approx_offset: int = 0) -> int | None:
+        """基于锚点在原文中重新定位offset；先在近邻窗口找，找不到再全局兜底"""
+        try:
+            if not anchor_text:
+                return None
+            norm_original = self._normalize_text(original)
+            norm_anchor = self._normalize_text(anchor_text)
+            # 近邻窗口搜索：以approx_offset为中心
+            n = len(original)
+            if approx_offset and n > 0:
+                win = max(2048, self._anchor_window * 64)
+                left = max(0, approx_offset - win)
+                right = min(n, approx_offset + win)
+                sub = norm_original[left:right]
+                idx = sub.find(norm_anchor)
+                if idx != -1:
+                    return left + idx
+            # 全局兜底
+            idx = norm_original.find(norm_anchor)
+            if idx != -1:
+                return idx
+            return None
+        except Exception:
+            return None
+
+    def _build_page_offsets(self) -> None:
+        """更稳健的页偏移构建：近邻窗口多级匹配，降低偏移漂移"""
+        try:
+            pages = getattr(self.renderer, "all_pages", None)
+            if not pages:
+                self._page_offsets = []
+                self._line_offsets_per_page = []
+                return
+            # 获取原文内容
+            try:
+                original = getattr(self.renderer, "_original_content", "") or ""
+                if not original and hasattr(self.book, "get_content"):
+                    original = self.book.get_content() or ""
+            except Exception:
+                original = getattr(self.renderer, "_original_content", "") or ""
+            n = len(original)
+
+            import re
+
+            def _collapse_ws(s: str) -> str:
+                return re.sub(r"[ \t\f\v]+", " ", s.strip()) if s else s
+
+            def _search_line_near(original_s: str, ptr: int, line_s: str) -> int:
+                """在原文 ptr 附近的窗口内搜索 line，返回匹配到的原文起始索引，找不到返回 -1"""
+                if not line_s:
+                    return ptr
+                # 近邻窗口范围（左右不对称，右侧更大以顺序前进）
+                left = max(0, ptr - 256)
+                right = min(n, ptr + 8192)
+                window = original_s[left:right]
+
+                # 1) exact 寻找
+                idx = window.find(line_s)
+                if idx != -1:
+                    return left + idx
+
+                # 2) 空白不敏感：将 line 中连续空白收敛为 \s+ 构造正则
+                ln = _collapse_ws(line_s)
+                if ln:
+                    # 将连续空白替换为 \s+，转义其他字符
+                    pattern = re.escape(ln)
+                    pattern = re.sub(r"\\\s+", r"\\s+", pattern)
+                    try:
+                        m = re.search(pattern, window, flags=re.IGNORECASE)
+                        if m:
+                            return left + m.start()
+                    except Exception:
+                        pass
+
+                # 3) 指纹匹配：取去空白后的中段指纹
+                core = re.sub(r"\s+", "", line_s)
+                if core:
+                    L = len(core)
+                    seg = core[max(0, L // 2 - 12): min(L, L // 2 + 12)]
+                    if seg:
+                        pos = window.find(seg)
+                        if pos != -1:
+                            # 近似对齐：按指纹定位后回退一小段，避免跳太远
+                            return left + max(0, pos - 8)
+
+                return -1
+
+            offsets: List[int] = []
+            line_offsets_per_page: List[List[int]] = []
+            pointer = 0
+            for page_lines in pages:
+                offsets.append(max(0, min(pointer, n)))
+                page_line_offsets: List[int] = []
+                if not page_lines:
+                    line_offsets_per_page.append(page_line_offsets)
+                    continue
+                for line in page_lines:
+                    # 记录该行开始偏移（先用当前指针，命中后会被“下一行开始”校正）
+                    page_line_offsets.append(max(0, min(pointer, n)))
+                    if not line:
+                        # 空行：仅当当前是换行推进一格
+                        if pointer < n and original[pointer:pointer + 1] == "\n":
+                            pointer += 1
+                        continue
+
+                    hit = _search_line_near(original, pointer, line)
+                    if hit != -1:
+                        pointer = hit + len(line)
+                    else:
+                        # 找不到时，小步前进，避免一次性大漂移
+                        step = max(1, min(8, len(line) // 4))
+                        pointer = min(n, pointer + step)
+                        logger.debug(f"_build_page_offsets: 未在原文匹配到行，容错小步推进 step={step}, ptr={pointer}")
+
+                # 规范化行起始偏移
+                page_line_offsets = [max(0, min(off, n)) for off in page_line_offsets]
+                line_offsets_per_page.append(page_line_offsets)
+
+            # 页起始偏移
+            self._page_offsets = [max(0, min(off, n)) for off in offsets]
+            self._line_offsets_per_page = line_offsets_per_page
+        except Exception as e:
+            logger.error(f"构建页偏移失败: {e}")
+            self._page_offsets = []
+            self._line_offsets_per_page = []
+    
+    def _find_page_for_offset(self, offset: int) -> int:
+        """根据字符偏移在当前分页中定位页码（0-based），找不到时返回0"""
+        if not self._page_offsets:
+            return 0
+        import bisect
+        idx = bisect.bisect_right(self._page_offsets, max(0, int(offset))) - 1
+        idx = max(0, idx)
+        if self.renderer and hasattr(self.renderer, "total_pages"):
+            idx = min(idx, max(0, self.renderer.total_pages - 1))
+        return idx
+    
+    def _current_page_offset(self) -> int:
+        """获取当前可见顶行在原文中的绝对偏移（页内精准）"""
+        if not self._page_offsets:
+            return 0
+        cp = int(getattr(self.renderer, "current_page", 0) or 0)
+        if not (0 <= cp < len(self._page_offsets)):
+            return 0
+        # 如有页内行偏移，使用当前滚动偏移定位到行
+        try:
+            scroll = int(getattr(self.renderer, "_scroll_offset", 0) or 0)
+            line_offsets = self._line_offsets_per_page[cp] if 0 <= cp < len(self._line_offsets_per_page) else None
+            if line_offsets and 0 <= scroll < len(line_offsets):
+                return line_offsets[scroll]
+        except Exception:
+            pass
+        return self._page_offsets[cp]
+    
     def _set_container_size(self) -> None:
         # 获取屏幕尺寸
         screen_width = self.size.width
@@ -236,6 +424,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 设置渲染器容器尺寸
         self.renderer.set_container_size(width, height)
+        
+        # 重建页偏移缓存（尺寸变化已触发重新分页）
+        self._build_page_offsets()
         
         # 同步状态
         self.current_page = self.renderer.current_page
@@ -291,27 +482,64 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 self.total_pages = self.renderer.total_pages
                 logger.debug(f"{get_global_i18n().t('reader.pagenation_result', current_page=self.current_page, total_pages=self.total_pages)}")
                 
-                # 恢复阅读位置（如果启用了记住位置功能）
+                # 构建页偏移缓存（用于offset到页码映射）
+                self._build_page_offsets()
+                
+                # 恢复阅读位置：优先按锚点纠偏后的字符偏移，其次回退页码
                 if self.render_config.get("remember_position", True):
-                    saved_page = getattr(self.book, 'current_page', 0) + 1
-                    # saved_page是0-based的，如果大于0说明有保存的位置
-                    if saved_page > 0 and saved_page < self.renderer.total_pages:
-                        # goto_page接受1-based参数，需要转换为1-based页码
-                        if saved_page <= 1:
-                            saved_page = 1
-                        self.renderer.goto_page(saved_page)
-                        self.current_page = self.renderer.current_page  # 这是0-based的
-                        logger.info(get_global_i18n().t("reader.restore_page", page=saved_page + 1, saved=saved_page, current=self.current_page))
+                    saved_offset = int(getattr(self.book, "current_position", 0) or 0)
+                    saved_anchor_text = getattr(self.book, "anchor_text", "") or ""
+                    saved_anchor_hash = getattr(self.book, "anchor_hash", "") or ""
+                    corrected = None
+                    try:
+                        original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                        if original:
+                            # 先用锚点重建；若无锚点则用approx直接映射
+                            if saved_anchor_text:
+                                corrected = self._rehydrate_offset_from_anchor(saved_anchor_text, saved_anchor_hash, original, approx_offset=saved_offset or 0)
+                    except Exception as _e:
+                        logger.debug(f"获取原文用于锚点重建失败: {_e}")
+                        corrected = None
+
+                    use_offset = corrected if (isinstance(corrected, int) and corrected >= 0) else saved_offset
+                    if use_offset > 0 and self.renderer.total_pages > 0:
+                        target_page_0 = self._find_page_for_offset(use_offset)
+                        # 再打开同一本书时，按需求跳到“上次页面的下一页”（不超过最后一页）
+                        if self.renderer.total_pages > 0:
+                            target_page_0 = min(target_page_0 + 1, self.renderer.total_pages - 1)
+                        self.renderer.goto_page(target_page_0 + 1)
+                        self.current_page = self.renderer.current_page
+                        # 页内行定位
+                        try:
+                            import bisect
+                            line_offsets = self._line_offsets_per_page[target_page_0] if 0 <= target_page_0 < len(self._line_offsets_per_page) else None
+                            if line_offsets:
+                                line_idx = bisect.bisect_right(line_offsets, use_offset) - 1
+                                line_idx = max(0, min(line_idx, len(line_offsets) - 1))
+                                setattr(self.renderer, "_scroll_offset", line_idx)
+                                if hasattr(self.renderer, "_update_visible_content"):
+                                    self.renderer._update_visible_content()
+                        except Exception as _e:
+                            logger.debug(f"页内行定位失败，退化为页级定位: {_e}")
+                        logger.info(f"恢复阅读: offset={use_offset} (纠偏={'Yes' if corrected is not None else 'No'}), page={self.current_page+1}/{self.renderer.total_pages}")
                     else:
-                        # 如果没有保存的位置或位置无效，从第一页开始
-                        self.renderer.goto_page(1)  # 1-based，1表示第1页
-                        self.current_page = self.renderer.current_page  # 应该是0
-                        logger.info(get_global_i18n().t("reader.read_from_first", current=self.current_page))
+                        # 兼容旧数据：使用已保存页码（0-based）回退
+                        legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                        if 0 <= legacy_saved_page_0 < self.renderer.total_pages:
+                            # 旧数据回退：跳到“上次页的下一页”，注意 1-based 上限
+                            display = min(legacy_saved_page_0 + 2, self.renderer.total_pages)
+                            self.renderer.goto_page(display)
+                            self.current_page = self.renderer.current_page
+                            logger.info(f"按旧页码恢复阅读(下一页): page={self.current_page+1}/{self.renderer.total_pages}")
+                        else:
+                            self.renderer.goto_page(1)
+                            self.current_page = self.renderer.current_page
+                            logger.info("无有效恢复信息，从第一页开始")
+
                 else:
-                    # 如果不记住位置，总是从第一页开始
-                    self.renderer.goto_page(1)  # 1-based，1表示第1页
-                    self.current_page = self.renderer.current_page  # 应该是0
-                    logger.info(get_global_i18n().t("reader.unknown_read_from_first", current=self.current_page))
+                    self.renderer.goto_page(1)
+                    self.current_page = self.renderer.current_page
+                    logger.info("记忆位置关闭，从第一页开始")
                 
                 self._update_ui()
                 self._hide_loading_animation()
@@ -488,15 +716,31 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     
     def _toggle_bookmark(self) -> None:
         try:
-            current_position = str(self.renderer.current_page)
+            # 使用绝对偏移 + 锚点作为书签位置
+            current_offset = self._current_page_offset()
+            # 计算锚点
+            try:
+                original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+            except Exception:
+                original = getattr(self.renderer, "_original_content", "") or ""
+            anchor_text, anchor_hash = ("", "")
+            try:
+                anchor_text, anchor_hash = self._calc_anchor(original, current_offset)
+            except Exception:
+                pass
             
             # 获取当前书籍的所有书签
             bookmarks = self.bookmark_manager.get_bookmarks(self.book_id)
             
-            # 检查是否已存在书签
+            # 检查是否已存在同位置的书签（按偏移近似）
             existing_bookmark = None
             for bookmark in bookmarks:
-                if bookmark.position == current_position:
+                try:
+                    # 兼容数据库中旧结构（position 可能是字符串）
+                    bm_pos = int(getattr(bookmark, "position", getattr(bookmark, "position", 0)) or 0)
+                except Exception:
+                    bm_pos = 0
+                if abs(bm_pos - current_offset) <= 2:
                     existing_bookmark = bookmark
                     break
             
@@ -512,7 +756,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 bookmark_text = self._get_current_position_text()
                 bookmark_data = {
                     "book_id": self.book_id,
-                    "position": current_position,
+                    "position": current_offset,
+                    "anchor_text": anchor_text,
+                    "anchor_hash": anchor_hash,
                     "note": bookmark_text
                 }
                 
@@ -520,9 +766,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     if result:
                         try:
                             new_bookmark = Bookmark(
-                                book_id=result["book_id"],
-                                position=result["position"],
-                                note=result.get("note", bookmark_text)
+                                book_id=result.get("book_id", self.book_id),
+                                position=int(result.get("position", current_offset) or 0),
+                                note=result.get("note", bookmark_text),
+                                anchor_text=result.get("anchor_text", anchor_text),
+                                anchor_hash=result.get("anchor_hash", anchor_hash)
                             )
                             if self.bookmark_manager.add_bookmark(new_bookmark):
                                 self.notify(f"{get_global_i18n().t('reader.bookmark_added')}", severity="information")
@@ -583,6 +831,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             # 更新渲染器配置
             self.renderer.update_config(new_config)
             self.render_config = new_config
+            # 设置变更会触发重分页，需重建页偏移缓存
+            self._build_page_offsets()
             
             # 同步状态到屏幕组件
             self.current_page = self.renderer.current_page
@@ -743,15 +993,29 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.renderer.config = self.render_config
         self.renderer._paginate()
         self.renderer.update_content()
+        # 分页配置变化后重建偏移缓存，确保偏移->页码映射正确
+        self._build_page_offsets()
     
     def _update_book_progress(self) -> None:
         # 只有在启用了记住阅读位置功能时才更新进度
         if self.render_config.get("remember_position", True):
+            # 计算锚点并更新
+            try:
+                original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                anchor_text, anchor_hash = self._calc_anchor(original, self._current_page_offset())
+            except Exception:
+                anchor_text, anchor_hash = "", ""
             self.book.update_reading_progress(
-                position=self.renderer.current_page,
+                position=self._current_page_offset(),
                 page=self.renderer.current_page,
                 total_pages=self.renderer.total_pages
             )
+            # 扩展字段：动态记录锚点
+            try:
+                setattr(self.book, "anchor_text", anchor_text)
+                setattr(self.book, "anchor_hash", anchor_hash)
+            except Exception:
+                pass
         
         # 记录阅读时间（每次更新进度时记录）
         if hasattr(self, 'last_progress_update'):
@@ -894,11 +1158,22 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 保存当前阅读进度
         if self.book:
+            # 计算锚点并更新
+            try:
+                original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                anchor_text, anchor_hash = self._calc_anchor(original, self._current_page_offset())
+            except Exception:
+                anchor_text, anchor_hash = "", ""
             self.book.update_reading_progress(
-                position=self.current_page * 1000,  # 估算字符位置
+                position=self._current_page_offset(),
                 page=self.current_page,
                 total_pages=getattr(self.renderer, 'total_pages', 1)
             )
+            try:
+                setattr(self.book, "anchor_text", anchor_text)
+                setattr(self.book, "anchor_hash", anchor_hash)
+            except Exception:
+                pass
             # 保存到数据库
             try:
                 if self.bookshelf:

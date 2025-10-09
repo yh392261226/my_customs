@@ -62,6 +62,9 @@ class Book:
         self.total_pages = 0  # 总页数
         self.reading_progress = 0.0  # 阅读进度（0.0-1.0）
         self.reading_time = 0  # 总阅读时间（秒）
+        # 位置锚点（用于跨分页纠偏）
+        self.anchor_text: str = ""
+        self.anchor_hash: str = ""
         
         # 书签
         self.bookmarks: List[Dict[str, Any]] = []
@@ -106,6 +109,8 @@ class Book:
             "total_pages": self.total_pages,
             "reading_progress": self.reading_progress,
             "reading_time": self.reading_time,
+            "anchor_text": getattr(self, "anchor_text", ""),
+            "anchor_hash": getattr(self, "anchor_hash", ""),
             "bookmarks": self.bookmarks,
             "word_count": self.word_count,
             "open_count": self.open_count,
@@ -140,6 +145,9 @@ class Book:
         book.total_pages = data.get("total_pages", 0)
         book.reading_progress = data.get("reading_progress", 0.0)
         book.reading_time = data.get("reading_time", 0)
+        # 读取锚点字段（向后兼容）
+        book.anchor_text = data.get("anchor_text", "")
+        book.anchor_hash = data.get("anchor_hash", "")
         book.bookmarks = data.get("bookmarks", [])
         book.word_count = data.get("word_count", 0)
         book.open_count = data.get("open_count", 0)
@@ -537,44 +545,42 @@ class Book:
         return results
     
     def _show_loading_animation(self, message: str = "处理中...") -> None:
-        """显示加载动画"""
+        """显示加载动画（动态导入以断开循环依赖）"""
         try:
-            # 优先使用Textual集成的加载动画
-            from src.ui.components.textual_loading_animation import textual_animation_manager
-            
-            if textual_animation_manager.show_default(message):
-                logger.debug(f"显示Textual加载动画: {message}")
-                return
-            
-            # 回退到原有的加载动画组件
-            from src.ui.components.loading_animation import animation_manager
-            animation_manager.show_default(message)
-            logger.debug(f"显示传统加载动画: {message}")
-            
-        except ImportError:
-            logger.warning("加载动画组件未找到，跳过显示动画")
+            import importlib
+            # Textual集成动画
+            ta_mod = importlib.import_module("src.ui.components.textual_loading_animation")
+            textual_animation_manager = getattr(ta_mod, "textual_animation_manager", None)
+            if textual_animation_manager and getattr(textual_animation_manager, "show_default", None):
+                if textual_animation_manager.show_default(message):
+                    logger.debug(f"显示Textual加载动画: {message}")
+                    return
+            # 回退动画
+            la_mod = importlib.import_module("src.ui.components.loading_animation")
+            animation_manager = getattr(la_mod, "animation_manager", None)
+            if animation_manager and getattr(animation_manager, "show_default", None):
+                animation_manager.show_default(message)
+                logger.debug(f"显示传统加载动画: {message}")
         except Exception as e:
-            logger.error(f"显示加载动画失败: {e}")
+            logger.warning(f"显示加载动画失败或组件未找到: {e}")
     
     def _hide_loading_animation(self) -> None:
-        """隐藏加载动画"""
+        """隐藏加载动画（动态导入以断开循环依赖）"""
         try:
-            # 优先使用Textual集成的加载动画
-            from src.ui.components.textual_loading_animation import textual_animation_manager
-            
-            if textual_animation_manager.hide_default():
-                logger.debug("隐藏Textual加载动画")
-                return
-            
-            # 回退到原有的加载动画组件
-            from src.ui.components.loading_animation import animation_manager
-            animation_manager.hide_default()
-            logger.debug("隐藏传统加载动画")
-            
-        except ImportError:
-            logger.warning("加载动画组件未找到，跳过隐藏动画")
+            import importlib
+            ta_mod = importlib.import_module("src.ui.components.textual_loading_animation")
+            textual_animation_manager = getattr(ta_mod, "textual_animation_manager", None)
+            if textual_animation_manager and getattr(textual_animation_manager, "hide_default", None):
+                if textual_animation_manager.hide_default():
+                    logger.debug("隐藏Textual加载动画")
+                    return
+            la_mod = importlib.import_module("src.ui.components.loading_animation")
+            animation_manager = getattr(la_mod, "animation_manager", None)
+            if animation_manager and getattr(animation_manager, "hide_default", None):
+                animation_manager.hide_default()
+                logger.debug("隐藏传统加载动画")
         except Exception as e:
-            logger.error(f"隐藏加载动画失败: {e}")
+            logger.warning(f"隐藏加载动画失败或组件未找到: {e}")
 
     def _generate_pinyin(self, text: str) -> str:
         """
@@ -715,12 +721,15 @@ class Book:
             
             logger.debug(f"成功解析加密PDF文件: {self.path}")
             
-            # 发送内容刷新消息
+            # 发送内容刷新消息（动态导入）
             try:
-                from src.ui.messages import RefreshContentMessage
-                from src.ui.app import get_app_instance
-                app = get_app_instance()
-                if app:
+                import importlib
+                app_mod = importlib.import_module("src.ui.app")
+                get_app_instance = getattr(app_mod, "get_app_instance", None)
+                msg_mod = importlib.import_module("src.ui.messages")
+                RefreshContentMessage = getattr(msg_mod, "RefreshContentMessage", None)
+                app = get_app_instance() if get_app_instance else None
+                if app and RefreshContentMessage:
                     app.post_message(RefreshContentMessage())
             except Exception as e:
                 logger.debug(f"发送内容刷新消息失败: {e}")
@@ -734,20 +743,25 @@ class Book:
     def _get_password_for_pdf(self) -> Optional[str]:
         """获取PDF密码，支持GUI和CLI两种模式"""
         try:
-            # 尝试通过GUI获取密码
-            from src.ui.dialogs.password_dialog import PasswordDialog
-            from src.ui.app import get_app_instance
-            
+            # 尝试通过GUI获取密码（动态导入避免循环依赖）
+            import importlib
+            app_mod = None
+            get_app_instance = None
             try:
-                # 尝试获取应用程序实例
-                from src.ui.app import get_app_instance
-                app = get_app_instance()
-                if not app:
-                    try:
-                        from textual.app import App as TextualApp
-                        app = TextualApp.get_app()
-                    except Exception:
-                        app = None
+                app_mod = importlib.import_module("src.ui.app")
+                get_app_instance = getattr(app_mod, "get_app_instance", None)
+            except Exception:
+                get_app_instance = None
+            app = get_app_instance() if get_app_instance else None
+            if not app:
+                # Textual 应用（动态属性访问）
+                try:
+                    textual_app_mod = importlib.import_module("textual.app")
+                    TextualApp = getattr(textual_app_mod, "App", None)
+                    get_app = getattr(TextualApp, "get_app", None) if TextualApp else None
+                    app = get_app() if callable(get_app) else None
+                except Exception:
+                    app = None
                 
                 if app and hasattr(app, "request_password_async"):
                     from concurrent.futures import Future
@@ -765,10 +779,7 @@ class Book:
                 
                 # 如果GUI模式失败，使用CLI模式
                 return self._get_password_cli()
-            except ImportError:
-                # 如果无法导入，直接使用CLI模式
-                return self._get_password_cli()
-            
+        
         except Exception as e:
             logger.warning(f"GUI密码获取失败，使用CLI模式: {e}")
             return self._get_password_cli()
