@@ -100,3 +100,5 @@ pipx install rich --include-deps
 pipx install jc
 
 pipx install pyinstaller
+
+pipx install posting
