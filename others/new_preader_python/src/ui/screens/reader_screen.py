@@ -44,6 +44,45 @@ logger = get_logger(__name__)
 class ReaderScreen(ScreenStyleMixin, Screen[None]):
     """终端阅读器屏幕 - 简化版本"""
     CSS_PATH = "../styles/reader_overrides.tcss"
+
+    def _ensure_page_sync(self, target_page_0: int) -> None:
+        """最终强制对齐渲染页与显示内容，消除首次打开时落后一页的问题"""
+        try:
+            tp = int(getattr(self.renderer, "total_pages", 0) or 0)
+            if tp <= 0:
+                return
+            t = max(0, min(int(target_page_0 or 0), tp - 1))
+            # 若当前不是目标页，优先用 force_set_page(0基) 硬对齐；兜底使用 1基 goto_page
+            rc = int(getattr(self.renderer, "current_page", -1))
+            if rc != t:
+                if hasattr(self.renderer, "force_set_page"):
+                    ok = bool(self.renderer.force_set_page(t))
+                    if not ok and hasattr(self.renderer, "goto_page"):
+                        try:
+                            self.renderer.goto_page(t + 1)
+                        except Exception:
+                            pass
+                elif hasattr(self.renderer, "goto_page"):
+                    try:
+                        self.renderer.goto_page(t + 1)
+                    except Exception:
+                        pass
+            # 显式刷新可见内容
+            try:
+                if hasattr(self.renderer, "_update_visible_content"):
+                    self.renderer._update_visible_content()
+                elif hasattr(self.renderer, "update_content"):
+                    self.renderer.update_content()
+            except Exception:
+                pass
+            # 同步状态
+            try:
+                self.current_page = int(getattr(self.renderer, "current_page", t))
+                self.total_pages = int(getattr(self.renderer, "total_pages", tp))
+            except Exception:
+                pass
+        except Exception:
+            pass
     
     TITLE: ClassVar[Optional[str]] = None
     
@@ -446,13 +485,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             if (not getattr(self, "_initial_restore_done", False)) and self.render_config.get("remember_position", True) and int(getattr(self.renderer, "total_pages", 0)) > 0:
                 # 1) 优先使用保存的页码（0-based）
                 try:
-                    legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                    legacy_saved_page_0 = max(int(getattr(self.book, "current_page", 0) or 0) - 1, 0)
                 except Exception:
                     legacy_saved_page_0 = 0
                 restored = False
                 if 0 <= legacy_saved_page_0 < int(getattr(self.renderer, "total_pages", 0)):
                     display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
-                    ok = bool(self.renderer.goto_page(display))
+                    ok = bool(self.renderer.goto_page(display + 1))
                     if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
                         try:
                             self.renderer.goto_page(display + 1)
@@ -463,14 +502,25 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                 self.renderer.force_set_page(display)
                             except Exception:
                                 pass
+                    # 确保内容刷新与页码一致
+                    try:
+                        if hasattr(self.renderer, "_update_visible_content"):
+                            self.renderer._update_visible_content()
+                    except Exception:
+                        pass
                     self.current_page = int(getattr(self.renderer, "current_page", display))
+                    # 最终强制对齐（0基）
+                    try:
+                        self._ensure_page_sync(display)
+                    except Exception:
+                        pass
                     restored = True
                 # 2) 其次使用绝对偏移映射到页码
                 if not restored:
                     saved_offset = int(getattr(self.book, "current_position", 0) or 0)
                     if saved_offset > 0:
                         target_page_0 = min(self._find_page_for_offset(saved_offset), self.renderer.total_pages - 1)
-                        ok = bool(self.renderer.goto_page(target_page_0))
+                        ok = bool(self.renderer.goto_page(target_page_0 + 1))
                         if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
                             try:
                                 self.renderer.goto_page(target_page_0 + 1)
@@ -481,7 +531,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                     self.renderer.force_set_page(target_page_0)
                                 except Exception:
                                     pass
+                        # 确保内容刷新与页码一致
+                        try:
+                            if hasattr(self.renderer, "_update_visible_content"):
+                                self.renderer._update_visible_content()
+                        except Exception:
+                            pass
                         self.current_page = int(getattr(self.renderer, "current_page", target_page_0))
+                        # 最终强制对齐（0基）
+                        try:
+                            self._ensure_page_sync(target_page_0)
+                        except Exception:
+                            pass
                 # 置位首次恢复标记
                 self._initial_restore_done = True
         except Exception:
@@ -578,12 +639,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     saved_anchor_hash = getattr(self.book, "anchor_hash", "") or ""
                     # 优先使用保存的页码（0-based）
                     try:
-                        legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                        legacy_saved_page_0 = max(int(getattr(self.book, "current_page", 0) or 0) - 1, 0)
                     except Exception:
                         legacy_saved_page_0 = 0
                     if 0 <= legacy_saved_page_0 < self.renderer.total_pages:
                         display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
-                        ok = bool(self.renderer.goto_page(display))
+                        ok = bool(self.renderer.goto_page(display + 1))
                         if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
                             try:
                                 self.renderer.goto_page(display + 1)
@@ -594,7 +655,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                     self.renderer.force_set_page(display)
                                 except Exception:
                                     pass
+                        # 确保内容刷新与页码一致
+                        try:
+                            if hasattr(self.renderer, "_update_visible_content"):
+                                self.renderer._update_visible_content()
+                        except Exception:
+                            pass
                         self.current_page = int(getattr(self.renderer, "current_page", display))
+                        # 最终强制对齐（0基）
+                        try:
+                            self._ensure_page_sync(display)
+                        except Exception:
+                            pass
                         # 页码优先恢复完成，更新UI后直接返回
                         try:
                             self._update_ui()
@@ -603,12 +675,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         return
                     # 优先使用保存的页码（0-based），可直接恢复并提前返回
                     try:
-                        legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                        legacy_saved_page_0 = max(int(getattr(self.book, "current_page", 0) or 0) - 1, 0)
                     except Exception:
                         legacy_saved_page_0 = 0
                     if 0 <= legacy_saved_page_0 < getattr(self.renderer, "total_pages", 0):
                         display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
-                        ok = bool(self.renderer.goto_page(display))
+                        ok = bool(self.renderer.goto_page(display + 1))
                         if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
                             try:
                                 self.renderer.goto_page(display + 1)
@@ -619,7 +691,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                     self.renderer.force_set_page(display)
                                 except Exception:
                                     pass
+                        # 确保内容刷新与页码一致
+                        try:
+                            if hasattr(self.renderer, "_update_visible_content"):
+                                self.renderer._update_visible_content()
+                        except Exception:
+                            pass
                         self.current_page = int(getattr(self.renderer, "current_page", display))
+                        # 最终强制对齐（0基）
+                        try:
+                            self._ensure_page_sync(display)
+                        except Exception:
+                            pass
                         # 页码优先恢复完成，更新UI并返回
                         try:
                             self._update_ui()
@@ -645,7 +728,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         if self.renderer.total_pages > 0:
                             target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
                         # 先尝试 0-based
-                    ok = bool(self.renderer.goto_page(target_page_0))
+                    ok = bool(self.renderer.goto_page(target_page_0 + 1))
                     if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
                         # 兜底尝试 1-based
                         try:
@@ -659,6 +742,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                             except Exception:
                                 pass
                         self.current_page = int(getattr(self.renderer, "current_page", 0))
+                        # 最终强制对齐（0基）
+                        try:
+                            self._ensure_page_sync(target_page_0)
+                        except Exception:
+                            pass
                         # 页内行定位
                         try:
                             import bisect
@@ -693,10 +781,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                     except Exception:
                                         pass
                             self.current_page = int(getattr(self.renderer, "current_page", 0))
+                            # 最终强制对齐（0基）
+                            try:
+                                self._ensure_page_sync(display)
+                            except Exception:
+                                pass
                             logger.info(f"按旧页码恢复阅读(下一页): page={self.current_page+1}/{self.renderer.total_pages}")
                         else:
                             # 默认跳到第一页（0 基页码）
-                            self.renderer.goto_page(0)
+                            self.renderer.goto_page(1)
                             self.current_page = self.renderer.current_page
                             logger.info("无有效恢复信息，从第一页开始")
 
@@ -959,10 +1052,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         def on_result(result: Optional[int]) -> None:
             if result is not None:
-                # result 是 0-based 索引，ContentRenderer 接受 0-based
-                target_page = result
-                if self.renderer.goto_page(target_page):
-                    self.current_page = result  # 保存 0-based 页码
+                # result 是 0-based 索引，ContentRenderer 接受 1-based，需要 +1
+                target_page_1 = result + 1
+                if self.renderer.goto_page(target_page_1):
+                    # 与渲染器同步（0-based）
+                    self.current_page = self.renderer.current_page
                     self._on_page_change(self.current_page)
                     self._update_ui()
         
@@ -1716,6 +1810,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     self._restore_timer = None
                 # 刷新界面
                 self._update_ui()
+                # 最终强制对齐（确保首次异步分页恢复后内容与页码一致）
+                try:
+                    tp = int(getattr(self.renderer, "total_pages", 0) or 0)
+                    if tp > 0:
+                        _tp1 = int(getattr(self.book, "current_page", 0) or 0)
+                        target_page_0 = max(0, min(max(_tp1 - 1, 0), tp - 1))
+                        self._ensure_page_sync(target_page_0)
+                except Exception:
+                    pass
                 # 恢复完成后持久化正确进度
                 try:
                     self._update_book_progress()
@@ -1758,7 +1861,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 target_page_0 = self._find_page_for_offset(use_offset)
                 target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
                 # 先尝试 0-based，再兜底 1-based
-                ok = bool(self.renderer.goto_page(target_page_0))
+                ok = bool(self.renderer.goto_page(target_page_0 + 1))
                 if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
                     try:
                         self.renderer.goto_page(target_page_0 + 1)
@@ -1802,9 +1905,14 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                             except Exception:
                                 pass
                     self.current_page = int(getattr(self.renderer, "current_page", 0))
+                    # 最终强制对齐（0基）
+                    try:
+                        self._ensure_page_sync(target_page_0)
+                    except Exception:
+                        pass
                 else:
                     # 默认跳到第一页（0 基）
-                    self.renderer.goto_page(0)
+                    self.renderer.goto_page(1)
                     self.current_page = self.renderer.current_page
 
         except Exception as e:
@@ -1886,6 +1994,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                             except Exception:
                                 pass
                     self.current_page = int(getattr(self.renderer, "current_page", 0))
+                    # 最终强制对齐（0基）
+                    try:
+                        self._ensure_page_sync(display)
+                    except Exception:
+                        pass
                     # 页内行定位（尽量定位到原偏移附近）
                     try:
                         import bisect
@@ -1927,6 +2040,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 pass
             # 刷新界面
             self._update_ui()
+            # 最终强制对齐（确保首次异步分页恢复后内容与页码一致）
+            try:
+                tp = int(getattr(self.renderer, "total_pages", 0) or 0)
+                if tp > 0:
+                    _tp1 = int(getattr(self.book, "current_page", 0) or 0)
+                    target_page_0 = max(0, min(max(_tp1 - 1, 0), tp - 1))
+                    self._ensure_page_sync(target_page_0)
+            except Exception:
+                pass
             # 恢复完成后再持久化正确进度
             try:
                 self._update_book_progress()

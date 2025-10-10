@@ -55,6 +55,11 @@ class ContentRenderer(Static):
             idx = max(0, min(index_0, tp - 1))
             # 设置当前页
             self.current_page = idx
+            # 关键修复：加载对应页内容，确保可见内容与页码同步
+            try:
+                self._load_page_content(self.current_page)
+            except Exception:
+                pass
             # 刷新可见内容
             if hasattr(self, "_update_visible_content"):
                 try:
