@@ -9,6 +9,9 @@ import asyncio
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Set, Tuple
 
+from src.utils.cache_manager import parse_cache, make_key
+from src.utils import file_utils as _fu
+
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import get_logger
 
@@ -281,8 +284,34 @@ class Book:
         Returns:
             str: 书籍内容（纯文本）
         """
+        # 若已加载，直接返回
         if self._content_loaded and self._content is not None:
             return self._content
+
+        # 优先命中解析缓存（避免重复解析）
+        try:
+            # 以文件哈希 + 格式 + 密码（若有）作为键
+            file_hash = ""
+            if self.path and os.path.exists(self.path):
+                try:
+                    file_hash = _fu.calculate_file_sha256(self.path)
+                except Exception:
+                    # 回退为修改时间+大小
+                    stat = os.stat(self.path)
+                    file_hash = f"{stat.st_mtime}-{stat.st_size}"
+            cache_key = make_key("parse", self.path, self.format, bool(self.password), file_hash)
+            cached = parse_cache.get(cache_key)
+            if isinstance(cached, dict) and "content" in cached:
+                result = cached
+                self._content = str(result.get("content", "") or "")
+                # 章节（若有）
+                if isinstance(result.get("chapters"), list):
+                    self.chapters = result["chapters"]
+                self._content_loaded = True
+                self.word_count = len(self._content or "")
+                return self._content
+        except Exception:
+            pass
         
         # 如果是空路径的默认书籍，返回空内容
         if not self.path:
@@ -293,8 +322,21 @@ class Book:
         
         # 根据文件格式选择处理方式
         if self.format in ['.txt', '.md']:
-            # 文本文件直接读取
-            self._content = self._read_text_file()
+            # 文本文件直接读取（加入缓存）
+            text = self._read_text_file()
+            self._content = text
+            try:
+                file_hash = ""
+                if self.path and os.path.exists(self.path):
+                    try:
+                        file_hash = _fu.calculate_file_sha256(self.path)
+                    except Exception:
+                        stat = os.stat(self.path)
+                        file_hash = f"{stat.st_mtime}-{stat.st_size}"
+                cache_key = make_key("parse", self.path, self.format, bool(self.password), file_hash)
+                parse_cache.set(cache_key, {"content": text, "chapters": []}, ttl_seconds=1800)
+            except Exception:
+                pass
         else:
             # 其他格式使用解析器
             self._content = self._parse_with_parser()
@@ -663,19 +705,32 @@ class Book:
         try:
             result = self._safe_async_call(parser.parse, self.path)
             self._hide_loading_animation()
-            
+
             content = result.get('content', '')
             content = self._ensure_pure_text_content(content)
-            
+
             # 更新章节信息
+            validated_chapters = []
             if 'chapters' in result:
-                validated_chapters = []
                 for chapter in result['chapters']:
                     if isinstance(chapter, dict) and 'content' in chapter:
                         chapter['content'] = self._ensure_pure_text_content(chapter.get('content', ''))
                         validated_chapters.append(chapter)
-                self.chapters = validated_chapters
-            
+            self.chapters = validated_chapters
+
+            # 写入解析缓存
+            try:
+                stat = os.stat(self.path)
+                file_hash = ""
+                try:
+                    file_hash = _fu.calculate_file_sha256(self.path)
+                except Exception:
+                    file_hash = f"{stat.st_mtime}-{stat.st_size}"
+                cache_key = make_key("parse", self.path, self.format, bool(self.password), file_hash)
+                parse_cache.set(cache_key, {"content": content, "chapters": validated_chapters}, ttl_seconds=1800)
+            except Exception:
+                pass
+
             logger.debug(f"成功解析非加密PDF文件: {self.path}")
             return content
             
@@ -706,18 +761,31 @@ class Book:
             
             result = self._safe_async_call(parser.parse, self.path, password)
             self._hide_loading_animation()
-            
+
             content = result.get('content', '')
             content = self._ensure_pure_text_content(content)
-            
+
             # 更新章节信息
+            validated_chapters = []
             if 'chapters' in result:
-                validated_chapters = []
                 for chapter in result['chapters']:
                     if isinstance(chapter, dict) and 'content' in chapter:
                         chapter['content'] = self._ensure_pure_text_content(chapter.get('content', ''))
                         validated_chapters.append(chapter)
-                self.chapters = validated_chapters
+            self.chapters = validated_chapters
+
+            # 写入解析缓存（含密码特征）
+            try:
+                stat = os.stat(self.path)
+                file_hash = ""
+                try:
+                    file_hash = _fu.calculate_file_sha256(self.path)
+                except Exception:
+                    file_hash = f"{stat.st_mtime}-{stat.st_size}"
+                cache_key = make_key("parse", self.path, self.format, True, file_hash)
+                parse_cache.set(cache_key, {"content": content, "chapters": validated_chapters}, ttl_seconds=1800)
+            except Exception:
+                pass
             
             logger.debug(f"成功解析加密PDF文件: {self.path}")
             
@@ -728,7 +796,8 @@ class Book:
                 get_app_instance = getattr(app_mod, "get_app_instance", None)
                 msg_mod = importlib.import_module("src.ui.messages")
                 RefreshContentMessage = getattr(msg_mod, "RefreshContentMessage", None)
-                app = get_app_instance() if get_app_instance else None
+                from typing import Any as _Any
+                app = get_app_instance() if get_app_instance else None  # type: _Any
                 if app and RefreshContentMessage:
                     app.post_message(RefreshContentMessage())
             except Exception as e:
@@ -769,11 +838,11 @@ class Book:
                     
                     # 在UI线程中获取密码
                     if hasattr(app, "schedule_on_ui"):
-                        app.schedule_on_ui(lambda: app.request_password_async(self.path, 3, future))
+                        getattr(app, "schedule_on_ui")(lambda: getattr(app, "request_password_async")(self.path, 3, future))
                     elif hasattr(app, "call_from_thread"):
-                        app.call_from_thread(lambda: app.request_password_async(self.path, 3, future))
+                        getattr(app, "call_from_thread")(lambda: getattr(app, "request_password_async")(self.path, 3, future))
                     else:
-                        app.request_password_async(self.path, 3, future)
+                        getattr(app, "request_password_async")(self.path, 3, future)
                     
                     return future.result(timeout=300)
                 
@@ -818,19 +887,32 @@ class Book:
         try:
             result = self._safe_async_call(parser.parse, self.path)
             self._hide_loading_animation()
-            
+
             content = result.get('content', '')
             content = self._ensure_pure_text_content(content)
-            
+
             # 更新章节信息
+            validated_chapters = []
             if 'chapters' in result:
-                validated_chapters = []
                 for chapter in result['chapters']:
                     if isinstance(chapter, dict) and 'content' in chapter:
                         chapter['content'] = self._ensure_pure_text_content(chapter.get('content', ''))
                         validated_chapters.append(chapter)
-                self.chapters = validated_chapters
-            
+            self.chapters = validated_chapters
+
+            # 写入解析缓存
+            try:
+                stat = os.stat(self.path)
+                file_hash = ""
+                try:
+                    file_hash = _fu.calculate_file_sha256(self.path)
+                except Exception:
+                    file_hash = f"{stat.st_mtime}-{stat.st_size}"
+                cache_key = make_key("parse", self.path, self.format, bool(self.password), file_hash)
+                parse_cache.set(cache_key, {"content": content, "chapters": validated_chapters}, ttl_seconds=1800)
+            except Exception:
+                pass
+
             logger.debug(f"成功使用解析器解析文件: {self.path}")
             return content
             

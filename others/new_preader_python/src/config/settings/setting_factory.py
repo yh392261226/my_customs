@@ -310,6 +310,25 @@ def create_advanced_settings() -> SettingSection:
         description="启用调试模式，显示更多日志信息",
         category="advanced"
     ))
+
+    # 启用启动密码
+    section.add_setting(BooleanSetting(
+        key="advanced.password_enabled",
+        default_value=False,
+        display_name="启用启动密码",
+        description="启用后，启动阅读器时需要输入密码",
+        category="advanced"
+    ))
+
+    # 启动密码（明文）
+    section.add_setting(StringSetting(
+        key="advanced.password",
+        default_value="",
+        display_name="启动密码",
+        description="设置启动时需要输入的密码（明文保存，便于忘记后修改）",
+        category="advanced",
+        is_hidden=False
+    ))
     
     return section
 

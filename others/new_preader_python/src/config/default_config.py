@@ -49,6 +49,8 @@ DEFAULT_CONFIG = {
         "backup_enabled": True,  # 是否启用备份
         "backup_interval": 7,  # 备份间隔(天)
         "debug_mode": False,  # 调试模式
+        "password_enabled": False,  # 是否启用启动密码
+        "password": "",  # 启动密码（明文存储）
     },
     
     # 快捷键设置

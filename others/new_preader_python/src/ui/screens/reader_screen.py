@@ -74,6 +74,14 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             config=self.render_config,
             theme_manager=self.theme_manager
         )
+        # 尺寸变化防抖与异步分页状态
+        self._resize_timer = None
+        self._pending_size = None
+        self._pagination_in_progress = False
+        # 异步分页恢复轮询定时器
+        self._restore_timer = None
+        # 首次恢复标记：确保不论发生几次分页，首次显示都恢复到上次阅读页
+        self._initial_restore_done = False
         
         # 注册设置观察者
         self._register_setting_observers()
@@ -213,6 +221,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 初始化阅读时间记录
         self.reading_start_time = time.time()
+        # 不要在 on_mount 提前持久化，待分页与位置恢复完成后再写入
         self.last_progress_update = time.time()
         
         # 更新界面
@@ -432,7 +441,51 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.current_page = self.renderer.current_page
         self.total_pages = self.renderer.total_pages
         
-        # print(f"DEBUG: 分页后总页数: {self.total_pages}")
+        # 若尚未进行首次恢复，且启用了记忆位置与分页就绪，则优先恢复到上次页码
+        try:
+            if (not getattr(self, "_initial_restore_done", False)) and self.render_config.get("remember_position", True) and int(getattr(self.renderer, "total_pages", 0)) > 0:
+                # 1) 优先使用保存的页码（0-based）
+                try:
+                    legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                except Exception:
+                    legacy_saved_page_0 = 0
+                restored = False
+                if 0 <= legacy_saved_page_0 < int(getattr(self.renderer, "total_pages", 0)):
+                    display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                    ok = bool(self.renderer.goto_page(display))
+                    if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                        try:
+                            self.renderer.goto_page(display + 1)
+                        except Exception:
+                            pass
+                        if hasattr(self.renderer, "force_set_page"):
+                            try:
+                                self.renderer.force_set_page(display)
+                            except Exception:
+                                pass
+                    self.current_page = int(getattr(self.renderer, "current_page", display))
+                    restored = True
+                # 2) 其次使用绝对偏移映射到页码
+                if not restored:
+                    saved_offset = int(getattr(self.book, "current_position", 0) or 0)
+                    if saved_offset > 0:
+                        target_page_0 = min(self._find_page_for_offset(saved_offset), self.renderer.total_pages - 1)
+                        ok = bool(self.renderer.goto_page(target_page_0))
+                        if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
+                            try:
+                                self.renderer.goto_page(target_page_0 + 1)
+                            except Exception:
+                                pass
+                            if hasattr(self.renderer, "force_set_page"):
+                                try:
+                                    self.renderer.force_set_page(target_page_0)
+                                except Exception:
+                                    pass
+                        self.current_page = int(getattr(self.renderer, "current_page", target_page_0))
+                # 置位首次恢复标记
+                self._initial_restore_done = True
+        except Exception:
+            pass
         
         # 更新界面
         self._update_ui()
@@ -477,7 +530,40 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 content_len = len(content)
                 logger.debug(f"{get_global_i18n().t('reader.load_book_content_len', len=content_len)}")
                 
-                self.renderer.set_content(content)
+                # 优先使用异步分页，避免阻塞UI
+                triggered_async = False
+                if hasattr(self.renderer, "async_paginate_and_render"):
+                    try:
+                        # 显示加载动画以指示后台分页
+                        self._show_loading_animation(get_global_i18n().t('reader.pagenation_async'))
+                        import asyncio as _aio
+                        triggered_async = True
+                        coro = self.renderer.async_paginate_and_render(content)
+                        if hasattr(self.app, "run_worker"):
+                            self.app.run_worker(coro, exclusive=False)
+                        else:
+                            loop = getattr(self.app, "_main_loop", None)
+                            if loop and hasattr(loop, "call_soon_threadsafe"):
+                                loop.call_soon_threadsafe(lambda: _aio.create_task(coro))
+                            else:
+                                import threading, asyncio as _aio2
+                                threading.Thread(target=lambda: _aio2.run(coro), daemon=True).start()
+                    except Exception:
+                        # 回退同步
+                        self.renderer.set_content(content)
+                else:
+                    self.renderer.set_content(content)
+                # 如果已启动异步分页，先结束回到等待刷新消息或轮询恢复
+                if triggered_async:
+                    # 开启轮询：分页就绪后自动恢复位置并持久化
+                    try:
+                        if getattr(self, "_restore_timer", None):
+                            self._restore_timer.stop()
+                        self._restore_timer = self.set_interval(0.2, self._poll_restore_ready)
+                    except Exception:
+                        pass
+                    self._update_ui()
+                    return
                 self.current_page = self.renderer.current_page
                 self.total_pages = self.renderer.total_pages
                 logger.debug(f"{get_global_i18n().t('reader.pagenation_result', current_page=self.current_page, total_pages=self.total_pages)}")
@@ -490,6 +576,56 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     saved_offset = int(getattr(self.book, "current_position", 0) or 0)
                     saved_anchor_text = getattr(self.book, "anchor_text", "") or ""
                     saved_anchor_hash = getattr(self.book, "anchor_hash", "") or ""
+                    # 优先使用保存的页码（0-based）
+                    try:
+                        legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                    except Exception:
+                        legacy_saved_page_0 = 0
+                    if 0 <= legacy_saved_page_0 < self.renderer.total_pages:
+                        display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                        ok = bool(self.renderer.goto_page(display))
+                        if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                            try:
+                                self.renderer.goto_page(display + 1)
+                            except Exception:
+                                pass
+                            if hasattr(self.renderer, "force_set_page"):
+                                try:
+                                    self.renderer.force_set_page(display)
+                                except Exception:
+                                    pass
+                        self.current_page = int(getattr(self.renderer, "current_page", display))
+                        # 页码优先恢复完成，更新UI后直接返回
+                        try:
+                            self._update_ui()
+                        except Exception:
+                            pass
+                        return
+                    # 优先使用保存的页码（0-based），可直接恢复并提前返回
+                    try:
+                        legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                    except Exception:
+                        legacy_saved_page_0 = 0
+                    if 0 <= legacy_saved_page_0 < getattr(self.renderer, "total_pages", 0):
+                        display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                        ok = bool(self.renderer.goto_page(display))
+                        if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                            try:
+                                self.renderer.goto_page(display + 1)
+                            except Exception:
+                                pass
+                            if hasattr(self.renderer, "force_set_page"):
+                                try:
+                                    self.renderer.force_set_page(display)
+                                except Exception:
+                                    pass
+                        self.current_page = int(getattr(self.renderer, "current_page", display))
+                        # 页码优先恢复完成，更新UI并返回
+                        try:
+                            self._update_ui()
+                        except Exception:
+                            pass
+                        return
                     corrected = None
                     try:
                         original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
@@ -505,10 +641,24 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     if use_offset > 0 and self.renderer.total_pages > 0:
                         target_page_0 = self._find_page_for_offset(use_offset)
                         # 再打开同一本书时，按需求跳到“上次页面的下一页”（不超过最后一页）
+                        # 直接按 0 基页码跳转
                         if self.renderer.total_pages > 0:
-                            target_page_0 = min(target_page_0 + 1, self.renderer.total_pages - 1)
-                        self.renderer.goto_page(target_page_0 + 1)
-                        self.current_page = self.renderer.current_page
+                            target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
+                        # 先尝试 0-based
+                    ok = bool(self.renderer.goto_page(target_page_0))
+                    if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
+                        # 兜底尝试 1-based
+                        try:
+                            self.renderer.goto_page(target_page_0 + 1)
+                        except Exception:
+                            pass
+                        # 强制设置页索引，确保状态同步
+                        if hasattr(self.renderer, "force_set_page"):
+                            try:
+                                self.renderer.force_set_page(target_page_0)
+                            except Exception:
+                                pass
+                        self.current_page = int(getattr(self.renderer, "current_page", 0))
                         # 页内行定位
                         try:
                             import bisect
@@ -526,18 +676,33 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         # 兼容旧数据：使用已保存页码（0-based）回退
                         legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
                         if 0 <= legacy_saved_page_0 < self.renderer.total_pages:
-                            # 旧数据回退：跳到“上次页的下一页”，注意 1-based 上限
-                            display = min(legacy_saved_page_0 + 2, self.renderer.total_pages)
-                            self.renderer.goto_page(display)
-                            self.current_page = self.renderer.current_page
+                            # 旧数据回退：按 0 基页码直接跳转
+                            display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                            # 先尝试 0-based
+                            ok = bool(self.renderer.goto_page(display))
+                            if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                                # 兜底尝试 1-based
+                                try:
+                                    self.renderer.goto_page(display + 1)
+                                except Exception:
+                                    pass
+                                # 强制设置页索引，确保状态同步
+                                if hasattr(self.renderer, "force_set_page"):
+                                    try:
+                                        self.renderer.force_set_page(display)
+                                    except Exception:
+                                        pass
+                            self.current_page = int(getattr(self.renderer, "current_page", 0))
                             logger.info(f"按旧页码恢复阅读(下一页): page={self.current_page+1}/{self.renderer.total_pages}")
                         else:
-                            self.renderer.goto_page(1)
+                            # 默认跳到第一页（0 基页码）
+                            self.renderer.goto_page(0)
                             self.current_page = self.renderer.current_page
                             logger.info("无有效恢复信息，从第一页开始")
 
                 else:
-                    self.renderer.goto_page(1)
+                    # 记忆位置关闭：默认跳到第一页（0 基页码）
+                    self.renderer.goto_page(0)
                     self.current_page = self.renderer.current_page
                     logger.info("记忆位置关闭，从第一页开始")
                 
@@ -573,7 +738,25 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 # 保持与旧实现一致
                 content = self.book.get_content()
                 if content:
-                    self.renderer.set_content(content)
+                    # 优先异步分页，失败则回退同步
+                    if hasattr(self.renderer, "async_paginate_and_render"):
+                        try:
+                            self._show_loading_animation(get_global_i18n().t('reader.pagenation_async'))
+                            import asyncio as _aio
+                            coro = self.renderer.async_paginate_and_render(content)
+                            if hasattr(self.app, "run_worker"):
+                                self.app.run_worker(coro, exclusive=False)
+                            else:
+                                loop = getattr(self.app, "_main_loop", None)
+                                if loop and hasattr(loop, "call_soon_threadsafe"):
+                                    loop.call_soon_threadsafe(lambda: _aio.create_task(coro))
+                                else:
+                                    import threading, asyncio as _aio2
+                                    threading.Thread(target=lambda: _aio2.run(coro), daemon=True).start()
+                        except Exception:
+                            self.renderer.set_content(content)
+                    else:
+                        self.renderer.set_content(content)
                     self.current_page = self.renderer.current_page
                     self.total_pages = self.renderer.total_pages
                     self._update_ui()
@@ -586,7 +769,78 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 self._hide_loading_animation()
     
     def on_resize(self, event: events.Resize) -> None:
-        self._set_container_size()
+        # 防抖：记录最新尺寸，短延时后提交
+        self._pending_size = (self.size.width, self.size.height)
+        try:
+            if self._resize_timer:
+                self._resize_timer.stop()
+        except Exception:
+            pass
+        self._resize_timer = self.set_timer(0.2, self._commit_resize)
+
+    def _commit_resize(self) -> None:
+        """提交窗口尺寸变化，并触发异步分页（如可用）"""
+        # 应用当前尺寸计算
+        try:
+            self._set_container_size()
+        except Exception:
+            pass
+        # 触发异步分页（若渲染器支持且已有内容）
+        try:
+            content = None
+            if hasattr(self.renderer, "get_full_content"):
+                content = self.renderer.get_full_content()
+            if not content and hasattr(self.book, "get_content"):
+                content = self.book.get_content()
+            if content and hasattr(self.renderer, "async_paginate_and_render"):
+                # 避免并发重复任务
+                if not self._pagination_in_progress:
+                    self._pagination_in_progress = True
+                    self._show_loading_animation(get_global_i18n().t('reader.pagenation_async'))
+                    import asyncio as _aio
+                    coro = self.renderer.async_paginate_and_render(content)
+                    def _done_reset():
+                        self._pagination_in_progress = False
+                        try:
+                            self._hide_loading_animation()
+                        except Exception:
+                            pass
+                        self._build_page_offsets()
+                        self._update_ui()
+                    try:
+                        if hasattr(self.app, "run_worker"):
+                            self.app.run_worker(coro, exclusive=False)
+                            self.set_timer(0.1, _done_reset)
+                        else:
+                            loop = getattr(self.app, "_main_loop", None)
+                            if loop and hasattr(loop, "call_soon_threadsafe"):
+                                loop.call_soon_threadsafe(lambda: _aio.create_task(coro))
+                                self.set_timer(0.1, _done_reset)
+                            else:
+                                import threading, asyncio as _aio2
+                                threading.Thread(target=lambda: _aio2.run(coro), daemon=True).start()
+                                self.set_timer(0.2, _done_reset)
+                    except Exception:
+                        # 回退：同步设置内容
+                        try:
+                            self.renderer.set_content(content)
+                        except Exception:
+                            pass
+                        self._pagination_in_progress = False
+                        self._hide_loading_animation()
+                        self._build_page_offsets()
+                        self._update_ui()
+        except Exception:
+            # 即使异步失败也确保界面可用
+            try:
+                self._hide_loading_animation()
+            except Exception:
+                pass
+            self._build_page_offsets()
+            self._update_ui()
+        finally:
+            self._resize_timer = None
+            self._pending_size = None
     
     def on_key(self, event: events.Key) -> None:
         # 添加调试信息
@@ -705,8 +959,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         def on_result(result: Optional[int]) -> None:
             if result is not None:
-                # result 是 0-based 索引，直接传给 renderer.goto_page（它接受 1-based 参数）
-                target_page = result + 1  # 转换为 1-based 页码
+                # result 是 0-based 索引，ContentRenderer 接受 0-based
+                target_page = result
                 if self.renderer.goto_page(target_page):
                     self.current_page = result  # 保存 0-based 页码
                     self._on_page_change(self.current_page)
@@ -997,8 +1251,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self._build_page_offsets()
     
     def _update_book_progress(self) -> None:
-        # 只有在启用了记住阅读位置功能时才更新进度
-        if self.render_config.get("remember_position", True):
+        # 只有在启用了记住阅读位置功能且分页就绪时才更新进度
+        if self.render_config.get("remember_position", True) and getattr(self.renderer, "total_pages", 0) > 0:
             # 计算锚点并更新
             try:
                 original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
@@ -1007,8 +1261,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 anchor_text, anchor_hash = "", ""
             self.book.update_reading_progress(
                 position=self._current_page_offset(),
-                page=self.renderer.current_page,
-                total_pages=self.renderer.total_pages
+                page=int(self.renderer.current_page) + 1,
+                total_pages=int(self.renderer.total_pages)
             )
             # 扩展字段：动态记录锚点
             try:
@@ -1039,6 +1293,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.last_progress_update = time.time()
     
     def _update_ui(self) -> None:
+        # 防御性同步：若屏幕状态与渲染器不一致，优先以渲染器为准
+        try:
+            if int(getattr(self, "current_page", -1)) != int(getattr(self.renderer, "current_page", -1)):
+                self.current_page = int(getattr(self.renderer, "current_page", 0))
+                self.total_pages = int(getattr(self.renderer, "total_pages", 0))
+        except Exception:
+            pass
         # 更新标题栏
         try:
             header = self.query_one("#header", Static)
@@ -1166,8 +1427,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 anchor_text, anchor_hash = "", ""
             self.book.update_reading_progress(
                 position=self._current_page_offset(),
-                page=self.current_page,
-                total_pages=getattr(self.renderer, 'total_pages', 1)
+                page=int(self.current_page) + 1,
+                total_pages=int(getattr(self.renderer, 'total_pages', 1))
             )
             try:
                 setattr(self.book, "anchor_text", anchor_text)
@@ -1424,11 +1685,257 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         except Exception as e:
             logger.error(f"{get_global_i18n().t('common.hide_failed')}: {e}")
 
+    def _poll_restore_ready(self) -> None:
+        """异步分页就绪后尝试恢复阅读位置并停止轮询"""
+        try:
+            if getattr(self.renderer, "total_pages", 0) > 0:
+                self._try_restore_position()
+                # 置位首次恢复标记，避免重复恢复
+                try:
+                    self._initial_restore_done = True
+                except Exception:
+                    pass
+                # 恢复后若状态仍不同步，强制与屏幕期望对齐
+                try:
+                    cp = int(getattr(self, "current_page", 0))
+                    rc = int(getattr(self.renderer, "current_page", -1))
+                    tp = int(getattr(self.renderer, "total_pages", 0))
+                    if tp > 0 and rc != cp and hasattr(self.renderer, "force_set_page"):
+                        self.renderer.force_set_page(max(0, min(cp, tp - 1)))
+                        # 统一同步
+                        self.current_page = int(getattr(self.renderer, "current_page", cp))
+                        self.total_pages = int(getattr(self.renderer, "total_pages", tp))
+                except Exception:
+                    pass
+                # 恢复后停止轮询
+                if getattr(self, "_restore_timer", None):
+                    try:
+                        self._restore_timer.stop()
+                    except Exception:
+                        pass
+                    self._restore_timer = None
+                # 刷新界面
+                self._update_ui()
+                # 恢复完成后持久化正确进度
+                try:
+                    self._update_book_progress()
+                    if self.bookshelf and hasattr(self.bookshelf, "db_manager"):
+                        self.bookshelf.db_manager.update_book(self.book)
+                except Exception as e:
+                    logger.debug(f"轮询后持久化阅读进度失败: {e}")
+        except Exception as e:
+            logger.debug(f"轮询恢复失败: {e}")
+
+    def _try_restore_position(self) -> None:
+        """统一恢复到上次阅读位置（锚点优先，页码兜底），支持 0/1 基页码双重尝试"""
+        try:
+            if not self.render_config.get("remember_position", True):
+                # 记忆位置关闭：默认跳到第一页（0 基）
+                self.renderer.goto_page(0)
+                self.current_page = self.renderer.current_page
+                return
+
+            # 构建页偏移缓存（如尚未构建）
+            if not getattr(self, "_page_offsets", None):
+                self._build_page_offsets()
+
+            saved_offset = int(getattr(self.book, "current_position", 0) or 0)
+            saved_anchor_text = getattr(self.book, "anchor_text", "") or ""
+            saved_anchor_hash = getattr(self.book, "anchor_hash", "") or ""
+
+            corrected = None
+            try:
+                original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                if original and saved_anchor_text:
+                    corrected = self._rehydrate_offset_from_anchor(saved_anchor_text, saved_anchor_hash, original, approx_offset=saved_offset or 0)
+            except Exception as _e:
+                logger.debug(f"恢复时锚点重建失败: {_e}")
+                corrected = None
+
+            use_offset = corrected if (isinstance(corrected, int) and corrected >= 0) else saved_offset
+
+            if use_offset > 0 and getattr(self.renderer, "total_pages", 0) > 0:
+                target_page_0 = self._find_page_for_offset(use_offset)
+                target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
+                # 先尝试 0-based，再兜底 1-based
+                ok = bool(self.renderer.goto_page(target_page_0))
+                if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
+                    try:
+                        self.renderer.goto_page(target_page_0 + 1)
+                    except Exception:
+                        pass
+                    # 强制设置页索引，确保状态同步
+                    if hasattr(self.renderer, "force_set_page"):
+                        try:
+                            self.renderer.force_set_page(target_page_0)
+                        except Exception:
+                            pass
+                self.current_page = int(getattr(self.renderer, "current_page", 0))
+
+                # 页内行定位（尽量定位到原偏移附近）
+                try:
+                    import bisect
+                    line_offsets = self._line_offsets_per_page[target_page_0] if 0 <= target_page_0 < len(self._line_offsets_per_page) else None
+                    if line_offsets:
+                        line_idx = bisect.bisect_right(line_offsets, use_offset) - 1
+                        line_idx = max(0, min(line_idx, len(line_offsets) - 1))
+                        setattr(self.renderer, "_scroll_offset", line_idx)
+                        if hasattr(self.renderer, "_update_visible_content"):
+                            self.renderer._update_visible_content()
+                except Exception as _e:
+                    logger.debug(f"恢复时页内行定位失败: {_e}")
+            else:
+                # 兼容旧页码存储：按旧页码跳转
+                legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                if 0 <= legacy_saved_page_0 < getattr(self.renderer, "total_pages", 0):
+                    display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                    ok = bool(self.renderer.goto_page(display))
+                    if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                        try:
+                            self.renderer.goto_page(display + 1)
+                        except Exception:
+                            pass
+                        # 强制设置页索引，确保状态同步
+                        if hasattr(self.renderer, "force_set_page"):
+                            try:
+                                self.renderer.force_set_page(display)
+                            except Exception:
+                                pass
+                    self.current_page = int(getattr(self.renderer, "current_page", 0))
+                else:
+                    # 默认跳到第一页（0 基）
+                    self.renderer.goto_page(0)
+                    self.current_page = self.renderer.current_page
+
+        except Exception as e:
+            logger.debug(f"统一恢复位置失败: {e}")
+
     def on_refresh_content_message(self, message: RefreshContentMessage) -> None:
-        """处理刷新内容消息"""
+        """处理刷新内容消息：异步分页完成后恢复到上次阅读位置并刷新UI"""
         logger.info(get_global_i18n().t('common.refresh_content'))
-        # 清除Book对象的缓存，强制重新解析
-        self.book._content_loaded = False
-        self.book._content = None
-        # 重新加载内容
-        self._load_book_content_async()
+        # 使用统一的恢复逻辑（即使未收到消息也可由轮询触发）
+        # 构建偏移与同步状态在方法内部完成
+        try:
+            self._try_restore_position()
+        except Exception as _e:
+            logger.debug(f"刷新消息恢复失败: {_e}")
+        try:
+            # 重建页偏移
+            self._build_page_offsets()
+            # 同步页状态
+            self.current_page = getattr(self.renderer, "current_page", self.current_page)
+            self.total_pages = getattr(self.renderer, "total_pages", self.total_pages)
+
+            # 恢复阅读位置（基于保存的绝对偏移与锚点）
+            if self.render_config.get("remember_position", True):
+                saved_offset = int(getattr(self.book, "current_position", 0) or 0)
+                saved_anchor_text = getattr(self.book, "anchor_text", "") or ""
+                saved_anchor_hash = getattr(self.book, "anchor_hash", "") or ""
+                # 优先使用保存的页码（0-based）
+                try:
+                    legacy_saved_page_0 = max(int(getattr(self.book, "current_page", 0) or 0) - 1, 0)
+                except Exception:
+                    legacy_saved_page_0 = 0
+                if 0 <= legacy_saved_page_0 < self.renderer.total_pages:
+                    display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                    ok = bool(self.renderer.goto_page(display))
+                    if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                        try:
+                            self.renderer.goto_page(display + 1)
+                        except Exception:
+                            pass
+                        if hasattr(self.renderer, "force_set_page"):
+                            try:
+                                self.renderer.force_set_page(display)
+                            except Exception:
+                                pass
+                    self.current_page = int(getattr(self.renderer, "current_page", display))
+                    # 页码优先恢复完成，更新UI后直接返回
+                    try:
+                        self._update_ui()
+                    except Exception:
+                        pass
+                    return
+                corrected = None
+                try:
+                    original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                    if original and saved_anchor_text:
+                        corrected = self._rehydrate_offset_from_anchor(saved_anchor_text, saved_anchor_hash, original, approx_offset=saved_offset or 0)
+                except Exception as _e:
+                    logger.debug(f"刷新时锚点重建失败: {_e}")
+                    corrected = None
+
+                use_offset = corrected if (isinstance(corrected, int) and corrected >= 0) else saved_offset
+                if use_offset > 0 and self.renderer.total_pages > 0:
+                    target_page_0 = self._find_page_for_offset(use_offset)
+                    # 规则：跳到“上次页面的下一页”，不超过最后一页
+                    # 直接按 0 基页码跳转
+                    target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
+                    # 先尝试 0-based
+                    ok = bool(self.renderer.goto_page(target_page_0))
+                    if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(target_page_0):
+                        # 兜底尝试 1-based
+                        try:
+                            self.renderer.goto_page(target_page_0 + 1)
+                        except Exception:
+                            pass
+                        # 强制设置页索引，确保状态同步
+                        if hasattr(self.renderer, "force_set_page"):
+                            try:
+                                self.renderer.force_set_page(target_page_0)
+                            except Exception:
+                                pass
+                    self.current_page = int(getattr(self.renderer, "current_page", 0))
+                    # 页内行定位（尽量定位到原偏移附近）
+                    try:
+                        import bisect
+                        line_offsets = self._line_offsets_per_page[target_page_0] if 0 <= target_page_0 < len(self._line_offsets_per_page) else None
+                        if line_offsets:
+                            line_idx = bisect.bisect_right(line_offsets, use_offset) - 1
+                            line_idx = max(0, min(line_idx, len(line_offsets) - 1))
+                            setattr(self.renderer, "_scroll_offset", line_idx)
+                            if hasattr(self.renderer, "_update_visible_content"):
+                                self.renderer._update_visible_content()
+                    except Exception as _e:
+                        logger.debug(f"刷新时页内行定位失败: {_e}")
+                else:
+                    # 兼容旧页码存储：按旧页码跳转
+                    legacy_saved_page_0 = int(getattr(self.book, "current_page", 0) or 0)
+                    if 0 <= legacy_saved_page_0 < self.renderer.total_pages:
+                        # 直接按 0 基页码跳转
+                        display = min(legacy_saved_page_0, self.renderer.total_pages - 1)
+                        # 先尝试 0-based
+                        ok = bool(self.renderer.goto_page(display))
+                        if (not ok) or int(getattr(self.renderer, "current_page", -1)) != int(display):
+                            # 兜底尝试 1-based
+                            try:
+                                self.renderer.goto_page(display + 1)
+                            except Exception:
+                                pass
+                            # 强制设置页索引，确保状态同步
+                            if hasattr(self.renderer, "force_set_page"):
+                                try:
+                                    self.renderer.force_set_page(display)
+                                except Exception:
+                                    pass
+                        self.current_page = int(getattr(self.renderer, "current_page", 0))
+
+            # 置位首次恢复标记，避免重复恢复
+            try:
+                self._initial_restore_done = True
+            except Exception:
+                pass
+            # 刷新界面
+            self._update_ui()
+            # 恢复完成后再持久化正确进度
+            try:
+                self._update_book_progress()
+                if self.bookshelf and hasattr(self.bookshelf, "db_manager"):
+                    self.bookshelf.db_manager.update_book(self.book)
+            except Exception as e:
+                logger.debug(f"刷新后持久化阅读进度失败: {e}")
+        finally:
+            try:
+                self._hide_loading_animation()
+            except Exception:
+                pass

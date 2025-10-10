@@ -834,5 +834,9 @@
         "select_directory": "选择目录",
         "select_file": "选择文件",
         "no_directory_selected": "未选择目录"
+    },
+    "lock_screen": {
+        "placeholder": "请输入密码以继续",
+        "title": "锁定屏幕"
     }
 }

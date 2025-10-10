@@ -10,11 +10,64 @@ from src.config.settings.setting_observer import SettingObserver, SettingChangeE
 from src.themes.theme_manager import ThemeManager
 
 from src.utils.logger import get_logger
+from collections import OrderedDict
+import asyncio
 
 logger = get_logger(__name__)
 
 
 class ContentRenderer(Static):
+    def force_set_page(self, index_0: int) -> bool:
+        """强制设置当前页索引为 0-based 并刷新可见内容"""
+        try:
+            if not isinstance(index_0, int):
+                return False
+            tp = int(getattr(self, "total_pages", 0) or 0)
+            if tp <= 0:
+                return False
+            idx = max(0, min(index_0, tp - 1))
+            # 设置当前页
+            self.current_page = idx
+            # 加载页面内容（重置滚动并预热渲染池）
+            self._load_page_content(self.current_page)
+            # 刷新显示
+            if hasattr(self, "_update_visible_content"):
+                try:
+                    self._update_visible_content()
+                except Exception:
+                    if hasattr(self, "update_content"):
+                        self.update_content()
+            else:
+                if hasattr(self, "update_content"):
+                    self.update_content()
+            return True
+        except Exception:
+            return False
+    def force_set_page(self, index_0: int) -> bool:
+        """强制设置当前页索引为 0-based 并刷新可见内容"""
+        try:
+            # 边界检查
+            if not isinstance(index_0, int):
+                return False
+            tp = int(getattr(self, "total_pages", 0) or 0)
+            if tp <= 0:
+                return False
+            idx = max(0, min(index_0, tp - 1))
+            # 设置当前页
+            self.current_page = idx
+            # 刷新可见内容
+            if hasattr(self, "_update_visible_content"):
+                try:
+                    self._update_visible_content()
+                except Exception:
+                    # 兜底：调用 update_content
+                    if hasattr(self, "update_content"):
+                        self.update_content()
+            elif hasattr(self, "update_content"):
+                self.update_content()
+            return True
+        except Exception:
+            return False
     """内容渲染器组件 - 优化的分页和滚动实现"""
     
     # 配置项
@@ -62,6 +115,13 @@ class ContentRenderer(Static):
         self._scroll_offset: int = 0
         self.visible_lines: int = container_height
         self.metrics: Optional[PageMetrics] = None
+
+        # 渲染池（整页格式化后的行列表），LRU 以页号为键
+        self._render_pool: "OrderedDict[int, List[str]]" = OrderedDict()
+        self._render_pool_limit: int = int(self.config.get("render_pool_size", 5) or 5)
+
+        # 异步分页任务句柄（用于取消并发任务）
+        self._paginate_task: Optional[asyncio.Task] = None
         
         # 设置基本样式 - 应用主题颜色
         self._apply_theme_styles()
@@ -124,6 +184,12 @@ class ContentRenderer(Static):
         self.current_page_lines = self.all_pages[0]
         self._scroll_offset = 0
         
+        # 预热当前页与邻近页到渲染池
+        try:
+            self._preheat_pages([self.current_page - 1, self.current_page, self.current_page + 1])
+        except Exception:
+            pass
+
         # 更新显示
         self._update_visible_content()
         self._calculate_metrics()
@@ -195,29 +261,38 @@ class ContentRenderer(Static):
     
     def get_visible_content(self) -> str:
         """
-        获取当前可见内容，应用行间距和段落间距
-        
-        Returns:
-            当前可见的文本内容
+        获取当前可见内容：优先使用渲染池中的整页格式化结果进行切片，
+        降低重复格式化的成本；不足时回退即时格式化。
         """
         if not self.current_page_lines:
             return "暂无内容"
-            
-        # 计算可见行范围，确保不超出边界
-        start_idx = min(self._scroll_offset, max(0, len(self.current_page_lines) - self.visible_lines))
-        end_idx = min(start_idx + self.visible_lines, len(self.current_page_lines))
-        
-        # 获取可见行，确保不超出列表范围
-        visible_lines = self.current_page_lines[start_idx:end_idx] if start_idx < len(self.current_page_lines) else []
-        
-        # 应用行间距和段落间距
-        formatted_lines = self._apply_spacing_to_lines(visible_lines)
-        
-        # 如果格式化后的行数少于容器高度，用空行填充
-        while len(formatted_lines) < self.visible_lines:
-            formatted_lines.append("")
-        
-        return "\n".join(formatted_lines)
+
+        # 尝试从渲染池获取整页格式化后的行
+        formatted_page: Optional[List[str]] = self._render_pool.get(self.current_page)
+        if formatted_page is None:
+            try:
+                formatted_page = self._format_page_lines(self.current_page_lines)
+                self._render_pool_put(self.current_page, formatted_page)
+            except Exception:
+                formatted_page = None
+
+        if formatted_page:
+            # 基于格式化整页进行切片
+            start_idx = min(self._scroll_offset, max(0, len(formatted_page) - self.visible_lines))
+            end_idx = min(start_idx + self.visible_lines, len(formatted_page))
+            visible_lines = formatted_page[start_idx:end_idx] if start_idx < len(formatted_page) else []
+        else:
+            # 回退：仅对可见窗口进行即时格式化
+            start_idx = min(self._scroll_offset, max(0, len(self.current_page_lines) - self.visible_lines))
+            end_idx = min(start_idx + self.visible_lines, len(self.current_page_lines))
+            raw_lines = self.current_page_lines[start_idx:end_idx] if start_idx < len(self.current_page_lines) else []
+            visible_lines = self._apply_spacing_to_lines(raw_lines)
+
+        # 填充到容器高度
+        while len(visible_lines) < self.visible_lines:
+            visible_lines.append("")
+
+        return "\n".join(visible_lines)
     
     def _apply_spacing_to_lines(self, lines: List[str]) -> List[str]:
         """
@@ -391,8 +466,9 @@ class ContentRenderer(Static):
             else:
                 style = palette and palette.get("text")
 
-            # 添加行内容
-            segment = RichText(line, style=style)
+            # 添加行内容（为 style 提供安全兜底）
+            safe_style = style if style is not None else ((palette and palette.get("text")) or Style())
+            segment = RichText(line, style=safe_style)
 
             # 链接着色（只在非代码块内进行）
             if not getattr(self, "_code_fence_open", False):
@@ -444,14 +520,16 @@ class ContentRenderer(Static):
     
     def _load_page_content(self, page_num: int) -> None:
         """
-        加载指定页面的内容
-        
-        Args:
-            page_num: 页码（0-based）
+        加载指定页面的内容，并预热邻近页到渲染池
         """
         if 0 <= page_num < len(self.all_pages):
             self.current_page_lines = self.all_pages[page_num]
             self._scroll_offset = 0
+            # 预热当前与邻近页
+            try:
+                self._preheat_pages([page_num - 1, page_num, page_num + 1])
+            except Exception:
+                pass
             self._calculate_metrics()
             self._update_visible_content()
 
@@ -503,6 +581,13 @@ class ContentRenderer(Static):
         new_offset = min(self._scroll_offset + lines, max_offset)
         if new_offset != self._scroll_offset:
             self._scroll_offset = new_offset
+            # 重建渲染池（受行/段落间距影响）
+            try:
+                self._render_pool_clear()
+                # 预热当前与邻近页
+                self._preheat_pages([self.current_page - 1, self.current_page, self.current_page + 1])
+            except Exception:
+                pass
             self._update_visible_content()
             return True
         return False
@@ -677,6 +762,11 @@ class ContentRenderer(Static):
         """刷新内容显示（公共接口）"""
         if self._original_content:
             self._paginate()
+            try:
+                self._render_pool_clear()
+                self._preheat_pages([self.current_page - 1, self.current_page, self.current_page + 1])
+            except Exception:
+                pass
             self._update_visible_content()
     
     def _unregister_setting_observers(self) -> None:
@@ -698,3 +788,104 @@ class ContentRenderer(Static):
                 
         except Exception as e:
             logger.error(f"取消注册设置观察者失败: {e}")
+
+    # 渲染池与异步分页扩展
+    def _render_pool_put(self, page_num: int, formatted_lines: List[str]) -> None:
+        try:
+            if page_num < 0:
+                return
+            # 更新为最新
+            self._render_pool[page_num] = formatted_lines
+            self._render_pool.move_to_end(page_num)
+            # 超限逐出最旧
+            while len(self._render_pool) > max(1, self._render_pool_limit):
+                try:
+                    self._render_pool.popitem(last=False)
+                except Exception:
+                    break
+        except Exception:
+            pass
+
+    def _render_pool_clear(self) -> None:
+        try:
+            self._render_pool.clear()
+        except Exception:
+            pass
+
+    def _format_page_lines(self, page_lines: List[str]) -> List[str]:
+        """对整页行应用行间距与段落间距，供渲染池缓存"""
+        try:
+            return self._apply_spacing_to_lines(page_lines or [])
+        except Exception:
+            return page_lines or []
+
+    def _preheat_pages(self, page_list: List[int]) -> None:
+        """预热若干页到渲染池"""
+        try:
+            for p in page_list:
+                if p is None or p < 0 or p >= len(self.all_pages):
+                    continue
+                if p in self._render_pool:
+                    # 更新 LRU 顺序
+                    self._render_pool.move_to_end(p)
+                    continue
+                formatted = self._format_page_lines(self.all_pages[p])
+                self._render_pool_put(p, formatted)
+        except Exception:
+            pass
+
+    async def async_paginate_and_render(self, content: str) -> None:
+        """
+        异步设置内容与分页，完成后预热并通知 UI 刷新。
+        如果已有运行中的任务，会先取消旧任务避免并发重复计算。
+        """
+        # 取消旧任务
+        try:
+            if self._paginate_task and not self._paginate_task.done():
+                self._paginate_task.cancel()
+        except Exception:
+            pass
+
+        async def _do():
+            def _compute():
+                self._original_content = str(content or "")
+                self._paginate()
+                try:
+                    self._render_pool_clear()
+                    self._preheat_pages([self.current_page - 1, self.current_page, self.current_page + 1])
+                except Exception:
+                    pass
+                return True
+
+            try:
+                await asyncio.to_thread(_compute)
+                # 通知 UI 刷新
+                try:
+                    import importlib
+                    msg_mod = importlib.import_module("src.ui.messages")
+                    RefreshContentMessage = getattr(msg_mod, "RefreshContentMessage", None)
+                    app_mod = importlib.import_module("src.ui.app")
+                    get_app_instance = getattr(app_mod, "get_app_instance", None)
+                    app = get_app_instance() if get_app_instance else None
+                    if app and RefreshContentMessage:
+                        app.post_message(RefreshContentMessage())
+                except Exception:
+                    pass
+            except asyncio.CancelledError:
+                # 任务被取消，静默结束
+                return
+            except Exception:
+                # 失败时不抛给 UI
+                return
+
+        # 在当前事件循环中启动任务
+        try:
+            loop = asyncio.get_running_loop()
+            self._paginate_task = loop.create_task(_do())
+        except RuntimeError:
+            # 无事件循环，则直接运行（可能阻塞）
+            try:
+                import asyncio as _aio
+                _aio.run(_do())
+            except Exception:
+                pass

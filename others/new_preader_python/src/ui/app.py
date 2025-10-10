@@ -315,7 +315,59 @@ class NewReaderApp(App[None]):
         
         # 初始化默认加载动画组件
         self._initialize_loading_animation()
+
+        # 启动内存监控器：根据配置的缓存大小选择阈值
+        try:
+            from src.utils.memory_monitor import MemoryMonitor
+            from src.utils.cache_manager import parse_cache, paginate_cache
+            cfg = self.config_manager.get_config()
+            adv = cfg.get("advanced", {})
+            cache_mb = int(adv.get("cache_size", 100))
+            # 高水位线：缓存大小的 1.5 倍；收缩目标为缓存大小
+            high_water = max(64, int(cache_mb * 1.5)) * 1024 * 1024
+            target = max(32, int(cache_mb)) * 1024 * 1024
+
+            def on_pressure():
+                # 收缩缓存，并尝试释放渲染结果
+                try:
+                    paginate_cache.shrink_to_target(target // 2)
+                    parse_cache.shrink_to_target(target // 2)
+                except Exception:
+                    pass
+                try:
+                    # 释放当前屏幕的渲染结果（若支持）
+                    if hasattr(self, "screen") and self.screen:
+                        rdr = getattr(self.screen, "content_renderer", None)
+                        if rdr and hasattr(rdr, "rendered_pages"):
+                            rdr.rendered_pages = []
+                except Exception:
+                    pass
+
+            self._memory_monitor = MemoryMonitor(high_water, target, on_pressure)
+            self._memory_monitor.start(interval_sec=2.0)
+        except Exception as e:
+            logger.debug(f"内存监控启动失败（可忽略）：{e}")
         
+        # 如果启用启动密码，先显示全屏密码屏幕
+        try:
+            cfg = self.config_manager.get_config()
+            adv = cfg.get("advanced", {})
+            if adv.get("password_enabled", False):
+                # 使用独立锁屏组件
+                from src.ui.screens.lock_screen import LockScreen
+                expected = adv.get("password", "")
+                async def _wait_password_then_enter():
+                    ok = await self.push_screen_wait(LockScreen(str(expected or "")))
+                    if ok:
+                        self.push_screen("welcome")
+                    else:
+                        # 兜底仍进入欢迎页
+                        self.push_screen("welcome")
+                self.run_worker(_wait_password_then_enter(), exclusive=True)
+                return
+        except Exception as e:
+            logger.debug(f"启动密码屏幕加载失败（可忽略）：{e}")
+
         # 如果指定了小说文件，直接打开阅读
         if self.book_file:
             self._open_book_file(self.book_file)
@@ -849,6 +901,11 @@ def on_app_exit(app: NewReaderApp) -> None:
     """应用退出时的回调，清除全局实例"""
     global _app_instance
     _app_instance = None
+    try:
+        if hasattr(app, "_memory_monitor") and getattr(app, "_memory_monitor"):
+            app._memory_monitor.stop()
+    except Exception:
+        pass
 
 # 设置应用生命周期回调（Textual使用不同的生命周期方法名）
 # 这些回调函数会在应用启动和退出时自动调用

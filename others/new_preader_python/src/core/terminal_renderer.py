@@ -10,6 +10,8 @@ from abc import ABC, abstractmethod
 import math
 
 from src.utils.logger import get_logger
+from src.utils.cache_manager import paginate_cache, make_key
+import asyncio
 
 logger = get_logger(__name__)
 
@@ -274,20 +276,53 @@ class TerminalContentRenderer:
         self.current_page = 0
         self.total_pages = 0
         self.container_size: Tuple[int, int] = (80, 24)  # 默认终端尺寸
+        self._last_content_hash: str = ""
     
     def set_content(self, content: str) -> None:
-        """设置要渲染的内容"""
+        """设置要渲染的内容（优先使用缓存）"""
         self.content = content
+        # 计算缓存键
+        key = self._make_cache_key(content)
+        cached = paginate_cache.get(key)
+        if cached and isinstance(cached, dict) and "pages" in cached and "rendered" in cached:
+            self.pages = cached["pages"]
+            self.rendered_pages = cached["rendered"]
+            self.total_pages = len(self.pages)
+        # 更新内容哈希
+        try:
+            import hashlib
+            safe_content = self.content or ""
+            self._last_content_hash = hashlib.sha256(safe_content.encode("utf-8", errors="ignore")).hexdigest()
+        except Exception:
+            self._last_content_hash = "len:" + str(len(self.content or ""))
+            return
         self._paginate()
         self._render_all_pages()
+        # 写入缓存
+        try:
+            paginate_cache.set(key, {"pages": self.pages, "rendered": self.rendered_pages}, ttl_seconds=1800)
+        except Exception:
+            pass
     
     def set_container_size(self, width: int, height: int) -> None:
-        """设置容器尺寸"""
+        """设置容器尺寸（触发分页缓存检查）"""
         if width != self.container_size[0] or height != self.container_size[1]:
             self.container_size = (width, height)
             if self.content:
+                key = self._make_cache_key(self.content)
+                cached = paginate_cache.get(key)
+                if cached and isinstance(cached, dict):
+                    self.pages = cached.get("pages", [])
+                    self.rendered_pages = cached.get("rendered", [])
+                    self.total_pages = len(self.pages)
+                    if self.pages and self.rendered_pages:
+                        return
                 self._paginate()
                 self._render_all_pages()
+                try:
+                    paginate_cache.set(key, {"pages": self.pages, "rendered": self.rendered_pages}, ttl_seconds=1800)
+                except Exception:
+                    pass
     
     def set_strategy(self, strategy_name: str) -> bool:
         """设置渲染策略"""
@@ -322,31 +357,80 @@ class TerminalContentRenderer:
                 page_content, render_config
             )
             self.rendered_pages.append(rendered)
-    
+
     def _get_chapter_for_page(self, page_num: int) -> int:
         """根据页码确定所属章节"""
         if not self.config.get('chapters'):
             return 0
-        
-        chapters = self.config['chapters']
+        chapters = self.config.get('chapters', [])
         cumulative_chars = 0
-        
+        content_str = self.content or ""
         for chapter_idx, chapter in enumerate(chapters):
             start = chapter.get('start', 0)
-            end = chapter.get('end', len(self.content))
-            chapter_length = end - start
-            
-            # 估算本章节的页数
-            if self.total_pages > 0:
-                avg_page_length = len(self.content) / self.total_pages
-                chapter_pages = chapter_length / avg_page_length
-                
-                if page_num < cumulative_chars / avg_page_length + chapter_pages:
+            end = chapter.get('end', len(content_str))
+            chapter_length = max(0, end - start)
+            if self.total_pages > 0 and content_str:
+                avg_page_length = len(content_str) / max(1, self.total_pages)
+                chapter_pages = chapter_length / avg_page_length if avg_page_length > 0 else 0
+                if page_num < (cumulative_chars / avg_page_length) + chapter_pages:
                     return chapter_idx
-            
             cumulative_chars += chapter_length
-        
-        return len(chapters) - 1
+        return max(0, len(chapters) - 1)
+    
+    def _make_cache_key(self, content: str) -> Tuple[Any, ...]:
+        """生成分页缓存键"""
+        # 内容哈希
+        try:
+            import hashlib
+            content_hash = hashlib.sha256((content or "").encode("utf-8", errors="ignore")).hexdigest()
+        except Exception:
+            content_hash = str(len(content or ""))
+        return make_key("paginate",
+                        content_hash,
+                        self.container_size,
+                        self.current_strategy,
+                        {
+                            "font_size": self.config.get("reading", {}).get("font_size"),
+                            "line_spacing": self.config.get("reading", {}).get("line_spacing"),
+                            "paragraph_spacing": self.config.get("reading", {}).get("paragraph_spacing"),
+                            "chapters_len": len(self.config.get("chapters", []))
+                        })
+
+    async def async_paginate_and_render(self, content: str) -> None:
+        """
+        异步计算分页与渲染，完成后写入缓存并通知 UI 刷新
+        """
+        key = self._make_cache_key(content)
+        cached = paginate_cache.get(key)
+        if cached and isinstance(cached, dict) and "pages" in cached and "rendered" in cached:
+            self.pages = cached["pages"]
+            self.rendered_pages = cached["rendered"]
+            self.total_pages = len(self.pages)
+            return
+
+        def _compute():
+            self.content = content
+            self._paginate()
+            self._render_all_pages()
+            return {"pages": self.pages, "rendered": self.rendered_pages}
+
+        try:
+            result = await asyncio.to_thread(_compute)
+            paginate_cache.set(key, result, ttl_seconds=1800)
+            # 发送刷新消息
+            try:
+                import importlib
+                msg_mod = importlib.import_module("src.ui.messages")
+                RefreshContentMessage = getattr(msg_mod, "RefreshContentMessage", None)
+                app_mod = importlib.import_module("src.ui.app")
+                get_app_instance = getattr(app_mod, "get_app_instance", None)
+                app = get_app_instance() if get_app_instance else None
+                if app and RefreshContentMessage:
+                    app.post_message(RefreshContentMessage())
+            except Exception:
+                pass
+        except Exception:
+            pass
     
     def get_current_page(self) -> str:
         """获取当前页渲染内容"""
@@ -388,11 +472,23 @@ class TerminalContentRenderer:
         return self.current_page / self.total_pages
     
     def update_config(self, new_config: Dict[str, Any]) -> None:
-        """更新配置并重新渲染"""
+        """更新配置并重新渲染（带缓存）"""
         self.config.update(new_config)
         if self.content:
+            key = self._make_cache_key(self.content)
+            cached = paginate_cache.get(key)
+            if cached and isinstance(cached, dict):
+                self.pages = cached.get("pages", [])
+                self.rendered_pages = cached.get("rendered", [])
+                self.total_pages = len(self.pages)
+                if self.pages and self.rendered_pages:
+                    return
             self._paginate()
             self._render_all_pages()
+            try:
+                paginate_cache.set(key, {"pages": self.pages, "rendered": self.rendered_pages}, ttl_seconds=1800)
+            except Exception:
+                pass
 
 # 工厂函数
 def create_terminal_renderer(config: Dict[str, Any]) -> TerminalContentRenderer:

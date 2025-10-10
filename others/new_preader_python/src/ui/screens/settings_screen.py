@@ -27,12 +27,6 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 class SettingsScreen(Screen[Any]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """现代化设置屏幕"""
     
     CSS_PATH = ["../styles/settings_overrides.tcss"]
@@ -310,6 +304,23 @@ class SettingsScreen(Screen[Any]):
                     value=debug_setting.value,
                     id="advanced-debug-switch"
                 )
+
+            # 启用启动密码
+            yield Label("启用启动密码", classes="setting-label")
+            pwd_enabled_setting = self.setting_registry.get_setting("advanced.password_enabled")
+            if pwd_enabled_setting:
+                yield Switch(
+                    value=pwd_enabled_setting.value,
+                    id="advanced-password-enabled-switch"
+                )
+
+            # 设置密码（输入框，明文存储）
+            yield Label("设置密码", classes="setting-label")
+            yield Input(
+                placeholder="输入新密码",
+                password=True,
+                id="advanced-password-input"
+            )
     
 
     
@@ -364,19 +375,29 @@ class SettingsScreen(Screen[Any]):
             event: 下拉选择框变化事件
         """
         if event.select.id == "reading-spacing-select" and event.value is not None:
-            # 立即应用行间距设置
+            # 立即应用行间距设置（安全转换）
+            val = event.value
+            try:
+                new_val = int(val)  # type: ignore[arg-type]
+            except Exception:
+                return
             old_value = self.setting_registry.get_value("reading.line_spacing", 0)
-            self.setting_registry.set_value("reading.line_spacing", int(event.value))
-            notify_setting_change("reading.line_spacing", old_value, int(event.value), "settings_screen")
+            self.setting_registry.set_value("reading.line_spacing", new_val)
+            notify_setting_change("reading.line_spacing", old_value, new_val, "settings_screen")
             
             # 显示设置已保存的提示
             # self.notify(get_global_i18n().t("settings.saved"), severity="information")
             
         elif event.select.id == "reading-para-select" and event.value is not None:
-            # 立即应用段落间距设置
+            # 立即应用段落间距设置（安全转换）
+            val = event.value
+            try:
+                new_val = int(val)  # type: ignore[arg-type]
+            except Exception:
+                return
             old_value = self.setting_registry.get_value("reading.paragraph_spacing", 0)
-            self.setting_registry.set_value("reading.paragraph_spacing", int(event.value))
-            notify_setting_change("reading.paragraph_spacing", old_value, int(event.value), "settings_screen")
+            self.setting_registry.set_value("reading.paragraph_spacing", new_val)
+            notify_setting_change("reading.paragraph_spacing", old_value, new_val, "settings_screen")
             
             # 显示设置已保存的提示
             # self.notify(get_global_i18n().t("settings.saved"), severity="information")
@@ -500,11 +521,17 @@ class SettingsScreen(Screen[Any]):
 
         spacing_select = self.query_one("#reading-spacing-select", Select)
         if spacing_select.value is not None:
-            self.setting_registry.set_value("reading.line_spacing", int(spacing_select.value))
+            try:
+                self.setting_registry.set_value("reading.line_spacing", int(spacing_select.value))  # type: ignore[arg-type]
+            except Exception:
+                pass
         
         para_select = self.query_one("#reading-para-select", Select)
         if para_select.value is not None:
-            self.setting_registry.set_value("reading.paragraph_spacing", int(para_select.value))
+            try:
+                self.setting_registry.set_value("reading.paragraph_spacing", int(para_select.value))  # type: ignore[arg-type]
+            except Exception:
+                pass
         
         auto_input = self.query_one("#reading-auto-input", Input)
         self.setting_registry.set_value("reading.auto_page_turn_interval", int(auto_input.value))
@@ -532,8 +559,8 @@ class SettingsScreen(Screen[Any]):
         lang_select = self.query_one("#advanced-language-select", Select)
         self.setting_registry.set_value("advanced.language", lang_select.value)
         
-        # 更新全局i18n语言设置
-        if lang_select.value is not None:
+        # 更新全局i18n语言设置（确保类型为字符串）
+        if isinstance(lang_select.value, str):
             set_global_locale(lang_select.value)
         
         stats_switch = self.query_one("#advanced-stats-switch", Switch)
@@ -542,6 +569,15 @@ class SettingsScreen(Screen[Any]):
         debug_switch = self.query_one("#advanced-debug-switch", Switch)
         self.setting_registry.set_value("advanced.debug_mode", debug_switch.value)
         
+        # 启动密码开关
+        pwd_enabled_switch = self.query_one("#advanced-password-enabled-switch", Switch)
+        self.setting_registry.set_value("advanced.password_enabled", pwd_enabled_switch.value)
+
+        # 设置密码输入（如有输入则直接保存明文）
+        pwd_input = self.query_one("#advanced-password-input", Input)
+        new_pwd = (pwd_input.value or "").strip()
+        if new_pwd:
+            self.setting_registry.set_value("advanced.password", new_pwd)
 
     
     def _update_ui_from_settings(self) -> None:

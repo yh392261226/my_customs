@@ -834,5 +834,9 @@
         "select_directory": "Select Directory",
         "select_file": "Select File",
         "no_directory_selected": "No directory selected"
+    },
+    "lock_screen": {
+        "placeholder": "Type password to continue",
+        "title": "Lock Screen"
     }
 }
