@@ -2,7 +2,7 @@
 启动锁屏（密码输入）屏幕
 """
 
-from typing import Optional
+from typing import Optional, ClassVar
 from datetime import datetime
 from textual.app import App, ComposeResult
 from textual.screen import ModalScreen
@@ -19,6 +19,10 @@ class LockScreen(ModalScreen[bool]):
     """启动时的密码锁屏：全屏、不可取消，密码比对成功后进入应用"""
 
     CSS_PATH = ["../styles/lock_screen_overrides.tcss"]
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("enter", "on_submit", "确认验证密码"),
+        ("escape", "on_exit", "退出"),
+    ]
 
     def __init__(self, expected_password: str) -> None:
         super().__init__()
@@ -108,3 +112,9 @@ class LockScreen(ModalScreen[bool]):
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id == "lock-password-input":
             self._try_submit()
+
+    def action_on_submit(self) -> None:
+        self._try_submit()
+    
+    def action_on_exit(self) -> None:
+        self.app.exit()
