@@ -52,6 +52,39 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     """终端阅读器屏幕 - 简化版本"""
     CSS_PATH = "../styles/reader_overrides.tcss"
 
+    # 使用 Textual BINDINGS 进行快捷键绑定
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        # 基本导航（非划词模式）
+        ("left", "left", "上一页/选择左移"),
+        ("right", "right", "下一页/选择右移"),
+        ("up", "up", "向上滚动/选择上移"),
+        ("down", "down", "向下滚动/选择下移"),
+        # 划词模式进入/提交/取消
+        ("v", "enter_selection_mode", "进入划词模式"),
+        ("enter", "enter_key", "提交选择并翻译"),
+        ("return", "enter_key", "提交选择并翻译"),
+        ("escape", "escape_key", "退出或取消"),
+        ("q", "escape_key", "退出或取消"),
+        # 划词模式下的扩展选择（按住 Shift）
+        ("shift+left", "shift_left", "扩展选择：左"),
+        ("shift+right", "shift_right", "扩展选择：右"),
+        ("shift+up", "shift_up", "扩展选择：上"),
+        ("shift+down", "shift_down", "扩展选择：下"),
+        # 其他功能
+        ("g", "goto_page", "跳转页码"),
+        ("b", "toggle_bookmark", "添加/删除书签"),
+        ("B", "open_bookmark_list", "书签列表"),
+        ("s", "open_settings", "打开设置"),
+        ("f", "search_text", "全文搜索"),
+        ("a", "toggle_auto_page", "自动翻页"),
+        ("r", "toggle_tts", "朗读"),
+        ("l", "translate", "翻译选中文本"),
+        ("w", "open_vocabulary", "打开单词本"),
+        ("slash", "boss_key", "老板键"),
+        ("h", "show_help", "帮助"),
+        ("ctrl+c", "copy_selected_text", "复制选中文本"),
+    ]
+
     def _ensure_page_sync(self, target_page_0: int) -> None:
         """最终强制对齐渲染页与显示内容，消除首次打开时落后一页的问题"""
         try:
@@ -968,76 +1001,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._pending_size = None
     
     def on_key(self, event: events.Key) -> None:
-        # 添加调试信息
-        logger.debug(f"键盘事件: {event.key}")
-
-        # 划词模式：屏蔽原有方向键行为，改为光标/选择控制
-        if getattr(self, "selection_mode", False):
-            # Enter：结束划词并打开翻译
-            if event.key in ("enter", "return"):
-                self._exit_selection_mode(open_translation=True)
-                event.stop()
-                return
-            # ESC/Q：取消划词模式，恢复原行为
-            if event.key in ("escape", "q"):
-                self._exit_selection_mode(open_translation=False)
-                event.stop()
-                return
-            # 处理方向键与Shift选择
-            handled = self._handle_selection_key(event)
-            if handled:
-                event.stop()
-                return
-            # 其他按键在划词模式下默认不处理为导航
-            event.stop()
-            return
-
-        # 非划词模式：新增 v 进入划词模式
-        if event.key == "v":
-            self._enter_selection_mode()
-            event.stop()
-            return
-
-        # 原有快捷键行为
-        if event.key == "left":
-            self._prev_page()
-        elif event.key == "right":
-            self._next_page()
-        elif event.key == "up":
-            self._scroll_up()
-        elif event.key == "down":
-            self._scroll_down()
-        elif event.key == "g":
-            self._goto_page()
-        elif event.key == "b":
-            self._toggle_bookmark()
-        elif event.key == "B":
-            self._open_bookmark_list()
-        elif event.key == "s":
-            self._open_settings()
-        elif event.key == "f":
-            self._search_text()
-        elif event.key == "a":
-            self._toggle_auto_page()
-        elif event.key == "r":
-            self._toggle_tts()
-        elif event.key == "l":
-            self._translate_selected_text()
-        elif event.key == "w":
-            self._open_vocabulary()
-        elif event.key == "q" or event.key == "escape":
-            self._back_to_library()
-            event.stop()
-        elif event.key == "slash":
-            logger.info("检测到老板键 (slash)，调用 _activate_boss_key()")
-            self._activate_boss_key()
-        elif event.key == "h":
-            logger.info("检测到帮助键 (h)，调用 _show_help()")
-            self._show_help()
-        elif event.key == "ctrl+c":
-            # 复制选中的文本
-            self._copy_selected_text()
-        event.stop()
+        """已由 BINDINGS 处理，避免重复触发"""
+        return
     
     def on_mouse_down(self, event: events.MouseDown) -> None:
         """鼠标按下事件 - 开始文本选择"""
@@ -1081,6 +1046,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.error(f"鼠标释放事件处理失败: {e}")
 
     # —— 划词模式：键盘选择逻辑 ——
+    def _make_key(self, key: str, shift: bool = False):
+        """构造一个最小键事件对象供 _handle_selection_key 复用（避免重写大量逻辑）"""
+        class _SimpleKey:
+            def __init__(self, k: str, s: bool):
+                self.key = k
+                self.shift = s
+                self.modifiers = ["shift"] if s else []
+        return _SimpleKey(key, shift)
+
     def _enter_selection_mode(self) -> None:
         """进入划词模式：初始化光标行列并高亮当前字符，屏蔽原方向键行为"""
         try:
@@ -1286,7 +1260,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
-        # 添加调试信息
         logger.debug(get_global_i18n().t("reader.button_event", button_id=button_id))
         
         if button_id == "prev-btn":
@@ -1294,7 +1267,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         elif button_id == "next-btn":
             self._next_page()
         elif button_id == "goto-btn":
-            # logger.info("检测到goto-btn点击，调用_goto_page")
             self._goto_page()
         elif button_id == "search-btn":
             self._search_text()
@@ -1315,6 +1287,96 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         elif button_id == "back-btn":
             self._back_to_library()
     
+    # —— Actions for BINDINGS ——
+    def action_left(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("left", False))
+        else:
+            self._prev_page()
+
+    def action_right(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("right", False))
+        else:
+            self._next_page()
+
+    def action_up(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("up", False))
+        else:
+            self._scroll_up()
+
+    def action_down(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("down", False))
+        else:
+            self._scroll_down()
+
+    def action_shift_left(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("left", True))
+
+    def action_shift_right(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("right", True))
+
+    def action_shift_up(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("up", True))
+
+    def action_shift_down(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._handle_selection_key(self._make_key("down", True))
+
+    def action_enter_selection_mode(self) -> None:
+        self._enter_selection_mode()
+
+    def action_enter_key(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._exit_selection_mode(open_translation=True)
+
+    def action_escape_key(self) -> None:
+        if getattr(self, "selection_mode", False):
+            self._exit_selection_mode(open_translation=False)
+        else:
+            self._back_to_library()
+
+    def action_goto_page(self) -> None:
+        self._goto_page()
+
+    def action_toggle_bookmark(self) -> None:
+        self._toggle_bookmark()
+
+    def action_open_bookmark_list(self) -> None:
+        self._open_bookmark_list()
+
+    def action_open_settings(self) -> None:
+        self._open_settings()
+
+    def action_search_text(self) -> None:
+        self._search_text()
+
+    def action_toggle_auto_page(self) -> None:
+        self._toggle_auto_page()
+
+    def action_toggle_tts(self) -> None:
+        self._toggle_tts()
+
+    def action_translate(self) -> None:
+        self._translate_selected_text()
+
+    def action_open_vocabulary(self) -> None:
+        self._open_vocabulary()
+
+    def action_boss_key(self) -> None:
+        self._activate_boss_key()
+
+    def action_show_help(self) -> None:
+        self._show_help()
+
+    def action_copy_selected_text(self) -> None:
+        self._copy_selected_text()
+
     def _activate_boss_key(self) -> None:
         logger.info("执行 _activate_boss_key() 方法")
         try:
