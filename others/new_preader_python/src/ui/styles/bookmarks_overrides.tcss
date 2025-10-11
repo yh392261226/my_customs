@@ -25,7 +25,7 @@
 }
 
 #action-buttons {
-    height: 3;
+    height: 5;
     /* 使用 .btn-row 控制居中 */
     background: $surface;
     border-bottom: solid gray;

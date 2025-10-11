@@ -139,7 +139,7 @@ class BookmarksScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        super().on_mount()
+
         # 应用通用样式隔离
         apply_universal_style_isolation(self)
         self.title = self.screen_title

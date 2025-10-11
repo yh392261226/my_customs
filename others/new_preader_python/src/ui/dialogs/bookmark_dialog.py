@@ -14,11 +14,7 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 
 class BookmarkDialog(ModalScreen[Dict[str, Any]]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
-    """书签备注输入对话框"""
+
     
     CSS_PATH = "../styles/bookmark_dialog_overrides.tcss"
     BINDINGS = [
@@ -42,7 +38,10 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
                 yield Button(get_global_i18n().t("common.cancel"), id="cancel-button", variant="error", classes="btn")
 
     def on_mount(self) -> None:
-        """对话框挂载时的回调"""
+        """对话框挂载时应用样式并聚焦输入框"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        # 聚焦输入框
         input_widget = self.query_one("#notes-input", Input)
         input_widget.focus()
 
@@ -72,9 +71,12 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "escape":
-            # ESC键返回，效果与点击取消按钮相同
+            # ESC键仅关闭弹窗，阻止事件冒泡到父屏幕
             self.dismiss(None)
-            event.prevent_default()
+            if hasattr(event, "prevent_default"):
+                event.prevent_default()
+            if hasattr(event, "stop"):
+                event.stop()
 
 # 工厂函数
 def create_bookmark_dialog(bookmark_data: Dict[str, Any]) -> BookmarkDialog:

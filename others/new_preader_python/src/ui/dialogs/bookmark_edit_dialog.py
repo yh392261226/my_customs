@@ -13,10 +13,7 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 
 class BookmarkEditDialog(ModalScreen[str]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
+
     """书签编辑对话框"""
     
     CSS_PATH = "../styles/bookmark_edit_dialog_overrides.tcss"
@@ -52,7 +49,10 @@ class BookmarkEditDialog(ModalScreen[str]):
         )
     
     def on_mount(self) -> None:
-        """挂载时聚焦到输入框"""
+        """挂载时应用样式并聚焦到输入框"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        # 聚焦输入框
         input_widget = self.query_one("#note-input", Input)
         input_widget.focus()
         # 选中所有文本以便快速编辑
@@ -86,6 +86,16 @@ class BookmarkEditDialog(ModalScreen[str]):
     def on_key(self, event) -> None:
         """键盘事件处理"""
         if event.key == "escape":
+            # 只关闭弹窗，并阻止事件冒泡到父屏幕
             self.dismiss(None)
+            if hasattr(event, "prevent_default"):
+                event.prevent_default()
+            if hasattr(event, "stop"):
+                event.stop()
         elif event.key == "enter":
+            # 提交并阻止事件冒泡
             self.on_confirm()
+            if hasattr(event, "prevent_default"):
+                event.prevent_default()
+            if hasattr(event, "stop"):
+                event.stop()
