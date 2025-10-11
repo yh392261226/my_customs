@@ -174,6 +174,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.selected_text = ""
         self.selection_start = None
         self.selection_end = None
+
+        # 划词模式状态（键盘选择，扩展列级）
+        self.selection_mode = False
+        self._cursor_line = 0  # 当前页内的光标行索引
+        self._cursor_col = 0   # 当前行内的列索引（字符级）
+        self._selection_anchor_line = None  # 锚点行
+        self._selection_anchor_col = None   # 锚点列
         
         # 设置组件回调
         self._setup_component_callbacks()
@@ -963,7 +970,35 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     def on_key(self, event: events.Key) -> None:
         # 添加调试信息
         logger.debug(f"键盘事件: {event.key}")
-        
+
+        # 划词模式：屏蔽原有方向键行为，改为光标/选择控制
+        if getattr(self, "selection_mode", False):
+            # Enter：结束划词并打开翻译
+            if event.key in ("enter", "return"):
+                self._exit_selection_mode(open_translation=True)
+                event.stop()
+                return
+            # ESC/Q：取消划词模式，恢复原行为
+            if event.key in ("escape", "q"):
+                self._exit_selection_mode(open_translation=False)
+                event.stop()
+                return
+            # 处理方向键与Shift选择
+            handled = self._handle_selection_key(event)
+            if handled:
+                event.stop()
+                return
+            # 其他按键在划词模式下默认不处理为导航
+            event.stop()
+            return
+
+        # 非划词模式：新增 v 进入划词模式
+        if event.key == "v":
+            self._enter_selection_mode()
+            event.stop()
+            return
+
+        # 原有快捷键行为
         if event.key == "left":
             self._prev_page()
         elif event.key == "right":
@@ -973,7 +1008,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         elif event.key == "down":
             self._scroll_down()
         elif event.key == "g":
-            # logger.info("检测到g键，调用_goto_page")
             self._goto_page()
         elif event.key == "b":
             self._toggle_bookmark()
@@ -1045,6 +1079,163 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     self.notify(f"已选中文本: {selected_text[:50]}...", severity="information")
         except Exception as e:
             logger.error(f"鼠标释放事件处理失败: {e}")
+
+    # —— 划词模式：键盘选择逻辑 ——
+    def _enter_selection_mode(self) -> None:
+        """进入划词模式：初始化光标行列并高亮当前字符，屏蔽原方向键行为"""
+        try:
+            self.selection_mode = True
+            # 初始光标：当前滚动顶行 + 列为0
+            try:
+                self._cursor_line = int(getattr(self.renderer, "_scroll_offset", 0) or 0)
+            except Exception:
+                self._cursor_line = 0
+            lines = getattr(self.renderer, "current_page_lines", None) or []
+            self._cursor_line = max(0, min(self._cursor_line, max(0, len(lines) - 1)))
+            # 初始列夹取到该行长度范围
+            line_text = lines[self._cursor_line] if 0 <= self._cursor_line < len(lines) else ""
+            self._cursor_col = 0
+            if line_text:
+                self._cursor_col = min(self._cursor_col, max(0, len(line_text) - 1))
+            else:
+                self._cursor_col = 0
+
+            # 单点高亮（插入符）：锚点=当前行列
+            page = int(getattr(self.renderer, "current_page", 0) or 0)
+            self._selection_anchor_line = self._cursor_line
+            self._selection_anchor_col = self._cursor_col
+            if hasattr(self.renderer, "start_selection"):
+                try:
+                    self.renderer.start_selection(page, self._selection_anchor_line, self._selection_anchor_col)
+                except Exception:
+                    pass
+            if hasattr(self.renderer, "update_selection"):
+                try:
+                    self.renderer.update_selection(page, self._cursor_line, self._cursor_col)
+                except Exception:
+                    pass
+
+            self.notify("已进入划词模式：方向键移动光标，Shift+方向键选择，Enter翻译，Esc取消", severity="information")
+        except Exception as e:
+            logger.error(f"进入划词模式失败: {e}")
+            self.selection_mode = False
+
+    def _exit_selection_mode(self, open_translation: bool) -> None:
+        """退出划词模式；可选直接打开翻译对话框"""
+        try:
+            # 获取选中文本：优先以 end_selection() 结束并返回完整选区
+            selected_text = ""
+            try:
+                if hasattr(self.renderer, "end_selection"):
+                    selected_text = self.renderer.end_selection() or ""
+                elif hasattr(self.renderer, "get_selected_text"):
+                    selected_text = self.renderer.get_selected_text() or ""
+            except Exception:
+                selected_text = ""
+
+            # 复位模式状态
+            self.selection_mode = False
+            self._selection_anchor_line = None
+            self._selection_anchor_col = None
+
+            # 若需要打开翻译，且确有选中文本则执行
+            if open_translation and selected_text.strip():
+                self.selected_text = selected_text
+                self._translate_selected_text()
+            else:
+                # 无选区或不翻译时，确保清理选择高亮（若尚未清理）
+                try:
+                    if hasattr(self.renderer, "cancel_selection"):
+                        self.renderer.cancel_selection()
+                except Exception:
+                    pass
+                if open_translation:
+                    # 没有选择内容也尝试打开翻译对话框（允许输入）
+                    self.selected_text = ""
+                    self._translate_selected_text()
+            self.notify("已退出划词模式", severity="information")
+        except Exception as e:
+            logger.error(f"退出划词模式失败: {e}")
+
+    def _handle_selection_key(self, event: events.Key) -> bool:
+        """在划词模式下处理方向键与Shift选择（禁止跨页，字符级选择），返回是否已处理"""
+        try:
+            lines = getattr(self.renderer, "current_page_lines", None) or []
+            page = int(getattr(self.renderer, "current_page", 0) or 0)
+            last_line_idx = max(0, len(lines) - 1)
+
+            # 强化 Shift 检测与按键规范化
+            key_raw = str(getattr(event, "key", "")) or ""
+            mods = set(getattr(event, "modifiers", []) or [])
+            shift_held = bool(getattr(event, "shift", False)) or ("shift" in mods) or ("Shift" in mods) or key_raw.startswith("shift+")
+            # 归一化方向键名（例如 "shift+right" -> "right"）
+            key = key_raw.split("+")[-1] if "+" in key_raw else key_raw
+
+            if key not in ("up", "down", "left", "right"):
+                return False
+
+            prev_line = self._cursor_line
+            prev_col = self._cursor_col
+
+            if key == "up":
+                self._cursor_line = max(0, self._cursor_line - 1)
+                new_line_text = lines[self._cursor_line] if 0 <= self._cursor_line < len(lines) else ""
+                self._cursor_col = min(self._cursor_col, max(0, len(new_line_text) - 1)) if new_line_text else 0
+            elif key == "down":
+                self._cursor_line = min(last_line_idx, self._cursor_line + 1)
+                new_line_text = lines[self._cursor_line] if 0 <= self._cursor_line < len(lines) else ""
+                self._cursor_col = min(self._cursor_col, max(0, len(new_line_text) - 1)) if new_line_text else 0
+            elif key == "left":
+                self._cursor_col = max(0, self._cursor_col - 1)
+            elif key == "right":
+                curr_text = lines[self._cursor_line] if 0 <= self._cursor_line < len(lines) else ""
+                self._cursor_col = min(self._cursor_col + 1, max(0, len(curr_text) - 1)) if curr_text else 0
+
+            # 滚动以保持光标行可见
+            try:
+                top = int(getattr(self.renderer, "_scroll_offset", 0) or 0)
+                height = int(getattr(self.renderer, "container_height", 0) or 0)
+                if self._cursor_line < top:
+                    self.renderer.content_scroll_up(top - self._cursor_line)
+                elif height > 0 and self._cursor_line >= top + height:
+                    delta = self._cursor_line - (top + height) + 1
+                    self.renderer.content_scroll_down(max(1, delta))
+            except Exception:
+                pass
+
+            # 选择与高亮（字符级，仅当前页）
+            if shift_held:
+                if self._selection_anchor_line is None or self._selection_anchor_col is None:
+                    self._selection_anchor_line = prev_line
+                    self._selection_anchor_col = prev_col
+                    if hasattr(self.renderer, "start_selection"):
+                        try:
+                            self.renderer.start_selection(page, self._selection_anchor_line, self._selection_anchor_col)
+                        except Exception:
+                            pass
+                if hasattr(self.renderer, "update_selection"):
+                    try:
+                        self.renderer.update_selection(page, self._cursor_line, self._cursor_col)
+                    except Exception:
+                        pass
+            else:
+                self._selection_anchor_line = self._cursor_line
+                self._selection_anchor_col = self._cursor_col
+                if hasattr(self.renderer, "start_selection"):
+                    try:
+                        self.renderer.start_selection(page, self._selection_anchor_line, self._selection_anchor_col)
+                    except Exception:
+                        pass
+                if hasattr(self.renderer, "update_selection"):
+                    try:
+                        self.renderer.update_selection(page, self._cursor_line, self._cursor_col)
+                    except Exception:
+                        pass
+
+            return True
+        except Exception as e:
+            logger.error(f"划词模式方向键处理失败: {e}")
+            return False
     
     def _get_line_index_from_mouse_position(self, x: int, y: int) -> Optional[int]:
         """根据鼠标位置计算对应的行索引"""

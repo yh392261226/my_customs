@@ -128,9 +128,9 @@ class ContentRenderer(Static):
         # 异步分页任务句柄（用于取消并发任务）
         self._paginate_task: Optional[asyncio.Task[None]] = None
         
-        # 文本选择功能
-        self._selection_start: Optional[Tuple[int, int]] = None  # (page_index, line_index)
-        self._selection_end: Optional[Tuple[int, int]] = None
+        # 文本选择功能（扩展为字符级）
+        self._selection_start: Optional[Tuple[int, int, int]] = None  # (page_index, line_index, col_index)
+        self._selection_end: Optional[Tuple[int, int, int]] = None
         self._is_selecting: bool = False
         self._selected_text: str = ""
         
@@ -436,9 +436,21 @@ class ContentRenderer(Static):
         text = RichText()
         palette = getattr(self, "_palette", None)
 
-        # 获取可见行（保留现有间距处理）
-        raw = self.get_visible_content()
-        lines = raw.split("\n")
+        # 获取可见行：
+        # 选择模式下禁用间距格式化，直接使用原始 current_page_lines 切片，
+        # 避免索引错位导致字符级高亮失败；非选择模式保持原逻辑。
+        if self._is_selecting:
+            # 原始行切片（严格对齐 _scroll_offset 与行索引）
+            start_idx = min(self._scroll_offset, max(0, len(self.current_page_lines) - self.visible_lines))
+            end_idx = min(start_idx + self.visible_lines, len(self.current_page_lines))
+            visible_lines = self.current_page_lines[start_idx:end_idx] if start_idx < len(self.current_page_lines) else []
+            # 填充容器高度
+            while len(visible_lines) < self.visible_lines:
+                visible_lines.append("")
+            lines = visible_lines
+        else:
+            raw = self.get_visible_content()
+            lines = raw.split("\n")
 
         import re
         url_re = re.compile(r"(https?://[^\s]+)")
@@ -911,23 +923,43 @@ class ContentRenderer(Static):
                 pass
 
     # 文本选择功能
-    def start_selection(self, page_index: int, line_index: int) -> None:
-        """开始文本选择"""
-        self._selection_start = (page_index, line_index)
-        self._selection_end = (page_index, line_index)
+    def start_selection(self, page_index: int, line_index: int, col_index: Optional[int] = None) -> None:
+        """开始文本选择（支持列级，可兼容旧调用）"""
+        # 安全夹取行与列
+        page_index = max(0, min(page_index, max(0, len(self.all_pages) - 1)))
+        line_index = max(0, line_index)
+        col_index = 0 if col_index is None else max(0, col_index)
+        # 按当前页行长度夹取列
+        try:
+            line_text = self.current_page_lines[line_index] if 0 <= line_index < len(self.current_page_lines) else ""
+            col_index = min(col_index, max(0, len(line_text) - 1)) if line_text else 0
+        except Exception:
+            pass
+        self._selection_start = (page_index, line_index, col_index)
+        self._selection_end = (page_index, line_index, col_index)
         self._is_selecting = True
         self._selected_text = ""
-        logger.debug(f"开始文本选择: 页面={page_index}, 行={line_index}")
-
-    def update_selection(self, page_index: int, line_index: int) -> None:
-        """更新文本选择结束位置"""
-        if not self._is_selecting:
-            return
-            
-        self._selection_end = (page_index, line_index)
         self._update_selected_text()
         self._update_visible_content()
-        logger.debug(f"更新文本选择: 页面={page_index}, 行={line_index}")
+        logger.debug(f"开始文本选择: 页面={page_index}, 行={line_index}, 列={col_index}")
+
+    def update_selection(self, page_index: int, line_index: int, col_index: Optional[int] = None) -> None:
+        """更新文本选择结束位置（支持列级，可兼容旧调用）"""
+        if not self._is_selecting:
+            return
+        # 安全夹取
+        page_index = max(0, min(page_index, max(0, len(self.all_pages) - 1)))
+        line_index = max(0, line_index)
+        col_index = 0 if col_index is None else max(0, col_index)
+        try:
+            line_text = self.current_page_lines[line_index] if 0 <= line_index < len(self.current_page_lines) else ""
+            col_index = min(col_index, max(0, len(line_text) - 1)) if line_text else 0
+        except Exception:
+            pass
+        self._selection_end = (page_index, line_index, col_index)
+        self._update_selected_text()
+        self._update_visible_content()
+        logger.debug(f"更新文本选择: 页面={page_index}, 行={line_index}, 列={col_index}")
 
     def end_selection(self) -> str:
         """结束文本选择并返回选中的文本"""
@@ -955,71 +987,118 @@ class ContentRenderer(Static):
         self._update_visible_content()
 
     def _update_selected_text(self) -> None:
-        """更新选中的文本内容"""
+        """更新选中的文本内容（字符级选区）"""
         if not self._selection_start or not self._selection_end:
+            self._selected_text = ""
             return
-            
-        start_page, start_line = self._selection_start
-        end_page, end_line = self._selection_end
-        
-        # 确保开始位置在结束位置之前
-        if (start_page > end_page) or (start_page == end_page and start_line > end_line):
-            start_page, start_line, end_page, end_line = end_page, end_line, start_page, start_line
-            
-        selected_lines = []
-        
-        # 提取选中范围内的文本
-        for page in range(start_page, end_page + 1):
+
+        sp, sl, sc = self._selection_start
+        ep, el, ec = self._selection_end
+
+        # 排序开始结束位置
+        if (sp > ep) or (sp == ep and (sl > el or (sl == el and sc > ec))):
+            sp, sl, sc, ep, el, ec = ep, el, ec, sp, sl, sc
+
+        selected_parts: List[str] = []
+
+        # 仅处理同一页（避免跨页影响，兼容旧逻辑保留但 ReaderScreen 不会跨页使用）
+        for page in range(sp, ep + 1):
             if page < 0 or page >= len(self.all_pages):
                 continue
-                
             page_lines = self.all_pages[page]
             if not page_lines:
                 continue
-                
-            # 确定当前页的起始和结束行
-            start_idx = start_line if page == start_page else 0
-            end_idx = end_line if page == end_page else len(page_lines) - 1
-            
-            # 提取当前页的选中行
-            for i in range(start_idx, end_idx + 1):
-                if i < len(page_lines):
-                    selected_lines.append(page_lines[i])
-        
-        self._selected_text = "\n".join(selected_lines)
+
+            start_line_idx = sl if page == sp else 0
+            end_line_idx = el if page == ep else len(page_lines) - 1
+
+            for i in range(start_line_idx, end_line_idx + 1):
+                if i < 0 or i >= len(page_lines):
+                    continue
+                line_text = page_lines[i]
+                if i == sl and i == el:
+                    # 单行选择：sc..ec
+                    s = max(0, min(sc, len(line_text)))
+                    e = max(0, min(ec + 1, len(line_text)))  # 包含光标位置字符
+                    selected_parts.append(line_text[s:e])
+                elif i == sl:
+                    s = max(0, min(sc, len(line_text)))
+                    selected_parts.append(line_text[s:])
+                elif i == el:
+                    e = max(0, min(ec + 1, len(line_text)))
+                    selected_parts.append(line_text[:e])
+                else:
+                    selected_parts.append(line_text)
+
+        self._selected_text = "\n".join(selected_parts)
 
     def _get_visible_selection_ranges(self, visible_lines: List[str]) -> Dict[int, List[Tuple[int, int]]]:
-        """获取当前可见区域内的文本选择范围"""
+        """获取当前可见区域内的文本选择范围（字符级）"""
         if not self._is_selecting or not self._selection_start or not self._selection_end:
             return {}
-            
-        start_page, start_line = self._selection_start
-        end_page, end_line = self._selection_end
-        
-        # 如果选择范围不在当前页，不显示高亮
-        if start_page != self.current_page and end_page != self.current_page:
+
+        sp, sl, sc = self._selection_start
+        ep, el, ec = self._selection_end
+
+        # 仅在当前页显示高亮
+        if sp != self.current_page and ep != self.current_page:
             return {}
-            
-        # 确保开始位置在结束位置之前
-        if (start_page > end_page) or (start_page == end_page and start_line > end_line):
-            start_page, start_line, end_page, end_line = end_page, end_line, start_page, start_line
-            
-        ranges = {}
-        
-        # 如果选择在当前页
-        if start_page == self.current_page and end_page == self.current_page:
-            # 计算可见区域内的选择范围
-            visible_start = max(0, start_line - self._scroll_offset)
-            visible_end = min(len(visible_lines) - 1, end_line - self._scroll_offset)
-            
-            if visible_start <= visible_end:
-                # 对于选中的行，高亮整行
-                for line_idx in range(visible_start, visible_end + 1):
-                    if line_idx < len(visible_lines):
-                        line_length = len(visible_lines[line_idx])
-                        if line_length > 0:
-                            ranges[line_idx] = [(0, line_length)]
-        
+
+        # 排序开始结束位置
+        if (sp > ep) or (sp == ep and (sl > el or (sl == el and sc > ec))):
+            sp, sl, sc, ep, el, ec = ep, el, ec, sp, sl, sc
+
+        ranges: Dict[int, List[Tuple[int, int]]] = {}
+
+        # 映射行到可见窗口索引
+        def add_range(vis_line_idx: int, start_col: int, end_col: int) -> None:
+            if 0 <= vis_line_idx < len(visible_lines):
+                line_len = len(visible_lines[vis_line_idx])
+                s = max(0, min(start_col, line_len))
+                e = max(0, min(end_col, line_len))
+                if e > s:
+                    ranges.setdefault(vis_line_idx, []).append((s, e))
+
+        top = self._scroll_offset
+
+        if sp == ep == self.current_page:
+            # 单页选择
+            if sl == el:
+                vis_idx = sl - top
+                add_range(vis_idx, sc, ec + 1)
+            else:
+                # 起始行
+                vis_s = sl - top
+                add_range(vis_s, sc, len(visible_lines[vis_s]) if 0 <= vis_s < len(visible_lines) else 0)
+                # 中间行（整行）
+                for li in range(sl + 1, el):
+                    vis_i = li - top
+                    if 0 <= vis_i < len(visible_lines):
+                        add_range(vis_i, 0, len(visible_lines[vis_i]))
+                # 结束行
+                vis_e = el - top
+                add_range(vis_e, 0, ec + 1)
+        elif sp == self.current_page and ep != self.current_page:
+            # 从当前页开始，向后跨页（可见部分仅当前页）
+            vis_s = sl - top
+            # 从 sc 到该页可见行末尾
+            if 0 <= vis_s < len(visible_lines):
+                add_range(vis_s, sc, len(visible_lines[vis_s]))
+                # 后续行整行直到可见窗口结束
+                for li in range(sl + 1, min(self._scroll_offset + len(visible_lines), len(self.current_page_lines))):
+                    vis_i = li - top
+                    if 0 <= vis_i < len(visible_lines):
+                        add_range(vis_i, 0, len(visible_lines[vis_i]))
+        elif ep == self.current_page and sp != self.current_page:
+            # 从之前页延伸到当前页结束（仅当前页可见部分）
+            # 可见窗口内整行直到 el
+            for li in range(max(self._scroll_offset, 0), el):
+                vis_i = li - top
+                if 0 <= vis_i < len(visible_lines):
+                    add_range(vis_i, 0, len(visible_lines[vis_i]))
+            vis_e = el - top
+            add_range(vis_e, 0, ec + 1)
+
         return ranges
 
     def get_selected_text(self) -> str:
