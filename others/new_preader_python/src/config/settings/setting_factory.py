@@ -241,6 +241,181 @@ def create_audio_settings() -> SettingSection:
     
     return section
 
+def create_translation_settings() -> SettingSection:
+    """创建翻译相关设置项"""
+    section = SettingSection(
+        name="translation",
+        display_name="翻译设置",
+        description="配置第三方翻译API和翻译选项",
+        icon="🌐",
+        order=3
+    )
+    
+    # 默认翻译服务
+    section.add_setting(SelectSetting(
+        key="translation.default_service",
+        default_value="baidu",
+        display_name="默认翻译服务",
+        description="选择默认使用的翻译服务",
+        options=["baidu", "youdao", "google", "microsoft"],
+        option_labels=["百度翻译", "有道翻译", "Google翻译", "微软翻译"],
+        category="translation"
+    ))
+    
+    # 源语言
+    section.add_setting(StringSetting(
+        key="translation.source_language",
+        default_value="auto",
+        display_name="源语言",
+        description="设置源语言（auto为自动检测）",
+        category="translation"
+    ))
+    
+    # 目标语言
+    section.add_setting(StringSetting(
+        key="translation.target_language",
+        default_value="zh",
+        display_name="目标语言",
+        description="设置目标语言",
+        category="translation"
+    ))
+    
+    # 启用缓存
+    section.add_setting(BooleanSetting(
+        key="translation.cache_enabled",
+        default_value=True,
+        display_name="启用翻译缓存",
+        description="是否启用翻译结果缓存",
+        category="translation"
+    ))
+    
+    # 缓存时长
+    section.add_setting(IntegerSetting(
+        key="translation.cache_duration",
+        default_value=3600,
+        display_name="缓存时长",
+        description="翻译结果缓存时间（秒）",
+        min_value=300,
+        max_value=86400,
+        category="translation"
+    ))
+    
+    # 请求超时
+    section.add_setting(IntegerSetting(
+        key="translation.timeout",
+        default_value=10,
+        display_name="请求超时",
+        description="翻译API请求超时时间（秒）",
+        min_value=5,
+        max_value=60,
+        category="translation"
+    ))
+    
+    # 重试次数
+    section.add_setting(IntegerSetting(
+        key="translation.retry_count",
+        default_value=3,
+        display_name="重试次数",
+        description="翻译失败时的重试次数",
+        min_value=0,
+        max_value=10,
+        category="translation"
+    ))
+    
+    # 百度翻译配置
+    section.add_setting(BooleanSetting(
+        key="translation.translation_services.baidu.enabled",
+        default_value=False,
+        display_name="启用百度翻译",
+        description="是否启用百度翻译服务",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.baidu.app_id",
+        default_value="",
+        display_name="百度翻译 App ID",
+        description="百度翻译API的应用ID",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.baidu.app_key",
+        default_value="",
+        display_name="百度翻译 App Key",
+        description="百度翻译API的应用密钥",
+        category="translation"
+    ))
+    
+    # 有道翻译配置
+    section.add_setting(BooleanSetting(
+        key="translation.translation_services.youdao.enabled",
+        default_value=False,
+        display_name="启用有道翻译",
+        description="是否启用有道翻译服务",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.youdao.app_key",
+        default_value="",
+        display_name="有道翻译 App Key",
+        description="有道翻译API的应用密钥",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.youdao.app_secret",
+        default_value="",
+        display_name="有道翻译 App Secret",
+        description="有道翻译API的应用密钥",
+        category="translation"
+    ))
+    
+    # Google翻译配置
+    section.add_setting(BooleanSetting(
+        key="translation.translation_services.google.enabled",
+        default_value=False,
+        display_name="启用Google翻译",
+        description="是否启用Google翻译服务",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.google.api_key",
+        default_value="",
+        display_name="Google翻译 API Key",
+        description="Google翻译API的密钥",
+        category="translation"
+    ))
+    
+    # 微软翻译配置
+    section.add_setting(BooleanSetting(
+        key="translation.translation_services.microsoft.enabled",
+        default_value=False,
+        display_name="启用微软翻译",
+        description="是否启用微软翻译服务",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.microsoft.subscription_key",
+        default_value="",
+        display_name="微软翻译订阅密钥",
+        description="微软翻译API的订阅密钥",
+        category="translation"
+    ))
+    
+    section.add_setting(StringSetting(
+        key="translation.translation_services.microsoft.region",
+        default_value="global",
+        display_name="微软翻译区域",
+        description="微软翻译API的服务区域",
+        category="translation"
+    ))
+    
+    return section
+
 def create_advanced_settings() -> SettingSection:
     """创建高级设置项"""
     section = SettingSection(
@@ -248,7 +423,7 @@ def create_advanced_settings() -> SettingSection:
         display_name="高级设置",
         description="高级功能和系统配置选项",
         icon="⚙️",
-        order=3
+        order=4
     )
     
     # 界面语言
@@ -382,6 +557,7 @@ def create_all_settings() -> List[SettingSection]:
         create_appearance_settings(),
         create_reading_settings(),
         create_audio_settings(),
+        create_translation_settings(),
         create_advanced_settings(),
         create_path_settings()
     ]

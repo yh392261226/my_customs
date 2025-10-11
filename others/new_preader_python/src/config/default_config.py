@@ -53,6 +53,42 @@ DEFAULT_CONFIG = {
         "password": "",  # 启动密码（明文存储）
     },
     
+    # 翻译设置
+    "translation": {
+        "translation_services": {
+            "baidu": {
+                "enabled": False,
+                "app_id": "",
+                "app_key": "",
+                "api_url": "https://fanyi-api.baidu.com/api/trans/vip/translate"
+            },
+            "youdao": {
+                "enabled": False,
+                "app_key": "",
+                "app_secret": "",
+                "api_url": "https://openapi.youdao.com/api"
+            },
+            "google": {
+                "enabled": False,
+                "api_key": "",
+                "api_url": "https://translation.googleapis.com/language/translate/v2"
+            },
+            "microsoft": {
+                "enabled": False,
+                "subscription_key": "",
+                "region": "global",
+                "api_url": "https://api.cognitive.microsofttranslator.com/translate"
+            }
+        },
+        "default_service": "baidu",
+        "source_language": "auto",
+        "target_language": "zh",
+        "cache_enabled": True,
+        "cache_duration": 3600,  # 1小时
+        "timeout": 10,
+        "retry_count": 3
+    },
+    
     # 快捷键设置
     "keybindings": {
         # 阅读操作

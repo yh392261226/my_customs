@@ -126,7 +126,13 @@ class ContentRenderer(Static):
         self._render_pool_limit: int = int(self.config.get("render_pool_size", 5) or 5)
 
         # 异步分页任务句柄（用于取消并发任务）
-        self._paginate_task: Optional[asyncio.Task] = None
+        self._paginate_task: Optional[asyncio.Task[None]] = None
+        
+        # 文本选择功能
+        self._selection_start: Optional[Tuple[int, int]] = None  # (page_index, line_index)
+        self._selection_end: Optional[Tuple[int, int]] = None
+        self._is_selecting: bool = False
+        self._selected_text: str = ""
         
         # 设置基本样式 - 应用主题颜色
         self._apply_theme_styles()
@@ -426,7 +432,7 @@ class ContentRenderer(Static):
 
     
     def _update_visible_content(self) -> None:
-        """更新可见内容显示（使用 RichText 着色）"""
+        """更新可见内容显示（使用 RichText 着色，支持文本选择高亮）"""
         text = RichText()
         palette = getattr(self, "_palette", None)
 
@@ -452,6 +458,9 @@ class ContentRenderer(Static):
             s = line.strip()
             return s.startswith("```")
 
+        # 获取当前可见区域的文本选择范围
+        selection_ranges = self._get_visible_selection_ranges(lines)
+
         for i, line in enumerate(lines):
             style = None
 
@@ -474,6 +483,12 @@ class ContentRenderer(Static):
             # 添加行内容（为 style 提供安全兜底）
             safe_style = style if style is not None else ((palette and palette.get("text")) or Style())
             segment = RichText(line, style=safe_style)
+
+            # 应用文本选择高亮
+            if i in selection_ranges:
+                for start, end in selection_ranges[i]:
+                    if palette and palette.get("highlight"):
+                        segment.stylize(palette["highlight"], start, end)
 
             # 链接着色（只在非代码块内进行）
             if not getattr(self, "_code_fence_open", False):
@@ -894,3 +909,123 @@ class ContentRenderer(Static):
                 _aio.run(_do())
             except Exception:
                 pass
+
+    # 文本选择功能
+    def start_selection(self, page_index: int, line_index: int) -> None:
+        """开始文本选择"""
+        self._selection_start = (page_index, line_index)
+        self._selection_end = (page_index, line_index)
+        self._is_selecting = True
+        self._selected_text = ""
+        logger.debug(f"开始文本选择: 页面={page_index}, 行={line_index}")
+
+    def update_selection(self, page_index: int, line_index: int) -> None:
+        """更新文本选择结束位置"""
+        if not self._is_selecting:
+            return
+            
+        self._selection_end = (page_index, line_index)
+        self._update_selected_text()
+        self._update_visible_content()
+        logger.debug(f"更新文本选择: 页面={page_index}, 行={line_index}")
+
+    def end_selection(self) -> str:
+        """结束文本选择并返回选中的文本"""
+        if not self._is_selecting:
+            return ""
+            
+        self._is_selecting = False
+        selected_text = self._selected_text
+        self._clear_selection()
+        logger.debug(f"结束文本选择: 选中文本长度={len(selected_text)}")
+        return selected_text
+
+    def cancel_selection(self) -> None:
+        """取消文本选择"""
+        self._is_selecting = False
+        self._clear_selection()
+        logger.debug("取消文本选择")
+
+    def _clear_selection(self) -> None:
+        """清除选择状态"""
+        self._selection_start = None
+        self._selection_end = None
+        self._is_selecting = False
+        self._selected_text = ""
+        self._update_visible_content()
+
+    def _update_selected_text(self) -> None:
+        """更新选中的文本内容"""
+        if not self._selection_start or not self._selection_end:
+            return
+            
+        start_page, start_line = self._selection_start
+        end_page, end_line = self._selection_end
+        
+        # 确保开始位置在结束位置之前
+        if (start_page > end_page) or (start_page == end_page and start_line > end_line):
+            start_page, start_line, end_page, end_line = end_page, end_line, start_page, start_line
+            
+        selected_lines = []
+        
+        # 提取选中范围内的文本
+        for page in range(start_page, end_page + 1):
+            if page < 0 or page >= len(self.all_pages):
+                continue
+                
+            page_lines = self.all_pages[page]
+            if not page_lines:
+                continue
+                
+            # 确定当前页的起始和结束行
+            start_idx = start_line if page == start_page else 0
+            end_idx = end_line if page == end_page else len(page_lines) - 1
+            
+            # 提取当前页的选中行
+            for i in range(start_idx, end_idx + 1):
+                if i < len(page_lines):
+                    selected_lines.append(page_lines[i])
+        
+        self._selected_text = "\n".join(selected_lines)
+
+    def _get_visible_selection_ranges(self, visible_lines: List[str]) -> Dict[int, List[Tuple[int, int]]]:
+        """获取当前可见区域内的文本选择范围"""
+        if not self._is_selecting or not self._selection_start or not self._selection_end:
+            return {}
+            
+        start_page, start_line = self._selection_start
+        end_page, end_line = self._selection_end
+        
+        # 如果选择范围不在当前页，不显示高亮
+        if start_page != self.current_page and end_page != self.current_page:
+            return {}
+            
+        # 确保开始位置在结束位置之前
+        if (start_page > end_page) or (start_page == end_page and start_line > end_line):
+            start_page, start_line, end_page, end_line = end_page, end_line, start_page, start_line
+            
+        ranges = {}
+        
+        # 如果选择在当前页
+        if start_page == self.current_page and end_page == self.current_page:
+            # 计算可见区域内的选择范围
+            visible_start = max(0, start_line - self._scroll_offset)
+            visible_end = min(len(visible_lines) - 1, end_line - self._scroll_offset)
+            
+            if visible_start <= visible_end:
+                # 对于选中的行，高亮整行
+                for line_idx in range(visible_start, visible_end + 1):
+                    if line_idx < len(visible_lines):
+                        line_length = len(visible_lines[line_idx])
+                        if line_length > 0:
+                            ranges[line_idx] = [(0, line_length)]
+        
+        return ranges
+
+    def get_selected_text(self) -> str:
+        """获取当前选中的文本"""
+        return self._selected_text
+
+    def has_selection(self) -> bool:
+        """检查是否有选中的文本"""
+        return bool(self._selected_text.strip())

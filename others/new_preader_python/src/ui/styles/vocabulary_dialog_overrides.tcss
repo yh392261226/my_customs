@@ -1,0 +1,211 @@
+/* 单词本对话框样式覆盖 - 严格作用域到 #vocabulary-dialog-container */
+
+/* 容器 */
+#vocabulary-dialog-container {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    background: $surface;
+    border: round $primary;
+    padding: 1;
+    layout: vertical;
+    overflow-y: auto;
+}
+
+/* 标题 */
+#vocabulary-dialog-container #dialog-title,
+#vocabulary-dialog-container .section-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    margin: 0 0 1 0;
+}
+
+/* 字段标签 */
+#vocabulary-dialog-container .field-label {
+    color: $text-muted;
+    margin: 0 0 1 0;
+    width: auto;
+    height: auto;
+}
+
+/* 通用显示文本区域 */
+#vocabulary-dialog-container .text-display {
+    color: $text;
+    background: $surface;
+}
+
+/* 区块容器：兼容两种类名（连字符/下划线） */
+#vocabulary-dialog-container .vocabulary-section,
+#vocabulary-dialog-container .vocabulary_section {
+    width: 100%;
+    margin: 1 0;
+    padding: 1;
+    align: center middle;
+    border: solid $primary;
+    height: auto;
+}
+
+/* 搜索区域（顶层有 classes="vocabulary-section"） */
+#vocabulary-dialog-container #search-section {
+    width: 100%;
+    align: center middle;
+    height: auto;
+    margin: 0 0 1 0;
+    padding: 0;
+}
+#vocabulary-dialog-container #search-section > Horizontal {
+    layout: horizontal;
+    width: 100%;
+    height: auto;
+    align: center middle;
+}
+
+/* 搜索输入框和按钮 */
+#vocabulary-dialog-container #search-section > Horizontal > .vocabulary-input-std {
+    width: 60%;
+    max-width: 60%;
+    margin: 0 1 0 0;
+    height: 3;
+}
+#vocabulary-dialog-container #search-section > Horizontal > .vocabulary-search-button {
+    width: auto;
+    min-width: 8;
+    margin: 0 1 0 0;
+    height: 3;
+}
+#vocabulary-dialog-container #search-section > Horizontal > .vocabulary-stats-button {
+    width: auto;
+    min-width: 8;
+    margin: 0 1 0 0;
+    height: 3;
+}
+
+/* 表格与详情/统计区域 */
+#vocabulary-dialog-container #words-section,
+#vocabulary-dialog-container #detail-section,
+#vocabulary-dialog-container #stats-section {
+    height: auto;
+}
+
+#vocabulary-dialog-container #words-section {
+    height: auto;
+}
+
+#vocabulary-dialog-container #words-table {
+    width: 100%;
+    height: 10;
+    min-height: 5;
+    margin: 1 0;
+    overflow-y: auto;
+}
+#vocabulary-dialog-container #word-details {
+    width: 100%;
+    height: 10;
+    background: $surface;
+    border: solid $primary;
+    padding: 1;
+}
+#vocabulary-dialog-container #stats-display {
+    width: 100%;
+    height: 10;
+    background: $surface;
+    border: solid $success;
+    padding: 1;
+    overflow-y: auto;
+}
+
+/* 统计区域显示切换：默认折叠，添加 .visible 时展开 */
+#vocabulary-dialog-container #stats-section {
+    height: 0;
+    min-height: 0;
+    padding: 0;
+    overflow-y: hidden;
+}
+#vocabulary-dialog-container #stats-section.visible {
+    height: auto;
+    min-height: 10;
+    padding: 0;
+}
+
+/* 按钮行 */
+#vocabulary-dialog-container .btn-row {
+    width: 100%;
+    layout: horizontal;
+    align: center middle;
+    margin: 2 0;
+}
+/* 底部按钮固定贴底并居中 */
+#vocabulary-dialog-container #dialog-buttons {
+    dock: bottom;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    layout: horizontal;
+    align: center middle;
+    align-horizontal: center;
+    content-align: center middle;
+    margin: 0;
+}
+#vocabulary-dialog-container #dialog-buttons > Button,
+#vocabulary-dialog-container .btn-row > Button {
+    margin: 0 1;
+    min-width: 10;
+}
+/* 首个按钮取消左外边距，避免整体看起来偏左 */
+#vocabulary-dialog-container #dialog-buttons > Button:first-child {
+    margin-left: 0;
+}
+
+/* 组件基线（作用域内） */
+#vocabulary-dialog-container Button {
+    min-width: 10;
+}
+#vocabulary-dialog-container Button:focus {
+    border: double $accent;
+}
+#vocabulary-dialog-container DataTable {
+    border: solid $primary;
+}
+#vocabulary-dialog-container DataTable:focus {
+    border: double $accent;
+}
+#vocabulary-dialog-container DataTable > .datatable--cursor {
+    background: $accent;
+    color: $text;
+}
+#vocabulary-dialog-container DataTable > .datatable--header {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+#vocabulary-dialog-container DataTable > .datatable--odd-row {
+    background: $surface-darken-1;
+}
+#vocabulary-dialog-container DataTable > .datatable--even-row {
+    background: $surface;
+}
+#vocabulary-dialog-container Input {
+    border: solid $primary;
+}
+#vocabulary-dialog-container Input:focus {
+    border: double $accent;
+}
+#vocabulary-dialog-container Label {
+    color: $text;
+}
+
+/* 面板类仅在容器内生效，避免影响其他对话框 */
+#vocabulary-dialog-container.panel {
+    background: $surface;
+    border: round $primary;
+    padding: 2;
+}
+
+/* 输入标准尺寸（局部作用域） */
+#vocabulary-dialog-container .vocabulary-input-std {
+    width: 40%;
+    height: 3;
+    border: solid $primary;
+}

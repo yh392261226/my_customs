@@ -86,6 +86,10 @@ class SettingsScreen(Screen[Any]):
                 with TabPane(get_global_i18n().t("settings.audio"), id="audio-tab"):
                     yield from self._compose_audio_settings()
                 
+                # 翻译设置标签页
+                with TabPane(get_global_i18n().t("settings.translation"), id="translation-tab"):
+                    yield from self._compose_translation_settings()
+                
                 # 高级设置标签页
                 with TabPane(get_global_i18n().t("settings.advanced"), id="advanced-tab"):
                     yield from self._compose_advanced_settings()
@@ -274,6 +278,177 @@ class SettingsScreen(Screen[Any]):
                     type="number"
                 )
     
+    def _compose_translation_settings(self) -> ComposeResult:
+        """组合翻译设置"""
+        with ScrollableContainer(id="translation-settings"):
+            # 默认翻译服务
+            yield Label(get_global_i18n().t("settings.default_translation_service"), classes="setting-label")
+            service_setting = self.setting_registry.get_setting("translation.default_service")
+            if service_setting and isinstance(service_setting, SelectSetting):
+                yield Select(
+                    [(label, value) for value, label in zip(service_setting.options, service_setting.option_labels)],
+                    value=service_setting.value,
+                    id="translation-service-select"
+                )
+            
+            # 源语言
+            yield Label(get_global_i18n().t("settings.source_language"), classes="setting-label")
+            source_setting = self.setting_registry.get_setting("translation.source_language")
+            if source_setting:
+                yield Input(
+                    str(source_setting.value),
+                    id="translation-source-input"
+                )
+            
+            # 目标语言
+            yield Label(get_global_i18n().t("settings.target_language"), classes="setting-label")
+            target_setting = self.setting_registry.get_setting("translation.target_language")
+            if target_setting:
+                yield Input(
+                    str(target_setting.value),
+                    id="translation-target-input"
+                )
+            
+            # 启用缓存
+            yield Label(get_global_i18n().t("settings.translation_cache_enabled"), classes="setting-label")
+            cache_setting = self.setting_registry.get_setting("translation.cache_enabled")
+            if cache_setting:
+                yield Switch(
+                    value=cache_setting.value,
+                    id="translation-cache-switch"
+                )
+            
+            # 缓存时长
+            yield Label(get_global_i18n().t("settings.cache_duration"), classes="setting-label")
+            duration_setting = self.setting_registry.get_setting("translation.cache_duration")
+            if duration_setting:
+                yield Input(
+                    str(duration_setting.value),
+                    id="translation-duration-input",
+                    type="number"
+                )
+            
+            # 请求超时
+            yield Label(get_global_i18n().t("settings.request_timeout"), classes="setting-label")
+            timeout_setting = self.setting_registry.get_setting("translation.timeout")
+            if timeout_setting:
+                yield Input(
+                    str(timeout_setting.value),
+                    id="translation-timeout-input",
+                    type="number"
+                )
+            
+            # 重试次数
+            yield Label(get_global_i18n().t("settings.retry_count"), classes="setting-label")
+            retry_setting = self.setting_registry.get_setting("translation.retry_count")
+            if retry_setting:
+                yield Input(
+                    str(retry_setting.value),
+                    id="translation-retry-input",
+                    type="number"
+                )
+            
+            # 翻译服务API配置
+            yield Label(get_global_i18n().t("settings.translation_services"), classes="setting-section-title")
+            
+            # 百度翻译配置
+            yield Label(get_global_i18n().t("settings.baidu_translation"), classes="setting-subtitle")
+            baidu_enabled = self.setting_registry.get_setting("translation.translation_services.baidu.enabled")
+            if baidu_enabled:
+                yield Switch(
+                    value=baidu_enabled.value,
+                    id="baidu-enabled-switch"
+                )
+                yield Label(get_global_i18n().t("settings.baidu_app_id"), classes="setting-label")
+                baidu_app_id = self.setting_registry.get_setting("translation.translation_services.baidu.app_id")
+                if baidu_app_id:
+                    yield Input(
+                        value=baidu_app_id.value,
+                        placeholder=baidu_app_id.default_value,
+                        id="baidu-app-id-input",
+                        password=True
+                    )
+                yield Label(get_global_i18n().t("settings.baidu_app_key"), classes="setting-label")
+                baidu_app_key = self.setting_registry.get_setting("translation.translation_services.baidu.app_key")
+                if baidu_app_key:
+                    yield Input(
+                        value=baidu_app_key.value,
+                        placeholder=baidu_app_key.default_value,
+                        id="baidu-app-key-input",
+                        password=True
+                    )
+            
+            # 有道翻译配置
+            yield Label(get_global_i18n().t("settings.youdao_translation"), classes="setting-subtitle")
+            youdao_enabled = self.setting_registry.get_setting("translation.translation_services.youdao.enabled")
+            if youdao_enabled:
+                yield Switch(
+                    value=youdao_enabled.value,
+                    id="youdao-enabled-switch"
+                )
+                yield Label(get_global_i18n().t("settings.youdao_app_key"), classes="setting-label")
+                youdao_app_key = self.setting_registry.get_setting("translation.translation_services.youdao.app_key")
+                if youdao_app_key:
+                    yield Input(
+                        value=youdao_app_key.value,
+                        placeholder=youdao_app_key.default_value,
+                        id="youdao-app-key-input",
+                        password=True
+                    )
+                yield Label(get_global_i18n().t("settings.youdao_app_secret"), classes="setting-label")
+                youdao_app_secret = self.setting_registry.get_setting("translation.translation_services.youdao.app_secret")
+                if youdao_app_secret:
+                    yield Input(
+                        value=youdao_app_secret.value,
+                        placeholder=youdao_app_secret.default_value,
+                        id="youdao-app-secret-input",
+                        password=True
+                    )
+            
+            # Google翻译配置
+            yield Label(get_global_i18n().t("settings.google_translation"), classes="setting-subtitle")
+            google_enabled = self.setting_registry.get_setting("translation.translation_services.google.enabled")
+            if google_enabled:
+                yield Switch(
+                    value=google_enabled.value,
+                    id="google-enabled-switch"
+                )
+                yield Label(get_global_i18n().t("settings.google_api_key"), classes="setting-label")
+                google_api_key = self.setting_registry.get_setting("translation.translation_services.google.api_key")
+                if google_api_key:
+                    yield Input(
+                        value=google_api_key.value,
+                        placeholder=google_api_key.default_value,
+                        id="google-api-key-input",
+                        password=True
+                    )
+            
+            # 微软翻译配置
+            yield Label(get_global_i18n().t("settings.microsoft_translation"), classes="setting-subtitle")
+            microsoft_enabled = self.setting_registry.get_setting("translation.translation_services.microsoft.enabled")
+            if microsoft_enabled:
+                yield Switch(
+                    value=microsoft_enabled.value,
+                    id="microsoft-enabled-switch"
+                )
+                yield Label(get_global_i18n().t("settings.microsoft_subscription_key"), classes="setting-label")
+                microsoft_key = self.setting_registry.get_setting("translation.translation_services.microsoft.subscription_key")
+                if microsoft_key:
+                    yield Input(
+                        value=microsoft_key.value,
+                        placeholder=microsoft_key.default_value,
+                        id="microsoft-key-input",
+                        password=True
+                    )
+                yield Label(get_global_i18n().t("settings.microsoft_region"), classes="setting-label")
+                microsoft_region = self.setting_registry.get_setting("translation.translation_services.microsoft.region")
+                if microsoft_region:
+                    yield Input(
+                        value=microsoft_region.value,
+                        placeholder=microsoft_region.default_value,
+                        id="microsoft-region-input"
+                    )
+
     def _compose_advanced_settings(self) -> ComposeResult:
         """组合高级设置"""
         with ScrollableContainer(id="advanced-settings"):
@@ -500,10 +675,12 @@ class SettingsScreen(Screen[Any]):
         """从UI更新设置项的值"""
         # 外观设置
         theme_select = self.query_one("#appearance-theme-select", Select)
-        self.setting_registry.set_value("appearance.theme", theme_select.value)
+        if theme_select.value is not None:
+            self.setting_registry.set_value("appearance.theme", theme_select.value)
         
         border_select = self.query_one("#appearance-border-select", Select)
-        self.setting_registry.set_value("appearance.border_style", border_select.value)
+        if border_select.value is not None:
+            self.setting_registry.set_value("appearance.border_style", border_select.value)
         
         icons_switch = self.query_one("#appearance-icons-switch", Switch)
         self.setting_registry.set_value("appearance.show_icons", icons_switch.value)
@@ -512,29 +689,35 @@ class SettingsScreen(Screen[Any]):
         self.setting_registry.set_value("appearance.animation_enabled", animation_switch.value)
         
         progress_select = self.query_one("#appearance-progress-select", Select)
-        self.setting_registry.set_value("appearance.progress_bar_style", progress_select.value)
+        if progress_select.value is not None:
+            self.setting_registry.set_value("appearance.progress_bar_style", progress_select.value)
         
         # 阅读设置
         font_input = self.query_one("#reading-font-size-input", Input)
-        self.setting_registry.set_value("reading.font_size", int(font_input.value))
-        
+        try:
+            self.setting_registry.set_value("reading.font_size", int(font_input.value))
+        except ValueError:
+            pass
 
         spacing_select = self.query_one("#reading-spacing-select", Select)
         if spacing_select.value is not None:
             try:
-                self.setting_registry.set_value("reading.line_spacing", int(spacing_select.value))  # type: ignore[arg-type]
+                self.setting_registry.set_value("reading.line_spacing", int(spacing_select.value))
             except Exception:
                 pass
         
         para_select = self.query_one("#reading-para-select", Select)
         if para_select.value is not None:
             try:
-                self.setting_registry.set_value("reading.paragraph_spacing", int(para_select.value))  # type: ignore[arg-type]
+                self.setting_registry.set_value("reading.paragraph_spacing", int(para_select.value))
             except Exception:
                 pass
         
         auto_input = self.query_one("#reading-auto-input", Input)
-        self.setting_registry.set_value("reading.auto_page_turn_interval", int(auto_input.value))
+        try:
+            self.setting_registry.set_value("reading.auto_page_turn_interval", int(auto_input.value))
+        except ValueError:
+            pass
         
         remember_switch = self.query_one("#reading-remember-switch", Switch)
         self.setting_registry.set_value("reading.remember_position", remember_switch.value)
@@ -547,17 +730,95 @@ class SettingsScreen(Screen[Any]):
         self.setting_registry.set_value("audio.tts_enabled", tts_switch.value)
         
         speed_input = self.query_one("#audio-speed-input", Input)
-        self.setting_registry.set_value("audio.tts_speed", int(speed_input.value))
+        try:
+            self.setting_registry.set_value("audio.tts_speed", int(speed_input.value))
+        except ValueError:
+            pass
         
         voice_select = self.query_one("#audio-voice-select", Select)
-        self.setting_registry.set_value("audio.tts_voice", voice_select.value)
+        if voice_select.value is not None:
+            self.setting_registry.set_value("audio.tts_voice", voice_select.value)
         
         volume_input = self.query_one("#audio-volume-input", Input)
-        self.setting_registry.set_value("audio.tts_volume", float(volume_input.value))
+        try:
+            self.setting_registry.set_value("audio.tts_volume", float(volume_input.value))
+        except ValueError:
+            pass
+        
+        # 翻译设置
+        service_select = self.query_one("#translation-service-select", Select)
+        if service_select.value is not None:
+            self.setting_registry.set_value("translation.default_service", service_select.value)
+        
+        source_input = self.query_one("#translation-source-input", Input)
+        self.setting_registry.set_value("translation.source_language", source_input.value)
+        
+        target_input = self.query_one("#translation-target-input", Input)
+        self.setting_registry.set_value("translation.target_language", target_input.value)
+        
+        cache_switch = self.query_one("#translation-cache-switch", Switch)
+        self.setting_registry.set_value("translation.cache_enabled", cache_switch.value)
+        
+        duration_input = self.query_one("#translation-duration-input", Input)
+        try:
+            self.setting_registry.set_value("translation.cache_duration", int(duration_input.value))
+        except ValueError:
+            pass
+        
+        timeout_input = self.query_one("#translation-timeout-input", Input)
+        try:
+            self.setting_registry.set_value("translation.timeout", int(timeout_input.value))
+        except ValueError:
+            pass
+        
+        retry_input = self.query_one("#translation-retry-input", Input)
+        try:
+            self.setting_registry.set_value("translation.retry_count", int(retry_input.value))
+        except ValueError:
+            pass
+        
+        # 翻译服务API配置
+        # 百度翻译
+        baidu_enabled = self.query_one("#baidu-enabled-switch", Switch)
+        self.setting_registry.set_value("translation.translation_services.baidu.enabled", baidu_enabled.value)
+        
+        baidu_app_id = self.query_one("#baidu-app-id-input", Input)
+        self.setting_registry.set_value("translation.translation_services.baidu.app_id", baidu_app_id.value)
+        
+        baidu_app_key = self.query_one("#baidu-app-key-input", Input)
+        self.setting_registry.set_value("translation.translation_services.baidu.app_key", baidu_app_key.value)
+        
+        # 有道翻译
+        youdao_enabled = self.query_one("#youdao-enabled-switch", Switch)
+        self.setting_registry.set_value("translation.translation_services.youdao.enabled", youdao_enabled.value)
+        
+        youdao_app_key = self.query_one("#youdao-app-key-input", Input)
+        self.setting_registry.set_value("translation.translation_services.youdao.app_key", youdao_app_key.value)
+        
+        youdao_app_secret = self.query_one("#youdao-app-secret-input", Input)
+        self.setting_registry.set_value("translation.translation_services.youdao.app_secret", youdao_app_secret.value)
+        
+        # Google翻译
+        google_enabled = self.query_one("#google-enabled-switch", Switch)
+        self.setting_registry.set_value("translation.translation_services.google.enabled", google_enabled.value)
+        
+        google_api_key = self.query_one("#google-api-key-input", Input)
+        self.setting_registry.set_value("translation.translation_services.google.api_key", google_api_key.value)
+        
+        # 微软翻译
+        microsoft_enabled = self.query_one("#microsoft-enabled-switch", Switch)
+        self.setting_registry.set_value("translation.translation_services.microsoft.enabled", microsoft_enabled.value)
+        
+        microsoft_key = self.query_one("#microsoft-key-input", Input)
+        self.setting_registry.set_value("translation.translation_services.microsoft.subscription_key", microsoft_key.value)
+        
+        microsoft_region = self.query_one("#microsoft-region-input", Input)
+        self.setting_registry.set_value("translation.translation_services.microsoft.region", microsoft_region.value)
         
         # 高级设置
         lang_select = self.query_one("#advanced-language-select", Select)
-        self.setting_registry.set_value("advanced.language", lang_select.value)
+        if lang_select.value is not None:
+            self.setting_registry.set_value("advanced.language", lang_select.value)
         
         # 更新全局i18n语言设置（确保类型为字符串）
         if isinstance(lang_select.value, str):

@@ -1,0 +1,168 @@
+/* translation_dialog_overrides.tcss */
+/* 全面作用域到 #translation-dialog-container，避免影响其他界面 */
+
+/* 对话框容器样式 */
+#translation-dialog-container {
+    width: 100%;
+    height: 100%;
+    background: $surface;
+}
+
+/* 标题样式 - 居中加粗 */
+#translation-dialog-container #translation-dialog-title {
+    text-align: center;
+    text-style: bold;
+    color: $text;
+    border-bottom: solid $accent;
+    width: 100%;
+}
+
+/* 对话框主体区域 */
+#translation-dialog-container #translation-dialog-body {
+    height: 7;
+    layout: grid;
+    grid-size: 2;
+    grid-columns: 65% 35%;
+}
+
+/* 翻译区域通用样式 */
+#translation-dialog-container .trans_section {
+    height: 5;
+    align: center middle;
+}
+
+/* 字段标签样式（作用域内） */
+#translation-dialog-container .field-label {
+    width: 20%;
+    height: 3;
+    text-style: bold;
+    color: $text-muted;
+    margin: 2 0;
+}
+
+/* 输入框样式（作用域内） */
+#translation-dialog-container .input-std {
+    width: 40%;
+    height: 3;
+    background: $background;
+    border: solid $accent;
+}
+#translation-dialog-container .input-std:focus {
+    border: double $success;
+}
+
+/* 顶部两列横向栅格布局 */
+#translation-dialog-container #original-text-section {
+    height: auto;
+}
+#translation-dialog-container #translation-input-section {
+    height: auto;
+}
+
+/* 目标语言输入和翻译按钮的水平布局 */
+#translation-dialog-container #translation-input-section > Horizontal {
+    layout: horizontal;
+    height: auto;
+    align: left middle;
+}
+#translation-dialog-container #translation-input-section > Horizontal > #target-language-input {
+    width: 20%;
+    min-width: 10;
+}
+#translation-dialog-container #translation-input-section > Horizontal > #translate-button {
+    width: 8%;
+    min-width: 8;
+    margin: 1 0;
+}
+
+/* 翻译结果显示区域 */
+#translation-dialog-container #translation-result-section {
+    height: auto;
+    min-height: 10;
+    padding: 0;
+    background: $background;
+}
+#translation-dialog-container #translation-result {
+    height: auto;
+    min-height: 10;
+    margin: 0;
+    padding: 0;
+    background: $background;
+    border: solid $panel;
+    overflow-y: auto;
+}
+
+/* 添加到单词本区域 */
+#translation-dialog-container #vocabulary-section {
+    layout: grid;
+    grid-size: 1;
+    grid-columns: 100%;
+    height: auto;
+    margin: 1 0;
+    align: center middle;
+    background: $background;
+}
+#translation-dialog-container #vocabulary-section > Horizontal {
+    layout: horizontal;
+    height: auto;
+    align: center middle;
+}
+#translation-dialog-container #vocabulary-section > Horizontal > #context-input {
+    width: 40%;
+    height: 3;
+    background: $background;
+    border: solid $accent;
+}
+#translation-dialog-container #vocabulary-section > Horizontal > #add-vocabulary-button {
+    width: 8%;
+    height: 3;
+    min-width: 10;
+}
+
+/* 文本显示区域（作用域内） */
+#translation-dialog-container .text-display {
+    background: $background;
+    border: solid $panel;
+    min-height: 3;
+    overflow-y: auto;
+}
+
+/* 按钮样式（作用域内 IDs） */
+#translation-dialog-container #translate-button {
+    background: $primary;
+    color: $text;
+}
+#translation-dialog-container #add-vocabulary-button {
+    background: $success;
+    color: $text;
+}
+#translation-dialog-container #add-vocabulary-button:disabled {
+    background: $background;
+    color: $text-muted;
+}
+
+/* 底部按钮区域 - 居中（作用域内） */
+#translation-dialog-container #dialog-buttons {
+    layout: horizontal;
+    height: auto;
+    align: center middle;
+}
+#translation-dialog-container #close-button {
+    min-width: 20%;
+    background: $primary;
+    color: $text;
+}
+
+/* 面板和区域通用样式（仅作用于本容器） */
+#translation-dialog-container.panel {
+    background: $surface;
+    width: 100%;
+    height: 100%;
+}
+#translation-dialog-container .section {
+    margin: 0;
+    padding: 0;
+}
+#translation-dialog-container .section-body {
+    padding: 0;
+}

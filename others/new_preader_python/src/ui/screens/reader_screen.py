@@ -18,6 +18,9 @@ from textual.reactive import reactive
 from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
+import logging
+
+logger = logging.getLogger(__name__)
 from src.core.book import Book
 from src.core.statistics_direct import StatisticsManagerDirect
 from src.ui.components.content_renderer import ContentRenderer
@@ -29,9 +32,13 @@ from src.ui.components.textual_loading_animation import TextualLoadingAnimation,
 from src.ui.dialogs.page_dialog import PageDialog
 from src.ui.dialogs.content_search_dialog import ContentSearchDialog
 from src.ui.dialogs.bookmark_dialog import BookmarkDialog
+from src.ui.dialogs.translation_dialog import TranslationDialog
+from src.ui.dialogs.vocabulary_dialog import VocabularyDialog
 from src.ui.screens.bookmarks_screen import BookmarksScreen
 from src.ui.screens.search_results_screen import SearchResultsScreen
 from src.utils.text_to_speech import TextToSpeech as TTSManager
+from src.core.translation_manager import TranslationManager
+from src.core.vocabulary_manager import VocabularyManager
 from src.config.settings.setting_registry import SettingRegistry
 from src.ui.messages import RefreshBookshelfMessage, RefreshContentMessage
 from src.ui.styles.style_manager import ScreenStyleMixin
@@ -152,6 +159,22 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.tts_manager = TTSManager()
         self.tts_enabled = False
         
+        # 翻译和单词本管理器
+        self.translation_manager = TranslationManager()
+        # 配置翻译管理器
+        try:
+            self.translation_manager.configure_from_config_manager()
+        except Exception as e:
+            logger.error(f"配置翻译管理器失败: {e}")
+            # 如果配置失败，使用默认管理器（无服务配置）
+        
+        self.vocabulary_manager = VocabularyManager()
+        
+        # 选词状态
+        self.selected_text = ""
+        self.selection_start = None
+        self.selection_end = None
+        
         # 设置组件回调
         self._setup_component_callbacks()
         
@@ -213,6 +236,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 yield Button(f"{get_global_i18n().t('reader.search')}【f】", classes="btn", id="search-btn")
                 yield Button(f"{get_global_i18n().t('reader.add_remove_bookmark')}【b】", classes="btn", id="bookmark-btn")
                 yield Button(f"{get_global_i18n().t('reader.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")
+                yield Button(f"{get_global_i18n().t('reader.translation')}【l】", classes="btn", id="translation-btn")
+                yield Button(f"{get_global_i18n().t('reader.vocabulary')}【v】", classes="btn", id="vocabulary-btn")
                 yield Button(f"{get_global_i18n().t('reader.aloud')}【R】", classes="btn", id="aloud-btn")
                 yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
                 yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
@@ -962,6 +987,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._toggle_auto_page()
         elif event.key == "r":
             self._toggle_tts()
+        elif event.key == "l":
+            self._translate_selected_text()
+        elif event.key == "v":
+            self._open_vocabulary()
         elif event.key == "q" or event.key == "escape":
             self._back_to_library()
             event.stop()
@@ -971,7 +1000,98 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         elif event.key == "h":
             logger.info("检测到帮助键 (h)，调用 _show_help()")
             self._show_help()
+        elif event.key == "ctrl+c":
+            # 复制选中的文本
+            self._copy_selected_text()
         event.stop()
+    
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        """鼠标按下事件 - 开始文本选择"""
+        try:
+            # 检查是否点击在内容渲染器上
+            if event.widget == self.renderer:
+                # 计算点击位置对应的行索引
+                line_index = self._get_line_index_from_mouse_position(event.x, event.y)
+                if line_index is not None:
+                    # 开始文本选择
+                    self.renderer.start_selection(self.renderer.current_page, line_index)
+                    logger.debug(f"开始文本选择: 页面={self.renderer.current_page}, 行={line_index}")
+        except Exception as e:
+            logger.error(f"鼠标按下事件处理失败: {e}")
+    
+    def on_mouse_move(self, event: events.MouseMove) -> None:
+        """鼠标移动事件 - 更新文本选择"""
+        try:
+            if hasattr(self.renderer, '_is_selecting') and self.renderer._is_selecting:
+                # 计算鼠标位置对应的行索引
+                line_index = self._get_line_index_from_mouse_position(event.x, event.y)
+                if line_index is not None:
+                    # 更新文本选择
+                    self.renderer.update_selection(self.renderer.current_page, line_index)
+        except Exception as e:
+            logger.error(f"鼠标移动事件处理失败: {e}")
+    
+    def on_mouse_up(self, event: events.MouseUp) -> None:
+        """鼠标释放事件 - 结束文本选择"""
+        try:
+            if hasattr(self.renderer, '_is_selecting') and self.renderer._is_selecting:
+                # 结束文本选择
+                selected_text = self.renderer.end_selection()
+                self.selected_text = selected_text
+                logger.debug(f"结束文本选择: 选中文本长度={len(selected_text)}")
+                
+                # 如果选中了文本，显示提示
+                if selected_text.strip():
+                    self.notify(f"已选中文本: {selected_text[:50]}...", severity="information")
+        except Exception as e:
+            logger.error(f"鼠标释放事件处理失败: {e}")
+    
+    def _get_line_index_from_mouse_position(self, x: int, y: int) -> Optional[int]:
+        """根据鼠标位置计算对应的行索引"""
+        try:
+            # 获取内容渲染器的位置和尺寸
+            renderer_widget = self.renderer
+            renderer_x = renderer_widget.region.x
+            renderer_y = renderer_widget.region.y
+            renderer_height = renderer_widget.region.height
+            
+            # 计算相对于内容渲染器的y坐标
+            relative_y = y - renderer_y
+            
+            # 计算行高（假设每行高度为1）
+            line_height = 1
+            
+            # 计算行索引（考虑滚动偏移）
+            line_index = int(relative_y / line_height) + self.renderer._scroll_offset
+            
+            # 确保行索引在有效范围内
+            if 0 <= line_index < len(self.renderer.current_page_lines):
+                return line_index
+            else:
+                return None
+                
+        except Exception as e:
+            logger.error(f"计算鼠标位置对应的行索引失败: {e}")
+            return None
+    
+    def _copy_selected_text(self) -> None:
+        """复制选中的文本到剪贴板"""
+        try:
+            if hasattr(self.renderer, 'get_selected_text') and self.renderer.has_selection():
+                selected_text = self.renderer.get_selected_text()
+                if selected_text.strip():
+                    # 尝试复制到系统剪贴板
+                    import pyperclip
+                    pyperclip.copy(selected_text)
+                    self.notify("已复制选中的文本到剪贴板", severity="information")
+                else:
+                    self.notify("没有选中的文本", severity="warning")
+            else:
+                self.notify("没有选中的文本", severity="warning")
+        except ImportError:
+            self.notify("无法复制到剪贴板: 缺少pyperclip库", severity="error")
+        except Exception as e:
+            self.notify(f"复制失败: {e}", severity="error")
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
@@ -991,6 +1111,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._toggle_bookmark()
         elif button_id == "bookmark-list-btn":
             self._open_bookmark_list()
+        elif button_id == "translation-btn":
+            self._translate_selected_text()
+        elif button_id == "vocabulary-btn":
+            self._open_vocabulary()
         elif button_id == "settings-btn":
             self._open_settings()
         elif button_id == "aloud-btn":
@@ -1485,6 +1609,82 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.error(f"{get_global_i18n().t('reader.format_progress_failed')}: {e}")
             # 出错时返回默认格式
             return f"{progress:.1f}%"
+    
+    def _translate_selected_text(self) -> None:
+        """翻译选中的文本，如果没有选择文本则允许用户输入"""
+        try:
+            # 检查是否有选中的文本
+            if hasattr(self.renderer, 'get_selected_text') and self.renderer.has_selection():
+                self.selected_text = self.renderer.get_selected_text()
+            
+            # 获取当前上下文（当前页面的内容）
+            context = self.renderer.get_current_page() if hasattr(self.renderer, 'get_current_page') else ""
+            
+            def on_translation_result(result: Optional[Dict[str, Any]]) -> None:
+                if result:
+                    # 处理翻译结果
+                    action = result.get('action', '')
+                    translation_result = result.get('translation_result', {})
+                    
+                    if action == 'close' and translation_result:
+                        word = result.get('original_text', self.selected_text)
+                        translation = translation_result.get('translated_text', '')
+                        if word and translation:
+                            logger.info(f"翻译结果: {word} -> {translation}")
+            
+            # 如果没有选中的文本，允许用户输入要翻译的内容
+            if not self.selected_text or not self.selected_text.strip():
+                # 打开翻译对话框，允许用户输入文本
+                self.app.push_screen(
+                    TranslationDialog(
+                        original_text="",  # 空文本，让用户输入
+                        context=context,
+                        translation_manager=self.translation_manager,
+                        vocabulary_manager=self.vocabulary_manager,
+                        allow_input=True,  # 允许用户输入
+                        book_path=self.book.path if hasattr(self.book, 'path') else ""  # 传递书籍路径
+                    ),
+                    on_translation_result
+                )
+            else:
+                # 有选中的文本，直接翻译
+                self.app.push_screen(
+                    TranslationDialog(
+                        original_text=self.selected_text,
+                        context=context,
+                        translation_manager=self.translation_manager,
+                        vocabulary_manager=self.vocabulary_manager,
+                        book_path=self.book.path if hasattr(self.book, 'path') else ""  # 传递书籍路径
+                    ),
+                    on_translation_result
+                )
+            
+        except Exception as e:
+            logger.error(f"翻译选中的文本失败: {e}")
+            self.notify(f"翻译失败: {e}", severity="error")
+    
+    def _open_vocabulary(self) -> None:
+        """打开单词本对话框"""
+        try:
+            def on_vocabulary_result(result: Optional[Dict[str, Any]]) -> None:
+                if result:
+                    # 处理单词本操作结果
+                    action = result.get('action', '')
+                    if action == 'review':
+                        logger.info("开始复习单词")
+            
+            # 打开单词本对话框
+            self.app.push_screen(
+                VocabularyDialog(
+                    vocabulary_manager=self.vocabulary_manager,
+                    book_path=self.book.path if hasattr(self.book, 'path') else None
+                ),
+                on_vocabulary_result
+            )
+            
+        except Exception as e:
+            logger.error(f"打开单词本失败: {e}")
+            self.notify(f"打开单词本失败: {e}", severity="error")
     
     def _back_to_library(self) -> None:
         # 停止阅读会话

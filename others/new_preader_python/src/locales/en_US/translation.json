@@ -209,6 +209,7 @@
         "appearance": "Appearance",
         "reading": "Reading",
         "audio": "Audio",
+        "translation": "Translation",
         "advanced": "Advanced",
         "paths": "Paths",
         "theme": "Theme",
@@ -251,9 +252,17 @@
         "settings_count": "Total Settings Count",
         "settings_key": "Setting",
         "settings_type": "Type",
-        "found_unit": "Found {count}"
+        "found_unit": "Found {count}",
+        "default_translation_service": "Default Translation Service",
+        "source_language": "Source Language",
+        "target_language": "Target Language",
+        "translation_cache_enabled": "Enable Translation Cache",
+        "cache_duration": "Cache Duration",
+        "request_timeout": "Request Timeout",
+        "retry_count": "Retry Count"
     },
     "common": {
+        "close": "Close",
         "ok": "OK",
         "cancel": "Cancel",
         "save": "Save",
@@ -368,7 +377,12 @@
         "button_event": "Button click event: {button_id}",
         "on_use": "Called",
         "bookmark_action_failed": "Bookmark operation failed: {error}",
-        "file_not_found": "Book file not found"
+        "file_not_found": "Book file not found",
+        "translation": "Translation",
+        "vocabulary": "Vocabulary",
+        "select_text_to_translate": "Please select text to translate first",
+        "translation_shortcut": "L: Translate selected text",
+        "vocabulary_shortcut": "V: Open vocabulary"
     },
     "help": {
         "title": "Help Center",
@@ -838,5 +852,52 @@
     "lock_screen": {
         "placeholder": "Type password to continue",
         "title": "Lock Screen"
+    },
+    "translation_dialog": {
+        "title": "Translation",
+        "original_text": "Original Text",
+        "target_language": "Target Language",
+        "enter_target_language": "Enter target language (e.g., zh, en)",
+        "enter_text_to_translate": "Enter text to translate",
+        "translate": "Translate",
+        "translation_result": "Translation Result",
+        "waiting_for_translation": "Waiting for translation...",
+        "translating": "Translating...",
+        "translation_failed": "Translation failed",
+        "error": "Error",
+        "add_to_vocabulary": "Add to Vocabulary",
+        "enter_context_optional": "Enter context (optional)",
+        "added_to_vocabulary": "Added to vocabulary",
+        "add_to_vocabulary_failed": "Failed to add to vocabulary",
+        "enter_text_first": "Please enter text to translate first"
+    },
+    "vocabulary_dialog": {
+        "title": "Vocabulary",
+        "search_placeholder": "Search word or translation...",
+        "show_statistics": "Show Statistics",
+        "word_list": "Word List",
+        "word_details": "Word Details",
+        "review_words": "Review Words",
+        "delete_word": "Delete Word",
+        "column_word": "Word",
+        "column_translation": "Translation",
+        "column_language": "Language",
+        "column_mastery": "Mastery",
+        "column_reviews": "Reviews",
+        "total_words": "Total Words",
+        "today_new": "Today New",
+        "mastery_levels": "Mastery Levels",
+        "languages": "Languages",
+        "word": "Word",
+        "translation": "Translation",
+        "language": "Language",
+        "mastery_level": "Mastery Level",
+        "review_count": "Review Count",
+        "context": "Context",
+        "no_context": "No Context",
+        "created_at": "Created At",
+        "last_reviewed": "Last Reviewed",
+        "never_reviewed": "Never Reviewed",
+        "no_words_to_review": "No words to review"
     }
 }
