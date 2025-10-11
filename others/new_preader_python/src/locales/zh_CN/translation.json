@@ -910,6 +910,12 @@
         "created_at": "创建时间",
         "last_reviewed": "最后复习",
         "never_reviewed": "从未复习",
-        "no_words_to_review": "没有需要复习的单词"
+        "no_words_to_review": "没有需要复习的单词",
+        "review_session_title": "单词复习",
+        "known": "认识",
+        "unknown": "不认识",
+        "skip": "跳过",
+        "review_finished": "复习结束",
+        "review_summary": "本次共复习 {total} 个单词，已完成 {reviewed} 个"
     }
 }

@@ -898,6 +898,12 @@
         "created_at": "Created At",
         "last_reviewed": "Last Reviewed",
         "never_reviewed": "Never Reviewed",
-        "no_words_to_review": "No words to review"
+        "no_words_to_review": "No words to review",
+        "review_session_title": "Word Review",
+        "known": "Known",
+        "unknown": "Unknown",
+        "skip": "Skip",
+        "review_finished": "Review Finished",
+        "review_summary": "Reviewed {reviewed} of {total} words this session"
     }
 }

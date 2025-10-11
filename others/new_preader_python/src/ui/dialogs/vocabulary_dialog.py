@@ -11,6 +11,7 @@ from textual import events, on
 from src.locales.i18n_manager import get_global_i18n, t
 from src.core.vocabulary_manager import VocabularyManager, VocabularyItem
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.ui.dialogs.review_dialog import ReviewDialog
 
 class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     """单词本对话框"""
@@ -283,19 +284,35 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
             return False
     
     def start_review(self) -> None:
-        """开始单词复习"""
+        """开始单词复习：弹出复习对话框，过程内实时更新数据库"""
         review_words = self.vocabulary_manager.get_words_for_review(limit=20)
+        # 仅复习当前书籍关联的单词（使用 book_id 与阅读器一致）
+        if self.book_path:
+            review_words = [
+                w for w in review_words
+                if (getattr(w, "book_id", None) == self.book_path) or (isinstance(w, dict) and w.get("book_id") == self.book_path)
+            ]
         if not review_words:
-            # 显示无单词可复习的消息
             details_display = self.query_one("#word-details", Static)
             details_display.update(get_global_i18n().t("vocabulary_dialog.no_words_to_review"))
             return
-        
-        # 创建复习会话
-        self.dismiss({
-            'action': 'start_review',
-            'review_words': [word.to_dict() for word in review_words]
-        })
+
+        # 将词列表转为 dict 传入复习对话框
+        payload = [w.to_dict() for w in review_words]
+
+        def _after_review(result: Optional[Dict[str, Any]]) -> None:
+            # 复习结束后刷新列表与详情
+            self.load_words()
+            details = self.query_one("#word-details", Static)
+            if result and result.get("action") == "finish":
+                reviewed = result.get("reviewed", 0)
+                total = result.get("total", 0)
+                details.update(f"复习结束：完成 {reviewed}/{total}")
+            else:
+                details.update("复习已结束")
+
+        # 压入复习对话框
+        self.app.push_screen(ReviewDialog(payload, vocabulary_manager=self.vocabulary_manager), _after_review)
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮按下时的回调"""
