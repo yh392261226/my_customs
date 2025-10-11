@@ -237,7 +237,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 yield Button(f"{get_global_i18n().t('reader.add_remove_bookmark')}【b】", classes="btn", id="bookmark-btn")
                 yield Button(f"{get_global_i18n().t('reader.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")
                 yield Button(f"{get_global_i18n().t('reader.translation')}【l】", classes="btn", id="translation-btn")
-                yield Button(f"{get_global_i18n().t('reader.vocabulary')}【v】", classes="btn", id="vocabulary-btn")
+                yield Button(f"{get_global_i18n().t('reader.vocabulary')}【w】", classes="btn", id="vocabulary-btn")
                 yield Button(f"{get_global_i18n().t('reader.aloud')}【R】", classes="btn", id="aloud-btn")
                 yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
                 yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
@@ -989,7 +989,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._toggle_tts()
         elif event.key == "l":
             self._translate_selected_text()
-        elif event.key == "v":
+        elif event.key == "w":
             self._open_vocabulary()
         elif event.key == "q" or event.key == "escape":
             self._back_to_library()
