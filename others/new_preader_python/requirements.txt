@@ -37,6 +37,8 @@ watchdog>=3.0.0
 # 数据库（Python内置，无需安装）
 # sqlite3 - Python标准库
 
+cjkwrap>=2.2
+
 # 导入说明：
 # beautifulsoup4 导入时使用: from bs4 import BeautifulSoup
 # pdfminer.six 导入时使用: from pdfminer import ...
