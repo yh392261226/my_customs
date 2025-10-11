@@ -69,6 +69,14 @@
     width: 20%;
     min-width: 10;
 }
+
+#translation-dialog-container #translation-input-section > Horizontal > #target-language-select {
+    margin: 1 0;
+    width: 30%;
+    min-width: 15;
+    height: 3;
+}
+
 #translation-dialog-container #translation-input-section > Horizontal > #translate-button {
     width: 8%;
     min-width: 8;
@@ -165,4 +173,10 @@
 }
 #translation-dialog-container .section-body {
     padding: 0;
+}
+
+#translation-dialog-container OptionList {
+    height: auto;
+    max-height: 20;
+    overflow-y: auto;
 }

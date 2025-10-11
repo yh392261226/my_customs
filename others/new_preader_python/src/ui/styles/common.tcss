@@ -413,3 +413,9 @@ ListView, Tree, DataTable {
     scrollbar-background: $surface;
     scrollbar-color: $primary;
 }
+
+OptionList {
+    height: auto;
+    max-height: 20;
+    overflow-y: auto;
+}

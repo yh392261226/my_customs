@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Button, Label, Input, Static
+from textual.widgets import Button, Label, Input, Static, Select
 from textual import events
 from src.locales.i18n_manager import get_global_i18n, t
 from src.core.translation_manager import TranslationManager
@@ -89,12 +89,7 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
                         classes="field-label"
                     )
                     with Horizontal():
-                        yield Input(
-                            placeholder=get_global_i18n().t("translation_dialog.enter_target_language"),
-                            value="zh",
-                            id="target-language-input",
-                            classes="input-std"
-                        )
+                        yield Select(self._build_language_options(), id="target-language-select", allow_blank=False)
                         yield Button(
                             get_global_i18n().t("translation_dialog.translate"),
                             id="translate-button",
@@ -140,6 +135,81 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
                     variant="primary"
                 )
     
+    def _build_language_options(self):
+        """根据当前翻译服务构建下拉选项"""
+        service = (getattr(self.translation_service, "default_service", None) or getattr(self.translation_service, "service", None) or "").lower()
+        baidu = [
+            ("中文 zh", "zh"),
+            ("繁体中文 cht", "cht"),
+            ("英语 en", "en"),
+            ("粤语 yue", "yue"),
+            ("文言文 wyw", "wyw"),
+            ("日语 jp", "jp"),
+            ("韩语 kor", "kor"),
+            ("泰语 th", "th"),
+            ("俄语 ru", "ru"),
+        ]
+        youdao = [
+            ("简体中文 zh-CHS", "zh-CHS"),
+            ("繁体中文 zh-CHT", "zh-CHT"),
+            ("英语 en", "en"),
+            ("粤语 yue", "yue"),
+            ("日语 ja", "ja"),
+            ("韩语 ko", "ko"),
+            ("泰语 th", "th"),
+            ("俄语 ru", "ru"),
+        ]
+        google = [
+            ("中文 zh-CN", "zh-CN"),
+            ("繁体中文 zh-TW", "zh-TW"),
+            ("英语 en", "en"),
+            ("粤语 yue", "yue"),
+            ("日语 ja", "ja"),
+            ("韩语 ko", "ko"),
+            ("泰语 th", "th"),
+            ("俄语 ru", "ru"),
+        ]
+        microsoft = [
+            ("中文 zh-Hans", "zh-Hans"),
+            ("繁体中文 zh-Hant", "zh-Hant"),
+            ("英语 en", "en"),
+            ("粤语 yue", "yue"),
+            ("日语 ja", "ja"),
+            ("韩语 ko", "ko"),
+            ("泰语 th", "th"),
+            ("俄语 ru", "ru"),
+        ]
+        if "baidu" in service:
+            return baidu
+        if "youdao" in service:
+            return youdao
+        if "google" in service:
+            return google
+        if "microsoft" in service or "azure" in service:
+            return microsoft
+        return [
+            ("中文 zh", "zh"),
+            ("繁体中文 zh-TW", "zh-TW"),
+            ("英语 en", "en"),
+            ("粤语 yue", "yue"),
+            ("日语 ja", "ja"),
+            ("韩语 ko", "ko"),
+            ("泰语 th", "th"),
+            ("俄语 ru", "ru"),
+        ]
+
+    def _refresh_language_options(self) -> None:
+        """刷新下拉选择的选项（根据当前翻译服务）"""
+        try:
+            select = self.query_one("#target-language-select", Select)
+            options = self._build_language_options()
+            select.set_options(options)
+            # 默认选择第一项的值
+            if options and options[0][1]:
+                select.value = options[0][1]
+        except Exception:
+            pass
+
     def on_mount(self) -> None:
         """对话框挂载时的回调"""
         # 聚焦到合适的输入框
@@ -147,13 +217,15 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
             # 在输入模式下，聚焦到原文输入框
             self.query_one("#original-text-input", Input).focus()
         else:
-            # 在有选中文本的模式下，聚焦到目标语言输入框并自动翻译
+            # 在有选中文本的模式下，先刷新语言选项，聚焦到下拉框并自动翻译
+            self._refresh_language_options()
+            self.query_one("#target-language-select", Select).focus()
             self.app.call_later(self.translate_text)
-            self.query_one("#target-language-input", Input).focus()
     
     async def translate_text(self) -> None:
         """执行翻译"""
-        target_lang = self.query_one("#target-language-input", Input).value.strip() or "zh"
+        select = self.query_one("#target-language-select", Select)
+        target_lang = (select.value or "zh").strip()
         
         # 获取要翻译的文本
         if self.allow_input and not self.selected_text:
