@@ -1115,7 +1115,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 except Exception:
                     pass
 
-            self.notify("已进入划词模式：方向键移动光标，Shift+方向键选择，Enter翻译，Esc取消", severity="information")
+            self.notify(get_global_i18n().t("selection_mode.in_notify_message"), severity="information")
         except Exception as e:
             logger.error(f"进入划词模式失败: {e}")
             self.selection_mode = False
@@ -1153,7 +1153,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     # 没有选择内容也尝试打开翻译对话框（允许输入）
                     self.selected_text = ""
                     self._translate_selected_text()
-            self.notify("已退出划词模式", severity="information")
+            self.notify(get_global_i18n().t("selection_mode.out_notify_message"), severity="information")
         except Exception as e:
             logger.error(f"退出划词模式失败: {e}")
 
@@ -1274,15 +1274,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     # 尝试复制到系统剪贴板
                     import pyperclip
                     pyperclip.copy(selected_text)
-                    self.notify("已复制选中的文本到剪贴板", severity="information")
+                    self.notify(get_global_i18n().t("selection_mode.copied_selection"), severity="information")
                 else:
-                    self.notify("没有选中的文本", severity="warning")
+                    self.notify(get_global_i18n().t("selection_mode.no_selection"), severity="warning")
             else:
-                self.notify("没有选中的文本", severity="warning")
+                self.notify(get_global_i18n().t("selection_mode.no_selection"), severity="warning")
         except ImportError:
-            self.notify("无法复制到剪贴板: 缺少pyperclip库", severity="error")
+            self.notify(get_global_i18n().t("selection_mode.cannot_copy"), severity="error")
         except Exception as e:
-            self.notify(f"复制失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("selection_mode.copied_failed")}: {e}", severity="error")
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
@@ -1852,7 +1852,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         except Exception as e:
             logger.error(f"翻译选中的文本失败: {e}")
-            self.notify(f"翻译失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t('selection_mode.trans_failed')}: {e}", severity="error")
     
     def _open_vocabulary(self) -> None:
         """打开单词本对话框"""
@@ -1875,7 +1875,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         except Exception as e:
             logger.error(f"打开单词本失败: {e}")
-            self.notify(f"打开单词本失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t('selection_mode.open_failed')}: {e}", severity="error")
     
     def _back_to_library(self) -> None:
         # 停止阅读会话

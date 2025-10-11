@@ -917,5 +917,15 @@
         "skip": "跳过",
         "review_finished": "复习结束",
         "review_summary": "本次共复习 {total} 个单词，已完成 {reviewed} 个"
+    },
+    "selection_mode": {
+        "in_notify_message": "已进入划词模式 : 方向键←↑↓→移动光标，Shift+方向键←↑↓→选择，Enter翻译，Esc取消",
+        "out_notify_message": "已退出划词模式",
+        "copied_selection": "已复制选中的文本到剪贴板",
+        "no_selection": "没有选中的文本",
+        "copied_failed": "复制失败",
+        "cannot_copy": "无法复制到剪贴板: 缺少pyperclip库",
+        "trans_failed": "翻译失败",
+        "open_failed": "打开单词本失败"
     }
 }

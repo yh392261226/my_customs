@@ -905,5 +905,15 @@
         "skip": "Skip",
         "review_finished": "Review Finished",
         "review_summary": "Reviewed {reviewed} of {total} words this session"
+    },
+    "selection_mode": {
+        "notify_message": "Selection Mode On : Use ←↑↓→ to move，Shift+ to select，Enter to translate，Esc to cancel",
+        "out_notify_message": "Selection Mode Off",
+        "copied_selection": "Copied selection to clipbord",
+        "no_selection": "No selection",
+        "copied_failed": "Copied failed",
+        "cannot_copy": "Can not copy to clipbord: No module named pyperclip",
+        "trans_failed": "Translate failed",
+        "open_failed": "Open vocabulary failed"
     }
 }
