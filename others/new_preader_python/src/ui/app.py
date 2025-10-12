@@ -909,6 +909,12 @@ class NewReaderApp(App[None]):
                         # 使用密码重新创建Book对象
                         book = Book(book_file, book_name, get_global_i18n().t("app.unknown_author"), password=password)
             
+            # 在打开前尝试补全作者（静默忽略失败）
+            try:
+                if hasattr(self, "bookshelf") and self.bookshelf:
+                    self.bookshelf.maybe_update_author(book)
+            except Exception:
+                pass
             # 加载书籍内容
             content = book.get_content()
             
@@ -957,6 +963,12 @@ class NewReaderApp(App[None]):
         """
         book = self.bookshelf.get_book(book_id)
         if book:
+            # 在打开前尝试补全作者（静默忽略失败）
+            try:
+                if hasattr(self, "bookshelf") and self.bookshelf:
+                    self.bookshelf.maybe_update_author(book)
+            except Exception:
+                pass
             # 使用新的终端阅读器屏幕
             self.push_screen(ReaderScreen(book, self.theme_manager, self.statistics_manager, self.bookmark_manager, self.bookshelf))
         else:

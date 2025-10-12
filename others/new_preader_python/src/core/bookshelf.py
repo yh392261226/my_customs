@@ -124,6 +124,19 @@ class Bookshelf:
             # 创建书籍对象
             book = Book(abs_path, title, author)
             
+            # 若为非 txt/md 且作者为空或未知，尝试解析作者（失败忽略）
+            try:
+                ext = os.path.splitext(abs_path)[1].lower()
+                is_txt_like = ext in ('.txt', '.md')
+                need_author = (not author) or (isinstance(author, str) and author.strip() in ("", "未知作者"))
+                if (not is_txt_like) and need_author:
+                    extracted = self._try_extract_author(abs_path, ext)
+                    if extracted and isinstance(extracted, str) and extracted.strip():
+                        book.author = extracted.strip()
+            except Exception:
+                # 静默忽略，保证导入流程不中断
+                pass
+            
             # 将书籍保存到数据库
             self.db_manager.add_book(book)
             
@@ -383,7 +396,7 @@ class Bookshelf:
     @debug_logged
     def scan_directory(self, directory: str) -> Tuple[int, List[str]]:
         """
-        扫描目录并添加书籍
+        扫描目录并添加书籍（并发 + 限速）
         
         Args:
             directory: 目录路径
@@ -395,23 +408,67 @@ class Bookshelf:
             logger.error(f"目录不存在: {directory}")
             return 0, []
         
-        added_count = 0
-        failed_files = []
-        
+        # 收集待处理文件（仅支持的格式）
+        to_process: List[str] = []
         for root, _, files in os.walk(directory):
             for file in files:
                 file_path = os.path.join(root, file)
                 file_ext = os.path.splitext(file)[1].lower()
-                
                 if file_ext in SUPPORTED_FORMATS:
-                    try:
-                        if self.add_book(file_path):
-                            added_count += 1
-                        else:
-                            failed_files.append(file_path)
-                    except Exception as e:
-                        logger.error(f"添加书籍时出错: {e}")
-                        failed_files.append(file_path)
+                    to_process.append(file_path)
+        if not to_process:
+            logger.info(f"目录 {directory} 无可导入文件")
+            return 0, []
+        
+        # 默认并发与速率
+        try:
+            max_workers = min(8, max(2, (os.cpu_count() or 4)))
+        except Exception:
+            max_workers = 4
+        rate_per_sec = 10  # 每秒最多处理文件数，可按需调节
+        
+        # 令牌桶限速
+        import time
+        import threading
+        tokens = {"count": float(rate_per_sec), "last": time.monotonic()}
+        lock = threading.Lock()
+        def acquire_token():
+            while True:
+                with lock:
+                    now = time.monotonic()
+                    elapsed = now - tokens["last"]
+                    if elapsed > 0:
+                        tokens["count"] = min(float(rate_per_sec), tokens["count"] + elapsed * rate_per_sec)
+                        tokens["last"] = now
+                    if tokens["count"] >= 1.0:
+                        tokens["count"] -= 1.0
+                        return
+                time.sleep(0.02)
+        
+        added_count = 0
+        failed_files: List[str] = []
+        import concurrent.futures
+        
+        def worker(fp: str) -> bool:
+            try:
+                acquire_token()
+                return bool(self.add_book(fp))
+            except Exception as e:
+                logger.error(f"添加书籍时出错: {e}")
+                return False
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(worker, fp): fp for fp in to_process}
+            for fut in concurrent.futures.as_completed(futures):
+                fp = futures[fut]
+                try:
+                    ok = fut.result()
+                    if ok:
+                        added_count += 1
+                    else:
+                        failed_files.append(fp)
+                except Exception:
+                    failed_files.append(fp)
         
         logger.info(f"已从目录 {directory} 添加 {added_count} 本书籍")
         return added_count, failed_files
@@ -439,6 +496,147 @@ class Bookshelf:
                     success_count += 1
         
         return success_count
+
+    def extract_author_from_path(self, path: str) -> Optional[str]:
+        """
+        从书籍文件中尝试提取作者（非 .txt/.md 适用；pdf 支持加密后解密再获取）。
+        成功返回作者字符串，失败返回 None（静默）。
+        """
+        try:
+            ext = os.path.splitext(path)[1].lower()
+            if ext in ('.txt', '.md'):
+                return None
+            return self._try_extract_author(os.path.abspath(path), ext)
+        except Exception:
+            return None
+
+    def maybe_update_author(self, book: Book) -> bool:
+        """
+        若书籍作者为空或为“未知作者”，从文件尝试提取作者并更新数据库。
+        成功更新返回 True；未更新或失败返回 False（静默）。
+        """
+        try:
+            current = (book.author or "").strip()
+            if current and current != "未知作者":
+                return False
+            if not book.path or not os.path.exists(book.path):
+                return False
+            author = self.extract_author_from_path(book.path)
+            if author and author != "未知作者":
+                book.author = author
+                try:
+                    return bool(self.db_manager.update_book(book))
+                except Exception:
+                    return False
+            return False
+        except Exception:
+            return False
+
+    def _safe_async_parse(self, coro_func, *args, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        安全调用解析器的异步 parse：
+        - 若当前无事件循环：新建 event loop 并运行
+        - 若当前有事件循环：在线程池中新建 loop 执行，避免跨 loop 错误
+        """
+        try:
+            import asyncio
+            try:
+                asyncio.get_running_loop()
+                # 已在事件循环内：用线程运行新的事件循环
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    def _run():
+                        loop = asyncio.new_event_loop()
+                        try:
+                            asyncio.set_event_loop(loop)
+                            return loop.run_until_complete(coro_func(*args, **kwargs))
+                        finally:
+                            loop.close()
+                    return executor.submit(_run).result(timeout=120)
+            except RuntimeError:
+                # 无事件循环：直接运行
+                loop = asyncio.new_event_loop()
+                try:
+                    import asyncio as _aio
+                    _aio.set_event_loop(loop)
+                    return loop.run_until_complete(coro_func(*args, **kwargs))
+                finally:
+                    loop.close()
+        except Exception as e:
+            logger.debug(f"安全异步解析失败: {e}")
+            return None
+
+    def _try_extract_author(self, abs_path: str, ext: str) -> Optional[str]:
+        """
+        尝试通过对应解析器解析文件元数据以获取作者：
+        - pdf：优先用 PyPDF2 检测是否加密；加密则用 PdfEncryptParser 触发解密流程
+        - epub/mobi/azw/azw3：用相应解析器
+        - 任何异常/失败均返回 None
+        """
+        try:
+            parser = None
+            # PDF 分支：先检测加密
+            if ext == '.pdf':
+                try:
+                    import PyPDF2
+                    with open(abs_path, 'rb') as f:
+                        reader = PyPDF2.PdfReader(f)
+                        is_encrypted = bool(getattr(reader, "is_encrypted", False))
+                except Exception:
+                    is_encrypted = False
+                if is_encrypted:
+                    try:
+                        from src.parsers.pdf_encrypt_parser import PdfEncryptParser
+                        # 解析器内部会通过 App 桥接请求密码，成功后返回 metadata
+                        parser = PdfEncryptParser()
+                        result = self._safe_async_parse(parser.parse, abs_path, None)
+                    except Exception:
+                        result = None
+                else:
+                    try:
+                        from src.parsers.pdf_parser import PdfParser
+                        parser = PdfParser()
+                        result = self._safe_async_parse(parser.parse, abs_path)
+                    except Exception:
+                        result = None
+            elif ext == '.epub':
+                try:
+                    from src.parsers.epub_parser import EpubParser
+                    parser = EpubParser()
+                    result = self._safe_async_parse(parser.parse, abs_path)
+                except Exception:
+                    result = None
+            elif ext == '.mobi':
+                try:
+                    from src.parsers.mobi_parser import MobiParser
+                    parser = MobiParser()
+                    result = self._safe_async_parse(parser.parse, abs_path)
+                except Exception:
+                    result = None
+            elif ext in ('.azw', '.azw3'):
+                try:
+                    from src.parsers.azw_parser import AzwParser
+                    parser = AzwParser()
+                    result = self._safe_async_parse(parser.parse, abs_path)
+                except Exception:
+                    result = None
+            else:
+                result = None
+
+            if isinstance(result, dict):
+                # 先看顶层 author
+                auth = result.get("author")
+                if isinstance(auth, str) and auth.strip() and auth.strip() != "未知作者":
+                    return auth.strip()
+                # 再看 metadata.author
+                meta = result.get("metadata")
+                if isinstance(meta, dict):
+                    auth2 = meta.get("author")
+                    if isinstance(auth2, str) and auth2.strip() and auth2.strip() != "未知作者":
+                        return auth2.strip()
+            return None
+        except Exception:
+            return None
     
     def batch_set_tags(self, book_paths: List[str], tags: List[str]) -> int:
         """
