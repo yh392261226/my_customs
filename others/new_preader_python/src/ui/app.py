@@ -12,7 +12,7 @@ from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import Screen, ModalScreen
 from textual.widgets import Header, Footer, OptionList
-from textual import on
+from textual import on, events
 # 兼容导入 Textual 的命令类与 Provider
 _TxtCommand = None
 _textual_command_decorator = None
@@ -88,6 +88,12 @@ class ThemeSelectScreen(ModalScreen[str]):
                     self.dismiss(None)
             except Exception:
                 self.dismiss(None)
+
+    def on_key(self, event: events.Key) -> None:
+        """按键事件处理"""
+        if event.key == "escape":
+            self.dismiss(None)
+            event.stop()
 
 # 命令提供者：将 ThemeManager 的主题注册到 Ctrl-P
 if _TxtProvider is not None and _DiscoveryHit is not None:
