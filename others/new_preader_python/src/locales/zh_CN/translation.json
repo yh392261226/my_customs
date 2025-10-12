@@ -32,6 +32,7 @@
         "statistics": "📊 统计",
         "help": "❓ 帮助",
         "exit": "🔚 退出",
+        "manage": "⚙️ 管理用户",
         "features_title": "✨ 功能特点:",
         "feature_1": "• 支持TXT、EPUB等多种格式",
         "feature_2": "• 智能章节识别和分页",
@@ -44,6 +45,7 @@
         "shortcut_f4": "F4/4: 设置",
         "shortcut_f5": "F5/5: 统计",
         "shortcut_f6": "F6/6: 帮助",
+        "shortcut_f7": "F7/7: 管理用户",
         "shortcut_esc": "Q/ESC: 退出",
         "notify_warning": "请输入文件路径",
         "select_book_title": "选择书籍文件",
@@ -244,6 +246,10 @@
         "backup_enabled": "启用备份",
         "backup_interval": "备份间隔",
         "debug_mode": "调试模式",
+        "multi_user_enabled": "启用多用户",
+        "password_enabled": "启用启动密码",
+        "password": "启动密码",
+        "password_placeholder": "输入新密码",
         "config_dir": "配置目录",
         "database": "数据库路径",
         "library": "书籍库路径",
@@ -927,5 +933,22 @@
         "cannot_copy": "无法复制到剪贴板: 缺少pyperclip库",
         "trans_failed": "翻译失败",
         "open_failed": "打开单词本失败"
+    },
+    "login": {
+        "title": "登陆",
+        "username": "用户名",
+        "password": "密码",
+        "login": "登录",
+        "guest": "以访客进入"
+    },
+    "users_management": {
+        "title": "用户管理",
+        "select_all": "全选",
+        "deselect_all": "取消全选",
+        "invert_selection": "反选",
+        "permissions_dialog": {
+            "title": "权限设置",
+            "status":"状态"
+        }
     }
 }

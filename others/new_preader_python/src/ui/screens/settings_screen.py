@@ -480,8 +480,17 @@ class SettingsScreen(Screen[Any]):
                     id="advanced-debug-switch"
                 )
 
+            # 启用多用户
+            yield Label(get_global_i18n().t("settings.multi_user_enabled"), classes="setting-label")
+            multi_user_setting = self.setting_registry.get_setting("advanced.multi_user_enabled")
+            if multi_user_setting:
+                yield Switch(
+                    value=multi_user_setting.value,
+                    id="advanced-multi-user-switch"
+                )
+
             # 启用启动密码
-            yield Label("启用启动密码", classes="setting-label")
+            yield Label(get_global_i18n().t("settings.password_enabled"), classes="setting-label")
             pwd_enabled_setting = self.setting_registry.get_setting("advanced.password_enabled")
             if pwd_enabled_setting:
                 yield Switch(
@@ -490,9 +499,9 @@ class SettingsScreen(Screen[Any]):
                 )
 
             # 设置密码（输入框，明文存储）
-            yield Label("设置密码", classes="setting-label")
+            yield Label(get_global_i18n().t("settings.password"), classes="setting-label")
             yield Input(
-                placeholder="输入新密码",
+                placeholder=get_global_i18n().t("settings.password_placeholder"),
                 password=True,
                 id="advanced-password-input"
             )
@@ -519,6 +528,46 @@ class SettingsScreen(Screen[Any]):
         logger.debug(f"{get_global_i18n().t('settings.found_unit', count=len(scroll_containers))}ScrollableContainer")
         for i, container in enumerate(scroll_containers):
             logger.debug(f"Container {i}: {container.id} - {get_global_i18n().t('common.height')}: {container.styles.height}")
+        
+        # 初始化多用户和启动密码的联动状态
+        self._init_multi_user_password_linkage()
+        
+        # 检查按钮权限并禁用/启用按钮
+        self._check_button_permissions()
+    
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            return db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
+    
+    def _check_button_permissions(self) -> None:
+        """检查按钮权限并禁用/启用按钮"""
+        try:
+            save_btn = self.query_one("#save-btn", Button)
+            reset_btn = self.query_one("#reset-btn", Button)
+            
+            # 检查权限并设置按钮状态
+            if not self._has_permission("settings.save"):
+                save_btn.disabled = True
+                save_btn.tooltip = "无权限"
+            else:
+                save_btn.disabled = False
+                save_btn.tooltip = None
+                
+            if not self._has_permission("settings.reset"):
+                reset_btn.disabled = True
+                reset_btn.tooltip = "无权限"
+            else:
+                reset_btn.disabled = False
+                reset_btn.tooltip = None
+                
+        except Exception as e:
+            logger.error(f"检查按钮权限失败: {e}")
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -527,12 +576,23 @@ class SettingsScreen(Screen[Any]):
         Args:
             event: 按钮按下事件
         """
+        # 检查权限
+        if not self._has_button_permission(event.button.id):
+            self.notify("无权限执行此操作", severity="warning")
+            return
+            
         if event.button.id == "save-btn":
-            self._save_settings()
+            if self._has_permission("settings.save"):
+                self._save_settings()
+            else:
+                self.notify("无权限保存设置", severity="warning")
         elif event.button.id == "cancel-btn":
             self.app.pop_screen()
         elif event.button.id == "reset-btn":
-            self._reset_settings()
+            if self._has_permission("settings.reset"):
+                self._reset_settings()
+            else:
+                self.notify("无权限重置设置", severity="warning")
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
@@ -540,6 +600,22 @@ class SettingsScreen(Screen[Any]):
             # ESC键返回（仅一次）
             self.app.pop_screen()
             event.stop()
+        elif event.key == "enter" or event.key == "ctrl+s":
+            # 保存设置需要权限
+            if self._has_permission("settings.save"):
+                self._save_settings()
+                self.notify("设置已保存", severity="information")
+            else:
+                self.notify("无权限保存设置", severity="warning")
+            event.prevent_default()
+        elif event.key == "r":
+            # 重置设置需要权限
+            if self._has_permission("settings.reset"):
+                self._reset_settings()
+                self.notify("设置已重置", severity="information")
+            else:
+                self.notify("无权限重置设置", severity="warning")
+            event.prevent_default()
     
     @on(Select.Changed)
     def on_select_changed(self, event: Select.Changed) -> None:
@@ -553,31 +629,77 @@ class SettingsScreen(Screen[Any]):
             # 立即应用行间距设置（安全转换）
             val = event.value
             try:
-                new_val = int(val)  # type: ignore[arg-type]
-            except Exception:
+                # 确保值可以被转换为int
+                if isinstance(val, (int, str)):
+                    new_val = int(val)
+                else:
+                    return
+            except (ValueError, TypeError):
                 return
             old_value = self.setting_registry.get_value("reading.line_spacing", 0)
             self.setting_registry.set_value("reading.line_spacing", new_val)
             notify_setting_change("reading.line_spacing", old_value, new_val, "settings_screen")
             
-            # 显示设置已保存的提示
-            # self.notify(get_global_i18n().t("settings.saved"), severity="information")
-            
         elif event.select.id == "reading-para-select" and event.value is not None:
             # 立即应用段落间距设置（安全转换）
             val = event.value
             try:
-                new_val = int(val)  # type: ignore[arg-type]
-            except Exception:
+                # 确保值可以被转换为int
+                if isinstance(val, (int, str)):
+                    new_val = int(val)
+                else:
+                    return
+            except (ValueError, TypeError):
                 return
             old_value = self.setting_registry.get_value("reading.paragraph_spacing", 0)
             self.setting_registry.set_value("reading.paragraph_spacing", new_val)
             notify_setting_change("reading.paragraph_spacing", old_value, new_val, "settings_screen")
+    
+    @on(Switch.Changed)
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        """
+        Switch组件值变化时的回调
+        
+        Args:
+            event: Switch变化事件
+        """
+        if event.switch.id == "advanced-multi-user-switch":
+            # 多用户开关状态改变，更新启动密码控件的状态
+            self._update_password_controls_state(event.value)
+    
+    def _update_password_controls_state(self, multi_user_enabled: bool) -> None:
+        """根据多用户状态更新启动密码控件的状态"""
+        try:
+            # 获取启动密码相关控件
+            pwd_enabled_switch = self.query_one("#advanced-password-enabled-switch", Switch)
+            pwd_input = self.query_one("#advanced-password-input", Input)
             
-            # 显示设置已保存的提示
-            # self.notify(get_global_i18n().t("settings.saved"), severity="information")
+            if multi_user_enabled:
+                # 多用户开启时，禁用启动密码功能
+                pwd_enabled_switch.value = False
+                pwd_enabled_switch.disabled = True
+                pwd_input.disabled = True
+            else:
+                # 多用户关闭时，启用启动密码功能
+                pwd_enabled_switch.disabled = False
+                pwd_input.disabled = False
+                
+        except Exception as e:
+            logger.debug(f"更新启动密码控件状态失败: {e}")
     
 
+    
+    def _has_button_permission(self, button_id: str) -> bool:
+        """检查按钮权限"""
+        permission_map = {
+            "save-btn": "settings.save",
+            "reset-btn": "settings.reset"
+        }
+        
+        if button_id in permission_map:
+            return self._has_permission(permission_map[button_id])
+        
+        return True  # 默认允许未知按钮
     
     def _save_settings(self) -> None:
         """保存设置"""
@@ -695,22 +817,29 @@ class SettingsScreen(Screen[Any]):
         # 阅读设置
         font_input = self.query_one("#reading-font-size-input", Input)
         try:
-            self.setting_registry.set_value("reading.font_size", int(font_input.value))
+            if font_input.value:
+                self.setting_registry.set_value("reading.font_size", int(font_input.value))
         except ValueError:
             pass
 
         spacing_select = self.query_one("#reading-spacing-select", Select)
         if spacing_select.value is not None:
             try:
-                self.setting_registry.set_value("reading.line_spacing", int(spacing_select.value))
-            except Exception:
+                # 确保值可以被安全转换为int
+                val = spacing_select.value
+                if isinstance(val, (int, str)):
+                    self.setting_registry.set_value("reading.line_spacing", int(val))
+            except (ValueError, TypeError):
                 pass
         
         para_select = self.query_one("#reading-para-select", Select)
         if para_select.value is not None:
             try:
-                self.setting_registry.set_value("reading.paragraph_spacing", int(para_select.value))
-            except Exception:
+                # 确保值可以被安全转换为int
+                val = para_select.value
+                if isinstance(val, (int, str)):
+                    self.setting_registry.set_value("reading.paragraph_spacing", int(val))
+            except (ValueError, TypeError):
                 pass
         
         auto_input = self.query_one("#reading-auto-input", Input)
@@ -830,16 +959,69 @@ class SettingsScreen(Screen[Any]):
         debug_switch = self.query_one("#advanced-debug-switch", Switch)
         self.setting_registry.set_value("advanced.debug_mode", debug_switch.value)
         
+        # 多用户开关
+        multi_user_switch = self.query_one("#advanced-multi-user-switch", Switch)
+        multi_user_enabled = multi_user_switch.value
+        self.setting_registry.set_value("advanced.multi_user_enabled", multi_user_enabled)
+        
         # 启动密码开关
         pwd_enabled_switch = self.query_one("#advanced-password-enabled-switch", Switch)
-        self.setting_registry.set_value("advanced.password_enabled", pwd_enabled_switch.value)
-
+        pwd_enabled = pwd_enabled_switch.value
+        
+        # 多用户和启动密码联动逻辑
+        if multi_user_enabled:
+            # 多用户开启时，自动关闭启动密码模式
+            pwd_enabled = False
+            self.setting_registry.set_value("advanced.password_enabled", False)
+            # 同时禁用启动密码相关的UI控件
+            try:
+                pwd_enabled_switch.value = False
+                pwd_enabled_switch.disabled = True
+                pwd_input = self.query_one("#advanced-password-input", Input)
+                pwd_input.disabled = True
+            except Exception:
+                pass
+        else:
+            # 多用户关闭时，启用启动密码相关的UI控件
+            try:
+                pwd_enabled_switch.disabled = False
+                pwd_input = self.query_one("#advanced-password-input", Input)
+                pwd_input.disabled = False
+            except Exception:
+                pass
+            self.setting_registry.set_value("advanced.password_enabled", pwd_enabled)
+        
         # 设置密码输入（如有输入则直接保存明文）
         pwd_input = self.query_one("#advanced-password-input", Input)
         new_pwd = (pwd_input.value or "").strip()
         if new_pwd:
             self.setting_registry.set_value("advanced.password", new_pwd)
 
+    
+    def _init_multi_user_password_linkage(self) -> None:
+        """初始化多用户和启动密码的联动状态"""
+        try:
+            # 获取当前多用户设置状态
+            multi_user_enabled = self.setting_registry.get_value("advanced.multi_user_enabled", False)
+            
+            # 获取启动密码相关控件
+            multi_user_switch = self.query_one("#advanced-multi-user-switch", Switch)
+            pwd_enabled_switch = self.query_one("#advanced-password-enabled-switch", Switch)
+            pwd_input = self.query_one("#advanced-password-input", Input)
+            
+            # 根据多用户状态设置启动密码控件的状态
+            if multi_user_enabled:
+                # 多用户开启时，禁用启动密码功能
+                pwd_enabled_switch.value = False
+                pwd_enabled_switch.disabled = True
+                pwd_input.disabled = True
+            else:
+                # 多用户关闭时，启用启动密码功能
+                pwd_enabled_switch.disabled = False
+                pwd_input.disabled = False
+                
+        except Exception as e:
+            logger.debug(f"初始化多用户密码联动状态失败: {e}")
     
     def _update_ui_from_settings(self) -> None:
         """从设置项更新UI"""

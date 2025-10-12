@@ -113,6 +113,48 @@ class StatisticsScreen(Screen[None]):
                 yield Label("E: 导出", id="shortcut-e")
                 yield Label("ESC: 返回", id="shortcut-esc")
     
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            return db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
+    
+    def _check_button_permissions(self) -> None:
+        """检查按钮权限并禁用/启用按钮"""
+        try:
+            refresh_btn = self.query_one("#refresh-btn", Button)
+            export_btn = self.query_one("#export-btn", Button)
+            reset_btn = self.query_one("#reset-btn", Button)
+            
+            # 检查权限并设置按钮状态
+            if not self._has_permission("statistics.refresh"):
+                refresh_btn.disabled = True
+                refresh_btn.tooltip = "无权限"
+            else:
+                refresh_btn.disabled = False
+                refresh_btn.tooltip = None
+                
+            if not self._has_permission("statistics.export"):
+                export_btn.disabled = True
+                export_btn.tooltip = "无权限"
+            else:
+                export_btn.disabled = False
+                export_btn.tooltip = None
+                
+            if not self._has_permission("statistics.reset"):
+                reset_btn.disabled = True
+                reset_btn.tooltip = "无权限"
+            else:
+                reset_btn.disabled = False
+                reset_btn.tooltip = None
+                
+        except Exception as e:
+            logger.error(f"检查按钮权限失败: {e}")
+    
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
         # 应用样式隔离
@@ -121,6 +163,9 @@ class StatisticsScreen(Screen[None]):
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
+        
+        # 检查按钮权限并禁用/启用按钮
+        self._check_button_permissions()
         
         # 延迟初始化数据表，确保DOM完全构建
         self.set_timer(0.1, self._initialize_tables)
@@ -261,6 +306,19 @@ class StatisticsScreen(Screen[None]):
         period_content = self.query_one("#period-content", Static)
         period_content.update(self._format_period_stats())
     
+    def _has_button_permission(self, button_id: str) -> bool:
+        """检查按钮权限"""
+        permission_map = {
+            "refresh-btn": "statistics.refresh",
+            "export-btn": "statistics.export",
+            "reset-btn": "statistics.reset"
+        }
+        
+        if button_id in permission_map:
+            return self._has_permission(permission_map[button_id])
+        
+        return True  # 默认允许未知按钮
+    
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -268,12 +326,26 @@ class StatisticsScreen(Screen[None]):
         Args:
             event: 按钮按下事件
         """
+        # 检查权限
+        if not self._has_button_permission(event.button.id):
+            self.notify("无权限执行此操作", severity="warning")
+            return
+            
         if event.button.id == "refresh-btn":
-            self._refresh_stats()
+            if self._has_permission("statistics.refresh"):
+                self._refresh_stats()
+            else:
+                self.notify("无权限刷新统计", severity="warning")
         elif event.button.id == "export-btn":
-            self._export_stats()
+            if self._has_permission("statistics.export"):
+                self._export_stats()
+            else:
+                self.notify("无权限导出统计", severity="warning")
         elif event.button.id == "reset-btn":
-            self._reset_stats()
+            if self._has_permission("statistics.reset"):
+                self._reset_stats()
+            else:
+                self.notify("无权限重置统计", severity="warning")
         elif event.button.id == "back-btn":
             self.app.pop_screen()
     
@@ -301,10 +373,18 @@ class StatisticsScreen(Screen[None]):
             self.app.pop_screen()
             event.stop()
         elif event.key == "r":
-            self._refresh_stats()
+            # 刷新统计需要权限
+            if self._has_permission("statistics.refresh"):
+                self._refresh_stats()
+            else:
+                self.notify("无权限刷新统计", severity="warning")
             event.prevent_default()
         elif event.key == "e":
-            self._export_stats()
+            # 导出统计需要权限
+            if self._has_permission("statistics.export"):
+                self._export_stats()
+            else:
+                self.notify("无权限导出统计", severity="warning")
             event.prevent_default()
     
     def _format_reading_trend(self) -> str:

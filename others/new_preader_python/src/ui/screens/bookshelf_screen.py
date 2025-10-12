@@ -13,8 +13,7 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
 from textual.widgets import Static, Button, Label, DataTable
 from textual.reactive import reactive
-from textual import on
-from textual import events
+from textual import on, events
 
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
@@ -187,11 +186,30 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         # 初始化数据表
         table = self.query_one("#books-table", DataTable)
-        for col in self.columns:
+        # 根据权限过滤操作列
+        can_read = self._has_permission("bookshelf.read")
+        can_view = self._has_permission("bookshelf.view_file")
+        can_delete = self._has_permission("bookshelf.delete_book")
+        cols = []
+        for label, key in self.columns:
+            if key == "read_action" and not can_read:
+                continue
+            if key == "view_action" and not can_view:
+                continue
+            if key == "delete_action" and not can_delete:
+                continue
+            cols.append((label, key))
+        for col in cols:
             table.add_column(col[0], key=col[1])
         
         # 启用隔行变色效果
         table.zebra_stripes = True
+
+        # 按权限禁用/隐藏按钮
+        try:
+            self._apply_permissions()
+        except Exception:
+            pass
         
         # 加载书籍数据
         self._load_books()
@@ -242,24 +260,23 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # 格式化标签显示（直接显示逗号分隔的字符串）
             tags_display = book.tags if book.tags else ""
             
-            # 添加操作按钮
-            read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
-            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
-            delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
-            
-            table.add_row(
-                str(index),  # 显示数字序号而不是路径
+            # 添加操作按钮（按权限）
+            row_values = [
+                str(index),
                 book.title,
                 book.author,
                 book.format.upper(),
                 last_read,
                 f"{progress:.1f}%",
                 tags_display,
-                read_button,  # 阅读按钮
-                view_file_button,  # 查看文件按钮
-                delete_button,  # 删除按钮
-                key=book.path  # 仍然使用路径作为行键
-            )
+            ]
+            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.read"):
+                row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
+            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.view_file"):
+                row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
+            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.delete_book"):
+                row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")
+            table.add_row(*row_values, key=book.path)
         
         # 更新书籍统计信息
         self._update_books_stats(self._all_books)
@@ -362,6 +379,28 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         )
         self.app.push_screen(file_explorer_screen)
     
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            
+            # 获取当前用户ID
+            current_user_id = getattr(self.app, 'current_user_id', None)
+            if current_user_id is None:
+                # 如果没有当前用户，检查是否是多用户模式
+                if not getattr(self.app, 'multi_user_enabled', False):
+                    # 单用户模式默认允许所有权限
+                    return True
+                else:
+                    # 多用户模式但没有当前用户，默认拒绝
+                    return False
+            
+            return db_manager.has_permission(current_user_id, permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
+    
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -370,21 +409,42 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             event: 按钮按下事件
         """
         if event.button.id == "add-book-btn":
-            self._show_add_book_dialog()
+            if self._has_permission("bookshelf.add_book"):
+                self._show_add_book_dialog()
+            else:
+                self.notify("无权限添加书籍", severity="warning")
         elif event.button.id == "scan-directory-btn":
-            self._show_scan_directory_dialog()
+            if self._has_permission("bookshelf.scan_directory"):
+                self._show_scan_directory_dialog()
+            else:
+                self.notify("无权限扫描目录", severity="warning")
         elif event.button.id == "back-btn":
             self.app.pop_screen()
         elif event.button.id == "search-btn":
-            self._show_search_dialog()
+            if self._has_permission("bookshelf.read"):
+                self._show_search_dialog()
+            else:
+                self.notify("无权限搜索/查看", severity="warning")
         elif event.button.id == "sort-btn":
-            self._show_sort_menu()
+            if self._has_permission("bookshelf.read"):
+                self._show_sort_menu()
+            else:
+                self.notify("无权限排序/查看", severity="warning")
         elif event.button.id == "batch-ops-btn":
-            self._show_batch_ops_menu()
+            if self._has_permission("bookshelf.delete_book"):
+                self._show_batch_ops_menu()
+            else:
+                self.notify("无权限批量操作", severity="warning")
         elif event.button.id == "refresh-btn":
-            self._refresh_bookshelf()
+            if self._has_permission("bookshelf.read"):
+                self._refresh_bookshelf()
+            else:
+                self.notify("无权限刷新", severity="warning")
         elif event.button.id == "get-books-btn":
-            self._get_books()
+            if self._has_permission("bookshelf.get_books"):
+                self._get_books()
+            else:
+                self.notify("无权限打开获取书籍页面", severity="warning")
     
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
@@ -408,15 +468,24 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 
             # 根据列键判断点击的是哪个按钮
             if column_key == "read_action":
-                self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
-                # 直接使用备用方法打开书籍
-                self._open_book_fallback(book_id)
+                if self._has_permission("bookshelf.read"):
+                    self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
+                    # 直接使用备用方法打开书籍
+                    self._open_book_fallback(book_id)
+                else:
+                    self.notify("无权限阅读书籍", severity="warning")
             elif column_key == "view_action":
-                self.logger.info(f"点击查看文件按钮: {book_id}")
-                self._view_file(book_id)
+                if self._has_permission("bookshelf.view_file"):
+                    self.logger.info(f"点击查看文件按钮: {book_id}")
+                    self._view_file(book_id)
+                else:
+                    self.notify("无权限查看文件", severity="warning")
             elif column_key == "delete_action":
-                self.logger.info(f"点击删除按钮: {book_id}")
-                self._delete_book(book_id)
+                if self._has_permission("bookshelf.delete_book"):
+                    self.logger.info(f"点击删除按钮: {book_id}")
+                    self._delete_book(book_id)
+                else:
+                    self.notify("无权限删除书籍", severity="warning")
     
     def _open_book_fallback(self, book_path: str) -> None:
         """备用方法打开书籍"""
@@ -549,32 +618,56 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 if row_key and row_key.value:
                     book_id = row_key.value  # 使用行键（书籍路径）而不是第一列数据
                     self.logger.info(get_global_i18n().t('bookshelf.press_enter_open_book', book_id=book_id))
-                    # 使用备用方法打开书籍
-                    self._open_book_fallback(book_id)
+                    # 使用备用方法打开书籍（权限）
+                    if self._has_permission("bookshelf.read"):
+                        self._open_book_fallback(book_id)
+                    else:
+                        self.notify("无权限阅读", severity="warning")
                     event.prevent_default()
         elif event.key == "s":
             # S键搜索
-            self._show_search_dialog()
+            if self._has_permission("bookshelf.read"):
+                self._show_search_dialog()
+            else:
+                self.notify("无权限搜索/查看", severity="warning")
             event.prevent_default()
         elif event.key == "r":
             # R键排序
-            self._show_sort_menu()
+            if self._has_permission("bookshelf.read"):
+                self._show_sort_menu()
+            else:
+                self.notify("无权限排序/查看", severity="warning")
             event.prevent_default()
         elif event.key == "l":
-            self._show_batch_ops_menu()
+            if self._has_permission("bookshelf.delete_book"):
+                self._show_batch_ops_menu()
+            else:
+                self.notify("无权限批量操作", severity="warning")
             event.prevent_default()
         elif event.key == "a":
-            self._show_add_book_dialog()
+            if self._has_permission("bookshelf.add_book"):
+                self._show_add_book_dialog()
+            else:
+                self.notify("无权限添加书籍", severity="warning")
             event.prevent_default()
         elif event.key == "d":
-            self._show_scan_directory_dialog()
+            if self._has_permission("bookshelf.scan_directory"):
+                self._show_scan_directory_dialog()
+            else:
+                self.notify("无权限扫描目录", severity="warning")
             event.prevent_default()
         elif event.key == "g":
-            self._get_books()
+            if self._has_permission("bookshelf.get_books"):
+                self._get_books()
+            else:
+                self.notify("无权限打开获取书籍页面", severity="warning")
             event.prevent_default()
         elif event.key == "f":
             # F键刷新书架
-            self._refresh_bookshelf()
+            if self._has_permission("bookshelf.read"):
+                self._refresh_bookshelf()
+            else:
+                self.notify("无权限刷新", severity="warning")
             event.prevent_default()
         elif event.key == "escape":
             # ESC键返回（仅一次 pop，并停止冒泡）
@@ -620,7 +713,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 book_path = self._book_index_mapping[book_index]
                 self.logger.info(f"按数字键 {book_index} 打开书籍: {book_path}")
                 # 使用备用方法打开书籍
-                self._open_book_fallback(book_path)
+                if self._has_permission("bookshelf.read"):
+                    self._open_book_fallback(book_path)
+                else:
+                    self.notify("无权限阅读", severity="warning")
                 event.prevent_default()
             else:
                 # 如果该序号没有对应的书籍，显示提示
@@ -726,6 +822,25 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         dialog = SortDialog(self.theme_manager)
         self.app.push_screen(dialog, handle_sort_result)
         
+    def _apply_permissions(self) -> None:
+        """按权限禁用/隐藏按钮（不改变布局，仅状态）"""
+        try:
+            # 工具栏
+            self.query_one("#search-btn", Button).disabled = not self._has_permission("bookshelf.read")
+            self.query_one("#sort-btn", Button).disabled = not self._has_permission("bookshelf.read")
+            self.query_one("#batch-ops-btn", Button).disabled = not self._has_permission("bookshelf.delete_book")
+            self.query_one("#refresh-btn", Button).disabled = not self._has_permission("bookshelf.read")
+        except Exception:
+            pass
+        try:
+            # 底部按钮
+            self.query_one("#add-book-btn", Button).disabled = not self._has_permission("bookshelf.add_book")
+            self.query_one("#scan-directory-btn", Button).disabled = not self._has_permission("bookshelf.scan_directory")
+            self.query_one("#get-books-btn", Button).disabled = not self._has_permission("bookshelf.get_books")
+        except Exception:
+            pass
+
+
     def _show_batch_ops_menu(self) -> None:
         """显示批量操作菜单"""
         def handle_batch_ops(result: Optional[Dict[str, Any]]) -> None:

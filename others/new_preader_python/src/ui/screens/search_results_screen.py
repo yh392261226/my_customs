@@ -7,6 +7,10 @@ from typing import Optional, Any, Dict, List, ClassVar, cast
 from src.core.pagination.terminal_paginator import TerminalPaginator
 from src.locales.i18n_manager import get_global_i18n
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.core.database_manager import DatabaseManager
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class SearchResultsScreen(Screen[None]):
     # 使用 Textual BINDINGS（逐步替代 on_key）
@@ -29,12 +33,21 @@ class SearchResultsScreen(Screen[None]):
         self.results = results
         self.theme_manager = theme_manager
         self.renderer = renderer
+        self.db_manager = DatabaseManager()  # 数据库管理器
         self.selected_result_index = 0
         
         # 分页相关属性
         self._current_page = 1
         self._results_per_page = 20
         self._total_pages = max(1, (len(results) + self._results_per_page - 1) // self._results_per_page)
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
 
     def compose(self) -> ComposeResult:
         with Container(id="search-results-container"):
@@ -86,22 +99,38 @@ class SearchResultsScreen(Screen[None]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘导航"""
         if event.key == "escape":
+            if not self._has_permission("search_results.escape"):
+                self.notify("无权限退出搜索结果页面", severity="error")
+                event.stop()
+                return
             self.app.pop_screen()
             event.stop()
         elif event.key == "n":
             # N键下一页
+            if not self._has_permission("search_results.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             if self._current_page < self._total_pages:
                 self._current_page += 1
                 self._refresh_table()
             event.prevent_default()
         elif event.key == "p":
             # P键上一页
+            if not self._has_permission("search_results.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             if self._current_page > 1:
                 self._current_page -= 1
                 self._refresh_table()
             event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if not self._has_permission("search_results.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             table = self.query_one("#results-table", DataTable)
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
@@ -114,6 +143,10 @@ class SearchResultsScreen(Screen[None]):
                 event.prevent_default()
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if not self._has_permission("search_results.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             table = self.query_one("#results-table", DataTable)
             if table.cursor_row == 0 and self._current_page > 1:
                 self._current_page -= 1
@@ -126,11 +159,17 @@ class SearchResultsScreen(Screen[None]):
 
     # Actions for BINDINGS
     def action_next_page(self) -> None:
+        if not self._has_permission("search_results.navigation"):
+            self.notify("无权限翻页", severity="error")
+            return
         if self._current_page < self._total_pages:
             self._current_page += 1
             self._refresh_table()
 
     def action_prev_page(self) -> None:
+        if not self._has_permission("search_results.navigation"):
+            self.notify("无权限翻页", severity="error")
+            return
         if self._current_page > 1:
             self._current_page -= 1
             self._refresh_table()

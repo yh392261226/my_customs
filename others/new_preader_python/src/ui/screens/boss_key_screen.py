@@ -19,6 +19,7 @@ from textual import events, on
 from src.themes.theme_manager import ThemeManager
 from src.locales.i18n_manager import get_global_i18n
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.core.database_manager import DatabaseManager
 
 from src.utils.logger import get_logger
 
@@ -46,6 +47,7 @@ class BossKeyScreen(Screen[None]):
         """
         super().__init__()
         self.theme_manager = theme_manager
+        self.db_manager = DatabaseManager()  # 数据库管理器
         
         # 终端状态
         self.command_history: List[str] = []
@@ -59,6 +61,14 @@ class BossKeyScreen(Screen[None]):
         
         # 初始化终端输出
         self._add_welcome_message()
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
     
     def compose(self) -> ComposeResult:
         """组合老板键屏幕界面"""
@@ -277,14 +287,26 @@ class BossKeyScreen(Screen[None]):
         """处理键盘事件"""
         if event.key == "ctrl+c":
             # Ctrl+C 退出老板键模式
+            if not self._has_permission("boss_key.escape"):
+                self.notify("无权限退出老板键模式", severity="error")
+                event.prevent_default()
+                return
             self.app.pop_screen()
             event.prevent_default()
         elif event.key == "up":
             # 上箭头 - 历史命令向上
+            if not self._has_permission("boss_key.navigation"):
+                self.notify("无权限浏览历史命令", severity="error")
+                event.prevent_default()
+                return
             self._navigate_history(-1)
             event.prevent_default()
         elif event.key == "down":
             # 下箭头 - 历史命令向下
+            if not self._has_permission("boss_key.navigation"):
+                self.notify("无权限浏览历史命令", severity="error")
+                event.prevent_default()
+                return
             self._navigate_history(1)
             event.prevent_default()
     

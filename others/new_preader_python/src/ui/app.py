@@ -399,6 +399,8 @@ class NewReaderApp(App[None]):
         
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
+        # 伪用户系统：当前用户会话
+        self.current_user: Optional[Dict[str, Any]] = None
         
         # 初始化主事件循环变量
         self._main_loop = None
@@ -458,6 +460,10 @@ class NewReaderApp(App[None]):
         
         # 安装文件资源管理器屏幕
         self.install_screen(FileExplorerScreen(self.theme_manager, self.bookshelf, self.statistics_manager), name="file_explorer")
+
+        # 安装用户管理屏幕
+        from src.ui.screens.users_management_screen import UsersManagementScreen
+        self.install_screen(UsersManagementScreen(self.theme_manager, self.db_manager), name="users_management")
         
         logger.info(get_global_i18n().t("app.screen_installed"))
     
@@ -616,25 +622,65 @@ class NewReaderApp(App[None]):
         except Exception as e:
             logger.debug(f"内存监控启动失败（可忽略）：{e}")
         
-        # 如果启用启动密码，先显示全屏密码屏幕
+        # 伪用户系统：显示登录屏幕（优先于启动密码）
         try:
-            cfg = self.config_manager.get_config()
-            adv = cfg.get("advanced", {})
-            if adv.get("password_enabled", False):
-                # 使用独立锁屏组件
-                from src.ui.screens.lock_screen import LockScreen
-                expected = adv.get("password", "")
-                async def _wait_password_then_enter():
-                    ok = await self.push_screen_wait(LockScreen(str(expected or "")))
-                    if ok:
-                        self.push_screen("welcome")
-                    else:
-                        # 兜底仍进入欢迎页
-                        self.push_screen("welcome")
-                self.run_worker(_wait_password_then_enter(), exclusive=True)
-                return
+            from src.ui.screens.login_screen import LoginScreen
+            from src.ui.screens.lock_screen import LockScreen
+            from src.utils.multi_user_manager import multi_user_manager
+            
+            async def _wait_login_then_enter():
+                # 检查多用户设置，如果禁用则检查启动密码
+                if not multi_user_manager.should_show_login():
+                    # 多用户功能禁用，检查启动密码模式
+                    config = self.config_manager.get_config()
+                    advanced_config = config.get("advanced", {})
+                    password_enabled = advanced_config.get("password_enabled", False)
+                    startup_password = advanced_config.get("password", "")
+                    
+                    # 如果启动密码模式开启，需要验证密码
+                    if password_enabled and startup_password:
+                        password_correct = await self.push_screen_wait(LockScreen(startup_password))
+                        if not password_correct:
+                            # 密码错误或取消，退出应用
+                            self.exit()
+                            return
+                    
+                    # 多用户功能禁用，直接返回超级管理员信息
+                    super_admin_info = {
+                        "id": 0,
+                        "username": "super_admin",
+                        "role": "super_admin",
+                        "permissions": ["read", "write", "delete", "manage_users", "manage_books", "manage_settings"]
+                    }
+                    self.current_user = super_admin_info
+                    try:
+                        # 同步到书架过滤
+                        self.bookshelf.set_current_user(super_admin_info.get("id"), super_admin_info.get("role", "super_admin"))
+                    except Exception:
+                        pass
+                    # 直接进入欢迎页
+                    self.push_screen("welcome")
+                    return
+                
+                # 多用户启用，显示登录界面（此时启动密码模式自动关闭）
+                user = await self.push_screen_wait(LoginScreen(self.theme_manager, self.db_manager))
+                # user 为 None 则匿名，仍可进入但无权限
+                if isinstance(user, dict):
+                    self.current_user = user
+                    try:
+                        # 同步到书架过滤
+                        self.bookshelf.set_current_user(user.get("id"), user.get("role", "user"))
+                    except Exception:
+                        pass
+                # 登录后进入欢迎页
+                self.push_screen("welcome")
+            self.run_worker(_wait_login_then_enter(), exclusive=True)
+            return
         except Exception as e:
-            logger.debug(f"启动密码屏幕加载失败（可忽略）：{e}")
+            logger.debug(f"登录屏幕加载失败（可忽略）：{e}")
+            # 若登录屏幕异常，回退到欢迎页
+            self.push_screen("welcome")
+            return
 
         # 如果指定了小说文件，直接打开阅读
         if self.book_file:
@@ -648,17 +694,34 @@ class NewReaderApp(App[None]):
         self.push_screen(HelpScreen())
     
     def action_show_bookshelf(self) -> None:
-        """显示书架屏幕"""
-        self.push_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager))
+        """显示书架屏幕（按权限）"""
+        if self.has_permission("bookshelf.read"):
+            self.push_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager))
+        else:
+            try:
+                self.notify("无权限访问书架", severity="warning")
+            except Exception:
+                logger.info("无权限访问书架")
     
     def action_show_settings(self) -> None:
-        """显示设置屏幕"""
-        # 使用现代设置屏幕
-        self.push_screen("settings")
+        """显示设置屏幕（按权限）"""
+        if self.has_permission("settings.open"):
+            self.push_screen("settings")
+        else:
+            try:
+                self.notify("无权限打开设置", severity="warning")
+            except Exception:
+                logger.info("无权限打开设置")
     
     def action_show_statistics(self) -> None:
-        """显示统计屏幕"""
-        self.push_screen(StatisticsScreen(self.theme_manager, self.statistics_manager))
+        """显示统计屏幕（按权限）"""
+        if self.has_permission("statistics.open"):
+            self.push_screen(StatisticsScreen(self.theme_manager, self.statistics_manager))
+        else:
+            try:
+                self.notify("无权限打开统计", severity="warning")
+            except Exception:
+                logger.info("无权限打开统计")
 
     def action_switch_theme_newreader(self) -> None:
         """Switch Theme (NewReader)：通过内置主题选择器切换主题（Ctrl-P 可见兜底命令）"""
@@ -1325,6 +1388,25 @@ def on_app_exit(app: NewReaderApp) -> None:
             app._memory_monitor.stop()
     except Exception:
         pass
+
+# 伪用户系统：权限检查
+def _has_permission(app_self: NewReaderApp, perm_key: str) -> bool:
+    try:
+        # 检查多用户设置，如果禁用则自动授予所有权限
+        from src.utils.multi_user_manager import multi_user_manager
+        if multi_user_manager.is_super_admin_mode():
+            return True
+            
+        user = getattr(app_self, "current_user", None)
+        if not user:
+            return False
+        role = user.get("role")
+        uid = int(user.get("id"))
+        return app_self.db_manager.has_permission(uid, perm_key, role=role)
+    except Exception:
+        return False
+
+setattr(NewReaderApp, "has_permission", lambda self, k: _has_permission(self, k))
 
 # 设置应用生命周期回调（Textual使用不同的生命周期方法名）
 # 这些回调函数会在应用启动和退出时自动调用

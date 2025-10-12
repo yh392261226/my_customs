@@ -15,6 +15,7 @@ from src.locales.i18n_manager import set_global_locale, get_global_i18n, t
 from src.core.bookmark import BookmarkManager, Bookmark
 from src.ui.dialogs.bookmark_edit_dialog import BookmarkEditDialog
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.core.database_manager import DatabaseManager
 
 # 类型与协议（消除对具体 ReaderScreen 的静态依赖）
 from typing import Protocol, runtime_checkable, cast, Any
@@ -52,6 +53,15 @@ class BookmarksScreen(Screen[None]):
         self._current_page = 1
         self._bookmarks_per_page = 20
         self._total_pages = max(1, (len(self.bookmarks) + self._bookmarks_per_page - 1) // self._bookmarks_per_page)
+        self.db_manager = DatabaseManager()  # 数据库管理器
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
     
     def compose(self) -> ComposeResult:
         """组合书签列表界面"""
@@ -276,26 +286,50 @@ class BookmarksScreen(Screen[None]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "escape":
+            if not self._has_permission("bookmarks.escape"):
+                self.notify("无权限退出书签页面", severity="error")
+                event.stop()
+                return
             self.app.pop_screen()
             event.stop()
         elif event.key == "delete":
+            if not self._has_permission("bookmarks.delete"):
+                self.notify("无权限删除书签", severity="error")
+                event.stop()
+                return
             self._delete_selected_bookmark()
         elif event.key == "enter":
+            if not self._has_permission("bookmarks.goto"):
+                self.notify("无权限跳转到书签", severity="error")
+                event.stop()
+                return
             self._goto_selected_bookmark()
         elif event.key == "n":
             # N键下一页
+            if not self._has_permission("bookmarks.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             if self._current_page < self._total_pages:
                 self._current_page += 1
                 self._refresh_bookmark_list()
             event.prevent_default()
         elif event.key == "p":
             # P键上一页
+            if not self._has_permission("bookmarks.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             if self._current_page > 1:
                 self._current_page -= 1
                 self._refresh_bookmark_list()
             event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if not self._has_permission("bookmarks.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             list_view = self.query_one("#bookmarks-list", ListView)
             if (list_view.index == len(list_view.children) - 1 and 
                 self._current_page < self._total_pages):
@@ -307,6 +341,10 @@ class BookmarksScreen(Screen[None]):
                 event.prevent_default()
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if not self._has_permission("bookmarks.navigation"):
+                self.notify("无权限翻页", severity="error")
+                event.stop()
+                return
             list_view = self.query_one("#bookmarks-list", ListView)
             if list_view.index == 0 and self._current_page > 1:
                 self._current_page -= 1

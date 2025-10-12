@@ -42,6 +42,14 @@ class CrawlerManagementScreen(Screen[None]):
         self.is_crawling = False  # 爬取状态标志
         self.loading_animation = None  # 加载动画组件
         self.is_mounted_flag = False  # 组件挂载标志
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
         
         # 确保i18n已初始化
         try:
@@ -133,6 +141,15 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
+        
+        # 权限提示与按钮状态
+        try:
+            start_btn = self.query_one("#start-crawl-btn", Button)
+            if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
+                start_btn.disabled = True
+                self._update_status("无权限执行爬取任务", "warning")
+        except Exception:
+            pass
         
         # 初始化数据表
         table = self.query_one("#crawl-history-table", DataTable)
@@ -428,6 +445,10 @@ class CrawlerManagementScreen(Screen[None]):
     
     def _start_crawl(self) -> None:
         """开始爬取小说"""
+        # 权限校验：执行爬取任务需 crawler.run
+        if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
+            self._update_status("无权限执行爬取任务", "error")
+            return
         if self.is_crawling:
             return  # 如果正在爬取，忽略新的爬取请求
         
@@ -1327,23 +1348,38 @@ class CrawlerManagementScreen(Screen[None]):
     
     def key_o(self) -> None:
         """O键 - 打开浏览器"""
-        self._open_browser()
+        if self._has_permission("crawler.open_browser"):
+            self._open_browser()
+        else:
+            self._update_status("无权限打开浏览器", "warning")
     
     def key_v(self) -> None:
         """V键 - 查看历史"""
-        self._view_history()
+        if self._has_permission("crawler.view_history"):
+            self._view_history()
+        else:
+            self._update_status("无权限查看历史", "warning")
     
     def key_s(self) -> None:
         """S键 - 开始爬取"""
-        self._start_crawl()
+        if self._has_permission("crawler.start_crawl"):
+            self._start_crawl()
+        else:
+            self._update_status("无权限开始爬取", "warning")
     
     def key_p(self) -> None:
         """P键 - 上一页"""
-        self._prev_page()
+        if self._has_permission("crawler.navigate"):
+            self._prev_page()
+        else:
+            self._update_status("无权限导航", "warning")
     
     def key_n(self) -> None:
         """N键 - 下一页"""
-        self._next_page()
+        if self._has_permission("crawler.navigate"):
+            self._next_page()
+        else:
+            self._update_status("无权限导航", "warning")
     
     def _view_file(self, history_item: Dict[str, Any]) -> None:
         """查看文件"""
@@ -1562,9 +1598,10 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.file_not_exists'))
                 return
             
-            # 使用app的open_book方法打开书籍
-            if hasattr(self.app, 'open_book'):
-                self.app.open_book(file_path)
+            # 使用 app 的 open_book 方法打开书籍（运行时安全检查，避免类型检查告警）
+            open_book = getattr(self.app, "open_book", None)
+            if callable(open_book):
+                open_book(file_path)  # type: ignore[misc]
                 self._update_status(f"正在阅读: {book_title}", "success")
             else:
                 self._update_status("无法打开阅读器", "error")

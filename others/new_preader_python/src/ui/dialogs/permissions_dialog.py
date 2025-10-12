@@ -1,0 +1,197 @@
+"""
+权限管理对话框
+用于管理用户权限
+"""
+
+from typing import Optional, Set, List, Dict, Any
+from textual.screen import ModalScreen
+from textual.containers import Container, Vertical, Horizontal
+from textual.widgets import Button, Label, Checkbox, Static
+from textual.app import ComposeResult
+from textual import events
+
+from src.themes.theme_manager import ThemeManager
+from src.utils.logger import get_logger
+from src.locales.i18n_manager import get_global_i18n
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation
+from src.core.database_manager import DatabaseManager
+
+logger = get_logger(__name__)
+
+class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
+    """权限管理对话框"""
+    
+    CSS_PATH = "../styles/permissions_dialog_overrides.tcss"
+    
+    BINDINGS = [
+        ("enter", "confirm", "确认"),
+        ("escape", "cancel", "取消"),
+    ]
+    
+    def __init__(self, theme_manager: ThemeManager, user_id: int, username: str, all_permissions: List[str], user_permissions: Set[str]):
+        """
+        初始化权限管理对话框
+        
+        Args:
+            theme_manager: 主题管理器
+            user_id: 用户ID
+            username: 用户名
+            all_permissions: 所有可用权限列表
+            user_permissions: 用户当前拥有的权限集合
+        """
+        super().__init__()
+        self.theme_manager = theme_manager
+        self.user_id = user_id
+        self.username = username
+        self.all_permissions = all_permissions
+        self.user_permissions = user_permissions
+        self.checkboxes = {}  # 存储权限键到复选框的映射
+        self.db_manager = DatabaseManager()  # 数据库管理器
+        self.permissions_data = {}  # 存储权限的完整信息（key -> description）
+        
+        # 从数据库获取权限的完整信息
+        self._load_permissions_data()
+    
+    def _load_permissions_data(self) -> None:
+        """从数据库加载权限的完整信息"""
+        try:
+            permissions = self.db_manager.get_all_permissions()
+            for perm in permissions:
+                self.permissions_data[perm['key']] = perm['description']
+        except Exception as e:
+            logger.error(f"加载权限数据失败: {e}")
+            # 如果加载失败，使用key作为fallback
+            for perm_key in self.all_permissions:
+                self.permissions_data[perm_key] = perm_key
+        
+    def compose(self) -> ComposeResult:
+        """组合对话框界面"""
+        i18n = get_global_i18n()
+        
+        yield Container(
+            Vertical(
+                # 标题
+                Label(
+                    i18n.t("users_management.permissions_dialog.title", 
+                          user_id=self.user_id, username=self.username),
+                    id="permissions-title",
+                    classes="section-title"
+                ),
+                
+                # 权限列表容器
+                Vertical(
+                    *self._create_permission_checkboxes(),
+                    id="permissions-list",
+                    classes="scrollable-container"
+                ),
+                
+                # 按钮区域
+                Horizontal(
+                    Button(i18n.t("users_management.select_all"), id="select-all-btn"),
+                    Button(i18n.t("users_management.deselect_all"), id="deselect-all-btn"),
+                    Button(i18n.t("users_management.invert_selection"), id="invert-selection-btn"),
+                    Button(i18n.t("common.confirm"), id="confirm-btn", variant="primary"),
+                    Button(i18n.t("common.cancel"), id="cancel-btn"),
+                    id="permissions-buttons-top",
+                    classes="btn-row"
+                ),
+                
+                # 状态信息
+                Label("", id="permissions-status"),
+            
+                
+                id="permissions-container"
+            )
+        )
+    
+    def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        
+        # 应用主题
+        self.theme_manager.apply_theme_to_screen(self)
+        
+        # 更新状态信息
+        self._update_status()
+        
+        # 设置默认焦点到确认按钮
+        confirm_btn = self.query_one("#confirm-btn", Button)
+        if confirm_btn:
+            self.set_focus(confirm_btn)
+    
+    def _create_permission_checkboxes(self) -> List[Checkbox]:
+        """创建权限复选框列表"""
+        checkboxes = []
+        for permission_key in sorted(self.all_permissions):
+            checked = permission_key in self.user_permissions
+            # 获取权限的描述信息，如果没有则使用key作为fallback
+            description = self.permissions_data.get(permission_key, permission_key)
+            checkbox = Checkbox(
+                label=description,  # 显示description而不是key
+                value=checked,
+                id=f"perm-{permission_key.replace('.', '-').replace(':', '-')}",
+                classes="checkbox"
+            )
+            self.checkboxes[permission_key] = checkbox  # 存储key到复选框的映射
+            checkboxes.append(checkbox)
+        return checkboxes
+    
+    def _update_status(self) -> None:
+        """更新状态信息"""
+        i18n = get_global_i18n()
+        selected_count = len([cb for cb in self.checkboxes.values() if cb.value])
+        total_count = len(self.all_permissions)
+        
+        status_label = self.query_one("#permissions-status", Label)
+        status_label.update(
+            i18n.t("users_management.permissions_dialog.status", 
+                  selected=selected_count, total=total_count)
+        )
+    
+    def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
+        """复选框状态改变时的回调"""
+        self._update_status()
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """按钮按下时的回调"""
+        if event.button.id == "confirm-btn":
+            # 收集选中的权限
+            selected_permissions = {
+                permission for permission, checkbox in self.checkboxes.items() 
+                if checkbox.value
+            }
+            self.dismiss(selected_permissions)
+            
+        elif event.button.id == "cancel-btn":
+            self.dismiss(None)
+            
+        elif event.button.id == "select-all-btn":
+            # 全选
+            for checkbox in self.checkboxes.values():
+                checkbox.value = True
+            self._update_status()
+            
+        elif event.button.id == "deselect-all-btn":
+            # 全不选
+            for checkbox in self.checkboxes.values():
+                checkbox.value = False
+            self._update_status()
+            
+        elif event.button.id == "invert-selection-btn":
+            # 反选
+            for checkbox in self.checkboxes.values():
+                checkbox.value = not checkbox.value
+            self._update_status()
+    
+    def action_confirm(self) -> None:
+        """确认操作"""
+        selected_permissions = {
+            permission for permission, checkbox in self.checkboxes.items() 
+            if checkbox.value
+        }
+        self.dismiss(selected_permissions)
+    
+    def action_cancel(self) -> None:
+        """取消操作"""
+        self.dismiss(None)

@@ -32,6 +32,7 @@
         "statistics": "📊 Statistics",
         "help": "❓ Help",
         "exit": "🔚 Exit",
+        "manage": "⚙️ Manage User",
         "features_title": "✨ Features:",
         "feature_1": "• Supports TXT, EPUB and other formats",
         "feature_2": "• Intelligent chapter recognition and pagination",
@@ -44,6 +45,7 @@
         "shortcut_f4": "F4/4: Settings",
         "shortcut_f5": "F5/5: Statistics",
         "shortcut_f6": "F6/6: Help",
+        "shortcut_f7": "F7/7: Manage User",
         "shortcut_esc": "Q/ESC: Quit",
         "notify_warning": "Please enter file path",
         "select_book_title": "Select Book File",
@@ -244,6 +246,10 @@
         "backup_enabled": "Enable Backup",
         "backup_interval": "Backup Interval",
         "debug_mode": "Debug Mode",
+        "multi_user_enabled": "Enable Multi-User",
+        "password_enabled": "Enable Startup Password",
+        "password": "Startup Password",
+        "password_placeholder": "Enter new password",
         "config_dir": "Config Directory",
         "database": "Database Path",
         "library": "Book Library Path",
@@ -259,7 +265,19 @@
         "translation_cache_enabled": "Enable Translation Cache",
         "cache_duration": "Cache Duration",
         "request_timeout": "Request Timeout",
-        "retry_count": "Retry Count"
+        "retry_count": "Retry Count",
+        "translation_services": "Translation Services API Configuration",
+        "baidu_translation": "Baidu Translation",
+        "baidu_app_id": "Baidu Translation App ID",
+        "baidu_app_key": "Baidu Translation App Key",
+        "youdao_translation": "Youdao Translation",
+        "youdao_app_key": "Youdao Translation App Key",
+        "youdao_app_secret": "Youdao Translation App Secret",
+        "google_translation": "Google Translation",
+        "google_api_key": "Google Translation API Key",
+        "microsoft_translation": "Microsoft Translation",
+        "microsoft_subscription_key": "Microsoft Translation Subscription Key",
+        "microsoft_region": "Microsoft Translation Region"
     },
     "common": {
         "close": "Close",
@@ -569,7 +587,7 @@
         "goto_page": "Go to this page",
         "column_page": "Page",
         "column_preview": "Preview Content",
-        "page_info": "Page {page}/{total_pages}，total {total_results} results"
+        "page_info": "Page {page}/{total_pages}, total {total_results} results"
     },
     "pagination": {
         "start_pagination": "Starting pagination: content length={content_length}, container size={container_size}",
@@ -840,7 +858,7 @@
         "add_to_bookshelf": "Add to Bookshelf",
         "no_file_selected": "No file selected",
         "unsupported_format": "Unsupported file format",
-        "book_added": "Book 《{title}》 added",
+        "book_added": "Book \"{title}\" added",
         "add_failed": "Add failed",
         "invalid_directory": "Invalid directory path",
         "access_denied": "Access denied",
@@ -907,13 +925,43 @@
         "review_summary": "Reviewed {reviewed} of {total} words this session"
     },
     "selection_mode": {
-        "notify_message": "Selection Mode On : Use ←↑↓→ to move，Shift+ to select，Enter to translate，Esc to cancel",
+        "in_notify_message": "Selection Mode On: Use ←↑↓→ to move cursor, Shift+←↑↓→ to select, Enter to translate, Esc to cancel",
         "out_notify_message": "Selection Mode Off",
-        "copied_selection": "Copied selection to clipbord",
-        "no_selection": "No selection",
-        "copied_failed": "Copied failed",
-        "cannot_copy": "Can not copy to clipbord: No module named pyperclip",
-        "trans_failed": "Translate failed",
-        "open_failed": "Open vocabulary failed"
+        "copied_selection": "Copied selected text to clipboard",
+        "no_selection": "No text selected",
+        "copied_failed": "Copy failed",
+        "cannot_copy": "Cannot copy to clipboard: pyperclip library missing",
+        "trans_failed": "Translation failed",
+        "open_failed": "Failed to open vocabulary"
+    },
+    "login": {
+        "title": "Login",
+        "username": "Username",
+        "password": "Password",
+        "login": "Login",
+        "guest": "Enter as guest"
+    },
+    "users_management": {
+        "title": "Users and Permissions Management",
+        "add_user": "Add User",
+        "edit": "Edit",
+        "delete": "Delete",
+        "permissions": "Permissions",
+        "username": "Username",
+        "password": "Password",
+        "role": "Role",
+        "id": "ID",
+        "back": "Back",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "select_all": "Select All",
+        "deselect_all": "Deselect All",
+        "invert_selection": "Invert Selection",
+        "permissions_dialog": {
+            "title": "Set Permissions for User {user_id} ({username})",
+            "status": "Selected: {selected}/{total} permissions",
+            "confirm": "Confirm",
+            "cancel": "Cancel"
+        }
     }
 }

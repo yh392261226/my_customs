@@ -59,6 +59,14 @@ class ProxyListScreen(Screen[None]):
         self.database_manager = DatabaseManager()
         self.proxy_list = []
         self.selected_proxy_id = None
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.database_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
     
     def compose(self) -> ComposeResult:
         """
@@ -420,19 +428,31 @@ class ProxyListScreen(Screen[None]):
     
     def key_a(self) -> None:
         """A键 - 添加代理"""
-        self._add_proxy()
+        if self._has_permission("proxy.add"):
+            self._add_proxy()
+        else:
+            self._update_status("无权限添加代理", "warning")
     
     def key_t(self) -> None:
         """T键 - 测试连接"""
-        self._test_connection()
+        if self._has_permission("proxy.test"):
+            self._test_connection()
+        else:
+            self._update_status("无权限测试连接", "warning")
     
     def key_e(self) -> None:
         """E键 - 编辑代理"""
-        self._edit_proxy()
+        if self._has_permission("proxy.edit"):
+            self._edit_proxy()
+        else:
+            self._update_status("无权限编辑代理", "warning")
     
     def key_d(self) -> None:
         """D键 - 删除代理"""
-        self._delete_proxy()
+        if self._has_permission("proxy.delete"):
+            self._delete_proxy()
+        else:
+            self._update_status("无权限删除代理", "warning")
     
     def _real_test_proxy_connection(self, proxy_url: str) -> bool:
         """

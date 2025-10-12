@@ -43,6 +43,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         ("f4,4", "open_settings", "打开设置"),
         ("f5,5", "open_statistics", "打开统计"),
         ("f6,6", "open_help", "打开帮助"),
+        ("f7,7", "open_user_management", "管理用户"),
         ("escape,q", "exit_app", "退出")
     ]
     
@@ -82,6 +83,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Button(get_global_i18n().t('welcome.settings'), id="settings-btn"),
                     Button(get_global_i18n().t('welcome.statistics'), id="statistics-btn"),
                     Button(get_global_i18n().t('welcome.help'), id="help-btn"),
+                    Button(get_global_i18n().t('welcome.manage'), id="manage-btn"),
                     Button(get_global_i18n().t('welcome.exit'), id="exit-btn"),
                     id="welcome-buttons", classes="btn-row"
                 ),
@@ -103,6 +105,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Label(get_global_i18n().t('welcome.shortcut_f4'), id="shortcut-f4"),
                     Label(get_global_i18n().t('welcome.shortcut_f5'), id="shortcut-f5"),
                     Label(get_global_i18n().t('welcome.shortcut_f6'), id="shortcut-f6"),
+                    Label(get_global_i18n().t('welcome.shortcut_f7'), id="shortcut-f7"),
                     Label(get_global_i18n().t('welcome.shortcut_esc'), id="shortcut-esc"),
                     id="shortcuts-bar", classes="status-bar"
                 ),
@@ -117,6 +120,13 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
+
+        # 按权限禁用“管理”按钮
+        try:
+            if not getattr(self.app, "has_permission", lambda k: True)("admin.manage_users"):
+                self.query_one("#manage-btn", Button).disabled = True
+        except Exception:
+            pass
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -125,27 +135,54 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         Args:
             event: 按钮按下事件
         """
+        has_perm = getattr(self.app, "has_permission", lambda k: True)
+        
         if event.button.id == "open-book-btn":
-            # 直接跳转到文件资源管理器
-            self._open_file_explorer()
+            if has_perm("welcome.open_book"):
+                self._open_file_explorer()
+            else:
+                self.notify("无权限打开书籍", severity="warning")
         elif event.button.id == "browse-library-btn":
-            self.app.push_screen("bookshelf")  # 使用标准方法切换屏幕
+            if has_perm("welcome.browse_library"):
+                self.app.push_screen("bookshelf")
+            else:
+                self.notify("无权限浏览书库", severity="warning")
         elif event.button.id == "get-books-btn":
-            self.app.push_screen("get_books")  # 打开获取书籍页面
+            if has_perm("welcome.get_books"):
+                self.app.push_screen("get_books")
+            else:
+                self.notify("无权限获取书籍", severity="warning")
         elif event.button.id == "settings-btn":
-            self.app.push_screen("settings")  # 打开设置页面
+            if has_perm("welcome.settings"):
+                self.app.push_screen("settings")
+            else:
+                self.notify("无权限访问设置", severity="warning")
         elif event.button.id == "statistics-btn":
-            self.app.push_screen("statistics")  # 打开统计页面
+            if has_perm("welcome.statistics"):
+                self.app.push_screen("statistics")
+            else:
+                self.notify("无权限访问统计", severity="warning")
         elif event.button.id == "help-btn":
-            self.app.push_screen("help")  # 打开帮助页面
+            if has_perm("welcome.help"):
+                self.app.push_screen("help")
+            else:
+                self.notify("无权限访问帮助", severity="warning")
+        elif event.button.id == "manage-btn":
+            if has_perm("welcome.manage"):
+                self.app.push_screen("users_management")
+            else:
+                self.notify("无权限管理用户", severity="warning")
         elif event.button.id == "exit-btn":
-            self.app.exit() # 退出阅读器
+            # 退出按钮不需要权限检查，用户总是可以退出应用
+            self.app.exit()
 
 
     def key_f1(self) -> None:
         """F1快捷键 - 打开书籍"""
-        # 直接跳转到文件资源管理器
-        self._open_file_explorer()
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.open_book"):
+            self._open_file_explorer()
+        else:
+            self.notify("无权限打开书籍", severity="warning")
 
     def _open_file_explorer(self) -> None:
         """打开文件资源管理器"""
@@ -185,23 +222,45 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     def key_f2(self) -> None:
         """F2快捷键 - 浏览书库"""
-        self.app.push_screen("bookshelf")
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.browse_library"):
+            self.app.push_screen("bookshelf")
+        else:
+            self.notify("无权限浏览书库", severity="warning")
 
     def key_f3(self) -> None:
         """F3快捷键 - 获取书籍"""
-        self.app.push_screen("get_books")
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
+            self.app.push_screen("get_books")
+        else:
+            self.notify("无权限访问获取书籍页面", severity="warning")
 
     def key_f4(self) -> None:
         """F4快捷键 - 打开设置"""
-        self.app.push_screen("settings")
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.settings"):
+            self.app.push_screen("settings")
+        else:
+            self.notify("无权限访问设置", severity="warning")
 
     def key_f5(self) -> None:
         """F5快捷键 - 打开统计"""
-        self.app.push_screen("statistics")
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.statistics"):
+            self.app.push_screen("statistics")
+        else:
+            self.notify("无权限访问统计", severity="warning")
 
     def key_f6(self) -> None:
         """F6快捷键 - 打开帮助"""
-        self.app.push_screen("help")
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.help"):
+            self.app.push_screen("help")
+        else:
+            self.notify("无权限访问帮助", severity="warning")
+
+    def key_f7(self) -> None:
+        """F7快捷键 - 管理用户"""
+        if getattr(self.app, "has_permission", lambda k: True)("admin.manage_users"):
+            self.app.push_screen("users_management")
+        else:
+            self.notify("无权限进入用户管理", severity="warning")
 
     # Actions for BINDINGS
     def action_open_book(self) -> None:
@@ -211,7 +270,10 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         self.app.push_screen("bookshelf")
 
     def action_get_books(self) -> None:
-        self.app.push_screen("get_books")
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
+            self.app.push_screen("get_books")
+        else:
+            self.notify("无权限访问获取书籍页面", severity="warning")
 
     def action_open_settings(self) -> None:
         self.app.push_screen("settings")
@@ -221,6 +283,13 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     def action_open_help(self) -> None:
         self.app.push_screen("help")
+
+    def action_open_user_management(self) -> None:
+        """Action: 管理用户（F7）"""
+        if getattr(self.app, "has_permission", lambda k: True)("admin.manage_users"):
+            self.app.push_screen("users_management")
+        else:
+            self.notify("无权限进入用户管理", severity="warning")
 
     # 移除 ESC 直接退出，保留显式“退出”按钮行为
     def action_exit_app(self) -> None:

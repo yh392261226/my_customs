@@ -15,6 +15,7 @@ from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n, t
 from src.utils.logger import get_logger
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.core.database_manager import DatabaseManager
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,7 @@ class HelpScreen(Screen[None]):
         """
         super().__init__()
         self.screen_title = get_global_i18n().t("help.title")
+        self.db_manager = DatabaseManager()  # 数据库管理器
         
         # 准备帮助内容
         self.help_content = f"""
@@ -63,6 +65,14 @@ class HelpScreen(Screen[None]):
 
 {get_global_i18n().t("help.about_content")}
 """
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
     
     def compose(self) -> ComposeResult:
         """
@@ -116,6 +126,10 @@ class HelpScreen(Screen[None]):
             event: 键盘事件
         """
         if event.key == "escape":
+            if not self._has_permission("help.escape"):
+                self.notify("无权限退出帮助页面", severity="error")
+                event.stop()
+                return
             self.app.pop_screen()
             event.stop()
             event.prevent_default()

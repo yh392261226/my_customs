@@ -1,26 +1,25 @@
 #proxy-edit-container {
     width: 90%;
-    height: 85%;
-    min-height: 50;
-    max-height: 90%;
-    margin: 2;
+    height: 90%;
+    min-height: 30;
+    margin: 1;
     /* 使用 .panel 提供的背景、边框、padding */
     layout: vertical;
     align: center middle;
+    padding: 2;
 }
 
 #proxy-edit-title {
     width: 100%;
     height: 1;
-    margin-bottom: 2;
+    margin: 0;
 }
 
 #proxy-edit-scroll {
     width: 100%;
-    height: 1fr;
+    height: 80%;
     border: round $primary;
     background: $surface;
-    margin: 1 0;
 }
 
 #proxy-edit-form {
@@ -34,33 +33,32 @@
     width: 100%;
     height: 2;
     text-align: center;
-    margin: 1 0;
+    margin: 0;
 }
 
 #proxy-edit-buttons {
     width: 100%;
-    height: 4;
+    height: 3;
+    margin: 0;
     /* 使用 .btn-row 提供的横向布局和居中 */
-    margin-top: 2;
-    margin-bottom: 1;
 }
 
 #name-container, #type-container, #host-container, 
 #port-container, #username-container, #password-container, #enable-container-inside {
     width: 100%;
-    height: 3;
+    height: 4;
     /* 使用 .form-row 和 .center-h 控制布局与水平居中 */
-    margin: 1 0;
+    margin: 0 0;
 }
 
 #enable-container, #basic-container, #server-container, #auth-container {
     width: 100%;
     height: auto;
     layout: vertical;
-    margin: 2 0;
+    margin: 0 0;
     border: round $primary-lighten-2;
     background: $panel-lighten-1;
-    padding: 2;
+    padding: 0;
 }
 
 /* 使用 .label-right */
@@ -68,17 +66,21 @@
 #port-label, #username-label, #password-label, #enable-label {
     height: 3;
     width: 30%;
+    margin: 2 0;
 }
 
 #name-input, #host-input, #port-input, 
 #username-input, #password-input, #type-select, #enable-checkbox {
-    width: 70%;
+    width: 40%;
+    min-width: 15;
     height: 3;
+    margin: 1;
 }
 
 #enable-checkbox {
     width: 20%;
     min-width: 4;
+    margin: 1;
 }
 
 #proxy-edit-buttons > Button {
@@ -97,5 +99,4 @@ Label {
     height: auto;
     margin: 0;
 }
-
 /* 使用 .scroll */

@@ -57,6 +57,14 @@ class NovelSitesManagementScreen(Screen[None]):
         self.database_manager = DatabaseManager()
         self.novel_sites = []  # 书籍网站列表
         self.selected_sites = set()  # 选中的网站索引
+
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            return self.database_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
     
     def compose(self) -> ComposeResult:
         """
@@ -435,25 +443,40 @@ class NovelSitesManagementScreen(Screen[None]):
     
     def key_a(self) -> None:
         """A键 - 添加书籍网站"""
-        self._show_add_dialog()
+        if self._has_permission("novel_sites.add"):
+            self._show_add_dialog()
+        else:
+            self.notify("无权限添加书籍网站", severity="warning")
     
     def key_e(self) -> None:
         """E键 - 编辑选中的书籍网站"""
-        self._show_edit_dialog()
+        if self._has_permission("novel_sites.edit"):
+            self._show_edit_dialog()
+        else:
+            self.notify("无权限编辑书籍网站", severity="warning")
     
     def key_d(self) -> None:
         """D键 - 删除选中的书籍网站"""
-        self._delete_selected()
+        if self._has_permission("novel_sites.delete"):
+            self._delete_selected()
+        else:
+            self.notify("无权限删除书籍网站", severity="warning")
     
     def key_b(self) -> None:
         """B键 - 批量删除"""
-        self._batch_delete()
+        if self._has_permission("novel_sites.batch_delete"):
+            self._batch_delete()
+        else:
+            self.notify("无权限批量删除", severity="warning")
     
     def key_enter(self) -> None:
         """Enter键 - 进入爬取管理页面"""
-        table = self.query_one("#novel-sites-table", DataTable)
-        if table.cursor_row is not None:
-            self.on_data_table_row_selected(None)
+        if self._has_permission("novel_sites.enter_crawler"):
+            table = self.query_one("#novel-sites-table", DataTable)
+            if table.cursor_row is not None:
+                self.on_data_table_row_selected(None)
+        else:
+            self.notify("无权限进入爬取管理页面", severity="warning")
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""

@@ -97,6 +97,139 @@ class DatabaseManager:
                 )
             """)
             
+            # 伪用户系统：用户、权限、归属表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT 'user',
+                    created_at TEXT NOT NULL
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS permissions (
+                    key TEXT PRIMARY KEY,
+                    description TEXT DEFAULT ''
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_permissions (
+                    user_id INTEGER NOT NULL,
+                    perm_key TEXT NOT NULL,
+                    allowed INTEGER NOT NULL DEFAULT 1,
+                    PRIMARY KEY (user_id, perm_key),
+                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                    FOREIGN KEY (perm_key) REFERENCES permissions (key) ON DELETE CASCADE
+                )
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_books (
+                    user_id INTEGER NOT NULL,
+                    book_path TEXT NOT NULL,
+                    PRIMARY KEY (user_id, book_path),
+                    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                    FOREIGN KEY (book_path) REFERENCES books (path) ON DELETE CASCADE
+                )
+            """)
+            # 完整权限预置（若不存在则插入）- 包含所有页面的按钮权限
+            default_perms = [
+                # 欢迎屏幕权限
+                ('welcome.open_book', '打开书籍'),
+                ('welcome.browse_library', '浏览书库'),
+                ('welcome.get_books', '获取书籍'),
+                ('welcome.settings', '打开设置'),
+                ('welcome.statistics', '打开统计'),
+                ('welcome.help', '打开帮助'),
+                ('welcome.manage', '管理用户'),
+                ('welcome.exit', '退出应用'),
+                
+                # 书架权限
+                ('bookshelf.read', '阅读书籍'),
+                ('bookshelf.view_file', '查看书籍文件'),
+                ('bookshelf.delete_book', '删除书籍'),
+                ('bookshelf.add_book', '添加书籍'),
+                ('bookshelf.scan_directory', '扫描目录添加书籍'),
+                ('bookshelf.get_books', '获取书籍页面'),
+                ('bookshelf.search', '搜索书籍'),
+                ('bookshelf.sort', '排序书籍'),
+                ('bookshelf.batch_ops', '批量操作书籍'),
+                ('bookshelf.refresh', '刷新书架'),
+                
+                # 文件资源管理器权限
+                ('file_explorer.back', '返回上级目录'),
+                ('file_explorer.go', '导航到路径'),
+                ('file_explorer.home', '返回主目录'),
+                ('file_explorer.select', '选择文件/目录'),
+                ('file_explorer.cancel', '取消操作'),
+                
+                # 获取书籍权限
+                ('get_books.novel_sites', '小说网站管理'),
+                ('get_books.proxy_settings', '代理设置'),
+                ('get_books.back', '离开获取书籍'),
+                
+                # 设置权限
+                ('settings.save', '保存设置'),
+                ('settings.cancel', '取消设置'),
+                ('settings.reset', '重置设置'),
+                ('settings.open', '打开设置'),
+                
+                # 统计权限
+                ('statistics.refresh', '刷新统计'),
+                ('statistics.export', '导出统计'),
+                ('statistics.reset', '重置统计'),
+                ('statistics.back', '离开统计'),
+                ('statistics.open', '打开统计'),
+                
+                # 用户管理权限
+                ('users.add_user', '添加用户'),
+                ('users.edit_user', '编辑用户'),
+                ('users.delete_user', '删除用户'),
+                ('users.set_permissions', '设置权限'),
+                ('users.view_permissions', '查看权限'),
+                ('users.back', '离开管理用户与权限'),
+                ('admin.manage_users', '管理用户与权限'),
+                
+                # 登录权限
+                ('login.login', '用户登录'),
+                ('login.guest', '访客登录'),
+                
+                # 锁定屏幕权限
+                ('lock.submit', '提交密码'),
+                ('lock.cancel', '取消锁定'),
+                
+                # 爬虫权限
+                ('crawler.open', '打开爬取管理页面'),
+                ('crawler.run', '执行爬取任务'),
+                
+                # 书签权限
+                ('bookmarks.add', '添加书签'),
+                ('bookmarks.edit', '编辑书签'),
+                ('bookmarks.delete', '删除书签'),
+                ('bookmarks.view', '查看书签'),
+                
+                # 帮助权限
+                ('help.open', '打开帮助中心'),
+                ('help.back', '离开帮助中心'),
+                
+                # 老板键权限
+                ('boss_key.activate', '激活老板键'),
+                ('boss_key.deactivate', '取消老板键')
+            ]
+            for k, d in default_perms:
+                cursor.execute("INSERT OR IGNORE INTO permissions (key, description) VALUES (?, ?)", (k, d))
+            # 默认超级管理员账号：admin/admin
+            try:
+                cursor.execute("SELECT id FROM users WHERE username = ?", ("admin",))
+                row = cursor.fetchone()
+                if not row:
+                    cursor.execute(
+                        "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
+                        ("admin", self._hash_password("admin"), "superadmin", datetime.now().isoformat())
+                    )
+            except Exception as _e:
+                logger.warning(f"创建默认超级管理员失败（可忽略）：{_e}")
+            
             # 创建阅读历史表
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS reading_history (
@@ -301,10 +434,7 @@ class DatabaseManager:
     
     def get_all_books(self) -> List[Book]:
         """
-        获取所有书籍
-        
-        Returns:
-            List[Book]: 书籍列表
+        获取所有书籍（不区分用户）
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -312,10 +442,29 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM books ORDER BY pinyin ASC")
                 rows = cursor.fetchall()
-                
                 return [self._row_to_book(row) for row in rows if row]
         except sqlite3.Error as e:
             logger.error(f"获取所有书籍失败: {e}")
+            return []
+    
+    def get_books_for_user(self, user_id: int) -> List[Book]:
+        """
+        获取某用户的书籍列表（根据 user_books 归属表）
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT b.* FROM books b
+                    JOIN user_books ub ON ub.book_path = b.path
+                    WHERE ub.user_id = ?
+                    ORDER BY b.pinyin ASC
+                """, (user_id,))
+                rows = cursor.fetchall()
+                return [self._row_to_book(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"按用户获取书籍失败: {e}")
             return []
     
     def update_book(self, book: Book) -> bool:
@@ -1332,12 +1481,6 @@ class DatabaseManager:
     def delete_novel_site_note(self, site_id: int) -> bool:
         """
         删除书籍网站备注
-        
-        Args:
-            site_id: 网站ID
-            
-        Returns:
-            bool: 删除是否成功
         """
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -1347,4 +1490,152 @@ class DatabaseManager:
                 return cursor.rowcount > 0
         except sqlite3.Error as e:
             logger.error(f"删除书籍网站备注失败: {e}")
+            return False
+
+    # ===================== 伪用户系统 API =====================
+    def _hash_password(self, password: str) -> str:
+        import hashlib
+        return hashlib.sha256(("newreader_salt_" + (password or "")).encode("utf-8")).hexdigest()
+
+    def create_user(self, username: str, password: str, role: str = "user") -> Optional[int]:
+        """创建用户；返回用户ID"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                now = datetime.now().isoformat()
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, role, created_at)
+                    VALUES (?, ?, ?, ?)
+                """, (username, self._hash_password(password), role, now))
+                conn.commit()
+                return cursor.lastrowid
+        except sqlite3.Error as e:
+            logger.error(f"创建用户失败: {e}")
+            return None
+
+    def set_user_password(self, user_id: int, new_password: str) -> bool:
+        """设置用户密码"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (self._hash_password(new_password), user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"设置用户密码失败: {e}")
+            return False
+
+    def authenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+        """认证，成功返回用户字典"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                ok = (row["password_hash"] == self._hash_password(password))
+                if not ok:
+                    return None
+                return {"id": row["id"], "username": row["username"], "role": row["role"]}
+        except sqlite3.Error as e:
+            logger.error(f"认证失败: {e}")
+            return None
+
+    def get_user_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """根据用户ID获取用户信息"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                return {"id": row["id"], "username": row["username"], "role": row["role"]}
+        except sqlite3.Error as e:
+            logger.error(f"获取用户信息失败: {e}")
+            return None
+
+    def set_user_permissions(self, user_id: int, perm_keys: List[str]) -> bool:
+        """设置用户权限（覆盖式）"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM user_permissions WHERE user_id = ?", (user_id,))
+                for key in perm_keys:
+                    cursor.execute("INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)", (user_id, key))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"设置用户权限失败: {e}")
+            return False
+
+    def _has_permission(self, perm_key: str) -> bool:
+        """检查权限；超级管理拥有全部权限"""
+        # 简化版本：检查当前用户是否有权限
+        try:
+            from src.utils.multi_user_manager import multi_user_manager
+            
+            # 如果多用户关闭，默认有所有权限
+            if not multi_user_manager.is_multi_user_enabled():
+                return True
+                
+            current_user = multi_user_manager.get_current_user()
+            
+            # 如果当前用户是超级管理员，有所有权限
+            if current_user and current_user.get("role") == "super_admin":
+                return True
+                
+            # 检查用户权限
+            user_id = current_user.get("id") if current_user else 0
+            role = current_user.get("role") if current_user else None
+            return self.has_permission(user_id, perm_key, role)
+        except Exception as e:
+            logger.error(f"权限检查失败: {e}")
+            return True  # 出错时默认允许
+    
+    def has_permission(self, user_id: int, perm_key: str, role: Optional[str] = None) -> bool:
+        """检查权限；超级管理拥有全部权限"""
+        try:
+            if role == "superadmin":
+                return True
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT allowed FROM user_permissions WHERE user_id = ? AND perm_key = ?", (user_id, perm_key))
+                row = cursor.fetchone()
+                return bool(row and (row[0] == 1))
+        except sqlite3.Error as e:
+            logger.error(f"检查权限失败: {e}")
+            return False
+
+    def get_all_permissions(self) -> List[Dict[str, Any]]:
+        """
+        获取所有权限的完整信息（包括key和description）
+        
+        Returns:
+            List[Dict[str, Any]]: 权限列表，每个权限包含key和description
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("SELECT key, description FROM permissions ORDER BY key")
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取所有权限失败: {e}")
+            return []
+
+    def assign_book_to_user(self, user_id: int, book_path: str) -> bool:
+        """将书籍标注为该用户的书籍（不用于显示，仅过滤用）"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT OR REPLACE INTO user_books (user_id, book_path) VALUES (?, ?)", (user_id, book_path))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"书籍归属用户失败: {e}")
             return False

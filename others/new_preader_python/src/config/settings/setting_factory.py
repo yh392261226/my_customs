@@ -486,6 +486,15 @@ def create_advanced_settings() -> SettingSection:
         category="advanced"
     ))
 
+    # 启用多用户
+    section.add_setting(BooleanSetting(
+        key="advanced.multi_user_enabled",
+        default_value=False,
+        display_name="启用多用户",
+        description="启用后，系统将使用用户登录和权限管理功能；禁用时，默认使用超级管理员权限",
+        category="advanced"
+    ))
+
     # 启用启动密码
     section.add_setting(BooleanSetting(
         key="advanced.password_enabled",

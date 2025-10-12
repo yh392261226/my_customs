@@ -44,6 +44,9 @@ class Bookshelf:
         
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
+        # 当前登录用户ID（伪用户系统）
+        self.current_user_id: Optional[int] = None
+        self.current_user_role: str = "user"
         
         self.books: Dict[str, Book] = {}  # 书籍字典，键为书籍路径
         self.reading_history: List[Dict[str, Any]] = []  # 阅读历史记录
@@ -53,19 +56,26 @@ class Bookshelf:
         self._load_reading_history()
     
     def _load_books(self) -> None:
-        """从数据库加载书籍数据"""
+        """从数据库加载书籍数据（按当前用户过滤）"""
         try:
-            books = self.db_manager.get_all_books()
+            self.books.clear()
+            books: List[Book]
+            # 超级管理员可以看所有的书籍，普通用户只能看自己的书籍
+            # 如果当前用户ID为None，则直接为空列表，不进行过滤
+            if self.current_user_role == "superadmin" or self.current_user_role == "super_admin" : 
+                books = self.db_manager.get_all_books()
+            elif self.current_user_id is not None :
+                books = self.db_manager.get_books_for_user(self.current_user_id)
+            else:
+                books = []
+
             for book in books:
-                # 检查书籍文件是否仍然存在，但即使不存在也保留记录
                 if book.path and os.path.exists(book.path):
                     self.books[book.path] = book
                 else:
                     logger.warning(f"书籍文件不存在，但保留记录: {book.path}")
-                    # 即使文件不存在，也保留书籍记录，但标记为文件丢失
                     self.books[book.path] = book
-                    
-            logger.info(f"已加载 {len(self.books)} 本书籍")
+            logger.info(f"已加载 {len(self.books)} 本书籍（用户过滤：{self.current_user_id is not None}）")
         except Exception as e:
             logger.error(f"从数据库加载书籍数据时出错: {e}")
     
@@ -139,7 +149,12 @@ class Bookshelf:
             
             # 将书籍保存到数据库
             self.db_manager.add_book(book)
-            
+            # 记录归属用户（不用于显示，仅过滤）
+            try:
+                if self.current_user_id is not None:
+                    self.db_manager.assign_book_to_user(self.current_user_id, abs_path)
+            except Exception:
+                pass
             # 更新内存中的书籍字典（用于向后兼容）
             self.books[abs_path] = book
             
@@ -187,8 +202,28 @@ class Bookshelf:
         Returns:
             Optional[Book]: 书籍对象，如果不存在则返回None
         """
+        # 首先尝试直接查找
+        if path in self.books:
+            return self.books[path]
+        
+        # 如果直接查找失败，尝试使用绝对路径查找
         abs_path = os.path.abspath(path)
-        return self.books.get(abs_path)
+        if abs_path in self.books:
+            return self.books[abs_path]
+        
+        # 如果绝对路径也失败，尝试规范化路径后查找
+        norm_path = os.path.normpath(path)
+        if norm_path in self.books:
+            return self.books[norm_path]
+        
+        # 最后尝试所有可能的路径格式
+        for book_path, book in self.books.items():
+            if (os.path.abspath(book_path) == abs_path or 
+                os.path.normpath(book_path) == norm_path or
+                book_path == path):
+                return book
+        
+        return None
     
     def get_all_books(self) -> List[Book]:
         """
@@ -836,3 +871,13 @@ class Bookshelf:
         
         logger.info(f"验证完成: 删除了 {removed_count} 本不存在的书籍")
         return removed_count, removed_books
+
+    # 伪用户系统：设置当前用户
+    def set_current_user(self, user_id: Optional[int], role: str = "user") -> None:
+        self.current_user_id = user_id
+        self.current_user_role = role or "user"
+        # 切换用户后，刷新书籍加载
+        try:
+            self._load_books()
+        except Exception:
+            pass

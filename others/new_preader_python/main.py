@@ -93,7 +93,11 @@ def main():
 
     # 创建并运行应用程序
     try:
+        # 创建应用实例
         app = NewReaderApp(config_manager, args.book_file)
+        
+        # 应用内部已经集成了多用户设置检查逻辑
+        # 在NewReaderApp的on_mount方法中会自动处理登录流程
         app.run()
     except ImportError as e:
         handle_error(f"缺少依赖: {e}\n请运行: pip install -r requirements.txt", 2)

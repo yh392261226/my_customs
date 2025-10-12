@@ -139,6 +139,9 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         
         # 加载当前目录的文件列表
         self._load_file_list()
+        
+        # 检查按钮权限并禁用/启用按钮
+        self._check_button_permissions()
     
     def _load_directory_tree(self) -> None:
         """加载目录树"""
@@ -384,9 +387,66 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """ESC 返回上一页"""
         self.app.pop_screen()
 
+    def _check_button_permissions(self) -> None:
+        """检查按钮权限并禁用/启用按钮"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            
+            # 检查各个按钮的权限
+            back_btn = self.query_one("#back-btn", Button)
+            go_btn = self.query_one("#go-btn", Button)
+            home_btn = self.query_one("#home-btn", Button)
+            select_btn = self.query_one("#select-btn", Button)
+            cancel_btn = self.query_one("#cancel-btn", Button)
+            
+            # 检查权限并设置按钮状态
+            if not db_manager.has_permission("file_explorer.back"):
+                back_btn.disabled = True
+                back_btn.tooltip = "无权限"
+            else:
+                back_btn.disabled = False
+                back_btn.tooltip = None
+                
+            if not db_manager.has_permission("file_explorer.navigate"):
+                go_btn.disabled = True
+                go_btn.tooltip = "无权限"
+            else:
+                go_btn.disabled = False
+                go_btn.tooltip = None
+                
+            if not db_manager.has_permission("file_explorer.home"):
+                home_btn.disabled = True
+                home_btn.tooltip = "无权限"
+            else:
+                home_btn.disabled = False
+                home_btn.tooltip = None
+                
+            if not db_manager.has_permission("file_explorer.select"):
+                select_btn.disabled = True
+                select_btn.tooltip = "无权限"
+            else:
+                select_btn.disabled = False
+                select_btn.tooltip = None
+                
+            if not db_manager.has_permission("file_explorer.cancel"):
+                cancel_btn.disabled = True
+                cancel_btn.tooltip = "无权限"
+            else:
+                cancel_btn.disabled = False
+                cancel_btn.tooltip = None
+                
+        except Exception as e:
+            logger.error(f"检查按钮权限失败: {e}")
+    
     @on(Button.Pressed)
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮点击处理"""
+        # 检查权限
+        if not self._has_button_permission(event.button.id):
+            self.notify("无权限执行此操作", severity="warning")
+            return
+            
         if event.button.id == "back-btn":
             # 返回上一级目录
             parent_path = os.path.dirname(self.current_path)
@@ -420,8 +480,11 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             event.stop()
         
         elif event.key == "enter":
-            # 回车键处理选中项
-            self._handle_selected_item()
+            # 回车键处理选中项需要权限
+            if self._has_permission("file_explorer.select"):
+                self._handle_selected_item()
+            else:
+                self.notify("无权限选择文件", severity="warning")
             event.stop()
         
         elif event.key == "up":
@@ -541,6 +604,28 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         except Exception as e:
             self.logger.error(f"打开文件失败: {e}")
             self.notify(f"打开文件失败: {e}", severity="error")
+    
+    def _has_button_permission(self, button_id: str) -> bool:
+        """检查按钮权限"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            
+            permission_map = {
+                "back-btn": "file_explorer.back",
+                "go-btn": "file_explorer.navigate", 
+                "home-btn": "file_explorer.home",
+                "select-btn": "file_explorer.select",
+                "cancel-btn": "file_explorer.cancel"
+            }
+            
+            if button_id in permission_map:
+                return db_manager._has_permission(permission_map[button_id])
+            
+            return True  # 默认允许未知按钮
+        except Exception as e:
+            logger.error(f"检查按钮权限失败: {e}")
+            return True  # 出错时默认允许
     
     def _handle_selected_item(self) -> None:
         """处理选中的项目"""

@@ -122,6 +122,9 @@ class GetBooksScreen(Screen[None]):
         # 加载书籍网站数据
         self._load_novel_sites()
         self._load_proxy_settings()
+        
+        # 检查按钮权限并禁用/启用按钮
+        self._check_button_permissions()
     
     def on_screen_resume(self) -> None:
         """屏幕恢复时的回调（从其他屏幕返回时调用）"""
@@ -169,6 +172,40 @@ class GetBooksScreen(Screen[None]):
             status_text = get_global_i18n().t('get_books.proxy_disabled')
         status_label.update(status_text)
     
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            return db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
+    
+    def _check_button_permissions(self) -> None:
+        """检查按钮权限并禁用/启用按钮"""
+        try:
+            novel_sites_btn = self.query_one("#novel-sites-btn", Button)
+            proxy_settings_btn = self.query_one("#proxy-settings-btn", Button)
+            
+            # 检查权限并设置按钮状态
+            if not self._has_permission("get_books.manage_sites"):
+                novel_sites_btn.disabled = True
+                novel_sites_btn.tooltip = "无权限"
+            else:
+                novel_sites_btn.disabled = False
+                novel_sites_btn.tooltip = None
+                
+            if not self._has_permission("get_books.manage_proxy"):
+                proxy_settings_btn.disabled = True
+                proxy_settings_btn.tooltip = "无权限"
+            else:
+                proxy_settings_btn.disabled = False
+                proxy_settings_btn.tooltip = None
+                
+        except Exception as e:
+            logger.error(f"检查按钮权限失败: {e}")
+    
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -176,12 +213,35 @@ class GetBooksScreen(Screen[None]):
         Args:
             event: 按钮按下事件
         """
+        # 检查权限
+        if not self._has_button_permission(event.button.id):
+            self.notify("无权限执行此操作", severity="warning")
+            return
+            
         if event.button.id == "novel-sites-btn":
-            self.app.push_screen("novel_sites_management")  # 打开书籍网站管理页面
+            if self._has_permission("get_books.manage_sites"):
+                self.app.push_screen("novel_sites_management")  # 打开书籍网站管理页面
+            else:
+                self.notify("无权限管理书籍网站", severity="warning")
         elif event.button.id == "proxy-settings-btn":
-            self.app.push_screen("proxy_list")  # 打开代理列表页面
+            if self._has_permission("get_books.manage_proxy"):
+                self.app.push_screen("proxy_list")  # 打开代理列表页面
+            else:
+                self.notify("无权限管理代理设置", severity="warning")
         elif event.button.id == "back-btn":
             self.app.pop_screen()  # 返回上一页
+    
+    def _has_button_permission(self, button_id: str) -> bool:
+        """检查按钮权限"""
+        permission_map = {
+            "novel-sites-btn": "get_books.manage_sites",
+            "proxy-settings-btn": "get_books.manage_proxy"
+        }
+        
+        if button_id in permission_map:
+            return self._has_permission(permission_map[button_id])
+        
+        return True  # 默认允许未知按钮
     
     def on_data_table_cell_selected(self, event) -> None:
         """
@@ -196,10 +256,13 @@ class GetBooksScreen(Screen[None]):
             row_index = event.coordinate.row
             if 0 <= row_index < len(self.novel_sites):
                 site = self.novel_sites[row_index]
-                # 动态创建爬取管理屏幕实例
-                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                # 权限校验：打开爬取管理页面需 crawler.open
+                if self._has_permission("crawler.open"):
+                    from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                    crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                    self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                else:
+                    self.notify("无权限打开爬取管理页面", severity="warning")
     
     def on_data_table_row_selected(self, event) -> None:
         """
@@ -217,45 +280,69 @@ class GetBooksScreen(Screen[None]):
                     site_name = row_data[0]  # 第一列是网站名称
                     for site in self.novel_sites:
                         if site["name"] == site_name:
-                            # 动态创建爬取管理屏幕实例
-                            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                            self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                            # 权限校验：打开爬取管理页面需 crawler.open
+                            if self._has_permission("crawler.open"):
+                                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                                self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                            else:
+                                self.notify("无权限打开爬取管理页面", severity="warning")
                             break
         elif event.row_key and hasattr(event.row_key, 'value'):
             site_index = int(event.row_key.value)
             if 0 <= site_index < len(self.novel_sites):
                 site = self.novel_sites[site_index]
-                # 动态创建爬取管理屏幕实例
-                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                # 权限校验：打开爬取管理页面需 crawler.open
+                if self._has_permission("crawler.open"):
+                    from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                    crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                    self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                else:
+                    self.notify("无权限打开爬取管理页面", severity="warning")
     
     def key_n(self) -> None:
         """N键 - 打开书籍网站管理"""
-        self.app.push_screen("novel_sites_management")
+        if self._has_permission("get_books.manage_sites"):
+            self.app.push_screen("novel_sites_management")
+        else:
+            self.notify("无权限管理书籍网站", severity="warning")
     
     def key_p(self) -> None:
         """P键 - 打开代理设置"""
-        self.app.push_screen("proxy_list")
+        if self._has_permission("get_books.manage_proxy"):
+            self.app.push_screen("proxy_list")
+        else:
+            self.notify("无权限管理代理设置", severity="warning")
     
     def key_enter(self) -> None:
         """Enter键 - 打开选中的书籍网站"""
-        table = self.query_one("#novel-sites-table", DataTable)
-        if table.cursor_row is not None:
-            self.on_data_table_row_selected(None)
+        if self._has_permission("crawler.open"):
+            table = self.query_one("#novel-sites-table", DataTable)
+            if table.cursor_row is not None:
+                self.on_data_table_row_selected(None)
+        else:
+            self.notify("无权限打开爬取管理页面", severity="warning")
 
     # Actions for BINDINGS
     def action_open_novel_sites(self) -> None:
-        self.app.push_screen("novel_sites_management")
+        if self._has_permission("get_books.manage_sites"):
+            self.app.push_screen("novel_sites_management")
+        else:
+            self.notify("无权限管理书籍网站", severity="warning")
 
     def action_open_proxy_list(self) -> None:
-        self.app.push_screen("proxy_list")
+        if self._has_permission("get_books.manage_proxy"):
+            self.app.push_screen("proxy_list")
+        else:
+            self.notify("无权限管理代理设置", severity="warning")
 
     def action_open_selected(self) -> None:
-        table = self.query_one("#novel-sites-table", DataTable)
-        if table.cursor_row is not None:
-            self.on_data_table_row_selected(None)
+        if self._has_permission("crawler.open"):
+            table = self.query_one("#novel-sites-table", DataTable)
+            if table.cursor_row is not None:
+                self.on_data_table_row_selected(None)
+        else:
+            self.notify("无权限打开爬取管理页面", severity="warning")
 
     def action_back(self) -> None:
         self.app.pop_screen()
