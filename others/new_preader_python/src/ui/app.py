@@ -706,9 +706,15 @@ class NewReaderApp(App[None]):
 
                     def _apply():
                         if self.theme_manager.set_theme(chosen):
-                            # 应用到 App（Textual + TSS 变量 + 现有样式注入）
+                            # 1) 应用到 App（Textual + TSS 变量 + 现有样式注入）
                             self.theme_manager.apply_theme_to_screen(self)
-                            # 同时对所有已安装的屏幕应用主题，确保欢迎页等立刻更新
+                            # 2) 强制重载 CSS（如果框架支持）
+                            try:
+                                if hasattr(self, "reload_css") and callable(getattr(self, "reload_css")):
+                                    self.reload_css()  # type: ignore[attr-defined]
+                            except Exception:
+                                pass
+                            # 3) 对所有已安装/注册的屏幕应用主题
                             try:
                                 screens = []
                                 if hasattr(self, "installed_screens"):
@@ -722,31 +728,20 @@ class NewReaderApp(App[None]):
                                         pass
                             except Exception:
                                 pass
-                            # 临时主题切换：不同步设置中心、不持久化配置
+                            # 4) 统一刷新：App 布局 + 当前屏幕重组 + 其它屏幕重组
                             try:
-                                pass
-                            except Exception:
-                                pass
-                            # 提示
-                            try:
-                                self.notify(f"已切换主题：{chosen}", severity="information")
-                            except Exception:
-                                logger.info(f"已切换主题：{chosen}")
-                            # 全局刷新，确保样式立即生效
-                            try:
-                                # 刷新应用布局
+                                # 刷新应用布局（尽可能触发布局和样式重算）
                                 try:
                                     self.refresh(layout=True)
                                 except Exception:
                                     self.refresh()
-                                # 刷新当前屏幕
+                                # 当前屏幕
                                 try:
-                                    if self.screen:
-                                        if hasattr(self.screen, "refresh"):
-                                            self.screen.refresh(recompose=True)
+                                    if self.screen and hasattr(self.screen, "refresh"):
+                                        self.screen.refresh(recompose=True)
                                 except Exception:
                                     pass
-                                # 刷新已安装的其他屏幕
+                                # 其他屏幕
                                 try:
                                     screens = []
                                     if hasattr(self, "installed_screens"):
@@ -760,6 +755,17 @@ class NewReaderApp(App[None]):
                                     pass
                             except Exception as ex:
                                 logger.debug(f"主题应用后刷新失败（可忽略）：{ex}")
+                            # 5) 深度强制刷新，确保所有部件立即应用新主题
+                            try:
+                                if hasattr(self, "_force_theme_refresh"):
+                                    self._force_theme_refresh()
+                            except Exception:
+                                pass
+                            # 6) 提示
+                            try:
+                                self.notify(f"已切换主题：{chosen}", severity="information")
+                            except Exception:
+                                logger.info(f"已切换主题：{chosen}")
 
                     # 在 UI 线程应用更改（使用通用调度，避免 call_from_thread 限制）
                     try:
@@ -798,6 +804,12 @@ class NewReaderApp(App[None]):
                 # 临时主题切换：不同步设置中心、不持久化
                 try:
                     pass
+                except Exception:
+                    pass
+                # 深度强制刷新，确保所有部件立即应用新主题
+                try:
+                    if hasattr(self, "_force_theme_refresh"):
+                        self._force_theme_refresh()
                 except Exception:
                     pass
                 # 提示
@@ -1116,6 +1128,12 @@ class NewReaderApp(App[None]):
             if self.theme_manager.set_theme(name):
                 # 应用到 App
                 self.theme_manager.apply_theme_to_screen(self)
+                # 强制重载 CSS（若可用）
+                try:
+                    if hasattr(self, "reload_css") and callable(getattr(self, "reload_css")):
+                        self.reload_css()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
                 # 应用到所有已安装屏幕
                 try:
                     screens = []
@@ -1135,9 +1153,8 @@ class NewReaderApp(App[None]):
                     if hasattr(self, "screen"):
                         current_screen = getattr(self, "screen")
                         if current_screen and hasattr(current_screen, "refresh"):
-                            current_screen.refresh()
+                            current_screen.refresh(recompose=True)
                 except Exception:
-                    pass
                     pass
                 # 持久化 UI 主题到配置
                 try:
@@ -1186,6 +1203,87 @@ class NewReaderApp(App[None]):
                 fn()
             except Exception:
                 logger.debug(f"schedule_on_ui delegate failed: {ex}")
+
+    def _force_theme_refresh(self) -> None:
+        """
+        深度强制刷新主题：
+        - reload_css（若支持）
+        - App 布局刷新
+        - 当前屏幕与其他屏幕 recompose 刷新
+        - 对当前屏幕所有子组件递归 refresh(recompose=True)
+        """
+        # 1) 强制重载 CSS（若可用）
+        try:
+            if hasattr(self, "reload_css") and callable(getattr(self, "reload_css")):
+                self.reload_css()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+        # 2) App 刷新布局
+        try:
+            try:
+                self.refresh(layout=True)
+            except Exception:
+                self.refresh()
+        except Exception:
+            pass
+
+        # 3) 收集屏幕列表
+        screens = []
+        try:
+            if hasattr(self, "installed_screens"):
+                screens = list(getattr(self, "installed_screens").values())  # type: ignore[attr-defined]
+            elif hasattr(self, "screens"):
+                screens = list(getattr(self, "screens").values())  # type: ignore[attr-defined]
+        except Exception:
+            screens = []
+
+        # 4) 当前屏幕优先深度刷新
+        try:
+            current = getattr(self, "screen", None)
+            if current:
+                try:
+                    # recompose 当前屏幕
+                    if hasattr(current, "refresh"):
+                        current.refresh(recompose=True)
+                except Exception:
+                    pass
+                # 遍历所有子部件递归 recompose
+                try:
+                    # 优先使用 query("*")
+                    if hasattr(current, "query"):
+                        for w in list(current.query("*")):
+                            try:
+                                if hasattr(w, "refresh"):
+                                    w.refresh(recompose=True)
+                            except Exception:
+                                pass
+                    else:
+                        # 兜底：尝试 children 属性
+                        children = getattr(current, "children", None)
+                        if children:
+                            for w in list(children):
+                                try:
+                                    if hasattr(w, "refresh"):
+                                        w.refresh(recompose=True)
+                                except Exception:
+                                    pass
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 5) 其他屏幕 recompose
+        try:
+            for sc in screens:
+                if sc is not getattr(self, "screen", None):
+                    try:
+                        if hasattr(sc, "refresh"):
+                            sc.refresh(recompose=True)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
 # 全局应用实例引用
 _app_instance = None
