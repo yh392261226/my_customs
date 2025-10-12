@@ -61,14 +61,16 @@
 }
 
 /* 适度的控件高度与内边距，提升可读性 */
-Input {
+#new-username, #new-password, #edit-username, #edit-password, #perm-user-id, #perm-keys{
     padding: 0 1;
     height: 3;
+    margin: 0;
 }
 
-Button {
+#add-user, #edit-user, #cancel-edit-user, #set-perms, #um-back {
     height: 3;
     padding: 0 1;
+    margin: 0 1 1 1;
 }
 
 /* 表格样式优化 */
