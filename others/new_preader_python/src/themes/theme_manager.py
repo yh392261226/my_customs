@@ -3091,3 +3091,115 @@ class ThemeManager:
                 logger.debug(f"注入主题 CSS 变量失败（可忽略）：{e}")
         except Exception as e:
             logger.debug(f"应用 Textual 主题失败（可忽略）：{e}")
+
+    def _register_one_with_textual(self, theme_name: str) -> bool:
+        """将单个主题注册到 Textual 的主题系统（尽力兼容不同版本的 API）"""
+        try:
+            payload = self._build_textual_theme_payload(theme_name)
+
+            # 根据名称判断暗色/亮色，用于某些版本 Theme 需要的标记
+            is_dark = any(x in theme_name for x in ["dark", "dracula", "nord", "material", "github-dark", "solarized-dark", "amethyst", "forest-green", "crimson", "slate", "transparent-dark", "cyberpunk", "rainbow-bright", "tropical", "lime-punch", "electric-blue", "magenta-blast", "galaxy", "fiesta", "glass-cyan", "glass-rose"])
+            is_light = not is_dark
+
+            import importlib
+            from typing import Any
+            from textual.theme import Theme as TextualTheme  # 可能不同版本签名差异，运行时尝试
+
+            def _call_with_variants(callable_fn, module_name: str, fn_name: str) -> bool:
+                # 依次尝试不同签名：dict 负载、Theme(colors=payload)、Theme(name, colors=payload)、Theme(name=name, colors=payload, dark=...)
+                try:
+                    callable_fn(theme_name, payload)
+                    logger.debug(f"主题注册成功（dict）：{module_name}.{fn_name} -> {theme_name}")
+                    return True
+                except Exception:
+                    pass
+                try:
+                    theme_obj = None
+                    # 多种构造尝试
+                    for ctor in (
+                        lambda: TextualTheme(payload),
+                        lambda: TextualTheme(colors=payload),
+                        lambda: TextualTheme(theme_name, payload),
+                        lambda: TextualTheme(name=theme_name, colors=payload),
+                        lambda: TextualTheme(name=theme_name, colors=payload, dark=is_dark, light=is_light),
+                    ):
+                        try:
+                            theme_obj = ctor()
+                        except Exception:
+                            theme_obj = None
+                        if theme_obj is None:
+                            continue
+                        try:
+                            callable_fn(theme_name, theme_obj)
+                            logger.debug(f"主题注册成功（Theme）：{module_name}.{fn_name} -> {theme_name}")
+                            return True
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
+                return False
+
+            def _try_module(module_name: str) -> bool:
+                try:
+                    mod: Any = importlib.import_module(module_name)
+                except Exception:
+                    return False
+                for fn in ("register_theme", "add_theme", "register", "add"):
+                    callable_fn = getattr(mod, fn, None)
+                    if callable(callable_fn):
+                        if _call_with_variants(callable_fn, module_name, fn):
+                            return True
+                return False
+
+            ok = _try_module("textual.theme")
+            if not ok:
+                ok = _try_module("textual.themes")
+            if not ok:
+                # 兜底：直接写入 textual.theme.THEMES，同时尝试写入 Theme 实例和 dict
+                try:
+                    mod = importlib.import_module("textual.theme")
+                    themes_dict = getattr(mod, "THEMES", None)
+                    if isinstance(themes_dict, dict):
+                        try:
+                            themes_dict[theme_name] = payload
+                        except Exception:
+                            pass
+                        try:
+                            # Theme 实例也放进去，兼容期望类型为 Theme 的版本
+                            themes_dict[theme_name] = TextualTheme(name=theme_name, colors=payload)  # 类型可能不匹配但尽量尝试
+                        except Exception:
+                            pass
+                        logger.debug(f"主题兜底写入：textual.theme.THEMES -> {theme_name}")
+                        ok = True
+                    else:
+                        ok = False
+                except Exception:
+                    ok = False
+            return ok
+        except Exception as e:
+            logger.debug(f"注册单个主题到 Textual 失败（可忽略）：{e}")
+            return False
+
+    def register_with_textual(self) -> None:
+        """批量将所有内置主题注册到 Textual 的主题选择器（Ctrl-P 可见）"""
+        try:
+            names = list(self.themes.keys())
+            if not names:
+                logger.debug("没有可注册的主题")
+                return
+            success = 0
+            for name in names:
+                if self._register_one_with_textual(name):
+                    success += 1
+            # 注册后读取 Textual 实际主题表的键，帮助诊断 Ctrl-P 来源
+            try:
+                import importlib
+                mod = importlib.import_module("textual.theme")
+                themes_dict = getattr(mod, "THEMES", {})
+                keys = list(getattr(themes_dict, "keys", lambda: [])())
+                logger.info(f"Textual 全局 THEMES 当前包含：{', '.join(keys) if keys else '(空)'}")
+            except Exception:
+                pass
+            logger.info(f"已向 Textual 注册主题：{success}/{len(names)}")
+        except Exception as e:
+            logger.debug(f"批量注册主题到 Textual 失败（可忽略）：{e}")

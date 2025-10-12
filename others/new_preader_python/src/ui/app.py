@@ -13,6 +13,24 @@ from textual.containers import Container
 from textual.screen import Screen, ModalScreen
 from textual.widgets import Header, Footer, OptionList
 from textual import on
+# 兼容导入 Textual 的命令类与 Provider
+_TxtCommand = None
+_textual_command_decorator = None
+try:
+    from textual.command import Command as _TxtCommand
+except Exception:
+    _TxtCommand = None
+try:
+    from textual.command import Provider as _TxtProvider
+    from textual.command import DiscoveryHit as _DiscoveryHit
+except Exception:
+    _TxtProvider = None
+    _DiscoveryHit = None
+# 命令装饰器（命令面板自动发现）
+try:
+    from textual.command import command as _textual_command_decorator
+except Exception:
+    _textual_command_decorator = None
 import asyncio
 from textual.message import Message
 from typing import Optional as _Optional
@@ -71,6 +89,58 @@ class ThemeSelectScreen(ModalScreen[str]):
             except Exception:
                 self.dismiss(None)
 
+# 命令提供者：将 ThemeManager 的主题注册到 Ctrl-P
+if _TxtProvider is not None and _DiscoveryHit is not None:
+    class NewReaderThemeProvider(_TxtProvider):
+        """将系统内置主题作为命令提供给 Ctrl-P（CommandPalette）"""
+
+        def __init__(self, screen, match_style):
+            # Provider 的构造在 CommandPalette 中通过 provider_class(screen, match_style) 调用
+            super().__init__(screen, match_style)
+            self._app = screen.app  # 当前应用
+            self._themes = []
+            try:
+                # 从 ThemeManager 获取全部主题名
+                self._themes = self._app.theme_manager.get_available_themes()
+            except Exception:
+                self._themes = []
+
+        def _post_init(self) -> None:
+            """Provider 生命周期钩子：初始化后被调用"""
+            # 不需要额外初始化
+            return
+
+        async def search(self, search_value: str):
+            """实现抽象方法：委托到内部的 _search"""
+            return self._search(search_value)
+
+        async def _shutdown(self) -> None:
+            """Provider 生命周期钩子：关闭时调用"""
+            return
+
+        async def _search(self, search_value: str):
+            """按搜索值提供命令命中项（DiscoveryHit）"""
+            query = (search_value or "").strip().lower()
+
+            # 总入口：打开我们的主题选择器
+            try:
+                display = "Switch Theme (NewReader)"
+                help_text = "Open NewReader theme picker"
+                def _open_picker():
+                    try:
+                        self._app.action_pick_theme()
+                    except Exception:
+                        pass
+                hit = _DiscoveryHit(display=display, command=_open_picker, text=display, help=help_text)
+                # 仅当查询为空或匹配时提供
+                if not query or "switch" in query or "theme" in query or "newreader" in query:
+                    yield hit
+            except Exception:
+                pass
+
+            # 不再为每个主题生成独立命令，保持命令面板简洁并保留框架自带命令
+            return
+
 class NewReaderApp(App[None]):
     """NewReader应用程序主类"""
     
@@ -78,6 +148,18 @@ class NewReaderApp(App[None]):
     SUB_TITLE = None
     
     CSS_PATH = ["styles/common.tcss"]
+
+    # 向命令面板注册我们的 Provider（CommandPalette 会自动收集）
+    # 注意：CommandPalette 在打开时会读取 App.COMMANDS 与 Screen.COMMANDS
+    try:
+        import textual.app as _textual_app_mod
+        _default_commands = getattr(_textual_app_mod.App, "COMMANDS", [])
+    except Exception:
+        _default_commands = []
+    if 'NewReaderThemeProvider' in globals() and _TxtProvider is not None:
+        COMMANDS = list(_default_commands) + [NewReaderThemeProvider]
+    else:
+        COMMANDS = list(_default_commands)
     
     BINDINGS = [
         Binding("q", "quit", "退出"),
@@ -121,10 +203,190 @@ class NewReaderApp(App[None]):
         theme_name = config.get("app", {}).get("theme", "dark")
         self.theme_manager = ThemeManager(theme_name)
         # 提前向 Textual 注册所有主题，确保 Ctrl-P 主题选择器可见
-        try:
-            self.theme_manager.register_with_textual()
-        except Exception as e:
-            logger.debug(f"在应用启动阶段注册主题到 Textual 失败（可忽略）：{e}")
+        # try:
+        #     self.theme_manager.register_with_textual()
+        # except Exception as e:
+        #     logger.debug(f"在应用启动阶段注册主题到 Textual 失败（可忽略）：{e}")
+
+        # Ctrl-P 兼容：猴子补丁 Textual 的“Switch Theme”命令，使其列出 ThemeManager 的全部主题
+        # try:
+        #     def _install_ctrl_p_theme_patch(app_self):
+        #         try:
+        #             import importlib
+        #             # 尝试 textual.commands（新版本）
+        #             patched = False
+        #             for mod_name in ("textual.commands", "textual.command"):
+        #                 try:
+        #                     mod = importlib.import_module(mod_name)
+        #                 except Exception:
+        #                     continue
+        #                 # 找到可能的主题列表或生成函数并替换
+        #                 # 常见形式：FUNCTION/变量包含 'theme' 且用于命令面板
+        #                 for attr_name in dir(mod):
+        #                     low = attr_name.lower()
+        #                     if "theme" in low and ("list" in low or "names" in low or "available" in low):
+        #                         try:
+        #                             setattr(mod, attr_name, lambda: app_self.theme_manager.get_available_themes())
+        #                             patched = True
+        #                         except Exception:
+        #                             pass
+        #                 # 兜底：若存在切换主题的命令函数，包装它以使用我们的选择器
+        #                 for attr_name in dir(mod):
+        #                     if "switch" in attr_name.lower() and "theme" in attr_name.lower():
+        #                         fn = getattr(mod, attr_name, None)
+        #                         if callable(fn):
+        #                             def _wrap_switch(*args, **kwargs):
+        #                                 try:
+        #                                     # 打开我们自己的主题选择器
+        #                                     app_self.action_pick_theme()
+        #                                 except Exception:
+        #                                     # 失败时调用原方法
+        #                                     return fn(*args, **kwargs)
+        #                             try:
+        #                                 setattr(mod, attr_name, _wrap_switch)
+        #                                 patched = True
+        #                             except Exception:
+        #                                 pass
+        #             return patched
+        #         except Exception:
+        #             return False
+
+        #     _patched = _install_ctrl_p_theme_patch(self)
+        #     if _patched:
+        #         logger.info("已为 Ctrl-P 注入主题列表补丁（使用 ThemeManager 列表）")
+        #     else:
+        #         logger.info("未找到可补丁的 Ctrl-P 内置主题命令，将注册自定义命令作为兜底")
+        # except Exception as e:
+        #     logger.debug(f"Ctrl-P 主题命令补丁失败（可忽略）：{e}")
+
+        # 显式向命令面板注册我们的命令（兼容多个 Textual 版本的注册入口）
+        # try:
+        #     def _register_theme_commands_to_palette(app_self):
+        #         import importlib
+        #         registered = False
+
+        #         # 生成命令项：返回 [(label, callable)]
+        #         def _build_entries():
+        #             # 仅提供一个入口命令，不批量生成每主题项
+        #             def _open_picker():
+        #                 try:
+        #                     app_self.action_switch_theme_newreader()
+        #                 except Exception:
+        #                     app_self.action_pick_theme()
+        #             return [("Switch Theme (NewReader)", _open_picker)]
+
+        #         entries = _build_entries()
+
+        #         # 优先使用 textual.command / textual.commands 的注册 API
+        #         for mod_name in ("textual.command", "textual.commands"):
+        #             try:
+        #                 mod = importlib.import_module(mod_name)
+        #             except Exception:
+        #                 continue
+
+        #             # 1) register_command 函数
+        #             fn = getattr(mod, "register_command", None)
+        #             if callable(fn):
+        #                 for label, cb in entries:
+        #                     try:
+        #                         fn(cb, name=label)
+        #                         registered = True
+        #                     except Exception:
+        #                         pass
+
+        #             # 2) Command 类 + 注册容器
+        #             Cmd = getattr(mod, "Command", None)
+        #             if Cmd:
+        #                 # 常见注册容器：REGISTRY / registry（list/dict/obj）
+        #                 for reg_name in ("REGISTRY", "registry"):
+        #                     reg = getattr(mod, reg_name, None)
+        #                     if reg is None:
+        #                         continue
+        #                     # 列表：追加
+        #                     if isinstance(reg, list):
+        #                         for label, cb in entries:
+        #                             try:
+        #                                 reg.append(Cmd(label, cb))
+        #                                 registered = True
+        #                             except Exception:
+        #                                 pass
+        #                     # 字典：写入
+        #                     elif isinstance(reg, dict):
+        #                         for label, cb in entries:
+        #                             try:
+        #                                 reg[label] = Cmd(label, cb)
+        #                                 registered = True
+        #                             except Exception:
+        #                                 pass
+        #                     else:
+        #                         # 具备 add/register 方法的对象
+        #                         for mname in ("add", "register", "add_command", "register_command"):
+        #                         # noqa
+        #                             method = getattr(reg, mname, None)
+        #                             if callable(method):
+        #                                 for label, cb in entries:
+        #                                     try:
+        #                                         method(Cmd(label, cb))
+        #                                         registered = True
+        #                                     except Exception:
+        #                                         pass
+
+        #             # 3) CommandRegistry 类：尝试获取单例或新建
+        #             Registry = getattr(mod, "CommandRegistry", None)
+        #             if Registry:
+        #                 try:
+        #                     registry = None
+        #                     # 可能存在全局实例
+        #                     for cand in ("REGISTRY", "registry"):
+        #                         obj = getattr(mod, cand, None)
+        #                         if isinstance(obj, Registry):
+        #                             registry = obj
+        #                             break
+        #                     if registry is None:
+        #                         try:
+        #                             registry = Registry()
+        #                         except Exception:
+        #                             registry = None
+        #                     if registry:
+        #                         for label, cb in entries:
+        #                             for mname in ("add", "register", "add_command", "register_command"):
+        #                                 method = getattr(registry, mname, None)
+        #                                 if callable(method):
+        #                                     try:
+        #                                         if getattr(mod, "Command", None):
+        #                                             method(mod.Command(label, cb))
+        #                                         else:
+        #                                             method(label, cb)
+        #                                         registered = True
+        #                                     except Exception:
+        #                                         pass
+        #                 except Exception:
+        #                     pass
+
+        #         # 4) App 实例自身可能有命令注册器
+        #         try:
+        #             app_reg = getattr(app_self, "command_registry", None)
+        #             if app_reg:
+        #                 for label, cb in entries:
+        #                     for mname in ("add", "register", "add_command", "register_command"):
+        #                         method = getattr(app_reg, mname, None)
+        #                         if callable(method):
+        #                             try:
+        #                                 method(label, cb)
+        #                                 registered = True
+        #                             except Exception:
+        #                                 pass
+        #         except Exception:
+        #             pass
+
+        #         return registered
+
+        #     if _register_theme_commands_to_palette(self):
+        #         logger.info("已向命令面板注册 NewReader 主题命令（显式注册）")
+        #     else:
+        #         logger.info("未能通过注册器显式注册命令，Ctrl-P 可能依赖 get_commands；已实现 get_commands 作为兜底")
+        # except Exception as e:
+        #     logger.debug(f"命令面板显式注册失败（可忽略）：{e}")
         
         # 初始化书架
         self.bookshelf = Bookshelf(config.get("app", {}).get("library_path", "library"))
@@ -392,6 +654,33 @@ class NewReaderApp(App[None]):
         """显示统计屏幕"""
         self.push_screen(StatisticsScreen(self.theme_manager, self.statistics_manager))
 
+    def action_switch_theme_newreader(self) -> None:
+        """Switch Theme (NewReader)：通过内置主题选择器切换主题（Ctrl-P 可见兜底命令）"""
+        try:
+            self.action_pick_theme()
+        except Exception as e:
+            logger.error(f"NewReader 切换主题命令失败: {e}")
+
+    # 装饰器命令：让 Ctrl-P 自动识别“Switch Theme (NewReader)”
+    if _textual_command_decorator is not None:
+        @_textual_command_decorator("Switch Theme (NewReader)")
+        def switch_theme_newreader_cmd(self) -> None:
+            try:
+                self.action_pick_theme()
+            except Exception as e:
+                logger.error(f"Switch Theme (NewReader) 命令执行失败: {e}")
+
+    # 向 Ctrl-P 提供命令列表（Textual 会调用此方法收集命令）
+    def get_commands(self):
+        cmds = []
+        try:
+            if _TxtCommand is not None:
+                # 仅新增一个入口命令，不生成每主题快捷项
+                cmds.append(_TxtCommand("Switch Theme (NewReader)", lambda: self.action_switch_theme_newreader()))
+        except Exception as e:
+            logger.debug(f"构建命令列表失败（可忽略）：{e}")
+        return cmds
+
     def action_pick_theme(self) -> None:
         """在 worker 中打开主题选择器，选择后应用主题并同步设置（兼容旧版 Textual）"""
         try:
@@ -512,6 +801,20 @@ class NewReaderApp(App[None]):
                     logger.info(f"已切换主题：{chosen}")
         except Exception as e:
             logger.error(f"主题选择失败: {e}")
+    
+    def action_switch_theme(self) -> None:
+        """覆盖内置 Switch Theme：调用自定义主题选择器"""
+        try:
+            self.action_pick_theme()
+        except Exception as e:
+            logger.error(f"切换主题失败: {e}")
+
+    def switch_theme(self) -> None:
+        """供 Ctrl-P 内置命令直接调用的同名方法，转到自定义主题选择器"""
+        try:
+            self.action_pick_theme()
+        except Exception as e:
+            logger.error(f"切换主题失败: {e}")
     
     def _initialize_loading_animation(self) -> None:
         """初始化加载动画组件"""

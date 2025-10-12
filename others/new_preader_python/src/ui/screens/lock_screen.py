@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 class LockScreen(ModalScreen[bool]):
     """启动时的密码锁屏：全屏、不可取消，密码比对成功后进入应用"""
 
-    CSS_PATH = ["../styles/lock_screen_overrides.tcss"]
+    CSS_PATH = "../styles/lock_screen_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("enter", "on_submit", "确认验证密码"),
         ("escape", "on_exit", "退出"),
