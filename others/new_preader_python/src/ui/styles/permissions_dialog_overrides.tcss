@@ -26,21 +26,26 @@
     border: round;
     padding: 0 1;
     margin: 1 0;
-    align: center middle;
-    overflow-y: auto;
+    content-align: left top;
+    overflow: auto;
+    layout: grid;
+    grid-size: 4;
+    grid-rows: auto;
+    grid-columns: 1fr 1fr 1fr 1fr;
+    grid-gutter: 0;
 }
 
 /* 按钮区域样式 */
-#permissions-buttons-top {
+#permissions-buttons-top, #permissions-buttons-readonly {
     margin: 1 0;
     height: 5;
-    align: center middle;
+    content-align: center middle;
 }
 
 #permissions-buttons-bottom {
     margin: 1 0;
     height: 5;
-    align: center middle;
+    content-align: center middle;
 }
 
 /* 状态信息样式 */
@@ -60,10 +65,9 @@ Button {
 /* 复选框样式 */
 Checkbox,
 .checkbox {
-    width: auto;
-    min-width: 10;
+    width: 100%;
     height: 3;
-    margin: 1 0;
+    margin: 0 0;
     padding: 0 1;
     border: round;
 }
@@ -76,5 +80,5 @@ Checkbox,
 /* 按钮行样式 */
 .btn-row {
     layout: horizontal;
-    align: center middle;
+    content-align: center middle;
 }

@@ -154,10 +154,30 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         checkboxes = []
         for permission_key in sorted(self.all_permissions):
             checked = permission_key in self.user_permissions
-            # 获取权限的描述信息，如果没有则使用key作为fallback
+            # 获取权限的描述信息（中文显示），如果没有则使用key作为fallback
             description = self.permissions_data.get(permission_key, permission_key)
+
+            # 根据当前语言选择显示字段：中文 -> description；英文 -> key
+            i18n = get_global_i18n()
+            locale = None
+            try:
+                # 优先尝试属性
+                locale = getattr(i18n, "current_locale", None)
+                # 其次尝试方法
+                if not locale and hasattr(i18n, "get_current_locale"):
+                    locale = i18n.get_current_locale()
+            except Exception:
+                locale = None
+
+            is_chinese = False
+            if isinstance(locale, str):
+                low = locale.lower()
+                is_chinese = ("zh" in low) or (low in ("zh_cn", "zh-cn", "zh_hans", "zh-hans"))
+
+            label_text = description if is_chinese else permission_key
+
             checkbox = Checkbox(
-                label=description,  # 显示description而不是key
+                label=label_text,
                 value=checked,
                 id=f"perm-{permission_key.replace('.', '-').replace(':', '-')}",
                 classes="checkbox",

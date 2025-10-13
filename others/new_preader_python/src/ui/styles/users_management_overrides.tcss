@@ -67,10 +67,22 @@
     margin: 0;
 }
 
-#add-user, #edit-user, #cancel-edit-user, #set-perms, #um-back {
+#add-user, #edit-user, #cancel-edit-user, #set-perms {
     height: 3;
     padding: 0 1;
     margin: 0 1 1 1;
+}
+
+#um-back {
+    height: 4;
+    padding: 0 1;
+    margin: 0 1 1 1;
+}
+
+#back-btn {
+    height: 3;
+    padding: 0 1;
+    margin: 1;
 }
 
 /* 表格样式优化 */
