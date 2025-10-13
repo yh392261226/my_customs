@@ -107,6 +107,25 @@ class TextualAnimationManager:
         
     def show_default(self, message: str = "加载中...") -> bool:
         """显示默认动画"""
+        # 若 App 正在显示模态弹窗，则抑制动画，避免遮挡弹窗
+        try:
+            app = None
+            try:
+                from src.ui.app import get_app_instance
+                app = get_app_instance()
+            except Exception:
+                app = None
+            if not app:
+                try:
+                    from textual.app import App
+                    app = App.get_app()
+                except Exception:
+                    app = None
+            if app and getattr(app, "_modal_active", False):
+                logger.debug("模态弹窗激活，跳过显示默认动画")
+                return False
+        except Exception:
+            pass
         if self._default_animation:
             self._default_animation.show(message)
             return True

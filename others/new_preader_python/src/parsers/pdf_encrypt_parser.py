@@ -120,10 +120,8 @@ class PdfEncryptParser(BaseParser):
                 from src.ui.dialogs.password_dialog import PasswordDialog
                 try:
                     # 主线程且支持 push_screen_wait 时优先使用
-                    if is_main_thread and hasattr(app, "push_screen_wait"):
-                        logger.info("PasswordDialog: using push_screen_wait in main thread")
-                        password = await app.push_screen_wait(PasswordDialog(file_path, self.max_password_attempts))
-                        return password
+                    
+                    # 移除主线程同步等待，统一走消息/回调桥接，避免阻塞UI
                     
                     # 使用 App 消息桥接到主线程
                     logger.info("PasswordDialog: requesting via App message bridge")

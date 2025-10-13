@@ -404,6 +404,10 @@ class NewReaderApp(App[None]):
         
         # 初始化主事件循环变量
         self._main_loop = None
+        # 模态弹窗期间抑制加载动画
+        self._modal_active: bool = False
+        # 密码请求队列：避免重复弹窗（多个解析请求同时等待同一个密码输入）
+        self._password_waiters: list = []
         
         # 初始化统计管理器
         self.statistics_manager = StatisticsManagerDirect(self.db_manager)
@@ -1050,9 +1054,44 @@ class NewReaderApp(App[None]):
                 pass
             from src.ui.dialogs.password_dialog import PasswordDialog
             self.logger.info(f"App.handle_request_password: showing dialog for {message.file_path}")
-            password = await self.push_screen_wait(PasswordDialog(message.file_path, message.max_attempts))
-            if not message.future.done():
-                message.future.set_result(password)
+            # 若已有弹窗激活，则仅登记等待者，避免重复弹窗
+            if getattr(self, "_modal_active", False):
+                try:
+                    self._password_waiters.append(message.future)
+                except Exception:
+                    pass
+                return
+            # 打开弹窗，标记模态激活以抑制加载动画
+            self._modal_active = True
+            # 将当前请求加入等待队列
+            try:
+                self._password_waiters.append(message.future)
+            except Exception:
+                pass
+            def _on_result(result):
+                # 弹窗结束，取消模态标记，并回填所有等待者
+                self._modal_active = False
+                try:
+                    waiters = list(getattr(self, "_password_waiters", []))
+                    self._password_waiters = []
+                except Exception:
+                    waiters = [message.future]
+                for fut in waiters:
+                    try:
+                        import asyncio as __aio
+                        if isinstance(fut, __aio.Future):
+                            loop = getattr(fut, "_loop", None) or getattr(self, "_main_loop", None)
+                            if loop and hasattr(loop, "call_soon_threadsafe"):
+                                loop.call_soon_threadsafe(lambda f=fut, r=result: (not f.done()) and f.set_result(r))
+                            else:
+                                if not fut.done():
+                                    fut.set_result(result)
+                        else:
+                            if hasattr(fut, "done") and hasattr(fut, "set_result") and not fut.done():
+                                fut.set_result(result)
+                    except Exception:
+                        pass
+            self.push_screen(PasswordDialog(message.file_path, message.max_attempts), _on_result)
         except Exception as e:
             self.logger.error(f"App.handle_request_password failed: {e}")
             if not message.future.done():
@@ -1072,9 +1111,44 @@ class NewReaderApp(App[None]):
                     pass
                 from src.ui.dialogs.password_dialog import PasswordDialog
                 self.logger.info(f"App.on_request_password: showing dialog for {message.file_path}")
-                password = await self.push_screen_wait(PasswordDialog(message.file_path, message.max_attempts))
-                if not message.future.done():
-                    message.future.set_result(password)
+                # 若已有弹窗激活，则仅登记等待者，避免重复弹窗
+                if getattr(self, "_modal_active", False):
+                    try:
+                        self._password_waiters.append(message.future)
+                    except Exception:
+                        pass
+                    return
+                # 打开弹窗，标记模态激活以抑制加载动画
+                self._modal_active = True
+                # 将当前请求加入等待队列
+                try:
+                    self._password_waiters.append(message.future)
+                except Exception:
+                    pass
+                def _on_result(result):
+                    # 弹窗结束，取消模态标记，并回填所有等待者
+                    self._modal_active = False
+                    try:
+                        waiters = list(getattr(self, "_password_waiters", []))
+                        self._password_waiters = []
+                    except Exception:
+                        waiters = [message.future]
+                    for fut in waiters:
+                        try:
+                            import asyncio as __aio
+                            if isinstance(fut, __aio.Future):
+                                loop = getattr(fut, "_loop", None) or getattr(self, "_main_loop", None)
+                                if loop and hasattr(loop, "call_soon_threadsafe"):
+                                    loop.call_soon_threadsafe(lambda f=fut, r=result: (not f.done()) and f.set_result(r))
+                                else:
+                                    if not fut.done():
+                                        fut.set_result(result)
+                            else:
+                                if hasattr(fut, "done") and hasattr(fut, "set_result") and not fut.done():
+                                    fut.set_result(result)
+                        except Exception:
+                            pass
+                self.push_screen(PasswordDialog(message.file_path, message.max_attempts), _on_result)
             except Exception as e:
                 self.logger.error(f"App.on_request_password failed: {e}")
                 if not message.future.done():
@@ -1090,14 +1164,9 @@ class NewReaderApp(App[None]):
     # 兜底总线：拦截所有消息，手动路由 RequestPasswordMessage
     def on_message(self, message: Message) -> None:
         try:
-            from src.ui.messages import RequestPasswordMessage as _Req
-            if isinstance(message, _Req):
-                self.logger.info(f"App.on_message(RequestPasswordMessage): routing for {message.file_path}")
-                # 调用兼容处理器，确保在主线程执行
-                self.on_request_password(message)
-            elif isinstance(message, RefreshContentMessage):
+            # 仅处理刷新内容消息；RequestPasswordMessage 已由 @on 装饰器处理
+            if isinstance(message, RefreshContentMessage):
                 self.logger.info("App.on_message(RefreshContentMessage): routing refresh content message")
-                # 将刷新内容消息转发给当前屏幕
                 if hasattr(self, 'screen') and self.screen:
                     self.screen.post_message(message)
         except Exception as e:
@@ -1106,39 +1175,24 @@ class NewReaderApp(App[None]):
     # 直接供解析线程调用的主线程桥接方法（通过 call_from_thread 调度）
     def request_password_async(self, file_path: str, max_attempts: int, future) -> None:
         """
-        在 UI 线程启动一个 Textual worker，worker 内 await push_screen_wait；
-        拿到结果后将其写回 future（兼容 asyncio.Future 与 concurrent.futures.Future）。
+        在 UI 线程直接 push_screen 打开密码弹窗，通过回调设置 future。
+        不使用 run_worker/协程，避免在 Textual 6.3.0 下触发事件循环阻塞。
         """
         self.logger.info(f"App.request_password_async: entered for {file_path}")
+
         def _set_future_result(val):
             try:
-                # asyncio.Future：必须在其绑定的 loop 里设置
-                if isinstance(val, BaseException):
-                    result_err = val
-                    result_val = None
-                else:
-                    result_err = None
-                    result_val = val
                 import asyncio as __aio
                 if isinstance(future, __aio.Future):
-                    try:
-                        loop = getattr(future, "_loop", None) or getattr(self, "_main_loop", None)
-                        if loop and hasattr(loop, "call_soon_threadsafe"):
-                            if result_err:
-                                loop.call_soon_threadsafe(lambda: (not future.done()) and future.set_result(None))
-                            else:
-                                loop.call_soon_threadsafe(lambda: (not future.done()) and future.set_result(result_val))
-                        else:
-                            # 兜底：直接尝试（可能跨 loop，尽量避免）
-                            if not future.done():
-                                future.set_result(result_val if not result_err else None)
-                    except Exception:
+                    loop = getattr(future, "_loop", None) or getattr(self, "_main_loop", None)
+                    if loop and hasattr(loop, "call_soon_threadsafe"):
+                        loop.call_soon_threadsafe(lambda: (not future.done()) and future.set_result(val))
+                    else:
                         if not future.done():
-                            future.set_result(None)
+                            future.set_result(val)
                 else:
-                    # concurrent.futures.Future 线程安全
-                    if not future.done():
-                        future.set_result(result_val if not result_err else None)
+                    if hasattr(future, "done") and hasattr(future, "set_result") and not future.done():
+                        future.set_result(val)
             except Exception:
                 try:
                     if hasattr(future, "done") and hasattr(future, "set_result") and not future.done():
@@ -1146,40 +1200,52 @@ class NewReaderApp(App[None]):
                 except Exception:
                     pass
 
-        async def _worker():
+        try:
+            # 抑制默认动画，避免覆盖输入
             try:
+                if hasattr(self, "animation_manager") and getattr(self, "animation_manager"):
+                    self.animation_manager.hide_default()
+            except Exception:
+                pass
+
+            from src.ui.dialogs.password_dialog import PasswordDialog
+            self.logger.info(f"App.request_password_async: showing dialog for {file_path}")
+
+            # 已有模态激活则进入队列，避免重复弹窗
+            if getattr(self, "_modal_active", False):
                 try:
-                    if hasattr(self, "animation_manager") and getattr(self, "animation_manager"):
-                        self.animation_manager.hide_default()
+                    self._password_waiters.append(future)
                 except Exception:
                     pass
-                from src.ui.dialogs.password_dialog import PasswordDialog
-                self.logger.info(f"App.request_password_async: showing dialog for {file_path}")
-                password = await self.push_screen_wait(PasswordDialog(file_path, max_attempts))
-                _set_future_result(password)
-            except Exception as e:
-                self.logger.error(f"App.request_password_async failed: {e}")
-                _set_future_result(e)
+                return
 
-        try:
-            # 必须在 UI 线程调度 worker
-            def _start_worker():
+            # 标记模态激活并登记等待者
+            self._modal_active = True
+            try:
+                self._password_waiters.append(future)
+            except Exception:
+                pass
+
+            def _on_result(result):
+                # 弹窗结束，取消模态标记，并将结果分发给所有等待者
+                self._modal_active = False
                 try:
-                    self.run_worker(_worker(), exclusive=True)
-                except Exception as ex:
-                    self.logger.error(f"App.request_password_async worker start failed: {ex}")
-                    _set_future_result(ex)
-            # 优先用主事件循环投递
-            if hasattr(self, "_main_loop") and self._main_loop:
-                self._main_loop.call_soon_threadsafe(_start_worker)
-            elif hasattr(self, "call_after_refresh"):
-                self.call_after_refresh(_start_worker)  # type: ignore[attr-defined]
-            else:
-                # 最后兜底直接调用（若当前即在 UI 线程）
-                _start_worker()
+                    waiters = list(getattr(self, "_password_waiters", []))
+                    self._password_waiters = []
+                except Exception:
+                    waiters = [future]
+                for fut in waiters:
+                    try:
+                        if hasattr(fut, "done") and hasattr(fut, "set_result") and not fut.done():
+                            _set_future_result(result if result is not None else None)
+                    except Exception:
+                        pass
+
+            # 直接在 UI 线程推屏。调用方确保通过 schedule_on_ui/call_from_thread 投递到 UI 线程。
+            self.push_screen(PasswordDialog(file_path, max_attempts), _on_result)
         except Exception as e:
-            self.logger.error(f"App.request_password_async scheduling failed: {e}")
-            _set_future_result(e)
+            self.logger.error(f"App.request_password_async failed: {e}")
+            _set_future_result(None)
 
     def on_screen_resume(self, screen: Screen[None]) -> None:
         """

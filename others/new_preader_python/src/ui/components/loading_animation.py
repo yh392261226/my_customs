@@ -357,7 +357,7 @@ class AnimationManager:
     
     def show_default(self, message: str) -> bool:
         """
-        显示默认动画
+        显示默认动画（在模态弹窗期间抑制）
         
         Args:
             message: 加载消息
@@ -365,6 +365,25 @@ class AnimationManager:
         Returns:
             bool: 是否成功显示
         """
+        # 若 App 正在显示模态弹窗，则抑制动画
+        try:
+            app = None
+            try:
+                from src.ui.app import get_app_instance
+                app = get_app_instance()
+            except Exception:
+                app = None
+            if not app:
+                try:
+                    from textual.app import App
+                    app = App.get_app()
+                except Exception:
+                    app = None
+            if app and getattr(app, "_modal_active", False):
+                logger.debug("模态弹窗激活，跳过显示传统默认动画")
+                return False
+        except Exception:
+            pass
         if not self._default_animation:
             logger.warning("未设置默认动画组件")
             return False

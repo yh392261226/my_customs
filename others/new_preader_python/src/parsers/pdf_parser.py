@@ -121,12 +121,15 @@ class PdfParser(BaseParser):
                 if "title" not in metadata or not metadata["title"]:
                     metadata["title"] = os.path.splitext(os.path.basename(file_path))[0]
                 
-                # 优先使用pdfminer提取内容（质量更好）
-                content = self._extract_pdf_content_pdfminer(file_path, password_used)
+                # 优先使用 PyMuPDF（fitz）提取内容，对 CJK 支持更好
+                content = self._extract_pdf_content_pymupdf(file_path, password_used)
                 if not content or not content.strip():
-                    # 如果pdfminer失败，回退到pypdf
-                    logger.info("pdfminer提取失败，回退到PyPDF2")
-                    content = self._extract_pdf_content(reader)
+                    # 次优：使用 pdfminer.six
+                    content = self._extract_pdf_content_pdfminer(file_path, password_used)
+                    if not content or not content.strip():
+                        # 回退到 PyPDF2
+                        logger.info("PyMuPDF/pdfminer 提取失败，回退到 PyPDF2")
+                        content = self._extract_pdf_content(reader)
                 
                 # 清理提取的文本内容 - 更彻底的清理
                 content = self._clean_text_content(content)
@@ -221,16 +224,7 @@ class PdfParser(BaseParser):
                 from src.ui.dialogs.password_dialog import PasswordDialog
                 try:
                     # 主线程且支持 push_screen_wait 时优先使用
-                    if is_main_thread and hasattr(app, "push_screen_wait"):
-                        logger.info("PasswordDialog: using push_screen_wait in main thread")
-                        # 弹窗前先隐藏加载动画，避免覆盖遮挡
-                        try:
-                            if hasattr(app, "animation_manager") and getattr(app, "animation_manager"):
-                                app.animation_manager.hide_default()
-                        except Exception:
-                            pass
-                        password = await app.push_screen_wait(PasswordDialog(file_path, self.max_password_attempts))
-                        return password
+                    # 移除主线程同步等待，统一走消息/回调桥接，避免阻塞UI
                     # 使用 App 消息桥接到主线程，避免跨线程直接 push_screen
                     logger.info("PasswordDialog: requesting via App message bridge")
                     import asyncio as _asyncio
@@ -385,6 +379,44 @@ class PdfParser(BaseParser):
         content = self._clean_pdf_specific_content(content)
         
         return content
+
+    def _extract_pdf_content_pymupdf(self, file_path: str, password: Optional[str]) -> str:
+        """
+        使用 PyMuPDF 提取文本（优先用于未加密/CJK）
+        """
+        try:
+            import fitz  # PyMuPDF
+        except Exception:
+            logger.debug("未安装 PyMuPDF，跳过该提取方式")
+            return ""
+        try:
+            # 打开文档（自动识别是否需要密码）
+            if password:
+                doc = fitz.open(file_path, filetype="pdf", password=password)
+            else:
+                doc = fitz.open(file_path)
+            texts: List[str] = []
+            for page in doc:
+                try:
+                    # "text" 保留换行；若密集，改为 "text-with-spaces"
+                    txt = page.get_text("text")
+                    if not txt or len(txt.strip()) == 0:
+                        txt = page.get_text("text-with-spaces")
+                    if txt:
+                        texts.append(txt)
+                except Exception as e:
+                    logger.debug(f"PyMuPDF 提取第{page.number+1}页失败: {e}")
+                    continue
+            try:
+                doc.close()
+            except Exception:
+                pass
+            content = "\n\n".join(texts)
+            # 轻度清理，避免过度压缩中文空格；后续仍会经过 _clean_text_content/_clean_pdf_specific_content
+            return content.strip()
+        except Exception as e:
+            logger.debug(f"PyMuPDF 提取失败: {e}")
+            return ""
     
     def _needs_pdfminer_fallback(self, content: str) -> bool:
         """

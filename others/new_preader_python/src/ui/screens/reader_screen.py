@@ -161,6 +161,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self._restore_timer = None
         # 首次恢复标记：确保不论发生几次分页，首次显示都恢复到上次阅读页
         self._initial_restore_done = False
+        # 后台任务句柄
+        self._content_worker = None
         
         # 注册设置观察者
         self._register_setting_observers()
@@ -623,11 +625,20 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         async def _worker():
             import asyncio
             try:
+                # 由屏幕统一管理加载动画，避免 Book 在后台线程抢夺动画状态
+                try:
+                    setattr(self.book, "ui_managed_loading", True)
+                except Exception:
+                    pass
                 # 在后台线程执行潜在的重计算/IO，避免阻塞 UI 主循环
                 content = await asyncio.to_thread(self.book.get_content)
             except Exception as e:
                 def _on_err():
                     # 回到 UI 线程处理错误并隐藏动画
+                    try:
+                        setattr(self.book, "ui_managed_loading", False)
+                    except Exception:
+                        pass
                     self._hide_loading_animation()
                     self.notify(f"{get_global_i18n().t('reader.load_error')}: {e}", severity="error")
                     logger.error(f"{get_global_i18n().t('reader.load_error')}: {str(e)}", exc_info=True)
@@ -640,6 +651,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
             def _on_ok():
                 # 回到 UI 线程设置内容与分页
+                try:
+                    setattr(self.book, "ui_managed_loading", False)
+                except Exception:
+                    pass
                 if not content:
                     self.notify(f"{get_global_i18n().t('reader.empty_book_content')}", severity="error")
                     self._hide_loading_animation()
@@ -878,7 +893,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 在 UI 事件循环中启动 worker
         try:
             if hasattr(self.app, "run_worker"):
-                self.app.run_worker(_worker(), exclusive=True)
+                # 关键修复：非独占运行，避免阻塞模态对话框；保存任务句柄以便取消
+                self._content_worker = self.app.run_worker(_worker(), exclusive=False)
             else:
                 # 次优：直接在主循环创建任务
                 import asyncio as _aio
@@ -927,6 +943,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 self._hide_loading_animation()
     
     def on_resize(self, event: events.Resize) -> None:
+        # 弹窗期间禁止处理尺寸变化，避免抢占焦点或触发异步分页
+        try:
+            if getattr(self.app, "_modal_active", False):
+                return
+        except Exception:
+            pass
         # 防抖：记录最新尺寸，短延时后提交
         self._pending_size = (self.size.width, self.size.height)
         try:
@@ -938,6 +960,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
 
     def _commit_resize(self) -> None:
         """提交窗口尺寸变化，并触发异步分页（如可用）"""
+        # 弹窗期间直接跳过，避免触发分页与刷新
+        try:
+            if getattr(self.app, "_modal_active", False):
+                return
+        except Exception:
+            pass
         # 应用当前尺寸计算
         try:
             self._set_container_size()
@@ -1939,7 +1967,50 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.error(f"打开单词本失败: {e}")
             self.notify(f"{get_global_i18n().t('selection_mode.open_failed')}: {e}", severity="error")
     
+    def _cancel_background_tasks(self) -> None:
+        """取消后台解析任务和定时器，并隐藏动画（防卡死）"""
+        # 停止定时器
+        try:
+            if self._resize_timer:
+                self._resize_timer.stop()
+                self._resize_timer = None
+        except Exception:
+            pass
+        try:
+            if self._restore_timer:
+                self._restore_timer.stop()
+                self._restore_timer = None
+        except Exception:
+            pass
+        # 取消内容加载任务
+        try:
+            if self._content_worker and hasattr(self._content_worker, "cancel"):
+                self._content_worker.cancel()
+                self._content_worker = None
+        except Exception:
+            pass
+        # 取消渲染器内部异步分页任务
+        try:
+            if hasattr(self.renderer, "_paginate_task") and self.renderer._paginate_task and not self.renderer._paginate_task.done():
+                self.renderer._paginate_task.cancel()
+        except Exception:
+            pass
+        # 隐藏加载动画与复位 book 标志
+        try:
+            self._hide_loading_animation()
+        except Exception:
+            pass
+        try:
+            setattr(self.book, "ui_managed_loading", False)
+        except Exception:
+            pass
+
     def _back_to_library(self) -> None:
+        # 优先取消后台任务，避免在返回时卡死
+        try:
+            self._cancel_background_tasks()
+        except Exception:
+            pass
         # 停止阅读会话
         stats = self.status_manager.stop_reading()
         
@@ -2002,7 +2073,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.app.post_message(RefreshBookshelfMessage())
         
         # 返回书架
-        self.app.pop_screen()
+        try:
+            self.app.pop_screen()
+        except Exception:
+            # 即使出错也不影响后续流程
+            pass
     
     def _get_color_string(self, color_obj) -> str:
         """
@@ -2204,6 +2279,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 确保message是字符串类型
         if message is None:
             message = "正在处理..."
+        # 若有模态弹窗激活，避免显示动画覆盖输入区域
+        try:
+            if getattr(self.app, "_modal_active", False):
+                logger.debug("模态弹窗激活，跳过显示加载动画")
+                return
+        except Exception:
+            pass
         try:
             # 使用Textual集成的加载动画
             if hasattr(self, 'loading_animation') and self.loading_animation:
@@ -2234,6 +2316,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
 
     def _poll_restore_ready(self) -> None:
         """异步分页就绪后尝试恢复阅读位置并停止轮询"""
+        # 弹窗期间跳过轮询，避免与模态抢占事件循环
+        try:
+            if getattr(self.app, "_modal_active", False):
+                return
+        except Exception:
+            pass
         try:
             if getattr(self.renderer, "total_pages", 0) > 0:
                 self._try_restore_position()

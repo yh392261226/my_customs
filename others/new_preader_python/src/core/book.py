@@ -589,6 +589,32 @@ class Book:
     def _show_loading_animation(self, message: str = "处理中...") -> None:
         """显示加载动画（动态导入以断开循环依赖）"""
         try:
+            # 若由 UI 管理加载动画，则跳过 Book 内部动画，避免与屏幕动画冲突
+            try:
+                if getattr(self, "ui_managed_loading", False):
+                    return
+            except Exception:
+                pass
+            # 若 App 正在显示模态弹窗（如密码输入），则直接跳过动画显示，避免遮挡与拦截输入
+            try:
+                app = None
+                try:
+                    from src.ui.app import get_app_instance
+                    app = get_app_instance()
+                except Exception:
+                    app = None
+                if not app:
+                    try:
+                        from textual.app import App as _TApp
+                        app = _TApp.get_app()
+                    except Exception:
+                        app = None
+                if app and getattr(app, "_modal_active", False):
+                    logger.debug("模态弹窗激活，_show_loading_animation 跳过显示")
+                    return
+            except Exception:
+                pass
+
             import importlib
             # Textual集成动画
             ta_mod = importlib.import_module("src.ui.components.textual_loading_animation")
@@ -601,14 +627,20 @@ class Book:
             la_mod = importlib.import_module("src.ui.components.loading_animation")
             animation_manager = getattr(la_mod, "animation_manager", None)
             if animation_manager and getattr(animation_manager, "show_default", None):
-                animation_manager.show_default(message)
-                logger.debug(f"显示传统加载动画: {message}")
+                if animation_manager.show_default(message):
+                    logger.debug(f"显示传统加载动画: {message}")
         except Exception as e:
             logger.warning(f"显示加载动画失败或组件未找到: {e}")
     
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画（动态导入以断开循环依赖）"""
         try:
+            # 若由 UI 管理加载动画，则跳过 Book 内部动画，避免与屏幕动画冲突
+            try:
+                if getattr(self, "ui_managed_loading", False):
+                    return
+            except Exception:
+                pass
             import importlib
             ta_mod = importlib.import_module("src.ui.components.textual_loading_animation")
             textual_animation_manager = getattr(ta_mod, "textual_animation_manager", None)
@@ -844,7 +876,12 @@ class Book:
                     else:
                         getattr(app, "request_password_async")(self.path, 3, future)
                     
-                    return future.result(timeout=300)
+                    try:
+                        # 短超时等待 GUI 弹窗结果，避免 UI 阻塞导致的全局卡死
+                        return future.result(timeout=15)
+                    except Exception as _wait_err:
+                        logger.warning(f"GUI密码获取等待超时或失败，回退CLI: {type(_wait_err).__name__}")
+                        return self._get_password_cli()
                 
                 # 如果GUI模式失败，使用CLI模式
                 return self._get_password_cli()
