@@ -133,21 +133,21 @@ class StatisticsScreen(Screen[None]):
             # 检查权限并设置按钮状态
             if not self._has_permission("statistics.refresh"):
                 refresh_btn.disabled = True
-                refresh_btn.tooltip = "无权限"
+                refresh_btn.tooltip = get_global_i18n().t("statistics.no_permission")
             else:
                 refresh_btn.disabled = False
                 refresh_btn.tooltip = None
                 
             if not self._has_permission("statistics.export"):
                 export_btn.disabled = True
-                export_btn.tooltip = "无权限"
+                export_btn.tooltip = get_global_i18n().t("statistics.no_permission")
             else:
                 export_btn.disabled = False
                 export_btn.tooltip = None
                 
             if not self._has_permission("statistics.reset"):
                 reset_btn.disabled = True
-                reset_btn.tooltip = "无权限"
+                reset_btn.tooltip = get_global_i18n().t("statistics.no_permission")
             else:
                 reset_btn.disabled = False
                 reset_btn.tooltip = None
@@ -328,24 +328,24 @@ class StatisticsScreen(Screen[None]):
         """
         # 检查权限
         if not self._has_button_permission(event.button.id):
-            self.notify("无权限执行此操作", severity="warning")
+            self.notify(get_global_i18n().t("statistics.np_action"), severity="warning")
             return
             
         if event.button.id == "refresh-btn":
             if self._has_permission("statistics.refresh"):
                 self._refresh_stats()
             else:
-                self.notify("无权限刷新统计", severity="warning")
+                self.notify(get_global_i18n().t("statistics.np_refresh"), severity="warning")
         elif event.button.id == "export-btn":
             if self._has_permission("statistics.export"):
                 self._export_stats()
             else:
-                self.notify("无权限导出统计", severity="warning")
+                self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
         elif event.button.id == "reset-btn":
             if self._has_permission("statistics.reset"):
                 self._reset_stats()
             else:
-                self.notify("无权限重置统计", severity="warning")
+                self.notify(get_global_i18n().t("statistics.np_reset"), severity="warning")
         elif event.button.id == "back-btn":
             self.app.pop_screen()
     
@@ -377,14 +377,14 @@ class StatisticsScreen(Screen[None]):
             if self._has_permission("statistics.refresh"):
                 self._refresh_stats()
             else:
-                self.notify("无权限刷新统计", severity="warning")
+                self.notify(get_global_i18n().t("statistics.np_refresh"), severity="warning")
             event.prevent_default()
         elif event.key == "e":
             # 导出统计需要权限
             if self._has_permission("statistics.export"):
                 self._export_stats()
             else:
-                self.notify("无权限导出统计", severity="warning")
+                self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
             event.prevent_default()
     
     def _format_reading_trend(self) -> str:

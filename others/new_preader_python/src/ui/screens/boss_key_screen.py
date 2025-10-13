@@ -287,26 +287,14 @@ class BossKeyScreen(Screen[None]):
         """处理键盘事件"""
         if event.key == "ctrl+c":
             # Ctrl+C 退出老板键模式
-            if not self._has_permission("boss_key.escape"):
-                self.notify("无权限退出老板键模式", severity="error")
-                event.prevent_default()
-                return
             self.app.pop_screen()
             event.prevent_default()
         elif event.key == "up":
             # 上箭头 - 历史命令向上
-            if not self._has_permission("boss_key.navigation"):
-                self.notify("无权限浏览历史命令", severity="error")
-                event.prevent_default()
-                return
             self._navigate_history(-1)
             event.prevent_default()
         elif event.key == "down":
             # 下箭头 - 历史命令向下
-            if not self._has_permission("boss_key.navigation"):
-                self.notify("无权限浏览历史命令", severity="error")
-                event.prevent_default()
-                return
             self._navigate_history(1)
             event.prevent_default()
     

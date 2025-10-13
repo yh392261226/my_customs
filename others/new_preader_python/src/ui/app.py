@@ -699,7 +699,7 @@ class NewReaderApp(App[None]):
             self.push_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager))
         else:
             try:
-                self.notify("无权限访问书架", severity="warning")
+                self.notify(get_global_i18n().t("app.open_bookshelf"), severity="warning")
             except Exception:
                 logger.info("无权限访问书架")
     
@@ -709,7 +709,7 @@ class NewReaderApp(App[None]):
             self.push_screen("settings")
         else:
             try:
-                self.notify("无权限打开设置", severity="warning")
+                self.notify(get_global_i18n().t("app.open_settings"), severity="warning")
             except Exception:
                 logger.info("无权限打开设置")
     
@@ -719,7 +719,7 @@ class NewReaderApp(App[None]):
             self.push_screen(StatisticsScreen(self.theme_manager, self.statistics_manager))
         else:
             try:
-                self.notify("无权限打开统计", severity="warning")
+                self.notify(get_global_i18n().t("app.open_statistics"), severity="warning")
             except Exception:
                 logger.info("无权限打开统计")
 
@@ -756,7 +756,7 @@ class NewReaderApp(App[None]):
             themes = self.theme_manager.get_available_themes()
             if not themes:
                 try:
-                    self.notify("没有可用主题", severity="warning")
+                    self.notify(get_global_i18n().t("app.no_theme"), severity="warning")
                 except Exception:
                     logger.info("没有可用主题")
                 return
@@ -826,7 +826,7 @@ class NewReaderApp(App[None]):
                                 pass
                             # 6) 提示
                             try:
-                                self.notify(f"已切换主题：{chosen}", severity="information")
+                                self.notify(f"{get_global_i18n().t("app.changed_theme")}：{chosen}", severity="information")
                             except Exception:
                                 logger.info(f"已切换主题：{chosen}")
 
@@ -854,7 +854,7 @@ class NewReaderApp(App[None]):
             themes = self.theme_manager.get_available_themes()
             if not themes:
                 try:
-                    self.notify("没有可用主题", severity="warning")
+                    self.notify(get_global_i18n().t("app.no_theme"), severity="warning")
                 except Exception:
                     logger.info("没有可用主题")
                 return
@@ -877,7 +877,7 @@ class NewReaderApp(App[None]):
                     pass
                 # 提示
                 try:
-                    self.notify(f"已切换主题：{chosen}", severity="information")
+                    self.notify(f"{get_global_i18n().t("app.changed_theme")}：{chosen}", severity="information")
                 except Exception:
                     logger.info(f"已切换主题：{chosen}")
         except Exception as e:

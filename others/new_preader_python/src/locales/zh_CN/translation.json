@@ -17,7 +17,12 @@
         "loaded_settings": "设置已从配置文件加载",
         "loaded_settings_failed": "从配置文件加载设置失败",
         "load_content_failed": "无法加载书籍内容",
-        "open_book_failed": "打开书籍失败"
+        "open_book_failed": "打开书籍失败",
+        "open_bookshelf": "无权限访问书架",
+        "open_settings": "无权限打开设置",
+        "open_statistics": "无权限打开统计",
+        "no_theme": "没有可用主题",
+        "changed_theme": "已切换主题"
     },
     "welcome": {
         "title": "欢迎",
@@ -59,7 +64,16 @@
         "added_success": "已成功添加到书架",
         "added_failed": "添加书籍到书架失败",
         "added_error": "添加书籍时出错",
-        "get_books": "📥 获取书籍"
+        "get_books": "📥 获取书籍",
+        "np_open_book": "无权限打开书籍",
+        "np_open_bookshelf": "无权限浏览书库",
+        "np_get_books": "无权限获取书籍",
+        "np_open_settings": "无权限访问设置",
+        "np_open_statistics": "无权限访问统计",
+        "np_open_help": "无权限访问帮助",
+        "np_open_manageuser": "无权限管理用户",
+        "np_open_getbooks": "无权限访问获取书籍页面",
+        "open_file_explorer_failed": "打开文件资源管理器失败"
     },
     "bookshelf": {
         "title": "书架",
@@ -146,7 +160,29 @@
         "read": "阅读",
         "view_file": "查看文件",
         "delete": "删除",
-        "get_books": "获取书籍"
+        "get_books": "获取书籍",
+        "np_add_books": "无权限添加书籍",
+        "np_scan_directory": "无权限扫描目录",
+        "np_search": "无权限搜索/查看",
+        "np_sort": "无权限排序/查看",
+        "np_opts": "无权限批量操作",
+        "np_refresh": "无权限刷新",
+        "np_get_books": "无权限打开获取书籍页面",
+        "np_read": "无权限阅读书籍",
+        "np_view_file": "无权限查看书籍文件",
+        "np_delete": "无权限删除书籍",
+        "find_book_failed": "未找到书籍",
+        "open_book_failed": "打开书籍失败",
+        "file_not_exists": "文件不存在",
+        "open_directory_failed": "无法打开文件所在目录",
+        "opened_in_file_explorer": "已在文件管理器中打开",
+        "view_file_failed": "查看文件失败",
+        "delete_book_success": "删除书籍成功",
+        "delete_book_failed": "删除书籍失败",
+        "did_not_find_book": "未找到要删除的书籍",
+        "confirm_delete": "确认删除",
+        "confirm_delete_message": "确定要删除书籍《{book}》吗？此操作不可撤销。",
+        "no_book_position": "第 {book_index} 个位置没有书籍"
     },
     "batch_ops": {
         "title": "批量操作",
@@ -277,7 +313,11 @@
         "google_api_key": "Google翻译 API Key",
         "microsoft_translation": "微软翻译",
         "microsoft_subscription_key": "微软翻译订阅密钥",
-        "microsoft_region": "微软翻译区域"
+        "microsoft_region": "微软翻译区域",
+        "np_action": "无权限执行此操作",
+        "np_save": "无权限保存设置",
+        "np_reset": "无权限重置设置",
+        "reseted": "设置已重置"
     },
     "common": {
         "close": "关闭",
@@ -400,7 +440,11 @@
         "vocabulary": "单词本",
         "select_text_to_translate": "请先选择要翻译的文本",
         "translation_shortcut": "L: 翻译选中的文本",
-        "vocabulary_shortcut": "V: 打开单词本"
+        "vocabulary_shortcut": "V: 打开单词本",
+        "selected_text": "已选中文本",
+        "open_bosskey_failed": "打开老板键屏幕失败",
+        "open_help_failed": "打开帮助中心失败",
+        "only_one_page": "当前书籍只有一页，无需跳转"
     },
     "help": {
         "title": "帮助中心",
@@ -489,7 +533,11 @@
         "unknown_book": "未知书籍",
         "unknown_author": "未知作者",
         "open_count": "打开次数",
-        "total_pages": "总页数"
+        "no_permission": "无权限",
+        "np_action": "无权限执行此操作",
+        "np_refresh": "无权限刷新统计",
+        "np_export": "无权限导出统计",
+        "np_reset": "无权限重置统计"
     },
     "error": {
         "error": "错误",
@@ -565,7 +613,11 @@
         "operation_failed": "操作失败: {error}",
         "no_note": "无备注",
         "goto_failed": "跳转失败",
-        "page_info": "第{page}/{total_pages}页，共{total_bookmarks}个书签"
+        "page_info": "第{page}/{total_pages}页，共{total_bookmarks}个书签",
+        "np_exit_bookmark": "无权限退出书签页面",
+        "np_delete_bookmark": "无权限删除书签",
+        "np_goto_bookmark": "无权限跳转到书签",
+        "np_turn_page": "无权限翻页"
     },
     "bookmark_edit": {
         "title": "编辑书签备注",
@@ -587,7 +639,8 @@
         "goto_page": "跳转到此页",
         "column_page": "页码",
         "column_preview": "预览内容",
-        "page_info": "第{page}/{total_pages}页，共{total_results}个结果"
+        "page_info": "第{page}/{total_pages}页，共{total_results}个结果",
+        "np_turn_page": "无权限翻页"
     },
     "pagination": {
         "start_pagination": "开始分页: 内容长度={content_length}, 容器尺寸={container_size}",
@@ -660,7 +713,11 @@
         "site_url": "网站网址",
         "proxy_enabled": "启用代理",
         "parser": "解析器",
-        "enter": "进入"
+        "enter": "进入",
+        "np_action": "无权限执行此操作",
+        "np_manage_booksites": "无权限管理书籍网站",
+        "np_manage_proxy": "无权限管理代理设置",
+        "np_open_carwler": "无权限打开爬取管理页面"
     },
     "proxy_settings": {
         "title": "代理设置",
@@ -746,7 +803,12 @@
         "shortcut_space": "空格: 选择",
         "shortcut_enter": "Enter: 进入管理",
         "shortcut_esc": "ESC: 返回",
-        "add_cancelled": "取消添加"
+        "add_cancelled": "取消添加",
+        "np_add_site": "无权限添加书籍网站",
+        "np_edit_site": "无权限编辑书籍网站",
+        "np_delete_site": "无权限删除书籍网站",
+        "np_batch_delete_site": "无权限批量删除书籍网站",
+        "np_open_carwler": "无权限进入爬取管理页面"
     },
     "novel_site_dialog": {
         "add_title": "添加书籍网站",
@@ -865,11 +927,16 @@
         "empty_directory": "空目录",
         "select_directory": "选择目录",
         "select_file": "选择文件",
-        "no_directory_selected": "未选择目录"
+        "no_directory_selected": "未选择目录",
+        "nav_failed": "导航失败",
+        "np_action": "无权限执行此操作",
+        "np_choose_file": "无权限选择文件",
+        "open_failed": "打开文件失败"
     },
     "lock_screen": {
         "placeholder": "请输入密码以继续",
-        "title": "锁定屏幕"
+        "title": "锁定屏幕",
+        "wrong_password": "密码错误"
     },
     "translation_dialog": {
         "title": "翻译",
@@ -939,15 +1006,51 @@
         "username": "用户名",
         "password": "密码",
         "login": "登录",
-        "guest": "以访客进入"
+        "guest": "以访客进入",
+        "login_failed": "登录失败",
+        "login_failed_info": "登录失败：用户名或密码错误"
     },
     "users_management": {
-        "title": "用户管理",
+        "title": "用户与权限管理",
+        "new_username": "新用户名",
+        "new_password": "新密码",
+        "add_new_user": "添加新用户",
+        "username": "用户名",
+        "password": "密码",
+        "role": "角色",
+        "perms": "权限",
+        "view_perms": "查看权限",
         "select_all": "全选",
         "deselect_all": "取消全选",
         "invert_selection": "反选",
+        "no_permission": "无权限",
+        "np_action": "无权限执行此操作",
+        "np_set_user_perms": "无权限设置用户权限",
+        "unknown_userid": "无法识别用户ID",
+        "load_user_failed": "加载用户失败",
+        "no_perms": "暂无任何权限",
+        "set_perms_success": "权限设置成功",
+        "set_perms_failed": "权限设置失败",
+        "save_perms_failed": "保存权限失败",
+        "cannot_open_perms_dialog": "无法打开权限对话框",
+        "open_user_perms_failed": "查看用户权限失败",
+        "user": "用户",
+        "delete_user_failed_info": "未找到该用户，删除失败",
+        "delete_user_failed": "删除用户失败",
+        "confirm_delete": "确认删除",
+        "confirm_delete_user": "确认要删除该用户么?",
+        "multi_user_disabled_super": "多用户功能未启用，当前为超级管理员模式",
+        "np_add_user": "无权限添加用户",
+        "add_user_success": "添加用户成功",
+        "add_user_failed": "添加用户失败",
+        "no_user_selected": "未选择用户",
+        "empty_username": "用户名不能为空",
+        "username_ok_password_failed": "用户名已修改，但密码更新失败",
+        "edit_success": "修改成功",
+        "edit_failed": "修改失败",
         "permissions_dialog": {
             "title": "权限设置",
+            "view_title": "查看权限",
             "status":"状态"
         }
     }

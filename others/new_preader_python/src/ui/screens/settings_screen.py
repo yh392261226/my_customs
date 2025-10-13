@@ -578,21 +578,21 @@ class SettingsScreen(Screen[Any]):
         """
         # 检查权限
         if not self._has_button_permission(event.button.id):
-            self.notify("无权限执行此操作", severity="warning")
+            self.notify(get_global_i18n().t("settings.np_action"), severity="warning")
             return
             
         if event.button.id == "save-btn":
             if self._has_permission("settings.save"):
                 self._save_settings()
             else:
-                self.notify("无权限保存设置", severity="warning")
+                self.notify(get_global_i18n().t("settings.np_save"), severity="warning")
         elif event.button.id == "cancel-btn":
             self.app.pop_screen()
         elif event.button.id == "reset-btn":
             if self._has_permission("settings.reset"):
                 self._reset_settings()
             else:
-                self.notify("无权限重置设置", severity="warning")
+                self.notify(get_global_i18n().t("settings.np_reset"), severity="warning")
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
@@ -604,17 +604,17 @@ class SettingsScreen(Screen[Any]):
             # 保存设置需要权限
             if self._has_permission("settings.save"):
                 self._save_settings()
-                self.notify("设置已保存", severity="information")
+                self.notify(get_global_i18n().t("settings.saved"), severity="information")
             else:
-                self.notify("无权限保存设置", severity="warning")
+                self.notify(get_global_i18n().t("settings.np_save"), severity="warning")
             event.prevent_default()
         elif event.key == "r":
             # 重置设置需要权限
             if self._has_permission("settings.reset"):
                 self._reset_settings()
-                self.notify("设置已重置", severity="information")
+                self.notify(get_global_i18n().t("settings.np_save"), severity="information")
             else:
-                self.notify("无权限重置设置", severity="warning")
+                self.notify(get_global_i18n().t("settings.reseted"), severity="warning")
             event.prevent_default()
     
     @on(Select.Changed)

@@ -286,28 +286,24 @@ class BookmarksScreen(Screen[None]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "escape":
-            if not self._has_permission("bookmarks.escape"):
-                self.notify("无权限退出书签页面", severity="error")
-                event.stop()
-                return
             self.app.pop_screen()
             event.stop()
         elif event.key == "delete":
             if not self._has_permission("bookmarks.delete"):
-                self.notify("无权限删除书签", severity="error")
+                self.notify(get_global_i18n().t("bookmarks.np_delete_bookmark"), severity="error")
                 event.stop()
                 return
             self._delete_selected_bookmark()
         elif event.key == "enter":
             if not self._has_permission("bookmarks.goto"):
-                self.notify("无权限跳转到书签", severity="error")
+                self.notify(get_global_i18n().t("bookmarks.np_goto_bookmark"), severity="error")
                 event.stop()
                 return
             self._goto_selected_bookmark()
         elif event.key == "n":
             # N键下一页
             if not self._has_permission("bookmarks.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
                 event.stop()
                 return
             if self._current_page < self._total_pages:
@@ -317,7 +313,7 @@ class BookmarksScreen(Screen[None]):
         elif event.key == "p":
             # P键上一页
             if not self._has_permission("bookmarks.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
                 event.stop()
                 return
             if self._current_page > 1:
@@ -327,7 +323,7 @@ class BookmarksScreen(Screen[None]):
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             if not self._has_permission("bookmarks.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
                 event.stop()
                 return
             list_view = self.query_one("#bookmarks-list", ListView)
@@ -342,7 +338,7 @@ class BookmarksScreen(Screen[None]):
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             if not self._has_permission("bookmarks.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
                 event.stop()
                 return
             list_view = self.query_one("#bookmarks-list", ListView)

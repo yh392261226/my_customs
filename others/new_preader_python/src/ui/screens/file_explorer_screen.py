@@ -283,7 +283,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             else:
                 self.notify(get_global_i18n().t("file_explorer.invalid_directory"), severity="error")
         except Exception as e:
-            self.notify(f"导航失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("file_explorer.nav_failed")}: {e}", severity="error")
     
     def _validate_selection(self) -> bool:
         """验证选择是否有效"""
@@ -444,7 +444,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """按钮点击处理"""
         # 检查权限
         if not self._has_button_permission(event.button.id):
-            self.notify("无权限执行此操作", severity="warning")
+            self.notify(get_global_i18n().t("file_explorer.np_action"), severity="warning")
             return
             
         if event.button.id == "back-btn":
@@ -484,7 +484,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             if self._has_permission("file_explorer.select"):
                 self._handle_selected_item()
             else:
-                self.notify("无权限选择文件", severity="warning")
+                self.notify(get_global_i18n().t("file_explorer.np_choose_file"), severity="warning")
             event.stop()
         
         elif event.key == "up":
@@ -603,7 +603,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             
         except Exception as e:
             self.logger.error(f"打开文件失败: {e}")
-            self.notify(f"打开文件失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("file_explorer.open_failed")}: {e}", severity="error")
     
     def _has_button_permission(self, button_id: str) -> bool:
         """检查按钮权限"""

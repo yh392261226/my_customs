@@ -17,7 +17,12 @@
         "loaded_settings": "Settings loaded from configuration file",
         "loaded_settings_failed": "Failed to load settings from configuration file",
         "load_content_failed": "Unable to load book content",
-        "open_book_failed": "Failed to open book"
+        "open_book_failed": "Failed to open book",
+        "open_bookshelf": "No permission to open bookshelf",
+        "open_settings": "No permission to open settings",
+        "open_statistics": "No permission to open statistics",
+        "no_theme": "No theme",
+        "changed_theme": "Theme Changed"
     },
     "welcome": {
         "title": "Welcome",
@@ -59,7 +64,16 @@
         "added_success": "Successfully added to bookshelf",
         "added_failed": "Failed to add book to bookshelf",
         "added_error": "Error adding book",
-        "get_books": "📥 Get Books"
+        "get_books": "📥 Get Books",
+        "np_open_book": "No permission to open book",
+        "np_open_bookshelf": "No permission to open bookshelf",
+        "np_get_books": "No permission to get books",
+        "np_open_settings": "No permission to open settings",
+        "np_open_statistics": "No permission to open statistics",
+        "np_open_help": "No permission to open help",
+        "np_open_manageuser": "No permission to open manage user",
+        "np_open_getbooks": "No permission to open get books",
+        "open_file_explorer_failed": "Open file explorer failed"
     },
     "bookshelf": {
         "title": "Bookshelf",
@@ -146,7 +160,26 @@
         "read": "Read",
         "view_file": "View File",
         "delete": "Delete",
-        "get_books": "Get Books"
+        "get_books": "Get Books",
+        "np_add_books": "No permission to add books",
+        "np_scan_directory": "No permission to scan directory",
+        "np_search": "No permission to search",
+        "np_sort": "No permission to sort",
+        "np_opts": "No permission to Batch Operations",
+        "np_refresh": "No permission to refresh",
+        "np_get_books": "No permission to get books",
+        "np_read": "No permission to read book",
+        "np_view_file": "No permission to view book file",
+        "np_delete": "No permission to delete book",
+        "find_book_failed": "Can not find book",
+        "open_book_failed": "Failed to open book",
+        "file_not_exists": "File does not exist",
+        "open_directory_failed": "Can not open directory",
+        "opened_in_file_explorer": "Opened in file explorer",
+        "view_file_failed": "View file failed",
+        "delete_book_success": "Delete book success",
+        "delete_book_failed": "Delete book failed",
+        "did_not_find_book": "Can not find the book to delete"
     },
     "batch_ops": {
         "title": "Batch Operations",
@@ -277,7 +310,11 @@
         "google_api_key": "Google Translation API Key",
         "microsoft_translation": "Microsoft Translation",
         "microsoft_subscription_key": "Microsoft Translation Subscription Key",
-        "microsoft_region": "Microsoft Translation Region"
+        "microsoft_region": "Microsoft Translation Region",
+        "np_action": "No permission to perform action",
+        "np_save": "No permission to save settings",
+        "np_reset": "No permission to reset settings",
+        "reseted": "Reseted"
     },
     "common": {
         "close": "Close",
@@ -400,7 +437,11 @@
         "vocabulary": "Vocabulary",
         "select_text_to_translate": "Please select text to translate first",
         "translation_shortcut": "L: Translate selected text",
-        "vocabulary_shortcut": "V: Open vocabulary"
+        "vocabulary_shortcut": "V: Open vocabulary",
+        "selected_text": "Selected text",
+        "open_bosskey_failed": "Open boss key failed",
+        "open_help_failed": "Open help failed",
+        "only_one_page": "Only one page found, cannot turn page"
     },
     "help": {
         "title": "Help Center",
@@ -489,7 +530,11 @@
         "unknown_book": "Unknown Book",
         "unknown_author": "Unknown Author",
         "open_count": "Open Count",
-        "total_pages": "Total Pages"
+        "no_permission": "No permissions",
+        "np_action": "No permission to perform action",
+        "np_refresh": "No permission to refresh statistics",
+        "np_export": "No permission to export statistics",
+        "np_reset": "No permission to reset statistics"
     },
     "error": {
         "error": "Error",
@@ -565,7 +610,11 @@
         "operation_failed": "Operation failed: {error}",
         "no_note": "No note",
         "goto_failed": "Jump failed",
-        "page_info": "Page {page}/{total_pages}, total {total_bookmarks} bookmarks"
+        "page_info": "Page {page}/{total_pages}, total {total_bookmarks} bookmarks",
+        "np_exit_bookmark": "No permission to exit bookmark list",
+        "np_delete_bookmark": "No permission to delete bookmark",
+        "np_goto_bookmark": "No permission to jump to bookmark",
+        "np_turn_page": "No permission to turn page"
     },
     "bookmark_edit": {
         "title": "Edit Bookmark Note",
@@ -587,7 +636,8 @@
         "goto_page": "Go to this page",
         "column_page": "Page",
         "column_preview": "Preview Content",
-        "page_info": "Page {page}/{total_pages}, total {total_results} results"
+        "page_info": "Page {page}/{total_pages}, total {total_results} results",
+        "np_turn_page":"No permission to turn page"
     },
     "pagination": {
         "start_pagination": "Starting pagination: content length={content_length}, container size={container_size}",
@@ -660,7 +710,11 @@
         "site_url": "Website URL",
         "proxy_enabled": "Enable Proxy",
         "parser": "Parser",
-        "enter": "Enter"
+        "enter": "Enter",
+        "np_action": "No permission to perform action",
+        "np_manage_booksites": "No permission to manage book websites",
+        "np_manage_proxy": "No permission to manage proxy settings",
+        "np_open_carwler": "No permission to open carwler"
     },
     "proxy_settings": {
         "title": "Proxy Settings",
@@ -746,7 +800,12 @@
         "shortcut_space": "Space: Select",
         "shortcut_enter": "Enter: Enter Management",
         "shortcut_esc": "ESC: Back",
-        "add_cancelled": "Add cancelled"
+        "add_cancelled": "Add cancelled",
+        "np_add_site": "No permission to add book website",
+        "np_edit_site": "No permission to edit book website",
+        "np_delete_site": "No permission to delete book website",
+        "np_batch_delete_site": "No permission to batch delete book websites",
+        "np_open_carwler": "No permission to open carwler"
     },
     "novel_site_dialog": {
         "add_title": "Add Book Website",
@@ -865,11 +924,16 @@
         "empty_directory": "Empty directory",
         "select_directory": "Select Directory",
         "select_file": "Select File",
-        "no_directory_selected": "No directory selected"
+        "no_directory_selected": "No directory selected",
+        "nav_failed": "导航失败",
+        "np_action": "无权限执行此操作",
+        "np_choose_file": "无权限选择文件",
+        "open_failed": "打开文件失败"
     },
     "lock_screen": {
         "placeholder": "Type password to continue",
-        "title": "Lock Screen"
+        "title": "Lock Screen",
+        "wrong_password": "Wrong password"
     },
     "translation_dialog": {
         "title": "Translation",
@@ -939,29 +1003,52 @@
         "username": "Username",
         "password": "Password",
         "login": "Login",
-        "guest": "Enter as guest"
+        "guest": "Enter as guest",
+        "login_failed": "Login Failed",
+        "login_failed_info": "Login Failed：Username or password is incorrect"
     },
     "users_management": {
         "title": "Users and Permissions Management",
-        "add_user": "Add User",
-        "edit": "Edit",
-        "delete": "Delete",
-        "permissions": "Permissions",
+        "new_username": "New Username",
+        "new_password": "New Password",
+        "add_new_user": "Add New User",
         "username": "Username",
         "password": "Password",
         "role": "Role",
-        "id": "ID",
-        "back": "Back",
-        "cancel": "Cancel",
-        "confirm": "Confirm",
+        "perms": "Permissions",
+        "view_perms": "View Permissions",
         "select_all": "Select All",
         "deselect_all": "Deselect All",
         "invert_selection": "Invert Selection",
+        "no_permission": "No permission",
+        "np_action": "No permission to perform action",
+        "np_set_user_perms": "No permission to set user permissions",
+        "unknown_userid": "Unknown userid",
+        "load_user_failed": "Load user failed",
+        "no_perms": "No permissions",
+        "set_perms_success": "Set permissions successfully",
+        "set_perms_failed": "Set permissions failed",
+        "save_perms_failed": "Save permissions failed",
+        "cannot_open_perms_dialog": "Open permissions dialog failed",
+        "open_user_perms_failed": "Open user permissions failed",
+        "user": "Users",
+        "delete_user_failed_info": "Delete user failed: Can not find the user",
+        "delete_user_failed": "Delete user failed",
+        "confirm_delete": "Confirm Delete",
+        "confirm_delete_user": "Confirm Delete The User ?",
+        "multi_user_disabled_super": "Multi user mode is disabled in super user mode",
+        "np_add_user": "No permission to add user",
+        "add_user_success": "Add user success",
+        "add_user_failed": "Add user failed",
+        "no_user_selected": "No user selected",
+        "empty_username": "Empty username",
+        "username_ok_password_failed": "Edit Username ok, but password failed",
+        "edit_success": "Edit success",
+        "edit_failed": "Edit failed",
         "permissions_dialog": {
-            "title": "Set Permissions for User {user_id} ({username})",
-            "status": "Selected: {selected}/{total} permissions",
-            "confirm": "Confirm",
-            "cancel": "Cancel"
+            "title": "Permissions",
+            "view_title": "View Permission of User",
+            "status":"Status"
         }
     }
 }

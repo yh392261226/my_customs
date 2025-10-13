@@ -5,6 +5,7 @@
 
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from webbrowser import get
+from core import book
 from src.core.book import Book
 from dataclasses import dataclass
 
@@ -412,39 +413,39 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             if self._has_permission("bookshelf.add_book"):
                 self._show_add_book_dialog()
             else:
-                self.notify("无权限添加书籍", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_add_books"), severity="warning")
         elif event.button.id == "scan-directory-btn":
             if self._has_permission("bookshelf.scan_directory"):
                 self._show_scan_directory_dialog()
             else:
-                self.notify("无权限扫描目录", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_scan_directory"), severity="warning")
         elif event.button.id == "back-btn":
             self.app.pop_screen()
         elif event.button.id == "search-btn":
             if self._has_permission("bookshelf.read"):
                 self._show_search_dialog()
             else:
-                self.notify("无权限搜索/查看", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_search"), severity="warning")
         elif event.button.id == "sort-btn":
             if self._has_permission("bookshelf.read"):
                 self._show_sort_menu()
             else:
-                self.notify("无权限排序/查看", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_sort"), severity="warning")
         elif event.button.id == "batch-ops-btn":
             if self._has_permission("bookshelf.delete_book"):
                 self._show_batch_ops_menu()
             else:
-                self.notify("无权限批量操作", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_opts"), severity="warning")
         elif event.button.id == "refresh-btn":
             if self._has_permission("bookshelf.read"):
                 self._refresh_bookshelf()
             else:
-                self.notify("无权限刷新", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_refresh"), severity="warning")
         elif event.button.id == "get-books-btn":
             if self._has_permission("bookshelf.get_books"):
                 self._get_books()
             else:
-                self.notify("无权限打开获取书籍页面", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_get_books"), severity="warning")
     
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
@@ -473,19 +474,19 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     # 直接使用备用方法打开书籍
                     self._open_book_fallback(book_id)
                 else:
-                    self.notify("无权限阅读书籍", severity="warning")
+                    self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
             elif column_key == "view_action":
                 if self._has_permission("bookshelf.view_file"):
                     self.logger.info(f"点击查看文件按钮: {book_id}")
                     self._view_file(book_id)
                 else:
-                    self.notify("无权限查看文件", severity="warning")
+                    self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
             elif column_key == "delete_action":
                 if self._has_permission("bookshelf.delete_book"):
                     self.logger.info(f"点击删除按钮: {book_id}")
                     self._delete_book(book_id)
                 else:
-                    self.notify("无权限删除书籍", severity="warning")
+                    self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
     
     def _open_book_fallback(self, book_path: str) -> None:
         """备用方法打开书籍"""
@@ -508,10 +509,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 self.app.push_screen(reader_screen)
             else:
                 self.logger.error(f"未找到书籍: {book_path}")
-                self.notify(f"未找到书籍: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t("bookshelf.find_book_failed")}: {book_path}", severity="error")
         except Exception as e:
             self.logger.error(f"打开书籍失败: {e}")
-            self.notify(f"打开书籍失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("bookshelf.open_book_failed")}: {e}", severity="error")
     
     def _view_file(self, book_path: str) -> None:
         """查看书籍文件"""
@@ -522,7 +523,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             
             # 检查文件是否存在
             if not os.path.exists(book_path):
-                self.notify(f"文件不存在: {book_path}", severity="error")
+                self.notify(f"{get_global_i18n().t("bookshelf.file_not_exists")}: {book_path}", severity="error")
                 return
             
             # 根据操作系统打开文件管理器
@@ -539,14 +540,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 if os.path.exists(folder_path):
                     subprocess.run(["open", folder_path], check=False)
                 else:
-                    self.notify("无法打开文件所在目录", severity="warning")
+                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
                     return
             
-            self.notify(f"已在文件管理器中打开: {os.path.basename(book_path)}", severity="information")
+            self.notify(f"{get_global_i18n().t("bookshelf.opened_in_file_explorer")}: {os.path.basename(book_path)}", severity="information")
             
         except Exception as e:
             self.logger.error(f"查看文件失败: {e}")
-            self.notify(f"查看文件失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("bookshelf.view_file_failed")}: {e}", severity="error")
     
     def _delete_book(self, book_path: str) -> None:
         """删除书籍"""
@@ -562,30 +563,30 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         # 从书架中删除书籍
                         success = self.bookshelf.remove_book(book_path)
                         if success:
-                            self.notify("书籍删除成功", severity="information")
+                            self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
                             # 刷新书架列表
                             self._load_books()
                         else:
-                            self.notify("书籍删除失败", severity="error")
+                            self.notify(get_global_i18n().t("bookshelf.delete_book_failed"), severity="error")
                     except Exception as e:
                         self.logger.error(f"删除书籍时发生错误: {e}")
-                        self.notify(f"删除书籍失败: {e}", severity="error")
+                        self.notify(f"{get_global_i18n().t("bookshelf.delete_book_failed")}: {e}", severity="error")
             
             # 显示确认对话框
             book = self.bookshelf.get_book(book_path)
             if book:
                 confirm_dialog = ConfirmDialog(
                     self.theme_manager,
-                    "确认删除",
-                    f"确定要删除书籍《{book.title}》吗？此操作不可撤销。"
+                    get_global_i18n().t("bookshelf.confirm_delete"),
+                    get_global_i18n().t("bookshelf.confirm_delete_message", book=book.title)
                 )
                 self.app.push_screen(confirm_dialog, handle_delete_result)  # type: ignore
             else:
-                self.notify("未找到要删除的书籍", severity="error")
+                self.notify(get_global_i18n().t("bookshelf.did_not_find_book"), severity="error")
                 
         except Exception as e:
             self.logger.error(f"删除书籍失败: {e}")
-            self.notify(f"删除书籍失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t("bookshelf.delete_book_failed")}: {e}", severity="error")
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
@@ -622,52 +623,52 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     if self._has_permission("bookshelf.read"):
                         self._open_book_fallback(book_id)
                     else:
-                        self.notify("无权限阅读", severity="warning")
+                        self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
                     event.prevent_default()
         elif event.key == "s":
             # S键搜索
             if self._has_permission("bookshelf.read"):
                 self._show_search_dialog()
             else:
-                self.notify("无权限搜索/查看", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_search"), severity="warning")
             event.prevent_default()
         elif event.key == "r":
             # R键排序
             if self._has_permission("bookshelf.read"):
                 self._show_sort_menu()
             else:
-                self.notify("无权限排序/查看", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_sort"), severity="warning")
             event.prevent_default()
         elif event.key == "l":
             if self._has_permission("bookshelf.delete_book"):
                 self._show_batch_ops_menu()
             else:
-                self.notify("无权限批量操作", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_opts"), severity="warning")
             event.prevent_default()
         elif event.key == "a":
             if self._has_permission("bookshelf.add_book"):
                 self._show_add_book_dialog()
             else:
-                self.notify("无权限添加书籍", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_add_books"), severity="warning")
             event.prevent_default()
         elif event.key == "d":
             if self._has_permission("bookshelf.scan_directory"):
                 self._show_scan_directory_dialog()
             else:
-                self.notify("无权限扫描目录", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_scan_directory"), severity="warning")
             event.prevent_default()
         elif event.key == "g":
             if self._has_permission("bookshelf.get_books"):
                 self._get_books()
             else:
-                self.notify("无权限打开获取书籍页面", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_get_books"), severity="warning")
             event.prevent_default()
         elif event.key == "f":
             # F键刷新书架
             if self._has_permission("bookshelf.read"):
                 self._refresh_bookshelf()
             else:
-                self.notify("无权限刷新", severity="warning")
+                self.notify(get_global_i18n().t("bookshelf.np_refresh"), severity="warning")
             event.prevent_default()
         elif event.key == "escape":
             # ESC键返回（仅一次 pop，并停止冒泡）
@@ -716,12 +717,12 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 if self._has_permission("bookshelf.read"):
                     self._open_book_fallback(book_path)
                 else:
-                    self.notify("无权限阅读", severity="warning")
+                    self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
                 event.prevent_default()
             else:
                 # 如果该序号没有对应的书籍，显示提示
                 self.notify(
-                    f"第 {book_index} 个位置没有书籍",
+                    get_global_i18n().t("bookshelf.no_book_position", book_index=book_index),
                     severity="warning"
                 )
                 event.prevent_default()
@@ -877,7 +878,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         self.notify(get_global_i18n().t("bookshelf.add_failed"), severity="error")
                 except Exception as e:
                     logger.error(f"{get_global_i18n().t('bookshelf.add_book_failed')}: {e}")
-                    self.notify(f"添加书籍失败: {e}", severity="error")
+                    self.notify(f"{get_global_i18n().t("bookshelf.add_books_failed")}: {e}", severity="error")
                 
                 # 隐藏加载动画
                 self._hide_loading_animation()

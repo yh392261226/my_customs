@@ -137,10 +137,10 @@ class LoginScreen(Screen[Optional[Dict[str, Any]]]):
                 if user:
                     self.dismiss(user)
                 else:
-                    self.notify("登录失败：用户名或密码错误", severity="error")
+                    self.notify(t.t("login.login_failed_info"), severity="error")
             except Exception as e:
                 logger.error(f"登录失败: {e}")
-                self.notify("登录失败", severity="error")
+                self.notify(t.t("login.login_failed"), severity="error")
         elif event.button.id == "guest-btn":
             # 访客进入，返回 None
             self.dismiss(None)
@@ -159,8 +159,5 @@ class LoginScreen(Screen[Optional[Dict[str, Any]]]):
             event: 键盘事件
         """
         if event.key == "escape":
-            if not self._has_permission("login.escape"):
-                self.notify("无权限退出登录", severity="error")
-                event.stop()
-                return
+            # 按下 ESC 键时退出阅读器
             self.app.exit()  

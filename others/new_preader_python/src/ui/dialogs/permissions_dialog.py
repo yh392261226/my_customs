@@ -28,7 +28,7 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         ("escape", "cancel", "取消"),
     ]
     
-    def __init__(self, theme_manager: ThemeManager, user_id: int, username: str, all_permissions: List[str], user_permissions: Set[str]):
+    def __init__(self, theme_manager: ThemeManager, user_id: int, username: str, all_permissions: List[str], user_permissions: Set[str], read_only: bool = False):
         """
         初始化权限管理对话框
         
@@ -38,6 +38,7 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
             username: 用户名
             all_permissions: 所有可用权限列表
             user_permissions: 用户当前拥有的权限集合
+            read_only: 是否只读模式（用于查看权限）
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -45,6 +46,7 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         self.username = username
         self.all_permissions = all_permissions
         self.user_permissions = user_permissions
+        self.read_only = read_only
         self.checkboxes = {}  # 存储权限键到复选框的映射
         self.db_manager = DatabaseManager()  # 数据库管理器
         self.permissions_data = {}  # 存储权限的完整信息（key -> description）
@@ -68,24 +70,38 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         """组合对话框界面"""
         i18n = get_global_i18n()
         
-        yield Container(
+        # 根据模式设置标题
+        if self.read_only:
+            title = i18n.t("users_management.permissions_dialog.view_title", 
+                          user_id=self.user_id, username=self.username)
+        else:
+            title = i18n.t("users_management.permissions_dialog.title", 
+                          user_id=self.user_id, username=self.username)
+        
+        # 构建对话框内容
+        dialog_content = [
+            # 标题
+            Label(
+                title,
+                id="permissions-title",
+                classes="section-title"
+            ),
+            
+            # 权限列表容器
             Vertical(
-                # 标题
-                Label(
-                    i18n.t("users_management.permissions_dialog.title", 
-                          user_id=self.user_id, username=self.username),
-                    id="permissions-title",
-                    classes="section-title"
-                ),
-                
-                # 权限列表容器
-                Vertical(
-                    *self._create_permission_checkboxes(),
-                    id="permissions-list",
-                    classes="scrollable-container"
-                ),
-                
-                # 按钮区域
+                *self._create_permission_checkboxes(),
+                id="permissions-list",
+                classes="scrollable-container"
+            ),
+            
+            # 状态信息
+            Label("", id="permissions-status"),
+        ]
+        
+        # 添加按钮区域
+        if not self.read_only:
+            # 编辑模式：显示操作按钮
+            dialog_content.append(
                 Horizontal(
                     Button(i18n.t("users_management.select_all"), id="select-all-btn"),
                     Button(i18n.t("users_management.deselect_all"), id="deselect-all-btn"),
@@ -94,14 +110,20 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
                     Button(i18n.t("common.cancel"), id="cancel-btn"),
                     id="permissions-buttons-top",
                     classes="btn-row"
-                ),
-                
-                # 状态信息
-                Label("", id="permissions-status"),
-            
-                
-                id="permissions-container"
+                )
             )
+        else:
+            # 只读模式：显示关闭按钮
+            dialog_content.append(
+                Horizontal(
+                    Button(i18n.t("common.close"), id="close-btn", variant="primary"),
+                    id="permissions-buttons-readonly",
+                    classes="btn-row"
+                )
+            )
+        
+        yield Container(
+            Vertical(*dialog_content, id="permissions-container")
         )
     
     def on_mount(self) -> None:
@@ -115,10 +137,17 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
         # 更新状态信息
         self._update_status()
         
-        # 设置默认焦点到确认按钮
-        confirm_btn = self.query_one("#confirm-btn", Button)
-        if confirm_btn:
-            self.set_focus(confirm_btn)
+        # 设置默认焦点
+        if self.read_only:
+            # 只读模式：焦点到关闭按钮
+            close_btn = self.query_one("#close-btn", Button)
+            if close_btn:
+                self.set_focus(close_btn)
+        else:
+            # 编辑模式：焦点到确认按钮
+            confirm_btn = self.query_one("#confirm-btn", Button)
+            if confirm_btn:
+                self.set_focus(confirm_btn)
     
     def _create_permission_checkboxes(self) -> List[Checkbox]:
         """创建权限复选框列表"""
@@ -131,7 +160,8 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
                 label=description,  # 显示description而不是key
                 value=checked,
                 id=f"perm-{permission_key.replace('.', '-').replace(':', '-')}",
-                classes="checkbox"
+                classes="checkbox",
+                disabled=self.read_only  # 只读模式下禁用复选框
             )
             self.checkboxes[permission_key] = checkbox  # 存储key到复选框的映射
             checkboxes.append(checkbox)
@@ -164,6 +194,10 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
             self.dismiss(selected_permissions)
             
         elif event.button.id == "cancel-btn":
+            self.dismiss(None)
+            
+        elif event.button.id == "close-btn":
+            # 只读模式下的关闭按钮
             self.dismiss(None)
             
         elif event.button.id == "select-all-btn":

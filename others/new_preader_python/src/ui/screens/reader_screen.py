@@ -1041,7 +1041,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 
                 # 如果选中了文本，显示提示
                 if selected_text.strip():
-                    self.notify(f"已选中文本: {selected_text[:50]}...", severity="information")
+                    self.notify(f"{get_global_i18n().t('reader.selected_text')}: {selected_text[:50]}...", severity="information")
         except Exception as e:
             logger.error(f"鼠标释放事件处理失败: {e}")
 
@@ -1388,7 +1388,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.info("推入 BossKeyScreen 成功")
         except Exception as e:
             logger.error(f"打开老板键屏幕失败: {e}")
-            self.notify(f"打开老板键屏幕失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t('reader.open_bosskey_failed')}: {e}", severity="error")
 
     def _show_help(self) -> None:
         """显示帮助中心"""
@@ -1396,7 +1396,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             from src.ui.screens.help_screen import HelpScreen
             self.app.push_screen(HelpScreen())
         except Exception as e:
-            self.notify(f"打开帮助中心失败: {e}", severity="error")
+            self.notify(f"{get_global_i18n().t('reader.open_help_failed')}: {e}", severity="error")
     
     def _prev_page(self) -> None:
         if self.renderer.prev_page():
@@ -1424,7 +1424,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 检查是否有有效的页面数据
         if self.renderer.total_pages <= 1:
-            # self.notify("当前书籍只有一页，无需跳转", severity="information")
+            # self.notify("{get_global_i18n().t('reader.only_one_page')}", severity="information")
             return
             
         def on_result(result: Optional[int]) -> None:

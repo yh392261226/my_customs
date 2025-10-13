@@ -99,16 +99,12 @@ class SearchResultsScreen(Screen[None]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘导航"""
         if event.key == "escape":
-            if not self._has_permission("search_results.escape"):
-                self.notify("无权限退出搜索结果页面", severity="error")
-                event.stop()
-                return
             self.app.pop_screen()
             event.stop()
         elif event.key == "n":
             # N键下一页
             if not self._has_permission("search_results.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
             if self._current_page < self._total_pages:
@@ -118,7 +114,7 @@ class SearchResultsScreen(Screen[None]):
         elif event.key == "p":
             # P键上一页
             if not self._has_permission("search_results.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
             if self._current_page > 1:
@@ -128,7 +124,7 @@ class SearchResultsScreen(Screen[None]):
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             if not self._has_permission("search_results.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
             table = self.query_one("#results-table", DataTable)
@@ -144,7 +140,7 @@ class SearchResultsScreen(Screen[None]):
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             if not self._has_permission("search_results.navigation"):
-                self.notify("无权限翻页", severity="error")
+                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
             table = self.query_one("#results-table", DataTable)
@@ -160,7 +156,7 @@ class SearchResultsScreen(Screen[None]):
     # Actions for BINDINGS
     def action_next_page(self) -> None:
         if not self._has_permission("search_results.navigation"):
-            self.notify("无权限翻页", severity="error")
+            self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
             return
         if self._current_page < self._total_pages:
             self._current_page += 1
@@ -168,7 +164,7 @@ class SearchResultsScreen(Screen[None]):
 
     def action_prev_page(self) -> None:
         if not self._has_permission("search_results.navigation"):
-            self.notify("无权限翻页", severity="error")
+            self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
             return
         if self._current_page > 1:
             self._current_page -= 1

@@ -446,28 +446,28 @@ class NovelSitesManagementScreen(Screen[None]):
         if self._has_permission("novel_sites.add"):
             self._show_add_dialog()
         else:
-            self.notify("无权限添加书籍网站", severity="warning")
+            self.notify(get_global_i18n().t('novel_sites.np_add_site'), severity="warning")
     
     def key_e(self) -> None:
         """E键 - 编辑选中的书籍网站"""
         if self._has_permission("novel_sites.edit"):
             self._show_edit_dialog()
         else:
-            self.notify("无权限编辑书籍网站", severity="warning")
+            self.notify(get_global_i18n().t('novel_sites.np_edit_site'), severity="warning")
     
     def key_d(self) -> None:
         """D键 - 删除选中的书籍网站"""
         if self._has_permission("novel_sites.delete"):
             self._delete_selected()
         else:
-            self.notify("无权限删除书籍网站", severity="warning")
+            self.notify(get_global_i18n().t('novel_sites.np_delete_site'), severity="warning")
     
     def key_b(self) -> None:
         """B键 - 批量删除"""
         if self._has_permission("novel_sites.batch_delete"):
             self._batch_delete()
         else:
-            self.notify("无权限批量删除", severity="warning")
+            self.notify(get_global_i18n().t('novel_sites.np_batch_delete_site'), severity="warning")
     
     def key_enter(self) -> None:
         """Enter键 - 进入爬取管理页面"""
@@ -476,7 +476,7 @@ class NovelSitesManagementScreen(Screen[None]):
             if table.cursor_row is not None:
                 self.on_data_table_row_selected(None)
         else:
-            self.notify("无权限进入爬取管理页面", severity="warning")
+            self.notify(get_global_i18n().t('novel_sites.np_open_carwler'), severity="warning")
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""

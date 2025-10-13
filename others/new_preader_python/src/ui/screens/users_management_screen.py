@@ -37,16 +37,16 @@ class UsersManagementScreen(Screen[None]):
         t = get_global_i18n()
         yield Container(
             Vertical(
-                Label("用户与权限管理", id="um-title"),
+                Label(t.t('users_management.title'), id="um-title"),
                 Horizontal(
-                    Input(placeholder="新用户名", id="new-username"),
-                    Input(placeholder="新密码", password=True, id="new-password"),
-                    Button("添加用户", id="add-user"),
+                    Input(placeholder=t.t('users_management.new_username'), id="new-username"),
+                    Input(placeholder=t.t('users_management.new_password'), password=True, id="new-password"),
+                    Button(t.t('users_management.add_new_user'), id="add-user"),
                     id="um-new-user",
                 ),
                 Horizontal(
-                    Input(placeholder="用户名", id="edit-username"),
-                    Input(placeholder="密码", password=True, id="edit-password"),
+                    Input(placeholder=t.t('users_management.username'), id="edit-username"),
+                    Input(placeholder=t.t('users_management.password'), password=True, id="edit-password"),
                     Button(t.t("common.edit"), id="edit-user"),
                     Button(t.t("common.cancel"), id="cancel-edit-user"),
                     id="um-edit-user",
@@ -59,7 +59,7 @@ class UsersManagementScreen(Screen[None]):
                 # ),
                 DataTable(id="users-table"),
                 Horizontal(
-                    Button("返回", id="back-btn"),
+                    Button(t.t('common.back'), id="back-btn"),
                     id="um-back",
                 ),
                 id="um-container"
@@ -84,7 +84,7 @@ class UsersManagementScreen(Screen[None]):
             # 检查权限并设置按钮状态
             if not self._has_permission("users.add"):
                 add_user_btn.disabled = True
-                add_user_btn.tooltip = "无权限"
+                add_user_btn.tooltip = get_global_i18n().t('users_management.no_permission')
             else:
                 add_user_btn.disabled = False
                 add_user_btn.tooltip = None
@@ -114,12 +114,12 @@ class UsersManagementScreen(Screen[None]):
         # 初始化用户表
         table = self.query_one("#users-table", DataTable)
         table.add_column("ID", key="id")
-        table.add_column("用户名", key="username")
-        table.add_column("角色", key="role")
-        table.add_column("权限", key="perms")
-        table.add_column("查看权限", key="view_perms")
-        table.add_column("编辑", key="edit")
-        table.add_column("删除", key="delete")
+        table.add_column(get_global_i18n().t('users_management.username'), key="username")
+        table.add_column(get_global_i18n().t('users_management.role'), key="role")
+        table.add_column(get_global_i18n().t('users_management.perms'), key="perms")
+        table.add_column(get_global_i18n().t('users_management.view_perms'), key="view_perms")
+        table.add_column(get_global_i18n().t('common.edit'), key="edit")
+        table.add_column(get_global_i18n().t('common.delete'), key="delete")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -143,13 +143,13 @@ class UsersManagementScreen(Screen[None]):
                 uname = row["username"]
                 role = row["role"]
                 try:
-                    table.add_row(uid, uname, role, "[权限]", "[查看权限]", "[编辑]", "[删除]", key=uid)
+                    table.add_row(uid, uname, role, f"[{get_global_i18n().t('users_management.role')}]", f"[{get_global_i18n().t('users_management.view_perms')}]", f"[{get_global_i18n().t('common.edit')}]", f"[{get_global_i18n().t('common.delete')}]", key=uid)
                 except Exception as re:
                     logger.error(f"添加行失败: {re} (uid={uid})")
         except Exception as e:
-            logger.error(f"加载用户失败: {e}")
+            logger.error(f"{get_global_i18n().t('users_management.load_user_failed')}: {e}")
             try:
-                self.notify(f"加载用户失败：{e}", severity="error")
+                self.notify(f"{get_global_i18n().t('users_management.load_user_failed')}：{e}", severity="error")
             except Exception:
                 pass
         finally:
@@ -167,7 +167,7 @@ class UsersManagementScreen(Screen[None]):
             user_perms = self._get_user_permissions_safe(uid)
             
             if not all_perms:
-                self.notify("暂无可设置的权限", severity="warning")
+                self.notify(get_global_i18n().t('users_management.no_perms'), severity="warning")
                 return
             
             # 获取用户名用于显示
@@ -183,20 +183,20 @@ class UsersManagementScreen(Screen[None]):
                         success = self._set_user_permissions_safe(uid, permissions_list)
                         
                         if success:
-                            self.notify("权限设置成功", severity="information")
+                            self.notify(get_global_i18n().t('users_management.set_perms_success'), severity="information")
                             self._reload_users_table()  # 刷新用户列表
                         else:
-                            self.notify("权限设置失败", severity="error")
+                            self.notify(get_global_i18n().t('users_management.set_perms_failed'), severity="error")
                     except Exception as e:
                         logger.error(f"保存权限失败: {e}")
-                        self.notify("保存权限失败", severity="error")
+                        self.notify(get_global_i18n().t('users_management.save_perms_failed'), severity="error")
             
             # 打开新的权限管理对话框
             self.app.push_screen(
                 PermissionsDialog(
                     theme_manager=self.theme_manager,
                     user_id=uid,
-                    username=username or f"用户{uid}",
+                    username=username or f"{get_global_i18n().t('users_management.user')}{uid}",
                     all_permissions=all_perms,
                     user_permissions=user_perms
                 ),
@@ -205,7 +205,7 @@ class UsersManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"打开权限对话框失败: {e}")
-            self.notify("无法打开权限对话框", severity="error")
+            self.notify(get_global_i18n().t('users_management.cannot_open_perms_dialog'), severity="error")
 
 
 
@@ -337,7 +337,7 @@ class UsersManagementScreen(Screen[None]):
             return None
 
     def _view_user_permissions(self, uid: int) -> None:
-        """查看用户已有权限"""
+        """查看用户已有权限（使用对话框显示）"""
         try:
             # 获取用户权限
             user_perms = self._get_user_permissions_safe(uid)
@@ -346,26 +346,35 @@ class UsersManagementScreen(Screen[None]):
             permissions_data = self._get_permissions_data()
             
             # 获取用户名
-            username = self._get_username_by_id(uid) or f"用户{uid}"
+            username = self._get_username_by_id(uid) or f"{get_global_i18n().t('users_management.user')}{uid}"
             
             # 显示权限列表
             if not user_perms:
-                self.notify(f"{username} 暂无任何权限", severity="information")
+                self.notify(f"{username} {get_global_i18n().t('users_management.no_perms')}", severity="information")
                 return
             
-            # 构建权限描述列表
-            perm_descriptions = []
-            for perm_key in sorted(user_perms):
-                description = permissions_data.get(perm_key, perm_key)
-                perm_descriptions.append(f"• {description}")
+            # 使用权限对话框显示权限列表（只读模式）
+            def handle_view_result(result: Optional[Set[str]]) -> None:
+                """处理查看权限结果（只读模式，不需要处理）"""
+                # 查看权限对话框是只读的，不需要处理结果
+                pass
             
-            # 显示权限列表
-            perm_text = "\n".join(perm_descriptions)
-            self.notify(f"{username} 的权限：\n{perm_text}", severity="information", timeout=10)
+            # 打开权限对话框（只读模式）
+            self.app.push_screen(
+                PermissionsDialog(
+                    theme_manager=self.theme_manager,
+                    user_id=uid,
+                    username=username,
+                    all_permissions=list(permissions_data.keys()),
+                    user_permissions=user_perms,
+                    read_only=True  # 设置为只读模式
+                ),
+                callback=handle_view_result
+            )
             
         except Exception as e:
             logger.error(f"查看用户权限失败: {e}")
-            self.notify("查看用户权限失败", severity="error")
+            self.notify(get_global_i18n().t('users_management.open_user_perms_failed'), severity="error")
 
     def _get_permissions_data(self) -> Dict[str, str]:
         """获取权限的完整信息（key -> description）"""
@@ -420,29 +429,29 @@ class UsersManagementScreen(Screen[None]):
             
             # 检查权限
             if not self._has_table_action_permission(column, int(row_key) if row_key else 0):
-                self.notify("无权限执行此操作", severity="warning")
+                self.notify(get_global_i18n().t('users_management.np_action'), severity="warning")
                 return
                 
             if column == "perms":
                 # 检查多用户设置是否启用
                 # if not multi_user_manager.should_show_permissions():
-                #     self.notify("多用户功能未启用，当前为超级管理员模式", severity="information")
+                #     self.notify(get_global_i18n().t('users_management.multi_user_disabled_super'), severity="information")
                 #     return
                 
                 # 检查权限
                 if not self._has_permission("users.set_permissions"):
-                    self.notify("无权限设置用户权限", severity="warning")
+                    self.notify(get_global_i18n().t('users_management.np_set_user_perms'), severity="warning")
                     return
                 
                 # 打开权限对话框
                 try:
                     uid = int(row_key) if row_key else 0
                     if uid <= 0:
-                        self.notify("无法识别用户ID", severity="error")
+                        self.notify(get_global_i18n().t('users_management.unknown_userid'), severity="error")
                         return
                     self._open_permissions_dialog(uid)
                 except Exception:
-                    self.notify("无法识别用户ID", severity="error")
+                    self.notify(get_global_i18n().t('users_management.unknown_userid'), severity="error")
                     return
 
             elif column == "view_perms":
@@ -450,11 +459,11 @@ class UsersManagementScreen(Screen[None]):
                 try:
                     uid = int(row_key) if row_key else 0
                     if uid <= 0:
-                        self.notify("无法识别用户ID", severity="error")
+                        self.notify(get_global_i18n().t('users_management.unknown_userid'), severity="error")
                         return
                     self._view_user_permissions(uid)
                 except Exception:
-                    self.notify("无法识别用户ID", severity="error")
+                    self.notify(get_global_i18n().t('users_management.unknown_userid'), severity="error")
                     return
 
             elif column == "edit":
@@ -487,22 +496,22 @@ class UsersManagementScreen(Screen[None]):
                         cur.execute("DELETE FROM users WHERE id=?", (int(row_key) if row_key else 0,))
                         if cur.rowcount == 0:
                             conn.close()
-                            self.notify("未找到该用户，删除失败", severity="warning")
+                            self.notify(get_global_i18n().t('users_management.delete_user_failed_info'), severity="warning")
                             return
                         conn.commit()
                         conn.close()
                         self._reload_users_table()
                     except Exception as e:
                         logger.error(f"删除用户失败: {e}")
-                        self.notify("删除用户失败", severity="error")
+                        self.notify(get_global_i18n().t('users_management.delete_user_failed'), severity="error")
                         return
 
                 # 弹出确认对话框
                 self.app.push_screen(
                     ConfirmDialog(
                         self.theme_manager,
-                        "确认删除",
-                        "确认要删除该用户么?"
+                        get_global_i18n().t('users_management.confirm_delete'),
+                        get_global_i18n().t('users_management.confirm_delete_user')
                     ),
                     callback=on_confirm
                 )
@@ -526,30 +535,30 @@ class UsersManagementScreen(Screen[None]):
         # 检查权限
         button_id = event.button.id or ""
         if not self._has_button_permission(button_id):
-            self.notify("无权限执行此操作", severity="warning")
+            self.notify(get_global_i18n().t('users_management.np_action'), severity="warning")
             return
             
         if event.button.id == "add-user":
             # 检查多用户设置是否启用
             if not multi_user_manager.should_show_user_management():
-                self.notify("多用户功能未启用，当前为超级管理员模式", severity="information")
+                self.notify(get_global_i18n().t('users_management.multi_user_disabled_super'), severity="information")
                 return
                 
             # 检查权限
             if not self._has_permission("users.add"):
-                self.notify("无权限添加用户", severity="warning")
+                self.notify(get_global_i18n().t('users_management.np_add_user'), severity="warning")
                 return
                 
             try:
                 uid = self.db_manager.create_user(self._new_username.strip(), self._new_password)
                 if uid:
-                    self.notify(f"添加用户成功：ID {uid}", severity="information")
+                    self.notify(f"{get_global_i18n().t('users_management.add_user_success')}：ID {uid}", severity="information")
                     self._reload_users_table()
                 else:
-                    self.notify("添加用户失败", severity="error")
+                    self.notify(get_global_i18n().t('users_management.add_user_failed'), severity="error")
             except Exception as e:
                 logger.error(f"添加用户失败: {e}")
-                self.notify("添加用户失败", severity="error")
+                self.notify(get_global_i18n().t('users_management.add_user_failed'), severity="error")
 
         elif event.button.id == "set-perms":
             try:
@@ -558,23 +567,23 @@ class UsersManagementScreen(Screen[None]):
                 keys = [k.strip() for k in (self._perm_input or "").split(",") if k.strip()]
                 ok = self.db_manager.set_user_permissions(uid, keys)
                 if ok:
-                    self.notify("权限设置成功", severity="information")
+                    self.notify(get_global_i18n().t('users_management.set_perms_success'), severity="information")
                 else:
-                    self.notify("权限设置失败", severity="error")
+                    self.notify(get_global_i18n().t('users_management.set_perms_failed'), severity="error")
             except Exception as e:
                 logger.error(f"权限设置失败: {e}")
-                self.notify("权限设置失败", severity="error")
+                self.notify(get_global_i18n().t('users_management.set_perms_failed'), severity="error")
         elif event.button.id == "edit-user":
             # 保存编辑：密码可为空
             try:
                 uid = getattr(self, "_editing_user_id", None)
                 if not uid:
-                    self.notify("未选择用户", severity="warning")
+                    self.notify(get_global_i18n().t('users_management.no_user_selected'), severity="warning")
                     return
                 new_name = (self.query_one("#edit-username", Input).value or "").strip()
                 new_pwd = self.query_one("#edit-password", Input).value or ""
                 if not new_name:
-                    self.notify("用户名不能为空", severity="warning")
+                    self.notify(get_global_i18n().t('users_management.empty_username'), severity="warning")
                     return
                 import sqlite3, hashlib
                 conn = sqlite3.connect(self.db_manager.db_path)
@@ -639,12 +648,12 @@ class UsersManagementScreen(Screen[None]):
                     pass
                 # 根据是否有提供新密码以及是否更新成功给出不同提示
                 if new_pwd and not pwd_updated:
-                    self.notify("用户名已修改，但密码更新失败", severity="warning")
+                    self.notify(get_global_i18n().t('users_management.username_ok_password_failed'), severity="warning")
                 else:
-                    self.notify("修改成功", severity="information")
+                    self.notify(get_global_i18n().t('users_management.edit_success'), severity="information")
             except Exception as e:
                 logger.error(f"修改失败: {e}")
-                self.notify("修改失败", severity="error")
+                self.notify(get_global_i18n().t('users_management.edit_failed'), severity="error")
 
         elif event.button.id == "back-btn":
             try:

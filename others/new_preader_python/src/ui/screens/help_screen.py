@@ -126,10 +126,6 @@ class HelpScreen(Screen[None]):
             event: 键盘事件
         """
         if event.key == "escape":
-            if not self._has_permission("help.escape"):
-                self.notify("无权限退出帮助页面", severity="error")
-                event.stop()
-                return
             self.app.pop_screen()
             event.stop()
             event.prevent_default()

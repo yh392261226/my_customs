@@ -215,19 +215,19 @@ class GetBooksScreen(Screen[None]):
         """
         # 检查权限
         if not self._has_button_permission(event.button.id):
-            self.notify("无权限执行此操作", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_action'), severity="warning")
             return
             
         if event.button.id == "novel-sites-btn":
             if self._has_permission("get_books.manage_sites"):
                 self.app.push_screen("novel_sites_management")  # 打开书籍网站管理页面
             else:
-                self.notify("无权限管理书籍网站", severity="warning")
+                self.notify(get_global_i18n().t('get_books.np_manage_booksites'), severity="warning")
         elif event.button.id == "proxy-settings-btn":
             if self._has_permission("get_books.manage_proxy"):
                 self.app.push_screen("proxy_list")  # 打开代理列表页面
             else:
-                self.notify("无权限管理代理设置", severity="warning")
+                self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
         elif event.button.id == "back-btn":
             self.app.pop_screen()  # 返回上一页
     
@@ -262,7 +262,7 @@ class GetBooksScreen(Screen[None]):
                     crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
                     self.app.push_screen(crawler_screen)  # 打开爬取管理页面
                 else:
-                    self.notify("无权限打开爬取管理页面", severity="warning")
+                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
     
     def on_data_table_row_selected(self, event) -> None:
         """
@@ -286,7 +286,7 @@ class GetBooksScreen(Screen[None]):
                                 crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
                                 self.app.push_screen(crawler_screen)  # 打开爬取管理页面
                             else:
-                                self.notify("无权限打开爬取管理页面", severity="warning")
+                                self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
                             break
         elif event.row_key and hasattr(event.row_key, 'value'):
             site_index = int(event.row_key.value)
@@ -298,21 +298,21 @@ class GetBooksScreen(Screen[None]):
                     crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
                     self.app.push_screen(crawler_screen)  # 打开爬取管理页面
                 else:
-                    self.notify("无权限打开爬取管理页面", severity="warning")
+                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
     
     def key_n(self) -> None:
         """N键 - 打开书籍网站管理"""
         if self._has_permission("get_books.manage_sites"):
             self.app.push_screen("novel_sites_management")
         else:
-            self.notify("无权限管理书籍网站", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_manage_booksites'), severity="warning")
     
     def key_p(self) -> None:
         """P键 - 打开代理设置"""
         if self._has_permission("get_books.manage_proxy"):
             self.app.push_screen("proxy_list")
         else:
-            self.notify("无权限管理代理设置", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
     
     def key_enter(self) -> None:
         """Enter键 - 打开选中的书籍网站"""
@@ -321,20 +321,20 @@ class GetBooksScreen(Screen[None]):
             if table.cursor_row is not None:
                 self.on_data_table_row_selected(None)
         else:
-            self.notify("无权限打开爬取管理页面", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
     # Actions for BINDINGS
     def action_open_novel_sites(self) -> None:
         if self._has_permission("get_books.manage_sites"):
             self.app.push_screen("novel_sites_management")
         else:
-            self.notify("无权限管理书籍网站", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_manage_booksites'), severity="warning")
 
     def action_open_proxy_list(self) -> None:
         if self._has_permission("get_books.manage_proxy"):
             self.app.push_screen("proxy_list")
         else:
-            self.notify("无权限管理代理设置", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
 
     def action_open_selected(self) -> None:
         if self._has_permission("crawler.open"):
@@ -342,7 +342,7 @@ class GetBooksScreen(Screen[None]):
             if table.cursor_row is not None:
                 self.on_data_table_row_selected(None)
         else:
-            self.notify("无权限打开爬取管理页面", severity="warning")
+            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
     def action_back(self) -> None:
         self.app.pop_screen()

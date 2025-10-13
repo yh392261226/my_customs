@@ -96,7 +96,7 @@ class LockScreen(ModalScreen[bool]):
                 self.dismiss(True)
             else:
                 try:
-                    self.app.notify("密码错误", severity="error")
+                    self.app.notify(i18n.t("lock_screen.wrong_password"), severity="error")
                 except Exception:
                     logger.info("密码错误")
                 # 不关闭屏幕，允许重试

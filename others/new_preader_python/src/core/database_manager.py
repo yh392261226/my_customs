@@ -1596,11 +1596,14 @@ class DatabaseManager:
             logger.error(f"权限检查失败: {e}")
             return True  # 出错时默认允许
     
-    def has_permission(self, user_id: int, perm_key: str, role: Optional[str] = None) -> bool:
+    def has_permission(self, user_id: Optional[int], perm_key: str, role: Optional[str] = None) -> bool:
         """检查权限；超级管理拥有全部权限"""
         try:
             if role == "superadmin":
                 return True
+            # 如果user_id为None或0，表示未登录用户，默认无权限
+            if not user_id:
+                return False
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT allowed FROM user_permissions WHERE user_id = ? AND perm_key = ?", (user_id, perm_key))
@@ -1639,3 +1642,26 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"书籍归属用户失败: {e}")
             return False
+
+    def get_user_permissions(self, user_id: int) -> List[str]:
+        """
+        获取用户的权限列表
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            List[str]: 用户拥有的权限键列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT perm_key FROM user_permissions 
+                    WHERE user_id = ? AND allowed = 1
+                """, (user_id,))
+                rows = cursor.fetchall()
+                return [row[0] for row in rows if row and row[0]]
+        except sqlite3.Error as e:
+            logger.error(f"获取用户权限失败: {e}")
+            return []
