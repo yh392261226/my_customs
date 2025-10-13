@@ -18,7 +18,7 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/bookmark_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#confirm-button')", "OK"),
+        ("enter", "press('#confirm-button')", get_global_i18n().t("common.ok")),
     ]
     
     def __init__(self, bookmark_data: Dict[str, Any]) -> None:

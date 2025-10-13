@@ -15,6 +15,23 @@ def handle_error(message: str, exit_code: int = 1) -> NoReturn:
     print(f"错误: {message}", file=sys.stderr)
     sys.exit(exit_code)
 
+# 在导入应用之前初始化全局 i18n，避免导入阶段调用 i18n 崩溃
+try:
+    from src.locales.i18n_manager import init_global_i18n, set_global_locale, get_global_i18n
+    from src.config.config_manager import ConfigManager
+    init_global_i18n()
+    try:
+        cfg = ConfigManager().get_config()
+        lang = (cfg.get("advanced", {}) or {}).get("language", "zh_CN")
+        if isinstance(lang, str):
+            set_global_locale(lang)
+    except Exception:
+        # 保持默认语言
+        pass
+except Exception:
+    # 如果初始化失败，继续启动，后续模块内有兜底逻辑
+    pass
+
 from src.ui.app import NewReaderApp
 from src.utils.logger import setup_logging_from_config
 from src.config.config_manager import ConfigManager

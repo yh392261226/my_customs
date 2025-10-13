@@ -42,13 +42,13 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     CSS_PATH="../styles/bookshelf_overrides.tcss"
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("s", "press('#search-btn')", "搜索"),
-        ("r", "press('#sort-btn')", "排序"),
-        ("l", "press('#batch-ops-btn')", "批量操作"),
-        ("f", "press('#refresh-btn')", "刷新"),
-        ("a", "press('#add-book-btn')", "添加"),
-        ("d", "press('#scan-directory-btn')", "扫描目录"),
-        ("g", "press('#get-books-btn')", "获取书籍"),
+        ("s", "press('#search-btn')", get_global_i18n().t('common.search')),
+        ("r", "press('#sort-btn')", get_global_i18n().t('bookshelf.sort_name')),
+        ("l", "press('#batch-ops-btn')", get_global_i18n().t('bookshelf.batch_ops_name')),
+        ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
+        ("a", "press('#add-book-btn')", get_global_i18n().t('common.add')),
+        ("d", "press('#scan-directory-btn')", get_global_i18n().t('bookshelf.scan_directory')),
+        ("g", "press('#get-books-btn')", get_global_i18n().t('bookshelf.get_books')),
 
     ]
     
@@ -345,7 +345,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     stats_text += " (" + ", ".join(format_parts) + ")"
             
             # 添加分页信息
-            pagination_info = f" | 第 {self._current_page}/{self._total_pages} 页"
+            pagination_info = f" | {get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages)}"
             stats_label.update(stats_text + pagination_info)
             
         except Exception as e:

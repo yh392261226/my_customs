@@ -223,7 +223,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
             # 清除选中状态
             self.selected_row_index = None
             details_display = self.query_one("#word-details", Static)
-            details_display.update("请选择一个单词查看详情")
+            details_display.update(get_global_i18n().t("vocabulary_dialog.info_word"))
             delete_button = self.query_one("#delete-button", Button)
             delete_button.disabled = True
             return
@@ -235,14 +235,14 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
         word_item = self.filtered_words[row_index]
         
         details_text = f"""
-单词: {word_item.word}
-翻译: {word_item.translation}
-语言: {word_item.language}
-掌握程度: {"★" * word_item.mastery_level + "☆" * (5 - word_item.mastery_level)}
-复习次数: {word_item.review_count}
-上下文: {word_item.context or '无'}
-添加时间: {word_item.created_at.strftime('%Y-%m-%d %H:%M') if word_item.created_at else 'N/A'}
-最后复习: {word_item.last_reviewed.strftime('%Y-%m-%d %H:%M') if word_item.last_reviewed else '未复习'}
+{get_global_i18n().t("vocabulary_dialog.words")}: {word_item.word}
+{get_global_i18n().t("vocabulary_dialog.translate")}: {word_item.translation}
+{get_global_i18n().t("vocabulary_dialog.languege")}: {word_item.language}
+{get_global_i18n().t("vocabulary_dialog.mastery")}: {"★" * word_item.mastery_level + "☆" * (5 - word_item.mastery_level)}
+{get_global_i18n().t("vocabulary_dialog.reviews")}: {word_item.review_count}
+{get_global_i18n().t("vocabulary_dialog.context")}: {word_item.context or 'None'}
+{get_global_i18n().t("vocabulary_dialog.add_time")}: {word_item.created_at.strftime('%Y-%m-%d %H:%M') if word_item.created_at else 'N/A'}
+{get_global_i18n().t("vocabulary_dialog.last_review")}: {word_item.last_reviewed.strftime('%Y-%m-%d %H:%M') if word_item.last_reviewed else 'None'}
 """
         
         details_display = self.query_one("#word-details", Static)
@@ -307,9 +307,9 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
             if result and result.get("action") == "finish":
                 reviewed = result.get("reviewed", 0)
                 total = result.get("total", 0)
-                details.update(f"复习结束：完成 {reviewed}/{total}")
+                details.update(f"{get_global_i18n().t("vocabulary_dialog.finished_info")} {reviewed}/{total}")
             else:
-                details.update("复习已结束")
+                details.update(get_global_i18n().t("vocabulary_dialog.finished"))
 
         # 压入复习对话框
         self.app.push_screen(ReviewDialog(payload, vocabulary_manager=self.vocabulary_manager), _after_review)
@@ -362,7 +362,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
             # 清除选中状态
             self.selected_row_index = None
             details_display = self.query_one("#word-details", Static)
-            details_display.update("请选择一个单词查看详情")
+            details_display.update(get_global_i18n().t("vocabulary_dialog.info_word"))
             delete_button = self.query_one("#delete-button", Button)
             delete_button.disabled = True
     

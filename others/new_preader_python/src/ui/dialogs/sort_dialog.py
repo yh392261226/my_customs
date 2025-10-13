@@ -25,8 +25,8 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/sort_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#apply-btn')", "Apply"),
-        ("escape", "press('#cancel-btn')", "Cancel"),
+        ("enter", "press('#apply-btn')", get_global_i18n().t('common.apply')),
+        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager):

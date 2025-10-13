@@ -182,7 +182,8 @@
         "did_not_find_book": "未找到要删除的书籍",
         "confirm_delete": "确认删除",
         "confirm_delete_message": "确定要删除书籍《{book}》吗？此操作不可撤销。",
-        "no_book_position": "第 {book_index} 个位置没有书籍"
+        "no_book_position": "第 {book_index} 个位置没有书籍",
+        "page_info": "第{page}/{total_pages}页"
     },
     "batch_ops": {
         "title": "批量操作",
@@ -221,7 +222,12 @@
         "remove_missing_processing": "正在验证书籍文件存在性...",
         "remove_missing_completed": "验证完成: 删除了 {count} 本不存在的书籍",
         "remove_missing_no_books": "没有发现不存在的书籍",
-        "remove_missing_failed": "删除不存在书籍失败: {error}"
+        "remove_missing_failed": "删除不存在书籍失败: {error}",
+        "all_formats": "所有格式",
+        "file_format": "文件格式",
+        "toggle_rows": "选中/取消选中",
+        "next_page": "下一页",
+        "prev_page": "上一页"
     },
     "search": {
         "title": "搜索",
@@ -232,7 +238,10 @@
         "book_position": "位置",
         "preview": "预览",
         "enter_keyword": "请输入关键词",
-        "no_results": "未找到结果"
+        "no_results": "未找到结果",
+        "all_formats": "所有格式",
+        "file_format": "文件格式",
+        "book": "书籍"
     },
     "sort": {
         "title": "排序",
@@ -317,7 +326,14 @@
         "np_action": "无权限执行此操作",
         "np_save": "无权限保存设置",
         "np_reset": "无权限重置设置",
-        "reseted": "设置已重置"
+        "reseted": "设置已重置",
+        "compact": "紧凑",
+        "standard": "标准",
+        "loose": "宽松",
+        "looser": "较宽松",
+        "loosest": "很宽松",
+        "max": "最大间距",
+        "no_permission": "无权限"
     },
     "common": {
         "close": "关闭",
@@ -444,7 +460,29 @@
         "selected_text": "已选中文本",
         "open_bosskey_failed": "打开老板键屏幕失败",
         "open_help_failed": "打开帮助中心失败",
-        "only_one_page": "当前书籍只有一页，无需跳转"
+        "only_one_page": "当前书籍只有一页，无需跳转",
+        "left": "上一页/选择左移",
+        "right": "下一页/选择右移",
+        "up": "向上滚动/选择上移",
+        "down": "向下滚动/选择下移",
+        "enter_selection_mode": "进入划词模式", 
+        "enter_key": "提交选择并翻译",
+        "escape_key": "退出或取消",
+        "shift_left": "扩展选择：左",
+        "shift_right": "扩展选择：右",
+        "shift_up": "扩展选择：上",
+        "shift_down": "扩展选择：下",
+        "toggle_bookmark": "添加/删除书签",
+        "open_bookmark_list": "书签列表",
+        "open_settings": "打开设置",
+        "search_text": "全文搜索",
+        "toggle_auto_page": "自动翻页",
+        "toggle_tts": "朗读",
+        "translate": "翻译选中文本",
+        "open_vocabulary": "打开单词本",
+        "boss_key": "老板键",
+        "show_help": "帮助",
+        "copy_selected_text": "复制选中文本"
     },
     "help": {
         "title": "帮助中心",
@@ -931,7 +969,14 @@
         "nav_failed": "导航失败",
         "np_action": "无权限执行此操作",
         "np_choose_file": "无权限选择文件",
-        "open_failed": "打开文件失败"
+        "open_failed": "打开文件失败",
+        "no_permission": "无权限",
+        "current_path": "当前路径",
+        "file": "文件",
+        "path": "目录",
+        "cannot_visit": "无法访问",
+        "selected_files": "已选择文件",
+        "selected_path": "已选择目录"
     },
     "lock_screen": {
         "placeholder": "请输入密码以继续",
@@ -989,7 +1034,17 @@
         "unknown": "不认识",
         "skip": "跳过",
         "review_finished": "复习结束",
-        "review_summary": "本次共复习 {total} 个单词，已完成 {reviewed} 个"
+        "review_summary": "本次共复习 {total} 个单词，已完成 {reviewed} 个",
+        "info_word": "请选择一个单词查看详情",
+        "words": "单词",
+        "translate": "翻译",
+        "languege": "语言",
+        "mastery": "掌握程度",
+        "reviews": "复习次数",
+        "add_time": "添加时间",
+        "last_review": "最后复习",
+        "finished_info": "复习结束：完成",
+        "finished": "复习已结束"
     },
     "selection_mode": {
         "in_notify_message": "已进入划词模式 : 方向键←↑↓→移动光标，Shift+方向键←↑↓→选择，Enter翻译，Esc取消",

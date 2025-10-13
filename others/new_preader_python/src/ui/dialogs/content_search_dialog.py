@@ -51,6 +51,15 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
         # 应用当前主题
         current_theme = self.theme_manager.get_current_theme_name()
         self.theme_manager.set_theme(current_theme)
+        # 运行时更新快捷键文案，避免导入阶段访问未初始化的 i18n
+        try:
+            i18n = get_global_i18n()
+            type(self).BINDINGS = [
+                ("enter", "press('#search-btn')", i18n.t('common.search')),
+                ("escape", "press('#cancel-btn')", i18n.t('common.cancel')),
+            ]
+        except Exception:
+            pass
         # 聚焦输入框
         self.query_one("#search-input", Input).focus()
         

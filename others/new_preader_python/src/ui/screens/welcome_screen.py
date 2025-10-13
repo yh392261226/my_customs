@@ -37,14 +37,14 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("f1,1", "open_book", "打开书籍"),
-        ("f2,2", "browse_library", "浏览书库"),
-        ("f3,3", "get_books", "获取书籍"),
-        ("f4,4", "open_settings", "打开设置"),
-        ("f5,5", "open_statistics", "打开统计"),
-        ("f6,6", "open_help", "打开帮助"),
-        ("f7,7", "open_user_management", "管理用户"),
-        ("escape,q", "exit_app", "退出")
+        ("f1,1", "open_book", "Open Book"),
+        ("f2,2", "browse_library", "Browse Library"),
+        ("f3,3", "get_books", "Get Books"),
+        ("f4,4", "open_settings", "Settings"),
+        ("f5,5", "open_statistics", "Statistics"),
+        ("f6,6", "open_help", "Help"),
+        ("f7,7", "open_user_management", "Manage Users"),
+        ("escape,q", "exit_app", "Exit")
     ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
@@ -120,6 +120,22 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
+
+        # 运行时更新快捷键描述，避免导入阶段访问未初始化的 i18n
+        try:
+            i18n = get_global_i18n()
+            type(self).BINDINGS = [
+                ("f1,1", "open_book", i18n.t('welcome.open_book')),
+                ("f2,2", "browse_library", i18n.t('welcome.browse_library')),
+                ("f3,3", "get_books", i18n.t('welcome.get_books')),
+                ("f4,4", "open_settings", i18n.t('welcome.settings')),
+                ("f5,5", "open_statistics", i18n.t('welcome.statistics')),
+                ("f6,6", "open_help", i18n.t('welcome.help')),
+                ("f7,7", "open_user_management", i18n.t('welcome.manage')),
+                ("escape,q", "exit_app", i18n.t('welcome.exit')),
+            ]
+        except Exception:
+            pass
 
         # 按权限禁用“管理”按钮
         try:

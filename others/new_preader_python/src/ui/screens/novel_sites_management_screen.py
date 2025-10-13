@@ -22,12 +22,12 @@ class NovelSitesManagementScreen(Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("a", "add_site", "添加"),
-        ("e", "edit_site", "编辑"),
-        ("d", "delete_site", "删除"),
-        ("b", "batch_delete", "批量删除"),
-        ("space", "toggle_select", "选择"),
-        ("enter", "enter_crawler", "进入"),
+        ("a", "add_site", get_global_i18n().t('common.add')),
+        ("e", "edit_site", get_global_i18n().t('common.edit')),
+        ("d", "delete_site", get_global_i18n().t('common.delete')),
+        ("b", "batch_delete", get_global_i18n().t('novel_sites.batch_delete')),
+        ("space", "toggle_select", get_global_i18n().t('common.select')),
+        ("enter", "enter_crawler", get_global_i18n().t('get_books.enter')),
         
     ]
 

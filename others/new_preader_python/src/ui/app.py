@@ -195,7 +195,8 @@ class NewReaderApp(App[None]):
         # 初始化国际化支持
         config = self.config_manager.get_config()
         locale_dir = os.path.join(os.path.dirname(__file__), "..", "locales")
-        default_locale = config.get("app", {}).get("language", "zh_CN")
+        # 优先使用设置中心的 advanced.language，其次回退到 app.language，最后默认 zh_CN
+        default_locale = config.get("advanced", {}).get("language", config.get("app", {}).get("language", "zh_CN"))
         
         # 初始化全局i18n实例
         init_global_i18n(locale_dir, default_locale)
@@ -588,6 +589,53 @@ class NewReaderApp(App[None]):
             if hasattr(self, "_on_content_theme_changed"):
                 observer = AppThemeObserver(self)
                 global_observer_manager.register_observer(observer, "appearance.theme")
+
+            # 注册语言联动观察者：advanced.language 改变后，同步全局 i18n 并刷新界面
+            class AppLanguageObserver(SettingObserver):
+                def __init__(self, app_instance):
+                    self.app = app_instance
+                def on_setting_changed(self, event):
+                    from src.config.settings.setting_observer import SettingChangeEvent
+                    try:
+                        if isinstance(event, SettingChangeEvent):
+                            new_locale = getattr(event, "new_value", None)
+                            if isinstance(new_locale, str) and new_locale:
+                                # 同步全局语言
+                                try:
+                                    get_global_i18n().set_locale(new_locale)
+                                except Exception:
+                                    pass
+                                # 刷新标题（基于新语言）
+                                try:
+                                    self.app._title = get_global_i18n().t("app.name")
+                                    self.app._sub_title = get_global_i18n().t("app.description")
+                                except Exception:
+                                    pass
+                                # 触发界面刷新（尽量 recompose）
+                                try:
+                                    try:
+                                        self.app.refresh(layout=True)
+                                    except Exception:
+                                        self.app.refresh()
+                                    if hasattr(self.app, "screen") and self.app.screen and hasattr(self.app.screen, "refresh"):
+                                        self.app.screen.refresh(recompose=True)
+                                    # 刷新其它已安装屏幕
+                                    screens = []
+                                    if hasattr(self.app, "installed_screens"):
+                                        screens = list(getattr(self.app, "installed_screens").values())  # type: ignore[attr-defined]
+                                    elif hasattr(self.app, "screens"):
+                                        screens = list(getattr(self.app, "screens").values())  # type: ignore[attr-defined]
+                                    for sc in screens:
+                                        if sc is not self.app.screen and hasattr(sc, "refresh"):
+                                            sc.refresh(recompose=True)
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
+            try:
+                global_observer_manager.register_observer(AppLanguageObserver(self), "advanced.language")
+            except Exception:
+                pass
         except Exception as e:
             logger.debug(f"注册主题联动观察者失败（可忽略）：{e}")
         

@@ -22,10 +22,10 @@ class GetBooksScreen(Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("n", "open_novel_sites", "书籍网站"),
-        ("p", "open_proxy_list", "代理设置"),
-        ("enter", "open_selected", "进入并打开浏览器"),
-        ("space", "open_selected", "进入"),
+        ("n", "open_novel_sites", get_global_i18n().t('get_books.shortcut_n')),
+        ("p", "open_proxy_list", get_global_i18n().t('get_books.shortcut_p')),
+        ("enter", "open_selected", get_global_i18n().t('get_books.shortcut_enter')),
+        ("space", "open_selected", get_global_i18n().t('get_books.shortcut_space')),
     ]
 
 

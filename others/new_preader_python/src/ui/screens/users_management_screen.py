@@ -21,7 +21,7 @@ class UsersManagementScreen(Screen[None]):
     CSS_PATH = "../styles/users_management_overrides.tcss"
 
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("q", "press('#back-btn')", "返回"),
+        ("q", "press('#back-btn')", get_global_i18n().t('common.back')),
     ]
 
     def __init__(self, theme_manager: ThemeManager, db_manager: DatabaseManager):

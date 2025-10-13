@@ -179,7 +179,11 @@
         "view_file_failed": "View file failed",
         "delete_book_success": "Delete book success",
         "delete_book_failed": "Delete book failed",
-        "did_not_find_book": "Can not find the book to delete"
+        "did_not_find_book": "Can not find the book to delete",
+        "confirm_delete": "Confirm Delete",
+        "confirm_delete_message": "Are you sure you want to delete the selected book 《{book}》? This action cannot be undone.",
+        "no_book_position": "No book position {book_index}",
+        "page_info": "Page {page}/{total_pages}"
     },
     "batch_ops": {
         "title": "Batch Operations",
@@ -218,7 +222,12 @@
         "page_info": "Page {page}/{total_pages}, total {total_books} books",
         "page_info_filtered": "Page {page}/{total_pages}, showing {filtered_count}/{total_count} books",
         "status_info": " ↑/↓ Move cursor  Space Select  N Next Page P Previous Page ESC Back ",
-        "index": "Index"
+        "index": "Index",
+        "all_formats": "All Formats",
+        "file_format": "File Format",
+        "toggle_rows": "Choose/Unchoose",
+        "next_page": "Next Page",
+        "prev_page": "Previous Page"
     },
     "search": {
         "title": "Search",
@@ -229,7 +238,10 @@
         "book_position": "Position",
         "preview": "Preview",
         "enter_keyword": "Please enter keyword",
-        "no_results": "No results found"
+        "no_results": "No results found",
+        "all_formats": "All Formats",
+        "file_format": "File Format",
+        "book": "Book"
     },
     "sort": {
         "title": "Sort",
@@ -314,7 +326,14 @@
         "np_action": "No permission to perform action",
         "np_save": "No permission to save settings",
         "np_reset": "No permission to reset settings",
-        "reseted": "Reseted"
+        "reseted": "Reseted",
+        "compact": "Compact",
+        "standard": "Standard",
+        "loose": "Loose",
+        "looser": "Looser",
+        "loosest": "Loosest",
+        "max": "Max",
+        "no_permission": "No permissions"
     },
     "common": {
         "close": "Close",
@@ -441,7 +460,29 @@
         "selected_text": "Selected text",
         "open_bosskey_failed": "Open boss key failed",
         "open_help_failed": "Open help failed",
-        "only_one_page": "Only one page found, cannot turn page"
+        "only_one_page": "Only one page found, cannot turn page",
+        "left": "Previous Page / Move left",
+        "right": "Next Page / Move right",
+        "up": "Scroll up / Move up",
+        "down": "Scroll down / Move down",
+        "enter_selection_mode": "Enter selection mode", 
+        "enter_key": "Submit selection and translate",
+        "escape_key": "Exit or Cancel",
+        "shift_left": "Expand your selection：Left",
+        "shift_right": "Expand your selection：Right",
+        "shift_up": "Expand your selection：Up",
+        "shift_down": "Expand your selection：Down",
+        "toggle_bookmark": "Add / Remove bookmark",
+        "open_bookmark_list": "Bookmark List",
+        "open_settings": "Open Settings",
+        "search_text": "Content search",
+        "toggle_auto_page": "Auto pagenation",
+        "toggle_tts": "Aloud",
+        "translate": "Translate selected text",
+        "open_vocabulary": "Open Vocabulary",
+        "boss_key": "Boss Key",
+        "show_help": "Show Help",
+        "copy_selected_text": "Copy Selected Text"
     },
     "help": {
         "title": "Help Center",
@@ -925,10 +966,17 @@
         "select_directory": "Select Directory",
         "select_file": "Select File",
         "no_directory_selected": "No directory selected",
-        "nav_failed": "导航失败",
-        "np_action": "无权限执行此操作",
-        "np_choose_file": "无权限选择文件",
-        "open_failed": "打开文件失败"
+        "nav_failed": "Navigation failed",
+        "np_action": "No permission to perform action",
+        "np_choose_file": "No permission to choose file",
+        "open_failed": "Failed to open file",
+        "no_permission": "No permissions",
+        "current_path": "Current Path",
+        "file": "File",
+        "path": "Path",
+        "cannot_visit": "Cannot visit",
+        "selected_files": "Selected files",
+        "selected_path": "Selected path"
     },
     "lock_screen": {
         "placeholder": "Type password to continue",
@@ -986,7 +1034,17 @@
         "unknown": "Unknown",
         "skip": "Skip",
         "review_finished": "Review Finished",
-        "review_summary": "Reviewed {reviewed} of {total} words this session"
+        "review_summary": "Reviewed {reviewed} of {total} words this session",
+        "info_word": "Please select a word to view infomation",
+        "words": "Words",
+        "translate": "Translate",
+        "languege": "Language",
+        "mastery": "Mastery",
+        "reviews": "Review times",
+        "add_time": "Add Time",
+        "last_review": "Last reviews",
+        "finished_info": "Finished reviews",
+        "finished": "Finished"
     },
     "selection_mode": {
         "in_notify_message": "Selection Mode On: Use ←↑↓→ to move cursor, Shift+←↑↓→ to select, Enter to translate, Esc to cancel",

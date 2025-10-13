@@ -81,10 +81,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/batch_ops_overrides.tcss"
     BINDINGS = [
-        ("space", "toggle_row", "ToggleRow"),
-        ("n", "next_page", "NextPage"),
-        ("p", "prev_page", "PrevPage"),
-        ("escape", "cancel", "Cancel"),
+        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
+        ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
+        ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
@@ -138,7 +138,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Input(placeholder=get_global_i18n().t("bookshelf.search_placeholder"), id="search-input-field"),
                     Select(
                     [
-                        ("所有格式", "all"),
+                        (get_global_i18n().t("batch_ops.all_formats"), "all"),
                         ("TXT", "txt"),
                         ("EPUB", "epub"),
                         ("MOBI", "mobi"),
@@ -147,7 +147,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     ],
                     value="all",
                     id="search-format-filter",
-                    prompt="文件格式"
+                    prompt=get_global_i18n().t("batch_ops.file_format")
                 ),
                     Button(get_global_i18n().t("common.search"), id="search-btn"),
                     id="batch-ops-search-contain", classes="form-row"

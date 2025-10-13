@@ -15,9 +15,9 @@ logger = get_logger(__name__)
 class SearchResultsScreen(Screen[None]):
     # 使用 Textual BINDINGS（逐步替代 on_key）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("escape", "press('#back-button')", "返回"),
-        ("n", "next_page", "下一页"),
-        ("p", "prev_page", "上一页"),
+        ("escape", "press('#back-button')", get_global_i18n().t('common.back')),
+        ("n", "next_page", get_global_i18n().t('bookshelf.next_page')),
+        ("p", "prev_page", get_global_i18n().t('bookshelf.prev_page')),
     ]
 
     def on_mount(self) -> None:

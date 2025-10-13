@@ -20,8 +20,8 @@ class LockScreen(ModalScreen[bool]):
 
     CSS_PATH = "../styles/lock_screen_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "on_submit", "确认验证密码"),
-        ("escape", "on_exit", "退出"),
+        ("enter", "on_submit", get_global_i18n().t('common.confirm')),
+        ("escape", "on_exit", get_global_i18n().t('common.exit')),
     ]
 
     def __init__(self, expected_password: str) -> None:

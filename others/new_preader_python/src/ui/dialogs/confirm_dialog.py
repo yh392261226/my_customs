@@ -10,6 +10,8 @@ from textual.widgets import Button, Label
 from textual.app import ComposeResult
 from textual import events
 
+from src.locales.i18n import I18n
+from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -27,8 +29,8 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
     # 加载CSS样式
     CSS_PATH = "../styles/confirm_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#confirm-btn')", "Confirm"),
-        ("escape", "press('#cancel-btn')", "Cancel"),
+        ("enter", "press('#confirm-btn')", get_global_i18n().t("common.confirm")),
+        ("escape", "press('#cancel-btn')", get_global_i18n().t("common.cancel")),
     ]
     
     def __init__(self, theme_manager: ThemeManager, title: str, message: str):

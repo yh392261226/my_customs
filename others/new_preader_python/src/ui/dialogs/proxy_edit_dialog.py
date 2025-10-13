@@ -31,7 +31,7 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
 
     # 使用 BINDINGS：Esc 取消
     BINDINGS = [
-        ("escape", "cancel", "取消"),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, proxy_data: Optional[Dict[str, Any]] = None):

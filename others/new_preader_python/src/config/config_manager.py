@@ -100,6 +100,18 @@ class ConfigManager:
             config = self.config
             
         try:
+            # 统一同步语言：若配置中存在 advanced.language，则更新全局 i18n
+            try:
+                from src.locales.i18n_manager import get_global_i18n
+                adv = (config or {}).get("advanced", {}) if isinstance(config, dict) else {}
+                lang = adv.get("language")
+                if isinstance(lang, str) and lang:
+                    try:
+                        get_global_i18n().set_locale(lang)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
             with open(self.config_file, 'w', encoding='utf-8') as f:
                 json.dump(config, f, indent=4, ensure_ascii=False)
             logger.info("配置已保存到文件")
@@ -132,6 +144,16 @@ class ConfigManager:
         try:
             if section in self.config and key in self.config[section]:
                 self.config[section][key] = value
+                # 若更新的是语言设置，先同步到全局 i18n
+                try:
+                    if section == "advanced" and key == "language" and isinstance(value, str) and value:
+                        from src.locales.i18n_manager import get_global_i18n
+                        try:
+                            get_global_i18n().set_locale(value)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
                 return self.save_config()
             else:
                 logger.error(f"配置项 {section}.{key} 不存在")

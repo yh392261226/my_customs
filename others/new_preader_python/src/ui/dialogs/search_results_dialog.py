@@ -22,7 +22,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
 
     # 使用 BINDINGS：Enter 选择
     BINDINGS = [
-        ("enter", "select", "选择"),
+        ("enter", "select", get_global_i18n().t('common.select')),
     ]
     
     def __init__(self, results: List[Tuple[int, str]], search_query: str):

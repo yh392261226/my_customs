@@ -24,8 +24,8 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
     CSS_PATH = "../styles/permissions_dialog_overrides.tcss"
     
     BINDINGS = [
-        ("enter", "confirm", "确认"),
-        ("escape", "cancel", "取消"),
+        ("enter", "confirm", get_global_i18n().t('common.confirm')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, user_id: int, username: str, all_permissions: List[str], user_permissions: Set[str], read_only: bool = False):

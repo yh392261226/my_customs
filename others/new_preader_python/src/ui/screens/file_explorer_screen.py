@@ -35,9 +35,9 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     CSS_PATH = "../styles/file_explorer_overrides.tcss"
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("escape", "back", "返回"),
-        ("enter", "press('#select-btn')", "选择"),
-        ("s", "press('#select-btn')", "选择"),
+        ("escape", "back", get_global_i18n().t('common.back')),
+        ("enter", "press('#select-btn')", get_global_i18n().t('common.select')),
+        ("s", "press('#select-btn')", get_global_i18n().t('common.select')),
     ]
     
     # 支持的书籍文件扩展名
@@ -241,7 +241,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def _update_current_path(self) -> None:
         """更新当前路径显示"""
         path_display = self.query_one("#current-path", Static)
-        path_display.update(f"当前路径: {self.current_path}")
+        path_display.update(f"{get_global_i18n().t("file_explorer.current_path")}: {self.current_path}")
         
         # 更新路径输入框
         path_input = self.query_one("#path-input", Input)
@@ -252,25 +252,25 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         try:
             file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
             dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
-            status_info.update(f"文件: {file_count} | 目录: {dir_count}")
+            status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
         except (PermissionError, OSError):
-            status_info.update("无法访问")
+            status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
     
     def _update_selection_status(self) -> None:
         """更新选择状态显示"""
         status_info = self.query_one("#status-info", Static)
         if self.selected_file:
             if self.selection_mode == "file":
-                status_info.update(f"已选择文件: {os.path.basename(self.selected_file)}")
+                status_info.update(f"{get_global_i18n().t("file_explorer.selected_files")}: {os.path.basename(self.selected_file)}")
             else:
-                status_info.update(f"已选择目录: {os.path.basename(self.selected_file)}")
+                status_info.update(f"{get_global_i18n().t("file_explorer.selected_path")}: {os.path.basename(self.selected_file)}")
         else:
             try:
                 file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
                 dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
-                status_info.update(f"文件: {file_count} | 目录: {dir_count}")
+                status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
             except (PermissionError, OSError):
-                status_info.update("无法访问")
+                status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
     
     def _navigate_to_path(self, path: str) -> None:
         """导航到指定路径"""
@@ -403,35 +403,35 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             # 检查权限并设置按钮状态
             if not db_manager.has_permission("file_explorer.back"):
                 back_btn.disabled = True
-                back_btn.tooltip = "无权限"
+                back_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 back_btn.disabled = False
                 back_btn.tooltip = None
                 
             if not db_manager.has_permission("file_explorer.navigate"):
                 go_btn.disabled = True
-                go_btn.tooltip = "无权限"
+                go_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 go_btn.disabled = False
                 go_btn.tooltip = None
                 
             if not db_manager.has_permission("file_explorer.home"):
                 home_btn.disabled = True
-                home_btn.tooltip = "无权限"
+                home_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 home_btn.disabled = False
                 home_btn.tooltip = None
                 
             if not db_manager.has_permission("file_explorer.select"):
                 select_btn.disabled = True
-                select_btn.tooltip = "无权限"
+                select_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 select_btn.disabled = False
                 select_btn.tooltip = None
                 
             if not db_manager.has_permission("file_explorer.cancel"):
                 cancel_btn.disabled = True
-                cancel_btn.tooltip = "无权限"
+                cancel_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 cancel_btn.disabled = False
                 cancel_btn.tooltip = None

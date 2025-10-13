@@ -289,14 +289,14 @@ class CrawlerManagementScreen(Screen[None]):
     
     # 统一快捷键绑定（含 ESC 返回）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("o", "open_browser", "打开浏览器"),
-        ("r", "view_history", "刷新历史"),
-        ("s", "start_crawl", "开始爬取"),
-        ("v", "stop_crawl", "停止爬取"),
-        ("b", "note", "备注"),
-        ("p", "prev_page", "上一页"),
-        ("n", "next_page", "下一页"),
-        ("escape", "back", "返回"),
+        ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
+        ("r", "view_history", get_global_i18n().t('crawler.shortcut_r')),
+        ("s", "start_crawl", get_global_i18n().t('crawler.shortcut_s')),
+        ("v", "stop_crawl", get_global_i18n().t('crawler.shortcut_v')),
+        ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
+        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
+        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("escape", "back", get_global_i18n().t('common.back')),
     ]
 
     def action_open_browser(self) -> None:

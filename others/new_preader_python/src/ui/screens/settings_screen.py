@@ -26,15 +26,43 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# 公共函数：判断当前语言是否为中文
+def is_chinese_locale() -> bool:
+    try:
+        i18n = get_global_i18n()
+        locale = getattr(i18n, "current_locale", None)
+        if not locale and hasattr(i18n, "get_current_locale"):
+            try:
+                locale = i18n.get_current_locale()
+            except Exception:
+                locale = None
+        if isinstance(locale, str):
+            low = locale.lower()
+            return ("zh" in low) or (low in ("zh_cn", "zh-cn", "zh_hans", "zh-hans"))
+        return False
+    except Exception:
+        return False
+
+# 公共函数：根据当前语言返回 (label, value) 列表
+def options_by_locale(options, labels):
+    try:
+        if is_chinese_locale():
+            # 中文显示 labels，值用 options
+            return [(label, value) for value, label in zip(options, labels)]
+        # 非中文显示 options 作为文本，值仍用 options
+        return [(label, value) for value, label in zip(options, options)]
+    except Exception:
+        # 兜底：用 options
+        return [(str(v), v) for v in (options or [])]
+
 class SettingsScreen(Screen[Any]):
     """现代化设置屏幕"""
     
     CSS_PATH = ["../styles/settings_overrides.tcss"]
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "press('#save-btn')", "保存"),
-        ("r", "press('#reset-btn')", "重置"),
-        ("ctrl+s", "press('#save-btn')", "保存"),
+        ("enter", "press('#save-btn')", get_global_i18n().t("settings.save")),
+        ("r", "press('#reset-btn')", get_global_i18n().t("settings.reset")),
     ]
     
 
@@ -154,8 +182,9 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.progress_bar_style"), classes="setting-label")
             progress_setting = self.setting_registry.get_setting("appearance.progress_bar_style")
             if progress_setting and isinstance(progress_setting, SelectSetting):
+                options_text = options_by_locale(progress_setting.options, progress_setting.option_labels)
                 yield Select(
-                    [(label, value) for value, label in zip(progress_setting.options, progress_setting.option_labels)],
+                    options_text,
                     value=progress_setting.value,
                     id="appearance-progress-select"
                 )
@@ -180,12 +209,12 @@ class SettingsScreen(Screen[Any]):
             if spacing_setting:
                 yield Select(
                     [
-                        ("0 (紧凑)", 0),
-                        ("1 (标准)", 1),
-                        ("2 (宽松)", 2),
-                        ("3 (较宽松)", 3),
-                        ("4 (很宽松)", 4),
-                        ("5 (最大间距)", 5)
+                        (f"0 ({get_global_i18n().t("settings.compact")})", 0),
+                        (f"1 ({get_global_i18n().t("settings.standard")})", 1),
+                        (f"2 ({get_global_i18n().t("settings.loose")})", 2),
+                        (f"3 ({get_global_i18n().t("settings.looser")})", 3),
+                        (f"4 ({get_global_i18n().t("settings.loosest")})", 4),
+                        (f"5 ({get_global_i18n().t("settings.max")})", 5)
                     ],
                     value=spacing_setting.value,
                     id="reading-spacing-select"
@@ -197,12 +226,12 @@ class SettingsScreen(Screen[Any]):
             if para_setting:
                 yield Select(
                     [
-                        ("0 (紧凑)", 0),
-                        ("1 (标准)", 1),
-                        ("2 (宽松)", 2),
-                        ("3 (较宽松)", 3),
-                        ("4 (很宽松)", 4),
-                        ("5 (最大间距)", 5)
+                        (f"0 ({get_global_i18n().t("settings.compact")})", 0),
+                        (f"1 ({get_global_i18n().t("settings.standard")})", 1),
+                        (f"2 ({get_global_i18n().t("settings.loose")})", 2),
+                        (f"3 ({get_global_i18n().t("settings.looser")})", 3),
+                        (f"4 ({get_global_i18n().t("settings.loosest")})", 4),
+                        (f"5 ({get_global_i18n().t("settings.max")})", 5)
                     ],
                     value=para_setting.value,
                     id="reading-para-select"
@@ -262,8 +291,9 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.tts_voice"), classes="setting-label")
             voice_setting = self.setting_registry.get_setting("audio.tts_voice")
             if voice_setting and isinstance(voice_setting, SelectSetting):
+                options_text = options_by_locale(voice_setting.options, voice_setting.option_labels)
                 yield Select(
-                    [(label, value) for value, label in zip(voice_setting.options, voice_setting.option_labels)],
+                    options=options_text,
                     value=voice_setting.value,
                     id="audio-voice-select"
                 )
@@ -285,8 +315,9 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.default_translation_service"), classes="setting-label")
             service_setting = self.setting_registry.get_setting("translation.default_service")
             if service_setting and isinstance(service_setting, SelectSetting):
+                options_text = options_by_locale(service_setting.options, service_setting.option_labels)
                 yield Select(
-                    [(label, value) for value, label in zip(service_setting.options, service_setting.option_labels)],
+                    options_text,
                     value=service_setting.value,
                     id="translation-service-select"
                 )
@@ -554,14 +585,14 @@ class SettingsScreen(Screen[Any]):
             # 检查权限并设置按钮状态
             if not self._has_permission("settings.save"):
                 save_btn.disabled = True
-                save_btn.tooltip = "无权限"
+                save_btn.tooltip = get_global_i18n().t('settings.no_permission')
             else:
                 save_btn.disabled = False
                 save_btn.tooltip = None
                 
             if not self._has_permission("settings.reset"):
                 reset_btn.disabled = True
-                reset_btn.tooltip = "无权限"
+                reset_btn.tooltip = get_global_i18n().t('settings.no_permission')
             else:
                 reset_btn.disabled = False
                 reset_btn.tooltip = None

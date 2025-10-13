@@ -38,9 +38,9 @@ class StatisticsScreen(Screen[None]):
     CSS_PATH = ["../styles/statistics_overrides.tcss"]
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("escape", "press('#back-btn')", "返回"),
-        ("r", "press('#refresh-btn')", "刷新"),
-        ("e", "press('#export-btn')", "导出"),
+        ("escape", "press('#back-btn')", get_global_i18n().t('common.back')),
+        ("r", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
+        ("e", "press('#export-btn')", get_global_i18n().t('batch_ops.export')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, statistics_manager: StatisticsManagerDirect):

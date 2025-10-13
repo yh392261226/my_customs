@@ -22,8 +22,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     
     CSS_PATH = "../styles/search_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#select-btn')", "Select"),
-        ("escape", "press('#cancel-btn')", "Cancel"),
+        ("enter", "press('#select-btn')", get_global_i18n().t('common.select')),
+        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, 
@@ -49,7 +49,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                 yield Input(placeholder=get_global_i18n().t("search.placeholder"), id="search-input")
                 yield Select(
                     [
-                        ("所有格式", "all"),
+                        (get_global_i18n().t("search.all_formats"), "all"),
                         ("TXT", "txt"),
                         ("EPUB", "epub"),
                         ("MOBI", "mobi"),
@@ -58,7 +58,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                     ],
                     value="all",
                     id="format-filter",
-                    prompt="文件格式"
+                    prompt=get_global_i18n().t("search.file_format")
                 )
             yield DataTable(id="results-table")
             with Horizontal(id="search-buttons", classes="btn-row"):
@@ -118,7 +118,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             from src.core.search import SearchResult
             result = SearchResult(
                 book_id=book.path,
-                position="书籍",  # 显示为书籍而不是具体位置
+                position=get_global_i18n().t("search.book"),  # 显示为书籍而不是具体位置
                 preview=f"{book.title} - {book.author} ({book.format})",
                 score=0.0
             )

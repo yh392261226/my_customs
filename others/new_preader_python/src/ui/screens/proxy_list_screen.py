@@ -25,10 +25,10 @@ class ProxyListScreen(Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("a", "add_proxy", "添加"),
-        ("t", "test_connection", "测试"),
-        ("e", "edit_proxy", "编辑"),
-        ("d", "delete_proxy", "删除"),
+        ("a", "add_proxy", get_global_i18n().t('common.add')),
+        ("t", "test_connection", get_global_i18n().t('proxy_settings.test_connection')),
+        ("e", "edit_proxy", get_global_i18n().t('common.edit')),
+        ("d", "delete_proxy", get_global_i18n().t('common.delete')),
         
     ]
 

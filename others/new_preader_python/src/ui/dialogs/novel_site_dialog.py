@@ -30,8 +30,8 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
 
     # 使用 BINDINGS：Enter 保存，Esc 取消
     BINDINGS = [
-        ("enter", "save", "保存"),
-        ("escape", "cancel", "取消"),
+        ("enter", "save", get_global_i18n().t('common.save')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, novel_site: Optional[Dict[str, Any]] = None):

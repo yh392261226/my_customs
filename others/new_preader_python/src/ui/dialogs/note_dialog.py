@@ -22,8 +22,8 @@ class NoteDialog(ModalScreen[Optional[str]]):
 
     # 使用 BINDINGS 替代 on_key（Esc 取消，Ctrl+S 保存）
     BINDINGS = [
-        ("escape", "cancel", "取消"),
-        ("ctrl+s", "save", "保存"),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
+        ("ctrl+s", "save", get_global_i18n().t('common.save')),
     ]
 
     
@@ -40,7 +40,7 @@ class NoteDialog(ModalScreen[Optional[str]]):
         self.theme_manager = theme_manager
         self.site_name = site_name
         self.initial_note = initial_note
-        self.title = f"备注 - {site_name}"
+        self.title = f"{get_global_i18n().t('note.title')} - {site_name}"
     
     def compose(self) -> ComposeResult:
         """
@@ -52,7 +52,7 @@ class NoteDialog(ModalScreen[Optional[str]]):
         yield Container(
             Vertical(
                 # 标题
-                Label(f"备注 - {self.site_name}", id="note-title", classes="section-title"),
+                Label(f"{get_global_i18n().t('note.title')} - {self.site_name}", id="note-title", classes="section-title"),
                 
                 # 文本域
                 TextArea(
