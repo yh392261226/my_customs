@@ -5,7 +5,7 @@
 
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from webbrowser import get
-from core import book
+from src.core import book
 from src.core.book import Book
 from dataclasses import dataclass
 
