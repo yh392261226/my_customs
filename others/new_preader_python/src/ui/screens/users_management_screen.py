@@ -139,11 +139,16 @@ class UsersManagementScreen(Screen[None]):
             cur.execute("SELECT id, username, role FROM users ORDER BY id ASC")
             rows = cur.fetchall()
             for row in rows:
+                uid_int = int(row["id"])
                 uid = str(row["id"])
                 uname = row["username"]
                 role = row["role"]
                 try:
-                    table.add_row(uid, uname, role, f"[{get_global_i18n().t('users_management.role')}]", f"[{get_global_i18n().t('users_management.view_perms')}]", f"[{get_global_i18n().t('common.edit')}]", f"[{get_global_i18n().t('common.delete')}]", key=uid)
+                    if uid_int != 1:
+                        table.add_row(uid, uname, role, f"[{get_global_i18n().t('users_management.role')}]", f"[{get_global_i18n().t('users_management.view_perms')}]", f"[{get_global_i18n().t('common.edit')}]", f"[{get_global_i18n().t('common.delete')}]", key=uid)
+                    else:
+                        table.add_row(uid, uname, role, " ", " ", f"[{get_global_i18n().t('common.edit')}]", " ", key=uid)
+
                 except Exception as re:
                     logger.error(f"添加行失败: {re} (uid={uid})")
         except Exception as e:

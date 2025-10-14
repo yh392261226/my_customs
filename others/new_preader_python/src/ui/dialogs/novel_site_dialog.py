@@ -26,7 +26,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         apply_universal_style_isolation(self)
     """书籍网站编辑对话框"""
     
-    CSS_PATH = ["../styles/utilities.tcss", "../styles/novel_site_overrides.tcss"]
+    CSS_PATH = "../styles/novel_site_overrides.tcss"
 
     # 使用 BINDINGS：Enter 保存，Esc 取消
     BINDINGS = [

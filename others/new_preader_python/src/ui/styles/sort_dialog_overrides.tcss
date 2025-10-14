@@ -1,10 +1,14 @@
+Screen {
+    align: center middle;
+}
+
 #sort-dialog {
     width: 90%;
     height: 85%;
     min-height: 40;
     background: $panel;
     border: round $primary;
-    padding: 2;
+    padding: 1;
     layout: vertical;
 }
 

@@ -1,11 +1,13 @@
 /* NovelSiteDialog overrides - 公共布局由 utilities.tcss 提供 */
-NovelSiteDialog {
+Container {
+    align: center middle;
+}
+
+#novel-site-dialog-container {
     layout: vertical;
     padding: 1;
-    width: 100%;
-    max-width: 60;
-    height: auto;
-    min-height: 25;
+    width: 90%;
+    height: 85%;
     background: $panel;
     border: round $primary;
     align: center middle;

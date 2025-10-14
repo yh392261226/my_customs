@@ -1,12 +1,13 @@
 #proxy-edit-container {
     width: 90%;
-    height: 90%;
+    height: 85%;
     min-height: 30;
     margin: 1;
     /* 使用 .panel 提供的背景、边框、padding */
     layout: vertical;
     align: center middle;
-    padding: 2;
+    border: round;
+    padding: 1;
 }
 
 #proxy-edit-title {
