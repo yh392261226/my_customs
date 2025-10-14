@@ -55,8 +55,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         # 基本导航（非划词模式）
-        ("left", "left", get_global_i18n().t('reader.left')),
-        ("right", "right", get_global_i18n().t('reader.right')),
+        ("left,p", "left", get_global_i18n().t('reader.left')),
+        ("right,n", "right", get_global_i18n().t('reader.right')),
         ("up", "up", get_global_i18n().t('reader.up')),
         ("down", "down", get_global_i18n().t('reader.down')),
         # 划词模式进入/提交/取消
