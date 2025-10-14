@@ -40,10 +40,10 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         ("f1,1", "open_book", "Open Book"),
         ("f2,2", "browse_library", "Browse Library"),
         ("f3,3", "get_books", "Get Books"),
-        ("f4,4", "open_settings", "Settings"),
-        ("f5,5", "open_statistics", "Statistics"),
-        ("f6,6", "open_help", "Help"),
-        ("f7,7", "open_user_management", "Manage Users"),
+        ("f5,5", "open_settings", "Settings"),
+        ("f6,6", "open_statistics", "Statistics"),
+        ("f7,7", "open_help", "Help"),
+        ("f4,4", "open_user_management", "Manage Users"),
         ("escape,q", "exit_app", "Exit")
     ]
     
@@ -80,10 +80,10 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Button(get_global_i18n().t('welcome.open_book'), id="open-book-btn"),
                     Button(get_global_i18n().t('welcome.browse_library'), id="browse-library-btn"),
                     Button(get_global_i18n().t('welcome.get_books'), id="get-books-btn"),
+                    Button(get_global_i18n().t('welcome.manage'), id="manage-btn"),
                     Button(get_global_i18n().t('welcome.settings'), id="settings-btn"),
                     Button(get_global_i18n().t('welcome.statistics'), id="statistics-btn"),
                     Button(get_global_i18n().t('welcome.help'), id="help-btn"),
-                    Button(get_global_i18n().t('welcome.manage'), id="manage-btn"),
                     Button(get_global_i18n().t('welcome.exit'), id="exit-btn"),
                     id="welcome-buttons", classes="btn-row"
                 ),
@@ -128,10 +128,10 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 ("f1,1", "open_book", i18n.t('welcome.open_book')),
                 ("f2,2", "browse_library", i18n.t('welcome.browse_library')),
                 ("f3,3", "get_books", i18n.t('welcome.get_books')),
-                ("f4,4", "open_settings", i18n.t('welcome.settings')),
-                ("f5,5", "open_statistics", i18n.t('welcome.statistics')),
-                ("f6,6", "open_help", i18n.t('welcome.help')),
-                ("f7,7", "open_user_management", i18n.t('welcome.manage')),
+                ("f4,4", "open_user_management", i18n.t('welcome.manage')),
+                ("f5,5", "open_settings", i18n.t('welcome.settings')),
+                ("f6,6", "open_statistics", i18n.t('welcome.statistics')),
+                ("f7,7", "open_help", i18n.t('welcome.help')),
                 ("escape,q", "exit_app", i18n.t('welcome.exit')),
             ]
         except Exception:
@@ -250,29 +250,29 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         else:
             self.notify(get_global_i18n().t('welcome.np_open_getbooks'), severity="warning")
 
-    def key_f4(self) -> None:
-        """F4快捷键 - 打开设置"""
+    def key_f5(self) -> None:
+        """F5快捷键 - 打开设置"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.settings"):
             self.app.push_screen("settings")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_settings'), severity="warning")
 
-    def key_f5(self) -> None:
-        """F5快捷键 - 打开统计"""
+    def key_f6(self) -> None:
+        """F6快捷键 - 打开统计"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.statistics"):
             self.app.push_screen("statistics")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_statistics'), severity="warning")
 
-    def key_f6(self) -> None:
-        """F6快捷键 - 打开帮助"""
+    def key_f7(self) -> None:
+        """F7快捷键 - 打开帮助"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.help"):
             self.app.push_screen("help")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_help'), severity="warning")
 
-    def key_f7(self) -> None:
-        """F7快捷键 - 管理用户"""
+    def key_f4(self) -> None:
+        """F4快捷键 - 管理用户"""
         if getattr(self.app, "has_permission", lambda k: True)("admin.manage_users"):
             self.app.push_screen("users_management")
         else:
