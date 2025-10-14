@@ -318,6 +318,7 @@ def initialize_style_manager(app: AppType) -> StyleManager[AppType]:
         "ProxyListScreen": ["proxy_list_overrides.tcss"],
         "NovelSitesManagementScreen": ["novel_sites_management_overrides.tcss"],
         "CrawlerManagementScreen": ["crawler_management_overrides.tcss"],
+        "UsersManagementScreen": ["users_management_overrides.tcss"],
     }
     
     for screen_name, css_paths in screen_styles.items():

@@ -1,3 +1,35 @@
+/* 局部强制隔离：限定在本页面命名空间内，防止全局 Button 样式影响 */
+.users_management-screen Button {
+    /* 确保不受全局 margin-top 影响 */
+    margin: 0 1;
+    height: 3;
+    padding: 0 1;
+}
+
+/* 栏位行内按钮统一间距（新增、编辑、返回等容器） */
+.users_management-screen #um-new-user Button,
+.users_management-screen #um-edit-user Button,
+.users_management-screen #um-back Button {
+    margin: 0 1;
+    height: 3;
+    padding: 0 1;
+}
+
+/* 行容器对齐，防止被外部样式改成顶部对齐造成“视觉上移” */
+.users_management-screen #um-new-user,
+.users_management-screen #um-edit-user,
+.users_management-screen #um-back {
+    align: center middle;
+    height: auto;
+    margin: 1 0;
+}
+
+/* 表格与控件的顶部间距统一 */
+.users_management-screen #users-table,
+.users_management-screen DataTable {
+    margin-top: 1;
+}
+
 /* Users Management Screen Overrides - Textual CSS */
 
 /* 根容器：垂直布局，居中显示 */
@@ -79,11 +111,6 @@
     margin: 0 1 1 1;
 }
 
-#back-btn {
-    height: 3;
-    padding: 0 1;
-    margin: 1;
-}
 
 /* 表格样式优化 */
 DataTable {

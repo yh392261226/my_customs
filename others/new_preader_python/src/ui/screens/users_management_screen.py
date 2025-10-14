@@ -12,7 +12,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.utils.logger import get_logger
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.permissions_dialog import PermissionsDialog
-from src.ui.styles.universal_style_isolation import apply_universal_style_isolation
+from src.ui.styles.comprehensive_style_isolation import apply_comprehensive_style_isolation
 from src.utils.multi_user_manager import multi_user_manager
 
 logger = get_logger(__name__)
@@ -67,11 +67,22 @@ class UsersManagementScreen(Screen[None]):
         )
 
     def _has_permission(self, permission_key: str) -> bool:
-        """检查权限"""
+        """检查权限（兼容单/多用户）"""
         try:
             from src.core.database_manager import DatabaseManager
             db_manager = DatabaseManager()
-            return db_manager.has_permission(permission_key)
+            # 获取当前用户ID
+            current_user_id = getattr(self.app, 'current_user_id', None)
+            if current_user_id is None:
+                # 单用户模式默认允许；多用户无登录则拒绝
+                if not getattr(self.app, 'multi_user_enabled', False):
+                    return True
+                return False
+            # 适配 has_permission 签名 (user_id, key) 或 (key)
+            try:
+                return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
+            except TypeError:
+                return db_manager.has_permission(permission_key)  # type: ignore[misc]
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
@@ -93,11 +104,12 @@ class UsersManagementScreen(Screen[None]):
             logger.error(f"检查按钮权限失败: {e}")
     
     def on_mount(self) -> None:
-        # 应用通用样式隔离，避免外层样式干扰
+        # 应用全面样式隔离（与其他页面一致）
         try:
-            apply_universal_style_isolation(self)
+            apply_comprehensive_style_isolation(self)
         except Exception:
             pass
+        # 应用主题
         try:
             self.theme_manager.apply_theme_to_screen(self)
         except Exception:
