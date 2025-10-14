@@ -68,6 +68,11 @@ class StatisticsScreen(Screen[None]):
             ComposeResult: 组合结果
         """
         with Container(id="stats-container"):
+            yield Horizontal(
+                Label(get_global_i18n().t("statistics.title"), id="statistics-title"), 
+                id="statistics-title-container"
+                )
+                
             with TabbedContent():
                 # 全局统计标签页
                 with TabPane(get_global_i18n().t("statistics.global_stats"), id="global-stats-tab"):

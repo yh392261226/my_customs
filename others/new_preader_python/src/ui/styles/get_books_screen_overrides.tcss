@@ -7,62 +7,84 @@
     height: 100%;
     margin: 1 2;
     layout: vertical;
+    min-height: 0;
 }
 
-#get-books-title {
+#get-books-container #get-books-title {
     width: 100%;
     height: 3;
-    content-align: center middle;
+    content-align: left middle;
     text-style: bold;
     color: $accent;
+    text-align: left;
+    margin: 0 0 1 0;
 }
 
-#get-books-description {
+#get-books-container #get-books-description {
     width: 100%;
     height: 2;
-    content-align: center middle;
+    content-align: left middle;
     color: $text-muted;
+    margin: 0 0 1 0;
 }
 
-#get-books-buttons {
+#get-books-container #get-books-buttons {
     width: 100%;
     height: 4;
     /* 使用 .btn-row 控制横向与居中 */
 }
 
-#novel-sites-preview {
+#get-books-container #novel-sites-preview {
     width: 100%;
-    height: 40%;
+    height: 1fr;
+    layout: vertical;
+    min-height: 0;
     border: round $primary;
 }
 
-#novel-sites-list-title {
-    width: 100%;
-    height: 2;
-    content-align: center middle;
-    text-style: bold;
-}
-
-#proxy-settings-preview {
+#get-books-container #proxy-settings-preview {
     width: 100%;
     height: 20%;
     border: round $primary;
 }
 
-#proxy-status-title {
+#get-books-container #proxy-status-title {
     width: 100%;
     height: 2;
     content-align: center middle;
     text-style: bold;
 }
 
-#proxy-status-info {
+#get-books-container #proxy-status-info {
     width: 100%;
     height: auto;
     content-align: center middle;
 }
 
-#get-books-shortcuts-bar {
+/* 让站点列表预览区可纵向滚动，并允许内部收缩 */
+#get-books-container #novel-sites-preview {
+    min-height: 0;
+    overflow-y: hidden;
+}
+
+/* 兼容不同列表控件，确保填充与滚动 */
+#get-books-container #novel-sites-preview ListView,
+#get-books-container #novel-sites-preview DataTable,
+#get-books-container #novel-sites-preview Tree,
+#get-books-container #novel-sites-preview Static {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* 让预览区的直系 DataTable 填满剩余空间并可滚动 */
+#get-books-container #novel-sites-preview > DataTable {
+    height: 1fr;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+#get-books-container #get-books-shortcuts-bar {
     width: 100%;
     height: 3;
     /* 使用 .status-bar 控制居中 */
@@ -70,7 +92,7 @@
 }
 
 /* 确保快捷键标签在一行横向展示 */
-#get-books-shortcuts-bar > Label {
+#get-books-container #get-books-shortcuts-bar > Label {
     width: auto;
     height: auto;
     margin: 0 1;
@@ -94,4 +116,25 @@
     width: auto;
     height: auto;
     margin: 0 1;
+}
+
+#get-books-container #novel-sites-list-title {
+    width: 100%;
+    height: 1;
+    min-height: 1;
+    max-height: 1;
+    content-align: center middle;
+    text-style: bold;
+    padding: 0;
+    margin: 0;
+    border: none;
+}
+
+#get-books-container #novel-sites-list-title {
+    height: 1;
+    min-height: 1;
+    max-height: 1;
+    margin: 0;
+    padding: 0;
+    border: none;
 }

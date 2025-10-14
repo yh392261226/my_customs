@@ -10,16 +10,19 @@
 #proxy-list-title {
     width: 100%;
     height: 3;
-    content-align: center middle;
+    content-align: left middle;
+    text-align: left;
     color: $accent;
     /* text-style 由 .section-title 提供 */
+    margin: 0 0 1 0;
 }
 
 #proxy-list-description {
     width: 100%;
     height: 2;
-    content-align: center middle;
+    content-align: left middle;
     color: $text-muted;
+    margin: 0 0 1 0;
 }
 
 #proxy-list-buttons {

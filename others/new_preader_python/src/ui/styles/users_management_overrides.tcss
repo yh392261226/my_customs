@@ -43,9 +43,18 @@
 /* 标题：加粗并与下方内容留间距 */
 #um-title {
     text-style: bold;
-    color: $text;
+    color: $accent;
     height: 3;
     margin: 0;
+    width: 100%;
+    align: center middle;
+    text-align: left;
+}
+
+#um-description {
+    width: 100%;
+    align: center middle;
+    text-align: left;
 }
 
 /* 表格占据主要空间，限制宽度以便阅读 */

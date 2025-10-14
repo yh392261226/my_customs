@@ -16,9 +16,9 @@ HelpScreen {
 #help-title {
     width: 100%;
     height: 3;
-    content-align: center middle;
-    background: $accent;
-    color: $text;
+    content-align: left middle;
+    text-align: left;
+    color: $accent;
     text-style: bold;
 }
 

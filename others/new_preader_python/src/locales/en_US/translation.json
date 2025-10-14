@@ -517,7 +517,7 @@
         "line_spacing": "Line Spacing",
         "paragraph_spacing": "Paragraph Spacing",
         "about": "About",
-        "about_content": "About Content",
+        "about_content": "This is an advanced terminal book reader that supports online book downloading, multi-user mode, and supports multiple themes and languages.",
         "open_bookmark_list": "Bookmark List",
         "back": "Back"
     },
@@ -1067,6 +1067,7 @@
     },
     "users_management": {
         "title": "Users and Permissions Management",
+        "description": "After enable multi-user mode, use the users and managers",
         "new_username": "New Username",
         "new_password": "New Password",
         "add_new_user": "Add New User",

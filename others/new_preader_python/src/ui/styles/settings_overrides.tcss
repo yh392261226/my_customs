@@ -3,9 +3,23 @@
 #settings-container {
     width: 100%;
     height: 100%;
-    layout: grid;
-    grid-size: 1 3;
-    grid-rows: 1fr 5 2;
+    layout: vertical;
+    min-height: 40;
+}
+
+
+#settings-title-container {
+    height: 4;
+    width: 100%;
+    margin: 0;
+    color: $accent;
+}
+
+.settings-title {
+    text-align: left;
+    color: $accent;
+    text-style: bold;
+    height: 3;
 }
 
 /* 控制按钮区域：布局/对齐由 .btn-row 提供，这里仅保留尺寸与外观 */
@@ -37,35 +51,39 @@
 }
 
 /* 标签页容器滚动区域 */
-ScrollableContainer {
+#settings-container ScrollableContainer {
     width: 100%;
     height: 90%;
 }
 
 /* 设置项标签与控件尺寸 */
-.setting-label {
+#settings-container .setting-label {
     width: 100%;
     height: 1;
     margin: 1 0;
 }
 
-Select {
+#settings-container Select {
     width: 20%;
     min-width: 10;
     height: 5;
     margin: 1 0;
 }
 
-Input {
+#settings-container Input {
     width: 20%;
     min-width: 10;
     height: 3;
     margin: 1 0;
 }
 
-Switch {
+#settings-container Switch {
     width: 20%;
     min-width: 10;
     height: 3;
     margin: 1 0;
+}
+
+#settings-container TabbedContent {
+    height: 75%;
 }

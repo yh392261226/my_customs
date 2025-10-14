@@ -517,7 +517,7 @@
         "line_spacing": "行间距",
         "paragraph_spacing": "段落间距",
         "about": "关于",
-        "about_content": "关于内容",
+        "about_content": "这是一款高级终端书籍阅读器, 支持在线下载书籍、多用户模式，支持多种主题和语言。",
         "open_bookmark_list": "书签列表",
         "back": "返回"
     },
@@ -1067,6 +1067,7 @@
     },
     "users_management": {
         "title": "用户与权限管理",
+        "description": "在启用多用户模式后的用户和管理员信息",
         "new_username": "新用户名",
         "new_password": "新密码",
         "add_new_user": "添加新用户",

@@ -17,7 +17,6 @@ Container {
     width: 100%;
     text-align: center;
     padding: 1 0;
-    /* text-style 由 .section-title 提供 */
 }
 
 /* 基本信息容器 */

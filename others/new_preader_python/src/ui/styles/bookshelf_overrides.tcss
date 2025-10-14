@@ -23,6 +23,10 @@
     background: transparent;
 }
 
+#bookshelf-title, .section-title {
+    color: $accent;
+}
+
 /* 顶部工具栏按钮居中 */
 .bookshelf-screen #bookshelf-toolbar {
     /* 使用 .btn-row 控制对齐 */

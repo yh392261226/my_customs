@@ -101,6 +101,11 @@ class SettingsScreen(Screen[Any]):
             ComposeResult: 组合结果
         """
         with Container(id="settings-container"):
+            yield Horizontal(
+                Label(get_global_i18n().t("settings.title"), id="settings-title", classes="settings-title"), 
+                id="settings-title-container"
+                )
+
             with TabbedContent():
                 # 外观设置标签页
                 with TabPane(get_global_i18n().t("settings.appearance"), id="appearance-tab"):

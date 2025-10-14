@@ -38,6 +38,7 @@ class UsersManagementScreen(Screen[None]):
         yield Container(
             Vertical(
                 Label(t.t('users_management.title'), id="um-title"),
+                Label(t.t('users_management.description'), id="um-description"),
                 Horizontal(
                     Input(placeholder=t.t('users_management.new_username'), id="new-username"),
                     Input(placeholder=t.t('users_management.new_password'), password=True, id="new-password"),
