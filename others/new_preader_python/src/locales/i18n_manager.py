@@ -11,14 +11,59 @@ _global_i18n: Optional[I18n] = None
 
 def init_global_i18n(locale_dir: str = "src/locales", default_locale: str = "zh_CN") -> None:
     """
-    初始化全局i18n实例
+    初始化全局i18n实例（稳健路径解析 + 可用语言回退）
     
     Args:
-        locale_dir: 语言包目录（默认：src/locales）
-        default_locale: 默认语言
+        locale_dir: 语言包目录（可相对或绝对）
+        default_locale: 默认语言（如 'zh_CN' 或 'en_US'）
     """
     global _global_i18n
-    _global_i18n = I18n(locale_dir, default_locale)
+
+    # 解析候选路径，避免依赖当前工作目录
+    candidates: list[str] = []
+    try:
+        # 1) 传入值原样（可能是绝对或相对）
+        candidates.append(locale_dir)
+        # 2) 传入值的绝对路径
+        import os
+        candidates.append(os.path.abspath(locale_dir))
+        # 3) 以当前模块目录为基准的 locales 目录
+        module_dir = os.path.dirname(__file__)
+        # 如果传入默认 'src/locales'，模块目录即为该路径
+        if locale_dir == "src/locales":
+            candidates.append(os.path.abspath(module_dir))
+        else:
+            # 其他情况尝试组合
+            candidates.append(os.path.abspath(os.path.join(module_dir, "..", os.path.basename(locale_dir))))
+    except Exception:
+        pass
+
+    # 选择第一个存在的目录
+    resolved = None
+    for p in candidates:
+        if isinstance(p, str):
+            try:
+                if os.path.isdir(p):
+                    resolved = p
+                    break
+            except Exception:
+                continue
+
+    # 若仍未解析成功，兜底使用传入值
+    if resolved is None:
+        resolved = locale_dir
+
+    # 初始化 I18n
+    _global_i18n = I18n(resolved, default_locale)
+
+    # 如果默认语言不可用，尝试回退到英文
+    try:
+        available = getattr(_global_i18n, "available_locales", []) or []
+        if isinstance(available, list) and default_locale not in available and "en_US" in available:
+            _global_i18n.set_locale("en_US")  # type: ignore[attr-defined]
+    except Exception:
+        # 回退失败时忽略，保持默认逻辑
+        pass
 
 def get_global_i18n() -> I18n:
     """
