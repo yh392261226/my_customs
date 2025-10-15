@@ -870,6 +870,7 @@
     "crawler": {
         "title": "爬取管理",
         "open_browser": "浏览器打开",
+        "click_me": "点我打开网址",
         "view_history": "刷新历史",
         "back": "返回",
         "novel_id": "书籍ID",

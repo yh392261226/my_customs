@@ -73,7 +73,7 @@ class CrawlerManagementScreen(Screen[None]):
         yield Container(
             Vertical(
                 # Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
-                Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip="Click me"),
+                Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
 
                 # 顶部操作按钮（固定）
                 Horizontal(

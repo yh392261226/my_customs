@@ -870,6 +870,7 @@
     "crawler": {
         "title": "Crawler Management",
         "open_browser": "Open Browser",
+        "click_me": "Click me to open the link",
         "view_history": "Refresh History",
         "back": "Back",
         "novel_id": "Book ID",
