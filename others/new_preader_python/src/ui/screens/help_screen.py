@@ -20,12 +20,6 @@ from src.core.database_manager import DatabaseManager
 logger = get_logger(__name__)
 
 class HelpScreen(Screen[None]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """帮助屏幕"""
     CSS_PATH = "../styles/help_screen_overrides.tcss"
     
@@ -66,13 +60,16 @@ class HelpScreen(Screen[None]):
 {get_global_i18n().t("help.about_content")}
 """
 
-    def _has_permission(self, permission_key: str) -> bool:
-        """检查权限"""
-        try:
-            return self.db_manager.has_permission(permission_key)
-        except Exception as e:
-            logger.error(f"检查权限失败: {e}")
-            return True  # 出错时默认允许
+        # 准备目录内容
+        self.toc_content = f"""
+• {get_global_i18n().t("help.keyboard_shortcuts")}
+  - {get_global_i18n().t("help.reading_operations")}
+  - {get_global_i18n().t("help.ui_settings")}
+  - {get_global_i18n().t("help.advanced_features")}
+• {get_global_i18n().t("help.about")}
+"""
+
+
     
     def compose(self) -> ComposeResult:
         """
@@ -83,12 +80,23 @@ class HelpScreen(Screen[None]):
         """
         yield Container(
             Vertical(
-                Vertical(
-                    Label(get_global_i18n().t("help.title"), id="help-title", classes="section-title"),
-                    Label("", id="help-info"),
-                    id="help-preview"
+                # 顶部标题区域
+                Label(get_global_i18n().t("help.title"), id="help-title", classes="section-title"),
+                
+                # 中间内容区域 - 目录和预览分栏
+                Horizontal(
+                    # 左侧目录区域
+                    # Vertical(
+                    #     Label("目录", id="toc-title"),
+                    #     Static(self.toc_content, id="help-toc"),
+                    #     id="help-toc-container"
+                    # ),
+                    # 右侧Markdown预览区域
+                    MarkdownViewer(self.help_content, id="help-content", show_table_of_contents=True),
+                    id="help-content-area"
                 ),
-                MarkdownViewer(self.help_content, id="help-content"),
+                
+                # 底部按钮和快捷键区域
                 Horizontal(
                     Button(get_global_i18n().t("help.back"), id="back-btn"),
                     id="help-controls", classes="btn-row"

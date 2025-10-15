@@ -171,7 +171,7 @@ class NewReaderApp(App[None]):
         Binding("q", "quit", "退出"),
         Binding("h", "show_help", "帮助"),
         Binding("k", "show_bookshelf", "书架"),
-        Binding("S", "show_settings", "设置"),
+        Binding("s", "show_settings", "设置"),
         Binding("c", "show_statistics", "统计"),
         Binding("/", "boss_key", "老板键"),
         Binding("t", "pick_theme", "主题"),

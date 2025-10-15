@@ -1,4 +1,4 @@
-/* 帮助中心页面 overrides（初次迁移保持等效） */
+/* 帮助中心页面样式 */
 HelpScreen {
     layout: vertical;
     width: 100%;
@@ -10,9 +10,10 @@ HelpScreen {
     width: 100%;
     height: 100%;
     layout: vertical;
+    min-height: 0;
 }
 
-/* 标题区域 */
+/* 顶部标题区域 */
 #help-title {
     width: 100%;
     height: 3;
@@ -20,35 +21,86 @@ HelpScreen {
     text-align: left;
     color: $accent;
     text-style: bold;
+    background: $panel-darken-1;
+    border-bottom: solid $primary;
+    dock: top;
 }
 
-/* 内容区域样式 */
+/* 中间内容区域容器 */
+#help-content-area {
+    width: 100%;
+    height: 1fr;
+    overflow-y: auto;
+    layout: horizontal;
+    align: right top;
+}
+
+/* 左侧目录容器 */
+#help-toc-container {
+    width: 25%;
+    height: 100%;
+    layout: vertical;
+    border-right: solid $primary;
+    background: $panel;
+    padding: 1;
+}
+
+/* 目录标题 */
+#toc-title {
+    width: 100%;
+    height: 2;
+    content-align: center middle;
+    text-align: center;
+    color: $text;
+    text-style: bold;
+    border-bottom: solid $primary-lighten-1;
+    margin-bottom: 1;
+}
+
+/* 目录内容 */
+#help-toc {
+    width: 100%;
+    height: 85%;
+    overflow-y: auto;
+    padding: 0 1;
+    color: $text-muted;
+}
+
+/* Markdown预览区域 */
 #help-content {
     width: 100%;
-    height: 70%;
-    overflow-y: scroll;
-    padding: 1;
+    height: 100%;
+    padding: 1 2;
+    overflow-y: auto;
+    background: $surface;
 }
 
 /* 底部按钮区域样式 */
 #help-controls {
     width: 100%;
-    height: 20%;
+    height: 6;
     background: $panel;
     border-top: solid $primary;
-    padding: 1;
+    padding: 0 1;
+    dock: bottom;
+    align: center middle;
+    margin: 0 0 1 0;
 }
 
 /* 快捷键状态栏 */
 #help-shortcuts-bar {
     width: 100%;
-    height: 5%;
+    height: 3;
     background: $panel-darken-1;
+    border-top: solid $primary-lighten-1;
+    dock: bottom;
+    align: center middle;
 }
 
 /* 按钮样式 */
 #back-btn {
     width: auto;
-    height: 3;
-    margin: 0 1;
+    height: 4;
+    margin: 0 1 1 0;
+    min-width: 10;
 }
