@@ -7,7 +7,7 @@ import asyncio
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
-from textual.widgets import Static, Button, Label, DataTable, Input, Select, Checkbox
+from textual.widgets import Static, Button, Label, DataTable, Input, Select, Checkbox, Header, Footer
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -50,11 +50,7 @@ class ProxyListScreen(Screen[None]):
             theme_manager: 主题管理器
         """
         super().__init__()
-        try:
-            self.title = get_global_i18n().t('proxy_list.title')
-        except RuntimeError:
-            # 如果全局i18n未初始化，使用默认标题
-            self.title = "代理列表管理"
+        self.title = get_global_i18n().t('proxy_list.title')
         self.theme_manager = theme_manager
         self.database_manager = DatabaseManager()
         self.proxy_list = []
@@ -75,34 +71,24 @@ class ProxyListScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
-        # 获取i18n文本，如果未初始化则使用默认值
-        try:
-            i18n = get_global_i18n()
-            title = i18n.t('proxy_list.title')
-            description = i18n.t('proxy_list.description')
-            add_proxy = i18n.t('proxy_list.add_proxy')
-            test_connection = i18n.t('proxy_list.test_connection')
-            edit_proxy = i18n.t('proxy_list.edit_proxy')
-            delete_proxy = i18n.t('proxy_list.delete_proxy')
-            enable_proxy = i18n.t('proxy_list.enable_proxy')
-            back = i18n.t('proxy_list.back')
-            shortcut_a = f"{i18n.t('proxy_list.shortcut_a') } {i18n.t('proxy_list.shortcut_t')} {i18n.t('proxy_list.shortcut_e')} {i18n.t('proxy_list.shortcut_d')} {i18n.t('proxy_list.shortcut_esc')}"
-        except RuntimeError:
-            # 使用默认值
-            title = "代理列表管理"
-            description = "管理多条代理信息，同一时间只能开启一个代理"
-            add_proxy = "添加代理"
-            test_connection = "测试连接"
-            edit_proxy = "编辑"
-            delete_proxy = "删除"
-            enable_proxy = "启用"
-            back = "返回"
-            shortcut_a = "A: 添加代理 T: 测试连接 E: 编辑代理 D: 删除代理 ESC: 返回"
+        # 获取i18n文本
+        i18n = get_global_i18n()
+        title = i18n.t('proxy_list.title')
+        description = i18n.t('proxy_list.description')
+        add_proxy = i18n.t('proxy_list.add_proxy')
+        test_connection = i18n.t('proxy_list.test_connection')
+        edit_proxy = i18n.t('proxy_list.edit_proxy')
+        delete_proxy = i18n.t('proxy_list.delete_proxy')
+        enable_proxy = i18n.t('proxy_list.enable_proxy')
+        back = i18n.t('proxy_list.back')
+        shortcut_a = f"{i18n.t('proxy_list.shortcut_a') } {i18n.t('proxy_list.shortcut_t')} {i18n.t('proxy_list.shortcut_e')} {i18n.t('proxy_list.shortcut_d')} {i18n.t('proxy_list.shortcut_esc')}"
         
+        
+        yield Header()
         yield Container(
             Vertical(
                 # 固定标题
-                Label(title, id="proxy-list-title", classes="section-title"),
+                # Label(title, id="proxy-list-title", classes="section-title"),
                 Label(description, id="proxy-list-description"),
                 
                 # 操作按钮区域
@@ -122,14 +108,15 @@ class ProxyListScreen(Screen[None]):
                 DataTable(id="proxy-list-table"),
                 
                 # 快捷键状态栏
-                Horizontal(
-                    Label(shortcut_a, id="shortcut-a"),
-                    id="shortcuts-bar",
-                    classes="status-bar"
-                ),
+                # Horizontal(
+                #     Label(shortcut_a, id="shortcut-a"),
+                #     id="shortcuts-bar",
+                #     classes="status-bar"
+                # ),
                 id="proxy-list-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

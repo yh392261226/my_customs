@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List, ClassVar, Set
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem
+from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer
 from textual.reactive import reactive
 from textual import on
 from textual import events
@@ -86,10 +86,11 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """
         组合文件资源管理器界面 - 改进版布局
         """
+        yield Header()
         with Container(id="main-container"):
             # 顶部标题区域
             with Container(id="header-container"):
-                yield Label(get_global_i18n().t("file_explorer.title"), id="title", classes="section-title")
+                # yield Label(get_global_i18n().t("file_explorer.title"), id="title", classes="section-title")
                 yield Static("", id="current-path")
             
             # 导航栏
@@ -120,6 +121,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                     else:
                         yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
                     yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
+            yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

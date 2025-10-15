@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List, ClassVar
 
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label
+from textual.widgets import Static, Button, Label, Header, Footer
 from textual.app import ComposeResult, App
 from textual.reactive import reactive
 from textual import events
@@ -34,17 +34,18 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
     """欢迎屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
+    CSS_PATH = '../styles/welcome_screen_overrides.tcss'
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("f1,1", "open_book", "Open Book"),
-        ("f2,2", "browse_library", "Browse Library"),
-        ("f3,3", "get_books", "Get Books"),
-        ("f5,5", "open_settings", "Settings"),
-        ("f6,6", "open_statistics", "Statistics"),
-        ("f7,7", "open_help", "Help"),
-        ("f4,4", "open_user_management", "Manage Users"),
-        ("escape,q", "exit_app", "Exit")
+        ("f1,1", "open_book", get_global_i18n().t('welcome.shortcut_f1')),
+        ("f2,2", "browse_library", get_global_i18n().t('welcome.shortcut_f2')),
+        ("f3,3", "get_books", get_global_i18n().t('welcome.shortcut_f3')),
+        ("f4,4", "open_user_management", get_global_i18n().t('welcome.shortcut_f4')),
+        ("f5,5", "open_settings", get_global_i18n().t('welcome.shortcut_f5')),
+        ("f6,6", "open_statistics", get_global_i18n().t('welcome.shortcut_f6')),
+        ("f7,7", "open_help", get_global_i18n().t('welcome.shortcut_f7')),
+        ("escape,q", "exit_app", get_global_i18n().t('welcome.shortcut_esc'))
     ]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
@@ -56,11 +57,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             bookshelf: 书架
         """
         super().__init__()
-        try:
-            self.screen_title = t("welcome.title")
-        except RuntimeError:
-            # 如果i18n未初始化，使用默认标题
-            self.screen_title = "欢迎"
+        self.title = t("welcome.title")
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
     
@@ -71,6 +68,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         yield Container(
             Vertical(
                 Label(get_global_i18n().t('welcome.title_main'), id="welcome-title"),
@@ -98,20 +96,21 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     id="features-container"
                 ),
                 # 快捷键状态栏
-                Horizontal(
-                    Label(get_global_i18n().t('welcome.shortcut_f1'), id="shortcut-f1"),
-                    Label(get_global_i18n().t('welcome.shortcut_f2'), id="shortcut-f2"),
-                    Label(get_global_i18n().t('welcome.shortcut_f3'), id="shortcut-f3"),
-                    Label(get_global_i18n().t('welcome.shortcut_f4'), id="shortcut-f4"),
-                    Label(get_global_i18n().t('welcome.shortcut_f5'), id="shortcut-f5"),
-                    Label(get_global_i18n().t('welcome.shortcut_f6'), id="shortcut-f6"),
-                    Label(get_global_i18n().t('welcome.shortcut_f7'), id="shortcut-f7"),
-                    Label(get_global_i18n().t('welcome.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar", classes="status-bar"
-                ),
+                # Horizontal(
+                #     Label(get_global_i18n().t('welcome.shortcut_f1'), id="shortcut-f1"),
+                #     Label(get_global_i18n().t('welcome.shortcut_f2'), id="shortcut-f2"),
+                #     Label(get_global_i18n().t('welcome.shortcut_f3'), id="shortcut-f3"),
+                #     Label(get_global_i18n().t('welcome.shortcut_f4'), id="shortcut-f4"),
+                #     Label(get_global_i18n().t('welcome.shortcut_f5'), id="shortcut-f5"),
+                #     Label(get_global_i18n().t('welcome.shortcut_f6'), id="shortcut-f6"),
+                #     Label(get_global_i18n().t('welcome.shortcut_f7'), id="shortcut-f7"),
+                #     Label(get_global_i18n().t('welcome.shortcut_esc'), id="shortcut-esc"),
+                #     id="shortcuts-bar", classes="status-bar"
+                # ),
                 id="welcome-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

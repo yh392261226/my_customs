@@ -1,4 +1,20 @@
 /* 公用样式：集中常用布局与控件尺寸，供全局复用 */
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    background: $background;
+    color: $accent;
+    text-align: left;
+    align: left middle;
+    content-align: left middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}
 
 /* 统一按钮行：水平排列，固定高，按钮有最小宽度 */
 .btn-row {

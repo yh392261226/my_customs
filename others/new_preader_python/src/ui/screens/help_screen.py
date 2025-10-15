@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List, ClassVar
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, MarkdownViewer, Footer
+from textual.widgets import Static, Button, Label, MarkdownViewer, Header, Footer
 from textual.reactive import reactive
 
 from src.locales.i18n import I18n
@@ -31,7 +31,7 @@ class HelpScreen(Screen[None]):
         初始化帮助屏幕
         """
         super().__init__()
-        self.screen_title = get_global_i18n().t("help.title")
+        self.title = get_global_i18n().t("help.title")
         # self.db_manager = DatabaseManager()  # 数据库管理器
         
         # 逐行从语言包读取，拼装 Markdown
@@ -138,10 +138,11 @@ class HelpScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         yield Container(
             Vertical(
                 # 顶部标题区域
-                Label(get_global_i18n().t("help.title"), id="help-title", classes="section-title"),
+                # Label(get_global_i18n().t("help.title"), id="help-title", classes="section-title"),
                 
                 # 中间内容区域 - 目录和预览分栏
                 Horizontal(
@@ -161,15 +162,10 @@ class HelpScreen(Screen[None]):
                     Button(get_global_i18n().t("help.back"), id="back-btn"),
                     id="help-controls", classes="btn-row"
                 ),
-                # 快捷键状态栏
-                Horizontal(
-                    Label(f"ESC: {get_global_i18n().t('common.back')}", id="shortcut-esc"),
-                    Label(f"T: {get_global_i18n().t('help.toggle_table_of_contents')}", id="shortcut-t"),
-                    id="help-shortcuts-bar", classes="status-bar"
-                ),
                 id="help-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

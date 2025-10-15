@@ -5,7 +5,7 @@
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, DataTable, Input, Select, Checkbox
+from textual.widgets import Static, Button, Label, DataTable, Input, Select, Checkbox, Header, Footer
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -73,9 +73,10 @@ class NovelSitesManagementScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         yield Container(
             Vertical(
-                Label(get_global_i18n().t('novel_sites.title'), id="novel-sites-title", classes="section-title"),
+                # Label(get_global_i18n().t('novel_sites.title'), id="novel-sites-title", classes="section-title"),
                 Label(get_global_i18n().t('novel_sites.description'), id="novel-sites-description"),
                 
                 # 操作按钮区域
@@ -95,19 +96,20 @@ class NovelSitesManagementScreen(Screen[None]):
                 Label("", id="novel-sites-status"),
                 
                 # 快捷键状态栏
-                Horizontal(
-                    Label(get_global_i18n().t('novel_sites.shortcut_a'), id="shortcut-a"),
-                    Label(get_global_i18n().t('novel_sites.shortcut_e'), id="shortcut-e"),
-                    Label(get_global_i18n().t('novel_sites.shortcut_d'), id="shortcut-d"),
-                    Label(get_global_i18n().t('novel_sites.shortcut_b'), id="shortcut-b"),
-                    Label(get_global_i18n().t('novel_sites.shortcut_space'), id="shortcut-space"),
-                    Label(get_global_i18n().t('novel_sites.shortcut_enter'), id="shortcut-enter"),
-                    Label(get_global_i18n().t('novel_sites.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar", classes="status-bar"
-                ),
+                # Horizontal(
+                #     Label(get_global_i18n().t('novel_sites.shortcut_a'), id="shortcut-a"),
+                #     Label(get_global_i18n().t('novel_sites.shortcut_e'), id="shortcut-e"),
+                #     Label(get_global_i18n().t('novel_sites.shortcut_d'), id="shortcut-d"),
+                #     Label(get_global_i18n().t('novel_sites.shortcut_b'), id="shortcut-b"),
+                #     Label(get_global_i18n().t('novel_sites.shortcut_space'), id="shortcut-space"),
+                #     Label(get_global_i18n().t('novel_sites.shortcut_enter'), id="shortcut-enter"),
+                #     Label(get_global_i18n().t('novel_sites.shortcut_esc'), id="shortcut-esc"),
+                #     id="shortcuts-bar", classes="status-bar"
+                # ),
                 id="novel-sites-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

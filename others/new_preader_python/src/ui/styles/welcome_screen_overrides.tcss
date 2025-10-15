@@ -1,0 +1,16 @@
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    background: $background;
+    color: $accent;
+    text-align: left;
+    align: left middle;
+    content-align: left middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}

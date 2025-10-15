@@ -5,9 +5,13 @@ Screen {
 
 Header {
     dock: top;
-    height: 3;
+    height: 1;
+    text-align: left;
     background: $accent;
     color: $text;
+    width: 100%;
+    align: left middle;
+    content-align: left middle;
 }
 
 Footer {

@@ -1,0 +1,20 @@
+#note-screen-container {
+    width: 90%;
+    height: 85%;
+    align: center middle;
+    content-align: center middle;
+}
+
+#note-container {
+    width: 90%;
+    height: 85%;
+    align: center middle;
+    content-align: center middle;
+}
+
+#note-container > #note-textarea {
+    align: center middle;
+    content-align: center middle;
+    border: round;
+    height: 10;
+}

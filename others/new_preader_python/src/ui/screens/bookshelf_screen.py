@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
-from textual.widgets import Static, Button, Label, DataTable
+from textual.widgets import Static, Button, Label, DataTable, Header, Footer
 from textual.reactive import reactive
 from textual import on, events
 
@@ -116,11 +116,12 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         yield Container(
             Grid(
                 # 顶部标题和工具栏
                 Vertical(
-                    Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-title", classes="section-title"),
+                    # Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-title", classes="section-title"),
                     Horizontal(
                         Button(get_global_i18n().t("bookshelf.search"), id="search-btn", classes="btn"),
                         Button(get_global_i18n().t("bookshelf.sort.title"), id="sort-btn", classes="btn"),
@@ -148,28 +149,29 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         id="bookshelf-controls",
                         classes="btn-row"
                     ),
-                    # 快捷键状态栏
-                    Horizontal(
-                        Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
-                        Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
-                        Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
-                        Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
-                        Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
-                        Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
-                        Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
-                        Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
-                        Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
-                        Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
-                        Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
-                        Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
-                        id="shortcuts-bar",
-                        classes="footer status-bar"
-                    ),
+                    # # 快捷键状态栏
+                    # Horizontal(
+                    #     Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
+                    #     Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
+                    #     Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
+                    #     Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
+                    #     Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
+                    #     Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
+                    #     Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
+                    #     Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
+                    #     Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
+                    #     Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
+                    #     Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
+                    #     Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
+                    #     id="shortcuts-bar",
+                    #     classes="footer status-bar"
+                    # ),
                     id="bookshelf-footer"
                 ),
                 id="bookshelf-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

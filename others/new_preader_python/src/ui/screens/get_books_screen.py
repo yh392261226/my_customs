@@ -2,10 +2,11 @@
 获取书籍屏幕
 """
 
+from ast import Yield
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, DataTable, Input
+from textual.widgets import Static, Button, Label, DataTable, Input, Header, Footer
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -58,9 +59,10 @@ class GetBooksScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         yield Container(
             Horizontal(
-                Label(get_global_i18n().t('get_books.title'), id="get-books-title", classes="section-title"),
+                # Label(get_global_i18n().t('get_books.title'), id="get-books-title", classes="section-title"),
                 Label(get_global_i18n().t('get_books.description'), id="get-books-description"),
                 
                 # 功能按钮区域
@@ -87,17 +89,18 @@ class GetBooksScreen(Screen[None]):
                 ),
                 
                 # 快捷键状态栏
-                Horizontal(
-                    Label(get_global_i18n().t('get_books.shortcut_n'), id="shortcut-n"),
-                    Label(get_global_i18n().t('get_books.shortcut_p'), id="shortcut-p"),
-                    Label(f"{get_global_i18n().t('get_books.shortcut_space')} {get_global_i18n().t('get_books.shortcut_enter')}", id="shortcut-enter"),
-                    Label(get_global_i18n().t('get_books.shortcut_esc'), id="shortcut-esc"),
-                    id="get-books-shortcuts-bar",
-                    classes="status-bar"
-                ),
+                # Horizontal(
+                #     Label(get_global_i18n().t('get_books.shortcut_n'), id="shortcut-n"),
+                #     Label(get_global_i18n().t('get_books.shortcut_p'), id="shortcut-p"),
+                #     Label(f"{get_global_i18n().t('get_books.shortcut_space')} {get_global_i18n().t('get_books.shortcut_enter')}", id="shortcut-enter"),
+                #     Label(get_global_i18n().t('get_books.shortcut_esc'), id="shortcut-esc"),
+                #     id="get-books-shortcuts-bar",
+                #     classes="status-bar"
+                # ),
                 id="get-books-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

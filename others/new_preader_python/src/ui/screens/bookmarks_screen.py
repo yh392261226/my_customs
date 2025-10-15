@@ -8,7 +8,7 @@ from webbrowser import get
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, ListView, ListItem, Input
+from textual.widgets import Static, Button, Label, ListView, ListItem, Input, Header, Footer
 from textual import events, on
 from textual.message import Message
 from src.locales.i18n_manager import set_global_locale, get_global_i18n, t
@@ -65,6 +65,7 @@ class BookmarksScreen(Screen[None]):
     
     def compose(self) -> ComposeResult:
         """组合书签列表界面"""
+        yield Header()
         yield Container(
             Vertical(
                 # 标题栏
@@ -103,6 +104,7 @@ class BookmarksScreen(Screen[None]):
                 id="bookmarks-container"
             )
         )
+        yield Footer()
     
     def _get_bookmark_items(self) -> List[ListItem]:
         """获取书签列表项，如果为空则显示提示"""

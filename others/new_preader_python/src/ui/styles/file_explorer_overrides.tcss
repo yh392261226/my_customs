@@ -1,4 +1,20 @@
 /* 文件资源管理器 overrides（初次迁移保持等效） */
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    background: $background;
+    color: $accent;
+    text-align: left;
+    align: left middle;
+    content-align: left middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}
 
 /* 主容器 */
 #main-container {
@@ -107,7 +123,7 @@ Tree {
 #current-path {
     color: $text-muted;
     height: 1;
-    margin: 0 1;
+    margin: 1 1;
     text-align: left;
 }
 

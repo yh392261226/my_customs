@@ -12,7 +12,7 @@ from textual import events
 from textual.screen import Screen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, ProgressBar
+from textual.widgets import Static, Button, Label, ProgressBar, Header, Footer
 from textual.reactive import reactive
 
 from src.locales.i18n import I18n
@@ -259,6 +259,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     
     def compose(self) -> ComposeResult:
         """组合阅读器屏幕界面"""
+        yield Header()
         # 标题栏
         yield Static(f"📖 {get_global_i18n().t('reader.title')}", id="header")
         
@@ -283,10 +284,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 yield Button(f"{get_global_i18n().t('reader.aloud')}【R】", classes="btn", id="aloud-btn")
                 yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
                 yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
-                yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="back-btn")
+                yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="reader-back-btn")
         
         # 状态栏
         yield Static("", id="reader-status")
+        yield Footer()
     
     def on_mount(self) -> None:
         # 应用全面的样式隔离
@@ -1312,7 +1314,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._toggle_tts()
         elif button_id == "auto-page-btn":
             self._toggle_auto_page()
-        elif button_id == "back-btn":
+        elif button_id == "reader-back-btn":
             self._back_to_library()
     
     # —— Actions for BINDINGS ——

@@ -5,7 +5,7 @@
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, DataTable, Input, Select
+from textual.widgets import Static, Button, Label, DataTable, Input, Select, Link, Header, Footer
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -42,6 +42,7 @@ class CrawlerManagementScreen(Screen[None]):
         self.is_crawling = False  # 爬取状态标志
         self.loading_animation = None  # 加载动画组件
         self.is_mounted_flag = False  # 组件挂载标志
+        self.title = get_global_i18n().t('crawler.title')
 
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限"""
@@ -68,10 +69,11 @@ class CrawlerManagementScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         yield Container(
             Vertical(
-                Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
-                Label(self.novel_site['url'], id="crawler-url"),
+                # Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
+                Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip="Click me"),
 
                 # 顶部操作按钮（固定）
                 Horizontal(
@@ -119,20 +121,21 @@ class CrawlerManagementScreen(Screen[None]):
                 Static("", id="loading-animation"),
 
                 # 快捷键状态栏
-                Horizontal(
-                    Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
-                    Label(get_global_i18n().t('crawler.shortcut_r'), id="shortcut-r"),
-                    Label(get_global_i18n().t('crawler.shortcut_s'), id="shortcut-s"),
-                    Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
-                    Label(get_global_i18n().t('crawler.shortcut_b'), id="shortcut-b"),
-                    Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
-                    Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
-                    Label(get_global_i18n().t('crawler.shortcut_esc'), id="shortcut-esc"),
-                    id="shortcuts-bar", classes="status-bar"
-                ),
+                # Horizontal(
+                #     Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
+                #     Label(get_global_i18n().t('crawler.shortcut_r'), id="shortcut-r"),
+                #     Label(get_global_i18n().t('crawler.shortcut_s'), id="shortcut-s"),
+                #     Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
+                #     Label(get_global_i18n().t('crawler.shortcut_b'), id="shortcut-b"),
+                #     Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
+                #     Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
+                #     Label(get_global_i18n().t('crawler.shortcut_esc'), id="shortcut-esc"),
+                #     id="shortcuts-bar", classes="status-bar"
+                # ),
                 id="crawler-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""

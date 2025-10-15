@@ -1,4 +1,20 @@
 /* 小说网站管理屏幕 overrides（初次迁移保持等效） */
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    background: $background;
+    color: $accent;
+    text-align: left;
+    align: left middle;
+    content-align: left middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}
 
 #novel-sites-container {
     width: 100%;

@@ -10,7 +10,7 @@ from webbrowser import get
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, ScrollableContainer
-from textual.widgets import Static, Button, Label, DataTable, ProgressBar, TabbedContent, TabPane
+from textual.widgets import Static, Button, Label, DataTable, ProgressBar, TabbedContent, TabPane, Header, Footer
 from textual.reactive import reactive
 from textual import on, events
 
@@ -54,7 +54,7 @@ class StatisticsScreen(Screen[None]):
         super().__init__()
         self.theme_manager = theme_manager
         self.statistics_manager = statistics_manager
-        self.screen_title = get_global_i18n().t("statistics.title")
+        self.title = get_global_i18n().t("statistics.title")
         
         # 初始化统计数据（直接从数据库获取）
         self.global_stats = self.statistics_manager.get_total_stats()
@@ -67,11 +67,12 @@ class StatisticsScreen(Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         with Container(id="stats-container"):
-            yield Horizontal(
-                Label(get_global_i18n().t("statistics.title"), id="statistics-title"), 
-                id="statistics-title-container"
-                )
+            # yield Horizontal(
+            #     Label(get_global_i18n().t("statistics.title"), id="statistics-title"), 
+            #     id="statistics-title-container"
+            #     )
                 
             with TabbedContent():
                 # 全局统计标签页
@@ -112,11 +113,12 @@ class StatisticsScreen(Screen[None]):
                 yield Button(get_global_i18n().t("statistics.reset"), id="reset-btn")
                 yield Button(get_global_i18n().t("statistics.back"), id="back-btn")
             
-            # 快捷键状态栏
-            with Horizontal(id="shortcuts-bar", classes="status-bar"):
-                yield Label("R: 刷新", id="shortcut-r")
-                yield Label("E: 导出", id="shortcut-e")
-                yield Label("ESC: 返回", id="shortcut-esc")
+            # # 快捷键状态栏
+            # with Horizontal(id="shortcuts-bar", classes="status-bar"):
+            #     yield Label("R: 刷新", id="shortcut-r")
+            #     yield Label("E: 导出", id="shortcut-e")
+            #     yield Label("ESC: 返回", id="shortcut-esc")
+        yield Footer()
     
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限"""

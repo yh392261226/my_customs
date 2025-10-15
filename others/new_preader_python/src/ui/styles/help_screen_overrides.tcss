@@ -1,4 +1,21 @@
 /* 帮助中心页面样式 */
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    text-align: left;
+    color: $accent;
+    background: $background;
+    align: left middle;
+    content-align: left middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}
+
 HelpScreen {
     layout: vertical;
     width: 100%;
@@ -109,7 +126,7 @@ MarkdownTableOfContents {
 /* 按钮样式 */
 #back-btn {
     width: auto;
-    height: 4;
+    height: 3;
     margin: 0 1 1 0;
     min-width: 10;
 }

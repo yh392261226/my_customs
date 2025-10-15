@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 class NoteDialog(ModalScreen[Optional[str]]):
     """备注对话框"""
-    CSS_PATH = ["../styles/utilities.tcss"]
+    CSS_PATH = ["../styles/utilities.tcss", '../styles/note_dialog_overrides.tcss']
 
     # 使用 BINDINGS 替代 on_key（Esc 取消，Ctrl+S 保存）
     BINDINGS = [
@@ -74,7 +74,8 @@ class NoteDialog(ModalScreen[Optional[str]]):
                 ),
                 
                 id="note-container"
-            )
+            ),
+            id="note-screen-container"
         )
     
     def on_mount(self) -> None:

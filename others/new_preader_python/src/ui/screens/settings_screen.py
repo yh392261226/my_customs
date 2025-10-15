@@ -7,7 +7,7 @@
 from typing import Any, Dict, Optional, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
-from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane
+from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane, Header, Footer
 from src.ui.components.slider import Slider
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from textual.reactive import reactive
@@ -91,7 +91,7 @@ class SettingsScreen(Screen[Any]):
         # 从配置加载设置值
         self.config_adapter.load_config_to_settings()
         
-        self.screen_title = get_global_i18n().t("settings.title")
+        self.title = get_global_i18n().t("settings.title")
     
     def compose(self) -> ComposeResult:
         """
@@ -100,11 +100,12 @@ class SettingsScreen(Screen[Any]):
         Returns:
             ComposeResult: 组合结果
         """
+        yield Header()
         with Container(id="settings-container"):
-            yield Horizontal(
-                Label(get_global_i18n().t("settings.title"), id="settings-title", classes="settings-title"), 
-                id="settings-title-container"
-                )
+            # yield Horizontal(
+            #     Label(get_global_i18n().t("settings.title"), id="settings-title", classes="settings-title"), 
+            #     id="settings-title-container"
+            #     )
 
             with TabbedContent():
                 # 外观设置标签页
@@ -136,10 +137,11 @@ class SettingsScreen(Screen[Any]):
                 yield Button(get_global_i18n().t("settings.reset"), id="reset-btn", variant="warning")
             
             # 快捷键状态栏
-            with Horizontal(id="settings-shortcuts-bar", classes="status-bar"):
-                yield Label(f"Enter: {get_global_i18n().t("common.save")}", id="shortcut-enter")
-                yield Label(f"ESC: {get_global_i18n().t("common.cancel")}", id="shortcut-esc")
-                yield Label(f"R: {get_global_i18n().t("common.reset")}", id="shortcut-reset")
+            # with Horizontal(id="settings-shortcuts-bar", classes="status-bar"):
+            #     yield Label(f"Enter: {get_global_i18n().t("common.save")}", id="shortcut-enter")
+            #     yield Label(f"ESC: {get_global_i18n().t("common.cancel")}", id="shortcut-esc")
+            #     yield Label(f"R: {get_global_i18n().t("common.reset")}", id="shortcut-reset")
+        yield Footer()
     
     def _compose_appearance_settings(self) -> ComposeResult:
         """组合外观设置"""

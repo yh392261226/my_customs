@@ -4,7 +4,7 @@
 from typing import Optional, Dict, Any, List, ClassVar, Set
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Label, Input, Button, DataTable
+from textual.widgets import Label, Input, Button, DataTable, Header, Footer
 from textual.app import ComposeResult
 from src.core.database_manager import DatabaseManager
 from src.themes.theme_manager import ThemeManager
@@ -32,12 +32,14 @@ class UsersManagementScreen(Screen[None]):
         self._new_username = ""
         self._new_password = ""
         self._perm_input = ""
+        self.title = get_global_i18n().t('users_management.title')
 
     def compose(self) -> ComposeResult:
         t = get_global_i18n()
+        yield Header()
         yield Container(
             Vertical(
-                Label(t.t('users_management.title'), id="um-title"),
+                # Label(t.t('users_management.title'), id="um-title"),
                 Label(t.t('users_management.description'), id="um-description"),
                 Horizontal(
                     Input(placeholder=t.t('users_management.new_username'), id="new-username"),
@@ -66,6 +68,7 @@ class UsersManagementScreen(Screen[None]):
                 id="um-container"
             )
         )
+        yield Footer()
 
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限（兼容单/多用户）"""

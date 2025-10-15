@@ -1,4 +1,21 @@
 /* 局部强制隔离：限定在本页面命名空间内，防止全局 Button 样式影响 */
+Header {
+    dock: top;
+    width: 100%;
+    height: 1;
+    background: $background;
+    color: $accent;
+    text-align: left;
+    align: left middle;
+    content-align: left middle;
+}
+
+Footer {
+    height: 1;
+    width: 100%;
+    dock: bottom;
+}
+
 .users_management-screen Button {
     /* 确保不受全局 margin-top 影响 */
     margin: 0 1;
