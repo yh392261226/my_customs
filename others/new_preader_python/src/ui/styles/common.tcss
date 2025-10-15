@@ -94,9 +94,9 @@ Screen {
 
 Header {
     dock: top;
-    height: 3;
-    background: $accent;
-    color: $text;
+    height: 1;
+    background: $background;
+    color: $accent;
 }
 
 Footer {
