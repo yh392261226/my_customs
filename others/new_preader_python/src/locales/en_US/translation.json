@@ -519,7 +519,8 @@
         "about": "About",
         "about_content": "This is an advanced terminal book reader that supports online book downloading, multi-user mode, and supports multiple themes and languages.",
         "open_bookmark_list": "Bookmark List",
-        "back": "Back"
+        "back": "Back",
+        "toggle_table_of_contents": "Show/Hide Table of Contents"
     },
     "statistics": {
         "title": "Statistics",

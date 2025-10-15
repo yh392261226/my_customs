@@ -519,7 +519,8 @@
         "about": "关于",
         "about_content": "这是一款高级终端书籍阅读器, 支持在线下载书籍、多用户模式，支持多种主题和语言。",
         "open_bookmark_list": "书签列表",
-        "back": "返回"
+        "back": "返回",
+        "toggle_table_of_contents": "显示/隐藏目录"
     },
     "statistics": {
         "title": "统计",
