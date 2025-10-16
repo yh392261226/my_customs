@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
-from textual.widgets import Static, Button, Label, DataTable, Header, Footer
+from textual.widgets import Static, Button, Label, DataTable, Header, Footer, LoadingIndicator
 from textual.reactive import reactive
 from textual import on, events
 
@@ -186,6 +186,15 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         grid.styles.grid_size_rows = 4
         grid.styles.grid_size_columns = 1
         grid.styles.grid_rows = ("15%", "60%", "10%", "20%")
+
+        # 原生 LoadingIndicator（初始隐藏），挂载到书籍统计区域
+        try:
+            self.loading_indicator = LoadingIndicator(id="bookshelf-loading-indicator")
+            self.loading_indicator.display = False
+            loading_area = self.query_one("#books-stats-area")
+            loading_area.mount(self.loading_indicator)
+        except Exception:
+            pass
         
         # 初始化数据表
         table = self.query_one("#books-table", DataTable)
@@ -945,6 +954,18 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         if message is None:
             message = get_global_i18n().t("common.on_action")
         try:
+            # 原生 LoadingIndicator：可见即动画
+            try:
+                if not hasattr(self, "loading_indicator"):
+                    self.loading_indicator = self.query_one("#bookshelf-loading-indicator", LoadingIndicator)
+            except Exception:
+                pass
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = True
+            except Exception:
+                pass
+
             # 优先使用Textual集成的加载动画
             from src.ui.components.textual_loading_animation import textual_animation_manager
             
@@ -965,6 +986,13 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画"""
         try:
+            # 原生 LoadingIndicator：隐藏
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = False
+            except Exception:
+                pass
+
             # 优先使用Textual集成的加载动画
             from src.ui.components.textual_loading_animation import textual_animation_manager
             

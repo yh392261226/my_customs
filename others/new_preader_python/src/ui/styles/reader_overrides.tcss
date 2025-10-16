@@ -5,7 +5,6 @@ Header {
     height: 1;
     background: $background;
     color: $accent;
-    text-align: left;
     align: left middle;
     content-align: left middle;
 }
@@ -58,7 +57,7 @@ Footer {
     margin-bottom: 1;       /* 预留1行给状态栏 */
     background: $surface;
     align: center middle;
-    overflow_y: auto;       /* 避免内容遮挡，必要时可滚动 */
+    overflow-y: auto;       /* 避免内容遮挡，必要时可滚动 */
 }
 
 .reader-screen #reader-buttons {
@@ -91,4 +90,46 @@ Footer {
 /* 加载动画样式 */
 .reader-screen #loading-animation {
     background: transparent;
+}
+
+/* 顶部标题行与进度条（保持原位置，严格单行高度） */
+.reader-screen #reader-header {
+    dock: top;
+    margin: 1 0;
+    width: 100%;
+    height: 2;
+    layout: horizontal;
+    content-align: center middle;
+    align: center middle;
+    padding: 0;
+}
+
+.reader-screen #header-title {
+    height: 2;
+    width: auto;
+    margin-right: 5;
+}
+
+.reader-screen #reader-progress-header {
+    height: 2;
+    width: auto;                 /* 自适应宽度 */
+    min-width: 10;               /* 保障至少有条形空间 */
+    padding: 0;
+    margin: 0 5 0 0;
+}
+
+
+
+.reader-screen #reader-progress-text {
+    height: 2;
+    min-width: 6;               /* 保证百分比文本不被压缩消失 */
+}
+
+PercentageStatus {
+    text-style: reverse;
+    color: $secondary;
+}
+
+ETAStatus {
+    text-style: underline;
 }

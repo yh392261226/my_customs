@@ -783,8 +783,26 @@ class Book:
             # 获取密码
             password = self._get_password_for_pdf()
             
-            # 重新开始加载动画
-            self._show_loading_animation("正在解析加密PDF文件...")
+            # 重新开始加载动画 - 使用更安全的方法避免循环导入
+            # 直接调用加载动画，不检查模态状态，确保密码验证后能显示加载动画
+            try:
+                # 使用动态导入避免循环依赖
+                import importlib
+                ta_mod = importlib.import_module("src.ui.components.textual_loading_animation")
+                textual_animation_manager = getattr(ta_mod, "textual_animation_manager", None)
+                if textual_animation_manager and getattr(textual_animation_manager, "show_default", None):
+                    if textual_animation_manager.show_default("正在解析加密PDF文件..."):
+                        logger.debug("显示Textual加载动画: 正在解析加密PDF文件...")
+                        return
+                
+                # 回退到传统动画
+                la_mod = importlib.import_module("src.ui.components.loading_animation")
+                animation_manager = getattr(la_mod, "animation_manager", None)
+                if animation_manager and getattr(animation_manager, "show_default", None):
+                    if animation_manager.show_default("正在解析加密PDF文件..."):
+                        logger.debug("显示传统加载动画: 正在解析加密PDF文件...")
+            except Exception as e:
+                logger.warning(f"直接显示加载动画失败: {e}")
         
         try:
             # 使用加密PDF解析器

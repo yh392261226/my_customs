@@ -135,6 +135,7 @@ class SettingsScreen(Screen[Any]):
                 yield Button(get_global_i18n().t("settings.save"), id="save-btn", variant="primary")
                 yield Button(get_global_i18n().t("settings.cancel"), id="cancel-btn")
                 yield Button(get_global_i18n().t("settings.reset"), id="reset-btn", variant="warning")
+                yield Button(get_global_i18n().t("settings.view-config"), id="view-config-btn", variant="error")
             
             # 快捷键状态栏
             # with Horizontal(id="settings-shortcuts-bar", classes="status-bar"):

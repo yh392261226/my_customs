@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List, ClassVar, Set
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer
+from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer, LoadingIndicator
 from textual.reactive import reactive
 from textual import on
 from textual import events
@@ -133,6 +133,15 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
+        # 原生 LoadingIndicator（初始隐藏），挂载到顶部头部容器
+        try:
+            self.loading_indicator = LoadingIndicator(id="file-explorer-loading-indicator")
+            self.loading_indicator.display = False
+            header_container = self.query_one("#header-container")
+            header_container.mount(self.loading_indicator)
+        except Exception:
+            pass
+
         # 初始化目录树
         self._load_directory_tree()
         
@@ -509,6 +518,18 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         if message is None:
             message = get_global_i18n().t("common.on_action")
         try:
+            # 原生 LoadingIndicator：可见即动画
+            try:
+                if not hasattr(self, "loading_indicator"):
+                    self.loading_indicator = self.query_one("#file-explorer-loading-indicator", LoadingIndicator)
+            except Exception:
+                pass
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = True
+            except Exception:
+                pass
+
             from src.ui.components.textual_loading_animation import textual_animation_manager
             if textual_animation_manager.show_default(message):
                 return
@@ -522,6 +543,13 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画"""
         try:
+            # 原生 LoadingIndicator：隐藏
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = False
+            except Exception:
+                pass
+
             from src.ui.components.textual_loading_animation import textual_animation_manager
             if textual_animation_manager.hide_default():
                 return

@@ -264,6 +264,7 @@
         "save": "保存",
         "cancel": "取消",
         "reset": "重置",
+        "view-config": "预览配置文件",
         "saved": "设置已保存",
         "save_failed": "保存失败",
         "save_error": "保存错误",

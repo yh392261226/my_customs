@@ -9,10 +9,12 @@ from datetime import datetime
 import time
 from webbrowser import get
 from textual import events
+from textual.clock import Clock, MockClock
 from textual.screen import Screen
 from textual.app import ComposeResult
+from textual.color import Gradient
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, ProgressBar, Header, Footer
+from textual.widgets import Static, Button, Label, ProgressBar, Header, Footer, LoadingIndicator
 from textual.reactive import reactive
 
 from src.locales.i18n import I18n
@@ -132,7 +134,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         """初始化阅读器屏幕"""
         super().__init__()
         # 使用实例变量而不是类变量来避免重新定义常量
-        self._title = get_global_i18n().t('reader.title')
+        self.title = get_global_i18n().t('reader.title')
         self.book = book
         self.theme_manager = theme_manager
         self.statistics_manager = statistics_manager
@@ -223,6 +225,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 初始化加载动画
         self.loading_animation = TextualLoadingAnimation(id="loading-animation")
         textual_animation_manager.set_default_animation(self.loading_animation)
+        self.loading_indicator: Optional[LoadingIndicator] = None
+
+        # 进度条与百分比标签（Textual）
+        self.progress_bar: Optional[ProgressBar] = None
+        self.progress_label: Optional[Label] = None
     
     def _load_render_config_from_settings(self) -> Dict[str, Any]:
         """从设置系统加载渲染配置"""
@@ -259,12 +266,37 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     
     def compose(self) -> ComposeResult:
         """组合阅读器屏幕界面"""
+        # 彩色进度条
+        gradient = Gradient.from_colors(
+            "#881177",
+            "#aa3355",
+            "#cc6666",
+            "#ee9944",
+            "#eedd00",
+            "#99dd55",
+            "#44dd88",
+            "#22ccbb",
+            "#00bbcc",
+            "#0099cc",
+            "#3366bb",
+            "#663399",
+        )
+
         yield Header()
-        # 标题栏
-        yield Static(f"📖 {get_global_i18n().t('reader.title')}", id="header")
-        
+        # 标题栏（同一行展示：书名 + 进度条 + 百分比）
+        with Horizontal(id="reader-header"):
+            yield Label(f"📖 {get_global_i18n().t('reader.title')}", id="header-title")
+            self.progress_bar = ProgressBar(total=100, id="reader-progress-header", gradient=gradient, clock=Clock(), show_bar=True)
+            yield self.progress_bar
+            self.progress_label = Label("", id="reader-progress-text")
+            yield self.progress_label
+
         # 加载动画 - 放在内容区域之前
         yield self.loading_animation
+        # 原生 LoadingIndicator（与自定义动画并行），初始隐藏
+        self.loading_indicator = LoadingIndicator(id="reader-loading-indicator")
+        self.loading_indicator.display = False
+        yield self.loading_indicator
         
         # 内容区域 - 使用已设置的ID
         yield self.renderer
@@ -291,6 +323,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         yield Footer()
     
     def on_mount(self) -> None:
+        # 为屏幕添加 CSS 类，便于样式作用域选择
+        try:
+            self.add_class("reader-screen")
+        except Exception:
+            pass
+
         # 应用全面的样式隔离
         apply_comprehensive_style_isolation(self)
         
@@ -302,6 +340,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 应用主题样式到CSS
         self._apply_theme_styles_to_css()
+
+        # 应用进度条样式
+        try:
+            self._apply_progress_styles()
+        except Exception as _e:
+            logger.debug(f"应用进度条样式失败: {_e}")
         
         # 强制应用ContentRenderer的主题样式
         if hasattr(self, 'renderer') and hasattr(self.renderer, '_apply_theme_styles'):
@@ -529,7 +573,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 计算内容区域可用尺寸
         # 标题栏(1行) + 按钮区域(1行) + 状态栏(1行) = 3行
         available_width = screen_width - 2  # 减去左右边距
-        available_height = screen_height - 3  # 减去固定区域
+        available_height = screen_height - 3  # 恢复原高度计算
         
         # 确保最小尺寸
         width = max(60, available_width)
@@ -1801,21 +1845,109 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 self.total_pages = int(getattr(self.renderer, "total_pages", 0))
         except Exception:
             pass
-        # 更新标题栏
+
+        # 计算进度百分比
+        progress = 0.0
         try:
-            header = self.query_one("#header", Static)
-            book_title = getattr(self.book, 'title', get_global_i18n().t('reader.unknow_book'))
-            progress = 0
             if self.renderer.total_pages > 0:
-                # 修复进度计算：renderer.current_page是从0开始的，所以需要+1
-                # 当在最后一页时，进度应该是100%
-                progress = ((self.renderer.current_page + 1) / self.renderer.total_pages) * 100
-                # 确保进度不超过100%
+                progress = ((self.renderer.current_page + 1) / max(1, self.renderer.total_pages)) * 100.0
                 progress = min(progress, 100.0)
+        except Exception:
+            progress = 0.0
+
+        # 更新顶部标题行进度条与百分比文本
+        try:
+            # 确保引用存在（compose中创建）
+            if not self.progress_bar:
+                try:
+                    self.progress_bar = self.query_one("#reader-progress-header", ProgressBar)
+                except Exception:
+                    self.progress_bar = None
+            if not self.progress_label:
+                try:
+                    self.progress_label = self.query_one("#reader-progress-text", Label)
+                except Exception:
+                    self.progress_label = None
+
+            # 根据设置控制显示样式
+            from src.config.settings.setting_registry import SettingRegistry
+            setting_registry = SettingRegistry()
+            progress_style = str(setting_registry.get_value("appearance.progress_bar_style", "bar") or "bar").lower()
+
+            # 更新进度值
+            if self.progress_bar:
+                try:
+                    self.progress_bar.total = 100
+                    self.progress_bar.progress = int(progress)
+                except Exception:
+                    # 兼容旧API
+                    try:
+                        self.progress_bar.update(int(progress), 100)
+                    except Exception:
+                        pass
+
+            # 更新百分比文本
+            pct_text = f"{progress:.1f}%"
+            if self.progress_label:
+                self.progress_label.update(pct_text)
+
+            # 显示模式控制：强制同时显示进度条与百分比，避免设置为 percentage 时隐藏条形
+            show_bar = True
+            show_text = True
+            try:
+                if self.progress_bar:
+                    self.progress_bar.display = show_bar
+                if self.progress_label:
+                    self.progress_label.display = show_text
+            except Exception:
+                # 旧版本兼容：用样式控制
+                if self.progress_bar:
+                    self.progress_bar.styles.visibility = "visible"
+                if self.progress_label:
+                    self.progress_label.styles.visibility = "visible"
+        except Exception as e:
+            logger.debug(f"更新进度条区域失败: {e}")
+
+        # 更新标题栏书名（保持原位置）
+        try:
+            title_label = self.query_one("#header-title", Label)
+            book_title = getattr(self.book, 'title', get_global_i18n().t('reader.unknow_book'))
+            title_label.update(f"📖 {book_title}")
+        except Exception:
+            pass
+
+        # 更新状态栏 - 添加更安全的查询方式
+        try:
+            status_widgets = self.query("#reader-status")
+            if not status_widgets:
+                logger.warning("状态栏元素未找到，可能尚未渲染完成")
+                return
+                
+            status = self.query_one("#reader-status", Static)
+            logger.debug(f"状态栏更新: current_page={self.current_page}, total_pages={self.total_pages}, renderer.current_page={self.renderer.current_page}, renderer.total_pages={self.renderer.total_pages}")
             
-            # 根据进度条样式设置显示不同格式
-            progress_display = self._format_progress_display(progress)
-            header.update(f"📖 {book_title} - {progress_display}")
+            from src.config.settings.setting_registry import SettingRegistry
+            setting_registry = SettingRegistry()
+            statistics_enabled = setting_registry.get_value("advanced.statistics_enabled", True)
+            
+            if statistics_enabled:
+                stats = self.status_manager.get_statistics()
+                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 "
+                status.update(status_text)
+            else:
+                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 (统计已关闭)"
+                status.update(status_text)
+        except Exception as e:
+            logger.error(f"更新状态栏失败: {e}")
+            pass
+        
+        # 更新按钮状态
+        try:
+            prev_btn = self.query_one("#prev-btn", Button)
+            prev_btn.disabled = self.renderer.current_page <= 0
+            
+            next_btn = self.query_one("#next-btn", Button)
+            next_btn.disabled = self.renderer.current_page >= self.renderer.total_pages - 1
         except Exception:
             pass
         
@@ -2167,25 +2299,30 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 return val if val else default
 
             # 仅保留可用的部件/ID级规则，避免使用 HTML 标签选择器
-            css = f"""
-/* 基础正文与背景（作用于内容 Static 部件本身） */
-.reader-screen #content {{
-  color: {pick(text_color, text_fallback)} !important;
-  background: {pick(bg_color, bg_fallback)};
-}}
-
-/* 作为兜底，所有 Static 默认文本色 */
-.reader-screen Static {{
-  color: {pick(text_color, text_fallback)};
-}}
-"""
-            # 注入到样式表
-            if hasattr(self.app, "stylesheet") and hasattr(self.app.stylesheet, "add_source"):
-                self.app.stylesheet.add_source(css)
-                if hasattr(self.app, "screen_stack") and self.app.screen_stack:
-                    self.app.stylesheet.update(self.app.screen_stack[-1])
+            # 样式统一由 reader_overrides.tcss 管理，不再动态注入
+            pass
         except Exception as e:
             logger.error(f"注入阅读内容多色位CSS失败: {e}")
+
+    def _apply_progress_styles(self) -> None:
+        """应用主题到标题行内的进度条与百分比文本（保持原位置）"""
+        try:
+            tm = self.theme_manager
+            bar_style = tm.get_style("progress.bar")
+            text_style = tm.get_style("progress.text")
+            pct_style = tm.get_style("progress.percentage")
+
+            def pick(val: str, default: str) -> str:
+                return val if val else default
+
+            bar_color = self._get_color_string(getattr(bar_style, "color", None)) if bar_style else ""
+            text_color = self._get_color_string(getattr(text_style, "color", None)) if text_style else ""
+            pct_color = self._get_color_string(getattr(pct_style, "color", None)) if pct_style else ""
+
+            # 样式统一由 reader_overrides.tcss 管理，不再动态注入
+            self._update_ui()
+        except Exception as e:
+            logger.debug(f"应用进度条样式失败: {e}")
     
     def _register_setting_observers(self) -> None:
         try:
@@ -2289,6 +2426,15 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         except Exception:
             pass
         try:
+            # 原生 LoadingIndicator：可见即动画
+            try:
+                if not hasattr(self, "loading_indicator") or self.loading_indicator is None:
+                    self.loading_indicator = self.query_one("#reader-loading-indicator", LoadingIndicator)
+            except Exception:
+                pass
+            if hasattr(self, "loading_indicator") and self.loading_indicator:
+                self.loading_indicator.display = True
+
             # 使用Textual集成的加载动画
             if hasattr(self, 'loading_animation') and self.loading_animation:
                 self.loading_animation.show(message)
@@ -2304,6 +2450,13 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画"""
         try:
+            # 原生 LoadingIndicator：隐藏
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = False
+            except Exception:
+                pass
+
             # 使用Textual集成的加载动画
             if hasattr(self, 'loading_animation') and self.loading_animation:
                 self.loading_animation.hide()

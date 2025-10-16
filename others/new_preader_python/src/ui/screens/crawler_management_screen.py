@@ -5,7 +5,7 @@
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, DataTable, Input, Select, Link, Header, Footer
+from textual.widgets import Static, Button, Label, DataTable, Input, Select, Link, Header, Footer, LoadingIndicator
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -1196,6 +1196,15 @@ class CrawlerManagementScreen(Screen[None]):
                 loading_container.mount(self.loading_animation)
                 logger.debug("加载动画组件挂载成功")
                 
+                # 同时创建并挂载原生 LoadingIndicator（初始隐藏）
+                try:
+                    self.loading_indicator = LoadingIndicator(id="crawler-loading-indicator")
+                    self.loading_indicator.display = False
+                    loading_container.mount(self.loading_indicator)
+                    logger.debug("原生 LoadingIndicator 挂载成功")
+                except Exception:
+                    pass
+
                 # 设置默认动画
                 textual_animation_manager.set_default_animation(self.loading_animation)
                 logger.debug("默认动画设置成功")
@@ -1242,6 +1251,18 @@ class CrawlerManagementScreen(Screen[None]):
     def _show_loading_animation(self) -> None:
         """显示加载动画"""
         try:
+            # 原生 LoadingIndicator：可见即动画
+            try:
+                if not hasattr(self, "loading_indicator"):
+                    self.loading_indicator = self.query_one("#crawler-loading-indicator", LoadingIndicator)
+            except Exception:
+                pass
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = True
+            except Exception:
+                pass
+
             # 检查加载动画组件是否存在且已初始化
             if self.loading_animation is not None:
                 self.loading_animation.show(get_global_i18n().t('crawler.crawling'))
@@ -1270,6 +1291,13 @@ class CrawlerManagementScreen(Screen[None]):
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画"""
         try:
+            # 原生 LoadingIndicator：隐藏
+            try:
+                if hasattr(self, "loading_indicator") and self.loading_indicator:
+                    self.loading_indicator.display = False
+            except Exception:
+                pass
+
             if hasattr(self, 'loading_animation') and self.loading_animation:
                 self.loading_animation.hide()
         except Exception as e:

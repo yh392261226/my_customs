@@ -265,6 +265,7 @@
         "cancel": "Cancel",
         "reset": "Reset",
         "saved": "Settings saved",
+        "view-config": "View Config File",
         "save_failed": "Save failed",
         "save_error": "Save error",
         "reset_failed": "Reset failed",
