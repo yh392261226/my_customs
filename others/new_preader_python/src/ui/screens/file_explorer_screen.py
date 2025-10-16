@@ -80,7 +80,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         # 文件列表项
         self.file_items: List[Dict[str, str]] = []
         # 选中的文件索引
-        self.selected_file_index: int = -1
+        self.selected_file_index: Optional[int] = None
         
     def compose(self) -> ComposeResult:
         """
@@ -238,7 +238,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                 file_list.append(empty_item)
                 self.file_items = []
                 self.selected_file = None
-                self.selected_file_index = -1
+                self.selected_file_index = None
                 
         except (PermissionError, OSError) as e:
             # 访问被拒绝
@@ -247,7 +247,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             logger.warning(f"无法访问目录 {self.current_path}: {e}")
             self.file_items = []
             self.selected_file = None
-            self.selected_file_index = -1
+            self.selected_file_index = None
     
     def _update_current_path(self) -> None:
         """更新当前路径显示"""
@@ -454,7 +454,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮点击处理"""
         # 检查权限
-        if not self._has_button_permission(event.button.id):
+        if event.button.id and not self._has_button_permission(event.button.id):
             self.notify(get_global_i18n().t("file_explorer.np_action"), severity="warning")
             return
             
@@ -562,7 +562,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     
     def _select_previous_file(self) -> None:
         """选择上一个文件"""
-        if not self.file_items:
+        if not self.file_items or self.selected_file_index is None:
             return
         
         if self.selected_file_index > 0:
@@ -571,7 +571,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     
     def _select_next_file(self) -> None:
         """选择下一个文件"""
-        if not self.file_items:
+        if not self.file_items or self.selected_file_index is None:
             return
         
         if self.selected_file_index < len(self.file_items) - 1:
@@ -580,7 +580,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     
     def _update_file_selection(self) -> None:
         """更新文件选择显示"""
-        if not self.file_items or self.selected_file_index < 0:
+        if not self.file_items or self.selected_file_index is None or self.selected_file_index < 0:
             return
         
         file_list = self.query_one("#file-list", ListView)
@@ -650,16 +650,26 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             }
             
             if button_id in permission_map:
-                return db_manager._has_permission(permission_map[button_id])
+                return db_manager.has_permission(permission_map[button_id])
             
             return True  # 默认允许未知按钮
         except Exception as e:
             logger.error(f"检查按钮权限失败: {e}")
             return True  # 出错时默认允许
     
+    def _has_permission(self, permission_key: str) -> bool:
+        """检查权限"""
+        try:
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            return db_manager.has_permission(permission_key)
+        except Exception as e:
+            logger.error(f"检查权限失败: {e}")
+            return True  # 出错时默认允许
+    
     def _handle_selected_item(self) -> None:
         """处理选中的项目"""
-        if not self.file_items or self.selected_file_index < 0:
+        if not self.file_items or self.selected_file_index is None or self.selected_file_index < 0:
             return
         
         selected_item = self.file_items[self.selected_file_index]
@@ -695,7 +705,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         try:
             if message.list_view.id == "file-list":
                 self.selected_file_index = message.list_view.index
-                if 0 <= self.selected_file_index < len(self.file_items):
+                if self.selected_file_index is not None and 0 <= self.selected_file_index < len(self.file_items):
                     selected_item = self.file_items[self.selected_file_index]
                     
                     if self.selection_mode == "file":
@@ -721,7 +731,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         try:
             if message.list_view.id == "file-list":
                 self.selected_file_index = message.list_view.index
-                if 0 <= self.selected_file_index < len(self.file_items):
+                if self.selected_file_index is not None and 0 <= self.selected_file_index < len(self.file_items):
                     selected_item = self.file_items[self.selected_file_index]
                     
                     if self.selection_mode == "file":
