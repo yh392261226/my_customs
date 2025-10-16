@@ -334,7 +334,12 @@
         "looser": "较宽松",
         "loosest": "很宽松",
         "max": "最大间距",
-        "no_permission": "无权限"
+        "no_permission": "无权限",
+        "current_config": "当前配置",
+        "refresh_config": "刷新配置",
+        "config_refreshed": "配置预览已刷新",
+        "config_refresh_failed": "刷新配置预览失败",
+        "hiddens": "***已隐藏***"
     },
     "common": {
         "close": "关闭",

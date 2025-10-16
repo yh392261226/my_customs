@@ -7,7 +7,7 @@
 from typing import Any, Dict, Optional, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
-from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane, Header, Footer
+from textual.widgets import Static, Button, Label, Select, Switch, Input, TabbedContent, TabPane, Header, Footer, Pretty
 from src.ui.components.slider import Slider
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from textual.reactive import reactive
@@ -127,6 +127,10 @@ class SettingsScreen(Screen[Any]):
                 # 高级设置标签页
                 with TabPane(get_global_i18n().t("settings.advanced"), id="advanced-tab"):
                     yield from self._compose_advanced_settings()
+
+                # 预览配置文件标签页
+                with TabPane(get_global_i18n().t("settings.view-config"), id="preview-config-tab"):
+                    yield from self._compose_preview_config_settings()
                 
 
             
@@ -135,7 +139,6 @@ class SettingsScreen(Screen[Any]):
                 yield Button(get_global_i18n().t("settings.save"), id="save-btn", variant="primary")
                 yield Button(get_global_i18n().t("settings.cancel"), id="cancel-btn")
                 yield Button(get_global_i18n().t("settings.reset"), id="reset-btn", variant="warning")
-                yield Button(get_global_i18n().t("settings.view-config"), id="view-config-btn", variant="error")
             
             # 快捷键状态栏
             # with Horizontal(id="settings-shortcuts-bar", classes="status-bar"):
@@ -545,7 +548,81 @@ class SettingsScreen(Screen[Any]):
                 id="advanced-password-input"
             )
     
-
+    def _compose_preview_config_settings(self) -> ComposeResult:
+        """组合预览配置设置"""
+        with ScrollableContainer(id="preview-config-settings"):
+            # 获取当前配置信息
+            config_data = self.config_manager.get_config()
+            
+            # 格式化配置数据，移除敏感信息
+            safe_config = self._sanitize_config_data(config_data)
+            
+            # 使用Pretty组件显示配置预览
+            yield Label(get_global_i18n().t("settings.current_config"), classes="setting-section-title")
+            yield Pretty(safe_config, id="config-preview")
+            
+            # 添加刷新按钮
+            yield Button(get_global_i18n().t("settings.refresh_config"), id="refresh-config-btn", variant="primary")
+    
+    def _sanitize_config_data(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        过滤敏感配置信息
+        
+        Args:
+            config_data: 原始配置数据
+            
+        Returns:
+            Dict[str, Any]: 过滤后的安全配置数据
+        """
+        import copy
+        
+        # 深拷贝配置数据以避免修改原始数据
+        safe_config = copy.deepcopy(config_data)
+        
+        # 定义需要过滤的敏感字段
+        sensitive_fields = [
+            # 翻译服务API密钥
+            "app_id", "app_key", "api_key", "subscription_key", "app_secret", "password",
+            # 其他敏感信息
+            "key", "secret", "token"
+        ]
+        
+        def sanitize_dict(d):
+            """递归过滤字典中的敏感信息"""
+            if not isinstance(d, dict):
+                return d
+                
+            result = {}
+            for key, value in d.items():
+                # 检查是否为敏感字段
+                if any(sensitive in str(key).lower() for sensitive in sensitive_fields):
+                    result[key] = get_global_i18n().t("settings.hiddens")
+                elif isinstance(value, dict):
+                    result[key] = sanitize_dict(value)
+                elif isinstance(value, list):
+                    result[key] = [sanitize_dict(item) if isinstance(item, dict) else item for item in value]
+                else:
+                    result[key] = value
+            return result
+        
+        return sanitize_dict(safe_config)
+    
+    def _refresh_config_preview(self) -> None:
+        """刷新配置预览"""
+        try:
+            # 获取最新的配置数据
+            config_data = self.config_manager.get_config()
+            safe_config = self._sanitize_config_data(config_data)
+            
+            # 更新Pretty组件的内容
+            config_preview = self.query_one("#config-preview", Pretty)
+            config_preview.update(safe_config)
+            
+            self.notify(get_global_i18n().t("settings.config_refreshed"), severity="information")
+            
+        except Exception as e:
+            logger.error(f"刷新配置预览失败: {e}")
+            self.notify(get_global_i18n().t("settings.config_refresh_failed"), severity="error")
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
@@ -632,6 +709,8 @@ class SettingsScreen(Screen[Any]):
                 self._reset_settings()
             else:
                 self.notify(get_global_i18n().t("settings.np_reset"), severity="warning")
+        elif event.button.id == "refresh-config-btn":
+            self._refresh_config_preview()
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""

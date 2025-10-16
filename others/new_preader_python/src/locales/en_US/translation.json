@@ -334,7 +334,12 @@
         "looser": "Looser",
         "loosest": "Loosest",
         "max": "Max",
-        "no_permission": "No permissions"
+        "no_permission": "No permissions",
+        "current_config": "Current Configuration",
+        "refresh_config": "Refresh Configuration",
+        "config_refreshed": "Configuration preview refreshed",
+        "config_refresh_failed": "Failed to refresh configuration preview",
+        "hiddens": "***HIDDEN***"
     },
     "common": {
         "close": "Close",
