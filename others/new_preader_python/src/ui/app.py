@@ -8,6 +8,14 @@ from typing import Dict, Any, Optional, List
 import os
 from typing import Optional
 from textual.app import App, ComposeResult
+# 早期猴子补丁 Textual 框架默认 CSS 中的 hatch 行，避免 $panel 类型冲突
+try:
+    import textual.app as _txt_app_mod
+    _def_css = getattr(_txt_app_mod.App, "DEFAULT_CSS", "")
+    if isinstance(_def_css, str) and "hatch: right $panel;" in _def_css:
+        _txt_app_mod.App.DEFAULT_CSS = _def_css.replace("hatch: right $panel;", "hatch: right #2f2f2f 40%;")
+except Exception:
+    pass
 from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import Screen, ModalScreen
@@ -68,6 +76,10 @@ class ThemeSelectScreen(ModalScreen[str]):
     def __init__(self, options: list[str]) -> None:
         super().__init__()
         self._options = options
+        # 预览状态
+        self._original_theme: Optional[str] = None
+        self._last_previewed: Optional[str] = None
+        self._confirmed: bool = False
 
     def compose(self) -> ComposeResult:
         # 仅传入字符串选项，避免旧版 OptionList 对 (label, id) 的不兼容
@@ -75,6 +87,8 @@ class ThemeSelectScreen(ModalScreen[str]):
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:  # type: ignore[attr-defined]
         # 选择后关闭弹窗并返回主题名（从 prompt 读取字符串）
+        # 标记已确认，退出时不回滚
+        self._confirmed = True
         try:
             self.dismiss(str(getattr(event, "option", getattr(event, "prompt", None)).prompt))
         except Exception:
@@ -92,8 +106,72 @@ class ThemeSelectScreen(ModalScreen[str]):
     def on_key(self, event: events.Key) -> None:
         """按键事件处理"""
         if event.key == "escape":
+            # 未确认直接退出时，回滚主题
+            try:
+                if not self._confirmed and self._original_theme:
+                    app = getattr(self, "app", None)
+                    if app and hasattr(app, "_apply_theme_runtime"):
+                        app._apply_theme_runtime(self._original_theme, notify=False, preview=True)
+            except Exception:
+                pass
             self.dismiss(None)
             event.stop()
+
+    def on_mount(self) -> None:
+        """挂载时记录进入前的主题，供取消时回滚"""
+        try:
+            app = getattr(self, "app", None)
+            if app and hasattr(app, "theme_manager"):
+                self._original_theme = app.theme_manager.get_current_theme_name()
+        except Exception:
+            self._original_theme = None
+
+        # 将主题列表高度限制为 3 行，避免预览时遮挡内容
+        try:
+            ol = self.query_one("#theme-option-list")
+            if hasattr(ol, "styles"):
+                try:
+                    ol.styles.height = 3
+                except Exception:
+                    pass
+                try:
+                    setattr(ol.styles, "max_height", 3)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def on_unmount(self) -> None:
+        """关闭弹窗时，如未确认则回滚到进入前的主题"""
+        try:
+            if not self._confirmed and self._original_theme:
+                app = getattr(self, "app", None)
+                if app and hasattr(app, "_apply_theme_runtime"):
+                    app._apply_theme_runtime(self._original_theme, notify=False, preview=True)
+        except Exception:
+            pass
+
+    def on_option_list_option_highlighted(self, event) -> None:  # type: ignore[override]
+        """移动高亮即预览主题（临时应用，不持久化）"""
+        try:
+            # 尽量兼容不同版本事件结构
+            name = None
+            if hasattr(event, "option") and hasattr(event.option, "prompt"):
+                name = str(event.option.prompt)
+            elif hasattr(event, "prompt"):
+                name = str(event.prompt)
+            elif hasattr(event, "option") and hasattr(event.option, "value"):
+                name = str(event.option.value)
+            if not name:
+                return
+            if name == self._last_previewed:
+                return
+            app = getattr(self, "app", None)
+            if app and hasattr(app, "_apply_theme_runtime"):
+                app._apply_theme_runtime(name, notify=False, preview=True)
+                self._last_previewed = name
+        except Exception:
+            pass
 
 # 命令提供者：将 ThemeManager 的主题注册到 Ctrl-P
 if _TxtProvider is not None and _DiscoveryHit is not None:
@@ -153,7 +231,11 @@ class NewReaderApp(App[None]):
     TITLE = None
     SUB_TITLE = None
     
+    # 预置 $panel 为百分比，满足 hatch 语义（方向 + 百分比）
+    CSS = "$panel: 40%;"
     CSS_PATH = ["styles/common.tcss"]
+    # 仅前置 $panel 定义，保持父类 DEFAULT_CSS 原样
+    DEFAULT_CSS = (getattr(App, "DEFAULT_CSS", "") or "").replace("hatch: right $panel;", "hatch: right #2f2f2f 40%;")
 
     # 向命令面板注册我们的 Provider（CommandPalette 会自动收集）
     # 注意：CommandPalette 在打开时会读取 App.COMMANDS 与 Screen.COMMANDS
@@ -820,67 +902,8 @@ class NewReaderApp(App[None]):
                         return
 
                     def _apply():
-                        if self.theme_manager.set_theme(chosen):
-                            # 1) 应用到 App（Textual + TSS 变量 + 现有样式注入）
-                            self.theme_manager.apply_theme_to_screen(self)
-                            # 2) 强制重载 CSS（如果框架支持）
-                            try:
-                                if hasattr(self, "reload_css") and callable(getattr(self, "reload_css")):
-                                    self.reload_css()  # type: ignore[attr-defined]
-                            except Exception:
-                                pass
-                            # 3) 对所有已安装/注册的屏幕应用主题
-                            try:
-                                screens = []
-                                if hasattr(self, "installed_screens"):
-                                    screens = list(getattr(self, "installed_screens").values())  # type: ignore[attr-defined]
-                                elif hasattr(self, "screens"):
-                                    screens = list(getattr(self, "screens").values())  # type: ignore[attr-defined]
-                                for sc in screens:
-                                    try:
-                                        self.theme_manager.apply_theme_to_screen(sc)
-                                    except Exception:
-                                        pass
-                            except Exception:
-                                pass
-                            # 4) 统一刷新：App 布局 + 当前屏幕重组 + 其它屏幕重组
-                            try:
-                                # 刷新应用布局（尽可能触发布局和样式重算）
-                                try:
-                                    self.refresh(layout=True)
-                                except Exception:
-                                    self.refresh()
-                                # 当前屏幕
-                                try:
-                                    if self.screen and hasattr(self.screen, "refresh"):
-                                        self.screen.refresh(recompose=True)
-                                except Exception:
-                                    pass
-                                # 其他屏幕
-                                try:
-                                    screens = []
-                                    if hasattr(self, "installed_screens"):
-                                        screens = list(getattr(self, "installed_screens").values())  # type: ignore[attr-defined]
-                                    elif hasattr(self, "screens"):
-                                        screens = list(getattr(self, "screens").values())  # type: ignore[attr-defined]
-                                    for sc in screens:
-                                        if sc is not self.screen and hasattr(sc, "refresh"):
-                                            sc.refresh(recompose=True)
-                                except Exception:
-                                    pass
-                            except Exception as ex:
-                                logger.debug(f"主题应用后刷新失败（可忽略）：{ex}")
-                            # 5) 深度强制刷新，确保所有部件立即应用新主题
-                            try:
-                                if hasattr(self, "_force_theme_refresh"):
-                                    self._force_theme_refresh()
-                            except Exception:
-                                pass
-                            # 6) 提示
-                            try:
-                                self.notify(f"{get_global_i18n().t("app.changed_theme")}：{chosen}", severity="information")
-                            except Exception:
-                                logger.info(f"已切换主题：{chosen}")
+                        # 使用通用运行时应用方法
+                        self._apply_theme_runtime(chosen, notify=True)
 
                     # 在 UI 线程应用更改（使用通用调度，避免 call_from_thread 限制）
                     try:
@@ -948,6 +971,88 @@ class NewReaderApp(App[None]):
             self.action_pick_theme()
         except Exception as e:
             logger.error(f"切换主题失败: {e}")
+
+    def _apply_theme_runtime(self, name: str, notify: bool = False, preview: bool = False) -> None:
+        """
+        运行时应用主题到 App 与所有屏幕（不做持久化），可选提示。
+        preview=True 时走“轻量应用”，避免在部件挂载期触发 recompose。
+        """
+        try:
+            if not name:
+                return
+            if not self.theme_manager.set_theme(name):
+                return
+            # 1) 应用到 App（Textual + TSS 变量 + 现有样式注入）
+            self.theme_manager.apply_theme_to_screen(self)
+
+            if preview:
+                # 预览：尽量不重载 CSS、不强制 recompose，仅请求一次轻量刷新
+                try:
+                    self.refresh()
+                except Exception:
+                    pass
+            else:
+                # 最终应用：完整刷新流程
+                # 2) 强制重载 CSS（如果框架支持）
+                try:
+                    if hasattr(self, "reload_css") and callable(getattr(self, "reload_css")):
+                        self.reload_css()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+                # 3) 对所有已安装/注册的屏幕应用主题
+                try:
+                    screens = []
+                    if hasattr(self, "installed_screens"):
+                        screens = list(getattr(self, "installed_screens").values())  # type: ignore[attr-defined]
+                    elif hasattr(self, "screens"):
+                        screens = list(getattr(self, "screens").values())  # type: ignore[attr-defined]
+                    for sc in screens:
+                        try:
+                            self.theme_manager.apply_theme_to_screen(sc)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                # 4) 统一刷新：App 布局 + 当前屏幕重组 + 其它屏幕重组
+                try:
+                    try:
+                        self.refresh(layout=True)
+                    except Exception:
+                        self.refresh()
+                    # 当前屏幕
+                    try:
+                        if self.screen and hasattr(self.screen, "refresh"):
+                            self.screen.refresh(recompose=True)
+                    except Exception:
+                        pass
+                    # 其他屏幕
+                    try:
+                        screens = []
+                        if hasattr(self, "installed_screens"):
+                            screens = list(getattr(self, "installed_screens").values())  # type: ignore[attr-defined]
+                        elif hasattr(self, "screens"):
+                            screens = list(getattr(self, "screens").values())  # type: ignore[attr-defined]
+                        for sc in screens:
+                            if sc is not self.screen and hasattr(sc, "refresh"):
+                                sc.refresh(recompose=True)
+                    except Exception:
+                        pass
+                except Exception as ex:
+                    logger.debug(f"主题应用后刷新失败（可忽略）：{ex}")
+                # 5) 深度强制刷新，确保所有部件立即应用新主题
+                try:
+                    if hasattr(self, "_force_theme_refresh"):
+                        self._force_theme_refresh()
+                except Exception:
+                    pass
+                # 6) 可选提示
+                if notify:
+                    try:
+                        self.notify(f"{get_global_i18n().t("app.changed_theme")}：{name}", severity="information")
+                    except Exception:
+                        logger.info(f"已切换主题：{name}")
+        except Exception as _e:
+            logger.debug(f"_apply_theme_runtime 失败（可忽略）：{_e}")
     
     def _initialize_loading_animation(self) -> None:
         """初始化加载动画组件"""

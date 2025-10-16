@@ -2823,7 +2823,7 @@ class ThemeManager:
             
             if surface_color:
                 screen.styles.set_rule("$surface", surface_color)
-                screen.styles.set_rule("$panel", surface_color)
+                # 不设置 $panel（在 Textual 默认 CSS 中，$panel 用作 hatch 的百分比）
                 # 提供表面色的衍生变量（用于边框/hover 等）
                 def _adjust_hex_lightness(hex_color: str, delta: int) -> str:
                     try:
@@ -2845,6 +2845,9 @@ class ThemeManager:
                         return hex_color
                 screen.styles.set_rule("$surface-lighten-1", _adjust_hex_lightness(surface_color, 20))
                 screen.styles.set_rule("$surface-darken-1", _adjust_hex_lightness(surface_color, -20))
+            else:
+                # 不再为 $panel 提供颜色兜底，避免覆盖其“百分比”语义
+                pass
             
             # 应用更多主题样式（稳健：若根节点未就绪则延迟）
             target_screen = getattr(screen.app, "screen", None) or screen
@@ -3011,8 +3014,12 @@ class ThemeManager:
         }
         # 对玻璃感主题，不注入背景相关变量，避免填充背景
         if theme_name.startswith("glass-"):
-            for k in ("background", "surface", "panel", "code_background"):
+            # 玻璃主题不注入背景相关变量，但保留 panel，以满足 Textual 默认 CSS 对 $panel 的依赖
+            for k in ("background", "surface", "code_background"):
                 payload.pop(k, None)
+        # 确保 panel 始终存在（避免 App.DEFAULT_CSS 中 hatch: right $panel 解析失败）
+        if not payload.get("panel"):
+            payload["panel"] = payload.get("surface") or payload.get("background") or "#2f2f2f"
         return {k: v for k, v in payload.items() if v}
 
 
