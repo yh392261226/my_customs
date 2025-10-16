@@ -558,7 +558,7 @@ class SettingsScreen(Screen[Any]):
             safe_config = self._sanitize_config_data(config_data)
             
             # 使用Pretty组件显示配置预览
-            yield Label(get_global_i18n().t("settings.current_config"), classes="setting-section-title")
+            yield Label(f"{get_global_i18n().t('settings.current_config')}:", classes="setting-section-title")
             yield Pretty(safe_config, id="config-preview")
             
             # 添加刷新按钮
