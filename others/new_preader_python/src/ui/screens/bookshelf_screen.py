@@ -91,7 +91,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         # 分页相关属性
         self._current_page = 1
-        self._books_per_page = 20
+        self._books_per_page = 25
         self._total_pages = 1
         self._all_books: List[Book] = []
         
@@ -123,10 +123,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 Vertical(
                     # Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-title", classes="section-title"),
                     Horizontal(
+                        Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn", classes="btn"),
                         Button(get_global_i18n().t("bookshelf.search"), id="search-btn", classes="btn"),
                         Button(get_global_i18n().t("bookshelf.sort.title"), id="sort-btn", classes="btn"),
                         Button(get_global_i18n().t("bookshelf.batch_ops.title"), id="batch-ops-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn", classes="btn"),
                         Button(get_global_i18n().t("bookshelf.refresh"), id="refresh-btn", classes="btn"),
+                        Button(get_global_i18n().t("bookshelf.back"), id="back-btn", classes="btn"),
                         id="bookshelf-toolbar",
                         classes="btn-row"
                     ),
@@ -140,34 +144,33 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     id="books-stats-area"
                 ),
                 # 底部控制栏和状态栏
-                Vertical(
-                    Horizontal(
-                        Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.get_books"), id="get-books-btn", classes="btn"),
-                        Button(get_global_i18n().t("bookshelf.back"), id="back-btn", classes="btn"),
-                        id="bookshelf-controls",
-                        classes="btn-row"
-                    ),
-                    # # 快捷键状态栏
-                    # Horizontal(
-                    #     Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
-                    #     Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
-                    #     Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
-                    #     Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
-                    #     Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
-                    #     Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
-                    #     Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
-                    #     Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
-                    #     Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
-                    #     Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
-                    #     Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
-                    #     Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
-                    #     id="shortcuts-bar",
-                    #     classes="footer status-bar"
-                    # ),
-                    id="bookshelf-footer"
-                ),
+                # Vertical(
+                #     Horizontal(
+                        
+                        
+                        
+                #         id="bookshelf-controls",
+                #         classes="btn-row"
+                #     ),
+                #     # # 快捷键状态栏
+                #     Horizontal(
+                #         Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
+                #         Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
+                #         Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
+                #         Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
+                #         Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
+                #         Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
+                #         Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
+                #         Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
+                #         Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
+                #         Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
+                #         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
+                #         Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
+                #         id="shortcuts-bar",
+                #         classes="footer status-bar"
+                #     ),
+                #     id="bookshelf-footer"
+                # ),
                 id="bookshelf-container"
             )
         )
@@ -185,7 +188,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         grid = self.query_one("Grid")
         grid.styles.grid_size_rows = 4
         grid.styles.grid_size_columns = 1
-        grid.styles.grid_rows = ("15%", "60%", "10%", "20%")
+        grid.styles.grid_rows = ("15%", "76%", "10%", "15%")
 
         # 原生 LoadingIndicator（初始隐藏），挂载到书籍统计区域
         try:
