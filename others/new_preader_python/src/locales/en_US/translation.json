@@ -8,7 +8,9 @@
             "bookshelf": "Bookshelf",
             "settings": "Settings",
             "statistics": "Statistics",
-            "boss_key": "Boss Key"
+            "boss_key": "Boss Key",
+            "theme": "Theme",
+            "back": "Back/Exit"
         },
         "init_start": "Application initialization started",
         "default_book": "Default Book",
@@ -22,7 +24,10 @@
         "open_settings": "No permission to open settings",
         "open_statistics": "No permission to open statistics",
         "no_theme": "No theme",
-        "changed_theme": "Theme Changed"
+        "changed_theme": "Theme Changed",
+        "pdf_need_password": "PDF file needs password",
+        "password_info": "Please input password（Press enter to use empty password，Input 'cancel' to cancel）: ",
+        "prom[t": "Password: "
     },
     "welcome": {
         "title": "Welcome",

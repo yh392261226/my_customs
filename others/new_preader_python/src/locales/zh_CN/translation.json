@@ -8,7 +8,9 @@
             "bookshelf": "书库",
             "settings": "设置",
             "statistics": "统计",
-            "boss_key": "老板键"
+            "boss_key": "老板键",
+            "theme": "主题",
+            "back": "返回/退出"
         },
         "init_start": "应用程序初始化开始",
         "default_book": "默认书籍",
@@ -22,7 +24,10 @@
         "open_settings": "无权限打开设置",
         "open_statistics": "无权限打开统计",
         "no_theme": "没有可用主题",
-        "changed_theme": "已切换主题"
+        "changed_theme": "已切换主题",
+        "pdf_need_password": "PDF文件需要密码",
+        "password_info": "请输入密码（直接回车使用空密码，输入'cancel'取消）: ",
+        "prom[t": "密码: "
     },
     "welcome": {
         "title": "欢迎",

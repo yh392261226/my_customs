@@ -250,14 +250,14 @@ class NewReaderApp(App[None]):
         COMMANDS = list(_default_commands)
     
     BINDINGS = [
-        Binding("q", "quit", "退出"),
-        Binding("h", "show_help", "帮助"),
-        Binding("k", "show_bookshelf", "书架"),
-        Binding("s", "show_settings", "设置"),
-        Binding("c", "show_statistics", "统计"),
-        Binding("/", "boss_key", "老板键"),
-        Binding("t", "pick_theme", "主题"),
-        Binding("escape", "back", "返回/退出")
+        Binding("q", "quit", get_global_i18n().t('app.bindings.quit')),
+        Binding("h", "show_help", get_global_i18n().t('app.bindings.help')),
+        Binding("k", "show_bookshelf", get_global_i18n().t('app.bindings.bookshelf')),
+        Binding("s", "show_settings", get_global_i18n().t('app.bindings.settings')),
+        Binding("c", "show_statistics", get_global_i18n().t('app.bindings.statistics')),
+        Binding("/", "boss_key", get_global_i18n().t('app.bindings.boss_key')),
+        Binding("t", "pick_theme", get_global_i18n().t('app.bindings.theme')),
+        Binding("escape", "back", get_global_i18n().t('app.bindings.backs'))
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None):
@@ -1163,9 +1163,9 @@ class NewReaderApp(App[None]):
         """
         try:
             import getpass
-            print(f"\nPDF文件需要密码: {os.path.basename(file_path)}")
-            print("请输入密码（直接回车使用空密码，输入'cancel'取消）: ")
-            password = getpass.getpass("密码: ")
+            print(f"\n{get_global_i18n().t('app.pdf_need_password')}: {os.path.basename(file_path)}")
+            print(get_global_i18n().t('app.password_info'))
+            password = getpass.getpass(get_global_i18n().t('app.prompt'))
             
             if password.lower() == 'cancel':
                 return None
