@@ -46,22 +46,24 @@ class CrawlerManagementScreen(Screen[None]):
         self.title = get_global_i18n().t('crawler.title')
 
     def _has_permission(self, permission_key: str) -> bool:
-        """检查权限"""
+        """检查权限（兼容单/多用户）"""
         try:
-            return self.db_manager.has_permission(permission_key)
+            db_manager = self.db_manager if hasattr(self, "db_manager") else DatabaseManager()
+            # 获取当前用户ID
+            current_user_id = getattr(self.app, 'current_user_id', None)
+            if current_user_id is None:
+                # 如果没有当前用户，检查是否是多用户模式
+                if not getattr(self.app, 'multi_user_enabled', False):
+                    # 单用户模式默认允许所有权限
+                    return True
+                else:
+                    # 多用户模式但没有当前用户，默认拒绝
+                    return False
+            # 传入用户ID与权限键
+            return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
-        
-        # 确保i18n已初始化
-        try:
-            get_global_i18n()
-        except RuntimeError:
-            # 如果未初始化，则初始化
-            init_global_i18n('src/locales', 'zh_CN')
-        
-        # 设置屏幕标题
-        self.title = f"{get_global_i18n().t('crawler.title')} - {novel_site['name']}"
     
     def compose(self) -> ComposeResult:
         """
@@ -366,11 +368,13 @@ class CrawlerManagementScreen(Screen[None]):
         if column_index not in [5, 6, 7, 8]:  # 查看文件、阅读书籍、删除文件、删除记录列
             return
             
-        # 直接使用行索引访问数据（参考get_books_screen.py的实现）
-        if row_index < 0 or row_index >= len(self.crawler_history):
+        # 根据分页计算真实索引，避免跨页错位
+        start_index = (self.current_page - 1) * self.items_per_page
+        real_index = start_index + row_index
+        if real_index < 0 or real_index >= len(self.crawler_history):
             return
-            
-        history_item = self.crawler_history[row_index]
+
+        history_item = self.crawler_history[real_index]
         
         if not history_item:
             return
