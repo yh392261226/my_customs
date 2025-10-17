@@ -153,7 +153,7 @@ class CrawlerManagementScreen(Screen[None]):
             start_btn = self.query_one("#start-crawl-btn", Button)
             if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
                 start_btn.disabled = True
-                self._update_status("无权限执行爬取任务", "warning")
+                self._update_status(get_global_i18n().t('crawler.np_crawler'), "warning")
         except Exception:
             pass
         
@@ -410,7 +410,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 获取当前网站的备注内容
             site_id = self.novel_site.get('id')
             if not site_id:
-                self._update_status("无法获取网站ID", "error")
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
                 return
             
             # 从数据库加载现有备注
@@ -421,9 +421,9 @@ class CrawlerManagementScreen(Screen[None]):
                 if result is not None:
                     # 保存备注到数据库
                     if self.db_manager.save_novel_site_note(site_id, result):
-                        self._update_status("备注已保存", "success")
+                        self._update_status(get_global_i18n().t('crawler.note_saved'), "success")
                     else:
-                        self._update_status("保存备注失败", "error")
+                        self._update_status(get_global_i18n().t('crawler.note_save_failed'), "error")
                 # 如果result为None，表示用户取消了操作
             
             self.app.push_screen(
@@ -437,7 +437,7 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"打开备注对话框失败: {e}")
-            self._update_status(f"打开备注对话框失败: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('crawler.open_note_dialog_failed')}: {str(e)}", "error")
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
@@ -455,7 +455,7 @@ class CrawlerManagementScreen(Screen[None]):
         """开始爬取小说"""
         # 权限校验：执行爬取任务需 crawler.run
         if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
-            self._update_status("无权限执行爬取任务", "error")
+            self._update_status(get_global_i18n().t('crawler.np_crawler'), "error")
             return
         if self.is_crawling:
             return  # 如果正在爬取，忽略新的爬取请求
@@ -500,7 +500,7 @@ class CrawlerManagementScreen(Screen[None]):
                     self.app.call_later(self._remove_id_from_input, _eid)
                     # 单独提示每个被跳过的ID
                     try:
-                        self.app.call_later(self._update_status, f"已跳过已存在ID: {_eid}", "information")
+                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.skipped')}: {_eid}", "information")
                     except Exception:
                         pass
             except Exception:
@@ -512,7 +512,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return
             else:
                 # 汇总提示，继续爬取剩余ID
-                self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}，已跳过", "information")
+                self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}，{get_global_i18n().t('crawler.skip')}", "information")
         
         # 检查代理要求
         proxy_check_result = self._check_proxy_requirements_sync()
@@ -560,7 +560,7 @@ class CrawlerManagementScreen(Screen[None]):
                         'enabled': False,
                         'proxy_url': ''
                     },
-                    'message': '网站未启用代理'
+                    'message': get_global_i18n().t('crawler.not_enabled_proxy')
                 }
             
             # 网站启用了代理，获取可用的代理设置
@@ -571,7 +571,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return {
                     'can_proceed': False,
                     'proxy_config': None,
-                    'message': '该网站需要代理访问，但没有找到启用的代理设置。请先在代理设置中启用一个代理。'
+                    'message': get_global_i18n().t('crawler.need_proxy')
                 }
             
             # 构建代理URL
@@ -585,7 +585,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return {
                     'can_proceed': False,
                     'proxy_config': None,
-                    'message': '代理设置不完整，请检查主机地址和端口号。'
+                    'message': get_global_i18n().t('crawler.proxy_error')
                 }
             
             # 构建代理URL
@@ -600,7 +600,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return {
                     'can_proceed': False,
                     'proxy_config': None,
-                    'message': f'代理连接测试失败: {proxy_url}，请检查代理服务器是否运行正常'
+                    'message': get_global_i18n().t("crawler.proxy_error_url", proxy_url=proxy_url)
                 }
             
             return {
@@ -608,9 +608,9 @@ class CrawlerManagementScreen(Screen[None]):
                 'proxy_config': {
                     'enabled': True,
                     'proxy_url': proxy_url,
-                    'name': enabled_proxy.get('name', '未命名代理')
+                    'name': enabled_proxy.get('name', get_global_i18n().t("crawler.unnamed_proxy"))
                 },
-                'message': f"使用代理: {enabled_proxy.get('name', '未命名代理')} ({host}:{port})"
+                'message': f"{get_global_i18n().t("crawler.use_proxy")}: {enabled_proxy.get('name', get_global_i18n().t("crawler.unnamed_proxy"))} ({host}:{port})"
             }
             
         except Exception as e:
@@ -618,7 +618,7 @@ class CrawlerManagementScreen(Screen[None]):
             return {
                 'can_proceed': False,
                 'proxy_config': None,
-                'message': f'检查代理设置失败: {str(e)}'
+                'message': f'{get_global_i18n().t("crawler.check_proxy_failed")}: {str(e)}'
             }
 
     def _test_proxy_connection(self, proxy_url: str) -> bool:
@@ -652,10 +652,10 @@ class CrawlerManagementScreen(Screen[None]):
             end_time = time.time()
             
             if response.status_code == 200:
-                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                logger.info(f"{get_global_i18n().t('crawler.test_success')}: {proxy_url} ({get_global_i18n().t('crawler.response_time')}: {end_time - start_time:.2f}s)")
                 return True
             else:
-                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
+                logger.error(f"{get_global_i18n().t('crawler.test_failed')}: HTTP {response.status_code}")
                 return False
                 
         except requests.exceptions.ConnectTimeout:
@@ -690,7 +690,7 @@ class CrawlerManagementScreen(Screen[None]):
                         'enabled': False,
                         'proxy_url': ''
                     },
-                    'message': '网站未启用代理'
+                    'message': get_global_i18n().t("crawler.not_enabled_proxy")
                 }
             
             # 网站启用了代理，获取可用的代理设置
@@ -704,7 +704,7 @@ class CrawlerManagementScreen(Screen[None]):
                         'enabled': False,
                         'proxy_url': ''
                     },
-                    'message': '该网站配置了代理访问，但没有找到启用的代理设置。将尝试不使用代理进行爬取。'
+                    'message': get_global_i18n().t("crawler.need_proxy_try")
                 }
             
             # 构建代理URL
@@ -718,7 +718,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return {
                     'can_proceed': False,
                     'proxy_config': None,
-                    'message': '代理设置不完整，请检查主机地址和端口号。'
+                    'message': get_global_i18n().t("crawler.proxy_error")
                 }
             
             # 构建代理URL
@@ -732,9 +732,9 @@ class CrawlerManagementScreen(Screen[None]):
                 'proxy_config': {
                     'enabled': True,
                     'proxy_url': proxy_url,
-                    'name': enabled_proxy.get('name', '未命名代理')
+                    'name': enabled_proxy.get('name', get_global_i18n().t("crawler.unnamed_proxy"))
                 },
-                'message': f"使用代理: {enabled_proxy.get('name', '未命名代理')} ({host}:{port})"
+                'message': f"{get_global_i18n().t("crawler.use_proxy")}: {enabled_proxy.get('name', get_global_i18n().t("crawler.unnamed_proxy"))} ({host}:{port})"
             }
             
         except Exception as e:
@@ -742,7 +742,7 @@ class CrawlerManagementScreen(Screen[None]):
             return {
                 'can_proceed': False,
                 'proxy_config': None,
-                'message': f'检查代理设置失败: {str(e)}'
+                'message': f'{get_global_i18n().t("crawler.check_proxy_failed")}: {str(e)}'
             }
 
     async def _actual_crawl_multiple(self, novel_ids: List[str], proxy_config: Dict[str, Any]) -> None:
@@ -751,13 +751,13 @@ class CrawlerManagementScreen(Screen[None]):
         import time
         
         # 开始爬取 - 使用app.call_later来安全地更新UI
-        self.app.call_later(self._update_status, f"开始爬取 {len(novel_ids)} 本小说...")
+        self.app.call_later(self._update_status, get_global_i18n().t("start_to_crawler_books", counts=len(novel_ids)))
         
         try:
             # 获取解析器名称
             parser_name = self.novel_site.get('parser')
             if not parser_name:
-                self.app.call_later(self._update_status, "未配置解析器", "error")
+                self.app.call_later(self._update_status, get_global_i18n().t("crawler.no_parser"), "error")
                 return
             
             # 导入解析器
@@ -824,19 +824,19 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 显示最终结果
             if success_count > 0 and failed_count == 0:
-                self.app.call_later(self._update_status, f"成功爬取 {success_count} 本小说", "success")
+                self.app.call_later(self._update_status, get_global_i18n().t("crawler.crawler_success_count_books", counts=success_count), "success")
             elif success_count > 0 and failed_count > 0:
-                self.app.call_later(self._update_status, f"爬取完成: {success_count} 本成功, {failed_count} 本失败", "warning")
+                self.app.call_later(self._update_status, get_global_i18n().t("crawler.crawler_result", success=success_count, failed=failed_count), "warning")
             else:
-                self.app.call_later(self._update_status, f"所有 {failed_count} 本小说爬取失败", "error")
+                self.app.call_later(self._update_status, get_global_i18n().t("crawler.crawler_all_failed", counts=failed_count), "error")
             
             # 发送全局爬取完成通知
             try:
                 from src.ui.messages import CrawlCompleteNotification
                 self.app.post_message(CrawlCompleteNotification(
                     success=success_count > 0,
-                    novel_title=f"{success_count}本小说",
-                    message=f"爬取完成: {success_count}本成功, {failed_count}本失败"
+                    novel_title=get_global_i18n().t("crawler.novel_title", counts=success_count),
+                    message=get_global_i18n().t("crawler.crawler_result", success=success_count, failed=failed_count)
                 ))
             except Exception as msg_error:
                 logger.debug(f"发送爬取完成通知失败: {msg_error}")
@@ -848,7 +848,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"多小说爬取过程中发生错误: {e}")
             import traceback
             logger.error(f"详细错误堆栈: {traceback.format_exc()}")
-            error_message = f"多小说爬取失败: {str(e)}"
+            error_message = f"{get_global_i18n().t("crawler.many_books_failed")}: {str(e)}"
             self.app.call_later(self._update_status, error_message, "error")
             self.app.call_later(self._reset_crawl_state)
     
@@ -927,13 +927,13 @@ class CrawlerManagementScreen(Screen[None]):
         import time
         
         # 开始爬取 - 使用app.call_later来安全地更新UI
-        self.app.call_later(self._update_status, get_global_i18n().t('crawler.crawling'))
+        self.app.call_later(self._update_status, f"{novel_id}:{get_global_i18n().t('crawler.crawling')}")
         
         try:
             # 获取解析器名称
             parser_name = self.novel_site.get('parser')
             if not parser_name:
-                self.app.call_later(self._update_status, "未配置解析器", "error")
+                self.app.call_later(self._update_status, get_global_i18n().t('crawler.no_parser'), "error")
                 return
             
             # 导入解析器
@@ -979,7 +979,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 自动将书籍加入书架
             try:
                 from src.core.book import Book
-                book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
+                book = Book(file_path, novel_title, self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
                 if self.db_manager.add_book(book):
                     # 发送全局刷新书架消息，确保书架屏幕能够接收
                     try:
@@ -1025,7 +1025,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 显示更详细的错误信息
             error_message = f"{get_global_i18n().t('crawler.crawl_failed')}: {str(e)}"
             if hasattr(e, '__cause__') and e.__cause__:
-                error_message += f"\n原因: {str(e.__cause__)}"
+                error_message += f"\n{get_global_i18n().t('crawler.reason')}: {str(e.__cause__)}"
             self.app.call_later(self._update_status, error_message, "error")
             
             # 移除已完成ID（失败）
@@ -1073,7 +1073,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 随机返回成功或失败
         if random.random() > 0.2:  # 80%成功率
             # 模拟成功爬取
-            novel_title = f"小说_{novel_id}"
+            novel_title = f"{get_global_i18n().t('search_book')}_{novel_id}"
             
             # 正确的文件路径格式：用户输入的存储路径 + 小说标题.txt
             storage_folder = self.novel_site.get('storage_folder', 'novels')
@@ -1086,9 +1086,9 @@ class CrawlerManagementScreen(Screen[None]):
             # 创建模拟文件内容
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(f"# {novel_title}\\n\\n")
-                f.write("这是模拟爬取的小说内容。\\n")
-                f.write(f"小说ID: {novel_id}\\n")
-                f.write(f"爬取时间: {time.strftime('%Y-%m-%d %H:%M:%S')}\\n")
+                f.write(f"{get_global_i18n().t('crawler.simulate')}\\n")
+                f.write(f"{get_global_i18n().t('search_book')}ID: {novel_id}\\n")
+                f.write(f"{get_global_i18n().t('crawler.crawl_time')}: {time.strftime('%Y-%m-%d %H:%M:%S')}\\n")
             
             # 记录到数据库
             site_id = self.novel_site.get('id')
@@ -1150,7 +1150,7 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_history_table()
         else:
             # 模拟爬取失败
-            error_message = "网络连接失败"
+            error_message = get_global_i18n().t('crawler.connected_failed')
             
             # 记录到数据库
             site_id = self.novel_site.get('id')
@@ -1412,7 +1412,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             if not enabled_proxy:
                 # 没有启用的代理，提示用户
-                self._update_status("该网站需要代理访问，但没有找到启用的代理设置。请先在代理设置中启用一个代理。", "error")
+                self._update_status(get_global_i18n().t('crawler.need_proxy'), "error")
                 return None
             
             # 构建代理URL
@@ -1423,7 +1423,7 @@ class CrawlerManagementScreen(Screen[None]):
             password = enabled_proxy.get('password', '')
             
             if not host or not port:
-                self._update_status("代理设置不完整，请检查主机地址和端口号。", "error")
+                self._update_status(get_global_i18n().t('crawler.proxy_error'), "error")
                 return None
             
             # 构建代理URL
@@ -1432,17 +1432,17 @@ class CrawlerManagementScreen(Screen[None]):
             else:
                 proxy_url = f"{proxy_type}://{host}:{port}"
             
-            self._update_status(f"使用代理: {enabled_proxy.get('name', '未命名代理')} ({host}:{port})", "success")
+            self._update_status(f"{get_global_i18n().t('crawler.use_proxy')}: {enabled_proxy.get('name', get_global_i18n().t('crawler.unnamed_proxy'))} ({host}:{port})", "success")
             
             return {
                 'enabled': True,
                 'proxy_url': proxy_url,
-                'name': enabled_proxy.get('name', '未命名代理')
+                'name': enabled_proxy.get('name', get_global_i18n().t('crawler.unnamed_proxy'))
             }
             
         except Exception as e:
             logger.error(f"检查代理设置失败: {e}")
-            self._update_status(f"检查代理设置失败: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('crawler.check_proxy_failed')}: {str(e)}", "error")
             return None
     
     def _reset_crawl_state(self) -> None:
@@ -1479,35 +1479,35 @@ class CrawlerManagementScreen(Screen[None]):
         if self._has_permission("crawler.open_browser"):
             self._open_browser()
         else:
-            self._update_status("无权限打开浏览器", "warning")
+            self._update_status(get_global_i18n().t('crawler.np_open_browser'), "warning")
     
     def key_v(self) -> None:
         """V键 - 查看历史"""
         if self._has_permission("crawler.view_history"):
             self._view_history()
         else:
-            self._update_status("无权限查看历史", "warning")
+            self._update_status(get_global_i18n().t('crawler.np_view_history'), "warning")
     
     def key_s(self) -> None:
         """S键 - 开始爬取"""
         if self._has_permission("crawler.start_crawl"):
             self._start_crawl()
         else:
-            self._update_status("无权限开始爬取", "warning")
+            self._update_status(get_global_i18n().t('crawler.np_crawl'), "warning")
     
     def key_p(self) -> None:
         """P键 - 上一页"""
         if self._has_permission("crawler.navigate"):
             self._prev_page()
         else:
-            self._update_status("无权限导航", "warning")
+            self._update_status(get_global_i18n().t('crawler.np_nav'), "warning")
     
     def key_n(self) -> None:
         """N键 - 下一页"""
         if self._has_permission("crawler.navigate"):
             self._next_page()
         else:
-            self._update_status("无权限导航", "warning")
+            self._update_status(get_global_i18n().t('crawler.np_nav'), "warning")
     
     def _view_file(self, history_item: Dict[str, Any]) -> None:
         """查看文件"""
@@ -1629,7 +1629,7 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（只删除数据库记录）",
+                    f"{get_global_i18n().t('crawler.confirm_delete')}（{get_global_i18n().t('crawler.only_delete')}）",
                     f"{get_global_i18n().t('crawler.confirm_delete_message')}"
                 ),
                 handle_delete_confirmation
@@ -1676,7 +1676,7 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（同时删除文件和记录）",
+                    f"{get_global_i18n().t('crawler.confirm_delete')}（{get_global_i18n().t('crawler.both_file_data')}）",
                     f"{get_global_i18n().t('crawler.confirm_delete_message')}"
                 ),
                 handle_delete_confirmation
@@ -1717,8 +1717,8 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 从文件路径创建书籍对象
             from src.core.book import Book
-            book_title = history_item.get('novel_title', '未知书籍')
-            book_source = self.novel_site.get('name', '未知来源')
+            book_title = history_item.get('novel_title', get_global_i18n().t('crawler.unknown_book'))
+            book_source = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
             book = Book(file_path, book_title, book_source)
             
             # 检查书籍是否有效
@@ -1730,9 +1730,9 @@ class CrawlerManagementScreen(Screen[None]):
             open_book = getattr(self.app, "open_book", None)
             if callable(open_book):
                 open_book(file_path)  # type: ignore[misc]
-                self._update_status(f"正在阅读: {book_title}", "success")
+                self._update_status(f"{get_global_i18n().t('crawler.on_reading')}: {book_title}", "success")
             else:
                 self._update_status("无法打开阅读器", "error")
                 
         except Exception as e:
-            self._update_status(f"打开书籍失败: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('crawler.open_failed')}: {str(e)}", "error")
