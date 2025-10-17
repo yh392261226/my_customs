@@ -57,7 +57,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             bookshelf: 书架
         """
         super().__init__()
-        self.title = t("welcome.title")
+        self.title = t("welcome.title_main")
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
     
@@ -71,7 +71,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         yield Header()
         yield Container(
             Vertical(
-                Label(get_global_i18n().t('welcome.title_main'), id="welcome-title"),
+                # Label(get_global_i18n().t('welcome.title_main'), id="welcome-title"),
                 Label(get_global_i18n().t('app.description'), id="welcome-subtitle"),
                 Label(get_global_i18n().t('welcome.description'), id="welcome-description"),
                 Horizontal(
