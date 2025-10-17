@@ -488,8 +488,26 @@ class CrawlerManagementScreen(Screen[None]):
                     existing_novels.append(novel_id)
         
         if existing_novels:
-            self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}")
-            return
+            # 自动跳过并清理已存在的ID
+            try:
+                for _eid in existing_novels:
+                    # 清理输入框中的已存在ID
+                    self.app.call_later(self._remove_id_from_input, _eid)
+                    # 单独提示每个被跳过的ID
+                    try:
+                        self.app.call_later(self._update_status, f"已跳过已存在ID: {_eid}", "information")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            # 过滤掉已存在的ID，继续爬取剩余的
+            novel_ids = [nid for nid in novel_ids if nid not in existing_novels]
+            if not novel_ids:
+                self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}")
+                return
+            else:
+                # 汇总提示，继续爬取剩余ID
+                self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}，已跳过", "information")
         
         # 检查代理要求
         proxy_check_result = self._check_proxy_requirements_sync()
@@ -783,8 +801,18 @@ class CrawlerManagementScreen(Screen[None]):
                         "file_path": ""
                     }
                     self.crawler_history.insert(0, new_history)
+                    # 移除已完成ID（失败）
+                    try:
+                        self.app.call_later(self._remove_id_from_input, novel_id)
+                    except Exception:
+                        pass
                 else:
                     success_count += 1
+                    # 移除已完成ID（成功）
+                    try:
+                        self.app.call_later(self._remove_id_from_input, novel_id)
+                    except Exception:
+                        pass
             
             # 更新历史记录表格
             self.app.call_later(self._update_history_table)
@@ -858,6 +886,11 @@ class CrawlerManagementScreen(Screen[None]):
                 "file_path": file_path
             }
             self.crawler_history.insert(0, new_history)
+            # 移除已完成ID
+            try:
+                self.app.call_later(self._remove_id_from_input, novel_id)
+            except Exception:
+                pass
             
             # 自动将书籍加入书架
             try:
@@ -960,6 +993,12 @@ class CrawlerManagementScreen(Screen[None]):
             
             self.app.call_later(self._update_history_table)
             
+            # 移除已完成ID
+            try:
+                self.app.call_later(self._remove_id_from_input, novel_id)
+            except Exception:
+                pass
+            
             # 发送全局爬取完成通知
             try:
                 from src.ui.messages import CrawlCompleteNotification
@@ -983,6 +1022,12 @@ class CrawlerManagementScreen(Screen[None]):
             if hasattr(e, '__cause__') and e.__cause__:
                 error_message += f"\n原因: {str(e.__cause__)}"
             self.app.call_later(self._update_status, error_message, "error")
+            
+            # 移除已完成ID（失败）
+            try:
+                self.app.call_later(self._remove_id_from_input, novel_id)
+            except Exception:
+                pass
             self.app.call_later(self._reset_crawl_state)
     
     async def _async_parse_novel_detail(self, parser_instance, novel_id: str) -> Dict[str, Any]:
@@ -1061,6 +1106,12 @@ class CrawlerManagementScreen(Screen[None]):
             }
             self.crawler_history.insert(0, new_history)
             
+            # 移除已完成ID（模拟成功）
+            try:
+                self.app.call_later(self._remove_id_from_input, novel_id)
+            except Exception:
+                pass
+            
             # 自动将书籍加入书架
             try:
                 from src.core.book import Book
@@ -1121,6 +1172,12 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_history_table()
             self._update_status(f"{get_global_i18n().t('crawler.crawl_failed')}: {error_message}", "error")
             
+            # 移除已完成ID（模拟失败）
+            try:
+                self.app.call_later(self._remove_id_from_input, novel_id)
+            except Exception:
+                pass
+            
             # 发送全局爬取失败通知
             try:
                 from src.ui.messages import CrawlCompleteNotification
@@ -1174,6 +1231,25 @@ class CrawlerManagementScreen(Screen[None]):
             # 延迟重试
             self.set_timer(0.1, lambda: self._update_status(message, severity))
     
+    def _remove_id_from_input(self, finished_id: str) -> None:
+        """爬取完成后，从输入框中移除已完成的ID（支持多个ID，英文逗号分隔）"""
+        try:
+            novel_id_input = self.query_one("#novel-id-input", Input)
+            raw = (novel_id_input.value or "").strip()
+            if not raw:
+                return
+            # 分割并标准化
+            ids = [i.strip() for i in raw.split(",") if i.strip()]
+            # 如果没有该ID则跳过
+            if finished_id not in ids:
+                return
+            # 移除匹配ID
+            ids = [i for i in ids if i != finished_id]
+            # 更新输入框
+            novel_id_input.value = ",".join(ids)
+        except Exception as e:
+            logger.debug(f"移除输入ID失败: {e}")
+
     def _initialize_loading_animation(self) -> None:
         """初始化加载动画"""
         try:
