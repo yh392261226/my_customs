@@ -1,19 +1,55 @@
 import os
 import time
-from db import DBManager
-from utils import build_pages_from_file
-from epub_utils import parse_epub, get_epub_metadata
 from lang import get_text
-from epub_utils import parse_epub, get_epub_metadata
-from pdf_utils import parse_pdf, get_pdf_metadata
-from mobi_utils import parse_mobi, get_mobi_metadata
-from azw_utils import parse_azw, get_azw_metadata
+
+# 动态导入处理，避免模块不存在时的导入错误
+try:
+    from db import DBManager
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    print("警告: db模块不可用，数据库功能将受限")
+
+try:
+    from utils import build_pages_from_file
+    UTILS_AVAILABLE = True
+except ImportError:
+    UTILS_AVAILABLE = False
+
+try:
+    from epub_utils import parse_epub, get_epub_metadata
+    EPUB_AVAILABLE = True
+except ImportError:
+    EPUB_AVAILABLE = False
+
+try:
+    from pdf_utils import parse_pdf, get_pdf_metadata
+    PDF_AVAILABLE = True
+except ImportError:
+    PDF_AVAILABLE = False
+
+try:
+    from mobi_utils import parse_mobi, get_mobi_metadata
+    MOBI_AVAILABLE = True
+except ImportError:
+    MOBI_AVAILABLE = False
+
+try:
+    from azw_utils import parse_azw, get_azw_metadata
+    AZW_AVAILABLE = True
+except ImportError:
+    AZW_AVAILABLE = False
 
 class Bookshelf:
     def __init__(self, lang="zh"):
-        self.db = DBManager()
         self.lang = lang
-        self.books = self.load_books()
+        if DB_AVAILABLE:
+            self.db = DBManager()
+            self.books = self.load_books()
+        else:
+            self.db = None
+            self.books = []
+            print("警告: 数据库不可用，书架功能受限")
 
     def load_books(self):
         books = self.db.get_books()
@@ -191,56 +227,115 @@ class Bookshelf:
     def add_book(self, file_path, tags="", width=80, height=25, line_spacing=1):
         ext = os.path.splitext(file_path)[-1].lower()
         if not os.path.exists(file_path):
+            print(f"错误: 文件不存在: {file_path}")
+            return None
+            
+        # 检查数据库是否可用
+        if not DB_AVAILABLE or self.db is None:
+            print("错误: 数据库不可用，无法添加书籍")
             return None
             
         # 简单的加载提示
         print(f"{get_text('loading_books', self.lang)}...")
         
-        # 根据文件类型处理
-        if ext == ".epub":
-            print(f"{get_text('parsing_epub_data', self.lang)}...")
-            title, author = get_epub_metadata(file_path)
-            print(f"{get_text('save_to_db', self.lang)}...")
-            self.db.add_book(file_path, title or os.path.basename(file_path), author, "epub", tags)
-        elif ext == ".pdf":
-            print(f"{get_text('parsing_pdf_data', self.lang)}...")
-
-            # 处理可能的加密PDF
-            try:
-                title, author = get_pdf_metadata(file_path)
-                
-                # 如果PDF加密，设置一个标志，稍后在加载时处理
-                if title is None and author is None:
-                    # 可能是加密的PDF，使用文件名作为标题
+        try:
+            # 根据文件类型处理
+            if ext == ".epub":
+                if not EPUB_AVAILABLE:
+                    print("警告: epub解析模块不可用，使用基础信息")
                     title = os.path.basename(file_path)
-                    author = "加密PDF - 需要密码"
-                    
+                    author = "未知作者"
+                else:
+                    print(f"{get_text('parsing_epub_data', self.lang)}...")
+                    try:
+                        title, author = get_epub_metadata(file_path)
+                    except Exception as e:
+                        print(f"EPUB解析错误: {str(e)}")
+                        title = os.path.basename(file_path)
+                        author = f"EPUB解析错误: {str(e)[:30]}..."
+                print(f"{get_text('save_to_db', self.lang)}...")
+                self.db.add_book(file_path, title or os.path.basename(file_path), author, "epub", tags)
+                
+            elif ext == ".pdf":
+                if not PDF_AVAILABLE:
+                    print("警告: PDF解析模块不可用，使用基础信息")
+                    title = os.path.basename(file_path)
+                    author = "未知作者"
+                else:
+                    print(f"{get_text('parsing_pdf_data', self.lang)}...")
+                    try:
+                        title, author = get_pdf_metadata(file_path)
+                        
+                        # 如果PDF加密，设置一个标志
+                        if title is None and author is None:
+                            title = os.path.basename(file_path)
+                            author = "加密PDF - 需要密码"
+                    except Exception as e:
+                        print(f"PDF解析错误: {str(e)}")
+                        title = os.path.basename(file_path)
+                        author = f"PDF解析错误: {str(e)[:30]}..."
                 print(f"{get_text('save_to_db', self.lang)}...")
                 self.db.add_book(file_path, title or os.path.basename(file_path), author, "pdf", tags)
-            except Exception as e:
-                # 处理PDF解析错误，但仍将书籍添加到数据库
-                print(f"{get_text('parsing_pdf_data', self.lang)} 错误: {str(e)}")
-                title = os.path.basename(file_path)
-                author = f"PDF解析错误: {str(e)[:30]}..."
-                self.db.add_book(file_path, title, author, "pdf", tags)
-        elif ext == ".mobi":
-            print(f"{get_text('parsing_epub_data', self.lang)}...")  # 复用提示文本
-            title, author = get_mobi_metadata(file_path)
-            print(f"{get_text('save_to_db', self.lang)}...")
-            self.db.add_book(file_path, title or os.path.basename(file_path), author, "mobi", tags)
-        elif ext in [".azw", ".azw3"]:
-            print(f"{get_text('parsing_azw_data', self.lang)}...")  # 新增提示
-            title, author = get_azw_metadata(file_path)
-            print(f"{get_text('save_to_db', self.lang)}...")
-            self.db.add_book(file_path, title or os.path.basename(file_path), author, "azw", tags)
-        else:
-            print(f"{get_text('save_to_db', self.lang)}...")
-            self.db.add_book(file_path, os.path.basename(file_path), "", "txt", tags)
+                
+            elif ext == ".mobi":
+                if not MOBI_AVAILABLE:
+                    print("警告: MOBI解析模块不可用，使用基础信息")
+                    title = os.path.basename(file_path)
+                    author = "未知作者"
+                else:
+                    print(f"{get_text('parsing_epub_data', self.lang)}...")
+                    try:
+                        title, author = get_mobi_metadata(file_path)
+                    except Exception as e:
+                        print(f"MOBI解析错误: {str(e)}")
+                        title = os.path.basename(file_path)
+                        author = f"MOBI解析错误: {str(e)[:30]}..."
+                print(f"{get_text('save_to_db', self.lang)}...")
+                self.db.add_book(file_path, title or os.path.basename(file_path), author, "mobi", tags)
+                
+            elif ext in [".azw", ".azw3"]:
+                if not AZW_AVAILABLE:
+                    print("警告: AZW解析模块不可用，使用基础信息")
+                    title = os.path.basename(file_path)
+                    author = "未知作者"
+                else:
+                    print(f"{get_text('parsing_azw_data', self.lang)}...")
+                    try:
+                        title, author = get_azw_metadata(file_path)
+                    except Exception as e:
+                        print(f"AZW解析错误: {str(e)}")
+                        title = os.path.basename(file_path)
+                        author = f"AZW解析错误: {str(e)[:30]}..."
+                print(f"{get_text('save_to_db', self.lang)}...")
+                self.db.add_book(file_path, title or os.path.basename(file_path), author, "azw", tags)
+                
+            else:
+                # 对于txt、md等文本文件，直接使用文件名
+                print(f"{get_text('save_to_db', self.lang)}...")
+                self.db.add_book(file_path, os.path.basename(file_path), "", "txt", tags)
+                
+            self.books = self.load_books()
+            return True
             
-        self.books = self.load_books()
+        except Exception as e:
+            print(f"添加书籍时发生错误: {str(e)}")
+            # 尝试使用基础信息添加书籍
+            try:
+                self.db.add_book(file_path, os.path.basename(file_path), "解析错误", "txt", tags)
+                self.books = self.load_books()
+                return True
+            except:
+                print("无法添加书籍到数据库")
+                return False
 
     def add_dir(self, dir_path, tags="", width=80, height=25, line_spacing=1):
         if not os.path.isdir(dir_path):
+            print(f"错误: 目录不存在: {dir_path}")
+            return
+            
+        # 检查数据库是否可用
+        if not DB_AVAILABLE or self.db is None:
+            print("错误: 数据库不可用，无法添加目录")
             return
             
         # 获取目录中所有支持的书籍文件
@@ -248,13 +343,47 @@ class Bookshelf:
         for fname in os.listdir(dir_path):
             fpath = os.path.join(dir_path, fname)
             if os.path.isfile(fpath) and fname.lower().endswith(('.txt', '.epub', '.pdf', '.mobi', '.azw', '.azw3', '.md')):
-                files.append(fpath)
+                # 检查文件大小，避免处理空文件或损坏文件
+                try:
+                    file_size = os.path.getsize(fpath)
+                    if file_size > 0:  # 只处理非空文件
+                        files.append(fpath)
+                    else:
+                        print(f"跳过空文件: {fname}")
+                except OSError:
+                    print(f"无法访问文件: {fname}")
                 
+        if not files:
+            print("未找到有效的书籍文件")
+            return
+            
         # 简单的加载提示
         print(f"{get_text('total_add_books', self.lang).format(books=len(files))}...")
+        
+        success_count = 0
+        error_count = 0
+        
         for i, fpath in enumerate(files):
             print(f"{get_text('parsing_books', self.lang).format(books=f'{i+1}/{len(files)}')}: {os.path.basename(fpath)}")
-            self.add_book(fpath, tags=tags, width=width, height=height, line_spacing=line_spacing)
+            
+            try:
+                result = self.add_book(fpath, tags=tags, width=width, height=height, line_spacing=line_spacing)
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    print(f"添加书籍失败: {os.path.basename(fpath)}")
+            except Exception as e:
+                error_count += 1
+                print(f"处理文件时发生错误 {os.path.basename(fpath)}: {str(e)}")
+                # 继续处理下一个文件，不中断整个扫描过程
+        
+        print(f"目录扫描完成: 成功 {success_count} 个文件, 失败 {error_count} 个文件")
+        
+        # 显示更新后的书架
+        if success_count > 0:
+            print("\n📊 更新后的书架:")
+            self.display_bookshelf()
 
     def get_book_by_id(self, book_id):
         for b in self.books:
@@ -280,6 +409,118 @@ class Bookshelf:
     def get_all_books(self):
         """获取所有书籍"""
         return self.books
+    
+    def display_bookshelf(self, books=None):
+        """显示书架列表，包含统计信息"""
+        if books is None:
+            books = self.books
+        
+        if not books:
+            print("📚 书架为空")
+            return
+        
+        # 显示统计信息
+        stats = self.get_book_statistics()
+        if stats["total"] == 0:
+            print("📚 书架为空")
+            return
+        
+        print(f"📚 书架统计 - 共 {stats['total']} 本书")
+        
+        # 按类型显示统计
+        type_stats = []
+        for book_type, count in stats["by_type"].items():
+            type_name = self._get_type_display_name(book_type)
+            type_stats.append(f"{type_name}({count})")
+        
+        if type_stats:
+            print("📖 类型分布: " + " | ".join(type_stats))
+        
+        print("-" * 60)  # 分隔线
+        
+        # 显示书籍列表
+        print("📖 书籍列表:")
+        for i, book in enumerate(books, 1):
+            status = "✅" if book.get("exists", True) else "❌"
+            tags_text = ", ".join(book.get("tags", [])) if book.get("tags") else "无标签"
+            print(f"  {i}. {status} {book['title']} - {book['author']} [{book.get('type', 'unknown')}]")
+            if tags_text:
+                print(f"     标签: {tags_text}")
+            print()
+    
+    def get_book_statistics(self):
+        """获取书籍统计信息"""
+        if not self.books:
+            return {"total": 0, "by_type": {}}
+        
+        stats = {
+            "total": len(self.books),
+            "by_type": {}
+        }
+        
+        # 统计每种类型的书籍数量
+        for book in self.books:
+            book_type = book.get("type", "unknown")
+            if book_type not in stats["by_type"]:
+                stats["by_type"][book_type] = 0
+            stats["by_type"][book_type] += 1
+        
+        return stats
+    
+    def display_statistics(self):
+        """显示书籍统计信息"""
+        stats = self.get_book_statistics()
+        
+        if stats["total"] == 0:
+            print("📚 书架为空")
+            return
+        
+        # 显示统计信息
+        print(f"📚 书架统计 - 共 {stats['total']} 本书")
+        
+        # 按类型显示统计
+        type_stats = []
+        for book_type, count in stats["by_type"].items():
+            type_name = self._get_type_display_name(book_type)
+            type_stats.append(f"{type_name}({count})")
+        
+        if type_stats:
+            print("📖 类型分布: " + " | ".join(type_stats))
+    
+    def _get_type_display_name(self, book_type):
+        """获取书籍类型的显示名称"""
+        type_names = {
+            "epub": "EPUB",
+            "pdf": "PDF", 
+            "mobi": "MOBI",
+            "azw": "AZW",
+            "txt": "TXT",
+            "md": "Markdown",
+            "unknown": "Unknown"
+        }
+        return type_names.get(book_type, book_type)
+    
+    def get_statistics_text(self):
+        """获取统计信息的格式化文本，用于UI显示"""
+        stats = self.get_book_statistics()
+        
+        if stats["total"] == 0:
+            return "书架为空"
+        
+        # 格式化统计信息
+        lines = []
+        lines.append(f"总书籍: {stats['total']} 本")
+        
+        # 按类型显示统计
+        type_stats = []
+        for book_type, count in stats["by_type"].items():
+            type_name = self._get_type_display_name(book_type)
+            type_stats.append(f"{type_name}:{count}")
+        
+        if type_stats:
+            lines.append("类型分布: " + " ".join(type_stats))
+        
+        return " | ".join(lines)
     
     def delete_tag(self, tag_name):
         """删除标签"""

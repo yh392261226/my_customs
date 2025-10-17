@@ -394,7 +394,14 @@ class NovelReader:
             self.stdscr.addstr(0, max_x // 2 - len(title_str) // 2, title_str)
             self.stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
             
-            y_offset = 2
+            # 显示统计信息
+            stats_text = self.bookshelf.get_statistics_text()
+            if stats_text:
+                self.stdscr.attron(curses.color_pair(3) | curses.A_DIM)
+                self.stdscr.addstr(1, max_x // 2 - len(stats_text) // 2, stats_text)
+                self.stdscr.attroff(curses.color_pair(3) | curses.A_DIM)
+            
+            y_offset = 3
             
             # 显示最近阅读的书籍区域
             if recent_books:
