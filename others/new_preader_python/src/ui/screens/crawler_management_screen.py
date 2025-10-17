@@ -41,6 +41,7 @@ class CrawlerManagementScreen(Screen[None]):
         self.db_manager = DatabaseManager()  # 数据库管理器
         self.is_crawling = False  # 爬取状态标志
         self.loading_animation = None  # 加载动画组件
+        self.loading_indicator = None  # 原生 LoadingIndicator 引用
         self.is_mounted_flag = False  # 组件挂载标志
         self.title = get_global_i18n().t('crawler.title')
 
@@ -1247,6 +1248,11 @@ class CrawlerManagementScreen(Screen[None]):
             ids = [i for i in ids if i != finished_id]
             # 更新输入框
             novel_id_input.value = ",".join(ids)
+            # 将焦点放回输入框，便于继续输入
+            try:
+                novel_id_input.focus()
+            except Exception:
+                pass
         except Exception as e:
             logger.debug(f"移除输入ID失败: {e}")
 
@@ -1448,6 +1454,17 @@ class CrawlerManagementScreen(Screen[None]):
             self.is_crawling = False
             self._update_crawl_button_state()
             self._hide_loading_animation()
+            
+            # 自动继续爬取剩余ID（如果输入框中还有）
+            try:
+                novel_id_input = self.query_one("#novel-id-input", Input)
+                raw = (novel_id_input.value or "").strip()
+                remaining_ids = [i.strip() for i in raw.split(",") if i.strip()]
+                if remaining_ids and not self.is_crawling:
+                    # 在UI刷新后触发下一轮爬取
+                    self.call_after_refresh(self._start_crawl)
+            except Exception:
+                pass
         except Exception as e:
             logger.debug(f"重置爬取状态失败: {e}")
             # 延迟重试
