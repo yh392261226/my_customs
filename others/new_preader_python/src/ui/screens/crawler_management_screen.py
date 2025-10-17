@@ -751,7 +751,7 @@ class CrawlerManagementScreen(Screen[None]):
         import time
         
         # 开始爬取 - 使用app.call_later来安全地更新UI
-        self.app.call_later(self._update_status, get_global_i18n().t("start_to_crawler_books", counts=len(novel_ids)))
+        self.app.call_later(self._update_status, get_global_i18n().t("crawler.start_to_crawler_books", counts=len(novel_ids)))
         
         try:
             # 获取解析器名称
