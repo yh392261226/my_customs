@@ -257,7 +257,7 @@ class NewReaderApp(App[None]):
         Binding("c", "show_statistics", get_global_i18n().t('app.bindings.statistics')),
         Binding("/", "boss_key", get_global_i18n().t('app.bindings.boss_key')),
         Binding("t", "pick_theme", get_global_i18n().t('app.bindings.theme')),
-        Binding("escape", "back", get_global_i18n().t('app.bindings.backs'))
+        Binding("escape", "back", get_global_i18n().t('app.bindings.back'))
     ]
     
     def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None):
