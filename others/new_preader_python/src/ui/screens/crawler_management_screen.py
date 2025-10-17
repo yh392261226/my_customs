@@ -835,7 +835,7 @@ class CrawlerManagementScreen(Screen[None]):
                 from src.ui.messages import CrawlCompleteNotification
                 self.app.post_message(CrawlCompleteNotification(
                     success=success_count > 0,
-                    novel_title=get_global_i18n().t("crawler.novel_title", counts=success_count),
+                    novel_title=get_global_i18n().t("crawler.novel_title_count", counts=success_count),
                     message=get_global_i18n().t("crawler.crawler_result", success=success_count, failed=failed_count)
                 ))
             except Exception as msg_error:
@@ -1732,7 +1732,7 @@ class CrawlerManagementScreen(Screen[None]):
                 open_book(file_path)  # type: ignore[misc]
                 self._update_status(f"{get_global_i18n().t('crawler.on_reading')}: {book_title}", "success")
             else:
-                self._update_status("无法打开阅读器", "error")
+                self._update_status(get_global_i18n().t('crawler.cannot_open_book'), "error")
                 
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_failed')}: {str(e)}", "error")
