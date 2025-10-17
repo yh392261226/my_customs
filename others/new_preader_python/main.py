@@ -103,6 +103,12 @@ def main():
     if args.web:
         # 使用 textual-serve 启动 Web 模式
         import os
+        import asyncio
+        # Python 3.14 不会为主线程默认创建事件循环，这里显式创建以兼容 textual-serve
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
         main_file = os.path.dirname(__file__)
         server = Server(f'python {main_file}/main.py "$@"')
         server.serve()

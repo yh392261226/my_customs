@@ -39,6 +39,7 @@ watchdog>=3.0.0
 
 cjkwrap>=2.2
 pymupdf>=1.26.5
+pdfplumber>=0.11.7
 # 导入说明：
 # beautifulsoup4 导入时使用: from bs4 import BeautifulSoup
 # pdfminer.six 导入时使用: from pdfminer import ...
