@@ -43,6 +43,8 @@ def main():
     parser.add_argument("--config", help="指定配置文件路径")
     parser.add_argument("--web", action="store_true", help="启用浏览器模式")
     parser.add_argument("--debug", action="store_true", help="启用调试模式")
+    parser.add_argument("--host", default="localhost", help="Web 服务绑定地址，默认 localhost")
+    parser.add_argument("--port", type=int, default=8000, help="Web 服务端口，默认 8000，若被占用将自动顺延")
     parser.add_argument("book_file", nargs="?", help="直接打开指定的小说文件")
     args = parser.parse_args()
     
@@ -102,15 +104,42 @@ def main():
         
     if args.web:
         # 使用 textual-serve 启动 Web 模式
-        import os
-        import asyncio
+        import os, asyncio, socket
         # Python 3.14 不会为主线程默认创建事件循环，这里显式创建以兼容 textual-serve
         try:
             asyncio.get_running_loop()
         except RuntimeError:
             asyncio.set_event_loop(asyncio.new_event_loop())
+
+        # 端口检测与自动顺延
+        host = args.host or "localhost"
+        start_port = int(args.port or 8000)
+        port = start_port
+
+        def _is_busy(h: str, p: int) -> bool:
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    s.settimeout(0.2)
+                    return s.connect_ex((h, p)) == 0
+            except Exception:
+                # 如果检测异常，保守认为被占用，避免冲突
+                return True
+
+        tries = 10
+        while _is_busy(host, port) and tries > 0:
+            print(f"Port on used: {port}，Try next port: {port + 1}")
+            port += 1
+            tries -= 1
+
+        if _is_busy(host, port):
+            handle_error(f"No port to use（From {start_port} to last 10 ports were all on used）", 6)
+            return
+
         main_file = os.path.dirname(__file__)
-        server = Server(f'python {main_file}/main.py "$@"')
+        # 使用当前解释器，避免不同 Python 版本导致问题
+        python_cmd = f'"{sys.executable}"' if getattr(sys, "executable", None) else "python"
+        server = Server(f'{python_cmd} {main_file}/main.py "$@"', host=host, port=port, title="NewReader")
         server.serve()
         return
 
