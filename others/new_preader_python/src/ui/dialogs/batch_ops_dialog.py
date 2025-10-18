@@ -39,13 +39,14 @@ class BatchInputDialog(ModalScreen[str]):
         super().__init__()
         self.title = title
         self.placeholder = placeholder
-        self.description = description
+        # 保证描述为字符串，避免 None 传入 Label
+        self.description = description or ""
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         with Vertical(id="batch-input-dialog"):
             yield Label(self.title, id="batch-input-title")
-            if self.description:
+            if isinstance(self.description, str) and self.description != "":
                 yield Label(self.description, id="batch-input-description")
             yield Input(placeholder=self.placeholder, id="batch-input")
             with Horizontal(id="batch-input-buttons"):
@@ -239,13 +240,11 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
         数据表行选择时的回调
-        
-        Args:
-            event: 行选择事件
+        说明：不在行选择事件中切换选中状态，避免点击任意列都触发选中翻转。
+        仅用于更新光标/高亮，具体切换逻辑在 on_data_table_cell_selected 中处理。
         """
-        if event.row_key and event.row_key.value:
-            book_id = event.row_key.value
-            self._toggle_book_selection(book_id, event.data_table, event.cursor_row)
+        # 行选择事件不做选中切换，保持与单元格点击逻辑一致
+        return
     
     @on(events.Key)
     def on_key(self, event: events.Key) -> None:
@@ -298,6 +297,35 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 for _ in range(len(table.rows) - 1):
                     table.action_cursor_down()  # 移动到最底部
                 event.stop()
+
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        """
+        单元格选择事件：仅当点击“已选择”列（最后一列）时，切换该行的选中状态。
+        """
+        table = event.data_table
+        # 计算是否点击的是最后一列（已选择列）
+        try:
+            selected_col_index = len(table.columns) - 1
+        except Exception:
+            # 兼容旧版本 DataTable 属性名
+            selected_col_index = len(table.ordered_columns) - 1
+        if event.coordinate.column != selected_col_index:
+            return  # 非“已选择”列，不切换
+
+        # 获取行索引与行键
+        row_index = event.coordinate.row
+        # 获取当前行的键（书籍路径）
+        try:
+            row_key = list(table.rows.keys())[row_index]
+        except Exception:
+            return
+        if not row_key or not getattr(row_key, "value", None):
+            return
+        book_id = row_key.value
+
+        # 执行切换并阻止事件进一步影响其他处理器
+        self._toggle_book_selection(book_id, table, row_index)
+        event.stop()
     
     def _toggle_book_selection(self, book_id: str, table: DataTable[Any], row_index: int) -> None:
         """切换书籍选中状态"""
@@ -815,8 +843,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 获取文件格式筛选
         format_select = self.query_one("#search-format-filter", Select)
-        if format_select.value:
-            self._selected_format = format_select.value
+        # 规避 NoSelection/None：统一为 "all"
+        value = getattr(format_select, "value", None)
+        try:
+            # Textual Select 的 NoSelection 可能没有可比性，转字符串判断
+            is_valid = isinstance(value, str) and value != ""
+        except Exception:
+            is_valid = False
+        self._selected_format = value if is_valid else "all"
         
         # 重置到第一页并重新加载书籍
         self._current_page = 1
@@ -830,10 +864,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     @on(Select.Changed, "#search-format-filter")
     def on_format_filter_changed(self, event: Select.Changed) -> None:
         """文件格式筛选器变化时自动搜索"""
-        if event.select.value:
-            self._selected_format = event.select.value
-            self._current_page = 1
-            self._load_books()
+        # 规避 NoSelection/None：统一为 "all"
+        value = getattr(event.select, "value", None)
+        is_valid = isinstance(value, str) and value != ""
+        self._selected_format = value if is_valid else "all"
+        self._current_page = 1
+        self._load_books()
     
     def _clear_table_selection(self) -> None:
         """清除表格的视觉选中状态"""
