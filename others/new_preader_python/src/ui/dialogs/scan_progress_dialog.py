@@ -15,6 +15,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.book_manager import BookManager
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.ui.dialogs.password_dialog import PasswordDialog
 
 class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
 
@@ -58,6 +59,11 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
     def on_mount(self) -> None:
         """挂载时开始扫描并应用主题"""
         self.theme_manager.apply_theme_to_screen(self)
+        # 启动对密码弹窗的监听：显示时隐藏加载动画，关闭后恢复
+        try:
+            self.set_interval(0.1, self._watch_modal_active)
+        except Exception:
+            pass
         self.start_scan()
         
     def start_scan(self) -> None:
@@ -69,6 +75,7 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
             progress_percent = int((processed / total) * 100) if total > 0 else 0
             
             # 在主线程更新进度
+            # 在主线程更新进度（若弹窗显示中，保持隐藏但仍更新内部状态）
             self.app.call_from_thread(lambda: self._update_scan_progress(progress_percent))
             
         def result_callback(added_count: int, failed_files: List[str]):
@@ -81,6 +88,7 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
             }
             
             # 在主线程更新完成状态
+            # 在主线程更新完成状态（弹窗关闭后会自动恢复显示）
             self.app.call_from_thread(self._update_scan_complete)
             
         # 使用书籍管理器进行扫描
@@ -139,4 +147,85 @@ class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
         elif event.button.id == "cancel-btn":
             # 取消扫描（需要实现扫描取消逻辑）
             self.dismiss({"cancelled": True})
+
+    def request_password(self, file_path: str, on_result) -> None:
+        """
+        在扫描过程中请求密码：
+        - 暂时隐藏加载动画/进度视图
+        - 通过 PasswordDialog 安全弹窗
+        - 弹窗关闭后恢复加载动画并将密码回传 on_result(password)
+        """
+        try:
+            self.hide_loading_ui()
+        except Exception:
+            pass
+
+        def _cb(pwd: str | None) -> None:
+            # 恢复加载动画
+            try:
+                self.show_loading_ui()
+            except Exception:
+                pass
+            # 回传密码（允许空字符串）
+            try:
+                on_result(pwd)
+            except Exception:
+                pass
+
+        # 统一安全弹出
+        try:
+            PasswordDialog.show(self.app, file_path, callback=_cb)
+        except Exception:
+            # 兜底：即使弹窗失败也恢复显示，避免 UI 卡死
+            try:
+                self.show_loading_ui()
+            except Exception:
+                pass
+
+    # 供外部或自动流程调用：隐藏/显示加载动画与进度视图
+    def hide_loading_ui(self) -> None:
+        """隐藏进度与状态显示（不影响实际扫描进行）"""
+        try:
+            self.query_one("#scan-progress").styles.display = "none"
+        except Exception:
+            pass
+        try:
+            self.query_one("#scan-status").styles.display = "none"
+        except Exception:
+            pass
+        try:
+            self.query_one("#scan-results").styles.display = "none"
+        except Exception:
+            pass
+
+    def show_loading_ui(self) -> None:
+        """显示进度与状态显示"""
+        try:
+            self.query_one("#scan-progress").styles.display = "block"
+        except Exception:
+            pass
+        try:
+            self.query_one("#scan-status").styles.display = "block"
+        except Exception:
+            pass
+        try:
+            self.query_one("#scan-results").styles.display = "block"
+        except Exception:
+            pass
+
+    def _watch_modal_active(self) -> None:
+        """
+        定时监听是否有模态弹窗（如密码输入）激活：
+        - 激活时隐藏加载动画/进度视图
+        - 关闭后恢复显示
+        """
+        try:
+            active = bool(getattr(self.app, "_modal_active", False))
+            if active:
+                self.hide_loading_ui()
+            else:
+                self.show_loading_ui()
+        except Exception:
+            # 容错：出现异常时不影响扫描
+            pass
 

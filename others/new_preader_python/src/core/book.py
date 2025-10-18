@@ -911,10 +911,13 @@ class Book:
     def _get_password_cli(self) -> Optional[str]:
         """CLI模式下获取密码"""
         try:
-            import getpass
             print(f"\nPDF文件需要密码: {self.path}")
-            password = getpass.getpass("请输入PDF密码（留空跳过）: ")
-            return password if password else None
+            # 使用标准输入避免在 Textual 环境下阻塞
+            print("请输入PDF密码（留空跳过，输入'cancel'取消）: ", end="", flush=True)
+            password = input().strip()
+            if not password or password.lower() == 'cancel':
+                return None
+            return password
         except Exception as e:
             logger.warning(f"CLI密码获取失败: {e}")
             return None

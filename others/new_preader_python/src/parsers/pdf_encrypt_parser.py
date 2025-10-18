@@ -52,6 +52,14 @@ class PdfEncryptParser(BaseParser):
             Dict[str, Any]: 解析结果
         """
         logger.info(f"解析加密PDF文件: {file_path}")
+        # 抑制 pypdf 提示信息与特定 warnings
+        try:
+            import logging as _logging, warnings as _warnings
+            _logging.getLogger("pypdf").setLevel(_logging.ERROR)
+            # 使用字符串正则，避免类型检查错误
+            _warnings.filterwarnings("ignore", message=".*should not allow text extraction.*", module="pypdf|PyPDF2")
+        except Exception:
+            pass
         
         # 验证文件确实需要密码
         if not self._is_pdf_encrypted(file_path):
@@ -83,7 +91,7 @@ class PdfEncryptParser(BaseParser):
         """
         try:
             with open(file_path, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
+                reader = PyPDF2.PdfReader(file, strict=False)
                 return reader.is_encrypted
         except Exception as e:
             logger.error(f"检查PDF加密状态时出错: {e}")
@@ -154,7 +162,7 @@ class PdfEncryptParser(BaseParser):
                                 def _on_result(result: Optional[str]) -> None:
                                     if not future.done():
                                         future.set_result(result)
-                                app.push_screen(PasswordDialog(file_path, self.max_password_attempts), callback=_on_result)
+                                PasswordDialog.show(app, file_path, callback=_on_result)
                             return await future
                         except Exception as e:
                             logger.error(f"Message bridge failed: {e}")

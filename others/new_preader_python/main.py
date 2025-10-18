@@ -78,6 +78,23 @@ def main():
                 
         except Exception as e:
             print(f"检查书籍状态时出错: {e}")
+        
+        # 在启动 UI 之前，如果是加密 PDF，提前从 CLI 获取密码
+        cli_password = None
+        try:
+            if args.book_file.lower().endswith(".pdf"):
+                from src.parsers.pdf_encrypt_parser import PdfEncryptParser
+                enc = PdfEncryptParser()
+                if enc.is_encrypted_pdf(args.book_file):
+                    from src.locales.i18n_manager import get_global_i18n
+                    print(f"\n{get_global_i18n().t('app.pdf_need_password')}: {os.path.basename(args.book_file)}")
+                    print(get_global_i18n().t('app.password_info'), end="", flush=True)
+                    cli_input = input().strip()
+                    if cli_input and cli_input.lower() != "cancel":
+                        cli_password = cli_input
+        except Exception:
+            # 若检测或输入失败，继续启动 UI，由 UI 内的流程处理
+            pass
     
     # 创建配置管理器
     config_manager = ConfigManager(args.config)
@@ -146,7 +163,7 @@ def main():
     # 创建并运行应用程序
     try:
         # 创建应用实例
-        app = NewReaderApp(config_manager, args.book_file)
+        app = NewReaderApp(config_manager, args.book_file, cli_password=locals().get("cli_password"))
         
         # 应用内部已经集成了多用户设置检查逻辑
         # 在NewReaderApp的on_mount方法中会自动处理登录流程

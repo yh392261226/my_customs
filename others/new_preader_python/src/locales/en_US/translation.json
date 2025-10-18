@@ -27,7 +27,7 @@
         "changed_theme": "Theme Changed",
         "pdf_need_password": "PDF file needs password",
         "password_info": "Please input password（Press enter to use empty password，Input 'cancel' to cancel）: ",
-        "prom[t": "Password: "
+        "prompt": "Password: "
     },
     "welcome": {
         "title": "Welcome",

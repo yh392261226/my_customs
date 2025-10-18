@@ -260,7 +260,7 @@ class NewReaderApp(App[None]):
         Binding("escape", "back", get_global_i18n().t('app.bindings.back'))
     ]
     
-    def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None):
+    def __init__(self, config_manager: ConfigManager, book_file: Optional[str] = None, cli_password: Optional[str] = None):
         """
         初始化应用程序
         
@@ -273,6 +273,7 @@ class NewReaderApp(App[None]):
         # 初始化配置管理器
         self.config_manager = config_manager
         self.book_file = book_file
+        self.cli_password = cli_password
         
         # 初始化国际化支持
         config = self.config_manager.get_config()
@@ -756,6 +757,14 @@ class NewReaderApp(App[None]):
         except Exception as e:
             logger.debug(f"内存监控启动失败（可忽略）：{e}")
         
+        # 若通过 CLI 指定了书籍文件，直接打开阅读器并跳过登录/欢迎流程
+        try:
+            if getattr(self, "book_file", None):
+                self._open_book_file(self.book_file)
+                return
+        except Exception:
+            pass
+
         # 伪用户系统：显示登录屏幕（优先于启动密码）
         try:
             from src.ui.screens.login_screen import LoginScreen
@@ -1123,10 +1132,9 @@ class NewReaderApp(App[None]):
                 from src.parsers.pdf_encrypt_parser import PdfEncryptParser
                 pdf_parser = PdfEncryptParser(app=self)
                 if pdf_parser.is_encrypted_pdf(book_file):
-                    # CLI模式下需要从命令行获取密码
-                    password = self._get_cli_password(book_file)
-                    if password is not None:
-                        # 使用密码重新创建Book对象
+                    # 优先使用启动前通过 CLI 获取的密码，避免在 UI 运行期进行命令行输入
+                    password = getattr(self, "cli_password", None)
+                    if password:
                         book = Book(book_file, book_name, get_global_i18n().t("app.unknown_author"), password=password)
             
             # 在打开前尝试补全作者（静默忽略失败）
@@ -1162,11 +1170,10 @@ class NewReaderApp(App[None]):
             密码字符串，如果用户取消则为None
         """
         try:
-            import getpass
             print(f"\n{get_global_i18n().t('app.pdf_need_password')}: {os.path.basename(file_path)}")
-            print(get_global_i18n().t('app.password_info'))
-            password = getpass.getpass(get_global_i18n().t('app.prompt'))
-            
+            # 使用标准输入避免在 Textual 环境下阻塞
+            print(get_global_i18n().t('app.password_info'), end="", flush=True)
+            password = input().strip()
             if password.lower() == 'cancel':
                 return None
             return password
@@ -1244,7 +1251,7 @@ class NewReaderApp(App[None]):
                                 fut.set_result(result)
                     except Exception:
                         pass
-            self.push_screen(PasswordDialog(message.file_path, message.max_attempts), _on_result)
+            PasswordDialog.show(self, message.file_path, callback=_on_result)
         except Exception as e:
             self.logger.error(f"App.handle_request_password failed: {e}")
             if not message.future.done():
@@ -1301,7 +1308,7 @@ class NewReaderApp(App[None]):
                                     fut.set_result(result)
                         except Exception:
                             pass
-                self.push_screen(PasswordDialog(message.file_path, message.max_attempts), _on_result)
+                PasswordDialog.show(self, message.file_path, callback=_on_result)
             except Exception as e:
                 self.logger.error(f"App.on_request_password failed: {e}")
                 if not message.future.done():
@@ -1395,7 +1402,7 @@ class NewReaderApp(App[None]):
                         pass
 
             # 直接在 UI 线程推屏。调用方确保通过 schedule_on_ui/call_from_thread 投递到 UI 线程。
-            self.push_screen(PasswordDialog(file_path, max_attempts), _on_result)
+            PasswordDialog.show(self, file_path, callback=_on_result)
         except Exception as e:
             self.logger.error(f"App.request_password_async failed: {e}")
             _set_future_result(None)

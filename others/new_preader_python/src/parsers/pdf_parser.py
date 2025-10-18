@@ -34,6 +34,14 @@ class PdfParser(BaseParser):
             Dict[str, Any]: 解析结果
         """
         logger.info(f"解析PDF文件: {file_path}")
+        # 抑制 pypdf 提示信息与特定 warnings
+        try:
+            import logging as _logging, warnings as _warnings
+            _logging.getLogger("pypdf").setLevel(_logging.ERROR)
+            # 使用字符串正则，避免类型检查错误
+            _warnings.filterwarnings("ignore", message=".*should not allow text extraction.*", module="pypdf|PyPDF2")
+        except Exception:
+            pass
         
         # UI 动画控制仅用于“加密PDF”流程
         ui_app = None
@@ -77,7 +85,7 @@ class PdfParser(BaseParser):
             password_used: Optional[str] = None
             # 打开PDF文件
             with open(file_path, 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
+                reader = PyPDF2.PdfReader(file, strict=False)
                 
                 # 检查文件是否加密
                 if reader.is_encrypted:
@@ -268,7 +276,7 @@ class PdfParser(BaseParser):
                                     if not future.done():
                                         future.set_result(result)
                                 logger.info("PasswordDialog._push executing (fallback)")
-                                app.push_screen(PasswordDialog(file_path, self.max_password_attempts), callback=_on_result)
+                                PasswordDialog.show(app, file_path, callback=_on_result)
                             return await future
                         except Exception as e:
                             logger.error(f"Message bridge failed: {e}")
@@ -301,10 +309,12 @@ class PdfParser(BaseParser):
         Returns:
             Optional[str]: 用户输入的密码，如果取消则为None
         """
-        import getpass
         try:
-            password = getpass.getpass(f"请输入PDF文件密码 ({os.path.basename(file_path)}): ")
-            return password if password else None
+            print(f"请输入PDF文件密码 ({os.path.basename(file_path)})（留空跳过，输入'cancel'取消）: ", end="", flush=True)
+            password = input().strip()
+            if not password or password.lower() == 'cancel':
+                return None
+            return password
         except KeyboardInterrupt:
             return None
 
