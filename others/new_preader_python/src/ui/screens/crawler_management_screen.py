@@ -1269,7 +1269,7 @@ class CrawlerManagementScreen(Screen[None]):
                     novel_id_input = self.query_one("#novel-id-input", Input)
                     raw = (novel_id_input.value or "").strip()
                     remaining_ids = [i.strip() for i in raw.split(",") if i.strip()]
-                    rem = len(remaining_ids)
+                    rem = len(remaining_ids) - 1
                     message = f"{message}（{get_global_i18n().t('crawler.remaining')}: {rem}）"
                     
                 except Exception:
