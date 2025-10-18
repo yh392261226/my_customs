@@ -981,7 +981,8 @@
         "both_file_data": "同时删除文件和记录",
         "open_failed": "打开书籍失败",
         "on_reading": "正在阅读",
-        "cannot_open_book": "无法打开阅读器"
+        "cannot_open_book": "无法打开阅读器",
+        "remaining": "剩余"
     },
     "note": {
         "save": "保存",

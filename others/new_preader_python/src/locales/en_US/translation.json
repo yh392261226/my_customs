@@ -981,7 +981,8 @@
         "both_file_data": "Both delete file and record from database",
         "open_failed": "Open book failed",
         "on_reading": "Reading",
-        "cannot_open_book": "Can not open reader"
+        "cannot_open_book": "Can not open reader",
+        "remaining": "Remaining"
     },
     "note": {
         "save": "Save",

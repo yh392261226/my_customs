@@ -40,6 +40,8 @@ class CrawlerManagementScreen(Screen[None]):
         self.items_per_page = 10
         self.db_manager = DatabaseManager()  # 数据库管理器
         self.is_crawling = False  # 爬取状态标志
+        # 当前正在爬取的ID（用于状态显示）
+        self.current_crawling_id: Optional[str] = None
         self.loading_animation = None  # 加载动画组件
         self.loading_indicator = None  # 原生 LoadingIndicator 引用
         self.is_mounted_flag = False  # 组件挂载标志
@@ -856,6 +858,12 @@ class CrawlerManagementScreen(Screen[None]):
         """爬取单个小说"""
         import asyncio
         import time
+        # 标记当前正在爬取的ID并更新状态
+        try:
+            self.current_crawling_id = novel_id
+            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawling')} ID: {novel_id}")
+        except Exception:
+            pass
         
         try:
             # 使用异步方式执行网络请求
@@ -914,10 +922,22 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception as e:
                 logger.error(f"添加书籍到书架失败: {e}")
             
+            # 若当前ID与本任务一致，清空当前ID
+            try:
+                if self.current_crawling_id == novel_id:
+                    self.current_crawling_id = None
+            except Exception:
+                pass
             return novel_content
             
         except Exception as e:
             logger.error(f"爬取小说 {novel_id} 失败: {e}")
+            # 失败也清理当前ID（若仍匹配）
+            try:
+                if self.current_crawling_id == novel_id:
+                    self.current_crawling_id = None
+            except Exception:
+                pass
             raise e
     
     async def _actual_crawl(self, novel_id: str, proxy_config: Dict[str, Any]) -> None:
@@ -926,8 +946,13 @@ class CrawlerManagementScreen(Screen[None]):
         import os
         import time
         
+        # 标记当前正在爬取的ID并更新状态
+        try:
+            self.current_crawling_id = novel_id
+        except Exception:
+            pass
         # 开始爬取 - 使用app.call_later来安全地更新UI
-        self.app.call_later(self._update_status, f"{novel_id}:{get_global_i18n().t('crawler.crawling')}")
+        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawling')} ID: {novel_id}")
         
         try:
             # 获取解析器名称
@@ -1064,8 +1089,13 @@ class CrawlerManagementScreen(Screen[None]):
         import os
         import time
         
+        # 标记当前正在爬取的ID并更新状态
+        try:
+            self.current_crawling_id = novel_id
+        except Exception:
+            pass
         # 模拟爬取过程
-        self._update_status(get_global_i18n().t('crawler.crawling'))
+        self._update_status(f"{get_global_i18n().t('crawler.crawling')} ID: {novel_id}")
         
         # 使用异步睡眠模拟网络延迟，避免阻塞UI
         await asyncio.sleep(2)
@@ -1148,6 +1178,12 @@ class CrawlerManagementScreen(Screen[None]):
                 logger.debug(f"发送爬取完成通知失败: {msg_error}")
             
             self._update_history_table()
+            # 若当前ID与本任务一致，清空当前ID
+            try:
+                if self.current_crawling_id == novel_id:
+                    self.current_crawling_id = None
+            except Exception:
+                pass
         else:
             # 模拟爬取失败
             error_message = get_global_i18n().t('crawler.connected_failed')
@@ -1193,6 +1229,12 @@ class CrawlerManagementScreen(Screen[None]):
                 ))
             except Exception as msg_error:
                 logger.debug(f"发送爬取失败通知失败: {msg_error}")
+            # 失败也清理当前ID（若仍匹配）
+            try:
+                if self.current_crawling_id == novel_id:
+                    self.current_crawling_id = None
+            except Exception:
+                pass
     
     def _prev_page(self) -> None:
         """上一页"""
@@ -1217,6 +1259,21 @@ class CrawlerManagementScreen(Screen[None]):
                 self.set_timer(0.1, lambda: self._update_status(message, severity))
                 return
 
+            # 在爬取进行中且消息为空或为通用“正在爬取”时，附加当前ID
+            base_crawling = get_global_i18n().t('crawler.crawling')
+            if self.is_crawling and self.current_crawling_id:
+                if not message or message.strip() == base_crawling:
+                    message = f"{base_crawling} ID: {self.current_crawling_id}"
+                # 附加剩余未爬取数量
+                try:
+                    novel_id_input = self.query_one("#novel-id-input", Input)
+                    raw = (novel_id_input.value or "").strip()
+                    remaining_ids = [i.strip() for i in raw.split(",") if i.strip()]
+                    rem = len(remaining_ids)
+                    message = f"{message}（{get_global_i18n().t('crawler.remaining')}: {rem}）"
+                    
+                except Exception:
+                    pass
             # 使用正确的CSS选择器语法，需要#号
             status_label = self.query_one("#crawler-status", Label)
             status_label.update(message)
