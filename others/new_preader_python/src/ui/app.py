@@ -1137,14 +1137,25 @@ class NewReaderApp(App[None]):
                     if password:
                         book = Book(book_file, book_name, get_global_i18n().t("app.unknown_author"), password=password)
             
-            # 在打开前尝试补全作者（静默忽略失败）
-            try:
-                if hasattr(self, "bookshelf") and self.bookshelf:
-                    self.bookshelf.maybe_update_author(book)
-            except Exception:
-                pass
             # 加载书籍内容
             content = book.get_content()
+
+            # 加载后再尝试补全作者，避免在加密且无密码时触发密码弹窗
+            try:
+                if hasattr(self, "bookshelf") and self.bookshelf:
+                    # 仅当已提供密码或文件非加密时再尝试作者补全
+                    do_update = True
+                    try:
+                        if book.file_name.lower().endswith('.pdf'):
+                            # 若是PDF且没有密码，跳过作者补全以避免触发密码请求
+                            if not getattr(book, "password", None):
+                                do_update = False
+                    except Exception:
+                        pass
+                    if do_update:
+                        self.bookshelf.maybe_update_author(book)
+            except Exception:
+                pass
             
             if not content:
                 self.notify(f"{get_global_i18n().t("app.load_content_failed")}: {book_file}", severity="error")

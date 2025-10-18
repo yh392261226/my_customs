@@ -620,13 +620,8 @@ class Bookshelf:
                 except Exception:
                     is_encrypted = False
                 if is_encrypted:
-                    try:
-                        from src.parsers.pdf_encrypt_parser import PdfEncryptParser
-                        # 解析器内部会通过 App 桥接请求密码，成功后返回 metadata
-                        parser = PdfEncryptParser()
-                        result = self._safe_async_parse(parser.parse, abs_path, None)
-                    except Exception:
-                        result = None
+                    # 加密PDF不在后台解析作者，避免触发密码弹窗
+                    result = None
                 else:
                     try:
                         from src.parsers.pdf_parser import PdfParser
