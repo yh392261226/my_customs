@@ -51,6 +51,26 @@ class RenqixiaoshuoParser:
         # 热奇小说网直接通过小说ID抓取整本，不需要列表解析
         return []
     
+    def get_homepage_meta(self, novel_id: str) -> Optional[Dict[str, str]]:
+        """获取书籍首页的标题、简介与状态"""
+        if not novel_id.isdigit():
+            return None
+        novel_url = f"{self.base_url}/b/{novel_id}"
+        content = self._get_url_content(novel_url)
+        if not content:
+            return None
+        title_match = re.search(r'<div class="name hang1"><h1>(.*?)</h1>', content)
+        desc_match = re.search(r'<div class="decs hangd">(.*?)</div>', content, re.DOTALL)
+        status_match = re.search(r'<div class="ty">(.*?)</div>', content, re.DOTALL)
+        title = title_match.group(1).strip() if title_match else ""
+        desc = desc_match.group(1).strip() if desc_match else ""
+        status_raw = status_match.group(1) if status_match else ""
+        import re as _re
+        status = _re.sub(r'<[^>]+>', '', status_raw).replace('&nbsp;', ' ').replace('\xa0', ' ').strip()
+        if not title and not desc and not status:
+            return None
+        return {"title": title, "desc": desc, "status": status}
+    
     def parse_novel_detail(self, novel_id: str) -> Dict[str, Any]:
         """
         解析小说详情并抓取整本小说内容
@@ -79,6 +99,13 @@ class RenqixiaoshuoParser:
         
         title = title_match.group(1).strip()
         print(f"开始处理 [ {title} ]")
+
+        # 提取小说简介
+        desc_match = re.search(r'<div class="decs hangd">(.*?)</div>', content)
+        if not desc_match:
+            raise Exception("无法提取小说简介")
+        
+        desc = desc_match.group(1).strip()
         
         # 提取第一章URL
         first_chapter_match = re.search(r'<a id="btnread" href="(.*?)" class="stayd">开始阅读', content)

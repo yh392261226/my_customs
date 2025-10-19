@@ -106,6 +106,75 @@ class Nb87Parser:
         # 87NB小说网直接通过小说ID抓取整本，不需要列表解析
         return []
     
+    def get_homepage_meta(self, novel_id: str) -> Optional[Dict[str, str]]:
+        """获取书籍首页的标题、简介与状态（87NB）
+           标题/简介：div.bookintro 的第一个 p
+           状态：div.bookdes 的第一个 p（如“小说状态：连载 | 0万字”）"""
+        if not novel_id.isdigit():
+            return None
+        novel_url = f"{self.base_url}/lt/{novel_id}.html"
+        content = self._get_url_content(novel_url)
+        if not content:
+            return None
+        title = ""
+        desc = ""
+        status = ""
+        # 优先使用 BeautifulSoup 解析
+        try:
+            from bs4 import BeautifulSoup  # 解析 HTML
+            soup = BeautifulSoup(content, "html.parser")
+            intro = soup.find("div", class_="bookintro")
+            if intro:
+                ps = intro.find_all("p")
+                if ps:
+                    p0 = ps[0]
+                    a0 = p0.find("a")
+                    if a0:
+                        title = (a0.get_text(strip=True) or a0.get("title") or "").strip()
+                    full_text = p0.get_text(separator="", strip=True)
+                    if "小说简介：" in full_text:
+                        desc = full_text.split("小说简介：", 1)[1].strip()
+                    else:
+                        a_text = a0.get_text(strip=True) if a0 else ""
+                        desc = full_text.replace(a_text, "", 1).strip()
+            # 状态：bookdes 第一个 p
+            bookdes = soup.find("div", class_="bookdes")
+            if bookdes:
+                p_list = bookdes.find_all("p")
+                if p_list:
+                    # 清理不间断空格
+                    status = p_list[0].get_text(separator="", strip=True).replace('\xa0', ' ').replace('&nbsp;', ' ').strip()
+        except Exception:
+            pass
+        # 若 Soup 失败，使用正则兜底
+        if not (title or desc):
+            try:
+                title_match = re.search(r'<div class="bookintro">.*?<p>\s*<a[^>]*title="([^"]+)"[^>]*>.*?</a>', content, re.DOTALL)
+                if not title_match:
+                    title_match = re.search(r'<div class="bookintro">.*?<p>\s*<a[^>]*>([^<]+)</a>', content, re.DOTALL)
+                if title_match:
+                    title = title_match.group(1).strip()
+                desc_match = re.search(r'<div class="bookintro">.*?<p>\s*<a.*?</a>\s*(.*?)</p>', content, re.DOTALL)
+                if desc_match:
+                    raw = desc_match.group(1)
+                    raw_text = re.sub(r'<[^>]+>', '', raw)
+                    desc = raw_text.split("小说简介：", 1)[-1].strip()
+            except Exception:
+                pass
+        # 状态兜底：从 bookdes 第一个 p 取文本
+        if not status:
+            try:
+                status_match = re.search(r'<div class="bookdes">.*?<p>(.*?)</p>', content, re.DOTALL)
+                if status_match:
+                    raw_status = status_match.group(1)
+                    status = re.sub(r'<[^>]+>', '', raw_status)
+                    status = status.replace('&nbsp;', ' ').replace('\xa0', ' ').strip()
+            except Exception:
+                pass
+        if not title and not desc and not status:
+            return None
+        return {"title": title, "desc": desc, "status": status}
+    
     def parse_novel_detail(self, novel_id: str) -> Dict[str, Any]:
         """
         解析小说详情并抓取整本小说内容
@@ -134,6 +203,13 @@ class Nb87Parser:
         
         title = title_match.group(1).strip()
         print(f"开始处理 [ {title} ]")
+
+        # 提取小说简介
+        desc_match = re.search(r'<div class="bookintro"><p><a(.*?)</a>(.*?)</p>', content)
+        if not desc_match:
+            raise Exception("无法提取小说简介")
+        
+        desc = desc_match.group(2).strip()
         
         # 提取第一章URL
         first_chapter_match = re.search(r'<a href="(.*?)">开始阅读', content)

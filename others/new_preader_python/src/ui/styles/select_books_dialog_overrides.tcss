@@ -1,0 +1,74 @@
+/* 选择书籍弹窗（SelectBooksDialog）专用样式覆盖
+   注意：全部使用以 #select-books- 前缀的唯一 ID，避免影响其他页面
+*/
+#select-books-dialog {
+    width: 90%;
+    height: 85%;
+    background: $panel;
+    border: round $primary;
+    padding: 1;
+    layout: vertical;
+}
+
+/* 根容器 */
+#select-books-root {
+    padding: 1 2;
+}
+
+/* 标题 */
+#select-books-title {
+    color: $text;
+    text-style: bold;
+    margin: 0 0 1 0;
+}
+
+/* ID范围输入行 */
+#id-range-row {
+    layout: horizontal;
+    padding: 0 0 0 0;
+    height: 3;
+    align: center middle;
+}
+
+/* 输入框宽度适配（仅弹窗内） */
+#id-range-row Input {
+    width: 20;
+}
+
+#seprator {
+    padding: 1 0;
+}
+
+/* 结果表格：占据剩余空间 */
+#select-books-root #books-table {
+    height: 95%;
+    margin: 0 0 1 0;
+    text-wrap: wrap;
+}
+
+/* 按钮行 */
+#buttons-row {
+    layout: horizontal;
+    height: 4;
+}
+
+/* 主按钮与取消按钮的配色（仅此弹窗作用域） */
+#buttons-row Button#ok-btn {
+    background: $success;
+    color: $surface;
+}
+
+#buttons-row Button#cancel-btn {
+    background: $error;
+    color: $surface;
+}
+
+.book-select {
+    width: 2;
+    height: 2;
+}
+
+#books-stats-label {
+    width: 90%;
+    text-wrap: wrap;
+}

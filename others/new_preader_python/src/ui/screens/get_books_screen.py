@@ -176,11 +176,26 @@ class GetBooksScreen(Screen[None]):
         status_label.update(status_text)
     
     def _has_permission(self, permission_key: str) -> bool:
-        """检查权限"""
+        """检查权限（兼容单/多用户）"""
         try:
-            from src.core.database_manager import DatabaseManager
-            db_manager = DatabaseManager()
-            return db_manager.has_permission(permission_key)
+            db_manager = self.database_manager if hasattr(self, "database_manager") else DatabaseManager()
+            # 获取当前用户ID（如果应用支持多用户）
+            current_user_id = getattr(self.app, "current_user_id", None)
+            if current_user_id is None:
+                # 如果未启用多用户或未登录，默认允许（与其他屏幕保持一致）
+                if not getattr(self.app, "multi_user_enabled", False):
+                    return True
+                else:
+                    # 多用户启用但无当前用户，默认拒绝
+                    return False
+            # 传入用户ID与权限键
+            return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
+        except TypeError:
+            # 兼容旧签名：仅接收一个权限键参数
+            try:
+                return db_manager.has_permission(permission_key)  # type: ignore[misc]
+            except Exception:
+                return True
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许

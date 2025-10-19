@@ -15,6 +15,7 @@ from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
 from src.ui.dialogs.note_dialog import NoteDialog
+from src.ui.dialogs.select_books_dialog import SelectBooksDialog
 
 logger = get_logger(__name__)
 
@@ -94,6 +95,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 小说ID输入区域
                     Vertical(
                         Horizontal(
+                            Button("选择书籍", id="choose-books-btn"),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
                             Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
@@ -346,6 +348,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._open_note_dialog()
         elif event.button.id == "start-crawl-btn":
             self._start_crawl()
+        elif event.button.id == "choose-books-btn":
+            self._open_select_books_dialog()
         elif event.button.id == "stop-crawl-btn":
             self._stop_crawl()
         elif event.button.id == "prev-page-btn":
@@ -440,6 +444,26 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"打开备注对话框失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.open_note_dialog_failed')}: {str(e)}", "error")
+
+    def _open_select_books_dialog(self) -> None:
+        """打开选择书籍对话框，回填选中ID到输入框"""
+        try:
+            def handle_selected_ids(result: Optional[str]) -> None:
+                if result:
+                    try:
+                        novel_id_input = self.query_one("#novel-id-input", Input)
+                        novel_id_input.value = result
+                        novel_id_input.focus()
+                        self._update_status("已回填选中ID")
+                    except Exception as e:
+                        logger.debug(f"回填选中ID失败: {e}")
+            self.app.push_screen(
+                SelectBooksDialog(self.theme_manager, self.novel_site),
+                handle_selected_ids
+            )
+        except Exception as e:
+            logger.error(f"打开选择书籍对话框失败: {e}")
+            self._update_status(f"打开选择书籍对话框失败: {str(e)}", "error")
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
