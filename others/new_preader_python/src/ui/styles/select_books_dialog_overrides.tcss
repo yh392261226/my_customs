@@ -25,7 +25,6 @@
 /* ID范围输入行 */
 #id-range-row {
     layout: horizontal;
-    padding: 0 0 0 0;
     height: 3;
     align: center middle;
 }
@@ -42,7 +41,6 @@
 /* 结果表格：占据剩余空间 */
 #select-books-root #books-table {
     height: 95%;
-    margin: 0 0 1 0;
     text-wrap: wrap;
 }
 
@@ -69,6 +67,42 @@
 }
 
 #books-stats-label {
-    width: 90%;
+    width: 100%;
+    height: 5;
+    overflow-y: auto;
     text-wrap: wrap;
+    align: center middle;
+    text-align: center;
+}
+
+/* 加载动画样式 */
+#loading-animation {
+    height: 3;
+    align: center middle;
+    text-align: center;
+    color: $accent;
+    text-style: bold;
+    min-height: 3;
+    background: $panel;
+    border: round $primary;
+    margin: 1 0;
+}
+
+.loading-animation-container {
+    height: 3;
+    min-height: 3;
+    align: center middle;
+    text-align: center;
+}
+
+/* 加载指示器样式 */
+#select-books-loading-indicator {
+    height: 3;
+    align: center middle;
+}
+
+/* 加载覆盖层样式 */
+#select-books-loading-overlay {
+    align: center middle;
+    text-align: center;
 }

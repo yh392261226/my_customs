@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any, List, Tuple, Set
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal, Container, Grid, VerticalScroll
-from textual.widgets import Button, Input, Label, DataTable, LoadingIndicator
+from textual.widgets import Button, Input, Label, DataTable, LoadingIndicator, Static
 from textual import events, on
 from bs4 import BeautifulSoup
 from rich.text import Text
@@ -35,6 +35,10 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             self.parser_instance = create_parser(parser_name, proxy_config) if parser_name else None
         except Exception:
             self.parser_instance = None
+        self.loading_animation = None  # 加载动画组件
+        self.loading_indicator = None  # 原生 LoadingIndicator 引用
+        self.loading_overlay = None  # 加载覆盖层
+        self.is_mounted_flag = False  # 组件挂载标志
 
     def compose(self) -> ComposeResult:
         yield Container(
@@ -54,10 +58,12 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 # 中间数据表区域
                 DataTable(id="books-table"),
                 # 统计信息区域（与书架屏幕一致的ID，方便样式复用）
-                Vertical(
-                    Label("", id="books-stats-label"),
-                    id="books-stats-area"
-                ),
+                # Vertical(
+                #     Label("", id="books-stats-label"),
+                #     id="books-stats-area"
+                # ),
+                # 加载动画区域 - 确保有足够高度显示
+                Static("", id="books-stats-label", classes="loading-animation-container"),
                 # 底部按钮栏
                 Horizontal(
                     Button(get_global_i18n().t("common.ok"), id="ok-btn", variant="primary", classes="btn"),
@@ -71,61 +77,56 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         )
 
     def on_mount(self) -> None:
+        # 设置挂载标志
+        self.is_mounted_flag = True
+        
         # 应用主题（如果可用）
         try:
             self.theme_manager.apply_theme_to_screen(self)
         except Exception:
             pass
-        # 设置Grid布局的行高分配，参考书架屏幕
+        
+        # 初始化加载动画
+        self._initialize_loading_animation()
+        # 设置Grid布局的行高分配，确保加载动画有足够空间
         try:
             grid = self.query_one("Grid")
-            grid.styles.grid_size_rows = 4
+            grid.styles.grid_size_rows = 5
             grid.styles.grid_size_columns = 1
-            grid.styles.grid_rows = ("15%", "60%", "10%", "15%")
+            grid.styles.grid_rows = ("15%", "55%", "15%", "10%")  # 给加载动画分配5%空间
         except Exception:
             pass
-        # 在统计区域挂载 LoadingIndicator（初始隐藏），并创建覆盖层居中显示
+        # 创建覆盖层：挂载到屏幕（全屏覆盖），居中显示加载指示器
         try:
-            self.loading_indicator = LoadingIndicator(id="select-books-loading-indicator")
-            # 使用样式控制显示/隐藏
-            try:
-                self.loading_indicator.styles.display = "none"
-            except Exception:
-                pass
-            loading_area = self.query_one("#books-stats-area")
-            loading_area.mount(self.loading_indicator)
-            # 创建覆盖层：挂载到屏幕（全屏覆盖），居中显示加载指示器
-            try:
-                if not hasattr(self, "loading_overlay"):
-                    overlay_indicator = LoadingIndicator(id="select-books-overlay-indicator")
-                    self.loading_overlay = Container(
-                        overlay_indicator,
-                        id="select-books-loading-overlay"
-                    )
-                    # 覆盖层样式：全屏覆盖、居中、半透明背景，初始隐藏；置于 overlay 图层并顶端 dock
-                    try:
-                        self.loading_overlay.styles.display = "none"
-                        self.loading_overlay.styles.layer = "overlay"
-                        self.loading_overlay.styles.dock = "top"
-                        self.loading_overlay.styles.width = "100%"
-                        self.loading_overlay.styles.height = "100%"
-                        self.loading_overlay.styles.align_horizontal = "center"
-                        self.loading_overlay.styles.align_vertical = "middle"
-                        self.loading_overlay.styles.background = "rgba(0,0,0,0.15)"
-                    except Exception:
-                        pass
-                # 挂载覆盖层到屏幕本身，避免受容器布局影响
+            if not hasattr(self, "loading_overlay"):
+                overlay_indicator = LoadingIndicator(id="select-books-overlay-indicator")
+                self.loading_overlay = Container(
+                    overlay_indicator,
+                    id="select-books-loading-overlay"
+                )
+                # 覆盖层样式：全屏覆盖、居中、半透明背景，初始隐藏；置于 overlay 图层并顶端 dock
                 try:
-                    self.mount(self.loading_overlay)
+                    self.loading_overlay.styles.display = "none"
+                    self.loading_overlay.styles.layer = "overlay"
+                    self.loading_overlay.styles.dock = "top"
+                    self.loading_overlay.styles.width = "100%"
+                    self.loading_overlay.styles.height = "100%"
+                    self.loading_overlay.styles.align_horizontal = "center"
+                    self.loading_overlay.styles.align_vertical = "middle"
+                    self.loading_overlay.styles.background = "rgba(0,0,0,0.15)"
                 except Exception:
                     pass
+            # 挂载覆盖层到屏幕本身，避免受容器布局影响
+            try:
+                if self.loading_overlay is not None:
+                    self.mount(self.loading_overlay)
             except Exception:
                 pass
         except Exception:
             pass
         # Label 自动换行，避免长简介不显示
         try:
-            stats_label = self.query_one("#books-stats-label", Label)
+            stats_label = self.query_one("#books-stats-label", Static)
             stats_label.styles.text_wrap = "wrap"
         except Exception:
             pass
@@ -304,7 +305,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         try:
             if self._results:
                 first_desc = self._results[0][3] if len(self._results[0]) > 3 else ""
-                stats_label = self.query_one("#books-stats-label", Label)
+                stats_label = self.query_one("#books-stats-label", Static)
                 stats_label.update(str(first_desc or ""))
         except Exception as e:
             logger.debug(f"默认简介更新失败: {e}")
@@ -335,7 +336,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 return
             desc_val = row[4] if len(row) > 4 else ""
             desc_str = desc_val.plain if isinstance(desc_val, Text) else str(desc_val or "")
-            label = self.query_one("#books-stats-label", Label)
+            label = self.query_one("#books-stats-label", Static)
             label.update(desc_str)
         except Exception as e:
             logger.debug(f"更新简介到统计标签失败: {e}")
@@ -344,7 +345,38 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         """显示加载动画（Textual LoadingIndicator + textual_animation_manager + 经典 animation_manager）"""
         if message is None:
             message = get_global_i18n().t("common.on_action")
+        logger.debug(f"开始显示加载动画: {message}")
+        
+        # 确保加载动画组件已初始化
+        if self.loading_animation is None:
+            logger.debug("加载动画组件未初始化，立即初始化")
+            self._initialize_loading_animation()
+        
         try:
+            # 显示自定义加载动画（优先）
+            try:
+                if self.loading_animation is not None:
+                    logger.debug("自定义加载动画组件存在，开始显示")
+                    self.loading_animation.show(message)
+                    logger.debug("自定义加载动画显示成功")
+                else:
+                    # 如果加载动画仍然不存在，尝试重新初始化
+                    logger.warning("自定义加载动画组件仍然不存在，尝试重新初始化")
+                    self._initialize_loading_animation()
+                    
+                    # 延迟显示加载动画
+                    def delayed_show():
+                        if self.loading_animation is not None:
+                            logger.debug("延迟显示自定义加载动画")
+                            self.loading_animation.show(message)
+                            logger.debug("延迟自定义加载动画显示成功")
+                        else:
+                            logger.error("延迟显示时加载动画组件仍为None")
+                    
+                    self.set_timer(0.1, delayed_show)
+            except Exception as e:
+                logger.error(f"显示自定义加载动画失败: {e}")
+
             # 原生 LoadingIndicator：显示
             try:
                 if not hasattr(self, "loading_indicator") or self.loading_indicator is None:
@@ -380,6 +412,52 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         except Exception as e:
             logger.error(f"显示加载动画失败: {e}")
 
+    def _initialize_loading_animation(self) -> None:
+        """初始化加载动画"""
+        logger.debug("开始初始化加载动画")
+        try:
+            from src.ui.components.textual_loading_animation import TextualLoadingAnimation, textual_animation_manager
+
+            # 确保组件已经挂载
+            if not self.is_mounted_flag:
+                logger.debug("组件尚未挂载，延迟初始化加载动画")
+                # 延迟100ms后重试
+                self.set_timer(0.1, self._initialize_loading_animation)
+                return
+
+            try:
+                # 获取加载动画容器
+                loading_container = self.query_one("#books-stats-label", Static)
+                logger.debug(f"加载动画容器查询成功: {loading_container}")
+                
+                # 创建加载动画组件并挂载到容器
+                self.loading_animation = TextualLoadingAnimation()
+                logger.debug(f"创建加载动画组件: {self.loading_animation}")
+                loading_container.mount(self.loading_animation)
+                logger.debug("加载动画组件挂载成功")
+                
+                # 同时创建并挂载原生 LoadingIndicator（初始隐藏）
+                try:
+                    self.loading_indicator = LoadingIndicator(id="select-books-loading-indicator")
+                    self.loading_indicator.styles.display = "none"
+                    loading_container.mount(self.loading_indicator)
+                    logger.debug("原生 LoadingIndicator 挂载成功")
+                except Exception as e:
+                    logger.warning(f"原生 LoadingIndicator 挂载失败: {e}")
+
+                # 设置默认动画
+                textual_animation_manager.set_default_animation(self.loading_animation)
+                logger.debug("默认动画设置成功")
+                
+                logger.debug("加载动画组件初始化成功")
+            except Exception as e:
+                logger.error(f"加载动画组件初始化失败: {e}")
+                self.loading_animation = None
+            
+        except Exception as e:
+            logger.error(f"加载动画组件初始化过程失败: {e}")
+            self.loading_animation = None
+
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画（Textual LoadingIndicator + textual_animation_manager + 经典 animation_manager）"""
         try:
@@ -410,29 +488,49 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 animation_manager.hide_default()
             except Exception:
                 pass
+            
+            # 隐藏自定义加载动画
+            try:
+                if hasattr(self, 'loading_animation') and self.loading_animation:
+                    self.loading_animation.hide()
+            except Exception:
+                pass
         except Exception as e:
             logger.error(f"隐藏加载动画失败: {e}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "search-btn":
-            # 显示双加载动画（Textual集成 + 经典 + 原生指示器）
+            # 先显示加载动画
             self._show_loading_animation(get_global_i18n().t("common.on_action"))
-            try:
-                start_input = self.query_one("#start-id-input", Input).value.strip()
-                end_input = self.query_one("#end-id-input", Input).value.strip()
-                if not (start_input and end_input) or not start_input.isdigit() or not end_input.isdigit():
-                    self.app.bell()
-                    return
-                start_id = int(start_input)
-                end_id = int(end_input)
-                self._results = self._search_range(start_id, end_id)
-                self._selected.clear()
-                self._refresh_table()
-            except Exception as e:
-                logger.error(f"搜索失败: {e}")
-            finally:
-                # 隐藏双加载动画
-                self._hide_loading_animation()
+            
+            # 延迟启动搜索，确保动画有足够时间显示
+            def delayed_search():
+                # 异步执行搜索
+                async def async_search():
+                    try:
+                        start_input = self.query_one("#start-id-input", Input).value.strip()
+                        end_input = self.query_one("#end-id-input", Input).value.strip()
+                        if not (start_input and end_input) or not start_input.isdigit() or not end_input.isdigit():
+                            self.app.bell()
+                            return
+                        start_id = int(start_input)
+                        end_id = int(end_input)
+                        
+                        # 执行搜索
+                        self._results = self._search_range(start_id, end_id)
+                        self._selected.clear()
+                        self._refresh_table()
+                    except Exception as e:
+                        logger.error(f"搜索失败: {e}")
+                    finally:
+                        # 隐藏双加载动画
+                        self._hide_loading_animation()
+                
+                # 启动异步搜索任务
+                self.app.run_worker(async_search(), name="select-books-search")
+            
+            # 延迟100ms启动搜索，确保动画完全显示
+            self.set_timer(0.1, delayed_search)
         elif event.button.id == "ok-btn":
             selected_str = ",".join(sorted(self._selected, key=lambda x: int(x) if x.isdigit() else x))
             self.dismiss(selected_str)
