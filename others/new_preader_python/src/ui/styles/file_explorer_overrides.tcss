@@ -1,29 +1,16 @@
 /* 文件资源管理器 overrides（初次迁移保持等效） */
-Header {
-    dock: top;
-    width: 100%;
-    height: 1;
-    background: $background;
-    color: $accent;
-    text-align: left;
-    align: left middle;
-    content-align: left middle;
-}
+/* 移除对全局 Header 的样式，避免影响其它页面；页面使用 #header-container 样式呈现头部视觉 */
 
-Footer {
-    height: 1;
-    width: 100%;
-    dock: bottom;
-}
+/* Footer 样式移除：Textual 不支持兄弟选择器 ~ ，本页面底部视觉由 #footer-container 控制 */
 
-/* 主容器 */
+/* 主容器（作为命名空间锚点） */
 #main-container {
     height: 100%;
     width: 100%;
 }
 
-/* 头部容器 */
-#header-container {
+/* 头部容器（局部头部视觉在此定义，替代全局 Header） */
+#main-container #header-container {
     height: 4;
     width: 100%;
     background: $surface;
@@ -32,34 +19,34 @@ Footer {
 }
 
 /* 导航栏 */
-#navigation-bar {
+#main-container #navigation-bar {
     height: 4;
     width: 100%;
     margin-bottom: 1;
 }
 
 /* 主内容区域 */
-#content-area {
+#main-container #content-area {
     height: 1fr;
     width: 100%;
     margin-bottom: 1;
 }
 
 /* 目录树面板 */
-#tree-panel {
+#main-container #tree-panel {
     width: 50%;
     height: 100%;
     margin-right: 1;
 }
 
 /* 文件列表面板 */
-#file-panel {
+#main-container #file-panel {
     width: 50%;
     height: 100%;
 }
 
 /* 底部容器 */
-#footer-container {
+#main-container #footer-container {
     height: 8;
     width: 100%;
     background: $surface;
@@ -68,21 +55,21 @@ Footer {
 }
 
 /* 操作按钮容器 */
-#action-buttons {
+#main-container #action-buttons {
     height: 4;
     width: 100%;
     margin: 1;
 }
 
-/* 基本组件样式 */
-Label {
+/* 基本组件样式（命名空间限定） */
+#main-container Label {
     text-style: bold;
     color: $text;
     height: 1;
     margin: 0 1;
 }
 
-Button {
+#main-container Button {
     background: $primary;
     color: $text;
     height: 3;
@@ -90,7 +77,7 @@ Button {
     min-width: 8;
 }
 
-Input {
+#main-container Input {
     background: $surface;
     color: $text;
     border: solid $primary;
@@ -99,12 +86,12 @@ Input {
     width: 1fr;
 }
 
-Static {
+#main-container Static {
     color: $text;
     background: $surface;
 }
 
-Tree {
+#main-container Tree {
     height: 1fr;
     border: solid $primary;
     background: $surface;
@@ -112,7 +99,7 @@ Tree {
 }
 
 /* 特定组件样式 */
-#title {
+#main-container #title {
     text-style: bold;
     color: $accent;
     height: 1;
@@ -120,28 +107,28 @@ Tree {
     margin: 1;
 }
 
-#current-path {
+#main-container #current-path {
     color: $text-muted;
     height: 1;
     margin: 1 1;
     text-align: left;
 }
 
-#tree-label {
+#main-container #tree-label {
     text-style: bold;
     color: $success;
     height: 1;
     margin: 0 1;
 }
 
-#file-label {
+#main-container #file-label {
     text-style: bold;
     color: $warning;
     height: 1;
     margin: 0 1;
 }
 
-#file-list {
+#main-container #file-list {
     height: 1fr;
     border: solid $primary;
     background: $surface;
@@ -150,7 +137,7 @@ Tree {
     scrollbar-color: $primary;
 }
 
-ListView {
+#main-container ListView {
     height: 1fr;
     border: solid $primary;
     background: $surface;
@@ -158,21 +145,21 @@ ListView {
     scrollbar-color: $primary;
 }
 
-ListItem {
+#main-container ListItem {
     height: 1;
     padding: 0 1;
 }
 
-ListItem:hover {
+#main-container ListItem:hover {
     background: $primary;
 }
 
-ListItem > Label {
+#main-container ListItem > Label {
     height: 1;
     margin: 0;
 }
 
-#status-info {
+#main-container #status-info {
     color: $text-muted;
     height: 1;
     margin: 1;
@@ -180,46 +167,46 @@ ListItem > Label {
 }
 
 /* 导航按钮 */
-#back-btn {
+#main-container #back-btn {
     background: $secondary;
     min-width: 4;
 }
 
-#go-btn {
+#main-container #go-btn {
     background: $primary;
     min-width: 6;
 }
 
-#home-btn {
+#main-container #home-btn {
     background: $accent;
     min-width: 8;
 }
 
 /* 操作按钮 */
-#open-btn {
+#main-container #open-btn {
     background: $success;
     color: $text;
     min-width: 12;
 }
 
-#add-btn {
+#main-container #add-btn {
     background: $warning;
     color: $text;
     min-width: 12;
 }
 
-#back-to-bookshelf-btn {
+#main-container #back-to-bookshelf-btn {
     background: $secondary;
     color: $text;
     min-width: 8;
 }
 
 /* 文件列表焦点样式 */
-#file-list:focus {
+#main-container #file-list:focus {
     border: thick $accent;
 }
 
 /* 树形控件焦点样式 */
-Tree:focus {
+#main-container Tree:focus {
     border: thick $accent;
 }
