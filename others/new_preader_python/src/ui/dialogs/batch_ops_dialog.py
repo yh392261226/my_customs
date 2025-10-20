@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import List, Set, Optional, Dict, Any
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical, Horizontal
+from textual.containers import Container, Vertical, Horizontal, Center
 from textual.widgets import Static, Button, DataTable, Label, Input, Select
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage
@@ -50,17 +50,18 @@ class BatchInputDialog(ModalScreen[str]):
             Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
             id="batch-input-buttons"
         )
-        # 构建内容
-        children = [Label(self.title, id="batch-input-title")]
-        if isinstance(self.description, str) and self.description != "":
-            children.append(Label(self.description, id="batch-input-description"))
-        children.extend([
-            Input(placeholder=self.placeholder, id="batch-input"),
-            buttons_row,
-        ])
-        # 以标准嵌套方式生成布局
+        # 以标准嵌套方式生成布局，避免混合列表导致的类型检查问题
         yield Container(
-            Vertical(*children, id="batch-input-dialog"),
+            Vertical(
+                Label(self.title, id="batch-input-title"),
+                *([Label(self.description, id="batch-input-description")] if isinstance(self.description, str) and self.description != "" else []),
+                Vertical(
+                    Center(Input(placeholder=self.placeholder, id="batch-input")),
+                    buttons_row,
+                    id="batch-input-container",
+                ),
+                id="batch-input-dialog"
+            ),
             id="batch-input-dialog-container"
         )
     
@@ -68,7 +69,20 @@ class BatchInputDialog(ModalScreen[str]):
         """挂载时的回调"""
         # 应用通用样式隔离，并聚焦输入框
         apply_universal_style_isolation(self)
-        self.query_one("#batch-input", Input).focus()
+        input_widget = self.query_one("#batch-input", Input)
+        try:
+            # 文本与控件均强制居中（覆盖可能的样式冲突）
+            input_widget.styles.text_align = "center"
+            input_widget.styles.align = ("center", "middle")
+        except Exception:
+            pass
+        # 让父容器将子项居中对齐，确保控件居中显示
+        try:
+            container = self.query_one("#batch-input-container", Vertical)
+            container.styles.content_align = ("center", "middle")
+        except Exception:
+            pass
+        input_widget.focus()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮按下时的回调"""
@@ -269,7 +283,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 row_key = list(table.rows.keys())[table.cursor_row]
                 if row_key and row_key.value:
                     book_id = row_key.value
-                    self._toggle_book_selection(book_id, table, table.cursor_row)
+                    self._toggle_book_selection(str(book_id), table, table.cursor_row)
             event.stop()
         elif event.key == "escape":
             # ESC键返回，效果与点击取消按钮相同
@@ -337,7 +351,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         book_id = row_key.value
 
         # 执行切换并阻止事件进一步影响其他处理器
-        self._toggle_book_selection(book_id, table, row_index)
+        self._toggle_book_selection(str(book_id), table, row_index)
         event.stop()
     
     def _toggle_book_selection(self, book_id: str, table: DataTable[Any], row_index: int) -> None:
@@ -419,7 +433,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             row_key = list(table.rows.keys())[table.cursor_row]
             if row_key and row_key.value:
                 book_id = row_key.value
-                self._toggle_book_selection(book_id, table, table.cursor_row)
+                self._toggle_book_selection(str(book_id), table, table.cursor_row)
 
     def action_next_page(self) -> None:
         """下一页"""
