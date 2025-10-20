@@ -44,17 +44,30 @@ class BatchInputDialog(ModalScreen[str]):
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
-        with Vertical(id="batch-input-dialog"):
-            yield Label(self.title, id="batch-input-title")
-            if isinstance(self.description, str) and self.description != "":
-                yield Label(self.description, id="batch-input-description")
-            yield Input(placeholder=self.placeholder, id="batch-input")
-            with Horizontal(id="batch-input-buttons"):
-                yield Button(get_global_i18n().t("common.ok"), id="ok-btn", variant="primary")
-                yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
+        # 构建按钮行
+        buttons_row = Horizontal(
+            Button(get_global_i18n().t("common.ok"), id="ok-btn", variant="primary"),
+            Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
+            id="batch-input-buttons"
+        )
+        # 构建内容
+        children = [Label(self.title, id="batch-input-title")]
+        if isinstance(self.description, str) and self.description != "":
+            children.append(Label(self.description, id="batch-input-description"))
+        children.extend([
+            Input(placeholder=self.placeholder, id="batch-input"),
+            buttons_row,
+        ])
+        # 以标准嵌套方式生成布局
+        yield Container(
+            Vertical(*children, id="batch-input-dialog"),
+            id="batch-input-dialog-container"
+        )
     
     def on_mount(self) -> None:
         """挂载时的回调"""
+        # 应用通用样式隔离，并聚焦输入框
+        apply_universal_style_isolation(self)
         self.query_one("#batch-input", Input).focus()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
