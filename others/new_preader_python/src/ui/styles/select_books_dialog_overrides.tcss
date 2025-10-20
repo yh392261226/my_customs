@@ -2,6 +2,9 @@
 #select-books-dialog {
   /* 将样式限定在该对话框根容器，避免影响其他页面 */
   layer: dialog;
+  width: 90%;
+  height: 85%;
+  background: $panel;
 }
 
 /* 工具栏与按钮行 */

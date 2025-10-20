@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List, Tuple, Set
+from typing import Optional, Dict, Any, List, Tuple, Set, ClassVar
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal, Container, Grid, VerticalScroll
@@ -19,6 +19,11 @@ logger = get_logger(__name__)
 class SelectBooksDialog(ModalScreen[Optional[str]]):
     CSS_PATH = ["../styles/select_books_dialog_overrides.tcss"]
     """选择书籍对话框：输入开始ID和截止ID，检索并列出可选书籍，返回选中ID（逗号分隔）"""
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("g", "ok_btn", get_global_i18n().t('common.ok')),
+        ("escape", "cancel_btn", get_global_i18n().t('common.cancel')),
+        ("s", "search_btn", get_global_i18n().t('common.search')),
+    ]
 
     def __init__(self, theme_manager, novel_site: Dict[str, Any]):
         super().__init__()
@@ -133,11 +138,11 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         # 初始化表格
         table = self.query_one("#books-table", DataTable)
         table.clear(columns=True)
-        table.add_column("选中", key="selected")
-        table.add_column("ID", key="id")
-        table.add_column("标题", key="title")
-        table.add_column("状态", key="status")
-        table.add_column("简介", key="desc")
+        table.add_column(get_global_i18n().t('select_books.selected'), key="selected")
+        table.add_column(get_global_i18n().t('select_books.id'), key="id")
+        table.add_column(get_global_i18n().t('select_books.title'), key="title")
+        table.add_column(get_global_i18n().t('select_books.status'), key="status")
+        table.add_column(get_global_i18n().t('select_books.desc'), key="desc")
         table.zebra_stripes = True
         table.show_cursor = True
         table.cursor_type = "cell"
@@ -711,3 +716,32 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             # ESC键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
             event.stop()
+
+    def action_ok_btn(self) -> None:
+        """确认按钮点击事件"""
+        selected_str = ",".join(sorted(self._selected, key=lambda x: int(x) if x.isdigit() else x))
+        self.dismiss(selected_str)
+    
+    def action_cancel_btn(self) -> None:
+        """取消按钮点击事件"""
+        self.dismiss(None)
+
+    def action_search_btn(self) -> None:
+        """搜索按钮点击事件（模拟点击搜索按钮）"""
+        try:
+            btn = self.query_one("#search-btn", Button)
+            # 模拟点击触发 Pressed 事件
+            btn.press()
+        except Exception:
+            # 兼容回退：如果 press 不可用，尝试直接发送 Pressed 消息
+            try:
+                btn = self.query_one("#search-btn", Button)
+                from textual.widgets import Button as TButton
+                self.post_message(TButton.Pressed(btn))  # type: ignore[attr-defined]
+            except Exception:
+                pass
+        # 保持焦点在搜索按钮（可选）
+        try:
+            self.query_one("#search-btn", Button).focus()
+        except Exception:
+            pass
