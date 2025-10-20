@@ -1164,6 +1164,7 @@
         }
     },
     "select_books": {
+        "select_books": "选择书籍",
         "start_id": "开始ID",
         "end_id": "截止ID",
         "selected": "选中",

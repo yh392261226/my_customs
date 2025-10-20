@@ -48,6 +48,9 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
     def compose(self) -> ComposeResult:
         yield Container(
             Grid(
+                Vertical(
+                    Label(get_global_i18n().t('select_books.select_books'), id="get-books-title"),
+                ),
                 # 顶部工具栏（与书架屏幕风格一致）
                 Vertical(
                     Horizontal(
@@ -98,7 +101,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             grid = self.query_one("Grid")
             grid.styles.grid_size_rows = 5
             grid.styles.grid_size_columns = 1
-            grid.styles.grid_rows = ("15%", "55%", "15%", "10%")  # 给加载动画分配5%空间
+            grid.styles.grid_rows = ("5%", "15%", "55%", "15%", "10%")  # 给加载动画分配5%空间
         except Exception:
             pass
         # 创建覆盖层：挂载到屏幕（全屏覆盖），居中显示加载指示器

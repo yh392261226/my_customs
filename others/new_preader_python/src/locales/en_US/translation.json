@@ -1164,6 +1164,7 @@
         }
     },
     "select_books": {
+        "select_books": "Select Books",
         "start_id": "Start ID",
         "end_id": "End ID",
         "selected": "Choose",

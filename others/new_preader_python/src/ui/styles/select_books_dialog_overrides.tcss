@@ -7,6 +7,12 @@
   background: $panel;
 }
 
+#select-books-dialog #get-books-title {
+  color: $primary;
+  text-style: bold;
+  margin: 0 1 0 1;
+}
+
 /* 工具栏与按钮行 */
 #select-books-dialog .btn-row {
   layout: horizontal;
