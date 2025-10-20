@@ -51,6 +51,8 @@ class GetBooksScreen(Screen[None]):
         self.database_manager = DatabaseManager()
         self.novel_sites = []  # 书籍网站列表
         self.proxy_settings = {}  # 代理设置
+        # 数字快捷键（1-9）对应的行索引映射
+        self._shortcut_index_map: Dict[str, int] = {}
         
     def compose(self) -> ComposeResult:
         """
@@ -122,12 +124,20 @@ class GetBooksScreen(Screen[None]):
             get_global_i18n().t('get_books.enter')  # 进入按钮列
         )
         
+        # 启用隔行变色效果
+        table.zebra_stripes = True
+
         # 加载书籍网站数据
         self._load_novel_sites()
         self._load_proxy_settings()
         
         # 检查按钮权限并禁用/启用按钮
         self._check_button_permissions()
+        # 聚焦表格以接收键盘事件
+        try:
+            self.query_one("#novel-sites-table", DataTable).focus()
+        except Exception:
+            pass
     
     def on_screen_resume(self) -> None:
         """屏幕恢复时的回调（从其他屏幕返回时调用）"""
@@ -161,6 +171,12 @@ class GetBooksScreen(Screen[None]):
                 "➤ " + get_global_i18n().t('get_books.enter')  # 进入按钮
             )
     
+        # 为数字快捷键1-9建立行索引映射
+        try:
+            self._shortcut_index_map = {str(i + 1): i for i in range(min(9, len(self.novel_sites)))}
+        except Exception:
+            self._shortcut_index_map = {}
+
     def _load_proxy_settings(self) -> None:
         """加载代理设置"""
         # 从数据库加载代理设置
@@ -261,6 +277,17 @@ class GetBooksScreen(Screen[None]):
         
         return True  # 默认允许未知按钮
     
+    def _open_site_by_row_index(self, row_index: int) -> None:
+        """根据行索引打开对应站点的爬取管理页面"""
+        if 0 <= row_index < len(self.novel_sites):
+            site = self.novel_sites[row_index]
+            if self._has_permission("crawler.open"):
+                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                self.app.push_screen(crawler_screen)
+            else:
+                self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+
     def on_data_table_cell_selected(self, event) -> None:
         """
         数据表单元格选择时的回调
@@ -367,6 +394,19 @@ class GetBooksScreen(Screen[None]):
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
+        # 数字键 1-9：打开对应行的“进入”
+        if event.key in ["1","2","3","4","5","6","7","8","9"]:
+            idx = int(event.key) - 1
+            # 使用映射，确保与当前表格行一致
+            if event.key in getattr(self, "_shortcut_index_map", {}):
+                idx = self._shortcut_index_map[event.key]
+            if self._has_permission("crawler.open"):
+                self._open_site_by_row_index(idx)
+            else:
+                self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+            event.prevent_default()
+            return
+
         if event.key == "escape":
             # ESC键返回（仅一次）
             self.app.pop_screen()

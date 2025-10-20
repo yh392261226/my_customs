@@ -46,9 +46,9 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 # 顶部工具栏（与书架屏幕风格一致）
                 Vertical(
                     Horizontal(
-                        Input(placeholder="开始ID", id="start-id-input"),
+                        Input(placeholder=get_global_i18n().t('select_books.start_id'), id="start-id-input"),
                         Label("-", id="seprator"),
-                        Input(placeholder="截止ID", id="end-id-input"),
+                        Input(placeholder=get_global_i18n().t('select_books.end_id'), id="end-id-input"),
                         Button(get_global_i18n().t("common.search"), id="search-btn", classes="btn"),
                         id="id-range-row",
                         classes="btn-row"
@@ -155,11 +155,8 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             table.set_column_width(4, 40)  # 简介
         except Exception:
             pass
-        # 聚焦表格，便于键盘操作（空格切换）
-        try:
-            table.focus()
-        except Exception:
-            pass
+        # 聚焦开始ID
+        self.query_one("#start-id-input", Input).focus()
 
     def _build_test_urls(self, book_id: str) -> List[str]:
         base = self.novel_site.get("url", "").rstrip("/")
@@ -307,6 +304,8 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 first_desc = self._results[0][3] if len(self._results[0]) > 3 else ""
                 stats_label = self.query_one("#books-stats-label", Static)
                 stats_label.update(str(first_desc or ""))
+                # 自动聚焦到表格中
+                table.focus()
         except Exception as e:
             logger.debug(f"默认简介更新失败: {e}")
 

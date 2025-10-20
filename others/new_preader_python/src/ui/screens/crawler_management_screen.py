@@ -180,6 +180,9 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 加载爬取历史
         self._load_crawl_history()
+
+        # 自动聚焦小说ID输入框
+        self.query_one("#novel-id-input", Input).focus()
     
     def _load_crawl_history(self) -> None:
         """加载爬取历史记录"""
@@ -301,12 +304,13 @@ class CrawlerManagementScreen(Screen[None]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
         ("r", "view_history", get_global_i18n().t('crawler.shortcut_r')),
+        ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
+        ("escape", "back", get_global_i18n().t('common.back')),
+        ("x", "select_books", get_global_i18n().t('crawler.select_books')),
         ("s", "start_crawl", get_global_i18n().t('crawler.shortcut_s')),
         ("v", "stop_crawl", get_global_i18n().t('crawler.shortcut_v')),
-        ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
-        ("escape", "back", get_global_i18n().t('common.back')),
     ]
 
     def action_open_browser(self) -> None:
@@ -332,6 +336,9 @@ class CrawlerManagementScreen(Screen[None]):
 
     def action_back(self) -> None:
         self.app.pop_screen()
+
+    def action_select_books(self) -> None:
+        self._open_select_books_dialog()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """

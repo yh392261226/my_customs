@@ -1,108 +1,55 @@
-/* 选择书籍弹窗（SelectBooksDialog）专用样式覆盖
-   注意：全部使用以 #select-books- 前缀的唯一 ID，避免影响其他页面
-*/
+/* 选择书籍弹窗样式（仅命名空间，其他不改） */
 #select-books-dialog {
-    width: 90%;
-    height: 85%;
-    background: $panel;
-    border: round $primary;
-    padding: 1;
-    layout: vertical;
+  /* 将样式限定在该对话框根容器，避免影响其他页面 */
+  layer: dialog;
 }
 
-/* 根容器 */
-#select-books-root {
-    padding: 1 2;
+/* 工具栏与按钮行 */
+#select-books-dialog .btn-row {
+  layout: horizontal;
+  height: auto;
 }
 
-/* 标题 */
-#select-books-title {
-    color: $text;
-    text-style: bold;
-    margin: 0 0 1 0;
+#select-books-dialog .btn {
+  padding: 0 1;
+  min-height: 1;
 }
 
-/* ID范围输入行 */
-#id-range-row {
-    layout: horizontal;
+/* 加载动画容器高度与换行 */
+#select-books-dialog .loading-animation-container {
+  height: 3;
+  overflow: hidden;
+}
+
+/* 底部统计文本换行 */
+#select-books-dialog #books-stats-label {
+  text-wrap: wrap;
+}
+
+/* 表格内容换行 */
+#select-books-dialog #books-table {
+  text-wrap: wrap;
+}
+
+/* 覆盖层与加载指示器（沿用原始 id） */
+#select-books-dialog #select-books-loading-overlay {
+  /* 默认隐藏，由逻辑控制 display */
+}
+
+#select-books-dialog #select-books-overlay-indicator {
+  /* 由逻辑控制 */
+}
+
+#select-books-dialog #select-books-loading-indicator {
+  /* 由逻辑控制 */
+}
+
+#select-books-dialog #start-id-input, #end-id-input {
+    width: 30;
     height: 3;
-    align: center middle;
 }
 
-/* 输入框宽度适配（仅弹窗内） */
-#id-range-row Input {
-    width: 20;
-}
-
-#seprator {
+#select-books-dialog #seprator {
+    height: 3;
     padding: 1 0;
-}
-
-/* 结果表格：占据剩余空间 */
-#select-books-root #books-table {
-    height: 95%;
-    text-wrap: wrap;
-}
-
-/* 按钮行 */
-#buttons-row {
-    layout: horizontal;
-    height: 4;
-}
-
-/* 主按钮与取消按钮的配色（仅此弹窗作用域） */
-#buttons-row Button#ok-btn {
-    background: $success;
-    color: $surface;
-}
-
-#buttons-row Button#cancel-btn {
-    background: $error;
-    color: $surface;
-}
-
-.book-select {
-    width: 2;
-    height: 2;
-}
-
-#books-stats-label {
-    width: 100%;
-    height: 5;
-    overflow-y: auto;
-    text-wrap: wrap;
-    align: center middle;
-    text-align: center;
-}
-
-/* 加载动画样式 */
-#loading-animation {
-    height: 3;
-    align: center middle;
-    text-align: center;
-    color: $accent;
-    text-style: bold;
-    min-height: 3;
-    background: $panel;
-    border: round $primary;
-    margin: 1 0;
-}
-
-.loading-animation-container {
-    height: 3;
-    min-height: 3;
-    align: center middle;
-    text-align: center;
-}
-
-/* 加载指示器样式 */
-#select-books-loading-indicator {
-    height: 3;
-    align: center middle;
-}
-
-/* 加载覆盖层样式 */
-#select-books-loading-overlay {
-    align: center middle;
-    text-align: center;
 }

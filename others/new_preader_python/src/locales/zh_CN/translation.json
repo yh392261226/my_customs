@@ -982,7 +982,8 @@
         "open_failed": "打开书籍失败",
         "on_reading": "正在阅读",
         "cannot_open_book": "无法打开阅读器",
-        "remaining": "剩余"
+        "remaining": "剩余",
+        "select_books": "选择书籍"
     },
     "note": {
         "save": "保存",
@@ -1161,5 +1162,14 @@
             "view_title": "查看权限",
             "status":"状态"
         }
+    },
+    "select_books": {
+        "start_id": "开始ID",
+        "end_id": "截止ID",
+        "selected": "选中",
+        "title": "标题",
+        "status": "状态",
+        "id": "ID",
+        "desc": "简介"
     }
 }

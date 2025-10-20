@@ -982,7 +982,8 @@
         "open_failed": "Open book failed",
         "on_reading": "Reading",
         "cannot_open_book": "Can not open reader",
-        "remaining": "Remaining"
+        "remaining": "Remaining",
+        "select_books": "Select Books"
     },
     "note": {
         "save": "Save",
@@ -1161,5 +1162,14 @@
             "view_title": "View Permission of User",
             "status":"Status"
         }
+    },
+    "select_books": {
+        "start_id": "Start ID",
+        "end_id": "End ID",
+        "selected": "Choose",
+        "title": "Title",
+        "status": "Status",
+        "id": "ID",
+        "desc": "Description"
     }
 }
