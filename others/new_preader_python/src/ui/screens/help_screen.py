@@ -123,8 +123,14 @@ class HelpScreen(Screen[None]):
             f"- R    : {t('crawler.view_history')}\n"
             f"- S    : {t('crawler.start_crawl')}\n"
             f"- V    : {t('crawler.stop_crawl')}\n"
+            f"- X    : {t('crawler.select_books')}\n"
             f"- B    : {t('note.title')}\n"
             f"- P/N  : {t('crawler.prev_page')} / {t('crawler.next_page')}\n"
+            f"- ESC  : {t('common.back')}\n\n"
+            # 选择书籍
+            f"### {t('select_books.select_books')}\n"
+            f"- S    : {t('common.search')}\n"
+            f"- G    : {t('common.ok')}\n"
             f"- ESC  : {t('common.back')}\n\n"
             # 关于
             f"## {t('help.about')}\n"
