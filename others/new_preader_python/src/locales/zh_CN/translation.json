@@ -493,7 +493,9 @@
         "open_vocabulary": "打开单词本",
         "boss_key": "老板键",
         "show_help": "帮助",
-        "copy_selected_text": "复制选中文本"
+        "copy_selected_text": "复制选中文本",
+        "pager": "第{current}/{total}页",
+        "pager_without_statistics": "第{current}/{total}页 (统计已关闭)"
     },
     "help": {
         "title": "帮助中心",

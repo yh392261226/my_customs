@@ -1942,10 +1942,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
             if statistics_enabled:
                 stats = self.status_manager.get_statistics()
-                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 "
+                status_text = get_global_i18n().t('reader.pager', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
             else:
-                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 (统计已关闭)"
+                status_text = get_global_i18n().t('reader.pager_without_statistics', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
         except Exception as e:
             logger.error(f"更新状态栏失败: {e}")
@@ -1982,11 +1982,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             if statistics_enabled:
                 # 显示统计信息
                 stats = self.status_manager.get_statistics()
-                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 "
+                status_text = get_global_i18n().t('reader.pager', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
             else:
                 # 统计功能关闭，只显示基本页面信息
-                status_text = f"第{self.renderer.current_page + 1}/{self.renderer.total_pages}页 (统计已关闭)"
+                status_text = get_global_i18n().t('reader.pager_without_statistics', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
         except Exception as e:
             logger.error(f"更新状态栏失败: {e}")

@@ -493,7 +493,9 @@
         "open_vocabulary": "Open Vocabulary",
         "boss_key": "Boss Key",
         "show_help": "Show Help",
-        "copy_selected_text": "Copy Selected Text"
+        "copy_selected_text": "Copy Selected Text",
+        "pager": "Page {current}/{total}",
+        "pager_without_statistics": "Page {current}/{total} (Statistics Disabled)"
     },
     "help": {
         "title": "Help Center",
