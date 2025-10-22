@@ -4,7 +4,7 @@
 
 from typing import Dict, Any
 from textual.app import ComposeResult
-from textual.containers import Container
+from textual.containers import Center, Container
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Input
 from textual import events
@@ -28,11 +28,8 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
     def compose(self) -> ComposeResult:
         with Container(id="dialog-container", classes="panel"):
             yield Label(get_global_i18n().t("add_bookmark_note"), id="dialog-title", classes="section-title")
-            yield Input(
-                placeholder=get_global_i18n().t("enter_bookmark_note_optional"),
-                id="notes-input",
-                classes="input-std"
-            )
+            with Center():
+                yield Input(placeholder=get_global_i18n().t("enter_bookmark_note_optional"), id="notes-input", classes="input-std")
             with Container(id="dialog-buttons", classes="btn-row"):
                 yield Button(get_global_i18n().t("common.ok"), id="confirm-button", variant="primary", classes="btn")
                 yield Button(get_global_i18n().t("common.cancel"), id="cancel-button", variant="error", classes="btn")

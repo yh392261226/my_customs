@@ -16,15 +16,23 @@ Footer {
     dock: bottom;
 }
 
+#bookmarks-screen-container {
+    width: 100%;
+    height: 100%;
+    align: center middle;
+    background: $panel;
+    border: round $primary;
+}
+
 #bookmarks-container {
-    width: 90%;
-    height: 85%;
+    width: 100%;
+    height: 100%;
     layout: vertical;
 }
 
 #header-container {
     height: 3;
-    border-bottom: solid blue;
+    border-bottom: solid $primary;
     align: center middle;
     background: $surface;
 }
@@ -43,7 +51,7 @@ Footer {
     height: 5;
     /* 使用 .btn-row 控制居中 */
     background: $surface;
-    border-bottom: solid gray;
+    border-bottom: solid $primary;
 }
 
 /* 按钮改用通用 .btn */
@@ -51,14 +59,14 @@ Footer {
 #bookmarks-list {
     width: 100%;
     height: 1fr;
-    border: round blue;
+    border: round $primary;
     background: $surface;
 }
 
 #bookmarks-list > ListItem {
     padding: 1;
     margin: 0 1;
-    border-bottom: solid gray;
+    border-bottom: solid $primary;
     min-height: 3;
 }
 
@@ -73,7 +81,7 @@ Footer {
 #footer-container {
     height: 4;
     background: $surface;
-    border-top: solid gray;
+    border-top: solid $primary;
 }
 
 #stats-info {

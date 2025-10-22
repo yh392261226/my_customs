@@ -27,7 +27,7 @@ Container {
 #permissions-list {
     width: 100%;
     height: 60%;
-    border: round;
+    border: round $primary;
     padding: 0 1;
     margin: 1 0;
     content-align: left top;
@@ -73,7 +73,7 @@ Checkbox,
     height: 3;
     margin: 0 0;
     padding: 0 1;
-    border: round;
+    border: round $primary;
 }
 
 /* 滚动容器样式 */

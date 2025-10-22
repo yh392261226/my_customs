@@ -15,6 +15,6 @@
 #note-container > #note-textarea {
     align: center middle;
     content-align: center middle;
-    border: round;
+    border: round $primary;
     height: 10;
 }

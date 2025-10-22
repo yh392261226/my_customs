@@ -102,7 +102,8 @@ class BookmarksScreen(Screen[None]):
                 ),
                 
                 id="bookmarks-container"
-            )
+            ),
+            id="bookmarks-screen-container"
         )
         yield Footer()
     

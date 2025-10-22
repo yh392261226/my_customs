@@ -6,7 +6,7 @@
     /* 使用 .panel 提供的背景、边框、padding */
     layout: vertical;
     align: center middle;
-    border: round;
+    border: round $primary;
     padding: 1;
 }
 
@@ -57,7 +57,7 @@
     height: auto;
     layout: vertical;
     margin: 0 0;
-    border: round $primary-lighten-2;
+    border: round $primary;
     background: $panel-lighten-1;
     padding: 0;
 }

@@ -13,7 +13,7 @@
     text-align: center;
     text-style: bold;
     color: $text;
-    border-bottom: solid $accent;
+    border-bottom: solid $primary;
     width: 100%;
 }
 
@@ -45,10 +45,10 @@
     width: 40%;
     height: 3;
     background: $background;
-    border: solid $accent;
+    border: solid $primary;
 }
 #translation-dialog-container .input-std:focus {
-    border: double $success;
+    border: round $primary;
 }
 
 /* 顶部两列横向栅格布局 */
@@ -96,7 +96,7 @@
     margin: 0;
     padding: 0;
     background: $background;
-    border: solid $panel;
+    border: solid $primary;
     overflow-y: auto;
 }
 
@@ -119,7 +119,7 @@
     width: 40%;
     height: 3;
     background: $background;
-    border: solid $accent;
+    border: solid $primary;
 }
 #translation-dialog-container #vocabulary-section > Horizontal > #add-vocabulary-button {
     width: 8%;
@@ -130,7 +130,7 @@
 /* 文本显示区域（作用域内） */
 #translation-dialog-container .text-display {
     background: $background;
-    border: solid $panel;
+    border: solid $primary;
     min-height: 3;
     overflow-y: auto;
 }

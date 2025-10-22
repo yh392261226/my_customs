@@ -55,7 +55,7 @@ Footer {
     align: center middle;
     content-align: center middle;
     text-align: center;
-    border: round;
+    border: round $primary;
     width: 100%;
 }
 

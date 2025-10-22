@@ -78,7 +78,7 @@ Footer {
 #users-table {
     width: 100%;
     height: 40%;
-    border: round;
+    border: round $primary;
     padding: 0 1;
     margin-top: 1;
     align: center middle;
@@ -142,7 +142,7 @@ Footer {
 DataTable {
     width: 100%;
     height: 40%;
-    border: round;
+    border: round $primary;
     padding: 0 1;
     margin-top: 1;
     align: center middle;

@@ -6,6 +6,7 @@
     /* 使用 .panel 提供背景/边框/内边距 */
     layout: vertical;
     align: center middle;
+    border: round $primary;
 }
 
 #dialog-title {
@@ -21,7 +22,7 @@
 }
 
 #notes-input {
-    width: 100%;
+    width: 50%;
     height: 3;
     margin-bottom: 1;
 }
