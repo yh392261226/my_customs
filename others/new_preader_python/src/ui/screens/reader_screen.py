@@ -1891,10 +1891,20 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             if self.progress_label:
                 self.progress_label.update(pct_text)
 
-            # 显示模式控制：强制同时显示进度条与百分比，避免设置为 percentage 时隐藏条形
+            # 显示模式控制：尊重设置中心的 appearance.progress_bar_style
             show_bar = True
             show_text = True
             try:
+                style = str(progress_style).lower() if progress_style else "bar"
+                if style == "percentage":
+                    show_bar, show_text = False, True
+                elif style == "bar":
+                    show_bar, show_text = True, False
+                elif style == "both":
+                    show_bar, show_text = True, True
+                else:
+                    show_bar, show_text = True, True
+
                 if self.progress_bar:
                     self.progress_bar.display = show_bar
                 if self.progress_label:
@@ -1902,9 +1912,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             except Exception:
                 # 旧版本兼容：用样式控制
                 if self.progress_bar:
-                    self.progress_bar.styles.visibility = "visible"
+                    self.progress_bar.styles.visibility = "visible" if show_bar else "hidden"
                 if self.progress_label:
-                    self.progress_label.styles.visibility = "visible"
+                    self.progress_label.styles.visibility = "visible" if show_text else "hidden"
         except Exception as e:
             logger.debug(f"更新进度条区域失败: {e}")
 
