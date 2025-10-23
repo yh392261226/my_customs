@@ -2,7 +2,7 @@
 #search-dialog {
     width: 90%;
     height: 85%;
-    background: $panel;
+    background: $background 60%;
     border: round $primary;
     padding: 1;
     layout: vertical;

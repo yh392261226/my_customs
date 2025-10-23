@@ -196,6 +196,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def on_mount(self) -> None:
         """挂载时的回调"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         

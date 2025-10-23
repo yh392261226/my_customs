@@ -1,15 +1,20 @@
 Screen {
     align: center middle;
-}
-
-#sort-dialog {
     width: 90%;
     height: 85%;
     min-height: 40;
-    background: $panel;
+    background: $panel 60%;
+}
+
+#sort-dialog {
     border: round $primary;
     padding: 1;
     layout: vertical;
+    align: center middle;
+    width: 90%;
+    height: 85%;
+    min-height: 40;
+    background: $panel 60%;
 }
 
 #sort-title {

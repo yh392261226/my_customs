@@ -1,12 +1,12 @@
 /* BatchOpsDialog overrides - 公共按钮行/表单行/标题由 utilities.tcss 提供 */
 Container {
     align: center middle;
+    width: 90%;
+    height: 85%;
+    background: $background 60%;
 }
 
 #batch-ops-container {
-    width: 90%;
-    height: 85%;
-    background: $panel;
     border: round $primary;
     padding: 1;
     layout: vertical;
