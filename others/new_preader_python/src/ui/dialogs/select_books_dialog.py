@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 from rich.text import Text
 import requests
 import textwrap
+import threading
+import asyncio
 
 from src.locales.i18n_manager import get_global_i18n
 from src.core.database_manager import DatabaseManager
@@ -44,6 +46,27 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         self.loading_indicator = None  # 原生 LoadingIndicator 引用
         self.loading_overlay = None  # 加载覆盖层
         self.is_mounted_flag = False  # 组件挂载标志
+        # 搜索任务与取消控制
+        self._cancel_event: threading.Event = threading.Event()
+        self._search_worker = None
+        self._is_searching: bool = False
+
+    def _cancel_search(self) -> None:
+        """请求取消当前搜索任务，并尽可能终止后台worker与加载动画。"""
+        try:
+            self._cancel_event.set()
+        except Exception:
+            pass
+        # 尝试取消后台worker（如果Textual版本支持）
+        try:
+            if self._search_worker is not None:
+                cancel_method = getattr(self._search_worker, "cancel", None)
+                if callable(cancel_method):
+                    cancel_method()
+        except Exception:
+            pass
+        # 隐藏加载动画
+        self._hide_loading_animation()
 
     def compose(self) -> ComposeResult:
         yield Container(
@@ -228,11 +251,17 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             return {"enabled": False, "proxy_url": ""}
 
     def _fetch_one(self, book_id: str) -> Optional[Tuple[str, str, str, str]]:
-        """优先使用解析器获取标题/状态/简介，失败时回退到 requests+BeautifulSoup"""
+        """优先使用解析器获取标题/状态/简介，失败时回退到 requests+BeautifulSoup；支持取消"""
+        if self._cancel_event.is_set():
+            return None
         # 解析器优先
         try:
+            if self._cancel_event.is_set():
+                return None
             if self.parser_instance and hasattr(self.parser_instance, "get_homepage_meta"):
                 meta = self.parser_instance.get_homepage_meta(book_id)  # type: ignore[attr-defined]
+                if self._cancel_event.is_set():
+                    return None
                 if meta and (meta.get("title") or meta.get("desc") or meta.get("status")):
                     return (
                         book_id,
@@ -246,8 +275,12 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         proxies = self._get_proxies()
         headers = {"User-Agent": "Mozilla/5.0 TextualReader/6.3"}
         for url in self._build_test_urls(book_id):
+            if self._cancel_event.is_set():
+                return None
             try:
-                resp = requests.get(url, timeout=10, proxies=proxies, headers=headers)
+                resp = requests.get(url, timeout=2, proxies=proxies, headers=headers)
+                if self._cancel_event.is_set():
+                    return None
                 if resp.status_code != 200:
                     continue
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -269,6 +302,8 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 if title or desc or status:
                     return (book_id, title, status, desc)
             except Exception as e:
+                if self._cancel_event.is_set():
+                    return None
                 logger.debug(f"抓取 {book_id} 失败: {e}")
         return None
 
@@ -286,10 +321,14 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         if end_id < start_id:
             start_id, end_id = end_id, start_id
         for i in range(start_id, end_id + 1):
+            if self._cancel_event.is_set():
+                break
             sid = str(i)
             if self._should_skip(sid):
                 continue
             item = self._fetch_one(sid)
+            if self._cancel_event.is_set():
+                break
             if item:
                 results.append(item)
         return results
@@ -507,9 +546,22 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "search-btn":
+            # 若已有搜索在进行，避免重复启动
+            if getattr(self, "_is_searching", False):
+                try:
+                    self.app.bell()
+                except Exception:
+                    pass
+                return
             # 先显示加载动画
             self._show_loading_animation(get_global_i18n().t("common.on_action"))
-            
+            # 置为搜索中并禁用确认/搜索按钮
+            try:
+                self._is_searching = True
+                self.query_one("#search-btn", Button).disabled = True
+                self.query_one("#ok-btn", Button).disabled = True
+            except Exception:
+                pass
             # 延迟启动搜索，确保动画有足够时间显示
             def delayed_search():
                 # 异步执行搜索
@@ -523,8 +575,10 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                         start_id = int(start_input)
                         end_id = int(end_input)
                         
-                        # 执行搜索
-                        self._results = self._search_range(start_id, end_id)
+                        # 执行搜索（将阻塞型任务放入线程池，确保UI可响应取消）
+                        self._results = await asyncio.to_thread(self._search_range, start_id, end_id)
+                        if self._cancel_event.is_set():
+                            return
                         self._selected.clear()
                         self._refresh_table()
                     except Exception as e:
@@ -532,9 +586,21 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                     finally:
                         # 隐藏双加载动画
                         self._hide_loading_animation()
+                        # 结束搜索状态并恢复按钮
+                        try:
+                            self._is_searching = False
+                            self.query_one("#search-btn", Button).disabled = False
+                            self.query_one("#ok-btn", Button).disabled = False
+                        except Exception:
+                            pass
+                        # 若搜索被取消，此处无需特殊返回，函数自然结束
                 
-                # 启动异步搜索任务
-                self.app.run_worker(async_search(), name="select-books-search")
+                # 启动异步搜索任务（保存句柄，并在启动前清理取消标志）
+                try:
+                    self._cancel_event.clear()
+                except Exception:
+                    pass
+                self._search_worker = self.app.run_worker(async_search(), name="select-books-search", exclusive=False)
             
             # 延迟100ms启动搜索，确保动画完全显示
             self.set_timer(0.1, delayed_search)
@@ -542,6 +608,9 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             selected_str = ",".join(sorted(self._selected, key=lambda x: int(x) if x.isdigit() else x))
             self.dismiss(selected_str)
         elif event.button.id == "cancel-btn":
+            # 触发取消
+            self._cancel_search()
+            # 关闭对话框
             self.dismiss(None)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
@@ -716,8 +785,24 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 logger.debug(f"空格切换选中失败: {e}")
 
         if event.key == "escape":
-            # ESC键返回（仅一次 pop，并停止冒泡）
-            self.app.pop_screen()
+            # 设置取消标志，隐藏加载动画，并安全退出对话
+            # 请求取消并隐藏加载（并恢复按钮状态）
+            self._cancel_search()
+            try:
+                self._is_searching = False
+                self.query_one("#search-btn", Button).disabled = False
+                self.query_one("#ok-btn", Button).disabled = False
+            except Exception:
+                pass
+            # 关闭对话
+            # 直接关闭对话框
+            try:
+                self.dismiss(None)
+            except Exception:
+                try:
+                    self.app.pop_screen()
+                except Exception:
+                    pass
             event.stop()
 
     def action_ok_btn(self) -> None:
@@ -727,11 +812,27 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
     
     def action_cancel_btn(self) -> None:
         """取消按钮点击事件"""
+        try:
+            self._cancel_event.set()
+        except Exception:
+            pass
+        self._hide_loading_animation()
+        try:
+            self._is_searching = False
+            self.query_one("#search-btn", Button).disabled = False
+            self.query_one("#ok-btn", Button).disabled = False
+        except Exception:
+            pass
         self.dismiss(None)
 
     def action_search_btn(self) -> None:
         """搜索按钮点击事件（模拟点击搜索按钮）"""
         try:
+            # 启动搜索前清理取消标记
+            try:
+                self._cancel_event.clear()
+            except Exception:
+                pass
             btn = self.query_one("#search-btn", Button)
             # 模拟点击触发 Pressed 事件
             btn.press()
