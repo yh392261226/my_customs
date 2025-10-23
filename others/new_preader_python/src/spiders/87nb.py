@@ -204,12 +204,29 @@ class Nb87Parser:
         title = title_match.group(1).strip()
         print(f"开始处理 [ {title} ]")
 
-        # 提取小说简介
-        desc_match = re.search(r'<div class="bookintro"><p><a(.*?)</a>(.*?)</p>', content)
-        if not desc_match:
-            raise Exception("无法提取小说简介")
-        
-        desc = desc_match.group(2).strip()
+        # 提取小说简介（更健壮：优先用Soup；其次正则；最后允许为空，不抛异常）
+        desc = ""
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content, "html.parser")
+            intro = soup.find("div", class_="bookintro")
+            if intro:
+                p = intro.find("p")
+                if p:
+                    # 文本为 <p><a ...>标题</a>简介文本</p>
+                    a = p.find("a")
+                    full_text = p.get_text(separator="", strip=True)
+                    a_text = a.get_text(strip=True) if a else ""
+                    if full_text:
+                        desc = full_text[len(a_text):].strip() if a_text and full_text.startswith(a_text) else full_text
+        except Exception:
+            pass
+        if not desc:
+            desc_match = re.search(r'<div class="bookintro"><p><a[^>]*>.*?</a>(.*?)</p>', content, re.DOTALL)
+            if desc_match:
+                raw = desc_match.group(1)
+                desc = re.sub(r'<[^>]+>', '', raw).strip()
+        # 允许简介缺失
         
         # 提取第一章URL
         first_chapter_match = re.search(r'<a href="(.*?)">开始阅读', content)

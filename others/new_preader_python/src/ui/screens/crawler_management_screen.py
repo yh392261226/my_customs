@@ -174,6 +174,8 @@ class CrawlerManagementScreen(Screen[None]):
             get_global_i18n().t('crawler.delete_file'),
             get_global_i18n().t('crawler.delete_record')
         )
+        # 启用隔行变色效果
+        table.zebra_stripes = True
         
         # 初始化加载动画
         self._initialize_loading_animation()
@@ -273,6 +275,9 @@ class CrawlerManagementScreen(Screen[None]):
                     delete_record_text,
                     key=row_key
                 )
+
+                # 启用隔行变色效果
+                table.zebra_stripes = True
             
             # 更新分页信息
             self._update_pagination_info()
@@ -938,16 +943,25 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 自动将书籍加入书架
             try:
-                from src.core.book import Book
-                book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
-                if self.db_manager.add_book(book):
-                    # 发送全局刷新书架消息
-                    try:
-                        from src.ui.messages import RefreshBookshelfMessage
-                        self.app.post_message(RefreshBookshelfMessage())
-                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                    except Exception as msg_error:
-                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                # 将新书加入书架（优先使用内存书架以便立刻可读，失败时退回直接写DB）
+                try:
+                    bs = getattr(self.app, "bookshelf", None)
+                    book = None
+                    if bs and hasattr(bs, "add_book"):
+                        book = bs.add_book(file_path)
+                    if not book:
+                        from src.core.book import Book
+                        book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
+                        self.db_manager.add_book(book)
+                except Exception as add_err:
+                    logger.error(f"添加书籍到书架失败: {add_err}")
+                # 发送全局刷新书架消息
+                try:
+                    from src.ui.messages import RefreshBookshelfMessage
+                    self.app.post_message(RefreshBookshelfMessage())
+                    logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
+                except Exception as msg_error:
+                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
                 else:
                     logger.warning(f"添加书籍到书架失败: {novel_title}")
             except Exception as e:
@@ -1034,16 +1048,25 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 自动将书籍加入书架
             try:
-                from src.core.book import Book
-                book = Book(file_path, novel_title, self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
-                if self.db_manager.add_book(book):
-                    # 发送全局刷新书架消息，确保书架屏幕能够接收
-                    try:
-                        from src.ui.messages import RefreshBookshelfMessage
-                        self.app.post_message(RefreshBookshelfMessage())
-                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                    except Exception as msg_error:
-                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                # 将新书加入书架（优先内存书架，确保立即可读）
+                try:
+                    bs = getattr(self.app, "bookshelf", None)
+                    added_book = None
+                    if bs and hasattr(bs, "add_book"):
+                        added_book = bs.add_book(file_path)
+                    if not added_book:
+                        from src.core.book import Book
+                        added_book = Book(file_path, novel_title, self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
+                        self.db_manager.add_book(added_book)
+                except Exception as add_err:
+                    logger.error(f"添加书籍到书架失败: {add_err}")
+                # 发送全局刷新书架消息，确保书架屏幕能够接收
+                try:
+                    from src.ui.messages import RefreshBookshelfMessage
+                    self.app.post_message(RefreshBookshelfMessage())
+                    logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
+                except Exception as msg_error:
+                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
                     
                     self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
                 else:
@@ -1178,18 +1201,23 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception:
                 pass
             
-            # 自动将书籍加入书架
+            # 自动将书籍加入书架（优先内存书架，立即可读）
             try:
-                from src.core.book import Book
-                book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
-                if self.db_manager.add_book(book):
-                    # 发送刷新书架消息
-                    try:
-                        from src.ui.messages import RefreshBookshelfMessage
-                        self.app.post_message(RefreshBookshelfMessage())
-                    except Exception as msg_error:
-                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                    
+                bs = getattr(self.app, "bookshelf", None)
+                added_book = None
+                if bs and hasattr(bs, "add_book"):
+                    added_book = bs.add_book(file_path)
+                if not added_book:
+                    from src.core.book import Book
+                    added_book = Book(file_path, novel_title, self.novel_site.get('name', '未知来源'))
+                    self.db_manager.add_book(added_book)
+                # 发送刷新书架消息
+                try:
+                    from src.ui.messages import RefreshBookshelfMessage
+                    self.app.post_message(RefreshBookshelfMessage())
+                except Exception as msg_error:
+                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
+            
                     self._update_status(f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
                 else:
                     self._update_status(f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")

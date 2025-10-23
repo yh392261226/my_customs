@@ -100,12 +100,15 @@ class RenqixiaoshuoParser:
         title = title_match.group(1).strip()
         print(f"开始处理 [ {title} ]")
 
-        # 提取小说简介
-        desc_match = re.search(r'<div class="decs hangd">(.*?)</div>', content)
-        if not desc_match:
-            raise Exception("无法提取小说简介")
-        
-        desc = desc_match.group(1).strip()
+        # 提取小说简介（允许缺失，不致命）
+        desc = ""
+        try:
+            desc_match = re.search(r'<div class="decs hangd">(.*?)</div>', content, re.DOTALL)
+            if desc_match:
+                raw = desc_match.group(1)
+                desc = re.sub(r'<[^>]+>', '', raw).strip()
+        except Exception:
+            pass
         
         # 提取第一章URL
         first_chapter_match = re.search(r'<a id="btnread" href="(.*?)" class="stayd">开始阅读', content)
