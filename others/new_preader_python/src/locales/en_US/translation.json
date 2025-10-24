@@ -871,6 +871,7 @@
         "tags": "Tags",
         "parser": "Parser",
         "enable_proxy": "Enable Proxy",
+        "enable_selectable": "Support Book Selection",
         "site_name_placeholder": "Enter website name",
         "site_url_placeholder": "Enter website URL",
         "storage_folder_placeholder": "Enter storage folder name",
@@ -988,7 +989,10 @@
         "on_reading": "Reading",
         "cannot_open_book": "Can not open reader",
         "remaining": "Remaining",
-        "select_books": "Select Books"
+        "select_books": "Select Books",
+        "disabled_selectable": "This site not suppose select books function",
+        "filled_ids": "Selected ID has been filled in",
+        "open_dialog_failed": "Open select books dialog failed"
     },
     "note": {
         "save": "Save",

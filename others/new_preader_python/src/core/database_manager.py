@@ -323,6 +323,7 @@ class DatabaseManager:
                     url TEXT NOT NULL,
                     storage_folder TEXT NOT NULL,
                     proxy_enabled BOOLEAN NOT NULL DEFAULT 0,
+                    selectable_enabled BOOLEAN NOT NULL DEFAULT 1,
                     parser TEXT NOT NULL,
                     tags TEXT DEFAULT '',
                     created_at TEXT NOT NULL,
@@ -373,6 +374,16 @@ class DatabaseManager:
             if 'tags' not in columns:
                 cursor.execute("ALTER TABLE novel_sites ADD COLUMN tags TEXT DEFAULT ''")
                 logger.info("已为novel_sites表添加tags列")
+            
+            # 检查并添加novel_sites表的selectable_enabled列（如果不存在）
+            if 'selectable_enabled' not in columns:
+                cursor.execute("ALTER TABLE novel_sites ADD COLUMN selectable_enabled BOOLEAN NOT NULL DEFAULT 1")
+                logger.info("已为novel_sites表添加selectable_enabled列")
+            
+            # 检查并添加novel_sites表的selectable_enabled列（如果不存在）
+            if 'selectable_enabled' not in columns:
+                cursor.execute("ALTER TABLE novel_sites ADD COLUMN selectable_enabled BOOLEAN NOT NULL DEFAULT 1")
+                logger.info("已为novel_sites表添加selectable_enabled列")
 
             conn.commit()
     

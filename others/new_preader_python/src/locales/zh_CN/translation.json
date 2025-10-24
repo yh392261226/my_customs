@@ -871,6 +871,7 @@
         "tags": "标签",
         "parser": "解析器",
         "enable_proxy": "启用代理",
+        "enable_selectable": "支持选择书籍",
         "site_name_placeholder": "输入网站名称",
         "site_url_placeholder": "输入网站网址",
         "storage_folder_placeholder": "输入存储文件夹名称",
@@ -988,7 +989,10 @@
         "on_reading": "正在阅读",
         "cannot_open_book": "无法打开阅读器",
         "remaining": "剩余",
-        "select_books": "选择书籍"
+        "select_books": "选择书籍",
+        "disabled_selectable": "该书籍网站不支持选择书籍功能",
+        "filled_ids": "已回填选中ID",
+        "open_dialog_failed": "打开选择书籍对话框失败"
     },
     "note": {
         "save": "保存",

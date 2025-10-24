@@ -95,7 +95,8 @@ class CrawlerManagementScreen(Screen[None]):
                     # 小说ID输入区域
                     Vertical(
                         Horizontal(
-                            Button("选择书籍", id="choose-books-btn"),
+                            # 根据书籍网站的"是否支持选择书籍"设置显示选择书籍按钮
+                            *([Button(get_global_i18n().t('crawler.select_books'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
                             Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
@@ -343,7 +344,12 @@ class CrawlerManagementScreen(Screen[None]):
         self.app.pop_screen()
 
     def action_select_books(self) -> None:
-        self._open_select_books_dialog()
+        # 如果未开启支持选择书籍，则不做任何处理
+        if self.novel_site.get("selectable_enabled", True):
+            self._open_select_books_dialog()
+        else:
+            # 弹窗提示未开启支持选择书籍
+            self._update_status(get_global_i18n().t('crawler.disabled_selectable'), "error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """
@@ -466,7 +472,7 @@ class CrawlerManagementScreen(Screen[None]):
                         novel_id_input = self.query_one("#novel-id-input", Input)
                         novel_id_input.value = result
                         novel_id_input.focus()
-                        self._update_status("已回填选中ID")
+                        self._update_status(get_global_i18n().t('crawler.filled_ids'))
                     except Exception as e:
                         logger.debug(f"回填选中ID失败: {e}")
             self.app.push_screen(
@@ -475,7 +481,7 @@ class CrawlerManagementScreen(Screen[None]):
             )
         except Exception as e:
             logger.error(f"打开选择书籍对话框失败: {e}")
-            self._update_status(f"打开选择书籍对话框失败: {str(e)}", "error")
+            self._update_status(f"{get_global_i18n().t('crawler.open_dialog_failed')}: {str(e)}", "error")
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
@@ -512,10 +518,11 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
             return
         
-        # 验证每个小说ID格式
+        # 验证每个小说ID格式（支持数字和非数字形式，如68fa7dcff3de0）
         invalid_ids = []
         for novel_id in novel_ids:
-            if not novel_id.isdigit():
+            # 允许数字、字母和常见分隔符组成的ID
+            if not novel_id or not all(c.isalnum() or c in '_-' for c in novel_id):
                 invalid_ids.append(novel_id)
         
         if invalid_ids:

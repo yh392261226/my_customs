@@ -128,6 +128,16 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                         ),
                         id="proxy-settings-container"
                     ),
+
+                    # 选择书籍设置
+                    Vertical(
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.enable_selectable'), id="enable-selectable-label"),
+                            Switch(id="enable-selectable", value=True),  # 默认开启
+                            id="selectable-enable-container", classes="form-row"
+                        ),
+                        id="selectable-settings-container"
+                    ),
                     id="novel-site-dialog-body", classes="scroll-y"
                 ),
 
@@ -196,6 +206,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # 代理设置
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         proxy_checkbox.value = self.novel_site.get("proxy_enabled", False)
+        
+        # 选择书籍设置
+        selectable_checkbox = self.query_one("#enable-selectable", Switch)
+        selectable_checkbox.value = self.novel_site.get("selectable_enabled", True)  # 默认开启
     
     # Actions for BINDINGS
     def action_save(self) -> None:
@@ -225,6 +239,8 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         tags_input = self.query_one("#tags-input", Input)
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
+        selectable_checkbox = self.query_one("#enable-selectable", Switch)
+        selectable_checkbox = self.query_one("#enable-selectable", Switch)
         
         # 验证必填字段
         if not name_input.value.strip():
@@ -257,7 +273,8 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "storage_folder": folder_input.value.strip(),
             "tags": tags_input.value.strip(),
             "parser": parser_value,
-            "proxy_enabled": proxy_checkbox.value
+            "proxy_enabled": proxy_checkbox.value,
+            "selectable_enabled": selectable_checkbox.value
         }
         
         # 如果是编辑模式，保留原有的ID
