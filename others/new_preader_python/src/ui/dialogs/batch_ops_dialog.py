@@ -26,11 +26,6 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 class BatchInputDialog(ModalScreen[str]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """批量输入对话框"""
     
     CSS_PATH = "../styles/batch_input_overrides.tcss"

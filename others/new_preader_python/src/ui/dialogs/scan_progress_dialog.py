@@ -18,11 +18,6 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 from src.ui.dialogs.password_dialog import PasswordDialog
 
 class ScanProgressDialog(ModalScreen[Dict[str, Any]]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """扫描进度对话框"""
     
     def __init__(self, theme_manager: ThemeManager, 

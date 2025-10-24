@@ -15,11 +15,6 @@ from src.locales.i18n_manager import get_global_i18n
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class BatchInputDialog(ModalScreen[str]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """批量输入对话框"""
     
     CSS_PATH = "../styles/batch_input_overrides.tcss"

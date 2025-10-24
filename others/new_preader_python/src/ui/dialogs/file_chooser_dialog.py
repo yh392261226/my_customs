@@ -59,11 +59,6 @@ class FilePathValidator(Validator):
 
 
 class FileChooserDialog(ModalScreen[Optional[List[str]]]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """文件选择器对话框"""
     
     def __init__(self, theme_manager: ThemeManager, 

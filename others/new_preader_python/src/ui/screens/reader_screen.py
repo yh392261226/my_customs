@@ -332,9 +332,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 应用全面的样式隔离
         apply_comprehensive_style_isolation(self)
         
-        # 调用父类的on_mount方法
-        super().on_mount()
-        
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         

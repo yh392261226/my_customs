@@ -31,11 +31,6 @@ class NovelSitesManagementScreen(Screen[None]):
         
     ]
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """书籍网站管理屏幕"""
     
     CSS_PATH = "../styles/novel_sites_management_overrides.tcss"
@@ -113,6 +108,9 @@ class NovelSitesManagementScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         

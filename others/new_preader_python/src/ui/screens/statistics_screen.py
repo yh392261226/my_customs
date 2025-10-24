@@ -29,11 +29,6 @@ logger = get_logger(__name__)
 
 class StatisticsScreen(Screen[None]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """统计屏幕"""
     CSS_PATH = ["../styles/statistics_overrides.tcss"]
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
@@ -164,6 +159,9 @@ class StatisticsScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         # 应用样式隔离
         from src.ui.styles.style_manager import apply_style_isolation
         apply_style_isolation(self)

@@ -20,10 +20,6 @@ logger = get_logger(__name__)
 
 class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """书籍网站编辑对话框"""
     
     CSS_PATH = "../styles/novel_site_overrides.tcss"
@@ -141,6 +137,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         )
     
     def on_mount(self) -> None:
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        
         """对话框挂载时的回调"""
         # 应用主题
         try:

@@ -20,11 +20,6 @@ class SearchResultsScreen(Screen[None]):
         ("p", "prev_page", get_global_i18n().t('bookshelf.prev_page')),
     ]
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """搜索结果展示屏幕"""
     
     def __init__(self, search_query: str, results: List[Dict[str, Any]], theme_manager, renderer=None) -> None:
@@ -88,6 +83,9 @@ class SearchResultsScreen(Screen[None]):
 
     def on_mount(self) -> None:
         """屏幕挂载时设置焦点"""
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         if self.results:
             table = self.query_one("#results-table", DataTable)
             if table:

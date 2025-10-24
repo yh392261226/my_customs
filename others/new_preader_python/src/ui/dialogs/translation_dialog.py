@@ -22,10 +22,6 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
     # CSS文件路径
     CSS_PATH = "../styles/translation_dialog_overrides.tcss"
     
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        apply_universal_style_isolation(self)
-    
     def __init__(self, original_text: str, context: str = "", translation_manager: Optional[TranslationManager] = None, vocabulary_manager: Optional[VocabularyManager] = None, allow_input: bool = False, book_path: str = ""):
         super().__init__()
         self.selected_text = original_text.strip()
@@ -212,6 +208,9 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
 
     def on_mount(self) -> None:
         """对话框挂载时的回调"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
+        
         # 聚焦到合适的输入框
         if self.allow_input and not self.selected_text:
             # 在输入模式下，聚焦到原文输入框

@@ -16,11 +16,6 @@ from src.themes.theme_manager import ThemeManager
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 class DirectoryDialog(ModalScreen[Optional[str]]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """目录选择对话框"""
     
     def __init__(self, theme_manager: ThemeManager):

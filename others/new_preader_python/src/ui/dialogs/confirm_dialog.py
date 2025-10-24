@@ -19,11 +19,6 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 logger = get_logger(__name__)
 
 class ConfirmDialog(ModalScreen[Optional[bool]]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """确认对话框"""
     
     # 加载CSS样式

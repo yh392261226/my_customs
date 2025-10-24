@@ -27,11 +27,6 @@ logger = get_logger(__name__)
 
 class BossKeyScreen(Screen[None]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """老板键屏幕 - 模拟真实终端"""
     
     CSS_PATH = "../styles/boss_key_overrides.tcss"
@@ -86,6 +81,9 @@ class BossKeyScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         # 设置焦点到输入框
         input_widget = self.query_one("#terminal-input", Input)
         input_widget.focus()

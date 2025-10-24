@@ -26,11 +26,6 @@ logger = get_logger(__name__)
 
 class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        super().on_mount()
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """欢迎屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
@@ -114,8 +109,9 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        # 调用父类的on_mount方法（包含样式隔离）
-        super().on_mount()
+        """组件挂载时应用样式隔离"""
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)

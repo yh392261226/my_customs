@@ -16,11 +16,6 @@ from src.ui.styles.universal_style_isolation import apply_universal_style_isolat
 from src.themes.theme_manager import ThemeManager
 
 class SortDialog(ModalScreen[Dict[str, Any]]):
-
-    def on_mount(self) -> None:
-        """组件挂载时应用样式隔离"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
     """排序对话框"""
     
     CSS_PATH = "../styles/sort_dialog_overrides.tcss"
