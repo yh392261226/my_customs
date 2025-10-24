@@ -95,6 +95,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="storage-folder-container", classes="form-row"
                         ),
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.tags'), id="tags-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.tags_placeholder'),
+                                id="tags-input"
+                            ),
+                            id="tags-container", classes="form-row"
+                        ),
                         id="basic-info-container"
                     ),
 
@@ -167,6 +175,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         folder_input = self.query_one("#storage-folder-input", Input)
         folder_input.value = self.novel_site.get("storage_folder", "")
         
+        # 标签
+        tags_input = self.query_one("#tags-input", Input)
+        tags_input.value = self.novel_site.get("tags", "")
+        
         # 解析器 - 使用解析器文件名作为值
         parser_select = self.query_one("#parser-select", Select)
         parser_value = self.novel_site.get("parser", "")  # 默认为空
@@ -210,6 +222,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         name_input = self.query_one("#site-name-input", Input)
         url_input = self.query_one("#site-url-input", Input)
         folder_input = self.query_one("#storage-folder-input", Input)
+        tags_input = self.query_one("#tags-input", Input)
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         
@@ -242,6 +255,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "name": name_input.value.strip(),
             "url": url_input.value.strip(),
             "storage_folder": folder_input.value.strip(),
+            "tags": tags_input.value.strip(),
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value
         }

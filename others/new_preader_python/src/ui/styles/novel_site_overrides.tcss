@@ -68,7 +68,8 @@ Container {
 #site-url-label,
 #storage-folder-label,
 #parser-label,
-#enable-proxy-label {
+#enable-proxy-label,
+#tags-label {
     width: 30%;
     height: 1;
     text-align: right;
@@ -78,7 +79,8 @@ Container {
 /* 输入框样式 */
 #site-name-input,
 #site-url-input,
-#storage-folder-input {
+#storage-folder-input,
+#tags-input {
     width: 70%;
     height: 3;
     margin: 0;

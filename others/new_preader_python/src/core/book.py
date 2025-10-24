@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class Book:
     """书籍类，表示一本书籍及其元数据"""
     
-    def __init__(self, path: str, title: Optional[str] = None, author: Optional[str] = None, password: Optional[str] = None, pinyin: Optional[str] = None):
+    def __init__(self, path: str, title: Optional[str] = None, author: Optional[str] = None, password: Optional[str] = None, pinyin: Optional[str] = None, tags: Optional[str] = None):
         """
         初始化书籍对象
         
@@ -30,6 +30,7 @@ class Book:
             author: 书籍作者，如果为None则为"未知作者"
             password: PDF密码，用于加密PDF文件
             pinyin: 书籍标题的拼音，如果为None则自动生成
+            tags: 书籍标签，如果为None则为空字符串
         """
         self.path = os.path.abspath(path) if path else ""
         self.file_name = os.path.basename(path) if path else "default.txt"
@@ -47,7 +48,7 @@ class Book:
         # 基本信息
         self.title = title if title else os.path.splitext(self.file_name)[0]
         self.author = author if author else "未知作者"
-        self.tags: str = ""  # 存储逗号分隔的标签字符串
+        self.tags: str = tags if tags else ""  # 存储逗号分隔的标签字符串
         self.size = os.path.getsize(path) if path and os.path.exists(path) else 0
         self.add_date = datetime.now().isoformat()
         self.password = password  # 存储PDF密码

@@ -324,6 +324,7 @@ class DatabaseManager:
                     storage_folder TEXT NOT NULL,
                     proxy_enabled BOOLEAN NOT NULL DEFAULT 0,
                     parser TEXT NOT NULL,
+                    tags TEXT DEFAULT '',
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -365,6 +366,13 @@ class DatabaseManager:
             
             # 创建备注表索引
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_site_notes_site_id ON novel_site_notes(site_id)")
+            
+            # 检查并添加novel_sites表的tags列（如果不存在）
+            cursor.execute("PRAGMA table_info(novel_sites)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'tags' not in columns:
+                cursor.execute("ALTER TABLE novel_sites ADD COLUMN tags TEXT DEFAULT ''")
+                logger.info("已为novel_sites表添加tags列")
 
             conn.commit()
     
@@ -1164,7 +1172,7 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, parser = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, parser = ?, tags = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -1172,6 +1180,7 @@ class DatabaseManager:
                         site_data["storage_folder"],
                         site_data["proxy_enabled"],
                         site_data["parser"],
+                        site_data.get("tags", ""),
                         now,
                         site_data["id"]
                     ))
@@ -1179,14 +1188,15 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, parser, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, parser, tags, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
                         site_data["storage_folder"],
                         site_data["proxy_enabled"],
                         site_data["parser"],
+                        site_data.get("tags", ""),
                         now,
                         now
                     ))

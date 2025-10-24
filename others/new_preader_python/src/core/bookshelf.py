@@ -109,7 +109,7 @@ class Bookshelf:
             return False
     
     @debug_logged
-    def add_book(self, path: str, title: Optional[str] = None, author: Optional[str] = None) -> Optional[Book]:
+    def add_book(self, path: str, title: Optional[str] = None, author: Optional[str] = None, tags: Optional[str] = None) -> Optional[Book]:
         """
         添加书籍
         
@@ -117,6 +117,7 @@ class Bookshelf:
             path: 书籍文件路径
             title: 书籍标题，如果为None则使用文件名
             author: 书籍作者，如果为None则为"未知作者"
+            tags: 书籍标签，如果为None则为空字符串
             
         Returns:
             Optional[Book]: 添加的书籍对象，如果添加失败则返回None
@@ -132,7 +133,7 @@ class Bookshelf:
                 return existing_book
             
             # 创建书籍对象
-            book = Book(abs_path, title, author)
+            book = Book(abs_path, title, author, tags=tags)
             
             # 若为非 txt/md 且作者为空或未知，尝试解析作者（失败忽略）
             try:
