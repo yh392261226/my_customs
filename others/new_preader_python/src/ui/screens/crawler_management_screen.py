@@ -518,11 +518,21 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
             return
         
-        # 验证每个小说ID格式（支持数字和非数字形式，如68fa7dcff3de0）
+        # 验证每个小说ID格式（支持多种格式：数字、字母、中文、日期路径等）
         invalid_ids = []
         for novel_id in novel_ids:
-            # 允许数字、字母和常见分隔符组成的ID
-            if not novel_id or not all(c.isalnum() or c in '_-' for c in novel_id):
+            # 支持以下格式：
+            # 1. 2022/02/blog-post_70 (日期路径格式)
+            # 2. 中文标题名 (纯中文)
+            # 3. 2025/06/09/中文标题 (混合格式)
+            # 4. 数字字母组合 (如68fa7dcff3de0)
+            if not novel_id:
+                invalid_ids.append(novel_id)
+                continue
+            
+            # 检查是否包含非法字符（除了字母、数字、中文、常见分隔符）
+            valid_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\u4e00-\u9fff/_-.'
+            if any(c not in valid_chars for c in novel_id):
                 invalid_ids.append(novel_id)
         
         if invalid_ids:

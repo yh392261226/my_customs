@@ -55,6 +55,7 @@ Container {
 #site-url-container,
 #storage-folder-container,
 #parser-container,
+#selectable-enable-container,
 #proxy-enable-container {
     width: 100%;
     height: 3;
@@ -69,6 +70,7 @@ Container {
 #storage-folder-label,
 #parser-label,
 #enable-proxy-label,
+#enable-selectable-label,
 #tags-label {
     width: 30%;
     height: 1;
@@ -100,6 +102,13 @@ Container {
     margin: 0;
 }
 
+#enable-selectable {
+    width: 5%;
+    min-width: 4;
+    height: 3;
+    margin: 0;
+}
+
 /* 解析器设置容器 */
 #parser-settings-container {
     layout: vertical;
@@ -114,6 +123,16 @@ Container {
     width: 100%;
     height: auto;
     margin: 1 0;
+    border: round $primary;
+}
+
+/* 书籍选择设置容器 */
+#selectable-settings-container {
+    layout: vertical;
+    width: 100%;
+    height: auto;
+    margin: 1 0;
+    border: round $primary;
 }
 
 /* 按钮容器 */
