@@ -103,11 +103,11 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
             # 编辑模式：显示操作按钮
             dialog_content.append(
                 Horizontal(
-                    Button(i18n.t("users_management.select_all"), id="select-all-btn"),
-                    Button(i18n.t("users_management.deselect_all"), id="deselect-all-btn"),
-                    Button(i18n.t("users_management.invert_selection"), id="invert-selection-btn"),
-                    Button(i18n.t("common.confirm"), id="confirm-btn", variant="primary"),
-                    Button(i18n.t("common.cancel"), id="cancel-btn"),
+                    Button(i18n.t("users_management.select_all"), id="select-all-btn", classes="permissions_dialog_button"),
+                    Button(i18n.t("users_management.deselect_all"), id="deselect-all-btn", classes="permissions_dialog_button"),
+                    Button(i18n.t("users_management.invert_selection"), id="invert-selection-btn", classes="permissions_dialog_button"),
+                    Button(i18n.t("common.confirm"), id="confirm-btn", variant="primary", classes="permissions_dialog_button"),
+                    Button(i18n.t("common.cancel"), id="cancel-btn", classes="permissions_dialog_button"),
                     id="permissions-buttons-top",
                     classes="btn-row"
                 )
@@ -116,7 +116,7 @@ class PermissionsDialog(ModalScreen[Optional[Set[str]]]):
             # 只读模式：显示关闭按钮
             dialog_content.append(
                 Horizontal(
-                    Button(i18n.t("common.close"), id="close-btn", variant="primary"),
+                    Button(i18n.t("common.close"), id="close-btn", variant="primary", classes="permissions_dialog_button"),
                     id="permissions-buttons-readonly",
                     classes="btn-row"
                 )

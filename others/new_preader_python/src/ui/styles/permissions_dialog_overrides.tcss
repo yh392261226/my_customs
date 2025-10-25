@@ -1,5 +1,7 @@
 /* Permissions Dialog Overrides - Textual CSS */
 Container {
+    width: 90%;
+    height: 85%;
     align: center middle;
 }
 
@@ -60,10 +62,10 @@ Container {
 }
 
 /* 按钮样式 */
-Button {
-    height: 3;
+.permissions_dialog_button {
+    height: 4;
     padding: 0 1;
-    margin: 1;
+    margin-right: 1;
 }
 
 /* 复选框样式 */
