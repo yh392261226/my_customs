@@ -117,6 +117,7 @@ class GetBooksScreen(Screen[None]):
         # 初始化数据表
         table = self.query_one("#novel-sites-table", DataTable)
         table.add_columns(
+            get_global_i18n().t('get_books.sequence'),  # 序号列
             get_global_i18n().t('get_books.site_name'),
             get_global_i18n().t('get_books.site_url'),
             get_global_i18n().t('get_books.proxy_enabled'),
@@ -161,9 +162,10 @@ class GetBooksScreen(Screen[None]):
         table = self.query_one("#novel-sites-table", DataTable)
         table.clear()
         
-        for site in self.novel_sites:
+        for i, site in enumerate(self.novel_sites):
             proxy_status = get_global_i18n().t('common.yes') if site.get("proxy_enabled", False) else get_global_i18n().t('common.no')
             table.add_row(
+                str(i + 1),  # 序号，从1开始
                 site.get("name", ""),
                 site.get("url", ""),
                 proxy_status,

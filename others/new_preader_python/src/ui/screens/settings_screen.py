@@ -656,7 +656,19 @@ class SettingsScreen(Screen[Any]):
         try:
             from src.core.database_manager import DatabaseManager
             db_manager = DatabaseManager()
-            return db_manager.has_permission(permission_key)
+            
+            # 获取当前用户ID
+            current_user_id = getattr(self.app, 'current_user_id', None)
+            if current_user_id is None:
+                # 如果没有当前用户，检查是否是多用户模式
+                if not getattr(self.app, 'multi_user_enabled', False):
+                    # 单用户模式默认允许所有权限
+                    return True
+                else:
+                    # 多用户模式但没有当前用户，默认拒绝
+                    return False
+            
+            return db_manager.has_permission(current_user_id, permission_key)
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许

@@ -165,6 +165,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 初始化数据表
         table = self.query_one("#crawl-history-table", DataTable)
         table.add_columns(
+            get_global_i18n().t('crawler.sequence'),  # 序号列
             get_global_i18n().t('crawler.novel_id'),
             get_global_i18n().t('crawler.novel_title'),
             get_global_i18n().t('crawler.crawl_time'),
@@ -265,6 +266,7 @@ class CrawlerManagementScreen(Screen[None]):
                     delete_record_text = ""
                     
                 table.add_row(
+                    str(start_index + i + 1),  # 序号，从当前页面的起始序号开始计算
                     item["novel_id"],
                     item["novel_title"],
                     item["crawl_time"],
@@ -530,9 +532,10 @@ class CrawlerManagementScreen(Screen[None]):
                 invalid_ids.append(novel_id)
                 continue
             
-            # 检查是否包含非法字符（除了字母、数字、中文、常见分隔符）
-            valid_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\u4e00-\u9fff/_-.'
-            if any(c not in valid_chars for c in novel_id):
+            # 检查是否包含非法字符（简化验证，主要排除英文逗号作为分隔符）
+            # 允许的字符：字母、数字、中文、常见标点符号、空格等
+            # 注意：英文逗号(,)用于分隔多个ID，所以不能在单个ID中使用
+            if ',' in novel_id:
                 invalid_ids.append(novel_id)
         
         if invalid_ids:

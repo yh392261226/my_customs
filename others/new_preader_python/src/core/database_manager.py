@@ -1183,13 +1183,14 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, parser = ?, tags = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
                         site_data["url"],
                         site_data["storage_folder"],
                         site_data["proxy_enabled"],
+                        site_data.get("selectable_enabled", True),
                         site_data["parser"],
                         site_data.get("tags", ""),
                         now,
@@ -1199,13 +1200,14 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, parser, tags, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
                         site_data["storage_folder"],
                         site_data["proxy_enabled"],
+                        site_data.get("selectable_enabled", True),
                         site_data["parser"],
                         site_data.get("tags", ""),
                         now,

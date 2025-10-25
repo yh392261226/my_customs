@@ -240,7 +240,6 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
-        selectable_checkbox = self.query_one("#enable-selectable", Switch)
         
         # 验证必填字段
         if not name_input.value.strip():
