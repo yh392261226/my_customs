@@ -28,6 +28,7 @@ Container {
     background: $panel;
     border: round $primary;
     align: center middle;
+    overflow-y: auto;
 }
 
 #novel-site-dialog-title {
@@ -97,14 +98,14 @@ Container {
 
 #enable-proxy {
     width: 5%;
-    min-width: 4;
+    min-width: 10;
     height: 3;
     margin: 0;
 }
 
 #enable-selectable {
     width: 5%;
-    min-width: 4;
+    min-width: 10;
     height: 3;
     margin: 0;
 }

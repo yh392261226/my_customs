@@ -128,6 +128,9 @@ class NovelSitesManagementScreen(Screen[None]):
         # 加载书籍网站数据
         self._load_novel_sites()
 
+        # 启用隔行变色效果
+        table.zebra_stripes = True
+
         # 确保表格获得焦点并初始化光标到第一行
         try:
             table.focus()

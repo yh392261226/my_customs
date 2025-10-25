@@ -297,8 +297,8 @@ class GetBooksScreen(Screen[None]):
         Args:
             event: 单元格选择事件
         """
-        # 检查是否点击了"进入"按钮列（第5列，索引4）
-        if event.coordinate.column == 4:  # 第5列是进入按钮列
+        # 检查是否点击了"进入"按钮列（第6列，索引5）
+        if event.coordinate.column == 5:  # 第6列是进入按钮列
             table = self.query_one("#novel-sites-table", DataTable)
             row_index = event.coordinate.row
             if 0 <= row_index < len(self.novel_sites):
@@ -318,34 +318,32 @@ class GetBooksScreen(Screen[None]):
         Args:
             event: 行选择事件
         """
+        table = self.query_one("#novel-sites-table", DataTable)
+        
+        # 获取当前选中的行索引
         if event is None:
             # 处理从 key_enter 调用的情况
-            table = self.query_one("#novel-sites-table", DataTable)
-            if table.cursor_row is not None and table.cursor_row < len(table.rows):
-                row_data = table.get_row_at(table.cursor_row)
-                if row_data and len(row_data) > 0:
-                    site_name = row_data[0]  # 第一列是网站名称
-                    for site in self.novel_sites:
-                        if site["name"] == site_name:
-                            # 权限校验：打开爬取管理页面需 crawler.open
-                            if self._has_permission("crawler.open"):
-                                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                                self.app.push_screen(crawler_screen)  # 打开爬取管理页面
-                            else:
-                                self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
-                            break
-        elif event.row_key and hasattr(event.row_key, 'value'):
-            site_index = int(event.row_key.value)
-            if 0 <= site_index < len(self.novel_sites):
-                site = self.novel_sites[site_index]
-                # 权限校验：打开爬取管理页面需 crawler.open
-                if self._has_permission("crawler.open"):
-                    from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                    crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                    self.app.push_screen(crawler_screen)  # 打开爬取管理页面
-                else:
-                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+            row_index = table.cursor_row
+        elif hasattr(event, 'row_key') and event.row_key is not None:
+            # 处理行选择事件
+            row_index = int(event.row_key.value)
+        else:
+            return
+            
+        # 确保行索引有效
+        if row_index is None or row_index < 0 or row_index >= len(self.novel_sites):
+            return
+            
+        # 获取对应的网站数据
+        site = self.novel_sites[row_index]
+        
+        # 权限校验：打开爬取管理页面需 crawler.open
+        if self._has_permission("crawler.open"):
+            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+            self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+        else:
+            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
     
     def key_n(self) -> None:
         """N键 - 打开书籍网站管理"""
