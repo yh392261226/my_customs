@@ -390,8 +390,8 @@ class CrawlerManagementScreen(Screen[None]):
         row_index = event.coordinate.row
         column_index = event.coordinate.column
         
-        # 只处理操作列（第6、7、8、9列）
-        if column_index not in [5, 6, 7, 8]:  # 查看文件、阅读书籍、删除文件、删除记录列
+        # 只处理操作列（第7、8、9、10列）
+        if column_index not in [6, 7, 8, 9]:  # 查看文件、阅读书籍、删除文件、删除记录列
             return
             
         # 根据分页计算真实索引，避免跨页错位
@@ -406,13 +406,13 @@ class CrawlerManagementScreen(Screen[None]):
             return
             
         # 根据列索引执行不同的操作
-        if column_index == 5:  # 查看文件列
+        if column_index == 6:  # 查看文件列
             self._view_file(history_item)
-        elif column_index == 6:  # 阅读书籍列
+        elif column_index == 7:  # 阅读书籍列
             self._read_book(history_item)
-        elif column_index == 7:  # 删除文件列
+        elif column_index == 8:  # 删除文件列
             self._delete_file_only(history_item)
-        elif column_index == 8:  # 删除记录列
+        elif column_index == 9:  # 删除记录列
             self._delete_record_only(history_item)
     
     def _open_browser(self) -> None:

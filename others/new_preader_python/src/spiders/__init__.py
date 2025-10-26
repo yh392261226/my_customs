@@ -1,11 +1,13 @@
 """
-爬虫解析器模块
+爬虫解析器模块 - 支持工厂模式和继承基类 v2
 """
 
 import os
 import importlib
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Type
 from src.utils.logger import get_logger
+from .base_parser import BaseParser
+from .base_parser_v2 import BaseParser as BaseParserV2
 
 logger = get_logger(__name__)
 
@@ -53,7 +55,7 @@ def get_parser_options() -> List[tuple[str, str]]:
     # 如果没有任何解析器，返回空列表
     return options
 
-def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = None) -> Any:
+def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = None) -> BaseParser:
     """
     创建指定名称的解析器实例
     
@@ -71,15 +73,35 @@ def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = Non
         # 动态导入模块
         module = importlib.import_module(f'src.spiders.{parser_name}')
         
-        # 查找解析器类
+        # 查找解析器类（优先查找继承自BaseParserV2的类）
         parser_class = None
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
             if (isinstance(attr, type) and 
-                hasattr(attr, 'name') and 
-                hasattr(attr, 'description')):
+                issubclass(attr, BaseParserV2) and 
+                attr != BaseParserV2):
                 parser_class = attr
                 break
+        
+        # 如果没有找到继承BaseParserV2的类，查找继承自BaseParser的类
+        if not parser_class:
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (isinstance(attr, type) and 
+                    issubclass(attr, BaseParser) and 
+                    attr != BaseParser):
+                    parser_class = attr
+                    break
+        
+        # 如果没有找到继承BaseParser的类，回退到旧版查找逻辑
+        if not parser_class:
+            for attr_name in dir(module):
+                attr = getattr(module, attr_name)
+                if (isinstance(attr, type) and 
+                    hasattr(attr, 'name') and 
+                    hasattr(attr, 'description')):
+                    parser_class = attr
+                    break
         
         if parser_class:
             # 创建解析器实例并传递代理配置
