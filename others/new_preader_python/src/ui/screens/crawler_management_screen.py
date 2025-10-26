@@ -976,15 +976,15 @@ class CrawlerManagementScreen(Screen[None]):
                     bs = getattr(self.app, "bookshelf", None)
                     book = None
                     if bs and hasattr(bs, "add_book"):
-                        # 使用网站名称作为作者
-                        author = self.novel_site.get('name', '未知来源')
+                        # 使用解析器返回的作者信息，如果没有则使用网站名称
+                        author = novel_content.get('author', self.novel_site.get('name', '未知来源'))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         book = bs.add_book(file_path, author=author, tags=site_tags)
                     if not book:
                         from src.core.book import Book
-                        # 使用网站名称作为作者
-                        author = self.novel_site.get('name', '未知来源')
+                        # 使用解析器返回的作者信息，如果没有则使用网站名称
+                        author = novel_content.get('author', self.novel_site.get('name', '未知来源'))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         book = Book(file_path, novel_title, author, tags=site_tags)
@@ -1089,15 +1089,15 @@ class CrawlerManagementScreen(Screen[None]):
                     bs = getattr(self.app, "bookshelf", None)
                     added_book = None
                     if bs and hasattr(bs, "add_book"):
-                        # 使用网站名称作为作者
-                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
+                        # 使用解析器返回的作者信息，如果没有则使用网站名称
+                        author = novel_content.get('author', self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         added_book = bs.add_book(file_path, author=author, tags=site_tags)
                     if not added_book:
                         from src.core.book import Book
-                        # 使用网站名称作为作者
-                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
+                        # 使用解析器返回的作者信息，如果没有则使用网站名称
+                        author = novel_content.get('author', self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         added_book = Book(file_path, novel_title, author, tags=site_tags)
@@ -1250,14 +1250,14 @@ class CrawlerManagementScreen(Screen[None]):
                 bs = getattr(self.app, "bookshelf", None)
                 added_book = None
                 if bs and hasattr(bs, "add_book"):
-                    # 使用网站名称作为作者
+                    # 使用解析器名称作为作者（模拟爬取时使用解析器名称）
                     author = self.novel_site.get('name', '未知来源')
                     # 获取网站标签
                     site_tags = self.novel_site.get('tags', '')
                     added_book = bs.add_book(file_path, author=author, tags=site_tags)
                 if not added_book:
                     from src.core.book import Book
-                    # 使用网站名称作为作者
+                    # 使用解析器名称作为作者（模拟爬取时使用解析器名称）
                     author = self.novel_site.get('name', '未知来源')
                     # 获取网站标签
                     site_tags = self.novel_site.get('tags', '')
