@@ -1006,7 +1006,12 @@
         "select_books": "Select Books",
         "disabled_selectable": "This site not suppose select books function",
         "filled_ids": "Selected ID has been filled in",
-        "open_dialog_failed": "Open select books dialog failed"
+        "open_dialog_failed": "Open select books dialog failed",
+        "view_reason": "View Reason",
+        "no_reason_to_view": "No failure reason to view for this record",
+        "no_error_message": "No error message",
+        "failure_reason": "Failure Reason",
+        "view_reason_failed": "Failed to view reason"
     },
     "note": {
         "save": "Save",

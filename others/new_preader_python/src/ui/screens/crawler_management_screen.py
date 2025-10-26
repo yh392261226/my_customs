@@ -174,7 +174,8 @@ class CrawlerManagementScreen(Screen[None]):
             get_global_i18n().t('crawler.view_file'),
             get_global_i18n().t('crawler.read_book'),
             get_global_i18n().t('crawler.delete_file'),
-            get_global_i18n().t('crawler.delete_record')
+            get_global_i18n().t('crawler.delete_record'),
+            get_global_i18n().t('crawler.view_reason')  # 新增查看原因列
         )
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -215,7 +216,8 @@ class CrawlerManagementScreen(Screen[None]):
                         "novel_title": item['novel_title'],
                         "crawl_time": crawl_time,
                         "status": status_text,
-                        "file_path": item['file_path'] or ""
+                        "file_path": item['file_path'] or "",
+                        "error_message": item.get('error_message', '')  # 保存错误信息
                     })
             else:
                 self.crawler_history = []
@@ -248,22 +250,25 @@ class CrawlerManagementScreen(Screen[None]):
                 # 使用唯一标识符作为行键，避免重复
                 row_key = f"{item['novel_id']}_{item['crawl_time']}_{i}"
                 
-                # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮
+                # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮和查看原因按钮
                 if item["status"] == get_global_i18n().t('crawler.status_success') and item["file_path"]:
                     view_file_text = get_global_i18n().t('crawler.view_file')
                     read_book_text = get_global_i18n().t('crawler.read_book')
                     delete_file_text = get_global_i18n().t('crawler.delete_file')
                     delete_record_text = get_global_i18n().t('crawler.delete_record')
+                    view_reason_text = ""  # 成功时不显示查看原因按钮
                 elif item["status"] == get_global_i18n().t('crawler.status_failed'):
                     view_file_text = ""
                     read_book_text = ""
                     delete_file_text = ""
                     delete_record_text = get_global_i18n().t('crawler.delete_record')
+                    view_reason_text = get_global_i18n().t('crawler.view_reason')  # 失败时显示查看原因按钮
                 else:
                     view_file_text = ""
                     read_book_text = ""
                     delete_file_text = ""
                     delete_record_text = ""
+                    view_reason_text = ""
                     
                 table.add_row(
                     str(start_index + i + 1),  # 序号，从当前页面的起始序号开始计算
@@ -276,6 +281,7 @@ class CrawlerManagementScreen(Screen[None]):
                     read_book_text,
                     delete_file_text,
                     delete_record_text,
+                    view_reason_text,  # 新增查看原因列
                     key=row_key
                 )
 
@@ -390,8 +396,8 @@ class CrawlerManagementScreen(Screen[None]):
         row_index = event.coordinate.row
         column_index = event.coordinate.column
         
-        # 只处理操作列（第7、8、9、10列）
-        if column_index not in [6, 7, 8, 9]:  # 查看文件、阅读书籍、删除文件、删除记录列
+        # 只处理操作列（第7、8、9、10、11列）
+        if column_index not in [6, 7, 8, 9, 10]:  # 查看文件、阅读书籍、删除文件、删除记录、查看原因列
             return
             
         # 根据分页计算真实索引，避免跨页错位
@@ -414,6 +420,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._delete_file_only(history_item)
         elif column_index == 9:  # 删除记录列
             self._delete_record_only(history_item)
+        elif column_index == 10:  # 查看原因列
+            self._view_reason(history_item)
     
     def _open_browser(self) -> None:
         """在浏览器中打开网站"""
@@ -1862,6 +1870,27 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.pop_screen()
             event.stop()
     
+    def _view_reason(self, history_item: Dict[str, Any]) -> None:
+        """查看失败原因"""
+        try:
+            # 检查是否为失败状态
+            if history_item.get("status") != get_global_i18n().t('crawler.status_failed'):
+                self._update_status(get_global_i18n().t('crawler.no_reason_to_view'), "warning")
+                return
+                
+            # 获取错误信息
+            error_message = history_item.get('error_message', '')
+            
+            if not error_message:
+                self._update_status(get_global_i18n().t('crawler.no_error_message'), "information")
+                return
+                
+            # 在状态信息区域显示错误信息
+            self._update_status(f"{get_global_i18n().t('crawler.failure_reason')}: {error_message}", "error")
+                
+        except Exception as e:
+            self._update_status(f"{get_global_i18n().t('crawler.view_reason_failed')}: {str(e)}", "error")
+
     def _read_book(self, history_item: Dict[str, Any]) -> None:
         """阅读书籍"""
         try:

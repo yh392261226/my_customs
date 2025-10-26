@@ -1000,7 +1000,12 @@
         "select_books": "选择书籍",
         "disabled_selectable": "该书籍网站不支持选择书籍功能",
         "filled_ids": "已回填选中ID",
-        "open_dialog_failed": "打开选择书籍对话框失败"
+        "open_dialog_failed": "打开选择书籍对话框失败",
+        "view_reason": "查看原因",
+        "no_reason_to_view": "该记录没有失败原因可查看",
+        "no_error_message": "没有错误信息",
+        "failure_reason": "失败原因",
+        "view_reason_failed": "查看原因失败"
     },
     "note": {
         "save": "保存",
