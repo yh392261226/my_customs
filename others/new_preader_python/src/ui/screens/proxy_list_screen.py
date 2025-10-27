@@ -459,8 +459,8 @@ class ProxyListScreen(Screen[None]):
                 'https': proxy_url
             }
             
-            # 测试连接 - 使用目标网站进行测试
-            test_url = "https://www.renqixiaoshuo.net"
+            # 测试连接 - 使用Google网站进行测试（更稳定可靠）
+            test_url = "https://www.google.com"
             
             # 设置超时时间
             timeout = 10

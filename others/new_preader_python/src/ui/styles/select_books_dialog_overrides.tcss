@@ -17,6 +17,7 @@
 #select-books-dialog .btn-row {
   layout: horizontal;
   height: auto;
+  width: 100%;
 }
 
 #select-books-dialog .btn {
@@ -54,11 +55,14 @@
 }
 
 #select-books-dialog #start-id-input, #end-id-input {
-    width: 30;
+    width: 15%;
+    min-width: 15;
     height: 3;
 }
 
 #select-books-dialog #seprator {
     height: 3;
+    width: auto;
+    min-width: 1;
     padding: 1 0;
 }
