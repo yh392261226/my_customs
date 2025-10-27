@@ -71,7 +71,7 @@ class BaseParser:
     
     def _get_url_content(self, url: str, max_retries: int = 5) -> Optional[str]:
         """
-        获取URL内容
+        获取URL内容，支持cloudscraper绕过反爬虫限制
         
         Args:
             url: 目标URL
@@ -91,25 +91,242 @@ class BaseParser:
         
         for attempt in range(max_retries):
             try:
+                # 首先尝试普通请求
                 response = self.session.get(url, proxies=proxies, timeout=10)
                 if response.status_code == 200:
-                    # 检测编码
-                    # response.encoding = response.apparent_encoding
                     response.encoding = 'utf-8'
                     return response.text
                 elif response.status_code == 404:
                     logger.warning(f"页面不存在: {url}")
                     return None
+                elif response.status_code in [403, 429, 503]:  # 反爬虫相关状态码
+                    logger.warning(f"检测到反爬虫限制 (HTTP {response.status_code})，尝试使用cloudscraper: {url}")
+                    # 使用cloudscraper绕过反爬虫
+                    return self._get_url_content_with_cloudscraper(url, proxies)
                 else:
                     logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
             except requests.exceptions.RequestException as e:
                 logger.warning(f"第 {attempt + 1} 次请求失败: {url}, 错误: {e}")
+                # 如果普通请求失败，尝试使用cloudscraper
+                if attempt == 0:  # 只在第一次失败时尝试cloudscraper
+                    try:
+                        return self._get_url_content_with_cloudscraper(url, proxies)
+                    except Exception as scraper_error:
+                        logger.warning(f"cloudscraper也失败: {scraper_error}")
             
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
         
         logger.error(f"获取URL内容失败: {url}")
         return None
+    
+    def _get_url_content_with_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        使用cloudscraper绕过反爬虫限制获取URL内容
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+            
+        Returns:
+            页面内容或None
+        """
+        try:
+            import cloudscraper
+            
+            # 创建cloudscraper会话，使用更强大的配置
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'windows',
+                    'mobile': False
+                },
+                # 禁用SSL验证以解决可能的SSL错误
+                ssl_verify=False,
+                # 增加延迟以模拟真实用户行为
+                delay=2
+            )
+            
+            # 设置更真实的请求头
+            scraper.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Cache-Control': 'max-age=0'
+            })
+            
+            # 设置代理
+            if proxies:
+                scraper.proxies = proxies
+            
+            # 设置更长的超时时间
+            response = scraper.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                response.encoding = 'utf-8'
+                logger.info(f"cloudscraper成功绕过反爬虫限制: {url}")
+                return response.text
+            else:
+                logger.warning(f"cloudscraper请求失败 (HTTP {response.status_code}): {url}")
+                # 如果cloudscraper也失败，尝试使用requests直接请求但使用不同的User-Agent
+                return self._fallback_request(url, proxies)
+                
+        except ImportError:
+            logger.warning("cloudscraper库未安装，无法绕过反爬虫限制")
+            return self._fallback_request(url, proxies)
+        except Exception as e:
+            logger.warning(f"cloudscraper请求异常: {e}")
+            return self._fallback_request(url, proxies)
+    
+    def _fallback_request(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        备用请求方法，使用不同的User-Agent和策略
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+            
+        Returns:
+            页面内容或None
+        """
+        try:
+            # 创建新的会话，使用不同的User-Agent
+            fallback_session = requests.Session()
+            fallback_session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive'
+            })
+            
+            # 禁用SSL验证
+            fallback_session.verify = False
+            
+            # 设置代理
+            if proxies:
+                fallback_session.proxies = proxies
+            
+            response = fallback_session.get(url, timeout=15)
+            
+            if response.status_code == 200:
+                response.encoding = 'utf-8'
+                logger.info(f"备用请求成功: {url}")
+                return response.text
+            else:
+                logger.warning(f"备用请求失败 (HTTP {response.status_code}): {url}")
+                # 如果备用请求也失败，尝试使用selenium作为最后手段
+                return self._selenium_request(url, proxies)
+                
+        except Exception as e:
+            logger.warning(f"备用请求异常: {e}")
+            # 如果备用请求异常，也尝试selenium
+            return self._selenium_request(url, proxies)
+    
+    def _selenium_request(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        使用selenium + 浏览器指纹伪装作为最后的反爬虫绕过手段
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+            
+        Returns:
+            页面内容或None
+        """
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.options import Options
+            from selenium.webdriver.chrome.service import Service
+            from webdriver_manager.chrome import ChromeDriverManager
+            from selenium.webdriver.common.by import By
+            import time
+            
+            # 配置Chrome选项进行浏览器指纹伪装
+            chrome_options = Options()
+            
+            # 无头模式（可选，根据需求开启）
+            # chrome_options.add_argument('--headless')
+            
+            # 禁用自动化检测
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+            
+            # 浏览器指纹伪装
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-gpu')
+            chrome_options.add_argument('--disable-extensions')
+            chrome_options.add_argument('--disable-plugins')
+            chrome_options.add_argument('--disable-images')
+            chrome_options.add_argument('--disable-javascript')
+            chrome_options.add_argument('--disable-popup-blocking')
+            chrome_options.add_argument('--disable-background-timer-throttling')
+            chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+            chrome_options.add_argument('--disable-renderer-backgrounding')
+            
+            # 设置用户代理
+            chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
+            
+            # 设置窗口大小模拟真实浏览器
+            chrome_options.add_argument('--window-size=1920,1080')
+            
+            # 设置代理
+            if proxies:
+                proxy_url = proxies.get('http') or proxies.get('https')
+                if proxy_url:
+                    chrome_options.add_argument(f'--proxy-server={proxy_url}')
+            
+            # 使用webdriver-manager自动管理ChromeDriver
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            
+            try:
+                # 执行JavaScript脚本进一步伪装
+                driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                
+                # 访问目标URL
+                driver.get(url)
+                
+                # 等待页面加载
+                time.sleep(10)
+                
+                # 获取页面源代码
+                page_source = driver.page_source
+                
+                if page_source and len(page_source) > 100:  # 确保有内容
+                    logger.info(f"selenium成功获取页面内容: {url}")
+                    return page_source
+                else:
+                    logger.warning(f"selenium获取的页面内容为空或过短: {url}")
+                    return None
+                    
+            except Exception as e:
+                logger.warning(f"selenium操作异常: {e}")
+                return None
+                
+            finally:
+                # 确保浏览器关闭
+                try:
+                    driver.quit()
+                except:
+                    pass
+                
+        except ImportError:
+            logger.warning("selenium库未安装，无法使用浏览器指纹伪装")
+            return None
+        except Exception as e:
+            logger.warning(f"selenium初始化异常: {e}")
+            return None
     
     def _clean_html_content(self, html_content: str) -> str:
         """
