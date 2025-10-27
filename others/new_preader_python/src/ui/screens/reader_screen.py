@@ -306,6 +306,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         with HorizontalScroll(id="reader-buttons-container"):
             with Horizontal(id="reader-buttons", classes="btn-row"):
                 yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
+                yield Label("", id="pager-status", classes="btn")
                 yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
                 yield Button(f"{get_global_i18n().t('reader.goto_page')}【g】", classes="btn", id="goto-btn")
                 yield Button(f"{get_global_i18n().t('reader.search')}【f】", classes="btn", id="search-btn")
@@ -1932,6 +1933,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 return
                 
             status = self.query_one("#reader-status", Static)
+            pager_status = self.query_one("#pager-status", Label)
             logger.debug(f"状态栏更新: current_page={self.current_page}, total_pages={self.total_pages}, renderer.current_page={self.renderer.current_page}, renderer.total_pages={self.renderer.total_pages}")
             
             from src.config.settings.setting_registry import SettingRegistry
@@ -1942,9 +1944,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 stats = self.status_manager.get_statistics()
                 status_text = get_global_i18n().t('reader.pager', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
+                pager_status.update(status_text)
             else:
                 status_text = get_global_i18n().t('reader.pager_without_statistics', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
+                pager_status.update(status_text)
         except Exception as e:
             logger.error(f"更新状态栏失败: {e}")
             pass
@@ -1968,6 +1972,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 return
                 
             status = self.query_one("#reader-status", Static)
+            pager_status = self.query_one("#pager-status", Label)
             
             # 调试信息：检查分页值
             logger.debug(f"状态栏更新: current_page={self.current_page}, total_pages={self.total_pages}, renderer.current_page={self.renderer.current_page}, renderer.total_pages={self.renderer.total_pages}")
@@ -1982,10 +1987,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 stats = self.status_manager.get_statistics()
                 status_text = get_global_i18n().t('reader.pager', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
+                pager_status.update(status_text)
             else:
                 # 统计功能关闭，只显示基本页面信息
                 status_text = get_global_i18n().t('reader.pager_without_statistics', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
                 status.update(status_text)
+                pager_status.update(status_text)
         except Exception as e:
             logger.error(f"更新状态栏失败: {e}")
             pass
