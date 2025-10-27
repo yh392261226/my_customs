@@ -58,7 +58,7 @@ def options_by_locale(options, labels):
 class SettingsScreen(Screen[Any]):
     """现代化设置屏幕"""
     
-    CSS_PATH = ["../styles/settings_overrides.tcss"]
+    CSS_PATH = "../styles/settings_overrides.tcss"
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("enter", "press('#save-btn')", get_global_i18n().t("settings.save")),

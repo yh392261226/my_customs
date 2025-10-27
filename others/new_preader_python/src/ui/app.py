@@ -233,7 +233,7 @@ class NewReaderApp(App[None]):
     
     # 预置 $panel 为百分比，满足 hatch 语义（方向 + 百分比）
     CSS = "$panel: 40%;"
-    CSS_PATH = ["styles/common.tcss"]
+    CSS_PATH = "styles/common.tcss"
     # 仅前置 $panel 定义，保持父类 DEFAULT_CSS 原样
     DEFAULT_CSS = (getattr(App, "DEFAULT_CSS", "") or "").replace("hatch: right $panel;", "hatch: right #2f2f2f 40%;")
 

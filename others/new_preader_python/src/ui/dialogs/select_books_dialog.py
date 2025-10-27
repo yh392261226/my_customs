@@ -19,7 +19,7 @@ from src.spiders import create_parser
 logger = get_logger(__name__)
 
 class SelectBooksDialog(ModalScreen[Optional[str]]):
-    CSS_PATH = ["../styles/select_books_dialog_overrides.tcss"]
+    CSS_PATH = "../styles/select_books_dialog_overrides.tcss"
     """选择书籍对话框：输入开始ID和截止ID，检索并列出可选书籍，返回选中ID（逗号分隔）"""
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("g", "ok_btn", get_global_i18n().t('common.ok')),

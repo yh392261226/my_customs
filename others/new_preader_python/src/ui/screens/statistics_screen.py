@@ -30,7 +30,7 @@ logger = get_logger(__name__)
 class StatisticsScreen(Screen[None]):
 
     """统计屏幕"""
-    CSS_PATH = ["../styles/statistics_overrides.tcss"]
+    CSS_PATH = "../styles/statistics_overrides.tcss"
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("escape", "press('#back-btn')", get_global_i18n().t('common.back')),
@@ -116,11 +116,22 @@ class StatisticsScreen(Screen[None]):
         yield Footer()
     
     def _has_permission(self, permission_key: str) -> bool:
-        """检查权限"""
+        """检查权限（兼容单/多用户）"""
         try:
             from src.core.database_manager import DatabaseManager
             db_manager = DatabaseManager()
-            return db_manager.has_permission(permission_key)
+            # 获取当前用户ID
+            current_user_id = getattr(self.app, 'current_user_id', None)
+            if current_user_id is None:
+                # 单用户模式默认允许；多用户无登录则拒绝
+                if not getattr(self.app, 'multi_user_enabled', False):
+                    return True
+                return False
+            # 适配 has_permission 签名 (user_id, key) 或 (key)
+            try:
+                return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
+            except TypeError:
+                return db_manager.has_permission(permission_key)  # type: ignore[misc]
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
