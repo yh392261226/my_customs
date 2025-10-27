@@ -569,8 +569,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         
         # 计算内容区域可用尺寸
         # 标题栏(1行) + 按钮区域(1行) + 状态栏(1行) = 3行
+        # 额外减少3行高度，避免底部按钮横向滚动条覆盖内容
         available_width = screen_width - 2  # 减去左右边距
-        available_height = screen_height - 3  # 恢复原高度计算
+        available_height = screen_height - 4  # 减少3行高度，避免内容被覆盖
         
         # 确保最小尺寸
         width = max(60, available_width)
