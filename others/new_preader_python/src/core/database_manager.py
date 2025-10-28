@@ -551,7 +551,7 @@ class DatabaseManager:
         搜索书籍（按标题、拼音、作者和标签）
         
         Args:
-            keyword: 搜索关键词
+            keyword: 搜索关键词（支持英文逗号分割多个关键词）
             format: 可选，文件格式筛选
             
         Returns:
@@ -561,23 +561,44 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                search_pattern = f"%{keyword}%"
+                
+                # 支持使用英文逗号分割多个关键词
+                keywords = [k.strip() for k in keyword.split(',') if k.strip()]
+                
+                if not keywords:
+                    # 如果没有有效关键词，返回空列表
+                    return []
+                
+                # 构建SQL查询条件
+                conditions = []
+                params = []
+                
+                # 为每个关键词构建搜索条件
+                for k in keywords:
+                    search_pattern = f"%{k}%"
+                    # 每个关键词在标题、拼音、作者、标签中搜索
+                    condition = "(title LIKE ? OR pinyin LIKE ? OR author LIKE ? OR tags LIKE ?)"
+                    conditions.append(condition)
+                    params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
+                
+                # 组合所有条件（OR关系）
+                where_clause = " OR ".join(conditions)
                 
                 if format:
-                    cursor.execute("""
+                    sql = f"""
                         SELECT * FROM books 
-                        WHERE (title LIKE ? OR pinyin LIKE ? OR author LIKE ? OR tags LIKE ?) 
-                              AND format = ?
+                        WHERE ({where_clause}) AND format = ?
                         ORDER BY add_date DESC
-                    """, (search_pattern, search_pattern, search_pattern, search_pattern, 
-                          format.lower()))
+                    """
+                    params.append(format.lower())
                 else:
-                    cursor.execute("""
+                    sql = f"""
                         SELECT * FROM books 
-                        WHERE title LIKE ? OR pinyin LIKE ? OR author LIKE ? OR tags LIKE ?
+                        WHERE {where_clause}
                         ORDER BY add_date DESC
-                    """, (search_pattern, search_pattern, search_pattern, search_pattern))
-                    
+                    """
+                
+                cursor.execute(sql, params)
                 rows = cursor.fetchall()
                 
                 return [self._row_to_book(row) for row in rows if row]

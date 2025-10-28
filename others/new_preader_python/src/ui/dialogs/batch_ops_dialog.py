@@ -439,13 +439,21 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 按名称搜索（支持标题、拼音、作者、标签）
         if self._search_keyword:
             keyword = self._search_keyword.lower()
-            filtered_books = [
-                book for book in filtered_books
-                if (keyword in book.title.lower() or 
-                    keyword in book.author.lower() or
-                    (hasattr(book, 'pinyin') and book.pinyin and keyword in book.pinyin.lower()) or
-                    (book.tags and keyword in book.tags.lower()))
-            ]
+            
+            # 支持使用英文逗号分割多个关键词
+            keywords = [k.strip() for k in keyword.split(',') if k.strip()]
+            
+            if keywords:
+                filtered_books = [
+                    book for book in filtered_books
+                    if any(
+                        k in book.title.lower() or 
+                        k in book.author.lower() or
+                        (hasattr(book, 'pinyin') and book.pinyin and k in book.pinyin.lower()) or
+                        (book.tags and k in book.tags.lower())
+                        for k in keywords
+                    )
+                ]
         
         # 按文件格式过滤
         if self._selected_format != "all":
