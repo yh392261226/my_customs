@@ -1194,6 +1194,7 @@
         "user": "Users",
         "delete_user_failed_info": "Delete user failed: Can not find the user",
         "delete_user_failed": "Delete user failed",
+        "delete_user_permission_failed": "Delete user's permission failed",
         "confirm_delete": "Confirm Delete",
         "confirm_delete_user": "Confirm Delete The User ?",
         "multi_user_disabled_super": "Multi user mode is disabled in super user mode",

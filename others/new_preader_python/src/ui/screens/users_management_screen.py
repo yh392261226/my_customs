@@ -519,6 +519,9 @@ class UsersManagementScreen(Screen[None]):
                             conn.close()
                             self.notify(get_global_i18n().t('users_management.delete_user_failed_info'), severity="warning")
                             return
+                        
+                        # 删除用户权限
+                        cur.execute("DELETE FROM user_permissions WHERE user_id=?", (int(row_key) if row_key else 0,))
                         conn.commit()
                         conn.close()
                         self._reload_users_table()
