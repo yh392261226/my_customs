@@ -133,6 +133,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 搜索相关属性
         self._search_keyword = ""
         self._selected_format = "all"
+        
+        # 排序相关属性
+        self._sorted_books: List[str] = []  # 存储排序后的书籍路径顺序
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -146,6 +149,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("bookshelf.batch_ops.select_all"), id="select-all-btn"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.invert_selection"), id="invert-selection-btn"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.deselect_all"), id="deselect-all-btn"),
+                    Button(get_global_i18n().t("batch_ops.move_up"), id="move-up-btn"),
+                    Button(get_global_i18n().t("batch_ops.move_down"), id="move-down-btn"),
+                    Button(get_global_i18n().t("batch_ops.merge"), id="merge-btn", variant="warning"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_author"), id="set-author-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_tags"), id="set-tags-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.clear_tags"), id="clear-tags-btn", variant="warning"),
@@ -224,6 +230,27 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 应用搜索过滤
         filtered_books = self._filter_books(all_books)
+        
+        # 如果有排序列表，根据排序列表重新排序当前页的书籍
+        if self._sorted_books:
+            # 创建路径到书籍对象的映射
+            book_map = {book.path: book for book in filtered_books}
+            
+            # 按照排序列表的顺序重新排列书籍
+            sorted_books = []
+            remaining_books = filtered_books.copy()
+            
+            # 先添加排序列表中的书籍
+            for path in self._sorted_books:
+                if path in book_map and book_map[path] in remaining_books:
+                    sorted_books.append(book_map[path])
+                    remaining_books.remove(book_map[path])
+            
+            # 再添加剩余的书籍
+            sorted_books.extend(remaining_books)
+            
+            filtered_books = sorted_books
+        
         self._all_books = filtered_books
         
         # 计算总页数
@@ -238,9 +265,31 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table = self.query_one("#batch-ops-table", DataTable)
         table.clear()
         
+        # 创建全局排序序号映射
+        global_sort_order = {}
+        
+        # 确保排序列表只包含当前显示的书籍
+        current_display_paths = [book.path for book in self._all_books]
+        filtered_sorted_books = [path for path in self._sorted_books if path in current_display_paths]
+        
+        # 添加当前显示但不在排序列表中的书籍
+        for path in current_display_paths:
+            if path not in filtered_sorted_books:
+                filtered_sorted_books.append(path)
+        
+        # 使用过滤后的排序列表
+        if filtered_sorted_books:
+            # 使用排序列表中的位置作为序号
+            for sort_index, path in enumerate(filtered_sorted_books):
+                global_sort_order[path] = sort_index + 1
+        else:
+            # 如果没有自定义排序，使用原始顺序
+            for i, book in enumerate(self._all_books):
+                global_sort_order[book.path] = i + 1
+        
         for i, book in enumerate(current_page_books):
-            # 计算当前页的序号（从1开始）
-            index = (self._current_page - 1) * self._books_per_page + i + 1
+            # 使用全局排序序号，而不是当前页的位置
+            index = global_sort_order.get(book.path, (self._current_page - 1) * self._books_per_page + i + 1)
             
             # 格式化标签显示，直接显示逗号分隔的字符串
             tags_display = book.tags if book.tags else ""
@@ -362,9 +411,15 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         if book_id in self.selected_books:
             self.selected_books.discard(book_id)
+            # 从排序列表中移除
+            if book_id in self._sorted_books:
+                self._sorted_books.remove(book_id)
             table.update_cell(row_key, column_key, "□")
         else:
             self.selected_books.add(book_id)
+            # 添加到排序列表
+            if book_id not in self._sorted_books:
+                self._sorted_books.append(book_id)
             table.update_cell(row_key, column_key, "✓")
         
         self._update_status()
@@ -462,6 +517,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._invert_selection()
         elif event.button.id == "deselect-all-btn":
             self._deselect_all_books()
+        elif event.button.id == "move-up-btn":
+            self._move_selected_book_up()
+        elif event.button.id == "move-down-btn":
+            self._move_selected_book_down()
+        elif event.button.id == "merge-btn":
+            await self._merge_selected_books()
         elif event.button.id == "delete-btn":
             self._delete_selected_books()
         elif event.button.id == "set-author-btn":
@@ -485,9 +546,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 只选择当前显示的书籍（搜索过滤后的书籍）
         for row_key in table.rows.keys():
-            # 从表格行键中获取书籍路径（RowKey转换为字符串）
-            book_path = str(row_key)
-            self.selected_books.add(book_path)
+            # 从表格行键中获取书籍路径（使用value属性）
+            if hasattr(row_key, 'value') and row_key.value:
+                book_path = str(row_key.value)
+                self.selected_books.add(book_path)
+                # 添加到排序列表
+                if book_path not in self._sorted_books:
+                    self._sorted_books.append(book_path)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -513,10 +578,16 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             if book_path in self.selected_books:
                 # 如果已选中，则取消选中
                 self.selected_books.discard(book_path)
+                # 从排序列表中移除
+                if book_path in self._sorted_books:
+                    self._sorted_books.remove(book_path)
                 table.update_cell(row_key, column_key, "□")
             else:
                 # 如果未选中，则选中
                 self.selected_books.add(book_path)
+                # 添加到排序列表
+                if book_path not in self._sorted_books:
+                    self._sorted_books.append(book_path)
                 table.update_cell(row_key, column_key, "✓")
         
         self._update_status()
@@ -530,6 +601,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 从表格行键中获取书籍路径（RowKey转换为字符串）
             book_path = str(row_key)
             self.selected_books.discard(book_path)
+            # 从排序列表中移除
+            if book_path in self._sorted_books:
+                self._sorted_books.remove(book_path)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -912,4 +986,235 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 通过移动光标到第一行来清除选中状态
             from textual.coordinate import Coordinate
             table.cursor_coordinate = Coordinate(0, 0)
+    
+    def _move_selected_book_up(self) -> None:
+        """将选中的书籍在排序列表中上移"""
+        if not self.selected_books:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        # 获取当前焦点选中的书籍路径（表格光标所在行）
+        table = self.query_one("#batch-ops-table", DataTable)
+        if table.cursor_row is None:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        # 获取光标所在行的书籍路径
+        row_key = list(table.rows.keys())[table.cursor_row]
+        if not hasattr(row_key, 'value') or not row_key.value:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        focus_path = str(row_key.value)
+        
+        # 更新排序列表 - 只对当前显示的书籍进行排序
+        moved = False
+        
+        # 获取当前显示的书籍路径（所有搜索结果，不仅仅是当前页）
+        all_books = self.bookshelf.get_all_books()
+        filtered_books = self._filter_books(all_books)
+        current_display_paths = [book.path for book in filtered_books]
+        
+        # 确保排序列表只包含当前显示的书籍
+        filtered_sorted_books = [path for path in self._sorted_books if path in current_display_paths]
+        
+        # 添加当前显示但不在排序列表中的书籍
+        for path in current_display_paths:
+            if path not in filtered_sorted_books:
+                filtered_sorted_books.append(path)
+        
+        # 更新排序列表
+        self._sorted_books = filtered_sorted_books
+        
+        # 执行上移操作 - 只移动焦点选中的书籍
+        new_index = -1
+        if focus_path in self._sorted_books:
+            index = self._sorted_books.index(focus_path)
+            if index > 0:
+                # 交换位置
+                self._sorted_books[index], self._sorted_books[index-1] = self._sorted_books[index-1], self._sorted_books[index]
+                moved = True
+                new_index = index - 1  # 记录移动后的新位置
+        
+        if moved:
+            # 重新加载书籍列表以反映排序变化
+            self._load_books()
+            
+            # 重新定位焦点到移动后的书籍位置
+            table = self.query_one("#batch-ops-table", DataTable)
+            if new_index >= 0:
+                # 找到移动后的书籍在当前页的位置
+                for i, row_key in enumerate(table.rows.keys()):
+                    if hasattr(row_key, 'value') and row_key.value == focus_path:
+                        # 使用正确的方法设置光标位置
+                        from textual.coordinate import Coordinate
+                        table.cursor_coordinate = Coordinate(i, 0)
+                        break
+            
+            self.notify(get_global_i18n().t("batch_ops.books_moved_up"), severity="information")
+        else:
+            self.notify(get_global_i18n().t("batch_ops.books_cannot_move_up"), severity="warning")
+    
+    def _move_selected_book_down(self) -> None:
+        """将选中的书籍在排序列表中下移"""
+        if not self.selected_books:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        # 获取当前焦点选中的书籍路径（表格光标所在行）
+        table = self.query_one("#batch-ops-table", DataTable)
+        if table.cursor_row is None:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        # 获取光标所在行的书籍路径
+        row_key = list(table.rows.keys())[table.cursor_row]
+        if not hasattr(row_key, 'value') or not row_key.value:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        focus_path = str(row_key.value)
+        
+        # 更新排序列表 - 只对当前显示的书籍进行排序
+        moved = False
+        
+        # 获取当前显示的书籍路径（所有搜索结果，不仅仅是当前页）
+        all_books = self.bookshelf.get_all_books()
+        filtered_books = self._filter_books(all_books)
+        current_display_paths = [book.path for book in filtered_books]
+        
+        # 确保排序列表只包含当前显示的书籍
+        filtered_sorted_books = [path for path in self._sorted_books if path in current_display_paths]
+        
+        # 添加当前显示但不在排序列表中的书籍
+        for path in current_display_paths:
+            if path not in filtered_sorted_books:
+                filtered_sorted_books.append(path)
+        
+        # 更新排序列表
+        self._sorted_books = filtered_sorted_books
+        
+        # 执行下移操作 - 只移动焦点选中的书籍
+        new_index = -1
+        if focus_path in self._sorted_books:
+            index = self._sorted_books.index(focus_path)
+            if index < len(self._sorted_books) - 1:
+                # 交换位置
+                self._sorted_books[index], self._sorted_books[index+1] = self._sorted_books[index+1], self._sorted_books[index]
+                moved = True
+                new_index = index + 1  # 记录移动后的新位置
+        
+        if moved:
+            # 重新加载书籍列表以反映排序变化
+            self._load_books()
+            
+            # 重新定位焦点到移动后的书籍位置
+            table = self.query_one("#batch-ops-table", DataTable)
+            if new_index >= 0:
+                # 找到移动后的书籍在当前页的位置
+                for i, row_key in enumerate(table.rows.keys()):
+                    if hasattr(row_key, 'value') and row_key.value == focus_path:
+                        # 使用正确的方法设置光标位置
+                        from textual.coordinate import Coordinate
+                        table.cursor_coordinate = Coordinate(i, 0)
+                        break
+            
+            self.notify(get_global_i18n().t("batch_ops.books_moved_down"), severity="information")
+        else:
+            self.notify(get_global_i18n().t("batch_ops.books_cannot_move_down"), severity="warning")
+    
+    async def _merge_selected_books(self) -> None:
+        """合并选中的书籍"""
+        if not self.selected_books:
+            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+            return
+        
+        if len(self.selected_books) < 2:
+            self.notify(get_global_i18n().t("batch_ops.merge_need_at_least_two"), severity="warning")
+            return
+        
+        # 获取排序后的书籍路径（如果用户进行了排序）
+        if self._sorted_books:
+            # 只保留选中的书籍并按排序顺序排列
+            books_to_merge = [path for path in self._sorted_books if path in self.selected_books]
+        else:
+            # 如果没有排序，使用原始选中顺序
+            books_to_merge = list(self.selected_books)
+        
+        # 弹出输入对话框获取新书籍标题
+        def on_title_input(new_title: Optional[str]) -> None:
+            if not new_title or not new_title.strip():
+                self.notify(get_global_i18n().t("batch_ops.merge_title_required"), severity="warning")
+                return
+            
+            # 弹出输入对话框获取新书籍作者
+            def on_author_input(new_author: Optional[str]) -> None:
+                # 弹出输入对话框获取新书籍标签
+                def on_tags_input(new_tags: Optional[str]) -> None:
+                    # 执行合并操作
+                    try:
+                        new_book = self.bookshelf.merge_books(
+                            books_to_merge,
+                            new_title.strip(),
+                            new_author.strip() if new_author else "",
+                            new_tags.strip() if new_tags else ""
+                        )
+                        
+                        if new_book:
+                            self.notify(
+                                get_global_i18n().t("batch_ops.merge_success", title=new_title),
+                                severity="information"
+                            )
+                            
+                            # 重新加载书籍列表
+                            self._load_books()
+                            self.selected_books.clear()
+                            self._sorted_books.clear()
+                            self._clear_table_selection()
+                            self._update_status()
+                            
+                            # 设置返回结果为需要刷新
+                            self.dismiss({"refresh": True})
+                        else:
+                            self.notify(
+                                get_global_i18n().t("batch_ops.merge_failed"),
+                                severity="error"
+                            )
+                            
+                    except Exception as e:
+                        logger.error(f"合并书籍失败: {e}")
+                        self.notify(
+                            get_global_i18n().t("batch_ops.merge_failed"),
+                            severity="error"
+                        )
+                
+                # 弹出标签输入对话框
+                self.app.push_screen(
+                    BatchInputDialog(
+                        get_global_i18n().t("batch_ops.merge_enter_tags"),
+                        get_global_i18n().t("batch_ops.merge_tags_placeholder"),
+                        get_global_i18n().t("batch_ops.merge_tags_description")
+                    ),
+                    callback=on_tags_input
+                )
+            
+            # 弹出作者输入对话框
+            self.app.push_screen(
+                BatchInputDialog(
+                    get_global_i18n().t("batch_ops.merge_enter_author"),
+                    get_global_i18n().t("batch_ops.merge_author_placeholder"),
+                    get_global_i18n().t("batch_ops.merge_author_description")
+                ),
+                callback=on_author_input
+            )
+        
+        # 弹出标题输入对话框
+        self.app.push_screen(
+            BatchInputDialog(
+                get_global_i18n().t("batch_ops.merge_enter_title"),
+                get_global_i18n().t("batch_ops.merge_title_placeholder"),
+                get_global_i18n().t("batch_ops.merge_description")
+            ),
+            callback=on_title_input
+        )
 

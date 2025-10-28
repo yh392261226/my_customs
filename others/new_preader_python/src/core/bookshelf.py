@@ -868,6 +868,147 @@ class Bookshelf:
         logger.info(f"验证完成: 删除了 {removed_count} 本不存在的书籍")
         return removed_count, removed_books
 
+    def merge_books(self, book_paths: List[str], new_title: str, new_author: str = "", new_tags: str = "") -> Optional[Book]:
+        """
+        合并多本书籍为一个新文件
+        
+        Args:
+            book_paths: 要合并的书籍路径列表（按顺序）
+            new_title: 新书籍的标题
+            new_author: 新书籍的作者（可选）
+            new_tags: 新书籍的标签（可选）
+            
+        Returns:
+            Optional[Book]: 合并后的新书籍对象，如果合并失败则返回None
+        """
+        if not book_paths:
+            logger.error("没有选择要合并的书籍")
+            return None
+        
+        if len(book_paths) < 2:
+            logger.error("至少需要选择2本书籍进行合并")
+            return None
+        
+        try:
+            # 获取要合并的书籍对象
+            books_to_merge = []
+            for path in book_paths:
+                book = self.get_book(path)
+                if book and os.path.exists(book.path):
+                    books_to_merge.append(book)
+                else:
+                    logger.warning(f"书籍不存在或无法读取: {path}")
+            
+            if len(books_to_merge) < 2:
+                logger.error("有效的可合并书籍数量不足")
+                return None
+            
+            # 获取被合并书籍的目录（使用第一本书籍的目录）
+            first_book_dir = os.path.dirname(books_to_merge[0].path)
+            
+            # 生成新的文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            new_filename = f"{new_title}_{timestamp}.txt"
+            new_filepath = os.path.join(first_book_dir, new_filename)
+            
+            # 合并书籍内容
+            merged_content = []
+            for i, book in enumerate(books_to_merge):
+                try:
+                    # 读取书籍内容
+                    content = self._read_book_content(book)
+                    if content:
+                        # 添加书籍标题作为分隔符
+                        merged_content.append(f"\n{'='*50}\n")
+                        merged_content.append(f"第{i+1}部分: {book.title}\n")
+                        merged_content.append(f"{'='*50}\n\n")
+                        merged_content.append(content)
+                        merged_content.append("\n")
+                    else:
+                        logger.warning(f"无法读取书籍内容: {book.title}")
+                except Exception as e:
+                    logger.error(f"读取书籍内容失败 {book.title}: {e}")
+            
+            if not merged_content:
+                logger.error("所有书籍内容读取失败，无法合并")
+                return None
+            
+            # 写入合并后的文件
+            with open(new_filepath, 'w', encoding='utf-8') as f:
+                f.write(''.join(merged_content))
+            
+            # 创建新的书籍对象并添加到书架
+            new_book = self.add_book(
+                new_filepath, 
+                title=new_title,
+                author=new_author if new_author else books_to_merge[0].author,
+                tags=new_tags if new_tags else ",".join(list(set(tag for book in books_to_merge if book.tags for tag in book.tags.split(","))))
+            )
+            
+            if new_book:
+                # 删除原书籍（文件和数据库记录）
+                deleted_count = 0
+                for book in books_to_merge:
+                    if self.remove_book(book.path):
+                        # 删除物理文件
+                        try:
+                            os.remove(book.path)
+                            deleted_count += 1
+                        except Exception as e:
+                            logger.warning(f"删除原文件失败 {book.path}: {e}")
+                
+                logger.info(f"成功合并 {len(books_to_merge)} 本书籍为 {new_title}，删除了 {deleted_count} 本原书籍")
+                return new_book
+            else:
+                # 如果添加新书籍失败，删除合并的文件
+                try:
+                    os.remove(new_filepath)
+                except Exception:
+                    pass
+                logger.error("添加合并后的书籍到书架失败")
+                return None
+                
+        except Exception as e:
+            logger.error(f"合并书籍时出错: {e}")
+            return None
+    
+    def _read_book_content(self, book: Book) -> Optional[str]:
+        """
+        读取书籍内容
+        
+        Args:
+            book: 书籍对象
+            
+        Returns:
+            Optional[str]: 书籍内容，如果读取失败则返回None
+        """
+        try:
+            # 根据文件格式使用不同的解析器
+            if book.format == ".txt":
+                with open(book.path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            elif book.format == ".md":
+                with open(book.path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            else:
+                # 对于其他格式，尝试使用相应的解析器
+                from src.parsers.parser_factory import ParserFactory
+                parser = ParserFactory.create_parser(book.path)
+                if parser:
+                    content = parser.parse(book.path)
+                    if hasattr(content, 'get_text'):
+                        return content.get_text()
+                    elif isinstance(content, str):
+                        return content
+                    else:
+                        logger.warning(f"不支持的解析器返回类型: {type(content)}")
+                else:
+                    logger.warning(f"找不到合适的解析器: {book.format}")
+        except Exception as e:
+            logger.error(f"读取书籍内容失败 {book.title}: {e}")
+        
+        return None
+
     # 伪用户系统：设置当前用户
     def set_current_user(self, user_id: Optional[int], role: str = "user") -> None:
         self.current_user_id = user_id
