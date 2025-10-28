@@ -73,10 +73,12 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         current_theme = self.theme_manager.get_current_theme_name()
         self.theme_manager.set_theme(current_theme)
         table = self.query_one("#results-table", DataTable)
-        table.cursor_type = "row"
+        # table.cursor_type = "row"
         table.add_columns(
-            get_global_i18n().t("search.position"),
-            get_global_i18n().t("search.preview")
+            (get_global_i18n().t("search.position"), "position"),
+            (get_global_i18n().t("search.preview"), "preview"),
+            (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
+            (get_global_i18n().t("bookshelf.delete"), "delete_action")      # 删除按钮列
         )
         table.zebra_stripes = True
         
@@ -124,9 +126,15 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             )
             self.results.append(result)
             
+            # 添加操作按钮
+            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+            delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+            
             table.add_row(
                 result.position,
                 result.preview,
+                view_file_button,  # 查看文件按钮
+                delete_button,     # 删除按钮
                 key=f"{result.book_id}:{i}"
             )
         
@@ -142,6 +150,38 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """行选择时更新选择按钮状态"""
         self.query_one("#select-btn", Button).disabled = False
+    
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        """
+        数据表单元格选择时的回调
+        
+        Args:
+            event: 单元格选择事件
+        """
+        # 获取选中的单元格信息
+        cell_value = event.value
+        coordinate = event.coordinate
+        cell_key = event.cell_key
+        
+        # 检查是否是操作按钮列
+        column_key = cell_key.column_key.value
+        if column_key in ["view_action", "delete_action"]:
+            # 获取书籍ID
+            row_key = cell_key.row_key.value
+            if not row_key:
+                return
+                
+            # 从行键中提取书籍路径（格式为"路径:索引"）
+            book_path = row_key.split(":")[0]
+            
+            # 根据列键判断点击的是哪个按钮
+            if column_key == "view_action":
+                self._view_file(book_path)
+            elif column_key == "delete_action":
+                self._delete_book(book_path)
+            
+            # 阻止默认的行选择行为
+            event.prevent_default()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮点击处理"""
@@ -169,3 +209,80 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             # 与按钮一致的行为：选择当前结果
             self._select_current_result()
             event.stop()
+    
+    def _view_file(self, book_path: str) -> None:
+        """查看书籍文件"""
+        try:
+            import os
+            import subprocess
+            import platform
+            
+            # 检查文件是否存在
+            if not os.path.exists(book_path):
+                self.notify(f"{get_global_i18n().t('bookshelf.file_not_exists')}: {book_path}", severity="error")
+                return
+            
+            # 根据操作系统打开文件管理器
+            system = platform.system()
+            if system == "Darwin":  # macOS
+                subprocess.run(["open", "-R", book_path], check=False)
+            elif system == "Windows":
+                subprocess.run(["explorer", "/select,", book_path], check=False)
+            elif system == "Linux":
+                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
+            else:
+                # 通用方法：打开文件所在目录
+                folder_path = os.path.dirname(book_path)
+                if os.path.exists(folder_path):
+                    subprocess.run(["open", folder_path], check=False)
+                else:
+                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
+                    return
+            
+            self.notify(f"{get_global_i18n().t('bookshelf.opened_in_file_explorer')}: {os.path.basename(book_path)}", severity="information")
+            
+        except Exception as e:
+            self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
+    
+    def _delete_book(self, book_path: str) -> None:
+        """删除书籍"""
+        try:
+            from src.core.bookshelf import Bookshelf
+            
+            # 获取书籍信息用于确认对话框
+            bookshelf = Bookshelf()
+            book = bookshelf.get_book(book_path)
+            
+            if not book:
+                self.notify(get_global_i18n().t("bookshelf.did_not_find_book"), severity="error")
+                return
+            
+            # 显示确认对话框
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            
+            def handle_delete_result(result: Optional[bool]) -> None:
+                """处理删除确认结果"""
+                if result:
+                    # 确认删除
+                    try:
+                        # 从书架中删除书籍
+                        success = bookshelf.remove_book(book_path)
+                        if success:
+                            self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
+                            # 重新执行搜索以刷新列表
+                            self._perform_search()
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.delete_book_failed"), severity="error")
+                    except Exception as e:
+                        self.notify(f"{get_global_i18n().t('bookshelf.delete_book_failed')}: {e}", severity="error")
+            
+            # 显示确认对话框
+            confirm_dialog = ConfirmDialog(
+                self.theme_manager,
+                get_global_i18n().t("bookshelf.confirm_delete"),
+                get_global_i18n().t("bookshelf.confirm_delete_message", book=book.title)
+            )
+            self.app.push_screen(confirm_dialog, handle_delete_result)
+                
+        except Exception as e:
+            self.notify(f"{get_global_i18n().t('bookshelf.delete_book_failed')}: {e}", severity="error")

@@ -188,7 +188,8 @@
         "confirm_delete": "Confirm Delete",
         "confirm_delete_message": "Are you sure you want to delete the selected book 《{book}》? This action cannot be undone.",
         "no_book_position": "No book position {book_index}",
-        "page_info": "Page {page}/{total_pages}"
+        "page_info": "Page {page}/{total_pages}",
+        "clear_search_params": "Clear Search Params"
     },
     "batch_ops": {
         "title": "Batch Operations",

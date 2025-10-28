@@ -188,7 +188,8 @@
         "confirm_delete": "确认删除",
         "confirm_delete_message": "确定要删除书籍《{book}》吗？此操作不可撤销。",
         "no_book_position": "第 {book_index} 个位置没有书籍",
-        "page_info": "第{page}/{total_pages}页"
+        "page_info": "第{page}/{total_pages}页",
+        "clear_search_params": "清除搜索参数"
     },
     "batch_ops": {
         "title": "批量操作",
