@@ -2160,73 +2160,97 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._cancel_background_tasks()
         except Exception:
             pass
-        # 停止阅读会话
-        stats = self.status_manager.stop_reading()
         
-        # 记录阅读统计和进度
-        if stats:
-            reading_duration = stats.get("session_time", 0)
-            logger.info(get_global_i18n().t('reader.reading_seconds').format(duration=reading_duration))
-            
-            # 记录阅读数据到数据库
-            if self.book and reading_duration > 0:  # 记录所有阅读会话，即使很短
-                try:
-                    pages_read = max(1, self.current_page - getattr(self, 'initial_page', 1))
-                    if self.bookshelf:
-                        self.bookshelf.add_reading_record(
-                            book=self.book,
-                            duration=reading_duration,
-                            pages_read=pages_read
-                        )
-                        logger.info(get_global_i18n().t('reader.record_session', title=self.book.title, pages=pages_read, duration=reading_duration))
-                    else:
-                        logger.warning("bookshelf对象为None，无法记录阅读统计")
-                except Exception as e:
-                    logger.error(f"{get_global_i18n().t('reader.record_data_failed')}: {e}")
-        
-        # 保存当前阅读进度
-        if self.book:
-            # 计算锚点并更新
-            try:
-                original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
-                anchor_text, anchor_hash = self._calc_anchor(original, self._current_page_offset())
-            except Exception:
-                anchor_text, anchor_hash = "", ""
-            self.book.update_reading_progress(
-                position=self._current_page_offset(),
-                page=int(self.current_page) + 1,
-                total_pages=int(getattr(self.renderer, 'total_pages', 1))
-            )
-            try:
-                setattr(self.book, "anchor_text", anchor_text)
-                setattr(self.book, "anchor_hash", anchor_hash)
-            except Exception:
-                pass
-            # 保存到数据库
-            try:
-                if self.bookshelf:
-                    self.bookshelf.save()
-                    
-                logger.info(get_global_i18n().t('reader.record_progress', title=self.book.title, page=self.current_page, total=getattr(self.renderer, 'total_pages', 1), progress=f"{self.book.reading_progress:.1%}"))
-            except Exception as e:
-                logger.error(f"{get_global_i18n().t('reader.record_progress_failed')}: {e}")
-        
-        # 取消注册设置观察者
-        self._unregister_setting_observers()
-        
-        # 移除全面的样式隔离
-        remove_comprehensive_style_isolation(self)
-        
-        # 发送刷新书架消息
-        from src.ui.messages import RefreshBookshelfMessage
-        self.app.post_message(RefreshBookshelfMessage())
-        
-        # 返回书架
+        # 立即返回书架，避免阻塞用户操作
         try:
             self.app.pop_screen()
         except Exception:
-            # 即使出错也不影响后续流程
             pass
+        
+        # 在后台异步执行数据保存操作
+        self._async_save_reading_data()
+    
+    def _async_save_reading_data(self) -> None:
+        """异步保存阅读数据，避免阻塞UI"""
+        async def _save_worker():
+            try:
+                # 停止阅读会话
+                stats = self.status_manager.stop_reading()
+                
+                # 记录阅读统计和进度
+                if stats:
+                    reading_duration = stats.get("session_time", 0)
+                    logger.info(get_global_i18n().t('reader.reading_seconds').format(duration=reading_duration))
+                    
+                    # 记录阅读数据到数据库
+                    if self.book and reading_duration > 0:  # 记录所有阅读会话，即使很短
+                        try:
+                            pages_read = max(1, self.current_page - getattr(self, 'initial_page', 1))
+                            if self.bookshelf:
+                                self.bookshelf.add_reading_record(
+                                    book=self.book,
+                                    duration=reading_duration,
+                                    pages_read=pages_read
+                                )
+                                logger.info(get_global_i18n().t('reader.record_session', title=self.book.title, pages=pages_read, duration=reading_duration))
+                            else:
+                                logger.warning("bookshelf对象为None，无法记录阅读统计")
+                        except Exception as e:
+                            logger.error(f"{get_global_i18n().t('reader.record_data_failed')}: {e}")
+                
+                # 保存当前阅读进度
+                if self.book:
+                    # 计算锚点并更新
+                    try:
+                        original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                        anchor_text, anchor_hash = self._calc_anchor(original, self._current_page_offset())
+                    except Exception:
+                        anchor_text, anchor_hash = "", ""
+                    self.book.update_reading_progress(
+                        position=self._current_page_offset(),
+                        page=int(self.current_page) + 1,
+                        total_pages=int(getattr(self.renderer, 'total_pages', 1))
+                    )
+                    try:
+                        setattr(self.book, "anchor_text", anchor_text)
+                        setattr(self.book, "anchor_hash", anchor_hash)
+                    except Exception:
+                        pass
+                    # 保存到数据库
+                    try:
+                        if self.bookshelf:
+                            self.bookshelf.save()
+                            
+                        logger.info(get_global_i18n().t('reader.record_progress', title=self.book.title, page=self.current_page, total=getattr(self.renderer, 'total_pages', 1), progress=f"{self.book.reading_progress:.1%}"))
+                    except Exception as e:
+                        logger.error(f"{get_global_i18n().t('reader.record_progress_failed')}: {e}")
+                
+                # 取消注册设置观察者
+                self._unregister_setting_observers()
+                
+                # 移除全面的样式隔离
+                remove_comprehensive_style_isolation(self)
+                
+                # 发送刷新书架消息
+                from src.ui.messages import RefreshBookshelfMessage
+                self.app.post_message(RefreshBookshelfMessage())
+                
+            except Exception as e:
+                logger.error(f"异步保存阅读数据失败: {e}")
+        
+        # 在后台线程执行保存操作
+        import threading
+        threading.Thread(target=lambda: self._run_async(_save_worker()), daemon=True).start()
+    
+    def _run_async(self, coro):
+        """运行异步协程"""
+        import asyncio
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(coro)
+        finally:
+            loop.close()
     
     def _get_color_string(self, color_obj) -> str:
         """
