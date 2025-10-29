@@ -4,6 +4,7 @@
 
 
 import os
+import asyncio
 from typing import Dict, Any, Optional, List, ClassVar
 from datetime import datetime
 import time
@@ -181,6 +182,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 避免未初始化告警
         self.reading_start_time = 0.0
         self.last_progress_update = 0.0
+        
+        # 异步进度更新管理
+        self._progress_update_task = None
+        self._last_progress_update_time = 0.0
+        self._progress_update_delay = 2.0  # 2秒延迟更新
+        self._force_save_pending = False
         # 页偏移缓存（用于将字符偏移映射到当前分页的页码）
         self._page_offsets: List[int] = []
         # 每页每行的绝对偏移列表（用于页内精准定位滚动行）
@@ -572,7 +579,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 标题栏(1行) + 按钮区域(1行) + 状态栏(1行) = 3行
         # 额外减少3行高度，避免底部按钮横向滚动条覆盖内容
         available_width = screen_width - 2  # 减去左右边距
-        available_height = screen_height - 6  # 减少3行高度，避免内容被覆盖
+        available_height = screen_height - 6  # 减少6行高度，避免内容被覆盖
         
         # 确保最小尺寸
         width = max(60, available_width)
@@ -1781,7 +1788,14 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             
         # 更新界面
         self._update_ui()
-        self._update_book_progress()
+        
+        # 检查是否需要异步更新（避免在屏幕卸载时启动新任务）
+        if not getattr(self, '_force_save_pending', False):
+            # 异步更新进度，不阻塞UI
+            asyncio.create_task(self._async_update_book_progress())
+        else:
+            # 如果正在卸载，使用同步更新
+            self._update_book_progress()
     
     def _on_auto_turn_change(self, auto_turn: bool) -> None:
         self.auto_turn_enabled = auto_turn
@@ -1794,7 +1808,145 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 分页配置变化后重建偏移缓存，确保偏移->页码映射正确
         self._build_page_offsets()
     
+    async def _async_update_book_progress(self) -> None:
+        """异步更新书籍进度"""
+        # 检查是否正在卸载，如果是则使用同步方法
+        if getattr(self, '_force_save_pending', False):
+            logger.debug("屏幕正在卸载，使用同步方法更新进度")
+            self._update_book_progress()
+            return
+            
+        # 取消之前的任务
+        if self._progress_update_task and not self._progress_update_task.done():
+            self._progress_update_task.cancel()
+        
+        # 创建新的异步任务
+        self._progress_update_task = asyncio.create_task(self._delayed_progress_update())
+    
+    async def _delayed_progress_update(self) -> None:
+        """延迟更新进度，避免频繁数据库写入"""
+        try:
+            # 检查是否正在卸载，如果是则直接返回
+            if getattr(self, '_force_save_pending', False):
+                logger.debug("屏幕正在卸载，跳过延迟进度更新")
+                return
+                
+            # 检查必要的资源是否可用
+            if not hasattr(self, 'book') or not self.book:
+                logger.debug("书籍对象不可用，跳过进度更新")
+                return
+                
+            if not hasattr(self, 'bookshelf') or not self.bookshelf:
+                logger.debug("书架对象不可用，跳过进度更新")
+                return
+                
+            if not hasattr(self, 'renderer') or not self.renderer:
+                logger.debug("渲染器不可用，跳过进度更新")
+                return
+            
+            await asyncio.sleep(self._progress_update_delay)
+            
+            # 再次检查资源是否仍然可用（可能在等待期间发生了变化）
+            if not hasattr(self, 'book') or not self.book or not hasattr(self, 'bookshelf') or not self.bookshelf:
+                logger.debug("资源在等待期间变得不可用，跳过进度更新")
+                return
+                
+            # 再次检查是否正在卸载
+            if getattr(self, '_force_save_pending', False):
+                logger.debug("屏幕在等待期间开始卸载，跳过延迟进度更新")
+                return
+            
+            # 只有在启用了记住阅读位置功能且分页就绪时才更新进度
+            if self.render_config.get("remember_position", True) and getattr(self.renderer, "total_pages", 0) > 0:
+                # 计算锚点并更新
+                try:
+                    original = getattr(self.renderer, "_original_content", "") or (self.book.get_content() if hasattr(self.book, "get_content") else "")
+                    anchor_text, anchor_hash = self._calc_anchor(original, self._current_page_offset())
+                except Exception:
+                    anchor_text, anchor_hash = "", ""
+                
+                # 异步更新数据库
+                await self._async_update_book_in_db(
+                    position=self._current_page_offset(),
+                    page=int(self.renderer.current_page) + 1,
+                    total_pages=int(self.renderer.total_pages),
+                    anchor_text=anchor_text,
+                    anchor_hash=anchor_hash
+                )
+            
+            # 记录阅读时间
+            if hasattr(self, 'last_progress_update'):
+                current_time = time.time()
+                reading_duration = int(current_time - self.last_progress_update)
+                if reading_duration > 0:
+                    # 异步添加阅读记录
+                    await self._async_add_reading_record(reading_duration)
+            
+            self.last_progress_update = time.time()
+            logger.debug("延迟进度更新完成")
+            
+        except Exception as e:
+            logger.error(f"延迟进度更新失败: {e}")
+            # 尝试使用同步方法作为备用方案
+            try:
+                if hasattr(self, '_update_book_progress'):
+                    self._update_book_progress()
+                    logger.debug("使用同步方法更新进度成功")
+            except Exception as sync_error:
+                logger.error(f"同步更新进度也失败: {sync_error}")
+    
+    async def _async_update_book_in_db(self, position: int, page: int, total_pages: int, 
+                                     anchor_text: str = "", anchor_hash: str = "") -> None:
+        """异步更新数据库中的书籍信息"""
+        try:
+            # 在后台线程中执行数据库操作
+            await asyncio.to_thread(self._sync_update_book_in_db, position, page, total_pages, anchor_text, anchor_hash)
+        except Exception as e:
+            logger.error(f"异步更新书籍进度失败: {e}")
+    
+    def _sync_update_book_in_db(self, position: int, page: int, total_pages: int, 
+                              anchor_text: str = "", anchor_hash: str = "") -> None:
+        """同步更新数据库（在后台线程中执行）"""
+        self.book.update_reading_progress(
+            position=position,
+            page=page,
+            total_pages=total_pages
+        )
+        
+        # 扩展字段：动态记录锚点
+        try:
+            setattr(self.book, "anchor_text", anchor_text)
+            setattr(self.book, "anchor_hash", anchor_hash)
+        except Exception:
+            pass
+        
+        # 更新数据库
+        if self.bookshelf and hasattr(self.bookshelf, "db_manager"):
+            self.bookshelf.db_manager.update_book(self.book)
+    
+    async def _async_add_reading_record(self, duration: int) -> None:
+        """异步添加阅读记录"""
+        if self.bookshelf:
+            try:
+                # 在后台线程中执行数据库操作
+                await asyncio.to_thread(self._sync_add_reading_record, duration)
+            except Exception as e:
+                logger.error(f"异步添加阅读记录失败: {e}")
+    
+    def _sync_add_reading_record(self, duration: int) -> None:
+        """同步添加阅读记录（在后台线程中执行）"""
+        try:
+            self.bookshelf.add_reading_record(
+                book=self.book,
+                duration=duration,
+                pages_read=1
+            )
+            logger.debug(f"记录翻页阅读: {duration}秒")
+        except Exception as e:
+            logger.error(f"记录翻页阅读失败: {e}")
+    
     def _update_book_progress(self) -> None:
+        """同步更新书籍进度（保持向后兼容）"""
         # 只有在启用了记住阅读位置功能且分页就绪时才更新进度
         if self.render_config.get("remember_position", True) and getattr(self.renderer, "total_pages", 0) > 0:
             # 计算锚点并更新
@@ -2796,3 +2948,37 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 self._hide_loading_animation()
             except Exception:
                 pass
+    
+    async def on_unmount(self) -> None:
+        """屏幕卸载时强制保存进度"""
+        await self._force_save_progress()
+        # 调用父类的 on_unmount 方法
+        result = super().on_unmount()
+        if asyncio.iscoroutine(result):
+            await result
+    
+    async def _force_save_progress(self) -> None:
+        """强制保存当前进度"""
+        try:
+            # 检查必要的资源是否可用
+            if not hasattr(self, 'book') or not self.book:
+                logger.debug("书籍对象不可用，跳过强制保存")
+                return
+                
+            if not hasattr(self, 'bookshelf') or not self.bookshelf:
+                logger.debug("书架对象不可用，跳过强制保存")
+                return
+            
+            # 在屏幕卸载时，使用同步方法立即保存，避免异步操作失败
+            # 因为异步操作可能在资源释放后执行
+            logger.debug("使用同步方法进行强制保存")
+            self._update_book_progress()
+            
+            # 标记需要强制保存
+            self._force_save_pending = True
+            logger.debug("强制保存进度完成")
+            
+        except Exception as e:
+            logger.error(f"强制保存进度失败: {e}")
+            # 记录详细的错误信息
+            logger.debug(f"强制保存失败详情: book={hasattr(self, 'book')}, bookshelf={hasattr(self, 'bookshelf')}")

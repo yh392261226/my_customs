@@ -1,15 +1,12 @@
 """
-终端分页计算器 - 基于终端尺寸和字体设置进行精确分页
-采用面向对象设计，与UI层完全解耦
+健壮的分页计算器 - 处理各种边界情况的内容分页
 """
 
 import math
 import re
-import cjkwrap
 from typing import List, Tuple, Dict, Any, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
-
 
 from src.utils.logger import get_logger
 
@@ -34,6 +31,65 @@ class PageMetrics:
     margin_bottom: int = 1
 
 
+class ContentTracker:
+    """内容完整性跟踪器"""
+    
+    def __init__(self, original_content: str):
+        self.original_content = original_content
+        self.processed_content = []
+    
+    def add_line(self, line: str):
+        """添加处理的行内容"""
+        self.processed_content.append(line)
+    
+    def verify_integrity(self) -> Dict[str, Any]:
+        """验证内容完整性"""
+        processed_text = '\n'.join(self.processed_content)
+        
+        # 标准化比较：移除所有空白字符差异
+        original_normalized = self._normalize_content(self.original_content)
+        processed_normalized = self._normalize_content(processed_text)
+        
+        # 简单检查：比较字符数
+        original_len = len(original_normalized)
+        processed_len = len(processed_normalized)
+        
+        missing_chars = original_len - processed_len
+        
+        # 更严格的检查：验证关键内容是否存在
+        # 检查原始内容的前100个字符是否在处理后的内容中
+        check_segment = original_normalized[:min(100, len(original_normalized))]
+        is_segment_found = check_segment in processed_normalized
+        
+        # 检查原始内容的最后100个字符是否在处理后的内容中
+        if len(original_normalized) > 100:
+            end_segment = original_normalized[-100:]
+            is_end_found = end_segment in processed_normalized
+        else:
+            is_end_found = True
+        
+        # 允许一定的字符差异（主要是空白字符差异）
+        is_complete = (missing_chars <= 10) and is_segment_found and is_end_found
+        
+        return {
+            "is_complete": is_complete,
+            "missing_chars": max(0, missing_chars),
+            "original_length": len(self.original_content),
+            "processed_length": len(processed_text),
+            "segment_found": is_segment_found,
+            "end_found": is_end_found
+        }
+    
+    def _normalize_content(self, content: str) -> str:
+        """标准化内容，移除多余的空白字符"""
+        # 移除多余的空格和换行符，保留基本格式
+        # 将多个连续空格替换为单个空格
+        content = re.sub(r'\s+', ' ', content)
+        # 移除首尾空格
+        content = content.strip()
+        return content
+
+
 class PaginationStrategy(ABC):
     """分页策略抽象基类"""
     
@@ -43,32 +99,30 @@ class PaginationStrategy(ABC):
         pass
 
 
-class SmartTextPagination(PaginationStrategy):
-    """智能文本分页策略 - 基于行数和智能换行的分页"""
+class RobustTextPagination(PaginationStrategy):
+    """健壮文本分页策略 - 处理各种边界情况"""
     
     def paginate(self, content: str, metrics: PageMetrics) -> List[List[str]]:
-        """智能分页，基于实际终端显示容量和间距设置的精确计算"""
+        """健壮分页，确保内容完整性"""
         if not content:
             return [[""]]
         
-        logger.debug(f"开始分页: 内容长度={len(content)}字符, 容器尺寸={metrics.content_width}x{metrics.lines_per_page}")
-        logger.debug(f"间距设置: 行间距={metrics.line_spacing}, 段落间距={metrics.paragraph_spacing}")
+        logger.debug(f"开始健壮分页: 内容长度={len(content)}字符, 容器尺寸={metrics.content_width}x{metrics.lines_per_page}")
         
-        # 首先将内容按段落分割
-        paragraphs = self._split_paragraphs(content)
+        # 保存原始内容用于完整性验证
+        original_content = content
+        
+        # 使用更健壮的段落分割
+        paragraphs = self._robust_paragraph_split(content)
         pages = []
         current_page_lines = []
         
         # 计算实际可用的行数 - 考虑间距设置
         line_spacing = int(metrics.line_spacing)
         paragraph_spacing = int(metrics.paragraph_spacing)
-        
-        logger.debug(f"分页间距设置: 行间距={line_spacing}, 段落间距={paragraph_spacing}")
-        
-        # 基础可用行数
         max_lines_per_page = metrics.lines_per_page
         
-        logger.debug(f"最大每页行数: {max_lines_per_page}, 行间距: {line_spacing}, 段落间距: {paragraph_spacing}")
+        logger.debug(f"分页间距设置: 行间距={line_spacing}, 段落间距={paragraph_spacing}")
         
         for paragraph_idx, paragraph in enumerate(paragraphs):
             if not paragraph.strip():
@@ -99,7 +153,7 @@ class SmartTextPagination(PaginationStrategy):
                     if len(current_page_lines) + line_spacing <= max_lines_per_page:
                         for _ in range(line_spacing):
                             current_page_lines.append("")
-                    # 如果空间不足，跳过行间距，让下一行自动换页
+                    # 如果空间不足，跳过行间距
             
             # 段落间添加空行（如果页面还有空间且不是最后一个段落）
             if paragraph_idx < len(paragraphs) - 1:
@@ -124,27 +178,79 @@ class SmartTextPagination(PaginationStrategy):
             pages = [[""]]
         
         # 验证内容完整性
-        total_content_length = sum(len(line) for page in pages for line in page)
-        logger.debug(f"分页完成: 总共{len(pages)}页, 平均每页{len(content)//len(pages) if pages else 0}字符")
-        logger.debug(f"内容完整性验证: 原始={len(content)}, 分页后={total_content_length}")
+        processed_text = '\n'.join('\n'.join(page) for page in pages)
+        original_normalized = self._normalize_content(original_content)
+        processed_normalized = self._normalize_content(processed_text)
+        
+        original_len = len(original_normalized)
+        processed_len = len(processed_normalized)
+        
+        # 如果内容丢失超过5%，使用备用分页策略
+        if original_len > 0 and (original_len - processed_len) / original_len > 0.05:
+            logger.warning(f"内容完整性检查失败: 丢失{original_len - processed_len}字符")
+            logger.warning(f"原始长度: {len(original_content)}, 处理后: {len(processed_text)}")
+            # 使用备用分页策略
+            pages = self._fallback_pagination(original_content, metrics, {
+                "missing_chars": original_len - processed_len,
+                "original_length": len(original_content),
+                "processed_length": len(processed_text)
+            })
+        
+        logger.debug(f"健壮分页完成: 总共{len(pages)}页")
         
         return pages
     
-    def _split_paragraphs(self, content: str) -> List[str]:
-        """分割内容为段落"""
-        # 只使用基础的双换行符分割段落
-        paragraphs = content.split('\n\n')
-        paragraphs = [p.strip() for p in paragraphs if p.strip()]
+    def _normalize_content(self, content: str) -> str:
+        """标准化内容，移除多余的空白字符"""
+        # 移除多余的空格和换行符，保留基本格式
+        # 将多个连续空格替换为单个空格
+        content = re.sub(r'\s+', ' ', content)
+        # 移除首尾空格
+        content = content.strip()
+        return content
+    
+    def _robust_paragraph_split(self, content: str) -> List[str]:
+        """健壮的段落分割算法"""
+        paragraphs = []
+        current_paragraph = []
         
-        # 对于很长的段落，不进行智能分割，避免重复内容问题
-        # 直接返回基础分割结果
-        return paragraphs
+        # 使用多种分割符
+        lines = content.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                # 空行表示段落分隔
+                if current_paragraph:
+                    paragraphs.append(' '.join(current_paragraph))
+                    current_paragraph = []
+            else:
+                current_paragraph.append(line)
+        
+        # 添加最后一个段落
+        if current_paragraph:
+            paragraphs.append(' '.join(current_paragraph))
+        
+        # 如果没有找到段落分隔，将整个内容作为一个段落
+        if not paragraphs:
+            paragraphs = [content.strip()] if content.strip() else [""]
+        
+        # 合并过短的段落
+        merged_paragraphs = []
+        for paragraph in paragraphs:
+            if not merged_paragraphs or len(paragraph) < 20:
+                # 如果段落很短，尝试合并到前一个段落
+                if merged_paragraphs:
+                    merged_paragraphs[-1] += " " + paragraph
+                else:
+                    merged_paragraphs.append(paragraph)
+            else:
+                merged_paragraphs.append(paragraph)
+        
+        return merged_paragraphs
     
     def _smart_chinese_wrap(self, text: str, width: int) -> List[str]:
-        """
-        智能中文文本换行，保持段落格式和标点完整性
-        注意：文本预处理已在TXT解析器中完成，这里不再重复处理
-        """
+        """智能中文文本换行，保持段落格式和标点完整性"""
         if not text.strip():
             return [""]
         
@@ -168,7 +274,7 @@ class SmartTextPagination(PaginationStrategy):
         return result_lines
     
     def _wrap_single_line(self, line: str, width: int) -> List[str]:
-        """对单行文本进行智能换行 - 优化的中文换行算法"""
+        """对单行文本进行智能换行 - 健壮的中文换行算法"""
         if not line:
             return [""]
             
@@ -180,40 +286,64 @@ class SmartTextPagination(PaginationStrategy):
         current_line = ""
         current_width = 0
         
-        # 优化的中文标点符号处理
+        # 更全面的中文标点符号处理
         # 不能在行首的标点
-        no_line_start = "，。；：！？、）】》"
+        no_line_start = "，。；：！？、）】》'\"”』」】〗〙〛"
         # 不能在行尾的标点  
-        no_line_end = "（【《"
+        no_line_end = "（【《'\"『「【〖〘〚"
         
         i = 0
         while i < len(line):
             char = line[i]
             char_width = self._get_char_width(char)
             
-            # 检查是否需要换行（使用更宽松的条件）
+            # 检查是否需要换行
             if current_width + char_width > width and current_line:
-                # 如果当前行已经有内容，尝试寻找更好的换行点
-                # 优先在标点符号或空格处换行
+                # 如果当前行已经有内容，寻找最佳换行点
+                
+                # 优先在空格处换行
+                if char in " \t":
+                    lines.append(current_line)
+                    current_line = ""
+                    current_width = 0
+                    i += 1
+                    continue
+                
+                # 检查标点符号规则
                 if char in no_line_start:
-                    # 标点符号不能出现在行首，强制加入当前行
-                    current_line += char
-                    current_width += char_width
+                    # 标点符号不能出现在行首，检查是否可以加入当前行
+                    # 如果当前行还有空间，加入当前行
+                    if current_width + char_width <= width:
+                        current_line += char
+                        current_width += char_width
+                    else:
+                        # 空间不足，换行后添加标点
+                        lines.append(current_line)
+                        current_line = char
+                        current_width = char_width
+                    i += 1
+                elif char in no_line_end:
+                    # 标点符号不能出现在行尾，检查是否可以加入当前行
+                    lines.append(current_line)
+                    current_line = char
+                    current_width = char_width
                     i += 1
                 else:
-                    # 寻找合适的换行点
-                    # 如果当前字符是空格或标点，直接换行
-                    if char in " \t" or char in no_line_end:
-                        lines.append(current_line)
-                        current_line = char
-                        current_width = char_width
-                        i += 1
+                    # 普通字符，检查是否有更好的换行点
+                    # 尝试寻找最近的标点或空格
+                    break_pos = self._find_best_break_point(current_line, char, width)
+                    if break_pos > 0:
+                        # 在最佳位置换行
+                        lines.append(current_line[:break_pos].rstrip())
+                        remaining = current_line[break_pos:] + char
+                        current_line = remaining
+                        current_width = self._calculate_display_width(remaining)
                     else:
-                        # 尝试在当前字符前换行
+                        # 没有找到更好的换行点，强制换行
                         lines.append(current_line)
                         current_line = char
                         current_width = char_width
-                        i += 1
+                    i += 1
             else:
                 current_line += char
                 current_width += char_width
@@ -226,7 +356,7 @@ class SmartTextPagination(PaginationStrategy):
         return lines if lines else [""]
     
     def _get_char_width(self, char: str) -> int:
-        """获取字符显示宽度 - 优化的中文字符宽度计算"""
+        """获取字符显示宽度 - 更健壮的中文字符宽度计算"""
         # 中文字符范围（更全面）
         if '\u4e00' <= char <= '\u9fff':  # CJK统一汉字
             return 2
@@ -238,43 +368,118 @@ class SmartTextPagination(PaginationStrategy):
             return 2
         elif '\u3000' <= char <= '\u303f':  # CJK符号和标点
             return 2
-        elif char in "，。；：！？、（）【】《》""''「」『』〈〉〔〕〖〗〘〙〚〛":  # 中文标点
+        # 更全面的中文标点符号
+        elif char in "，。；：！？、（）【】《》\"'\"'「」『』〈〉〔〕〖〗〘〙〚〛﹃﹄﹁﹂":
+            return 2
+        elif char in "—…～‖·‘’“”〔〕〈〉《》『』【】〖〗〘〙〚〛":
             return 2
         elif char in "　":  # 全角空格
             return 2
         # 对于半角标点符号，使用更合理的宽度计算
-        elif char in ".,;:!?()[]{}<>\"'":  # 半角标点符号
+        elif char in ". , ; : ! ? ( ) [ ] { } < > \" '":  # 半角标点符号
             return 1
         # 特殊处理：常见格式标记字符
-        elif char in "*#@$%&":  # 常见的格式标记字符，按半角处理
+        elif char in "*#@$%&+-=^_`|~\\":  # 常见的格式标记字符，按半角处理
             return 1
+        # 控制字符和不可见字符
+        elif ord(char) < 32 or ord(char) == 127:
+            return 0
         else:
             return 1
     
     def _calculate_display_width(self, text: str) -> int:
         """计算文本显示宽度"""
         return sum(self._get_char_width(char) for char in text)
-
-
-
-
-
-class TerminalPaginator:
-    """终端分页计算器 - 核心分页组件"""
     
-    def __init__(self, strategy: str = "smart"):
+    def _find_best_break_point(self, current_line: str, next_char: str, max_width: int) -> int:
+        """寻找最佳换行点"""
+        # 从当前行末尾开始寻找合适的换行点
+        for i in range(len(current_line) - 1, -1, -1):
+            char = current_line[i]
+            # 优先在标点符号或空格处换行
+            if char in " ，。；：！？、（）【】《》\"'\"'「」『』〈〉〔〕〖〗〘〙〚〛".replace(" ", ""):
+                return i + 1
+            elif char in " \t":
+                return i + 1
+        
+        # 如果没有找到合适的换行点，返回-1表示强制换行
+        return -1
+    
+    def _fallback_pagination(self, content: str, metrics: PageMetrics, 
+                           integrity_check: Dict) -> List[List[str]]:
+        """内容完整性检查失败时的备用分页策略"""
+        logger.warning("使用备用分页策略处理内容丢失问题")
+        
+        # 简化策略：逐字符分页，确保内容完整性
+        lines_per_page = metrics.lines_per_page
+        chars_per_line = metrics.content_width
+        
+        # 将内容按段落分割
+        paragraphs = content.split('\n\n')
+        paragraphs = [p.strip() for p in paragraphs if p.strip()]
+        
+        pages = []
+        current_page_lines = []
+        
+        for paragraph in paragraphs:
+            if not paragraph:
+                continue
+            
+            # 逐字符处理，确保不丢失任何内容
+            current_line = ""
+            for char in paragraph:
+                if self._calculate_display_width(current_line + char) <= chars_per_line:
+                    current_line += char
+                else:
+                    # 当前行已满，添加到页面
+                    if current_line:
+                        current_page_lines.append(current_line)
+                        current_line = char
+                    
+                    # 检查当前页是否已满
+                    if len(current_page_lines) >= lines_per_page:
+                        pages.append(current_page_lines[:])
+                        current_page_lines = []
+            
+            # 添加段落的最后一行
+            if current_line:
+                current_page_lines.append(current_line)
+                current_line = ""
+            
+            # 添加段落分隔空行
+            if len(current_page_lines) < lines_per_page:
+                current_page_lines.append("")
+            
+            # 检查当前页是否已满
+            if len(current_page_lines) >= lines_per_page:
+                pages.append(current_page_lines[:])
+                current_page_lines = []
+        
+        # 添加最后一页
+        if current_page_lines:
+            pages.append(current_page_lines)
+        
+        # 确保至少有内容
+        if not pages:
+            pages = [[""]]
+        
+        return pages
+
+
+class RobustTerminalPaginator:
+    """健壮终端分页计算器 - 核心分页组件"""
+    
+    def __init__(self, strategy: str = "robust"):
         """
         初始化分页计算器
         
         Args:
-            strategy: 分页策略，支持 "smart" (智能文本分页), "robust" (健壮分页)
+            strategy: 分页策略，支持 "robust" (健壮文本分页)
         """
-        from .robust_paginator import RobustTextPagination
         self.strategies = {
-            "smart": SmartTextPagination(),
             "robust": RobustTextPagination()
         }
-        self.current_strategy = self.strategies.get(strategy, SmartTextPagination())
+        self.current_strategy = self.strategies.get(strategy, RobustTextPagination())
         self.metrics = PageMetrics()
     
     def calculate_metrics(self, container_width: int, container_height: int,
@@ -307,8 +512,6 @@ class TerminalPaginator:
         chars_per_line = content_width
         
         # 计算每页行数（考虑行间距和段落间距对显示的影响）
-        # 在智能分页中，lines_per_page表示实际显示的行数限制
-        # 行间距和段落间距会影响内容的视觉布局，需要在分页时考虑
         lines_per_page = content_height
         
         logger.debug(f"可用行数计算: 内容高度={content_height}, 行间距={line_spacing}, 段落间距={paragraph_spacing}")
@@ -354,23 +557,7 @@ class TerminalPaginator:
         if metrics is None:
             metrics = self.metrics
         
-        # 首先使用当前策略分页
-        pages = self.current_strategy.paginate(content, metrics)
-        
-        # 验证内容完整性
-        processed_text = '\n'.join('\n'.join(page) for page in pages)
-        original_len = len(content)
-        processed_len = len(processed_text)
-        
-        # 如果内容丢失超过5%，使用备用策略
-        if original_len > 0 and (original_len - processed_len) / original_len > 0.05:
-            logger.warning(f"内容丢失超过5%，切换到健壮分页策略 (丢失{(original_len - processed_len)/original_len*100:.1f}%)")
-            self.current_strategy = self.strategies["robust"]
-            pages = self.current_strategy.paginate(content, metrics)
-            # 切换回原始策略
-            self.current_strategy = self.strategies["smart"]
-        
-        return pages
+        return self.current_strategy.paginate(content, metrics)
     
     def get_page_count(self, content: str, metrics: Optional[PageMetrics] = None) -> int:
         """
@@ -421,7 +608,7 @@ class TerminalPaginator:
         current_pos = 0
         
         for page_num, page_content in enumerate(pages):
-            page_length = len(page_content)
+            page_length = sum(len(line) for line in page_content)
             if current_pos <= char_position < current_pos + page_length:
                 return page_num
             current_pos += page_length
@@ -469,14 +656,14 @@ class TerminalPaginator:
 
 
 # 工厂函数
-def create_paginator(strategy: str = "smart") -> TerminalPaginator:
+def create_robust_paginator(strategy: str = "robust") -> RobustTerminalPaginator:
     """
-    创建分页计算器实例
+    创建健壮分页计算器实例
     
     Args:
         strategy: 分页策略
         
     Returns:
-        TerminalPaginator: 分页计算器实例
+        RobustTerminalPaginator: 健壮分页计算器实例
     """
-    return TerminalPaginator(strategy)
+    return RobustTerminalPaginator(strategy)

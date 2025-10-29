@@ -52,7 +52,7 @@ Footer {
 
 .reader-screen #reader-buttons-container {
     width: 100%;
-    height: 3;              /* 提升到3行，确保按钮文本可见 */
+    height: 2;              /* 提升到3行，确保按钮文本可见 */
     dock: bottom;
     margin-bottom: 1;       /* 预留1行给状态栏 */
     background: $surface;
