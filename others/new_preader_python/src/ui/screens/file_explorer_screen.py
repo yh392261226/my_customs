@@ -8,11 +8,12 @@ from typing import Dict, Any, Optional, List, ClassVar, Set
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer, LoadingIndicator
+from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer, LoadingIndicator, OptionList
 from textual.reactive import reactive
 from textual import on
 from textual import events
 from textual.widgets.tree import TreeNode
+from textual.widgets.option_list import Option
 from textual.message import Message
 
 from src.locales.i18n_manager import get_global_i18n
@@ -35,9 +36,12 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     CSS_PATH = "../styles/file_explorer_overrides.tcss"
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("b", "back_button", get_global_i18n().t('file_explorer.back')),
+        ("g", "go_button", get_global_i18n().t('file_explorer.go')),
+        ("H", "home_button", get_global_i18n().t('file_explorer.home')),
         ("escape", "back", get_global_i18n().t('common.back')),
-        ("enter", "press('#select-btn')", get_global_i18n().t('common.select')),
-        ("s", "press('#select-btn')", get_global_i18n().t('common.select')),
+        ("enter", "select_button", get_global_i18n().t('common.select')),
+        ("s", "select_button", get_global_i18n().t('common.select')),
     ]
     
     # 支持的书籍文件扩展名
@@ -82,6 +86,12 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         # 选中的文件索引
         self.selected_file_index: Optional[int] = None
         
+        # 自动补全相关属性
+        self._hide_completion_list
+        self.completion_list_visible = False
+        self.completion_options: List[str] = []
+        self.selected_completion_index = 0
+        
     def compose(self) -> ComposeResult:
         """
         组合文件资源管理器界面 - 改进版布局
@@ -93,12 +103,16 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                 # yield Label(get_global_i18n().t("file_explorer.title"), id="title", classes="section-title")
                 yield Static("", id="current-path")
             
-            # 导航栏
-            with Horizontal(id="navigation-bar", classes="form-row"):
-                yield Button("←", id="back-btn")
-                yield Input(placeholder=get_global_i18n().t("file_explorer.enter_path"), id="path-input")
-                yield Button(get_global_i18n().t("file_explorer.go"), id="go-btn")
-                yield Button(get_global_i18n().t("file_explorer.home"), id="home-btn")
+            # 导航栏和补全建议区域
+            with Vertical(id="navigation-area"):
+                with Horizontal(id="navigation-bar", classes="form-row"):
+                    yield Button("←", id="back-btn")
+                    yield Input(placeholder=get_global_i18n().t("file_explorer.enter_path"), id="path-input")
+                    yield Button(get_global_i18n().t("file_explorer.go"), id="go-btn")
+                    yield Button(get_global_i18n().t("file_explorer.home"), id="home-btn")
+                
+                # 补全建议列表（初始隐藏）
+                yield OptionList(id="completion-list")
             
             # 主内容区域
             with Horizontal(id="content-area"):
@@ -151,8 +165,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         # 加载当前目录的文件列表
         self._load_file_list()
         
+        # 设置焦点到路径输入框
+        self.query_one("#path-input").focus()
+
         # 检查按钮权限并禁用/启用按钮
         self._check_button_permissions()
+        
+        # 初始化补全列表为隐藏状态
+        self._hide_completion_list()
     
     def _load_directory_tree(self) -> None:
         """加载目录树"""
@@ -283,6 +303,263 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             except (PermissionError, OSError):
                 status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
     
+    def _get_path_completions(self, partial_path: str) -> List[str]:
+        """
+        获取路径自动补全建议
+        
+        Args:
+            partial_path: 部分路径
+            
+        Returns:
+            List[str]: 补全建议列表
+        """
+        try:
+            # 如果路径为空或只有空格，返回空列表
+            if not partial_path.strip():
+                return []
+            
+            # 处理绝对路径和相对路径
+            if os.path.isabs(partial_path):
+                # 绝对路径
+                base_dir = os.path.dirname(partial_path)
+                search_pattern = os.path.basename(partial_path)
+            else:
+                # 相对路径，相对于当前目录
+                base_dir = self.current_path
+                search_pattern = partial_path
+            
+            # 确保基础目录存在
+            if not os.path.isdir(base_dir):
+                return []
+            
+            # 获取匹配的目录和文件
+            completions = []
+            for item in os.listdir(base_dir):
+                item_path = os.path.join(base_dir, item)
+                
+                # 检查是否匹配搜索模式（不区分大小写）
+                if search_pattern.lower() in item.lower():
+                    if os.path.isdir(item_path):
+                        # 如果是目录，添加斜杠
+                        completions.append(item + "/")
+                    else:
+                        completions.append(item)
+            
+            # 按字母顺序排序
+            completions.sort()
+            return completions
+            
+        except (PermissionError, OSError):
+            return []
+    
+    def _update_completion_list(self, partial_path: str) -> None:
+        """
+        更新补全建议列表
+        
+        Args:
+            partial_path: 部分路径
+        """
+        try:
+            # 如果路径为空或只有空格，隐藏补全列表
+            if not partial_path.strip():
+                self._hide_completion_list()
+                return
+            
+            # 处理绝对路径和相对路径
+            if os.path.isabs(partial_path):
+                # 绝对路径
+                base_dir = os.path.dirname(partial_path)
+                search_pattern = os.path.basename(partial_path)
+            else:
+                # 相对路径，相对于当前目录
+                base_dir = self.current_path
+                search_pattern = partial_path
+            
+            # 确保基础目录存在
+            if not os.path.isdir(base_dir):
+                self._hide_completion_list()
+                return
+            
+            # 获取匹配的目录和文件
+            matches = []
+            for item in os.listdir(base_dir):
+                if item.lower().startswith(search_pattern.lower()):
+                    item_path = os.path.join(base_dir, item)
+                    if os.path.isdir(item_path):
+                        # 如果是目录，添加斜杠
+                        matches.append(item + "/")
+                    else:
+                        matches.append(item)
+            
+            # 更新补全选项
+            self.completion_options = matches
+            
+            if matches:
+                # 显示补全列表
+                self._show_completion_list(matches)
+                self.selected_completion_index = 0
+            else:
+                # 没有匹配项，隐藏补全列表
+                self._hide_completion_list()
+                
+        except (PermissionError, OSError):
+            self._hide_completion_list()
+    
+    def _show_completion_list(self, options: List[str]) -> None:
+        """显示补全建议列表"""
+        completion_list = self.query_one("#completion-list", OptionList)
+        completion_list.clear_options()
+        
+        # 添加补全选项
+        for option in options:
+            completion_list.add_option(Option(option))
+        
+        # 显示补全列表
+        completion_list.styles.visibility = "visible"
+        self.completion_list_visible = True
+        # 显示补全列表的时候把内容区域高度设置为40%
+        self.query_one("#content-area", Horizontal).styles.height = "40%"
+        
+        # 选中第一个选项
+        if options:
+            completion_list.highlighted = 0
+    
+    def _hide_completion_list(self) -> None:
+        """隐藏补全建议列表"""
+        completion_list = self.query_one("#completion-list", OptionList)
+        # 使用visibility属性隐藏，而不是display，以保持布局
+        completion_list.styles.visibility = "hidden"
+        self.completion_list_visible = False
+        
+        # 恢复目录树和文件列表的高度
+        self.query_one("#content-area", Horizontal).styles.height = "70%"
+        
+        self.completion_options = []
+        self.selected_completion_index = 0
+    
+    def _apply_completion(self) -> None:
+        """应用选中的补全项"""
+        if not self.completion_list_visible or not self.completion_options:
+            return
+        
+        path_input = self.query_one("#path-input", Input)
+        selected_option = self.completion_options[self.selected_completion_index]
+        
+        # 处理绝对路径和相对路径
+        current_value = path_input.value.strip()
+        if os.path.isabs(current_value):
+            # 绝对路径
+            base_dir = os.path.dirname(current_value)
+            completed_path = os.path.join(base_dir, selected_option)
+        else:
+            # 相对路径
+            completed_path = selected_option
+        
+        # 更新输入框值
+        path_input.value = completed_path
+        path_input.cursor_position = len(completed_path)
+        
+        # 隐藏补全列表
+        # self._hide_completion_list()
+    
+    def _select_next_completion(self) -> None:
+        """选择下一个补全项"""
+        if not self.completion_list_visible or not self.completion_options:
+            return
+        
+        completion_list = self.query_one("#completion-list", OptionList)
+        self.selected_completion_index = (self.selected_completion_index + 1) % len(self.completion_options)
+        completion_list.highlighted = self.selected_completion_index
+    
+    def _select_prev_completion(self) -> None:
+        """选择上一个补全项"""
+        if not self.completion_list_visible or not self.completion_options:
+            return
+        
+        completion_list = self.query_one("#completion-list", OptionList)
+        self.selected_completion_index = (self.selected_completion_index - 1) % len(self.completion_options)
+        completion_list.highlighted = self.selected_completion_index
+    
+    def _focus_completion_list(self) -> None:
+        """将焦点转移到补全列表"""
+        if self.completion_list_visible:
+            completion_list = self.query_one("#completion-list", OptionList)
+            completion_list.focus()
+    
+    def _focus_path_input(self) -> None:
+        """将焦点转移到路径输入框"""
+        path_input = self.query_one("#path-input", Input)
+        path_input.focus()
+    
+    @on(OptionList.OptionHighlighted, "#completion-list")
+    def on_completion_highlighted(self, event: OptionList.OptionHighlighted) -> None:
+        """补全列表选项高亮时的处理"""
+        if self.completion_list_visible and self.completion_options:
+            self.selected_completion_index = event.option_index
+    
+    @on(OptionList.OptionSelected, "#completion-list")
+    def on_completion_selected(self, event: OptionList.OptionSelected) -> None:
+        """补全列表选项被选中时的处理"""
+        if self.completion_list_visible and self.completion_options:
+            self.selected_completion_index = event.option_index
+            self._apply_completion()
+    
+    def _focus_next_component(self) -> None:
+        """切换到下一个可聚焦的组件"""
+        # 获取所有可聚焦的组件
+        focusable_components = [
+            self.query_one("#path-input", Input),
+            self.query_one("#directory-tree", Tree),
+            self.query_one("#file-list", ListView)
+        ]
+        
+        # 找到当前聚焦的组件
+        current_focused = None
+        for component in focusable_components:
+            if component.has_focus:
+                current_focused = component
+                break
+        
+        # 切换到下一个组件
+        if current_focused:
+            current_index = focusable_components.index(current_focused)
+            next_index = (current_index + 1) % len(focusable_components)
+            focusable_components[next_index].focus()
+        else:
+            # 如果没有当前聚焦的组件，聚焦到第一个
+            focusable_components[0].focus()
+    
+    def _on_path_input_changed(self, event: Input.Changed) -> None:
+        """路径输入框内容改变时的自动补全处理"""
+        current_value = event.value.strip()
+        
+        # 如果输入为空或只有一个字符，不进行补全
+        if len(current_value) < 2:
+            return
+        
+        # 检查是否需要自动补全（当输入包含路径分隔符或看起来像路径时）
+        if "/" in current_value or "\\" in current_value or os.path.isabs(current_value):
+            # 尝试自动补全
+            completed_path = self._auto_complete_path(current_value)
+            if completed_path and completed_path != current_value:
+                # 更新输入框值，但保留光标位置
+                event.input.value = completed_path
+                # 将光标移动到补全后的位置
+                event.input.cursor_position = len(completed_path)
+    
+    @on(Input.Changed, "#path-input")
+    def on_path_input_changed(self, event: Input.Changed) -> None:
+        """路径输入框内容改变时的自动补全处理"""
+        current_value = event.value.strip()
+        
+        # 如果输入为空或只有一个字符，隐藏补全列表
+        if len(current_value) < 2:
+            self._hide_completion_list()
+            return
+        
+        # 更新补全建议列表
+        self._update_completion_list(current_value)
+    
     def _navigate_to_path(self, path: str) -> None:
         """导航到指定路径"""
         try:
@@ -397,6 +674,47 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def action_back(self) -> None:
         """ESC 返回上一页"""
         self.app.pop_screen()
+    
+    def action_back_button(self) -> None:
+        """b 键 - 返回上一级目录"""
+        if not self._has_permission("file_explorer.back"):
+            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            return
+        
+        # 返回上一级目录
+        parent_path = os.path.dirname(self.current_path)
+        if parent_path != self.current_path:  # 避免无限循环
+            self._navigate_to_path(parent_path)
+    
+    def action_go_button(self) -> None:
+        """g 键 - 导航到输入的路径"""
+        if not self._has_permission("file_explorer.navigate"):
+            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            return
+        
+        # 导航到输入的路径
+        path_input = self.query_one("#path-input", Input)
+        input_path = path_input.value.strip()
+        if input_path:
+            self._navigate_to_path(input_path)
+    
+    def action_home_button(self) -> None:
+        """h 键 - 返回主目录"""
+        if not self._has_permission("file_explorer.home"):
+            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            return
+        
+        # 返回主目录
+        self._navigate_to_path(FileUtils.get_home_dir())
+    
+    def action_select_button(self) -> None:
+        """enter/s 键 - 选择操作"""
+        if not self._has_permission("file_explorer.select"):
+            self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
+            return
+        
+        # 选择操作
+        self._handle_selection()
 
     def _check_button_permissions(self) -> None:
         """检查按钮权限并禁用/启用按钮"""
@@ -486,8 +804,26 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def on_key(self, event: events.Key) -> None:
         """键盘事件处理"""
         if event.key == "escape":
-            # ESC键返回上一页（并阻止冒泡到 App 层，避免二次返回）
-            self.app.pop_screen()
+            # ESC键行为：
+            # 1. 如果补全列表可见，隐藏补全列表并返回焦点到输入框
+            # 2. 如果补全列表不可见，返回上一页
+            if self.completion_list_visible:
+                # ESC键隐藏补全列表，焦点回到输入框
+                self._hide_completion_list()
+                self._focus_path_input()
+            else:
+                # ESC键返回上一页（并阻止冒泡到 App 层，避免二次返回）
+                # 使用应用提供的安全返回方法，避免屏幕栈错误
+                if hasattr(self.app, 'action_back'):
+                    # 异步调用action_back方法
+                    self.app.call_later(self.app.action_back)
+                else:
+                    # 备用方案：检查屏幕栈长度
+                    try:
+                        if len(self.app._screen_stack) > 1:
+                            self.app.pop_screen()
+                    except (AttributeError, Exception):
+                        pass  # 如果无法安全返回，则不执行任何操作
             event.stop()
         
         elif event.key == "enter":
@@ -498,19 +834,61 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                 self.notify(get_global_i18n().t("file_explorer.np_choose_file"), severity="warning")
             event.stop()
         
-        elif event.key == "up":
-            # 上箭头键选择上一个文件
+        elif event.key == "up" and not self.completion_list_visible:
+            # 上箭头键选择上一个文件（仅在补全列表不可见时）
             self._select_previous_file()
             event.stop()
         
-        elif event.key == "down":
-            # 下箭头键选择下一个文件
+        elif event.key == "down" and not self.completion_list_visible:
+            # 下箭头键选择下一个文件（仅在补全列表不可见时）
             self._select_next_file()
             event.stop()
         
         elif event.key == "s":
             # S键选择
             self._handle_selection()
+            event.stop()
+        
+        elif event.key == "ctrl+i":
+            # Ctrl+I 显示补全建议
+            path_input = self.query_one("#path-input", Input)
+            current_value = path_input.value.strip()
+            
+            if current_value:
+                completions = self._get_path_completions(current_value)
+                if completions:
+                    # 显示补全建议
+                    suggestions = ", ".join(completions[:5])  # 最多显示5个建议
+                    if len(completions) > 5:
+                        suggestions += "..."
+                    self.notify(f"补全建议: {suggestions}", severity="information")
+                else:
+                    self.notify("没有找到匹配的路径", severity="information")
+            event.stop()
+        
+        elif event.key == "down" and self.completion_list_visible:
+            # 下方向键选择下一个补全项，并将焦点转移到补全列表
+            self._select_next_completion()
+            self._focus_completion_list()
+            event.stop()
+            
+        elif event.key == "up" and self.completion_list_visible:
+            # 上方向键选择上一个补全项，并将焦点转移到补全列表
+            self._select_prev_completion()
+            self._focus_completion_list()
+            event.stop()
+            
+        elif event.key == "right" and self.completion_list_visible:
+            # 右方向键应用选中的补全项
+            self._apply_completion()
+            event.stop()
+
+            
+        elif event.key == "tab" and self.completion_list_visible:
+            # Tab键切换到其他区域（目录和文件列表）
+            self._hide_completion_list()
+            # 手动切换到下一个可聚焦的组件
+            self._focus_next_component()
             event.stop()
     
     def _show_loading_animation(self, message: Optional[str] = None) -> None:

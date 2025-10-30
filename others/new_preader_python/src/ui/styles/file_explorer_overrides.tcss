@@ -32,6 +32,8 @@
     margin-bottom: 1;
 }
 
+
+
 /* 目录树面板 */
 #main-container #tree-panel {
     width: 50%;
@@ -209,4 +211,33 @@
 /* 树形控件焦点样式 */
 #main-container Tree:focus {
     border: thick $accent;
+}
+
+/* 补全建议列表样式 */
+#main-container #completion-list {
+    height: 4; /* 只显示2条的高度 */
+    max-height: 4;
+    background: $surface;
+    border: solid $primary;
+    margin-top: 0;
+    /* 始终占据空间，通过visibility属性控制可见性 */
+    visibility: hidden; /* 初始隐藏但占据空间 */
+}
+
+#main-container #completion-list:focus {
+    border: thick $accent;
+}
+
+/* 补全列表选项样式 */
+#main-container #completion-list > .option-list--option {
+    height: 1;
+    padding: 0 1;
+}
+
+#main-container #completion-list > .option-list--option:hover {
+    background: $primary;
+}
+
+#main-container #completion-list > .option-list--option.-highlight {
+    background: $accent;
 }
