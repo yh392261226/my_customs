@@ -95,6 +95,9 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         self._total_pages = 1
         self._all_books: List[Book] = []
         
+        # 表格初始化状态
+        self._table_initialized = False
+        
         # 初始化数据表列
         self.columns = [
             ("ID", "id"),
@@ -219,26 +222,30 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         except Exception:
             pass
         
-        # 初始化数据表
+        # 初始化数据表（只在未初始化时添加列）
         table = self.query_one("#books-table", DataTable)
-        # 根据权限过滤操作列
-        can_read = self._has_permission("bookshelf.read")
-        can_view = self._has_permission("bookshelf.view_file")
-        can_delete = self._has_permission("bookshelf.delete_book")
-        cols = []
-        for label, key in self.columns:
-            if key == "read_action" and not can_read:
-                continue
-            if key == "view_action" and not can_view:
-                continue
-            if key == "delete_action" and not can_delete:
-                continue
-            cols.append((label, key))
-        for col in cols:
-            table.add_column(col[0], key=col[1])
-        
-        # 启用隔行变色效果
-        table.zebra_stripes = True
+        if not self._table_initialized:
+            # 根据权限过滤操作列
+            can_read = self._has_permission("bookshelf.read")
+            can_view = self._has_permission("bookshelf.view_file")
+            can_delete = self._has_permission("bookshelf.delete_book")
+            cols = []
+            for label, key in self.columns:
+                if key == "read_action" and not can_read:
+                    continue
+                if key == "view_action" and not can_view:
+                    continue
+                if key == "delete_action" and not can_delete:
+                    continue
+                cols.append((label, key))
+            for col in cols:
+                table.add_column(col[0], key=col[1])
+            
+            # 启用隔行变色效果
+            table.zebra_stripes = True
+            
+            # 标记表格已初始化
+            self._table_initialized = True
 
         # 按权限禁用/隐藏按钮
         try:
@@ -253,6 +260,29 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         table = self.query_one("#books-table", DataTable)
         table.focus()
     
+    def _add_table_columns(self, table) -> None:
+        """添加表格列定义"""
+        # 根据权限过滤操作列
+        can_read = self._has_permission("bookshelf.read")
+        can_view = self._has_permission("bookshelf.view_file")
+        can_delete = self._has_permission("bookshelf.delete_book")
+        
+        cols = []
+        for label, key in self.columns:
+            if key == "read_action" and not can_read:
+                continue
+            if key == "view_action" and not can_view:
+                continue
+            if key == "delete_action" and not can_delete:
+                continue
+            cols.append((label, key))
+        
+        for col in cols:
+            table.add_column(col[0], key=col[1])
+        
+        # 启用隔行变色效果
+        table.zebra_stripes = True
+    
     def _load_books(self, search_keyword: str = "", search_format: str = "all") -> None:
         """加载书籍数据
         
@@ -264,7 +294,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}")
         
         table = self.query_one("#books-table", DataTable)
-        table.clear()
+        # 完全清除表格数据，包括行键缓存
+        table.clear(columns=True)
+        # 重新添加列定义（因为columns=True会清除列）
+        self._add_table_columns(table)
         
         # 确保书架数据是最新的，从数据库重新加载
         try:
@@ -870,20 +903,20 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # N键下一页
             if self._current_page < self._total_pages:
                 self._current_page += 1
-                self._load_books()
+                self._load_books(self._search_keyword, self._search_format)
             event.prevent_default()
         elif event.key == "p":
             # P键上一页
             if self._current_page > 1:
                 self._current_page -= 1
-                self._load_books()
+                self._load_books(self._search_keyword, self._search_format)
             event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
                 self._current_page += 1
-                self._load_books()
+                self._load_books(self._search_keyword, self._search_format)
                 # 将光标移动到新页面的第一行
                 table = self.query_one("#books-table", DataTable)
                 table.action_cursor_down()  # 先向下移动一次
@@ -893,7 +926,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             if table.cursor_row == 0 and self._current_page > 1:
                 self._current_page -= 1
-                self._load_books()
+                self._load_books(self._search_keyword, self._search_format)
                 # 将光标移动到新页面的最后一行
                 table = self.query_one("#books-table", DataTable)
                 for _ in range(len(table.rows) - 1):
