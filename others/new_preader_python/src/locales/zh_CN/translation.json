@@ -164,6 +164,7 @@
         "actions": "操作",
         "read": "阅读",
         "view_file": "查看文件",
+        "rename": "重命名",
         "delete": "删除",
         "get_books": "获取书籍",
         "np_add_books": "无权限添加书籍",
@@ -175,6 +176,7 @@
         "np_get_books": "无权限打开获取书籍页面",
         "np_read": "无权限阅读书籍",
         "np_view_file": "无权限查看书籍文件",
+        "np_rename": "无权限重命名书籍",
         "np_delete": "无权限删除书籍",
         "find_book_failed": "未找到书籍",
         "open_book_failed": "打开书籍失败",
@@ -189,7 +191,16 @@
         "confirm_delete_message": "确定要删除书籍《{book}》吗？此操作不可撤销。",
         "no_book_position": "第 {book_index} 个位置没有书籍",
         "page_info": "第{page}/{total_pages}页",
-        "clear_search_params": "清除搜索参数"
+        "clear_search_params": "清除搜索参数",
+        "rename_book": "重命名书籍",
+        "current_title": "当前书名",
+        "file_path": "文件路径",
+        "new_title": "新书名",
+        "enter_new_title": "请输入新书名",
+        "title_empty": "书名不能为空",
+        "title_same": "新书名与原书名相同",
+        "rename_success": "书籍《{title}》重命名成功",
+        "rename_failed": "重命名书籍失败"
     },
     "batch_ops": {
         "title": "批量操作",

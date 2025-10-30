@@ -486,12 +486,13 @@ class DatabaseManager:
             logger.error(f"按用户获取书籍失败: {e}")
             return []
     
-    def update_book(self, book: Book) -> bool:
+    def update_book(self, book: Book, old_path: Optional[str] = None) -> bool:
         """
         更新书籍信息
         
         Args:
             book: 书籍对象
+            old_path: 可选的原书籍路径，用于路径更新时的定位
             
         Returns:
             bool: 更新是否成功
@@ -502,6 +503,10 @@ class DatabaseManager:
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                
+                # 如果提供了旧路径，使用旧路径作为WHERE条件（用于路径更新）
+                where_path = old_path if old_path is not None else book.path
+                
                 cursor.execute("""
                     UPDATE books 
                     SET title = ?, pinyin = ?, author = ?, format = ?, last_read_date = ?, 
@@ -518,7 +523,7 @@ class DatabaseManager:
                     book.word_count,
                     book.tags if book.tags else "",
                     json.dumps(book.to_dict()),
-                    book.path
+                    where_path
                 ))
                 conn.commit()
                 return cursor.rowcount > 0
@@ -1709,3 +1714,118 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"获取用户权限失败: {e}")
             return []
+
+    def update_bookmarks_path(self, old_path: str, new_path: str) -> bool:
+        """
+        更新书签表中的书籍路径引用
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE bookmarks SET book_path = ? WHERE book_path = ?", (new_path, old_path))
+                conn.commit()
+                logger.info(f"更新书签表路径引用: {old_path} -> {new_path}")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"更新书签表路径引用失败: {e}")
+            return False
+
+    def update_crawl_history_path(self, old_path: str, new_path: str) -> bool:
+        """
+        更新爬取历史表中的书籍路径引用和名称
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                # 从新路径中提取新的书籍名称（去掉目录路径和文件扩展名）
+                new_title = os.path.splitext(os.path.basename(new_path))[0]
+                
+                # 更新文件路径和书籍名称
+                cursor.execute("UPDATE crawl_history SET file_path = ?, novel_title = ? WHERE file_path = ?", 
+                             (new_path, new_title, old_path))
+                conn.commit()
+                logger.info(f"更新爬取历史表路径引用和名称: {old_path} -> {new_path}, 新名称: {new_title}")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"更新爬取历史表路径引用和名称失败: {e}")
+            return False
+
+    def update_reading_history_path(self, old_path: str, new_path: str) -> bool:
+        """
+        更新阅读历史表中的书籍路径引用
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE reading_history SET book_path = ? WHERE book_path = ?", (new_path, old_path))
+                conn.commit()
+                logger.info(f"更新阅读历史表路径引用: {old_path} -> {new_path}")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"更新阅读历史表路径引用失败: {e}")
+            return False
+
+    def update_user_books_path(self, old_path: str, new_path: str) -> bool:
+        """
+        更新用户书籍关联表中的书籍路径引用
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE user_books SET book_path = ? WHERE book_path = ?", (new_path, old_path))
+                conn.commit()
+                logger.info(f"更新用户书籍关联表路径引用: {old_path} -> {new_path}")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"更新用户书籍关联表路径引用失败: {e}")
+            return False
+
+    def update_vocabulary_path(self, old_path: str, new_path: str) -> bool:
+        """
+        更新词汇表中的书籍路径引用
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE vocabulary SET book_id = ? WHERE book_id = ?", (new_path, old_path))
+                conn.commit()
+                logger.info(f"更新词汇表路径引用: {old_path} -> {new_path}")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"更新词汇表路径引用失败: {e}")
+            return False

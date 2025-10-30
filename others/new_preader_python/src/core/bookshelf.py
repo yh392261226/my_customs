@@ -1018,3 +1018,109 @@ class Bookshelf:
             self._load_books()
         except Exception:
             pass
+
+    def rename_book(self, book_path: str, new_title: str) -> bool:
+        """
+        重命名书籍
+        
+        Args:
+            book_path: 原书籍路径
+            new_title: 新书名
+            
+        Returns:
+            bool: 重命名是否成功
+        """
+        try:
+            # 获取书籍对象
+            book = self.get_book(book_path)
+            if not book:
+                logger.error(f"未找到书籍: {book_path}")
+                return False
+            
+            # 检查新书名是否与原书名相同
+            if new_title == book.title:
+                logger.warning(f"新书名与原书名相同: {new_title}")
+                return False
+            
+            # 获取原文件信息
+            old_file_path = book.path
+            old_file_dir = os.path.dirname(old_file_path)
+            old_file_ext = os.path.splitext(old_file_path)[1]
+            
+            # 生成新文件名（保持原后缀名）
+            new_file_name = f"{new_title}{old_file_ext}"
+            new_file_path = os.path.join(old_file_dir, new_file_name)
+            
+            # 检查新文件是否已存在
+            if os.path.exists(new_file_path):
+                logger.error(f"目标文件已存在: {new_file_path}")
+                return False
+            
+            # 重命名物理文件
+            try:
+                os.rename(old_file_path, new_file_path)
+                logger.info(f"文件重命名成功: {old_file_path} -> {new_file_path}")
+            except Exception as e:
+                logger.error(f"文件重命名失败: {e}")
+                return False
+            
+            # 更新书籍对象
+            old_path = book.path
+            book.path = new_file_path
+            book.title = new_title
+            
+            # 更新数据库中的书籍记录（使用旧路径定位记录）
+            if not self.db_manager.update_book(book, old_path):
+                logger.error("更新数据库书籍记录失败")
+                # 如果数据库更新失败，回滚文件重命名
+                try:
+                    os.rename(new_file_path, old_file_path)
+                    logger.info("数据库更新失败，已回滚文件重命名")
+                except Exception as e:
+                    logger.error(f"回滚文件重命名失败: {e}")
+                return False
+            
+            # 更新相关表中的书籍路径引用
+            self._update_book_references(old_path, new_file_path)
+            
+            # 更新内存中的书籍记录
+            if old_path in self.books:
+                del self.books[old_path]
+                self.books[new_file_path] = book
+            
+            logger.info(f"书籍重命名成功: {old_path} -> {new_file_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"重命名书籍失败: {e}")
+            return False
+    
+    def _update_book_references(self, old_path: str, new_path: str) -> None:
+        """
+        更新相关表中的书籍路径引用
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+        """
+        try:
+            # 更新书签表
+            self.db_manager.update_bookmarks_path(old_path, new_path)
+            
+            # 更新爬取历史表
+            self.db_manager.update_crawl_history_path(old_path, new_path)
+            
+            # 更新阅读历史表
+            self.db_manager.update_reading_history_path(old_path, new_path)
+            
+            # 更新用户书籍关联表
+            self.db_manager.update_user_books_path(old_path, new_path)
+            
+            # 更新词汇表
+            self.db_manager.update_vocabulary_path(old_path, new_path)
+            
+            logger.info(f"已更新相关表中的书籍路径引用: {old_path} -> {new_path}")
+            
+        except Exception as e:
+            logger.error(f"更新书籍路径引用失败: {e}")
+            raise

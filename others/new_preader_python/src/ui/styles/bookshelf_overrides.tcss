@@ -20,18 +20,19 @@ Footer {
 .bookshelf-screen Grid {
     width: 100%;
     height: 100%;
-    grid-size: 1 4;
-    grid-rows: 20% 60% 10% 10%;
+    grid-size: 1 3;
+    grid-rows: 15% 75% 10%;
     margin-top: 1;
 }
 
-/* 数据表样式 - 增加高度以显示更多行 */
+/* 数据表样式 - 增加高度以显示更多行，确保不受样式隔离影响 */
 .bookshelf-screen DataTable {
     width: 100%;
-    height: 100%;
+    height: 1fr;
     background: $surface;
     color: $text;
-    margin-top: 1;
+    margin-top: 2;
+    min-height: 10;
 }
 
 /* 顶部标题区域 */
@@ -59,7 +60,7 @@ Footer {
     background: transparent;
 }
 
-.bookshelf-screen .search-input {
+.bookshelf-screen .bookshelf-search-input {
     width: 20%;
     min-width: 15;
     height: 3;
@@ -68,7 +69,7 @@ Footer {
     color: $text;
 }
 
-.bookshelf-screen .search-select {
+.bookshelf-screen .bookshelf-search-select {
     width: 20%;
     min-width: 15;
     height: 4;

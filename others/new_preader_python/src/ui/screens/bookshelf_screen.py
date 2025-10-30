@@ -29,7 +29,7 @@ from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
 from src.ui.dialogs.scan_progress_dialog import ScanProgressDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import ScreenStyleMixin
-from src.ui.styles.comprehensive_style_isolation import apply_comprehensive_style_isolation, remove_comprehensive_style_isolation
+from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 from src.utils.logger import get_logger
 
@@ -106,6 +106,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             (get_global_i18n().t("bookshelf.tags"), "tags"),
             (get_global_i18n().t("bookshelf.read"), "read_action"),  # 阅读按钮列
             (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
+            (get_global_i18n().t("bookshelf.rename"), "rename_action"),  # 重命名按钮列
             (get_global_i18n().t("bookshelf.delete"), "delete_action"),  # 删除按钮列
         ]
     
@@ -139,7 +140,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         Input(
                             placeholder=get_global_i18n().t("search.placeholder"), 
                             id="bookshelf-search-input", 
-                            classes="search-input"
+                            classes="bookshelf-search-input"
                         ),
                         Select(
                             [
@@ -153,10 +154,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                             value="all",
                             id="bookshelf-format-filter",
                             prompt=get_global_i18n().t("search.file_format"),
-                            classes="search-select"
+                            classes="bookshelf-search-select"
                         ),
                         id="bookshelf-search-bar",
-                        classes="search-bar"
+                        classes="bookshelf-search-bar"
                     ),
                     id="bookshelf-header"
                 ),
@@ -167,52 +168,43 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     Label("", id="books-stats-label"),
                     id="books-stats-area"
                 ),
-                # 底部控制栏和状态栏
-                # Vertical(
-                #     Horizontal(
-                        
-                        
-                        
-                #         id="bookshelf-controls",
-                #         classes="btn-row"
-                #     ),
-                #     # # 快捷键状态栏
-                #     Horizontal(
-                #         Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
-                #         Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
-                #         Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
-                #         Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
-                #         Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
-                #         Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
-                #         Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
-                #         Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
-                #         Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
-                #         Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
-                #         Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
-                #         Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
-                #         id="shortcuts-bar",
-                #         classes="footer status-bar"
-                #     ),
-                #     id="bookshelf-footer"
+                # 底部状态栏（简化版本）
+                # Horizontal(
+                #     Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
+                #     Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
+                #     Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
+                #     Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
+                #     Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
+                #     Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
+                #     Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
+                #     Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
+                #     Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
+                #     Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
+                #     Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
+                #     Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
+                #     id="shortcuts-bar",
+                #     classes="footer status-bar"
                 # ),
-                id="bookshelf-container"
-            )
+                # id="bookshelf-container"
+            ),
+            id="bookshelf-screen",
+            classes="bookshelf-screen"
         )
         yield Footer()
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        # 应用全面的样式隔离
-        apply_comprehensive_style_isolation(self)
+        # 应用通用样式隔离
+        apply_universal_style_isolation(self)
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
-        # 设置Grid布局的行高分配 - 使用百分比确保底部显示
+        # 设置Grid布局的行高分配 - 与CSS保持一致
         grid = self.query_one("Grid")
-        grid.styles.grid_size_rows = 4
+        grid.styles.grid_size_rows = 3
         grid.styles.grid_size_columns = 1
-        grid.styles.grid_rows = ("20%", "71%", "10%", "15%")
+        grid.styles.grid_rows = ("20%", "70%", "10%")
         
         # 初始化搜索状态
         self._search_keyword = ""
@@ -375,6 +367,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
             if getattr(self.app, "has_permission", lambda k: False)("bookshelf.view_file"):
                 row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
+            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.rename_book"):
+                row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
             if getattr(self.app, "has_permission", lambda k: False)("bookshelf.delete_book"):
                 row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")
             table.add_row(*row_values, key=book.path)
@@ -610,7 +604,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         # 检查是否是操作按钮列
         column_key = cell_key.column_key.value
-        if column_key in ["read_action", "view_action", "delete_action"]:
+        if column_key in ["read_action", "view_action", "rename_action", "delete_action"]:
             book_id = cell_key.row_key.value
             if not book_id:
                 self.logger.error("书籍ID为空，无法执行操作")
@@ -630,6 +624,12 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     self._view_file(book_id)
                 else:
                     self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
+            elif column_key == "rename_action":
+                if self._has_permission("bookshelf.rename_book"):
+                    self.logger.info(f"点击重命名按钮: {book_id}")
+                    self._rename_book(book_id)
+                else:
+                    self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
             elif column_key == "delete_action":
                 if self._has_permission("bookshelf.delete_book"):
                     self.logger.info(f"点击删除按钮: {book_id}")
@@ -698,6 +698,49 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             self.logger.error(f"查看文件失败: {e}")
             self.notify(f"{get_global_i18n().t("bookshelf.view_file_failed")}: {e}", severity="error")
     
+    def _rename_book(self, book_path: str) -> None:
+        """重命名书籍"""
+        try:
+            # 获取书籍信息
+            book = self.bookshelf.get_book(book_path)
+            if not book:
+                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                return
+            
+            # 显示重命名对话框
+            from src.ui.dialogs.rename_book_dialog import RenameBookDialog
+            
+            def handle_rename_result(result: Optional[dict]) -> None:
+                """处理重命名结果"""
+                if result and result.get("success"):
+                    new_title = result.get("new_title", "")
+                    book_path = result.get("book_path", "")
+                    
+                    if not new_title or not book_path:
+                        self.notify(get_global_i18n().t("bookshelf.rename_failed"), severity="error")
+                        return
+                    
+                    # 执行重命名操作
+                    if self.bookshelf.rename_book(book_path, new_title):
+                        self.notify(
+                            get_global_i18n().t("bookshelf.rename_success", title=new_title),
+                            severity="information"
+                        )
+                        # 刷新书架显示
+                        self._refresh_bookshelf()
+                    else:
+                        self.notify(get_global_i18n().t("bookshelf.rename_failed"), severity="error")
+            
+            # 弹出重命名对话框
+            self.app.push_screen(
+                RenameBookDialog(book.title, book_path),
+                callback=handle_rename_result
+            )
+            
+        except Exception as e:
+            self.logger.error(f"重命名书籍失败: {e}")
+            self.notify(f"{get_global_i18n().t('bookshelf.rename_failed')}: {e}", severity="error")
+
     def _delete_book(self, book_path: str) -> None:
         """删除书籍"""
         try:
