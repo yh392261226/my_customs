@@ -88,6 +88,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         # 初始化序号到书籍路径的映射
         self._book_index_mapping: Dict[str, str] = {}
+        # 初始化行键到书籍路径的映射
+        self._row_key_mapping: Dict[str, str] = {}
         
         # 分页相关属性
         self._current_page = 1
@@ -374,10 +376,15 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         # 创建序号到书籍路径的映射
         self._book_index_mapping = {}
+        # 创建行键到书籍路径的映射
+        self._row_key_mapping = {}
         
         for index, book in enumerate(current_page_books, start_index + 1):
             # 存储序号到路径的映射
             self._book_index_mapping[str(index)] = book.path
+            # 存储行键到路径的映射
+            row_key = f"{book.path}_{index}"
+            self._row_key_mapping[row_key] = book.path
             
             # 直接使用Book对象的属性，而不是Statistics类的方法
             last_read = book.last_read_date or ""
@@ -386,25 +393,42 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # 格式化标签显示（直接显示逗号分隔的字符串）
             tags_display = book.tags if book.tags else ""
             
+            # 如果文件不存在，在标题前添加标记
+            display_title = book.title
+            if getattr(book, 'file_not_found', False):
+                display_title = f"[🈚] {book.title}"
+            
             # 添加操作按钮（按权限）
             row_values = [
                 str(index),
-                book.title,
+                display_title,
                 book.author,
                 book.format.upper(),
                 last_read,
                 f"{progress:.1f}%",
                 tags_display,
             ]
-            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.read"):
-                row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
-            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.view_file"):
-                row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
-            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.rename_book"):
-                row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
+            # 文件不存在时，不显示阅读、查看文件、重命名按钮
+            if getattr(book, 'file_not_found', False):
+                row_values.append("")
+            else:            
+                if getattr(self.app, "has_permission", lambda k: False)("bookshelf.read"):
+                    row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
+            if getattr(book, 'file_not_found', False):
+                row_values.append("")
+            else:
+                if getattr(self.app, "has_permission", lambda k: False)("bookshelf.view_file"):
+                    row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
+            if getattr(book, 'file_not_found', False):
+                row_values.append("")
+            else:
+                if getattr(self.app, "has_permission", lambda k: False)("bookshelf.rename_book"):
+                    row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
+
             if getattr(self.app, "has_permission", lambda k: False)("bookshelf.delete_book"):
                 row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")
-            table.add_row(*row_values, key=book.path)
+            # 使用唯一的key，避免重复（book.path + 索引）
+            table.add_row(*row_values, key=f"{book.path}_{index}")
         
         # 更新书籍统计信息
         self._update_books_stats(self._all_books)
@@ -638,9 +662,15 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         # 检查是否是操作按钮列
         column_key = cell_key.column_key.value
         if column_key in ["read_action", "view_action", "rename_action", "delete_action"]:
-            book_id = cell_key.row_key.value
+            row_key = cell_key.row_key.value
+            if not row_key:
+                self.logger.error("行键为空，无法执行操作")
+                return
+            
+            # 通过行键映射获取实际书籍路径
+            book_id = self._row_key_mapping.get(row_key)
             if not book_id:
-                self.logger.error("书籍ID为空，无法执行操作")
+                self.logger.error(f"未找到行键对应的书籍路径: {row_key}")
                 return
                 
             # 根据列键判断点击的是哪个按钮
@@ -789,7 +819,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         success = self.bookshelf.remove_book(book_path)
                         if success:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
-                            # 刷新书架列表
+                            # 刷新书库内存缓存和书架列表
+                            self.bookshelf._load_books()
                             self._load_books()
                         else:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_failed"), severity="error")
@@ -820,7 +851,15 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         Args:
             event: 行选择事件
         """
-        book_id = event.row_key.value
+        row_key = event.row_key.value
+        self.logger.info(f"选择书籍行键: {row_key}")
+        
+        # 通过行键映射获取实际书籍路径
+        book_id = self._row_key_mapping.get(row_key)
+        if not book_id:
+            self.logger.error(f"未找到行键对应的书籍路径: {row_key}")
+            return
+            
         self.logger.info(f"选择书籍: {book_id}")
         # 类型安全的open_book调用
         app_instance = self.app
@@ -842,7 +881,11 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 # 获取选中行的键（书籍路径）
                 row_key = list(table.rows.keys())[table.cursor_row]
                 if row_key and row_key.value:
-                    book_id = row_key.value  # 使用行键（书籍路径）而不是第一列数据
+                    # 使用行键映射获取实际书籍路径
+                    book_id = self._row_key_mapping.get(row_key.value)
+                    if not book_id:
+                        self.logger.error(f"未找到行键对应的书籍路径: {row_key.value}")
+                        return
                     self.logger.info(get_global_i18n().t('bookshelf.press_enter_open_book', book_id=book_id))
                     # 使用备用方法打开书籍（权限）
                     if self._has_permission("bookshelf.read"):
@@ -987,10 +1030,15 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 
                 # 更新序号到书籍路径的映射
                 self._book_index_mapping = {}
+                # 创建行键到书籍路径的映射
+                self._row_key_mapping = {}
                 
                 for index, book in enumerate(sorted_books, 1):
                     # 存储序号到路径的映射
                     self._book_index_mapping[str(index)] = book.path
+                    # 存储行键到路径的映射
+                    row_key = f"{book.path}_{index}"
+                    self._row_key_mapping[row_key] = book.path
                     
                     last_read = book.last_read_date or ""
                     progress = book.reading_progress * 100  # 转换为百分比
@@ -999,13 +1047,24 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     tags_display = book.tags if book.tags else ""
                     
                     # 添加操作按钮
-                    read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
-                    view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
-                    delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                    # 文件不存在时，不显示阅读、查看文件按钮
+                    if getattr(book, 'file_not_found', False):
+                        read_button = ""
+                        view_file_button = ""
+                        delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                    else:
+                        read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
+                        view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+                        delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                    
+                    # 如果文件不存在，在标题前添加标记
+                    display_title = book.title
+                    if getattr(book, 'file_not_found', False):
+                        display_title = f"[书籍文件不存在] {book.title}"
                     
                     table.add_row(
                         str(index),  # 显示数字序号而不是路径
-                        book.title,
+                        display_title,
                         book.author,
                         book.format.upper(),
                         last_read,
@@ -1014,7 +1073,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         read_button,  # 阅读按钮
                         view_file_button,  # 查看文件按钮
                         delete_button,  # 删除按钮
-                        key=book.path  # 仍然使用路径作为行键
+                        key=f"{book.path}_{index}"  # 使用唯一的key，避免重复（book.path + 索引）
                     )
                 
                 # 将字段名映射到翻译文本

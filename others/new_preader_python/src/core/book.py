@@ -37,8 +37,10 @@ class Book:
         self.format = os.path.splitext(path)[1].lower() if path else ".txt"
         
         # 检查文件是否存在（允许空路径用于默认书籍）
+        self.file_not_found = False
         if path and not os.path.exists(path):
             logger.warning(f"书籍文件不存在: {path}")
+            self.file_not_found = True
             # 不抛出异常，允许创建书籍对象但标记为文件不存在
         
         # 检查文件格式是否支持（允许空路径用于默认书籍）
@@ -106,6 +108,7 @@ class Book:
             "pinyin": self.pinyin,
             "tags": self.tags,  # 直接返回字符串
             "size": self.size,
+            "file_not_found": self.file_not_found,  # 文件不存在标记
             "add_date": self.add_date,
             "last_read_date": self.last_read_date,
             "current_position": self.current_position,

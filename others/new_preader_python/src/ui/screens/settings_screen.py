@@ -582,9 +582,9 @@ class SettingsScreen(Screen[Any]):
         # 定义需要过滤的敏感字段
         sensitive_fields = [
             # 翻译服务API密钥
-            "app_id", "app_key", "api_key", "subscription_key", "app_secret", "password",
+            "app_id", "app_key", "api_key", "subscription_key", "app_secret",
             # 其他敏感信息
-            "key", "secret", "token"
+            "secret", "token"
         ]
         
         def sanitize_dict(d):

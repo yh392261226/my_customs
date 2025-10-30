@@ -74,6 +74,8 @@ class Bookshelf:
                     self.books[book.path] = book
                 else:
                     logger.warning(f"书籍文件不存在，但保留记录: {book.path}")
+                    # 标记书籍为文件不存在状态
+                    book.file_not_found = True
                     self.books[book.path] = book
             logger.info(f"已加载 {len(self.books)} 本书籍（用户过滤：{self.current_user_id is not None}）")
         except Exception as e:
