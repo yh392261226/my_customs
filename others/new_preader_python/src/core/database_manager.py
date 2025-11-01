@@ -315,12 +315,18 @@ class DatabaseManager:
             if 'created_at' not in columns:
                 cursor.execute("ALTER TABLE proxy_settings ADD COLUMN created_at TEXT NOT NULL DEFAULT '2024-01-01T00:00:00'")
 
-            # 插入数据
-            cursor.execute("""
-                INSERT INTO "main"."proxy_settings" ("id", "name", "enabled", "type", "host", "port", "username", "password", "created_at", "updated_at") VALUES (1, '7892', 0, 'SOCKS5', '127.0.0.1', '7892', '', '', '2025-10-30T20:51:49.559357', '2025-10-30T20:54:10.872009');
-                INSERT INTO "main"."proxy_settings" ("id", "name", "enabled", "type", "host", "port", "username", "password", "created_at", "updated_at") VALUES (2, '7890', 1, 'SOCKS5', '127.0.0.1', '7890', '', '', '2025-10-30T20:52:46.021211', '2025-10-30T20:52:46.021224');
-                INSERT INTO "main"."proxy_settings" ("id", "name", "enabled", "type", "host", "port", "username", "password", "created_at", "updated_at") VALUES (3, '51837', 0, 'SOCKS5', '127.0.0.1', '51837', '', '', '2025-10-30T20:54:26.474660', '2025-10-30T20:54:26.474668');
-            """)
+            # 插入代理数据（使用INSERT OR IGNORE避免重复）
+            proxy_settings_data = [
+                (1, '7892', 0, 'SOCKS5', '127.0.0.1', '7892', '', '', datetime.now().isoformat(), datetime.now().isoformat()),
+                (2, '7890', 1, 'SOCKS5', '127.0.0.1', '7890', '', '', datetime.now().isoformat(), datetime.now().isoformat()),
+                (3, '51837', 0, 'SOCKS5', '127.0.0.1', '51837', '', '', datetime.now().isoformat(), datetime.now().isoformat())
+            ]
+            
+            for proxy_data in proxy_settings_data:
+                cursor.execute(
+                    "INSERT OR IGNORE INTO proxy_settings (id, name, enabled, type, host, port, username, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    proxy_data
+                )
             
             # 创建书籍网站表
             cursor.execute("""
@@ -338,20 +344,26 @@ class DatabaseManager:
                 )
             """)
 
-            # 插入书籍网站表
-            cursor.execute("""
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (1, '人妻小说网', 'https://www.renqixiaoshuo.net', '/Users/yanghao/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', '2025-10-30T20:57:48.693615', '2025-10-30T21:02:14.359202');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (2, '87NB', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', '2025-10-30T21:02:02.541667', '2025-10-30T21:02:02.541667');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (3, '91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '69hnovel_v2', '🔞成人', '2025-10-30T21:03:30.545970', '2025-10-30T21:03:30.545970');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (4, 'AAA成人小說', 'https://aaanovel.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'aaanovel_v2', '🔞成人', '2025-10-30T21:06:01.281188', '2025-10-30T21:06:01.281188');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (5, 'BOOK18', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', '2025-10-30T21:08:19.237376', '2025-10-30T21:08:19.237376');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (6, 'COOL18', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', '2025-10-30T21:10:45.105745', '2025-10-30T21:10:45.105745');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (7, '成人小说网', 'https://crxs.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'crxs_v2', '🔞成人', '2025-10-30T21:12:13.730167', '2025-10-30T21:12:13.730167');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (8, '风月文学网', 'http://www.h528.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'h528_v2', '🔞成人', '2025-10-30T21:13:30.826456', '2025-10-30T21:13:30.826456');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (9, '色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', '2025-10-30T21:15:07.819350', '2025-10-30T21:15:07.819350');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (10, '中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', '2025-10-30T21:17:34.683164', '2025-10-30T21:17:34.683164');
-                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (11, 'XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', '2025-10-30T21:20:42.789953', '2025-10-30T21:20:42.789953');
-            """)
+            # 插入书籍网站表（使用INSERT OR IGNORE避免重复）
+            novel_sites_data = [
+                ('人妻小说网', 'https://www.renqixiaoshuo.net', '/Users/yanghao/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('87NB', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '69hnovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('AAA成人小說', 'https://aaanovel.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'aaanovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('BOOK18', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('COOL18', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('成人小说网', 'https://crxs.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'crxs_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('风月文学网', 'http://www.h528.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'h528_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat())
+            ]
+            
+            for site_data in novel_sites_data:
+                cursor.execute(
+                    "INSERT OR IGNORE INTO novel_sites (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    site_data
+                )
             
             # 创建爬取历史表
             cursor.execute("""
