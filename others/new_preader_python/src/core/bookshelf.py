@@ -61,6 +61,7 @@ class Bookshelf:
             self.books.clear()
             books: List[Book]
             # 超级管理员可以看所有的书籍，普通用户只能看自己的书籍
+            logger.info(f"当前用户类型为:{self.current_user_role}, 用户ID为:{self.current_user_id}")
             # 如果当前用户ID为None，则直接为空列表，不进行过滤
             if self.current_user_role == "superadmin" or self.current_user_role == "super_admin" : 
                 books = self.db_manager.get_all_books()
@@ -239,7 +240,7 @@ class Bookshelf:
     
     def search_books(self, keyword: str, format: Optional[str] = None) -> List[Book]:
         """
-        搜索书籍
+        搜索书籍（按当前用户权限过滤）
         
         Args:
             keyword: 搜索关键词
@@ -248,8 +249,40 @@ class Bookshelf:
         Returns:
             List[Book]: 匹配的书籍列表
         """
-        # 使用数据库进行搜索，支持文件格式筛选
-        return self.db_manager.search_books(keyword, format)
+        # 先获取按用户权限过滤后的所有书籍
+        all_books = []
+        if self.current_user_role == "superadmin" or self.current_user_role == "super_admin":
+            all_books = self.db_manager.get_all_books()
+        elif self.current_user_id is not None:
+            all_books = self.db_manager.get_books_for_user(self.current_user_id)
+        else:
+            all_books = []
+        
+        # 如果没有搜索关键词，直接返回所有书籍
+        if not keyword.strip():
+            return all_books
+        
+        # 在已过滤的书籍中进行搜索
+        keyword_lower = keyword.lower()
+        filtered_books = []
+        
+        for book in all_books:
+            # 检查标题、作者、标签是否包含关键词
+            matches = (
+                (book.title and keyword_lower in book.title.lower()) or
+                (book.author and keyword_lower in book.author.lower()) or
+                (book.tags and keyword_lower in book.tags.lower())
+            )
+            
+            # 检查文件格式
+            format_matches = True
+            if format:
+                format_matches = book.format and book.format.lower() == format.lower()
+            
+            if matches and format_matches:
+                filtered_books.append(book)
+        
+        return filtered_books
     
     def filter_books_by_format(self, format_: str) -> List[Book]:
         """

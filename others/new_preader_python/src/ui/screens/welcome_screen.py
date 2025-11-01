@@ -240,7 +240,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     def key_f3(self) -> None:
         """F3快捷键 - 获取书籍"""
-        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.get_books"):
             self.app.push_screen("get_books")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_getbooks'), severity="warning")
@@ -275,22 +275,34 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
 
     # Actions for BINDINGS
     def action_open_book(self) -> None:
-        self._open_file_explorer()
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.open_book"):
+            self._open_file_explorer()
+        else:
+            self.notify(get_global_i18n().t('welcome.np_open_book'), severity="warning")
 
     def action_browse_library(self) -> None:
-        self.app.push_screen("bookshelf")
-
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.browse_library"):
+            self.app.push_screen("bookshelf")
+        else:
+            self.notify(get_global_i18n().t('welcome.np_open_bookshelf'), severity="warning")
+            
     def action_get_books(self) -> None:
-        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.get_books"):
             self.app.push_screen("get_books")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_getbooks'), severity="warning")
 
     def action_open_settings(self) -> None:
-        self.app.push_screen("settings")
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.settings"):
+            self.app.push_screen("settings")
+        else:
+            self.notify(get_global_i18n().t('welcome.np_open_settings'), severity="warning")
 
     def action_open_statistics(self) -> None:
-        self.app.push_screen("statistics")
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.statistics"):
+            self.app.push_screen("statistics")
+        else:
+            self.notify(get_global_i18n().t('welcome.np_open_statistics'), severity="warning")
 
     def action_open_help(self) -> None:
         self.app.push_screen("help")

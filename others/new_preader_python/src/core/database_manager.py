@@ -135,60 +135,60 @@ class DatabaseManager:
             # 完整权限预置（若不存在则插入）- 包含所有页面的按钮权限
             default_perms = [
                 # 欢迎屏幕权限
-                ('welcome.open_book', '打开书籍'),
-                ('welcome.browse_library', '浏览书库'),
-                ('welcome.get_books', '获取书籍'),
-                ('welcome.settings', '打开设置'),
-                ('welcome.statistics', '打开统计'),
-                ('welcome.help', '打开帮助'),
-                ('welcome.manage', '管理用户'),
-                ('welcome.exit', '退出应用'),
+                ('welcome.open_book', '欢迎屏幕.打开书籍'),
+                ('welcome.browse_library', '欢迎屏幕.浏览书库'),
+                ('welcome.get_books', '欢迎屏幕.获取书籍'),
+                ('welcome.settings', '欢迎屏幕.打开设置'),
+                ('welcome.statistics', '欢迎屏幕.打开统计'),
+                ('welcome.help', '欢迎屏幕.打开帮助'),
+                ('welcome.manage', '欢迎屏幕.管理用户'),
+                ('welcome.exit', '欢迎屏幕.退出应用'),
                 
                 # 书架权限
-                ('bookshelf.read', '阅读书籍'),
-                ('bookshelf.view_file', '查看书籍文件'),
-                ('bookshelf.delete_book', '删除书籍'),
-                ('bookshelf.add_book', '添加书籍'),
-                ('bookshelf.scan_directory', '扫描目录添加书籍'),
-                ('bookshelf.get_books', '获取书籍页面'),
-                ('bookshelf.search', '搜索书籍'),
-                ('bookshelf.sort', '排序书籍'),
-                ('bookshelf.batch_ops', '批量操作书籍'),
-                ('bookshelf.refresh', '刷新书架'),
+                ('bookshelf.read', '书库.阅读书籍'),
+                ('bookshelf.view_file', '书库.查看书籍文件'),
+                ('bookshelf.delete_book', '书库.删除书籍'),
+                ('bookshelf.add_book', '书库.添加书籍'),
+                ('bookshelf.scan_directory', '书库.扫描目录添加书籍'),
+                ('bookshelf.get_books', '书库.获取书籍页面'),
+                ('bookshelf.search', '书库.搜索书籍'),
+                ('bookshelf.sort', '书库.排序书籍'),
+                ('bookshelf.batch_ops', '书库.批量操作书籍'),
+                ('bookshelf.refresh', '书库.刷新书架'),
                 
                 # 文件资源管理器权限
-                ('file_explorer.back', '返回上级目录'),
-                ('file_explorer.go', '导航到路径'),
-                ('file_explorer.home', '返回主目录'),
-                ('file_explorer.select', '选择文件/目录'),
-                ('file_explorer.cancel', '取消操作'),
+                ('file_explorer.back', '文件资源管理器.返回上级目录'),
+                ('file_explorer.go', '文件资源管理器.导航到路径'),
+                ('file_explorer.home', '文件资源管理器.返回主目录'),
+                ('file_explorer.select', '文件资源管理器.选择文件/目录'),
+                ('file_explorer.cancel', '文件资源管理器.取消操作'),
                 
                 # 获取书籍权限
-                ('get_books.novel_sites', '小说网站管理'),
-                ('get_books.proxy_settings', '代理设置'),
-                ('get_books.back', '离开获取书籍'),
+                ('get_books.novel_sites', '获取书籍页面.小说网站管理'),
+                ('get_books.proxy_settings', '获取书籍页面.代理设置'),
+                ('get_books.back', '获取书籍页面.离开获取书籍'),
                 
                 # 设置权限
-                ('settings.save', '保存设置'),
-                ('settings.cancel', '取消设置'),
-                ('settings.reset', '重置设置'),
-                ('settings.open', '打开设置'),
+                ('settings.save', '设置中心.保存设置'),
+                ('settings.cancel', '设置中心.取消设置'),
+                ('settings.reset', '设置中心.重置设置'),
+                ('settings.open', '设置中心.打开设置'),
                 
                 # 统计权限
-                ('statistics.refresh', '刷新统计'),
-                ('statistics.export', '导出统计'),
-                ('statistics.reset', '重置统计'),
-                ('statistics.back', '离开统计'),
-                ('statistics.open', '打开统计'),
+                ('statistics.refresh', '统计页面.刷新统计'),
+                ('statistics.export', '统计页面.导出统计'),
+                ('statistics.reset', '统计页面.重置统计'),
+                ('statistics.back', '统计页面.离开统计'),
+                ('statistics.open', '统计页面.打开统计'),
                 
                 # 用户管理权限
-                ('users.add_user', '添加用户'),
-                ('users.edit_user', '编辑用户'),
-                ('users.delete_user', '删除用户'),
-                ('users.set_permissions', '设置权限'),
-                ('users.view_permissions', '查看权限'),
-                ('users.back', '离开管理用户与权限'),
-                ('admin.manage_users', '管理用户与权限'),
+                ('users.add_user', '用户管理.添加用户'),
+                ('users.edit_user', '用户管理.编辑用户'),
+                ('users.delete_user', '用户管理.删除用户'),
+                ('users.set_permissions', '用户管理.设置权限'),
+                ('users.view_permissions', '用户管理.查看权限'),
+                ('users.back', '用户管理.离开管理用户与权限'),
+                ('admin.manage_users', '用户管理.管理用户与权限'),
                 
                 # 登录权限
                 ('login.login', '用户登录'),
@@ -203,10 +203,10 @@ class DatabaseManager:
                 ('crawler.run', '执行爬取任务'),
                 
                 # 书签权限
-                ('bookmarks.add', '添加书签'),
-                ('bookmarks.edit', '编辑书签'),
-                ('bookmarks.delete', '删除书签'),
-                ('bookmarks.view', '查看书签'),
+                ('bookmarks.add', '书签.添加书签'),
+                ('bookmarks.edit', '书签.编辑书签'),
+                ('bookmarks.delete', '书签.删除书签'),
+                ('bookmarks.view', '书签.查看书签'),
                 
                 # 帮助权限
                 ('help.open', '打开帮助中心'),
@@ -314,6 +314,13 @@ class DatabaseManager:
             # 如果缺少created_at字段，则添加
             if 'created_at' not in columns:
                 cursor.execute("ALTER TABLE proxy_settings ADD COLUMN created_at TEXT NOT NULL DEFAULT '2024-01-01T00:00:00'")
+
+            # 插入数据
+            cursor.execute("""
+                INSERT INTO "main"."proxy_settings" ("id", "name", "enabled", "type", "host", "port", "username", "password", "created_at", "updated_at") VALUES (1, '7892', 0, 'SOCKS5', '127.0.0.1', '7892', '', '', '2025-10-30T20:51:49.559357', '2025-10-30T20:54:10.872009');
+                INSERT INTO "main"."proxy_settings" ("id", "name", "enabled", "type", "host", "port", "username", "password", "created_at", "updated_at") VALUES (2, '7890', 1, 'SOCKS5', '127.0.0.1', '7890', '', '', '2025-10-30T20:52:46.021211', '2025-10-30T20:52:46.021224');
+                INSERT INTO "main"."proxy_settings" ("id", "name", "enabled", "type", "host", "port", "username", "password", "created_at", "updated_at") VALUES (3, '51837', 0, 'SOCKS5', '127.0.0.1', '51837', '', '', '2025-10-30T20:54:26.474660', '2025-10-30T20:54:26.474668');
+            """)
             
             # 创建书籍网站表
             cursor.execute("""
@@ -329,6 +336,21 @@ class DatabaseManager:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
+            """)
+
+            # 插入书籍网站表
+            cursor.execute("""
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (1, '人妻小说网', 'https://www.renqixiaoshuo.net', '/Users/yanghao/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', '2025-10-30T20:57:48.693615', '2025-10-30T21:02:14.359202');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (2, '87NB', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', '2025-10-30T21:02:02.541667', '2025-10-30T21:02:02.541667');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (3, '91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '69hnovel_v2', '🔞成人', '2025-10-30T21:03:30.545970', '2025-10-30T21:03:30.545970');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (4, 'AAA成人小說', 'https://aaanovel.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'aaanovel_v2', '🔞成人', '2025-10-30T21:06:01.281188', '2025-10-30T21:06:01.281188');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (5, 'BOOK18', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', '2025-10-30T21:08:19.237376', '2025-10-30T21:08:19.237376');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (6, 'COOL18', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', '2025-10-30T21:10:45.105745', '2025-10-30T21:10:45.105745');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (7, '成人小说网', 'https://crxs.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'crxs_v2', '🔞成人', '2025-10-30T21:12:13.730167', '2025-10-30T21:12:13.730167');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (8, '风月文学网', 'http://www.h528.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'h528_v2', '🔞成人', '2025-10-30T21:13:30.826456', '2025-10-30T21:13:30.826456');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (9, '色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', '2025-10-30T21:15:07.819350', '2025-10-30T21:15:07.819350');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (10, '中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', '2025-10-30T21:17:34.683164', '2025-10-30T21:17:34.683164');
+                INSERT INTO "novel_sites" ("id", "name", "url", "storage_folder", "proxy_enabled", "selectable_enabled", "parser", "tags", "created_at", "updated_at") VALUES (11, 'XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', '2025-10-30T21:20:42.789953', '2025-10-30T21:20:42.789953');
             """)
             
             # 创建爬取历史表

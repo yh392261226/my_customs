@@ -27,18 +27,21 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     ]
     
     def __init__(self, theme_manager: ThemeManager, 
-                 book_id: Optional[str] = None):
+                 book_id: Optional[str] = None,
+                 bookshelf: Optional[Any] = None):
         """
         初始化搜索对话框
         
         Args:
             theme_manager: 主题管理器
             book_id: 可选，限制搜索的书籍ID
+            bookshelf: 可选，已经设置了用户权限的书架实例
         """
         super().__init__()
         self.i18n = get_global_i18n()
         self.theme_manager = theme_manager
         self.book_id = book_id
+        self.bookshelf = bookshelf
         self.results: List[SearchResult] = []
         
     def compose(self) -> ComposeResult:
@@ -107,7 +110,13 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         selected_format = f".{format_filter.value}" if format_filter.value and format_filter.value != "all" else None
         
         # 使用书架进行书籍搜索，支持文件类型筛选
-        bookshelf = Bookshelf()
+        if self.bookshelf:
+            # 使用传入的已经设置了用户权限的书架实例
+            bookshelf = self.bookshelf
+        else:
+            # 如果没有传入书架实例，创建新的实例（可能没有用户权限过滤）
+            bookshelf = Bookshelf()
+        
         books = bookshelf.search_books(search_input.value, format=selected_format)
         
         table = self.query_one("#results-table", DataTable)
