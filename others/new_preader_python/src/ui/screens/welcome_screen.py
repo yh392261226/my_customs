@@ -53,6 +53,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         """
         super().__init__()
         self.title = t("welcome.title_main")
+        self.sub_title = t('app.description')
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
     
