@@ -119,18 +119,36 @@ class StatisticsScreen(Screen[None]):
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限（兼容单/多用户）"""
         try:
+            # 检查是否是多用户模式
+            from src.utils.multi_user_manager import multi_user_manager
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
+            
+            # 单用户模式：所有操作都不需要权限验证
+            if not is_multi_user:
+                return True
+                
+            # 多用户模式：获取当前用户信息
+            current_user = getattr(self.app, 'current_user', None)
+            if current_user is None:
+                current_user = multi_user_manager.get_current_user()
+            
+            # 如果没有当前用户，拒绝操作
+            if current_user is None:
+                return False
+                
+            # 检查是否是超级管理员
+            user_role = current_user.get('role')
+            is_super_admin = user_role == "super_admin" or user_role == "superadmin"
+            
+            # 超级管理员：所有操作都不需要权限验证
+            if is_super_admin:
+                return True
+                
+            # 非超级管理员：需要验证权限
             from src.core.database_manager import DatabaseManager
             db_manager = DatabaseManager()
-            # 获取当前用户ID
-            current_user = getattr(self.app, 'current_user', None)
-            if current_user:
-                current_user_id = current_user.get('id')
-
-            if current_user_id is None:
-                # 单用户模式默认允许；多用户无登录则拒绝
-                if not getattr(self.app, 'multi_user_enabled', False):
-                    return True
-                return False
+            current_user_id = current_user.get('id')
+            
             # 适配 has_permission 签名 (user_id, key) 或 (key)
             try:
                 return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
