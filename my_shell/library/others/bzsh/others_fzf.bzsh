@@ -3,7 +3,7 @@
 export FZF_PREVIEW_FILE_CMD="bat --theme=gruvbox-dark --style=header,grid,numbers --color=always --pager=never"
 export FZF_PREVIEW_DIR_CMD="eza --tree --level=3 --icons --group-directories-first"
 export FZF_PREVIEW_IMG_CMD='chafa -f iterm -s ${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}'
-export FZF_DEFAULT_COMMAND="fd --hidden --no-ignore-vcs --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export FZF_DEFAULT_COMMAND="fd --color always --hidden --no-ignore-vcs --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export FZF_GIT_COMMAND="git ls-files --exclude-standard"
 #export FZF_CURRENT_COMMAND_SWAP_FILE=${TMPDIR:-/tmp}/tmp_fzf_current_command.swap
 export FZF_CURRENT_DIR=$PWD
@@ -59,16 +59,16 @@ _fzf_compgen_dir() {
     fd --type d --hidden --follow --exclude={.git,.idea,.vscode,.sass-cache} . "$1"
 }
 
-export fzf_transformer_filter_all="fd --type f --type d -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_files="fd --type f -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_directories="fd --type d -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_symbolic_links="fd --type l -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_hiddens="fd --type f --type d --hidden --glob '.*' "
-export fzf_transformer_filter_images="fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_medias="fd -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_documents="fd -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_archives="fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
-export fzf_transformer_filter_languages="fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_all="fd --color always --type f --type d -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_files="fd --color always --type f -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_directories="fd --color always --type d -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_symbolic_links="fd --color always --type l -d 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_hiddens="fd --color always --type f --type d --hidden --glob '.*' "
+export fzf_transformer_filter_images="fd --color always -i -t f -e jpg -e jpeg -e png -e gif --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_medias="fd --color always -i -t f -e mp4 -e avi -e mkv --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_documents="fd --color always -i -t f -e txt -e md -e log -e pdf --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_archives="fd --color always -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
+export fzf_transformer_filter_languages="fd --color always -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e sql -e dockerfile -e docker-compose.yml --max-depth 5 --full-path $FZF_CURRENT_DIR --exclude={.git,.idea,.vscode,.sass-cache,node_modules,build,.pyc,__pycache__,.DS_Store}"
 export fzf_transformer_filter_contents="rg --color=always --line-number --no-heading '' "
 
 export fzf_transformer='
@@ -205,6 +205,10 @@ FZF_DEFAULT_OPTS+=' --info="inline-right: 💱 " '
 FZF_DEFAULT_OPTS+=' --border-label-pos="bottom,4" '
 FZF_DEFAULT_OPTS+=' --preview-label-pos="top,4" '
 FZF_DEFAULT_OPTS+=' --header-lines-border=bottom '
+FZF_DEFAULT_OPTS+=' --gutter-raw="▚"'
+FZF_DEFAULT_OPTS+=' --color gutter:green '
+FZF_DEFAULT_OPTS+=' --color nomatch:dim:strip:strikethrough '
+FZF_DEFAULT_OPTS+=' --color ghost:red:italic'
 
 # 历史与标签
 FZF_DEFAULT_OPTS+=" --history=$HOME/.fzf_history "
@@ -260,8 +264,8 @@ FZF_DEFAULT_OPTS+=' --bind="…:preview-bottom" '
 FZF_DEFAULT_OPTS+=' --bind="©:preview-top" '
 FZF_DEFAULT_OPTS+=' --bind="≈:exclude-multi" '
 FZF_DEFAULT_OPTS+=' --bind="†:toggle-track" '
+FZF_DEFAULT_OPTS+=' --bind="®:toggle-raw" '
 FZF_DEFAULT_OPTS+=' --bind="÷:toggle-header" '
-#FZF_DEFAULT_OPTS+=" --bind='®:reload($FZF_CURRENT_COMMAND_SWAP_FILE)' "
 FZF_DEFAULT_OPTS+=' --bind="≥:next-selected" '
 FZF_DEFAULT_OPTS+=' --bind="≤:prev-selected" '
 FZF_DEFAULT_OPTS+=' --bind="shift-up:first" '
@@ -284,6 +288,7 @@ FZF_DEFAULT_OPTS+=' --bind="click-footer:transform:(
     [[ $FZF_CLICK_FOOTER_WORD =~ Copy ]] && echo \"execute-silent(echo -n \{} | pbcopy)+abort\"
     [[ $FZF_CLICK_FOOTER_WORD =~ Open ]] && echo \"execute:open \{} \"
 )" '
+FZF_DEFAULT_OPTS+=" --bind 'result:first+transform:[[ $FZF_RAW = 0 ]] && echo $FZF_DIRECTION-match'"
 
 export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS
 

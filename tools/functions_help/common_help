@@ -34,6 +34,7 @@ readonly help_bottom="│
 │ ${bold}${italic}OPTION-;${reset}        Scroll to the bottom of the preview window.
 │ ${bold}${italic}OPTION-X${reset}        Exclude the selected items or the current item .
 │ ${bold}${italic}OPTION-T${reset}        Toggle track.
+│ ${bold}${italic}OPTION-R${reset}        Toggle raw mode, Then use ALT-UP/ALT-DOWN to move between matches.
 │ ${bold}${italic}OPTION-/${reset}        Toggle show/hide the header window.
 │ ${bold}${italic}OPTION-.${reset}        Go to the previous of selected.
 │ ${bold}${italic}OPTION-,${reset}        Go to the next of selected.
