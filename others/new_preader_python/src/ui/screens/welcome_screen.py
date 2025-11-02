@@ -81,6 +81,12 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Button(get_global_i18n().t('welcome.exit'), id="exit-btn"),
                     id="welcome-buttons", classes="btn-row"
                 ),
+                # 用户登陆信息区
+                Vertical(
+                    Label(get_global_i18n().t('welcome.welcome_message'), id="user-info-title"),
+                    Label("ID:1, admin", id="user-info"),
+                    id="user-info-container",
+                ),
                 # 功能描述区域
                 Vertical(
                     Label(get_global_i18n().t('welcome.features_title'), id="features-title"),
@@ -132,6 +138,19 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             ]
         except Exception:
             pass
+
+        # 当多用户模式启用的时候, user-info-container会显示, 其他时候隐藏
+        # 检查是否是多用户模式
+        from src.utils.multi_user_manager import multi_user_manager
+        is_multi_user = multi_user_manager.is_multi_user_enabled()
+        current_user = getattr(self.app, 'current_user', None)
+
+        if is_multi_user:
+            userinfo = f"ID: {current_user.get('id')}  , Name: {current_user.get('username')} "
+            self.query_one("#user-info", Label).update(userinfo)
+            self.query_one("#user-info-container", Vertical).visible = True
+        else:
+            self.query_one("#user-info-container", Vertical).visible = False
 
         # 按权限禁用“管理”按钮
         try:

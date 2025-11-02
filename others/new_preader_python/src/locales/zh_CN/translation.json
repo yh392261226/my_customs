@@ -78,7 +78,8 @@
         "np_open_help": "无权限访问帮助",
         "np_open_manageuser": "无权限管理用户",
         "np_open_getbooks": "无权限访问获取书籍页面",
-        "open_file_explorer_failed": "打开文件资源管理器失败"
+        "open_file_explorer_failed": "打开文件资源管理器失败",
+        "welcome_message": "欢迎使用 NewReader"
     },
     "bookshelf": {
         "title": "书库",

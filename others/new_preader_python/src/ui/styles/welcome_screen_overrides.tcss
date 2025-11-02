@@ -9,6 +9,27 @@ Header {
     content-align: left middle;
 }
 
+#user-info-container {
+    align: center middle;
+    content-align: center middle;
+    height: 2;
+}
+
+#user-info-title {
+    height: 1;
+    width: 100%;
+    align: center middle;
+    content-align: center middle;
+}
+
+#user-info {
+    height: 1;
+    width: 100%;
+    color: $accent;
+    align: center middle;
+    content-align: center middle;
+}
+
 Footer {
     height: 1;
     width: 100%;

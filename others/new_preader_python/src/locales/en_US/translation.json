@@ -78,7 +78,8 @@
         "np_open_help": "No permission to access help",
         "np_open_manageuser": "No permission to manage users",
         "np_open_getbooks": "No permission to access get books page",
-        "open_file_explorer_failed": "Failed to open file explorer"
+        "open_file_explorer_failed": "Failed to open file explorer",
+        "welcome_message": "Welcome to NewReader"
     },
     "bookshelf": {
         "title": "Bookshelf",
