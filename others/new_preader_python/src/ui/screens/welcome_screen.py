@@ -146,7 +146,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         current_user = getattr(self.app, 'current_user', None)
 
         if is_multi_user:
-            userinfo = f"ID: {current_user.get('id')}  , Name: {current_user.get('username')} "
+            userinfo = f"ID: {current_user.get('id')}  ▚  Name: {current_user.get('username')} "
             self.query_one("#user-info", Label).update(userinfo)
             self.query_one("#user-info-container", Vertical).visible = True
         else:
