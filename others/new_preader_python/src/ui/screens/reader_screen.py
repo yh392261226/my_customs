@@ -2079,44 +2079,6 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
 
         # 更新状态栏 - 添加更安全的查询方式
         try:
-            status_widgets = self.query("#reader-status")
-            if not status_widgets:
-                logger.warning("状态栏元素未找到，可能尚未渲染完成")
-                return
-                
-            status = self.query_one("#reader-status", Static)
-            pager_status = self.query_one("#pager-status", Label)
-            logger.debug(f"状态栏更新: current_page={self.current_page}, total_pages={self.total_pages}, renderer.current_page={self.renderer.current_page}, renderer.total_pages={self.renderer.total_pages}")
-            
-            from src.config.settings.setting_registry import SettingRegistry
-            setting_registry = SettingRegistry()
-            statistics_enabled = setting_registry.get_value("advanced.statistics_enabled", True)
-            
-            if statistics_enabled:
-                stats = self.status_manager.get_statistics()
-                status_text = get_global_i18n().t('reader.pager', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
-                status.update(status_text)
-                pager_status.update(status_text)
-            else:
-                status_text = get_global_i18n().t('reader.pager_without_statistics', current=(self.renderer.current_page + 1), total=self.renderer.total_pages)
-                status.update(status_text)
-                pager_status.update(status_text)
-        except Exception as e:
-            logger.error(f"更新状态栏失败: {e}")
-            pass
-        
-        # 更新按钮状态
-        try:
-            prev_btn = self.query_one("#prev-btn", Button)
-            prev_btn.disabled = self.renderer.current_page <= 0
-            
-            next_btn = self.query_one("#next-btn", Button)
-            next_btn.disabled = self.renderer.current_page >= self.renderer.total_pages - 1
-        except Exception:
-            pass
-        
-        # 更新状态栏 - 添加更安全的查询方式
-        try:
             # 先检查状态栏是否存在
             status_widgets = self.query("#reader-status")
             if not status_widgets:
