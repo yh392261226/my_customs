@@ -79,7 +79,7 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
-            # 创建书籍表
+            # 创建书籍表（删除last_read_date、reading_progress、total_pages、word_count字段）
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS books (
                     path TEXT PRIMARY KEY,
@@ -88,10 +88,6 @@ class DatabaseManager:
                     author TEXT NOT NULL,
                     format TEXT NOT NULL,
                     add_date TEXT NOT NULL,
-                    last_read_date TEXT,
-                    reading_progress REAL DEFAULT 0,
-                    total_pages INTEGER DEFAULT 0,
-                    word_count INTEGER DEFAULT 0,
                     tags TEXT,
                     metadata TEXT
                 )
@@ -238,6 +234,12 @@ class DatabaseManager:
                     read_date TEXT NOT NULL,
                     duration INTEGER NOT NULL,
                     pages_read INTEGER DEFAULT 0,
+                    user_id INTEGER DEFAULT 0,
+                    last_read_date TEXT,
+                    reading_progress REAL DEFAULT 0,
+                    total_pages INTEGER DEFAULT 0,
+                    word_count INTEGER DEFAULT 0,
+                    metadata TEXT,
                     FOREIGN KEY (book_path) REFERENCES books (path) ON DELETE CASCADE
                 )
             """)
@@ -712,7 +714,8 @@ class DatabaseManager:
         
         return f"ORDER BY {field} {direction}"
     
-    def add_reading_record(self, book_path: str, duration: int, pages_read: int = 0) -> bool:
+    def add_reading_record(self, book_path: str, duration: int, pages_read: int = 0, 
+                          user_id: Optional[int] = None, book_metadata: Optional[Dict[str, Any]] = None) -> bool:
         """
         添加阅读记录
         
@@ -720,6 +723,8 @@ class DatabaseManager:
             book_path: 书籍路径
             duration: 阅读时长（秒）
             pages_read: 阅读页数
+            user_id: 用户ID，如果为None则使用默认值0
+            book_metadata: 书籍元数据，用于记录阅读进度相关信息
             
         Returns:
             bool: 添加是否成功
@@ -727,14 +732,54 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                
+                # 获取书籍信息用于记录
+                cursor.execute("SELECT * FROM books WHERE path = ?", (book_path,))
+                book_row = cursor.fetchone()
+                
+                # 设置用户ID（多用户模式关闭时使用0）
+                user_id_value = user_id if user_id is not None else 0
+                
+                # 获取当前时间
+                current_time = datetime.now().isoformat()
+                
+                # 获取书籍的阅读进度相关信息
+                if book_row:
+                    reading_progress = book_row.get('reading_progress', 0) if isinstance(book_row, dict) else (
+                        book_row[7] if len(book_row) > 7 else 0
+                    )
+                    total_pages = book_row.get('total_pages', 0) if isinstance(book_row, dict) else (
+                        book_row[8] if len(book_row) > 8 else 0
+                    )
+                    word_count = book_row.get('word_count', 0) if isinstance(book_row, dict) else (
+                        book_row[9] if len(book_row) > 9 else 0
+                    )
+                else:
+                    reading_progress = 0
+                    total_pages = 0
+                    word_count = 0
+                
+                # 使用提供的元数据或默认值
+                metadata = json.dumps(book_metadata) if book_metadata else (
+                    json.dumps(book_row.get('metadata', {})) if isinstance(book_row, dict) else '{}'
+                )
+                
                 cursor.execute("""
-                    INSERT INTO reading_history (book_path, read_date, duration, pages_read)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO reading_history (book_path, read_date, duration, pages_read, 
+                                                user_id, last_read_date, reading_progress, 
+                                                total_pages, word_count, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book_path,
-                    datetime.now().isoformat(),
+                    current_time,
                     duration,
-                    pages_read
+                    pages_read,
+                    user_id_value,
+                    current_time,
+                    reading_progress,
+                    total_pages,
+                    word_count,
+                    metadata
                 ))
                 conn.commit()
                 return True
@@ -742,13 +787,15 @@ class DatabaseManager:
             logger.error(f"添加阅读记录失败: {e}")
             return False
     
-    def get_reading_history(self, book_path: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_reading_history(self, book_path: Optional[str] = None, limit: int = 100, 
+                           user_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取阅读历史记录
         
         Args:
             book_path: 可选，指定书籍路径
             limit: 返回的记录数量限制
+            user_id: 可选，用户ID，如果为None则不按用户过滤
             
         Returns:
             List[Dict[str, Any]]: 阅读历史记录列表
@@ -758,25 +805,67 @@ class DatabaseManager:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 
-                if book_path:
-                    cursor.execute("""
-                        SELECT * FROM reading_history 
-                        WHERE book_path = ? 
-                        ORDER BY read_date DESC 
-                        LIMIT ?
-                    """, (book_path, limit))
-                else:
-                    cursor.execute("""
-                        SELECT * FROM reading_history 
-                        ORDER BY read_date DESC 
-                        LIMIT ?
-                    """, (limit,))
+                query = "SELECT * FROM reading_history"
+                params = []
                 
+                # 构建查询条件
+                conditions = []
+                
+                if book_path:
+                    conditions.append("book_path = ?")
+                    params.append(book_path)
+                
+                if user_id is not None:
+                    conditions.append("user_id = ?")
+                    params.append(user_id)
+                
+                if conditions:
+                    query += " WHERE " + " AND ".join(conditions)
+                
+                query += " ORDER BY read_date DESC LIMIT ?"
+                params.append(limit)
+                
+                cursor.execute(query, params)
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows if row]
         except sqlite3.Error as e:
             logger.error(f"获取阅读历史记录失败: {e}")
             return []
+
+    def get_latest_reading_record(self, book_path: str, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """
+        获取指定书籍的最新阅读记录
+        
+        Args:
+            book_path: 书籍路径
+            user_id: 可选，用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            Optional[Dict[str, Any]]: 最新的阅读记录，如果不存在则返回None
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                query = "SELECT * FROM reading_history WHERE book_path = ?"
+                params = [book_path]
+                
+                if user_id is not None:
+                    query += " AND user_id = ?"
+                    params.append(user_id)
+                
+                query += " ORDER BY read_date DESC LIMIT 1"
+                
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+                
+                if row:
+                    return dict(row)
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"获取最新阅读记录失败: {e}")
+            return None
     
     def _row_to_book(self, row: sqlite3.Row) -> Book:
         """

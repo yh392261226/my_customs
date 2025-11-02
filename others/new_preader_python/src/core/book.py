@@ -62,11 +62,8 @@ class Book:
             self.pinyin = self._generate_pinyin(self.title)
         
         # 阅读信息
-        self.last_read_date: Optional[str] = None
         self.current_position = 0  # 当前阅读位置（字符偏移量）
         self.current_page = 0  # 当前页码
-        self.total_pages = 0  # 总页数
-        self.reading_progress = 0.0  # 阅读进度（0.0-1.0）
         self.reading_time = 0  # 总阅读时间（秒）
         # 位置锚点（用于跨分页纠偏）
         self.anchor_text: str = ""
@@ -251,16 +248,9 @@ class Book:
         """
         self.current_position = position
         self.current_page = page
-        self.total_pages = total_pages
         
-        # 计算阅读进度
-        if total_pages > 0:
-            self.reading_progress = page / total_pages
-        else:
-            self.reading_progress = 0.0
-        
-        # 更新最后阅读时间
-        self.last_read_date = datetime.now().isoformat()
+        # 注意：total_pages和reading_progress现在存储在reading_history表中
+        # 最后阅读时间也存储在reading_history表中
     
     def add_reading_time(self, seconds: int) -> None:
         """

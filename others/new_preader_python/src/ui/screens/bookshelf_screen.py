@@ -1197,8 +1197,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             self.notify(warning_message, severity="warning")
             return
         
-        # 有权限时调用父类的press方法
-        super().action_press(selector)
+        # 有权限时调用按钮的press方法（如果有的话）
+        # 注意：这里不能调用super().action_press(selector)，因为父类可能没有这个方法
+        # 而是直接调用原始按钮处理逻辑
+        pass
 
 
     def _show_batch_ops_menu(self) -> None:

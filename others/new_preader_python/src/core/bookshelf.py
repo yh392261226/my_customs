@@ -343,9 +343,47 @@ class Bookshelf:
             # 降级到内存排序
             return self._sort_books_in_memory(key, reverse)
     
-    def _sort_books_in_memory(self, key: str, reverse: bool = False) -> List[Book]:
+    def get_book_reading_info(self, book_path: str) -> Dict[str, Any]:
         """
-        内存排序（数据库排序失败时的降级方案）
+        获取书籍的阅读信息（从reading_history表）
+        
+        Args:
+            book_path: 书籍路径
+            
+        Returns:
+            Dict[str, Any]: 阅读信息，包含last_read_date、reading_progress等
+        """
+        try:
+            user_id = self.current_user_id if self.current_user_id else 0
+            latest_record = self.db_manager.get_latest_reading_record(book_path, user_id)
+            
+            if latest_record:
+                return {
+                    "last_read_date": latest_record.get('last_read_date'),
+                    "reading_progress": latest_record.get('reading_progress', 0),
+                    "total_pages": latest_record.get('total_pages', 0),
+                    "word_count": latest_record.get('word_count', 0)
+                }
+            else:
+                # 没有阅读记录，返回默认值
+                return {
+                    "last_read_date": None,
+                    "reading_progress": 0,
+                    "total_pages": 0,
+                    "word_count": 0
+                }
+        except Exception as e:
+            logger.error(f"获取书籍阅读信息失败: {e}")
+            return {
+                "last_read_date": None,
+                "reading_progress": 0,
+                "total_pages": 0,
+                "word_count": 0
+            }
+    
+    def get_sorted_books(self, key: str = "title", reverse: bool = False) -> List[Book]:
+        """
+        获取排序后的书籍列表
         
         Args:
             key: 排序键
@@ -363,16 +401,21 @@ class Bookshelf:
         elif key == "add_date":
             return sorted(books, key=lambda x: x.add_date, reverse=reverse)
         elif key == "last_read_date":
-            # 将没有阅读记录的书籍排在最后
-            def get_last_read_date(book):
-                if book.last_read_date:
-                    return book.last_read_date
+            # 从reading_history表获取最后阅读时间进行排序
+            def get_book_last_read_date(book):
+                reading_info = self.get_book_reading_info(book.path)
+                last_read_date = reading_info.get('last_read_date')
+                if last_read_date:
+                    return last_read_date
                 # 返回一个极早的日期，确保没有阅读记录的书籍排在最后
-                # 无论升序还是降序，没有阅读记录的都应该排在最后
                 return datetime.min.isoformat()
-            return sorted(books, key=get_last_read_date, reverse=reverse)
+            return sorted(books, key=get_book_last_read_date, reverse=reverse)
         elif key == "progress":
-            return sorted(books, key=lambda x: x.reading_progress or 0, reverse=reverse)
+            # 从reading_history表获取阅读进度进行排序
+            def get_book_progress(book):
+                reading_info = self.get_book_reading_info(book.path)
+                return reading_info.get('reading_progress', 0)
+            return sorted(books, key=get_book_progress, reverse=reverse)
         else:
             logger.warning(f"不支持的排序键: {key}，将使用标题排序")
             return sorted(books, key=lambda x: x.title.lower(), reverse=reverse)
@@ -387,10 +430,33 @@ class Bookshelf:
         Returns:
             List[Book]: 最近阅读的书籍列表
         """
-        # 按最后阅读时间排序，确保last_read_date不为None
-        books = [book for book in self.books.values() if book.last_read_date]
-        books.sort(key=lambda x: x.last_read_date or "", reverse=True)
-        return books[:limit]
+        try:
+            # 从reading_history表获取最近阅读的书籍路径
+            user_id = self.current_user_id if self.current_user_id else 0
+            reading_history = self.db_manager.get_reading_history(user_id=user_id, limit=100)
+            
+            # 按阅读时间倒序排列
+            recent_books_paths = []
+            seen_paths = set()
+            
+            for record in reading_history:
+                book_path = record.get('book_path')
+                if book_path and book_path not in seen_paths:
+                    recent_books_paths.append(book_path)
+                    seen_paths.add(book_path)
+            
+            # 获取对应的书籍对象
+            recent_books = []
+            for path in recent_books_paths[:limit]:
+                book = self.books.get(path)
+                if book:
+                    recent_books.append(book)
+            
+            return recent_books
+        except Exception as e:
+            logger.error(f"获取最近阅读书籍失败: {e}")
+            # 如果出错，返回空列表
+            return []
     
     def add_reading_record(self, book: Book, duration: int, pages_read: int = 0, reading_time: Optional[int] = None) -> None:
         """
@@ -411,7 +477,7 @@ class Bookshelf:
             "author": book.author,
             "timestamp": datetime.now().isoformat(),
             "duration": effective_duration,
-            "progress": book.reading_progress,
+            "progress": 0.0,  # 进度现在从reading_history表获取
             "pages_read": pages_read
         }
         
@@ -420,14 +486,30 @@ class Bookshelf:
         # 更新书籍的阅读时间
         book.add_reading_time(effective_duration)
         
-        # 保存阅读记录到数据库
+        # 保存阅读记录到数据库（支持多用户模式）
         try:
+            # 获取当前用户ID（多用户模式关闭时使用0）
+            user_id = self.current_user_id
+            
+            # 构建书籍元数据用于记录
+            book_metadata = {
+                "path": book.path,
+                "title": book.title,
+                "author": book.author,
+                "format": book.format,
+                "current_page": book.current_page,
+                "current_position": book.current_position,
+                "reading_time": book.reading_time
+            }
+            
             self.db_manager.add_reading_record(
                 book_path=book.path,
                 duration=effective_duration,
-                pages_read=pages_read
+                pages_read=pages_read,
+                user_id=user_id,
+                book_metadata=book_metadata
             )
-            logger.info(f"已保存阅读记录到数据库: {book.title}, 时长: {effective_duration}秒")
+            logger.info(f"已保存阅读记录到数据库: {book.title}, 时长: {effective_duration}秒, 用户ID: {user_id}")
         except Exception as e:
             logger.error(f"保存阅读记录到数据库失败: {e}")
         

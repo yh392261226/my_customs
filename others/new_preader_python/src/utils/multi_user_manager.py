@@ -95,9 +95,17 @@ class MultiUserManager:
             # 超级管理员模式，返回超级管理员信息
             return {"id": 1, "role": "super_admin"}
         
-        # TODO: 在多用户模式下，从当前登录会话获取用户信息
-        # 这里需要根据实际的用户认证系统来实现
-        return None  # 默认返回None，表示未登录
+        # 在多用户模式下，从全局应用状态获取当前用户信息
+        try:
+            # 尝试从应用实例获取当前用户信息
+            import src.ui.app as app_module
+            if hasattr(app_module, 'app_instance') and hasattr(app_module.app_instance, 'current_user'):
+                return app_module.app_instance.current_user
+            # 如果无法获取，返回默认用户信息（需要实际实现用户会话管理）
+            return {"id": 0, "role": "user"}
+        except Exception:
+            # 如果出现异常，返回默认用户信息
+            return {"id": 0, "role": "user"}
     
     @staticmethod
     def has_permission(permission: str) -> bool:
