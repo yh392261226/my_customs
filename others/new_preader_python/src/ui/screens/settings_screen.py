@@ -275,6 +275,25 @@ class SettingsScreen(Screen[Any]):
                     value=highlight_setting.value,
                     id="reading-highlight-switch"
                 )
+            
+            # 启用阅读提醒
+            yield Label(get_global_i18n().t("settings.reminder_enabled"), classes="setting-label")
+            reminder_enabled_setting = self.setting_registry.get_setting("reading.reminder_enabled")
+            if reminder_enabled_setting:
+                yield Switch(
+                    value=reminder_enabled_setting.value,
+                    id="reading-reminder-enabled-switch"
+                )
+            
+            # 阅读提醒时间间隔
+            yield Label(get_global_i18n().t("settings.reminder_interval"), classes="setting-label")
+            reminder_interval_setting = self.setting_registry.get_setting("reading.reminder_interval")
+            if reminder_interval_setting:
+                yield Input(
+                    str(reminder_interval_setting.value),
+                    id="reading-reminder-interval-input",
+                    type="number"
+                )
     
     def _compose_audio_settings(self) -> ComposeResult:
         """组合音频设置"""
@@ -983,6 +1002,17 @@ class SettingsScreen(Screen[Any]):
         
         highlight_switch = self.query_one("#reading-highlight-switch", Switch)
         self.setting_registry.set_value("reading.highlight_search", highlight_switch.value)
+        
+        # 阅读提醒设置
+        reminder_enabled_switch = self.query_one("#reading-reminder-enabled-switch", Switch)
+        self.setting_registry.set_value("reading.reminder_enabled", reminder_enabled_switch.value)
+        
+        reminder_interval_input = self.query_one("#reading-reminder-interval-input", Input)
+        try:
+            if reminder_interval_input.value:
+                self.setting_registry.set_value("reading.reminder_interval", int(reminder_interval_input.value))
+        except ValueError:
+            pass
         
         # 音频设置
         tts_switch = self.query_one("#audio-tts-switch", Switch)

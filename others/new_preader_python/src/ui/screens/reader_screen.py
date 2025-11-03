@@ -146,6 +146,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 获取设置注册表
         self.settings_registry = SettingRegistry()
         
+        # 阅读提醒相关变量
+        self.reminder_start_time = None  # 阅读开始时间
+        self.reminder_timer = None  # 提醒计时器
+        self.reminder_enabled = True  # 提醒功能是否启用
+        self.reminder_interval = 1800  # 默认提醒间隔（30分钟）
+        
         # 从设置系统获取渲染配置
         self.render_config = self._load_render_config_from_settings()
         
@@ -336,6 +342,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.add_class("reader-screen")
         except Exception:
             pass
+        
+        # 启动阅读提醒计时器
+        self._start_reading_reminder()
 
         # 应用全面的样式隔离
         apply_comprehensive_style_isolation(self)
@@ -2518,6 +2527,23 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         if event.setting_key in ["reading.line_spacing", "reading.paragraph_spacing", "reading.font_size"]:
                             # 调用完整的设置重载方法，确保状态同步
                             self.reader_screen._reload_settings()
+                        
+                        # 处理阅读提醒设置变更
+                        if event.setting_key in ["reading.reminder_enabled", "reading.reminder_interval"]:
+                            # 更新阅读提醒设置 - 安全地调用异步方法
+                            import asyncio
+                            try:
+                                # 检查事件循环是否正在运行
+                                loop = asyncio.get_event_loop()
+                                if loop.is_running():
+                                    # 如果事件循环正在运行，创建异步任务
+                                    asyncio.create_task(self.reader_screen._update_reading_reminder_settings())
+                                else:
+                                    # 如果事件循环没有运行，直接运行协程（同步方式）
+                                    loop.run_until_complete(self.reader_screen._update_reading_reminder_settings())
+                            except RuntimeError:
+                                # 如果没有事件循环，创建一个新的并运行
+                                asyncio.run(self.reader_screen._update_reading_reminder_settings())
                             
                     except Exception as e:
                         logger.error(f"ReaderScreen: {get_global_i18n().t('reader.apply_change_failed')}: {e}")
@@ -2530,6 +2556,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 "reading.line_spacing",
                 "reading.paragraph_spacing", 
                 "reading.font_size",
+                "reading.reminder_enabled",
+                "reading.reminder_interval",
                 "appearance.theme",
                 "appearance.progress_bar_style"
             ]
@@ -2552,6 +2580,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     "reading.line_spacing",
                     "reading.paragraph_spacing", 
                     "reading.font_size",
+                    "reading.reminder_enabled",
+                    "reading.reminder_interval",
                     "appearance.theme",
                     "appearance.progress_bar_style"
                 ]
@@ -2913,6 +2943,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
     
     async def on_unmount(self) -> None:
         """屏幕卸载时强制保存进度"""
+        # 停止阅读提醒计时器
+        self._stop_reading_reminder()
+        # 取消注册设置观察者
+        self._unregister_setting_observers()
+        
         await self._force_save_progress()
         # 调用父类的 on_unmount 方法
         result = super().on_unmount()
@@ -2944,3 +2979,111 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             logger.error(f"强制保存进度失败: {e}")
             # 记录详细的错误信息
             logger.debug(f"强制保存失败详情: book={hasattr(self, 'book')}, bookshelf={hasattr(self, 'bookshelf')}")
+
+    def _start_reading_reminder(self) -> None:
+        """启动阅读提醒计时器"""
+        try:
+            # 从设置系统获取阅读提醒配置
+            self.reminder_enabled = self.settings_registry.get_value("reading.reminder_enabled", True)
+            self.reminder_interval = self.settings_registry.get_value("reading.reminder_interval", 1800)
+            
+            # 如果提醒功能被禁用或间隔为0，则不启动计时器
+            if not self.reminder_enabled or self.reminder_interval <= 0:
+                logger.debug("阅读提醒功能已禁用或间隔为0，不启动计时器")
+                return
+            
+            # 停止现有的计时器
+            if self.reminder_timer:
+                self.reminder_timer.stop()
+            
+            # 记录阅读开始时间
+            self.reminder_start_time = time.time()
+            
+            # 启动新的计时器
+            self.reminder_timer = self.set_interval(self.reminder_interval, self._show_reading_reminder)
+            
+            logger.debug(f"阅读提醒计时器已启动，间隔: {self.reminder_interval}秒")
+            
+        except Exception as e:
+            logger.error(f"启动阅读提醒计时器失败: {e}")
+
+    def _show_reading_reminder(self) -> None:
+        """显示阅读提醒"""
+        try:
+            # 检查提醒功能是否仍然启用
+            current_reminder_enabled = self.settings_registry.get_value("reading.reminder_enabled", True)
+            current_reminder_interval = self.settings_registry.get_value("reading.reminder_interval", 1800)
+            
+            # 如果提醒功能被禁用或间隔为0，则停止计时器
+            if not current_reminder_enabled or current_reminder_interval <= 0:
+                if self.reminder_timer:
+                    self.reminder_timer.stop()
+                    self.reminder_timer = None
+                logger.debug("阅读提醒功能已禁用，停止计时器")
+                return
+            
+            # 如果间隔发生变化，重新启动计时器
+            if current_reminder_interval != self.reminder_interval:
+                self.reminder_interval = current_reminder_interval
+                if self.reminder_timer:
+                    self.reminder_timer.stop()
+                self.reminder_timer = self.set_interval(self.reminder_interval, self._show_reading_reminder)
+                logger.debug(f"阅读提醒间隔已更新: {self.reminder_interval}秒")
+                return
+            
+            # 计算阅读时长
+            current_time = time.time()
+            reading_duration = int(current_time - self.reminder_start_time)
+            
+            # 显示提醒消息
+            minutes = reading_duration // 60
+            seconds = reading_duration % 60
+            interval = self.reminder_interval // 60 if self.reminder_interval // 60 else 1
+            
+            reminder_message = get_global_i18n().t("reader.reminder_message", 
+                                                   minutes=minutes, seconds=seconds,
+                                                   interval=interval)
+            
+            self.notify(reminder_message, severity="warning", timeout=10)
+            logger.info(f"阅读提醒: 已阅读 {minutes}分{seconds}秒，建议休息眼睛")
+            
+        except Exception as e:
+            logger.error(f"显示阅读提醒失败: {e}")
+
+    def _stop_reading_reminder(self) -> None:
+        """停止阅读提醒计时器"""
+        try:
+            if self.reminder_timer:
+                self.reminder_timer.stop()
+                self.reminder_timer = None
+                logger.debug("阅读提醒计时器已停止")
+        except Exception as e:
+            logger.error(f"停止阅读提醒计时器失败: {e}")
+
+    async def _update_reading_reminder_settings(self) -> None:
+        """更新阅读提醒设置"""
+        try:
+            # 获取最新的设置值
+            new_enabled = self.settings_registry.get_value("reading.reminder_enabled", True)
+            new_interval = self.settings_registry.get_value("reading.reminder_interval", 1800)
+            
+            # 如果设置发生变化，重新启动计时器
+            if new_enabled != self.reminder_enabled or new_interval != self.reminder_interval:
+                self.reminder_enabled = new_enabled
+                self.reminder_interval = new_interval
+                
+                # 停止现有计时器
+                self._stop_reading_reminder()
+                
+                # 如果启用且间隔大于0，重新启动计时器
+                if self.reminder_enabled and self.reminder_interval > 0:
+                    self.reminder_start_time = time.time()
+                    # 使用异步方式启动定时器
+                    self.reminder_timer = self.set_interval(self.reminder_interval, self._show_reading_reminder)
+                    logger.debug(f"阅读提醒设置已更新，重新启动计时器，间隔: {self.reminder_interval}秒")
+                else:
+                    logger.debug("阅读提醒功能已禁用或间隔为0")
+                    
+        except Exception as e:
+            logger.error(f"更新阅读提醒设置失败: {e}")
+

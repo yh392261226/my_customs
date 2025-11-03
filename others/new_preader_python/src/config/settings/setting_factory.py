@@ -185,6 +185,26 @@ def create_reading_settings() -> SettingSection:
         category="reading"
     ))
     
+    # 阅读提醒时间间隔
+    section.add_setting(IntegerSetting(
+        key="reading.reminder_interval",
+        default_value=1800,
+        display_name="阅读提醒时间间隔",
+        description="阅读提醒的时间间隔（秒），设置为0表示禁用提醒",
+        min_value=0,
+        max_value=7200,
+        category="reading"
+    ))
+    
+    # 启用阅读提醒
+    section.add_setting(BooleanSetting(
+        key="reading.reminder_enabled",
+        default_value=True,
+        display_name="启用阅读提醒",
+        description="是否启用阅读提醒功能",
+        category="reading"
+    ))
+    
     return section
 
 def create_audio_settings() -> SettingSection:

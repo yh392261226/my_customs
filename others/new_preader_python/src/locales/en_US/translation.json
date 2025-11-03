@@ -376,7 +376,9 @@
         "refresh_config": "Refresh Config",
         "config_refreshed": "Config preview refreshed",
         "config_refresh_failed": "Failed to refresh config preview",
-        "hiddens": "***Hidden***"
+        "hiddens": "***Hidden***",
+        "reminder_enabled": "Enable Reminder",
+        "reminder_interval": "Reminder Interval"
     },
     "common": {
         "close": "Close",
@@ -527,7 +529,8 @@
         "show_help": "Help",
         "copy_selected_text": "Copy Selected Text",
         "pager": "Page {current}/{total}",
-        "pager_without_statistics": "Page {current}/{total} (Statistics Disabled)"
+        "pager_without_statistics": "Page {current}/{total} (Statistics Disabled)",
+        "reminder_message": "Already read {minutes} minutes {seconds} seconds，have a reset {interval} minutes to protect your eyes"
     },
     "help": {
         "title": "Help Center",

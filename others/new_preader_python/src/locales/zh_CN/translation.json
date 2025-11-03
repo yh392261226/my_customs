@@ -376,7 +376,9 @@
         "refresh_config": "刷新配置",
         "config_refreshed": "配置预览已刷新",
         "config_refresh_failed": "刷新配置预览失败",
-        "hiddens": "***已隐藏***"
+        "hiddens": "***已隐藏***",
+        "reminder_enabled": "启用提醒",
+        "reminder_interval": "提醒间隔"
     },
     "common": {
         "close": "关闭",
@@ -527,7 +529,8 @@
         "show_help": "帮助",
         "copy_selected_text": "复制选中文本",
         "pager": "第{current}/{total}页",
-        "pager_without_statistics": "第{current}/{total}页 (统计已关闭)"
+        "pager_without_statistics": "第{current}/{total}页 (统计已关闭)",
+        "reminder_message": "您已连续阅读 {minutes}分{seconds}秒，建议休息{interval}分钟，保护眼睛健康"
     },
     "help": {
         "title": "帮助中心",
