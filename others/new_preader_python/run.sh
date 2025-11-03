@@ -18,12 +18,54 @@ fi
 echo "检查Python依赖..."
 $PYTHON_CMD -c "
 try:
+    # 核心框架和UI
     import textual
+    import textual_serve
     import rich
+    
+    # 文本处理和格式化
+    import pyfiglet
+    import pypinyin
+    
+    # 电子书格式支持
+    import ebooklib
+    import PyPDF2
+    import mobi
+    import pdfminer
+    
+    # 网络爬虫和解析
+    import bs4
+    import lxml
+    import requests
+    import socket
+    import cloudscraper
+    import selenium
+    import webdriver_manager
+    
+    # 语音和语言处理
+    import pyttsx3
+    import langdetect
+    
+    # 时间和国际化
+    import pytz
+    import i18n
+    
+    # 图像处理
+    import PIL
+    
+    # 文件监控
+    import watchdog
+    
+    # 其他依赖
+    import cjkwrap
+    import fitz
+    import pdfplumber
     import sqlite3
+    
     print('所有依赖已安装')
 except ImportError as e:
     print(f'缺少依赖: {e}')
+    print('请运行: pip install -r requirements.txt')
     exit(1)
 " || exit 1
 
