@@ -1,4 +1,6 @@
 #!/bin/bash
+#保存当前屏幕并切换到备用屏幕缓冲区
+tput smcup
 # 使用 stty 获取终端大小并确保程序使用全屏
 export LINES=$(tput lines)
 export COLUMNS=$(tput cols)
@@ -86,5 +88,5 @@ case $EXIT_CODE in
 3) echo "错误: 文件权限问题" ;;
 *) echo "程序异常退出 (代码: $EXIT_CODE)" ;;
 esac
-
+tput rmcup # 恢复原来的屏幕内容
 exit $EXIT_CODE
