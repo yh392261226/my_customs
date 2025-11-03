@@ -164,7 +164,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         id="bookshelf-search-bar",
                         classes="bookshelf-search-bar"
                     ),
-                    id="bookshelf-header"
+                    id="bookshelf-header",
+                    classes="bookshelf-header-vertical"
                 ),
                 # 中间数据表区域
                 DataTable(id="books-table"),
@@ -209,7 +210,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         grid = self.query_one("Grid")
         grid.styles.grid_size_rows = 3
         grid.styles.grid_size_columns = 1
-        grid.styles.grid_rows = ("20%", "70%", "10%")
+        grid.styles.grid_rows = ("25%", "65%", "10%")
         
         # 初始化搜索状态
         self._search_keyword = ""
