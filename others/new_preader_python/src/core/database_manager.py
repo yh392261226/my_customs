@@ -851,7 +851,7 @@ class DatabaseManager:
                 query = "SELECT * FROM reading_history WHERE book_path = ?"
                 params = [book_path]
                 
-                if user_id is not None:
+                if user_id is not None and user_id > 0:
                     query += " AND user_id = ?"
                     params.append(user_id)
                 

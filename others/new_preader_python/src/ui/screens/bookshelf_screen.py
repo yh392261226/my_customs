@@ -378,15 +378,13 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         
         # 对筛选后的书籍进行排序
         if search_keyword or search_format != "all":
-            # 有搜索条件时，手动排序
+            # 有搜索条件时，手动排序（使用从reading_history表获取的阅读时间）
             self._all_books = sorted(filtered_books, 
-                                   key=lambda book: book.last_read_date or "", 
+                                   key=lambda book: self.bookshelf.get_book_reading_info(book.path).get('last_read_date') or "", 
                                    reverse=True)
         else:
-            # 没有搜索条件时，使用已经按权限过滤后的书籍进行排序
-            self._all_books = sorted(list(self.bookshelf.books.values()), 
-                                   key=lambda book: book.last_read_date or "", 
-                                   reverse=True)
+            # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取阅读时间）
+            self._all_books = self.bookshelf.get_sorted_books("last_read_date", reverse=True)
         
         # 计算总页数
         self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
@@ -409,9 +407,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             row_key = f"{book.path}_{index}"
             self._row_key_mapping[row_key] = book.path
             
-            # 直接使用Book对象的属性，而不是Statistics类的方法
-            last_read = book.last_read_date or ""
-            progress = book.reading_progress * 100  # 转换为百分比
+            # 从reading_history表获取阅读信息
+            reading_info = self.bookshelf.get_book_reading_info(book.path)
+            last_read = reading_info.get('last_read_date') or ""
+            progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
             
             # 格式化标签显示（直接显示逗号分隔的字符串）
             tags_display = book.tags if book.tags else ""
@@ -1072,8 +1071,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                     row_key = f"{book.path}_{index}"
                     self._row_key_mapping[row_key] = book.path
                     
-                    last_read = book.last_read_date or ""
-                    progress = book.reading_progress * 100  # 转换为百分比
+                    # 从reading_history表获取阅读信息
+                    reading_info = self.bookshelf.get_book_reading_info(book.path)
+                    last_read = reading_info.get('last_read_date') or ""
+                    progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
                     
                     # 格式化标签显示（直接显示逗号分隔的字符串）
                     tags_display = book.tags if book.tags else ""

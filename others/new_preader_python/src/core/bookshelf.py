@@ -354,7 +354,7 @@ class Bookshelf:
             Dict[str, Any]: 阅读信息，包含last_read_date、reading_progress等
         """
         try:
-            user_id = self.current_user_id if self.current_user_id else 0
+            user_id = self.current_user_id if self.current_user_id else None
             latest_record = self.db_manager.get_latest_reading_record(book_path, user_id)
             
             if latest_record:
@@ -432,7 +432,7 @@ class Bookshelf:
         """
         try:
             # 从reading_history表获取最近阅读的书籍路径
-            user_id = self.current_user_id if self.current_user_id else 0
+            user_id = self.current_user_id if self.current_user_id else None
             reading_history = self.db_manager.get_reading_history(user_id=user_id, limit=100)
             
             # 按阅读时间倒序排列
