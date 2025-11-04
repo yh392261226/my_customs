@@ -84,7 +84,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 # 用户登陆信息区
                 Vertical(
                     Label(get_global_i18n().t('welcome.welcome_message'), id="user-info-title"),
-                    Label("ID:1, admin", id="user-info"),
+                    Label("", id="user-info"),
                     id="user-info-container",
                 ),
                 # 功能描述区域
@@ -145,7 +145,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         is_multi_user = multi_user_manager.is_multi_user_enabled()
         current_user = getattr(self.app, 'current_user', None)
 
-        if is_multi_user:
+        if is_multi_user and current_user:
             userinfo = f"ID: {current_user.get('id')}  ▚  Name: {current_user.get('username')} "
             self.query_one("#user-info", Label).update(userinfo)
             self.query_one("#user-info-container", Vertical).visible = True
