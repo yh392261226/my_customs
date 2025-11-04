@@ -300,12 +300,29 @@ class TranslationDialog(ModalScreen[Dict[str, Any]]):
         
         try:
             # 添加到单词本，使用书籍路径作为book_id
+            # 优先从应用实例获取当前用户信息
+            current_user = getattr(self.app, 'current_user', None)
+            user_id = current_user.get('id') if current_user else None
+            
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+            
             vocabulary_item = self.vocabulary_manager.add_word(
                 word=self.selected_text,
                 translation=translated_text,
                 language=self.translation_result.get('source_lang', 'en'),
                 context=context,
-                book_id=self.book_path  # 使用书籍的绝对路径作为book_id
+                book_id=self.book_path,  # 使用书籍的绝对路径作为book_id
+                user_id=user_id
             )
             
             if vocabulary_item:

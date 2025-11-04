@@ -445,8 +445,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             if getattr(book, 'file_not_found', False):
                 row_values.append("")
             else:
-                if getattr(self.app, "has_permission", lambda k: False)("bookshelf.rename_book"):
-                    row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
+                row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
 
             if getattr(self.app, "has_permission", lambda k: False)("bookshelf.delete_book"):
                 row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")

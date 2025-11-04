@@ -12,6 +12,9 @@ from src.locales.i18n_manager import get_global_i18n, t
 from src.core.vocabulary_manager import VocabularyManager, VocabularyItem
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from src.ui.dialogs.review_dialog import ReviewDialog
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     """单词本对话框"""
@@ -125,13 +128,40 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     
     def load_words(self) -> None:
         """加载单词数据"""
+        # 获取当前用户ID - 使用与应用实例一致的方式
+        current_user = getattr(self.app, 'current_user', None)
+        if current_user:
+            current_user_id = current_user.get('id')
+
+        # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+        if current_user_id is None:
+            from src.utils.multi_user_manager import multi_user_manager
+            current_user = multi_user_manager.get_current_user()
+            current_user_id = current_user.get('id') if current_user else None
+        
+        # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+        if current_user_id is not None:
+            from src.utils.multi_user_manager import multi_user_manager
+            if not multi_user_manager.is_multi_user_enabled():
+                user_id = None
+            else:
+                user_id = current_user_id
+
+            if current_user.get('role') == 'superadmin' or current_user.get('role') == 'super_admin':
+                user_id = None
+        else:
+            user_id = None
+        
+        logger.info(f"当前用户ID: {user_id}")
+        
         # 根据书籍路径过滤单词
         if self.book_path:
             # 只加载当前书籍的单词
-            self.current_words = self.vocabulary_manager.get_words_by_book(self.book_path)
+            self.current_words = self.vocabulary_manager.get_words_by_book(self.book_path, user_id)
         else:
             # 加载所有单词
-            self.current_words = self.vocabulary_manager.get_all_words()
+            self.current_words = self.vocabulary_manager.get_all_words(user_id=user_id)
+        
         self.filtered_words = self.current_words.copy()
         self.update_table()
     
@@ -157,8 +187,24 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
         if not keyword.strip():
             self.filtered_words = self.current_words.copy()
         else:
+            # 优先从应用实例获取当前用户信息
+            current_user = getattr(self.app, 'current_user', None)
+            user_id = current_user.get('id') if current_user else None
+            
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+            
             # 搜索所有单词，然后根据书籍路径过滤
-            all_results = self.vocabulary_manager.search_words(keyword)
+            all_results = self.vocabulary_manager.search_words(keyword, user_id)
             if self.book_path:
                 # 只保留当前书籍的搜索结果
                 self.filtered_words = [word for word in all_results if word.book_id == self.book_path]
@@ -169,7 +215,23 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     
     def show_statistics(self) -> None:
         """显示统计信息"""
-        stats = self.vocabulary_manager.get_statistics()
+        # 优先从应用实例获取当前用户信息
+        current_user = getattr(self.app, 'current_user', None)
+        user_id = current_user.get('id') if current_user else None
+        
+        # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+        if user_id is None:
+            from src.utils.multi_user_manager import multi_user_manager
+            current_user = multi_user_manager.get_current_user()
+            user_id = current_user.get('id') if current_user else None
+        
+        # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+        if user_id is not None:
+            from src.utils.multi_user_manager import multi_user_manager
+            if not multi_user_manager.is_multi_user_enabled():
+                user_id = None
+        
+        stats = self.vocabulary_manager.get_statistics(user_id)
         
         stats_text = f"""
 {get_global_i18n().t('vocabulary_dialog.total_words')}: {stats.get('total_words', 0)}
@@ -270,7 +332,23 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
             return False
         
         try:
-            success = self.vocabulary_manager.delete_word(word_item.id)
+            # 获取当前用户ID - 使用标准模式
+            current_user = getattr(self.app, 'current_user', None)
+            user_id = current_user.get('id') if current_user else None
+            
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+            
+            success = self.vocabulary_manager.delete_word(word_item.id, user_id)
             if success:
                 # 重新加载数据
                 self.load_words()
@@ -285,7 +363,23 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     
     def start_review(self) -> None:
         """开始单词复习：弹出复习对话框，过程内实时更新数据库"""
-        review_words = self.vocabulary_manager.get_words_for_review(limit=20)
+        # 优先从应用实例获取当前用户信息
+        current_user = getattr(self.app, 'current_user', None)
+        user_id = current_user.get('id') if current_user else None
+        
+        # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+        if user_id is None:
+            from src.utils.multi_user_manager import multi_user_manager
+            current_user = multi_user_manager.get_current_user()
+            user_id = current_user.get('id') if current_user else None
+        
+        # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+        if user_id is not None:
+            from src.utils.multi_user_manager import multi_user_manager
+            if not multi_user_manager.is_multi_user_enabled():
+                user_id = None
+        
+        review_words = self.vocabulary_manager.get_words_for_review(limit=20, user_id=user_id)
         # 仅复习当前书籍关联的单词（使用 book_id 与阅读器一致）
         if self.book_path:
             review_words = [

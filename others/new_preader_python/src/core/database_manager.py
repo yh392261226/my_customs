@@ -256,6 +256,8 @@ class DatabaseManager:
                     -- 新增：锚点字段（迁移时通过 PRAGMA+ALTER 添加）
                     anchor_text TEXT DEFAULT '',
                     anchor_hash TEXT DEFAULT '',
+                    -- 新增：用户ID字段，支持多用户模式
+                    user_id INTEGER DEFAULT 0,
                     FOREIGN KEY (book_path) REFERENCES books (path) ON DELETE CASCADE
                 )
             """)
@@ -815,7 +817,7 @@ class DatabaseManager:
                     conditions.append("book_path = ?")
                     params.append(book_path)
                 
-                if user_id is not None:
+                if user_id is not None and user_id > 0:
                     conditions.append("user_id = ?")
                     params.append(user_id)
                 
@@ -920,7 +922,7 @@ class DatabaseManager:
         
         return book
 
-    def add_bookmark(self, book_path: str, position: str, note: str = "", anchor_text: Optional[str] = None, anchor_hash: Optional[str] = None) -> bool:
+    def add_bookmark(self, book_path: str, position: str, note: str = "", anchor_text: Optional[str] = None, anchor_hash: Optional[str] = None, user_id: Optional[int] = None) -> bool:
         """
         添加书签（支持锚点，可选）
         
@@ -928,6 +930,7 @@ class DatabaseManager:
             book_path: 书籍路径
             position: 书签位置
             note: 书签备注
+            user_id: 用户ID，如果为None则使用默认值0
             
         Returns:
             bool: 添加是否成功
@@ -938,19 +941,22 @@ class DatabaseManager:
                 timestamp = time.time()
                 created_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
+                # 设置用户ID（多用户模式关闭时使用0）
+                user_id_value = user_id if user_id is not None else 0
+                
                 # 兼容：如表结构已有锚点列则写入，否则写基础列
                 cursor.execute("PRAGMA table_info(bookmarks)")
                 bm_columns = [column[1] for column in cursor.fetchall()]
                 if 'anchor_text' in bm_columns and 'anchor_hash' in bm_columns:
                     cursor.execute("""
-                        INSERT INTO bookmarks (book_path, position, note, timestamp, created_date, anchor_text, anchor_hash)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (book_path, position, note, timestamp, created_date, anchor_text or "", anchor_hash or ""))
+                        INSERT INTO bookmarks (book_path, position, note, timestamp, created_date, anchor_text, anchor_hash, user_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (book_path, position, note, timestamp, created_date, anchor_text or "", anchor_hash or "", user_id_value))
                 else:
                     cursor.execute("""
-                        INSERT INTO bookmarks (book_path, position, note, timestamp, created_date)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (book_path, position, note, timestamp, created_date))
+                        INSERT INTO bookmarks (book_path, position, note, timestamp, created_date, user_id)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (book_path, position, note, timestamp, created_date, user_id_value))
                 
                 conn.commit()
                 return cursor.lastrowid is not None
@@ -958,12 +964,13 @@ class DatabaseManager:
             logger.error(f"添加书签失败: {e}")
             return False
 
-    def delete_bookmark(self, bookmark_id: int) -> bool:
+    def delete_bookmark(self, bookmark_id: int, user_id: Optional[int] = None) -> bool:
         """
         删除书签
         
         Args:
             bookmark_id: 书签ID
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             bool: 删除是否成功
@@ -971,19 +978,25 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM bookmarks WHERE id = ?", (bookmark_id,))
+                
+                if user_id is not None and user_id > 0:
+                    cursor.execute("DELETE FROM bookmarks WHERE id = ? AND user_id = ?", (bookmark_id, user_id))
+                else:
+                    cursor.execute("DELETE FROM bookmarks WHERE id = ?", (bookmark_id,))
+                
                 conn.commit()
                 return cursor.rowcount > 0
         except sqlite3.Error as e:
             logger.error(f"删除书签失败: {e}")
             return False
 
-    def get_bookmarks(self, book_path: str) -> List[Dict[str, Any]]:
+    def get_bookmarks(self, book_path: str, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取指定书籍的所有书签
         
         Args:
             book_path: 书籍路径
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             List[Dict[str, Any]]: 书签列表
@@ -992,21 +1005,33 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT * FROM bookmarks 
-                    WHERE book_path = ? 
-                    ORDER BY timestamp DESC
-                """, (book_path,))
+                
+                if user_id is not None and user_id > 0:
+                    cursor.execute("""
+                        SELECT * FROM bookmarks 
+                        WHERE book_path = ? AND user_id = ?
+                        ORDER BY timestamp DESC
+                    """, (book_path, user_id))
+                else:
+                    cursor.execute("""
+                        SELECT * FROM bookmarks 
+                        WHERE book_path = ? 
+                        ORDER BY timestamp DESC
+                    """, (book_path,))
+                
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows if row]
         except sqlite3.Error as e:
             logger.error(f"获取书签失败: {e}")
             return []
 
-    def get_all_bookmarks(self) -> List[Dict[str, Any]]:
+    def get_all_bookmarks(self, user_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取所有书签
         
+        Args:
+            user_id: 用户ID，如果为None则不按用户过滤
+            
         Returns:
             List[Dict[str, Any]]: 书签列表
         """
@@ -1014,20 +1039,26 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM bookmarks ORDER BY timestamp DESC")
+                
+                if user_id is not None and user_id > 0:
+                    cursor.execute("SELECT * FROM bookmarks WHERE user_id = ? ORDER BY timestamp DESC", (user_id,))
+                else:
+                    cursor.execute("SELECT * FROM bookmarks ORDER BY timestamp DESC")
+                
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows if row]
         except sqlite3.Error as e:
             logger.error(f"获取所有书签失败: {e}")
             return []
 
-    def update_bookmark_note(self, bookmark_id: int, note: str) -> bool:
+    def update_bookmark_note(self, bookmark_id: int, note: str, user_id: Optional[int] = None) -> bool:
         """
         更新书签备注
         
         Args:
             bookmark_id: 书签ID
             note: 新的备注内容
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             bool: 更新是否成功
@@ -1035,9 +1066,16 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE bookmarks SET note = ? WHERE id = ?
-                """, (note, bookmark_id))
+                
+                if user_id is not None and user_id > 0:
+                    cursor.execute("""
+                        UPDATE bookmarks SET note = ? WHERE id = ? AND user_id = ?
+                    """, (note, bookmark_id, user_id))
+                else:
+                    cursor.execute("""
+                        UPDATE bookmarks SET note = ? WHERE id = ?
+                    """, (note, bookmark_id))
+                
                 conn.commit()
                 return cursor.rowcount > 0
         except sqlite3.Error as e:

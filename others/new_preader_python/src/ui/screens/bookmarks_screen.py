@@ -47,7 +47,31 @@ class BookmarksScreen(Screen[None]):
         # 设置类的TITLE属性
         self.__class__.TITLE = self.screen_title
         self.bookmark_manager = BookmarkManager()
-        self.bookmarks = self.bookmark_manager.get_bookmarks(book_id)
+        # 获取当前用户ID - 使用与应用实例一致的方式
+        current_user = getattr(self.app, 'current_user', None)
+        if current_user:
+            current_user_id = current_user.get('id')
+
+        # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+        if current_user_id is None:
+            from src.utils.multi_user_manager import multi_user_manager
+            current_user = multi_user_manager.get_current_user()
+            current_user_id = current_user.get('id') if current_user else None
+        
+        # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+        if current_user_id is not None:
+            from src.utils.multi_user_manager import multi_user_manager
+            if not multi_user_manager.is_multi_user_enabled():
+                user_id = None
+            else:
+                user_id = current_user_id
+
+            if current_user.get('role') == 'superadmin' or current_user.get('role') == 'super_admin':
+                user_id = None
+        else:
+            user_id = None
+        
+        self.bookmarks = self.bookmark_manager.get_bookmarks(book_id, user_id)
         
         # 分页相关属性
         self._current_page = 1
@@ -391,7 +415,28 @@ class BookmarksScreen(Screen[None]):
                 
                 if 0 <= actual_index < len(self.bookmarks):
                     bookmark = self.bookmarks[actual_index]
-                    if bookmark.id and self.bookmark_manager.remove_bookmark(bookmark.id):
+                    # 获取当前用户ID
+                    from src.utils.multi_user_manager import multi_user_manager
+                    current_user = multi_user_manager.get_current_user()
+                    user_id = current_user.get('id') if current_user else None
+                    
+                    # 获取当前用户ID - 使用标准模式
+                    current_user = getattr(self.app, 'current_user', None)
+                    user_id = current_user.get('id') if current_user else None
+                    
+                    # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+                    if user_id is None:
+                        from src.utils.multi_user_manager import multi_user_manager
+                        current_user = multi_user_manager.get_current_user()
+                        user_id = current_user.get('id') if current_user else None
+                    
+                    # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+                    if user_id is not None:
+                        from src.utils.multi_user_manager import multi_user_manager
+                        if not multi_user_manager.is_multi_user_enabled():
+                            user_id = None
+                    
+                    if bookmark.id and self.bookmark_manager.remove_bookmark(bookmark.id, user_id):
                         self.bookmarks.pop(actual_index)
                         self._refresh_bookmark_list()
                         self.notify(get_global_i18n().t("bookmarks.bookmark_deleted"), severity="information")
@@ -457,8 +502,24 @@ class BookmarksScreen(Screen[None]):
                         self.notify(get_global_i18n().t("bookmarks.invalid_bookmark_id"), severity="error")
                         return
                     
+                    # 获取当前用户ID - 使用标准模式
+                    current_user = getattr(self.app, 'current_user', None)
+                    user_id = current_user.get('id') if current_user else None
+                    
+                    # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+                    if user_id is None:
+                        from src.utils.multi_user_manager import multi_user_manager
+                        current_user = multi_user_manager.get_current_user()
+                        user_id = current_user.get('id') if current_user else None
+                    
+                    # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+                    if user_id is not None:
+                        from src.utils.multi_user_manager import multi_user_manager
+                        if not multi_user_manager.is_multi_user_enabled():
+                            user_id = None
+                    
                     # 更新书签备注
-                    success = self.bookmark_manager.update_bookmark_note(bookmark.id, result)
+                    success = self.bookmark_manager.update_bookmark_note(bookmark.id, result, user_id)
                     if success:
                         # 更新本地书签对象
                         bookmark.note = result
@@ -481,10 +542,26 @@ class BookmarksScreen(Screen[None]):
                 self.notify(get_global_i18n().t("bookmarks.no_bookmarks_to_clear"), severity="warning")
                 return
             
+            # 获取当前用户ID - 使用标准模式
+            current_user = getattr(self.app, 'current_user', None)
+            user_id = current_user.get('id') if current_user else None
+            
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+            
             # 删除所有书签
             for bookmark in self.bookmarks:
                 if bookmark.id:
-                    self.bookmark_manager.remove_bookmark(bookmark.id)
+                    self.bookmark_manager.remove_bookmark(bookmark.id, user_id)
             
             self.bookmarks.clear()
             self._refresh_bookmark_list()
@@ -506,7 +583,23 @@ class BookmarksScreen(Screen[None]):
             list_view.clear()
             
             # 重新获取书签数据以确保最新
-            self.bookmarks = self.bookmark_manager.get_bookmarks(self.book_id)
+            # 获取当前用户ID - 使用标准模式
+            current_user = getattr(self.app, 'current_user', None)
+            user_id = current_user.get('id') if current_user else None
+            
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+            
+            self.bookmarks = self.bookmark_manager.get_bookmarks(self.book_id, user_id)
             # 重新计算总页数
             self._total_pages = max(1, (len(self.bookmarks) + self._bookmarks_per_page - 1) // self._bookmarks_per_page)
             

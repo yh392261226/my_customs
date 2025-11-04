@@ -8,6 +8,7 @@
     background: $surface 60%;
     align: center middle;
     border: solid $primary;
+    overflow-y: auto;
 }
 
 /* 标题样式 - 居中加粗 */

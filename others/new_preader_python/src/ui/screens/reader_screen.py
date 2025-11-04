@@ -343,8 +343,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         except Exception:
             pass
         
-        # 启动阅读提醒计时器
-        self._start_reading_reminder()
+        # 延迟启动阅读提醒计时器，避免与EPUB加载冲突
+        def _delayed_start_reminder():
+            # 等待页面完全加载后再启动提醒
+            self.set_timer(3.0, self._start_reading_reminder)
+        
+        _delayed_start_reminder()
 
         # 应用全面的样式隔离
         apply_comprehensive_style_isolation(self)
@@ -1544,7 +1548,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 pass
             
             # 获取当前书籍的所有书签
-            bookmarks = self.bookmark_manager.get_bookmarks(self.book_id)
+            # 获取当前用户ID
+            from src.utils.multi_user_manager import multi_user_manager
+            current_user = multi_user_manager.get_current_user()
+            user_id = current_user.get('id') if current_user else None
+            
+            bookmarks = self.bookmark_manager.get_bookmarks(self.book_id, user_id)
             
             # 检查是否已存在同位置的书签（按偏移近似）
             existing_bookmark = None
@@ -1561,7 +1570,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             if existing_bookmark:
                 # 删除书签
                 bookmark_id = getattr(existing_bookmark, 'id', None)
-                if bookmark_id and self.bookmark_manager.remove_bookmark(bookmark_id):
+                # 获取当前用户ID
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                user_id = current_user.get('id') if current_user else None
+                
+                if bookmark_id and self.bookmark_manager.remove_bookmark(bookmark_id, user_id):
                     self.notify(f"{get_global_i18n().t('reader.bookmark_deleted')}", severity="information")
                 else:
                     self.notify(f"{get_global_i18n().t('reader.bookmark_delete_failed')}", severity="error")
@@ -1586,7 +1600,12 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                 anchor_text=result.get("anchor_text", anchor_text),
                                 anchor_hash=result.get("anchor_hash", anchor_hash)
                             )
-                            if self.bookmark_manager.add_bookmark(new_bookmark):
+                            # 获取当前用户ID
+                            from src.utils.multi_user_manager import multi_user_manager
+                            current_user = multi_user_manager.get_current_user()
+                            user_id = current_user.get('id') if current_user else None
+                            
+                            if self.bookmark_manager.add_bookmark(new_bookmark, user_id):
                                 self.notify(f"{get_global_i18n().t('reader.bookmark_added')}", severity="information")
                             else:
                                 self.notify(f"{get_global_i18n().t('reader.bookmark_add_failed')}", severity="error")
@@ -2351,12 +2370,35 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 # 取消注册设置观察者
                 self._unregister_setting_observers()
                 
-                # 移除全面的样式隔离
-                remove_comprehensive_style_isolation(self)
+                # 移除全面的样式隔离 - 在主线程中执行
+                def _remove_style_isolation():
+                    try:
+                        remove_comprehensive_style_isolation(self)
+                    except Exception as e:
+                        logger.warning(f"移除样式隔离失败: {e}")
                 
-                # 发送刷新书架消息
-                from src.ui.messages import RefreshBookshelfMessage
-                self.app.post_message(RefreshBookshelfMessage())
+                # 发送刷新书架消息 - 在主线程中执行
+                def _refresh_bookshelf():
+                    try:
+                        from src.ui.messages import RefreshBookshelfMessage
+                        self.app.post_message(RefreshBookshelfMessage())
+                    except Exception as e:
+                        logger.warning(f"发送刷新书架消息失败: {e}")
+                
+                # 在主线程中执行UI相关操作
+                import threading
+                if threading.current_thread() is not threading.main_thread():
+                    # 在异步线程中，使用call_from_thread在主线程中执行
+                    if hasattr(self.app, 'call_from_thread'):
+                        self.app.call_from_thread(_remove_style_isolation)
+                        self.app.call_from_thread(_refresh_bookshelf)
+                    else:
+                        # 如果没有call_from_thread方法，记录警告
+                        logger.warning("无法在主线程中执行UI操作，app.call_from_thread方法不存在")
+                else:
+                    # 如果在主线程中，直接执行
+                    _remove_style_isolation()
+                    _refresh_bookshelf()
                 
             except Exception as e:
                 logger.error(f"异步保存阅读数据失败: {e}")

@@ -38,12 +38,13 @@ class BookmarkManager:
         self.db_manager = DatabaseManager()
         self.bookmarks: Dict[str, List[Bookmark]] = {}
     
-    def add_bookmark(self, bookmark: Bookmark) -> bool:
+    def add_bookmark(self, bookmark: Bookmark, user_id: Optional[int] = None) -> bool:
         """
         添加书签到数据库
         
         Args:
             bookmark: 要添加的书签
+            user_id: 用户ID，如果为None则使用默认值0
             
         Returns:
             bool: 添加是否成功
@@ -60,7 +61,8 @@ class BookmarkManager:
             int(bookmark.position or 0),
             bookmark.note,
             bookmark.anchor_text,
-            bookmark.anchor_hash
+            bookmark.anchor_hash,
+            user_id
         )
         
         if success:
@@ -71,18 +73,19 @@ class BookmarkManager:
         
         return success
     
-    def get_bookmarks(self, book_id: str) -> List[Bookmark]:
+    def get_bookmarks(self, book_id: str, user_id: Optional[int] = None) -> List[Bookmark]:
         """
         从数据库获取指定书籍的所有书签
         
         Args:
             book_id: 书籍ID
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             List[Bookmark]: 该书的所有书签列表
         """
         # 从数据库获取书签数据
-        db_bookmarks = self.db_manager.get_bookmarks(book_id)
+        db_bookmarks = self.db_manager.get_bookmarks(book_id, user_id)
         
         # 转换为Bookmark对象
         bookmarks = []
@@ -108,15 +111,18 @@ class BookmarkManager:
         self.bookmarks[book_id] = bookmarks
         return bookmarks
     
-    def get_all_bookmarks(self) -> List[Bookmark]:
+    def get_all_bookmarks(self, user_id: Optional[int] = None) -> List[Bookmark]:
         """
         从数据库获取所有书签
         
+        Args:
+            user_id: 用户ID，如果为None则不按用户过滤
+            
         Returns:
             List[Bookmark]: 所有书签列表
         """
         # 从数据库获取所有书签数据
-        db_bookmarks = self.db_manager.get_all_bookmarks()
+        db_bookmarks = self.db_manager.get_all_bookmarks(user_id)
         
         # 转换为Bookmark对象
         bookmarks = []
@@ -139,18 +145,19 @@ class BookmarkManager:
         
         return bookmarks
     
-    def remove_bookmark(self, bookmark_id: int) -> bool:
+    def remove_bookmark(self, bookmark_id: int, user_id: Optional[int] = None) -> bool:
         """
         从数据库删除指定书签
         
         Args:
             bookmark_id: 书签ID
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             bool: 是否成功删除
         """
         # 使用数据库管理器删除书签
-        success = self.db_manager.delete_bookmark(bookmark_id)
+        success = self.db_manager.delete_bookmark(bookmark_id, user_id)
         
         if success:
             # 从本地缓存中删除
@@ -165,19 +172,20 @@ class BookmarkManager:
         
         return success
     
-    def update_bookmark_note(self, bookmark_id: int, note: str) -> bool:
+    def update_bookmark_note(self, bookmark_id: int, note: str, user_id: Optional[int] = None) -> bool:
         """
         更新书签备注
         
         Args:
             bookmark_id: 书签ID
             note: 新的备注内容
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             bool: 更新是否成功
         """
         # 使用数据库管理器更新书签备注
-        success = self.db_manager.update_bookmark_note(bookmark_id, note)
+        success = self.db_manager.update_bookmark_note(bookmark_id, note, user_id)
         
         if success:
             # 更新本地缓存
@@ -189,18 +197,19 @@ class BookmarkManager:
         
         return success
     
-    def get_bookmark_by_id(self, bookmark_id: int) -> Optional[Bookmark]:
+    def get_bookmark_by_id(self, bookmark_id: int, user_id: Optional[int] = None) -> Optional[Bookmark]:
         """
         根据ID获取书签
         
         Args:
             bookmark_id: 书签ID
+            user_id: 用户ID，如果为None则不按用户过滤
             
         Returns:
             Optional[Bookmark]: 书签对象，如果不存在则返回None
         """
         # 从所有书签中查找
-        all_bookmarks = self.get_all_bookmarks()
+        all_bookmarks = self.get_all_bookmarks(user_id)
         for bookmark in all_bookmarks:
             if bookmark.id == bookmark_id:
                 return bookmark

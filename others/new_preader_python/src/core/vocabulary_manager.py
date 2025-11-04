@@ -119,7 +119,9 @@ class VocabularyManager:
                     review_count INTEGER DEFAULT 0,
                     last_reviewed TIMESTAMP,
                     mastery_level INTEGER DEFAULT 0,
-                    UNIQUE(word, book_id, position)
+                    -- 新增：用户ID字段，支持多用户模式
+                    user_id INTEGER DEFAULT 0,
+                    UNIQUE(word, book_id, position, user_id)
                 )
             ''')
             
@@ -138,16 +140,33 @@ class VocabularyManager:
             raise
     
     def add_word(self, word: str, translation: str, language: str = "en", 
-                 context: str = "", book_id: str = "", position: int = 0) -> Optional[VocabularyItem]:
-        """添加单词到单词本"""
+                 context: str = "", book_id: str = "", position: int = 0, user_id: Optional[int] = None) -> Optional[VocabularyItem]:
+        """
+        添加单词到单词本
+        
+        Args:
+            word: 单词
+            translation: 翻译
+            language: 语言代码，默认英文
+            context: 上下文
+            book_id: 书籍ID
+            position: 位置
+            user_id: 用户ID，如果为None则使用默认值0
+            
+        Returns:
+            VocabularyItem: 添加的单词项，失败返回None
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
+            # 设置用户ID（多用户模式关闭时使用0）
+            user_id_value = user_id if user_id is not None else 0
+            
             # 检查是否已存在
             cursor.execute(
-                'SELECT id FROM vocabulary WHERE word = ? AND book_id = ? AND position = ?',
-                (word, book_id or "", position or 0)
+                'SELECT id FROM vocabulary WHERE word = ? AND book_id = ? AND position = ? AND user_id = ?',
+                (word, book_id or "", position or 0, user_id_value)
             )
             existing = cursor.fetchone()
             
@@ -163,9 +182,9 @@ class VocabularyManager:
                 # 插入新记录
                 cursor.execute('''
                     INSERT INTO vocabulary 
-                    (word, translation, language, context, book_id, position)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (word, translation, language, context, book_id or "", position or 0))
+                    (word, translation, language, context, book_id, position, user_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (word, translation, language, context, book_id or "", position or 0, user_id_value))
                 item_id = cursor.lastrowid
             
             conn.commit()
@@ -197,13 +216,26 @@ class VocabularyManager:
             logger.error(f"获取单词失败: {e}")
             return None
     
-    def get_words_by_book(self, book_id: str) -> List[VocabularyItem]:
-        """获取指定书籍的所有单词"""
+    def get_words_by_book(self, book_id: str, user_id: Optional[int] = None) -> List[VocabularyItem]:
+        """
+        获取指定书籍的所有单词
+        
+        Args:
+            book_id: 书籍ID
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            List[VocabularyItem]: 单词列表
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            cursor.execute('SELECT * FROM vocabulary WHERE book_id = ? ORDER BY position', (book_id or "",))
+            if user_id is not None and user_id > 0:
+                cursor.execute('SELECT * FROM vocabulary WHERE book_id = ? AND user_id = ? ORDER BY position', (book_id or "", user_id))
+            else:
+                cursor.execute('SELECT * FROM vocabulary WHERE book_id = ? ORDER BY position', (book_id or "",))
+            
             rows = cursor.fetchall()
             conn.close()
             
@@ -213,14 +245,27 @@ class VocabularyManager:
             logger.error(f"获取书籍单词失败: {e}")
             return []
     
-    def get_all_words(self, language: str = None) -> List[VocabularyItem]:
-        """获取所有单词"""
+    def get_all_words(self, language: str = None, user_id: Optional[int] = None) -> List[VocabularyItem]:
+        """
+        获取所有单词
+        
+        Args:
+            language: 语言过滤
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            List[VocabularyItem]: 单词列表
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            if language:
+            if language and user_id is not None:
+                cursor.execute('SELECT * FROM vocabulary WHERE language = ? AND user_id = ? ORDER BY created_at DESC', (language, user_id))
+            elif language:
                 cursor.execute('SELECT * FROM vocabulary WHERE language = ? ORDER BY created_at DESC', (language,))
+            elif user_id is not None and user_id > 0:
+                cursor.execute('SELECT * FROM vocabulary WHERE user_id = ? ORDER BY created_at DESC', (user_id,))
             else:
                 cursor.execute('SELECT * FROM vocabulary ORDER BY created_at DESC')
                 
@@ -233,16 +278,32 @@ class VocabularyManager:
             logger.error(f"获取所有单词失败: {e}")
             return []
     
-    def search_words(self, keyword: str) -> List[VocabularyItem]:
-        """搜索单词"""
+    def search_words(self, keyword: str, user_id: Optional[int] = None) -> List[VocabularyItem]:
+        """
+        搜索单词
+        
+        Args:
+            keyword: 搜索关键词
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            List[VocabularyItem]: 搜索结果列表
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            cursor.execute(
-                'SELECT * FROM vocabulary WHERE word LIKE ? OR translation LIKE ? ORDER BY created_at DESC',
-                (f'%{keyword}%', f'%{keyword}%')
-            )
+            if user_id is not None and user_id > 0:
+                cursor.execute(
+                    'SELECT * FROM vocabulary WHERE (word LIKE ? OR translation LIKE ?) AND user_id = ? ORDER BY created_at DESC',
+                    (f'%{keyword}%', f'%{keyword}%', user_id)
+                )
+            else:
+                cursor.execute(
+                    'SELECT * FROM vocabulary WHERE word LIKE ? OR translation LIKE ? ORDER BY created_at DESC',
+                    (f'%{keyword}%', f'%{keyword}%')
+                )
+            
             rows = cursor.fetchall()
             conn.close()
             
@@ -252,8 +313,18 @@ class VocabularyManager:
             logger.error(f"搜索单词失败: {e}")
             return []
     
-    def update_word(self, word_id: int, **kwargs) -> bool:
-        """更新单词信息"""
+    def update_word(self, word_id: int, user_id: Optional[int] = None, **kwargs) -> bool:
+        """
+        更新单词信息
+        
+        Args:
+            word_id: 单词ID
+            user_id: 用户ID，如果为None则不按用户过滤
+            **kwargs: 要更新的字段
+            
+        Returns:
+            bool: 更新是否成功
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -271,10 +342,18 @@ class VocabularyManager:
                 return False
                 
             set_clause.append("updated_at = CURRENT_TIMESTAMP")
-            params.append(word_id)
+            
+            # 添加用户ID过滤条件
+            if user_id is not None and user_id > 0:
+                set_clause.append("user_id = ?")
+                params.extend([word_id, user_id])
+                where_clause = "WHERE id = ? AND user_id = ?"
+            else:
+                params.append(word_id)
+                where_clause = "WHERE id = ?"
             
             cursor.execute(
-                f'UPDATE vocabulary SET {", ".join(set_clause)} WHERE id = ?',
+                f'UPDATE vocabulary SET {", ".join(set_clause)} {where_clause}',
                 params
             )
             
@@ -286,13 +365,26 @@ class VocabularyManager:
             logger.error(f"更新单词失败: {e}")
             return False
     
-    def delete_word(self, word_id: int) -> bool:
-        """删除单词"""
+    def delete_word(self, word_id: int, user_id: Optional[int] = None) -> bool:
+        """
+        删除单词
+        
+        Args:
+            word_id: 单词ID
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            bool: 删除是否成功
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            cursor.execute('DELETE FROM vocabulary WHERE id = ?', (word_id,))
+            if user_id is not None and user_id > 0:
+                cursor.execute('DELETE FROM vocabulary WHERE id = ? AND user_id = ?', (word_id, user_id))
+            else:
+                cursor.execute('DELETE FROM vocabulary WHERE id = ?', (word_id,))
+            
             conn.commit()
             conn.close()
             
@@ -302,8 +394,18 @@ class VocabularyManager:
             logger.error(f"删除单词失败: {e}")
             return False
     
-    def record_review(self, word_id: int, mastery_level: int = None) -> bool:
-        """记录单词复习"""
+    def record_review(self, word_id: int, mastery_level: int = None, user_id: Optional[int] = None) -> bool:
+        """
+        记录单词复习
+        
+        Args:
+            word_id: 单词ID
+            mastery_level: 掌握程度
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            bool: 记录是否成功
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -314,11 +416,17 @@ class VocabularyManager:
             if mastery_level is not None:
                 update_fields.append('mastery_level = ?')
                 params.append(mastery_level)
-                
-            params.append(word_id)
+            
+            # 添加用户ID过滤条件
+            if user_id is not None and user_id > 0:
+                params.extend([word_id, user_id])
+                where_clause = "WHERE id = ? AND user_id = ?"
+            else:
+                params.append(word_id)
+                where_clause = "WHERE id = ?"
             
             cursor.execute(
-                f'UPDATE vocabulary SET {", ".join(update_fields)} WHERE id = ?',
+                f'UPDATE vocabulary SET {", ".join(update_fields)} {where_clause}',
                 params
             )
             
@@ -330,18 +438,35 @@ class VocabularyManager:
             logger.error(f"记录复习失败: {e}")
             return False
     
-    def get_words_for_review(self, limit: int = 20) -> List[VocabularyItem]:
-        """获取需要复习的单词"""
+    def get_words_for_review(self, limit: int = 20, user_id: Optional[int] = None) -> List[VocabularyItem]:
+        """
+        获取需要复习的单词
+        
+        Args:
+            limit: 限制数量
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            List[VocabularyItem]: 需要复习的单词列表
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
-            cursor.execute('''
-                SELECT * FROM vocabulary 
-                WHERE mastery_level < 5 OR mastery_level IS NULL
-                ORDER BY last_reviewed ASC NULLS FIRST, created_at ASC
-                LIMIT ?
-            ''', (limit,))
+            if user_id is not None and user_id > 0:
+                cursor.execute('''
+                    SELECT * FROM vocabulary 
+                    WHERE (mastery_level < 5 OR mastery_level IS NULL) AND user_id = ?
+                    ORDER BY last_reviewed ASC NULLS FIRST, created_at ASC
+                    LIMIT ?
+                ''', (user_id, limit))
+            else:
+                cursor.execute('''
+                    SELECT * FROM vocabulary 
+                    WHERE mastery_level < 5 OR mastery_level IS NULL
+                    ORDER BY last_reviewed ASC NULLS FIRST, created_at ASC
+                    LIMIT ?
+                ''', (limit,))
             
             rows = cursor.fetchall()
             conn.close()
@@ -352,39 +477,52 @@ class VocabularyManager:
             logger.error(f"获取复习单词失败: {e}")
             return []
     
-    def get_statistics(self) -> Dict[str, Any]:
-        """获取统计信息"""
+    def get_statistics(self, user_id: Optional[int] = None) -> Dict[str, Any]:
+        """
+        获取统计信息
+        
+        Args:
+            user_id: 用户ID，如果为None则不按用户过滤
+            
+        Returns:
+            Dict[str, Any]: 统计信息字典
+        """
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
             
+            # 构建WHERE子句
+            where_clause = "WHERE user_id = ?" if user_id is not None else ""
+            params = [user_id] if user_id is not None else []
+            
             # 总单词数
-            cursor.execute('SELECT COUNT(*) FROM vocabulary')
+            cursor.execute(f'SELECT COUNT(*) FROM vocabulary {where_clause}', params)
             total_words = cursor.fetchone()[0]
             
             # 按掌握程度统计
-            cursor.execute('''
+            cursor.execute(f'''
                 SELECT mastery_level, COUNT(*) 
                 FROM vocabulary 
+                {where_clause}
                 GROUP BY mastery_level 
                 ORDER BY mastery_level
-            ''')
+            ''', params)
             mastery_stats = {row[0]: row[1] for row in cursor.fetchall()}
             
             # 按语言统计
-            cursor.execute('''
+            cursor.execute(f'''
                 SELECT language, COUNT(*) 
                 FROM vocabulary 
+                {where_clause}
                 GROUP BY language 
                 ORDER BY COUNT(*) DESC
-            ''')
+            ''', params)
             language_stats = {row[0]: row[1] for row in cursor.fetchall()}
             
             # 今日新增
-            cursor.execute('''
-                SELECT COUNT(*) FROM vocabulary 
-                WHERE DATE(created_at) = DATE('now')
-            ''')
+            today_params = params.copy()
+            today_where = f"{where_clause} AND DATE(created_at) = DATE('now')" if user_id is not None else "WHERE DATE(created_at) = DATE('now')"
+            cursor.execute(f'SELECT COUNT(*) FROM vocabulary {today_where}', today_params)
             today_new = cursor.fetchone()[0]
             
             conn.close()

@@ -197,10 +197,11 @@
 }
 
 /* 面板类仅在容器内生效，避免影响其他对话框 */
-#vocabulary-dialog-container.panel {
+#vocabulary-dialog-container .panel {
     background: $surface;
     border: round $primary;
     padding: 2;
+    overflow-y: auto;
 }
 
 /* 输入标准尺寸（局部作用域） */
