@@ -78,15 +78,15 @@ end
 # ========================
 # 搜索过滤器定义
 # ========================
-set -gx fzf_transformer_filter_all "fd --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_files "fd --type f -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_directories "fd --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_hiddens "fd --type f --type d --hidden --glob '.*' "
-set -gx fzf_transformer_filter_images "fd -i -t f -e jpg -e jpeg -e png -e gif --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_medias "fd -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_documents "fd -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_languages "fd -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
-set -gx fzf_transformer_filter_archives "fd -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_all "fd --color always --type f --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_files "fd --color always --type f -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_directories "fd --color always --type d -d 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_hiddens "fd --color always --type f --type d --hidden --glob '.*' "
+set -gx fzf_transformer_filter_images "fd --color always -i -t f -e jpg -e jpeg -e png -e gif --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_medias "fd --color always -i -t f -e mp4 -e avi -e mkv --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_documents "fd --color always -i -t f -e txt -e md -e log -e pdf --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_languages "fd --color always -e py -e js -e ts -e java -e cpp -e c -e h -e hpp -e rb -e php -e swift -e go -e rs -e sh -e bzsh -e fish -e pl -e lua -e scala -e kt -e dart -e cs -e m -e mm -e vue -e html -e htm -e css -e json -e yaml -e xml -e md -e txt -e yml -e toml -e ini -e cfg -e conf -e sql -e dockerfile -e docker-compose.yml --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
+set -gx fzf_transformer_filter_archives "fd --color always -i -t f -e gz -e zip -e tar -e rar -e bz2 -e gzip -e 7z -e xz -e Z -e tgz -e ex --max-depth 3 --full-path $PWD --exclude={.git,.idea,.vscode,.sass-cache}"
 set -gx fzf_transformer_filter_contents "rg --color=always --line-number --no-heading '' "
 
 # ========================
@@ -156,6 +156,10 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --preview-label-pos='bottom,4' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header=' CTRL-H Search Infomation ' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --header-first '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-lines-border='bottom' "
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --gutter-raw="▚"'
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color gutter:green '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color nomatch:dim:strip:strikethrough '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color ghost:red:italic'
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --no-input '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
@@ -210,6 +214,15 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="click-footer:transform:(
     [[ $FZF_CLICK_FOOTER_WORD =~ Copy ]] && echo \"execute-silent(echo -n \{} | pbcopy)+abort\"
     [[ $FZF_CLICK_FOOTER_WORD =~ Open ]] && echo \"execute:open \{} \"
 )" '
+
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="¬:preview-half-page-down" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="˙:preview-half-page-up" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="…:preview-bottom" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="©:preview-top" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="≈:exclude-multi" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="†:toggle-track" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="÷:toggle-header" '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --bind="®:toggle-raw" '
 set -gx FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS
 
 
