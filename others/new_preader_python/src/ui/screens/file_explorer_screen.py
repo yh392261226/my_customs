@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer, LoadingIndicator, OptionList
+from textual.containers import Container, Vertical, Horizontal, Center
+from textual.widgets import Select, Static, Button, Label, Switch, Tree, DirectoryTree, Input, ListView, ListItem, Header, Footer, LoadingIndicator, OptionList
 from textual.reactive import reactive
 from textual import on
 from textual import events
@@ -112,7 +112,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                     yield Button(get_global_i18n().t("file_explorer.home"), id="home-btn")
                 
                 # 补全建议列表（初始隐藏）
-                yield OptionList(id="completion-list")
+                with Center():
+                    yield OptionList(id="completion-list")
             
             # 主内容区域
             with Horizontal(id="content-area"):
@@ -131,6 +132,20 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                 yield Static("", id="status-info")
                 with Horizontal(id="action-buttons", classes="btn-row"):
                     if self.selection_mode == "file":
+                        # 如果是文件选择模式，则显示搜索框和按钮 start
+                        yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
+                        yield Switch(value=False, id="file-explorer-diff-mode-switch")
+                        yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
+                        yield Select(id="file-explorer-search-select", options=[
+                            (get_global_i18n().t("search.all_formats"), "all"),
+                            ("TXT", ".txt"),
+                            ("EPUB", ".epub"),
+                            ("MOBI", ".mobi"),
+                            ("PDF", ".pdf"),
+                            ("AZW3", ".azw3")
+                        ])
+                        yield Button(get_global_i18n().t("common.search"), id="file-explorer-search-btn")
+                        # 如果是文件选择模式，则显示搜索框和按钮 end
                         yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
                     else:
                         yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
@@ -380,16 +395,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                 self._hide_completion_list()
                 return
             
-            # 获取匹配的目录和文件
+            # 获取匹配的目录（只补全目录，不补全文件名）
             matches = []
             for item in os.listdir(base_dir):
                 if item.lower().startswith(search_pattern.lower()):
                     item_path = os.path.join(base_dir, item)
                     if os.path.isdir(item_path):
-                        # 如果是目录，添加斜杠
+                        # 只添加目录，添加斜杠
                         matches.append(item + "/")
-                    else:
-                        matches.append(item)
             
             # 更新补全选项
             self.completion_options = matches
@@ -453,14 +466,24 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             completed_path = os.path.join(base_dir, selected_option)
         else:
             # 相对路径
-            completed_path = selected_option
+            completed_path = os.path.join(self.current_path, selected_option)
         
-        # 更新输入框值
-        path_input.value = completed_path
-        path_input.cursor_position = len(completed_path)
+        # 检查补全后的路径是否为目录
+        if os.path.isdir(completed_path):
+            # 如果是目录，直接导航到该目录
+            self._navigate_to_path(completed_path)
+            # 导航后更新输入框值并设置焦点到内容结尾
+            path_input.value = completed_path
+            path_input.cursor_position = len(completed_path)
+            path_input.focus()
+        else:
+            # 如果不是目录，只更新输入框值
+            path_input.value = completed_path
+            path_input.cursor_position = len(completed_path)
+            path_input.focus()
         
         # 隐藏补全列表
-        # self._hide_completion_list()
+        self._hide_completion_list()
     
     def _select_next_completion(self) -> None:
         """选择下一个补全项"""
@@ -688,7 +711,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     
     def action_go_button(self) -> None:
         """g 键 - 导航到输入的路径"""
-        if not self._has_permission("file_explorer.navigate"):
+        if not self._has_permission("file_explorer.go"):
             self.notify(get_global_i18n().t("file_explorer.no_permission"), severity="warning")
             return
         
@@ -720,8 +743,14 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """检查按钮权限并禁用/启用按钮"""
         try:
             from src.core.database_manager import DatabaseManager
+            from src.utils.multi_user_manager import multi_user_manager
             db_manager = DatabaseManager()
             
+            # 获取当前用户信息
+            current_user = multi_user_manager.get_current_user()
+            user_id = current_user.get("id", 0)
+            role = current_user.get("role", "user")
+            logger.info(f"当前用户: {user_id}, 角色: {role}")
             # 检查各个按钮的权限
             back_btn = self.query_one("#back-btn", Button)
             go_btn = self.query_one("#go-btn", Button)
@@ -730,35 +759,35 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             cancel_btn = self.query_one("#cancel-btn", Button)
             
             # 检查权限并设置按钮状态
-            if not db_manager.has_permission("file_explorer.back"):
+            if not db_manager.has_permission(user_id, "file_explorer.back") and role != "super_admin" and role != "superadmin":
                 back_btn.disabled = True
                 back_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 back_btn.disabled = False
                 back_btn.tooltip = None
                 
-            if not db_manager.has_permission("file_explorer.navigate"):
+            if not db_manager.has_permission(user_id, "file_explorer.go") and role != "super_admin" and role != "superadmin":
                 go_btn.disabled = True
                 go_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 go_btn.disabled = False
                 go_btn.tooltip = None
                 
-            if not db_manager.has_permission("file_explorer.home"):
+            if not db_manager.has_permission(user_id, "file_explorer.home") and role != "super_admin" and role != "superadmin":
                 home_btn.disabled = True
                 home_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 home_btn.disabled = False
                 home_btn.tooltip = None
                 
-            if not db_manager.has_permission("file_explorer.select"):
+            if not db_manager.has_permission(user_id, "file_explorer.select") and role != "super_admin" and role != "superadmin":
                 select_btn.disabled = True
                 select_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
                 select_btn.disabled = False
                 select_btn.tooltip = None
                 
-            if not db_manager.has_permission("file_explorer.cancel"):
+            if not db_manager.has_permission(user_id, "file_explorer.cancel") and role != "super_admin" and role != "superadmin":
                 cancel_btn.disabled = True
                 cancel_btn.tooltip = get_global_i18n().t("file_explorer.no_permission")
             else:
@@ -1017,18 +1046,29 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """检查按钮权限"""
         try:
             from src.core.database_manager import DatabaseManager
+            from src.utils.multi_user_manager import multi_user_manager
             db_manager = DatabaseManager()
+            
+            # 获取当前用户信息
+            current_user = multi_user_manager.get_current_user()
+            user_id = current_user.get("id", 0)
+            role = current_user.get("role", "user")
+            logger.info(f"has_button_permission: 当前用户ID: {user_id}, 角色: {role}")
+            
+            # 超级管理员拥有所有权限
+            if role == "super_admin" or role == "superadmin": 
+                return True
             
             permission_map = {
                 "back-btn": "file_explorer.back",
-                "go-btn": "file_explorer.navigate", 
+                "go-btn": "file_explorer.go", 
                 "home-btn": "file_explorer.home",
                 "select-btn": "file_explorer.select",
                 "cancel-btn": "file_explorer.cancel"
             }
             
             if button_id in permission_map:
-                return db_manager.has_permission(permission_map[button_id])
+                return db_manager.has_permission(user_id, permission_map[button_id], role)
             
             return True  # 默认允许未知按钮
         except Exception as e:
@@ -1039,8 +1079,19 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """检查权限"""
         try:
             from src.core.database_manager import DatabaseManager
+            from src.utils.multi_user_manager import multi_user_manager
             db_manager = DatabaseManager()
-            return db_manager.has_permission(permission_key)
+            
+            # 获取当前用户信息
+            current_user = multi_user_manager.get_current_user()
+            user_id = current_user.get("id", 0)
+            role = current_user.get("role", "user")
+
+            # 超级管理员拥有所有权限
+            if role == "super_admin" or role == "superadmin": 
+                return True
+            
+            return db_manager.has_permission(user_id, permission_key, role)
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
@@ -1128,3 +1179,314 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                     self._update_selection_status()
         except Exception as e:
             logger.error(f"处理文件列表高亮失败: {e}")
+    
+    def _get_bookshelf_files(self) -> Set[str]:
+        """获取书库中所有书籍文件的文件名集合"""
+        try:
+            bookshelf_files = set()
+            # 获取书库中的所有书籍
+            books = self.bookshelf.get_all_books()
+            for book in books:
+                # 获取书籍的文件名（不包含路径）
+                if hasattr(book, 'path') and book.path:
+                    filename = os.path.basename(book.path)
+                    bookshelf_files.add(filename)
+            return bookshelf_files
+        except Exception as e:
+            logger.error(f"获取书库文件列表失败: {e}")
+            return set()
+    
+    def _get_all_files_in_current_directory(self) -> List[Dict[str, str]]:
+        """获取当前目录下的所有文件"""
+        all_files = []
+        logger.info("test")
+        try:
+            # 获取当前目录下的所有文件和目录
+            items = os.listdir(self.current_path)
+            
+            # 调试信息：显示当前目录路径和文件数量
+            logger.debug(f"当前目录: {self.current_path}")
+            logger.debug(f"目录下项目数量: {len(items)}")
+            logger.debug(f"目录下项目列表: {items}")
+            
+            for item in items:
+                item_path = os.path.join(self.current_path, item)
+                
+                # 只处理文件，不处理目录
+                if os.path.isfile(item_path):
+                    # 获取文件信息
+                    ext = FileUtils.get_file_extension(item_path)
+                    file_type_display = "book" if ext in self.SUPPORTED_EXTENSIONS else "file"
+                    
+                    all_files.append({
+                        "name": item,
+                        "path": item_path,
+                        "type": file_type_display,
+                        "display": f"📖 {item}" if file_type_display == "book" else f"📄 {item}",
+                        "directory": "."
+                    })
+                    
+                    logger.debug(f"找到文件: {item}, 类型: {file_type_display}")
+                        
+        except (PermissionError, OSError) as e:
+            logger.warning(f"获取当前目录文件失败: {e}")
+        
+        logger.debug(f"最终获取到的文件数量: {len(all_files)}")
+        return all_files
+
+    def _filter_files_not_in_bookshelf(self, files: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """过滤掉书库中已存在的文件"""
+        try:
+            bookshelf_files = self._get_bookshelf_files()
+            filtered_files = []
+            
+            # 将书库文件名转换为小写用于不区分大小写的比较
+            bookshelf_files_lower = {filename.lower() for filename in bookshelf_files}
+            
+            # 调试信息：显示书库文件数量和当前目录文件数量
+            logger.debug(f"书库文件数量: {len(bookshelf_files)}, 当前目录文件数量: {len(files)}")
+            logger.debug(f"书库文件列表: {list(bookshelf_files)}")
+            
+            for file_info in files:
+                filename = file_info["name"]
+                # 如果文件不在书库中，则保留（不区分大小写）
+                if filename.lower() not in bookshelf_files_lower:
+                    filtered_files.append(file_info)
+                else:
+                    logger.debug(f"文件 {filename} 已在书库中，被过滤")
+            
+            logger.debug(f"过滤后文件数量: {len(filtered_files)}")
+            return filtered_files
+        except Exception as e:
+            logger.error(f"过滤书库文件失败: {e}")
+            return files
+    
+    def _search_files(self) -> None:
+        """搜索文件"""
+        try:
+            # 获取搜索关键词和文件类型
+            search_input = self.query_one("#file-explorer-search-input", Input)
+            search_select = self.query_one("#file-explorer-search-select", Select)
+            diff_switch = self.query_one("#file-explorer-diff-mode-switch", Switch)
+            
+            search_keyword = search_input.value.strip()
+            
+            # 处理下拉框值，确保正确处理NoSelection对象
+            file_type_value = search_select.value
+            if file_type_value is None or (hasattr(file_type_value, 'is_blank') and file_type_value.is_blank) or str(file_type_value) == 'Select.BLANK':
+                file_type = "all"
+            else:
+                # 确保file_type_value是字符串类型
+                file_type = str(file_type_value) if file_type_value else "all"
+            
+            diff_mode_enabled = diff_switch.value
+            
+            # 调试信息：显示搜索条件
+            logger.debug(f"搜索条件 - 关键词: '{search_keyword}', 文件类型: '{file_type}', 对比模式: {diff_mode_enabled}")
+            
+            # 如果既没有搜索关键词也没有选择特定文件类型，恢复显示所有文件
+            if not search_keyword and file_type == "all" and not diff_mode_enabled:
+                logger.debug("无搜索条件且对比模式关闭，恢复显示所有文件")
+                self._load_file_list()
+                return
+            
+            # 显示加载状态
+            self._show_loading_animation(get_global_i18n().t("file_explorer.searching"))
+            
+            # 如果对比模式开启，优先处理对比模式
+            if diff_mode_enabled:
+                # 如果对比模式开启，但没有任何搜索条件，显示当前目录所有不在书库中的文件
+                if not search_keyword and file_type == "all":
+                    # 直接获取当前目录所有文件，不经过搜索
+                    all_files = self._get_all_files_in_current_directory()
+                    logger.debug(f"对比模式：获取到当前目录文件数量: {len(all_files)}")
+                    search_results = self._filter_files_not_in_bookshelf(all_files)
+                    logger.debug(f"对比模式：过滤后文件数量: {len(search_results)}")
+                else:
+                    # 有搜索条件时，先搜索再过滤
+                    search_results = self._perform_search(search_keyword, file_type)
+                    logger.debug(f"对比模式：有搜索条件，搜索后文件数量: {len(search_results)}")
+                    search_results = self._filter_files_not_in_bookshelf(search_results)
+                    logger.debug(f"对比模式：有搜索条件，过滤后文件数量: {len(search_results)}")
+            else:
+                # 非对比模式，正常搜索
+                search_results = self._perform_search(search_keyword, file_type)
+                logger.debug(f"非对比模式：搜索后文件数量: {len(search_results)}")
+            
+            # 更新文件列表显示搜索结果
+            self._update_file_list_with_search_results(search_results)
+            
+            # 隐藏加载状态
+            self._hide_loading_animation()
+            
+            # 显示搜索结果统计
+            if search_results:
+                if diff_mode_enabled:
+                    self.notify(f"找到 {len(search_results)} 个书库中不存在的文件", severity="information")
+                else:
+                    self.notify(f"找到 {len(search_results)} 个匹配的文件", severity="information")
+            else:
+                if diff_mode_enabled:
+                    self.notify("没有找到书库中不存在的文件", severity="information")
+                else:
+                    self.notify("没有找到匹配的文件", severity="information")
+                
+        except Exception as e:
+            logger.error(f"搜索文件失败: {e}")
+            self._hide_loading_animation()
+            self.notify(f"搜索失败: {e}", severity="error")
+    
+    def _perform_search(self, keyword: str, file_type: str) -> List[Dict[str, str]]:
+        """
+        执行文件搜索（基于当前文件列表）
+        
+        Args:
+            keyword: 搜索关键词
+            file_type: 文件类型筛选
+            
+        Returns:
+            List[Dict[str, str]]: 搜索结果列表
+        """
+        search_results = []
+        
+        try:
+            # 获取当前目录下的所有文件和目录
+            items = os.listdir(self.current_path)
+            
+            for item in items:
+                item_path = os.path.join(self.current_path, item)
+                
+                # 只处理文件，不处理目录
+                if os.path.isfile(item_path):
+                    # 检查文件是否匹配搜索条件
+                    if self._match_search_criteria(item, keyword, file_type):
+                        # 获取文件信息
+                        ext = FileUtils.get_file_extension(item_path)
+                        file_type_display = "book" if ext in self.SUPPORTED_EXTENSIONS else "file"
+                        
+                        search_results.append({
+                            "name": item,
+                            "path": item_path,
+                            "type": file_type_display,
+                            "display": f"📖 {item}" if file_type_display == "book" else f"📄 {item}",
+                            "directory": "."
+                        })
+                        
+        except (PermissionError, OSError) as e:
+            logger.warning(f"搜索过程中无法访问目录: {e}")
+        
+        return search_results
+    
+    def _match_search_criteria(self, filename: str, keyword: str, file_type: str) -> bool:
+        """
+        检查文件是否匹配搜索条件
+        
+        Args:
+            filename: 文件名
+            keyword: 搜索关键词
+            file_type: 文件类型筛选
+            
+        Returns:
+            bool: 是否匹配
+        """
+        # 检查文件类型筛选
+        if file_type != "all":
+            ext = FileUtils.get_file_extension(filename).lower()
+            if ext != file_type.lower():
+                return False
+        
+        # 检查文件名是否包含关键词（不区分大小写）
+        if keyword and keyword.lower() not in filename.lower():
+            return False
+        
+        return True
+    
+    def _update_file_list_with_search_results(self, search_results: List[Dict[str, str]]) -> None:
+        """
+        使用搜索结果更新文件列表
+        
+        Args:
+            search_results: 搜索结果列表
+        """
+        file_list = self.query_one("#file-list", ListView)
+        file_list.clear()
+        self.file_items = []
+        
+        if search_results:
+            # 添加搜索结果到列表
+            for result in search_results:
+                list_item = ListItem(Label(result["display"]))
+                list_item.data = result
+                file_list.append(list_item)
+                self.file_items.append(result)
+            
+            # 默认选中第一项
+            if len(search_results) > 0:
+                self.selected_file_index = 0
+                if search_results[0]["type"] in ["book", "file"]:
+                    self.selected_file = search_results[0]["path"]
+                else:
+                    self.selected_file = None
+        else:
+            # 没有搜索结果
+            empty_item = ListItem(Label(get_global_i18n().t("file_explorer.no_search_results")))
+            file_list.append(empty_item)
+            self.file_items = []
+            self.selected_file = None
+            self.selected_file_index = None
+        
+        # 更新状态信息
+        self._update_search_status(len(search_results))
+    
+    def _update_search_status(self, result_count: int) -> None:
+        """更新搜索状态显示"""
+        status_info = self.query_one("#status-info", Static)
+        search_input = self.query_one("#file-explorer-search-input", Input)
+        search_select = self.query_one("#file-explorer-search-select", Select)
+        
+        search_keyword = search_input.value.strip()
+        
+        # 处理下拉框值，确保正确处理NoSelection对象
+        file_type_value = search_select.value
+        if file_type_value is None or (hasattr(file_type_value, 'is_blank') and file_type_value.is_blank):
+            file_type = "all"
+        else:
+            # 确保file_type_value是字符串类型
+            file_type = str(file_type_value) if file_type_value else "all"
+        
+        diff_switch = self.query_one("#file-explorer-diff-mode-switch", Switch)
+        diff_mode_enabled = diff_switch.value
+        
+        # 如果正在进行搜索（有搜索关键词或选择了特定文件类型）
+        if search_keyword or file_type != "all":
+            status_info.update(f"{get_global_i18n().t("file_explorer.search_results")}: {result_count}")
+        else:
+            # 如果没有搜索条件，显示正常状态
+            try:
+                file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
+                dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
+                status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
+            except (PermissionError, OSError):
+                status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
+    
+    @on(Button.Pressed, "#file-explorer-search-btn")
+    def on_search_button_pressed(self, event: Button.Pressed) -> None:
+        """搜索按钮点击事件"""
+        self._search_files()
+    
+    @on(Input.Submitted, "#file-explorer-search-input")
+    def on_search_input_submitted(self, event: Input.Submitted) -> None:
+        """搜索输入框回车事件"""
+        self._search_files()
+    
+    @on(Select.Changed, "#file-explorer-search-select")
+    def on_search_select_changed(self, event: Select.Changed) -> None:
+        """搜索选择框改变事件"""
+        # 当文件类型选择改变时，立即执行搜索（支持独立使用）
+        self._search_files()
+    
+    @on(Switch.Changed, "#file-explorer-diff-mode-switch")
+    def on_diff_mode_switch_changed(self, event: Switch.Changed) -> None:
+        """对比模式开关改变事件"""
+        # 当对比模式开关改变时，立即执行搜索
+        self._search_files()

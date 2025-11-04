@@ -159,6 +159,24 @@ class DatabaseManager:
                 ('file_explorer.select', '文件资源管理器.选择文件/目录'),
                 ('file_explorer.cancel', '文件资源管理器.取消操作'),
                 
+                # 目录对话框权限
+                ('directory_dialog.select', '目录对话框.选择目录'),
+                ('directory_dialog.cancel', '目录对话框.取消操作'),
+                
+                # 文件选择器对话框权限
+                ('file_chooser.select', '文件选择器对话框.选择文件'),
+                ('file_chooser.cancel', '文件选择器对话框.取消操作'),
+                ('file_chooser.add_file', '文件选择器对话框.添加文件'),
+                
+                # 目录对话框权限
+                ('directory_dialog.select', '目录对话框.选择目录'),
+                ('directory_dialog.cancel', '目录对话框.取消操作'),
+                
+                # 文件选择器对话框权限
+                ('file_chooser.select', '文件选择器对话框.选择文件'),
+                ('file_chooser.cancel', '文件选择器对话框.取消操作'),
+                ('file_chooser.add_file', '文件选择器对话框.添加文件'),
+                
                 # 获取书籍权限
                 ('get_books.novel_sites', '获取书籍页面.小说网站管理'),
                 ('get_books.proxy_settings', '获取书籍页面.代理设置'),
@@ -223,6 +241,65 @@ class DatabaseManager:
                         "INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)",
                         ("admin", self._hash_password("admin"), "superadmin", datetime.now().isoformat())
                     )
+                    # 获取新创建的admin用户ID
+                    cursor.execute("SELECT id FROM users WHERE username = ?", ("admin",))
+                    admin_row = cursor.fetchone()
+                    if admin_row:
+                        admin_id = admin_row[0]
+                        # 为admin用户分配文件资源管理器相关权限
+                        file_explorer_perms = [
+                            'file_explorer.back', 'file_explorer.go', 'file_explorer.home',
+                            'file_explorer.select', 'file_explorer.cancel'
+                        ]
+                        for perm in file_explorer_perms:
+                            cursor.execute(
+                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
+                                (admin_id, perm)
+                            )
+                        
+                        # 为admin用户分配对话框相关权限
+                        dialog_perms = [
+                            'directory_dialog.select', 'directory_dialog.cancel',
+                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
+                        ]
+                        for perm in dialog_perms:
+                            cursor.execute(
+                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
+                                (admin_id, perm)
+                            )
+                        
+                        # 为admin用户分配对话框相关权限
+                        dialog_perms = [
+                            'directory_dialog.select', 'directory_dialog.cancel',
+                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
+                        ]
+                        for perm in dialog_perms:
+                            cursor.execute(
+                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
+                                (admin_id, perm)
+                            )
+                        
+                        # 为admin用户分配对话框相关权限
+                        dialog_perms = [
+                            'directory_dialog.select', 'directory_dialog.cancel',
+                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
+                        ]
+                        for perm in dialog_perms:
+                            cursor.execute(
+                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
+                                (admin_id, perm)
+                            )
+                        
+                        # 为admin用户分配对话框相关权限
+                        dialog_perms = [
+                            'directory_dialog.select', 'directory_dialog.cancel',
+                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
+                        ]
+                        for perm in dialog_perms:
+                            cursor.execute(
+                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
+                                (admin_id, perm)
+                            )
             except Exception as _e:
                 logger.warning(f"创建默认超级管理员失败（可忽略）：{_e}")
             
@@ -1809,7 +1886,7 @@ class DatabaseManager:
     def has_permission(self, user_id: Optional[int], perm_key: str, role: Optional[str] = None) -> bool:
         """检查权限；超级管理拥有全部权限"""
         try:
-            if role == "superadmin":
+            if role == "superadmin" or role == "super_admin":
                 return True
             # 如果user_id为None或0，表示未登录用户，默认无权限
             if not user_id:

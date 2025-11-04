@@ -162,6 +162,7 @@
         "press_enter_open_book": "按Enter键打开书籍: {book_id}",
         "adding_books": "正在添加书籍...",
         "add_books_failed": "添加书籍失败",
+        "add_failed": "添加失败",
         "actions": "操作",
         "read": "阅读",
         "view_file": "查看文件",
@@ -1082,7 +1083,12 @@
         "path": "目录",
         "cannot_visit": "无法访问",
         "selected_files": "已选择文件",
-        "selected_path": "已选择目录"
+        "selected_path": "已选择目录",
+        "search_placeholder": "输入书名...",
+        "searching": "正在搜索...",
+        "search_results": "搜索结果",
+        "no_search_results": "没有找到匹配的文件",
+        "diff_mode": "差异模式"
     },
     "lock_screen": {
         "placeholder": "请输入密码以继续",

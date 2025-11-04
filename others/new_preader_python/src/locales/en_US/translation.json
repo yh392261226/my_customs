@@ -162,6 +162,7 @@
         "press_enter_open_book": "Press Enter to open book: {book_id}",
         "adding_books": "Adding books...",
         "add_books_failed": "Failed to add books",
+        "add_failed": "Failed to add",
         "actions": "Actions",
         "read": "Read",
         "view_file": "View File",
@@ -1082,7 +1083,12 @@
         "path": "Directory",
         "cannot_visit": "Cannot Visit",
         "selected_files": "Selected Files",
-        "selected_path": "Selected Directory"
+        "selected_path": "Selected Directory",
+        "search_placeholder": "Input book names ...",
+        "searching": "Searching...",
+        "search_results": "Search Results",
+        "no_search_results": "No matching files found",
+        "diff_mode": "Diff Mode"
     },
     "lock_screen": {
         "placeholder": "Please enter password to continue",

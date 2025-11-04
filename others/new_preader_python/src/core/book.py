@@ -65,6 +65,9 @@ class Book:
         self.current_position = 0  # 当前阅读位置（字符偏移量）
         self.current_page = 0  # 当前页码
         self.reading_time = 0  # 总阅读时间（秒）
+        self.last_read_date = None  # 最后阅读日期（已迁移到reading_history表，但保留字段用于兼容性）
+        self.reading_progress = 0.0  # 阅读进度
+        self.total_pages = 0  # 总页数
         # 位置锚点（用于跨分页纠偏）
         self.anchor_text: str = ""
         self.anchor_hash: str = ""

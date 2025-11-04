@@ -1237,9 +1237,9 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                         )
                         self._load_books()
                     else:
-                        self.notify(get_global_i18n().t("bookshelf.add_failed"), severity="error")
+                        self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                 except Exception as e:
-                    logger.error(f"{get_global_i18n().t('bookshelf.add_book_failed')}: {e}")
+                    logger.error(f"{get_global_i18n().t('bookshelf.add_books_failed')}: {e}")
                     self.notify(f"{get_global_i18n().t("bookshelf.add_books_failed")}: {e}", severity="error")
                 
                 # 隐藏加载动画

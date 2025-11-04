@@ -23,6 +23,7 @@
     height: 4;
     width: 100%;
     margin-bottom: 1;
+    align: center middle;
 }
 
 /* 主内容区域 */
@@ -71,6 +72,11 @@
     margin: 0 1;
 }
 
+#action-buttons > Label {
+    height: 1;
+    margin: 1 1;
+}
+
 #main-container Button {
     background: $primary;
     color: $text;
@@ -79,13 +85,13 @@
     min-width: 8;
 }
 
-#main-container Input {
+#main-container #path-input {
     background: $surface;
     color: $text;
     border: solid $primary;
     height: 3;
     margin: 0 1;
-    width: 1fr;
+    width: 90%;
 }
 
 #main-container Static {
@@ -213,6 +219,10 @@
     border: thick $accent;
 }
 
+#main-container #navigation-area {
+    align: center middle;
+}
+
 /* 补全建议列表样式 */
 #main-container #completion-list {
     height: 4; /* 只显示2条的高度 */
@@ -222,6 +232,7 @@
     margin-top: 0;
     /* 始终占据空间，通过visibility属性控制可见性 */
     visibility: hidden; /* 初始隐藏但占据空间 */
+    align: center middle;
 }
 
 #main-container #completion-list:focus {
@@ -240,4 +251,55 @@
 
 #main-container #completion-list > .option-list--option.-highlight {
     background: $accent;
+}
+
+#file-explorer-search-input {
+    width: 15%;
+    min-width: 15;
+    height: 3;
+    margin: 0 1;
+}
+
+#file-explorer-search-btn {
+    background: $success;
+    color: $text;
+    min-width: 8;
+    height: 3;
+    margin: 0 1;
+}
+
+/* 搜索区域样式 */
+#main-container #action-buttons {
+    height: 4;
+    width: 100%;
+    margin: 0 1;
+    align: center middle;
+}
+
+/* 搜索按钮悬停效果 */
+#file-explorer-search-btn:hover {
+    background: $success-darken-1;
+}
+
+/* 搜索输入框焦点样式 */
+#file-explorer-search-input:focus {
+    background: $panel;
+}
+
+/* 搜索选择框样式 */
+#file-explorer-search-select {
+    width: 15%;
+    min-width: 15;
+    margin: 0 1;
+    background: $surface;
+    color: $text;
+}
+
+#file-explorer-search-select:focus {
+    background: $panel;
+}
+
+#file-explorer-diff-mode-label {
+    margin: 2 1 1 0;
+    height: 1;
 }
