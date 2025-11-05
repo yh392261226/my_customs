@@ -259,8 +259,8 @@ class Bookshelf:
             all_books = []
         
         # 如果没有搜索关键词，直接返回所有书籍
-        if not keyword.strip():
-            return all_books
+        # if not keyword.strip():
+        #     return all_books
         
         # 在已过滤的书籍中进行搜索
         keyword_lower = keyword.lower()

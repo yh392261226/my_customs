@@ -14,6 +14,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.search import SearchResult
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.config.default_config import SUPPORTED_FORMATS
 
 class SearchDialog(ModalScreen[Optional[SearchResult]]):
 
@@ -25,6 +26,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         ("enter", "press('#select-btn')", get_global_i18n().t('common.select')),
         ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
     ]
+    # 支持的书籍文件扩展名（从配置文件读取）
+    SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
     
     def __init__(self, theme_manager: ThemeManager, 
                  book_id: Optional[str] = None,
@@ -46,22 +49,23 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
+        # 动态生成搜索选择框选项
+        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+        # 根据SUPPORTED_EXTENSIONS生成格式选项
+        for ext in self.SUPPORTED_EXTENSIONS:
+            # 去掉点号，转换为大写作为显示名称
+            display_name = ext.upper().lstrip('.')
+            search_options.append((display_name, ext))
+
         with Vertical(id="search-dialog"):
             yield Label(get_global_i18n().t("search.title"), id="search-title", classes="section-title")
             with Vertical(id="search-filters", classes="form-row"):
                 yield Input(placeholder=get_global_i18n().t("search.placeholder"), id="search-input")
                 yield Select(
-                    [
-                        (get_global_i18n().t("search.all_formats"), "all"),
-                        ("TXT", "txt"),
-                        ("EPUB", "epub"),
-                        ("MOBI", "mobi"),
-                        ("PDF", "pdf"),
-                        ("AZW3", "azw3")
-                    ],
+                    options=search_options,
                     value="all",
                     id="format-filter",
-                    prompt=get_global_i18n().t("search.file_format")
+                    prompt=get_global_i18n().t("common.select_ext_prompt")
                 )
             yield DataTable(id="results-table")
             with Horizontal(id="search-buttons", classes="btn-row"):
@@ -100,14 +104,13 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         search_input = self.query_one("#search-input", Input)
         format_filter = self.query_one("#format-filter", Select)
         
-        # 如果搜索输入框为空且没有选择特定格式，则不搜索
-        if not search_input.value and format_filter.value == "all":
-            return
+        # 无论输入框是否有值，都执行搜索
+        # 这样可以实现输入框和下拉框的独立使用
             
         from src.core.bookshelf import Bookshelf
         
-        # 获取文件类型筛选条件（添加点号前缀）
-        selected_format = f".{format_filter.value}" if format_filter.value and format_filter.value != "all" else None
+        # 获取文件类型筛选条件（选项值已经包含点号）
+        selected_format = format_filter.value if format_filter.value and format_filter.value != "all" else None
         
         # 使用书架进行书籍搜索，支持文件类型筛选
         if self.bookshelf:

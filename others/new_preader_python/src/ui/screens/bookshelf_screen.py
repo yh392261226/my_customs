@@ -30,7 +30,7 @@ from src.ui.dialogs.scan_progress_dialog import ScanProgressDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import ScreenStyleMixin
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
-
+from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -51,6 +51,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
     ]
+    # 支持的书籍文件扩展名（从配置文件读取）
+    SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
     
     @on(RefreshBookshelfMessage)
     def handle_refresh_message(self, message: RefreshBookshelfMessage) -> None:
@@ -122,6 +124,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
+        # 动态生成搜索选择框选项
+        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+        # 根据SUPPORTED_EXTENSIONS生成格式选项
+        for ext in self.SUPPORTED_EXTENSIONS:
+            # 去掉点号，转换为大写作为显示名称
+            display_name = ext.upper().lstrip('.')
+            search_options.append((display_name, ext.lstrip('.')))
+
         yield Header()
         yield Container(
             Grid(
@@ -148,17 +158,10 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                             classes="bookshelf-search-input"
                         ),
                         Select(
-                            [
-                                (get_global_i18n().t("search.all_formats"), "all"),
-                                ("TXT", "txt"),
-                                ("EPUB", "epub"),
-                                ("MOBI", "mobi"),
-                                ("PDF", "pdf"),
-                                ("AZW3", "azw3")
-                            ],
-                            value="all",
                             id="bookshelf-format-filter",
-                            prompt=get_global_i18n().t("search.file_format"),
+                            options=search_options, 
+                            value="all",
+                            prompt=get_global_i18n().t("common.select_ext_prompt"),
                             classes="bookshelf-search-select"
                         ),
                         id="bookshelf-search-bar",

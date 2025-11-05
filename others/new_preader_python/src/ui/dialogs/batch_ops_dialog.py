@@ -20,7 +20,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
-
+from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -109,6 +109,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
+    # 支持的书籍文件扩展名（从配置文件读取）
+    SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf):
         """
@@ -139,6 +141,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
+        # 动态生成搜索选择框选项
+        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+        # 根据SUPPORTED_EXTENSIONS生成格式选项
+        for ext in self.SUPPORTED_EXTENSIONS:
+            # 去掉点号，转换为大写作为显示名称
+            display_name = ext.upper().lstrip('.')
+            search_options.append((display_name, ext.lstrip('.')))
+
         yield Container(
             Vertical(
                 # 标题
@@ -166,17 +176,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Input(placeholder=get_global_i18n().t("bookshelf.search_placeholder"), id="search-input-field"),
                     Select(
-                    [
-                        (get_global_i18n().t("batch_ops.all_formats"), "all"),
-                        ("TXT", "txt"),
-                        ("EPUB", "epub"),
-                        ("MOBI", "mobi"),
-                        ("PDF", "pdf"),
-                        ("AZW3", "azw3")
-                    ],
+                    options=search_options,
                     value="all",
                     id="search-format-filter",
-                    prompt=get_global_i18n().t("batch_ops.file_format")
+                    prompt=get_global_i18n().t("common.select_ext_prompt")
                 ),
                     Button(get_global_i18n().t("common.search"), id="search-btn"),
                     id="batch-ops-search-contain", classes="form-row"

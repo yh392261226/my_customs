@@ -391,6 +391,7 @@
         "add": "添加",
         "remove": "移除",
         "search": "搜索",
+        "select_ext_prompt": "选择后缀名",
         "loading": "加载中...",
         "error": "错误",
         "warning": "警告",

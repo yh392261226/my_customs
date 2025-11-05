@@ -26,6 +26,7 @@ from src.ui.messages import RefreshBookshelfMessage
 from src.utils.logger import get_logger
 from src.ui.styles.style_manager import ScreenStyleMixin
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.config.default_config import SUPPORTED_FORMATS
 
 logger = get_logger(__name__)
 
@@ -44,8 +45,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         ("s", "select_button", get_global_i18n().t('common.select')),
     ]
     
-    # 支持的书籍文件扩展名
-    SUPPORTED_EXTENSIONS = {'.txt', '.pdf', '.epub', '.mobi', '.azw', '.azw3', '.md'}
+    # 支持的书籍文件扩展名（从配置文件读取）
+    SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect,
                  selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False):
@@ -136,14 +137,15 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                         yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
                         yield Switch(value=False, id="file-explorer-diff-mode-switch")
                         yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
-                        yield Select(id="file-explorer-search-select", options=[
-                            (get_global_i18n().t("search.all_formats"), "all"),
-                            ("TXT", ".txt"),
-                            ("EPUB", ".epub"),
-                            ("MOBI", ".mobi"),
-                            ("PDF", ".pdf"),
-                            ("AZW3", ".azw3")
-                        ])
+                        # 动态生成搜索选择框选项
+                        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+                        # 根据SUPPORTED_EXTENSIONS生成格式选项
+                        for ext in self.SUPPORTED_EXTENSIONS:
+                            # 去掉点号，转换为大写作为显示名称
+                            display_name = ext.upper().lstrip('.')
+                            search_options.append((display_name, ext))
+                        
+                        yield Select(id="file-explorer-search-select", options=search_options, prompt=get_global_i18n().t("common.select_ext_prompt"))
                         yield Button(get_global_i18n().t("common.search"), id="file-explorer-search-btn")
                         # 如果是文件选择模式，则显示搜索框和按钮 end
                         yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
@@ -245,12 +247,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                     # 目录项
                     items.append({"name": item, "path": item_path, "type": "directory", "display": f"📁 {item}/"})
                 elif os.path.isfile(item_path):
-                    # 文件项，检查是否为支持的书籍格式
+                    # 文件项，只显示支持的书籍格式
                     ext = FileUtils.get_file_extension(item_path)
                     if ext in self.SUPPORTED_EXTENSIONS:
                         items.append({"name": item, "path": item_path, "type": "book", "display": f"📖 {item}"})
-                    else:
-                        items.append({"name": item, "path": item_path, "type": "file", "display": f"📄 {item}"})
             
             if items:
                 # 添加到ListView
@@ -746,11 +746,30 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             from src.utils.multi_user_manager import multi_user_manager
             db_manager = DatabaseManager()
             
-            # 获取当前用户信息
-            current_user = multi_user_manager.get_current_user()
+            # 获取当前用户ID - 使用与应用实例一致的方式
+            current_user = getattr(self.app, 'current_user', None)
+            if current_user:
+                current_user_id = current_user.get('id')
+
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if current_user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                current_user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if current_user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+                else:
+                    user_id = current_user_id
+            else:
+                user_id = None
+            
             user_id = current_user.get("id", 0)
             role = current_user.get("role", "user")
-            logger.info(f"当前用户: {user_id}, 角色: {role}")
+            logger.info(f"_check_button_permissions:当前用户: {user_id}, 角色: {role}")
             # 检查各个按钮的权限
             back_btn = self.query_one("#back-btn", Button)
             go_btn = self.query_one("#go-btn", Button)
@@ -1049,11 +1068,30 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             from src.utils.multi_user_manager import multi_user_manager
             db_manager = DatabaseManager()
             
-            # 获取当前用户信息
-            current_user = multi_user_manager.get_current_user()
-            user_id = current_user.get("id", 0)
-            role = current_user.get("role", "user")
-            logger.info(f"has_button_permission: 当前用户ID: {user_id}, 角色: {role}")
+            # 获取当前用户ID - 使用与应用实例一致的方式
+            current_user = getattr(self.app, 'current_user', None)
+            if current_user:
+                current_user_id = current_user.get('id')
+
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if current_user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                current_user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if current_user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+                else:
+                    user_id = current_user_id
+            else:
+                user_id = None
+            
+            role = current_user.get("role")
+
+            logger.info(f"_has_button_permission: 当前用户ID: {user_id}, 角色: {role}")
             
             # 超级管理员拥有所有权限
             if role == "super_admin" or role == "superadmin": 
@@ -1082,10 +1120,30 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             from src.utils.multi_user_manager import multi_user_manager
             db_manager = DatabaseManager()
             
-            # 获取当前用户信息
-            current_user = multi_user_manager.get_current_user()
-            user_id = current_user.get("id", 0)
-            role = current_user.get("role", "user")
+            # 获取当前用户ID - 使用与应用实例一致的方式
+            current_user = getattr(self.app, 'current_user', None)
+            if current_user:
+                current_user_id = current_user.get('id')
+
+            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
+            if current_user_id is None:
+                from src.utils.multi_user_manager import multi_user_manager
+                current_user = multi_user_manager.get_current_user()
+                current_user_id = current_user.get('id') if current_user else None
+            
+            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
+            if current_user_id is not None:
+                from src.utils.multi_user_manager import multi_user_manager
+                if not multi_user_manager.is_multi_user_enabled():
+                    user_id = None
+                else:
+                    user_id = current_user_id
+            else:
+                user_id = None
+            
+            role = current_user.get("role")
+
+            logger.info(f"_has_permission: 当前用户ID: {user_id}, 角色: {role}")
 
             # 超级管理员拥有所有权限
             if role == "super_admin" or role == "superadmin": 
@@ -1214,19 +1272,20 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                 
                 # 只处理文件，不处理目录
                 if os.path.isfile(item_path):
-                    # 获取文件信息
+                    # 获取文件信息，只显示支持的书籍格式
                     ext = FileUtils.get_file_extension(item_path)
-                    file_type_display = "book" if ext in self.SUPPORTED_EXTENSIONS else "file"
-                    
-                    all_files.append({
-                        "name": item,
-                        "path": item_path,
-                        "type": file_type_display,
-                        "display": f"📖 {item}" if file_type_display == "book" else f"📄 {item}",
-                        "directory": "."
-                    })
-                    
-                    logger.debug(f"找到文件: {item}, 类型: {file_type_display}")
+                    if ext in self.SUPPORTED_EXTENSIONS:
+                        file_type_display = "book"
+                        
+                        all_files.append({
+                            "name": item,
+                            "path": item_path,
+                            "type": file_type_display,
+                            "display": f"📖 {item}",
+                            "directory": "."
+                        })
+                        
+                        logger.debug(f"找到支持的文件: {item}, 类型: {file_type_display}")
                         
         except (PermissionError, OSError) as e:
             logger.warning(f"获取当前目录文件失败: {e}")

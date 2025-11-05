@@ -391,6 +391,7 @@
         "add": "Add",
         "remove": "Remove",
         "search": "Search",
+        "select_ext_prompt": "Select Extensions",
         "loading": "Loading...",
         "error": "Error",
         "warning": "Warning",
