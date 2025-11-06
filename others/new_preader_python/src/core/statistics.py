@@ -183,9 +183,11 @@ class Statistics:
         # 计算页数（不再使用基于字数的计算）
         for book in self.bookshelf.get_all_books():
             if book.path in books_read:
-                # 估算已读页数
-                progress = book.reading_progress
-                pages_read = int(book.total_pages * progress)
+                # 从reading_history表获取阅读信息
+                reading_info = self.bookshelf.get_book_reading_info(book.path)
+                progress = reading_info.get('reading_progress', 0)
+                total_pages = reading_info.get('total_pages', 0)
+                pages_read = int(total_pages * progress)
                 
                 # 确保类型正确
                 self.stats["total_stats"]["pages_read"] = int(self.stats["total_stats"]["pages_read"]) + pages_read
@@ -374,13 +376,17 @@ class Statistics:
         for path, stats in book_stats.items():
             book = self.bookshelf.get_book(path)
             if book:
+                # 从reading_history表获取阅读进度
+                reading_info = self.bookshelf.get_book_reading_info(book.path)
+                progress = reading_info.get('reading_progress', 0)
+                
                 books.append({
                     "path": path,
                     "title": book.title,
                     "author": book.author,
                     "reading_time": stats["reading_time"],
                     "open_count": stats["open_count"],
-                    "progress": book.reading_progress
+                    "progress": progress
                 })
         
         # 按阅读时间排序

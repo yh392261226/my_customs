@@ -417,6 +417,7 @@ class BookshelfScreen(Screen[None]):
                     for keyword in keywords:
                         if (keyword.lower() in book.title.lower() or 
                             keyword.lower() in book.author.lower() or 
+                            (hasattr(book, 'pinyin') and book.pinyin and keyword.lower() in book.pinyin.lower()) or
                             (book.tags and keyword.lower() in book.tags.lower())):
                             keyword_match = True
                             break
@@ -471,7 +472,10 @@ class BookshelfScreen(Screen[None]):
             if getattr(book, 'file_not_found', False):
                 display_title = f"[🈚] {book.title}"
             
-            # 添加操作按钮（按权限）
+            # 获取当前表格的实际列数
+            column_count = len(table.columns)
+            
+            # 添加基础列数据
             row_values = [
                 str(index),
                 display_title,
@@ -481,24 +485,38 @@ class BookshelfScreen(Screen[None]):
                 f"{progress:.1f}%",
                 tags_display,
             ]
-            # 文件不存在时，不显示阅读、查看文件、重命名按钮
-            if getattr(book, 'file_not_found', False):
+            
+            # 根据实际列数动态添加操作按钮
+            # 基础列数量为7个，操作列从第8列开始
+            if column_count > 7:
+                # 文件不存在时，不显示阅读、查看文件、重命名按钮
+                if getattr(book, 'file_not_found', False):
+                    row_values.append("")
+                else:            
+                    if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+                        row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
+            
+            if column_count > 8:
+                if getattr(book, 'file_not_found', False):
+                    row_values.append("")
+                else:
+                    if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
+                        row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
+            
+            if column_count > 9:
+                if getattr(book, 'file_not_found', False):
+                    row_values.append("")
+                else:
+                    row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
+            
+            if column_count > 10:
+                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
+                    row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")
+            
+            # 确保行数据列数与表格列数匹配
+            while len(row_values) < column_count:
                 row_values.append("")
-            else:            
-                if getattr(self.app, "has_permission", lambda k: False)("bookshelf.read"):
-                    row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
-            if getattr(book, 'file_not_found', False):
-                row_values.append("")
-            else:
-                if getattr(self.app, "has_permission", lambda k: False)("bookshelf.view_file"):
-                    row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
-            if getattr(book, 'file_not_found', False):
-                row_values.append("")
-            else:
-                row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
-
-            if getattr(self.app, "has_permission", lambda k: False)("bookshelf.delete_book"):
-                row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")
+            
             # 使用唯一的key，避免重复（book.path + 索引）
             table.add_row(*row_values, key=f"{book.path}_{index}")
         

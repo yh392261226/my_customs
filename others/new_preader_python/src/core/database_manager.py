@@ -522,12 +522,46 @@ class DatabaseManager:
             # 生成书名拼音
             pinyin_text = convert_to_pinyin(book.title) if book.title else ""
             
+            # 优化metadata存储策略：只存储没有独立字段的数据
+            # 构建精简的metadata，只包含独立字段没有覆盖的额外数据
+            minimal_metadata = {}
+            
+            # 存储章节信息（列表结构，适合存储在metadata中）
+            if book.chapters:
+                minimal_metadata['chapters'] = book.chapters
+            
+            # 存储书签信息（列表结构，适合存储在metadata中）
+            if book.bookmarks:
+                minimal_metadata['bookmarks'] = book.bookmarks
+            
+            # 存储锚点信息（用于跨分页纠偏）
+            if book.anchor_text:
+                minimal_metadata['anchor_text'] = book.anchor_text
+            
+            if book.anchor_hash:
+                minimal_metadata['anchor_hash'] = book.anchor_hash
+            
+            # 存储文件不存在标记（布尔值，适合存储在metadata中）
+            if book.file_not_found:
+                minimal_metadata['file_not_found'] = book.file_not_found
+            
+            # 存储PDF密码（敏感信息，适合存储在metadata中）
+            if book.password:
+                minimal_metadata['password'] = book.password
+            
+            # 存储文件大小（数值，适合存储在metadata中）
+            if book.size > 0:
+                minimal_metadata['size'] = book.size
+            
+            # 确保metadata不为空时进行序列化
+            metadata_json = json.dumps(minimal_metadata) if minimal_metadata else ""
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO books 
-                    (path, title, pinyin, author, format, add_date, last_read_date, reading_progress, total_pages, word_count, tags, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (path, title, pinyin, author, format, add_date, tags, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book.path,
                     book.title,
@@ -535,14 +569,12 @@ class DatabaseManager:
                     book.author,
                     book.format,
                     book.add_date,
-                    book.last_read_date,
-                    book.reading_progress,
-                    book.total_pages,
-                    book.word_count,
                     book.tags if book.tags else "",  # 直接使用字符串
-                    json.dumps(book.to_dict())
+                    metadata_json
                 ))
                 conn.commit()
+                
+                logger.info(f"书籍已添加到数据库: {book.title} (metadata大小: {len(metadata_json)} 字节)")
                 return True
         except sqlite3.Error as e:
             logger.error(f"添加书籍到数据库失败: {e}")
@@ -622,6 +654,40 @@ class DatabaseManager:
             # 生成书名拼音
             pinyin_text = convert_to_pinyin(book.title) if book.title else ""
             
+            # 优化metadata存储策略：只存储没有独立字段的数据
+            # 构建精简的metadata，只包含独立字段没有覆盖的额外数据
+            minimal_metadata = {}
+            
+            # 存储章节信息（列表结构，适合存储在metadata中）
+            if book.chapters:
+                minimal_metadata['chapters'] = book.chapters
+            
+            # 存储书签信息（列表结构，适合存储在metadata中）
+            if book.bookmarks:
+                minimal_metadata['bookmarks'] = book.bookmarks
+            
+            # 存储锚点信息（用于跨分页纠偏）
+            if book.anchor_text:
+                minimal_metadata['anchor_text'] = book.anchor_text
+            
+            if book.anchor_hash:
+                minimal_metadata['anchor_hash'] = book.anchor_hash
+            
+            # 存储文件不存在标记（布尔值，适合存储在metadata中）
+            if book.file_not_found:
+                minimal_metadata['file_not_found'] = book.file_not_found
+            
+            # 存储PDF密码（敏感信息，适合存储在metadata中）
+            if book.password:
+                minimal_metadata['password'] = book.password
+            
+            # 存储文件大小（数值，适合存储在metadata中）
+            if book.size > 0:
+                minimal_metadata['size'] = book.size
+            
+            # 确保metadata不为空时进行序列化
+            metadata_json = json.dumps(minimal_metadata) if minimal_metadata else ""
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
@@ -630,24 +696,24 @@ class DatabaseManager:
                 
                 cursor.execute("""
                     UPDATE books 
-                    SET title = ?, pinyin = ?, author = ?, format = ?, last_read_date = ?, 
-                        reading_progress = ?, total_pages = ?, word_count = ?, tags = ?, metadata = ?
+                    SET title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?
                     WHERE path = ?
                 """, (
                     book.title,
                     pinyin_text,
                     book.author,
                     book.format,
-                    book.last_read_date,
-                    book.reading_progress,
-                    book.total_pages,
-                    book.word_count,
                     book.tags if book.tags else "",
-                    json.dumps(book.to_dict()),
+                    metadata_json,
                     where_path
                 ))
                 conn.commit()
-                return cursor.rowcount > 0
+                
+                success = cursor.rowcount > 0
+                if success:
+                    logger.info(f"书籍信息已更新: {book.title} (metadata大小: {len(metadata_json)} 字节)")
+                
+                return success
         except sqlite3.Error as e:
             logger.error(f"更新书籍信息失败: {e}")
             return False
@@ -962,46 +1028,68 @@ class DatabaseManager:
         Returns:
             Book: 书籍对象
         """
-        try:
-            # 首先尝试从metadata字段恢复完整的书籍对象
-            if row['metadata']:
-                metadata = json.loads(row['metadata'])
-                book = Book.from_dict(metadata)
-                return book
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.warning(f"从元数据恢复书籍失败，使用基本属性: {e}")
-        
-        # 如果元数据恢复失败，使用基本属性创建书籍对象
+        # 优先使用独立字段创建书籍对象
         pinyin_value = row['pinyin'] if 'pinyin' in row else None
+        
+        # 创建基础书籍对象
         book = Book(
             path=row['path'],
             title=row['title'],
             author=row['author'],
+            tags=row['tags'],
             pinyin=pinyin_value
         )
         
-        # 设置其他属性
+        # 设置格式字段
         book.format = row['format']
         
-        # 日期字段保持为字符串格式
+        # 设置日期字段
         book.add_date = row['add_date']
-        book.last_read_date = row['last_read_date']
         
-        book.reading_progress = row['reading_progress'] or 0
-        book.total_pages = row['total_pages'] or 0
-        book.word_count = row['word_count'] or 0
+        # 注意：last_read_date、reading_progress、total_pages、word_count字段
+        # 现在存储在reading_history表中，不在books表中
+        # 这些字段将通过其他方法从reading_history表获取
         
         # 设置拼音字段（如果存在）
         if 'pinyin' in row:
-            book.pinyin = row['pinyin']
+            book.pinyin = row['pinyin'] or ""
         
         # 设置标签字段（如果存在）
-        if 'tags' in row and row['tags']:
+        if 'tags' in row:
+            book.tags = row['tags'] or ""
+        
+        # 只有在独立字段缺失或需要补充数据时，才使用metadata字段
+        if row['metadata']:
             try:
-                # 保持为数据库中的原始字符串，避免类型冲突
-                book.tags = row['tags']
-            except Exception:
-                pass
+                metadata = json.loads(row['metadata'])
+                
+                # 仅使用metadata字段补充缺失的数据
+                # 只有在独立字段为空或无效时，才使用metadata中的对应字段
+                if not book.title or book.title == "未知标题":
+                    book.title = metadata.get('title', book.title)
+                
+                if not book.author or book.author == "未知作者":
+                    book.author = metadata.get('author', book.author)
+                
+                if not book.pinyin:
+                    book.pinyin = metadata.get('pinyin', book.pinyin)
+                
+                if not book.tags:
+                    book.tags = metadata.get('tags', book.tags)
+                
+                # 补充其他可能缺失的字段（阅读相关字段已迁移到reading_history表）
+                # reading_progress, total_pages, word_count 等字段应从reading_history表获取
+                
+                # 补充章节信息（如果不存在）
+                if not book.chapters and 'chapters' in metadata:
+                    book.chapters = metadata.get('chapters', [])
+                
+                # 补充书签信息（如果不存在）
+                if not book.bookmarks and 'bookmarks' in metadata:
+                    book.bookmarks = metadata.get('bookmarks', [])
+                    
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.warning(f"解析metadata字段失败，已使用独立字段: {e}")
         
         return book
 

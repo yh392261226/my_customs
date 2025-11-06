@@ -267,11 +267,12 @@ class Bookshelf:
         filtered_books = []
         
         for book in all_books:
-            # 检查标题、作者、标签是否包含关键词
+            # 检查标题、作者、标签、拼音是否包含关键词
             matches = (
                 (book.title and keyword_lower in book.title.lower()) or
                 (book.author and keyword_lower in book.author.lower()) or
-                (book.tags and keyword_lower in book.tags.lower())
+                (book.tags and keyword_lower in book.tags.lower()) or
+                (hasattr(book, 'pinyin') and book.pinyin and keyword_lower in book.pinyin.lower())
             )
             
             # 检查文件格式

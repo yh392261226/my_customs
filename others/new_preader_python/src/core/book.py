@@ -65,9 +65,10 @@ class Book:
         self.current_position = 0  # 当前阅读位置（字符偏移量）
         self.current_page = 0  # 当前页码
         self.reading_time = 0  # 总阅读时间（秒）
-        self.last_read_date = None  # 最后阅读日期（已迁移到reading_history表，但保留字段用于兼容性）
-        self.reading_progress = 0.0  # 阅读进度
-        self.total_pages = 0  # 总页数
+        # 以下字段已迁移到reading_history表，保留字段仅用于临时存储和兼容性
+        self.last_read_date = None  # 最后阅读日期（从reading_history表获取）
+        self.reading_progress = 0.0  # 阅读进度（从reading_history表获取）
+        self.total_pages = 0  # 总页数（从reading_history表获取）
         # 位置锚点（用于跨分页纠偏）
         self.anchor_text: str = ""
         self.anchor_hash: str = ""
@@ -76,7 +77,7 @@ class Book:
         self.bookmarks: List[Dict[str, Any]] = []
         
         # 统计信息
-        self.word_count = 0  # 字数
+        self.word_count = 0  # 字数（从reading_history表获取）
         self.open_count = 0  # 打开次数
         
         # 章节信息
@@ -146,17 +147,18 @@ class Book:
             book.tags = tags_data
         book.size = data["size"]
         book.add_date = data["add_date"]
-        book.last_read_date = data.get("last_read_date")
+        # 阅读相关字段已迁移到reading_history表，这里仅设置临时值
+        book.last_read_date = data.get("last_read_date")  # 从reading_history表获取
         book.current_position = data.get("current_position", 0)
         book.current_page = data.get("current_page", 0)
-        book.total_pages = data.get("total_pages", 0)
-        book.reading_progress = data.get("reading_progress", 0.0)
+        book.total_pages = data.get("total_pages", 0)  # 从reading_history表获取
+        book.reading_progress = data.get("reading_progress", 0.0)  # 从reading_history表获取
         book.reading_time = data.get("reading_time", 0)
         # 读取锚点字段（向后兼容）
         book.anchor_text = data.get("anchor_text", "")
         book.anchor_hash = data.get("anchor_hash", "")
         book.bookmarks = data.get("bookmarks", [])
-        book.word_count = data.get("word_count", 0)
+        book.word_count = data.get("word_count", 0)  # 从reading_history表获取
         book.open_count = data.get("open_count", 0)
         book.chapters = data.get("chapters", [])
         return book

@@ -382,7 +382,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         self.status_manager.start_reading(
             current_page=self.renderer.current_page,
             total_pages=self.renderer.total_pages,
-            word_count=self.book.word_count
+            word_count=0  # 从reading_history表获取，这里设为默认值
         )
         
         # 同步页面状态
@@ -2363,7 +2363,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         if self.bookshelf:
                             self.bookshelf.save()
                             
-                        logger.info(get_global_i18n().t('reader.record_progress', title=self.book.title, page=self.current_page, total=getattr(self.renderer, 'total_pages', 1), progress=f"{self.book.reading_progress:.1%}"))
+                        # 从reading_history表获取阅读进度
+                        reading_info = self.bookshelf.get_book_reading_info(self.book.path) if self.bookshelf else {}
+                        progress = reading_info.get('reading_progress', self.book.reading_progress)
+                        logger.info(get_global_i18n().t('reader.record_progress', title=self.book.title, page=self.current_page, total=getattr(self.renderer, 'total_pages', 1), progress=f"{progress:.1%}"))
                     except Exception as e:
                         logger.error(f"{get_global_i18n().t('reader.record_progress_failed')}: {e}")
                 
