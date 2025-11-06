@@ -99,13 +99,39 @@ class Bookshelf:
             bool: 保存是否成功
         """
         try:
-            # 保存所有书籍到数据库
-            for book in self.books.values():
-                if not self.db_manager.add_book(book):
-                    logger.error(f"保存书籍到数据库失败: {book.title}")
-                    return False
+            # 只保存有变化的书籍，避免不必要的数据库操作
+            changed_count = 0
+            total_count = 0
             
-            logger.info("书架数据已保存到数据库")
+            for book in self.books.values():
+                total_count += 1
+                
+                # 检查书籍是否已存在，如果存在则使用更新，不存在才添加
+                existing_book = self.db_manager.get_book(book.path)
+                if existing_book:
+                    # 检查书籍是否有实际变化（比较关键字段）
+                    if (existing_book.title != book.title or 
+                        existing_book.author != book.author or 
+                        existing_book.reading_progress != book.reading_progress or
+                        existing_book.current_page != book.current_page or
+                        existing_book.last_read_date != book.last_read_date):
+                        # 书籍已存在且有变化，使用更新操作
+                        if not self.db_manager.update_book(book):
+                            logger.error(f"更新书籍到数据库失败: {book.title}")
+                            return False
+                        changed_count += 1
+                else:
+                    # 书籍不存在，使用添加操作
+                    if not self.db_manager.add_book(book):
+                        logger.error(f"添加书籍到数据库失败: {book.title}")
+                        return False
+                    changed_count += 1
+            
+            if changed_count > 0:
+                logger.info(f"书架数据已保存到数据库（{changed_count}/{total_count} 本书籍有变化）")
+            else:
+                logger.debug(f"书架数据无变化，跳过保存（{total_count} 本书籍）")
+            
             return True
         except Exception as e:
             logger.error(f"保存书架数据时出错: {e}")
@@ -500,7 +526,10 @@ class Bookshelf:
                 "format": book.format,
                 "current_page": book.current_page,
                 "current_position": book.current_position,
-                "reading_time": book.reading_time
+                "reading_time": book.reading_time,
+                "reading_progress": book.reading_progress,
+                "total_pages": book.total_pages,
+                "word_count": book.word_count
             }
             
             self.db_manager.add_reading_record(

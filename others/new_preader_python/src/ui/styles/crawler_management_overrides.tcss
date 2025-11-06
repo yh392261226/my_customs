@@ -35,6 +35,10 @@ Footer {
     color: $text-muted;
 }
 
+#book-id-example-label {
+    color: $primary 20%;
+}
+
 #crawler-buttons {
     height: 3;
 }

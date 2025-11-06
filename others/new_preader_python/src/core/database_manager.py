@@ -895,16 +895,27 @@ class DatabaseManager:
                 current_time = datetime.now().isoformat()
                 
                 # 获取书籍的阅读进度相关信息
-                if book_row:
-                    reading_progress = book_row.get('reading_progress', 0) if isinstance(book_row, dict) else (
-                        book_row[7] if len(book_row) > 7 else 0
+                # 注意：reading_progress、total_pages、word_count现在从book_metadata参数获取
+                # 因为books表已经移除了这些字段
+                if book_metadata:
+                    # 优先使用提供的元数据
+                    reading_progress = book_metadata.get('reading_progress', 0)
+                    total_pages = book_metadata.get('total_pages', 0)
+                    word_count = book_metadata.get('word_count', 0)
+                elif book_row:
+                    # 如果book_metadata为空，尝试从books表的metadata字段获取
+                    metadata_json = book_row.get('metadata', '{}') if isinstance(book_row, dict) else (
+                        book_row[6] if len(book_row) > 6 else '{}'
                     )
-                    total_pages = book_row.get('total_pages', 0) if isinstance(book_row, dict) else (
-                        book_row[8] if len(book_row) > 8 else 0
-                    )
-                    word_count = book_row.get('word_count', 0) if isinstance(book_row, dict) else (
-                        book_row[9] if len(book_row) > 9 else 0
-                    )
+                    try:
+                        metadata_dict = json.loads(metadata_json) if metadata_json else {}
+                        reading_progress = metadata_dict.get('reading_progress', 0)
+                        total_pages = metadata_dict.get('total_pages', 0)
+                        word_count = metadata_dict.get('word_count', 0)
+                    except (json.JSONDecodeError, KeyError):
+                        reading_progress = 0
+                        total_pages = 0
+                        word_count = 0
                 else:
                     reading_progress = 0
                     total_pages = 0

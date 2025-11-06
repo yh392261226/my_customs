@@ -254,8 +254,14 @@ class Book:
         self.current_position = position
         self.current_page = page
         
-        # 注意：total_pages和reading_progress现在存储在reading_history表中
-        # 最后阅读时间也存储在reading_history表中
+        # 更新total_pages字段（用于临时存储和传递到reading_history表）
+        self.total_pages = total_pages
+        
+        # 计算阅读进度（百分比）
+        if total_pages > 0:
+            self.reading_progress = min(page / total_pages, 1.0)
+        else:
+            self.reading_progress = 0.0
     
     def add_reading_time(self, seconds: int) -> None:
         """

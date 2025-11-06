@@ -990,17 +990,19 @@ class CrawlerManagementScreen(Screen[None]):
                         site_tags = self.novel_site.get('tags', '')
                         book = Book(file_path, novel_title, author, tags=site_tags)
                         self.db_manager.add_book(book)
+                        
+                    # 发送全局刷新书架消息
+                    try:
+                        from src.ui.messages import RefreshBookshelfMessage
+                        self.app.post_message(RefreshBookshelfMessage())
+                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
+                    except Exception as msg_error:
+                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                        
                 except Exception as add_err:
                     logger.error(f"添加书籍到书架失败: {add_err}")
-                # 发送全局刷新书架消息
-                try:
-                    from src.ui.messages import RefreshBookshelfMessage
-                    self.app.post_message(RefreshBookshelfMessage())
-                    logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                except Exception as msg_error:
-                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                else:
                     logger.warning(f"添加书籍到书架失败: {novel_title}")
+                    
             except Exception as e:
                 logger.error(f"添加书籍到书架失败: {e}")
             
@@ -1103,19 +1105,21 @@ class CrawlerManagementScreen(Screen[None]):
                         site_tags = self.novel_site.get('tags', '')
                         added_book = Book(file_path, novel_title, author, tags=site_tags)
                         self.db_manager.add_book(added_book)
+                        
+                    # 发送全局刷新书架消息，确保书架屏幕能够接收
+                    try:
+                        from src.ui.messages import RefreshBookshelfMessage
+                        self.app.post_message(RefreshBookshelfMessage())
+                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
+                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
+                    except Exception as msg_error:
+                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
+                        
                 except Exception as add_err:
                     logger.error(f"添加书籍到书架失败: {add_err}")
-                # 发送全局刷新书架消息，确保书架屏幕能够接收
-                try:
-                    from src.ui.messages import RefreshBookshelfMessage
-                    self.app.post_message(RefreshBookshelfMessage())
-                    logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                except Exception as msg_error:
-                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                    
-                    self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
-                else:
                     self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")
+                    
             except Exception as e:
                 logger.error(f"添加书籍到书架失败: {e}")
                 self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")

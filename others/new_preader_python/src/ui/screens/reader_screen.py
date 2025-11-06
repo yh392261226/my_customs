@@ -5,6 +5,7 @@
 
 import os
 import asyncio
+from pydoc import pager
 from typing import Dict, Any, Optional, List, ClassVar
 from datetime import datetime
 import time
@@ -2109,7 +2110,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         try:
             # 先检查状态栏是否存在
             status_widgets = self.query("#reader-status")
-            if not status_widgets:
+            pager_widgets = self.query("#pager-status")
+            if not status_widgets and not pager_widgets:
                 logger.warning("状态栏元素未找到，可能尚未渲染完成")
                 return
                 
@@ -2361,7 +2363,46 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     # 保存到数据库
                     try:
                         if self.bookshelf:
-                            self.bookshelf.save()
+                            # 直接使用数据库管理器更新当前书籍，完全绕过Bookshelf对象
+                            from src.core.database_manager import DatabaseManager
+                            db_manager = DatabaseManager()
+                            
+                            # 检查书籍是否已存在
+                            existing_book = db_manager.get_book(self.book.path)
+                            if existing_book:
+                                # 书籍已存在，使用更新操作
+                                if not db_manager.update_book(self.book):
+                                    logger.error(f"更新书籍到数据库失败: {self.book.title}")
+                                else:
+                                    logger.info(f"已更新书籍进度: {self.book.title}")
+                            else:
+                                # 书籍不存在，使用添加操作
+                                if not db_manager.add_book(self.book):
+                                    logger.error(f"添加书籍到数据库失败: {self.book.title}")
+                                else:
+                                    logger.info(f"已添加书籍到数据库: {self.book.title}")
+                            
+                            # 同时更新reading_history表，确保阅读进度数据正确保存
+                            # 计算阅读时长（这里使用一个默认值，实际应该根据实际阅读时间计算）
+                            reading_duration = 3  # 默认3秒
+                            pages_read = 1  # 默认阅读了1页
+                            
+                            # 添加阅读记录到reading_history表
+                            if not db_manager.add_reading_record(
+                                book_path=self.book.path,
+                                duration=reading_duration,
+                                pages_read=pages_read,
+                                user_id=0,  # 默认用户ID
+                                book_metadata={
+                                    'reading_progress': self.book.reading_progress,
+                                    'total_pages': self.book.total_pages,
+                                    'word_count': self.book.word_count,
+                                    'current_page': self.book.current_page
+                                }
+                            ):
+                                logger.error(f"添加阅读记录到reading_history表失败: {self.book.title}")
+                            else:
+                                logger.info(f"已更新阅读记录到reading_history表: {self.book.title}")
                             
                         # 从reading_history表获取阅读进度
                         reading_info = self.bookshelf.get_book_reading_info(self.book.path) if self.bookshelf else {}
