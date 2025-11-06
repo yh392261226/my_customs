@@ -135,6 +135,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 搜索相关属性
         self._search_keyword = ""
         self._selected_format = "all"
+        self._selected_author = "all"
+        self._selected_author = "all"
         
         # 排序相关属性
         self._sorted_books: List[str] = []  # 存储排序后的书籍路径顺序
@@ -148,6 +150,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 去掉点号，转换为大写作为显示名称
             display_name = ext.upper().lstrip('.')
             search_options.append((display_name, ext.lstrip('.')))
+
+        # 动态生成作者筛选选项
+        author_options = [(get_global_i18n().t("bookshelf.all_sources"), "all")]
+        # 从书架中获取所有书籍的作者列表
+        try:
+            # 获取所有书籍
+            all_books = self.bookshelf.get_all_books()
+            # 提取所有作者，去重并排序
+            authors = sorted(set(book.author for book in all_books if book.author and book.author.strip()))
+            for author in authors:
+                author_options.append((author, author))
+        except Exception as e:
+            logger.warning(f"读取作者列表失败: {e}")
 
         yield Container(
             Vertical(
@@ -180,6 +195,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     value="all",
                     id="search-format-filter",
                     prompt=get_global_i18n().t("common.select_ext_prompt")
+                ),
+                    Select(
+                    options=author_options,
+                    value="all",
+                    id="search-author-filter",
+                    prompt=get_global_i18n().t("bookshelf.select_source")
                 ),
                     Button(get_global_i18n().t("common.search"), id="search-btn"),
                     id="batch-ops-search-contain", classes="form-row"
@@ -436,7 +457,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         )
     
     def _filter_books(self, books: List[Any]) -> List[Any]:
-        """根据搜索关键词和文件格式过滤书籍"""
+        """根据搜索关键词、文件格式和作者过滤书籍"""
         filtered_books = books
         
         # 按名称搜索（支持标题、拼音、作者、标签）
@@ -463,6 +484,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             filtered_books = [
                 book for book in filtered_books
                 if book.format.lower().lstrip('.') == self._selected_format.lower()
+            ]
+        
+        # 按作者过滤
+        if self._selected_author != "all":
+            filtered_books = [
+                book for book in filtered_books
+                if book.author.lower() == self._selected_author.lower()
             ]
         
         return filtered_books
@@ -961,6 +989,17 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         except Exception:
             is_valid = False
         self._selected_format = value if is_valid else "all"
+        
+        # 获取作者筛选
+        author_select = self.query_one("#search-author-filter", Select)
+        # 规避 NoSelection/None：统一为 "all"
+        author_value = getattr(author_select, "value", None)
+        try:
+            # Textual Select 的 NoSelection 可能没有可比性，转字符串判断
+            author_is_valid = isinstance(author_value, str) and author_value != ""
+        except Exception:
+            author_is_valid = False
+        self._selected_author = author_value if author_is_valid else "all"
         
         # 重置到第一页并重新加载书籍
         self._current_page = 1
