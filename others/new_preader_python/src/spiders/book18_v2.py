@@ -10,6 +10,16 @@ from .base_parser_v2 import BaseParser
 class Book18Parser(BaseParser):
     """book18.me 小说解析器 - 配置驱动版本"""
     
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        """
+        初始化解析器
+        
+        Args:
+            proxy_config: 代理配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+        """
+        super().__init__(proxy_config, novel_site_name)
+    
     # 基本信息
     name = "book18.me"
     description = "book18.me 小说解析器（支持单篇和多篇）"

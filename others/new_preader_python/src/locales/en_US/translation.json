@@ -201,7 +201,9 @@
         "title_empty": "Book title cannot be empty",
         "title_same": "New title is same as original title",
         "rename_success": "Book 《{title}》 renamed successfully",
-        "rename_failed": "Failed to rename book"
+        "rename_failed": "Failed to rename book",
+        "all_sources": "All Sources",
+        "select_source": "Select Source"
     },
     "batch_ops": {
         "title": "Batch Operations",
@@ -392,6 +394,7 @@
         "remove": "Remove",
         "search": "Search",
         "select_ext_prompt": "Select Extensions",
+        "select_source_prompt": "Select Source",
         "loading": "Loading...",
         "error": "Error",
         "warning": "Warning",

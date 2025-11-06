@@ -22,6 +22,7 @@ PySocks>=1.7.1
 cloudscraper>=1.2.71
 selenium>=4.15.0
 webdriver-manager>=4.0.1
+playwright>=1.40.0
 
 # 语音和语言处理
 pyttsx3>=2.90

@@ -9,6 +9,16 @@ from .base_parser_v2 import BaseParser
 class XchinaParser(BaseParser):
     """xchina.co 小说解析器 - 配置驱动版本"""
     
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        """
+        初始化解析器
+        
+        Args:
+            proxy_config: 代理配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+        """
+        super().__init__(proxy_config, novel_site_name)
+    
     # 基本信息
     name = "xchina.co"
     description = "xchina.co 小说解析器（支持单篇和多篇）"
@@ -36,9 +46,9 @@ class XchinaParser(BaseParser):
         "_remove_ads"  # 广告移除
     ]
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """初始化解析器"""
-        super().__init__(proxy_config)
+        super().__init__(proxy_config, novel_site_name)
         # 禁用SSL验证以解决SSL错误
         self.session.verify = False
         # 添加User-Agent以绕过反爬虫
@@ -46,9 +56,9 @@ class XchinaParser(BaseParser):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """初始化解析器"""
-        super().__init__(proxy_config)
+        super().__init__(proxy_config, novel_site_name)
         # 禁用SSL验证以解决SSL错误
         self.session.verify = False
         # 添加User-Agent以绕过反爬虫
@@ -56,9 +66,9 @@ class XchinaParser(BaseParser):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         })
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """初始化解析器"""
-        super().__init__(proxy_config)
+        super().__init__(proxy_config, novel_site_name)
         # 禁用SSL验证以解决SSL错误
         self.session.verify = False
         # 添加User-Agent以绕过反爬虫

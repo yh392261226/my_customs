@@ -8,6 +8,16 @@ from .base_parser import BaseParser
 class ExampleParser(BaseParser):
     """示例解析器"""
     
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        """
+        初始化解析器
+        
+        Args:
+            proxy_config: 代理配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+        """
+        super().__init__(proxy_config, novel_site_name)
+    
     name = "示例解析器"
     description = "示例解析器，展示如何使用BaseParser基类"
     

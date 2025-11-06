@@ -10,6 +10,16 @@ from .base_parser_v2 import BaseParser
 class RenqixiaoshuoParser(BaseParser):
     """热奇小说网解析器 - 配置驱动版本"""
     
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        """
+        初始化解析器
+        
+        Args:
+            proxy_config: 代理配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+        """
+        super().__init__(proxy_config, novel_site_name)
+    
     name = "热奇小说网"
     description = "热奇小说网整本小说爬取解析器"
     base_url = "https://www.renqixiaoshuo.net"
@@ -54,8 +64,8 @@ class RenqixiaoshuoParser(BaseParser):
     # 处理函数链
     after_crawler_func = ["_clean_html_tags", "_remove_ads", "_format_content"]
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None):
-        super().__init__(proxy_config)
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        super().__init__(proxy_config, novel_site_name)
         self.chapter_count = 0
         # 添加User-Agent和Referer以绕过反爬虫
         self.session.headers.update({
@@ -133,12 +143,12 @@ class RenqixiaoshuoParser(BaseParser):
         
         return content
     
-    def _detect_book_type(self, novel_id: str) -> str:
+    def _detect_book_type(self, content: str) -> str:
         """
         检测书籍类型（热奇小说网特有逻辑）
         
         Args:
-            novel_id: 书籍ID
+            content: 页面内容
             
         Returns:
             书籍类型

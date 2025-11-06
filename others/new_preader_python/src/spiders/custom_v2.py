@@ -9,6 +9,16 @@ from .base_parser_v2 import BaseParser
 class CustomParser(BaseParser):
     """自定义解析器 - 配置驱动版本"""
     
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        """
+        初始化解析器
+        
+        Args:
+            proxy_config: 代理配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+        """
+        super().__init__(proxy_config, novel_site_name)
+    
     name = "自定义网站"
     description = "自定义网站小说解析器"
     base_url = "https://example.com"  # 默认示例URL
@@ -43,15 +53,16 @@ class CustomParser(BaseParser):
     # 处理函数链
     after_crawler_func = ["_clean_html_tags", "_remove_ads", "_format_content"]
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, custom_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, custom_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """
         初始化自定义解析器
         
         Args:
             proxy_config: 代理配置
             custom_config: 自定义配置，可以覆盖默认配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
         """
-        super().__init__(proxy_config)
+        super().__init__(proxy_config, novel_site_name)
         
         # 禁用SSL验证以解决SSL错误
         self.session.verify = False

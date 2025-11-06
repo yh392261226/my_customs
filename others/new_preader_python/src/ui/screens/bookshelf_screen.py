@@ -21,6 +21,7 @@ from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.book_manager import BookManager
 from src.core.statistics_direct import StatisticsManagerDirect
+from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.batch_ops_dialog import BatchOpsDialog
 from src.ui.dialogs.search_dialog import SearchDialog
 from src.ui.dialogs.sort_dialog import SortDialog
@@ -28,14 +29,13 @@ from src.ui.dialogs.directory_dialog import DirectoryDialog
 from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
 from src.ui.dialogs.scan_progress_dialog import ScanProgressDialog
 from src.ui.messages import RefreshBookshelfMessage
-from src.ui.styles.style_manager import ScreenStyleMixin
-from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.ui.styles.style_manager import apply_style_isolation
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class BookshelfScreen(ScreenStyleMixin, Screen[None]):
+class BookshelfScreen(Screen[None]):
     """书架屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
@@ -116,6 +116,22 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             (get_global_i18n().t("bookshelf.rename"), "rename_action"),  # 重命名按钮列
             (get_global_i18n().t("bookshelf.delete"), "delete_action"),  # 删除按钮列
         ]
+        
+        # 初始化搜索状态变量
+        self._search_keyword = ""
+        self._search_format = "all"
+        self._search_author = "all"
+        
+        # 初始化加载指示器变量
+        self.loading_indicator = None
+        
+        # 初始化搜索状态变量
+        self._search_keyword = ""
+        self._search_format = "all"
+        self._search_author = "all"
+        
+        # 初始化加载指示器变量
+        self.loading_indicator = None
     
     def compose(self) -> ComposeResult:
         """
@@ -131,6 +147,18 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # 去掉点号，转换为大写作为显示名称
             display_name = ext.upper().lstrip('.')
             search_options.append((display_name, ext.lstrip('.')))
+
+        author_options = [(get_global_i18n().t("bookshelf.all_sources"), "all")]
+        # 从书架中获取所有书籍的作者列表
+        try:
+            # 获取所有书籍
+            all_books = list(self.bookshelf.books.values())
+            # 提取所有作者，去重并排序
+            authors = sorted(set(book.author for book in all_books if book.author and book.author.strip()))
+            for author in authors:
+                author_options.append((author, author))
+        except Exception as e:
+            self.logger.warning(f"读取作者列表失败: {e}")
 
         yield Header()
         yield Container(
@@ -163,6 +191,13 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                             value="all",
                             prompt=get_global_i18n().t("common.select_ext_prompt"),
                             classes="bookshelf-search-select"
+                        ),
+                        Select(
+                            id="bookshelf-source-filter",
+                            options=author_options,
+                            value="all",
+                            prompt=get_global_i18n().t("bookshelf.select_source"),
+                            classes="bookshelf-source-select"
                         ),
                         id="bookshelf-search-bar",
                         classes="bookshelf-search-bar"
@@ -203,8 +238,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        # 应用通用样式隔离
-        apply_universal_style_isolation(self)
+        # 应用样式隔离
+        apply_style_isolation(self)
         
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
@@ -215,10 +250,6 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         grid.styles.grid_size_columns = 1
         grid.styles.grid_rows = ("25%", "65%", "10%")
         
-        # 初始化搜索状态
-        self._search_keyword = ""
-        self._search_format = "all"
-
         # 原生 LoadingIndicator（初始隐藏），挂载到书籍统计区域
         try:
             self.loading_indicator = LoadingIndicator(id="bookshelf-loading-indicator")
@@ -299,12 +330,13 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         # 启用隔行变色效果
         table.zebra_stripes = True
     
-    def _load_books(self, search_keyword: str = "", search_format: str = "all") -> None:
+    def _load_books(self, search_keyword: str = "", search_format: str = "all", search_author: str = "all") -> None:
         """加载书籍数据
         
         Args:
             search_keyword: 搜索关键词
             search_format: 文件格式筛选
+            search_author: 作者筛选
         """
         # 显示加载动画
         self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}")
@@ -346,11 +378,21 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         actual_search_format = "all"
         if search_format != "all" and search_format is not None:
             # 检查是否是NoSelection对象
-            if hasattr(search_format, 'is_blank') and search_format.is_blank:
+            if hasattr(search_format, 'is_blank') and callable(getattr(search_format, 'is_blank', None)) and search_format.is_blank():
                 actual_search_format = "all"
             else:
                 # 确保search_format是字符串类型
                 actual_search_format = str(search_format) if search_format else "all"
+        
+        # 处理search_author参数，确保正确处理NoSelection对象
+        actual_search_author = "all"
+        if search_author != "all" and search_author is not None:
+            # 检查是否是NoSelection对象
+            if hasattr(search_author, 'is_blank') and callable(getattr(search_author, 'is_blank', None)) and search_author.is_blank():
+                actual_search_author = "all"
+            else:
+                # 确保search_author是字符串类型
+                actual_search_author = str(search_author) if search_author else "all"
         
         for book in all_books:
             # 检查文件格式
@@ -362,9 +404,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                 book_format_without_dot = book.format.lower().lstrip('.')
                 format_match = book_format_without_dot == actual_search_format.lower()
             
+            # 检查作者匹配
+            author_match = True
+            if actual_search_author != "all":
+                author_match = book.author.lower() == actual_search_author.lower()
+            
             # 检查关键词匹配
             keyword_match = False
-            if format_match:
+            if format_match and author_match:
                 if keywords:
                     # 多关键词OR逻辑：只要匹配任意一个关键词
                     for keyword in keywords:
@@ -374,14 +421,14 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
                             keyword_match = True
                             break
                 else:
-                    # 没有关键词时，只按格式筛选
+                    # 没有关键词时，只按格式和作者筛选
                     keyword_match = True
             
-            if keyword_match:
+            if keyword_match and author_match and format_match:
                 filtered_books.append(book)
         
         # 对筛选后的书籍进行排序
-        if search_keyword or search_format != "all":
+        if search_keyword or search_format != "all" or search_author != "all":
             # 有搜索条件时，手动排序（使用从reading_history表获取的阅读时间）
             self._all_books = sorted(filtered_books, 
                                    key=lambda book: self.bookshelf.get_book_reading_info(book.path).get('last_read_date') or "", 
@@ -533,7 +580,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         # 重置到第一页
         self._current_page = 1
         # 重新加载书籍数据（保持当前搜索条件）
-        self._load_books(self._search_keyword, self._search_format)
+        self._load_books(self._search_keyword, self._search_format, self._search_author)
         # 显示刷新成功的提示
         self.notify(get_global_i18n().t("bookshelf.refresh_success"))
     
@@ -542,23 +589,31 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         # 获取搜索输入框和格式筛选器的值
         search_input = self.query_one("#bookshelf-search-input", Input)
         format_filter = self.query_one("#bookshelf-format-filter", Select)
+        author_filter = self.query_one("#bookshelf-source-filter", Select)
         
         # 更新搜索状态
         self._search_keyword = search_input.value or ""
         
         # 处理下拉框值，确保正确处理NoSelection对象
         format_value = format_filter.value
-        if format_value is None or (hasattr(format_value, 'is_blank') and format_value.is_blank):
+        if format_value is None or (hasattr(format_value, 'is_blank') and callable(getattr(format_value, 'is_blank', None)) and format_value.is_blank()):
             self._search_format = "all"
         else:
             # 确保format_value是字符串类型
             self._search_format = str(format_value) if format_value else "all"
         
+        author_value = author_filter.value
+        if author_value is None or (hasattr(author_value, 'is_blank') and callable(getattr(author_value, 'is_blank', None)) and author_value.is_blank()):
+            self._search_author = "all"
+        else:
+            # 确保format_value是字符串类型
+            self._search_author = str(author_value) if author_value else "all"
+        
         # 重置到第一页
         self._current_page = 1
         
         # 重新加载书籍数据（应用搜索条件）
-        self._load_books(self._search_keyword, self._search_format)
+        self._load_books(self._search_keyword, self._search_format, self._search_author)
         
         # 显示搜索结果的提示
         search_conditions = []
@@ -566,6 +621,8 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             search_conditions.append(f"关键词: {self._search_keyword}")
         if self._search_format != "all":
             search_conditions.append(f"格式: {self._search_format.upper()}")
+        if self._search_author != "all":
+            search_conditions.append(f"作者: {self._search_author}")
         
         # if search_conditions:
         #     condition_text = "，".join(search_conditions)
@@ -677,8 +734,11 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
     
     def on_select_changed(self, event) -> None:
         """下拉框选择变化时的回调"""
-        if event.select.id == "bookshelf-format-filter":
+        if event.select.id == "bookshelf-format-filter" :
             # 文件格式选择变化时立即执行搜索
+            self._perform_search()
+        if event.select.id == "bookshelf-source-filter" :
+            logger.info("来源下拉框选择变化")
             self._perform_search()
     
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
@@ -807,7 +867,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # 显示重命名对话框
             from src.ui.dialogs.rename_book_dialog import RenameBookDialog
             
-            def handle_rename_result(result: Optional[dict]) -> None:
+            def handle_rename_result(result: Optional[Dict[str, Any]]) -> None:
                 """处理重命名结果"""
                 if result and result.get("success"):
                     new_title = result.get("new_title", "")
@@ -980,20 +1040,20 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # N键下一页
             if self._current_page < self._total_pages:
                 self._current_page += 1
-                self._load_books(self._search_keyword, self._search_format)
+                self._load_books(self._search_keyword, self._search_format, self._search_author)
             event.prevent_default()
         elif event.key == "p":
             # P键上一页
             if self._current_page > 1:
                 self._current_page -= 1
-                self._load_books(self._search_keyword, self._search_format)
+                self._load_books(self._search_keyword, self._search_format, self._search_author)
             event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
                 self._current_page += 1
-                self._load_books(self._search_keyword, self._search_format)
+                self._load_books(self._search_keyword, self._search_format, self._search_author)
                 # 将光标移动到新页面的第一行
                 table = self.query_one("#books-table", DataTable)
                 table.action_cursor_down()  # 先向下移动一次
@@ -1003,7 +1063,7 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             if table.cursor_row == 0 and self._current_page > 1:
                 self._current_page -= 1
-                self._load_books(self._search_keyword, self._search_format)
+                self._load_books(self._search_keyword, self._search_format, self._search_author)
                 # 将光标移动到新页面的最后一行
                 table = self.query_one("#books-table", DataTable)
                 for _ in range(len(table.rows) - 1):
@@ -1369,3 +1429,4 @@ class BookshelfScreen(ScreenStyleMixin, Screen[None]):
         self.query_one("#bookshelf-search-input", Input).value = ""
         self.query_one("#bookshelf-search-input", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#bookshelf-format-filter", Select).value = "all"
+        self.query_one("#bookshelf-source-filter", Select).value = "all"

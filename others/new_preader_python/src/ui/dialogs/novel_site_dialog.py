@@ -103,6 +103,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="tags-container", classes="form-row"
                         ),
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.book_id_example'), id="book-id-example-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.book_id_example_placeholder'),
+                                id="book-id-example-input"
+                            ),
+                            id="book-id-example-container", classes="form-row"
+                        ),
                         id="basic-info-container"
                     ),
 
@@ -189,6 +197,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         tags_input = self.query_one("#tags-input", Input)
         tags_input.value = self.novel_site.get("tags", "")
         
+        # 书籍ID样例
+        book_id_example_input = self.query_one("#book-id-example-input", Input)
+        book_id_example_input.value = self.novel_site.get("book_id_example", "")
+        
         # 解析器 - 使用解析器文件名作为值
         parser_select = self.query_one("#parser-select", Select)
         parser_value = self.novel_site.get("parser", "")  # 默认为空
@@ -237,6 +249,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         url_input = self.query_one("#site-url-input", Input)
         folder_input = self.query_one("#storage-folder-input", Input)
         tags_input = self.query_one("#tags-input", Input)
+        book_id_example_input = self.query_one("#book-id-example-input", Input)
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
@@ -271,6 +284,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "url": url_input.value.strip(),
             "storage_folder": folder_input.value.strip(),
             "tags": tags_input.value.strip(),
+            "book_id_example": book_id_example_input.value.strip(),
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value

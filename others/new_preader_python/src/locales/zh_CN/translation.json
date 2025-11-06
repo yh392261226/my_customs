@@ -201,7 +201,9 @@
         "title_empty": "书名不能为空",
         "title_same": "新书名与原书名相同",
         "rename_success": "书籍《{title}》重命名成功",
-        "rename_failed": "重命名书籍失败"
+        "rename_failed": "重命名书籍失败",
+        "all_sources": "所有来源",
+        "select_source": "选择来源"
     },
     "batch_ops": {
         "title": "批量操作",
@@ -392,6 +394,7 @@
         "remove": "移除",
         "search": "搜索",
         "select_ext_prompt": "选择后缀名",
+        "select_source_prompt": "选择来源",
         "loading": "加载中...",
         "error": "错误",
         "warning": "警告",
@@ -875,6 +878,7 @@
         "storage_folder": "存储文件夹",
         "proxy_enabled": "启用代理",
         "parser": "解析器",
+        "book_id_example": "书籍ID样例",
         "selected": "选择",
         "confirm_delete": "确认删除",
         "confirm_delete_message": "确定要删除这个书籍网站吗？",
@@ -915,6 +919,8 @@
         "site_url_placeholder": "输入网站网址",
         "storage_folder_placeholder": "输入存储文件夹名称",
         "tags_placeholder": "输入标签（多个标签用逗号分隔）",
+        "book_id_example": "书籍ID样例",
+        "book_id_example_placeholder": "输入书籍ID样例，如：12345, 67890",
         "enter_site_name": "请输入网站名称",
         "enter_site_url": "请输入网站网址",
         "enter_storage_folder": "请输入存储文件夹",
@@ -925,6 +931,7 @@
     },
     "crawler": {
         "title": "爬取管理",
+        "book_id_example": "书籍ID样例",
         "open_browser": "浏览器打开",
         "click_me": "点我打开网址",
         "view_history": "刷新历史",

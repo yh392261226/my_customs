@@ -122,7 +122,8 @@ class NovelSitesManagementScreen(Screen[None]):
             get_global_i18n().t('novel_sites.site_url'),
             get_global_i18n().t('novel_sites.storage_folder'),
             get_global_i18n().t('novel_sites.proxy_enabled'),
-            get_global_i18n().t('novel_sites.parser')
+            get_global_i18n().t('novel_sites.parser'),
+            get_global_i18n().t('novel_sites.book_id_example')
         )
         
         # 加载书籍网站数据
@@ -167,6 +168,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 site["storage_folder"],
                 proxy_status,
                 site["parser"],
+                site.get("book_id_example", ""),
                 key=str(index)
             )
 

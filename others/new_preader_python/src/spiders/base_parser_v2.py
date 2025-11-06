@@ -34,16 +34,19 @@ class BaseParser:
     # 处理函数配置
     after_crawler_func: List[str] = []  # 爬取后处理函数名列表
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """
         初始化解析器
         
         Args:
             proxy_config: 代理配置，格式为 {'enabled': bool, 'proxy_url': str}
+            novel_site_name: 从数据库获取的网站名称，用于作者信息
         """
         self.session = requests.Session()
         self.proxy_config = proxy_config or {'enabled': False, 'proxy_url': ''}
         self.chapter_count = 0
+        # 保存从数据库获取的网站名称，用于作者信息
+        self.novel_site_name = novel_site_name or self.name
         
         # 设置请求头
         self.session.headers.update({
@@ -71,7 +74,13 @@ class BaseParser:
     
     def _get_url_content(self, url: str, max_retries: int = 5) -> Optional[str]:
         """
-        获取URL内容，支持cloudscraper绕过反爬虫限制
+        获取URL内容，支持四层反爬虫绕过策略
+        
+        策略层级：
+        1. 普通请求 (requests)
+        2. Cloudscraper 绕过
+        3. Selenium 浏览器模拟
+        4. Playwright 高级反爬虫处理
         
         Args:
             url: 目标URL
@@ -94,8 +103,17 @@ class BaseParser:
                 # 首先尝试普通请求
                 response = self.session.get(url, proxies=proxies, timeout=10)
                 if response.status_code == 200:
+                    # 检查内容是否为反爬虫页面
+                    content = response.text
+                    
+                    # 检测 Cloudflare Turnstile 等高级反爬虫机制
+                    if self._detect_advanced_anti_bot(content):
+                        logger.warning(f"检测到高级反爬虫机制，尝试使用 Playwright: {url}")
+                        return self._get_url_content_with_playwright(url, proxies)
+                    
                     response.encoding = 'utf-8'
-                    return response.text
+                    return content
+                    
                 elif response.status_code == 404:
                     logger.warning(f"页面不存在: {url}")
                     return None
@@ -105,20 +123,84 @@ class BaseParser:
                     return self._get_url_content_with_cloudscraper(url, proxies)
                 else:
                     logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
+                    
             except requests.exceptions.RequestException as e:
                 logger.warning(f"第 {attempt + 1} 次请求失败: {url}, 错误: {e}")
-                # 如果普通请求失败，尝试使用cloudscraper
-                if attempt == 0:  # 只在第一次失败时尝试cloudscraper
+                
+                # 根据尝试次数选择不同的绕过策略
+                if attempt == 0:  # 第一次失败：尝试 cloudscraper
                     try:
                         return self._get_url_content_with_cloudscraper(url, proxies)
                     except Exception as scraper_error:
                         logger.warning(f"cloudscraper也失败: {scraper_error}")
+                elif attempt == 1:  # 第二次失败：尝试 selenium
+                    try:
+                        return self._selenium_request(url, proxies)
+                    except Exception as selenium_error:
+                        logger.warning(f"selenium也失败: {selenium_error}")
+                else:  # 第三次及以后：尝试 playwright
+                    try:
+                        return self._get_url_content_with_playwright(url, proxies)
+                    except Exception as playwright_error:
+                        logger.warning(f"playwright也失败: {playwright_error}")
             
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
         
-        logger.error(f"获取URL内容失败: {url}")
+        logger.error(f"所有反爬虫策略都失败: {url}")
         return None
+    
+    def _detect_advanced_anti_bot(self, content: str) -> bool:
+        """
+        检测是否存在高级反爬虫机制（如 Cloudflare Turnstile）
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            是否存在高级反爬虫机制
+        """
+        try:
+            from .playwright_crawler import detect_cloudflare_turnstile_in_content
+            return detect_cloudflare_turnstile_in_content(content)
+        except ImportError:
+            # 如果无法导入 playwright_crawler，使用基本检测
+            turnstile_patterns = [
+                r'challenges\.cloudflare\.com',
+                r'cf-turnstile',
+                r'data-sitekey',
+                r'turnstile\.cloudflare\.com'
+            ]
+            
+            for pattern in turnstile_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    return True
+            
+            return False
+    
+    def _get_url_content_with_playwright(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        使用 Playwright 获取页面内容，专门处理高级反爬虫机制
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+            
+        Returns:
+            页面内容或None
+        """
+        try:
+            from .playwright_crawler import get_playwright_content
+            
+            # 使用 Playwright 获取内容
+            return get_playwright_content(url, self.proxy_config, timeout=60, headless=True)
+            
+        except ImportError:
+            logger.warning("playwright 库未安装，无法使用 Playwright 爬虫")
+            return None
+        except Exception as e:
+            logger.warning(f"Playwright 获取页面内容失败: {url}, 错误: {e}")
+            return None
     
     def _get_url_content_with_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
@@ -535,7 +617,7 @@ class BaseParser:
         
         return {
             'title': title,
-            'author': self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': [{
@@ -627,7 +709,7 @@ class BaseParser:
         # 创建小说内容
         novel_content = {
             'title': title,
-            'author': self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': []
@@ -779,7 +861,7 @@ class BaseParser:
         # 创建小说内容
         novel_content = {
             'title': title,
-            'author': self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': []

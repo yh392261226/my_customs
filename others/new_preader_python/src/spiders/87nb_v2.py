@@ -9,6 +9,16 @@ from .base_parser_v2 import BaseParser
 class Nb87Parser(BaseParser):
     """87NB小说网解析器 - 配置驱动版本"""
     
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+        """
+        初始化解析器
+        
+        Args:
+            proxy_config: 代理配置
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+        """
+        super().__init__(proxy_config, novel_site_name)
+    
     # 基本信息
     name = "87NB小说网"
     description = "87NB小说网整本小说爬取解析器"
@@ -41,14 +51,15 @@ class Nb87Parser(BaseParser):
         "_remove_ads"  # 广告移除
     ]
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """
         初始化解析器
         
         Args:
             proxy_config: 代理配置
+            novel_site_name: 从数据库获取的网站名称，用于作者信息
         """
-        super().__init__(proxy_config)
+        super().__init__(proxy_config, novel_site_name)
         
         # 87NB特殊字符替换映射
         self.char_replacements = {

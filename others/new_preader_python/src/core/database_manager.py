@@ -428,16 +428,17 @@ class DatabaseManager:
             # 插入书籍网站表（使用INSERT OR IGNORE避免重复）
             novel_sites_data = [
                 ('人妻小说网', 'https://www.renqixiaoshuo.net', '/Users/yanghao/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
-                ('87NB', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
-                ('91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '69hnovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('龙腾小说网', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '91porna_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
                 ('AAA成人小說', 'https://aaanovel.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'aaanovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
-                ('BOOK18', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
-                ('COOL18', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('色情小说网', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('禁忌书屋', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
                 ('成人小说网', 'https://crxs.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'crxs_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
                 ('风月文学网', 'http://www.h528.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'h528_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
                 ('色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
                 ('中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
-                ('XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat())
+                ('小黄书XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat()),
+                ('69文学网', 'https://www.69hnovel.com/erotic-novel.html', '/Users/yanghao/Documents/novels/datas/', 0, 0, '69hnovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat())
             ]
             
             for site_data in novel_sites_data:
@@ -499,6 +500,11 @@ class DatabaseManager:
             if 'selectable_enabled' not in columns:
                 cursor.execute("ALTER TABLE novel_sites ADD COLUMN selectable_enabled BOOLEAN NOT NULL DEFAULT 1")
                 logger.info("已为novel_sites表添加selectable_enabled列")
+            
+            # 检查并添加novel_sites表的book_id_example列（如果不存在）
+            if 'book_id_example' not in columns:
+                cursor.execute("ALTER TABLE novel_sites ADD COLUMN book_id_example TEXT DEFAULT ''")
+                logger.info("已为novel_sites表添加book_id_example列")
 
             conn.commit()
     
@@ -1447,7 +1453,7 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, book_id_example = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -1457,6 +1463,7 @@ class DatabaseManager:
                         site_data.get("selectable_enabled", True),
                         site_data["parser"],
                         site_data.get("tags", ""),
+                        site_data.get("book_id_example", ""),
                         now,
                         site_data["id"]
                     ))
@@ -1464,8 +1471,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, book_id_example, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -1474,6 +1481,7 @@ class DatabaseManager:
                         site_data.get("selectable_enabled", True),
                         site_data["parser"],
                         site_data.get("tags", ""),
+                        site_data.get("book_id_example", ""),
                         now,
                         now
                     ))

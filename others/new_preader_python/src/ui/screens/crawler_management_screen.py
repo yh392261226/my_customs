@@ -80,6 +80,7 @@ class CrawlerManagementScreen(Screen[None]):
             Vertical(
                 # Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
                 Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
+                Label(f"{get_global_i18n().t('crawler.book_id_example')}: {self.novel_site.get('book_id_example', '')}", id="book-id-example-label"),
 
                 # 顶部操作按钮（固定）
                 Horizontal(
@@ -829,8 +830,8 @@ class CrawlerManagementScreen(Screen[None]):
             # 导入解析器
             from src.spiders import create_parser
             
-            # 创建解析器实例
-            parser_instance = create_parser(parser_name, proxy_config)
+            # 创建解析器实例，传递数据库中的网站名称作为作者信息
+            parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'))
             
             # 使用异步方式同时爬取多个小说
             tasks = []
@@ -976,15 +977,15 @@ class CrawlerManagementScreen(Screen[None]):
                     bs = getattr(self.app, "bookshelf", None)
                     book = None
                     if bs and hasattr(bs, "add_book"):
-                        # 使用解析器返回的作者信息，如果没有则使用网站名称
-                        author = novel_content.get('author', self.novel_site.get('name', '未知来源'))
+                        # 强制使用数据库中的书籍网站名称作为作者
+                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         book = bs.add_book(file_path, author=author, tags=site_tags)
                     if not book:
                         from src.core.book import Book
-                        # 使用解析器返回的作者信息，如果没有则使用网站名称
-                        author = novel_content.get('author', self.novel_site.get('name', '未知来源'))
+                        # 强制使用数据库中的书籍网站名称作为作者
+                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         book = Book(file_path, novel_title, author, tags=site_tags)
@@ -1045,8 +1046,8 @@ class CrawlerManagementScreen(Screen[None]):
             # 导入解析器
             from src.spiders import create_parser
             
-            # 创建解析器实例
-            parser_instance = create_parser(parser_name, proxy_config)
+            # 创建解析器实例，传递数据库中的网站名称作为作者信息
+            parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'))
             
             # 使用异步方式执行网络请求，避免阻塞UI
             await asyncio.sleep(2)  # 模拟网络延迟
@@ -1089,14 +1090,14 @@ class CrawlerManagementScreen(Screen[None]):
                     bs = getattr(self.app, "bookshelf", None)
                     added_book = None
                     if bs and hasattr(bs, "add_book"):
-                        # 使用解析器返回的作者信息，如果没有则使用网站名称
+                        # 使用解析器返回的作者信息，如果没有则使用数据库中的书籍网站名称
                         author = novel_content.get('author', self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         added_book = bs.add_book(file_path, author=author, tags=site_tags)
                     if not added_book:
                         from src.core.book import Book
-                        # 使用解析器返回的作者信息，如果没有则使用网站名称
+                        # 使用解析器返回的作者信息，如果没有则使用数据库中的书籍网站名称
                         author = novel_content.get('author', self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
