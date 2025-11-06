@@ -776,7 +776,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 if triggered_async:
                     # 开启轮询：分页就绪后自动恢复位置并持久化
                     try:
-                        if getattr(self, "_restore_timer", None):
+                        if hasattr(self, "_restore_timer") and self._restore_timer is not None:
                             self._restore_timer.stop()
                         self._restore_timer = self.set_interval(0.2, self._poll_restore_ready)
                     except Exception:
@@ -2437,18 +2437,23 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 
                 # 在主线程中执行UI相关操作
                 import threading
-                if threading.current_thread() is not threading.main_thread():
-                    # 在异步线程中，使用call_from_thread在主线程中执行
-                    if hasattr(self.app, 'call_from_thread'):
-                        self.app.call_from_thread(_remove_style_isolation)
-                        self.app.call_from_thread(_refresh_bookshelf)
+                try:
+                    if threading.current_thread() is not threading.main_thread():
+                        # 在异步线程中，使用call_from_thread在主线程中执行
+                        if hasattr(self.app, 'call_from_thread'):
+                            self.app.call_from_thread(_remove_style_isolation)
+                            self.app.call_from_thread(_refresh_bookshelf)
+                        else:
+                            # 如果没有call_from_thread方法，尝试直接执行
+                            logger.warning("无法在主线程中执行UI操作，app.call_from_thread方法不存在，尝试直接执行")
+                            _remove_style_isolation()
+                            _refresh_bookshelf()
                     else:
-                        # 如果没有call_from_thread方法，记录警告
-                        logger.warning("无法在主线程中执行UI操作，app.call_from_thread方法不存在")
-                else:
-                    # 如果在主线程中，直接执行
-                    _remove_style_isolation()
-                    _refresh_bookshelf()
+                        # 如果在主线程中，直接执行
+                        _remove_style_isolation()
+                        _refresh_bookshelf()
+                except Exception as e:
+                    logger.warning(f"UI操作执行失败，但数据保存已成功: {e}")
                 
             except Exception as e:
                 logger.error(f"异步保存阅读数据失败: {e}")
