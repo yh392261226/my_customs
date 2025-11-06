@@ -737,6 +737,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 content_len = len(content)
                 logger.debug(f"{get_global_i18n().t('reader.load_book_content_len', len=content_len)}")
                 
+                # 在分页前先尝试从数据库加载上次阅读位置
+                try:
+                    if hasattr(self.book, "load_last_reading_position") and hasattr(self, "bookshelf"):
+                        logger.info(f"尝试从数据库加载上次阅读位置: {self.book.title}")
+                        position_loaded = self.book.load_last_reading_position(self.bookshelf)
+                        if position_loaded:
+                            logger.info(f"成功从数据库加载上次阅读位置: {self.book.title}")
+                        else:
+                            logger.info(f"数据库中没有找到上次阅读位置信息: {self.book.title}")
+                except Exception as e:
+                    logger.error(f"从数据库加载上次阅读位置失败 {self.book.title}: {e}")
+                
                 # 优先使用异步分页，避免阻塞UI
                 triggered_async = False
                 if hasattr(self.renderer, "async_paginate_and_render"):
@@ -2392,13 +2404,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                                 book_path=self.book.path,
                                 duration=reading_duration,
                                 pages_read=pages_read,
-                                user_id=0,  # 默认用户ID
-                                book_metadata={
-                                    'reading_progress': self.book.reading_progress,
-                                    'total_pages': self.book.total_pages,
-                                    'word_count': self.book.word_count,
-                                    'current_page': self.book.current_page
-                                }
+                                user_id=0  # 默认用户ID
                             ):
                                 logger.error(f"添加阅读记录到reading_history表失败: {self.book.title}")
                             else:

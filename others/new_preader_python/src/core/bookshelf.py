@@ -372,7 +372,7 @@ class Bookshelf:
     
     def get_book_reading_info(self, book_path: str) -> Dict[str, Any]:
         """
-        获取书籍的阅读信息（从reading_history表）
+        获取书籍的阅读信息（优先从book_metadata表，备选从reading_history表）
         
         Args:
             book_path: 书籍路径
@@ -382,6 +382,27 @@ class Bookshelf:
         """
         try:
             user_id = self.current_user_id if self.current_user_id else None
+            
+            # 首先尝试从新的book_metadata表获取阅读进度信息
+            metadata_json = self.db_manager.get_book_metadata(book_path, user_id)
+            if metadata_json:
+                try:
+                    metadata_dict = json.loads(metadata_json)
+                    # 从book_metadata表获取最新的阅读进度信息
+                    return {
+                        "last_read_date": metadata_dict.get('last_read_date'),
+                        "reading_progress": metadata_dict.get('reading_progress', 0),
+                        "total_pages": metadata_dict.get('total_pages', 0),
+                        "word_count": metadata_dict.get('word_count', 0),
+                        "current_page": metadata_dict.get('current_page', 0),
+                        "current_position": metadata_dict.get('current_position', 0),
+                        "anchor_text": metadata_dict.get('anchor_text', ''),
+                        "anchor_hash": metadata_dict.get('anchor_hash', '')
+                    }
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.warning(f"从book_metadata表解析阅读信息失败，回退到reading_history表: {e}")
+            
+            # 如果book_metadata表没有数据，回退到reading_history表
             latest_record = self.db_manager.get_latest_reading_record(book_path, user_id)
             
             if latest_record:
@@ -518,7 +539,7 @@ class Bookshelf:
             # 获取当前用户ID（多用户模式关闭时使用0）
             user_id = self.current_user_id
             
-            # 构建书籍元数据用于记录
+            # 构建书籍元数据用于记录阅读进度
             book_metadata = {
                 "path": book.path,
                 "title": book.title,
@@ -532,13 +553,22 @@ class Bookshelf:
                 "word_count": book.word_count
             }
             
+            # 使用新的book_metadata表保存元数据
+            metadata_json = json.dumps(book_metadata, ensure_ascii=False)
+            self.db_manager.save_book_metadata(
+                book_path=book.path,
+                metadata=metadata_json,
+                user_id=user_id
+            )
+            
+            # 保存阅读记录到reading_history表（不再包含metadata字段）
             self.db_manager.add_reading_record(
                 book_path=book.path,
                 duration=effective_duration,
                 pages_read=pages_read,
-                user_id=user_id,
-                book_metadata=book_metadata
+                user_id=user_id
             )
+            
             logger.info(f"已保存阅读记录到数据库: {book.title}, 时长: {effective_duration}秒, 用户ID: {user_id}")
         except Exception as e:
             logger.error(f"保存阅读记录到数据库失败: {e}")

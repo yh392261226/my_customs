@@ -312,7 +312,6 @@ class DatabaseManager:
                     duration INTEGER NOT NULL,
                     pages_read INTEGER DEFAULT 0,
                     user_id INTEGER DEFAULT 0,
-                    last_read_date TEXT,
                     reading_progress REAL DEFAULT 0,
                     total_pages INTEGER DEFAULT 0,
                     word_count INTEGER DEFAULT 0,
@@ -320,6 +319,22 @@ class DatabaseManager:
                     FOREIGN KEY (book_path) REFERENCES books (path) ON DELETE CASCADE
                 )
             """)
+            
+            # 创建书籍元数据表（每本书+每个用户只有一个metadata记录）
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS book_metadata (
+                    book_path TEXT NOT NULL,
+                    user_id INTEGER DEFAULT 0,
+                    metadata TEXT NOT NULL,
+                    last_updated TEXT NOT NULL,
+                    PRIMARY KEY (book_path, user_id),
+                    FOREIGN KEY (book_path) REFERENCES books (path) ON DELETE CASCADE
+                )
+            """)
+            
+            # 创建索引以提高查询性能
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_book_metadata_book_user ON book_metadata(book_path, user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_book_metadata_user ON book_metadata(user_id)")
             
             # 创建书签表
             cursor.execute("""
@@ -866,16 +881,15 @@ class DatabaseManager:
         return f"ORDER BY {field} {direction}"
     
     def add_reading_record(self, book_path: str, duration: int, pages_read: int = 0, 
-                          user_id: Optional[int] = None, book_metadata: Optional[Dict[str, Any]] = None) -> bool:
+                          user_id: Optional[int] = None) -> bool:
         """
-        添加阅读记录
+        添加阅读记录（已优化：不再包含metadata字段，metadata由专门的book_metadata表管理）
         
         Args:
             book_path: 书籍路径
             duration: 阅读时长（秒）
             pages_read: 阅读页数
             user_id: 用户ID，如果为None则使用默认值0
-            book_metadata: 书籍元数据，用于记录阅读进度相关信息
             
         Returns:
             bool: 添加是否成功
@@ -884,65 +898,69 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
-                # 获取书籍信息用于记录
-                cursor.execute("SELECT * FROM books WHERE path = ?", (book_path,))
-                book_row = cursor.fetchone()
-                
                 # 设置用户ID（多用户模式关闭时使用0）
                 user_id_value = user_id if user_id is not None else 0
                 
                 # 获取当前时间
                 current_time = datetime.now().isoformat()
                 
-                # 获取书籍的阅读进度相关信息
-                # 注意：reading_progress、total_pages、word_count现在从book_metadata参数获取
-                # 因为books表已经移除了这些字段
-                if book_metadata:
-                    # 优先使用提供的元数据
-                    reading_progress = book_metadata.get('reading_progress', 0)
-                    total_pages = book_metadata.get('total_pages', 0)
-                    word_count = book_metadata.get('word_count', 0)
-                elif book_row:
-                    # 如果book_metadata为空，尝试从books表的metadata字段获取
-                    metadata_json = book_row.get('metadata', '{}') if isinstance(book_row, dict) else (
-                        book_row[6] if len(book_row) > 6 else '{}'
-                    )
+                # 从新的book_metadata表获取阅读进度相关信息
+                reading_progress = 0
+                total_pages = 0
+                word_count = 0
+                
+                # 尝试从book_metadata表获取最新的元数据
+                metadata_json = self.get_book_metadata(book_path, user_id_value)
+                if metadata_json:
                     try:
-                        metadata_dict = json.loads(metadata_json) if metadata_json else {}
+                        metadata_dict = json.loads(metadata_json)
                         reading_progress = metadata_dict.get('reading_progress', 0)
                         total_pages = metadata_dict.get('total_pages', 0)
                         word_count = metadata_dict.get('word_count', 0)
                     except (json.JSONDecodeError, KeyError):
-                        reading_progress = 0
-                        total_pages = 0
-                        word_count = 0
-                else:
-                    reading_progress = 0
-                    total_pages = 0
-                    word_count = 0
-                
-                # 使用提供的元数据或默认值
-                metadata = json.dumps(book_metadata) if book_metadata else (
-                    json.dumps(book_row.get('metadata', {})) if isinstance(book_row, dict) else '{}'
-                )
+                        # 如果解析失败，使用默认值
+                        pass
                 
                 cursor.execute("""
                     INSERT INTO reading_history (book_path, read_date, duration, pages_read, 
-                                                user_id, last_read_date, reading_progress, 
-                                                total_pages, word_count, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                                user_id, reading_progress, total_pages, word_count)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book_path,
                     current_time,
                     duration,
                     pages_read,
                     user_id_value,
-                    current_time,
                     reading_progress,
                     total_pages,
-                    word_count,
-                    metadata
+                    word_count
                 ))
+                
+                # 同时更新book_metadata表中的最后阅读时间
+                # 从book_metadata表获取现有的元数据
+                existing_metadata_json = self.get_book_metadata(book_path, user_id_value)
+                existing_metadata = {}
+                if existing_metadata_json:
+                    try:
+                        existing_metadata = json.loads(existing_metadata_json)
+                    except json.JSONDecodeError:
+                        pass
+                
+                # 更新最后阅读时间
+                existing_metadata['last_read_date'] = current_time
+                
+                # 保存更新后的元数据
+                updated_metadata_json = json.dumps(existing_metadata, ensure_ascii=False)
+                cursor.execute("""
+                    INSERT OR REPLACE INTO book_metadata (book_path, user_id, metadata, last_updated)
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    book_path,
+                    user_id_value,
+                    updated_metadata_json,
+                    current_time
+                ))
+                
                 conn.commit()
                 return True
         except sqlite3.Error as e:
@@ -1023,7 +1041,10 @@ class DatabaseManager:
                 row = cursor.fetchone()
                 
                 if row:
-                    return dict(row)
+                    record = dict(row)
+                    # 将read_date作为last_read_date返回，保持接口兼容性
+                    record['last_read_date'] = record.get('read_date')
+                    return record
                 return None
         except sqlite3.Error as e:
             logger.error(f"获取最新阅读记录失败: {e}")
@@ -1526,7 +1547,10 @@ class DatabaseManager:
                 row = cursor.fetchone()
                 
                 if row:
-                    return dict(row)
+                    record = dict(row)
+                    # 将read_date作为last_read_date返回，保持接口兼容性
+                    record['last_read_date'] = record.get('read_date')
+                    return record
                 return None
         except sqlite3.Error as e:
             logger.error(f"获取启用的代理设置失败: {e}")
@@ -1660,7 +1684,10 @@ class DatabaseManager:
                 row = cursor.fetchone()
                 
                 if row:
-                    return dict(row)
+                    record = dict(row)
+                    # 将read_date作为last_read_date返回，保持接口兼容性
+                    record['last_read_date'] = record.get('read_date')
+                    return record
                 return None
         except sqlite3.Error as e:
             logger.error(f"根据ID获取书籍网站配置失败: {e}")
@@ -2129,6 +2156,163 @@ class DatabaseManager:
                 return True
         except sqlite3.Error as e:
             logger.error(f"更新阅读历史表路径引用失败: {e}")
+            return False
+
+    # ===================== 书籍元数据表相关方法 =====================
+    def save_book_metadata(self, book_path: str, metadata: str, user_id: Optional[int] = None) -> bool:
+        """
+        保存书籍元数据到新表
+        
+        Args:
+            book_path: 书籍路径
+            metadata: 元数据JSON字符串
+            user_id: 用户ID，如果为None则使用默认值0
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # 设置用户ID（多用户模式关闭时使用0）
+                user_id_value = user_id if user_id is not None else 0
+                
+                # 使用INSERT OR REPLACE来确保每个书籍+用户组合只有一个记录
+                cursor.execute("""
+                    INSERT OR REPLACE INTO book_metadata 
+                    (book_path, user_id, metadata, last_updated)
+                    VALUES (?, ?, ?, ?)
+                """, (book_path, user_id_value, metadata, last_updated))
+                
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"保存书籍元数据失败: {e}")
+            return False
+
+    def get_book_metadata(self, book_path: str, user_id: Optional[int] = None) -> Optional[str]:
+        """
+        获取书籍元数据
+        
+        Args:
+            book_path: 书籍路径
+            user_id: 用户ID，如果为None则使用默认值0
+            
+        Returns:
+            Optional[str]: 元数据JSON字符串，如果不存在则返回None
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 设置用户ID（多用户模式关闭时使用0）
+                user_id_value = user_id if user_id is not None else 0
+                
+                cursor.execute("""
+                    SELECT metadata FROM book_metadata 
+                    WHERE book_path = ? AND user_id = ?
+                """, (book_path, user_id_value))
+                
+                row = cursor.fetchone()
+                if row:
+                    return row[0]
+                return None
+        except sqlite3.Error as e:
+            logger.error(f"获取书籍元数据失败: {e}")
+            return None
+
+    def delete_book_metadata(self, book_path: str, user_id: Optional[int] = None) -> bool:
+        """
+        删除书籍元数据
+        
+        Args:
+            book_path: 书籍路径
+            user_id: 用户ID，如果为None则使用默认值0
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 设置用户ID（多用户模式关闭时使用0）
+                user_id_value = user_id if user_id is not None else 0
+                
+                cursor.execute("""
+                    DELETE FROM book_metadata 
+                    WHERE book_path = ? AND user_id = ?
+                """, (book_path, user_id_value))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"删除书籍元数据失败: {e}")
+            return False
+
+    def update_book_metadata_path(self, old_path: str, new_path: str) -> bool:
+        """
+        更新书籍元数据表中的书籍路径引用
+        
+        Args:
+            old_path: 原书籍路径
+            new_path: 新书籍路径
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE book_metadata SET book_path = ? WHERE book_path = ?", (new_path, old_path))
+                conn.commit()
+                logger.info(f"更新书籍元数据表路径引用: {old_path} -> {new_path}")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"更新书籍元数据表路径引用失败: {e}")
+            return False
+
+    def migrate_reading_history_metadata(self) -> bool:
+        """
+        将现有reading_history表中的metadata迁移到新的book_metadata表
+        
+        Returns:
+            bool: 迁移是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 获取所有有metadata的阅读记录
+                cursor.execute("""
+                    SELECT DISTINCT book_path, user_id, metadata 
+                    FROM reading_history 
+                    WHERE metadata IS NOT NULL AND metadata != ''
+                """)
+                
+                rows = cursor.fetchall()
+                migrated_count = 0
+                
+                for row in rows:
+                    book_path, user_id, metadata = row
+                    
+                    # 迁移到新表
+                    last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO book_metadata 
+                        (book_path, user_id, metadata, last_updated)
+                        VALUES (?, ?, ?, ?)
+                    """, (book_path, user_id or 0, metadata, last_updated))
+                    
+                    migrated_count += 1
+                
+                conn.commit()
+                logger.info(f"成功迁移 {migrated_count} 条metadata记录到新表")
+                return True
+        except sqlite3.Error as e:
+            logger.error(f"迁移metadata失败: {e}")
             return False
 
     def update_user_books_path(self, old_path: str, new_path: str) -> bool:
