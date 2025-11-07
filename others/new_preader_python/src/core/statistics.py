@@ -180,19 +180,15 @@ class Statistics:
             # 将集合转换为列表以便JSON序列化
             daily_stat["books"] = list(daily_stat["books"])
         
-        # 计算页数（不再使用基于字数的计算）
-        for book in self.bookshelf.get_all_books():
-            if book.path in books_read:
-                # 从reading_history表获取阅读信息
-                reading_info = self.bookshelf.get_book_reading_info(book.path)
-                progress = reading_info.get('reading_progress', 0)
-                total_pages = reading_info.get('total_pages', 0)
-                pages_read = int(total_pages * progress)
-                
-                # 确保类型正确
-                self.stats["total_stats"]["pages_read"] = int(self.stats["total_stats"]["pages_read"]) + pages_read
-                # 不再使用基于字数的计算
-                self.stats["total_stats"]["words_read"] = 0
+        # 直接从reading_history表计算总阅读页数
+        total_pages_read = 0
+        for record in reading_history:
+            total_pages_read += record.get("pages_read", 0)
+        
+        # 确保类型正确
+        self.stats["total_stats"]["pages_read"] = int(total_pages_read)
+        # 不再使用基于字数的计算
+        self.stats["total_stats"]["words_read"] = 0
         
         # 保存更新后的统计数据
         self.save()
@@ -376,9 +372,15 @@ class Statistics:
         for path, stats in book_stats.items():
             book = self.bookshelf.get_book(path)
             if book:
-                # 从reading_history表获取阅读进度
-                reading_info = self.bookshelf.get_book_reading_info(book.path)
-                progress = reading_info.get('reading_progress', 0)
+                # 直接从reading_history表计算阅读进度
+                # 获取该书籍的所有阅读记录
+                book_records = [record for record in self.bookshelf.get_reading_history() if record["book_path"] == path]
+                if book_records:
+                    # 获取最新的阅读记录
+                    latest_record = max(book_records, key=lambda x: x.get("read_date", ""))
+                    progress = latest_record.get("reading_progress", 0)
+                else:
+                    progress = 0
                 
                 books.append({
                     "path": path,

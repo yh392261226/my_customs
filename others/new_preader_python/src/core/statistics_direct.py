@@ -74,22 +74,32 @@ class StatisticsDirect:
                 first_read_date = date_result["first_read_date"]
                 last_read_date = date_result["last_read_date"]
                 
-                # 获取完成的书籍数量（阅读进度达到98%）
-                if user_id is not None:
-                    cursor.execute("""
-                        SELECT COUNT(DISTINCT rh.book_path) as books_finished
-                        FROM reading_history rh
-                        JOIN books b ON rh.book_path = b.path
-                        WHERE rh.user_id = ? AND rh.reading_progress >= 0.98
-                    """, [user_id])
-                else:
-                    cursor.execute("""
-                        SELECT COUNT(DISTINCT rh.book_path) as books_finished
-                        FROM reading_history rh
-                        JOIN books b ON rh.book_path = b.path
-                        WHERE rh.reading_progress >= 0.98
-                    """)
-                books_finished = cursor.fetchone()["books_finished"] or 0
+                # 获取完成的书籍数量（如果表中有reading_progress字段）
+                books_finished = 0
+                try:
+                    # 检查表是否有reading_progress字段
+                    cursor.execute("PRAGMA table_info(reading_history)")
+                    columns = [row[1] for row in cursor.fetchall()]
+                    
+                    if 'reading_progress' in columns:
+                        if user_id is not None:
+                            cursor.execute("""
+                                SELECT COUNT(DISTINCT rh.book_path) as books_finished
+                                FROM reading_history rh
+                                JOIN books b ON rh.book_path = b.path
+                                WHERE rh.user_id = ? AND rh.reading_progress >= 0.98
+                            """, [user_id])
+                        else:
+                            cursor.execute("""
+                                SELECT COUNT(DISTINCT rh.book_path) as books_finished
+                                FROM reading_history rh
+                                JOIN books b ON rh.book_path = b.path
+                                WHERE rh.reading_progress >= 0.98
+                            """)
+                        books_finished = cursor.fetchone()["books_finished"] or 0
+                except:
+                    # 如果无法检查字段或查询失败，默认为0
+                    books_finished = 0
                 
                 return {
                     "reading_time": total_reading_time,

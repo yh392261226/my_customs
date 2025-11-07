@@ -210,9 +210,13 @@ class StatisticsScreen(Screen[None]):
     
     def _format_global_stats(self) -> str:
         """格式化全局统计数据"""
-        total_time = self.global_stats.get("total_reading_time", 0)
-        total_books = self.global_stats.get("total_books", 0)
-        total_pages = self.global_stats.get("total_pages", 0)
+        total_time = self.global_stats.get("reading_time", 0)
+        total_books = self.global_stats.get("books_read", 0)
+        total_pages = self.global_stats.get("pages_read", 0)
+        
+        # 如果没有数据，显示提示信息
+        if total_time == 0 and total_books == 0 and total_pages == 0:
+            return get_global_i18n().t("statistics.no_data")
         
         return f"""
 {get_global_i18n().t("statistics.total_reading_time")}: {self._format_time(total_time)}
@@ -231,26 +235,34 @@ class StatisticsScreen(Screen[None]):
         加载所有统计数据（直接从数据库获取，支持多用户过滤）
         """
         try:
-            # 优先从应用实例获取当前用户信息
-            current_user = getattr(self.app, 'current_user', None)
-            user_id = current_user.get('id') if current_user else None
+            # 临时简化：直接查询所有数据，避免用户ID过滤问题
+            # 先尝试无用户ID过滤（查询所有数据）
+            self.global_stats = self.statistics_manager.get_total_stats()
+            self.book_stats = self.statistics_manager.get_most_read_books()
+            self.authors_stats = self.statistics_manager.get_most_read_authors()
             
-            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
-            if user_id is None:
-                from src.utils.multi_user_manager import multi_user_manager
-                current_user = multi_user_manager.get_current_user()
+            # 调试日志：检查数据是否为空
+            print(f"DEBUG: 直接查询所有数据 - global_stats={self.global_stats}, book_stats_len={len(self.book_stats) if self.book_stats else 0}")
+            
+            # 如果直接查询没有数据，再尝试用户ID过滤
+            if not self.book_stats and self.global_stats.get("books_read", 0) == 0:
+                print("DEBUG: 直接查询无数据，尝试用户ID过滤")
+                
+                # 获取当前用户信息
+                current_user = getattr(self.app, 'current_user', None)
                 user_id = current_user.get('id') if current_user else None
-            
-            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
-            if user_id is not None:
-                from src.utils.multi_user_manager import multi_user_manager
-                if not multi_user_manager.is_multi_user_enabled():
-                    user_id = None
-            
-            # 从数据库获取最新数据，按用户ID过滤
-            self.global_stats = self.statistics_manager.get_total_stats(user_id=user_id)
-            self.book_stats = self.statistics_manager.get_most_read_books(user_id=user_id)
-            self.authors_stats = self.statistics_manager.get_most_read_authors(user_id=user_id)
+                
+                if user_id is None:
+                    from src.utils.multi_user_manager import multi_user_manager
+                    current_user = multi_user_manager.get_current_user()
+                    user_id = current_user.get('id') if current_user else None
+                
+                # 尝试用户ID过滤
+                if user_id is not None:
+                    self.global_stats = self.statistics_manager.get_total_stats(user_id=user_id)
+                    self.book_stats = self.statistics_manager.get_most_read_books(user_id=user_id)
+                    self.authors_stats = self.statistics_manager.get_most_read_authors(user_id=user_id)
+                    print(f"DEBUG: 用户ID过滤 - user_id={user_id}, global_stats={self.global_stats}")
             
             # 加载各个数据表
             self._load_book_stats()
@@ -258,10 +270,13 @@ class StatisticsScreen(Screen[None]):
             self._load_progress_stats()
         except Exception as e:
             print(f"Error loading stats: {e}")
-            # 回退到原始逻辑
+            # 回退到原始逻辑（无用户ID过滤）
             self.global_stats = self.statistics_manager.get_total_stats()
             self.book_stats = self.statistics_manager.get_most_read_books()
             self.authors_stats = self.statistics_manager.get_most_read_authors()
+            
+            print(f"DEBUG: Fallback - global_stats={self.global_stats}, book_stats_len={len(self.book_stats) if self.book_stats else 0}")
+            
             self._load_book_stats()
             self._load_authors_stats()
             self._load_progress_stats()
@@ -270,7 +285,14 @@ class StatisticsScreen(Screen[None]):
         self._update_static_content()
         
         # 如果没有数据，显示提示信息
-        if not self.book_stats and not self.global_stats.get("books_read", 0):
+        has_books_data = self.book_stats and len(self.book_stats) > 0
+        has_global_data = (
+            self.global_stats.get("reading_time", 0) > 0 or
+            self.global_stats.get("books_read", 0) > 0 or
+            self.global_stats.get("pages_read", 0) > 0
+        )
+        
+        if not has_books_data and not has_global_data:
             self.notify(get_global_i18n().t('statistics.no_data'), severity="information")
     
     def _load_book_stats(self) -> None:
