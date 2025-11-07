@@ -13,7 +13,6 @@ from datetime import datetime
 
 from src.core.book import Book
 from src.config.config_manager import ConfigManager
-
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,7 +42,7 @@ def convert_to_pinyin(text: str) -> str:
     
     try:
         # 使用普通风格，不带声调
-        pinyin_list = pinyin(text, style=Style.NORMAL)
+        pinyin_list = pinyin(text, style=Style.NORMAL)  # type: ignore
         return "".join([item[0] for item in pinyin_list if item])
     except Exception as e:
         logger.error(f"拼音转换失败: {e}")
@@ -73,6 +72,27 @@ class DatabaseManager:
         if self.db_path != ':memory:':
             os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_database()
+    
+    def _add_column_if_not_exists(self, cursor: sqlite3.Cursor, table_name: str, column_name: str, 
+                                  column_type: str, default_value: str = "") -> None:
+        """
+        如果列不存在则添加列
+        
+        Args:
+            cursor: 数据库游标
+            table_name: 表名
+            column_name: 列名
+            column_type: 列类型
+            default_value: 默认值
+        """
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        columns = [column[1] for column in cursor.fetchall()]
+        if column_name not in columns:
+            alter_sql = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+            if default_value:
+                alter_sql += f" DEFAULT {default_value}"
+            cursor.execute(alter_sql)
+            logger.info(f"已为{table_name}表添加{column_name}列")
     
     def _init_database(self) -> None:
         """初始化数据库表结构"""
@@ -158,15 +178,6 @@ class DatabaseManager:
                 ('file_explorer.home', '文件资源管理器.返回主目录'),
                 ('file_explorer.select', '文件资源管理器.选择文件/目录'),
                 ('file_explorer.cancel', '文件资源管理器.取消操作'),
-                
-                # 目录对话框权限
-                ('directory_dialog.select', '目录对话框.选择目录'),
-                ('directory_dialog.cancel', '目录对话框.取消操作'),
-                
-                # 文件选择器对话框权限
-                ('file_chooser.select', '文件选择器对话框.选择文件'),
-                ('file_chooser.cancel', '文件选择器对话框.取消操作'),
-                ('file_chooser.add_file', '文件选择器对话框.添加文件'),
                 
                 # 目录对话框权限
                 ('directory_dialog.select', '目录对话框.选择目录'),
@@ -267,39 +278,6 @@ class DatabaseManager:
                                 "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
                                 (admin_id, perm)
                             )
-                        
-                        # 为admin用户分配对话框相关权限
-                        dialog_perms = [
-                            'directory_dialog.select', 'directory_dialog.cancel',
-                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
-                        ]
-                        for perm in dialog_perms:
-                            cursor.execute(
-                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
-                                (admin_id, perm)
-                            )
-                        
-                        # 为admin用户分配对话框相关权限
-                        dialog_perms = [
-                            'directory_dialog.select', 'directory_dialog.cancel',
-                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
-                        ]
-                        for perm in dialog_perms:
-                            cursor.execute(
-                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
-                                (admin_id, perm)
-                            )
-                        
-                        # 为admin用户分配对话框相关权限
-                        dialog_perms = [
-                            'directory_dialog.select', 'directory_dialog.cancel',
-                            'file_chooser.select', 'file_chooser.cancel', 'file_chooser.add_file'
-                        ]
-                        for perm in dialog_perms:
-                            cursor.execute(
-                                "INSERT OR REPLACE INTO user_permissions (user_id, perm_key, allowed) VALUES (?, ?, 1)",
-                                (admin_id, perm)
-                            )
             except Exception as _e:
                 logger.warning(f"创建默认超级管理员失败（可忽略）：{_e}")
             
@@ -358,22 +336,14 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookmarks_book ON bookmarks(book_path)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookmarks_timestamp ON bookmarks(timestamp)")
             # 迁移：检查并添加缺失的锚点列
-            cursor.execute("PRAGMA table_info(bookmarks)")
-            bm_columns = [column[1] for column in cursor.fetchall()]
-            if 'anchor_text' not in bm_columns:
-                cursor.execute("ALTER TABLE bookmarks ADD COLUMN anchor_text TEXT DEFAULT ''")
-            if 'anchor_hash' not in bm_columns:
-                cursor.execute("ALTER TABLE bookmarks ADD COLUMN anchor_hash TEXT DEFAULT ''")
+            self._add_column_if_not_exists(cursor, "bookmarks", "anchor_text", "TEXT", "''")
+            self._add_column_if_not_exists(cursor, "bookmarks", "anchor_hash", "TEXT", "''")
             
             # 检查并添加pinyin列（如果不存在）
-            cursor.execute("PRAGMA table_info(books)")
-            columns = [column[1] for column in cursor.fetchall()]
-            if 'pinyin' not in columns:
-                cursor.execute("ALTER TABLE books ADD COLUMN pinyin TEXT")
+            self._add_column_if_not_exists(cursor, "books", "pinyin", "TEXT")
             
             # 检查并添加tags列（如果不存在）
-            if 'tags' not in columns:
-                cursor.execute("ALTER TABLE books ADD COLUMN tags TEXT")
+            self._add_column_if_not_exists(cursor, "books", "tags", "TEXT")
             
             # 创建索引以提高查询性能
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_title ON books(title)")
@@ -399,16 +369,8 @@ class DatabaseManager:
             """)
             
             # 检查并添加缺失的字段
-            cursor.execute("PRAGMA table_info(proxy_settings)")
-            columns = [column[1] for column in cursor.fetchall()]
-            
-            # 如果缺少name字段，则添加
-            if 'name' not in columns:
-                cursor.execute("ALTER TABLE proxy_settings ADD COLUMN name TEXT NOT NULL DEFAULT '默认代理'")
-            
-            # 如果缺少created_at字段，则添加
-            if 'created_at' not in columns:
-                cursor.execute("ALTER TABLE proxy_settings ADD COLUMN created_at TEXT NOT NULL DEFAULT '2024-01-01T00:00:00'")
+            self._add_column_if_not_exists(cursor, "proxy_settings", "name", "TEXT NOT NULL", "'默认代理'")
+            self._add_column_if_not_exists(cursor, "proxy_settings", "created_at", "TEXT NOT NULL", "'2024-01-01T00:00:00'")
 
             # 插入代理数据（使用INSERT OR IGNORE避免重复）
             proxy_settings_data = [
@@ -499,28 +461,57 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_site_notes_site_id ON novel_site_notes(site_id)")
             
             # 检查并添加novel_sites表的tags列（如果不存在）
-            cursor.execute("PRAGMA table_info(novel_sites)")
-            columns = [column[1] for column in cursor.fetchall()]
-            if 'tags' not in columns:
-                cursor.execute("ALTER TABLE novel_sites ADD COLUMN tags TEXT DEFAULT ''")
-                logger.info("已为novel_sites表添加tags列")
+            self._add_column_if_not_exists(cursor, "novel_sites", "tags", "TEXT", "''")
             
             # 检查并添加novel_sites表的selectable_enabled列（如果不存在）
-            if 'selectable_enabled' not in columns:
-                cursor.execute("ALTER TABLE novel_sites ADD COLUMN selectable_enabled BOOLEAN NOT NULL DEFAULT 1")
-                logger.info("已为novel_sites表添加selectable_enabled列")
-            
-            # 检查并添加novel_sites表的selectable_enabled列（如果不存在）
-            if 'selectable_enabled' not in columns:
-                cursor.execute("ALTER TABLE novel_sites ADD COLUMN selectable_enabled BOOLEAN NOT NULL DEFAULT 1")
-                logger.info("已为novel_sites表添加selectable_enabled列")
+            self._add_column_if_not_exists(cursor, "novel_sites", "selectable_enabled", "BOOLEAN NOT NULL", "1")
             
             # 检查并添加novel_sites表的book_id_example列（如果不存在）
-            if 'book_id_example' not in columns:
-                cursor.execute("ALTER TABLE novel_sites ADD COLUMN book_id_example TEXT DEFAULT ''")
-                logger.info("已为novel_sites表添加book_id_example列")
+            self._add_column_if_not_exists(cursor, "novel_sites", "book_id_example", "TEXT", "''")
 
             conn.commit()
+    
+    def _build_minimal_metadata(self, book: Book) -> str:
+        """
+        构建精简的metadata JSON字符串
+        
+        Args:
+            book: 书籍对象
+            
+        Returns:
+            str: metadata JSON字符串
+        """
+        minimal_metadata = {}
+        
+        # 存储章节信息（列表结构，适合存储在metadata中）
+        if book.chapters:
+            minimal_metadata['chapters'] = book.chapters
+        
+        # 存储书签信息（列表结构，适合存储在metadata中）
+        if book.bookmarks:
+            minimal_metadata['bookmarks'] = book.bookmarks
+        
+        # 存储锚点信息（用于跨分页纠偏）
+        if book.anchor_text:
+            minimal_metadata['anchor_text'] = book.anchor_text
+        
+        if book.anchor_hash:
+            minimal_metadata['anchor_hash'] = book.anchor_hash
+        
+        # 存储文件不存在标记（布尔值，适合存储在metadata中）
+        if book.file_not_found:
+            minimal_metadata['file_not_found'] = book.file_not_found
+        
+        # 存储PDF密码（敏感信息，适合存储在metadata中）
+        if book.password:
+            minimal_metadata['password'] = book.password
+        
+        # 存储文件大小（数值，适合存储在metadata中）
+        if book.size > 0:
+            minimal_metadata['size'] = book.size
+        
+        # 确保metadata不为空时进行序列化
+        return json.dumps(minimal_metadata) if minimal_metadata else ""
     
     def add_book(self, book: Book) -> bool:
         """
@@ -536,39 +527,8 @@ class DatabaseManager:
             # 生成书名拼音
             pinyin_text = convert_to_pinyin(book.title) if book.title else ""
             
-            # 优化metadata存储策略：只存储没有独立字段的数据
-            # 构建精简的metadata，只包含独立字段没有覆盖的额外数据
-            minimal_metadata = {}
-            
-            # 存储章节信息（列表结构，适合存储在metadata中）
-            if book.chapters:
-                minimal_metadata['chapters'] = book.chapters
-            
-            # 存储书签信息（列表结构，适合存储在metadata中）
-            if book.bookmarks:
-                minimal_metadata['bookmarks'] = book.bookmarks
-            
-            # 存储锚点信息（用于跨分页纠偏）
-            if book.anchor_text:
-                minimal_metadata['anchor_text'] = book.anchor_text
-            
-            if book.anchor_hash:
-                minimal_metadata['anchor_hash'] = book.anchor_hash
-            
-            # 存储文件不存在标记（布尔值，适合存储在metadata中）
-            if book.file_not_found:
-                minimal_metadata['file_not_found'] = book.file_not_found
-            
-            # 存储PDF密码（敏感信息，适合存储在metadata中）
-            if book.password:
-                minimal_metadata['password'] = book.password
-            
-            # 存储文件大小（数值，适合存储在metadata中）
-            if book.size > 0:
-                minimal_metadata['size'] = book.size
-            
-            # 确保metadata不为空时进行序列化
-            metadata_json = json.dumps(minimal_metadata) if minimal_metadata else ""
+            # 构建精简的metadata
+            metadata_json = self._build_minimal_metadata(book)
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -668,39 +628,8 @@ class DatabaseManager:
             # 生成书名拼音
             pinyin_text = convert_to_pinyin(book.title) if book.title else ""
             
-            # 优化metadata存储策略：只存储没有独立字段的数据
-            # 构建精简的metadata，只包含独立字段没有覆盖的额外数据
-            minimal_metadata = {}
-            
-            # 存储章节信息（列表结构，适合存储在metadata中）
-            if book.chapters:
-                minimal_metadata['chapters'] = book.chapters
-            
-            # 存储书签信息（列表结构，适合存储在metadata中）
-            if book.bookmarks:
-                minimal_metadata['bookmarks'] = book.bookmarks
-            
-            # 存储锚点信息（用于跨分页纠偏）
-            if book.anchor_text:
-                minimal_metadata['anchor_text'] = book.anchor_text
-            
-            if book.anchor_hash:
-                minimal_metadata['anchor_hash'] = book.anchor_hash
-            
-            # 存储文件不存在标记（布尔值，适合存储在metadata中）
-            if book.file_not_found:
-                minimal_metadata['file_not_found'] = book.file_not_found
-            
-            # 存储PDF密码（敏感信息，适合存储在metadata中）
-            if book.password:
-                minimal_metadata['password'] = book.password
-            
-            # 存储文件大小（数值，适合存储在metadata中）
-            if book.size > 0:
-                minimal_metadata['size'] = book.size
-            
-            # 确保metadata不为空时进行序列化
-            metadata_json = json.dumps(minimal_metadata) if minimal_metadata else ""
+            # 构建精简的metadata
+            metadata_json = self._build_minimal_metadata(book)
             
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -1032,7 +961,7 @@ class DatabaseManager:
                 
                 if user_id is not None and user_id > 0:
                     query += " AND user_id = ?"
-                    params.append(user_id)
+                    params.append(str(user_id))
                 
                 query += " ORDER BY read_date DESC LIMIT 1"
                 

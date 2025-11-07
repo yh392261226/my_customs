@@ -125,13 +125,11 @@ class BookshelfScreen(Screen[None]):
         # 初始化加载指示器变量
         self.loading_indicator = None
         
-        # 初始化搜索状态变量
-        self._search_keyword = ""
-        self._search_format = "all"
-        self._search_author = "all"
-        
-        # 初始化加载指示器变量
-        self.loading_indicator = None
+        # 作者列表缓存（性能优化）
+        self._author_options_cache = None
+        self._author_options_loaded = False
+    
+
     
     def compose(self) -> ComposeResult:
         """
@@ -148,17 +146,8 @@ class BookshelfScreen(Screen[None]):
             display_name = ext.upper().lstrip('.')
             search_options.append((display_name, ext.lstrip('.')))
 
-        author_options = [(get_global_i18n().t("bookshelf.all_sources"), "all")]
-        # 从书架中获取所有书籍的作者列表
-        try:
-            # 获取所有书籍
-            all_books = list(self.bookshelf.books.values())
-            # 提取所有作者，去重并排序
-            authors = sorted(set(book.author for book in all_books if book.author and book.author.strip()))
-            for author in authors:
-                author_options.append((author, author))
-        except Exception as e:
-            self.logger.warning(f"读取作者列表失败: {e}")
+        # 使用 Bookshelf 类的 load_author_options 方法加载作者选项
+        author_options = self.bookshelf.load_author_options()
 
         yield Header()
         yield Container(
@@ -290,13 +279,44 @@ class BookshelfScreen(Screen[None]):
         except Exception:
             pass
         
-        # 确保书架管理器已设置当前用户
+        # 多用户模式检查：确保书架管理器设置正确的用户
         try:
             current_user = getattr(self.app, 'current_user', None)
-            if current_user:
-                user_id = current_user.get('id')
-                user_role = current_user.get('role', 'user')
-                self.bookshelf.set_current_user(user_id, user_role)
+            config_manager = getattr(self.app, 'config_manager', None)
+            
+            # 检查是否启用多用户模式
+            multi_user_enabled = False
+            if config_manager:
+                config = config_manager.get_config()
+                multi_user_enabled = config.get('advanced', {}).get('multi_user_enabled', False)
+            
+            if multi_user_enabled:
+                # 多用户模式：必须设置当前用户
+                if current_user:
+                    user_id = current_user.get('id')
+                    user_role = current_user.get('role', 'user')
+                    self.bookshelf.set_current_user(user_id, user_role)
+                    self.logger.debug(f"多用户模式：设置用户 ID={user_id}, 角色={user_role}")
+                else:
+                    # 多用户模式下必须有用户，否则清空数据
+                    self.bookshelf.set_current_user(None, "user")
+                    self.logger.warning("多用户模式：未找到当前用户，已清空用户设置")
+            else:
+                # 单用户模式：使用默认用户或无用户
+                if current_user:
+                    # 如果有用户信息，也设置（兼容性）
+                    user_id = current_user.get('id')
+                    user_role = current_user.get('role', 'user')
+                    self.bookshelf.set_current_user(user_id, user_role)
+                    self.logger.debug(f"单用户模式：设置用户 ID={user_id}")
+                else:
+                    # 单用户模式无用户时使用默认设置
+                    self.bookshelf.set_current_user(None, "user")
+                    self.logger.debug("单用户模式：使用默认设置")
+            
+            # 初始化用户ID缓存
+            self._last_user_id = current_user.get('id') if current_user else None
+            
         except Exception as e:
             self.logger.warning(f"设置书架管理器用户失败: {e}")
         
@@ -342,101 +362,177 @@ class BookshelfScreen(Screen[None]):
         self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}")
         
         table = self.query_one("#books-table", DataTable)
-        # 完全清除表格数据，包括行键缓存
-        table.clear(columns=True)
-        # 重新添加列定义（因为columns=True会清除列）
-        self._add_table_columns(table)
         
-        # 确保书架数据是最新的，从数据库重新加载
-        try:
-            # 确保书架管理器已设置当前用户
-            current_user = getattr(self.app, 'current_user', None)
-            if current_user:
-                user_id = current_user.get('id')
-                user_role = current_user.get('role', 'user')
-                self.bookshelf.set_current_user(user_id, user_role)
-            else:
-                # 如果没有当前用户，清空用户设置
-                self.bookshelf.set_current_user(None, "user")
+        # 性能优化：检查是否只需要更新当前页数据（分页切换时）
+        current_search_params = f"{search_keyword}_{search_format}_{search_author}"
+        page_change_only = False
+        
+        # 如果搜索条件未改变且书籍数据已存在，只需更新分页
+        if (hasattr(self, '_last_search_params') and 
+            self._last_search_params == current_search_params and 
+            hasattr(self, '_all_books') and self._all_books):
+            page_change_only = True
+        
+        if not page_change_only:
+            # 完全清除表格数据，包括行键缓存
+            table.clear(columns=True)
+            # 重新添加列定义（因为columns=True会清除列）
+            self._add_table_columns(table)
             
-            # 强制重新加载书架数据
-            self.bookshelf._load_books()
-            self.logger.debug("书架数据已重新加载")
-        except Exception as e:
-            self.logger.warning(f"重新加载书架数据失败: {e}")
-        
-        # 根据搜索条件筛选书籍
-        # 获取已经按用户权限过滤后的书籍进行搜索
-        all_books = List[Book]
-        all_books = list(self.bookshelf.books.values())
-        filtered_books = []
-        
-        # 支持多关键词搜索（逗号分隔）
-        keywords = [k.strip() for k in search_keyword.split(",") if k.strip()] if search_keyword else []
-        
-        # 处理search_format参数，确保正确处理NoSelection对象
-        actual_search_format = "all"
-        if search_format != "all" and search_format is not None:
-            # 检查是否是NoSelection对象
-            if hasattr(search_format, 'is_blank') and callable(getattr(search_format, 'is_blank', None)) and search_format.is_blank():
-                actual_search_format = "all"
-            else:
-                # 确保search_format是字符串类型
-                actual_search_format = str(search_format) if search_format else "all"
-        
-        # 处理search_author参数，确保正确处理NoSelection对象
-        actual_search_author = "all"
-        if search_author != "all" and search_author is not None:
-            # 检查是否是NoSelection对象
-            if hasattr(search_author, 'is_blank') and callable(getattr(search_author, 'is_blank', None)) and search_author.is_blank():
-                actual_search_author = "all"
-            else:
-                # 确保search_author是字符串类型
-                actual_search_author = str(search_author) if search_author else "all"
-        
-        for book in all_books:
-            # 检查文件格式
-            format_match = True
+            # 性能优化：避免不必要的数据库重新加载
+            # 只在真正需要刷新数据时重新加载书架
+            force_reload = False
+            if not hasattr(self, '_last_search_params') or self._last_search_params != current_search_params:
+                force_reload = True
             
-            if actual_search_format != "all":
-                # 书籍的format包含点号（如.txt），下拉框值没有点号（如txt）
-                # 需要将书籍格式去掉点号再比较
-                book_format_without_dot = book.format.lower().lstrip('.')
-                format_match = book_format_without_dot == actual_search_format.lower()
-            
-            # 检查作者匹配
-            author_match = True
-            if actual_search_author != "all":
-                author_match = book.author.lower() == actual_search_author.lower()
-            
-            # 检查关键词匹配
-            keyword_match = False
-            if format_match and author_match:
-                if keywords:
-                    # 多关键词OR逻辑：只要匹配任意一个关键词
-                    for keyword in keywords:
-                        if (keyword.lower() in book.title.lower() or 
-                            keyword.lower() in book.author.lower() or 
-                            (hasattr(book, 'pinyin') and book.pinyin and keyword.lower() in book.pinyin.lower()) or
-                            (book.tags and keyword.lower() in book.tags.lower())):
-                            keyword_match = True
-                            break
+            try:
+                # 多用户模式检查：确保用户权限和数据隔离
+                current_user = getattr(self.app, 'current_user', None)
+                config_manager = getattr(self.app, 'config_manager', None)
+                
+                # 检查是否启用多用户模式
+                multi_user_enabled = False
+                if config_manager:
+                    config = config_manager.get_config()
+                    multi_user_enabled = config.get('advanced', {}).get('multi_user_enabled', False)
+                
+                if multi_user_enabled:
+                    # 多用户模式：必须设置当前用户
+                    if current_user:
+                        user_id = current_user.get('id')
+                        user_role = current_user.get('role', 'user')
+                        self.bookshelf.set_current_user(user_id, user_role)
+                        self.logger.debug(f"多用户模式：设置用户 ID={user_id}, 角色={user_role}")
+                    else:
+                        # 多用户模式下必须有用户，否则清空数据
+                        self.bookshelf.set_current_user(None, "user")
+                        self.logger.warning("多用户模式：未找到当前用户，已清空用户设置")
                 else:
-                    # 没有关键词时，只按格式和作者筛选
-                    keyword_match = True
+                    # 单用户模式：使用默认用户或无用户
+                    if current_user:
+                        # 如果有用户信息，也设置（兼容性）
+                        user_id = current_user.get('id')
+                        user_role = current_user.get('role', 'user')
+                        self.bookshelf.set_current_user(user_id, user_role)
+                        self.logger.debug(f"单用户模式：设置用户 ID={user_id}")
+                    else:
+                        # 单用户模式无用户时使用默认设置
+                        self.bookshelf.set_current_user(None, "user")
+                        self.logger.debug("单用户模式：使用默认设置")
+                
+                # 性能优化：只在真正需要时重新加载书架数据
+                # 多用户模式下的特殊处理：用户切换时强制重新加载
+                user_changed = False
+                if hasattr(self, '_last_user_id'):
+                    current_user_id = current_user.get('id') if current_user else None
+                    if self._last_user_id != current_user_id:
+                        user_changed = True
+                        self.logger.debug(f"用户已切换：{self._last_user_id} -> {current_user_id}")
+                
+                # 更新用户ID缓存
+                self._last_user_id = current_user.get('id') if current_user else None
+                
+                # 决定是否需要重新加载数据
+                should_reload = force_reload or user_changed
+                
+                if should_reload:
+                    self.bookshelf._load_books()
+                    if user_changed:
+                        self.logger.debug("书架数据已重新加载（用户切换）")
+                    else:
+                        self.logger.debug("书架数据已重新加载（搜索条件改变）")
+                else:
+                    self.logger.debug("使用缓存的书架数据（搜索条件和用户未改变）")
+            except Exception as e:
+                self.logger.warning(f"重新加载书架数据失败: {e}")
             
-            if keyword_match and author_match and format_match:
-                filtered_books.append(book)
+            # 缓存搜索参数
+            self._last_search_params = current_search_params
         
-        # 对筛选后的书籍进行排序
-        if search_keyword or search_format != "all" or search_author != "all":
-            # 有搜索条件时，手动排序（使用从reading_history表获取的阅读时间）
-            self._all_books = sorted(filtered_books, 
-                                   key=lambda book: self.bookshelf.get_book_reading_info(book.path).get('last_read_date') or "", 
-                                   reverse=True)
-        else:
-            # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取阅读时间）
-            self._all_books = self.bookshelf.get_sorted_books("last_read_date", reverse=True)
+        # 获取已经按用户权限过滤后的书籍进行搜索
+        all_books = list(self.bookshelf.books.values())
+        
+        if not page_change_only:
+            filtered_books = []
+            
+            # 支持多关键词搜索（逗号分隔）
+            keywords = [k.strip() for k in search_keyword.split(",") if k.strip()] if search_keyword else []
+            
+            # 处理search_format参数，确保正确处理NoSelection对象
+            actual_search_format = "all"
+            if search_format != "all" and search_format is not None:
+                # 检查是否是NoSelection对象
+                if hasattr(search_format, 'is_blank') and callable(getattr(search_format, 'is_blank', None)) and search_format.is_blank():
+                    actual_search_format = "all"
+                else:
+                    # 确保search_format是字符串类型
+                    actual_search_format = str(search_format) if search_format else "all"
+            
+            # 处理search_author参数，确保正确处理NoSelection对象
+            actual_search_author = "all"
+            if search_author != "all" and search_author is not None:
+                # 检查是否是NoSelection对象
+                if hasattr(search_author, 'is_blank') and callable(getattr(search_author, 'is_blank', None)) and search_author.is_blank():
+                    actual_search_author = "all"
+                else:
+                    # 确保search_author是字符串类型
+                    actual_search_author = str(search_author) if search_author else "all"
+            
+            # 性能优化：批量处理书籍筛选
+            if actual_search_format == "all" and actual_search_author == "all" and not keywords:
+                # 没有搜索条件时，直接使用所有书籍
+                filtered_books = all_books
+            else:
+                # 有搜索条件时进行筛选
+                for book in all_books:
+                    # 检查文件格式
+                    format_match = True
+                    
+                    if actual_search_format != "all":
+                        # 书籍的format包含点号（如.txt），下拉框值没有点号（如txt）
+                        # 需要将书籍格式去掉点号再比较
+                        book_format_without_dot = book.format.lower().lstrip('.')
+                        format_match = book_format_without_dot == actual_search_format.lower()
+                    
+                    # 检查作者匹配
+                    author_match = True
+                    if actual_search_author != "all":
+                        author_match = book.author.lower() == actual_search_author.lower()
+                    
+                    # 检查关键词匹配
+                    keyword_match = False
+                    if format_match and author_match:
+                        if keywords:
+                            # 多关键词OR逻辑：只要匹配任意一个关键词
+                            for keyword in keywords:
+                                if (keyword.lower() in book.title.lower() or 
+                                    keyword.lower() in book.author.lower() or 
+                                    (hasattr(book, 'pinyin') and book.pinyin and keyword.lower() in book.pinyin.lower()) or
+                                    (book.tags and keyword.lower() in book.tags.lower())):
+                                    keyword_match = True
+                                    break
+                        else:
+                            # 没有关键词时，只按格式和作者筛选
+                            keyword_match = True
+                    
+                    if keyword_match and author_match and format_match:
+                        filtered_books.append(book)
+            
+            # 对筛选后的书籍进行排序
+            if search_keyword or search_format != "all" or search_author != "all":
+                # 有搜索条件时，手动排序（使用从reading_history表获取的阅读时间）
+                # 性能优化：批量获取阅读历史信息
+                reading_info_cache = {}
+                for book in filtered_books:
+                    reading_info = self.bookshelf.get_book_reading_info(book.path)
+                    reading_info_cache[book.path] = reading_info.get('last_read_date') or ""
+                
+                self._all_books = sorted(filtered_books, 
+                                       key=lambda book: reading_info_cache.get(book.path, ""), 
+                                       reverse=True)
+            else:
+                # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取阅读时间）
+                self._all_books = self.bookshelf.get_sorted_books("last_read_date", reverse=True)
         
         # 计算总页数
         self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
@@ -447,10 +543,21 @@ class BookshelfScreen(Screen[None]):
         end_index = min(start_index + self._books_per_page, len(self._all_books))
         current_page_books = self._all_books[start_index:end_index]
         
-        # 创建序号到书籍路径的映射
-        self._book_index_mapping = {}
-        # 创建行键到书籍路径的映射
-        self._row_key_mapping = {}
+        if not page_change_only:
+            # 创建序号到书籍路径的映射
+            self._book_index_mapping = {}
+            # 创建行键到书籍路径的映射
+            self._row_key_mapping = {}
+        
+        # 性能优化：批量处理阅读历史信息
+        reading_info_cache = {}
+        for book in current_page_books:
+            reading_info = self.bookshelf.get_book_reading_info(book.path)
+            reading_info_cache[book.path] = reading_info
+        
+        # 清空当前页的数据
+        if page_change_only:
+            table.clear()
         
         for index, book in enumerate(current_page_books, start_index + 1):
             # 存储序号到路径的映射
@@ -459,8 +566,8 @@ class BookshelfScreen(Screen[None]):
             row_key = f"{book.path}_{index}"
             self._row_key_mapping[row_key] = book.path
             
-            # 从reading_history表获取阅读信息
-            reading_info = self.bookshelf.get_book_reading_info(book.path)
+            # 从缓存中获取阅读信息
+            reading_info = reading_info_cache.get(book.path, {})
             last_read = reading_info.get('last_read_date') or ""
             progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
             

@@ -151,18 +151,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             display_name = ext.upper().lstrip('.')
             search_options.append((display_name, ext.lstrip('.')))
 
-        # 动态生成作者筛选选项
-        author_options = [(get_global_i18n().t("bookshelf.all_sources"), "all")]
-        # 从书架中获取所有书籍的作者列表
-        try:
-            # 获取所有书籍
-            all_books = self.bookshelf.get_all_books()
-            # 提取所有作者，去重并排序
-            authors = sorted(set(book.author for book in all_books if book.author and book.author.strip()))
-            for author in authors:
-                author_options.append((author, author))
-        except Exception as e:
-            logger.warning(f"读取作者列表失败: {e}")
+        # 使用 Bookshelf 类的 load_author_options 方法加载作者选项
+        author_options = self.bookshelf.load_author_options()
 
         yield Container(
             Vertical(

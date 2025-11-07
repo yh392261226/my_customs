@@ -1296,3 +1296,26 @@ class Bookshelf:
         except Exception as e:
             logger.error(f"更新书籍路径引用失败: {e}")
             raise
+    
+    def load_author_options(self) -> List[tuple]:
+        """
+        加载作者选项列表（延迟加载，避免重复数据库查询）
+        
+        Returns:
+            List[tuple]: 作者选项列表 [(显示名称, 值), ...]
+        """
+        # 创建基础选项
+        author_options = [("全部来源", "all")]
+        
+        try:
+            # 获取所有书籍
+            all_books = self.get_all_books()
+            # 提取所有作者，去重并排序
+            authors = sorted(set(book.author for book in all_books if book.author and book.author.strip()))
+            for author in authors:
+                author_options.append((author, author))
+            
+        except Exception as e:
+            logger.warning(f"读取作者列表失败: {e}")
+        
+        return author_options
