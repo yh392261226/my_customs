@@ -60,7 +60,7 @@ class DatabaseManager:
             db_path: 数据库文件路径，如果为None则使用配置中的路径
         """
         if db_path is None:
-            config = ConfigManager().get_config()
+            config = ConfigManager.get_instance().get_config()
             self.db_path = os.path.expanduser(config["paths"]["database"])
         else:
             # 如果传入的是目录路径，则拼接完整的数据库文件路径

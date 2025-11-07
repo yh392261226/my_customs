@@ -39,7 +39,7 @@ class BookManager:
         self._scan_callbacks: List[Callable[[Dict[str, Any]], None]] = []
         
         # 初始化搜索引擎
-        config = ConfigManager().get_config()
+        config = ConfigManager.get_instance().get_config()
         self.search_engine = SearchEngine(config["paths"]["database"])
         
     @LoggerSetup.debug_log

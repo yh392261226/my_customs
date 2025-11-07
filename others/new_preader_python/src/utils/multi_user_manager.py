@@ -19,7 +19,7 @@ class MultiUserManager:
             bool: 如果启用了多用户功能返回True，否则返回False
         """
         try:
-            config_manager = ConfigManager()
+            config_manager = ConfigManager.get_instance()
             config = config_manager.get_config()
             multi_user_enabled = config.get("advanced", {}).get("multi_user_enabled", False)
             return bool(multi_user_enabled)

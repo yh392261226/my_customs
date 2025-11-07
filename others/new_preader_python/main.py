@@ -21,7 +21,7 @@ try:
     from src.config.config_manager import ConfigManager
     init_global_i18n()
     try:
-        cfg = ConfigManager().get_config()
+        cfg = ConfigManager.get_instance().get_config()
         lang = (cfg.get("advanced", {}) or {}).get("language", "zh_CN")
         if isinstance(lang, str):
             set_global_locale(lang)
@@ -97,7 +97,7 @@ def main():
             pass
     
     # 创建配置管理器
-    config_manager = ConfigManager(args.config)
+    config_manager = ConfigManager.get_instance(args.config)
     
     # 如果命令行指定了debug，覆盖配置
     if args.debug:

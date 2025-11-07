@@ -22,7 +22,7 @@ class TranslationConfig:
         Args:
             config_manager: 配置管理器实例，如果为None则创建新实例
         """
-        self.config_manager = config_manager if config_manager is not None else ConfigManager()
+        self.config_manager = config_manager if config_manager is not None else ConfigManager.get_instance()
         self.config: Dict[str, Any] = self._load_config()
     
     def _load_config(self) -> Dict[str, Any]:

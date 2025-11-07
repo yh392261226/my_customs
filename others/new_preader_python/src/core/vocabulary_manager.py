@@ -90,7 +90,7 @@ class VocabularyManager:
         # 使用系统默认数据库
         if db_path is None:
             # 使用配置管理器获取默认数据库路径
-            config_manager = ConfigManager()
+            config_manager = ConfigManager.get_instance()
             config = config_manager.get_config()
             self.db_path = os.path.expanduser(config["paths"]["database"])
         else:

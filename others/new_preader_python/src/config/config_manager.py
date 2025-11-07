@@ -14,8 +14,27 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# 全局单例实例
+_config_manager_instance = None
+
 class ConfigManager:
     """配置管理器类，负责处理应用程序配置"""
+    
+    @staticmethod
+    def get_instance(config_dir: Optional[str] = None) -> "ConfigManager":
+        """
+        获取配置管理器的单例实例
+        
+        Args:
+            config_dir: 配置文件目录，如果为None则使用默认目录
+            
+        Returns:
+            ConfigManager: 配置管理器实例
+        """
+        global _config_manager_instance
+        if _config_manager_instance is None:
+            _config_manager_instance = ConfigManager(config_dir)
+        return _config_manager_instance
     
     def __init__(self, config_dir: Optional[str] = None):
         """
@@ -50,7 +69,7 @@ class ConfigManager:
                     
                 # 合并用户配置和默认配置，确保所有必要的配置项都存在
                 config = self._merge_configs(DEFAULT_CONFIG, user_config)
-                logger.info("配置已从文件加载")
+                logger.debug("配置已从文件加载")
                 return config
             else:
                 # 如果配置文件不存在，则创建默认配置
