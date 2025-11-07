@@ -380,7 +380,6 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_pinyin ON books(pinyin)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_author ON books(author)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_add_date ON books(add_date)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_last_read ON books(last_read_date)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_history_date ON reading_history(read_date)")
             
             # 创建代理设置表（支持多条记录）
