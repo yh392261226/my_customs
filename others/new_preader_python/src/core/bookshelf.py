@@ -353,7 +353,7 @@ class Bookshelf:
     
     def sort_books(self, key: str, reverse: bool = False) -> List[Book]:
         """
-        排序书籍（使用数据库排序）
+        排序书籍（使用内存排序，确保使用reading_history表的数据）
         
         Args:
             key: 排序键，可选值为"title", "author", "add_date", "last_read_date", "progress"
@@ -362,13 +362,8 @@ class Bookshelf:
         Returns:
             List[Book]: 排序后的书籍列表
         """
-        try:
-            # 使用数据库管理器进行排序
-            return self.db_manager.get_sorted_books(key, reverse)
-        except Exception as e:
-            logger.error(f"数据库排序失败，使用内存排序: {e}")
-            # 降级到内存排序
-            return self._sort_books_in_memory(key, reverse)
+        # 直接使用内存排序，确保最后阅读和进度使用reading_history表的数据
+        return self.get_sorted_books(key, reverse)
     
     def get_book_reading_info(self, book_path: str) -> Dict[str, Any]:
         """

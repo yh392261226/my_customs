@@ -1161,14 +1161,16 @@ class BookshelfScreen(Screen[None]):
                     tags_display = book.tags if book.tags else ""
                     
                     # 添加操作按钮
-                    # 文件不存在时，不显示阅读、查看文件按钮
+                    # 文件不存在时，不显示阅读、查看文件、重命名按钮
                     if getattr(book, 'file_not_found', False):
                         read_button = ""
                         view_file_button = ""
+                        rename_button = ""
                         delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
                     else:
                         read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
                         view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+                        rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
                         delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
                     
                     # 如果文件不存在，在标题前添加标记
@@ -1186,6 +1188,7 @@ class BookshelfScreen(Screen[None]):
                         tags_display,
                         read_button,  # 阅读按钮
                         view_file_button,  # 查看文件按钮
+                        rename_button,  # 重命名按钮
                         delete_button,  # 删除按钮
                         key=f"{book.path}_{index}"  # 使用唯一的key，避免重复（book.path + 索引）
                     )
