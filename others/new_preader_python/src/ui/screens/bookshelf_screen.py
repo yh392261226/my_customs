@@ -1413,22 +1413,40 @@ class BookshelfScreen(Screen[None]):
         
     def _show_add_book_dialog(self) -> None:
         """显示添加书籍对话框 - 使用文件资源管理器屏幕"""
-        def handle_add_book_result(result: Optional[str]) -> None:
+        def handle_add_book_result(result: Optional[Union[str, List[str]]]) -> None:
             """处理添加书籍结果"""
             if result:
                 # 显示加载动画
                 self._show_loading_animation(get_global_i18n().t("bookshelf.adding_books"))
                 
                 try:
-                    book = self.bookshelf.add_book(result)
-                    if book:
-                        self.notify(
-                            get_global_i18n().t("bookshelf.book_added", count=1),
-                            severity="information"
-                        )
-                        self._load_books()
+                    if isinstance(result, list):
+                        # 多选模式 - 添加多个文件
+                        added_count = 0
+                        for file_path in result:
+                            book = self.bookshelf.add_book(file_path)
+                            if book:
+                                added_count += 1
+                        
+                        if added_count > 0:
+                            self.notify(
+                                get_global_i18n().t("bookshelf.book_added", count=added_count),
+                                severity="information"
+                            )
+                            self._load_books()
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                     else:
-                        self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
+                        # 单选模式 - 添加单个文件
+                        book = self.bookshelf.add_book(result)
+                        if book:
+                            self.notify(
+                                get_global_i18n().t("bookshelf.book_added", count=1),
+                                severity="information"
+                            )
+                            self._load_books()
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                 except Exception as e:
                     logger.error(f"{get_global_i18n().t('bookshelf.add_books_failed')}: {e}")
                     self.notify(f"{get_global_i18n().t("bookshelf.add_books_failed")}: {e}", severity="error")
@@ -1436,7 +1454,7 @@ class BookshelfScreen(Screen[None]):
                 # 隐藏加载动画
                 self._hide_loading_animation()
         
-        # 使用文件资源管理器屏幕
+        # 使用文件资源管理器屏幕，启用多选模式
         from src.ui.screens.file_explorer_screen import FileExplorerScreen
         
         file_explorer_screen = FileExplorerScreen(
@@ -1444,7 +1462,8 @@ class BookshelfScreen(Screen[None]):
             bookshelf=self.bookshelf,
             statistics_manager=self.statistics_manager,
             selection_mode="file",
-            title=get_global_i18n().t("bookshelf.add_single_book")
+            title=get_global_i18n().t("bookshelf.add_book"),
+            multiple=True  # 启用多选模式
         )
         
         self.app.push_screen(file_explorer_screen, handle_add_book_result)

@@ -1092,7 +1092,8 @@
         "searching": "Searching...",
         "search_results": "Search Results",
         "no_search_results": "No matching files found",
-        "diff_mode": "Diff Mode"
+        "diff_mode": "Diff Mode",
+        "files": "Files"
     },
     "lock_screen": {
         "placeholder": "Please enter password to continue",

@@ -4,7 +4,7 @@
 
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List, ClassVar, Set
+from typing import Dict, Any, Optional, List, ClassVar, Set, Union
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Center
@@ -30,7 +30,7 @@ from src.config.default_config import SUPPORTED_FORMATS
 
 logger = get_logger(__name__)
 
-class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
+class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]]]):
     """文件资源管理器屏幕"""
     
     TITLE: ClassVar[Optional[str]] = None
@@ -49,7 +49,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect,
-                 selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False):
+                 selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False,
+                 multiple: bool = False):
         """
         初始化文件资源管理器屏幕
         
@@ -59,6 +60,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             statistics_manager: 统计管理器
             selection_mode: 选择模式，"file" 或 "directory"
             title: 自定义标题
+            multiple: 是否允许多选
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -66,29 +68,36 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         self.statistics_manager = statistics_manager
         self.selection_mode = selection_mode
         self.direct_open = direct_open  # 使用传入的direct_open参数
+        self.multiple = multiple  # 多选模式
         
         # 设置标题
         if title:
             self.title = title
         elif selection_mode == "file":
-            self.title = get_global_i18n().t("file_explorer.select_file")
+            if multiple:
+                self.title = get_global_i18n().t("file_explorer.select_files")
+            else:
+                self.title = get_global_i18n().t("file_explorer.select_file")
         else:
             self.title = get_global_i18n().t("file_explorer.select_directory")
             
         self.__class__.TITLE = self.title
         self.logger = get_logger(__name__)
         
-        # 当前选中的文件路径
+        # 当前选中的文件路径（单选模式）
         self.selected_file: Optional[str] = None
+        # 多选模式下选中的文件路径集合
+        self.selected_files: Set[str] = set()
         # 当前目录路径
         self.current_path = FileUtils.get_home_dir()
         # 文件列表项
         self.file_items: List[Dict[str, str]] = []
-        # 选中的文件索引
+        # 选中的文件索引（单选模式）
         self.selected_file_index: Optional[int] = None
+        # 多选模式下选中的文件索引集合
+        self.selected_file_indices: Set[int] = set()
         
         # 自动补全相关属性
-        self._hide_completion_list
         self.completion_list_visible = False
         self.completion_options: List[str] = []
         self.selected_completion_index = 0
@@ -267,6 +276,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
                         self.selected_file = items[0]["path"]
                     else:
                         self.selected_file = None
+                
+                # 更新文件列表的视觉状态
+                self._update_file_list_visual_state()
+                
             else:
                 # 空目录
                 empty_item = ListItem(Label(get_global_i18n().t("file_explorer.empty_directory")))
@@ -305,18 +318,36 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     def _update_selection_status(self) -> None:
         """更新选择状态显示"""
         status_info = self.query_one("#status-info", Static)
-        if self.selected_file:
-            if self.selection_mode == "file":
-                status_info.update(f"{get_global_i18n().t("file_explorer.selected_files")}: {os.path.basename(self.selected_file)}")
+        
+        # 动态检测多选模式
+        is_multiple_mode = self.multiple
+        
+        logger.debug(f"更新选择状态: 多选模式={is_multiple_mode}, 选中文件数={len(self.selected_files)}, 当前文件={self.selected_file}")
+        
+        if is_multiple_mode and self.selected_files:
+            # 多选模式
+            count = len(self.selected_files)
+            if count == 1:
+                file_name = os.path.basename(next(iter(self.selected_files)))
+                status_info.update(f"{get_global_i18n().t("file_explorer.selected_files")}: {file_name} ({get_global_i18n().t("file_explorer.multype_mode")})")
             else:
-                status_info.update(f"{get_global_i18n().t("file_explorer.selected_path")}: {os.path.basename(self.selected_file)}")
+                status_info.update(f"{get_global_i18n().t("file_explorer.selected_files")}: {count} {get_global_i18n().t("file_explorer.files")} ({get_global_i18n().t("file_explorer.multype_mode")})")
+        elif self.selected_file:
+            # 单选模式
+            if self.selection_mode == "file":
+                status_info.update(f"{get_global_i18n().t("file_explorer.selected_files")}: {os.path.basename(self.selected_file)} ({get_global_i18n().t("file_explorer.single_mode")})")
+            else:
+                status_info.update(f"{get_global_i18n().t("file_explorer.selected_path")}: {os.path.basename(self.selected_file)} ({get_global_i18n().t("file_explorer.single_mode")})")
         else:
+            # 无选择
             try:
                 file_count = len([f for f in os.listdir(self.current_path) if os.path.isfile(os.path.join(self.current_path, f))])
                 dir_count = len([d for d in os.listdir(self.current_path) if os.path.isdir(os.path.join(self.current_path, d))])
-                status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count}")
+                mode_text = get_global_i18n().t("file_explorer.multype_mode") if is_multiple_mode else get_global_i18n().t("file_explorer.single_mode")
+                status_info.update(f"{get_global_i18n().t("file_explorer.file")}: {file_count} | {get_global_i18n().t("file_explorer.path")}: {dir_count} ({mode_text})")
             except (PermissionError, OSError):
-                status_info.update(get_global_i18n().t("file_explorer.cannot_visit"))
+                mode_text = get_global_i18n().t("file_explorer.multype_mode") if is_multiple_mode else get_global_i18n().t("file_explorer.single_mode")
+                status_info.update(f"{get_global_i18n().t("file_explorer.cannot_visit")} ({mode_text})")
     
     def _get_path_completions(self, partial_path: str) -> List[str]:
         """
@@ -598,30 +629,67 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
     
     def _validate_selection(self) -> bool:
         """验证选择是否有效"""
-        if not self.selected_file:
-            return False
-        
-        if self.selection_mode == "file":
-            return os.path.isfile(self.selected_file)
+        if self.multiple:
+            # 多选模式
+            if not self.selected_files:
+                return False
+            
+            if self.selection_mode == "file":
+                # 验证所有选中的文件都存在
+                for file_path in self.selected_files:
+                    if not os.path.isfile(file_path):
+                        return False
+                return True
+            else:
+                # 目录选择模式不支持多选
+                return False
         else:
-            return os.path.isdir(self.selected_file)
+            # 单选模式
+            if not self.selected_file:
+                return False
+            
+            if self.selection_mode == "file":
+                return os.path.isfile(self.selected_file)
+            else:
+                return os.path.isdir(self.selected_file)
     
     def _handle_selection(self) -> None:
         """处理选择操作"""
         if not self._validate_selection():
-            if self.selection_mode == "file":
-                self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
+            # 动态检测多选模式
+            is_multiple_mode = self.multiple
+            
+            if is_multiple_mode:
+                if self.selection_mode == "file":
+                    self.notify(get_global_i18n().t("file_explorer.no_files_selected"), severity="warning")
+                else:
+                    self.notify(get_global_i18n().t("file_explorer.no_directory_selected"), severity="warning")
             else:
-                self.notify(get_global_i18n().t("file_explorer.no_directory_selected"), severity="warning")
+                if self.selection_mode == "file":
+                    self.notify(get_global_i18n().t("file_explorer.no_file_selected"), severity="warning")
+                else:
+                    self.notify(get_global_i18n().t("file_explorer.no_directory_selected"), severity="warning")
             return
         
         # 根据模式决定行为
         if self.direct_open and self.selection_mode == "file":
             # 直接打开模式下，打开选中的文件
-            self._open_selected_file()
+            if self.multiple:
+                # 多选模式下不支持直接打开多个文件
+                self.notify(get_global_i18n().t("file_explorer.cannot_open_multiple"), severity="warning")
+            else:
+                self._open_selected_file()
         else:
             # 普通模式下，返回选中的路径
-            self.dismiss(self.selected_file)
+            # 动态检测多选模式
+            is_multiple_mode = self.multiple
+            
+            if is_multiple_mode:
+                # 返回多选的文件列表
+                self.dismiss(list(self.selected_files))
+            else:
+                # 返回单选的文件路径
+                self.dismiss(self.selected_file)
     
     @on(Tree.NodeExpanded)
     def on_tree_node_expanded(self, message: Tree.NodeExpanded) -> None:
@@ -849,96 +917,6 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             # 取消操作 -> 返回上一页
             self.app.pop_screen()
     
-    def on_key(self, event: events.Key) -> None:
-        """键盘事件处理"""
-        if event.key == "escape":
-            # ESC键行为：
-            # 1. 如果补全列表可见，隐藏补全列表并返回焦点到输入框
-            # 2. 如果补全列表不可见，返回上一页
-            if self.completion_list_visible:
-                # ESC键隐藏补全列表，焦点回到输入框
-                self._hide_completion_list()
-                self._focus_path_input()
-            else:
-                # ESC键返回上一页（并阻止冒泡到 App 层，避免二次返回）
-                # 使用应用提供的安全返回方法，避免屏幕栈错误
-                if hasattr(self.app, 'action_back'):
-                    # 异步调用action_back方法
-                    self.app.call_later(self.app.action_back)
-                else:
-                    # 备用方案：检查屏幕栈长度
-                    try:
-                        if len(self.app._screen_stack) > 1:
-                            self.app.pop_screen()
-                    except (AttributeError, Exception):
-                        pass  # 如果无法安全返回，则不执行任何操作
-            event.stop()
-        
-        elif event.key == "enter":
-            # 回车键处理选中项需要权限
-            if self._has_permission("file_explorer.select"):
-                self._handle_selected_item()
-            else:
-                self.notify(get_global_i18n().t("file_explorer.np_choose_file"), severity="warning")
-            event.stop()
-        
-        elif event.key == "up" and not self.completion_list_visible:
-            # 上箭头键选择上一个文件（仅在补全列表不可见时）
-            self._select_previous_file()
-            event.stop()
-        
-        elif event.key == "down" and not self.completion_list_visible:
-            # 下箭头键选择下一个文件（仅在补全列表不可见时）
-            self._select_next_file()
-            event.stop()
-        
-        elif event.key == "s":
-            # S键选择
-            self._handle_selection()
-            event.stop()
-        
-        elif event.key == "ctrl+i":
-            # Ctrl+I 显示补全建议
-            path_input = self.query_one("#path-input", Input)
-            current_value = path_input.value.strip()
-            
-            if current_value:
-                completions = self._get_path_completions(current_value)
-                if completions:
-                    # 显示补全建议
-                    suggestions = ", ".join(completions[:5])  # 最多显示5个建议
-                    if len(completions) > 5:
-                        suggestions += "..."
-                    self.notify(f"补全建议: {suggestions}", severity="information")
-                else:
-                    self.notify("没有找到匹配的路径", severity="information")
-            event.stop()
-        
-        elif event.key == "down" and self.completion_list_visible:
-            # 下方向键选择下一个补全项，并将焦点转移到补全列表
-            self._select_next_completion()
-            self._focus_completion_list()
-            event.stop()
-            
-        elif event.key == "up" and self.completion_list_visible:
-            # 上方向键选择上一个补全项，并将焦点转移到补全列表
-            self._select_prev_completion()
-            self._focus_completion_list()
-            event.stop()
-            
-        elif event.key == "right" and self.completion_list_visible:
-            # 右方向键应用选中的补全项
-            self._apply_completion()
-            event.stop()
-
-            
-        elif event.key == "tab" and self.completion_list_visible:
-            # Tab键切换到其他区域（目录和文件列表）
-            self._hide_completion_list()
-            # 手动切换到下一个可聚焦的组件
-            self._focus_next_component()
-            event.stop()
-    
     def _show_loading_animation(self, message: Optional[str] = None) -> None:
         """显示加载动画"""
         if message is None:
@@ -1009,6 +987,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         if not self.file_items or self.selected_file_index is None or self.selected_file_index < 0:
             return
         
+        # 更新选择状态显示
+        self._update_selection_status()
         file_list = self.query_one("#file-list", ListView)
         
         # 设置选中项
@@ -1185,32 +1165,6 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
             else:
                 # 其他文件类型，显示不支持的提示
                 self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="warning")
-    
-    @on(ListView.Selected)
-    def on_file_list_selected(self, message: ListView.Selected) -> None:
-        """文件列表选择事件"""
-        try:
-            if message.list_view.id == "file-list":
-                self.selected_file_index = message.list_view.index
-                if self.selected_file_index is not None and 0 <= self.selected_file_index < len(self.file_items):
-                    selected_item = self.file_items[self.selected_file_index]
-                    
-                    if self.selection_mode == "file":
-                        # 文件选择模式下，只能选择文件
-                        if selected_item["type"] in ["book", "file"]:
-                            self.selected_file = selected_item["path"]
-                        else:
-                            self.selected_file = None
-                    else:
-                        # 目录选择模式下，只能选择目录
-                        if selected_item["type"] == "directory":
-                            self.selected_file = selected_item["path"]
-                        else:
-                            self.selected_file = None
-                    
-                    self._update_selection_status()
-        except Exception as e:
-            logger.error(f"处理文件列表选择失败: {e}")
     
     @on(ListView.Highlighted)
     def on_file_list_highlighted(self, message: ListView.Highlighted) -> None:
@@ -1549,3 +1503,193 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[str]]):
         """对比模式开关改变事件"""
         # 当对比模式开关改变时，立即执行搜索
         self._search_files()
+
+    @on(ListView.Selected)
+    def on_file_list_selected(self, message: ListView.Selected) -> None:
+        """文件列表选择事件 - 多选处理"""
+        try:
+            if message.list_view.id == "file-list":
+                if not self.file_items:
+                    logger.debug("文件列表为空，无法选择")
+                    return
+                
+                # 获取选中的项索引
+                file_list = self.query_one("#file-list", ListView)
+                selected_index = file_list.index
+                
+                if selected_index is None or selected_index < 0 or selected_index >= len(self.file_items):
+                    logger.debug(f"无效的选中索引: {selected_index}")
+                    return
+                
+                selected_item = self.file_items[selected_index]
+                
+                # 检查是否多选
+                if self.multiple:
+                    # 多选模式
+                    if selected_index in self.selected_file_indices:
+                        # 如果已经选中，取消选中
+                        self.selected_file_indices.remove(selected_index)
+                        if selected_item["path"] in self.selected_files:
+                            self.selected_files.remove(selected_item["path"])
+                        logger.debug(f"取消选中文件: {selected_item['name']}")
+                    else:
+                        # 如果未选中，添加到选中集合
+                        self.selected_file_indices.add(selected_index)
+                        self.selected_files.add(selected_item["path"])
+                        logger.debug(f"选中文件: {selected_item['name']}")
+                    
+                    # 多选模式下不进入目录
+                    logger.debug(f"多选模式: 当前选中 {len(self.selected_files)} 个文件")
+                    
+                    # 更新文件列表的视觉状态
+                    self._update_file_list_visual_state()
+                    
+                else:
+                    # 单选模式
+                    self.selected_file_index = selected_index
+                    if selected_item["type"] in ["book", "file"]:
+                        self.selected_file = selected_item["path"]
+                        logger.debug(f"单选模式选中文件: {selected_item['name']}")
+                    else:
+                        self.selected_file = None
+                        logger.debug(f"选中了非文件类型: {selected_item['type']}")
+                    
+                    # 清空多选集合
+                    self.selected_file_indices.clear()
+                    self.selected_files.clear()
+                    logger.debug("清空多选集合，进入单选模式")
+                    
+                    # 更新文件列表的视觉状态
+                    self._update_file_list_visual_state()
+                    
+                    # 如果选中的是目录，直接进入该目录
+                    if selected_item["type"] == "directory":
+                        logger.debug(f"进入目录: {selected_item['path']}")
+                        self._navigate_to_path(selected_item["path"])
+                        return
+                
+                # 更新选择状态显示
+                self._update_selection_status()
+                
+        except Exception as e:
+            logger.error(f"处理文件列表选择事件失败: {e}")
+    
+    def _update_file_list_visual_state(self) -> None:
+        """更新文件列表的视觉状态，显示选中状态"""
+        try:
+            file_list = self.query_one("#file-list", ListView)
+            
+            # 遍历所有文件项，更新显示
+            for i, list_item in enumerate(file_list.children):
+                if i < len(self.file_items):
+                    item = self.file_items[i]
+                    
+                    # 检查是否在多选集合中
+                    if i in self.selected_file_indices:
+                        # 选中状态：添加选中标记
+                        new_display = f"✅ {item['display']}"
+                    elif i == self.selected_file_index:
+                        # 单选选中状态
+                        new_display = f"▶️ {item['display']}"
+                    else:
+                        # 未选中状态
+                        new_display = item['display']
+                    
+                    # 更新显示文本
+                    label = list_item.query_one(Label)
+                    if label:
+                        label.update(new_display)
+                        
+        except Exception as e:
+            logger.error(f"更新文件列表视觉状态失败: {e}")
+
+    def on_key(self, event: events.Key) -> None:       
+        if event.key == "escape":
+            # ESC键行为：
+            # 1. 如果补全列表可见，隐藏补全列表并返回焦点到输入框
+            # 2. 如果补全列表不可见，返回上一页
+            if self.completion_list_visible:
+                # ESC键隐藏补全列表，焦点回到输入框
+                self._hide_completion_list()
+                self._focus_path_input()
+            else:
+                # ESC键返回上一页（并阻止冒泡到 App 层，避免二次返回）
+                # 使用应用提供的安全返回方法，避免屏幕栈错误
+                if hasattr(self.app, 'action_back'):
+                    # 异步调用action_back方法
+                    self.app.call_later(self.app.action_back)
+                else:
+                    # 备用方案：检查屏幕栈长度
+                    try:
+                        if len(self.app._screen_stack) > 1:
+                            self.app.pop_screen()
+                    except (AttributeError, Exception):
+                        pass  # 如果无法安全返回，则不执行任何操作
+            event.stop()
+        
+        elif event.key == "enter":
+            # 回车键处理选中项需要权限
+            if self._has_permission("file_explorer.select"):
+                self._handle_selected_item()
+            else:
+                self.notify(get_global_i18n().t("file_explorer.np_choose_file"), severity="warning")
+            event.stop()
+        
+        elif event.key == "up" and not self.completion_list_visible:
+            # 上箭头键选择上一个文件（仅在补全列表不可见时）
+            self._select_previous_file()
+            event.stop()
+        
+        elif event.key == "down" and not self.completion_list_visible:
+            # 下箭头键选择下一个文件（仅在补全列表不可见时）
+            self._select_next_file()
+            event.stop()
+        
+        elif event.key == "s":
+            # S键选择
+            self._handle_selection()
+            event.stop()
+        
+        elif event.key == "ctrl+i":
+            # Ctrl+I 显示补全建议
+            path_input = self.query_one("#path-input", Input)
+            current_value = path_input.value.strip()
+            
+            if current_value:
+                completions = self._get_path_completions(current_value)
+                if completions:
+                    # 显示补全建议
+                    suggestions = ", ".join(completions[:5])  # 最多显示5个建议
+                    if len(completions) > 5:
+                        suggestions += "..."
+                    self.notify(f"补全建议: {suggestions}", severity="information")
+                else:
+                    self.notify("没有找到匹配的路径", severity="information")
+            event.stop()
+        
+        elif event.key == "down" and self.completion_list_visible:
+            # 下方向键选择下一个补全项，并将焦点转移到补全列表
+            self._select_next_completion()
+            self._focus_completion_list()
+            event.stop()
+            
+        elif event.key == "up" and self.completion_list_visible:
+            # 上方向键选择上一个补全项，并将焦点转移到补全列表
+            self._select_prev_completion()
+            self._focus_completion_list()
+            event.stop()
+            
+        elif event.key == "right" and self.completion_list_visible:
+            # 右方向键应用选中的补全项
+            self._apply_completion()
+            event.stop()
+
+            
+        elif event.key == "tab" and self.completion_list_visible:
+            # Tab键切换到其他区域（目录和文件列表）
+            self._hide_completion_list()
+            # 手动切换到下一个可聚焦的组件
+            self._focus_next_component()
+            event.stop()
+
+# 文件资源管理器屏幕类定义结束
