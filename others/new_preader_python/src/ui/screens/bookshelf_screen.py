@@ -108,6 +108,7 @@ class BookshelfScreen(Screen[None]):
             (get_global_i18n().t("bookshelf.title"), "title"),
             (get_global_i18n().t("bookshelf.author"), "author"),
             (get_global_i18n().t("bookshelf.format"), "format"),
+            (get_global_i18n().t("bookshelf.size"), "size"),  # 新增文件大小列
             (get_global_i18n().t("bookshelf.last_read"), "last_read"),
             (get_global_i18n().t("bookshelf.progress"), "progress"),
             (get_global_i18n().t("bookshelf.tags"), "tags"),
@@ -583,11 +584,15 @@ class BookshelfScreen(Screen[None]):
             column_count = len(table.columns)
             
             # 添加基础列数据
+            from src.utils.file_utils import FileUtils
+            size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
+            
             row_values = [
                 str(index),
                 display_title,
                 book.author,
                 book.format.upper(),
+                size_display,  # 文件大小显示
                 last_read,
                 f"{progress:.1f}%",
                 tags_display,
@@ -1285,11 +1290,16 @@ class BookshelfScreen(Screen[None]):
                     if getattr(book, 'file_not_found', False):
                         display_title = f"[书籍文件不存在] {book.title}"
                     
+                    # 格式化文件大小显示
+                    from src.utils.file_utils import FileUtils
+                    size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
+                    
                     table.add_row(
                         str(index),  # 显示数字序号而不是路径
                         display_title,
                         book.author,
                         book.format.upper(),
+                        size_display,  # 文件大小显示
                         last_read,
                         f"{progress:.1f}%",
                         tags_display,
@@ -1306,7 +1316,8 @@ class BookshelfScreen(Screen[None]):
                     "author": get_global_i18n().t("bookshelf.author"),
                     "add_date": get_global_i18n().t("bookshelf.add_date"),
                     "last_read_date": get_global_i18n().t("bookshelf.last_read"),
-                    "progress": get_global_i18n().t("bookshelf.progress")
+                    "progress": get_global_i18n().t("bookshelf.progress"),
+                    "file_size": get_global_i18n().t("bookshelf.file_size")
                 }
                 
                 # 将排序顺序映射到翻译文本

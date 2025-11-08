@@ -67,11 +67,27 @@ class FileUtils:
             str: 格式化的文件大小
         """
         size = FileUtils.get_file_size(file_path)
-        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-            if size < 1024.0:
-                return f"{size:.2f} {unit}"
-            size /= 1024.0
-        return f"{size:.2f} PB"
+        return FileUtils.format_file_size(size)
+    
+    @staticmethod
+    def format_file_size(size_bytes: int) -> str:
+        """
+        格式化文件大小（不足1M用KB，大于等于1M用M）
+        
+        Args:
+            size_bytes: 文件大小（字节）
+            
+        Returns:
+            str: 格式化的文件大小
+        """
+        if size_bytes < 1024 * 1024:  # 小于1MB
+            # 使用KB显示
+            size_kb = size_bytes / 1024.0
+            return f"{size_kb:.1f} KB"
+        else:
+            # 使用MB显示
+            size_mb = size_bytes / (1024.0 * 1024.0)
+            return f"{size_mb:.1f} M"
     
     @staticmethod
     def get_file_hash(file_path: str, algorithm: str = 'md5') -> str:

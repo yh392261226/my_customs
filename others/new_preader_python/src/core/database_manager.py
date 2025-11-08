@@ -109,7 +109,8 @@ class DatabaseManager:
                     format TEXT NOT NULL,
                     add_date TEXT NOT NULL,
                     tags TEXT,
-                    metadata TEXT
+                    metadata TEXT,
+                    file_size INTEGER DEFAULT 0  -- 新增文件大小字段，单位为字节
                 )
             """)
             
@@ -345,6 +346,12 @@ class DatabaseManager:
             # 检查并添加tags列（如果不存在）
             self._add_column_if_not_exists(cursor, "books", "tags", "TEXT")
             
+            # 检查并添加file_size列（如果不存在）
+            self._add_column_if_not_exists(cursor, "books", "file_size", "INTEGER DEFAULT 0")
+            
+            # 检查并添加file_size列（如果不存在）
+            self._add_column_if_not_exists(cursor, "books", "file_size", "INTEGER DEFAULT 0")
+            
             # 创建索引以提高查询性能
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_title ON books(title)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_pinyin ON books(pinyin)")
@@ -514,9 +521,8 @@ class DatabaseManager:
         if book.password:
             minimal_metadata['password'] = book.password
         
-        # 存储文件大小（数值，适合存储在metadata中）
-        if book.size > 0:
-            minimal_metadata['size'] = book.size
+        # 注意：文件大小现在有专门的file_size字段存储，不再在metadata中重复存储
+        # 这样可以避免数据冗余和不一致的问题
         
         # 确保metadata不为空时进行序列化
         return json.dumps(minimal_metadata) if minimal_metadata else ""
@@ -542,8 +548,8 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute("""
                     INSERT OR REPLACE INTO books 
-                    (path, title, pinyin, author, format, add_date, tags, metadata)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (path, title, pinyin, author, format, add_date, tags, metadata, file_size)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     book.path,
                     book.title,
@@ -552,7 +558,8 @@ class DatabaseManager:
                     book.format,
                     book.add_date,
                     book.tags if book.tags else "",  # 直接使用字符串
-                    metadata_json
+                    metadata_json,
+                    book.file_size
                 ))
                 conn.commit()
                 
@@ -647,7 +654,7 @@ class DatabaseManager:
                 
                 cursor.execute("""
                     UPDATE books 
-                    SET title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?
+                    SET title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?
                     WHERE path = ?
                 """, (
                     book.title,
@@ -656,6 +663,7 @@ class DatabaseManager:
                     book.format,
                     book.tags if book.tags else "",
                     metadata_json,
+                    book.file_size,
                     where_path
                 ))
                 conn.commit()
@@ -1013,6 +1021,16 @@ class DatabaseManager:
         
         # 设置日期字段
         book.add_date = row['add_date']
+        
+        # 设置文件大小字段
+        if 'file_size' in row:
+            book.file_size = row['file_size']
+            book.size = book.file_size  # 保持兼容性
+        
+        # 设置文件大小字段
+        if 'file_size' in row:
+            book.file_size = row['file_size']
+            book.size = book.file_size  # 保持兼容性
         
         # 注意：last_read_date、reading_progress、total_pages、word_count字段
         # 现在存储在reading_history表中，不在books表中

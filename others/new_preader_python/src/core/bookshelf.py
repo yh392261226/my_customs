@@ -356,7 +356,7 @@ class Bookshelf:
         排序书籍（使用内存排序，确保使用reading_history表的数据）
         
         Args:
-            key: 排序键，可选值为"title", "author", "add_date", "last_read_date", "progress"
+            key: 排序键，可选值为"title", "author", "add_date", "last_read_date", "progress", "file_size"
             reverse: 是否倒序
             
         Returns:
@@ -429,7 +429,7 @@ class Bookshelf:
         获取排序后的书籍列表
         
         Args:
-            key: 排序键
+            key: 排序键，可选值为"title", "author", "add_date", "last_read_date", "progress", "file_size"
             reverse: 是否倒序
             
         Returns:
@@ -459,6 +459,9 @@ class Bookshelf:
                 reading_info = self.get_book_reading_info(book.path)
                 return reading_info.get('reading_progress', 0)
             return sorted(books, key=get_book_progress, reverse=reverse)
+        elif key == "file_size":
+            # 按文件大小排序
+            return sorted(books, key=lambda x: x.file_size if hasattr(x, 'file_size') else 0, reverse=reverse)
         else:
             logger.warning(f"不支持的排序键: {key}，将使用标题排序")
             return sorted(books, key=lambda x: x.title.lower(), reverse=reverse)

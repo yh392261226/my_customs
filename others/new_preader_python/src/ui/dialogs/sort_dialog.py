@@ -50,6 +50,7 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
                 yield RadioButton(get_global_i18n().t("bookshelf.add_date"), id="add-date-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.last_read"), id="last-read-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.progress"), id="progress-radio")
+                yield RadioButton(get_global_i18n().t("bookshelf.file_size"), id="file-size-radio")
             
             # 排序顺序选择
             yield Label(get_global_i18n().t("sort.order"), id="order-label", classes="section-title")
@@ -84,8 +85,8 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
                 self.sort_key = "last_read_date"
             elif pressed_button and pressed_button.id == "progress-radio":
                 self.sort_key = "progress"
-            elif pressed_button and pressed_button.id == "progress-radio":
-                self.sort_key = "progress"
+            elif pressed_button and pressed_button.id == "file-size-radio":
+                self.sort_key = "file_size"
         
         elif radio_set.id == "sort-order-radio":
             # 更新排序顺序

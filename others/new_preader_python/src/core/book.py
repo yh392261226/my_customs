@@ -54,6 +54,7 @@ class Book:
         self.size = os.path.getsize(path) if path and os.path.exists(path) else 0
         self.add_date = datetime.now().isoformat()
         self.password = password  # 存储PDF密码
+        self.file_size = self.size  # 文件大小，用于数据库存储
         
         # 拼音字段
         if pinyin is not None:
@@ -109,6 +110,7 @@ class Book:
             "pinyin": self.pinyin,
             "tags": self.tags,  # 直接返回字符串
             "size": self.size,
+            "file_size": self.file_size,  # 文件大小，用于数据库存储
             "file_not_found": self.file_not_found,  # 文件不存在标记
             "add_date": self.add_date,
             "last_read_date": self.last_read_date,
@@ -146,6 +148,7 @@ class Book:
         else:
             book.tags = tags_data
         book.size = data["size"]
+        book.file_size = data.get("file_size", data["size"])  # 兼容旧版本，如果没有file_size字段则使用size
         book.add_date = data["add_date"]
         # 阅读相关字段已迁移到reading_history表，这里仅设置临时值
         book.last_read_date = data.get("last_read_date")  # 从reading_history表获取
