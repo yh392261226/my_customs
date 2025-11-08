@@ -109,9 +109,6 @@
         "size": "Size",
         "progress": "Progress",
         "file_size": "File Size",
-        "file_size": "File Size",
-        "file_size": "File Size",
-        "file_size": "File Size",
         "feature_not_implemented": "Feature not implemented yet",
         "select_directory": "Select Directory",
         "directory_path": "Directory Path",
@@ -883,6 +880,7 @@
         "storage_folder": "Storage Folder",
         "proxy_enabled": "Enable Proxy",
         "parser": "Parser",
+        "book_id_example": "ID Example",
         "selected": "Selected",
         "confirm_delete": "Confirm Delete",
         "confirm_delete_message": "Are you sure you want to delete this book site?",
@@ -938,6 +936,7 @@
     },
     "crawler": {
         "title": "Crawler Management",
+        "book_id_example": "ID Example",
         "open_browser": "Open Browser",
         "click_me": "Click me to open URL",
         "view_history": "Refresh History",
@@ -1103,7 +1102,9 @@
         "search_results": "Search Results",
         "no_search_results": "No matching files found",
         "diff_mode": "Diff Mode",
-        "files": "Files"
+        "files": "Files",
+        "single_mode": "Single File Mode",
+        "multype_mode": "Multiple Files Mode"
     },
     "lock_screen": {
         "placeholder": "Please enter password to continue",
