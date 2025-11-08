@@ -414,7 +414,15 @@ class DatabaseManager:
                 ('色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '1234'),
                 ('中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '2022/01/blog-post_30'),
                 ('小黄书XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), ''),
-                ('69文学网', 'https://www.69hnovel.com/erotic-novel.html', '/Users/yanghao/Documents/novels/datas/', 0, 0, '69hnovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), 'anime/article-8629')
+                ('69文学网', 'https://www.69hnovel.com/erotic-novel.html', '/Users/yanghao/Documents/novels/datas/', 0, 0, '69hnovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), 'anime/article-8629'),
+                ('TXTXi', 'https://www.txtxi.com/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'txtxi_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '123456'),
+                ('不雅污书', 'https://www.buya6.xyz/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'buya6_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('撸撸色书', 'https://www.lulu6.xyz/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'lulu6_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('AA阅读', 'https://aaread.cc/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'aaread_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('都市小说网', 'https://comcom.cyou/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'comcom_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('肉肉阅读', 'https://xxread.net/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'xxread_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('夜色书阁', 'http://5l15cquy.yssg2.cfd/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'yssg_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('咪咕文学', 'https://74qyavudmbzu1.migu1.top/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'migu_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345')
             ]
             
             for site_data in novel_sites_data:

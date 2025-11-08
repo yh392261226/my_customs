@@ -206,7 +206,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         parser_value = self.novel_site.get("parser", "")  # 默认为空
         
         # 处理Select.BLANK值，将其转换为空字符串
-        if parser_value == "Select.BLANK":
+        if parser_value in ["Select.BLANK", "SelectBLANK"]:
             parser_value = ""
         
         # 设置解析器值，空字符串使用clear()方法

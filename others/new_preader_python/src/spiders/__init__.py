@@ -6,8 +6,7 @@ import os
 import importlib
 from typing import Dict, List, Any, Optional, Type
 from src.utils.logger import get_logger
-from .base_parser import BaseParser
-from .base_parser_v2 import BaseParser as BaseParser
+from .base_parser_v2 import BaseParser
 
 logger = get_logger(__name__)
 
