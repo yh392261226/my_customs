@@ -110,7 +110,7 @@ class XxreadParser(BaseParser):
     
     def _get_novel_info_from_html(self, novel_id: str) -> Dict[str, str]:
         """
-        从HTML页面获取小说信息（状态、简介等）
+        从HTML页面获取小说信息（标题、状态、简介等）
         
         Args:
             novel_id: 小说ID
@@ -124,6 +124,9 @@ class XxreadParser(BaseParser):
             response = self.session.get(catalog_url)
             response.raise_for_status()
             html_content = response.text
+            
+            # 提取标题（从<h2 class="title">标签）
+            title = self._extract_with_regex(html_content, [r'<h2[^>]*class="title"[^>]*>(.*?)</h2>'])
             
             # 提取状态信息
             chapters_status = self._extract_with_regex(html_content, [r'<span[^>]*class="chapters"[^>]*>(.*?)</span>'])
@@ -140,12 +143,13 @@ class XxreadParser(BaseParser):
                 status += words_status
             
             return {
+                'title': title or "",
                 'status': status.strip(),
                 'description': description or ""
             }
             
         except Exception as e:
-            return {'status': '', 'description': ''}
+            return {'title': '', 'status': '', 'description': ''}
     
     def parse_novel_detail(self, novel_id: str) -> Dict[str, Any]:
         """
@@ -172,14 +176,16 @@ class XxreadParser(BaseParser):
             if not catalog:
                 raise Exception("未获取到章节列表")
             
-            # 从catalog[0]获取书籍标题
-            if len(catalog) > 0:
-                title = catalog[0].get('title', '未知标题')
-            else:
-                title = data.get('title', '未知标题')
-            
-            # 从HTML页面获取额外信息
+            # 从HTML页面获取标题和额外信息
             novel_info = self._get_novel_info_from_html(novel_id)
+            
+            # 优先使用HTML页面中的标题，如果为空则使用JSON中的标题
+            title = novel_info.get('title', '')
+            if not title:
+                if len(catalog) > 0:
+                    title = catalog[0].get('title', '未知标题')
+                else:
+                    title = data.get('title', '未知标题')
             
             # 解析章节内容
             novel_content = []
