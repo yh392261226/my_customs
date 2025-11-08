@@ -53,6 +53,25 @@ class NovelSitesManagementScreen(Screen[None]):
         self.novel_sites = []  # 书籍网站列表
         self.selected_sites = set()  # 选中的网站索引
 
+    def _get_rating_display(self, rating: int) -> str:
+        """
+        根据星级评分生成显示字符串
+        
+        Args:
+            rating: 星级评分 (0-5)
+            
+        Returns:
+            str: 星级显示字符串，如 "☆☆☆☆☆" 或 "★★★★★"
+        """
+        # 确保评分在0-5范围内
+        rating = max(0, min(5, rating))
+        
+        # 使用实心星星表示评分，空心星星表示剩余
+        filled_stars = "★" * rating
+        empty_stars = "☆" * (5 - rating)
+        
+        return f"{filled_stars}{empty_stars}"
+
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限"""
         try:
@@ -120,7 +139,7 @@ class NovelSitesManagementScreen(Screen[None]):
             get_global_i18n().t('novel_sites.selected'),
             get_global_i18n().t('novel_sites.site_name'),
             get_global_i18n().t('novel_sites.site_url'),
-            get_global_i18n().t('novel_sites.storage_folder'),
+            get_global_i18n().t('novel_sites.rating'),
             get_global_i18n().t('novel_sites.proxy_enabled'),
             get_global_i18n().t('novel_sites.parser'),
             get_global_i18n().t('novel_sites.book_id_example')
@@ -161,11 +180,15 @@ class NovelSitesManagementScreen(Screen[None]):
         for index, site in enumerate(self.novel_sites):
             selected = "✓" if index in self.selected_sites else ""
             proxy_status = get_global_i18n().t('common.yes') if site["proxy_enabled"] else get_global_i18n().t('common.no')
+            # 获取星级评分，如果没有则默认为2星
+            rating = site.get("rating", 2)
+            rating_display = self._get_rating_display(rating)
+            
             table.add_row(
                 selected,
                 site["name"],
                 site["url"],
-                site["storage_folder"],
+                rating_display,
                 proxy_status,
                 site["parser"],
                 site.get("book_id_example", ""),

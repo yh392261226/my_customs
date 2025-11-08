@@ -811,7 +811,8 @@
         "np_action": "无权限执行此操作",
         "np_manage_booksites": "无权限管理书籍网站",
         "np_manage_proxy": "无权限管理代理设置",
-        "np_open_carwler": "无权限打开爬取管理页面"
+        "np_open_carwler": "无权限打开爬取管理页面",
+        "rating": "评星"
     },
     "proxy_settings": {
         "title": "代理设置",
@@ -904,7 +905,8 @@
         "np_edit_site": "无权限编辑书籍网站",
         "np_delete_site": "无权限删除书籍网站",
         "np_batch_delete_site": "无权限批量删除书籍网站",
-        "np_open_carwler": "无权限进入爬取管理页面"
+        "np_open_carwler": "无权限进入爬取管理页面",
+        "rating": "评星"
     },
     "novel_site_dialog": {
         "add_title": "添加书籍网站",
@@ -923,6 +925,8 @@
         "tags_placeholder": "输入标签（多个标签用逗号分隔）",
         "book_id_example": "书籍ID样例",
         "book_id_example_placeholder": "输入书籍ID样例，如：12345, 67890",
+        "rating": "星级",
+        "rating_placeholder": "选择星级评分",
         "enter_site_name": "请输入网站名称",
         "enter_site_url": "请输入网站网址",
         "enter_storage_folder": "请输入存储文件夹",

@@ -403,6 +403,7 @@ class DatabaseManager:
                     selectable_enabled BOOLEAN NOT NULL DEFAULT 1,
                     parser TEXT NOT NULL,
                     tags TEXT DEFAULT '',
+                    rating INTEGER NOT NULL DEFAULT 2,  -- 星级评分，0-5，默认2星
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -410,32 +411,32 @@ class DatabaseManager:
 
             # 插入书籍网站表（使用INSERT OR IGNORE避免重复）
             novel_sites_data = [
-                ('人妻小说网', 'https://www.renqixiaoshuo.net', '/Users/yanghao/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('龙腾小说网', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '91porna_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345678901'),
-                ('AAA成人小說', 'https://aaanovel.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'aaanovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '2025/11/05/小说名'),
-                ('色情小说网', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '书籍名(长篇)或12345(短篇)'),
-                ('禁忌书屋', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345678'),
-                ('成人小说网', 'https://crxs.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'crxs_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '5fd28afaf29d8'),
-                ('风月文学网', 'http://www.h528.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'h528_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '1234'),
-                ('中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '2022/01/blog-post_30'),
-                ('小黄书XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), ''),
-                ('69文学网', 'https://www.69hnovel.com/erotic-novel.html', '/Users/yanghao/Documents/novels/datas/', 0, 0, '69hnovel_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), 'anime/article-8629'),
-                ('TXTXi', 'https://www.txtxi.com/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'txtxi_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '123456'),
-                ('不雅污书', 'https://www.buya6.xyz/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'buya6_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('撸撸色书', 'https://www.lulu6.xyz/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'lulu6_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('AA阅读', 'https://aaread.cc/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'aaread_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('都市小说网', 'https://comcom.cyou/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'comcom_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('肉肉阅读', 'https://xxread.net/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'xxread_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('夜色书阁', 'http://5l15cquy.yssg2.cfd/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'yssg_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('咪咕文学', 'https://74qyavudmbzu1.migu1.top/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'migu_v2', '🔞成人', datetime.now().isoformat(), datetime.now().isoformat(), '12345')
+                ('人妻小说网', 'https://www.renqixiaoshuo.net', '/Users/yanghao/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('龙腾小说网', 'https://www.87nb.com', '/Users/yanghao/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('91PORNA', 'https://91porna.com/novels/new', '/Users/yanghao/Documents/novels/datas', 1, 1, '91porna_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345678901'),
+                ('AAA成人小說', 'https://aaanovel.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'aaanovel_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '2025/11/05/小说名'),
+                ('色情小说网', 'https://www.book18.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'book18_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '书籍名(长篇)或12345(短篇)'),
+                ('禁忌书屋', 'https://www.cool18.com/bbs4/index.php', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'cool18_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345678'),
+                ('成人小说网', 'https://crxs.me', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'crxs_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '5fd28afaf29d8'),
+                ('风月文学网', 'http://www.h528.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'h528_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('色情001', 'https://seqing001.com', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'seqing001_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '1234'),
+                ('中文成人文學網', 'https://blog.xbookcn.com', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xbookcn_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '2022/01/blog-post_30'),
+                ('小黄书XCHINA', 'http://xchina.co/', '/Users/yanghao/Documents/novels/datas/', 0, 0, 'xchina_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), ''),
+                ('69文学网', 'https://www.69hnovel.com/erotic-novel.html', '/Users/yanghao/Documents/novels/datas/', 0, 0, '69hnovel_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), 'anime/article-8629'),
+                ('TXTXi', 'https://www.txtxi.com/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'txtxi_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '123456'),
+                ('不雅污书', 'https://www.buya6.xyz/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'buya6_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('撸撸色书', 'https://www.lulu6.xyz/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'lulu6_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('AA阅读', 'https://aaread.cc/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'aaread_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('都市小说网', 'https://comcom.cyou/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'comcom_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('肉肉阅读', 'https://xxread.net/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'xxread_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('夜色书阁', 'http://5l15cquy.yssg2.cfd/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'yssg_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('咪咕文学', 'https://74qyavudmbzu1.migu1.top/', '/Users/yanghao/Documents/novels/datas/', 0, 1, 'migu_v2', '🔞成人', 2, datetime.now().isoformat(), datetime.now().isoformat(), '12345')
             ]
             
             for site_data in novel_sites_data:
                 cursor.execute(
-                    "INSERT OR IGNORE INTO novel_sites (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, created_at, updated_at, book_id_example) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    site_data
+                    "INSERT OR IGNORE INTO novel_sites (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, created_at, updated_at, book_id_example) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    site_data  # 为所有现有网站添加默认2星评分
                 )
             
             # 创建爬取历史表
@@ -483,6 +484,12 @@ class DatabaseManager:
             
             # 检查并添加novel_sites表的book_id_example列（如果不存在）
             self._add_column_if_not_exists(cursor, "novel_sites", "book_id_example", "TEXT", "''")
+            
+            # 检查并添加novel_sites表的rating列（如果不存在）
+            self._add_column_if_not_exists(cursor, "novel_sites", "rating", "INTEGER NOT NULL", "2")
+            
+            # 检查并添加novel_sites表的rating列（如果不存在）
+            self._add_column_if_not_exists(cursor, "novel_sites", "rating", "INTEGER NOT NULL", "2")
 
             conn.commit()
     
@@ -1530,7 +1537,7 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, book_id_example = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -1540,6 +1547,7 @@ class DatabaseManager:
                         site_data.get("selectable_enabled", True),
                         site_data["parser"],
                         site_data.get("tags", ""),
+                        site_data.get("rating", 2),  # 默认2星
                         site_data.get("book_id_example", ""),
                         now,
                         site_data["id"]
@@ -1548,8 +1556,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, book_id_example, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -1558,6 +1566,7 @@ class DatabaseManager:
                         site_data.get("selectable_enabled", True),
                         site_data["parser"],
                         site_data.get("tags", ""),
+                        site_data.get("rating", 2),  # 默认2星
                         site_data.get("book_id_example", ""),
                         now,
                         now

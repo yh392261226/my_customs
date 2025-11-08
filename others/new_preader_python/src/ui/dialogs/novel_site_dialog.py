@@ -111,6 +111,22 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             ),
                             id="book-id-example-container", classes="form-row"
                         ),
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.rating'), id="rating-label"),
+                            Select(
+                                [
+                                    ("☆☆☆☆☆", 0),
+                                    ("★☆☆☆☆", 1),
+                                    ("★★☆☆☆", 2),
+                                    ("★★★☆☆", 3),
+                                    ("★★★★☆", 4),
+                                    ("★★★★★", 5)
+                                ],
+                                id="rating-select",
+                                allow_blank=False
+                            ),
+                            id="rating-container", classes="form-row"
+                        ),
                         id="basic-info-container"
                     ),
 
@@ -222,6 +238,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # 选择书籍设置
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
         selectable_checkbox.value = self.novel_site.get("selectable_enabled", True)  # 默认开启
+        
+        # 星级评分
+        rating_select = self.query_one("#rating-select", Select)
+        rating_value = self.novel_site.get("rating", 2)  # 默认2星
+        if rating_value is not None:
+            rating_select.value = rating_value
+        else:
+            rating_select.value = 2  # 默认2星
     
     # Actions for BINDINGS
     def action_save(self) -> None:
@@ -253,6 +277,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
+        rating_select = self.query_one("#rating-select", Select)
         
         # 验证必填字段
         if not name_input.value.strip():
@@ -278,6 +303,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             # 清理解析器名称，只保留文件名部分
             parser_value = self._clean_parser_name(parser_value)
         
+        # 获取星级评分值
+        rating_value = 2  # 默认值
+        if rating_select.value is not None:
+            try:
+                rating_value = int(rating_select.value)
+            except (ValueError, TypeError):
+                rating_value = 2  # 如果转换失败，使用默认值
+        
         # 构建书籍网站信息
         novel_site_info = {
             "name": name_input.value.strip(),
@@ -287,7 +320,8 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "book_id_example": book_id_example_input.value.strip(),
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
-            "selectable_enabled": selectable_checkbox.value
+            "selectable_enabled": selectable_checkbox.value,
+            "rating": rating_value
         }
         
         # 如果是编辑模式，保留原有的ID

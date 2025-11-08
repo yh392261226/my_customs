@@ -813,7 +813,8 @@
         "np_action": "No permission to perform this operation",
         "np_manage_booksites": "No permission to manage book sites",
         "np_manage_proxy": "No permission to manage proxy settings",
-        "np_open_carwler": "No permission to open crawler management page"
+        "np_open_carwler": "No permission to open crawler management page",
+        "rating": "Rating"
     },
     "proxy_settings": {
         "title": "Proxy Settings",
@@ -905,7 +906,8 @@
         "np_edit_site": "No permission to edit book site",
         "np_delete_site": "No permission to delete book site",
         "np_batch_delete_site": "No permission to batch delete book sites",
-        "np_open_carwler": "No permission to enter crawler management page"
+        "np_open_carwler": "No permission to enter crawler management page",
+        "rating": "Rating"
     },
     "novel_site_dialog": {
         "add_title": "Add Book Site",
@@ -922,6 +924,10 @@
         "site_url_placeholder": "Enter site URL",
         "storage_folder_placeholder": "Enter storage folder name",
         "tags_placeholder": "Enter tags (multiple tags separated by commas)",
+        "book_id_example": "Book ID Example",
+        "book_id_example_placeholder": "Enter book ID examples, e.g.: 12345, 67890",
+        "rating": "Rating",
+        "rating_placeholder": "Select rating",
         "enter_site_name": "Please enter site name",
         "enter_site_url": "Please enter site URL",
         "enter_storage_folder": "Please enter storage folder",

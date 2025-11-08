@@ -122,6 +122,7 @@ class GetBooksScreen(Screen[None]):
             get_global_i18n().t('get_books.site_url'),
             get_global_i18n().t('get_books.proxy_enabled'),
             get_global_i18n().t('get_books.parser'),
+            get_global_i18n().t('get_books.rating'),  # 星级列
             get_global_i18n().t('get_books.enter')  # 进入按钮列
         )
         
@@ -153,6 +154,25 @@ class GetBooksScreen(Screen[None]):
         except Exception:
             pass
     
+    def _get_rating_display(self, rating: int) -> str:
+        """
+        根据星级评分生成显示字符串
+        
+        Args:
+            rating: 星级评分 (0-5)
+            
+        Returns:
+            str: 星级显示字符串，如 "☆☆☆☆☆" 或 "★★★★★"
+        """
+        # 确保评分在0-5范围内
+        rating = max(0, min(5, rating))
+        
+        # 使用实心星星表示评分，空心星星表示剩余
+        filled_stars = "★" * rating
+        empty_stars = "☆" * (5 - rating)
+        
+        return f"{filled_stars}{empty_stars}"
+
     def _load_novel_sites(self) -> None:
         """加载书籍网站数据"""
         # 从数据库加载书籍网站数据
@@ -164,12 +184,16 @@ class GetBooksScreen(Screen[None]):
         
         for i, site in enumerate(self.novel_sites):
             proxy_status = get_global_i18n().t('common.yes') if site.get("proxy_enabled", False) else get_global_i18n().t('common.no')
+            rating = site.get("rating", 2)  # 默认2星
+            rating_display = self._get_rating_display(rating)
+            
             table.add_row(
                 str(i + 1),  # 序号，从1开始
                 site.get("name", ""),
                 site.get("url", ""),
                 proxy_status,
                 site.get("parser", ""),
+                rating_display,  # 星级显示
                 "➤ " + get_global_i18n().t('get_books.enter')  # 进入按钮
             )
     
@@ -196,7 +220,6 @@ class GetBooksScreen(Screen[None]):
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限（兼容单/多用户）"""
         try:
-            db_manager = self.database_manager if hasattr(self, "database_manager") else DatabaseManager()
             # 获取当前用户ID（如果应用支持多用户）
             current_user_id = getattr(self.app, "current_user_id", None)
             if current_user_id is None:
@@ -207,11 +230,11 @@ class GetBooksScreen(Screen[None]):
                     # 多用户启用但无当前用户，默认拒绝
                     return False
             # 传入用户ID与权限键
-            return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
+            return self.database_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
         except TypeError:
             # 兼容旧签名：仅接收一个权限键参数
             try:
-                return db_manager.has_permission(permission_key)  # type: ignore[misc]
+                return self.database_manager.has_permission(permission_key)  # type: ignore[misc]
             except Exception:
                 return True
         except Exception as e:
@@ -250,7 +273,8 @@ class GetBooksScreen(Screen[None]):
             event: 按钮按下事件
         """
         # 检查权限
-        if not self._has_button_permission(event.button.id):
+        button_id = event.button.id or ""
+        if not self._has_button_permission(button_id):
             self.notify(get_global_i18n().t('get_books.np_action'), severity="warning")
             return
             
@@ -297,8 +321,8 @@ class GetBooksScreen(Screen[None]):
         Args:
             event: 单元格选择事件
         """
-        # 检查是否点击了"进入"按钮列（第6列，索引5）
-        if event.coordinate.column == 5:  # 第6列是进入按钮列
+        # 检查是否点击了"进入"按钮列（第7列，索引6）
+        if event.coordinate.column == 6:  # 第7列是进入按钮列
             table = self.query_one("#novel-sites-table", DataTable)
             row_index = event.coordinate.row
             if 0 <= row_index < len(self.novel_sites):
