@@ -192,7 +192,6 @@ class CrawlerManagementScreen(Screen[None]):
             get_global_i18n().t('crawler.novel_title'),
             get_global_i18n().t('crawler.crawl_time'),
             get_global_i18n().t('crawler.status'),
-            get_global_i18n().t('crawler.file_path'),
             get_global_i18n().t('crawler.view_file'),
             get_global_i18n().t('crawler.read_book'),
             get_global_i18n().t('crawler.delete_file'),
@@ -298,7 +297,6 @@ class CrawlerManagementScreen(Screen[None]):
                     item["novel_title"],
                     item["crawl_time"],
                     item["status"],
-                    item["file_path"],
                     view_file_text,
                     read_book_text,
                     delete_file_text,
@@ -418,8 +416,8 @@ class CrawlerManagementScreen(Screen[None]):
         row_index = event.coordinate.row
         column_index = event.coordinate.column
         
-        # 只处理操作列（第7、8、9、10、11列）
-        if column_index not in [6, 7, 8, 9, 10]:  # 查看文件、阅读书籍、删除文件、删除记录、查看原因列
+        # 只处理操作列（第6、7、8、9、10列）
+        if column_index not in [5, 6, 7, 8, 9]:  # 查看文件、阅读书籍、删除文件、删除记录、查看原因列
             return
             
         # 根据分页计算真实索引，避免跨页错位
@@ -434,15 +432,15 @@ class CrawlerManagementScreen(Screen[None]):
             return
             
         # 根据列索引执行不同的操作
-        if column_index == 6:  # 查看文件列
+        if column_index == 5:  # 查看文件列
             self._view_file(history_item)
-        elif column_index == 7:  # 阅读书籍列
+        elif column_index == 6:  # 阅读书籍列
             self._read_book(history_item)
-        elif column_index == 8:  # 删除文件列
+        elif column_index == 7:  # 删除文件列
             self._delete_file_only(history_item)
-        elif column_index == 9:  # 删除记录列
+        elif column_index == 8:  # 删除记录列
             self._delete_record_only(history_item)
-        elif column_index == 10:  # 查看原因列
+        elif column_index == 9:  # 查看原因列
             self._view_reason(history_item)
     
     def _open_browser(self) -> None:
