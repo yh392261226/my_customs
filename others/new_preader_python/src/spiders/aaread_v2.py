@@ -284,9 +284,56 @@ class AareadParser(BaseParser):
         Returns:
             小说详情信息
         """
-        # 直接调用parse_novel_detail方法
-        novel_id = self._extract_novel_id_from_url(novel_url)
-        return self.parse_novel_detail(novel_id)
+        # 创建小说信息字典
+        novel_info = {
+            "title": title,
+            "url": novel_url,
+            "chapters": [],
+            "status": "",
+            "description": ""
+        }
+        
+        # 提取简介
+        description_match = re.search(self.description_reg[0], content, re.DOTALL)
+        if description_match:
+            novel_info["description"] = description_match.group(1).strip()
+        
+        # 提取章节列表
+        chapters = self._extract_chapters(content)
+        
+        # 实际爬取每个章节的内容
+        for i, chapter in enumerate(chapters):
+            print(f"正在爬取第 {i+1}/{len(chapters)} 章: {chapter['title']}")
+            
+            # 构建完整的章节URL
+            chapter_url = self.get_chapter_url(chapter['url'])
+            
+            # 爬取章节内容
+            chapter_content = self.parse_chapter_content(chapter_url)
+            
+            if chapter_content and chapter_content != "获取章节内容失败" and chapter_content != "未找到章节内容":
+                novel_info["chapters"].append({
+                    "title": chapter["title"],
+                    "url": chapter_url,
+                    "order": chapter["order"],
+                    "content": chapter_content
+                })
+                print(f"√ 第 {i+1} 章爬取成功")
+            else:
+                print(f"× 第 {i+1} 章爬取失败")
+                # 即使失败也添加章节信息，但内容为空
+                novel_info["chapters"].append({
+                    "title": chapter["title"],
+                    "url": chapter_url,
+                    "order": chapter["order"],
+                    "content": ""
+                })
+            
+            # 章节间延迟
+            import time
+            time.sleep(1)
+        
+        return novel_info
     
     def _clean_html_content(self, html_content: str) -> str:
         """
