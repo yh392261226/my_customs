@@ -38,6 +38,9 @@ pillow>=10.0.0
 # 文件监控
 watchdog>=3.0.0
 
+# AES解密支持
+pycryptodome>=3.20.0
+
 # 数据库（Python内置，无需安装）
 # sqlite3 - Python标准库
 
