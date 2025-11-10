@@ -6,7 +6,7 @@ Playwright 爬虫工具类
 import re
 import time
 import asyncio
-from typing import Optional
+from typing import Optional, Dict, Any
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
