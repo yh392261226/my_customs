@@ -215,15 +215,7 @@ class DatabaseManager:
                 ('users.view_permissions', '用户管理.查看权限'),
                 ('users.back', '用户管理.离开管理用户与权限'),
                 ('admin.manage_users', '用户管理.管理用户与权限'),
-                
-                # 登录权限
-                ('login.login', '用户登录'),
-                ('login.guest', '访客登录'),
-                
-                # 锁定屏幕权限
-                ('lock.submit', '提交密码'),
-                ('lock.cancel', '取消锁定'),
-                
+                                
                 # 爬虫权限
                 ('crawler.open', '打开爬取管理页面'),
                 ('crawler.run', '执行爬取任务'),
