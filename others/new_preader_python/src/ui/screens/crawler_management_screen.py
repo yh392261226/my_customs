@@ -2,6 +2,7 @@
 爬取管理屏幕
 """
 
+import os
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
@@ -959,6 +960,8 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 获取存储文件夹
             storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
             
             # 保存小说到文件
             file_path = parser_instance.save_to_file(novel_content, storage_folder)
@@ -1079,6 +1082,8 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 获取存储文件夹
             storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
             
             # 保存小说到文件
             file_path = parser_instance.save_to_file(novel_content, storage_folder)
@@ -1229,6 +1234,8 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 正确的文件路径格式：用户输入的存储路径 + 小说标题.txt
             storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
             file_name = f"{novel_title}.txt"
             file_path = os.path.join(storage_folder, file_name)
             
