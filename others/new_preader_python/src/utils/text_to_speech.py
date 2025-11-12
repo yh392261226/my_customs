@@ -80,6 +80,8 @@ class TextToSpeech:
             else:
                 logger.warning(f"不支持的操作系统: {self._system}")
                 self._is_speaking = False
+                if on_complete:
+                    on_complete()
                 return
             
             # 如果没有被中断且回调函数存在，调用回调函数
@@ -88,6 +90,9 @@ class TextToSpeech:
                 
         except Exception as e:
             logger.error(f"朗读文本时出错: {e}")
+            # 即使出错也要调用回调，以便继续下一页
+            if not self._stop_requested and on_complete:
+                on_complete()
         finally:
             self._is_speaking = False
             self._current_process = None
@@ -113,6 +118,79 @@ class TextToSpeech:
         try:
             # 使用say命令朗读文本
             cmd = ["say", "-f", temp_path, "-r", str(int(rate * 180))]
+            if voice:
+                cmd.extend(["-v", voice])
+            
+            self._current_process = subprocess.Popen(cmd)
+            self._current_process.wait()
+        finally:
+            # 删除临时文件
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+    
+    def _speak_windows(self, text: str, language: str, rate: int):
+        """
+        在Windows上使用PowerShell朗读文本
+        
+        Args:
+            text: 要朗读的文本
+            language: 语言代码
+            rate: 语速
+        """
+        # 将语言代码转换为Windows的语言名称
+        voice = self._get_windows_voice(language)
+        
+        # 创建临时文件存储文本
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as temp:
+            temp.write(text)
+            temp_path = temp.name
+        
+        try:
+            # 使用PowerShell的Add-Type和SpeechSynthesizer朗读文本
+            script = f"""
+            Add-Type -AssemblyName System.Speech
+            $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+            $synth.Rate = {int((rate - 1) * 10)}
+            """
+            if voice:
+                script += f"""
+                $synth.SelectVoice('{voice}')
+                """
+            script += f"""
+            $text = Get-Content -Path '{temp_path}' -Raw
+            $synth.Speak($text)
+            """
+            
+            cmd = ["powershell", "-Command", script]
+            self._current_process = subprocess.Popen(cmd)
+            self._current_process.wait()
+        finally:
+            # 删除临时文件
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+    
+    def _speak_linux(self, text: str, language: str, rate: int):
+        """
+        在Linux上使用espeak命令朗读文本
+        
+        Args:
+            text: 要朗读的文本
+            language: 语言代码
+            rate: 语速
+        """
+        # 将语言代码转换为espeak的语言代码
+        voice = self._get_espeak_voice(language)
+        
+        # 创建临时文件存储文本
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, encoding='utf-8') as temp:
+            temp.write(text)
+            temp_path = temp.name
+        
+        try:
+            # 使用espeak命令朗读文本
+            cmd = ["espeak", "-f", temp_path, "-s", str(int(rate * 150))]
             if voice:
                 cmd.extend(["-v", voice])
             

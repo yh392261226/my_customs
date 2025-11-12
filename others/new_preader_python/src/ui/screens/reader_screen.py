@@ -210,6 +210,10 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # TTS管理器
         self.tts_manager = TTSManager()
         self.tts_enabled = False
+        # 朗读状态监控定时器
+        self._tts_monitor_timer = None
+        # 防止朗读完成回调重复执行
+        self._tts_complete_in_progress = False
         
         # 翻译和单词本管理器
         self.translation_manager = TranslationManager()
@@ -1804,46 +1808,251 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.notify(f"{get_global_i18n().t('reader.aloud_disabled')}", severity="information")
     
     def _start_tts(self) -> None:
-        try:
-            # 获取朗读音量设置
-            from src.config.settings.setting_registry import SettingRegistry
-            setting_registry = SettingRegistry()
-            tts_volume = setting_registry.get_value("reader.tts_volume", 50)
-            
-            content = self.renderer.get_current_page()
-            if content:
-                # 将音量设置转换为语速（0.5-2.0范围）
-                rate = 0.5 + (tts_volume / 100) * 1.5
-                self.tts_manager.speak(content, rate=rate)
-        except Exception as e:
-            self.notify(f"{get_global_i18n().t('reader.aloud_start_failed')}: {e}", severity="error")
-            self.tts_enabled = False
+        def _start():
+            try:
+                # 获取朗读音量设置
+                from src.config.settings.setting_registry import SettingRegistry
+                setting_registry = SettingRegistry()
+                tts_volume = setting_registry.get_value("reader.tts_volume", 50)
+                
+                content = self.renderer.get_current_page()
+                if content:
+                    logger.debug(f"开始朗读，当前页: {getattr(self.renderer, 'current_page', 0)}, 总页数: {getattr(self.renderer, 'total_pages', 0)}")
+                    # 将音量设置转换为语速（0.5-2.0范围）
+                    rate = 0.5 + (tts_volume / 100) * 1.5
+                    # 设置朗读完成回调，实现自动翻页继续朗读
+                    result = self.tts_manager.speak(content, rate=rate, on_complete=self._on_tts_complete)
+                    logger.debug(f"开始朗读结果: {result}")
+                    # 启动朗读状态检查定时器
+                    self._start_tts_monitor()
+                    
+                    # 额外设置一个定时器，确保无论如何都会检查朗读状态
+                    self.set_timer(1.0, self._fallback_tts_check)
+                else:
+                    logger.debug("没有获取到内容，无法开始朗读")
+            except Exception as e:
+                logger.error(f"开始朗读失败: {e}")
+                self.notify(f"{get_global_i18n().t('reader.aloud_start_failed')}: {e}", severity="error")
+                self.tts_enabled = False
+        
+        # 使用call_after_refresh确保在UI线程中执行
+        self.call_after_refresh(_start)
     
     def _stop_tts(self) -> None:
         try:
             self.tts_manager.stop()
+            # 停止朗读状态检查定时器
+            self._stop_tts_monitor()
+            # 重置朗读完成标志
+            self._tts_complete_in_progress = False
         except Exception as e:
             logger.error(f"{get_global_i18n().t('reader.aloud_stop_failed')}: {e}")
     
+    def _on_tts_complete(self) -> None:
+        """朗读完成回调，实现自动翻页继续朗读"""
+        def _process():
+            try:
+                # 防止重复执行
+                if self._tts_complete_in_progress:
+                    logger.debug("朗读完成回调已在执行中，跳过")
+                    return
+                    
+                if not self.tts_enabled:
+                    logger.debug("朗读功能已禁用，跳过自动翻页")
+                    return
+                    
+                # 设置标志位，防止重复执行
+                self._tts_complete_in_progress = True
+                logger.debug("开始处理朗读完成回调")
+                
+                # 检查是否是最后一页
+                current_page = getattr(self.renderer, "current_page", 0)
+                total_pages = getattr(self.renderer, "total_pages", 0)
+                logger.debug(f"当前页: {current_page}, 总页数: {total_pages}")
+                
+                # 如果已经是最后一页，停止朗读
+                if current_page >= total_pages - 1:
+                    logger.debug("已是最后一页，停止朗读")
+                    self.tts_enabled = False
+                    self.notify(f"{get_global_i18n().t('reader.aloud_finished')}", severity="information")
+                    self._stop_tts_monitor()
+                    self._tts_complete_in_progress = False
+                    return
+                
+                # 自动翻到下一页
+                logger.debug("自动翻到下一页")
+                self._auto_turn_next_page()
+                
+                # 翻页后再次检查是否是最后一页
+                new_page = getattr(self.renderer, "current_page", 0)
+                logger.debug(f"翻页后当前页: {new_page}")
+                if new_page >= total_pages - 1:
+                    logger.debug("翻页后已是最后一页，停止朗读")
+                    self.tts_enabled = False
+                    self.notify(f"{get_global_i18n().t('reader.aloud_finished')}", severity="information")
+                    self._stop_tts_monitor()
+                    self._tts_complete_in_progress = False
+                    return
+                
+                # 短暂延迟后继续朗读下一页
+                logger.debug("设置定时器，0.5秒后继续朗读下一页")
+                self.set_timer(0.5, self._continue_tts_next_page)
+                
+            except Exception as e:
+                logger.error(f"朗读完成后处理失败: {e}")
+                self.tts_enabled = False
+                self._tts_complete_in_progress = False
+        
+        # 使用call_after_refresh确保在UI线程中执行
+        self.call_after_refresh(_process)
+    
+    def _auto_turn_next_page(self) -> None:
+        """自动翻到下一页"""
+        def _turn():
+            try:
+                if hasattr(self.renderer, "next_page"):
+                    self.renderer.next_page()
+                    self.current_page = self.renderer.current_page
+                    self._on_page_change(self.current_page)
+            except Exception as e:
+                logger.error(f"自动翻页失败: {e}")
+        
+        # 使用call_after_refresh确保在UI线程中执行
+        self.call_after_refresh(_turn)
+    
+    def _continue_tts_next_page(self) -> None:
+        """继续朗读下一页"""
+        def _continue():
+            try:
+                logger.debug(f"_continue_tts_next_page被调用，tts_enabled: {self.tts_enabled}, _tts_complete_in_progress: {getattr(self, '_tts_complete_in_progress', 'None')}")
+                
+                if not self.tts_enabled:
+                    logger.debug("朗读功能已禁用，跳过继续朗读下一页")
+                    return
+                    
+                # 重置标志位，允许下一次回调执行
+                self._tts_complete_in_progress = False
+                    
+                # 获取朗读音量设置
+                from src.config.settings.setting_registry import SettingRegistry
+                setting_registry = SettingRegistry()
+                tts_volume = setting_registry.get_value("reader.tts_volume", 50)
+                
+                content = self.renderer.get_current_page()
+                if content:
+                    logger.debug(f"继续朗读下一页，当前页: {getattr(self.renderer, 'current_page', 0)}, 总页数: {getattr(self.renderer, 'total_pages', 0)}")
+                    # 将音量设置转换为语速（0.5-2.0范围）
+                    rate = 0.5 + (tts_volume / 100) * 1.5
+                    # 设置朗读完成回调，实现自动翻页继续朗读
+                    result = self.tts_manager.speak(content, rate=rate, on_complete=self._on_tts_complete)
+                    logger.debug(f"开始朗读下一页结果: {result}, 朗读状态: {self.tts_manager.is_speaking()}")
+                    # 启动朗读状态检查定时器
+                    self._start_tts_monitor()
+                    
+                    # 额外设置一个定时器，确保无论如何都会检查朗读状态
+                    self.set_timer(1.0, self._fallback_tts_check)
+                else:
+                    logger.debug("没有获取到下一页内容，跳过朗读")
+            except Exception as e:
+                logger.error(f"继续朗读下一页失败: {e}")
+                self.tts_enabled = False
+                self._stop_tts_monitor()
+                self._tts_complete_in_progress = False
+        
+        # 使用call_after_refresh确保在UI线程中执行
+        self.call_after_refresh(_continue)
+    
+    def _fallback_tts_check(self) -> None:
+        """后备检查朗读状态"""
+        def _check():
+            try:
+                logger.debug("_fallback_tts_check执行，检查朗读状态")
+                is_speaking = self.tts_manager.is_speaking()
+                logger.debug(f"_fallback_tts_check: is_speaking={is_speaking}")
+                if not is_speaking and self.tts_enabled:
+                    logger.debug("_fallback_tts_check: 朗读已完成，触发_on_tts_complete")
+                    self._on_tts_complete()
+            except Exception as e:
+                logger.error(f"_fallback_tts_check失败: {e}")
+        
+        # 使用call_after_refresh确保在UI线程中执行
+        self.call_after_refresh(_check)
+    
+    async def _delayed_continue_tts(self) -> None:
+        """延迟后继续朗读下一页"""
+        try:
+            logger.debug("_delayed_continue_tts开始执行")
+            # 等待0.5秒
+            await asyncio.sleep(0.5)
+            # 继续朗读下一页
+            logger.debug("_delayed_continue_tts将调用_continue_tts_next_page")
+            self._continue_tts_next_page()
+            logger.debug("_delayed_continue_tts调用_continue_tts_next_page完成")
+        except Exception as e:
+            logger.error(f"延迟继续朗读失败: {e}")
+    
+    def _start_tts_monitor(self) -> None:
+        """启动朗读状态检查定时器"""
+        # 先停止之前的定时器
+        self._stop_tts_monitor()
+        
+        # 创建新的定时器，每0.5秒检查一次朗读状态
+        self._tts_monitor_timer = self.set_interval(0.5, self._check_tts_status)
+    
+    def _stop_tts_monitor(self) -> None:
+        """停止朗读状态检查定时器"""
+        if hasattr(self, "_tts_monitor_timer") and self._tts_monitor_timer is not None:
+            try:
+                self._tts_monitor_timer.stop()
+            except Exception as e:
+                logger.error(f"停止朗读监控定时器失败: {e}")
+            finally:
+                self._tts_monitor_timer = None
+    
+    def _check_tts_status(self) -> None:
+        """检查朗读状态"""
+        try:
+            if not self.tts_enabled:
+                logger.debug("朗读功能已禁用，停止状态检查")
+                self._stop_tts_monitor()
+                return
+                
+            # 检查是否还在朗读
+            is_speaking = self.tts_manager.is_speaking()
+            logger.debug(f"朗读状态检查: is_speaking={is_speaking}, _tts_complete_in_progress={getattr(self, '_tts_complete_in_progress', 'None')}")
+            if not is_speaking:
+                logger.debug("朗读已完成，触发自动翻页回调")
+                # 如果没有在朗读，可能是朗读完成了，但回调没有触发
+                # 调用朗读完成回调，实现自动翻页
+                self._on_tts_complete()
+            else:
+                logger.debug("朗读仍在进行中")
+        except Exception as e:
+            logger.error(f"检查朗读状态失败: {e}")
+    
     def _on_page_change(self, new_page: int) -> None:
-        # 更新状态，确保与renderer同步
-        self.current_page = self.renderer.current_page
-        self.total_pages = self.renderer.total_pages
-        
-        # 更新状态管理器
-        if hasattr(self, 'status_manager') and self.status_manager:
-            self.status_manager.update_reading_position(self.current_page)
+        def _update():
+            # 更新状态，确保与renderer同步
+            self.current_page = self.renderer.current_page
+            self.total_pages = self.renderer.total_pages
             
-        # 更新界面
-        self._update_ui()
+            # 更新状态管理器
+            if hasattr(self, 'status_manager') and self.status_manager:
+                self.status_manager.update_reading_position(self.current_page)
+                
+            # 更新界面
+            self._update_ui()
+            
+            # 检查是否需要异步更新（避免在屏幕卸载时启动新任务）
+            if not getattr(self, '_force_save_pending', False):
+                # 异步更新进度，不阻塞UI
+                asyncio.create_task(self._async_update_book_progress())
+            else:
+                # 如果正在卸载，使用同步更新
+                self._update_book_progress()
         
-        # 检查是否需要异步更新（避免在屏幕卸载时启动新任务）
-        if not getattr(self, '_force_save_pending', False):
-            # 异步更新进度，不阻塞UI
-            asyncio.create_task(self._async_update_book_progress())
-        else:
-            # 如果正在卸载，使用同步更新
-            self._update_book_progress()
+        # 使用call_after_refresh确保在UI线程中执行
+        self.call_after_refresh(_update)
     
     def _on_auto_turn_change(self, auto_turn: bool) -> None:
         self.auto_turn_enabled = auto_turn

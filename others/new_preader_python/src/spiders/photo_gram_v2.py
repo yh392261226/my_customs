@@ -109,6 +109,14 @@ class PhotoGramParser(BaseParser):
         
         print(f"开始处理 [ {title} ] - 找到 {len(chapters_list)} 个章节")
         
+        # 创建URL记录文件
+        novel_id = self._extract_novel_id_from_url(novel_url)
+        # url_record_file = f"{novel_id}_urls.txt"
+        
+        # 初始化URL记录
+        # successful_urls = []
+        # failed_urls = []
+        
         # 解析每个章节内容
         chapters_with_content = []
         for i, chapter_info in enumerate(chapters_list):
@@ -123,8 +131,10 @@ class PhotoGramParser(BaseParser):
                         'content': chapter_content,
                         'url': chapter_url
                     })
+                    # successful_urls.append(chapter_url)
                     print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 完成")
                 else:
+                    # failed_urls.append(chapter_url)
                     print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 获取内容失败")
                     
                 # 章节间延迟
@@ -132,7 +142,11 @@ class PhotoGramParser(BaseParser):
                 time.sleep(1)
                     
             except Exception as e:
+                # failed_urls.append(chapter_info['url'])
                 print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 错误: {e}")
+        
+        # 写入URL记录文件
+        # self._write_urls_to_file(url_record_file, successful_urls, failed_urls, novel_url, title)
         
         if not chapters_with_content:
             raise Exception("无法获取任何章节内容")
@@ -144,7 +158,7 @@ class PhotoGramParser(BaseParser):
         return {
             'title': title,
             'author': self.novel_site_name or self.name,
-            'novel_id': self._extract_novel_id_from_url(novel_url),
+            'novel_id': novel_id,
             'url': novel_url,
             'description': description,
             'status': status,
@@ -184,8 +198,7 @@ class PhotoGramParser(BaseParser):
             chapter_title = match.group(2).strip()
             
             # 清理章节标题
-            chapter_title = re.sub(r'<[^>]+>', '', chapter_title)
-            chapter_title = re.sub(r'\\s+', ' ', chapter_title).strip()
+
             
             # 确保URL是完整的
             if not chapter_url.startswith('http'):
@@ -198,28 +211,55 @@ class PhotoGramParser(BaseParser):
         
         print(f"从 <dl id=\"newlist\"> 中提取到 {len(chapters)} 个章节")
         return chapters
+    
+    # def _write_urls_to_file(self, filename: str, successful_urls: List[str], failed_urls: List[str], novel_url: str, title: str):
+    #     """
+    #     将URL记录写入文件，方便检查哪些页面没有成功获取
         
-        # 提取章节链接和标题
-        for chapter_pattern in self.chapter_link_reg:
-            matches = re.finditer(chapter_pattern, content, re.DOTALL)
-            for match in matches:
-                chapter_url = match.group(1).strip()
-                chapter_title = match.group(2).strip()
+    #     Args:
+    #         filename: 文件名
+    #         successful_urls: 成功获取的URL列表
+    #         failed_urls: 失败的URL列表
+    #         novel_url: 小说URL
+    #         title: 小说标题
+    #     """
+    #     try:
+    #         with open(filename, 'w', encoding='utf-8') as f:
+    #             f.write(f"# PhotoGram 小说URL记录文件\n")
+    #             f.write(f"# 小说标题: {title}\n")
+    #             f.write(f"# 小说URL: {novel_url}\n")
+    #             f.write(f"# 生成时间: {__import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    #             f.write(f"# 成功获取: {len(successful_urls)} 个页面\n")
+    #             f.write(f"# 失败页面: {len(failed_urls)} 个页面\n")
+    #             f.write(f"\n{'='*80}\n")
+    #             f.write("成功获取的页面URL:\n")
+    #             f.write(f"{'='*80}\n")
                 
-                # 清理章节标题
-                chapter_title = re.sub(r'<[^>]+>', '', chapter_title)
-                chapter_title = re.sub(r'\s+', ' ', chapter_title).strip()
+    #             for i, url in enumerate(successful_urls, 1):
+    #                 f.write(f"{i}. {url}\n")
                 
-                # 确保URL是完整的
-                if not chapter_url.startswith('http'):
-                    chapter_url = urljoin(self.base_url, chapter_url)
+    #             f.write(f"\n{'='*80}\n")
+    #             f.write("失败的页面URL:\n") 
+    #             f.write(f"{'='*80}\n")
                 
-                chapters.append({
-                    "title": chapter_title,
-                    "url": chapter_url
-                })
-        
-        return chapters
+    #             if failed_urls:
+    #                 for i, url in enumerate(failed_urls, 1):
+    #                     f.write(f"{i}. {url}\n")
+    #             else:
+    #                 f.write("无失败的页面\n")
+                
+    #             f.write(f"\n{'='*80}\n")
+    #             f.write("统计信息:\n")
+    #             f.write(f"{'='*80}\n")
+    #             f.write(f"总页面数: {len(successful_urls) + len(failed_urls)}\n")
+    #             f.write(f"成功获取: {len(successful_urls)} 页 ({(len(successful_urls)/(len(successful_urls) + len(failed_urls))*100):.1f}%)\n")
+    #             f.write(f"失败页面: {len(failed_urls)} 页 ({(len(failed_urls)/(len(successful_urls) + len(failed_urls))*100):.1f}%)\n")
+            
+    #         print(f"URL记录已保存到文件: {filename}")
+    #         print(f"成功获取: {len(successful_urls)} 页，失败: {len(failed_urls)} 页")
+            
+    #     except Exception as e:
+    #         print(f"写入URL记录文件失败: {e}")
     
     def _extract_description(self, content: str) -> str:
         """提取小说简介"""
@@ -260,24 +300,27 @@ class PhotoGramParser(BaseParser):
         """
         print(f"正在获取章节内容: {chapter_url}")
         
-        # 获取主章节内容
-        main_content = self._get_single_chapter_content(chapter_url)
-        if not main_content:
-            print("无法获取主章节内容")
-            return None
-        
-        # 检查是否有子章节
+        # 获取所有子章节内容（包含第一页）
         sub_contents = self._get_sub_chapters_content(chapter_url)
         
-        # 合并所有内容
-        all_content = main_content
+        # 如果有内容，合并所有子章节内容
         if sub_contents:
             print(f"找到 {len(sub_contents)} 个子章节")
+            all_content = ""
             for i, sub_content in enumerate(sub_contents):
                 print(f"  子章节 {i+1}: {sub_content[:50]}...")
-                all_content += "\n\n" + sub_content
-        
-        return all_content
+                if i == 0:
+                    all_content = sub_content
+                else:
+                    all_content += "\n\n" + sub_content
+            return all_content
+        else:
+            # 没有获取到任何内容，尝试直接获取章节内容
+            main_content = self._get_single_chapter_content(chapter_url)
+            if not main_content:
+                print("无法获取主章节内容")
+                return None
+            return main_content
     
     def _get_single_chapter_content(self, chapter_url: str) -> Optional[str]:
         """
@@ -319,14 +362,163 @@ class PhotoGramParser(BaseParser):
         sub_contents = []
         current_url = chapter_url
         visited_urls = set()  # 避免循环
+        chapter_base_name = None  # 记录当前主章节的基本名称
         
+        # 提取当前主章节的基本名称
+        def extract_base_name(url):
+            # 如果是完整URL，先提取路径部分
+            if url.startswith('http'):
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                path = parsed.path
+            else:
+                path = url
+            
+            # 移开头的斜杠
+            path = path.lstrip('/')
+            # 分割路径
+            parts = path.split('/')
+            if len(parts) >= 2:
+                filename = parts[-1]  # 获取文件名
+                # 分离基本名和后缀
+                base_name = filename.replace('.html', '')
+                # 检查是否有数字后缀
+                match = re.match(r'(.+?)_(\d+)$', base_name)
+                if match:
+                    # 有数字后缀，是子章节，返回基本名
+                    return match.group(1)
+                else:
+                    # 没有数字后缀，是主章节，直接返回
+                    return base_name
+            return None
+        
+        # 获取主章节的基本名称
+        chapter_base_name = extract_base_name(chapter_url)
+        print(f"主章节基本名称: {chapter_base_name}")
+        
+        # 获取第一页的页面内容，用于提取xlink
+        print(f"正在获取第一页内容: {chapter_url}")
+        first_page_content = self._get_url_content(chapter_url)
+        if not first_page_content:
+            print(f"❌ 无法获取第一页页面内容: {chapter_url}")
+            return []
+        
+        print(f"✅ 第一页获取成功，长度: {len(first_page_content)} 字符")
+        
+        # 检查页面内容是否包含常见的错误信息
+        if "404" in first_page_content or "Not Found" in first_page_content:
+            print(f"❌ 第一页返回404错误: {chapter_url}")
+            return []
+        
+        # 获取第一页的内容（这是主章节内容）
+        first_content = self._extract_encrypted_content(first_page_content)
+        if first_content:
+            sub_contents.append(first_content)
+            print(f"✅ 成功解密第一页内容: {first_content[:50]}...")
+        else:
+            print(f"⚠️ 无法解密第一页内容，但继续处理子章节")
+            # 尝试其他解密方法
+            print("尝试备用解密方法...")
+            # 检查页面是否包含明文内容
+            if "booktxthtml" in first_page_content:
+                print("页面包含booktxthtml元素，尝试直接提取")
+                # 尝试直接提取文本内容
+                text_content = self._extract_plain_text(first_page_content)
+                if text_content:
+                    sub_contents.append(text_content)
+                    print(f"✅ 使用备用方法提取到第一页内容: {text_content[:50]}...")
+        
+        # 立即提取第一页的xlink，用于判断是否需要继续
+        print("正在提取第一页的xlink...")
+        slink, xlink = self._extract_slink_xlink(first_page_content)
+        if not xlink:
+            print(f"❌ 无法从第一页提取xlink，尝试其他提取方法")
+            # 尝试多种xlink提取方法
+            xlink = self._extract_xlink_alternative(first_page_content)
+            if not xlink:
+                print(f"❌ 所有xlink提取方法都失败，无法继续处理子章节")
+                return sub_contents
+        
+        print(f"✅ 成功提取xlink: {xlink}")
+        
+        print(f"第一页xlink: {xlink}")
+        
+        # 构建下一页URL
+        if xlink.startswith('/'):
+            next_url = urljoin(self.base_url, xlink)
+        elif xlink.startswith('http'):
+            next_url = xlink
+        else:
+            # 相对路径，需要基于当前URL构建
+            next_url = urljoin(current_url, xlink)
+        
+        # 检查是否需要继续处理
+        # 如果xlink指向章节列表页，说明第一页就是唯一的一页
+        if (xlink.startswith('/read/') and not any(sub in xlink for sub in ['.html', '_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9'])):
+            print(f"第一页xlink指向章节列表页，没有子章节: {xlink}")
+            return sub_contents
+        
+        # 检查xlink是否与当前书籍的章节列表页一致（说明是最后一页）
+        # 构建当前书籍的章节列表页URL
+        book_id = chapter_url.split('/')[-2]  # 从URL中提取书籍ID，如dhce
+        chapter_list_url = f"{self.base_url}/read/{book_id}/"
+        
+        # 处理xlink中的转义字符
+        cleaned_xlink = xlink.replace('\\/', '/')
+        
+        # 如果xlink指向章节列表页，说明当前是第一页也是最后一页
+        if cleaned_xlink == chapter_list_url or cleaned_xlink == f"{self.base_url}/read/{book_id}/":
+            print(f"第一页xlink指向章节列表页（最后一页），没有子章节: {cleaned_xlink}")
+            return sub_contents
+        
+        # 如果xlink指向其他主章节，说明第一页就是唯一的一页
+        next_base_name = extract_base_name(next_url)
+        if next_base_name and next_base_name != chapter_base_name:
+            print(f"第一页xlink指向其他主章节（{next_base_name} != {chapter_base_name}），没有子章节")
+            return sub_contents
+        
+        # 如果xlink指向当前页面本身，说明第一页就是唯一的一页
+        if next_url == current_url:
+            print(f"第一页xlink指向当前页面，没有子章节")
+            return sub_contents
+        
+        # 特殊检查：如果xlink指向的页面包含数字后缀（如_2.html），则认为是子章节，继续处理
+        if any(sub in xlink for sub in ['_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9']):
+            print(f"第一页xlink指向子章节（包含数字后缀），继续处理: {next_url}")
+            # 更新current_url为下一页
+            current_url = next_url
+        else:
+            # 否则，xlink指向子章节，继续处理
+            print(f"第一页xlink指向子章节，继续处理: {next_url}")
+            # 更新current_url为下一页
+            current_url = next_url
+        
+        # 然后查找子章节
         while current_url and current_url not in visited_urls:
             visited_urls.add(current_url)
             
             # 获取当前页面内容
             content = self._get_url_content(current_url)
             if not content:
+                print(f"无法获取页面内容: {current_url}")
                 break
+            
+            # 提取当前页面的内容
+            sub_content = self._extract_encrypted_content(content)
+            if not sub_content:
+                print(f"无法解密当前页面内容，尝试备用方法: {current_url}")
+                # 尝试备用方法
+                sub_content = self._extract_plain_text(content)
+            
+            if sub_content:
+                # 确保不重复添加相同内容
+                if not any(sc == sub_content for sc in sub_contents):
+                    sub_contents.append(sub_content)
+                    print(f"获取子章节内容: {sub_content[:50]}...")
+                else:
+                    print(f"子章节内容已存在，跳过: {current_url}")
+            else:
+                print(f"⚠️ 无法获取子章节内容，但继续处理下一页: {current_url}")
             
             # 提取slink和xlink
             slink, xlink = self._extract_slink_xlink(content)
@@ -336,35 +528,55 @@ class PhotoGramParser(BaseParser):
             
             print(f"找到链接 - slink: {slink}, xlink: {xlink}")
             
-            # 检查xlink是否是当前章节的子章节
-            if not self._is_same_chapter(current_url, xlink):
-                print(f"xlink指向其他章节，停止子章节爬取: {xlink}")
-                break
-            
             # 构建完整的xlink URL
             if xlink.startswith('/'):
-                next_url = urljoin(self.base_url, xlink)
+                page_next_url = urljoin(self.base_url, xlink)
+            elif xlink.startswith('http'):
+                page_next_url = xlink
             else:
-                next_url = xlink
+                # 相对路径，需要基于当前URL构建
+                page_next_url = urljoin(current_url, xlink)
             
-            # 如果是下一个页面，获取内容
-            if next_url != current_url:
-                sub_content = self._get_single_chapter_content(next_url)
-                if sub_content:
-                    sub_contents.append(sub_content)
-                    current_url = next_url
-                    # 添加延迟避免请求过快
-                    import time
-                    time.sleep(1)
-                else:
-                    print(f"无法获取子章节内容: {next_url}")
-                    break
+            # 检查xlink是否是当前章节的子章节
+            # 判断规则：
+            # 1. 如果xlink指向章节列表页（如 /read/cidhld/），说明当前章节结束
+            # 2. 如果xlink是其他主章节（基本名不同），说明当前章节结束
+            # 3. 如果xlink是当前主章节的子章节，继续处理
+            
+            # 情况1：检查是否指向章节列表页（如 /read/cidhld/）
+            # 章节列表页的特征是路径以/read/开头，后面直接跟着小说ID，没有具体的章节文件名
+            if xlink.startswith('/read/') and not any(sub in xlink for sub in ['.html', '_1', '_2', '_3', '_4', '_5']):
+                print(f"xlink指向章节列表页，当前章节处理完成: {xlink}")
+                break
+            
+            # 检查xlink是否与当前书籍的章节列表页一致（说明是最后一页）
+            cleaned_xlink = xlink.replace('\\/', '/')
+            if cleaned_xlink == chapter_list_url or cleaned_xlink == f"{self.base_url}/read/{book_id}/":
+                print(f"xlink指向章节列表页（最后一页），当前章节处理完成: {cleaned_xlink}")
+                break
+            
+            # 情况2：检查是否指向其他主章节
+            xlink_base_name = extract_base_name(page_next_url)
+            if xlink_base_name and xlink_base_name != chapter_base_name:
+                print(f"xlink指向其他主章节（{xlink_base_name} != {chapter_base_name}），当前章节处理完成")
+                break
+            
+            # 情况3：xlink是当前主章节的子章节
+            if page_next_url != current_url:
+                # 无论是否成功获取内容，都继续到下一页
+                current_url = page_next_url
+                # 添加延迟避免请求过快
+                import time
+                time.sleep(1)
             else:
+                # xlink指向当前页面，说明已经到达最后
+                print("xlink指向当前页面，已经到达最后一页")
                 break
         
+        print(f"总共获取到 {len(sub_contents)} 个子章节内容")
         return sub_contents
     
-    def _extract_slink_xlink(self, content: str) -> tuple:
+    def _extract_slink_xlink(self, content: str) -> tuple[str, str]:
         """
         从页面内容中提取slink和xlink
         
@@ -390,25 +602,116 @@ class PhotoGramParser(BaseParser):
             
             return slink, xlink
         
-        return None, None
+        return "", ""  # type: ignore
     
-    def _is_same_chapter(self, current_url: str, xlink: str) -> bool:
+    def _extract_plain_text(self, content: str) -> Optional[str]:
         """
-        判断xlink是否与当前URL属于同一章节
+        从页面内容中提取明文文本（备用方法）
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的文本内容
+        """
+        try:
+            # 尝试提取booktxthtml元素的内容
+            # 格式：<div id="booktxthtml">...</div>
+            pattern = r'<div[^>]*id=["\']booktxthtml["\'][^>]*>(.*?)</div>'
+            match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            
+            if match:
+                html_content = match.group(1)
+                # 清理HTML标签
+                text_content = re.sub(r'<[^>]+>', '', html_content)
+                text_content = re.sub(r'\s+', ' ', text_content).strip()
+                
+                if text_content and len(text_content) > 10:
+                    return text_content
+            
+            # 尝试其他可能的文本容器
+            patterns = [
+                r'<div[^>]*class=["\']content["\'][^>]*>(.*?)</div>',
+                r'<div[^>]*class=["\']text["\'][^>]*>(.*?)</div>',
+                r'<p[^>]*>(.*?)</p>',
+            ]
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
+                if matches:
+                    all_text = []
+                    for match in matches:
+                        text = re.sub(r'<[^>]+>', '', match)
+                        text = re.sub(r'\s+', ' ', text).strip()
+                        if text and len(text) > 10:
+                            all_text.append(text)
+                    
+                    if all_text:
+                        return '\n\n'.join(all_text)
+            
+            return None
+        except Exception as e:
+            print(f"提取明文文本失败: {e}")
+            return None
+    
+    def _extract_xlink_alternative(self, content: str) -> Optional[str]:
+        """
+        备用方法提取xlink
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的xlink
+        """
+        try:
+            # 方法1：查找包含xlink的script标签
+            patterns = [
+                # 标准格式：var xlink = '...';
+                r'xlink\s*=\s*["\']([^"\']+)["\']',
+                # 其他可能格式
+                r'xlink:\s*["\']([^"\']+)["\']',
+                r'next[^>]*href=["\']([^"\']+)["\']',
+                # 查找下一页链接
+                r'href=["\']([^"\']+_2\.html)["\']',
+                r'href=["\']([^"\']+_\d+\.html)["\']',
+            ]
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, content, re.IGNORECASE)
+                for match in matches:
+                    # 过滤掉明显的错误链接
+                    if match and not match.startswith('#') and 'javascript' not in match:
+                        # 检查是否是子章节链接（包含_数字.html）
+                        if re.search(r'_\d+\.html', match):
+                            return match
+                        # 或者检查是否是相对路径
+                        elif match.startswith('/') or '.' in match:
+                            return match
+            
+            return None
+        except Exception as e:
+            print(f"备用xlink提取失败: {e}")
+            return None
+    
+    def _is_sub_chapter(self, current_url: str, xlink: str) -> bool:
+        """
+        判断xlink是否是当前主章节的子章节
+        
+        根据您提供的URL结构，判断规则如下：
+        1. 主章节URL格式: /dhjd/giehg.html
+        2. 子章节URL格式: /dhjd/giehg_1.html, /dhjd/giehg_2.html 等
+        3. 如果xlink不包含数字后缀，且与当前URL的基本名不同，则指向下一个主章节
         
         Args:
             current_url: 当前页面URL
             xlink: 下一页链接
             
         Returns:
-            是否属于同一章节
+            是否是当前主章节的子章节
         """
-        # 从路径中提取章节标识
-        # 例如: /eddli/iglk.html -> iglk
-        #       /eddli/iglk_1.html -> iglk
-        #       /eddli/igcl.html -> igcl
-        
-        def extract_chapter_id(url_or_path):
+        # 提取当前URL的基本信息
+        def extract_base_info(url_or_path):
             # 如果是完整URL，先提取路径部分
             if url_or_path.startswith('http'):
                 from urllib.parse import urlparse
@@ -423,22 +726,73 @@ class PhotoGramParser(BaseParser):
             parts = path.split('/')
             if len(parts) >= 2:
                 filename = parts[-1]  # 获取文件名
-                # 移除扩展名
-                name_without_ext = filename.replace('.html', '')
-                # 移除数字后缀（如 _1, _2 等）
-                name_without_ext = re.sub(r'_\d+$', '', name_without_ext)
-                return name_without_ext
+                # 分离基本名和后缀
+                base_name = filename.replace('.html', '')
+                # 检查是否有数字后缀
+                match = re.match(r'(.+?)_(\d+)$', base_name)
+                if match:
+                    # 有数字后缀，是子章节
+                    return {
+                        'is_sub_chapter': True,
+                        'base_name': match.group(1),
+                        'suffix': int(match.group(2))
+                    }
+                else:
+                    # 没有数字后缀，是主章节
+                    return {
+                        'is_sub_chapter': False,
+                        'base_name': base_name,
+                        'suffix': 0
+                    }
             return None
         
-        current_id = extract_chapter_id(current_url)
-        xlink_id = extract_chapter_id(xlink)
+        current_info = extract_base_info(current_url)
+        xlink_info = extract_base_info(xlink)
         
-        if current_id and xlink_id:
-            is_same = current_id == xlink_id
-            print(f"章节ID比较 - 当前URL: {current_id}, xlink: {xlink_id}, 相同: {is_same}")
-            return is_same
+        if current_info and xlink_info:
+            print(f"当前URL信息: {current_info}, xlink信息: {xlink_info}")
+            
+            # 如果xlink是子章节
+            if xlink_info['is_sub_chapter']:
+                # 检查基本名是否与当前URL的基本名匹配
+                # 当前URL可能是主章节，也可能是子章节
+                current_base = current_info['base_name']
+                if current_info['is_sub_chapter']:
+                    # 如果当前URL也是子章节，使用它的基本名
+                    current_base = current_info['base_name']
+                
+                is_sub = current_base == xlink_info['base_name']
+                print(f"xlink是子章节，基本名匹配: {is_sub}")
+                return is_sub
+            else:
+                # xlink不是子章节（是主章节）
+                # 检查基本名是否与当前URL的基本名相同
+                current_base = current_info['base_name']
+                if current_info['is_sub_chapter']:
+                    # 如果当前URL是子章节，使用它的基本名
+                    current_base = current_info['base_name']
+                
+                is_sub = current_base == xlink_info['base_name']
+                print(f"xlink是主章节，与当前基本名相同: {is_sub}")
+                return is_sub
         
         return False
+    
+    def _is_same_chapter(self, current_url: str, xlink: str) -> bool:
+        """
+        判断xlink是否与当前URL属于同一章节
+        
+        这个方法保留作为后备，但建议使用_is_sub_chapter方法
+        
+        Args:
+            current_url: 当前页面URL
+            xlink: 下一页链接
+            
+        Returns:
+            是否属于同一章节
+        """
+        # 调用新的_is_sub_chapter方法
+        return self._is_sub_chapter(current_url, xlink)
     
     def _extract_encrypted_content(self, content: str) -> Optional[str]:
         """
@@ -460,22 +814,28 @@ class PhotoGramParser(BaseParser):
             match = re.search(pattern, content, re.DOTALL)
             if match:
                 # 根据正则表达式分组情况获取参数
-                if pattern == script_patterns[0] or pattern == script_patterns[1]:
-                    # 格式1和2：group(1)=encrypted_data, group(2)=key, group(3)=iv
+                if pattern == script_patterns[0]:
+                    # 格式：group(1)=encrypted_data, group(2)=key, group(3)=iv
                     encrypted_data = match.group(1)
                     key = match.group(2)
                     iv = match.group(3)
-                
-                print(f"使用正则模式找到加密内容，数据长度: {len(encrypted_data)}")
-                print(f"提取的密钥: {key}")
-                print(f"提取的IV: {iv}")
-                
-                # 尝试解密
-                decrypted_content = self._decrypt_content(encrypted_data, key, iv)
-                if decrypted_content:
-                    # 清理HTML内容
-                    cleaned_content = self._clean_html_content(decrypted_content)
-                    return cleaned_content
+                    
+                    # 检查变量是否被正确定义
+                    if encrypted_data and key and iv:
+                        print(f"使用正则模式找到加密内容，数据长度: {len(encrypted_data)}")
+                        print(f"提取的密钥: {key}")
+                        print(f"提取的IV: {iv}")
+                        
+                        # 尝试解密
+                        decrypted_content = self._decrypt_content(encrypted_data, key, iv)
+                        if decrypted_content:
+                            # 清理HTML内容
+                            cleaned_content = self._clean_html_content(decrypted_content)
+                            return cleaned_content
+                else:
+                    # 处理其他正则模式的情况
+                    print(f"使用正则模式 {pattern} 找到匹配，但未实现处理逻辑")
+                    continue
         
         # 如果所有正则模式都失败，尝试查找加密数据段
         print("正则表达式匹配失败，尝试查找加密数据段")
@@ -572,7 +932,7 @@ class PhotoGramParser(BaseParser):
             return True, salt, data[16:]
         return False, None, data
     
-    def _try_decompress(self, decoded_bytes: bytes) -> dict:
+    def _try_decompress(self, decoded_bytes: bytes) -> dict[str, bytes]:
         """尝试解压缩"""
         results = {}
         # try zlib
@@ -632,8 +992,19 @@ class PhotoGramParser(BaseParser):
             # 将原始完整字符串作为候选
             candidates.append(("original", s))
             
-            # 解码IV
-            iv_bytes = base64.b64decode(iv)
+            # 解码IV，处理转义字符
+            iv = iv.replace('\\u002b', '+').replace('\\u002f', '/').replace('\\u003d', '=')
+            try:
+                iv_bytes = base64.b64decode(iv)
+            except Exception as e:
+                print(f"IV解码失败: {e}, 尝试修复")
+                # 如果解码失败，尝试截取前16个字节
+                try:
+                    iv_decoded = base64.b64decode(iv + '==')
+                    iv_bytes = iv_decoded[:16]
+                except Exception as e2:
+                    print(f"IV修复失败: {e2}")
+                    return None
             key_bytes = key.encode('utf-8')
             
             for name, b64text in candidates:
@@ -740,7 +1111,7 @@ class PhotoGramParser(BaseParser):
             # 获取小说页面内容
             content = self._get_url_content(novel_url)
             if not content:
-                return {"error": "无法获取页面内容"}
+                return {"error": "无法获取页面内容"}  # type: ignore
             
             print(f"页面获取成功，长度: {len(content)} 字符")
             
@@ -749,7 +1120,7 @@ class PhotoGramParser(BaseParser):
             print(f"提取标题: {title}")
             
             if not title:
-                return {"error": "无法提取小说标题"}
+                return {"error": "无法提取小说标题"}  # type: ignore
             
             # 解析多章节小说
             result = self._parse_multichapter_novel(content, novel_url, title)
@@ -758,7 +1129,7 @@ class PhotoGramParser(BaseParser):
                 
         except Exception as e:
             print(f"解析失败: {e}")
-            return {"error": str(e)}
+            return {"error": str(e)}  # type: ignore
     
     def run_test(self, test_url: str = None):
         """
@@ -769,7 +1140,7 @@ class PhotoGramParser(BaseParser):
         """
         if test_url is None:
             # 使用默认的测试URL
-            test_url = "https://www.photo-gram.com/read/eddli/"
+            test_url = "https://www.photo-gram.com/read/dhce/"
         
         result = self.test_parser(test_url)
         

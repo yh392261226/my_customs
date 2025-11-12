@@ -75,7 +75,8 @@ class NovelSitesManagementScreen(Screen[None]):
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限"""
         try:
-            return self.database_manager.has_permission(permission_key)
+            # 使用应用的权限检查方法，而不是直接调用database_manager
+            return self.app.has_permission(permission_key)
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
