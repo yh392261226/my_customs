@@ -449,7 +449,8 @@ class DatabaseManager:
                 ('色色书阁', 'http://gltb91xg.sssg3.lol/', '~/Documents/novels/datas/', '0', '1', 'gltb91xg_v2', '🔞成人', '2', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
                 ('闲娱乐小说网', 'https://xiyule.co/', '~/Documents/novels/datas/', '0', '0', 'xiyule_v2', '🔞成人', '2', datetime.now().isoformat(), datetime.now().isoformat(), '12345/文字'),
                 ('夜猫文献', 'https://g33reuec.yemao1.top/', '~/Documents/novels/datas/', '0', '1', 'g33reuec_v2', '🔞成人', '2', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
-                ('小爽文', 'https://chanji-shi.shop/', '~/Documents/novels/datas/', '0', '1', 'chanjishi_v2', '🔞成人', '2', datetime.now().isoformat(), datetime.now().isoformat(), '12345')
+                ('小爽文', 'https://chanji-shi.shop/', '~/Documents/novels/datas/', '0', '1', 'chanjishi_v2', '🔞成人', '2', datetime.now().isoformat(), datetime.now().isoformat(), '12345'),
+                ('飞库文学网', 'https://www.feiku6.com/', '~/Documents/novels/datas/', '0', '1', 'feiku6_v2', '流行名著', '5', datetime.now().isoformat(), datetime.now().isoformat(), 'shumingpinyin')
             ]
             
             for site_data in novel_sites_data:
