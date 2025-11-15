@@ -262,7 +262,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             from src.core.bookshelf import Bookshelf
             
             # 获取书籍信息用于确认对话框
-            bookshelf = Bookshelf()
+            bookshelf = Bookshelf(app=self.app)
             book = bookshelf.get_book(book_path)
             
             if not book:

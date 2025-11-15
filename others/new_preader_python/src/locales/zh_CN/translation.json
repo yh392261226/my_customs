@@ -204,7 +204,8 @@
         "rename_success": "书籍《{title}》重命名成功",
         "rename_failed": "重命名书籍失败",
         "all_sources": "所有来源",
-        "select_source": "选择来源"
+        "select_source": "选择来源",
+        "jump_to": "跳转到"
     },
     "batch_ops": {
         "title": "批量操作",

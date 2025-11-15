@@ -91,7 +91,7 @@
     border: solid $primary;
     height: 3;
     margin: 0 1;
-    width: 90%;
+    width: 86%;
 }
 
 #main-container Static {

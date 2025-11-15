@@ -285,43 +285,49 @@ class Book:
         """增加打开次数"""
         self.open_count += 1
     
-    def load_last_reading_position(self, bookshelf) -> bool:
+    def load_last_reading_position(self, db_manager) -> bool:
         """
         从数据库加载上次阅读位置信息
-        
+
         Args:
-            bookshelf: Bookshelf对象，用于获取数据库管理器
+            db_manager: 数据库管理器
             
         Returns:
             bool: 是否成功加载了阅读位置信息
         """
-        try:
-            # 从数据库获取阅读信息
-            reading_info = bookshelf.get_book_reading_info(self.path)
+        from src.utils.exception_handler import ExceptionHandler
+        
+        return ExceptionHandler.safe_execute(
+            lambda: self._load_last_reading_position_impl(db_manager),
+            "加载阅读位置信息",
+            default_return=False,
+            user_message="加载阅读位置失败"
+        )
+    
+    def _load_last_reading_position_impl(self, db_manager) -> bool:
+        """加载阅读位置信息的实现"""
+        # 从数据库获取阅读信息
+        reading_info = db_manager.get_book_reading_info(self.path)
+        
+        if reading_info:
+            # 更新阅读位置信息
+            self.current_position = reading_info.get('current_position', 0)
+            self.current_page = reading_info.get('current_page', 0)
+            self.total_pages = reading_info.get('total_pages', 0)
+            self.reading_progress = reading_info.get('reading_progress', 0.0)
+            self.last_read_date = reading_info.get('last_read_date')
+            self.word_count = reading_info.get('word_count', 0)
             
-            if reading_info:
-                # 更新阅读位置信息
-                self.current_position = reading_info.get('current_position', 0)
-                self.current_page = reading_info.get('current_page', 0)
-                self.total_pages = reading_info.get('total_pages', 0)
-                self.reading_progress = reading_info.get('reading_progress', 0.0)
-                self.last_read_date = reading_info.get('last_read_date')
-                self.word_count = reading_info.get('word_count', 0)
-                
-                # 如果有锚点信息，也加载
-                if 'anchor_text' in reading_info:
-                    self.anchor_text = reading_info.get('anchor_text', '')
-                if 'anchor_hash' in reading_info:
-                    self.anchor_hash = reading_info.get('anchor_hash', '')
-                
-                logger.info(f"成功加载上次阅读位置: {self.title} - 位置: {self.current_position}, 页码: {self.current_page}/{self.total_pages}")
-                return True
-            else:
-                logger.info(f"没有找到上次阅读位置信息: {self.title}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"加载上次阅读位置失败 {self.title}: {e}")
+            # 如果有锚点信息，也加载
+            if 'anchor_text' in reading_info:
+                self.anchor_text = reading_info.get('anchor_text', '')
+            if 'anchor_hash' in reading_info:
+                self.anchor_hash = reading_info.get('anchor_hash', '')
+            
+            logger.info(f"成功加载上次阅读位置: {self.title} - 位置: {self.current_position}, 页码: {self.current_page}/{self.total_pages}")
+            return True
+        else:
+            logger.info(f"没有找到上次阅读位置信息: {self.title}")
             return False
     
     def get_content(self) -> str:

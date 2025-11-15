@@ -479,7 +479,7 @@ class NewReaderApp(App[None]):
         #     logger.debug(f"命令面板显式注册失败（可忽略）：{e}")
         
         # 初始化书架
-        self.bookshelf = Bookshelf(config.get("app", {}).get("library_path", "library"))
+        self.bookshelf = Bookshelf(config.get("app", {}).get("library_path", "library"), app=self)
         
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()

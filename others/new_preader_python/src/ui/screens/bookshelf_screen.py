@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
-from textual.widgets import Static, Button, Label, DataTable, Header, Footer, LoadingIndicator, Input, Select
+from textual.widgets import Static, Button, Label, Header, Footer, LoadingIndicator, Input, Select
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual.reactive import reactive
 from textual import on, events
 
@@ -95,9 +96,20 @@ class BookshelfScreen(Screen[None]):
         
         # 分页相关属性
         self._current_page = 1
-        self._books_per_page = 20
+        self._books_per_page = 15
         self._total_pages = 1
         self._all_books: List[Book] = []
+        
+        # 分页优化：缓存和性能相关
+        self._books_cache: Dict[str, List[Book]] = {}  # 缓存搜索结果
+        self._last_cache_key = ""  # 上次缓存键
+        self._cache_timestamp = 0  # 缓存时间戳
+        self._cache_ttl = 300  # 缓存有效期（秒）
+        self._cache_max_size = 1000  # 最大缓存条目数
+        self._cache_hits = 0  # 缓存命中次数
+        self._cache_misses = 0  # 缓存未命中次数
+        self._cache_eviction_policy = "lru"  # 缓存淘汰策略
+        self._cache_memory_limit = 100 * 1024 * 1024  # 内存限制100MB
         
         # 表格初始化状态
         self._table_initialized = False
@@ -123,12 +135,21 @@ class BookshelfScreen(Screen[None]):
         self._search_format = "all"
         self._search_author = "all"
         
+        # 搜索历史（存储最近10个搜索关键词）
+        self._search_history: List[str] = []
+        self._max_search_history = 10
+        
         # 初始化加载指示器变量
         self.loading_indicator = None
         
         # 作者列表缓存（性能优化）
         self._author_options_cache = None
         self._author_options_loaded = False
+        
+        # 阅读信息缓存（性能优化）
+        self._reading_info_cache: Dict[str, Dict[str, Any]] = {}
+        self._reading_info_cache_timestamp: Dict[str, float] = {}
+        self._reading_info_cache_ttl = 60  # 缓存60秒
     
 
     
@@ -196,29 +217,23 @@ class BookshelfScreen(Screen[None]):
                     classes="bookshelf-header-vertical"
                 ),
                 # 中间数据表区域
-                DataTable(id="books-table"),
+                VirtualDataTable(id="books-table"),
                 # 书籍统计信息区域
                 Vertical(
                     Label("", id="books-stats-label"),
                     id="books-stats-area"
                 ),
-                # 底部状态栏（简化版本）
-                # Horizontal(
-                #     Label(f"↑↓: {get_global_i18n().t('bookshelf.choose_book')}", id="shortcut-arrows"),
-                #     Label(f"Enter: {get_global_i18n().t('bookshelf.open_book')}", id="shortcut-enter"),
-                #     Label(f"S: {get_global_i18n().t('bookshelf.search')}", id="shortcut-s"),
-                #     Label(f"R: {get_global_i18n().t('bookshelf.sort_name')}", id="shortcut-r"),
-                #     Label(f"L: {get_global_i18n().t('bookshelf.batch_ops_name')}", id="shortcut-l"),
-                #     Label(f"A: {get_global_i18n().t('bookshelf.add_book')}", id="shortcut-a"),
-                #     Label(f"D: {get_global_i18n().t('bookshelf.scan_directory')}", id="shortcut-d"),
-                #     Label(f"G: {get_global_i18n().t('get_books.title')}", id="shortcut-g"),
-                #     Label(f"F: {get_global_i18n().t('bookshelf.refresh')}", id="shortcut-f"),
-                #     Label(f"P: {get_global_i18n().t('bookshelf.prev_page')}", id="shortcut-p"),
-                #     Label(f"N: {get_global_i18n().t('bookshelf.next_page')}", id="shortcut-n"),
-                #     Label(f"ESC: {get_global_i18n().t('bookshelf.back')}", id="shortcut-esc"),
-                #     id="shortcuts-bar",
-                #     classes="footer status-bar"
-                # ),
+                # 底部状态栏（分页导航和统计信息）
+                Horizontal(
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(get_global_i18n().t("bookshelf.jump_to"), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
+                ),
                 # id="bookshelf-container"
             ),
             id="bookshelf-screen",
@@ -236,9 +251,9 @@ class BookshelfScreen(Screen[None]):
         
         # 设置Grid布局的行高分配 - 与CSS保持一致
         grid = self.query_one("Grid")
-        grid.styles.grid_size_rows = 3
+        grid.styles.grid_size_rows = 4
         grid.styles.grid_size_columns = 1
-        grid.styles.grid_rows = ("25%", "65%", "10%")
+        grid.styles.grid_rows = ("25%", "55%", "10%", "10%")
         
         # 原生 LoadingIndicator（初始隐藏），挂载到书籍统计区域
         try:
@@ -249,30 +264,33 @@ class BookshelfScreen(Screen[None]):
         except Exception:
             pass
         
-        # 初始化数据表（只在未初始化时添加列）
-        table = self.query_one("#books-table", DataTable)
-        if not self._table_initialized:
-            # 根据权限过滤操作列
-            can_read = getattr(self.app, "has_permission", lambda k: True)("bookshelf.read")
-            can_view = getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file")
-            can_delete = getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book")
-            cols = []
-            for label, key in self.columns:
-                if key == "read_action" and not can_read:
-                    continue
-                if key == "view_action" and not can_view:
-                    continue
-                if key == "delete_action" and not can_delete:
-                    continue
-                cols.append((label, key))
-            for col in cols:
-                table.add_column(col[0], key=col[1])
-            
-            # 启用隔行变色效果
-            table.zebra_stripes = True
-            
-            # 标记表格已初始化
-            self._table_initialized = True
+        # 初始化数据表（每次挂载时确保列已正确添加）
+        table = self.query_one("#books-table", VirtualDataTable)
+        
+        # 清除现有列，重新添加（确保虚拟滚动组件列正确）
+        table.clear(columns=True)
+        
+        # 根据权限过滤操作列
+        can_read = getattr(self.app, "has_permission", lambda k: True)("bookshelf.read")
+        can_view = getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file")
+        can_delete = getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book")
+        cols = []
+        for label, key in self.columns:
+            if key == "read_action" and not can_read:
+                continue
+            if key == "view_action" and not can_view:
+                continue
+            if key == "delete_action" and not can_delete:
+                continue
+            cols.append((label, key))
+        for col in cols:
+            table.add_column(col[0], key=col[1])
+        
+        # 启用隔行变色效果
+        table.zebra_stripes = True
+        
+        # 标记表格已初始化
+        self._table_initialized = True
 
         # 按权限禁用/隐藏按钮
         try:
@@ -303,17 +321,16 @@ class BookshelfScreen(Screen[None]):
                     self.bookshelf.set_current_user(None, "user")
                     self.logger.warning("多用户模式：未找到当前用户，已清空用户设置")
             else:
-                # 单用户模式：使用默认用户或无用户
+                # 单用户模式：设置为超级管理员以查看所有书籍
                 if current_user:
-                    # 如果有用户信息，也设置（兼容性）
+                    # 如果有用户信息，也设置为超级管理员
                     user_id = current_user.get('id')
-                    user_role = current_user.get('role', 'user')
-                    self.bookshelf.set_current_user(user_id, user_role)
-                    self.logger.debug(f"单用户模式：设置用户 ID={user_id}")
+                    self.bookshelf.set_current_user(user_id, "superadmin")
+                    self.logger.debug(f"单用户模式：设置用户 ID={user_id} 为超级管理员")
                 else:
-                    # 单用户模式无用户时使用默认设置
-                    self.bookshelf.set_current_user(None, "user")
-                    self.logger.debug("单用户模式：使用默认设置")
+                    # 单用户模式无用户时设置为超级管理员
+                    self.bookshelf.set_current_user(None, "superadmin")
+                    self.logger.debug("单用户模式：设置为超级管理员")
             
             # 初始化用户ID缓存
             self._last_user_id = current_user.get('id') if current_user else None
@@ -324,8 +341,11 @@ class BookshelfScreen(Screen[None]):
         # 加载书籍数据
         self._load_books()
         
+        # 初始化分页按钮状态
+        self._update_pagination_buttons()
+        
         # 设置数据表焦点，使其能够接收键盘事件
-        table = self.query_one("#books-table", DataTable)
+        table = self.query_one("#books-table", VirtualDataTable)
         table.focus()
     
     def _add_table_columns(self, table) -> None:
@@ -360,9 +380,9 @@ class BookshelfScreen(Screen[None]):
             search_author: 作者筛选
         """
         # 显示加载动画
-        self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}")
+        self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=0)
         
-        table = self.query_one("#books-table", DataTable)
+        table = self.query_one("#books-table", VirtualDataTable)
         
         # 性能优化：检查是否只需要更新当前页数据（分页切换时）
         current_search_params = f"{search_keyword}_{search_format}_{search_author}"
@@ -409,17 +429,16 @@ class BookshelfScreen(Screen[None]):
                         self.bookshelf.set_current_user(None, "user")
                         self.logger.warning("多用户模式：未找到当前用户，已清空用户设置")
                 else:
-                    # 单用户模式：使用默认用户或无用户
+                    # 单用户模式：设置为超级管理员以查看所有书籍
                     if current_user:
-                        # 如果有用户信息，也设置（兼容性）
+                        # 如果有用户信息，也设置为超级管理员
                         user_id = current_user.get('id')
-                        user_role = current_user.get('role', 'user')
-                        self.bookshelf.set_current_user(user_id, user_role)
-                        self.logger.debug(f"单用户模式：设置用户 ID={user_id}")
+                        self.bookshelf.set_current_user(user_id, "superadmin")
+                        self.logger.debug(f"单用户模式：设置用户 ID={user_id} 为超级管理员")
                     else:
-                        # 单用户模式无用户时使用默认设置
-                        self.bookshelf.set_current_user(None, "user")
-                        self.logger.debug("单用户模式：使用默认设置")
+                        # 单用户模式无用户时设置为超级管理员
+                        self.bookshelf.set_current_user(None, "superadmin")
+                        self.logger.debug("单用户模式：设置为超级管理员")
                 
                 # 性能优化：只在真正需要时重新加载书架数据
                 # 多用户模式下的特殊处理：用户切换时强制重新加载
@@ -450,14 +469,37 @@ class BookshelfScreen(Screen[None]):
             # 缓存搜索参数
             self._last_search_params = current_search_params
         
-        # 获取已经按用户权限过滤后的书籍进行搜索
-        all_books = list(self.bookshelf.books.values())
-        
+        # 性能优化：使用缓存
+        cache_key = self._get_cache_key()
         if not page_change_only:
-            filtered_books = []
+            # 尝试从缓存获取数据
+            cached_books = self._load_books_from_cache(cache_key)
+            if cached_books is not None:
+                filtered_books = cached_books
+                self.logger.debug("使用缓存的书架数据")
+                # 更新进度：缓存命中
+                self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=20)
+                # 当使用缓存时，需要重新获取所有书籍用于筛选
+                all_books = list(self.bookshelf.books.values())
+            else:
+                # 获取已经按用户权限过滤后的书籍进行搜索
+                all_books = list(self.bookshelf.books.values())
+                filtered_books = []
             
-            # 支持多关键词搜索（逗号分隔）
-            keywords = [k.strip() for k in search_keyword.split(",") if k.strip()] if search_keyword else []
+            # 支持多关键词搜索（逗号分隔，支持AND/OR逻辑）
+            # 格式: "关键词1,关键词2" (OR逻辑) 或 "关键词1+关键词2" (AND逻辑)
+            keywords = []
+            search_logic = "or"  # 默认OR逻辑
+            
+            if search_keyword:
+                if "+" in search_keyword:
+                    # AND逻辑: 关键词1+关键词2
+                    keywords = [k.strip() for k in search_keyword.split("+") if k.strip()]
+                    search_logic = "and"
+                else:
+                    # OR逻辑: 关键词1,关键词2
+                    keywords = [k.strip() for k in search_keyword.split(",") if k.strip()]
+                    search_logic = "or"
             
             # 处理search_format参数，确保正确处理NoSelection对象
             actual_search_format = "all"
@@ -483,15 +525,24 @@ class BookshelfScreen(Screen[None]):
             if actual_search_format == "all" and actual_search_author == "all" and not keywords:
                 # 没有搜索条件时，直接使用所有书籍
                 filtered_books = all_books
+                # 更新进度：筛选完成
+                self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=40)
             else:
                 # 有搜索条件时进行筛选
-                for book in all_books:
+                total_books = len(all_books)
+                filtered_books = []
+                
+                for i, book in enumerate(all_books):
+                    # 更新筛选进度
+                    if i % 10 == 0:  # 每10本书更新一次进度
+                        progress = 40 + (i / total_books * 20)  # 40% - 60%
+                        self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=progress)
+                    
                     # 检查文件格式
                     format_match = True
                     
                     if actual_search_format != "all":
                         # 书籍的format包含点号（如.txt），下拉框值没有点号（如txt）
-                        # 需要将书籍格式去掉点号再比较
                         book_format_without_dot = book.format.lower().lstrip('.')
                         format_match = book_format_without_dot == actual_search_format.lower()
                     
@@ -504,20 +555,42 @@ class BookshelfScreen(Screen[None]):
                     keyword_match = False
                     if format_match and author_match:
                         if keywords:
-                            # 多关键词OR逻辑：只要匹配任意一个关键词
-                            for keyword in keywords:
-                                if (keyword.lower() in book.title.lower() or 
-                                    keyword.lower() in book.author.lower() or 
-                                    (hasattr(book, 'pinyin') and book.pinyin and keyword.lower() in book.pinyin.lower()) or
-                                    (book.tags and keyword.lower() in book.tags.lower())):
-                                    keyword_match = True
-                                    break
+                            if search_logic == "and":
+                                # AND逻辑：所有关键词都必须匹配
+                                keyword_match = True
+                                for keyword in keywords:
+                                    # 模糊搜索：检查标题、作者、拼音、标签
+                                    title_match = keyword.lower() in book.title.lower()
+                                    author_match_keyword = keyword.lower() in book.author.lower()
+                                    pinyin_match = (hasattr(book, 'pinyin') and book.pinyin and 
+                                                   keyword.lower() in book.pinyin.lower())
+                                    tags_match = (book.tags and keyword.lower() in book.tags.lower())
+                                    
+                                    # 如果任意一个字段匹配当前关键词，继续检查下一个
+                                    if not (title_match or author_match_keyword or pinyin_match or tags_match):
+                                        keyword_match = False
+                                        break
+                            else:
+                                # OR逻辑：任意一个关键词匹配即可
+                                for keyword in keywords:
+                                    title_match = keyword.lower() in book.title.lower()
+                                    author_match_keyword = keyword.lower() in book.author.lower()
+                                    pinyin_match = (hasattr(book, 'pinyin') and book.pinyin and 
+                                                   keyword.lower() in book.pinyin.lower())
+                                    tags_match = (book.tags and keyword.lower() in book.tags.lower())
+                                    
+                                    if title_match or author_match_keyword or pinyin_match or tags_match:
+                                        keyword_match = True
+                                        break
                         else:
                             # 没有关键词时，只按格式和作者筛选
                             keyword_match = True
                     
                     if keyword_match and author_match and format_match:
                         filtered_books.append(book)
+            
+            # 更新进度：排序开始
+            self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=60)
             
             # 对筛选后的书籍进行排序
             if search_keyword or search_format != "all" or search_author != "all":
@@ -532,7 +605,7 @@ class BookshelfScreen(Screen[None]):
                                        key=lambda book: reading_info_cache.get(book.path, ""), 
                                        reverse=True)
             else:
-                # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取阅读时间）
+                # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取的阅读时间）
                 self._all_books = self.bookshelf.get_sorted_books("last_read_date", reverse=True)
         
         # 计算总页数
@@ -544,11 +617,9 @@ class BookshelfScreen(Screen[None]):
         end_index = min(start_index + self._books_per_page, len(self._all_books))
         current_page_books = self._all_books[start_index:end_index]
         
-        if not page_change_only:
-            # 创建序号到书籍路径的映射
-            self._book_index_mapping = {}
-            # 创建行键到书籍路径的映射
-            self._row_key_mapping = {}
+        # 每次加载都要重新创建映射，确保行键正确
+        self._book_index_mapping = {}
+        self._row_key_mapping = {}
         
         # 性能优化：批量处理阅读历史信息
         reading_info_cache = {}
@@ -556,15 +627,24 @@ class BookshelfScreen(Screen[None]):
             reading_info = self.bookshelf.get_book_reading_info(book.path)
             reading_info_cache[book.path] = reading_info
         
-        # 清空当前页的数据
+        # 清空当前页的数据，但保留列
         if page_change_only:
+            # 只清除行数据，保留列定义
             table.clear()
+        else:
+            # 非页面切换时，确保列已正确设置
+            table.clear(columns=True)
+            self._add_table_columns(table)
         
-        for index, book in enumerate(current_page_books, start_index + 1):
+        # 准备虚拟滚动数据
+        virtual_data = []
+        for index, book in enumerate(current_page_books):
+            # 计算全局索引（从1开始）
+            global_index = start_index + index + 1
             # 存储序号到路径的映射
-            self._book_index_mapping[str(index)] = book.path
+            self._book_index_mapping[str(global_index)] = book.path
             # 存储行键到路径的映射
-            row_key = f"{book.path}_{index}"
+            row_key = f"{book.path}_{global_index}"
             self._row_key_mapping[row_key] = book.path
             
             # 从缓存中获取阅读信息
@@ -580,63 +660,62 @@ class BookshelfScreen(Screen[None]):
             if getattr(book, 'file_not_found', False):
                 display_title = f"[🈚] {book.title}"
             
-            # 获取当前表格的实际列数
-            column_count = len(table.columns)
-            
             # 添加基础列数据
             from src.utils.file_utils import FileUtils
             size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
             
-            row_values = [
-                str(index),
-                display_title,
-                book.author,
-                book.format.upper(),
-                size_display,  # 文件大小显示
-                last_read,
-                f"{progress:.1f}%",
-                tags_display,
-            ]
+            # 构建行数据
+            row_data = {
+                'title': display_title,
+                'author': book.author,
+                'format': book.format.upper(),
+                'size_display': size_display,
+                'last_read': last_read,
+                'progress': f"{progress:.1f}%",
+                'tags': tags_display,
+                'read_action': '',
+                'view_action': '',
+                'rename_action': '',
+                'delete_action': '',
+                '_row_key': row_key,  # 添加行键信息用于虚拟滚动组件
+                '_global_index': global_index  # 添加全局索引用于显示
+            }
             
-            # 根据实际列数动态添加操作按钮
-            # 基础列数量为7个，操作列从第8列开始
-            if column_count > 7:
-                # 文件不存在时，不显示阅读、查看文件、重命名按钮
-                if getattr(book, 'file_not_found', False):
-                    row_values.append("")
-                else:            
-                    if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                        row_values.append(f"[{get_global_i18n().t('bookshelf.read')}]")
+            # 根据权限设置操作按钮
+            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read") and not getattr(book, 'file_not_found', False):
+                row_data['read_action'] = f"[{get_global_i18n().t('bookshelf.read')}]"
             
-            if column_count > 8:
-                if getattr(book, 'file_not_found', False):
-                    row_values.append("")
-                else:
-                    if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
-                        row_values.append(f"[{get_global_i18n().t('bookshelf.view_file')}]")
+            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file") and not getattr(book, 'file_not_found', False):
+                row_data['view_action'] = f"[{get_global_i18n().t('bookshelf.view_file')}]"
             
-            if column_count > 9:
-                if getattr(book, 'file_not_found', False):
-                    row_values.append("")
-                else:
-                    row_values.append(f"[{get_global_i18n().t('bookshelf.rename')}]")
+            if not getattr(book, 'file_not_found', False):
+                row_data['rename_action'] = f"[{get_global_i18n().t('bookshelf.rename')}]"
             
-            if column_count > 10:
-                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
-                    row_values.append(f"[{get_global_i18n().t('bookshelf.delete')}]")
+            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
+                row_data['delete_action'] = f"[{get_global_i18n().t('bookshelf.delete')}]"
             
-            # 确保行数据列数与表格列数匹配
-            while len(row_values) < column_count:
-                row_values.append("")
-            
-            # 使用唯一的key，避免重复（book.path + 索引）
-            table.add_row(*row_values, key=f"{book.path}_{index}")
+            virtual_data.append(row_data)
+        
+        # 调试：检查虚拟数据
+        print(f"DEBUG: 准备设置虚拟数据，数据行数: {len(virtual_data)}")
+        if virtual_data:
+            print(f"DEBUG: 第一行数据示例: {virtual_data[0]}")
+        
+        # 使用虚拟滚动数据表设置数据
+        table.set_virtual_data(virtual_data)
         
         # 更新书籍统计信息
         self._update_books_stats(self._all_books)
         
         # 更新分页信息显示
         self._update_pagination_info()
+        
+        # 性能优化：保存数据到缓存
+        if not page_change_only:
+            self._save_books_to_cache(cache_key, self._all_books)
+        
+        # 更新分页按钮状态
+        self._update_pagination_buttons()
         
         # 隐藏加载动画
         self._hide_loading_animation()
@@ -724,6 +803,14 @@ class BookshelfScreen(Screen[None]):
         # 更新搜索状态
         self._search_keyword = search_input.value or ""
         
+        # 记录搜索历史（非空关键词）
+        if self._search_keyword and self._search_keyword not in self._search_history:
+            # 添加到搜索历史
+            self._search_history.insert(0, self._search_keyword)
+        # 限制搜索历史数量
+        if len(self._search_history) > self._max_search_history:
+            self._search_history = self._search_history[:self._max_search_history]
+        
         # 处理下拉框值，确保正确处理NoSelection对象
         format_value = format_filter.value
         if format_value is None or (hasattr(format_value, 'is_blank') and callable(getattr(format_value, 'is_blank', None)) and format_value.is_blank()):
@@ -736,7 +823,7 @@ class BookshelfScreen(Screen[None]):
         if author_value is None or (hasattr(author_value, 'is_blank') and callable(getattr(author_value, 'is_blank', None)) and author_value.is_blank()):
             self._search_author = "all"
         else:
-            # 确保format_value是字符串类型
+            # 确保author_value是字符串类型
             self._search_author = str(author_value) if author_value else "all"
         
         # 重置到第一页
@@ -855,6 +942,18 @@ class BookshelfScreen(Screen[None]):
                 self._get_books()
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_get_books"), severity="warning")
+        
+        # 分页导航按钮处理
+        elif event.button.id == "first-page-btn":
+            self._go_to_first_page()
+        elif event.button.id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif event.button.id == "next-page-btn":
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
     
     def on_input_changed(self, event) -> None:
         """输入框内容变化时的回调"""
@@ -871,7 +970,7 @@ class BookshelfScreen(Screen[None]):
             logger.info("来源下拉框选择变化")
             self._perform_search()
     
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_cell_selected(self, event: VirtualDataTable.CellSelected) -> None:
         """
         数据表单元格选择时的回调
         
@@ -1068,7 +1167,7 @@ class BookshelfScreen(Screen[None]):
             self.logger.error(f"删除书籍失败: {e}")
             self.notify(f"{get_global_i18n().t("bookshelf.delete_book_failed")}: {e}", severity="error")
     
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+    def on_data_table_row_selected(self, event: VirtualDataTable.RowSelected) -> None:
         """
         数据表行选择时的回调
         
@@ -1097,7 +1196,7 @@ class BookshelfScreen(Screen[None]):
         Args:
             event: 键盘事件
         """
-        table = self.query_one("#books-table", DataTable)
+        table = self.query_one("#books-table", VirtualDataTable)
         
         if event.key == "enter":
             # 获取当前选中的行
@@ -1162,21 +1261,17 @@ class BookshelfScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_refresh"), severity="warning")
             event.prevent_default()
-        elif event.key == "escape":
-            # ESC键返回（仅一次 pop，并停止冒泡）
+        elif event.key == "escape" or event.key == "q":
+            # ESC键或Q键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
             event.stop()
         elif event.key == "n":
             # N键下一页
-            if self._current_page < self._total_pages:
-                self._current_page += 1
-                self._load_books(self._search_keyword, self._search_format, self._search_author)
+            self._go_to_next_page()
             event.prevent_default()
         elif event.key == "p":
             # P键上一页
-            if self._current_page > 1:
-                self._current_page -= 1
-                self._load_books(self._search_keyword, self._search_format, self._search_author)
+            self._go_to_prev_page()
             event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
@@ -1185,7 +1280,7 @@ class BookshelfScreen(Screen[None]):
                 self._current_page += 1
                 self._load_books(self._search_keyword, self._search_format, self._search_author)
                 # 将光标移动到新页面的第一行
-                table = self.query_one("#books-table", DataTable)
+                table = self.query_one("#books-table", VirtualDataTable)
                 table.action_cursor_down()  # 先向下移动一次
                 table.action_cursor_up()     # 再向上移动一次，确保在第一行
                 event.prevent_default()
@@ -1195,7 +1290,7 @@ class BookshelfScreen(Screen[None]):
                 self._current_page -= 1
                 self._load_books(self._search_keyword, self._search_format, self._search_author)
                 # 将光标移动到新页面的最后一行
-                table = self.query_one("#books-table", DataTable)
+                table = self.query_one("#books-table", VirtualDataTable)
                 for _ in range(len(table.rows) - 1):
                     table.action_cursor_down()  # 移动到最底部
                 event.prevent_default()
@@ -1249,7 +1344,7 @@ class BookshelfScreen(Screen[None]):
                 )
                 
                 # 更新表格显示排序后的书籍
-                table = self.query_one("#books-table", DataTable)
+                table = self.query_one("#books-table", VirtualDataTable)
                 table.clear()
                 
                 # 更新序号到书籍路径的映射
@@ -1521,11 +1616,21 @@ class BookshelfScreen(Screen[None]):
         
         self.app.push_screen(file_explorer_screen, handle_directory_result)
     
-    def _show_loading_animation(self, message: Optional[str] = None) -> None:
-        """显示加载动画"""
+    def _show_loading_animation(self, message: Optional[str] = None, progress: Optional[float] = None) -> None:
+        """显示加载动画
+        
+        Args:
+            message: 加载消息
+            progress: 加载进度 (0-100)
+        """
         if message is None:
             message = get_global_i18n().t("common.on_action")
+        
         try:
+            # 显示详细的加载状态
+            progress_text = f"{progress:.1f}%" if progress is not None else "0%"
+            logger.info(f"🔄 开始加载: {message} - 进度: {progress_text}")
+            
             # 原生 LoadingIndicator：可见即动画
             try:
                 if not hasattr(self, "loading_indicator"):
@@ -1538,6 +1643,14 @@ class BookshelfScreen(Screen[None]):
             except Exception:
                 pass
 
+            # 更新状态栏显示加载状态和进度
+            try:
+                stats_label = self.query_one("#books-stats-label", Label)
+                progress_text = f" ({progress:.1f}%)" if progress is not None else ""
+                stats_label.update(f"🔄 {message}{progress_text}...")
+            except Exception:
+                pass
+            
             # 优先使用Textual集成的加载动画
             from src.ui.components.textual_loading_animation import textual_animation_manager
             
@@ -1588,3 +1701,214 @@ class BookshelfScreen(Screen[None]):
         self.query_one("#bookshelf-search-input", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#bookshelf-format-filter", Select).value = "all"
         self.query_one("#bookshelf-source-filter", Select).value = "all"
+
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._show_loading_animation(get_global_i18n().t("bookshelf.page_first"), progress=0)
+            self._current_page = 1
+            self._load_books(self._search_keyword, self._search_format, self._search_author)
+            self._hide_loading_animation()
+
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self._current_page > 1:
+            self._show_loading_animation(get_global_i18n().t("bookshelf.page_prev"), progress=0)
+            self._current_page -= 1
+            self._load_books(self._search_keyword, self._search_format, self._search_author)
+            self._hide_loading_animation()
+
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._show_loading_animation(get_global_i18n().t("bookshelf.page_next"), progress=0)
+            self._current_page += 1
+            self._load_books(self._search_keyword, self._search_format, self._search_author)
+            self._hide_loading_animation()
+
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._show_loading_animation(get_global_i18n().t("bookshelf.page_last"), progress=0)
+            self._current_page = self._total_pages
+            self._load_books(self._search_keyword, self._search_format, self._search_author)
+            self._hide_loading_animation()
+
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= self._total_pages:
+                        if page_num != self._current_page:
+                            self._current_page = page_num
+                            self._load_books(self._search_keyword, self._search_format, self._search_author)
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{self._total_pages})",
+            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)
+
+    def _update_pagination_buttons(self) -> None:
+        """更新分页按钮状态"""
+        try:
+            # 更新分页信息显示
+            page_label = self.query_one("#page-info", Label)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+        except Exception as e:
+            self.logger.error(f"更新分页按钮状态失败: {e}")
+
+    def _get_cache_key(self) -> str:
+        """生成缓存键"""
+        return f"{self._search_keyword}_{self._search_format}_{self._search_author}"
+
+    def _load_books_from_cache(self, cache_key: str) -> Optional[List[Book]]:
+        """从缓存加载书籍数据"""
+        import time
+        import sys
+        current_time = time.time()
+        
+        # 检查缓存是否有效
+        if cache_key in self._books_cache:
+            # 检查缓存是否过期
+            if current_time - self._cache_timestamp < self._cache_ttl:
+                self._cache_hits += 1
+                self.logger.debug(f"缓存命中: {cache_key}, 命中率: {self._get_cache_hit_rate():.2%}")
+                return self._books_cache[cache_key]
+            else:
+                # 缓存过期，移除
+                del self._books_cache[cache_key]
+                self.logger.debug(f"缓存过期已移除: {cache_key}")
+        
+        self._cache_misses += 1
+        self.logger.debug(f"缓存未命中: {cache_key}, 命中率: {self._get_cache_hit_rate():.2%}")
+        return None
+
+    def _save_books_to_cache(self, cache_key: str, books: List[Book]) -> None:
+        """保存书籍数据到缓存"""
+        import time
+        import sys
+        
+        # 检查内存使用情况，如果超过限制则自动清理
+        if self._check_cache_memory_limit() and self._books_cache:
+            self.auto_clean_cache(target_memory_mb=50.0)
+            
+            # 如果清理后仍然超过限制，使用淘汰策略
+            if self._check_cache_memory_limit():
+                self._evict_cache_entries()
+        
+        # 保存到缓存
+        self._books_cache[cache_key] = books
+        self._cache_timestamp = time.time()
+        self._last_cache_key = cache_key
+        self.logger.debug(f"缓存已保存: {cache_key}, 缓存大小: {len(self._books_cache)}")
+        
+        # 记录缓存统计
+        stats = self.get_cache_stats()
+        if stats['memory_usage_mb'] > 10.0:
+            self.logger.info(f"缓存统计: {stats['total_entries']} 个条目, {stats['memory_usage_mb']:.2f}MB, 命中率: {stats['hit_rate']:.2%}")
+    
+    def _get_cache_hit_rate(self) -> float:
+        """获取缓存命中率"""
+        total = self._cache_hits + self._cache_misses
+        return self._cache_hits / total if total > 0 else 0.0
+    
+    def _check_cache_memory_limit(self) -> bool:
+        """检查是否超过内存限制"""
+        import sys
+        # 估算缓存占用的内存
+        cache_size = sum(sys.getsizeof(book_list) for book_list in self._books_cache.values())
+        return cache_size > self._cache_memory_limit or len(self._books_cache) > self._cache_max_size
+    
+    def _evict_cache_entries(self) -> None:
+        """根据淘汰策略移除缓存条目"""
+        if self._cache_eviction_policy == "lru":
+            # LRU策略：移除最久未使用的缓存
+            # 这里简化实现，移除最早的缓存条目
+            if self._books_cache:
+                oldest_key = next(iter(self._books_cache.keys()))
+                del self._books_cache[oldest_key]
+                self.logger.debug(f"LRU缓存淘汰: {oldest_key}")
+        elif self._cache_eviction_policy == "random":
+            # 随机移除一个缓存条目
+            import random
+            if self._books_cache:
+                random_key = random.choice(list(self._books_cache.keys()))
+                del self._books_cache[random_key]
+                self.logger.debug(f"随机缓存淘汰: {random_key}")
+    
+    def clear_cache(self) -> None:
+        """清空缓存"""
+        self._books_cache.clear()
+        self._cache_hits = 0
+        self._cache_misses = 0
+        self.logger.debug("缓存已清空")
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """获取缓存统计信息"""
+        import sys
+        cache_size = sum(sys.getsizeof(book_list) for book_list in self._books_cache.values())
+        return {
+            "total_entries": len(self._books_cache),
+            "memory_usage_bytes": cache_size,
+            "memory_usage_mb": cache_size / (1024 * 1024),
+            "hits": self._cache_hits,
+            "misses": self._cache_misses,
+            "hit_rate": self._get_cache_hit_rate(),
+            "max_size": self._cache_max_size,
+            "memory_limit_mb": self._cache_memory_limit / (1024 * 1024),
+            "eviction_policy": self._cache_eviction_policy
+        }
+    
+    def auto_clean_cache(self, target_memory_mb: float = 50.0) -> None:
+        """自动清理缓存到目标内存大小"""
+        import sys
+        current_memory = sum(sys.getsizeof(book_list) for book_list in self._books_cache.values()) / (1024 * 1024)
+        
+        if current_memory <= target_memory_mb:
+            self.logger.debug(f"当前缓存内存使用: {current_memory:.2f}MB, 无需清理")
+            return
+        
+        target_bytes = target_memory_mb * 1024 * 1024
+        entries_to_remove = []
+        current_total = 0
+        
+        # 计算需要移除的缓存条目
+        for key, book_list in self._books_cache.items():
+            entry_size = sys.getsizeof(book_list)
+            if current_total + entry_size > target_bytes:
+                entries_to_remove.append(key)
+            else:
+                current_total += entry_size
+        
+        # 移除超出限制的缓存
+        for key in entries_to_remove:
+            del self._books_cache[key]
+        
+        self.logger.debug(f"自动清理缓存: 移除 {len(entries_to_remove)} 个条目, 内存从 {current_memory:.2f}MB 降至 {current_total / (1024 * 1024):.2f}MB")

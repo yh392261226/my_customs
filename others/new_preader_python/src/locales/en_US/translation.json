@@ -204,7 +204,8 @@
         "rename_success": "Book 《{title}》 renamed successfully",
         "rename_failed": "Failed to rename book",
         "all_sources": "All Sources",
-        "select_source": "Select Source"
+        "select_source": "Select Source",
+        "jump_to": "Jump To"
     },
     "batch_ops": {
         "title": "Batch Operations",

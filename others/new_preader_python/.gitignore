@@ -1,0 +1,17 @@
+__pycache__/
+src/ui/__pycache__/
+src/ui/screens/__pycache__/
+src/ui/dialogs/__pycache__/
+src/locales/__pycache__/
+src/core/__pycache__/
+src/config/__pycache__/
+src/utils/__pycache__/
+src/themes/__pycache__/
+src/locales/zh_CN/__pycache__/
+src/locales/__pycache__/
+src/utils/__pycache__/
+other_project/
+.codebuddy/
+library/
+current_log.log
+.iflow/

@@ -26,12 +26,13 @@ def debug_logged(func):
 class Bookshelf:
     """书架类，管理书籍集合"""
     
-    def __init__(self, data_dir: Optional[str] = None):
+    def __init__(self, data_dir: Optional[str] = None, app=None):
         """
         初始化书架
         
         Args:
             data_dir: 数据目录，如果为None则使用默认目录
+            app: 应用实例，用于获取配置
         """
         if data_dir is None:
             # 默认数据目录为用户主目录下的.config/new_preader/books文件夹
@@ -47,6 +48,8 @@ class Bookshelf:
         # 当前登录用户ID（伪用户系统）
         self.current_user_id: Optional[int] = None
         self.current_user_role: str = "user"
+        # 应用实例，用于获取配置
+        self.app = app
         
         self.books: Dict[str, Book] = {}  # 书籍字典，键为书籍路径
         self.reading_history: List[Dict[str, Any]] = []  # 阅读历史记录
@@ -60,14 +63,28 @@ class Bookshelf:
         try:
             self.books.clear()
             books: List[Book]
-            # 超级管理员可以看所有的书籍，普通用户只能看自己的书籍
-            logger.info(f"当前用户类型为:{self.current_user_role}, 用户ID为:{self.current_user_id}")
-            # 如果当前用户ID为None，则直接为空列表，不进行过滤
-            if self.current_user_role == "superadmin" or self.current_user_role == "super_admin" : 
+            # 获取配置管理器以检查多用户模式
+            config_manager = getattr(self.app, 'config_manager', None) if hasattr(self, 'app') else None
+            multi_user_enabled = False
+            
+            if config_manager:
+                config = config_manager.get_config()
+                multi_user_enabled = config.get('advanced', {}).get('multi_user_enabled', False)
+            
+            logger.info(f"当前用户类型为:{self.current_user_role}, 用户ID为:{self.current_user_id}, 多用户模式: {multi_user_enabled}")
+            
+            # 多用户模式判断逻辑
+            if not multi_user_enabled:
+                # 非多用户模式：获取全部书籍
                 books = self.db_manager.get_all_books()
-            elif self.current_user_id is not None :
+            elif self.current_user_role in ["superadmin", "super_admin"]:
+                # 多用户模式下超级管理员：获取全部书籍（无论user_id是否为None）
+                books = self.db_manager.get_all_books()
+            elif self.current_user_id is not None:
+                # 多用户模式下普通用户：只获取自己的书籍
                 books = self.db_manager.get_books_for_user(self.current_user_id)
             else:
+                # 多用户模式下但用户ID为空：返回空列表（安全默认）
                 books = []
 
             for book in books:
@@ -122,7 +139,7 @@ class Bookshelf:
                         changed_count += 1
                 else:
                     # 书籍不存在，使用添加操作
-                    if not self.db_manager.add_book(book):
+                    if not self.db_manager.add_book(book, self.current_user_id):
                         logger.error(f"添加书籍到数据库失败: {book.title}")
                         return False
                     changed_count += 1
@@ -177,14 +194,8 @@ class Bookshelf:
                 # 静默忽略，保证导入流程不中断
                 pass
             
-            # 将书籍保存到数据库
-            self.db_manager.add_book(book)
-            # 记录归属用户（不用于显示，仅过滤）
-            try:
-                if self.current_user_id is not None:
-                    self.db_manager.assign_book_to_user(self.current_user_id, abs_path)
-            except Exception:
-                pass
+            # 将书籍保存到数据库，并记录用户归属关系
+            self.db_manager.add_book(book, self.current_user_id)
             # 更新内存中的书籍字典（用于向后兼容）
             self.books[abs_path] = book
             
@@ -967,8 +978,8 @@ class Bookshelf:
                         continue
                         
                     book = Book.from_dict(book_data)
-                    # 添加到数据库
-                    if self.db_manager.add_book(book):
+                    # 添加到数据库，并记录用户归属关系
+                    if self.db_manager.add_book(book, self.current_user_id):
                         # 更新内存字典（用于向后兼容）
                         self.books[book.path] = book
                         books_added += 1

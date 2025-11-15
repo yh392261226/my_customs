@@ -20,8 +20,8 @@ Footer {
 .bookshelf-screen Grid {
     width: 100%;
     height: 100%;
-    grid-size: 1 3;
-    grid-rows: 15% 75% 10%;
+    grid-size: 1 4;
+    grid-rows: 25% 55% 10% 10%;
     margin-top: 1;
 }
 
@@ -134,4 +134,39 @@ Footer {
 .bookshelf-screen #shortcuts-bar Label {
     color: $text-muted;
     margin: 0 1;
+}
+
+/* 分页导航栏样式 */
+.bookshelf-screen #pagination-bar {
+    height: 3;
+    align: center middle;
+    background: $surface;
+    border-top: solid $primary;
+}
+
+.bookshelf-screen .pagination-btn {
+    height: 1;              /* 压到2行：移除边框以避免文字被裁切 */
+    border: none;           /* 去掉按钮边框，减少垂直占用 */
+    padding: 0 1 0 1;       /* 尽量小的内边距，保证横向可读 */
+    min-width: 10;          /* 宽度足够显示中文+快捷键提示 */
+    content-align: center middle; /* 文本居中显示 */
+    align: center middle;
+    color: $text;           /* 文字颜色 */
+    background: $primary;   /* 按钮底色 */
+}
+
+.bookshelf-screen .pagination-btn:hover {
+    background: $primary-darken-1;
+}
+
+.bookshelf-screen .pagination-btn:disabled {
+    background: $surface-darken-1;
+    color: $text-muted;
+}
+
+.bookshelf-screen .page-info {
+    color: $text;
+    height: 1;
+    margin: 1 2 0 2;
+    text-style: bold;
 }

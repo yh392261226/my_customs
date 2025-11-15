@@ -554,12 +554,13 @@ class DatabaseManager:
         # 确保metadata不为空时进行序列化
         return json.dumps(minimal_metadata) if minimal_metadata else ""
     
-    def add_book(self, book: Book) -> bool:
+    def add_book(self, book: Book, user_id: Optional[int] = None) -> bool:
         """
         添加书籍到数据库
         
         Args:
             book: 书籍对象
+            user_id: 可选，用户ID，用于多用户模式
             
         Returns:
             bool: 添加是否成功
@@ -588,6 +589,11 @@ class DatabaseManager:
                     metadata_json,
                     book.file_size
                 ))
+                
+                # 如果提供了用户ID，记录用户归属关系
+                if user_id is not None:
+                    cursor.execute("INSERT OR REPLACE INTO user_books (user_id, book_path) VALUES (?, ?)", (user_id, book.path))
+                
                 conn.commit()
                 
                 logger.info(f"书籍已添加到数据库: {book.title} (metadata大小: {len(metadata_json)} 字节)")
