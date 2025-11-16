@@ -696,11 +696,6 @@ class BookshelfScreen(Screen[None]):
             
             virtual_data.append(row_data)
         
-        # 调试：检查虚拟数据
-        print(f"DEBUG: 准备设置虚拟数据，数据行数: {len(virtual_data)}")
-        if virtual_data:
-            print(f"DEBUG: 第一行数据示例: {virtual_data[0]}")
-        
         # 使用虚拟滚动数据表设置数据
         table.set_virtual_data(virtual_data)
         

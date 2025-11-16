@@ -7,7 +7,8 @@ import asyncio
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
-from textual.widgets import Static, Button, Label, DataTable, Input, Select, Checkbox, Header, Footer
+from textual.widgets import Static, Button, Label, Input, Select, Checkbox, Header, Footer
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -50,6 +51,12 @@ class ProxyListScreen(Screen[None]):
         self.database_manager = DatabaseManager()
         self.proxy_list = []
         self.selected_proxy_id = None
+        
+        # 分页相关属性
+        self._current_page = 1
+        self._proxies_per_page = 10
+        self._total_pages = 1
+        self._all_proxies: List[Dict[str, Any]] = []
 
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限"""
@@ -100,7 +107,19 @@ class ProxyListScreen(Screen[None]):
                 Label("", id="proxy-list-status"),
                 
                 # 代理列表表格
-                DataTable(id="proxy-list-table"),
+                VirtualDataTable(id="proxy-list-table"),
+                
+                # 分页导航
+                Horizontal(
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(get_global_i18n().t('bookshelf.jump_to'), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
+                ),
                 
                 # 快捷键状态栏
                 # Horizontal(
@@ -129,31 +148,40 @@ class ProxyListScreen(Screen[None]):
         self._init_table()
         
         # 设置默认焦点到表格
-        table = self.query_one("#proxy-list-table", DataTable)
+        table = self.query_one("#proxy-list-table", VirtualDataTable)
         if table:
             self.set_focus(table)
+        
+        self._update_pagination_info()
     
     def _load_proxy_list(self) -> None:
         """从数据库加载代理列表"""
-        self.proxy_list = self.database_manager.get_all_proxy_settings()
+        self._all_proxies = self.database_manager.get_all_proxy_settings()
+        
+        # 计算分页
+        self._total_pages = max(1, (len(self._all_proxies) + self._proxies_per_page - 1) // self._proxies_per_page)
+        self._current_page = min(self._current_page, self._total_pages)
+        
+        # 获取当前页的数据
+        start_index = (self._current_page - 1) * self._proxies_per_page
+        end_index = min(start_index + self._proxies_per_page, len(self._all_proxies))
+        self.proxy_list = self._all_proxies[start_index:end_index]
     
     def _init_table(self) -> None:
         """初始化表格"""
-        table = self.query_one("#proxy-list-table", DataTable)
+        table = self.query_one("#proxy-list-table", VirtualDataTable)
         table.clear()
         
         # 启用表格交互功能
         table.cursor_type = "row"  # 启用行光标
         table.zebra_stripes = True  # 启用斑马纹
-        table.add_columns(
-            "状态",
-            "名称", 
-            "类型",
-            "主机",
-            "端口",
-            "用户名",
-            "更新时间"
-        )
+        table.add_column("状态", key="status")
+        table.add_column("名称", key="name")
+        table.add_column("类型", key="type")
+        table.add_column("主机", key="host")
+        table.add_column("端口", key="port")
+        table.add_column("用户名", key="username")
+        table.add_column("更新时间", key="update_time")
         
         # 加载数据并填充表格
         self._load_proxy_list()
@@ -165,23 +193,31 @@ class ProxyListScreen(Screen[None]):
             self.selected_proxy_id = self.proxy_list[0].get("id")
         
     def _fill_table_data(self) -> None:
-        """填充表格数据"""
-        table = self.query_one("#proxy-list-table", DataTable)
+        """填充表格数据（使用虚拟滚动）"""
+        table = self.query_one("#proxy-list-table", VirtualDataTable)
         
-        # 添加数据行
-        for proxy in self.proxy_list:
+        # 准备虚拟滚动数据
+        virtual_data = []
+        for index, proxy in enumerate(self.proxy_list):
             status = "✓" if proxy.get("enabled") else "○"
-            table.add_row(
-                status,
-                proxy.get("name", ""),
-                proxy.get("type", ""),
-                proxy.get("host", ""),
-                proxy.get("port", ""),
-                proxy.get("username", "") or "",
-                proxy.get("updated_at", "")[:16]  # 只显示日期和时间部分
-            )
+            
+            row_data = {
+                "status": status,
+                "name": proxy.get("name", ""),
+                "type": proxy.get("type", ""),
+                "host": proxy.get("host", ""),
+                "port": proxy.get("port", ""),
+                "username": proxy.get("username", "") or "",
+                "update_time": proxy.get("updated_at", "")[:16],  # 只显示日期和时间部分
+                "_row_key": str(index),
+                "_global_index": index + 1
+            }
+            virtual_data.append(row_data)
+        
+        # 设置虚拟滚动数据
+        table.set_virtual_data(virtual_data)
     
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+    def on_data_table_row_selected(self, event) -> None:
         """处理表格行选择事件"""
         self.selected_proxy_id = None
         if event.cursor_row is not None:
@@ -191,7 +227,7 @@ class ProxyListScreen(Screen[None]):
                 self.selected_proxy_id = self.proxy_list[row_index].get("id")
                 logger.debug(f"选中代理ID: {self.selected_proxy_id}")
     
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_cell_selected(self, event) -> None:
         """处理表格单元格选择事件"""
         self.selected_proxy_id = None
         if event.coordinate.row is not None:
@@ -218,6 +254,17 @@ class ProxyListScreen(Screen[None]):
             self._delete_proxy()
         elif event.button.id == "back-btn":
             self.app.pop_screen()
+        # 分页按钮
+        elif event.button.id == "first-page-btn":
+            self._go_to_first_page()
+        elif event.button.id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif event.button.id == "next-page-btn":
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
     
     def _add_proxy(self) -> None:
         """添加代理"""
@@ -395,6 +442,7 @@ class ProxyListScreen(Screen[None]):
         """刷新代理列表"""
         self._load_proxy_list()
         self._init_table()
+        self._update_pagination_info()
     
     def _update_status(self, message: str, severity: str = "information") -> None:
         """更新状态信息"""
@@ -488,7 +536,7 @@ class ProxyListScreen(Screen[None]):
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
-        table = self.query_one("#proxy-list-table", DataTable)
+        table = self.query_one("#proxy-list-table", VirtualDataTable)
         
         if event.key == "escape":
             # ESC键返回
@@ -501,3 +549,77 @@ class ProxyListScreen(Screen[None]):
                 if 0 <= row_index < len(self.proxy_list):
                     self.selected_proxy_id = self.proxy_list[row_index].get("id")
                     logger.debug(f"键盘移动选中代理ID: {self.selected_proxy_id}")
+    
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self._refresh_list()
+    
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._refresh_list()
+    
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._refresh_list()
+    
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self._refresh_list()
+    
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= self._total_pages:
+                        if page_num != self._current_page:
+                            self._current_page = page_num
+                            self._refresh_list()
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{self._total_pages})",
+            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)
+    
+    def _update_pagination_info(self) -> None:
+        """更新分页信息"""
+        try:
+            page_label = self.query_one("#page-info", Label)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            # 设置按钮的禁用状态
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+        except Exception as e:
+            logger.error(f"更新分页信息失败: {e}")

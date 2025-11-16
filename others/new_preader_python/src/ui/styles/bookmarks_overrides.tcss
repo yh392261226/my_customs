@@ -97,3 +97,47 @@ Footer {
     padding: 0 1;
     text-style: italic;
 }
+
+/* 分页栏样式 */
+.pagination-bar {
+    height: 4;
+    width: 100%;
+    align: center middle;
+    background: $surface;
+    border-top: solid $primary;
+    align: center middle;
+    content-align: center middle;
+    margin-top: 1;
+}
+
+.pagination-btn {
+    height: 1;              /* 增加高度使按钮更明显 */
+    border: none;   /* 添加边框使按钮更明显 */
+    padding: 0 1 0 1;       /* 尽量小的内边距，保证横向可读 */
+    min-width: 10;          /* 宽度足够显示中文+快捷键提示 */
+    content-align: center middle; /* 文本居中显示 */
+    align: center middle;
+    color: $text;           /* 文字颜色 */
+    background: $primary;   /* 按钮底色 */
+    margin: 0 1;            /* 添加左右边距 */
+}
+
+.pagination-btn:hover {
+    background: $primary-darken-1;
+}
+
+.pagination-btn:disabled {
+    background: $surface-darken-1;
+    color: $text-muted;
+}
+
+.page-info {
+    width: 3%;
+    min-width: 10;
+    color: $text;
+    height: 1;
+    margin: 0 2 0 2;
+    text-style: bold;
+    align: center middle;
+    content-align: center middle;
+}

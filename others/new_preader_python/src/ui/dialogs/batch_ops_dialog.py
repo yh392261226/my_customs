@@ -10,7 +10,8 @@ from typing import List, Set, Optional, Dict, Any
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal, Center
-from textual.widgets import Static, Button, DataTable, Label, Input, Select
+from textual.widgets import Static, Button, Label, Input, Select
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -200,7 +201,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 Label("", id="batch-ops-page-info"),
                 
                 # 书籍列表
-                DataTable(id="batch-ops-table"),
+                VirtualDataTable(id="batch-ops-table"),
+                
+                # 分页导航
+                Horizontal(
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(get_global_i18n().t('bookshelf.jump_to'), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
+                ),
                 
                 # 状态信息
                 Label(get_global_i18n().t("batch_ops.status_info"), id="batch-ops-status"),
@@ -218,7 +231,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.theme_manager.apply_theme_to_screen(self)
         
         # 初始化数据表 - 使用正确的列键设置方法
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         
         # 清除现有列
         table.clear(columns=True)
@@ -276,7 +289,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         end_index = min(start_index + self._books_per_page, len(self._all_books))
         current_page_books = self._all_books[start_index:end_index]
         
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         table.clear()
         
         # 创建全局排序序号映射
@@ -325,7 +338,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 更新分页信息
         self._update_pagination_info()
     
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+    def on_data_table_row_selected(self, event) -> None:
         """
         数据表行选择时的回调
         说明：不在行选择事件中切换选中状态，避免点击任意列都触发选中翻转。
@@ -338,7 +351,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "space":
-            table = self.query_one("#batch-ops-table", DataTable)
+            table = self.query_one("#batch-ops-table", VirtualDataTable)
             if table.cursor_row is not None:
                 # 获取当前行的键（书籍路径）
                 row_key = list(table.rows.keys())[table.cursor_row]
@@ -364,29 +377,29 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             event.stop()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            table = self.query_one("#batch-ops-table", DataTable)
+            table = self.query_one("#batch-ops-table", VirtualDataTable)
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
                 self._current_page += 1
                 self._load_books()
                 # 将光标移动到新页面的第一行
-                table = self.query_one("#batch-ops-table", DataTable)
+                table = self.query_one("#batch-ops-table", VirtualDataTable)
                 table.action_cursor_down()  # 先向下移动一次
                 table.action_cursor_up()     # 再向上移动一次，确保在第一行
                 event.stop()
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            table = self.query_one("#batch-ops-table", DataTable)
+            table = self.query_one("#batch-ops-table", VirtualDataTable)
             if table.cursor_row == 0 and self._current_page > 1:
                 self._current_page -= 1
                 self._load_books()
                 # 将光标移动到新页面的最后一行
-                table = self.query_one("#batch-ops-table", DataTable)
+                table = self.query_one("#batch-ops-table", VirtualDataTable)
                 for _ in range(len(table.rows) - 1):
                     table.action_cursor_down()  # 移动到最底部
                 event.stop()
 
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_cell_selected(self, event) -> None:
         """
         单元格选择事件：仅当点击“已选择”列（最后一列）时，切换该行的选中状态。
         """
@@ -415,7 +428,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._toggle_book_selection(str(book_id), table, row_index)
         event.stop()
     
-    def _toggle_book_selection(self, book_id: str, table: DataTable[Any], row_index: int) -> None:
+    def _toggle_book_selection(self, book_id: str, table: VirtualDataTable, row_index: int) -> None:
         """切换书籍选中状态"""
         # 获取行键对象
         row_key = list(table.rows.keys())[row_index]
@@ -505,11 +518,30 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                                    total_pages=self._total_pages,
                                    total_books=len(self._all_books))
             )
+        
+        # 更新分页按钮状态
+        try:
+            page_label = self.query_one("#page-info", Label)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            # 设置按钮的禁用状态
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+        except Exception as e:
+            logger.error(f"更新分页按钮状态失败: {e}")
 
     # 通过 BINDINGS 触发的动作（保留 on_key 作为过渡）
     def action_toggle_row(self) -> None:
         """切换当前行选中状态"""
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         if table.cursor_row is not None:
             # 获取当前行的键（书籍路径）
             row_key = list(table.rows.keys())[table.cursor_row]
@@ -519,15 +551,65 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
 
     def action_next_page(self) -> None:
         """下一页"""
-        if self._current_page < self._total_pages:
-            self._current_page += 1
-            self._load_books()
+        self._go_to_next_page()
 
     def action_prev_page(self) -> None:
         """上一页"""
+        self._go_to_prev_page()
+    
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self._load_books()
+    
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
         if self._current_page > 1:
             self._current_page -= 1
             self._load_books()
+    
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._load_books()
+    
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self._load_books()
+    
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= self._total_pages:
+                        if page_num != self._current_page:
+                            self._current_page = page_num
+                            self._load_books()
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{self._total_pages})",
+            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)
 
     def action_cancel(self) -> None:
         """取消返回"""
@@ -566,12 +648,22 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._export_selected_books()
         elif event.button.id == "search-btn":
             self._perform_search()
+        elif event.button.id == "first-page-btn":
+            self._go_to_first_page()
+        elif event.button.id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif event.button.id == "next-page-btn":
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
         elif event.button.id == "cancel-btn":
             self.dismiss({"refresh": False})
     
     def _select_all_books(self) -> None:
         """选择当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         
         # 只选择当前显示的书籍（搜索过滤后的书籍）
         for row_key in table.rows.keys():
@@ -594,7 +686,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _invert_selection(self) -> None:
         """反选当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -623,7 +715,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _deselect_all_books(self) -> None:
         """取消选择当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         
         # 只取消选择当前显示的书籍（搜索过滤后的书籍）
         for row_key in table.rows.keys():
@@ -941,7 +1033,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _invert_selection(self) -> None:
         """反选所有书籍"""
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         
         # 获取所有书籍路径
         all_books = {book.path for book in self.bookshelf.get_all_books()}
@@ -1012,7 +1104,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _clear_table_selection(self) -> None:
         """清除表格的视觉选中状态"""
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -1034,7 +1126,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             return
         
         # 获取当前焦点选中的书籍路径（表格光标所在行）
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         if table.cursor_row is None:
             self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
             return
@@ -1081,7 +1173,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._load_books()
             
             # 重新定位焦点到移动后的书籍位置
-            table = self.query_one("#batch-ops-table", DataTable)
+            table = self.query_one("#batch-ops-table", VirtualDataTable)
             if new_index >= 0:
                 # 找到移动后的书籍在当前页的位置
                 for i, row_key in enumerate(table.rows.keys()):
@@ -1102,7 +1194,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             return
         
         # 获取当前焦点选中的书籍路径（表格光标所在行）
-        table = self.query_one("#batch-ops-table", DataTable)
+        table = self.query_one("#batch-ops-table", VirtualDataTable)
         if table.cursor_row is None:
             self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
             return
@@ -1149,7 +1241,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._load_books()
             
             # 重新定位焦点到移动后的书籍位置
-            table = self.query_one("#batch-ops-table", DataTable)
+            table = self.query_one("#batch-ops-table", VirtualDataTable)
             if new_index >= 0:
                 # 找到移动后的书籍在当前页的位置
                 for i, row_key in enumerate(table.rows.keys()):

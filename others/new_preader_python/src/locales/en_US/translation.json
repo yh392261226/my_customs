@@ -274,6 +274,11 @@
     "search": {
         "title": "Search",
         "placeholder": "Search book title, author or tags...",
+        "site_placeholder": "Search site name...",
+        "all_parsers": "All Parsers",
+        "select_parser_prompt": "Select Parser",
+        "select_proxy_prompt": "Select Proxy",
+        "all_proxy": "All proxy",
         "content_title": "Content Search",
         "content_placeholder": "Enter content keywords to search...",
         "position": "Position",

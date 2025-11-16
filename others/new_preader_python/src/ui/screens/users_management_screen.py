@@ -4,7 +4,9 @@
 from typing import Optional, Dict, Any, List, ClassVar, Set
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Label, Input, Button, DataTable, Header, Footer
+from textual.widgets import Label, Input, Button, Header, Footer
+from src.ui.components.virtual_data_table import VirtualDataTable
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual.app import ComposeResult
 from src.core.database_manager import DatabaseManager
 from src.themes.theme_manager import ThemeManager
@@ -33,6 +35,12 @@ class UsersManagementScreen(Screen[None]):
         self._new_password = ""
         self._perm_input = ""
         self.title = get_global_i18n().t('users_management.title')
+        
+        # 分页相关属性
+        self._current_page = 1
+        self._users_per_page = 10
+        self._total_pages = 1
+        self._all_users: List[Dict[str, Any]] = []
 
     def compose(self) -> ComposeResult:
         t = get_global_i18n()
@@ -60,7 +68,20 @@ class UsersManagementScreen(Screen[None]):
                 #     Button("设置权限", id="set-perms"),
                 #     id="um-set-perms",
                 # ),
-                DataTable(id="users-table"),
+                VirtualDataTable(id="users-table"),
+                
+                # 分页导航
+                Horizontal(
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(t.t('bookshelf.jump_to'), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
+                ),
+                
                 Horizontal(
                     Button(t.t('common.back'), id="back-btn"),
                     id="um-back",
@@ -128,7 +149,7 @@ class UsersManagementScreen(Screen[None]):
         self._check_button_permissions()
 
         # 初始化用户表
-        table = self.query_one("#users-table", DataTable)
+        table = self.query_one("#users-table", VirtualDataTable)
         table.add_column("ID", key="id")
         table.add_column(get_global_i18n().t('users_management.username'), key="username")
         table.add_column(get_global_i18n().t('users_management.role'), key="role")
@@ -147,26 +168,83 @@ class UsersManagementScreen(Screen[None]):
         import sqlite3
         conn = None
         try:
-            table = self.query_one("#users-table", DataTable)
-            table.clear()
+            # 获取所有用户数据
             conn = sqlite3.connect(self.db_manager.db_path)
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
             cur.execute("SELECT id, username, role FROM users ORDER BY id ASC")
             rows = cur.fetchall()
+            
+            # 保存所有用户数据用于分页
+            self._all_users = []
             for row in rows:
-                uid_int = int(row["id"])
-                uid = str(row["id"])
-                uname = row["username"]
-                role = row["role"]
-                try:
-                    if uid_int != 1:
-                        table.add_row(uid, uname, role, f"[{get_global_i18n().t('users_management.role')}]", f"[{get_global_i18n().t('users_management.view_perms')}]", f"[{get_global_i18n().t('common.edit')}]", f"[{get_global_i18n().t('common.delete')}]", key=uid)
-                    else:
-                        table.add_row(uid, uname, role, " ", " ", f"[{get_global_i18n().t('common.edit')}]", " ", key=uid)
-
-                except Exception as re:
-                    logger.error(f"添加行失败: {re} (uid={uid})")
+                self._all_users.append({
+                    "id": str(row["id"]),
+                    "username": row["username"],
+                    "role": row["role"]
+                })
+            
+            # 计算分页
+            self._total_pages = max(1, (len(self._all_users) + self._users_per_page - 1) // self._users_per_page)
+            self._current_page = min(self._current_page, self._total_pages)
+            
+            # 获取当前页的数据
+            start_index = (self._current_page - 1) * self._users_per_page
+            end_index = min(start_index + self._users_per_page, len(self._all_users))
+            current_page_users = self._all_users[start_index:end_index]
+            
+            # 准备虚拟滚动数据
+            table = self.query_one("#users-table", VirtualDataTable)
+            table.clear(columns=True)
+            
+            # 重新添加列
+            table.add_column("ID", key="id")
+            table.add_column(get_global_i18n().t('users_management.username'), key="username")
+            table.add_column(get_global_i18n().t('users_management.role'), key="role")
+            table.add_column(get_global_i18n().t('users_management.perms'), key="perms")
+            table.add_column(get_global_i18n().t('users_management.view_perms'), key="view_perms")
+            table.add_column(get_global_i18n().t('common.edit'), key="edit")
+            table.add_column(get_global_i18n().t('common.delete'), key="delete")
+            
+            # 添加数据
+            virtual_data = []
+            for index, user in enumerate(current_page_users):
+                uid_int = int(user["id"])
+                uid = str(user["id"])
+                uname = user["username"]
+                role = user["role"]
+                
+                # 为每个操作按钮创建独立的列
+                if uid_int != 1:
+                    perms_col = get_global_i18n().t('users_management.perms')
+                    view_perms_col = get_global_i18n().t('users_management.view_perms')
+                    edit_col = get_global_i18n().t('common.edit')
+                    delete_col = get_global_i18n().t('common.delete')
+                else:
+                    perms_col = ""
+                    view_perms_col = ""
+                    edit_col = get_global_i18n().t('common.edit')
+                    delete_col = ""
+                
+                row_data = {
+                    "id": uid,
+                    "username": uname,
+                    "role": role,
+                    "perms": perms_col,
+                    "view_perms": view_perms_col,
+                    "edit": edit_col,
+                    "delete": delete_col,
+                    "_row_key": f"user_{uid}",
+                    "_global_index": start_index + index + 1
+                }
+                virtual_data.append(row_data)
+            
+            # 设置虚拟滚动数据
+            table.set_virtual_data(virtual_data)
+            
+            # 更新分页信息
+            self._update_pagination_info()
+            
         except Exception as e:
             logger.error(f"{get_global_i18n().t('users_management.load_user_failed')}: {e}")
             try:
@@ -441,15 +519,24 @@ class UsersManagementScreen(Screen[None]):
         
         return True  # 默认允许未知操作
     
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_cell_selected(self, event) -> None:
         """点击表格的权限/编辑/删除列"""
         try:
             cell_key = event.cell_key
             column = cell_key.column_key.value or ""
             row_key = cell_key.row_key.value or ""
             
+            # 从 row_key 中提取用户ID (格式为 "user_{uid}")
+            try:
+                if row_key.startswith("user_"):
+                    uid = int(row_key.split("_")[1])
+                else:
+                    uid = int(row_key) if row_key else 0
+            except (ValueError, IndexError):
+                uid = 0
+            
             # 检查权限
-            if not self._has_table_action_permission(column, int(row_key) if row_key else 0):
+            if not self._has_table_action_permission(column, uid):
                 self.notify(get_global_i18n().t('users_management.np_action'), severity="warning")
                 return
                 
@@ -466,7 +553,6 @@ class UsersManagementScreen(Screen[None]):
                 
                 # 打开权限对话框
                 try:
-                    uid = int(row_key) if row_key else 0
                     if uid <= 0:
                         self.notify(get_global_i18n().t('users_management.unknown_userid'), severity="error")
                         return
@@ -478,7 +564,6 @@ class UsersManagementScreen(Screen[None]):
             elif column == "view_perms":
                 # 查看用户已有权限
                 try:
-                    uid = int(row_key) if row_key else 0
                     if uid <= 0:
                         self.notify(get_global_i18n().t('users_management.unknown_userid'), severity="error")
                         return
@@ -495,14 +580,18 @@ class UsersManagementScreen(Screen[None]):
                 except Exception:
                     pass
                 try:
-                    table = self.query_one("#users-table", DataTable)
-                    row = table.get_row(row_key) if row_key else []
-                    username_val = row[1] if isinstance(row, (list, tuple)) and len(row) > 1 else ""
+                    table = self.query_one("#users-table", VirtualDataTable)
+                    # 使用 VirtualDataTable 的方法获取行数据
+                    if hasattr(table, '_current_data') and row_key in table._current_data:
+                        row_data = table._current_data[row_key]
+                        username_val = row_data.get("username", "")
+                    else:
+                        username_val = ""
                     self.query_one("#edit-username", Input).value = str(username_val)
                 except Exception:
                     pass
                 # 记住当前编辑的用户ID
-                self._editing_user_id = int(row_key) if row_key else None
+                self._editing_user_id = uid
             elif column == "delete":
                 # 删除用户
                 def on_confirm(confirmed: Optional[bool]) -> None:
@@ -514,14 +603,14 @@ class UsersManagementScreen(Screen[None]):
                     try:
                         conn = sqlite3.connect(self.db_manager.db_path)
                         cur = conn.cursor()
-                        cur.execute("DELETE FROM users WHERE id=?", (int(row_key) if row_key else 0,))
+                        cur.execute("DELETE FROM users WHERE id=?", (uid,))
                         if cur.rowcount == 0:
                             conn.close()
                             self.notify(get_global_i18n().t('users_management.delete_user_failed_info'), severity="warning")
                             return
                         
                         # 删除用户权限
-                        cur.execute("DELETE FROM user_permissions WHERE user_id=?", (int(row_key) if row_key else 0,))
+                        cur.execute("DELETE FROM user_permissions WHERE user_id=?", (uid,))
                         conn.commit()
                         conn.close()
                         self._reload_users_table()
@@ -687,4 +776,89 @@ class UsersManagementScreen(Screen[None]):
         elif event.button.id == "cancel-edit-user":
             # 直接清空修改的inupt和隐藏修改的区域
             self.query_one("#edit-username", Input).value = ""
-            self.query_one("#um-edit-user").styles.display = "none"        
+            self.query_one("#um-edit-user").styles.display = "none"
+        # 分页按钮
+        elif event.button.id == "first-page-btn":
+            self._go_to_first_page()
+        elif event.button.id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif event.button.id == "next-page-btn":
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
+    
+    def _update_pagination_info(self) -> None:
+        """更新分页信息"""
+        try:
+            page_label = self.query_one("#page-info", Label)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            # 设置按钮的禁用状态
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+        except Exception as e:
+            logger.error(f"更新分页信息失败: {e}")
+    
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self._reload_users_table()
+    
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._reload_users_table()
+    
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._reload_users_table()
+    
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self._reload_users_table()
+    
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= self._total_pages:
+                        if page_num != self._current_page:
+                            self._current_page = page_num
+                            self._reload_users_table()
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{self._total_pages})",
+            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)        

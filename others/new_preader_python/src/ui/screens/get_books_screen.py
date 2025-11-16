@@ -6,10 +6,11 @@ from ast import Yield
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, DataTable, Input, Header, Footer
+from textual.widgets import Static, Button, Label, Input, Select, Header, Footer, DataTable
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
-from textual import events
+from textual import events, on
 
 from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
@@ -54,6 +55,17 @@ class GetBooksScreen(Screen[None]):
         # 数字快捷键（1-9）对应的行索引映射
         self._shortcut_index_map: Dict[str, int] = {}
         
+        # 分页相关属性
+        self._current_page = 1
+        self._sites_per_page = 10
+        self._total_pages = 1
+        self._all_sites: List[Dict[str, Any]] = []
+        
+        # 搜索相关属性
+        self._search_keyword = ""
+        self._search_parser = "all"
+        self._search_proxy_enabled = "all"
+        
     def compose(self) -> ComposeResult:
         """
         组合获取书籍屏幕界面
@@ -63,42 +75,87 @@ class GetBooksScreen(Screen[None]):
         """
         yield Header()
         yield Container(
-            Horizontal(
-                # Label(get_global_i18n().t('get_books.title'), id="get-books-title", classes="section-title"),
-                Label(get_global_i18n().t('get_books.description'), id="get-books-description"),
-                
-                # 功能按钮区域
-                Horizontal(
-                    Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
-                    Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
-                    Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
-                    id="get-books-buttons",
-                    classes="btn-row"
+            Grid(
+                # 顶部区域：描述、按钮、搜索栏
+                Vertical(
+                    # Label(get_global_i18n().t('get_books.title'), id="get-books-title", classes="section-title"),
+                    Label(get_global_i18n().t('get_books.description'), id="get-books-description", classes="section-title"),
+                    
+                    # 功能按钮区域
+                    Horizontal(
+                        Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
+                        Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
+                        Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
+                        id="get-books-buttons",
+                        classes="btn-row"
+                    ),
+                    
+                    # 搜索栏
+                    Horizontal(
+                        Input(
+                            placeholder=get_global_i18n().t('search.site_placeholder'), 
+                            id="novel-sites-search-input", 
+                            classes="novel-sites-search-input"
+                        ),
+                        Select(
+                            id="novel-sites-parser-filter",
+                            options=[
+                                (get_global_i18n().t('search.all_parsers'), "all"),
+                                ("V2 Parser", "v2"),
+                                ("Legacy Parser", "legacy")
+                            ], 
+                            value="all",
+                            prompt=get_global_i18n().t('search.select_parser_prompt'),
+                            classes="novel-sites-search-select"
+                        ),
+                        Select(
+                            id="novel-sites-proxy-filter",
+                            options=[
+                                (get_global_i18n().t('search.all_proxy'), "all"),
+                                (get_global_i18n().t('common.yes'), "yes"),
+                                (get_global_i18n().t('common.no'), "no")
+                            ],
+                            value="all",
+                            prompt=get_global_i18n().t('search.select_proxy_prompt'),
+                            classes="novel-sites-search-select"
+                        ),
+                        id="novel-sites-search-bar",
+                        classes="novel-sites-search-bar"
+                    ),
+                    id="get-books-header",
+                    classes="get-books-header-vertical"
                 ),
                 
-                # 书籍网站列表预览
+                # 中间区域：书籍网站列表
                 Vertical(
-                    Label(get_global_i18n().t('get_books.novel_sites_list'), id="novel-sites-list-title"),
-                    DataTable(id="novel-sites-table"),
+                    VirtualDataTable(id="novel-sites-table"),
                     id="novel-sites-preview"
                 ),
                 
-                # 代理设置预览
+                # 底部区域1：分页导航
+                Horizontal(
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(get_global_i18n().t('bookshelf.jump_to'), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
+                ),
+                
+                # 底部区域2：代理设置预览
                 Vertical(
+                    Vertical(
+                    Label(get_global_i18n().t('get_books.novel_sites_list'), id="novel-sites-list-title"),
+                    ),
+                    Vertical(
                     Label(get_global_i18n().t('get_books.proxy_status'), id="proxy-status-title"),
                     Label("", id="proxy-status-info"),
                     id="proxy-settings-preview"
+                    )
                 ),
                 
-                # 快捷键状态栏
-                # Horizontal(
-                #     Label(get_global_i18n().t('get_books.shortcut_n'), id="shortcut-n"),
-                #     Label(get_global_i18n().t('get_books.shortcut_p'), id="shortcut-p"),
-                #     Label(f"{get_global_i18n().t('get_books.shortcut_space')} {get_global_i18n().t('get_books.shortcut_enter')}", id="shortcut-enter"),
-                #     Label(get_global_i18n().t('get_books.shortcut_esc'), id="shortcut-esc"),
-                #     id="get-books-shortcuts-bar",
-                #     classes="status-bar"
-                # ),
                 id="get-books-container"
             )
         )
@@ -115,19 +172,25 @@ class GetBooksScreen(Screen[None]):
         self.theme_manager.apply_theme_to_screen(self)
         
         # 初始化数据表
-        table = self.query_one("#novel-sites-table", DataTable)
-        table.add_columns(
-            get_global_i18n().t('get_books.sequence'),  # 序号列
-            get_global_i18n().t('get_books.site_name'),
-            get_global_i18n().t('get_books.site_url'),
-            get_global_i18n().t('get_books.proxy_enabled'),
-            get_global_i18n().t('get_books.parser'),
-            get_global_i18n().t('get_books.rating'),  # 星级列
-            get_global_i18n().t('get_books.enter')  # 进入按钮列
-        )
+        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        
+        # 清除现有列，重新添加
+        table.clear(columns=True)
+        
+        # 添加列定义
+        table.add_column(get_global_i18n().t('get_books.sequence'), key="sequence")
+        table.add_column(get_global_i18n().t('get_books.site_name'), key="name")
+        table.add_column(get_global_i18n().t('get_books.site_url'), key="url")
+        table.add_column(get_global_i18n().t('get_books.proxy_enabled'), key="proxy_enabled")
+        table.add_column(get_global_i18n().t('get_books.parser'), key="parser")
+        table.add_column(get_global_i18n().t('get_books.rating'), key="rating")
+        table.add_column(get_global_i18n().t('get_books.enter'), key="enter")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
+        
+        # 启用行选择功能
+        table.cursor_type = "row"
 
         # 加载书籍网站数据
         self._load_novel_sites()
@@ -135,9 +198,13 @@ class GetBooksScreen(Screen[None]):
         
         # 检查按钮权限并禁用/启用按钮
         self._check_button_permissions()
+        
+        # 初始化分页按钮状态
+        self._update_pagination_buttons()
+        
         # 聚焦表格以接收键盘事件
         try:
-            self.query_one("#novel-sites-table", DataTable).focus()
+            self.query_one("#novel-sites-table", VirtualDataTable).focus()
         except Exception:
             pass
     
@@ -173,35 +240,236 @@ class GetBooksScreen(Screen[None]):
         
         return f"{filled_stars}{empty_stars}"
 
-    def _load_novel_sites(self) -> None:
-        """加载书籍网站数据"""
+    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all") -> None:
+        """加载书籍网站数据
+        
+        Args:
+            search_keyword: 搜索关键词
+            search_parser: 解析器筛选
+            search_proxy_enabled: 代理启用筛选
+        """
         # 从数据库加载书籍网站数据
-        self.novel_sites = self.database_manager.get_novel_sites()
+        all_sites = self.database_manager.get_novel_sites()
+        
+        # 应用搜索筛选
+        filtered_sites = []
+        for site in all_sites:
+            # 关键词搜索
+            keyword_match = True
+            if search_keyword:
+                keyword_match = (
+                    search_keyword.lower() in site.get("name", "").lower() or
+                    search_keyword.lower() in site.get("url", "").lower() or
+                    search_keyword.lower() in site.get("parser", "").lower()
+                )
+            
+            # 解析器筛选
+            parser_match = True
+            if search_parser != "all":
+                parser_value = site.get("parser", "").lower()
+                if search_parser == "v2":
+                    parser_match = parser_value.endswith("_v2")
+                elif search_parser == "legacy":
+                    parser_match = not parser_value.endswith("_v2")
+                else:
+                    parser_match = parser_value == search_parser.lower()
+            
+            # 代理启用筛选
+            proxy_match = True
+            if search_proxy_enabled != "all":
+                proxy_enabled = site.get("proxy_enabled", False)
+                if search_proxy_enabled == "yes":
+                    proxy_match = proxy_enabled
+                else:
+                    proxy_match = not proxy_enabled
+            
+            if keyword_match and parser_match and proxy_match:
+                filtered_sites.append(site)
+        
+        # 按照星级倒序排序（rating高的在前）
+        filtered_sites.sort(key=lambda x: x.get("rating", 0), reverse=True)
+        
+        self._all_sites = filtered_sites
+        
+        # 计算分页
+        self._total_pages = max(1, (len(self._all_sites) + self._sites_per_page - 1) // self._sites_per_page)
+        self._current_page = min(self._current_page, self._total_pages)
+        
+        # 获取当前页的数据
+        start_index = (self._current_page - 1) * self._sites_per_page
+        end_index = min(start_index + self._sites_per_page, len(self._all_sites))
+        current_page_sites = self._all_sites[start_index:end_index]
         
         # 更新数据表
-        table = self.query_one("#novel-sites-table", DataTable)
-        table.clear()
+        table = self.query_one("#novel-sites-table", VirtualDataTable)
         
-        for i, site in enumerate(self.novel_sites):
+        # 准备虚拟滚动数据
+        virtual_data = []
+        for index, site in enumerate(current_page_sites):
+            global_index = start_index + index + 1
             proxy_status = get_global_i18n().t('common.yes') if site.get("proxy_enabled", False) else get_global_i18n().t('common.no')
             rating = site.get("rating", 2)  # 默认2星
             rating_display = self._get_rating_display(rating)
             
-            table.add_row(
-                str(i + 1),  # 序号，从1开始
-                site.get("name", ""),
-                site.get("url", ""),
-                proxy_status,
-                site.get("parser", ""),
-                rating_display,  # 星级显示
-                "➤ " + get_global_i18n().t('get_books.enter')  # 进入按钮
-            )
-    
+            row_data = {
+                "sequence": str(global_index),
+                "name": site.get("name", ""),
+                "url": site.get("url", ""),
+                "proxy_enabled": proxy_status,
+                "parser": site.get("parser", ""),
+                "rating": rating_display,
+                "enter": "➤ " + get_global_i18n().t('get_books.enter'),
+                "_row_key": f"{site.get('id', '')}_{global_index}",
+                "_global_index": global_index
+            }
+            virtual_data.append(row_data)
+        
+        # 设置虚拟滚动数据
+        table.set_virtual_data(virtual_data)
+        
+        # 确保光标位置正确设置
+        try:
+            if len(virtual_data) > 0:
+                table.cursor_row = 0  # 设置到第一行
+        except Exception as e:
+            logger.debug(f"设置光标位置失败: {e}")
+        
         # 为数字快捷键1-9建立行索引映射
         try:
-            self._shortcut_index_map = {str(i + 1): i for i in range(min(9, len(self.novel_sites)))}
+            self._shortcut_index_map = {str(i + 1): i for i in range(min(9, len(current_page_sites)))}
         except Exception:
             self._shortcut_index_map = {}
+            
+        # 更新分页信息
+        self._update_pagination_info()
+        self._update_pagination_buttons()
+
+    def _update_pagination_info(self) -> None:
+        """更新分页信息显示"""
+        try:
+            total_sites = len(self._all_sites)
+            status_label = self.query_one("#novel-sites-list-title", Label)
+            status_text = f"{get_global_i18n().t('get_books.novel_sites_list')} - 总共 {total_sites} 个网站 | 第 {self._current_page} / {self._total_pages} 页"
+            status_label.update(status_text)
+            
+            # 调试信息
+            logger.info(f"分页信息更新: 总网站数={total_sites}, 当前页={self._current_page}, 总页数={self._total_pages}")
+        except Exception as e:
+            logger.error(f"更新分页信息失败: {e}")
+
+    def _update_pagination_buttons(self) -> None:
+        """更新分页按钮状态"""
+        try:
+            page_label = self.query_one("#page-info", Label)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            # 设置按钮的可见性和禁用状态
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+            
+            # # 确保按钮始终可见
+            # first_btn.display = True
+            # prev_btn.display = True
+            # next_btn.display = True
+            # last_btn.display = True
+            
+            # 调试信息
+            logger.debug(f"分页状态: 当前页={self._current_page}, 总页数={self._total_pages}")
+            logger.debug(f"下一页按钮禁用状态: {next_btn.disabled}")
+            logger.debug(f"尾页按钮禁用状态: {last_btn.disabled}")
+        except Exception as e:
+            logger.error(f"更新分页按钮状态失败: {e}")
+
+    def _perform_search(self) -> None:
+        """执行搜索操作"""
+        # 获取搜索输入框和筛选器的值
+        search_input = self.query_one("#novel-sites-search-input", Input)
+        parser_filter = self.query_one("#novel-sites-parser-filter", Select)
+        proxy_filter = self.query_one("#novel-sites-proxy-filter", Select)
+        
+        # 更新搜索状态
+        self._search_keyword = search_input.value or ""
+        
+        # 处理下拉框值
+        parser_value = parser_filter.value
+        if parser_value is None or (hasattr(parser_value, 'is_blank') and callable(getattr(parser_value, 'is_blank', None)) and parser_value.is_blank()):
+            self._search_parser = "all"
+        else:
+            self._search_parser = str(parser_value) if parser_value else "all"
+        
+        proxy_value = proxy_filter.value
+        if proxy_value is None or (hasattr(proxy_value, 'is_blank') and callable(getattr(proxy_value, 'is_blank', None)) and proxy_value.is_blank()):
+            self._search_proxy_enabled = "all"
+        else:
+            self._search_proxy_enabled = str(proxy_value) if proxy_value else "all"
+        
+        # 重置到第一页
+        self._current_page = 1
+        
+        # 重新加载数据
+        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= self._total_pages:
+                        if page_num != self._current_page:
+                            self._current_page = page_num
+                            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{self._total_pages})",
+            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)
 
     def _load_proxy_settings(self) -> None:
         """加载代理设置"""
@@ -278,7 +546,19 @@ class GetBooksScreen(Screen[None]):
             self.notify(get_global_i18n().t('get_books.np_action'), severity="warning")
             return
             
-        if event.button.id == "novel-sites-btn":
+        # 处理分页按钮
+        if event.button.id == "first-page-btn":
+            self._go_to_first_page()
+        elif event.button.id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif event.button.id == "next-page-btn":
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
+        # 处理原有按钮
+        elif event.button.id == "novel-sites-btn":
             if self._has_permission("get_books.manage_sites"):
                 self.app.push_screen("novel_sites_management")  # 打开书籍网站管理页面
             else:
@@ -305,8 +585,8 @@ class GetBooksScreen(Screen[None]):
     
     def _open_site_by_row_index(self, row_index: int) -> None:
         """根据行索引打开对应站点的爬取管理页面"""
-        if 0 <= row_index < len(self.novel_sites):
-            site = self.novel_sites[row_index]
+        if 0 <= row_index < len(self._all_sites):
+            site = self._all_sites[row_index]
             if self._has_permission("crawler.open"):
                 from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
                 crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
@@ -314,6 +594,7 @@ class GetBooksScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
+    @on(DataTable.CellSelected, "#novel-sites-table")
     def on_data_table_cell_selected(self, event) -> None:
         """
         数据表单元格选择时的回调
@@ -321,20 +602,45 @@ class GetBooksScreen(Screen[None]):
         Args:
             event: 单元格选择事件
         """
-        # 检查是否点击了"进入"按钮列（第7列，索引6）
-        if event.coordinate.column == 6:  # 第7列是进入按钮列
-            table = self.query_one("#novel-sites-table", DataTable)
-            row_index = event.coordinate.row
-            if 0 <= row_index < len(self.novel_sites):
-                site = self.novel_sites[row_index]
-                # 权限校验：打开爬取管理页面需 crawler.open
-                if self._has_permission("crawler.open"):
-                    from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                    crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                    self.app.push_screen(crawler_screen)  # 打开爬取管理页面
-                else:
-                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+        logger.debug(f"单元格点击事件触发: {event}")
+        
+        # 获取表格和坐标信息
+        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        
+        # 检查是否点击了"进入"按钮列（key="enter"）
+        try:
+            # 尝试获取坐标信息
+            coordinate = getattr(event, 'coordinate', None)
+            if coordinate is None:
+                # 尝试从 cell_key 获取
+                cell_key = getattr(event, 'cell_key', None)
+                if cell_key is not None:
+                    coordinate = cell_key
+            
+            if coordinate is not None:
+                column_key = coordinate.column if hasattr(coordinate, 'column') else None
+                row_index = coordinate.row if hasattr(coordinate, 'row') else None
+                
+                logger.debug(f"点击的列: {column_key}, 行: {row_index}")
+                
+                if column_key == 6:  # "enter" 列的索引（从0开始）
+                    # 获取当前页的数据
+                    start_index = (self._current_page - 1) * self._sites_per_page
+                    if row_index is not None and row_index < len(self._all_sites) - start_index:
+                        site = self._all_sites[start_index + row_index]
+                        logger.debug(f"选中的站点: {site.get('name', 'Unknown')}")
+                        
+                        # 权限校验：打开爬取管理页面需 crawler.open
+                        if self._has_permission("crawler.open"):
+                            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                            self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                        else:
+                            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+        except Exception as e:
+            logger.error(f"处理进入按钮点击时出错: {e}")
     
+    @on(DataTable.RowSelected, "#novel-sites-table")
     def on_data_table_row_selected(self, event) -> None:
         """
         数据表行选择时的回调
@@ -342,32 +648,72 @@ class GetBooksScreen(Screen[None]):
         Args:
             event: 行选择事件
         """
-        table = self.query_one("#novel-sites-table", DataTable)
+        logger.debug(f"行选择事件触发: {event}")
+        table = self.query_one("#novel-sites-table", VirtualDataTable)
         
         # 获取当前选中的行索引
-        if event is None:
-            # 处理从 key_enter 调用的情况
-            row_index = table.cursor_row
-        elif hasattr(event, 'row_key') and event.row_key is not None:
-            # 处理行选择事件
-            row_index = int(event.row_key.value)
-        else:
-            return
+        try:
+            # 尝试从事件获取行索引
+            row_index = None
             
-        # 确保行索引有效
-        if row_index is None or row_index < 0 or row_index >= len(self.novel_sites):
-            return
+            # 方法1：从 cursor_row 获取
+            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+                row_index = table.cursor_row
             
-        # 获取对应的网站数据
-        site = self.novel_sites[row_index]
-        
-        # 权限校验：打开爬取管理页面需 crawler.open
-        if self._has_permission("crawler.open"):
-            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-            self.app.push_screen(crawler_screen)  # 打开爬取管理页面
-        else:
-            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+            # 方法2：从事件中获取
+            if row_index is None and event is not None:
+                # 尝试从 cell_key 获取
+                cell_key = getattr(event, 'cell_key', None)
+                if cell_key is not None:
+                    # 尝试从 row_key 获取全局索引
+                    row_key_value = getattr(cell_key, 'row_key', None)
+                    if row_key_value is not None:
+                        # 如果 row_key 是数字，直接使用
+                        if isinstance(row_key_value, (int, str)) and str(row_key_value).isdigit():
+                            row_index = int(row_key_value) - 1  # 转换为0-based索引
+                        else:
+                            # 尝试从 _current_data 查找
+                            if hasattr(table, '_current_data') and row_key_value in table._current_data:
+                                global_index = table._current_data[row_key_value].get('_global_index')
+                                if global_index is not None:
+                                    # 计算在当前页的索引
+                                    start_index = (self._current_page - 1) * self._sites_per_page
+                                    row_index = global_index - start_index - 1
+            
+            # 方法3：从 coordinate 获取
+            if row_index is None and event is not None:
+                coordinate = getattr(event, 'coordinate', None)
+                if coordinate is not None and hasattr(coordinate, 'row'):
+                    row_index = coordinate.row
+            
+            # 如果还是无法获取，使用当前光标行
+            if row_index is None:
+                # 获取表格当前行（第一行作为默认）
+                if hasattr(table, '_current_data') and len(table._current_data) > 0:
+                    # 获取第一个数据项的全局索引
+                    first_row_key = list(table._current_data.keys())[0]
+                    global_index = table._current_data[first_row_key].get('_global_index', 1)
+                    start_index = (self._current_page - 1) * self._sites_per_page
+                    row_index = global_index - start_index - 1
+            
+            if row_index is not None and row_index >= 0:
+                # 计算在 _all_sites 中的实际索引
+                start_index = (self._current_page - 1) * self._sites_per_page
+                actual_index = start_index + row_index
+                
+                if actual_index < len(self._all_sites):
+                    site = self._all_sites[actual_index]
+                    logger.debug(f"选中的站点: {site.get('name', 'Unknown')}")
+                    
+                    # 权限校验：打开爬取管理页面需 crawler.open
+                    if self._has_permission("crawler.open"):
+                        from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                        crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                        self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                    else:
+                        self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+        except Exception as e:
+            logger.error(f"处理行选择时出错: {e}")
     
     def key_n(self) -> None:
         """N键 - 打开书籍网站管理"""
@@ -386,9 +732,22 @@ class GetBooksScreen(Screen[None]):
     def key_enter(self) -> None:
         """Enter键 - 打开选中的书籍网站"""
         if self._has_permission("crawler.open"):
-            table = self.query_one("#novel-sites-table", DataTable)
-            if table.cursor_row is not None:
-                self.on_data_table_row_selected(None)
+            table = self.query_one("#novel-sites-table", VirtualDataTable)
+            # 获取当前光标所在的行
+            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+                # 创建一个模拟事件，包含当前行信息
+                class MockEvent:
+                    def __init__(self, row):
+                        self.coordinate = type('obj', (object,), {'row': row})()
+                        self.cell_key = type('obj', (object,), {
+                            'row_key': type('obj', (object,), {'value': str(row + 1)})()
+                        })()
+                
+                self.on_data_table_row_selected(MockEvent(table.cursor_row))
+            else:
+                # 如果没有光标行，尝试使用第一行
+                if hasattr(table, '_current_data') and len(table._current_data) > 0:
+                    self.on_data_table_row_selected(None)
         else:
             self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
@@ -407,14 +766,39 @@ class GetBooksScreen(Screen[None]):
 
     def action_open_selected(self) -> None:
         if self._has_permission("crawler.open"):
-            table = self.query_one("#novel-sites-table", DataTable)
-            if table.cursor_row is not None:
-                self.on_data_table_row_selected(None)
+            table = self.query_one("#novel-sites-table", VirtualDataTable)
+            # 获取当前光标所在的行
+            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+                # 创建一个模拟事件，包含当前行信息
+                class MockEvent:
+                    def __init__(self, row):
+                        self.coordinate = type('obj', (object,), {'row': row})()
+                        self.cell_key = type('obj', (object,), {
+                            'row_key': type('obj', (object,), {'value': str(row + 1)})()
+                        })()
+                
+                self.on_data_table_row_selected(MockEvent(table.cursor_row))
+            else:
+                # 如果没有光标行，尝试使用第一行
+                if hasattr(table, '_current_data') and len(table._current_data) > 0:
+                    self.on_data_table_row_selected(None)
         else:
             self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
     def action_back(self) -> None:
         self.app.pop_screen()
+    
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """处理输入框内容变化事件"""
+        # 搜索输入框变化时自动执行搜索
+        if event.input.id == "novel-sites-search-input":
+            self._perform_search()
+    
+    def on_select_changed(self, event: Select.Changed) -> None:
+        """处理选择框变化事件"""
+        # 筛选器变化时自动执行搜索
+        if event.select.id in ["novel-sites-parser-filter", "novel-sites-proxy-filter"]:
+            self._perform_search()
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""

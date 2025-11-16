@@ -6,7 +6,8 @@ from typing import List, Optional
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, DataTable, Select
+from textual.widgets import Button, Input, Label, Select
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual import events
 
 from src.locales.i18n import I18n
@@ -67,7 +68,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                     id="format-filter",
                     prompt=get_global_i18n().t("common.select_ext_prompt")
                 )
-            yield DataTable(id="results-table")
+            yield VirtualDataTable(id="results-table")
             with Horizontal(id="search-buttons", classes="btn-row"):
                 yield Button("← " + get_global_i18n().t("common.cancel"), id="cancel-btn", variant="primary")
                 yield Button(get_global_i18n().t("common.select"), id="select-btn", disabled=True)
@@ -79,7 +80,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         # 应用当前主题
         current_theme = self.theme_manager.get_current_theme_name()
         self.theme_manager.set_theme(current_theme)
-        table = self.query_one("#results-table", DataTable)
+        table = self.query_one("#results-table", VirtualDataTable)
         # table.cursor_type = "row"
         table.add_columns(
             (get_global_i18n().t("search.position"), "position"),
@@ -122,7 +123,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         
         books = bookshelf.search_books(search_input.value, format=selected_format)
         
-        table = self.query_one("#results-table", DataTable)
+        table = self.query_one("#results-table", VirtualDataTable)
         table.clear()
         
         # 更新搜索结果
@@ -159,11 +160,11 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         # 更新选择按钮状态
         self.query_one("#select-btn", Button).disabled = len(self.results) == 0
     
-    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+    def on_data_table_row_selected(self, event) -> None:
         """行选择时更新选择按钮状态"""
         self.query_one("#select-btn", Button).disabled = False
     
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_cell_selected(self, event) -> None:
         """
         数据表单元格选择时的回调
         
@@ -206,7 +207,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             
     def _select_current_result(self) -> None:
         """选择当前选中的搜索结果"""
-        table = self.query_one("#results-table", DataTable)
+        table = self.query_one("#results-table", VirtualDataTable)
         if table.cursor_row is not None:
             selected_index = table.cursor_row
             if 0 <= selected_index < len(self.results):

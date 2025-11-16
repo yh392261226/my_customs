@@ -118,6 +118,18 @@ class BookmarksScreen(Screen[None]):
                     id="bookmarks-list"
                 ),
                 
+                # 分页导航
+                Horizontal(
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info-nav", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(get_global_i18n().t('bookshelf.jump_to'), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
+                ),
+                
                 # 统计信息和帮助
                 Vertical(
                     Label(self._get_stats_text(), id="stats-info"),
@@ -180,6 +192,8 @@ class BookmarksScreen(Screen[None]):
         # 应用通用样式隔离
         apply_universal_style_isolation(self)
         self.title = self.screen_title
+        # 更新分页信息
+        self._update_pagination_info()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮按下时的回调"""
@@ -193,6 +207,17 @@ class BookmarksScreen(Screen[None]):
             self._edit_selected_note()
         elif event.button.id == "clear-all-btn":
             self._clear_all_bookmarks()
+        # 分页按钮
+        elif event.button.id == "first-page-btn":
+            self._go_to_first_page()
+        elif event.button.id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif event.button.id == "next-page-btn":
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
     
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """书签项选择时的回调"""
@@ -626,5 +651,82 @@ class BookmarksScreen(Screen[None]):
             stats_label = self.query_one("#stats-info", Label)
             stats_label.update(self._get_stats_text())
             
+            # 更新分页信息
+            self._update_pagination_info()
+            
         except Exception as e:
             self.notify(get_global_i18n().t("bookmarks.refresh_failed", error=str(e)), severity="error")
+    
+    def _update_pagination_info(self) -> None:
+        """更新分页信息"""
+        try:
+            page_label = self.query_one("#page-info-nav", Label)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            # 设置按钮的禁用状态
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+        except Exception as e:
+            self.notify(f"更新分页信息失败: {e}", severity="error")
+    
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self._refresh_bookmark_list()
+    
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._refresh_bookmark_list()
+    
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._refresh_bookmark_list()
+    
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self._refresh_bookmark_list()
+    
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= self._total_pages:
+                        if page_num != self._current_page:
+                            self._current_page = page_num
+                            self._refresh_bookmark_list()
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        dialog = InputDialog(
+            None,  # bookmarks_screen doesn't have theme_manager
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{self._total_pages})",
+            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)

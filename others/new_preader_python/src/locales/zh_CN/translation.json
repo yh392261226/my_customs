@@ -274,6 +274,11 @@
     "search": {
         "title": "搜索",
         "placeholder": "搜索书名、作者或标签...",
+        "site_placeholder": "搜索网站名称...",
+        "all_parsers": "所有解析器",
+        "select_parser_prompt": "选择解析器",
+        "select_proxy_prompt": "选择代理",
+        "all_proxy": "所有代理",
         "content_title": "内容搜索",
         "content_placeholder": "输入要搜索的内容关键词...",
         "position": "位置",

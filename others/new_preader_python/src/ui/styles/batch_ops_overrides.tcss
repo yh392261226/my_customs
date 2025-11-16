@@ -79,3 +79,46 @@
     color: $text-muted;
     dock: bottom;
 }
+
+/* 分页栏样式 */
+.batchops-component .pagination-bar {
+    height: 4;
+    width: 100%;
+    align: center middle;
+    background: $surface;
+    border-top: solid $primary;
+    align: center middle;
+    content-align: center middle;
+}
+
+.batchops-component .pagination-btn {
+    height: 1;              /* 增加高度使按钮更明显 */
+    border: none;   /* 添加边框使按钮更明显 */
+    padding: 0 1 0 1;       /* 尽量小的内边距，保证横向可读 */
+    min-width: 10;          /* 宽度足够显示中文+快捷键提示 */
+    content-align: center middle; /* 文本居中显示 */
+    align: center middle;
+    color: $text;           /* 文字颜色 */
+    background: $primary;   /* 按钮底色 */
+    margin: 0 1;            /* 添加左右边距 */
+}
+
+.batchops-component .pagination-btn:hover {
+    background: $primary-darken-1;
+}
+
+.batchops-component .pagination-btn:disabled {
+    background: $surface-darken-1;
+    color: $text-muted;
+}
+
+.batchops-component .page-info {
+    color: $text;
+    height: 1;
+    width: 3%;
+    min-width: 10;
+    margin: 0 2 0 2;
+    text-style: bold;
+    align: center middle;
+    content-align: center middle;
+}

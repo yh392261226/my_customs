@@ -6,7 +6,8 @@ import os
 from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, DataTable, Input, Select, Link, Header, Footer, LoadingIndicator
+from textual.widgets import Static, Button, Label, Input, Select, Link, Header, Footer, LoadingIndicator
+from src.ui.components.virtual_data_table import VirtualDataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -131,18 +132,22 @@ class CrawlerManagementScreen(Screen[None]):
                     # 爬取历史区域（不包含分页控件）
                     Vertical(
                         Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
-                        DataTable(id="crawl-history-table"),
+                        VirtualDataTable(id="crawl-history-table"),
                         id="crawl-history-section"
                     ),
                     id="crawler-scroll", classes="scroll-y"
                 ),
 
-                # 分页控件（底部固定，始终可见）
+                # 分页导航
                 Horizontal(
-                    Button(get_global_i18n().t('crawler.prev_page'), id="prev-page-btn"),
-                    Label("", id="page-info"),
-                    Button(get_global_i18n().t('crawler.next_page'), id="next-page-btn"),
-                    id="pagination-controls", classes="form-row"
+                    Button("◀◀", id="first-page-btn", classes="pagination-btn"),
+                    Button("◀", id="prev-page-btn", classes="pagination-btn"),
+                    Label("", id="page-info", classes="page-info"),
+                    Button("▶", id="next-page-btn", classes="pagination-btn"),
+                    Button("▶▶", id="last-page-btn", classes="pagination-btn"),
+                    Button(get_global_i18n().t('bookshelf.jump_to'), id="jump-page-btn", classes="pagination-btn"),
+                    id="pagination-bar",
+                    classes="pagination-bar"
                 ),
 
                 # 状态信息
@@ -186,19 +191,23 @@ class CrawlerManagementScreen(Screen[None]):
             pass
         
         # 初始化数据表
-        table = self.query_one("#crawl-history-table", DataTable)
-        table.add_columns(
-            get_global_i18n().t('crawler.sequence'),  # 序号列
-            get_global_i18n().t('crawler.novel_id'),
-            get_global_i18n().t('crawler.novel_title'),
-            get_global_i18n().t('crawler.crawl_time'),
-            get_global_i18n().t('crawler.status'),
-            get_global_i18n().t('crawler.view_file'),
-            get_global_i18n().t('crawler.read_book'),
-            get_global_i18n().t('crawler.delete_file'),
-            get_global_i18n().t('crawler.delete_record'),
-            get_global_i18n().t('crawler.view_reason')  # 新增查看原因列
-        )
+        table = self.query_one("#crawl-history-table", VirtualDataTable)
+        
+        # 清除现有列，重新添加
+        table.clear(columns=True)
+        
+        # 添加列定义
+        table.add_column(get_global_i18n().t('crawler.sequence'), key="sequence")
+        table.add_column(get_global_i18n().t('crawler.novel_id'), key="novel_id")
+        table.add_column(get_global_i18n().t('crawler.novel_title'), key="novel_title")
+        table.add_column(get_global_i18n().t('crawler.crawl_time'), key="crawl_time")
+        table.add_column(get_global_i18n().t('crawler.status'), key="status")
+        table.add_column(get_global_i18n().t('crawler.view_file'), key="view_file")
+        table.add_column(get_global_i18n().t('crawler.read_book'), key="read_book")
+        table.add_column(get_global_i18n().t('crawler.delete_file'), key="delete_file")
+        table.add_column(get_global_i18n().t('crawler.delete_record'), key="delete_record")
+        table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
+        
         # 启用隔行变色效果
         table.zebra_stripes = True
         
@@ -260,18 +269,16 @@ class CrawlerManagementScreen(Screen[None]):
                 self.set_timer(0.1, self._update_history_table)
                 return
 
-            table = self.query_one("#crawl-history-table", DataTable)
-            table.clear()
+            table = self.query_one("#crawl-history-table", VirtualDataTable)
             
             # 计算分页
             start_index = (self.current_page - 1) * self.items_per_page
             end_index = min(start_index + self.items_per_page, len(self.crawler_history))
             current_page_items = self.crawler_history[start_index:end_index]
             
+            # 准备虚拟滚动数据
+            virtual_data = []
             for i, item in enumerate(current_page_items):
-                # 使用唯一标识符作为行键，避免重复
-                row_key = f"{item['novel_id']}_{item['crawl_time']}_{i}"
-                
                 # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮和查看原因按钮
                 if item["status"] == get_global_i18n().t('crawler.status_success') and item["file_path"]:
                     view_file_text = get_global_i18n().t('crawler.view_file')
@@ -291,23 +298,25 @@ class CrawlerManagementScreen(Screen[None]):
                     delete_file_text = ""
                     delete_record_text = ""
                     view_reason_text = ""
-                    
-                table.add_row(
-                    str(start_index + i + 1),  # 序号，从当前页面的起始序号开始计算
-                    item["novel_id"],
-                    item["novel_title"],
-                    item["crawl_time"],
-                    item["status"],
-                    view_file_text,
-                    read_book_text,
-                    delete_file_text,
-                    delete_record_text,
-                    view_reason_text,  # 新增查看原因列
-                    key=row_key
-                )
-
-                # 启用隔行变色效果
-                table.zebra_stripes = True
+                
+                row_data = {
+                    "sequence": str(start_index + i + 1),
+                    "novel_id": item["novel_id"],
+                    "novel_title": item["novel_title"],
+                    "crawl_time": item["crawl_time"],
+                    "status": item["status"],
+                    "view_file": view_file_text,
+                    "read_book": read_book_text,
+                    "delete_file": delete_file_text,
+                    "delete_record": delete_record_text,
+                    "view_reason": view_reason_text,
+                    "_row_key": f"{item['novel_id']}_{item['crawl_time']}_{i}",
+                    "_global_index": start_index + i + 1
+                }
+                virtual_data.append(row_data)
+            
+            # 设置虚拟滚动数据
+            table.set_virtual_data(virtual_data)
             
             # 更新分页信息
             self._update_pagination_info()
@@ -329,7 +338,20 @@ class CrawlerManagementScreen(Screen[None]):
 
             total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
             page_label = self.query_one("#page-info", Label)
-            page_label.update(f"{get_global_i18n().t('crawler.page')} {self.current_page}/{total_pages}")
+            page_label.update(f"{self.current_page}/{total_pages}")
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button) 
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            # 设置按钮的禁用状态
+            first_btn.disabled = self.current_page <= 1
+            prev_btn.disabled = self.current_page <= 1
+            next_btn.disabled = self.current_page >= total_pages
+            last_btn.disabled = self.current_page >= total_pages
+            
         except Exception as e:
             logger.debug(f"更新分页信息失败: {e}")
             # 延迟重试
@@ -399,50 +421,63 @@ class CrawlerManagementScreen(Screen[None]):
             self._open_select_books_dialog()
         elif event.button.id == "stop-crawl-btn":
             self._stop_crawl()
+        elif event.button.id == "first-page-btn":
+            self._go_to_first_page()
         elif event.button.id == "prev-page-btn":
-            self._prev_page()
+            self._go_to_prev_page()
         elif event.button.id == "next-page-btn":
-            self._next_page()
+            self._go_to_next_page()
+        elif event.button.id == "last-page-btn":
+            self._go_to_last_page()
+        elif event.button.id == "jump-page-btn":
+            self._show_jump_dialog()
         elif event.button.id == "back-btn":
             self.app.pop_screen()  # 返回上一页
     
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_cell_selected(self, event) -> None:
         """
         数据表格单元格选择时的回调
         
         Args:
             event: 单元格选择事件
         """
-        # 获取选中的单元格坐标
-        row_index = event.coordinate.row
-        column_index = event.coordinate.column
+        # 获取选中的单元格键
+        cell_key = event.cell_key
+        column_key = cell_key.column_key.value
+        row_key = cell_key.row_key.value
         
-        # 只处理操作列（第6、7、8、9、10列）
-        if column_index not in [5, 6, 7, 8, 9]:  # 查看文件、阅读书籍、删除文件、删除记录、查看原因列
+        # 只处理操作列（查看文件、阅读书籍、删除文件、删除记录、查看原因）
+        if column_key not in ["view_file", "read_book", "delete_file", "delete_record", "view_reason"]:
             return
-            
-        # 根据分页计算真实索引，避免跨页错位
-        start_index = (self.current_page - 1) * self.items_per_page
-        real_index = start_index + row_index
-        if real_index < 0 or real_index >= len(self.crawler_history):
-            return
-
-        history_item = self.crawler_history[real_index]
         
-        if not history_item:
-            return
-            
-        # 根据列索引执行不同的操作
-        if column_index == 5:  # 查看文件列
-            self._view_file(history_item)
-        elif column_index == 6:  # 阅读书籍列
-            self._read_book(history_item)
-        elif column_index == 7:  # 删除文件列
-            self._delete_file_only(history_item)
-        elif column_index == 8:  # 删除记录列
-            self._delete_record_only(history_item)
-        elif column_index == 9:  # 查看原因列
-            self._view_reason(history_item)
+        # 通过行键映射获取历史项索引
+        # 从行键中提取全局索引（格式如："novel_id_timestamp_index"）
+        parts = row_key.split("_")
+        if len(parts) >= 3:
+            try:
+                index = int(parts[-1])
+                start_index = (self.current_page - 1) * self.items_per_page
+                real_index = start_index + index
+                
+                if 0 <= real_index < len(self.crawler_history):
+                    history_item = self.crawler_history[real_index]
+                    
+                    if not history_item:
+                        return
+                        
+                    # 根据列键执行不同的操作
+                    if column_key == "view_file":
+                        self._view_file(history_item)
+                    elif column_key == "read_book":
+                        self._read_book(history_item)
+                    elif column_key == "delete_file":
+                        self._delete_file_only(history_item)
+                    elif column_key == "delete_record":
+                        self._delete_record_only(history_item)
+                    elif column_key == "view_reason":
+                        self._view_reason(history_item)
+            except (ValueError, IndexError) as e:
+                logger.debug(f"解析行键失败: {row_key}, 错误: {e}")
     
     def _open_browser(self) -> None:
         """在浏览器中打开网站"""
@@ -1378,18 +1413,62 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception:
                 pass
     
-    def _prev_page(self) -> None:
-        """上一页"""
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self.current_page != 1:
+            self.current_page = 1
+            self._update_history_table()
+    
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
         if self.current_page > 1:
             self.current_page -= 1
             self._update_history_table()
     
-    def _next_page(self) -> None:
-        """下一页"""
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
         total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
         if self.current_page < total_pages:
             self.current_page += 1
             self._update_history_table()
+    
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+        if self.current_page != total_pages:
+            self.current_page = total_pages
+            self._update_history_table()
+    
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            """处理跳转结果"""
+            if result and result.strip():
+                try:
+                    page_num = int(result.strip())
+                    total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+                    if 1 <= page_num <= total_pages:
+                        if page_num != self.current_page:
+                            self.current_page = page_num
+                            self._update_history_table()
+                    else:
+                        self.notify(
+                            f"页码必须在 1 到 {total_pages} 之间", 
+                            severity="error"
+                        )
+                except ValueError:
+                    self.notify("请输入有效的页码数字", severity="error")
+        
+        # 导入并显示页码输入对话框
+        from src.ui.dialogs.input_dialog import InputDialog
+        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t("bookshelf.jump_to"),
+            prompt=f"请输入页码 (1-{total_pages})",
+            placeholder=f"当前: {self.current_page}/{total_pages}"
+        )
+        self.app.push_screen(dialog, handle_jump_result)
     
     def _update_status(self, message: str, severity: str = "information") -> None:
         """更新状态信息"""

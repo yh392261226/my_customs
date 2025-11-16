@@ -75,12 +75,4 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
             self.dismiss(None)
             
 
-    def on_key(self, event: events.Key) -> None:
-        """键盘事件处理：确保 ESC 能关闭，Enter 能选择"""
-        if event.key == "escape":
-            self.dismiss(None)
-            event.stop()
-        elif event.key == "enter":
-            # 与按钮一致的行为：选择当前结果
-            self._select_current_result()
-            event.stop()
+    
