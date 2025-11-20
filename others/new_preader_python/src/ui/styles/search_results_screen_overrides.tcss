@@ -108,7 +108,7 @@
     text-style: bold;
 }
 
-/* VirtualDataTable样式 */
+/* DataTable样式 */
 #results-table {
     width: 100%;
     height: 50%;

@@ -421,8 +421,10 @@ class BaseParser:
         Returns:
             清理后的纯文本
         """
-        # 移除HTML标签
-        clean_text = re.sub(r'<[^>]+>', '', html_content)
+        # 先移除<style>标签及其内容
+        clean_text = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.IGNORECASE | re.DOTALL)
+        # 移除其他HTML标签
+        clean_text = re.sub(r'<[^>]+>', '', clean_text)
         # 替换HTML实体
         clean_text = clean_text.replace('&nbsp;', ' ').replace('\xa0', ' ')
         # 清理多余空白字符
@@ -432,7 +434,7 @@ class BaseParser:
     def _extract_with_regex(self, content: str, regex_list: List[str]) -> str:
         """
         使用正则表达式列表提取内容
-        按顺序尝试每个正则，返回第一个匹配的结果
+        按顺序尝试每个正则，返回第一个有内容的匹配结果
         
         Args:
             content: 要提取的内容
@@ -442,9 +444,11 @@ class BaseParser:
             提取的内容
         """
         for regex in regex_list:
-            match = re.search(regex, content, re.IGNORECASE | re.DOTALL)
-            if match:
-                return match.group(1).strip()
+            matches = re.findall(regex, content, re.IGNORECASE | re.DOTALL)
+            for match in matches:
+                extracted = match.strip() if isinstance(match, str) else match[0].strip() if match else ""
+                if extracted and len(extracted) > 10:  # 确保内容不是空的
+                    return extracted
         return ""
     
     def _detect_book_type(self, content: str) -> str:

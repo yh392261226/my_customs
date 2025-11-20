@@ -9,6 +9,22 @@
 .hidden {
     display: none;
 }
+
+/* 数据表高亮样式 */
+DataTable > .data-table--row.highlighted {
+    background: $primary 30%;
+    color: $text;
+}
+
+DataTable > .data-table--row.highlighted > .data-table--cell {
+    background: $primary 20%;
+    color: $text;
+}
+
+/* 确保高亮行有明显的视觉反馈 */
+DataTable > .data-table--row.highlighted:hover {
+    background: $primary 40%;
+}
 /* 统一按钮行：水平排列，固定高，按钮有最小宽度 */
 .btn-row {
     layout: horizontal;

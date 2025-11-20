@@ -269,7 +269,9 @@
         "merge_author_description": "设置合并后书籍的作者",
         "merge_enter_tags": "输入合并后的书籍标签",
         "merge_tags_placeholder": "请输入新书籍标签（可选）",
-        "merge_tags_description": "设置合并后书籍的标签"
+        "merge_tags_description": "设置合并后书籍的标签",
+        "books_already_at_top": "已在顶部",
+        "books_already_at_bottom": "已在底部"
     },
     "search": {
         "title": "搜索",
@@ -1055,7 +1057,10 @@
         "no_reason_to_view": "该记录没有失败原因可查看",
         "no_error_message": "没有错误信息",
         "failure_reason": "失败原因",
-        "view_reason_failed": "查看原因失败"
+        "view_reason_failed": "查看原因失败",
+        "retry": "重试",
+        "retry_failed": "重试失败",
+        "retry_success": "重试成功"
     },
     "note": {
         "save": "保存",

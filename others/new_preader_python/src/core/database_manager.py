@@ -2347,3 +2347,87 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"更新词汇表路径引用失败: {e}")
             return False
+
+    def update_crawl_history_status(self, site_id: int, novel_id: str, status: str, 
+                                   file_path: Optional[str] = None, 
+                                   novel_title: Optional[str] = None) -> bool:
+        """
+        更新爬取历史记录的状态和文件路径
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            status: 状态（success/failed）
+            file_path: 文件路径（可选）
+            novel_title: 小说标题（可选）
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 构建更新语句
+                update_fields = ["status = ?"]
+                update_values = [status]
+                
+                if file_path:
+                    update_fields.append("file_path = ?")
+                    update_values.append(file_path)
+                
+                if novel_title:
+                    update_fields.append("novel_title = ?")
+                    update_values.append(novel_title)
+                
+                # 添加更新时间
+                update_fields.append("crawl_time = ?")
+                update_values.append(datetime.now().isoformat())
+                
+                update_values.extend([site_id, novel_id])
+                
+                update_sql = f"""
+                    UPDATE crawl_history 
+                    SET {', '.join(update_fields)}
+                    WHERE site_id = ? AND novel_id = ?
+                """
+                
+                cursor.execute(update_sql, update_values)
+                conn.commit()
+                
+                logger.info(f"更新爬取历史记录状态: 网站ID={site_id}, 小说ID={novel_id}, 状态={status}")
+                return True
+                
+        except sqlite3.Error as e:
+            logger.error(f"更新爬取历史记录状态失败: {e}")
+            return False
+
+    def update_crawl_history_error(self, site_id: int, novel_id: str, error_message: str) -> bool:
+        """
+        更新爬取历史记录的错误信息
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            error_message: 错误信息
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    UPDATE crawl_history 
+                    SET error_message = ?, status = 'failed', crawl_time = ?
+                    WHERE site_id = ? AND novel_id = ?
+                """, (error_message, datetime.now().isoformat(), site_id, novel_id))
+                
+                conn.commit()
+                logger.info(f"更新爬取历史记录错误信息: 网站ID={site_id}, 小说ID={novel_id}")
+                return True
+                
+        except sqlite3.Error as e:
+            logger.error(f"更新爬取历史记录错误信息失败: {e}")
+            return False

@@ -23,9 +23,9 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
     
     # 加载CSS样式
     CSS_PATH = "../styles/confirm_dialog_overrides.tcss"
-    BINDINGS = [
-        ("enter", "press('#confirm-btn')", get_global_i18n().t("common.confirm")),
-        ("escape", "press('#cancel-btn')", get_global_i18n().t("common.cancel")),
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("enter", "press('#confirm-btn')", "确认"),
+        ("escape", "press('#cancel-btn')", "取消"),
     ]
     
     def __init__(self, theme_manager: ThemeManager, title: str, message: str):

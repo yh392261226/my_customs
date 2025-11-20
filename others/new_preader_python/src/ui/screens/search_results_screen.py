@@ -3,7 +3,7 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Label, Button, Static
 from textual.containers import Horizontal, Container, Grid
 from textual import on, events
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from typing import Any, Dict, List, ClassVar, cast, Optional
 from src.locales.i18n_manager import get_global_i18n
 from src.core.database_manager import DatabaseManager
@@ -64,8 +64,8 @@ class SearchResultsScreen(Screen[None]):
                 if not self.results:
                     yield Static(get_global_i18n().t('search_results_screen.no_results'), id="no-results")
                 else:
-                    # 使用VirtualDataTable显示搜索结果
-                    table = VirtualDataTable(id="results-table", cursor_type="row", zebra_stripes=True)
+                    # 使用DataTable显示搜索结果
+                    table = DataTable(id="results-table", cursor_type="row", zebra_stripes=True)
                     table.add_column(get_global_i18n().t('search_results_screen.column_page'), key="page")
                     table.add_column(get_global_i18n().t('search_results_screen.column_preview'), key="preview")
                     yield table
@@ -94,7 +94,7 @@ class SearchResultsScreen(Screen[None]):
         # 加载数据并设置焦点
         if self.results:
             self._load_results()
-            table = self.query_one("#results-table", VirtualDataTable)
+            table = self.query_one("#results-table", DataTable)
             if table:
                 table.focus()
                 # 默认选择第一行
@@ -135,13 +135,13 @@ class SearchResultsScreen(Screen[None]):
                 self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
-            table = self.query_one("#results-table", VirtualDataTable)
+            table = self.query_one("#results-table", DataTable)
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
                 self._current_page += 1
                 self._refresh_table()
                 # 将光标移动到新页面的第一行
-                table = self.query_one("#results-table", VirtualDataTable)
+                table = self.query_one("#results-table", DataTable)
                 table.action_cursor_down()  # 先向下移动一次
                 table.action_cursor_up()     # 再向上移动一次，确保在第一行
                 event.prevent_default()
@@ -151,12 +151,12 @@ class SearchResultsScreen(Screen[None]):
                 self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
-            table = self.query_one("#results-table", VirtualDataTable)
+            table = self.query_one("#results-table", DataTable)
             if table.cursor_row == 0 and self._current_page > 1:
                 self._current_page -= 1
                 self._refresh_table()
                 # 将光标移动到新页面的最后一行
-                table = self.query_one("#results-table", VirtualDataTable)
+                table = self.query_one("#results-table", DataTable)
                 for _ in range(len(table.rows) - 1):
                     table.action_cursor_down()  # 移动到最底部
                 event.prevent_default()
@@ -183,7 +183,7 @@ class SearchResultsScreen(Screen[None]):
         if not self.results:
             return
             
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         table.clear()
         
         # 计算当前页的结果范围
@@ -194,7 +194,7 @@ class SearchResultsScreen(Screen[None]):
         # 清空行键映射
         self._row_key_mapping = {}
         
-        # 为VirtualDataTable准备数据
+        # 为DataTable准备数据
         table_data = []
         for idx, result in enumerate(current_page_results):
             page_info = get_global_i18n().t('reader.page_current', page=result.get('page', 1))
@@ -216,7 +216,16 @@ class SearchResultsScreen(Screen[None]):
             })
         
         # 设置表格数据
-        table.set_virtual_data(table_data)
+        # 填充表格数据
+        table.clear()
+        for row_data in table_data:
+            # 根据实际数据结构调整列
+            table.add_row(
+                row_data.get("column1", ""),
+                row_data.get("column2", ""),
+                row_data.get("column3", ""),
+                # 添加更多列...
+            )
         
         # 更新分页信息
         page_info_label = self.query_one("#page-info", Label)
@@ -227,13 +236,13 @@ class SearchResultsScreen(Screen[None]):
         self._load_results()
         
         # 设置焦点并选择第一行
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         table.focus()
         if table.row_count > 0:
             table.move_cursor(row=0)
 
-    @on(VirtualDataTable.RowSelected)
-    def on_row_selected(self, event: VirtualDataTable.RowSelected) -> None:
+    @on(DataTable.RowSelected)
+    def on_row_selected(self, event: DataTable.RowSelected) -> None:
         """处理表格行选择事件"""
         if not self.results:
             return

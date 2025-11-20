@@ -5,8 +5,8 @@ from typing import Optional, Dict, Any, List, ClassVar, Set
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Label, Input, Button, Header, Footer
-from src.ui.components.virtual_data_table import VirtualDataTable
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
+from textual.widgets import DataTable
 from textual.app import ComposeResult
 from src.core.database_manager import DatabaseManager
 from src.themes.theme_manager import ThemeManager
@@ -68,7 +68,7 @@ class UsersManagementScreen(Screen[None]):
                 #     Button("设置权限", id="set-perms"),
                 #     id="um-set-perms",
                 # ),
-                VirtualDataTable(id="users-table"),
+                DataTable(id="users-table"),
                 
                 # 分页导航
                 Horizontal(
@@ -149,7 +149,7 @@ class UsersManagementScreen(Screen[None]):
         self._check_button_permissions()
 
         # 初始化用户表
-        table = self.query_one("#users-table", VirtualDataTable)
+        table = self.query_one("#users-table", DataTable)
         table.add_column("ID", key="id")
         table.add_column(get_global_i18n().t('users_management.username'), key="username")
         table.add_column(get_global_i18n().t('users_management.role'), key="role")
@@ -194,7 +194,7 @@ class UsersManagementScreen(Screen[None]):
             current_page_users = self._all_users[start_index:end_index]
             
             # 准备虚拟滚动数据
-            table = self.query_one("#users-table", VirtualDataTable)
+            table = self.query_one("#users-table", DataTable)
             table.clear(columns=True)
             
             # 重新添加列
@@ -239,8 +239,18 @@ class UsersManagementScreen(Screen[None]):
                 }
                 virtual_data.append(row_data)
             
-            # 设置虚拟滚动数据
-            table.set_virtual_data(virtual_data)
+            # 填充表格数据
+            table.clear()
+            for row_data in virtual_data:
+                table.add_row(
+                    row_data["id"],
+                    row_data["username"],
+                    row_data["role"],
+                    row_data["perms"],
+                    row_data["view_perms"],
+                    row_data["edit"],
+                    row_data["delete"]
+                )
             
             # 更新分页信息
             self._update_pagination_info()
@@ -580,8 +590,8 @@ class UsersManagementScreen(Screen[None]):
                 except Exception:
                     pass
                 try:
-                    table = self.query_one("#users-table", VirtualDataTable)
-                    # 使用 VirtualDataTable 的方法获取行数据
+                    table = self.query_one("#users-table", DataTable)
+                    # 使用 DataTable 的方法获取行数据
                     if hasattr(table, '_current_data') and row_key in table._current_data:
                         row_data = table._current_data[row_key]
                         username_val = row_data.get("username", "")
@@ -858,7 +868,6 @@ class UsersManagementScreen(Screen[None]):
         dialog = InputDialog(
             self.theme_manager,
             title=get_global_i18n().t("bookshelf.jump_to"),
-            prompt=f"请输入页码 (1-{self._total_pages})",
-            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+            prompt=f"请输入页码 (1-{self._total_pages})"
         )
         self.app.push_screen(dialog, handle_jump_result)        

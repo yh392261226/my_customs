@@ -6,12 +6,12 @@
 import os
 import json
 from datetime import datetime
-from typing import List, Set, Optional, Dict, Any
+from typing import List, Set, Optional, Dict, Any, Tuple
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal, Center
 from textual.widgets import Static, Button, Label, Input, Select
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -36,48 +36,26 @@ class BatchInputDialog(ModalScreen[str]):
         self.title = title
         self.placeholder = placeholder
         # 保证描述为字符串，避免 None 传入 Label
-        self.description = description or ""
+        self.description = str(description) if description else ""
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
-        # 构建按钮行
-        buttons_row = Horizontal(
-            Button(get_global_i18n().t("common.ok"), id="ok-btn", variant="primary"),
-            Button(get_global_i18n().t("common.cancel"), id="cancel-btn"),
-            id="batch-input-buttons"
-        )
-        # 以标准嵌套方式生成布局，避免混合列表导致的类型检查问题
-        yield Container(
-            Vertical(
-                Label(self.title, id="batch-input-title"),
-                *([Label(self.description, id="batch-input-description")] if isinstance(self.description, str) and self.description != "" else []),
-                Vertical(
-                    Center(Input(placeholder=self.placeholder, id="batch-input")),
-                    buttons_row,
-                    id="batch-input-container",
-                ),
-                id="batch-input-dialog"
-            ),
-            id="batch-input-dialog-container"
-        )
+        # 借鉴旧版本的简洁布局
+        with Container(id="batch-input-dialog-container"):
+            with Vertical(id="batch-input-dialog"):
+                yield Label(str(self.title), id="batch-input-title")
+                if self.description and self.description != "":
+                    yield Label(str(self.description), id="batch-input-description")
+                yield Center(Input(placeholder=self.placeholder, id="batch-input"))
+                with Horizontal(id="batch-input-buttons"):
+                    yield Button(get_global_i18n().t("common.ok"), id="ok-btn", variant="primary")
+                    yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
     
     def on_mount(self) -> None:
-        """挂载时的回调"""
-        # 应用通用样式隔离，并聚焦输入框
+        """组件挂载时应用样式隔离"""
+        # 借鉴旧版本的样式隔离实现
         apply_universal_style_isolation(self)
         input_widget = self.query_one("#batch-input", Input)
-        try:
-            # 文本与控件均强制居中（覆盖可能的样式冲突）
-            input_widget.styles.text_align = "center"
-            input_widget.styles.align = ("center", "middle")
-        except Exception:
-            pass
-        # 让父容器将子项居中对齐，确保控件居中显示
-        try:
-            container = self.query_one("#batch-input-container", Vertical)
-            container.styles.content_align = ("center", "middle")
-        except Exception:
-            pass
         input_widget.focus()
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -105,10 +83,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/batch_ops_overrides.tcss"
     BINDINGS = [
-        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
-        ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
-        ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
-        ("escape", "cancel", get_global_i18n().t('common.cancel')),
+        ("n", "next_page", "下一页"),
+        ("p", "prev_page", "上一页"),
+        ("escape", "cancel", "取消"),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -136,7 +113,6 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 搜索相关属性
         self._search_keyword = ""
         self._selected_format = "all"
-        self._selected_author = "all"
         self._selected_author = "all"
         
         # 排序相关属性
@@ -201,7 +177,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 Label("", id="batch-ops-page-info"),
                 
                 # 书籍列表
-                VirtualDataTable(id="batch-ops-table"),
+                DataTable(id="batch-ops-table"),
                 
                 # 分页导航
                 Horizontal(
@@ -231,7 +207,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.theme_manager.apply_theme_to_screen(self)
         
         # 初始化数据表 - 使用正确的列键设置方法
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
+        table = self.query_one("#batch-ops-table", DataTable)
         
         # 清除现有列
         table.clear(columns=True)
@@ -249,6 +225,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 加载书籍数据
         self._load_books()
+        
+        # 确保表格获得焦点
+        try:
+            table.focus()
+        except Exception:
+            pass
     
     def _load_books(self) -> None:
         """加载书籍数据"""
@@ -277,6 +259,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             sorted_books.extend(remaining_books)
             
             filtered_books = sorted_books
+        else:
+            # 如果没有排序列表，初始化排序列表为当前显示书籍的顺序
+            self._sorted_books = [book.path for book in filtered_books]
         
         self._all_books = filtered_books
         
@@ -289,7 +274,21 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         end_index = min(start_index + self._books_per_page, len(self._all_books))
         current_page_books = self._all_books[start_index:end_index]
         
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
+        table = self.query_one("#batch-ops-table", DataTable)
+        
+        # 保存当前光标位置和选中状态
+        old_cursor_row = table.cursor_row if hasattr(table, 'cursor_row') and table.cursor_row is not None else None
+        
+        # 保存当前焦点路径
+        old_focus_path = None
+        if old_cursor_row is not None and 0 <= old_cursor_row < len(table.rows):
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[old_cursor_row]
+            if hasattr(row_key, 'value'):
+                old_focus_path = str(row_key.value)
+            else:
+                old_focus_path = str(row_key)
+        
         table.clear()
         
         # 创建全局排序序号映射
@@ -337,6 +336,47 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 更新分页信息
         self._update_pagination_info()
+        
+        # 恢复光标位置 - 优先根据焦点路径恢复位置
+        if old_focus_path and len(table.rows) > 0:
+            # 根据焦点路径找到新位置
+            for i, row_key in enumerate(table.rows.keys()):
+                if hasattr(row_key, 'value'):
+                    book_path = str(row_key.value)
+                else:
+                    book_path = str(row_key)
+                
+                if book_path == old_focus_path:
+                    # 找到焦点路径对应的行，设置光标位置
+                    if hasattr(table, 'cursor_coordinate'):
+                        from textual.coordinate import Coordinate
+                        table.cursor_coordinate = Coordinate(row=i, column=0)
+                    # 使用move_cursor方法设置光标位置
+                    if hasattr(table, 'move_cursor'):
+                        table.move_cursor(row=i)
+                    break
+        elif old_cursor_row is not None and len(table.rows) > 0:
+            # 如果没有焦点路径，使用原来的光标行
+            new_cursor_row = min(old_cursor_row, len(table.rows) - 1)
+            
+            # 确保光标坐标同步
+            if hasattr(table, 'cursor_coordinate'):
+                from textual.coordinate import Coordinate
+                table.cursor_coordinate = Coordinate(row=new_cursor_row, column=0)
+            # 使用move_cursor方法设置光标位置
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=new_cursor_row)
+        
+        # 强制刷新表格显示以确保选中状态正确显示
+        table.refresh()
+        
+        # 更新状态信息，显示当前页选中数量
+        self._update_status()
+    
+    def _refresh_table(self) -> None:
+        """强制重新渲染表格，确保选中状态正确显示"""
+        # 直接调用_load_books()来重新渲染整个表格
+        self._load_books()
     
     def on_data_table_row_selected(self, event) -> None:
         """
@@ -351,13 +391,33 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         if event.key == "space":
-            table = self.query_one("#batch-ops-table", VirtualDataTable)
-            if table.cursor_row is not None:
-                # 获取当前行的键（书籍路径）
-                row_key = list(table.rows.keys())[table.cursor_row]
-                if row_key and row_key.value:
-                    book_id = row_key.value
-                    self._toggle_book_selection(str(book_id), table, table.cursor_row)
+            # 直接处理空格键，不依赖BINDINGS系统
+            table = self.query_one("#batch-ops-table", DataTable)
+            
+            # 简化光标获取逻辑 - 直接使用表格的cursor_row
+            current_row_index = getattr(table, 'cursor_row', None)
+            
+            # 如果cursor_row无效，尝试通过表格的焦点系统获取
+            if current_row_index is None:
+                try:
+                    # 尝试获取当前焦点行
+                    if hasattr(table, 'cursor_coordinate'):
+                        coord = table.cursor_coordinate
+                        if coord and hasattr(coord, 'row'):
+                            current_row_index = coord.row
+                except Exception:
+                    pass
+            
+            # 执行选择操作
+            if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+                row_keys = list(table.rows.keys())
+                row_key = row_keys[current_row_index]
+                book_id = str(row_key)
+                self._toggle_book_selection(book_id, table, current_row_index)
+            else:
+                # 如果无法确定当前行，显示提示信息
+                self.notify("请先选择一行", severity="warning")
+            
             event.stop()
         elif event.key == "escape":
             # ESC键返回，效果与点击取消按钮相同
@@ -377,41 +437,47 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             event.stop()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            table = self.query_one("#batch-ops-table", VirtualDataTable)
+            table = self.query_one("#batch-ops-table", DataTable)
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
                 self._current_page += 1
                 self._load_books()
-                # 将光标移动到新页面的第一行
-                table = self.query_one("#batch-ops-table", VirtualDataTable)
-                table.action_cursor_down()  # 先向下移动一次
-                table.action_cursor_up()     # 再向上移动一次，确保在第一行
+                # 不需要手动设置光标，_load_books() 已经会自动恢复光标位置
                 event.stop()
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            table = self.query_one("#batch-ops-table", VirtualDataTable)
+            table = self.query_one("#batch-ops-table", DataTable)
             if table.cursor_row == 0 and self._current_page > 1:
                 self._current_page -= 1
                 self._load_books()
-                # 将光标移动到新页面的最后一行
-                table = self.query_one("#batch-ops-table", VirtualDataTable)
-                for _ in range(len(table.rows) - 1):
-                    table.action_cursor_down()  # 移动到最底部
+                # 不需要手动设置光标，_load_books() 已经会自动恢复光标位置
                 event.stop()
 
     def on_data_table_cell_selected(self, event) -> None:
         """
-        单元格选择事件：仅当点击“已选择”列（最后一列）时，切换该行的选中状态。
+        单元格选择事件：无论点击哪一列，都设置光标位置；
+        仅当点击“已选择”列（最后一列）时，切换该行的选中状态。
         """
         table = event.data_table
+        
+        # 设置光标位置：使用move_cursor方法而不是直接赋值
+        if hasattr(table, 'move_cursor'):
+            table.move_cursor(row=event.coordinate.row)
+        
         # 计算是否点击的是最后一列（已选择列）
         try:
-            selected_col_index = len(table.columns) - 1
+            # 确保使用正确的列键类型
+            if hasattr(table, 'columns') and table.columns:
+                selected_col_index = len(table.columns) - 1
+            elif hasattr(table, 'ordered_columns') and table.ordered_columns:
+                selected_col_index = len(table.ordered_columns) - 1
+            else:
+                selected_col_index = 0
         except Exception:
-            # 兼容旧版本 DataTable 属性名
-            selected_col_index = len(table.ordered_columns) - 1
+            selected_col_index = 0
+        
         if event.coordinate.column != selected_col_index:
-            return  # 非“已选择”列，不切换
+            return  # 非“已选择”列，不切换选中状态
 
         # 获取行索引与行键
         row_index = event.coordinate.row
@@ -428,36 +494,87 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._toggle_book_selection(str(book_id), table, row_index)
         event.stop()
     
-    def _toggle_book_selection(self, book_id: str, table: VirtualDataTable, row_index: int) -> None:
+    def _toggle_book_selection(self, book_id: str, table: DataTable[str], row_index: int) -> None:
         """切换书籍选中状态"""
-        # 获取行键对象
-        row_key = list(table.rows.keys())[row_index]
-        
-        # 获取列键对象（最后一列，选中状态列）
-        column_key = table.ordered_columns[-1].key
-        
-        if book_id in self.selected_books:
-            self.selected_books.discard(book_id)
-            # 从排序列表中移除
-            if book_id in self._sorted_books:
-                self._sorted_books.remove(book_id)
-            table.update_cell(row_key, column_key, "□")
-        else:
-            self.selected_books.add(book_id)
-            # 添加到排序列表
-            if book_id not in self._sorted_books:
-                self._sorted_books.append(book_id)
-            table.update_cell(row_key, column_key, "✓")
-        
-        self._update_status()
+        try:
+            # 获取行键对象
+            if row_index < len(table.rows):
+                row_key = list(table.rows.keys())[row_index]
+                
+                # 获取列键对象（最后一列，选中状态列）
+                column_key = 'selected'  # 默认列键
+                
+                # 尝试获取列键，兼容不同版本的DataTable
+                column_key = None
+                if hasattr(table, 'ordered_columns') and len(table.ordered_columns) > 0:
+                    last_index = len(table.ordered_columns) - 1
+                    if last_index >= 0:
+                        column_key = table.ordered_columns[last_index].key
+                elif hasattr(table, 'columns') and len(table.columns) > 0:
+                    last_index = len(table.columns) - 1
+                    if last_index >= 0 and hasattr(table.columns[last_index], 'key'):
+                        column_key = table.columns[last_index].key
+                
+                if book_id in self.selected_books:
+                    self.selected_books.discard(book_id)
+                    # 从排序列表中移除
+                    if book_id in self._sorted_books:
+                        self._sorted_books.remove(book_id)
+                    if column_key:
+                        try:
+                            table.update_cell(row_key, column_key, "□")
+                        except Exception:
+                            # 如果update_cell失败，重新渲染表格
+                            self._load_books()
+                    else:
+                        # 如果无法获取column_key，重新渲染表格
+                        self._load_books()
+                else:
+                    self.selected_books.add(book_id)
+                    # 添加到排序列表
+                    if book_id not in self._sorted_books:
+                        self._sorted_books.append(book_id)
+                    if column_key:
+                        try:
+                            table.update_cell(row_key, column_key, "✓")
+                        except Exception:
+                            # 如果update_cell失败，重新渲染表格
+                            self._load_books()
+                    else:
+                        # 如果无法获取column_key，重新渲染表格
+                        self._load_books()
+                
+                self._update_status()
+        except Exception as e:
+            # 如果出错，重新加载表格
+            try:
+                self._load_books()
+            except Exception:
+                pass
     
     def _update_status(self) -> None:
         """更新状态信息"""
         status_label = self.query_one("#batch-ops-status", Label)
         selected_count = len(self.selected_books)
-        status_label.update(
-            get_global_i18n().t("batch_ops.selected_count", count=selected_count)
-        )
+        
+        # 计算当前页面的选中数量
+        current_page_books = []
+        if len(self._all_books) > 0:
+            start_index = (self._current_page - 1) * self._books_per_page
+            end_index = min(start_index + self._books_per_page, len(self._all_books))
+            current_page_books = self._all_books[start_index:end_index]
+        
+        current_page_selected_count = sum(1 for book in current_page_books if book.path in self.selected_books)
+        
+        # 显示总选中数量和当前页选中数量
+        if selected_count > 0:
+            status_label.update(
+                f"总选中: {selected_count} | 当前页选中: {current_page_selected_count}"
+            )
+        else:
+            status_label.update(
+                get_global_i18n().t("batch_ops.selected_count", count=selected_count)
+            )
     
     def _filter_books(self, books: List[Any]) -> List[Any]:
         """根据搜索关键词、文件格式和作者过滤书籍"""
@@ -486,14 +603,14 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         if self._selected_format != "all":
             filtered_books = [
                 book for book in filtered_books
-                if book.format.lower().lstrip('.') == self._selected_format.lower()
+                if book.format and hasattr(book.format, 'lower') and book.format.lower() and book.format.lower().lstrip('.') == (self._selected_format.lower() if self._selected_format else "")
             ]
         
         # 按作者过滤
         if self._selected_author != "all":
             filtered_books = [
                 book for book in filtered_books
-                if book.author.lower() == self._selected_author.lower()
+                if book.author and hasattr(book.author, 'lower') and book.author.lower() and book.author.lower() == (self._selected_author.lower() if self._selected_author else "")
             ]
         
         return filtered_books
@@ -541,13 +658,24 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     # 通过 BINDINGS 触发的动作（保留 on_key 作为过渡）
     def action_toggle_row(self) -> None:
         """切换当前行选中状态"""
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
-        if table.cursor_row is not None:
+        table = self.query_one("#batch-ops-table", DataTable)
+        # 确保表格获得焦点
+        try:
+            table.focus()
+        except Exception:
+            pass
+            
+        # 如果有光标行，处理当前行的选中状态
+        if table.cursor_row is not None and 0 <= table.cursor_row < len(table.rows):
             # 获取当前行的键（书籍路径）
             row_key = list(table.rows.keys())[table.cursor_row]
-            if row_key and row_key.value:
-                book_id = row_key.value
-                self._toggle_book_selection(str(book_id), table, table.cursor_row)
+            if row_key:
+                # row_key 本身就是书籍路径（字符串）
+                book_id = str(row_key)
+                self._toggle_book_selection(book_id, table, table.cursor_row)
+        else:
+            # 如果没有光标行，不需要强制设置到第一行，保持当前状态
+            pass
 
     def action_next_page(self) -> None:
         """下一页"""
@@ -663,7 +791,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _select_all_books(self) -> None:
         """选择当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
+        table = self.query_one("#batch-ops-table", DataTable)
         
         # 只选择当前显示的书籍（搜索过滤后的书籍）
         for row_key in table.rows.keys():
@@ -686,7 +814,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _invert_selection(self) -> None:
         """反选当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
+        table = self.query_one("#batch-ops-table", DataTable)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -715,7 +843,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _deselect_all_books(self) -> None:
         """取消选择当前显示的所有书籍（搜索过滤后的书籍）"""
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
+        table = self.query_one("#batch-ops-table", DataTable)
         
         # 只取消选择当前显示的书籍（搜索过滤后的书籍）
         for row_key in table.rows.keys():
@@ -1031,29 +1159,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             callback=on_confirm
         )
     
-    def _invert_selection(self) -> None:
-        """反选所有书籍"""
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
-        
-        # 获取所有书籍路径
-        all_books = {book.path for book in self.bookshelf.get_all_books()}
-        
-        # 反选逻辑：当前选中的变为未选中，未选中的变为选中
-        new_selected_books = all_books - self.selected_books
-        self.selected_books = new_selected_books
-        
-        # 获取列键对象（最后一列，选中状态列）
-        column_key = table.ordered_columns[-1].key
-        
-        # 更新所有行的选中状态
-        for row_index, row_key in enumerate(table.rows.keys()):
-            book_id = row_key.value
-            if book_id in self.selected_books:
-                table.update_cell(row_key, column_key, "✓")
-            else:
-                table.update_cell(row_key, column_key, "□")
-        
-        self._update_status()
+
     
     def _perform_search(self) -> None:
         """执行搜索操作"""
@@ -1104,7 +1210,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     def _clear_table_selection(self) -> None:
         """清除表格的视觉选中状态"""
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
+        table = self.query_one("#batch-ops-table", DataTable)
         
         # 获取列键对象（最后一列，选中状态列）
         column_key = table.ordered_columns[-1].key
@@ -1114,146 +1220,247 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             table.update_cell(row_key, column_key, "□")
         
         # 清除DataTable的选中状态
-        if hasattr(table, 'cursor_row') and table.cursor_row is not None:
-            # 通过移动光标到第一行来清除选中状态
-            from textual.coordinate import Coordinate
-            table.cursor_coordinate = Coordinate(0, 0)
+        # 注意：不需要强制设置光标到第一行，保持当前光标位置
+    
+    def _update_table_selection(self) -> None:
+        """更新表格中的选中状态显示"""
+        table = self.query_one("#batch-ops-table", DataTable)
+        
+        # 获取列键对象（最后一列，选中状态列）
+        if hasattr(table, 'ordered_columns') and len(table.ordered_columns) > 0:
+            last_index = len(table.ordered_columns) - 1
+            if last_index >= 0:
+                column_key = table.ordered_columns[last_index].key
+            else:
+                return
+        elif hasattr(table, 'columns') and len(table.columns) > 0:
+            last_index = len(table.columns) - 1
+            if last_index >= 0 and hasattr(table.columns[last_index], 'key'):
+                column_key = table.columns[last_index].key
+            else:
+                return
+        else:
+            # 如果无法获取列键，直接返回
+            return
+        
+        # 更新所有行的选中状态
+        for row_index, row_key in enumerate(table.rows.keys()):
+            # 从表格行键中获取书籍路径
+            book_path = str(row_key)
+            
+            # 根据选中状态更新显示
+            if book_path in self.selected_books:
+                try:
+                    table.update_cell(row_key, column_key, "✓")
+                except Exception:
+                    # 如果更新失败，继续处理其他行
+                    continue
+            else:
+                try:
+                    table.update_cell(row_key, column_key, "□")
+                except Exception:
+                    # 如果更新失败，继续处理其他行
+                    continue
     
     def _move_selected_book_up(self) -> None:
-        """将选中的书籍在排序列表中上移"""
+        """将选中的书籍上移一位，优先使用光标所在行，若无光标则使用第一个选中的书籍"""
+        # 1. 验证是否有选中的书籍数据
         if not self.selected_books:
             self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
             return
         
-        # 获取当前焦点选中的书籍路径（表格光标所在行）
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
-        if table.cursor_row is None:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+        # 获取当前表格
+        table = self.query_one("#batch-ops-table", DataTable)
+        
+        # 获取当前光标位置
+        current_row_index = getattr(table, 'cursor_row', None)
+        
+        # 初始化书籍路径
+        book_path = None
+        
+        # 如果有光标位置且光标所在行被选中，使用光标所在行
+        if current_row_index is not None and current_row_index >= 0 and current_row_index < len(table.rows):
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[current_row_index]
+            # 从行键中提取书籍路径，兼容不同格式的行键
+            cursor_book_path = str(row_key)
+            if hasattr(row_key, 'value') and row_key.value:
+                cursor_book_path = str(row_key.value)
+            
+            # 如果光标所在行被选中，使用它
+            if cursor_book_path in self.selected_books:
+                book_path = cursor_book_path
+        
+        # 如果没有有效的书籍路径（光标行未被选中或无效），使用第一个选中的书籍
+        if not book_path:
+            # 尝试找到第一个选中的书籍在当前显示列表中的位置
+            for path in self.selected_books:
+                # 检查该书籍是否在当前显示列表中
+                for i, row_key in enumerate(table.rows.keys()):
+                    # 从行键中提取书籍路径，兼容不同格式的行键
+                    row_key_path = str(row_key)
+                    if hasattr(row_key, 'value') and row_key.value:
+                        row_key_path = str(row_key.value)
+                    
+                    if row_key_path == path:
+                        current_row_index = i
+                        book_path = path
+                        break
+                if book_path:
+                    break
+        
+        if not book_path:
+            self.notify("请先选择书籍或点击一行", severity="warning")
             return
         
-        # 获取光标所在行的书籍路径
-        row_key = list(table.rows.keys())[table.cursor_row]
-        if not hasattr(row_key, 'value') or not row_key.value:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
-            return
-        
-        focus_path = str(row_key.value)
-        
-        # 更新排序列表 - 只对当前显示的书籍进行排序
-        moved = False
-        
-        # 获取当前显示的书籍路径（所有搜索结果，不仅仅是当前页）
+        # 2. 获取当前显示的书籍路径（所有搜索结果，不仅仅是当前页）
         all_books = self.bookshelf.get_all_books()
         filtered_books = self._filter_books(all_books)
         current_display_paths = [book.path for book in filtered_books]
         
+        # 如果排序列表为空，初始化排序列表为当前显示书籍的顺序
+        if not self._sorted_books:
+            self._sorted_books = current_display_paths.copy()
+        
         # 确保排序列表只包含当前显示的书籍
         filtered_sorted_books = [path for path in self._sorted_books if path in current_display_paths]
         
-        # 添加当前显示但不在排序列表中的书籍
-        for path in current_display_paths:
-            if path not in filtered_sorted_books:
-                filtered_sorted_books.append(path)
+        # 获取当前光标所在书籍在排序列表中的位置
+        if book_path not in filtered_sorted_books:
+            # 如果书籍不在排序列表中，添加到末尾
+            filtered_sorted_books.append(book_path)
+            current_index = len(filtered_sorted_books) - 1
+        else:
+            current_index = filtered_sorted_books.index(book_path)
+        
+        # 检查是否能够上移（不在最前面）
+        if current_index == 0:
+            self.notify(get_global_i18n().t("batch_ops.books_already_at_top"), severity="warning")
+            return
+        
+        # 保存当前选中的书籍路径
+        saved_selected_books = self.selected_books.copy()
+        
+        # 交换当前书籍和上一本书籍的位置
+        filtered_sorted_books[current_index], filtered_sorted_books[current_index - 1] = \
+            filtered_sorted_books[current_index - 1], filtered_sorted_books[current_index]
         
         # 更新排序列表
         self._sorted_books = filtered_sorted_books
         
-        # 执行上移操作 - 只移动焦点选中的书籍
-        new_index = -1
-        if focus_path in self._sorted_books:
-            index = self._sorted_books.index(focus_path)
-            if index > 0:
-                # 交换位置
-                self._sorted_books[index], self._sorted_books[index-1] = self._sorted_books[index-1], self._sorted_books[index]
-                moved = True
-                new_index = index - 1  # 记录移动后的新位置
+        # 重新加载书籍列表以反映排序变化
+        self._load_books()
         
-        if moved:
-            # 重新加载书籍列表以反映排序变化
-            self._load_books()
-            
-            # 重新定位焦点到移动后的书籍位置
-            table = self.query_one("#batch-ops-table", VirtualDataTable)
-            if new_index >= 0:
-                # 找到移动后的书籍在当前页的位置
-                for i, row_key in enumerate(table.rows.keys()):
-                    if hasattr(row_key, 'value') and row_key.value == focus_path:
-                        # 使用正确的方法设置光标位置
-                        from textual.coordinate import Coordinate
-                        table.cursor_coordinate = Coordinate(i, 0)
-                        break
-            
-            self.notify(get_global_i18n().t("batch_ops.books_moved_up"), severity="information")
-        else:
-            self.notify(get_global_i18n().t("batch_ops.books_cannot_move_up"), severity="warning")
+        # 恢复选中状态
+        self.selected_books = saved_selected_books
+        
+        # 强制重新渲染表格以确保选中状态正确显示
+        self._refresh_table()
+        
+        # 更新状态信息
+        self._update_status()
+        
+        self.notify(get_global_i18n().t("batch_ops.books_moved_up"), severity="information")
     
     def _move_selected_book_down(self) -> None:
-        """将选中的书籍在排序列表中下移"""
+        """将选中的书籍下移一位，优先使用光标所在行，若无光标则使用第一个选中的书籍"""
+        # 1. 验证是否有选中的书籍数据
         if not self.selected_books:
             self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
             return
         
-        # 获取当前焦点选中的书籍路径（表格光标所在行）
-        table = self.query_one("#batch-ops-table", VirtualDataTable)
-        if table.cursor_row is None:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
+        # 获取当前表格
+        table = self.query_one("#batch-ops-table", DataTable)
+        
+        # 获取当前光标位置
+        current_row_index = getattr(table, 'cursor_row', None)
+        
+        # 初始化书籍路径
+        book_path = None
+        
+        # 如果有光标位置且光标所在行被选中，使用光标所在行
+        if current_row_index is not None and current_row_index >= 0 and current_row_index < len(table.rows):
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[current_row_index]
+            # 从行键中提取书籍路径，兼容不同格式的行键
+            cursor_book_path = str(row_key)
+            if hasattr(row_key, 'value') and row_key.value:
+                cursor_book_path = str(row_key.value)
+            
+            # 如果光标所在行被选中，使用它
+            if cursor_book_path in self.selected_books:
+                book_path = cursor_book_path
+        
+        # 如果没有有效的书籍路径（光标行未被选中或无效），使用第一个选中的书籍
+        if not book_path:
+            # 尝试找到第一个选中的书籍在当前显示列表中的位置
+            for path in self.selected_books:
+                # 检查该书籍是否在当前显示列表中
+                for i, row_key in enumerate(table.rows.keys()):
+                    # 从行键中提取书籍路径，兼容不同格式的行键
+                    row_key_path = str(row_key)
+                    if hasattr(row_key, 'value') and row_key.value:
+                        row_key_path = str(row_key.value)
+                    
+                    if row_key_path == path:
+                        current_row_index = i
+                        book_path = path
+                        break
+                if book_path:
+                    break
+        
+        if not book_path:
+            self.notify("请先选择书籍或点击一行", severity="warning")
             return
         
-        # 获取光标所在行的书籍路径
-        row_key = list(table.rows.keys())[table.cursor_row]
-        if not hasattr(row_key, 'value') or not row_key.value:
-            self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
-            return
-        
-        focus_path = str(row_key.value)
-        
-        # 更新排序列表 - 只对当前显示的书籍进行排序
-        moved = False
-        
-        # 获取当前显示的书籍路径（所有搜索结果，不仅仅是当前页）
+        # 2. 获取当前显示的书籍路径（所有搜索结果，不仅仅是当前页）
         all_books = self.bookshelf.get_all_books()
         filtered_books = self._filter_books(all_books)
         current_display_paths = [book.path for book in filtered_books]
         
+        # 如果排序列表为空，初始化排序列表为当前显示书籍的顺序
+        if not self._sorted_books:
+            self._sorted_books = current_display_paths.copy()
+        
         # 确保排序列表只包含当前显示的书籍
         filtered_sorted_books = [path for path in self._sorted_books if path in current_display_paths]
         
-        # 添加当前显示但不在排序列表中的书籍
-        for path in current_display_paths:
-            if path not in filtered_sorted_books:
-                filtered_sorted_books.append(path)
+        # 获取当前光标所在书籍在排序列表中的位置
+        if book_path not in filtered_sorted_books:
+            # 如果书籍不在排序列表中，添加到末尾
+            filtered_sorted_books.append(book_path)
+            current_index = len(filtered_sorted_books) - 1
+        else:
+            current_index = filtered_sorted_books.index(book_path)
+        
+        # 检查是否能够下移（不在最后面）
+        if current_index == len(filtered_sorted_books) - 1:
+            self.notify(get_global_i18n().t("batch_ops.books_already_at_bottom"), severity="warning")
+            return
+        
+        # 保存当前选中的书籍路径
+        saved_selected_books = self.selected_books.copy()
+        
+        # 交换当前书籍和下一本书籍的位置
+        filtered_sorted_books[current_index], filtered_sorted_books[current_index + 1] = \
+            filtered_sorted_books[current_index + 1], filtered_sorted_books[current_index]
         
         # 更新排序列表
         self._sorted_books = filtered_sorted_books
         
-        # 执行下移操作 - 只移动焦点选中的书籍
-        new_index = -1
-        if focus_path in self._sorted_books:
-            index = self._sorted_books.index(focus_path)
-            if index < len(self._sorted_books) - 1:
-                # 交换位置
-                self._sorted_books[index], self._sorted_books[index+1] = self._sorted_books[index+1], self._sorted_books[index]
-                moved = True
-                new_index = index + 1  # 记录移动后的新位置
+        # 重新加载书籍列表以反映排序变化
+        self._load_books()
         
-        if moved:
-            # 重新加载书籍列表以反映排序变化
-            self._load_books()
-            
-            # 重新定位焦点到移动后的书籍位置
-            table = self.query_one("#batch-ops-table", VirtualDataTable)
-            if new_index >= 0:
-                # 找到移动后的书籍在当前页的位置
-                for i, row_key in enumerate(table.rows.keys()):
-                    if hasattr(row_key, 'value') and row_key.value == focus_path:
-                        # 使用正确的方法设置光标位置
-                        from textual.coordinate import Coordinate
-                        table.cursor_coordinate = Coordinate(i, 0)
-                        break
-            
-            self.notify(get_global_i18n().t("batch_ops.books_moved_down"), severity="information")
-        else:
-            self.notify(get_global_i18n().t("batch_ops.books_cannot_move_down"), severity="warning")
+        # 恢复选中状态
+        self.selected_books = saved_selected_books
+        
+        # 强制重新渲染表格以确保选中状态正确显示
+        self._refresh_table()
+        
+        # 更新状态信息
+        self._update_status()
+        
+        self.notify(get_global_i18n().t("batch_ops.books_moved_down"), severity="information")
     
     async def _merge_selected_books(self) -> None:
         """合并选中的书籍"""

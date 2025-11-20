@@ -13,7 +13,7 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
 from textual.widgets import Static, Button, Label, Header, Footer, LoadingIndicator, Input, Select
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual.reactive import reactive
 from textual import on, events
 
@@ -41,16 +41,14 @@ class BookshelfScreen(Screen[None]):
     
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
     CSS_PATH="../styles/bookshelf_overrides.tcss"
-    # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("a", "press('#add-book-btn')", get_global_i18n().t('common.add')),
-        ("d", "press('#scan-directory-btn')", get_global_i18n().t('bookshelf.scan_directory')),
-        ("s", "press('#search-btn')", get_global_i18n().t('common.search')),
-        ("r", "press('#sort-btn')", get_global_i18n().t('bookshelf.sort_name')),
-        ("l", "press('#batch-ops-btn')", get_global_i18n().t('bookshelf.batch_ops_name')),
-        ("g", "press('#get-books-btn')", get_global_i18n().t('bookshelf.get_books')),
-        ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
-        ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
+        ("a", "press('#add-book-btn')", "添加"),
+        ("d", "press('#scan-directory-btn')", "扫描目录"),
+        ("s", "press('#search-btn')", "搜索"),
+        ("r", "press('#sort-btn')", "排序"),
+        ("l", "press('#batch-ops-btn')", "批量操作"),
+        ("g", "press('#get-books-btn')", "获取书籍"),
+        ("f", "press('#refresh-btn')", "刷新"),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -217,7 +215,7 @@ class BookshelfScreen(Screen[None]):
                     classes="bookshelf-header-vertical"
                 ),
                 # 中间数据表区域
-                VirtualDataTable(id="books-table"),
+                DataTable(id="books-table"),
                 # 书籍统计信息区域
                 Vertical(
                     Label("", id="books-stats-label"),
@@ -265,7 +263,7 @@ class BookshelfScreen(Screen[None]):
             pass
         
         # 初始化数据表（每次挂载时确保列已正确添加）
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         
         # 清除现有列，重新添加（确保虚拟滚动组件列正确）
         table.clear(columns=True)
@@ -345,7 +343,7 @@ class BookshelfScreen(Screen[None]):
         self._update_pagination_buttons()
         
         # 设置数据表焦点，使其能够接收键盘事件
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         table.focus()
     
     def _add_table_columns(self, table) -> None:
@@ -382,7 +380,7 @@ class BookshelfScreen(Screen[None]):
         # 显示加载动画
         self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=0)
         
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         
         # 性能优化：检查是否只需要更新当前页数据（分页切换时）
         current_search_params = f"{search_keyword}_{search_format}_{search_author}"
@@ -504,8 +502,8 @@ class BookshelfScreen(Screen[None]):
             # 处理search_format参数，确保正确处理NoSelection对象
             actual_search_format = "all"
             if search_format != "all" and search_format is not None:
-                # 检查是否是NoSelection对象
-                if hasattr(search_format, 'is_blank') and callable(getattr(search_format, 'is_blank', None)) and search_format.is_blank():
+                # 检查是否是空值或NoSelection对象
+                if search_format == "" or (hasattr(search_format, 'value') and getattr(search_format, 'value', '') == ""):
                     actual_search_format = "all"
                 else:
                     # 确保search_format是字符串类型
@@ -514,8 +512,8 @@ class BookshelfScreen(Screen[None]):
             # 处理search_author参数，确保正确处理NoSelection对象
             actual_search_author = "all"
             if search_author != "all" and search_author is not None:
-                # 检查是否是NoSelection对象
-                if hasattr(search_author, 'is_blank') and callable(getattr(search_author, 'is_blank', None)) and search_author.is_blank():
+                # 检查是否是空值或NoSelection对象
+                if search_author == "" or (hasattr(search_author, 'value') and getattr(search_author, 'value', '') == ""):
                     actual_search_author = "all"
                 else:
                     # 确保search_author是字符串类型
@@ -666,6 +664,7 @@ class BookshelfScreen(Screen[None]):
             
             # 构建行数据
             row_data = {
+                'id': str(global_index),  # 添加ID列显示全局索引
                 'title': display_title,
                 'author': book.author,
                 'format': book.format.upper(),
@@ -696,8 +695,23 @@ class BookshelfScreen(Screen[None]):
             
             virtual_data.append(row_data)
         
-        # 使用虚拟滚动数据表设置数据
-        table.set_virtual_data(virtual_data)
+        # 填充表格数据
+        table.clear()
+        for row_data in virtual_data:
+            table.add_row(
+                row_data['id'],
+                row_data['title'],
+                row_data['author'],
+                row_data['format'],
+                row_data['size_display'],
+                row_data['last_read'],
+                row_data['progress'],
+                row_data['tags'],
+                row_data['read_action'],
+                row_data['view_action'],
+                row_data['rename_action'],
+                row_data['delete_action']
+            )
         
         # 更新书籍统计信息
         self._update_books_stats(self._all_books)
@@ -806,16 +820,24 @@ class BookshelfScreen(Screen[None]):
         if len(self._search_history) > self._max_search_history:
             self._search_history = self._search_history[:self._max_search_history]
         
-        # 处理下拉框值，确保正确处理NoSelection对象
+        # 处理下拉框值，确保正确处理NoSelection对象和_BLANK值
         format_value = format_filter.value
-        if format_value is None or (hasattr(format_value, 'is_blank') and callable(getattr(format_value, 'is_blank', None)) and format_value.is_blank()):
+        if (format_value is None or 
+            format_value == "" or 
+            (hasattr(format_value, 'value') and getattr(format_value, 'value', '') == "") or
+            (hasattr(format_value, 'is_blank') and getattr(format_value, 'is_blank', False)) or
+            str(format_value) == 'Select.BLANK'):
             self._search_format = "all"
         else:
             # 确保format_value是字符串类型
             self._search_format = str(format_value) if format_value else "all"
         
         author_value = author_filter.value
-        if author_value is None or (hasattr(author_value, 'is_blank') and callable(getattr(author_value, 'is_blank', None)) and author_value.is_blank()):
+        if (author_value is None or 
+            author_value == "" or 
+            (hasattr(author_value, 'value') and getattr(author_value, 'value', '') == "") or
+            (hasattr(author_value, 'is_blank') and getattr(author_value, 'is_blank', False)) or
+            str(author_value) == 'Select.BLANK'):
             self._search_author = "all"
         else:
             # 确保author_value是字符串类型
@@ -965,58 +987,73 @@ class BookshelfScreen(Screen[None]):
             logger.info("来源下拉框选择变化")
             self._perform_search()
     
-    def on_data_table_cell_selected(self, event: VirtualDataTable.CellSelected) -> None:
+    @on(DataTable.CellSelected, "#books-table")
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
-        数据表单元格选择时的回调
+        数据表单元格选择时的回调 - 与爬取管理页面一致的按钮操作方式
         
         Args:
             event: 单元格选择事件
         """
-        # 获取选中的单元格信息
-        cell_value = event.value
-        coordinate = event.coordinate
-        cell_key = event.cell_key
+        self.logger.debug(f"单元格选择事件触发: {event}")
         
-        # 检查是否是操作按钮列
-        column_key = cell_key.column_key.value
-        if column_key in ["read_action", "view_action", "rename_action", "delete_action"]:
-            row_key = cell_key.row_key.value
-            if not row_key:
-                self.logger.error("行键为空，无法执行操作")
-                return
-            
-            # 通过行键映射获取实际书籍路径
-            book_id = self._row_key_mapping.get(row_key)
-            if not book_id:
-                self.logger.error(f"未找到行键对应的书籍路径: {row_key}")
-                return
+        try:
+            # 检查是否点击了操作按钮列
+            if hasattr(event, 'coordinate'):
+                column_key = event.coordinate.column
+                row_index = event.coordinate.row
                 
-            # 根据列键判断点击的是哪个按钮
-            if column_key == "read_action":
-                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                    self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
-                    # 直接使用备用方法打开书籍
-                    self._open_book_fallback(book_id)
+                self.logger.debug(f"点击的列: {column_key}, 行: {row_index}")
+                
+                # 只处理操作列（阅读、查看文件、重命名、删除）
+                # 列索引从0开始：8=阅读, 9=查看文件, 10=重命名, 11=删除
+                if column_key not in [8, 9, 10, 11]:
+                    return
+                
+                # 获取当前页的数据
+                start_index = (self._current_page - 1) * self._books_per_page
+                if row_index is not None and row_index < len(self._all_books) - start_index:
+                    book = self._all_books[start_index + row_index]
+                    
+                    if not book:
+                        return
+                        
+                    book_id = book.path
+                    
+                    # 根据列索引执行不同的操作
+                    if column_key == 8:  # 阅读按钮列
+                        self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
+                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+                            self._open_book_fallback(book_id)
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
+                    elif column_key == 9:  # 查看文件按钮列
+                        self.logger.info(f"点击查看文件按钮: {book_id}")
+                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
+                            self._view_file(book_id)
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
+                    elif column_key == 10:  # 重命名按钮列
+                        self.logger.info(f"点击重命名按钮: {book_id}")
+                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.rename_book"):
+                            self._rename_book(book_id)
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
+                    elif column_key == 11:  # 删除按钮列
+                        self.logger.info(f"点击删除按钮: {book_id}")
+                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
+                            self._delete_book(book_id)
+                        else:
+                            self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
+                    
+                    # 阻止事件冒泡，避免触发其他处理程序
+                    event.stop()
                 else:
-                    self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
-            elif column_key == "view_action":
-                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
-                    self.logger.info(f"点击查看文件按钮: {book_id}")
-                    self._view_file(book_id)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
-            elif column_key == "rename_action":
-                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.rename_book"):
-                    self.logger.info(f"点击重命名按钮: {book_id}")
-                    self._rename_book(book_id)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
-            elif column_key == "delete_action":
-                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
-                    self.logger.info(f"点击删除按钮: {book_id}")
-                    self._delete_book(book_id)
-                else:
-                    self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
+                    self.logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_books)}, 起始索引={start_index}")
+            else:
+                self.logger.debug("单元格选择事件没有坐标信息")
+        except Exception as e:
+            self.logger.error(f"处理单元格选择时出错: {e}")
     
     def _open_book_fallback(self, book_path: str) -> None:
         """备用方法打开书籍"""
@@ -1162,7 +1199,7 @@ class BookshelfScreen(Screen[None]):
             self.logger.error(f"删除书籍失败: {e}")
             self.notify(f"{get_global_i18n().t("bookshelf.delete_book_failed")}: {e}", severity="error")
     
-    def on_data_table_row_selected(self, event: VirtualDataTable.RowSelected) -> None:
+    def on_data_table_row_selected(self, event) -> None:
         """
         数据表行选择时的回调
         
@@ -1191,27 +1228,9 @@ class BookshelfScreen(Screen[None]):
         Args:
             event: 键盘事件
         """
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         
-        if event.key == "enter":
-            # 获取当前选中的行
-            if table.cursor_row is not None:
-                # 获取选中行的键（书籍路径）
-                row_key = list(table.rows.keys())[table.cursor_row]
-                if row_key and row_key.value:
-                    # 使用行键映射获取实际书籍路径
-                    book_id = self._row_key_mapping.get(row_key.value)
-                    if not book_id:
-                        self.logger.error(f"未找到行键对应的书籍路径: {row_key.value}")
-                        return
-                    self.logger.info(get_global_i18n().t('bookshelf.press_enter_open_book', book_id=book_id))
-                    # 使用备用方法打开书籍（权限）
-                    if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                        self._open_book_fallback(book_id)
-                    else:
-                        self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
-                    event.prevent_default()
-        elif event.key == "s":
+        if event.key == "s":
             # S键搜索
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
                 self._show_search_dialog()
@@ -1268,27 +1287,6 @@ class BookshelfScreen(Screen[None]):
             # P键上一页
             self._go_to_prev_page()
             event.prevent_default()
-        elif event.key == "down":
-            # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            if (table.cursor_row == len(table.rows) - 1 and 
-                self._current_page < self._total_pages):
-                self._current_page += 1
-                self._load_books(self._search_keyword, self._search_format, self._search_author)
-                # 将光标移动到新页面的第一行
-                table = self.query_one("#books-table", VirtualDataTable)
-                table.action_cursor_down()  # 先向下移动一次
-                table.action_cursor_up()     # 再向上移动一次，确保在第一行
-                event.prevent_default()
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            if table.cursor_row == 0 and self._current_page > 1:
-                self._current_page -= 1
-                self._load_books(self._search_keyword, self._search_format, self._search_author)
-                # 将光标移动到新页面的最后一行
-                table = self.query_one("#books-table", VirtualDataTable)
-                for _ in range(len(table.rows) - 1):
-                    table.action_cursor_down()  # 移动到最底部
-                event.prevent_default()
         elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
             # 数字键1-9：打开对应序号的书籍
             book_index = event.key
@@ -1308,7 +1306,7 @@ class BookshelfScreen(Screen[None]):
                     severity="warning"
                 )
                 event.prevent_default()
-        # 其他按键让父类处理
+        
         
     def _show_search_dialog(self) -> None:
         """显示搜索对话框"""
@@ -1339,7 +1337,7 @@ class BookshelfScreen(Screen[None]):
                 )
                 
                 # 更新表格显示排序后的书籍
-                table = self.query_one("#books-table", VirtualDataTable)
+                table = self.query_one("#books-table", DataTable)
                 table.clear()
                 
                 # 更新序号到书籍路径的映射
@@ -1514,7 +1512,7 @@ class BookshelfScreen(Screen[None]):
         
     def _show_add_book_dialog(self) -> None:
         """显示添加书籍对话框 - 使用文件资源管理器屏幕"""
-        def handle_add_book_result(result: Optional[Union[str, List[str]]]) -> None:
+        def handle_add_book_result(result: Optional[str | List[str]]) -> None:
             """处理添加书籍结果"""
             if result:
                 # 显示加载动画

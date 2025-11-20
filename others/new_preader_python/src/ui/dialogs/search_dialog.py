@@ -7,7 +7,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Select
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual import events
 
 from src.locales.i18n import I18n
@@ -24,8 +24,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     
     CSS_PATH = "../styles/search_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#select-btn')", get_global_i18n().t('common.select')),
-        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
+        ("enter", "press('#select-btn')", "选择"),
+        ("escape", "press('#cancel-btn')", "取消"),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -68,7 +68,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                     id="format-filter",
                     prompt=get_global_i18n().t("common.select_ext_prompt")
                 )
-            yield VirtualDataTable(id="results-table")
+            yield DataTable(id="results-table")
             with Horizontal(id="search-buttons", classes="btn-row"):
                 yield Button("← " + get_global_i18n().t("common.cancel"), id="cancel-btn", variant="primary")
                 yield Button(get_global_i18n().t("common.select"), id="select-btn", disabled=True)
@@ -80,8 +80,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         # 应用当前主题
         current_theme = self.theme_manager.get_current_theme_name()
         self.theme_manager.set_theme(current_theme)
-        table = self.query_one("#results-table", VirtualDataTable)
-        # table.cursor_type = "row"
+
+        table = self.query_one("#results-table", DataTable)
         table.add_columns(
             (get_global_i18n().t("search.position"), "position"),
             (get_global_i18n().t("search.preview"), "preview"),
@@ -123,7 +123,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         
         books = bookshelf.search_books(search_input.value, format=selected_format)
         
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         table.clear()
         
         # 更新搜索结果
@@ -207,7 +207,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             
     def _select_current_result(self) -> None:
         """选择当前选中的搜索结果"""
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         if table.cursor_row is not None:
             selected_index = table.cursor_row
             if 0 <= selected_index < len(self.results):

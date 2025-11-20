@@ -1,18 +1,13 @@
 """
 PhotoGram网站解析器 v2
 支持 https://www.photo-gram.com/ 网站的小说解析
-整合了test.py中的成功解密逻辑
+使用统一的crypto_utils解密工具
 """
 
 import re
-import base64
-import json
 from typing import Dict, Any, List, Optional
 from urllib.parse import urljoin
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
-import zlib
-import gzip
+from ..utils.crypto_utils import AESCipher, extract_encryption_keys, is_encrypted_content
 from .base_parser_v2 import BaseParser
 
 
@@ -910,53 +905,11 @@ class PhotoGramParser(BaseParser):
         
         return html_content
     
-    def _fix_escapes(self, s: str) -> str:
-        """修复转义字符"""
-        return s.replace("\\u002b", "+").replace("\\/", "/").replace("\\n", "")
-    
-    def _try_zero_unpad(self, b: bytes) -> bytes:
-        """尝试零填充去除"""
-        return b.rstrip(b'\x00')
-    
-    def _is_printable_text(self, s: bytes, threshold=0.7) -> bool:
-        """检查是否为可打印文本"""
-        if not s:
-            return False
-        printable = sum(1 for ch in s if 32 <= ch <= 126 or ch in (9,10,13))
-        return printable / len(s) >= threshold
-    
-    def _detect_openssl_salt(self, data: bytes):
-        """检测OpenSSL盐值"""
-        if data.startswith(b"Salted__"):
-            salt = data[8:16]
-            return True, salt, data[16:]
-        return False, None, data
-    
-    def _try_decompress(self, decoded_bytes: bytes) -> dict[str, bytes]:
-        """尝试解压缩"""
-        results = {}
-        # try zlib
-        try:
-            out = zlib.decompress(decoded_bytes)
-            results['zlib'] = out
-        except Exception:
-            pass
-        # try gzip
-        try:
-            out = gzip.decompress(decoded_bytes)
-            results['gzip'] = out
-        except Exception:
-            pass
-        return results
-    
-    def _aes_decrypt_raw(self, ciphertext: bytes, key_bytes: bytes, iv_bytes: bytes) -> bytes:
-        """AES解密原始数据"""
-        cipher = AES.new(key_bytes, AES.MODE_CBC, iv_bytes)
-        return cipher.decrypt(ciphertext)
+
     
     def _decrypt_content(self, encrypted_data: str, key: str, iv: str) -> Optional[str]:
         """
-        解密内容
+        解密内容 - 使用统一的AESCipher工具
         
         Args:
             encrypted_data: 加密数据
@@ -967,106 +920,18 @@ class PhotoGramParser(BaseParser):
             解密后的内容
         """
         try:
-            # 1. 修复转义字符
-            s = self._fix_escapes(encrypted_data)
+            # 使用统一的AES解密工具
+            cipher = AESCipher(key, iv)
+            decrypted_text = cipher.decrypt(encrypted_data)
             
-            # 2. 如果字符串看起来像JSON数组段，尝试解析
-            possible_segments = None
-            try:
-                parsed = json.loads(s)
-                if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed):
-                    possible_segments = parsed
-                    print(f"[info] 检测到JSON数组的base64段 (长度 {len(parsed)})")
-            except Exception:
-                pass
-            
-            candidates = []
-            if possible_segments:
-                # 尝试连接段（无分隔符）
-                concat = "".join(possible_segments)
-                candidates.append(("concatenated_segments", concat))
-                # 也尝试解密每个段
-                for i, seg in enumerate(possible_segments):
-                    candidates.append((f"segment_{i}", seg))
-            
-            # 将原始完整字符串作为候选
-            candidates.append(("original", s))
-            
-            # 解码IV，处理转义字符
-            iv = iv.replace('\\u002b', '+').replace('\\u002f', '/').replace('\\u003d', '=')
-            try:
-                iv_bytes = base64.b64decode(iv)
-            except Exception as e:
-                print(f"IV解码失败: {e}, 尝试修复")
-                # 如果解码失败，尝试截取前16个字节
-                try:
-                    iv_decoded = base64.b64decode(iv + '==')
-                    iv_bytes = iv_decoded[:16]
-                except Exception as e2:
-                    print(f"IV修复失败: {e2}")
-                    return None
-            key_bytes = key.encode('utf-8')
-            
-            for name, b64text in candidates:
-                print(f"\n--- 尝试解密: {name} ---")
-                try:
-                    ciphertext = base64.b64decode(b64text)
-                except Exception as e:
-                    print(f" base64解码失败: {e}")
-                    continue
+            # 检查解密结果是否有效
+            if decrypted_text and decrypted_text != encrypted_data:
+                print(f"解密成功，长度: {len(decrypted_text)} 字符")
+                return decrypted_text
+            else:
+                print("解密失败或内容未加密")
+                return None
                 
-                # 检测OpenSSL盐头
-                has_salt, salt, raw_cipher = self._detect_openssl_salt(ciphertext)
-                if has_salt and salt:
-                    print(f"  [info] 检测到OpenSSL 'Salted__' 头，salt = {salt.hex()}")
-                    ciphertext_to_try = raw_cipher
-                else:
-                    ciphertext_to_try = ciphertext
-                
-                # 原始解密
-                dec = self._aes_decrypt_raw(ciphertext_to_try, key_bytes, iv_bytes)
-                
-                # 尝试零填充去除
-                z_unpadded = self._try_zero_unpad(dec)
-                try:
-                    z_text = z_unpadded.decode('utf-8', errors='replace')
-                except Exception:
-                    z_text = None
-                
-                print(f"  解密长度: {len(dec)} 字节")
-                if z_text is not None:
-                    printable = self._is_printable_text(z_unpadded)
-                    print(f"  零填充去除 -> 前200字符 (可打印={printable}):\n{repr(z_text[:200])}")
-                    
-                    # 检查是否包含HTML标签或中文文本，如果是则返回
-                    if ("<p>" in z_text and "</p>" in z_text) or self._contains_chinese_text(z_text):
-                        return z_text
-                    
-                    # 尝试解压缩
-                    decomp = self._try_decompress(z_unpadded)
-                    if decomp:
-                        for method, out in decomp.items():
-                            try:
-                                decomp_text = out.decode('utf-8', errors='replace')
-                                if ("<p>" in decomp_text and "</p>" in decomp_text) or self._contains_chinese_text(decomp_text):
-                                    return decomp_text
-                            except Exception:
-                                pass
-                
-                # 尝试PKCS7填充去除
-                try:
-                    pk = unpad(dec, AES.block_size)
-                    try:
-                        pk_text = pk.decode('utf-8', errors='replace')
-                        if ("<p>" in pk_text and "</p>" in pk_text) or self._contains_chinese_text(pk_text):
-                            return pk_text
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-            
-            return None
-            
         except Exception as e:
             print(f"解密失败: {e}")
             return None

@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
 from textual.widgets import Static, Button, Label, Input, Select, Checkbox, Header, Footer
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -107,7 +107,7 @@ class ProxyListScreen(Screen[None]):
                 Label("", id="proxy-list-status"),
                 
                 # 代理列表表格
-                VirtualDataTable(id="proxy-list-table"),
+                DataTable(id="proxy-list-table"),
                 
                 # 分页导航
                 Horizontal(
@@ -148,7 +148,7 @@ class ProxyListScreen(Screen[None]):
         self._init_table()
         
         # 设置默认焦点到表格
-        table = self.query_one("#proxy-list-table", VirtualDataTable)
+        table = self.query_one("#proxy-list-table", DataTable)
         if table:
             self.set_focus(table)
         
@@ -169,12 +169,10 @@ class ProxyListScreen(Screen[None]):
     
     def _init_table(self) -> None:
         """初始化表格"""
-        table = self.query_one("#proxy-list-table", VirtualDataTable)
+        table = self.query_one("#proxy-list-table", DataTable)
         table.clear()
         
-        # 启用表格交互功能
-        table.cursor_type = "row"  # 启用行光标
-        table.zebra_stripes = True  # 启用斑马纹
+        # 先添加列定义
         table.add_column("状态", key="status")
         table.add_column("名称", key="name")
         table.add_column("类型", key="type")
@@ -183,18 +181,24 @@ class ProxyListScreen(Screen[None]):
         table.add_column("用户名", key="username")
         table.add_column("更新时间", key="update_time")
         
+        # 设置表格样式
+        table.zebra_stripes = True  # 启用斑马纹
+        
         # 加载数据并填充表格
         self._load_proxy_list()
         self._fill_table_data()
         
-        # 设置默认选中第一行
+        # 只有在有数据时才启用光标和设置选中行
         if len(self.proxy_list) > 0:
-            table.move_cursor(row=0)
-            self.selected_proxy_id = self.proxy_list[0].get("id")
+            table.cursor_type = "row"  # 启用行光标
+            # 延迟设置光标位置，确保数据已渲染
+            self.set_timer(0.1, self._set_initial_cursor)
+        else:
+            table.cursor_type = "none"  # 禁用光标
         
     def _fill_table_data(self) -> None:
         """填充表格数据（使用虚拟滚动）"""
-        table = self.query_one("#proxy-list-table", VirtualDataTable)
+        table = self.query_one("#proxy-list-table", DataTable)
         
         # 准备虚拟滚动数据
         virtual_data = []
@@ -214,8 +218,33 @@ class ProxyListScreen(Screen[None]):
             }
             virtual_data.append(row_data)
         
-        # 设置虚拟滚动数据
-        table.set_virtual_data(virtual_data)
+        # 填充表格数据
+        table.clear()
+        for row_data in virtual_data:
+            table.add_row(
+                row_data["status"],
+                row_data["name"],
+                row_data["type"],
+                row_data["host"],
+                row_data["port"],
+                row_data["username"],
+                row_data["update_time"]
+            )
+    
+    def _set_initial_cursor(self) -> None:
+        """设置初始光标位置"""
+        try:
+            table = self.query_one("#proxy-list-table", DataTable)
+            if len(self.proxy_list) > 0:
+                # 使用move_cursor方法而不是直接赋值
+                if hasattr(table, 'move_cursor'):
+                    table.move_cursor(row=0)
+                self.selected_proxy_id = self.proxy_list[0].get("id")
+        except Exception as e:
+            logger.error(f"设置初始光标失败: {e}")
+            # 如果设置光标失败，至少设置选中的代理ID
+            if len(self.proxy_list) > 0:
+                self.selected_proxy_id = self.proxy_list[0].get("id")
     
     def on_data_table_row_selected(self, event) -> None:
         """处理表格行选择事件"""
@@ -536,7 +565,7 @@ class ProxyListScreen(Screen[None]):
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
-        table = self.query_one("#proxy-list-table", VirtualDataTable)
+        table = self.query_one("#proxy-list-table", DataTable)
         
         if event.key == "escape":
             # ESC键返回

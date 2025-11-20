@@ -11,6 +11,7 @@ from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, ScrollableContainer
 from textual.widgets import Static, Button, Label, DataTable, ProgressBar, TabbedContent, TabPane, Header, Footer
+from textual.widgets import DataTable
 from textual.reactive import reactive
 from textual import on, events
 
@@ -207,6 +208,15 @@ class StatisticsScreen(Screen[None]):
         
         # 延迟初始化数据表，确保DOM完全构建
         self.set_timer(0.1, self._initialize_tables)
+
+        # 启用隔行变色效果
+        table_author= self.query_one("#authors-table", DataTable)
+        table_author.zebra_stripes = True
+        table_book = self.query_one("#book-stats-table", DataTable)
+        table_book.zebra_stripes = True
+        table_progress = self.query_one("#progress-table", DataTable)
+        table_progress.zebra_stripes = True
+        
     
     def _format_global_stats(self) -> str:
         """格式化全局统计数据"""
@@ -301,25 +311,39 @@ class StatisticsScreen(Screen[None]):
             table = self.query_one("#book-stats-table", DataTable)
             table.clear()
             
+            # 准备虚拟滚动数据
+            virtual_data = []
+            
             if not self.book_stats:
                 # 如果没有数据，显示提示信息
+                virtual_data.append({
+                    "title": get_global_i18n().t("statistics.no_data"),
+                    "reading_time": "-",
+                    "open_count": "-",
+                    "progress": "-",
+                    "_row_key": "no_data"
+                })
+            else:
+                for idx, book_stats in enumerate(self.book_stats):
+                    reading_time = book_stats.get("reading_time", 0)
+                    progress = book_stats.get("progress", 0)
+                    
+                    virtual_data.append({
+                        "title": book_stats.get("title", get_global_i18n().t("statistics.unknown_book")),
+                        "reading_time": self._format_time(reading_time),
+                        "open_count": str(book_stats.get('open_count', 0)),
+                        "progress": f"{progress * 100:.1f}%",
+                        "_row_key": f"book_{idx}"
+                    })
+            
+            # 填充表格数据
+            table.clear()
+            for row_data in virtual_data:
                 table.add_row(
-                    get_global_i18n().t("statistics.no_data"),
-                    "-",
-                    "-",
-                    "-"
-                )
-                return
-                
-            for book_stats in self.book_stats:
-                reading_time = book_stats.get("reading_time", 0)
-                progress = book_stats.get("progress", 0)
-                
-                table.add_row(
-                    book_stats.get("title", get_global_i18n().t("statistics.unknown_book")),
-                    self._format_time(reading_time),
-                    f"{book_stats.get('open_count', 0)}",
-                    f"{progress * 100:.1f}%"
+                    row_data.get("title", ""),
+                    row_data.get("reading_time", ""),
+                    row_data.get("open_count", ""),
+                    row_data.get("progress", "")
                 )
         except Exception as e:
             logger.error(f"加载书籍统计数据失败: {e}")
@@ -330,21 +354,34 @@ class StatisticsScreen(Screen[None]):
             table = self.query_one("#authors-table", DataTable)
             table.clear()
             
+            # 准备虚拟滚动数据
+            virtual_data = []
+            
             # 使用已经加载的作者统计数据
             if not hasattr(self, 'authors_stats') or not self.authors_stats:
                 # 如果没有数据，显示提示信息
+                virtual_data.append({
+                    "author": get_global_i18n().t("statistics.no_data"),
+                    "reading_time": "-",
+                    "book_count": "-",
+                    "_row_key": "no_data"
+                })
+            else:
+                for idx, author_stats in enumerate(self.authors_stats):
+                    virtual_data.append({
+                        "author": author_stats.get("author", get_global_i18n().t("statistics.unknown_author")),
+                        "reading_time": self._format_time(author_stats.get("reading_time", 0)),
+                        "book_count": str(author_stats.get("book_count", 0)),
+                        "_row_key": f"author_{idx}"
+                    })
+            
+            # 填充表格数据
+            table.clear()
+            for row_data in virtual_data:
                 table.add_row(
-                    get_global_i18n().t("statistics.no_data"),
-                    "-",
-                    "-"
-                )
-                return
-                
-            for author_stats in self.authors_stats:
-                table.add_row(
-                    author_stats.get("author", get_global_i18n().t("statistics.unknown_author")),
-                    self._format_time(author_stats.get("reading_time", 0)),
-                    str(author_stats.get("book_count", 0))
+                    row_data.get("author", ""),
+                    row_data.get("reading_time", ""),
+                    row_data.get("book_count", "")
                 )
         except Exception as e:
             logger.error(f"加载作者统计数据失败: {e}")
@@ -355,24 +392,38 @@ class StatisticsScreen(Screen[None]):
             table = self.query_one("#progress-table", DataTable)
             table.clear()
             
+            # 准备虚拟滚动数据
+            virtual_data = []
+            
             # 由于直接数据库版本没有bookshelf引用，简化进度显示
             # 只显示最常阅读书籍的进度信息
             if not self.book_stats:
+                virtual_data.append({
+                    "title": get_global_i18n().t("statistics.no_data"),
+                    "current_page": "-",
+                    "total_pages": "-",
+                    "progress": "-",
+                    "_row_key": "no_data"
+                })
+            else:
+                for idx, book in enumerate(self.book_stats[:10]):  # 只显示前10本
+                    progress = book.get("progress", 0)
+                    virtual_data.append({
+                        "title": book.get("title", get_global_i18n().t("statistics.unknown_book")),
+                        "current_page": "-",  # 当前页数信息需要从数据库获取，暂时留空
+                        "total_pages": "-",  # 总页数信息需要从数据库获取，暂时留空
+                        "progress": f"{progress * 100:.1f}%",
+                        "_row_key": f"progress_{idx}"
+                    })
+            
+            # 填充表格数据
+            table.clear()
+            for row_data in virtual_data:
                 table.add_row(
-                    get_global_i18n().t("statistics.no_data"),
-                    "-",
-                    "-",
-                    "-"
-                )
-                return
-                
-            for book in self.book_stats[:10]:  # 只显示前10本
-                progress = book.get("progress", 0)
-                table.add_row(
-                    book.get("title", get_global_i18n().t("statistics.unknown_book")),
-                    "-",  # 当前页数信息需要从数据库获取，暂时留空
-                    "-",  # 总页数信息需要从数据库获取，暂时留空
-                    f"{progress * 100:.1f}%"
+                    row_data.get("title", ""),
+                    row_data.get("current_page", ""),
+                    row_data.get("total_pages", ""),
+                    row_data.get("progress", "")
                 )
         except Exception as e:
             logger.error(f"加载阅读进度统计数据失败: {e}")
@@ -587,12 +638,10 @@ class StatisticsScreen(Screen[None]):
             try:
                 book_table = self.query_one("#book-stats-table", DataTable)
                 if not book_table.columns:  # 避免重复添加列
-                    book_table.add_columns(
-                        get_global_i18n().t("statistics.book_title"),
-                        get_global_i18n().t("statistics.reading_time"),
-                        get_global_i18n().t("statistics.open_count"),
-                        get_global_i18n().t("statistics.progress")
-                    )
+                    book_table.add_column(get_global_i18n().t("statistics.book_title"), key="title")
+                    book_table.add_column(get_global_i18n().t("statistics.reading_time"), key="reading_time")
+                    book_table.add_column(get_global_i18n().t("statistics.open_count"), key="open_count")
+                    book_table.add_column(get_global_i18n().t("statistics.progress"), key="progress")
             except Exception as e:
                 logger.warning(f"初始化书籍统计表失败: {e}")
             
@@ -600,11 +649,9 @@ class StatisticsScreen(Screen[None]):
             try:
                 authors_table = self.query_one("#authors-table", DataTable)
                 if not authors_table.columns:  # 避免重复添加列
-                    authors_table.add_columns(
-                        get_global_i18n().t("statistics.author"),
-                        get_global_i18n().t("statistics.reading_time"),
-                        get_global_i18n().t("statistics.book_count")
-                    )
+                    authors_table.add_column(get_global_i18n().t("statistics.author"), key="author")
+                    authors_table.add_column(get_global_i18n().t("statistics.reading_time"), key="reading_time")
+                    authors_table.add_column(get_global_i18n().t("statistics.book_count"), key="book_count")
             except Exception as e:
                 logger.warning(f"初始化作者统计表失败: {e}")
             
@@ -612,12 +659,10 @@ class StatisticsScreen(Screen[None]):
             try:
                 progress_table = self.query_one("#progress-table", DataTable)
                 if not progress_table.columns:  # 避免重复添加列
-                    progress_table.add_columns(
-                        get_global_i18n().t("statistics.book_title"),
-                        get_global_i18n().t("statistics.current_page"),
-                        get_global_i18n().t("statistics.total_pages"),
-                        get_global_i18n().t("statistics.progress")
-                    )
+                    progress_table.add_column(get_global_i18n().t("statistics.book_title"), key="title")
+                    progress_table.add_column(get_global_i18n().t("statistics.current_page"), key="current_page")
+                    progress_table.add_column(get_global_i18n().t("statistics.total_pages"), key="total_pages")
+                    progress_table.add_column(get_global_i18n().t("statistics.progress"), key="progress")
             except Exception as e:
                 logger.warning(f"初始化进度统计表失败: {e}")
             

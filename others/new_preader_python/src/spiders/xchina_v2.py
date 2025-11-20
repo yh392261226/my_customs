@@ -1,6 +1,14 @@
 """
 xchina.co 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，使用属性配置实现
+
+网站结构特点：
+- 书籍详情页和章节列表页都是同一个URL：https://xchina.co/fiction/id-{id}.html
+- 多章节书籍：包含 <div class="fiction-overview-chapters"> 章节列表
+- 单篇书籍：包含 <div class="fiction-body"> 内容
+- 书名：<h1 class="hero-title-item">标题</h1>
+- 简介：<div class="fiction-overview-brief">导读内容</div>
+- 状态：<div class="fiction-overview-info-item tags">标签内容</div>
 """
 
 from typing import Dict, Any, List, Optional
@@ -9,16 +17,6 @@ from .base_parser_v2 import BaseParser
 class XchinaParser(BaseParser):
     """xchina.co 小说解析器 - 配置驱动版本"""
     
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
-        """
-        初始化解析器
-        
-        Args:
-            proxy_config: 代理配置
-            novel_site_name: 网站名称，如果提供则覆盖默认名称
-        """
-        super().__init__(proxy_config, novel_site_name)
-    
     # 基本信息
     name = "xchina.co"
     description = "xchina.co 小说解析器（支持单篇和多篇）"
@@ -26,18 +24,24 @@ class XchinaParser(BaseParser):
     
     # 正则表达式配置
     title_reg = [
-        r'<h1[^>]*>(.*?)</h1>',
+        r'<h1[^>]*class="hero-title-item"[^>]*>(.*?)</h1>',
         r'<title>(.*?)</title>'
     ]
     
     content_reg = [
-        r'<div[^>]*class="content"[^>]*>(.*?)</div>',
+        r'<div[^>]*class="fiction-body"[^>]*>(.*?)</div>',
         r'<div[^>]*id="content"[^>]*>(.*?)</div>'
     ]
     
     status_reg = [
-        r'状态[:：]\s*(.*?)[<\s]',
-        r'status[:：]\s*(.*?)[<\s]'
+        r'<div[^>]*class="fiction-overview-info-item tags"[^>]*>(.*?)</div>',
+        r'<div[^>]*class="tags"[^>]*>(.*?)</div>'
+    ]
+    
+    # 章节链接正则
+    chapter_link_reg = [
+        r'<div[^>]*class="fiction-overview-chapters"[^>]*>.*?<a href="(/fiction/id-[^"]+\.html)"[^>]*>\s*<div[^>]*class="chapter-item"[^>]*>(.*?)</div>\s*</a>',
+        r'<div[^>]*class="fiction-overview-chapters"[^>]*>.*?<a href="(/fiction/id-[^"]+\.html)"[^>]*>(.*?)</a>'
     ]
     
     # 处理函数配置
@@ -45,26 +49,6 @@ class XchinaParser(BaseParser):
         "_clean_html_content",  # 公共基类提供的HTML清理
         "_remove_ads"  # 广告移除
     ]
-    
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
-        """初始化解析器"""
-        super().__init__(proxy_config, novel_site_name)
-        # 禁用SSL验证以解决SSL错误
-        self.session.verify = False
-        # 添加User-Agent以绕过反爬虫
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
-    
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
-        """初始化解析器"""
-        super().__init__(proxy_config, novel_site_name)
-        # 禁用SSL验证以解决SSL错误
-        self.session.verify = False
-        # 添加User-Agent以绕过反爬虫
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        })
     
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """初始化解析器"""
@@ -86,11 +70,96 @@ class XchinaParser(BaseParser):
         Returns:
             小说URL
         """
-        return f"{self.base_url}/book/{novel_id}.html"
+        return f"{self.base_url}/fiction/id-{novel_id}.html"
+    
+    def get_homepage_meta(self, novel_id: str) -> Optional[Dict[str, str]]:
+        """
+        重写获取书籍首页元数据方法，专门处理xchina.co的标签提取
+        
+        Args:
+            novel_id: 小说ID
+            
+        Returns:
+            包含标题、简介、状态的字典
+        """
+        novel_url = self.get_novel_url(novel_id)
+        content = self._get_url_content(novel_url)
+        
+        if not content:
+            return None
+        
+        # 自动检测书籍类型
+        book_type = self._detect_book_type(content)
+        
+        # 使用配置的正则提取标题
+        title = self._extract_with_regex(content, self.title_reg)
+        
+        # 提取简介
+        desc = self._extract_brief_content(content)
+        
+        # 专门处理标签提取
+        status = self._extract_tags_content(content)
+        
+        return {
+            "title": title or "未知标题",
+            "desc": desc or f"{book_type}小说",
+            "status": status or "未知状态"
+        }
+    
+    def _extract_brief_content(self, content: str) -> str:
+        """
+        提取简介内容
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            简介内容
+        """
+        import re
+        
+        # 提取brief div的内容
+        brief_match = re.search(r'<div[^>]*class="fiction-overview-brief"[^>]*>\s*<span>导读：</span>\s*(.*?)\s*</div>', 
+                              content, re.IGNORECASE | re.DOTALL)
+        if brief_match:
+            return brief_match.group(1).strip()
+        
+        return ""
+    
+    def _extract_tags_content(self, content: str) -> str:
+        """
+        提取标签内容，多个标签用逗号连接
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            标签内容字符串，多个标签用逗号连接
+        """
+        import re
+        
+        # 提取整个tags div的内容
+        tags_div_match = re.search(r'<div[^>]*class="fiction-overview-info-item tags"[^>]*>(.*?)</div>', 
+                                 content, re.IGNORECASE | re.DOTALL)
+        if not tags_div_match:
+            return ""
+        
+        tags_div_content = tags_div_match.group(1)
+        
+        # 提取所有标签内容
+        tag_matches = re.findall(r'<div[^>]*class="tag"[^>]*>(.*?)</div>', tags_div_content)
+        
+        if tag_matches:
+            # 清理标签内容并去除空白字符
+            cleaned_tags = [tag.strip() for tag in tag_matches if tag.strip()]
+            # 用逗号连接所有标签
+            return ", ".join(cleaned_tags)
+        
+        return ""
     
     def _detect_book_type(self, content: str) -> str:
         """
-        重写书籍类型检测，适配xchina.co的特定模式
+        重写书籍类型检测，通过章节列表检测
         
         Args:
             content: 页面内容
@@ -98,9 +167,13 @@ class XchinaParser(BaseParser):
         Returns:
             书籍类型
         """
-        # xchina.co特定的多章节检测模式
-        if '章节列表' in content or 'chapter-list' in content:
+        # 检测是否包含章节列表
+        if 'fiction-overview-chapters' in content:
             return "多章节"
+        
+        # 检测是否包含内容
+        if 'fiction-body' in content:
+            return "短篇"
         
         return "短篇"
     
@@ -126,7 +199,7 @@ class XchinaParser(BaseParser):
         # 创建小说内容
         novel_content = {
             'title': title,
-            'author': self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': []
@@ -140,6 +213,7 @@ class XchinaParser(BaseParser):
     def _extract_chapter_links(self, content: str) -> List[Dict[str, str]]:
         """
         提取章节链接列表 - xchina.co特定实现
+        只在<div class="fiction-overview-chapters">标签内查找
         
         Args:
             content: 页面内容
@@ -150,15 +224,23 @@ class XchinaParser(BaseParser):
         import re
         chapter_links = []
         
-        # xchina.co特定的章节链接模式
-        pattern = r'<a href="(/book/\d+/\d+\.html)"[^>]*>(.*?)</a>'
-        matches = re.findall(pattern, content)
+        # 首先提取fiction-overview-chapters div的内容
+        chapters_div_match = re.search(r'<div[^>]*class="fiction-overview-chapters"[^>]*>(.*?)</div>', 
+                                      content, re.IGNORECASE | re.DOTALL)
         
-        for href, title in matches:
-            chapter_links.append({
-                'url': href,
-                'title': title.strip()
-            })
+        if not chapters_div_match:
+            return []
+        
+        chapters_div_content = chapters_div_match.group(1)
+        
+        # 使用配置的章节链接正则表达式，只在chapters div内查找
+        for pattern in self.chapter_link_reg:
+            matches = re.findall(pattern, chapters_div_content, re.IGNORECASE | re.DOTALL)
+            for href, title in matches:
+                chapter_links.append({
+                    'url': href,
+                    'title': title.strip()
+                })
         
         return chapter_links
     
@@ -181,8 +263,13 @@ class XchinaParser(BaseParser):
             
             print(f"正在抓取第 {self.chapter_count} 章: {chapter_title}")
             
+            # 构建完整URL
+            if chapter_url.startswith('/'):
+                full_url = f"{self.base_url}{chapter_url}"
+            else:
+                full_url = chapter_url
+            
             # 获取章节内容
-            full_url = f"{self.base_url}{chapter_url}"
             chapter_content = self._get_url_content(full_url)
             
             if chapter_content:
@@ -249,11 +336,20 @@ class XchinaParser(BaseParser):
 if __name__ == "__main__":
     parser = XchinaParser()
     
-    # 测试单篇小说
+    # 测试多章节小说
     try:
-        novel_id = "12345"  # 示例ID
+        novel_id = "62aec8e51f719"  # 多章节示例ID
         novel_content = parser.parse_novel_detail(novel_id)
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        print(f"多章节抓取失败: {e}")
+    
+    # 测试单篇小说
+    try:
+        novel_id = "67ef0807c9659"  # 单篇示例ID
+        novel_content = parser.parse_novel_detail(novel_id)
+        file_path = parser.save_to_file(novel_content, "novels")
+        print(f"小说已保存到: {file_path}")
+    except Exception as e:
+        print(f"单篇抓取失败: {e}")

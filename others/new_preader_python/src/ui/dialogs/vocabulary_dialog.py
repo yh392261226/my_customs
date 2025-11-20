@@ -7,7 +7,7 @@ from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Static, Input
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual import events, on
 from src.locales.i18n_manager import get_global_i18n, t
 from src.core.vocabulary_manager import VocabularyManager, VocabularyItem
@@ -70,7 +70,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
                     get_global_i18n().t("vocabulary_dialog.word_list"),
                     classes="field-label"
                 )
-                yield VirtualDataTable(
+                yield DataTable(
                     id="words-table",
                     cursor_type="row"
                 )
@@ -115,7 +115,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     
     def initialize_table(self) -> None:
         """初始化数据表格"""
-        table = self.query_one("#words-table", VirtualDataTable)
+        table = self.query_one("#words-table", DataTable)
         table.add_columns(
             get_global_i18n().t("vocabulary_dialog.column_word"),
             get_global_i18n().t("vocabulary_dialog.column_translation"),
@@ -168,7 +168,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
     
     def update_table(self) -> None:
         """更新表格显示"""
-        table = self.query_one("#words-table", VirtualDataTable)
+        table = self.query_one("#words-table", DataTable)
         table.clear()
         
         for word_item in self.filtered_words:
@@ -265,9 +265,9 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
         stats_section.remove_class("visible")
     
     def _resolve_row_key_to_index(self, row_key) -> Optional[int]:
-        """将 VirtualDataTable 的 row_key 解析为当前可见行索引"""
-        table = self.query_one("#words-table", VirtualDataTable)
-        # 优先使用 VirtualDataTable 的 API（Textual 新版提供）
+        """将 DataTable 的 row_key 解析为当前可见行索引"""
+        table = self.query_one("#words-table", DataTable)
+        # 优先使用 DataTable 的 API（Textual 新版提供）
         try:
             idx = table.get_row_index(row_key)  # type: ignore[attr-defined]
             if isinstance(idx, int):
@@ -440,7 +440,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
                 'word_count': len(self.current_words)
             })
     
-    @on(VirtualDataTable.RowSelected)
+    @on(DataTable.RowSelected)
     def on_data_table_row_selected(self, event) -> None:
         """表格行选中时的回调"""
         if event.row_key is not None:
@@ -483,7 +483,7 @@ class VocabularyDialog(ModalScreen[Dict[str, Any]]):
             event.stop()
         elif event.key == "delete":
             # Delete键删除选中的单词
-            table = self.query_one("#words-table", VirtualDataTable)
+            table = self.query_one("#words-table", DataTable)
             row_key = table.cursor_row
             if row_key is not None:
                 if self.delete_selected_word(row_key):

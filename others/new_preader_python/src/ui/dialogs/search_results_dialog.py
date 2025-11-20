@@ -8,7 +8,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
 from textual.widgets import Button, Static, Label, DataTable
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual import events, on
 
 from src.locales.i18n import I18n
@@ -62,7 +62,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     
     def _init_table(self) -> None:
         """初始化表格"""
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         table.clear(columns=True)
         
         # 添加列
@@ -88,7 +88,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
             
             # 中间区域：结果表格
             Vertical(
-                VirtualDataTable(id="results-table"),
+                DataTable(id="results-table"),
                 id="results-preview"
             ),
             
@@ -117,7 +117,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     @on(DataTable.RowSelected, "#results-table")
     def on_data_table_row_selected(self, event) -> None:
         """行选择事件"""
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         if hasattr(table, '_current_data') and len(table._current_data) > 0:
             # 获取当前选中行的数据
             row_keys = list(table._current_data.keys())
@@ -132,7 +132,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     @on(DataTable.CellSelected, "#results-table")
     def on_data_table_cell_selected(self, event) -> None:
         """单元格选择事件"""
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         if hasattr(table, '_current_data') and len(table._current_data) > 0:
             # 获取点击行的数据
             row_keys = list(table._current_data.keys())
@@ -147,7 +147,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
     @on(DataTable.RowHighlighted, "#results-table")
     def on_data_table_row_highlighted(self, event) -> None:
         """行高亮事件"""
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         if hasattr(table, '_current_data') and len(table._current_data) > 0:
             # 获取高亮行的数据
             row_keys = list(table._current_data.keys())
@@ -202,7 +202,7 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
         current_page_results = self._all_results[start_index:end_index]
         
         # 准备虚拟滚动数据
-        table = self.query_one("#results-table", VirtualDataTable)
+        table = self.query_one("#results-table", DataTable)
         virtual_data = []
         
         for index, (page, context) in enumerate(current_page_results):
@@ -218,8 +218,13 @@ class SearchResultsDialog(ModalScreen[Optional[int]]):
             }
             virtual_data.append(row_data)
         
-        # 设置虚拟滚动数据
-        table.set_virtual_data(virtual_data)
+        # 填充表格数据
+        table.clear()
+        for row_data in virtual_data:
+            table.add_row(
+                row_data["page_number"],
+                row_data["context"]
+            )
         
         # 更新分页信息
         self._update_pagination_info()

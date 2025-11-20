@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Static, Button, Label, Input, Select, Checkbox, Header, Footer
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
@@ -27,9 +27,9 @@ class NovelSitesManagementScreen(Screen[None]):
         ("e", "edit_site", get_global_i18n().t('common.edit')),
         ("d", "delete_site", get_global_i18n().t('common.delete')),
         ("b", "batch_delete", get_global_i18n().t('novel_sites.batch_delete')),
-        ("space", "toggle_select", get_global_i18n().t('common.select')),
         ("enter", "enter_crawler", get_global_i18n().t('get_books.enter')),
-        
+        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
+        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
     ]
 
     """书籍网站管理屏幕"""
@@ -87,7 +87,11 @@ class NovelSitesManagementScreen(Screen[None]):
         """检查权限"""
         try:
             # 使用应用的权限检查方法，而不是直接调用database_manager
-            return self.app.has_permission(permission_key)
+            if hasattr(self.app, 'has_permission'):
+                return self.app.has_permission(permission_key)
+            else:
+                # 如果应用没有权限检查方法，默认允许
+                return True
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
@@ -156,7 +160,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 
                 # 中间区域：书籍网站列表
                 Vertical(
-                    VirtualDataTable(id="novel-sites-table"),
+                    DataTable(id="novel-sites-table"),
                     id="novel-sites-preview"
                 ),
                 
@@ -200,7 +204,7 @@ class NovelSitesManagementScreen(Screen[None]):
             pass
         
         # 初始化数据表
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        table = self.query_one("#novel-sites-table", DataTable)
         table.add_column(get_global_i18n().t('novel_sites.selected'), key="selected")
         table.add_column(get_global_i18n().t('novel_sites.site_name'), key="site_name")
         table.add_column(get_global_i18n().t('novel_sites.site_url'), key="site_url")
@@ -222,7 +226,7 @@ class NovelSitesManagementScreen(Screen[None]):
             pass
         try:
             if getattr(table, "cursor_row", None) is None and len(self.novel_sites) > 0:
-                table.cursor_row = 0
+                table._ensure_cursor_coordinate(0)
         except Exception:
             pass
     
@@ -279,7 +283,7 @@ class NovelSitesManagementScreen(Screen[None]):
     
     def _update_table(self) -> None:
         """更新数据表显示（使用虚拟滚动和分页）"""
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        table = self.query_one("#novel-sites-table", DataTable)
         
         # 计算分页
         self._total_pages = max(1, (len(self.novel_sites) + self._sites_per_page - 1) // self._sites_per_page)
@@ -313,13 +317,88 @@ class NovelSitesManagementScreen(Screen[None]):
             }
             virtual_data.append(row_data)
         
-        # 设置虚拟滚动数据
-        table.set_virtual_data(virtual_data)
+        # 填充表格数据
+        table.clear()
+        for row_data in virtual_data:
+            table.add_row(
+                row_data["selected"],
+                row_data["site_name"],
+                row_data["site_url"],
+                row_data["rating"],
+                row_data["proxy_enabled"],
+                row_data["parser"],
+                row_data["book_id_example"]
+            )
         
         # 更新分页信息
         self._update_pagination_info()
         self._update_pagination_buttons()
+
+    def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
+        """切换网站选中状态（参考批量操作页面的实现）"""
+        try:
+            # 计算当前页面的起始索引和全局索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            global_index = start_index + current_row_index
+            
+            if global_index >= len(self.novel_sites):
+                return
+                
+            # 切换选中状态
+            if global_index in self.selected_sites:
+                self.selected_sites.remove(global_index)
+            else:
+                self.selected_sites.add(global_index)
+            
+            # 重新渲染表格以更新选中状态显示
+            self._update_table()
+            
+            # 更新状态显示
+            selected_count = len(self.selected_sites)
+            self._update_status(f"已选中 {selected_count} 个网站", "information")
+                
+        except Exception:
+            # 如果出错，重新渲染整个表格
+            self._update_table()
     
+    def _update_cell_display(self, table: DataTable, row_key, column_key, value: str) -> None:
+        """尝试更新单元格显示，如果失败则重新渲染表格"""
+        try:
+            # 尝试使用update_cell方法（如果存在）
+            if hasattr(table, 'update_cell'):
+                table.update_cell(row_key, column_key, value)
+            else:
+                # 如果update_cell不存在，重新渲染表格
+                self._update_table()
+        except Exception:
+            # 如果失败，重新渲染表格
+            self._update_table()
+    
+    # 分页导航方法
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self._current_page != 1:
+            self._current_page = 1
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self._current_page > 1:
+            self._current_page -= 1
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        if self._current_page < self._total_pages:
+            self._current_page += 1
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        if self._current_page != self._total_pages:
+            self._current_page = self._total_pages
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
     def _show_jump_dialog(self) -> None:
         """显示跳转页码对话框"""
         def handle_jump_result(result: Optional[str]) -> None:
@@ -359,15 +438,23 @@ class NovelSitesManagementScreen(Screen[None]):
         # 更新搜索状态
         self._search_keyword = search_input.value or ""
         
-        # 处理下拉框值
+        # 处理下拉框值，确保正确处理NoSelection对象和_BLANK值
         parser_value = parser_filter.value
-        if parser_value is None or (hasattr(parser_value, 'is_blank') and callable(getattr(parser_value, 'is_blank', None)) and parser_value.is_blank()):
+        if (parser_value is None or 
+            parser_value == "" or 
+            (hasattr(parser_value, 'value') and getattr(parser_value, 'value', '') == "") or
+            (hasattr(parser_value, 'is_blank') and getattr(parser_value, 'is_blank', False)) or
+            str(parser_value) == 'Select.BLANK'):
             self._search_parser = "all"
         else:
             self._search_parser = str(parser_value) if parser_value else "all"
         
         proxy_value = proxy_filter.value
-        if proxy_value is None or (hasattr(proxy_value, 'is_blank') and callable(getattr(proxy_value, 'is_blank', None)) and proxy_value.is_blank()):
+        if (proxy_value is None or 
+            proxy_value == "" or 
+            (hasattr(proxy_value, 'value') and getattr(proxy_value, 'value', '') == "") or
+            (hasattr(proxy_value, 'is_blank') and getattr(proxy_value, 'is_blank', False)) or
+            str(proxy_value) == 'Select.BLANK'):
             self._search_proxy_enabled = "all"
         else:
             self._search_proxy_enabled = str(proxy_value) if proxy_value else "all"
@@ -386,32 +473,22 @@ class NovelSitesManagementScreen(Screen[None]):
         dialog = NovelSiteDialog(self.theme_manager, None)
         self.app.push_screen(dialog, self._handle_add_result)
     
-    def _show_edit_dialog(self) -> None:
+    def _edit_site(self) -> None:
         """显示编辑书籍网站对话框"""
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
-        if table.cursor_row is not None and table.cursor_row < len(table.rows):
-            # 获取选中的行数据
-            row_data = table.get_row_at(table.cursor_row)
-            if row_data and len(row_data) > 0:
-                # 第一列是网站名称，我们通过名称来查找对应的网站
-                site_name = row_data[1]  # 第二列是网站名称
-                site_index = -1
-                for i, site in enumerate(self.novel_sites):
-                    if site["name"] == site_name:
-                        site_index = i
-                        break
-                
-                if site_index >= 0 and site_index < len(self.novel_sites):
-                    site = self.novel_sites[site_index]
-                    from src.ui.dialogs.novel_site_dialog import NovelSiteDialog
-                    dialog = NovelSiteDialog(self.theme_manager, site)
-                    self.app.push_screen(dialog, lambda result: self._handle_edit_result(result, site_index))
-                else:
-                    self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            # 计算当前页面的起始索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            # 计算全局索引
+            global_index = start_index + table.cursor_row
+            
+            if global_index < len(self.novel_sites):
+                site = self.novel_sites[global_index]
+                from src.ui.dialogs.novel_site_dialog import NovelSiteDialog
+                dialog = NovelSiteDialog(self.theme_manager, site)
+                self.app.push_screen(dialog, lambda result: self._handle_edit_result(result, global_index))
             else:
-                self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
-        else:
-            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+                self._update_status(get_global_i18n().t('novel_sites.site_not_found'), "error")
     
     def _handle_add_result(self, result: Optional[Dict[str, Any]]) -> None:
         """处理添加结果"""
@@ -440,30 +517,25 @@ class NovelSitesManagementScreen(Screen[None]):
             else:
                 self._update_status(get_global_i18n().t('novel_sites.edit_failed'), "error")
     
-    def _delete_selected(self) -> None:
+    def _delete_site(self) -> None:
         """删除选中的书籍网站"""
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
-        if table.cursor_row is not None and table.cursor_row < len(table.rows):
-            row_data = table.get_row_at(table.cursor_row)
-            if row_data and len(row_data) > 0:
-                site_name = row_data[1]  # 第二列是网站名称
-                site_index = -1
-                for i, site in enumerate(self.novel_sites):
-                    if site["name"] == site_name:
-                        site_index = i
-                        break
-                
-                if site_index >= 0 and site_index < len(self.novel_sites):
-                    # 显示确认对话框
-                    from src.ui.dialogs.confirm_dialog import ConfirmDialog
-                    dialog = ConfirmDialog(
-                        self.theme_manager,
-                        get_global_i18n().t('novel_sites.confirm_delete'),
-                        f"{get_global_i18n().t('novel_sites.confirm_delete_message')}: {site_name}"
-                    )
-                    self.app.push_screen(dialog, lambda result: self._handle_delete_confirm(result, site_index))
-                else:
-                    self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            # 计算当前页面的起始索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            # 计算全局索引
+            global_index = start_index + table.cursor_row
+            
+            if global_index < len(self.novel_sites):
+                site = self.novel_sites[global_index]
+                # 显示确认对话框
+                from src.ui.dialogs.confirm_dialog import ConfirmDialog
+                dialog = ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('novel_sites.confirm_delete'),
+                    f"{get_global_i18n().t('novel_sites.confirm_delete_message')}: {site['name']}"
+                )
+                self.app.push_screen(dialog, lambda confirmed: self._handle_delete_result(confirmed, global_index))
             else:
                 self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
         else:
@@ -483,6 +555,23 @@ class NovelSitesManagementScreen(Screen[None]):
             f"{get_global_i18n().t('novel_sites.confirm_batch_delete_message')}: {len(self.selected_sites)}"
         )
         self.app.push_screen(dialog, self._handle_batch_delete_confirm)
+    
+    def _handle_delete_result(self, result: Optional[bool], site_index: int) -> None:
+        """处理删除结果"""
+        if result and 0 <= site_index < len(self.novel_sites):
+            site = self.novel_sites[site_index]
+            site_id = site.get("id")
+            if site_id:
+                # 从数据库删除
+                success = self.database_manager.delete_novel_site(site_id)
+                if success:
+                    # 重新加载数据
+                    self._load_novel_sites()
+                    self._update_status(f"{get_global_i18n().t('novel_sites.deleted_success')}: {site['name']}")
+                else:
+                    self._update_status(get_global_i18n().t('novel_sites.delete_failed'), "error")
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.delete_failed'), "error")
     
     def _handle_delete_confirm(self, result: Optional[bool], site_index: int) -> None:
         """处理删除确认"""
@@ -529,6 +618,54 @@ class NovelSitesManagementScreen(Screen[None]):
             else:
                 self._update_status(f"{get_global_i18n().t('novel_sites.batch_deleted_partial')}: {deleted_count}成功, {failed_count}失败", "error")
     
+    def _show_edit_dialog(self) -> None:
+        """显示编辑书籍网站对话框"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            # 计算当前页面的起始索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            # 计算全局索引
+            global_index = start_index + table.cursor_row
+            
+            if global_index < len(self.novel_sites):
+                site = self.novel_sites[global_index]
+                from src.ui.dialogs.novel_site_dialog import NovelSiteDialog
+                dialog = NovelSiteDialog(self.theme_manager, site)
+                self.app.push_screen(dialog, lambda result: self._handle_edit_result(result, global_index))
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.site_not_found'), "error")
+        else:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+    
+    def _delete_selected(self) -> None:
+        """删除选中的书籍网站"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            # 计算当前页面的起始索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            # 计算全局索引
+            global_index = start_index + table.cursor_row
+            
+            if global_index < len(self.novel_sites):
+                site = self.novel_sites[global_index]
+                # 显示确认对话框
+                from src.ui.dialogs.confirm_dialog import ConfirmDialog
+                dialog = ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('novel_sites.confirm_delete'),
+                    f"{get_global_i18n().t('novel_sites.confirm_delete_message')}: {site['name']}"
+                )
+                self.app.push_screen(dialog, lambda confirmed: self._handle_delete_result(confirmed, global_index))
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+        else:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+    
+    def _update_selection_display(self, table: DataTable, row_index: int) -> None:
+        """更新选中状态显示（已废弃，通过_update_table统一更新）"""
+        # 这个方法不再使用，通过_update_table统一处理选中状态显示
+        pass
+    
     def on_data_table_row_selected(self, event) -> None:
         """
         数据表行选择时的回调
@@ -538,22 +675,62 @@ class NovelSitesManagementScreen(Screen[None]):
         """
         if event is None:
             # 处理从 key_enter 调用的情况
-            table = self.query_one("#novel-sites-table", VirtualDataTable)
-            if table.cursor_row is not None and table.cursor_row < len(table.rows):
-                row_data = table.get_row_at(table.cursor_row)
-                if row_data and len(row_data) > 0:
-                    site_name = row_data[1]  # 第二列是网站名称
-                    for site in self.novel_sites:
-                        if site["name"] == site_name:
-                            # 进入爬取管理页面
-                            self.app.push_screen("crawler_management", site)
-                            break
-        elif event.row_key and hasattr(event.row_key, 'value'):
-            site_index = int(event.row_key.value)
-            if 0 <= site_index < len(self.novel_sites):
-                # 进入爬取管理页面
-                site = self.novel_sites[site_index]
-                self.app.push_screen("crawler_management", site)
+            table = self.query_one("#novel-sites-table", DataTable)
+            if table.cursor_row is not None:
+                # 计算当前页面的起始索引
+                start_index = (self._current_page - 1) * self._sites_per_page
+                # 计算全局索引
+                global_index = start_index + table.cursor_row
+                if global_index < len(self.novel_sites):
+                    # 进入爬取管理页面
+                    site = self.novel_sites[global_index]
+                    self.app.push_screen("crawler_management", site)
+        elif hasattr(event, 'row_key') and event.row_key is not None:
+            # 从事件中获取全局索引
+            try:
+                global_index = int(event.row_key)
+                if 0 <= global_index < len(self.novel_sites):
+                    # 进入爬取管理页面
+                    site = self.novel_sites[global_index]
+                    try:
+                        from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                        crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                        self.app.push_screen(crawler_screen)
+                    except ImportError:
+                        self.notify("爬取管理页面不可用", severity="error")
+            except (ValueError, TypeError):
+                # 如果转换失败，尝试通过行数据查找
+                table = self.query_one("#novel-sites-table", DataTable)
+                if hasattr(event, 'cursor_row') and event.cursor_row is not None:
+                    start_index = (self._current_page - 1) * self._sites_per_page
+                    global_index = start_index + event.cursor_row
+                    if global_index < len(self.novel_sites):
+                        site = self.novel_sites[global_index]
+                        try:
+                            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                            self.app.push_screen(crawler_screen)
+                        except ImportError:
+                            self.notify("爬取管理页面不可用", severity="error")
+    
+    def on_virtual_data_table_row_selected(self, event) -> None:
+        """处理虚拟数据表行选中事件（空格键触发）"""
+        if hasattr(event, 'row_key') and event.row_key is not None:
+            # 从事件中获取全局索引
+            try:
+                global_index = int(event.row_key)
+                if 0 <= global_index < len(self.novel_sites):
+                    # 切换选中状态
+                    if global_index in self.selected_sites:
+                        self.selected_sites.remove(global_index)
+                    else:
+                        self.selected_sites.add(global_index)
+                    
+                    # 更新选中状态显示
+                    table = self.query_one("#novel-sites-table", DataTable)
+                    self._update_selection_display(table, table.cursor_row if hasattr(table, 'cursor_row') and table.cursor_row is not None else 0)
+            except (ValueError, TypeError):
+                pass
     
     def on_data_table_cell_selected(self, event) -> None:
         """
@@ -562,17 +739,53 @@ class NovelSitesManagementScreen(Screen[None]):
         Args:
             event: 单元格选择事件
         """
-        if event.coordinate and event.coordinate.row < len(self.novel_sites):
-            # 通过行索引直接获取网站
-            site_index = event.coordinate.row
+        if event.coordinate is not None:
+            # 获取表格和当前光标位置
+            table = self.query_one("#novel-sites-table", DataTable)
             
-            # 切换选择状态（第一列）
-            if event.coordinate.column == 0:
-                if site_index in self.selected_sites:
-                    self.selected_sites.remove(site_index)
-                else:
-                    self.selected_sites.add(site_index)
-                self._update_table()
+            # 保存当前光标位置
+            saved_row = event.coordinate.row
+            saved_col = event.coordinate.column
+            
+            # 计算当前页面的起始索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            # 计算全局索引
+            global_index = start_index + event.coordinate.row
+            
+            if global_index < len(self.novel_sites):
+                # 切换选择状态（第一列）
+                if event.coordinate.column == 0:
+                    if global_index in self.selected_sites:
+                        self.selected_sites.remove(global_index)
+                    else:
+                        self.selected_sites.add(global_index)
+                    
+                    # 重新渲染表格
+                    self._update_table()
+                    
+                    # 恢复光标位置
+                    try:
+                        # 确保表格有焦点
+                        table.focus()
+                        
+                        # 使用Textual的标准方法恢复光标位置
+                        if hasattr(table, 'cursor_coordinate'):
+                            table.cursor_coordinate = (saved_row, saved_col)
+                        elif hasattr(table, 'cursor_row') and hasattr(table, 'cursor_column'):
+                            table.cursor_row = saved_row
+                            table.cursor_column = saved_col
+                        elif hasattr(table, '_cursor_row') and hasattr(table, '_cursor_column'):
+                            table._cursor_row = saved_row
+                            table._cursor_column = saved_col
+                            
+                        # 强制刷新表格显示
+                        table.refresh()
+                    except Exception:
+                        # 如果恢复失败，至少确保表格有焦点
+                        try:
+                            table.focus()
+                        except Exception:
+                            pass
     
     # Actions for BINDINGS
     def action_add_site(self) -> None:
@@ -587,29 +800,88 @@ class NovelSitesManagementScreen(Screen[None]):
     def action_batch_delete(self) -> None:
         self._batch_delete()
 
-    def action_toggle_select(self) -> None:
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
-        # 确保表格获取焦点，这样按键行为与光标同步
+    def key_space(self) -> None:
+        """空格键 - 选中或取消选中当前行"""
+        # 直接处理空格键，不依赖BINDINGS系统
+        table = self.query_one("#novel-sites-table", DataTable)
+        
+        # 获取当前光标位置
+        current_row_index = None
+        current_col_index = 0
+        
+        # 首先尝试使用cursor_coordinate
+        if hasattr(table, 'cursor_coordinate') and table.cursor_coordinate:
+            coord = table.cursor_coordinate
+            current_row_index = coord.row
+            current_col_index = coord.column
+        # 其次尝试使用cursor_row和cursor_column
+        elif hasattr(table, 'cursor_row') and table.cursor_row is not None:
+            current_row_index = table.cursor_row
+            if hasattr(table, 'cursor_column') and table.cursor_column is not None:
+                current_col_index = table.cursor_column
+        # 最后尝试使用内部属性
+        elif hasattr(table, '_cursor_row') and table._cursor_row is not None:
+            current_row_index = table._cursor_row
+            if hasattr(table, '_cursor_column') and table._cursor_column is not None:
+                current_col_index = table._cursor_column
+        
+        # 检查是否有有效的行索引
+        if current_row_index is None:
+            # 显示提示信息，要求用户先选择一行
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 检查行索引是否在有效范围内
+        current_page_row_count = min(self._sites_per_page, len(self.novel_sites) - (self._current_page - 1) * self._sites_per_page)
+        if current_row_index < 0 or current_row_index >= current_page_row_count:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 保存当前光标位置
+        saved_row = current_row_index
+        saved_col = current_col_index
+        
+        # 执行选择操作
+        self._toggle_site_selection(table, current_row_index)
+        
+        # 恢复光标位置
         try:
+            # 确保表格有焦点
             table.focus()
+            
+            # 使用Textual的标准方法恢复光标位置
+            if hasattr(table, 'cursor_coordinate'):
+                table.cursor_coordinate = (saved_row, saved_col)
+            elif hasattr(table, 'cursor_row') and hasattr(table, 'cursor_column'):
+                table.cursor_row = saved_row
+                table.cursor_column = saved_col
+            elif hasattr(table, '_cursor_row') and hasattr(table, '_cursor_column'):
+                table._cursor_row = saved_row
+                table._cursor_column = saved_col
+                
+            # 强制刷新表格显示
+            table.refresh()
         except Exception:
-            pass
-        if table.cursor_row is not None and table.cursor_row < len(self.novel_sites):
-            site_index = table.cursor_row
-            if site_index in self.selected_sites:
-                self.selected_sites.remove(site_index)
-            else:
-                self.selected_sites.add(site_index)
-            self._update_table()
+            # 如果恢复失败，至少确保表格有焦点
+            try:
+                table.focus()
+            except Exception:
+                pass
 
     def action_enter_crawler(self) -> None:
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        table = self.query_one("#novel-sites-table", DataTable)
         if table.cursor_row is not None:
             self.on_data_table_row_selected(None)
 
     def action_back(self) -> None:
         self.app.pop_screen()
+        
+    def action_prev_page(self) -> None:
+        self._go_to_prev_page()
 
+    def action_next_page(self) -> None:
+        self._go_to_next_page()
+    
     def _update_status(self, message: str, severity: str = "information") -> None:
         """更新状态信息"""
         status_label = self.query_one("#novel-sites-status", Label)
@@ -654,17 +926,133 @@ class NovelSitesManagementScreen(Screen[None]):
     def key_enter(self) -> None:
         """Enter键 - 进入爬取管理页面"""
         if self._has_permission("novel_sites.enter_crawler"):
-            table = self.query_one("#novel-sites-table", VirtualDataTable)
-            if table.cursor_row is not None:
-                self.on_data_table_row_selected(None)
+            table = self.query_one("#novel-sites-table", DataTable)
+            # 使用DataTable的原生光标机制
+            try:
+                # 获取当前光标行
+                if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+                    row_index = table.cursor_row
+                    if row_index < len(table.rows):
+                        # 计算当前页面的起始索引
+                        start_index = (self._current_page - 1) * self._sites_per_page
+                        # 计算全局索引
+                        global_index = start_index + row_index
+                        if global_index < len(self.novel_sites):
+                            try:
+                                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                                site = self.novel_sites[global_index]
+                                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                                self.app.push_screen(crawler_screen)
+                            except ImportError:
+                                self.notify("爬取管理页面不可用", severity="error")
+                else:
+                    # 如果没有光标行，使用第一行
+                    if len(table.rows) > 0:
+                        start_index = (self._current_page - 1) * self._sites_per_page
+                        global_index = start_index + 0
+                        if global_index < len(self.novel_sites):
+                            try:
+                                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                                site = self.novel_sites[global_index]
+                                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                                self.app.push_screen(crawler_screen)
+                            except ImportError:
+                                self.notify("爬取管理页面不可用", severity="error")
+            except Exception as e:
+                # 如果出错，尝试第一行
+                try:
+                    if len(table.rows) > 0:
+                        start_index = (self._current_page - 1) * self._sites_per_page
+                        global_index = start_index + 0
+                        if global_index < len(self.novel_sites):
+                            try:
+                                from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                                site = self.novel_sites[global_index]
+                                crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                                self.app.push_screen(crawler_screen)
+                            except ImportError:
+                                self.notify("爬取管理页面不可用", severity="error")
+                except Exception:
+                    pass
         else:
             self.notify(get_global_i18n().t('novel_sites.np_open_carwler'), severity="warning")
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
-        if event.key == "escape":
-            # ESC键返回
+        # 获取表格控件
+        table = self.query_one("#novel-sites-table", DataTable)
+        
+        # 让表格先处理键盘事件（光标移动等）
+        if table.has_focus:
+            # 如果是表格有焦点，让表格处理这些按键
+            if event.key in ["up", "down", "left", "right"]:
+                # 表格会处理这些按键，不需要额外处理
+                return
+        
+        if event.key == "escape" or event.key == "q":
+            # ESC键或Q键返回
             self.app.pop_screen()
+            event.stop()
+        elif event.key == "enter":
+            # Enter键进入爬取管理页面
+            self.key_enter()
+            event.prevent_default()
+        elif event.key == "a":
+            # A键添加网站
+            if self._has_permission("novel_sites.add"):
+                self._show_add_dialog()
+            else:
+                self.notify(get_global_i18n().t('novel_sites.np_add_site'), severity="warning")
+            event.prevent_default()
+        elif event.key == "e":
+            # E键编辑选中的网站
+            if self._has_permission("novel_sites.edit"):
+                self._show_edit_dialog()
+            else:
+                self.notify(get_global_i18n().t('novel_sites.np_edit_site'), severity="warning")
+            event.prevent_default()
+        elif event.key == "d":
+            # D键删除选中的网站
+            if self._has_permission("novel_sites.delete"):
+                self._delete_selected()
+            else:
+                self.notify(get_global_i18n().t('novel_sites.np_delete_site'), severity="warning")
+            event.prevent_default()
+        elif event.key == "b":
+            # B键批量删除
+            if self._has_permission("novel_sites.batch_delete"):
+                self._batch_delete()
+            else:
+                self.notify(get_global_i18n().t('novel_sites.np_batch_delete_site'), severity="warning")
+            event.prevent_default()
+        elif event.key == "n":
+            # N键下一页
+            self._go_to_next_page()
+            event.prevent_default()
+        elif event.key == "p":
+            # P键上一页
+            self._go_to_prev_page()
+            event.prevent_default()
+        elif event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if table.cursor_row == len(table.rows) - 1 and self._current_page < self._total_pages:
+                self._current_page += 1
+                self._update_table()
+                # 将光标移动到新页面的第一行
+                table = self.query_one("#novel-sites-table", DataTable)
+                table.action_cursor_down()
+                table.action_cursor_up()
+                event.prevent_default()
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._current_page -= 1
+                self._update_table()
+                # 将光标移动到新页面的最后一行
+                table = self.query_one("#novel-sites-table", DataTable)
+                for _ in range(len(table.rows) - 1):
+                    table.action_cursor_down()
+                event.prevent_default()
     
     def _update_pagination_info(self) -> None:
         """更新分页信息显示"""
@@ -699,19 +1087,13 @@ class NovelSitesManagementScreen(Screen[None]):
         """处理按钮点击事件"""
         # 处理分页按钮
         if event.button.id == "first-page-btn":
-            self._current_page = 1
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._go_to_first_page()
         elif event.button.id == "prev-page-btn":
-            if self._current_page > 1:
-                self._current_page -= 1
-                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._go_to_prev_page()
         elif event.button.id == "next-page-btn":
-            if self._current_page < self._total_pages:
-                self._current_page += 1
-                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._go_to_next_page()
         elif event.button.id == "last-page-btn":
-            self._current_page = self._total_pages
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._go_to_last_page()
         elif event.button.id == "jump-page-btn":
             self._show_jump_dialog()
         # 处理原有按钮

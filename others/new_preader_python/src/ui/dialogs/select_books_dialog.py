@@ -3,7 +3,7 @@ from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal, Container, Grid, VerticalScroll
 from textual.widgets import Button, Input, Label, LoadingIndicator, Static, DataTable
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual import events, on
 from bs4 import BeautifulSoup
 from rich.text import Text
@@ -88,7 +88,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                     id="select-books-header"
                 ),
                 # 中间数据表区域
-                VirtualDataTable(id="books-table"),
+                DataTable(id="books-table"),
                 # 统计信息区域（与书架屏幕一致的ID，方便样式复用）
                 # Vertical(
                 #     Label("", id="books-stats-label"),
@@ -163,7 +163,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         except Exception:
             pass
         # 初始化表格
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         table.clear(columns=True)
         table.add_column(get_global_i18n().t('select_books.selected'), key="selected")
         table.add_column(get_global_i18n().t('select_books.id'), key="id")
@@ -335,7 +335,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         return results
 
     def _refresh_table(self) -> None:
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         table.clear()
         # 使用行键为书籍ID；简介列传入 Rich Text 并允许自动换行
         for (bid, title, status, desc) in self._results:
@@ -360,7 +360,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
     def _update_stats_with_desc(self, row_index: int) -> None:
         """将指定行的简介内容更新到统计标签（兼容不同Textual版本的DataTable行访问）"""
         try:
-            table = self.query_one("#books-table", VirtualDataTable)
+            table = self.query_one("#books-table", DataTable)
             # 通过索引解析真实的行键
             keys = list(table.rows.keys())
             if not keys or row_index is None or row_index < 0 or row_index >= len(keys):
@@ -616,7 +616,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
 
     def on_data_table_row_selected(self, event) -> None:
         """回车选择当前行：切换选中状态并更新底部简介"""
-        table = self.query_one("#books-table", VirtualDataTable)
+        table = self.query_one("#books-table", DataTable)
         try:
             # 优先使用事件提供的行键定位索引，避免依赖 cursor_row
             row_index = None
@@ -665,7 +665,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         """
         单元格选择事件：点击任意列均更新底部简介；仅当点击“选中”列（第一列）时，切换该行的选中状态。
         """
-        table = event.data_table if hasattr(event, "data_table") else self.query_one("#books-table", VirtualDataTable)
+        table = event.data_table if hasattr(event, "data_table") else self.query_one("#books-table", DataTable)
         coord = getattr(event, "coordinate", None)
         row_index = coord.row if coord else None
         if row_index is None:
@@ -694,7 +694,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                 table.update_cell(row_index, 0, "✔" if bid in self._selected else "□")
         # 保持光标在当前行
         try:
-            table.cursor_row = row_index
+            table.cursor_type = "row"
         except Exception:
             pass
         # 无论点击哪一列，都更新底部简介
@@ -708,7 +708,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
     def on_books_table_row_highlighted(self, event) -> None:
         """行高亮变化时同步底部简介（支持键盘上下移动焦点）"""
         try:
-            table = self.query_one("#books-table", VirtualDataTable)
+            table = self.query_one("#books-table", DataTable)
             # 通过 row_key 查找索引，兼容不同 Textual 版本
             row_index = None
             try:
@@ -736,7 +736,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             row_index = coord.row if coord else None
             if row_index is None:
                 # 回退到当前光标行
-                table = self.query_one("#books-table", VirtualDataTable)
+                table = self.query_one("#books-table", DataTable)
                 row_index = getattr(table, "cursor_row", None)
             if row_index is None:
                 return
@@ -747,7 +747,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
     def on_key(self, event: events.Key) -> None:
         """空格键切换当前行选中状态"""
         if event.key == "space":
-            table = self.query_one("#books-table", VirtualDataTable)
+            table = self.query_one("#books-table", DataTable)
             row_index = getattr(table, "cursor_row", None)
             if row_index is None:
                 return

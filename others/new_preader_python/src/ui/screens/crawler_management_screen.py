@@ -7,10 +7,10 @@ from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Static, Button, Label, Input, Select, Link, Header, Footer, LoadingIndicator
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
-from textual import events
+from textual import events, on
 
 from src.locales.i18n_manager import get_global_i18n, t, init_global_i18n
 from src.themes.theme_manager import ThemeManager
@@ -132,7 +132,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 爬取历史区域（不包含分页控件）
                     Vertical(
                         Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
-                        VirtualDataTable(id="crawl-history-table"),
+                        DataTable(id="crawl-history-table"),
                         id="crawl-history-section"
                     ),
                     id="crawler-scroll", classes="scroll-y"
@@ -191,7 +191,7 @@ class CrawlerManagementScreen(Screen[None]):
             pass
         
         # 初始化数据表
-        table = self.query_one("#crawl-history-table", VirtualDataTable)
+        table = self.query_one("#crawl-history-table", DataTable)
         
         # 清除现有列，重新添加
         table.clear(columns=True)
@@ -207,6 +207,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.delete_file'), key="delete_file")
         table.add_column(get_global_i18n().t('crawler.delete_record'), key="delete_record")
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
+        table.add_column(get_global_i18n().t('crawler.retry'), key="retry")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -269,7 +270,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self.set_timer(0.1, self._update_history_table)
                 return
 
-            table = self.query_one("#crawl-history-table", VirtualDataTable)
+            table = self.query_one("#crawl-history-table", DataTable)
             
             # 计算分页
             start_index = (self.current_page - 1) * self.items_per_page
@@ -279,25 +280,28 @@ class CrawlerManagementScreen(Screen[None]):
             # 准备虚拟滚动数据
             virtual_data = []
             for i, item in enumerate(current_page_items):
-                # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮和查看原因按钮
+                # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮、查看原因按钮和重试按钮
                 if item["status"] == get_global_i18n().t('crawler.status_success') and item["file_path"]:
                     view_file_text = get_global_i18n().t('crawler.view_file')
                     read_book_text = get_global_i18n().t('crawler.read_book')
                     delete_file_text = get_global_i18n().t('crawler.delete_file')
                     delete_record_text = get_global_i18n().t('crawler.delete_record')
                     view_reason_text = ""  # 成功时不显示查看原因按钮
+                    retry_text = ""  # 成功时不显示重试按钮
                 elif item["status"] == get_global_i18n().t('crawler.status_failed'):
                     view_file_text = ""
                     read_book_text = ""
                     delete_file_text = ""
                     delete_record_text = get_global_i18n().t('crawler.delete_record')
                     view_reason_text = get_global_i18n().t('crawler.view_reason')  # 失败时显示查看原因按钮
+                    retry_text = get_global_i18n().t('crawler.retry')  # 失败时显示重试按钮
                 else:
                     view_file_text = ""
                     read_book_text = ""
                     delete_file_text = ""
                     delete_record_text = ""
                     view_reason_text = ""
+                    retry_text = ""
                 
                 row_data = {
                     "sequence": str(start_index + i + 1),
@@ -310,13 +314,28 @@ class CrawlerManagementScreen(Screen[None]):
                     "delete_file": delete_file_text,
                     "delete_record": delete_record_text,
                     "view_reason": view_reason_text,
+                    "retry": retry_text,
                     "_row_key": f"{item['novel_id']}_{item['crawl_time']}_{i}",
                     "_global_index": start_index + i + 1
                 }
                 virtual_data.append(row_data)
             
-            # 设置虚拟滚动数据
-            table.set_virtual_data(virtual_data)
+            # 填充表格数据
+            table.clear()
+            for row_data in virtual_data:
+                table.add_row(
+                    row_data["sequence"],
+                    row_data["novel_id"],
+                    row_data["novel_title"],
+                    row_data["crawl_time"],
+                    row_data["status"],
+                    row_data["view_file"],
+                    row_data["read_book"],
+                    row_data["delete_file"],
+                    row_data["delete_record"],
+                    row_data["view_reason"],
+                    row_data["retry"]
+                )
             
             # 更新分页信息
             self._update_pagination_info()
@@ -386,10 +405,10 @@ class CrawlerManagementScreen(Screen[None]):
         self._open_note_dialog()
 
     def action_prev_page(self) -> None:
-        self._prev_page()
+        self._go_to_prev_page()
 
     def action_next_page(self) -> None:
-        self._next_page()
+        self._go_to_next_page()
 
     def action_back(self) -> None:
         self.app.pop_screen()
@@ -434,50 +453,59 @@ class CrawlerManagementScreen(Screen[None]):
         elif event.button.id == "back-btn":
             self.app.pop_screen()  # 返回上一页
     
-    def on_data_table_cell_selected(self, event) -> None:
+    @on(DataTable.CellSelected, "#crawl-history-table")
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
         数据表格单元格选择时的回调
         
         Args:
             event: 单元格选择事件
         """
-        # 获取选中的单元格键
-        cell_key = event.cell_key
-        column_key = cell_key.column_key.value
-        row_key = cell_key.row_key.value
+        logger.debug(f"单元格选择事件触发: {event}")
         
-        # 只处理操作列（查看文件、阅读书籍、删除文件、删除记录、查看原因）
-        if column_key not in ["view_file", "read_book", "delete_file", "delete_record", "view_reason"]:
-            return
-        
-        # 通过行键映射获取历史项索引
-        # 从行键中提取全局索引（格式如："novel_id_timestamp_index"）
-        parts = row_key.split("_")
-        if len(parts) >= 3:
-            try:
-                index = int(parts[-1])
-                start_index = (self.current_page - 1) * self.items_per_page
-                real_index = start_index + index
+        try:
+            # 检查是否点击了操作按钮列
+            if hasattr(event, 'coordinate'):
+                column_key = event.coordinate.column
+                row_index = event.coordinate.row
                 
-                if 0 <= real_index < len(self.crawler_history):
-                    history_item = self.crawler_history[real_index]
+                logger.debug(f"点击的列: {column_key}, 行: {row_index}")
+                
+                # 只处理操作列（查看文件、阅读书籍、删除文件、删除记录、查看原因、重试）
+                # 列索引从0开始：5=查看文件, 6=阅读书籍, 7=删除文件, 8=删除记录, 9=查看原因, 10=重试
+                if column_key not in [5, 6, 7, 8, 9, 10]:
+                    return
+                
+                # 获取当前页的数据
+                start_index = (self.current_page - 1) * self.items_per_page
+                if row_index is not None and row_index < len(self.crawler_history) - start_index:
+                    history_item = self.crawler_history[start_index + row_index]
                     
                     if not history_item:
                         return
                         
-                    # 根据列键执行不同的操作
-                    if column_key == "view_file":
+                    # 根据列索引执行不同的操作
+                    if column_key == 5:  # 查看文件
                         self._view_file(history_item)
-                    elif column_key == "read_book":
+                    elif column_key == 6:  # 阅读书籍
                         self._read_book(history_item)
-                    elif column_key == "delete_file":
+                    elif column_key == 7:  # 删除文件
                         self._delete_file_only(history_item)
-                    elif column_key == "delete_record":
+                    elif column_key == 8:  # 删除记录
                         self._delete_record_only(history_item)
-                    elif column_key == "view_reason":
+                    elif column_key == 9:  # 查看原因
                         self._view_reason(history_item)
-            except (ValueError, IndexError) as e:
-                logger.debug(f"解析行键失败: {row_key}, 错误: {e}")
+                    elif column_key == 10:  # 重试
+                        self._retry_crawl(history_item)
+                    
+                    # 阻止事件冒泡，避免触发其他处理程序
+                    event.stop()
+                else:
+                    logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self.crawler_history)}, 起始索引={start_index}")
+            else:
+                logger.debug("单元格选择事件没有坐标信息")
+        except Exception as e:
+            logger.error(f"处理单元格选择时出错: {e}")
     
     def _open_browser(self) -> None:
         """在浏览器中打开网站"""
@@ -1776,14 +1804,14 @@ class CrawlerManagementScreen(Screen[None]):
     def key_p(self) -> None:
         """P键 - 上一页"""
         if self._has_permission("crawler.navigate"):
-            self._prev_page()
+            self._go_to_prev_page()
         else:
             self._update_status(get_global_i18n().t('crawler.np_nav'), "warning")
     
     def key_n(self) -> None:
         """N键 - 下一页"""
         if self._has_permission("crawler.navigate"):
-            self._next_page()
+            self._go_to_next_page()
         else:
             self._update_status(get_global_i18n().t('crawler.np_nav'), "warning")
     
@@ -2035,3 +2063,187 @@ class CrawlerManagementScreen(Screen[None]):
                 
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_failed')}: {str(e)}", "error")
+    
+    def _retry_crawl(self, history_item: Dict[str, Any]) -> None:
+        """重试爬取失败的记录"""
+        try:
+            # 检查权限：执行爬取任务需 crawler.run
+            if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
+                self._update_status(get_global_i18n().t('crawler.np_crawler'), "error")
+                return
+                
+            # 检查是否正在爬取
+            if self.is_crawling:
+                self._update_status(get_global_i18n().t('crawler.crawling_in_progress'), "error")
+                return
+                
+            # 获取小说ID
+            novel_id = history_item.get('novel_id')
+            if not novel_id:
+                self._update_status(get_global_i18n().t('crawler.invalid_novel_id'), "error")
+                return
+                
+            # 检查记录是否为失败状态
+            if history_item.get('status') != get_global_i18n().t('crawler.status_failed'):
+                self._update_status(get_global_i18n().t('crawler.only_retry_failed'), "error")
+                return
+                
+            # 检查代理要求
+            proxy_check_result = self._check_proxy_requirements_sync()
+            if not proxy_check_result['can_proceed']:
+                self._update_status(proxy_check_result['message'], "error")
+                return
+                
+            proxy_config = proxy_check_result['proxy_config']
+            
+            # 设置爬取状态
+            self.is_crawling = True
+            self.current_crawling_id = novel_id
+            
+            # 更新按钮状态和显示加载动画
+            self._update_crawl_button_state()
+            self._show_loading_animation()
+            
+            # 显示重试状态
+            self._update_status(f"{get_global_i18n().t('crawler.retrying')} ID: {novel_id}")
+            
+            # 异步执行重试爬取
+            self.app.run_worker(self._retry_crawl_single(novel_id, proxy_config, history_item), name="crawl-retry-worker")
+            
+        except Exception as e:
+            logger.error(f"重试爬取失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
+            # 重置爬取状态
+            self._reset_crawl_state()
+    
+    async def _retry_crawl_single(self, novel_id: str, proxy_config: Dict[str, Any], history_item: Dict[str, Any]) -> None:
+        """异步重试单个小说的爬取"""
+        import asyncio
+        import time
+        
+        try:
+            # 获取解析器名称
+            parser_name = self.novel_site.get('parser')
+            if not parser_name:
+                self.app.call_later(self._update_status, get_global_i18n().t('crawler.no_parser'), "error")
+                return
+            
+            # 导入解析器
+            from src.spiders import create_parser
+            
+            # 创建解析器实例，传递数据库中的网站名称作为作者信息
+            parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'))
+            
+            # 使用异步方式执行网络请求
+            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
+            
+            # 解析小说详情
+            novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
+            novel_title = novel_content['title']
+            
+            # 获取存储文件夹
+            storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
+            
+            # 保存小说到文件
+            file_path = parser_instance.save_to_file(novel_content, storage_folder)
+            
+            # 更新数据库记录（将失败记录更新为成功）
+            site_id = self.novel_site.get('id')
+            if site_id:
+                # 更新爬取历史记录
+                self.db_manager.update_crawl_history_status(
+                    site_id=site_id,
+                    novel_id=novel_id,
+                    status='success',
+                    file_path=file_path,
+                    novel_title=novel_title
+                )
+            
+            # 更新内存中的历史记录
+            for i, item in enumerate(self.crawler_history):
+                if item.get('novel_id') == novel_id and item.get('status') == get_global_i18n().t('crawler.status_failed'):
+                    self.crawler_history[i] = {
+                        "novel_id": novel_id,
+                        "novel_title": novel_title,
+                        "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "status": get_global_i18n().t('crawler.status_success'),
+                        "file_path": file_path
+                    }
+                    break
+            
+            # 自动将书籍加入书架
+            try:
+                # 将新书加入书架（优先使用内存书架以便立刻可读，失败时退回直接写DB）
+                try:
+                    bs = getattr(self.app, "bookshelf", None)
+                    book = None
+                    if bs and hasattr(bs, "add_book"):
+                        # 强制使用数据库中的书籍网站名称作为作者
+                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
+                        # 获取网站标签
+                        site_tags = self.novel_site.get('tags', '')
+                        book = bs.add_book(file_path, author=author, tags=site_tags)
+                    if not book:
+                        from src.core.book import Book
+                        # 强制使用数据库中的书籍网站名称作为作者
+                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
+                        # 获取网站标签
+                        site_tags = self.novel_site.get('tags', '')
+                        book = Book(file_path, novel_title, author, tags=site_tags)
+                        self.db_manager.add_book(book)
+                        
+                    # 发送全局刷新书架消息
+                    try:
+                        from src.ui.messages import RefreshBookshelfMessage
+                        self.app.post_message(RefreshBookshelfMessage())
+                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
+                    except Exception as msg_error:
+                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                        
+                except Exception as add_err:
+                    logger.error(f"添加书籍到书架失败: {add_err}")
+                    logger.warning(f"添加书籍到书架失败: {novel_title}")
+                    
+            except Exception as e:
+                logger.error(f"添加书籍到书架失败: {e}")
+            
+            # 更新历史记录表格
+            self.app.call_later(self._update_history_table)
+            
+            # 显示成功消息
+            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_success')}: {novel_title}", "success")
+            
+            # 发送全局爬取完成通知
+            try:
+                from src.ui.messages import CrawlCompleteNotification
+                self.app.post_message(CrawlCompleteNotification(
+                    success=True,
+                    novel_title=novel_title,
+                    message=f"{get_global_i18n().t('crawler.retry_success')}: {novel_title}"
+                ))
+            except Exception as msg_error:
+                logger.debug(f"发送爬取完成通知失败: {msg_error}")
+            
+            # 重置爬取状态
+            self.app.call_later(self._reset_crawl_state)
+            
+        except Exception as e:
+            logger.error(f"重试爬取小说 {novel_id} 失败: {e}")
+            
+            # 更新错误信息到数据库
+            site_id = self.novel_site.get('id')
+            if site_id:
+                self.db_manager.update_crawl_history_error(
+                    site_id=site_id,
+                    novel_id=novel_id,
+                    error_message=str(e)
+                )
+            
+            # 显示失败消息
+            error_message = f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}"
+            self.app.call_later(self._update_status, error_message, "error")
+            
+            # 重置爬取状态
+            self.app.call_later(self._reset_crawl_state)

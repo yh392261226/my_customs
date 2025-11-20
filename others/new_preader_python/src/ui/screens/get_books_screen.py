@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, List, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Static, Button, Label, Input, Select, Header, Footer, DataTable
-from src.ui.components.virtual_data_table import VirtualDataTable
+from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events, on
@@ -24,10 +24,12 @@ class GetBooksScreen(Screen[None]):
 
     # 使用 Textual BINDINGS 进行快捷键绑定
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("n", "open_novel_sites", get_global_i18n().t('get_books.shortcut_n')),
-        ("p", "open_proxy_list", get_global_i18n().t('get_books.shortcut_p')),
+        ("N", "open_novel_sites", get_global_i18n().t('get_books.shortcut_n')),
+        ("P", "open_proxy_list", get_global_i18n().t('get_books.shortcut_p')),
         ("enter", "open_selected", get_global_i18n().t('get_books.shortcut_enter')),
         ("space", "open_selected", get_global_i18n().t('get_books.shortcut_space')),
+        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
+        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
     ]
 
 
@@ -128,7 +130,7 @@ class GetBooksScreen(Screen[None]):
                 
                 # 中间区域：书籍网站列表
                 Vertical(
-                    VirtualDataTable(id="novel-sites-table"),
+                    DataTable(id="novel-sites-table"),
                     id="novel-sites-preview"
                 ),
                 
@@ -172,7 +174,7 @@ class GetBooksScreen(Screen[None]):
         self.theme_manager.apply_theme_to_screen(self)
         
         # 初始化数据表
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        table = self.query_one("#novel-sites-table", DataTable)
         
         # 清除现有列，重新添加
         table.clear(columns=True)
@@ -204,7 +206,12 @@ class GetBooksScreen(Screen[None]):
         
         # 聚焦表格以接收键盘事件
         try:
-            self.query_one("#novel-sites-table", VirtualDataTable).focus()
+            table = self.query_one("#novel-sites-table", DataTable)
+            table.focus()
+            # 确保表格的光标类型设置为行
+            table.cursor_type = "row"
+            # 确保表格能够接收键盘事件
+            table.can_focus = True
         except Exception:
             pass
     
@@ -301,7 +308,7 @@ class GetBooksScreen(Screen[None]):
         current_page_sites = self._all_sites[start_index:end_index]
         
         # 更新数据表
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
+        table = self.query_one("#novel-sites-table", DataTable)
         
         # 准备虚拟滚动数据
         virtual_data = []
@@ -324,13 +331,25 @@ class GetBooksScreen(Screen[None]):
             }
             virtual_data.append(row_data)
         
-        # 设置虚拟滚动数据
-        table.set_virtual_data(virtual_data)
+        # 填充表格数据
+        table.clear()
+        for row_data in virtual_data:
+            table.add_row(
+                row_data["sequence"],
+                row_data["name"],
+                row_data["url"],
+                row_data["proxy_enabled"],
+                row_data["parser"],
+                row_data["rating"],
+                row_data["enter"]
+            )
         
         # 确保光标位置正确设置
         try:
             if len(virtual_data) > 0:
-                table.cursor_row = 0  # 设置到第一行
+                # DataTable的cursor_row是只读属性，不能直接设置
+                # 光标位置会在表格获得焦点时自动设置
+                pass
         except Exception as e:
             logger.debug(f"设置光标位置失败: {e}")
         
@@ -398,15 +417,23 @@ class GetBooksScreen(Screen[None]):
         # 更新搜索状态
         self._search_keyword = search_input.value or ""
         
-        # 处理下拉框值
+        # 处理下拉框值，确保正确处理NoSelection对象和_BLANK值
         parser_value = parser_filter.value
-        if parser_value is None or (hasattr(parser_value, 'is_blank') and callable(getattr(parser_value, 'is_blank', None)) and parser_value.is_blank()):
+        if (parser_value is None or 
+            parser_value == "" or 
+            (hasattr(parser_value, 'value') and getattr(parser_value, 'value', '') == "") or
+            (hasattr(parser_value, 'is_blank') and getattr(parser_value, 'is_blank', False)) or
+            str(parser_value) == 'Select.BLANK'):
             self._search_parser = "all"
         else:
             self._search_parser = str(parser_value) if parser_value else "all"
         
         proxy_value = proxy_filter.value
-        if proxy_value is None or (hasattr(proxy_value, 'is_blank') and callable(getattr(proxy_value, 'is_blank', None)) and proxy_value.is_blank()):
+        if (proxy_value is None or 
+            proxy_value == "" or 
+            (hasattr(proxy_value, 'value') and getattr(proxy_value, 'value', '') == "") or
+            (hasattr(proxy_value, 'is_blank') and getattr(proxy_value, 'is_blank', False)) or
+            str(proxy_value) == 'Select.BLANK'):
             self._search_proxy_enabled = "all"
         else:
             self._search_proxy_enabled = str(proxy_value) if proxy_value else "all"
@@ -584,9 +611,17 @@ class GetBooksScreen(Screen[None]):
         return True  # 默认允许未知按钮
     
     def _open_site_by_row_index(self, row_index: int) -> None:
-        """根据行索引打开对应站点的爬取管理页面"""
-        if 0 <= row_index < len(self._all_sites):
-            site = self._all_sites[row_index]
+        """根据行索引打开对应站点的爬取管理页面
+        
+        Args:
+            row_index: 当前页内的行索引（0-based）
+        """
+        # 计算在全部数据中的实际索引
+        start_index = (self._current_page - 1) * self._sites_per_page
+        actual_index = start_index + row_index
+        
+        if 0 <= actual_index < len(self._all_sites):
+            site = self._all_sites[actual_index]
             if self._has_permission("crawler.open"):
                 from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
                 crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
@@ -595,35 +630,25 @@ class GetBooksScreen(Screen[None]):
                 self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
     @on(DataTable.CellSelected, "#novel-sites-table")
-    def on_data_table_cell_selected(self, event) -> None:
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
         数据表单元格选择时的回调
         
         Args:
             event: 单元格选择事件
         """
-        logger.debug(f"单元格点击事件触发: {event}")
+        logger.debug(f"单元格选择事件触发: {event}")
         
-        # 获取表格和坐标信息
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
-        
-        # 检查是否点击了"进入"按钮列（key="enter"）
         try:
-            # 尝试获取坐标信息
-            coordinate = getattr(event, 'coordinate', None)
-            if coordinate is None:
-                # 尝试从 cell_key 获取
-                cell_key = getattr(event, 'cell_key', None)
-                if cell_key is not None:
-                    coordinate = cell_key
-            
-            if coordinate is not None:
-                column_key = coordinate.column if hasattr(coordinate, 'column') else None
-                row_index = coordinate.row if hasattr(coordinate, 'row') else None
+            # 检查是否点击了"进入"按钮列（第6列，从0开始）
+            if hasattr(event, 'coordinate'):
+                column_key = event.coordinate.column
+                row_index = event.coordinate.row
                 
                 logger.debug(f"点击的列: {column_key}, 行: {row_index}")
                 
-                if column_key == 6:  # "enter" 列的索引（从0开始）
+                # 只处理"进入"按钮列（第6列）
+                if column_key == 6:  # "进入"按钮列
                     # 获取当前页的数据
                     start_index = (self._current_page - 1) * self._sites_per_page
                     if row_index is not None and row_index < len(self._all_sites) - start_index:
@@ -637,92 +662,74 @@ class GetBooksScreen(Screen[None]):
                             self.app.push_screen(crawler_screen)  # 打开爬取管理页面
                         else:
                             self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+                        
+                        # 阻止事件冒泡，避免触发其他处理程序
+                        event.stop()
+                    else:
+                        logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
+                else:
+                    # 如果不是"进入"按钮列，只是移动光标到该行
+                    # 这样用户可以通过键盘导航到不同行，然后按回车或空格键打开
+                    logger.debug(f"点击了非按钮列: {column_key}")
+            else:
+                logger.debug("单元格选择事件没有坐标信息")
         except Exception as e:
-            logger.error(f"处理进入按钮点击时出错: {e}")
+            logger.error(f"处理单元格选择时出错: {e}")
+    
+    @on(DataTable.RowHighlighted, "#novel-sites-table")
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        """
+        数据表行高亮时的回调（用于方向键移动）
+        
+        Args:
+            event: 行高亮事件
+        """
+        logger.debug(f"行高亮事件触发: {event}")
+        
+        try:
+            # 获取高亮行的键
+            row_key = getattr(event, 'row_key', None)
+            if row_key is None:
+                return
+            
+        except Exception as e:
+            logger.error(f"处理行高亮时出错: {e}")
     
     @on(DataTable.RowSelected, "#novel-sites-table")
-    def on_data_table_row_selected(self, event) -> None:
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
-        数据表行选择时的回调
+        数据表行选择时的回调（双击或回车）
         
         Args:
             event: 行选择事件
         """
         logger.debug(f"行选择事件触发: {event}")
-        table = self.query_one("#novel-sites-table", VirtualDataTable)
         
-        # 获取当前选中的行索引
         try:
-            # 尝试从事件获取行索引
-            row_index = None
+            # 获取当前选中的行索引
+            table = self.query_one("#novel-sites-table", DataTable)
             
-            # 方法1：从 cursor_row 获取
+            # 使用 cursor_row 获取当前光标所在行
             if hasattr(table, 'cursor_row') and table.cursor_row is not None:
                 row_index = table.cursor_row
-            
-            # 方法2：从事件中获取
-            if row_index is None and event is not None:
-                # 尝试从 cell_key 获取
-                cell_key = getattr(event, 'cell_key', None)
-                if cell_key is not None:
-                    # 尝试从 row_key 获取全局索引
-                    row_key_value = getattr(cell_key, 'row_key', None)
-                    if row_key_value is not None:
-                        # 如果 row_key 是数字，直接使用
-                        if isinstance(row_key_value, (int, str)) and str(row_key_value).isdigit():
-                            row_index = int(row_key_value) - 1  # 转换为0-based索引
-                        else:
-                            # 尝试从 _current_data 查找
-                            if hasattr(table, '_current_data') and row_key_value in table._current_data:
-                                global_index = table._current_data[row_key_value].get('_global_index')
-                                if global_index is not None:
-                                    # 计算在当前页的索引
-                                    start_index = (self._current_page - 1) * self._sites_per_page
-                                    row_index = global_index - start_index - 1
-            
-            # 方法3：从 coordinate 获取
-            if row_index is None and event is not None:
-                coordinate = getattr(event, 'coordinate', None)
-                if coordinate is not None and hasattr(coordinate, 'row'):
-                    row_index = coordinate.row
-            
-            # 如果还是无法获取，使用当前光标行
-            if row_index is None:
-                # 获取表格当前行（第一行作为默认）
-                if hasattr(table, '_current_data') and len(table._current_data) > 0:
-                    # 获取第一个数据项的全局索引
-                    first_row_key = list(table._current_data.keys())[0]
-                    global_index = table._current_data[first_row_key].get('_global_index', 1)
-                    start_index = (self._current_page - 1) * self._sites_per_page
-                    row_index = global_index - start_index - 1
-            
-            if row_index is not None and row_index >= 0:
-                # 计算在 _all_sites 中的实际索引
-                start_index = (self._current_page - 1) * self._sites_per_page
-                actual_index = start_index + row_index
                 
-                if actual_index < len(self._all_sites):
-                    site = self._all_sites[actual_index]
-                    logger.debug(f"选中的站点: {site.get('name', 'Unknown')}")
-                    
-                    # 权限校验：打开爬取管理页面需 crawler.open
-                    if self._has_permission("crawler.open"):
-                        from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                        crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                        self.app.push_screen(crawler_screen)  # 打开爬取管理页面
-                    else:
-                        self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+                # 权限校验：打开爬取管理页面需 crawler.open
+                if self._has_permission("crawler.open"):
+                    self._open_site_by_row_index(row_index)
+                else:
+                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+            
         except Exception as e:
             logger.error(f"处理行选择时出错: {e}")
     
-    def key_n(self) -> None:
+    def key_N(self) -> None:
         """N键 - 打开书籍网站管理"""
         if self._has_permission("get_books.manage_sites"):
             self.app.push_screen("novel_sites_management")
         else:
             self.notify(get_global_i18n().t('get_books.np_manage_booksites'), severity="warning")
     
-    def key_p(self) -> None:
+    def key_P(self) -> None:
         """P键 - 打开代理设置"""
         if self._has_permission("get_books.manage_proxy"):
             self.app.push_screen("proxy_list")
@@ -732,22 +739,26 @@ class GetBooksScreen(Screen[None]):
     def key_enter(self) -> None:
         """Enter键 - 打开选中的书籍网站"""
         if self._has_permission("crawler.open"):
-            table = self.query_one("#novel-sites-table", VirtualDataTable)
+            table = self.query_one("#novel-sites-table", DataTable)
             # 获取当前光标所在的行
+            current_row = None
+            
+            # 尝试多种方式获取当前行
             if hasattr(table, 'cursor_row') and table.cursor_row is not None:
-                # 创建一个模拟事件，包含当前行信息
-                class MockEvent:
-                    def __init__(self, row):
-                        self.coordinate = type('obj', (object,), {'row': row})()
-                        self.cell_key = type('obj', (object,), {
-                            'row_key': type('obj', (object,), {'value': str(row + 1)})()
-                        })()
-                
-                self.on_data_table_row_selected(MockEvent(table.cursor_row))
+                current_row = table.cursor_row
+            elif hasattr(table, 'cursor_row'):
+                # 如果 cursor_row 存在但是 None，尝试获取 DataTable 的实际光标位置
+                try:
+                    current_row = super(DataTable, table).cursor_row
+                except:
+                    pass
+            
+            if current_row is not None and current_row >= 0:
+                self._open_site_by_row_index(current_row)
             else:
                 # 如果没有光标行，尝试使用第一行
                 if hasattr(table, '_current_data') and len(table._current_data) > 0:
-                    self.on_data_table_row_selected(None)
+                    self._open_site_by_row_index(0)
         else:
             self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
@@ -765,28 +776,39 @@ class GetBooksScreen(Screen[None]):
             self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
 
     def action_open_selected(self) -> None:
+        """打开选中的书籍网站"""
         if self._has_permission("crawler.open"):
-            table = self.query_one("#novel-sites-table", VirtualDataTable)
+            table = self.query_one("#novel-sites-table", DataTable)
             # 获取当前光标所在的行
+            current_row = None
+            
+            # 尝试多种方式获取当前行
             if hasattr(table, 'cursor_row') and table.cursor_row is not None:
-                # 创建一个模拟事件，包含当前行信息
-                class MockEvent:
-                    def __init__(self, row):
-                        self.coordinate = type('obj', (object,), {'row': row})()
-                        self.cell_key = type('obj', (object,), {
-                            'row_key': type('obj', (object,), {'value': str(row + 1)})()
-                        })()
-                
-                self.on_data_table_row_selected(MockEvent(table.cursor_row))
+                current_row = table.cursor_row
+            elif hasattr(table, 'cursor_row'):
+                # 如果 cursor_row 存在但是 None，尝试获取 DataTable 的实际光标位置
+                try:
+                    current_row = super(DataTable, table).cursor_row
+                except:
+                    pass
+            
+            if current_row is not None and current_row >= 0:
+                self._open_site_by_row_index(current_row)
             else:
                 # 如果没有光标行，尝试使用第一行
                 if hasattr(table, '_current_data') and len(table._current_data) > 0:
-                    self.on_data_table_row_selected(None)
+                    self._open_site_by_row_index(0)
         else:
             self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
     def action_back(self) -> None:
         self.app.pop_screen()
+    
+    def action_prev_page(self) -> None:
+        self._go_to_prev_page()
+
+    def action_next_page(self) -> None:
+        self._go_to_next_page()
     
     def on_input_changed(self, event: Input.Changed) -> None:
         """处理输入框内容变化事件"""
@@ -802,7 +824,21 @@ class GetBooksScreen(Screen[None]):
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
-        # 数字键 1-9：打开对应行的“进入”
+        table = self.query_one("#novel-sites-table", DataTable)
+        
+        # 回车键或空格键：打开当前选中的站点
+        if event.key == "enter" or event.key == "space":
+            # 获取当前选中的行
+            if table.cursor_row is not None:
+                # 权限校验：打开爬取管理页面需 crawler.open
+                if self._has_permission("crawler.open"):
+                    self._open_site_by_row_index(table.cursor_row)
+                else:
+                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+                event.prevent_default()
+                return
+        
+        # 数字键 1-9：打开对应行的"进入"
         if event.key in ["1","2","3","4","5","6","7","8","9"]:
             idx = int(event.key) - 1
             # 使用映射，确保与当前表格行一致
@@ -814,6 +850,43 @@ class GetBooksScreen(Screen[None]):
                 self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
             event.prevent_default()
             return
+
+        # 分页导航快捷键
+        if event.key == "n":
+            # N键下一页
+            self._go_to_next_page()
+            event.prevent_default()
+            return
+        elif event.key == "p":
+            # P键上一页
+            self._go_to_prev_page()
+            event.prevent_default()
+            return
+
+        # 方向键翻页功能
+        if event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if (table.cursor_row == len(table.rows) - 1 and 
+                self._current_page < self._total_pages):
+                self._current_page += 1
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                # 将光标移动到新页面的第一行
+                table = self.query_one("#novel-sites-table", DataTable)
+                table.action_cursor_down()  # 先向下移动一次
+                table.action_cursor_up()     # 再向上移动一次，确保在第一行
+                event.prevent_default()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._current_page -= 1
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                # 将光标移动到新页面的最后一行
+                table = self.query_one("#novel-sites-table", DataTable)
+                for _ in range(len(table.rows) - 1):
+                    table.action_cursor_down()  # 移动到最底部
+                event.prevent_default()
+                return
 
         if event.key == "escape":
             # ESC键返回（仅一次）

@@ -269,7 +269,9 @@
         "merge_author_description": "Set author for merged book",
         "merge_enter_tags": "Enter merged book tags",
         "merge_tags_placeholder": "Please enter new book tags (optional)",
-        "merge_tags_description": "Set tags for merged book"
+        "merge_tags_description": "Set tags for merged book",
+        "books_already_at_top": "Book already at top",
+        "books_already_at_bottom": "Book already at bottom"
     },
     "search": {
         "title": "Search",
@@ -1055,7 +1057,10 @@
         "no_reason_to_view": "This record has no failure reason to view",
         "no_error_message": "No error message",
         "failure_reason": "Failure Reason",
-        "view_reason_failed": "Failed to view reason"
+        "view_reason_failed": "Failed to view reason",
+        "retry": "Retry",
+        "retry_failed": "Retry failed",
+        "retry_success": "Retry successful"
     },
     "note": {
         "save": "Save",
