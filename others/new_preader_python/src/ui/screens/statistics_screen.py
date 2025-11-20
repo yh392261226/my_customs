@@ -2,7 +2,7 @@
 统计屏幕
 """
 
-
+import json
 from typing import Dict, Any, Optional, List, ClassVar
 from datetime import datetime, timedelta
 from webbrowser import get
@@ -245,34 +245,39 @@ class StatisticsScreen(Screen[None]):
         加载所有统计数据（直接从数据库获取，支持多用户过滤）
         """
         try:
-            # 临时简化：直接查询所有数据，避免用户ID过滤问题
-            # 先尝试无用户ID过滤（查询所有数据）
-            self.global_stats = self.statistics_manager.get_total_stats()
-            self.book_stats = self.statistics_manager.get_most_read_books()
-            self.authors_stats = self.statistics_manager.get_most_read_authors()
+            # 检查是否是多用户模式
+            from src.utils.multi_user_manager import multi_user_manager
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
             
-            # 调试日志：检查数据是否为空
-            print(f"DEBUG: 直接查询所有数据 - global_stats={self.global_stats}, book_stats_len={len(self.book_stats) if self.book_stats else 0}")
-            
-            # 如果直接查询没有数据，再尝试用户ID过滤
-            if not self.book_stats and self.global_stats.get("books_read", 0) == 0:
-                print("DEBUG: 直接查询无数据，尝试用户ID过滤")
+            # 非多用户模式：直接查询所有数据，不使用user_id过滤
+            if not is_multi_user:
+                self.global_stats = self.statistics_manager.get_total_stats()
+                self.book_stats = self.statistics_manager.get_most_read_books()
+                self.authors_stats = self.statistics_manager.get_most_read_authors()
                 
+                print(f"DEBUG: 非多用户模式 - 直接查询所有数据")
+            else:
+                # 多用户模式：使用用户ID过滤
                 # 获取当前用户信息
                 current_user = getattr(self.app, 'current_user', None)
                 user_id = current_user.get('id') if current_user else None
                 
                 if user_id is None:
-                    from src.utils.multi_user_manager import multi_user_manager
                     current_user = multi_user_manager.get_current_user()
                     user_id = current_user.get('id') if current_user else None
                 
-                # 尝试用户ID过滤
+                # 如果获取到用户ID，使用用户ID过滤
                 if user_id is not None:
                     self.global_stats = self.statistics_manager.get_total_stats(user_id=user_id)
                     self.book_stats = self.statistics_manager.get_most_read_books(user_id=user_id)
                     self.authors_stats = self.statistics_manager.get_most_read_authors(user_id=user_id)
-                    print(f"DEBUG: 用户ID过滤 - user_id={user_id}, global_stats={self.global_stats}")
+                    print(f"DEBUG: 多用户模式 - 用户ID过滤 - user_id={user_id}")
+                else:
+                    # 如果无法获取用户ID，回退到查询所有数据
+                    self.global_stats = self.statistics_manager.get_total_stats()
+                    self.book_stats = self.statistics_manager.get_most_read_books()
+                    self.authors_stats = self.statistics_manager.get_most_read_authors()
+                    print(f"DEBUG: 多用户模式 - 无法获取用户ID，回退到查询所有数据")
             
             # 加载各个数据表
             self._load_book_stats()
@@ -285,7 +290,7 @@ class StatisticsScreen(Screen[None]):
             self.book_stats = self.statistics_manager.get_most_read_books()
             self.authors_stats = self.statistics_manager.get_most_read_authors()
             
-            print(f"DEBUG: Fallback - global_stats={self.global_stats}, book_stats_len={len(self.book_stats) if self.book_stats else 0}")
+            print(f"DEBUG: Fallback - 无用户ID过滤")
             
             self._load_book_stats()
             self._load_authors_stats()
@@ -406,12 +411,54 @@ class StatisticsScreen(Screen[None]):
                     "_row_key": "no_data"
                 })
             else:
+                # 获取当前用户信息
+                current_user = getattr(self.app, 'current_user', None)
+                user_id = current_user.get('id') if current_user else None
+                
+                # 导入数据库管理器
+                from src.core.database_manager import DatabaseManager
+                db_manager = DatabaseManager()
+                
                 for idx, book in enumerate(self.book_stats[:10]):  # 只显示前10本
                     progress = book.get("progress", 0)
+                    book_path = book.get("path", "")
+                    
+                    # 从book_metadata表中获取当前页和总页数
+                    current_page = "-"
+                    total_pages = "-"
+                    
+                    if book_path:
+                        # 检查是否是多用户模式
+                        from src.utils.multi_user_manager import multi_user_manager
+                        is_multi_user = multi_user_manager.is_multi_user_enabled()
+                        
+                        # 非多用户模式：不使用user_id
+                        if not is_multi_user:
+                            metadata_json = db_manager.get_book_metadata(book_path)
+                        else:
+                            # 多用户模式：使用用户ID
+                            metadata_json = db_manager.get_book_metadata(book_path, user_id)
+                        
+                        if metadata_json:
+                            try:
+                                metadata_dict = json.loads(metadata_json)
+                                # 获取当前页和总页数
+                                current_page_val = metadata_dict.get('current_page', 0)
+                                total_pages_val = metadata_dict.get('total_pages', 0)
+                                
+                                # 格式化显示
+                                if current_page_val > 0:
+                                    current_page = str(int(current_page_val))
+                                if total_pages_val > 0:
+                                    total_pages = str(int(total_pages_val))
+                                    
+                            except (json.JSONDecodeError, KeyError) as e:
+                                logger.warning(f"解析书籍元数据失败: {e}")
+                    
                     virtual_data.append({
                         "title": book.get("title", get_global_i18n().t("statistics.unknown_book")),
-                        "current_page": "-",  # 当前页数信息需要从数据库获取，暂时留空
-                        "total_pages": "-",  # 总页数信息需要从数据库获取，暂时留空
+                        "current_page": current_page,
+                        "total_pages": total_pages,
                         "progress": f"{progress * 100:.1f}%",
                         "_row_key": f"progress_{idx}"
                     })
@@ -530,28 +577,29 @@ class StatisticsScreen(Screen[None]):
     def _format_reading_trend(self) -> str:
         """格式化阅读趋势数据"""
         try:
-            # 获取当前用户ID - 使用与应用实例一致的方式
-            current_user = getattr(self.app, 'current_user', None)
-            if current_user:
-                current_user_id = current_user.get('id')
-
-            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
-            if current_user_id is None:
-                from src.utils.multi_user_manager import multi_user_manager
-                current_user = multi_user_manager.get_current_user()
-                current_user_id = current_user.get('id') if current_user else None
+            # 检查是否是多用户模式
+            from src.utils.multi_user_manager import multi_user_manager
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
             
-            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
-            if current_user_id is not None:
-                from src.utils.multi_user_manager import multi_user_manager
-                if not multi_user_manager.is_multi_user_enabled():
-                    user_id = None
-                else:
-                    user_id = current_user_id
+            # 非多用户模式：不使用user_id
+            if not is_multi_user:
+                trend_data = self.statistics_manager.get_reading_trend(7)  # 最近7天
             else:
-                user_id = None
+                # 多用户模式：使用用户ID
+                current_user = getattr(self.app, 'current_user', None)
+                user_id = current_user.get('id') if current_user else None
+                
+                if user_id is None:
+                    current_user = multi_user_manager.get_current_user()
+                    user_id = current_user.get('id') if current_user else None
+                
+                # 如果获取到用户ID，使用用户ID过滤
+                if user_id is not None:
+                    trend_data = self.statistics_manager.get_reading_trend(7, user_id=user_id)  # 最近7天
+                else:
+                    # 如果无法获取用户ID，回退到查询所有数据
+                    trend_data = self.statistics_manager.get_reading_trend(7)  # 最近7天
             
-            trend_data = self.statistics_manager.get_reading_trend(7, user_id=user_id)  # 最近7天
             if not trend_data:
                 return get_global_i18n().t("statistics.no_trend_data")
             
@@ -569,23 +617,28 @@ class StatisticsScreen(Screen[None]):
     def _format_daily_stats(self) -> str:
         """格式化每日统计数据"""
         try:
-            # 优先从应用实例获取当前用户信息
-            current_user = getattr(self.app, 'current_user', None)
-            user_id = current_user.get('id') if current_user else None
+            # 检查是否是多用户模式
+            from src.utils.multi_user_manager import multi_user_manager
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
             
-            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
-            if user_id is None:
-                from src.utils.multi_user_manager import multi_user_manager
-                current_user = multi_user_manager.get_current_user()
+            # 非多用户模式：不使用user_id
+            if not is_multi_user:
+                daily_stats = self.statistics_manager.get_daily_stats()
+            else:
+                # 多用户模式：使用用户ID
+                current_user = getattr(self.app, 'current_user', None)
                 user_id = current_user.get('id') if current_user else None
-            
-            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
-            if user_id is not None:
-                from src.utils.multi_user_manager import multi_user_manager
-                if not multi_user_manager.is_multi_user_enabled():
-                    user_id = None
-            
-            daily_stats = self.statistics_manager.get_daily_stats(user_id=user_id)
+                
+                if user_id is None:
+                    current_user = multi_user_manager.get_current_user()
+                    user_id = current_user.get('id') if current_user else None
+                
+                # 如果获取到用户ID，使用用户ID过滤
+                if user_id is not None:
+                    daily_stats = self.statistics_manager.get_daily_stats(user_id=user_id)
+                else:
+                    # 如果无法获取用户ID，回退到查询所有数据
+                    daily_stats = self.statistics_manager.get_daily_stats()
             
             reading_time = daily_stats.get("reading_time", 0)
             books_read = daily_stats.get("books_read", 0)
@@ -600,29 +653,36 @@ class StatisticsScreen(Screen[None]):
     def _format_period_stats(self) -> str:
         """格式化周期统计数据"""
         try:
-            # 优先从应用实例获取当前用户信息
-            current_user = getattr(self.app, 'current_user', None)
-            user_id = current_user.get('id') if current_user else None
-            
-            # 如果没有从应用实例获取到用户信息，回退到多用户管理器
-            if user_id is None:
-                from src.utils.multi_user_manager import multi_user_manager
-                current_user = multi_user_manager.get_current_user()
-                user_id = current_user.get('id') if current_user else None
-            
-            # 如果多用户模式关闭，user_id应该为None（查询所有数据）
-            if user_id is not None:
-                from src.utils.multi_user_manager import multi_user_manager
-                if not multi_user_manager.is_multi_user_enabled():
-                    user_id = None
+            # 检查是否是多用户模式
+            from src.utils.multi_user_manager import multi_user_manager
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
             
             # 获取最近7天和30天的统计数据
             today = datetime.now()
             week_ago = (today - timedelta(days=7)).strftime("%Y-%m-%d")
             month_ago = (today - timedelta(days=30)).strftime("%Y-%m-%d")
             
-            weekly_stats = self.statistics_manager.get_period_stats(week_ago, today.strftime("%Y-%m-%d"), user_id=user_id)
-            monthly_stats = self.statistics_manager.get_period_stats(month_ago, today.strftime("%Y-%m-%d"), user_id=user_id)
+            # 非多用户模式：不使用user_id
+            if not is_multi_user:
+                weekly_stats = self.statistics_manager.get_period_stats(week_ago, today.strftime("%Y-%m-%d"))
+                monthly_stats = self.statistics_manager.get_period_stats(month_ago, today.strftime("%Y-%m-%d"))
+            else:
+                # 多用户模式：使用用户ID
+                current_user = getattr(self.app, 'current_user', None)
+                user_id = current_user.get('id') if current_user else None
+                
+                if user_id is None:
+                    current_user = multi_user_manager.get_current_user()
+                    user_id = current_user.get('id') if current_user else None
+                
+                # 如果获取到用户ID，使用用户ID过滤
+                if user_id is not None:
+                    weekly_stats = self.statistics_manager.get_period_stats(week_ago, today.strftime("%Y-%m-%d"), user_id=user_id)
+                    monthly_stats = self.statistics_manager.get_period_stats(month_ago, today.strftime("%Y-%m-%d"), user_id=user_id)
+                else:
+                    # 如果无法获取用户ID，回退到查询所有数据
+                    weekly_stats = self.statistics_manager.get_period_stats(week_ago, today.strftime("%Y-%m-%d"))
+                    monthly_stats = self.statistics_manager.get_period_stats(month_ago, today.strftime("%Y-%m-%d"))
             
             return f"""{get_global_i18n().t("statistics.period_stats")}:
 {get_global_i18n().t("statistics.nearly_7days")}: {self._format_time(weekly_stats.get('reading_time', 0))} ({weekly_stats.get('books_read', 0)} {get_global_i18n().t("statistics.books_unit")})

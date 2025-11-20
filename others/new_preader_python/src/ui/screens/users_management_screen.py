@@ -4,9 +4,7 @@
 from typing import Optional, Dict, Any, List, ClassVar, Set
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Label, Input, Button, Header, Footer
-from textual.widgets import DataTable
-from textual.widgets import DataTable
+from textual.widgets import Label, Input, Button, Header, Footer, DataTable
 from textual.app import ComposeResult
 from src.core.database_manager import DatabaseManager
 from src.themes.theme_manager import ThemeManager
@@ -94,20 +92,38 @@ class UsersManagementScreen(Screen[None]):
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限（兼容单/多用户）"""
         try:
-            from src.core.database_manager import DatabaseManager
-            db_manager = DatabaseManager()
-            # 获取当前用户ID
-            current_user_id = getattr(self.app, 'current_user_id', None)
-            if current_user_id is None:
-                # 单用户模式默认允许；多用户无登录则拒绝
-                if not getattr(self.app, 'multi_user_enabled', False):
-                    return True
+            # 检查是否是多用户模式
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
+            
+            # 单用户模式：所有操作都不需要权限验证
+            if not is_multi_user:
+                return True
+                
+            # 多用户模式：获取当前用户信息
+            current_user = getattr(self.app, 'current_user', None)
+            if current_user is None:
+                current_user = multi_user_manager.get_current_user()
+            
+            # 如果没有当前用户，拒绝操作
+            if current_user is None:
                 return False
+                
+            # 检查是否是超级管理员
+            user_role = current_user.get('role')
+            is_super_admin = user_role == "super_admin" or user_role == "superadmin"
+            
+            # 超级管理员：所有操作都不需要权限验证
+            if is_super_admin:
+                return True
+                
+            # 非超级管理员：需要验证权限
+            current_user_id = current_user.get('id')
+            
             # 适配 has_permission 签名 (user_id, key) 或 (key)
             try:
-                return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
+                return self.db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
             except TypeError:
-                return db_manager.has_permission(permission_key)  # type: ignore[misc]
+                return self.db_manager.has_permission(permission_key)  # type: ignore[misc]
         except Exception as e:
             logger.error(f"检查权限失败: {e}")
             return True  # 出错时默认允许
@@ -249,7 +265,8 @@ class UsersManagementScreen(Screen[None]):
                     row_data["perms"],
                     row_data["view_perms"],
                     row_data["edit"],
-                    row_data["delete"]
+                    row_data["delete"],
+                    key=row_data["_row_key"]
                 )
             
             # 更新分页信息
@@ -517,6 +534,10 @@ class UsersManagementScreen(Screen[None]):
 
     def _has_table_action_permission(self, action: str, user_id: int) -> bool:
         """检查表格操作的权限"""
+        # 在非多用户模式下，所有操作都允许
+        if not multi_user_manager.is_multi_user_enabled():
+            return True
+            
         permission_map = {
             "perms": "users.set_permissions",
             "view_perms": "users.view_permissions",
@@ -529,7 +550,7 @@ class UsersManagementScreen(Screen[None]):
         
         return True  # 默认允许未知操作
     
-    def on_data_table_cell_selected(self, event) -> None:
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """点击表格的权限/编辑/删除列"""
         try:
             cell_key = event.cell_key
@@ -544,7 +565,7 @@ class UsersManagementScreen(Screen[None]):
                     uid = int(row_key) if row_key else 0
             except (ValueError, IndexError):
                 uid = 0
-            
+                return
             # 检查权限
             if not self._has_table_action_permission(column, uid):
                 self.notify(get_global_i18n().t('users_management.np_action'), severity="warning")
@@ -590,13 +611,15 @@ class UsersManagementScreen(Screen[None]):
                 except Exception:
                     pass
                 try:
-                    table = self.query_one("#users-table", DataTable)
-                    # 使用 DataTable 的方法获取行数据
-                    if hasattr(table, '_current_data') and row_key in table._current_data:
-                        row_data = table._current_data[row_key]
-                        username_val = row_data.get("username", "")
-                    else:
-                        username_val = ""
+                    # 直接从数据库获取用户信息
+                    import sqlite3
+                    conn = sqlite3.connect(self.db_manager.db_path)
+                    cur = conn.cursor()
+                    cur.execute("SELECT username FROM users WHERE id=?", (uid,))
+                    result = cur.fetchone()
+                    username_val = result[0] if result else ""
+                    conn.close()
+                    
                     self.query_one("#edit-username", Input).value = str(username_val)
                 except Exception:
                     pass
@@ -604,7 +627,7 @@ class UsersManagementScreen(Screen[None]):
                 self._editing_user_id = uid
             elif column == "delete":
                 # 删除用户
-                def on_confirm(confirmed: Optional[bool]) -> None:
+                def on_confirm(confirmed: Optional[bool], target_uid: int = uid) -> None:
                     """处理确认结果"""
                     if not confirmed:
                         return
@@ -613,14 +636,14 @@ class UsersManagementScreen(Screen[None]):
                     try:
                         conn = sqlite3.connect(self.db_manager.db_path)
                         cur = conn.cursor()
-                        cur.execute("DELETE FROM users WHERE id=?", (uid,))
+                        cur.execute("DELETE FROM users WHERE id=?", (target_uid,))
                         if cur.rowcount == 0:
                             conn.close()
                             self.notify(get_global_i18n().t('users_management.delete_user_failed_info'), severity="warning")
                             return
                         
                         # 删除用户权限
-                        cur.execute("DELETE FROM user_permissions WHERE user_id=?", (uid,))
+                        cur.execute("DELETE FROM user_permissions WHERE user_id=?", (target_uid,))
                         conn.commit()
                         conn.close()
                         self._reload_users_table()
@@ -636,13 +659,17 @@ class UsersManagementScreen(Screen[None]):
                         get_global_i18n().t('users_management.confirm_delete'),
                         get_global_i18n().t('users_management.confirm_delete_user')
                     ),
-                    callback=on_confirm
+                    callback=lambda confirmed: on_confirm(confirmed, uid)
                 )
         except Exception as e:
             logger.error(f"处理表格点击失败: {e}")
 
     def _has_button_permission(self, button_id: str) -> bool:
         """检查按钮权限"""
+        # 在非多用户模式下，所有按钮操作都允许
+        if not multi_user_manager.is_multi_user_enabled():
+            return True
+            
         permission_map = {
             "add-user": "users.add",
             "edit-user": "users.edit",
@@ -662,8 +689,9 @@ class UsersManagementScreen(Screen[None]):
             return
             
         if event.button.id == "add-user":
-            # 检查多用户设置是否启用
-            if not multi_user_manager.should_show_user_management():
+            # 检查多用户设置是否启用（仅在多用户模式下检查）
+            from src.utils.multi_user_manager import multi_user_manager
+            if multi_user_manager.is_multi_user_enabled() and not multi_user_manager.should_show_user_management():
                 self.notify(get_global_i18n().t('users_management.multi_user_disabled_super'), severity="information")
                 return
                 
