@@ -447,7 +447,7 @@ class BaseParser:
             matches = re.findall(regex, content, re.IGNORECASE | re.DOTALL)
             for match in matches:
                 extracted = match.strip() if isinstance(match, str) else match[0].strip() if match else ""
-                if extracted and len(extracted) > 10:  # 确保内容不是空的
+                if extracted:  # 确保内容不是空的
                     return extracted
         return ""
     
