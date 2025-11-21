@@ -9,6 +9,12 @@
     grid-size: 1 4;
     grid-rows: 35% 40% 10% 15%;
     min-height: 0;
+    overflow-y: auto;
+}
+
+#get-books-container #get-books-header {
+    height: auto;
+    overflow-y: auto;
 }
 
 #get-books-container #get-books-title {
