@@ -95,11 +95,33 @@ Footer {
     min-height: 6;
     margin: 1 0;
 }
+
+#search-section {
+    height: auto;
+    width: 100%;
+    border: solid $primary;
+    padding: 0;
+    margin: 0 0;
+    align: center middle;
+    content-align: center middle;
+}
+
+#search-section #search-input-field {
+    width: 40;
+    height: 3;
+    margin-right: 1;
+}
+
+#search-section #search-btn, #clear-search-btn{
+    width: 12;
+    height: 3;
+}
+
 #novel-id-section {
     height: auto;
     border: solid $primary;
-    padding: 1;
-    margin: 1 0;
+    padding: 0;
+    margin: 0 0;
 }
 
 #novel-id-label {
@@ -107,7 +129,7 @@ Footer {
     height: 2;
 }
 
-#novel-id-container {
+#novel-id-container, #search-container {
     height: 3;
     align: center middle;  /* 居中输入区域 */
 }
@@ -161,8 +183,10 @@ Footer {
 }
 
 #page-info {
-    text-align: center;
-    width: 20;
+    align: center middle;
+    content-align: center middle;
+    width: 25;
+    height: 1;
 }
 
 #crawler-status {

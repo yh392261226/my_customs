@@ -271,7 +271,8 @@
         "merge_tags_placeholder": "请输入新书籍标签（可选）",
         "merge_tags_description": "设置合并后书籍的标签",
         "books_already_at_top": "已在顶部",
-        "books_already_at_bottom": "已在底部"
+        "books_already_at_bottom": "已在底部",
+        "selected_count":"已选择 {count} 本书籍"
     },
     "search": {
         "title": "搜索",
@@ -402,6 +403,7 @@
         "add": "添加",
         "remove": "移除",
         "search": "搜索",
+        "merge": "合并",
         "select_ext_prompt": "选择后缀名",
         "select_source_prompt": "选择来源",
         "loading": "加载中...",
@@ -1060,7 +1062,8 @@
         "view_reason_failed": "查看原因失败",
         "retry": "重试",
         "retry_failed": "重试失败",
-        "retry_success": "重试成功"
+        "retry_success": "重试成功",
+        "clear_search": "清除搜索"
     },
     "note": {
         "save": "保存",

@@ -1,0 +1,51 @@
+/* 爬取历史合并对话框样式 */
+
+.crawler-merge-dialog {
+    width: 60;
+    height: auto;
+    background: $surface;
+    border: solid $primary;
+    padding: 1 2;
+}
+
+.crawler-merge-dialog .dialog-title {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+    text-align: center;
+}
+
+.crawler-merge-dialog .info-label {
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+.crawler-merge-dialog .input-label {
+    color: $text;
+    margin-bottom: 1;
+}
+
+.crawler-merge-dialog #merge-title-input {
+    width: 100%;
+    height: 3;
+    margin-bottom: 1;
+}
+
+.crawler-merge-dialog Center {
+    layout: horizontal;
+    align: center middle;
+    height: auto;
+}
+
+.crawler-merge-dialog Center Button {
+    margin: 0 1;
+    min-width: 8;
+}
+
+.crawler-merge-dialog #confirm-merge-btn {
+    background: $success;
+}
+
+.crawler-merge-dialog #cancel-merge-btn {
+    background: $error;
+}

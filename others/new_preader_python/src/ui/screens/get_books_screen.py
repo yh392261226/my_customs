@@ -851,18 +851,6 @@ class GetBooksScreen(Screen[None]):
             event.prevent_default()
             return
 
-        # 分页导航快捷键
-        if event.key == "n":
-            # N键下一页
-            self._go_to_next_page()
-            event.prevent_default()
-            return
-        elif event.key == "p":
-            # P键上一页
-            self._go_to_prev_page()
-            event.prevent_default()
-            return
-
         # 方向键翻页功能
         if event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页

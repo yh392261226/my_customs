@@ -3,7 +3,7 @@
 """
 
 import os
-from typing import Dict, Any, Optional, List, ClassVar
+from typing import Dict, Any, Optional, List, ClassVar, Set
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Static, Button, Label, Input, Select, Link, Header, Footer, LoadingIndicator
@@ -26,6 +26,50 @@ class CrawlerManagementScreen(Screen[None]):
     
     CSS_PATH = ["../styles/utilities.tcss", "../styles/crawler_management_overrides.tcss"]
     TITLE: ClassVar[Optional[str]] = None
+    # 统一快捷键绑定（含 ESC 返回）
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
+        ("r", "view_history", get_global_i18n().t('crawler.shortcut_r')),
+        ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
+        ("escape", "back", get_global_i18n().t('common.back')),
+        ("x", "select_books", get_global_i18n().t('crawler.select_books')),
+        ("s", "start_crawl", get_global_i18n().t('crawler.shortcut_s')),
+        ("v", "stop_crawl", get_global_i18n().t('crawler.shortcut_v')),
+        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
+        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+    ]
+    
+    def action_open_browser(self) -> None:
+        self._open_browser()
+
+    def action_view_history(self) -> None:
+        self._view_history()
+
+    def action_start_crawl(self) -> None:
+        self._start_crawl()
+
+    def action_stop_crawl(self) -> None:
+        self._stop_crawl()
+
+    def action_note(self) -> None:
+        self._open_note_dialog()
+
+    def action_prev_page(self) -> None:
+        self._go_to_prev_page()
+
+    def action_next_page(self) -> None:
+        self._go_to_next_page()
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
+    def action_select_books(self) -> None:
+        # 如果未开启支持选择书籍，则不做任何处理
+        if self.novel_site.get("selectable_enabled", True):
+            self._open_select_books_dialog()
+        else:
+            # 弹窗提示未开启支持选择书籍
+            self._update_status(get_global_i18n().t('crawler.disabled_selectable'), "error")
     
     def __init__(self, theme_manager: ThemeManager, novel_site: Dict[str, Any]):
         """
@@ -41,6 +85,7 @@ class CrawlerManagementScreen(Screen[None]):
         self.crawler_history = []  # 爬取历史记录
         self.current_page = 1
         self.items_per_page = 10
+        self.total_pages = 0
         self.db_manager = DatabaseManager()  # 数据库管理器
         self.is_crawling = False  # 爬取状态标志
         # 当前正在爬取的ID（用于状态显示）
@@ -49,6 +94,15 @@ class CrawlerManagementScreen(Screen[None]):
         self.loading_indicator = None  # 原生 LoadingIndicator 引用
         self.is_mounted_flag = False  # 组件挂载标志
         self.title = get_global_i18n().t('crawler.title')
+        
+        # 多选相关属性
+        self.selected_history: Set[str] = set()  # 选中的历史记录ID
+        
+        # 搜索相关属性
+        self._search_keyword = ""  # 搜索关键词
+        
+        # 排序相关属性
+        self._sorted_history: List[str] = []  # 排序后的历史记录ID顺序
 
     def _get_rating_display(self, rating: int) -> str:
         """
@@ -99,9 +153,7 @@ class CrawlerManagementScreen(Screen[None]):
         yield Header()
         yield Container(
             Vertical(
-                # Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
                 Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
-                # 显示星级评分
                 Label(self._get_rating_display(self.novel_site.get('rating', 2)), id="rating-label", classes="rating-display"),
                 Label(f"{get_global_i18n().t('crawler.book_id_example')}: {self.novel_site.get('book_id_example', '')}", id="book-id-example-label"),
 
@@ -110,16 +162,33 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('crawler.open_browser'), id="open-browser-btn"),
                     Button(get_global_i18n().t('crawler.view_history'), id="view-history-btn"),
                     Button(get_global_i18n().t('crawler.note'), id="note-btn"),
+                    # 多选操作按钮
+                    Button(get_global_i18n().t('bookshelf.batch_ops.select_all'), id="select-all-btn"),
+                    Button(get_global_i18n().t('bookshelf.batch_ops.invert_selection'), id="invert-selection-btn"),
+                    Button(get_global_i18n().t('bookshelf.batch_ops.deselect_all'), id="deselect-all-btn"),
+                    Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
+                    Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
+                    Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.back'), id="back-btn"),
                     id="crawler-buttons", classes="btn-row"
                 ),
 
-                # 中部可滚动区域：输入区 + 历史表格
+                # 中部可滚动区域：搜索区 + 输入区 + 历史表格
                 Vertical(
+                    # 搜索区域
+                    Vertical(
+                        Horizontal(
+                            Input(placeholder=get_global_i18n().t('bookshelf.search_placeholder'), id="search-input-field"),
+                            Button(get_global_i18n().t('common.search'), id="search-btn"),
+                            Button(get_global_i18n().t('crawler.clear_search'), id="clear-search-btn"),
+                            id="search-container", classes="form-row"
+                        ),
+                        id="search-section"
+                    ),
+                    
                     # 小说ID输入区域
                     Vertical(
                         Horizontal(
-                            # 根据书籍网站的"是否支持选择书籍"设置显示选择书籍按钮
                             *([Button(get_global_i18n().t('crawler.select_books'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
@@ -129,7 +198,7 @@ class CrawlerManagementScreen(Screen[None]):
                         id="novel-id-section"
                     ),
 
-                    # 爬取历史区域（不包含分页控件）
+                    # 爬取历史区域
                     Vertical(
                         Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
                         DataTable(id="crawl-history-table"),
@@ -156,18 +225,6 @@ class CrawlerManagementScreen(Screen[None]):
                 # 加载动画区域
                 Static("", id="loading-animation"),
 
-                # 快捷键状态栏
-                # Horizontal(
-                #     Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
-                #     Label(get_global_i18n().t('crawler.shortcut_r'), id="shortcut-r"),
-                #     Label(get_global_i18n().t('crawler.shortcut_s'), id="shortcut-s"),
-                #     Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
-                #     Label(get_global_i18n().t('crawler.shortcut_b'), id="shortcut-b"),
-                #     Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
-                #     Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
-                #     Label(get_global_i18n().t('crawler.shortcut_esc'), id="shortcut-esc"),
-                #     id="shortcuts-bar", classes="status-bar"
-                # ),
                 id="crawler-container"
             )
         )
@@ -175,10 +232,7 @@ class CrawlerManagementScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
-        # 设置挂载标志
         self.is_mounted_flag = True
-        
-        # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
         # 权限提示与按钮状态
@@ -192,11 +246,10 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 初始化数据表
         table = self.query_one("#crawl-history-table", DataTable)
-        
-        # 清除现有列，重新添加
         table.clear(columns=True)
         
         # 添加列定义
+        table.add_column(get_global_i18n().t('batch_ops.selected'), key="selected")
         table.add_column(get_global_i18n().t('crawler.sequence'), key="sequence")
         table.add_column(get_global_i18n().t('crawler.novel_id'), key="novel_id")
         table.add_column(get_global_i18n().t('crawler.novel_title'), key="novel_title")
@@ -209,33 +262,29 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
         table.add_column(get_global_i18n().t('crawler.retry'), key="retry")
         
-        # 启用隔行变色效果
         table.zebra_stripes = True
-        
-        # 初始化加载动画
         self._initialize_loading_animation()
-        
-        # 加载爬取历史
         self._load_crawl_history()
-
-        # 自动聚焦小说ID输入框
-        self.query_one("#novel-id-input", Input).focus()
+        
+        # 设置焦点到表格，确保光标位置能够正确恢复
+        try:
+            table = self.query_one("#crawl-history-table", DataTable)
+            table.focus()
+        except Exception:
+            # 如果表格焦点设置失败，回退到输入框
+            self.query_one("#novel-id-input", Input).focus()
     
     def _load_crawl_history(self) -> None:
         """加载爬取历史记录"""
         try:
-            # 从数据库加载爬取历史
             site_id = self.novel_site.get('id')
             if site_id:
                 db_history = self.db_manager.get_crawl_history_by_site(site_id, limit=100)
                 
-                # 转换数据库格式为显示格式
                 self.crawler_history = []
                 for item in db_history:
-                    # 转换状态显示文本
                     status_text = get_global_i18n().t('crawler.status_success') if item['status'] == 'success' else get_global_i18n().t('crawler.status_failed')
                     
-                    # 转换时间格式
                     try:
                         from datetime import datetime
                         crawl_time = datetime.fromisoformat(item['crawl_time']).strftime("%Y-%m-%d %H:%M:%S")
@@ -243,13 +292,13 @@ class CrawlerManagementScreen(Screen[None]):
                         crawl_time = item['crawl_time']
                     
                     self.crawler_history.append({
-                        "id": item['id'],  # 保存数据库记录ID
+                        "id": item['id'],
                         "novel_id": item['novel_id'],
                         "novel_title": item['novel_title'],
                         "crawl_time": crawl_time,
                         "status": status_text,
                         "file_path": item['file_path'] or "",
-                        "error_message": item.get('error_message', '')  # 保存错误信息
+                        "error_message": item.get('error_message', '')
                     })
             else:
                 self.crawler_history = []
@@ -257,255 +306,793 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"加载爬取历史记录失败: {e}")
             self.crawler_history = []
         
-        # 更新数据表
+        # 应用搜索过滤
+        self.crawler_history = self._filter_history(self.crawler_history)
         self._update_history_table()
+    
+    def _filter_history(self, history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """根据搜索关键词过滤历史记录"""
+        if not self._search_keyword:
+            return history
+        
+        keyword = self._search_keyword.lower()
+        filtered_history = []
+        
+        for item in history:
+            # 搜索小说标题、小说ID、状态
+            if (keyword in item.get('novel_title', '').lower() or 
+                keyword in item.get('novel_id', '').lower() or 
+                keyword in item.get('status', '').lower()):
+                filtered_history.append(item)
+        
+        return filtered_history
     
     def _update_history_table(self) -> None:
         """更新历史记录表格"""
         try:
-            # 确保组件已经挂载
-            if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟更新历史记录表格")
-                # 延迟100ms后重试
-                self.set_timer(0.1, self._update_history_table)
-                return
-
             table = self.query_one("#crawl-history-table", DataTable)
             
-            # 计算分页
+            # 保存当前光标位置
+            current_cursor_row = table.cursor_row
+            
+            table.clear()
+            
+            # 计算当前页的起始索引
             start_index = (self.current_page - 1) * self.items_per_page
             end_index = min(start_index + self.items_per_page, len(self.crawler_history))
-            current_page_items = self.crawler_history[start_index:end_index]
             
-            # 准备虚拟滚动数据
-            virtual_data = []
-            for i, item in enumerate(current_page_items):
-                # 为成功的数据添加四个独立的操作按钮，为失败的数据添加删除记录按钮、查看原因按钮和重试按钮
-                if item["status"] == get_global_i18n().t('crawler.status_success') and item["file_path"]:
-                    view_file_text = get_global_i18n().t('crawler.view_file')
-                    read_book_text = get_global_i18n().t('crawler.read_book')
-                    delete_file_text = get_global_i18n().t('crawler.delete_file')
-                    delete_record_text = get_global_i18n().t('crawler.delete_record')
-                    view_reason_text = ""  # 成功时不显示查看原因按钮
-                    retry_text = ""  # 成功时不显示重试按钮
-                elif item["status"] == get_global_i18n().t('crawler.status_failed'):
-                    view_file_text = ""
-                    read_book_text = ""
-                    delete_file_text = ""
-                    delete_record_text = get_global_i18n().t('crawler.delete_record')
-                    view_reason_text = get_global_i18n().t('crawler.view_reason')  # 失败时显示查看原因按钮
-                    retry_text = get_global_i18n().t('crawler.retry')  # 失败时显示重试按钮
-                else:
-                    view_file_text = ""
-                    read_book_text = ""
-                    delete_file_text = ""
-                    delete_record_text = ""
-                    view_reason_text = ""
-                    retry_text = ""
+            # 添加当前页的数据行
+            for i in range(start_index, end_index):
+                item = self.crawler_history[i]
+                
+                # 检查是否选中
+                # 注意：selected_history 中存储的是字符串类型的ID，需要将item["id"]转换为字符串进行比较
+                is_selected = "✓" if str(item["id"]) in self.selected_history else ""
                 
                 row_data = {
-                    "sequence": str(start_index + i + 1),
+                    "selected": is_selected,
+                    "sequence": str(i + 1),
                     "novel_id": item["novel_id"],
                     "novel_title": item["novel_title"],
                     "crawl_time": item["crawl_time"],
                     "status": item["status"],
-                    "view_file": view_file_text,
-                    "read_book": read_book_text,
-                    "delete_file": delete_file_text,
-                    "delete_record": delete_record_text,
-                    "view_reason": view_reason_text,
-                    "retry": retry_text,
-                    "_row_key": f"{item['novel_id']}_{item['crawl_time']}_{i}",
-                    "_global_index": start_index + i + 1
+                    "view_file": get_global_i18n().t('crawler.view_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "read_book": get_global_i18n().t('crawler.read_book') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "delete_file": get_global_i18n().t('crawler.delete_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "delete_record": get_global_i18n().t('crawler.delete_record'),
+                    "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
+                    "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('crawler.status_failed') else ""
                 }
-                virtual_data.append(row_data)
-            
-            # 填充表格数据
-            table.clear()
-            for row_data in virtual_data:
-                table.add_row(
-                    row_data["sequence"],
-                    row_data["novel_id"],
-                    row_data["novel_title"],
-                    row_data["crawl_time"],
-                    row_data["status"],
-                    row_data["view_file"],
-                    row_data["read_book"],
-                    row_data["delete_file"],
-                    row_data["delete_record"],
-                    row_data["view_reason"],
-                    row_data["retry"]
-                )
+                
+                table.add_row(*row_data.values(), key=str(item["id"]))
             
             # 更新分页信息
             self._update_pagination_info()
             
+            # 更新选择状态
+            self._update_selection_status()
+            
+            # 恢复光标位置，确保光标不会跳回第一行
+            if current_cursor_row is not None and current_cursor_row >= 0:
+                # 确保光标位置在有效范围内
+                if current_cursor_row < min(self.items_per_page, len(self.crawler_history) - start_index):
+                    if hasattr(table, 'move_cursor'):
+                        table.move_cursor(row=current_cursor_row)
+                    # 如果move_cursor不存在，使用键盘操作来移动光标
+                    else:
+                        # 将光标移动到正确位置
+                        # 先将光标移动到第一行
+                        while table.cursor_row > 0:
+                            table.action_cursor_up()
+                        # 然后向下移动到目标位置
+                        for _ in range(current_cursor_row):
+                            table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
         except Exception as e:
-            logger.debug(f"更新历史记录表格失败: {e}")
-            # 延迟重试
-            self.set_timer(0.1, self._update_history_table)
+            logger.error(f"更新历史记录表格失败: {e}")
     
     def _update_pagination_info(self) -> None:
         """更新分页信息"""
         try:
-            # 确保组件已经挂载
-            if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟更新分页信息")
-                # 延迟100ms后重试
-                self.set_timer(0.1, self._update_pagination_info)
-                return
-
             total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+            page_info = f"第 {self.current_page} 页，共 {total_pages} 页，总计 {len(self.crawler_history)} 条记录"
+            
             page_label = self.query_one("#page-info", Label)
-            page_label.update(f"{self.current_page}/{total_pages}")
+            page_label.update(page_info)
             
             # 更新分页按钮状态
-            first_btn = self.query_one("#first-page-btn", Button)
-            prev_btn = self.query_one("#prev-page-btn", Button) 
-            next_btn = self.query_one("#next-page-btn", Button)
-            last_btn = self.query_one("#last-page-btn", Button)
-            
-            # 设置按钮的禁用状态
-            first_btn.disabled = self.current_page <= 1
-            prev_btn.disabled = self.current_page <= 1
-            next_btn.disabled = self.current_page >= total_pages
-            last_btn.disabled = self.current_page >= total_pages
+            self.query_one("#first-page-btn", Button).disabled = self.current_page <= 1
+            self.query_one("#prev-page-btn", Button).disabled = self.current_page <= 1
+            self.query_one("#next-page-btn", Button).disabled = self.current_page >= total_pages
+            self.query_one("#last-page-btn", Button).disabled = self.current_page >= total_pages
             
         except Exception as e:
-            logger.debug(f"更新分页信息失败: {e}")
-            # 延迟重试
-            self.set_timer(0.1, self._update_pagination_info)
+            logger.error(f"更新分页信息失败: {e}")
     
-    # 统一快捷键绑定（含 ESC 返回）
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
-        ("r", "view_history", get_global_i18n().t('crawler.shortcut_r')),
-        ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
-        ("escape", "back", get_global_i18n().t('common.back')),
-        ("x", "select_books", get_global_i18n().t('crawler.select_books')),
-        ("s", "start_crawl", get_global_i18n().t('crawler.shortcut_s')),
-        ("v", "stop_crawl", get_global_i18n().t('crawler.shortcut_v')),
-        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
-        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
-    ]
-
-    def action_open_browser(self) -> None:
-        self._open_browser()
-
-    def action_view_history(self) -> None:
-        self._view_history()
-
-    def action_start_crawl(self) -> None:
-        self._start_crawl()
-
-    def action_stop_crawl(self) -> None:
-        self._stop_crawl()
-
-    def action_note(self) -> None:
-        self._open_note_dialog()
-
-    def action_prev_page(self) -> None:
-        self._go_to_prev_page()
-
-    def action_next_page(self) -> None:
-        self._go_to_next_page()
-
-    def action_back(self) -> None:
-        self.app.pop_screen()
-
-    def action_select_books(self) -> None:
-        # 如果未开启支持选择书籍，则不做任何处理
-        if self.novel_site.get("selectable_enabled", True):
-            self._open_select_books_dialog()
-        else:
-            # 弹窗提示未开启支持选择书籍
-            self._update_status(get_global_i18n().t('crawler.disabled_selectable'), "error")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def _update_status(self, message: str, severity: str = "information") -> None:
+        """更新状态信息"""
+        try:
+            status_label = self.query_one("#crawler-status", Label)
+            status_label.update(message)
+            
+            # 设置样式类
+            status_label.remove_class("status-info")
+            status_label.remove_class("status-warning")
+            status_label.remove_class("status-error")
+            
+            if severity == "warning":
+                status_label.add_class("status-warning")
+            elif severity == "error":
+                status_label.add_class("status-error")
+            else:
+                status_label.add_class("status-info")
+                
+        except Exception as e:
+            logger.error(f"更新状态信息失败: {e}")
+    
+    def _initialize_loading_animation(self) -> None:
+        """初始化加载动画"""
+        try:
+            # 创建原生LoadingIndicator
+            self.loading_indicator = LoadingIndicator()
+            self.loading_indicator.styles.display = "none"  # 默认隐藏
+            
+            # 将加载指示器添加到加载动画区域
+            loading_container = self.query_one("#loading-animation", Static)
+            loading_container.mount(self.loading_indicator)
+            
+        except Exception as e:
+            logger.error(f"初始化加载动画失败: {e}")
+    
+    # ==================== 搜索功能 ====================
+    
+    def _perform_search(self) -> None:
+        """执行搜索"""
+        try:
+            search_input = self.query_one("#search-input-field", Input)
+            self._search_keyword = search_input.value.strip()
+            
+            # 重新加载历史记录并应用搜索过滤
+            self._load_crawl_history()
+            
+            if self._search_keyword:
+                self._update_status(f"搜索完成: 找到 {len(self.crawler_history)} 条记录")
+            else:
+                self._update_status("已显示所有记录")
+        except Exception as e:
+            logger.error(f"搜索失败: {e}")
+            self._update_status("搜索失败", "error")
+    
+    def _clear_search(self) -> None:
+        """清除搜索"""
+        try:
+            search_input = self.query_one("#search-input-field", Input)
+            search_input.value = ""
+            self._search_keyword = ""
+            
+            # 重新加载历史记录
+            self._load_crawl_history()
+            self._update_status("搜索已清除")
+        except Exception as e:
+            logger.error(f"清除搜索失败: {e}")
+            self._update_status("清除搜索失败", "error")
+    
+    # ==================== 多选操作方法 ====================
+    
+    def _handle_selection_click(self, row_index: int) -> None:
+        """处理选择列的点击"""
+        try:
+            # 获取当前页的数据
+            start_index = (self.current_page - 1) * self.items_per_page
+            if row_index is not None and row_index < len(self.crawler_history) - start_index:
+                history_item = self.crawler_history[start_index + row_index]
+                
+                if not history_item:
+                    return
+                
+                record_id = history_item["id"]
+                
+                # 切换选择状态
+                if record_id in self.selected_history:
+                    self.selected_history.remove(record_id)
+                else:
+                    self.selected_history.add(record_id)
+                
+                # 更新表格显示
+                self._update_history_table()
+                
+                # 更新状态显示
+                self._update_selection_status()
+                
+        except Exception as e:
+            logger.error(f"处理选择点击失败: {e}")
+    
+    def _handle_cell_selection(self, row_key: str) -> None:
+        """处理单元格选择（空格键或鼠标点击）"""
+        try:
+            # row_key 就是历史记录ID，直接使用
+            record_id = row_key
+            
+            # 检查记录ID是否存在
+            # 注意：record_id是字符串类型，需要与历史记录ID进行比较时进行类型转换
+            record_exists = any(str(item["id"]) == record_id for item in self.crawler_history)
+            if not record_exists:
+                logger.debug(f"无法找到对应的历史记录: {record_id}")
+                return
+            
+            # 切换选择状态
+            if record_id in self.selected_history:
+                self.selected_history.remove(record_id)
+            else:
+                self.selected_history.add(record_id)
+            
+            # 更新表格显示
+            self._update_history_table()
+            
+            # 更新状态显示
+            self._update_selection_status()
+            
+        except Exception as e:
+            logger.error(f"处理单元格选择失败: {e}")
+    
+    def _update_selection_status(self) -> None:
+        """更新选择状态显示"""
+        selected_count = len(self.selected_history)
+        self._update_status(f"已选择 {selected_count} 项")
+    
+    def _select_all(self) -> None:
+        """全选"""
+        try:
+            # 选择当前显示的所有记录
+            for item in self.crawler_history:
+                # 确保类型一致：将item["id"]转换为字符串
+                self.selected_history.add(str(item["id"]))
+            
+            # 更新表格显示
+            self._update_history_table()
+            self._update_selection_status()
+            
+        except Exception as e:
+            logger.error(f"全选失败: {e}")
+            self._update_status("全选失败", "error")
+    
+    def _invert_selection(self) -> None:
+        """反选"""
+        try:
+            # 反选当前显示的所有记录
+            for item in self.crawler_history:
+                # 确保类型一致：将item["id"]转换为字符串
+                record_id = str(item["id"])
+                if record_id in self.selected_history:
+                    self.selected_history.remove(record_id)
+                else:
+                    self.selected_history.add(record_id)
+            
+            # 更新表格显示
+            self._update_history_table()
+            self._update_selection_status()
+            
+        except Exception as e:
+            logger.error(f"反选失败: {e}")
+            self._update_status("反选失败", "error")
+    
+    def _deselect_all(self) -> None:
+        """取消全选"""
+        try:
+            self.selected_history.clear()
+            
+            # 更新表格显示
+            self._update_history_table()
+            self._update_selection_status()
+            
+        except Exception as e:
+            logger.error(f"取消全选失败: {e}")
+            self._update_status("取消全选失败", "error")
+    
+    def _move_selected_up(self) -> None:
+        """上移光标所在行"""
+        try:
+            # 获取当前光标所在行
+            table = self.query_one("#crawl-history-table", DataTable)
+            cursor_row = table.cursor_row
+            
+            if cursor_row is None or cursor_row < 0:
+                self._update_status("请先选择要移动的行")
+                return
+            
+            # 计算当前页的起始索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            
+            # 计算实际索引
+            actual_index = start_index + cursor_row
+            
+            # 检查索引是否有效
+            if actual_index >= len(self.crawler_history):
+                self._update_status("行索引无效")
+                return
+            
+            # 检查是否可以上移
+            if actual_index <= 0:
+                self._update_status("已到达顶部，无法上移")
+                return
+            
+            # 交换位置
+            self.crawler_history[actual_index], self.crawler_history[actual_index-1] = self.crawler_history[actual_index-1], self.crawler_history[actual_index]
+            
+            # 保存新的光标位置（上移后光标应该向上移动一行）
+            new_cursor_row = max(0, cursor_row - 1)
+            
+            # 更新表格显示
+            self._update_history_table()
+            
+            # 恢复光标到正确位置
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=new_cursor_row)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(new_cursor_row):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            self._update_status("上移成功")
+            
+        except Exception as e:
+            logger.error(f"上移失败: {e}")
+            self._update_status("上移失败", "error")
+    
+    def _move_selected_down(self) -> None:
+        """下移光标所在行"""
+        try:
+            # 获取当前光标所在行
+            table = self.query_one("#crawl-history-table", DataTable)
+            cursor_row = table.cursor_row
+            
+            if cursor_row is None or cursor_row < 0:
+                self._update_status("请先选择要移动的行")
+                return
+            
+            # 计算当前页的起始索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            
+            # 计算实际索引
+            actual_index = start_index + cursor_row
+            
+            # 检查索引是否有效
+            if actual_index >= len(self.crawler_history):
+                self._update_status("行索引无效")
+                return
+            
+            # 检查是否可以下移
+            if actual_index >= len(self.crawler_history) - 1:
+                self._update_status("已到达底部，无法下移")
+                return
+            
+            # 交换位置
+            self.crawler_history[actual_index], self.crawler_history[actual_index+1] = self.crawler_history[actual_index+1], self.crawler_history[actual_index]
+            
+            # 保存新的光标位置（下移后光标应该向下移动一行）
+            new_cursor_row = min(cursor_row + 1, self.items_per_page - 1)
+            
+            # 计算当前页的实际行数
+            current_page_rows = min(self.items_per_page, len(self.crawler_history) - start_index)
+            
+            # 确保新光标位置不超过当前页的实际行数
+            if new_cursor_row >= current_page_rows:
+                new_cursor_row = current_page_rows - 1
+            
+            # 更新表格显示
+            self._update_history_table()
+            
+            # 恢复光标到正确位置
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=new_cursor_row)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(new_cursor_row):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            self._update_status("下移成功")
+            
+        except Exception as e:
+            logger.error(f"下移失败: {e}")
+            self._update_status("下移失败", "error")
+    
+    def _merge_selected(self) -> None:
+        """合并选中项"""
+        try:
+            if not self.selected_history:
+                self._update_status("请先选择要合并的项")
+                return
+            
+            if len(self.selected_history) < 2:
+                self._update_status("请至少选择2项进行合并")
+                return
+            
+            # 获取选中项
+            selected_items = []
+            for item in self.crawler_history:
+                # 确保类型一致：将item["id"]转换为字符串进行比较
+                if str(item["id"]) in self.selected_history:
+                    selected_items.append(item)
+            
+            # 检查是否都是成功状态
+            for item in selected_items:
+                if item["status"] != get_global_i18n().t('crawler.status_success'):
+                    self._update_status("只能合并成功的爬取记录")
+                    return
+            
+            # 打开合并对话框
+            from src.ui.dialogs.crawler_merge_dialog import CrawlerMergeDialog
+            
+            def handle_merge_result(result: Optional[Dict[str, Any]]) -> None:
+                if not result:
+                    return  # 如果结果为None，直接返回
+                
+                if result.get('success'):
+                    new_title = result.get('new_title', '')
+                    selected_items = result.get('selected_items', [])
+                    
+                    try:
+                        # 执行实际的合并操作
+                        if self._perform_actual_merge(selected_items, new_title):
+                            self._update_status(f"合并成功: {new_title}")
+                            # 清除已合并的选中项
+                            for item in selected_items:
+                                item_id = item.get("id")
+                                if item_id and str(item_id) in self.selected_history:
+                                    self.selected_history.remove(str(item_id))
+                            # 刷新历史记录
+                            self._load_crawl_history()
+                        else:
+                            self._update_status("合并操作失败", "error")
+                    except Exception as e:
+                        logger.error(f"合并操作异常: {e}")
+                        self._update_status(f"合并异常: {e}", "error")
+                else:
+                    message = result.get('message', '未知错误')
+                    if message != get_global_i18n().t('batch_ops.cancel_merge'):  # 不显示取消合并的错误
+                        self._update_status(f"合并失败: {message}", "error")
+            
+            self.app.push_screen(
+                CrawlerMergeDialog(
+                    self.theme_manager,
+                    selected_items
+                ),
+                handle_merge_result
+            )
+            
+        except Exception as e:
+            logger.error(f"合并失败: {e}")
+            self._update_status("合并失败", "error")
+    
+    def _perform_actual_merge(self, selected_items: List[Dict[str, Any]], new_title: str) -> bool:
         """
-        按钮按下时的回调
+        执行实际的合并操作
         
         Args:
-            event: 按钮按下事件
+            selected_items: 选中的爬取历史记录
+            new_title: 新书籍标题
+            
+        Returns:
+            bool: 合并是否成功
         """
-        if event.button.id == "open-browser-btn":
+        try:
+            if not selected_items or len(selected_items) < 2:
+                logger.error("合并失败：至少需要选择2条记录")
+                return False
+            
+            # 收集需要合并的文件路径和记录信息
+            file_paths = []
+            record_ids = []
+            for item in selected_items:
+                if item.get("file_path"):
+                    file_paths.append(item["file_path"])
+                    record_ids.append(item["id"])
+            
+            if not file_paths:
+                logger.error("合并失败：没有找到可合并的文件")
+                return False
+            
+            # 检查文件是否存在
+            for file_path in file_paths:
+                if not os.path.exists(file_path):
+                    logger.error(f"合并失败：文件不存在 - {file_path}")
+                    return False
+            
+            # 创建新的合并文件
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # 获取第一个文件的目录作为合并文件的保存目录
+            first_file_dir = os.path.dirname(file_paths[0])
+            merged_filename = f"{new_title}_{timestamp}.txt"
+            merged_file_path = os.path.join(first_file_dir, merged_filename)
+            
+            # 合并文件内容
+            with open(merged_file_path, 'w', encoding='utf-8') as merged_file:
+                for i, file_path in enumerate(file_paths):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as source_file:
+                            content = source_file.read().strip()
+                            if content:
+                                # 添加章节分隔符（如果有多个文件）
+                                if i > 0:
+                                    merged_file.write("\n\n" + "="*50 + "\n\n")
+                                merged_file.write(content)
+                    except Exception as e:
+                        logger.error(f"读取文件失败 {file_path}: {e}")
+                        continue
+            
+            # 保存合并记录到数据库
+            site_id = self.novel_site.get('id')
+            if not isinstance(site_id, int):
+                site_id = 0  # 默认值
+            
+            self.db_manager.add_crawl_history(
+                site_id=site_id,
+                novel_id=f"merged_{timestamp}",
+                novel_title=new_title,
+                status="success",
+                file_path=merged_file_path,
+                error_message=""
+            )
+            
+            # 将合并后的书籍添加到书库
+            try:
+                from src.core.book import Book
+                
+                # 创建书籍对象
+                author = self.novel_site.get('name', '未知来源')
+                site_tags = self.novel_site.get('tags', '')
+                
+                book = Book(merged_file_path, new_title, author, tags=site_tags)
+                
+                # 检查书籍是否已经存在
+                existing_books = self.db_manager.get_all_books()
+                book_exists = any(book.path == merged_file_path for book in existing_books)
+                
+                if not book_exists:
+                    # 添加到书库
+                    if self.db_manager.add_book(book):
+                        logger.info(f"合并书籍已添加到书库: {new_title}")
+                    else:
+                        logger.warning(f"合并书籍添加到书库失败: {new_title}")
+                else:
+                    logger.info(f"合并书籍已存在于书库: {new_title}")
+                    
+            except Exception as e:
+                logger.error(f"添加合并书籍到书库失败: {e}")
+            
+            # 删除源文件和源数据
+            for i, (file_path, record_id) in enumerate(zip(file_paths, record_ids)):
+                try:
+                    # 删除源文件
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                        logger.info(f"删除源文件: {file_path}")
+                    
+                    # 删除书架中的对应书籍
+                    books = self.db_manager.get_all_books()
+                    for book in books:
+                        if hasattr(book, 'path') and book.path == file_path:
+                            if self.db_manager.delete_book(book.path):
+                                logger.info(f"删除书架中的书籍: {book.title}")
+                            else:
+                                logger.warning(f"删除书架书籍失败: {book.title}")
+                            break
+                    
+                    # 删除爬取历史记录
+                    if record_id:
+                        self.db_manager.delete_crawl_history(record_id)
+                        logger.info(f"删除爬取历史记录: {record_id}")
+                        
+                except Exception as e:
+                    logger.error(f"删除源文件或数据失败 {i}: {e}")
+            
+            # 发送书架刷新消息
+            try:
+                from src.ui.messages import RefreshBookshelfMessage
+                self.app.post_message(RefreshBookshelfMessage())
+                logger.info("已发送书架刷新消息")
+            except Exception as msg_error:
+                logger.debug(f"发送刷新书架消息失败: {msg_error}")
+            
+            # 记录合并操作日志
+            logger.info(f"合并成功：{len(selected_items)}个文件合并为 {new_title}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"合并操作异常: {e}")
+            return False
+    
+    # ==================== 事件处理 ====================
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """按钮点击事件处理"""
+        button_id = event.button.id
+        
+        if button_id == "open-browser-btn":
             self._open_browser()
-        elif event.button.id == "view-history-btn":
+        elif button_id == "view-history-btn":
             self._view_history()
-        elif event.button.id == "note-btn":
+        elif button_id == "note-btn":
             self._open_note_dialog()
-        elif event.button.id == "start-crawl-btn":
+        elif button_id == "start-crawl-btn":
             self._start_crawl()
-        elif event.button.id == "choose-books-btn":
+        elif button_id == "choose-books-btn":
             self._open_select_books_dialog()
-        elif event.button.id == "stop-crawl-btn":
+        elif button_id == "stop-crawl-btn":
             self._stop_crawl()
-        elif event.button.id == "first-page-btn":
+        elif button_id == "search-btn":
+            self._perform_search()
+        elif button_id == "clear-search-btn":
+            self._clear_search()
+        elif button_id == "select-all-btn":
+            self._select_all()
+        elif button_id == "invert-selection-btn":
+            self._invert_selection()
+        elif button_id == "deselect-all-btn":
+            self._deselect_all()
+        elif button_id == "move-up-btn":
+            self._move_selected_up()
+        elif button_id == "move-down-btn":
+            self._move_selected_down()
+        elif button_id == "merge-btn":
+            self._merge_selected()
+        elif button_id == "first-page-btn":
             self._go_to_first_page()
-        elif event.button.id == "prev-page-btn":
+        elif button_id == "prev-page-btn":
             self._go_to_prev_page()
-        elif event.button.id == "next-page-btn":
+        elif button_id == "next-page-btn":
             self._go_to_next_page()
-        elif event.button.id == "last-page-btn":
+        elif button_id == "last-page-btn":
             self._go_to_last_page()
-        elif event.button.id == "jump-page-btn":
+        elif button_id == "jump-page-btn":
             self._show_jump_dialog()
-        elif event.button.id == "back-btn":
+        elif button_id == "back-btn": 
             self.app.pop_screen()  # 返回上一页
     
     @on(DataTable.CellSelected, "#crawl-history-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
-        """
-        数据表格单元格选择时的回调
-        
-        Args:
-            event: 单元格选择事件
-        """
-        logger.debug(f"单元格选择事件触发: {event}")
-        
+        """数据表格单元格选择事件"""
         try:
-            # 检查是否点击了操作按钮列
-            if hasattr(event, 'coordinate'):
-                column_key = event.coordinate.column
-                row_index = event.coordinate.row
+            cell_key = event.cell_key
+            column = cell_key.column_key.value or ""
+            row_key = cell_key.row_key.value or ""
+            
+            logger.debug(f"单元格选择事件: column={column}, row_key={row_key}")
+            
+            # 处理选择列点击
+            if column == "selected":
+                self._handle_cell_selection(row_key)
                 
-                logger.debug(f"点击的列: {column_key}, 行: {row_index}")
+            # 处理其他列的按钮点击
+            elif column in ["view_file", "read_book", "delete_file", "delete_record", "view_reason", "retry"]:
+                self._handle_button_click(column, row_key)
                 
-                # 只处理操作列（查看文件、阅读书籍、删除文件、删除记录、查看原因、重试）
-                # 列索引从0开始：5=查看文件, 6=阅读书籍, 7=删除文件, 8=删除记录, 9=查看原因, 10=重试
-                if column_key not in [5, 6, 7, 8, 9, 10]:
-                    return
-                
-                # 获取当前页的数据
-                start_index = (self.current_page - 1) * self.items_per_page
-                if row_index is not None and row_index < len(self.crawler_history) - start_index:
-                    history_item = self.crawler_history[start_index + row_index]
+            # 处理空格键选择：当点击任何非按钮列时，触发选择切换
+            elif column not in ["selected", "view_file", "read_book", "delete_file", "delete_record", "view_reason", "retry"]:
+                self._handle_cell_selection(row_key)
                     
-                    if not history_item:
-                        return
-                        
-                    # 根据列索引执行不同的操作
-                    if column_key == 5:  # 查看文件
-                        self._view_file(history_item)
-                    elif column_key == 6:  # 阅读书籍
-                        self._read_book(history_item)
-                    elif column_key == 7:  # 删除文件
-                        self._delete_file_only(history_item)
-                    elif column_key == 8:  # 删除记录
-                        self._delete_record_only(history_item)
-                    elif column_key == 9:  # 查看原因
-                        self._view_reason(history_item)
-                    elif column_key == 10:  # 重试
-                        self._retry_crawl(history_item)
-                    
-                    # 阻止事件冒泡，避免触发其他处理程序
-                    event.stop()
-                else:
-                    logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self.crawler_history)}, 起始索引={start_index}")
-            else:
-                logger.debug("单元格选择事件没有坐标信息")
         except Exception as e:
-            logger.error(f"处理单元格选择时出错: {e}")
+            logger.error(f"单元格选择事件处理失败: {e}")
+    
+    def _handle_button_click(self, column: str, row_key: str) -> None:
+        """处理按钮点击"""
+        try:
+            # row_key 就是历史记录ID，直接查找对应的历史记录
+            # 注意：row_key是字符串类型，需要与历史记录ID进行比较时进行类型转换
+            history_item = None
+            for item in self.crawler_history:
+                # 将历史记录ID转换为字符串与row_key进行比较
+                if str(item.get("id")) == row_key:
+                    history_item = item
+                    break
+            
+            if not history_item:
+                logger.debug(f"无法找到对应的历史记录: {row_key}")
+                return
+            
+            # 根据列名调用相应的处理方法
+            if column == "view_file":
+                self._view_file(history_item)
+            elif column == "read_book":
+                self._read_book(history_item)
+            elif column == "delete_file":
+                self._delete_file(history_item)
+            elif column == "delete_record":
+                self._delete_record_only(history_item)
+            elif column == "view_reason":
+                self._view_reason(history_item)
+            elif column == "retry":
+                self._retry_crawl(history_item)
+                
+        except Exception as e:
+            logger.debug(f"处理按钮点击失败: {e}")
+    
+    @on(DataTable.RowSelected, "#crawl-history-table")
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """数据表格行选择事件 - 支持空格键选择"""
+        try:
+            row_key = event.row_key.value or ""
+            logger.debug(f"行选择事件: row_key={row_key}")
+            
+            # 切换选择状态
+            self._handle_cell_selection(row_key)
+                    
+        except Exception as e:
+            logger.error(f"行选择事件处理失败: {e}")
+    
+    def _go_to_first_page(self) -> None:
+        """跳转到第一页"""
+        if self.current_page != 1:
+            self.current_page = 1
+            self._update_history_table()
+    
+    def _go_to_prev_page(self) -> None:
+        """跳转到上一页"""
+        if self.current_page > 1:
+            self.current_page -= 1
+            self._update_history_table()
+    
+    def _go_to_next_page(self) -> None:
+        """跳转到下一页"""
+        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+        if self.current_page < total_pages:
+            self.current_page += 1
+            self._update_history_table()
+    
+    def _go_to_last_page(self) -> None:
+        """跳转到最后一页"""
+        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+        if self.current_page != total_pages:
+            self.current_page = total_pages
+            self._update_history_table()
+    
+    def _show_jump_dialog(self) -> None:
+        """显示跳转页码对话框"""
+        def handle_jump_result(result: Optional[str]) -> None:
+            if result and result.strip():
+                try:
+                    total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+                    page_num = int(result.strip())
+                    if 1 <= page_num <= total_pages:
+                        if page_num != self.current_page:
+                            self.current_page = page_num
+                            self._update_history_table()
+                    else:
+                        self._update_status(f"页码必须在 1 到 {total_pages} 之间", "error")
+                except ValueError:
+                    self._update_status("请输入有效的页码", "error")
+        
+        from src.ui.dialogs.input_dialog import InputDialog
+        self.app.push_screen(
+            InputDialog(
+                self.theme_manager,
+                title="跳转页码",
+                prompt="请输入要跳转的页码：",
+                placeholder="页码"
+            )
+        )
+    
+    # ==================== 基础功能方法 ====================
     
     def _open_browser(self) -> None:
         """在浏览器中打开网站"""
@@ -818,83 +1405,6 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"代理测试异常: {e}")
             return False
 
-    async def _check_proxy_requirements(self, website: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        检查代理要求
-        
-        Args:
-            website: 网站信息
-            
-        Returns:
-            包含检查结果的字典
-        """
-        try:
-            # 检查网站是否启用了代理
-            proxy_enabled = website.get('proxy_enabled', False)
-            
-            if not proxy_enabled:
-                # 网站未启用代理，返回空代理配置
-                return {
-                    'can_proceed': True,
-                    'proxy_config': {
-                        'enabled': False,
-                        'proxy_url': ''
-                    },
-                    'message': get_global_i18n().t("crawler.not_enabled_proxy")
-                }
-            
-            # 网站启用了代理，获取可用的代理设置
-            enabled_proxy = self.db_manager.get_enabled_proxy()
-            
-            if not enabled_proxy:
-                # 没有启用的代理，但允许用户选择是否继续不使用代理
-                return {
-                    'can_proceed': True,
-                    'proxy_config': {
-                        'enabled': False,
-                        'proxy_url': ''
-                    },
-                    'message': get_global_i18n().t("crawler.need_proxy_try")
-                }
-            
-            # 构建代理URL
-            proxy_type = enabled_proxy.get('type', 'HTTP').lower()
-            host = enabled_proxy.get('host', '')
-            port = enabled_proxy.get('port', '')
-            username = enabled_proxy.get('username', '')
-            password = enabled_proxy.get('password', '')
-            
-            if not host or not port:
-                return {
-                    'can_proceed': False,
-                    'proxy_config': None,
-                    'message': get_global_i18n().t("crawler.proxy_error")
-                }
-            
-            # 构建代理URL
-            if username and password:
-                proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
-            else:
-                proxy_url = f"{proxy_type}://{host}:{port}"
-            
-            return {
-                'can_proceed': True,
-                'proxy_config': {
-                    'enabled': True,
-                    'proxy_url': proxy_url,
-                    'name': enabled_proxy.get('name', get_global_i18n().t("crawler.unnamed_proxy"))
-                },
-                'message': f"{get_global_i18n().t("crawler.use_proxy")}: {enabled_proxy.get('name', get_global_i18n().t("crawler.unnamed_proxy"))} ({host}:{port})"
-            }
-            
-        except Exception as e:
-            logger.error(f"检查代理要求失败: {e}")
-            return {
-                'can_proceed': False,
-                'proxy_config': None,
-                'message': f'{get_global_i18n().t("crawler.check_proxy_failed")}: {str(e)}'
-            }
-
     async def _actual_crawl_multiple(self, novel_ids: List[str], proxy_config: Dict[str, Any]) -> None:
         """实际爬取多个小说（异步执行）"""
         import asyncio
@@ -914,112 +1424,168 @@ class CrawlerManagementScreen(Screen[None]):
             from src.spiders import create_parser
             
             # 创建解析器实例，传递数据库中的网站名称作为作者信息
-            parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'))
+            parser = create_parser(parser_name, proxy_config, self.novel_site.get('name'))
             
-            # 使用异步方式同时爬取多个小说
-            tasks = []
-            for novel_id in novel_ids:
-                task = self._crawl_single_novel(parser_instance, novel_id, proxy_config)
-                tasks.append(task)
+            if not parser:
+                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.parser_not_found')}: {parser_name}", "error")
+                return
             
-            # 同时执行所有爬取任务
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # 统计结果
+            # 爬取每个小说
             success_count = 0
             failed_count = 0
             
-            for i, result in enumerate(results):
-                novel_id = novel_ids[i]
-                if isinstance(result, Exception):
-                    logger.error(f"爬取小说 {novel_id} 失败: {result}")
-                    failed_count += 1
+            for i, novel_id in enumerate(novel_ids):
+                if not self.is_crawling:
+                    self.app.call_later(self._update_status, get_global_i18n().t('crawler.crawl_stopped'))
+                    break
+                
+                # 更新当前爬取状态
+                self.current_crawling_id = novel_id
+                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawling')} ({i+1}/{len(novel_ids)}): {novel_id}")
+                
+                try:
+                    # 执行爬取
+                    result = await self._async_parse_novel_detail(parser, novel_id)
                     
-                    # 记录失败到数据库
+                    if result['success']:
+                        success_count += 1
+                        
+                        # 保存到数据库
+                        site_id = self.novel_site.get('id')
+                        if site_id:
+                            self.db_manager.add_crawl_history(
+                                site_id=site_id,
+                                novel_id=novel_id,
+                                novel_title=result['title'],
+                                status="success",
+                                file_path=result['file_path'],
+                                error_message=""
+                            )
+                        
+                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_id}")
+                    else:
+                        failed_count += 1
+                        
+                        # 保存失败记录到数据库
+                        site_id = self.novel_site.get('id')
+                        if site_id:
+                            self.db_manager.add_crawl_history(
+                                site_id=site_id,
+                                novel_id=novel_id,
+                                novel_title=novel_id,
+                                status="failed",
+                                file_path="",
+                                error_message=result.get('error_message', get_global_i18n().t('crawler.unknown_error'))
+                            )
+                        
+                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_failed')}: {novel_id} - {result.get('error_message', get_global_i18n().t('crawler.unknown_error'))}", "error")
+                
+                except Exception as e:
+                    failed_count += 1
+                    logger.error(f"爬取小说 {novel_id} 时发生异常: {e}")
+                    
+                    # 保存异常记录到数据库
                     site_id = self.novel_site.get('id')
                     if site_id:
                         self.db_manager.add_crawl_history(
                             site_id=site_id,
                             novel_id=novel_id,
-                            novel_title="",
-                            status='failed',
+                            novel_title=novel_id,
+                            status="failed",
                             file_path="",
-                            error_message=str(result)
+                            error_message=str(e)
                         )
                     
-                    # 添加到历史记录
-                    new_history = {
-                        "novel_id": novel_id,
-                        "novel_title": "",
-                        "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "status": get_global_i18n().t('crawler.status_failed'),
-                        "file_path": ""
-                    }
-                    self.crawler_history.insert(0, new_history)
-                    # 移除已完成ID（失败）
-                    try:
-                        self.app.call_later(self._remove_id_from_input, novel_id)
-                    except Exception:
-                        pass
-                else:
-                    success_count += 1
-                    # 移除已完成ID（成功）
-                    try:
-                        self.app.call_later(self._remove_id_from_input, novel_id)
-                    except Exception:
-                        pass
+                    self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_exception')}: {novel_id} - {str(e)}", "error")
+                
+                # 短暂延迟，避免过于频繁的请求
+                await asyncio.sleep(1)
             
-            # 更新历史记录表格
-            self.app.call_later(self._update_history_table)
-            
-            # 显示最终结果
-            if success_count > 0 and failed_count == 0:
-                self.app.call_later(self._update_status, get_global_i18n().t("crawler.crawler_success_count_books", counts=success_count), "success")
-            elif success_count > 0 and failed_count > 0:
-                self.app.call_later(self._update_status, get_global_i18n().t("crawler.crawler_result", success=success_count, failed=failed_count), "warning")
-            else:
-                self.app.call_later(self._update_status, get_global_i18n().t("crawler.crawler_all_failed", counts=failed_count), "error")
-            
-            # 发送全局爬取完成通知
-            try:
-                from src.ui.messages import CrawlCompleteNotification
-                self.app.post_message(CrawlCompleteNotification(
-                    success=success_count > 0,
-                    novel_title=get_global_i18n().t("crawler.novel_title_count", counts=success_count),
-                    message=get_global_i18n().t("crawler.crawler_result", success=success_count, failed=failed_count)
-                ))
-            except Exception as msg_error:
-                logger.debug(f"发送爬取完成通知失败: {msg_error}")
-            
-            # 重置爬取状态
-            self.app.call_later(self._reset_crawl_state)
+            # 更新最终状态
+            if self.is_crawling:
+                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_completed')}: {success_count} {get_global_i18n().t('crawler.success')}, {failed_count} {get_global_i18n().t('crawler.failed')}")
+                
+                # 刷新历史记录
+                self.app.call_later(self._load_crawl_history)
             
         except Exception as e:
-            logger.error(f"多小说爬取过程中发生错误: {e}")
-            import traceback
-            logger.error(f"详细错误堆栈: {traceback.format_exc()}")
-            error_message = f"{get_global_i18n().t("crawler.many_books_failed")}: {str(e)}"
-            self.app.call_later(self._update_status, error_message, "error")
-            self.app.call_later(self._reset_crawl_state)
+            logger.error(f"批量爬取过程中发生异常: {e}")
+            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.batch_crawl_exception')}: {str(e)}", "error")
+        
+        finally:
+            # 重置爬取状态
+            self.is_crawling = False
+            self.current_crawling_id = None
+            self.app.call_later(self._update_crawl_button_state)
+            self.app.call_later(self._hide_loading_animation)
     
-    async def _crawl_single_novel(self, parser_instance, novel_id: str, proxy_config: Dict[str, Any]) -> Dict[str, Any]:
-        """爬取单个小说"""
-        import asyncio
-        import time
-        # 标记当前正在爬取的ID并更新状态
+    def _remove_id_from_input(self, novel_id: str) -> None:
+        """从输入框中移除指定的ID"""
         try:
-            self.current_crawling_id = novel_id
-            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawling')} ID: {novel_id}")
-        except Exception:
-            pass
+            novel_id_input = self.query_one("#novel-id-input", Input)
+            current_value = novel_id_input.value.strip()
+            
+            # 分割并过滤掉指定的ID
+            ids = [id.strip() for id in current_value.split(',') if id.strip()]
+            filtered_ids = [id for id in ids if id != novel_id]
+            
+            # 重新组合并更新输入框
+            novel_id_input.value = ', '.join(filtered_ids)
+        except Exception as e:
+            logger.debug(f"从输入框中移除ID失败: {e}")
+    
+    def _update_crawl_button_state(self) -> None:
+        """更新爬取按钮状态"""
+        try:
+            start_btn = self.query_one("#start-crawl-btn", Button)
+            stop_btn = self.query_one("#stop-crawl-btn", Button)
+            
+            start_btn.disabled = self.is_crawling
+            stop_btn.disabled = not self.is_crawling
+        except Exception as e:
+            logger.error(f"更新爬取按钮状态失败: {e}")
+    
+    def _show_loading_animation(self) -> None:
+        """显示加载动画"""
+        try:
+            if self.loading_indicator:
+                self.loading_indicator.styles.display = "block"
+        except Exception as e:
+            logger.error(f"显示加载动画失败: {e}")
+    
+    def _hide_loading_animation(self) -> None:
+        """隐藏加载动画"""
+        try:
+            if self.loading_indicator:
+                self.loading_indicator.styles.display = "none"
+        except Exception as e:
+            logger.error(f"隐藏加载动画失败: {e}")
+    
+    def _reset_crawl_state(self) -> None:
+        """重置爬取状态"""
+        self.is_crawling = False
+        self.current_crawling_id = None
+        self._update_crawl_button_state()
+        self._hide_loading_animation()
+    
+    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
+        """异步解析小说详情
+        
+        Args:
+            parser: 解析器实例
+            novel_id: 小说ID
+            
+        Returns:
+            Dict[str, Any]: 解析结果
+        """
+        import asyncio
         
         try:
             # 使用异步方式执行网络请求
             await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
             
             # 解析小说详情
-            novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
-            novel_title = novel_content['title']
+            novel_content = parser.parse_novel_detail(novel_id)
             
             # 获取存储文件夹
             storage_folder = self.novel_site.get('storage_folder', 'novels')
@@ -1027,758 +1593,159 @@ class CrawlerManagementScreen(Screen[None]):
             storage_folder = os.path.expanduser(storage_folder)
             
             # 保存小说到文件
-            file_path = parser_instance.save_to_file(novel_content, storage_folder)
-            
-            # 记录到数据库
-            site_id = self.novel_site.get('id')
-            if site_id:
-                self.db_manager.add_crawl_history(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    novel_title=novel_title,
-                    status='success',
-                    file_path=file_path
-                )
-            
-            # 添加到历史记录
-            new_history = {
-                "novel_id": novel_id,
-                "novel_title": novel_title,
-                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "status": get_global_i18n().t('crawler.status_success'),
-                "file_path": file_path
-            }
-            self.crawler_history.insert(0, new_history)
-            # 移除已完成ID
-            try:
-                self.app.call_later(self._remove_id_from_input, novel_id)
-            except Exception:
-                pass
-            
-            # 自动将书籍加入书架
-            try:
-                # 将新书加入书架（优先使用内存书架以便立刻可读，失败时退回直接写DB）
-                try:
-                    bs = getattr(self.app, "bookshelf", None)
-                    book = None
-                    if bs and hasattr(bs, "add_book"):
-                        # 强制使用数据库中的书籍网站名称作为作者
-                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
-                        # 获取网站标签
-                        site_tags = self.novel_site.get('tags', '')
-                        book = bs.add_book(file_path, author=author, tags=site_tags)
-                    if not book:
-                        from src.core.book import Book
-                        # 强制使用数据库中的书籍网站名称作为作者
-                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
-                        # 获取网站标签
-                        site_tags = self.novel_site.get('tags', '')
-                        book = Book(file_path, novel_title, author, tags=site_tags)
-                        self.db_manager.add_book(book)
-                        
-                    # 发送全局刷新书架消息
-                    try:
-                        from src.ui.messages import RefreshBookshelfMessage
-                        self.app.post_message(RefreshBookshelfMessage())
-                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                    except Exception as msg_error:
-                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                        
-                except Exception as add_err:
-                    logger.error(f"添加书籍到书架失败: {add_err}")
-                    logger.warning(f"添加书籍到书架失败: {novel_title}")
-                    
-            except Exception as e:
-                logger.error(f"添加书籍到书架失败: {e}")
-            
-            # 若当前ID与本任务一致，清空当前ID
-            try:
-                if self.current_crawling_id == novel_id:
-                    self.current_crawling_id = None
-            except Exception:
-                pass
-            return novel_content
-            
-        except Exception as e:
-            logger.error(f"爬取小说 {novel_id} 失败: {e}")
-            # 失败也清理当前ID（若仍匹配）
-            try:
-                if self.current_crawling_id == novel_id:
-                    self.current_crawling_id = None
-            except Exception:
-                pass
-            raise e
-    
-    async def _actual_crawl(self, novel_id: str, proxy_config: Dict[str, Any]) -> None:
-        """实际爬取小说（异步执行）- 保留单本爬取方法"""
-        import asyncio
-        import os
-        import time
-        
-        # 标记当前正在爬取的ID并更新状态
-        try:
-            self.current_crawling_id = novel_id
-        except Exception:
-            pass
-        # 开始爬取 - 使用app.call_later来安全地更新UI
-        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawling')} ID: {novel_id}")
-        
-        try:
-            # 获取解析器名称
-            parser_name = self.novel_site.get('parser')
-            if not parser_name:
-                self.app.call_later(self._update_status, get_global_i18n().t('crawler.no_parser'), "error")
-                return
-            
-            # 导入解析器
-            from src.spiders import create_parser
-            
-            # 创建解析器实例，传递数据库中的网站名称作为作者信息
-            parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'))
-            
-            # 使用异步方式执行网络请求，避免阻塞UI
-            await asyncio.sleep(2)  # 模拟网络延迟
-            
-            # 解析小说详情
-            novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
-            novel_title = novel_content['title']
-            
-            # 获取存储文件夹
-            storage_folder = self.novel_site.get('storage_folder', 'novels')
-            # 展开路径中的 ~ 符号
-            storage_folder = os.path.expanduser(storage_folder)
-            
-            # 保存小说到文件
-            file_path = parser_instance.save_to_file(novel_content, storage_folder)
-            
-            # 记录到数据库
-            site_id = self.novel_site.get('id')
-            if site_id:
-                self.db_manager.add_crawl_history(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    novel_title=novel_title,
-                    status='success',
-                    file_path=file_path
-                )
-            
-            # 添加到历史记录
-            new_history = {
-                "novel_id": novel_id,
-                "novel_title": novel_title,
-                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "status": get_global_i18n().t('crawler.status_success'),
-                "file_path": file_path
-            }
-            self.crawler_history.insert(0, new_history)
-            
-            # 自动将书籍加入书架
-            try:
-                # 将新书加入书架（优先内存书架，确保立即可读）
-                try:
-                    bs = getattr(self.app, "bookshelf", None)
-                    added_book = None
-                    if bs and hasattr(bs, "add_book"):
-                        # 使用解析器返回的作者信息，如果没有则使用数据库中的书籍网站名称
-                        author = novel_content.get('author', self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
-                        # 获取网站标签
-                        site_tags = self.novel_site.get('tags', '')
-                        added_book = bs.add_book(file_path, author=author, tags=site_tags)
-                    if not added_book:
-                        from src.core.book import Book
-                        # 使用解析器返回的作者信息，如果没有则使用数据库中的书籍网站名称
-                        author = novel_content.get('author', self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source')))
-                        # 获取网站标签
-                        site_tags = self.novel_site.get('tags', '')
-                        added_book = Book(file_path, novel_title, author, tags=site_tags)
-                        self.db_manager.add_book(added_book)
-                        
-                    # 发送全局刷新书架消息，确保书架屏幕能够接收
-                    try:
-                        from src.ui.messages import RefreshBookshelfMessage
-                        self.app.post_message(RefreshBookshelfMessage())
-                        logger.info(f"已发送书架刷新消息，书籍已添加到书架: {novel_title}")
-                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
-                    except Exception as msg_error:
-                        logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
-                        
-                except Exception as add_err:
-                    logger.error(f"添加书籍到书架失败: {add_err}")
-                    self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")
-                    
-            except Exception as e:
-                logger.error(f"添加书籍到书架失败: {e}")
-                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")
-            
-            self.app.call_later(self._update_history_table)
-            
-            # 移除已完成ID
-            try:
-                self.app.call_later(self._remove_id_from_input, novel_id)
-            except Exception:
-                pass
-            
-            # 发送全局爬取完成通知
-            try:
-                from src.ui.messages import CrawlCompleteNotification
-                self.app.post_message(CrawlCompleteNotification(
-                    success=True,
-                    novel_title=novel_title,
-                    message=f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title}"
-                ))
-            except Exception as msg_error:
-                logger.debug(f"发送爬取完成通知失败: {msg_error}")
-            
-            # 重置爬取状态
-            self.app.call_later(self._reset_crawl_state)
-        except Exception as e:
-            logger.error(f"爬取过程中发生错误: {e}")
-            logger.error(f"代理配置信息: {proxy_config}")
-            import traceback
-            logger.error(f"详细错误堆栈: {traceback.format_exc()}")
-            # 显示更详细的错误信息
-            error_message = f"{get_global_i18n().t('crawler.crawl_failed')}: {str(e)}"
-            if hasattr(e, '__cause__') and e.__cause__:
-                error_message += f"\n{get_global_i18n().t('crawler.reason')}: {str(e.__cause__)}"
-            self.app.call_later(self._update_status, error_message, "error")
-            
-            # 移除已完成ID（失败）
-            try:
-                self.app.call_later(self._remove_id_from_input, novel_id)
-            except Exception:
-                pass
-            self.app.call_later(self._reset_crawl_state)
-    
-    async def _async_parse_novel_detail(self, parser_instance, novel_id: str) -> Dict[str, Any]:
-        """异步解析小说详情"""
-        import asyncio
-        
-        # 将同步的解析方法包装为异步
-        # 在实际实现中，这里应该使用异步HTTP客户端
-        # 暂时使用run_in_executor来避免阻塞事件循环
-        loop = asyncio.get_event_loop()
-        try:
-            # 在线程池中执行同步的网络请求
-            novel_content = await loop.run_in_executor(
-                None, parser_instance.parse_novel_detail, novel_id
-            )
-            return novel_content
-        except Exception as e:
-            # 记录详细的错误信息
-            logger.error(f"解析小说详情失败: {e}")
-            import traceback
-            logger.error(f"详细错误堆栈: {traceback.format_exc()}")
-            # 如果解析失败，抛出异常
-            raise e
-    
-    async def _simulate_crawl(self, novel_id: str) -> None:
-        """模拟爬取过程（异步执行）"""
-        import asyncio
-        import random
-        import os
-        import time
-        
-        # 标记当前正在爬取的ID并更新状态
-        try:
-            self.current_crawling_id = novel_id
-        except Exception:
-            pass
-        # 模拟爬取过程
-        self._update_status(f"{get_global_i18n().t('crawler.crawling')} ID: {novel_id}")
-        
-        # 使用异步睡眠模拟网络延迟，避免阻塞UI
-        await asyncio.sleep(2)
-        
-        # 随机返回成功或失败
-        if random.random() > 0.2:  # 80%成功率
-            # 模拟成功爬取
-            novel_title = f"{get_global_i18n().t('search_book')}_{novel_id}"
-            
-            # 正确的文件路径格式：用户输入的存储路径 + 小说标题.txt
-            storage_folder = self.novel_site.get('storage_folder', 'novels')
-            # 展开路径中的 ~ 符号
-            storage_folder = os.path.expanduser(storage_folder)
-            file_name = f"{novel_title}.txt"
-            file_path = os.path.join(storage_folder, file_name)
-            
-            # 确保存储目录存在
-            os.makedirs(storage_folder, exist_ok=True)
-            
-            # 创建模拟文件内容
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(f"# {novel_title}\\n\\n")
-                f.write(f"{get_global_i18n().t('crawler.simulate')}\\n")
-                f.write(f"{get_global_i18n().t('search_book')}ID: {novel_id}\\n")
-                f.write(f"{get_global_i18n().t('crawler.crawl_time')}: {time.strftime('%Y-%m-%d %H:%M:%S')}\\n")
-            
-            # 记录到数据库
-            site_id = self.novel_site.get('id')
-            if site_id:
-                self.db_manager.add_crawl_history(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    novel_title=novel_title,
-                    status='success',
-                    file_path=file_path
-                )
-            
-            # 添加到历史记录
-            new_history = {
-                "novel_id": novel_id,
-                "novel_title": novel_title,
-                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "status": get_global_i18n().t('crawler.status_success'),
-                "file_path": file_path
-            }
-            self.crawler_history.insert(0, new_history)
-            
-            # 移除已完成ID（模拟成功）
-            try:
-                self.app.call_later(self._remove_id_from_input, novel_id)
-            except Exception:
-                pass
-            
-            # 自动将书籍加入书架（优先内存书架，立即可读）
-            try:
-                bs = getattr(self.app, "bookshelf", None)
-                added_book = None
-                if bs and hasattr(bs, "add_book"):
-                    # 使用解析器名称作为作者（模拟爬取时使用解析器名称）
-                    author = self.novel_site.get('name', '未知来源')
-                    # 获取网站标签
-                    site_tags = self.novel_site.get('tags', '')
-                    added_book = bs.add_book(file_path, author=author, tags=site_tags)
-                if not added_book:
-                    from src.core.book import Book
-                    # 使用解析器名称作为作者（模拟爬取时使用解析器名称）
-                    author = self.novel_site.get('name', '未知来源')
-                    # 获取网站标签
-                    site_tags = self.novel_site.get('tags', '')
-                    added_book = Book(file_path, novel_title, author, tags=site_tags)
-                    self.db_manager.add_book(added_book)
-                # 发送刷新书架消息
-                try:
-                    from src.ui.messages import RefreshBookshelfMessage
-                    self.app.post_message(RefreshBookshelfMessage())
-                except Exception as msg_error:
-                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
-            
-                    self._update_status(f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_added_to_shelf')}", "success")
-                else:
-                    self._update_status(f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")
-            except Exception as e:
-                logger.error(f"添加书籍到书架失败: {e}")
-                self._update_status(f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title} - {get_global_i18n().t('crawler.book_add_failed')}", "warning")
-            
-            # 发送全局爬取完成通知
-            try:
-                from src.ui.messages import CrawlCompleteNotification
-                self.app.post_message(CrawlCompleteNotification(
-                    success=True,
-                    novel_title=novel_title,
-                    message=f"{get_global_i18n().t('crawler.crawl_success')}: {novel_title}"
-                ))
-            except Exception as msg_error:
-                logger.debug(f"发送爬取完成通知失败: {msg_error}")
-            
-            self._update_history_table()
-            # 若当前ID与本任务一致，清空当前ID
-            try:
-                if self.current_crawling_id == novel_id:
-                    self.current_crawling_id = None
-            except Exception:
-                pass
-        else:
-            # 模拟爬取失败
-            error_message = get_global_i18n().t('crawler.connected_failed')
-            
-            # 记录到数据库
-            site_id = self.novel_site.get('id')
-            if site_id:
-                self.db_manager.add_crawl_history(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    novel_title="",
-                    status='failed',
-                    file_path="",
-                    error_message=error_message
-                )
-            
-            # 添加到历史记录
-            new_history = {
-                "novel_id": novel_id,
-                "novel_title": "",
-                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "status": get_global_i18n().t('crawler.status_failed'),
-                "file_path": ""
-            }
-            self.crawler_history.insert(0, new_history)
-            
-            self._update_history_table()
-            self._update_status(f"{get_global_i18n().t('crawler.crawl_failed')}: {error_message}", "error")
-            
-            # 移除已完成ID（模拟失败）
-            try:
-                self.app.call_later(self._remove_id_from_input, novel_id)
-            except Exception:
-                pass
-            
-            # 发送全局爬取失败通知
-            try:
-                from src.ui.messages import CrawlCompleteNotification
-                self.app.post_message(CrawlCompleteNotification(
-                    success=False,
-                    novel_title="",
-                    message=f"{get_global_i18n().t('crawler.crawl_failed')}: {error_message}"
-                ))
-            except Exception as msg_error:
-                logger.debug(f"发送爬取失败通知失败: {msg_error}")
-            # 失败也清理当前ID（若仍匹配）
-            try:
-                if self.current_crawling_id == novel_id:
-                    self.current_crawling_id = None
-            except Exception:
-                pass
-    
-    def _go_to_first_page(self) -> None:
-        """跳转到第一页"""
-        if self.current_page != 1:
-            self.current_page = 1
-            self._update_history_table()
-    
-    def _go_to_prev_page(self) -> None:
-        """跳转到上一页"""
-        if self.current_page > 1:
-            self.current_page -= 1
-            self._update_history_table()
-    
-    def _go_to_next_page(self) -> None:
-        """跳转到下一页"""
-        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
-        if self.current_page < total_pages:
-            self.current_page += 1
-            self._update_history_table()
-    
-    def _go_to_last_page(self) -> None:
-        """跳转到最后一页"""
-        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
-        if self.current_page != total_pages:
-            self.current_page = total_pages
-            self._update_history_table()
-    
-    def _show_jump_dialog(self) -> None:
-        """显示跳转页码对话框"""
-        def handle_jump_result(result: Optional[str]) -> None:
-            """处理跳转结果"""
-            if result and result.strip():
-                try:
-                    page_num = int(result.strip())
-                    total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
-                    if 1 <= page_num <= total_pages:
-                        if page_num != self.current_page:
-                            self.current_page = page_num
-                            self._update_history_table()
-                    else:
-                        self.notify(
-                            f"页码必须在 1 到 {total_pages} 之间", 
-                            severity="error"
-                        )
-                except ValueError:
-                    self.notify("请输入有效的页码数字", severity="error")
-        
-        # 导入并显示页码输入对话框
-        from src.ui.dialogs.input_dialog import InputDialog
-        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
-        dialog = InputDialog(
-            self.theme_manager,
-            title=get_global_i18n().t("bookshelf.jump_to"),
-            prompt=f"请输入页码 (1-{total_pages})",
-            placeholder=f"当前: {self.current_page}/{total_pages}"
-        )
-        self.app.push_screen(dialog, handle_jump_result)
-    
-    def _update_status(self, message: str, severity: str = "information") -> None:
-        """更新状态信息"""
-        try:
-            # 确保组件已经挂载
-            if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟更新状态信息")
-                # 延迟100ms后重试
-                self.set_timer(0.1, lambda: self._update_status(message, severity))
-                return
-
-            # 在爬取进行中且消息为空或为通用“正在爬取”时，附加当前ID
-            base_crawling = get_global_i18n().t('crawler.crawling')
-            if self.is_crawling and self.current_crawling_id:
-                if not message or message.strip() == base_crawling:
-                    message = f"{base_crawling} ID: {self.current_crawling_id}"
-                # 附加剩余未爬取数量
-                try:
-                    novel_id_input = self.query_one("#novel-id-input", Input)
-                    raw = (novel_id_input.value or "").strip()
-                    remaining_ids = [i.strip() for i in raw.split(",") if i.strip()]
-                    rem = len(remaining_ids) - 1
-                    message = f"{message}（{get_global_i18n().t('crawler.remaining')}: {rem}）"
-                    
-                except Exception:
-                    pass
-            # 使用正确的CSS选择器语法，需要#号
-            status_label = self.query_one("#crawler-status", Label)
-            status_label.update(message)
-            
-            # 根据严重程度设置样式
-            if severity == "success":
-                status_label.styles.color = "green"
-            elif severity == "error":
-                status_label.styles.color = "red"
-            else:
-                status_label.styles.color = "blue"
-            
-            logger.debug(f"状态信息更新成功: {message}")
-        except Exception as e:
-            # 如果状态标签不存在，记录错误但不中断程序
-            logger.debug(f"更新状态信息失败: {e}")
-            # 延迟重试
-            self.set_timer(0.1, lambda: self._update_status(message, severity))
-    
-    def _remove_id_from_input(self, finished_id: str) -> None:
-        """爬取完成后，从输入框中移除已完成的ID（支持多个ID，英文逗号分隔）"""
-        try:
-            novel_id_input = self.query_one("#novel-id-input", Input)
-            raw = (novel_id_input.value or "").strip()
-            if not raw:
-                return
-            # 分割并标准化
-            ids = [i.strip() for i in raw.split(",") if i.strip()]
-            # 如果没有该ID则跳过
-            if finished_id not in ids:
-                return
-            # 移除匹配ID
-            ids = [i for i in ids if i != finished_id]
-            # 更新输入框
-            novel_id_input.value = ",".join(ids)
-            # 将焦点放回输入框，便于继续输入
-            try:
-                novel_id_input.focus()
-            except Exception:
-                pass
-        except Exception as e:
-            logger.debug(f"移除输入ID失败: {e}")
-
-    def _initialize_loading_animation(self) -> None:
-        """初始化加载动画"""
-        try:
-            from src.ui.components.textual_loading_animation import TextualLoadingAnimation, textual_animation_manager
-
-            # 确保组件已经挂载
-            if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟初始化加载动画")
-                # 延迟100ms后重试
-                self.set_timer(0.1, self._initialize_loading_animation)
-                return
-
-            try:
-                # 获取加载动画容器
-                loading_container = self.query_one("#loading-animation", Static)
-                logger.debug("加载动画容器查询成功")
-                
-                # 创建加载动画组件并挂载到容器
-                self.loading_animation = TextualLoadingAnimation()
-                loading_container.mount(self.loading_animation)
-                logger.debug("加载动画组件挂载成功")
-                
-                # 同时创建并挂载原生 LoadingIndicator（初始隐藏）
-                try:
-                    self.loading_indicator = LoadingIndicator(id="crawler-loading-indicator")
-                    self.loading_indicator.display = False
-                    loading_container.mount(self.loading_indicator)
-                    logger.debug("原生 LoadingIndicator 挂载成功")
-                except Exception:
-                    pass
-
-                # 设置默认动画
-                textual_animation_manager.set_default_animation(self.loading_animation)
-                logger.debug("默认动画设置成功")
-                
-                logger.debug("加载动画组件初始化成功")
-            except Exception as e:
-                logger.warning(f"加载动画组件初始化失败: {e}")
-                self.loading_animation = None
-            
-        except Exception as e:
-            logger.warning(f"加载动画组件初始化过程失败: {e}")
-            self.loading_animation = None
-    
-    def _update_crawl_button_state(self) -> None:
-        """更新爬取按钮状态"""
-        try:
-            # 确保组件已经挂载
-            if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟更新按钮状态")
-                # 延迟100ms后重试
-                self.set_timer(0.1, self._update_crawl_button_state)
-                return
-
-            # 使用正确的CSS选择器语法，需要#号
-            start_crawl_button = self.query_one("#start-crawl-btn", Button)
-            stop_crawl_button = self.query_one("#stop-crawl-btn", Button)
-            
-            if self.is_crawling:
-                start_crawl_button.label = get_global_i18n().t('crawler.crawling_in_progress')
-                start_crawl_button.disabled = True
-                stop_crawl_button.disabled = False
-            else:
-                start_crawl_button.label = get_global_i18n().t('crawler.start_crawl')
-                start_crawl_button.disabled = False
-                stop_crawl_button.disabled = True
-            
-            logger.debug("爬取按钮状态更新成功")
-        except Exception as e:
-            # 如果按钮不存在，记录错误但不中断程序
-            logger.debug(f"更新爬取按钮状态失败: {e}")
-            # 延迟重试
-            self.set_timer(0.1, self._update_crawl_button_state)
-    
-    def _show_loading_animation(self) -> None:
-        """显示加载动画"""
-        try:
-            # 原生 LoadingIndicator：可见即动画
-            try:
-                if not hasattr(self, "loading_indicator"):
-                    self.loading_indicator = self.query_one("#crawler-loading-indicator", LoadingIndicator)
-            except Exception:
-                pass
-            try:
-                if hasattr(self, "loading_indicator") and self.loading_indicator:
-                    self.loading_indicator.display = True
-            except Exception:
-                pass
-
-            # 检查加载动画组件是否存在且已初始化
-            if self.loading_animation is not None:
-                self.loading_animation.show(get_global_i18n().t('crawler.crawling'))
-                logger.debug("加载动画显示成功")
-            else:
-                # 如果加载动画不存在，尝试重新初始化
-                logger.warning("加载动画组件不存在，尝试重新初始化")
-                self._initialize_loading_animation()
-                
-                # 延迟显示加载动画
-                def delayed_show():
-                    if self.loading_animation is not None:
-                        self.loading_animation.show(get_global_i18n().t('crawler.crawling'))
-                        logger.debug("延迟加载动画显示成功")
-                    else:
-                        # 回退到状态更新
-                        logger.warning("加载动画组件初始化失败，使用状态更新替代")
-                        self._update_status(get_global_i18n().t('crawler.crawling'))
-                
-                self.set_timer(0.1, delayed_show)
-        except Exception as e:
-            logger.error(f"显示加载动画失败: {e}")
-            # 回退到状态更新
-            self._update_status(get_global_i18n().t('crawler.crawling'))
-    
-    def _hide_loading_animation(self) -> None:
-        """隐藏加载动画"""
-        try:
-            # 原生 LoadingIndicator：隐藏
-            try:
-                if hasattr(self, "loading_indicator") and self.loading_indicator:
-                    self.loading_indicator.display = False
-            except Exception:
-                pass
-
-            if hasattr(self, 'loading_animation') and self.loading_animation:
-                self.loading_animation.hide()
-        except Exception as e:
-            logger.error(f"隐藏加载动画失败: {e}")
-    
-    def _check_proxy_settings(self) -> Optional[Dict[str, Any]]:
-        """
-        检查代理设置
-        
-        Returns:
-            代理配置字典，如果检查失败返回None
-        """
-        try:
-            # 检查网站是否启用了代理
-            proxy_enabled = self.novel_site.get('proxy_enabled', False)
-            
-            if not proxy_enabled:
-                # 网站未启用代理，返回空代理配置
-                return {
-                    'enabled': False,
-                    'proxy_url': ''
-                }
-            
-            # 网站启用了代理，获取可用的代理设置
-            enabled_proxy = self.db_manager.get_enabled_proxy()
-            
-            if not enabled_proxy:
-                # 没有启用的代理，提示用户
-                self._update_status(get_global_i18n().t('crawler.need_proxy'), "error")
-                return None
-            
-            # 构建代理URL
-            proxy_type = enabled_proxy.get('type', 'HTTP').lower()
-            host = enabled_proxy.get('host', '')
-            port = enabled_proxy.get('port', '')
-            username = enabled_proxy.get('username', '')
-            password = enabled_proxy.get('password', '')
-            
-            if not host or not port:
-                self._update_status(get_global_i18n().t('crawler.proxy_error'), "error")
-                return None
-            
-            # 构建代理URL
-            if username and password:
-                proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
-            else:
-                proxy_url = f"{proxy_type}://{host}:{port}"
-            
-            self._update_status(f"{get_global_i18n().t('crawler.use_proxy')}: {enabled_proxy.get('name', get_global_i18n().t('crawler.unnamed_proxy'))} ({host}:{port})", "success")
+            file_path = parser.save_to_file(novel_content, storage_folder)
             
             return {
-                'enabled': True,
-                'proxy_url': proxy_url,
-                'name': enabled_proxy.get('name', get_global_i18n().t('crawler.unnamed_proxy'))
+                'success': True,
+                'title': novel_content.get('title', novel_id),
+                'file_path': file_path
             }
             
         except Exception as e:
-            logger.error(f"检查代理设置失败: {e}")
-            self._update_status(f"{get_global_i18n().t('crawler.check_proxy_failed')}: {str(e)}", "error")
-            return None
+            logger.error(f"解析小说详情失败: {e}")
+            return {
+                'success': False,
+                'error_message': str(e)
+            }
+    
+    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
+        """异步解析小说详情
+        
+        Args:
+            parser: 解析器实例
+            novel_id: 小说ID
+            
+        Returns:
+            Dict[str, Any]: 解析结果
+        """
+        import asyncio
+        
+        try:
+            # 使用异步方式执行网络请求
+            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
+            
+            # 解析小说详情
+            novel_content = parser.parse_novel_detail(novel_id)
+            
+            # 获取存储文件夹
+            storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
+            
+            # 保存小说到文件
+            file_path = parser.save_to_file(novel_content, storage_folder)
+            
+            return {
+                'success': True,
+                'title': novel_content.get('title', novel_id),
+                'file_path': file_path
+            }
+            
+        except Exception as e:
+            logger.error(f"解析小说详情失败: {e}")
+            return {
+                'success': False,
+                'error_message': str(e)
+            }
     
     def _reset_crawl_state(self) -> None:
         """重置爬取状态"""
-        try:
-            # 确保组件已经挂载
-            if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟重置爬取状态")
-                # 延迟100ms后重试
-                self.set_timer(0.1, self._reset_crawl_state)
-                return
-
-            self.is_crawling = False
-            self._update_crawl_button_state()
-            self._hide_loading_animation()
+        self.is_crawling = False
+        self.current_crawling_id = None
+        self._update_crawl_button_state()
+        self._hide_loading_animation()
+    
+    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
+        """异步解析小说详情
+        
+        Args:
+            parser: 解析器实例
+            novel_id: 小说ID
             
-            # 自动继续爬取剩余ID（如果输入框中还有）
-            try:
-                novel_id_input = self.query_one("#novel-id-input", Input)
-                raw = (novel_id_input.value or "").strip()
-                remaining_ids = [i.strip() for i in raw.split(",") if i.strip()]
-                if remaining_ids and not self.is_crawling:
-                    # 在UI刷新后触发下一轮爬取
-                    self.call_after_refresh(self._start_crawl)
-            except Exception:
-                pass
+        Returns:
+            Dict[str, Any]: 解析结果
+        """
+        import asyncio
+        
+        try:
+            # 使用异步方式执行网络请求
+            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
+            
+            # 解析小说详情
+            novel_content = parser.parse_novel_detail(novel_id)
+            
+            # 获取存储文件夹
+            storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
+            
+            # 保存小说到文件
+            file_path = parser.save_to_file(novel_content, storage_folder)
+            
+            return {
+                'success': True,
+                'title': novel_content.get('title', novel_id),
+                'file_path': file_path
+            }
+            
         except Exception as e:
-            logger.debug(f"重置爬取状态失败: {e}")
-            # 延迟重试
-            self.set_timer(0.1, self._reset_crawl_state)
+            logger.error(f"解析小说详情失败: {e}")
+            return {
+                'success': False,
+                'error_message': str(e)
+            }
+    
+    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
+        """异步解析小说详情
+        
+        Args:
+            parser: 解析器实例
+            novel_id: 小说ID
+            
+        Returns:
+            Dict[str, Any]: 解析结果
+        """
+        import asyncio
+        
+        try:
+            # 使用异步方式执行网络请求
+            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
+            
+            # 解析小说详情
+            novel_content = parser.parse_novel_detail(novel_id)
+            
+            # 获取存储文件夹
+            storage_folder = self.novel_site.get('storage_folder', 'novels')
+            # 展开路径中的 ~ 符号
+            storage_folder = os.path.expanduser(storage_folder)
+            
+            # 保存小说到文件
+            file_path = parser.save_to_file(novel_content, storage_folder)
+            
+            return {
+                'success': True,
+                'title': novel_content.get('title', novel_id),
+                'file_path': file_path
+            }
+            
+        except Exception as e:
+            logger.error(f"解析小说详情失败: {e}")
+            return {
+                'success': False,
+                'error_message': str(e)
+            }
+    
+    def on_unmount(self) -> None:
+        """屏幕卸载时的回调"""
+        self.is_mounted_flag = False
+        # 确保爬取状态被正确清理
+        self.is_crawling = False
+        self.current_crawling_id = None
+        # 注意：这里不停止爬取工作线程，让爬取继续在后台运行
+        # 爬取工作线程会通过app.call_later和app.post_message来更新UI
+        # 即使页面卸载，这些消息也会被正确处理
+        logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
+
     
     def key_o(self) -> None:
         """O键 - 打开浏览器"""
@@ -1843,7 +1810,7 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_file_failed')}: {str(e)}", "error")
-    
+
     def _delete_file_only(self, history_item: Dict[str, Any]) -> None:
         """只删除文件，不删除数据库记录（同时删除书架中的对应书籍）"""
         try:
@@ -1902,14 +1869,14 @@ class CrawlerManagementScreen(Screen[None]):
                 ConfirmDialog(
                     self.theme_manager,
                     f"{get_global_i18n().t('crawler.confirm_delete')}（删除文件及书架书籍）",
-                    f"{get_global_i18n().t('crawler.confirm_delete_message')}\n\n注意：此操作将同时删除书架中的对应书籍。"
+                    f"{get_global_i18n().t('crawler.confirm_delete_message')} 注意：此操作将同时删除书架中的对应书籍。"
                 ),
                 handle_delete_confirmation
             )
             
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
-    
+
     def _delete_record_only(self, history_item: Dict[str, Any]) -> None:
         """只删除数据库记录，不删除文件"""
         try:
@@ -1990,16 +1957,6 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
-    
-    def on_unmount(self) -> None:
-        """页面卸载时的回调"""
-        # 设置挂载标志为False，防止后续的UI更新操作
-        self.is_mounted_flag = False
-        
-        # 注意：这里不停止爬取工作线程，让爬取继续在后台运行
-        # 爬取工作线程会通过app.call_later和app.post_message来更新UI
-        # 即使页面卸载，这些消息也会被正确处理
-        logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
