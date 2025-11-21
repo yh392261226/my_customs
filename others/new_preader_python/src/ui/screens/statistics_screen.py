@@ -3,6 +3,7 @@
 """
 
 import json
+import os
 from typing import Dict, Any, Optional, List, ClassVar
 from datetime import datetime, timedelta
 from webbrowser import get
@@ -150,9 +151,9 @@ class StatisticsScreen(Screen[None]):
             db_manager = DatabaseManager()
             current_user_id = current_user.get('id')
             
-            # 适配 has_permission 签名 (user_id, key) 或 (key)
+            # 适配 has_permission 签名 (user_id, perm_key, role) 或 (perm_key)
             try:
-                return db_manager.has_permission(current_user_id, permission_key)  # type: ignore[misc]
+                return db_manager.has_permission(current_user_id, permission_key, user_role)  # type: ignore[misc]
             except TypeError:
                 return db_manager.has_permission(permission_key)  # type: ignore[misc]
         except Exception as e:
@@ -493,8 +494,11 @@ class StatisticsScreen(Screen[None]):
         period_content = self.query_one("#period-content", Static)
         period_content.update(self._format_period_stats())
     
-    def _has_button_permission(self, button_id: str) -> bool:
+    def _has_button_permission(self, button_id: Optional[str]) -> bool:
         """检查按钮权限"""
+        if not button_id:
+            return False
+            
         permission_map = {
             "refresh-btn": "statistics.refresh",
             "export-btn": "statistics.export",
@@ -525,12 +529,14 @@ class StatisticsScreen(Screen[None]):
                 self.notify(get_global_i18n().t("statistics.np_refresh"), severity="warning")
         elif event.button.id == "export-btn":
             if self._has_permission("statistics.export"):
-                self._export_stats()
+                import asyncio
+                asyncio.create_task(self._export_stats())
             else:
                 self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
         elif event.button.id == "reset-btn":
             if self._has_permission("statistics.reset"):
-                self._reset_stats()
+                import asyncio
+                asyncio.create_task(self._reset_stats())
             else:
                 self.notify(get_global_i18n().t("statistics.np_reset"), severity="warning")
         elif event.button.id == "back-btn":
@@ -541,13 +547,189 @@ class StatisticsScreen(Screen[None]):
         self._load_all_stats()
         self.notify(get_global_i18n().t("statistics.refreshed"), severity="information")
     
-    def _export_stats(self) -> None:
-        """导出统计数据（直接数据库版本暂不支持导出）"""
-        self.notify(get_global_i18n().t('statistics.export_not_supported'), severity="information")
+    async def _export_stats(self) -> None:
+        """导出统计数据到JSON文件"""
+        try:
+            # 检查权限并获取需要导出的用户ID范围
+            export_user_id = self._get_export_reset_user_id()
+            
+            # 检查权限
+            if export_user_id == -1:
+                self.notify(get_global_i18n().t("statistics.no_permission_export"), severity="warning")
+                return
+            
+            # 获取所有统计数据
+            stats_data = {
+                "export_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "global_stats": self.statistics_manager.get_total_stats(user_id=export_user_id),
+                "book_stats": self.statistics_manager.get_most_read_books(user_id=export_user_id),
+                "authors_stats": self.statistics_manager.get_most_read_authors(user_id=export_user_id),
+                "reading_trend": self.statistics_manager.get_reading_trend(30, user_id=export_user_id),  # 最近30天
+                "daily_stats": self.statistics_manager.get_daily_stats(user_id=export_user_id),
+                "period_stats": {
+                    "last_7_days": self.statistics_manager.get_period_stats(
+                        (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d"),
+                        datetime.now().strftime("%Y-%m-%d"),
+                        user_id=export_user_id
+                    ),
+                    "last_30_days": self.statistics_manager.get_period_stats(
+                        (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d"),
+                        datetime.now().strftime("%Y-%m-%d"),
+                        user_id=export_user_id
+                    )
+                }
+            }
+            
+            # 生成导出文件名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if export_user_id is None:
+                filename = f"statistics_export_all_{timestamp}.json"
+            else:
+                filename = f"statistics_export_user_{export_user_id}_{timestamp}.json"
+            
+            # 构建导出路径
+            export_path =  os.path.join(os.path.expanduser("~"), "Downloads", filename)
+            
+            # 确保目录存在
+            os.makedirs(os.path.dirname(export_path), exist_ok=True)
+            
+            # 写入JSON文件
+            import json
+            with open(export_path, 'w', encoding='utf-8') as f:
+                json.dump(stats_data, f, ensure_ascii=False, indent=2)
+            
+            self.notify(f"{get_global_i18n().t('statistics.export_success')}: {export_path}", severity="information")
+            
+        except Exception as e:
+            logger.error(f"导出统计数据失败: {e}")
+            self.notify(f"{get_global_i18n().t('statistics.export_failed')}: {e}", severity="error")
     
-    def _reset_stats(self) -> None:
-        """重置统计数据（直接数据库版本不支持重置）"""
-        self.notify(get_global_i18n().t('statistics.not_suppose_reset'), severity="information")
+    async def _reset_stats(self) -> None:
+        """重置统计数据"""
+        try:
+            # 检查权限并获取需要重置的用户ID范围
+            reset_user_id = self._get_export_reset_user_id()
+            
+            # 检查权限
+            if reset_user_id == -1:
+                self.notify(get_global_i18n().t("statistics.no_permission_reset"), severity="warning")
+                return
+            
+            # 检查权限并确认操作
+            if not await self._confirm_reset():
+                return
+            
+            # 执行重置操作
+            success = self.statistics_manager.reset_statistics(reset_user_id)
+            
+            if success:
+                self.notify(get_global_i18n().t('statistics.reset_success'), severity="information")
+                # 刷新统计数据
+                self._refresh_stats()
+            else:
+                self.notify(get_global_i18n().t('statistics.reset_failed'), severity="error")
+                
+        except Exception as e:
+            logger.error(f"重置统计数据失败: {e}")
+            self.notify(f"{get_global_i18n().t('statistics.reset_failed')}: {e}", severity="error")
+    
+    def _get_export_reset_user_id(self) -> Optional[int]:
+        """
+        根据权限逻辑获取导出/重置操作的用户ID范围
+        
+        Returns:
+            Optional[int]: 用户ID，None表示所有用户数据
+        """
+        try:
+            # 检查是否是多用户模式
+            from src.utils.multi_user_manager import multi_user_manager
+            is_multi_user = multi_user_manager.is_multi_user_enabled()
+            
+            # 非多用户模式：直接操作所有数据
+            if not is_multi_user:
+                return None
+            
+            # 多用户模式：获取当前用户信息
+            current_user = getattr(self.app, 'current_user', None)
+            if current_user is None:
+                current_user = multi_user_manager.get_current_user()
+            
+            if current_user is None:
+                # 无法获取用户信息，拒绝操作
+                return -1  # 特殊值表示无权限
+            
+            # 检查是否是超级管理员
+            user_role = current_user.get('role')
+            is_super_admin = user_role == "super_admin" or user_role == "superadmin"
+            
+            if is_super_admin:
+                # 超级管理员：操作所有用户数据
+                return None
+            else:
+                # 非超级管理员：只操作当前用户的数据
+                return current_user.get('id')
+                
+        except Exception as e:
+            logger.error(f"获取导出重置用户ID失败: {e}")
+            return -1  # 出错时返回特殊值表示无权限
+    
+    def _get_export_path(self, filename: str) -> str:
+        """
+        获取导出文件路径
+        
+        Args:
+            filename: 文件名
+            
+        Returns:
+            str: 完整的导出文件路径
+        """
+        try:
+            export_dir = os.path.join(os.path.expanduser("~"), "Downloads", filename)
+            
+            # 确保目录存在
+            os.makedirs(export_dir, exist_ok=True)
+            
+            return os.path.join(export_dir, filename)
+            
+        except Exception as e:
+            logger.error(f"获取导出路径失败: {e}")
+            # 回退到当前目录
+            return filename
+    
+    async def _confirm_reset(self) -> bool:
+        """
+        确认重置操作
+        
+        Returns:
+            bool: 用户是否确认重置
+        """
+        try:
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            
+            # 检查权限
+            user_id = self._get_export_reset_user_id()
+            
+            # 构建确认消息
+            if user_id is None:
+                message = get_global_i18n().t("statistics.reset_all_confirm")
+            else:
+                message = get_global_i18n().t("statistics.reset_user_confirm")
+            
+            # 创建并显示确认对话框
+            confirm_dialog = ConfirmDialog(
+                theme_manager=self.theme_manager,
+                title=get_global_i18n().t("statistics.reset_confirm_title"),
+                message=message
+            )
+            
+            # 推入对话框并等待结果 - 使用正确的异步方式
+            result = await self.app.push_screen(confirm_dialog)
+            
+            return result or False
+            
+        except Exception as e:
+            logger.error(f"确认重置操作失败: {e}")
+            return False
     
     def on_key(self, event) -> None:
         """
@@ -569,7 +751,8 @@ class StatisticsScreen(Screen[None]):
         elif event.key == "e":
             # 导出统计需要权限
             if self._has_permission("statistics.export"):
-                self._export_stats()
+                import asyncio
+                asyncio.create_task(self._export_stats())
             else:
                 self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
             event.prevent_default()

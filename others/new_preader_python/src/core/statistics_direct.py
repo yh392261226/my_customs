@@ -418,6 +418,53 @@ class StatisticsDirect:
             current_date += timedelta(days=1)
         
         return trend
+    
+    def reset_statistics(self, user_id: Optional[int] = None) -> bool:
+        """
+        重置统计数据
+        
+        Args:
+            user_id: 用户ID，如果为None则重置所有用户数据
+            
+        Returns:
+            bool: 重置是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # 构建删除条件
+                where_clause = ""
+                params = []
+                
+                if user_id is not None:
+                    where_clause = "WHERE user_id = ?"
+                    params = [user_id]
+                
+                # 删除阅读历史记录
+                cursor.execute(f"DELETE FROM reading_history {where_clause}", params)
+                
+                # 删除书籍统计相关的元数据
+                if user_id is not None:
+                    # 对于特定用户，只删除该用户的元数据
+                    cursor.execute("""
+                        DELETE FROM book_metadata 
+                        WHERE book_path IN (
+                            SELECT DISTINCT book_path FROM reading_history WHERE user_id = ?
+                        )
+                    """, [user_id])
+                else:
+                    # 对于所有用户，清空整个表
+                    cursor.execute("DELETE FROM book_metadata")
+                
+                conn.commit()
+                
+                logger.info(f"统计数据重置成功 - 用户ID: {user_id}")
+                return True
+                
+        except sqlite3.Error as e:
+            logger.error(f"重置统计数据失败: {e}")
+            return False
 
 # 为保持向后兼容性，添加别名
 StatisticsManagerDirect = StatisticsDirect

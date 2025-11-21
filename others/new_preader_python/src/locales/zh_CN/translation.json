@@ -640,7 +640,21 @@
         "np_action": "无权限执行此操作",
         "np_refresh": "无权限刷新统计",
         "np_export": "无权限导出统计",
-        "np_reset": "无权限重置统计"
+        "np_reset": "无权限重置统计",
+        "select_export_directory": "选择导出目录",
+        "enter_directory_path": "请输入目录路径",
+        "empty_path": "路径不能为空",
+        "not_exists": "路径不存在",
+        "path_not_directory": "路径不是目录",
+        "export_success": "导出成功",
+        "export_failed": "导出失败",
+        "no_permission_export": "无权限导出统计",
+        "no_permission_reset": "无权限重置统计",
+        "reset_confirm_title": "确认重置",
+        "reset_all_confirm": "确定要重置所有统计信息吗？",
+        "reset_user_confirm": "确定要重置当前用户的统计信息吗？",
+        "reset_success": "统计信息已重置",
+        "reset_failed": "重置失败"
     },
     "error": {
         "error": "错误",

@@ -640,7 +640,21 @@
         "np_action": "No permission to perform this operation",
         "np_refresh": "No permission to refresh statistics",
         "np_export": "No permission to export statistics",
-        "np_reset": "No permission to reset statistics"
+        "np_reset": "No permission to reset statistics",
+        "select_export_directory": "Select Export Directory",
+        "enter_directory_path": "Enter Directory Path",
+        "empty_path": "Path cannot be empty",
+        "not_exists": "Path does not exist",
+        "path_not_directory": "Path is not a directory",
+        "export_success": "Export Success",
+        "export_failed": "Export Failed",
+        "no_permission_export": "No permission to export statistics",
+        "no_permission_reset": "No permission to reset statistics",
+        "reset_confirm_title": "Confirm Reset",
+        "reset_all_confirm": "Are you sure to reset all statistics?",
+        "reset_user_confirm": "Are you sure to reset your statistics?",
+        "reset_success": "Statistics reset successfully",
+        "reset_failed": "Reset Failed"
     },
     "error": {
         "error": "Error",
