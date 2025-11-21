@@ -2340,7 +2340,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             status_widgets = self.query("#reader-status")
             pager_widgets = self.query("#pager-status")
             if not status_widgets and not pager_widgets:
-                logger.warning("状态栏元素未找到，可能尚未渲染完成")
+                # logger.warning("状态栏元素未找到，可能尚未渲染完成")
                 return
                 
             status = self.query_one("#reader-status", Static)
