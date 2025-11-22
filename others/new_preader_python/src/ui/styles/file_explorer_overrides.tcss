@@ -36,7 +36,7 @@
 
 /* 导航栏（水平布局） */
 #main-container #navigation-bar {
-    height: auto;
+    height: 5;
     width: 100%;
     margin-bottom: 1;
     layout: horizontal;
@@ -45,7 +45,7 @@
 
 /* 导航栏左侧（导航控件） */
 #main-container #navigation-bar-left {
-    height: auto;
+    height: 3;
     width: 40%;
     layout: horizontal;
     align: left middle;
@@ -64,7 +64,7 @@
     background: $surface;
     color: $text;
     border: solid $primary;
-    width: 70%;
+    width: 50%;
     min-width: 20;
     height: 3;
     margin: 0 1;
@@ -86,11 +86,12 @@
 
 /* 导航栏右侧（操作控件） */
 #main-container #navigation-bar-right {
-    height: auto;
+    height: 3;
     width: 60%;
     layout: horizontal;
     align: right middle;
     margin-left: 1;
+    overflow-x: auto;
 }
 
 /* 搜索相关控件 */
@@ -253,7 +254,7 @@
 /* 焦点状态 */
 #main-container Tree:focus,
 #main-container #file-list:focus {
-    border: thick $accent;
+    background: $primary-darken-1;
 }
 
 /* 按钮悬停效果 */
@@ -269,7 +270,6 @@
 #main-container Input:focus,
 #main-container Select:focus {
     background: $panel;
-    border: thick $accent;
 }
 
 /* 全局组件样式（命名空间限定） */

@@ -391,36 +391,40 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     @on(events.Key)
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
-        if event.key == "space":
-            # 直接处理空格键，不依赖BINDINGS系统
-            table = self.query_one("#batch-ops-table", DataTable)
+        # if event.key == "space":
+        #     # 直接处理空格键，不依赖BINDINGS系统
+        #     table = self.query_one("#batch-ops-table", DataTable)
             
-            # 简化光标获取逻辑 - 直接使用表格的cursor_row
-            current_row_index = getattr(table, 'cursor_row', None)
+        #     # 简化光标获取逻辑 - 直接使用表格的cursor_row
+        #     current_row_index = getattr(table, 'cursor_row', None)
             
-            # 如果cursor_row无效，尝试通过表格的焦点系统获取
-            if current_row_index is None:
-                try:
-                    # 尝试获取当前焦点行
-                    if hasattr(table, 'cursor_coordinate'):
-                        coord = table.cursor_coordinate
-                        if coord and hasattr(coord, 'row'):
-                            current_row_index = coord.row
-                except Exception:
-                    pass
+        #     # 如果cursor_row无效，尝试通过表格的焦点系统获取
+        #     if current_row_index is None:
+        #         try:
+        #             # 尝试获取当前焦点行
+        #             if hasattr(table, 'cursor_coordinate'):
+        #                 coord = table.cursor_coordinate
+        #                 if coord and hasattr(coord, 'row'):
+        #                     current_row_index = coord.row
+        #         except Exception:
+        #             pass
             
-            # 执行选择操作
-            if current_row_index is not None and 0 <= current_row_index < len(table.rows):
-                row_keys = list(table.rows.keys())
-                row_key = row_keys[current_row_index]
-                book_id = str(row_key)
-                self._toggle_book_selection(book_id, table, current_row_index)
-            else:
-                # 如果无法确定当前行，显示提示信息
-                self.notify("请先选择一行", severity="warning")
+        #     # 执行选择操作
+        #     if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+        #         row_keys = list(table.rows.keys())
+        #         row_key = row_keys[current_row_index]
+        #         # 统一使用 row_key.value 获取书籍路径（与鼠标点击保持一致）
+        #         if hasattr(row_key, 'value') and row_key.value:
+        #             book_id = str(row_key.value)
+        #         else:
+        #             book_id = str(row_key)
+        #         self._toggle_book_selection(book_id, table, current_row_index)
+        #     else:
+        #         # 如果无法确定当前行，显示提示信息
+        #         self.notify("请先选择一行", severity="warning")
             
-            event.stop()
-        elif event.key == "escape":
+        #     event.stop()
+        if event.key == "escape":
             # ESC键返回，效果与点击取消按钮相同
             self.dismiss({"refresh": False})
             event.stop()
@@ -660,23 +664,34 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def action_toggle_row(self) -> None:
         """切换当前行选中状态"""
         table = self.query_one("#batch-ops-table", DataTable)
-        # 确保表格获得焦点
-        try:
-            table.focus()
-        except Exception:
-            pass
-            
-        # 如果有光标行，处理当前行的选中状态
-        if table.cursor_row is not None and 0 <= table.cursor_row < len(table.rows):
-            # 获取当前行的键（书籍路径）
-            row_key = list(table.rows.keys())[table.cursor_row]
-            if row_key:
-                # row_key 本身就是书籍路径（字符串）
+        
+        # 简化光标获取逻辑 - 直接使用表格的cursor_row
+        current_row_index = getattr(table, 'cursor_row', None)
+        
+        # 如果cursor_row无效，尝试通过表格的焦点系统获取
+        if current_row_index is None:
+            try:
+                # 尝试获取当前焦点行
+                if hasattr(table, 'cursor_coordinate'):
+                    coord = table.cursor_coordinate
+                    if coord and hasattr(coord, 'row'):
+                        current_row_index = coord.row
+            except Exception:
+                pass
+        
+        # 执行选择操作
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[current_row_index]
+            # 统一使用 row_key.value 获取书籍路径（与鼠标点击保持一致）
+            if hasattr(row_key, 'value') and row_key.value:
+                book_id = str(row_key.value)
+            else:
                 book_id = str(row_key)
-                self._toggle_book_selection(book_id, table, table.cursor_row)
+            self._toggle_book_selection(book_id, table, current_row_index)
         else:
-            # 如果没有光标行，不需要强制设置到第一行，保持当前状态
-            pass
+            # 如果无法确定当前行，显示提示信息
+            self.notify("请先选择一行", severity="warning")
 
     def action_next_page(self) -> None:
         """下一页"""

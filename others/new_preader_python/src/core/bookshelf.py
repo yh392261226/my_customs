@@ -709,9 +709,29 @@ class Bookshelf:
         success_count = 0
         
         for path in book_paths:
+            # 尝试多种路径格式进行匹配
             abs_path = os.path.abspath(path)
-            if abs_path in self.books:
-                book = self.books[abs_path]
+            normalized_path = os.path.normpath(abs_path)
+            
+            # 尝试不同的路径格式进行匹配
+            matched_path = None
+            for book_path in self.books.keys():
+                # 直接路径比较
+                if book_path == abs_path or book_path == normalized_path:
+                    matched_path = book_path
+                    break
+                # 如果文件存在，使用 samefile 进行更精确的比较
+                if os.path.exists(abs_path) and os.path.exists(book_path):
+                    try:
+                        if os.path.samefile(book_path, abs_path):
+                            matched_path = book_path
+                            break
+                    except OSError:
+                        # 如果 samefile 失败，继续尝试其他路径
+                        pass
+            
+            if matched_path and matched_path in self.books:
+                book = self.books[matched_path]
                 book.author = author
                 # 直接更新数据库
                 if self.db_manager.update_book(book):
@@ -869,9 +889,29 @@ class Bookshelf:
         success_count = 0
         
         for path in book_paths:
+            # 尝试多种路径格式进行匹配
             abs_path = os.path.abspath(path)
-            if abs_path in self.books:
-                book = self.books[abs_path]
+            normalized_path = os.path.normpath(abs_path)
+            
+            # 尝试不同的路径格式进行匹配
+            matched_path = None
+            for book_path in self.books.keys():
+                # 直接路径比较
+                if book_path == abs_path or book_path == normalized_path:
+                    matched_path = book_path
+                    break
+                # 如果文件存在，使用 samefile 进行更精确的比较
+                if os.path.exists(abs_path) and os.path.exists(book_path):
+                    try:
+                        if os.path.samefile(book_path, abs_path):
+                            matched_path = book_path
+                            break
+                    except OSError:
+                        # 如果 samefile 失败，继续尝试其他路径
+                        pass
+            
+            if matched_path and matched_path in self.books:
+                book = self.books[matched_path]
                 # 将标签列表转换为逗号分隔的字符串
                 book.tags = ",".join(tags) if tags else ""
                 # 直接更新数据库
@@ -1020,9 +1060,29 @@ class Bookshelf:
         success_count = 0
         # 更新数据库，清空标签
         for book_path in book_paths:
+            # 尝试多种路径格式进行匹配
             abs_path = os.path.abspath(book_path)
-            if abs_path in self.books:
-                book = self.books[abs_path]
+            normalized_path = os.path.normpath(abs_path)
+            
+            # 尝试不同的路径格式进行匹配
+            matched_path = None
+            for path_in_books in self.books.keys():
+                # 直接路径比较
+                if path_in_books == abs_path or path_in_books == normalized_path:
+                    matched_path = path_in_books
+                    break
+                # 如果文件存在，使用 samefile 进行更精确的比较
+                if os.path.exists(abs_path) and os.path.exists(path_in_books):
+                    try:
+                        if os.path.samefile(path_in_books, abs_path):
+                            matched_path = path_in_books
+                            break
+                    except OSError:
+                        # 如果 samefile 失败，继续尝试其他路径
+                        pass
+            
+            if matched_path and matched_path in self.books:
+                book = self.books[matched_path]
                 book.tags = ""  # 清空标签，设置为空字符串
                 # 直接更新数据库
                 if self.db_manager.update_book(book):
