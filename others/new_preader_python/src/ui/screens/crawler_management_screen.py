@@ -1539,13 +1539,32 @@ class CrawlerManagementScreen(Screen[None]):
     def _update_crawl_button_state(self) -> None:
         """更新爬取按钮状态"""
         try:
-            start_btn = self.query_one("#start-crawl-btn", Button)
-            stop_btn = self.query_one("#stop-crawl-btn", Button)
+            # 确保组件已经挂载
+            if not self.is_mounted_flag:
+                logger.debug("组件尚未挂载，延迟更新按钮状态")
+                # 延迟100ms后重试
+                self.set_timer(0.1, self._update_crawl_button_state)
+                return
+
+            # 使用正确的CSS选择器语法，需要#号
+            start_crawl_button = self.query_one("#start-crawl-btn", Button)
+            stop_crawl_button = self.query_one("#stop-crawl-btn", Button)
             
-            start_btn.disabled = self.is_crawling
-            stop_btn.disabled = not self.is_crawling
+            if self.is_crawling:
+                start_crawl_button.label = get_global_i18n().t('crawler.crawling_in_progress')
+                start_crawl_button.disabled = True
+                stop_crawl_button.disabled = False
+            else:
+                start_crawl_button.label = get_global_i18n().t('crawler.start_crawl')
+                start_crawl_button.disabled = False
+                stop_crawl_button.disabled = True
+            
+            logger.debug("爬取按钮状态更新成功")
         except Exception as e:
-            logger.error(f"更新爬取按钮状态失败: {e}")
+            # 如果按钮不存在，记录错误但不中断程序
+            logger.debug(f"更新爬取按钮状态失败: {e}")
+            # 延迟重试
+            self.set_timer(0.1, self._update_crawl_button_state)
     
     def _show_loading_animation(self) -> None:
         """显示加载动画"""
@@ -1565,10 +1584,32 @@ class CrawlerManagementScreen(Screen[None]):
     
     def _reset_crawl_state(self) -> None:
         """重置爬取状态"""
-        self.is_crawling = False
-        self.current_crawling_id = None
-        self._update_crawl_button_state()
-        self._hide_loading_animation()
+        try:
+            # 确保组件已经挂载
+            if not self.is_mounted_flag:
+                logger.debug("组件尚未挂载，延迟重置爬取状态")
+                # 延迟100ms后重试
+                self.set_timer(0.1, self._reset_crawl_state)
+                return
+
+            self.is_crawling = False
+            self._update_crawl_button_state()
+            self._hide_loading_animation()
+            
+            # 自动继续爬取剩余ID（如果输入框中还有）
+            try:
+                novel_id_input = self.query_one("#novel-id-input", Input)
+                raw = (novel_id_input.value or "").strip()
+                remaining_ids = [i.strip() for i in raw.split(",") if i.strip()]
+                if remaining_ids and not self.is_crawling:
+                    # 在UI刷新后触发下一轮爬取
+                    self.call_after_refresh(self._start_crawl)
+            except Exception:
+                pass
+        except Exception as e:
+            logger.debug(f"重置爬取状态失败: {e}")
+            # 延迟重试
+            self.set_timer(0.1, self._reset_crawl_state)
     
     async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
         """异步解析小说详情
