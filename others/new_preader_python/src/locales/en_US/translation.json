@@ -1077,7 +1077,8 @@
         "retry": "Retry",
         "retry_failed": "Retry failed",
         "retry_success": "Retry successful",
-        "clear_search": "Clear Search"
+        "clear_search": "Clear Search",
+        "retrying": "Retrying..."
     },
     "note": {
         "save": "Save",

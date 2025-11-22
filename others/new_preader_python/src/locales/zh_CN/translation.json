@@ -1077,7 +1077,8 @@
         "retry": "重试",
         "retry_failed": "重试失败",
         "retry_success": "重试成功",
-        "clear_search": "清除搜索"
+        "clear_search": "清除搜索",
+        "retrying": "正在重试..."
     },
     "note": {
         "save": "保存",

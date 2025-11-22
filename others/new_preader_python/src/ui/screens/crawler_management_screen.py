@@ -2257,8 +2257,8 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception as e:
                 logger.error(f"添加书籍到书架失败: {e}")
             
-            # 更新历史记录表格
-            self.app.call_later(self._update_history_table)
+            # 重新加载数据库中的历史记录
+            self.app.call_later(self._load_crawl_history)
             
             # 显示成功消息
             self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_success')}: {novel_title}", "success")
