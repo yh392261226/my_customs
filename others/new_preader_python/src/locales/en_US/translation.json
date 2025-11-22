@@ -276,7 +276,8 @@
         "merge_tags_placeholder": "Please enter new book tags (optional)",
         "merge_tags_description": "Set tags for merged book",
         "books_already_at_top": "Book already at top",
-        "books_already_at_bottom": "Book already at bottom"
+        "books_already_at_bottom": "Book already at bottom",
+        "toggle_row": "Toggle selected"
     },
     "search": {
         "title": "Search",

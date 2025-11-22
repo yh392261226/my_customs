@@ -10,7 +10,7 @@ from typing import List, Set, Optional, Dict, Any, Tuple
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal, Center
-from textual.widgets import Static, Button, Label, Input, Select
+from textual.widgets import Header, Static, Button, Label, Input, Select, Header, Footer
 from textual.widgets import DataTable
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage
@@ -131,7 +131,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
 
         # 使用 Bookshelf 类的 load_author_options 方法加载作者选项
         author_options = self.bookshelf.load_author_options()
-
+        yield Header()
         yield Container(
             Vertical(
                 # 标题
@@ -198,6 +198,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 id="batch-ops-container"
             )
         )
+        yield Footer()
     
     def on_mount(self) -> None:
         """挂载时的回调"""

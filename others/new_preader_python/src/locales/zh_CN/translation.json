@@ -276,7 +276,8 @@
         "merge_tags_placeholder": "请输入新书籍标签（可选）",
         "merge_tags_description": "设置合并后书籍的标签",
         "books_already_at_top": "已在顶部",
-        "books_already_at_bottom": "已在底部"
+        "books_already_at_bottom": "已在底部",
+        "toggle_row": "选中/取消选中"
     },
     "search": {
         "title": "搜索",
