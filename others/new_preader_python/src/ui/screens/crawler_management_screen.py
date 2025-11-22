@@ -190,7 +190,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 搜索区域
                     Vertical(
                         Horizontal(
-                            Input(placeholder=get_global_i18n().t('bookshelf.search_placeholder'), id="search-input-field"),
+                            Input(placeholder=get_global_i18n().t('crawler.search_placeholder'), id="search-input-field"),
                             Button(get_global_i18n().t('common.search'), id="search-btn"),
                             Button(get_global_i18n().t('crawler.clear_search'), id="clear-search-btn"),
                             id="search-container", classes="form-row"
@@ -344,11 +344,25 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"爬取状态回调处理失败: {e}")
     
-    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str) -> None:
-        """爬取成功通知回调"""
+    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False) -> None:
+        """爬取成功通知回调
+        
+        Args:
+            task_id: 任务ID
+            novel_id: 小说ID
+            novel_title: 小说标题
+            already_exists: 是否文件已存在
+        """
         try:
-            # 清理输入框中的ID
+            # 清理输入框中的ID（无论文件是否存在都要清理）
             self.app.call_later(self._remove_id_from_input, novel_id)
+            
+            # 如果文件已存在，不需要添加数据库记录和发送全局通知
+            if already_exists:
+                logger.info(f"小说文件已存在，跳过添加数据库记录: {novel_title}")
+                # 只显示消息，不发送全局通知，不刷新历史记录
+                self.app.call_later(self._update_status, f"小说已存在: {novel_title}", "information")
+                return
             
             # 发送全局通知（跨页面）
             def send_global_notification():

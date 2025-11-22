@@ -1078,7 +1078,8 @@
         "retry_failed": "Retry failed",
         "retry_success": "Retry successful",
         "clear_search": "Clear Search",
-        "retrying": "Retrying..."
+        "retrying": "Retrying...",
+        "search_placeholder": "Search by book title"
     },
     "note": {
         "save": "Save",

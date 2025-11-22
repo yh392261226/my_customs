@@ -1,157 +1,222 @@
-/* 文件资源管理器 overrides（初次迁移保持等效） */
-/* 移除对全局 Header 的样式，避免影响其它页面；页面使用 #header-container 样式呈现头部视觉 */
-
-/* Footer 样式移除：Textual 不支持兄弟选择器 ~ ，本页面底部视觉由 #footer-container 控制 */
+/* 文件资源管理器 overrides（修复页面结构调整后的样式问题） */
 
 /* 主容器（作为命名空间锚点） */
 #main-container {
+    layout: vertical;
     height: 100%;
     width: 100%;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
-/* 头部容器（局部头部视觉在此定义，替代全局 Header） */
+/* 头部容器（显示当前路径） */
 #main-container #header-container {
-    height: 4;
+    height: 3;
     width: 100%;
     background: $surface;
-    /* border: solid $primary; */
-    margin-bottom: 1;
-}
-
-/* 导航栏 */
-#main-container #navigation-bar {
-    height: 4;
-    width: 100%;
-    margin-bottom: 1;
+    border-bottom: solid $primary;
     align: center middle;
 }
 
-/* 主内容区域 */
-#main-container #content-area {
-    height: 1fr;
+/* 当前路径显示 */
+#main-container #current-path {
+    color: $text-muted;
+    height: 2;
+    padding-top: 1;
+    align: left middle;
+    text-style: bold;
     width: 100%;
-    margin-bottom: 1;
 }
 
+/* 导航区域 */
+#main-container #navigation-area {
+    height: auto;
+    width: 100%;
+    margin: 1 0;
+}
 
+/* 导航栏（水平布局） */
+#main-container #navigation-bar {
+    height: auto;
+    width: 100%;
+    margin-bottom: 1;
+    layout: horizontal;
+    border: solid $primary;
+}
 
-/* 目录树面板 */
-#main-container #tree-panel {
-    width: 50%;
-    height: 100%;
+/* 导航栏左侧（导航控件） */
+#main-container #navigation-bar-left {
+    height: auto;
+    width: 40%;
+    layout: horizontal;
+    align: left middle;
     margin-right: 1;
 }
 
-/* 文件列表面板 */
-#main-container #file-panel {
-    width: 50%;
-    height: 100%;
-}
-
-/* 底部容器 */
-#main-container #footer-container {
-    height: 8;
-    width: 100%;
-    background: $surface;
-    /* border: solid $primary; */
-    dock: bottom;
-}
-
-/* 操作按钮容器 */
-#main-container #action-buttons {
-    height: 4;
-    width: 100%;
-    margin: 1;
-}
-
-/* 基本组件样式（命名空间限定） */
-#main-container Label {
-    text-style: bold;
-    color: $text;
-    height: 1;
-    margin: 0 1;
-}
-
-#action-buttons > Label {
-    height: 1;
-    margin: 1 1;
-}
-
-#main-container Button {
-    background: $primary;
-    color: $text;
+/* 导航按钮 */
+#navigation-bar-left #back-btn {
+    background: $secondary;
+    min-width: 4;
     height: 3;
     margin: 0 1;
-    min-width: 8;
 }
 
-#main-container #path-input {
+#navigation-bar-left #path-input {
     background: $surface;
     color: $text;
     border: solid $primary;
+    width: 70%;
+    min-width: 20;
     height: 3;
     margin: 0 1;
-    width: 86%;
 }
 
-#main-container Static {
-    color: $text;
+#navigation-bar-left #go-btn {
+    background: $primary;
+    min-width: 6;
+    height: 3;
+    margin: 0 1;
+}
+
+#navigation-bar-left #home-btn {
+    background: $accent;
+    min-width: 8;
+    height: 3;
+    margin: 0 1;
+}
+
+/* 导航栏右侧（操作控件） */
+#main-container #navigation-bar-right {
+    height: auto;
+    width: 60%;
+    layout: horizontal;
+    align: right middle;
+    margin-left: 1;
+}
+
+/* 搜索相关控件 */
+#navigation-bar-right #file-explorer-diff-mode-label {
+    height: 1;
+    margin: 1 1 0 0;
+    text-style: bold;
+}
+
+#navigation-bar-right #file-explorer-diff-mode-switch {
+    height: 3;
+    margin: 0 1;
+}
+
+#navigation-bar-right #file-explorer-search-input {
+    width: 30%;
+    min-width: 15;
+    height: 3;
+    margin: 0 1;
+}
+
+#navigation-bar-right #file-explorer-search-select {
+    width: 30%;
+    min-width: 15;
+    margin: 0 1;
     background: $surface;
+    color: $text;
 }
 
+#navigation-bar-right #file-explorer-search-btn {
+    background: $success;
+    color: $text;
+    min-width: 8;
+    height: 3;
+    margin: 0 1;
+}
+
+/* 操作按钮 */
+#navigation-bar-right #select-btn {
+    background: $primary;
+    min-width: 12;
+    height: 3;
+    margin: 0 1;
+}
+
+#navigation-bar-right #cancel-btn {
+    background: $secondary;
+    min-width: 8;
+    height: 3;
+    margin: 0 1;
+}
+
+/* 补全建议列表（居中显示） */
+#main-container #completion-list {
+    height: 4;
+    max-height: 4;
+    background: $surface;
+    border: solid $primary;
+    margin-top: 1;
+    visibility: hidden;
+    width: 80%;
+    align: center middle;
+}
+
+/* 主内容区域（水平分割） */
+#main-container #content-area {
+    height: 1fr;
+    width: 100%;
+    layout: horizontal;
+    margin: 1 0;
+}
+
+/* 左侧目录树面板 */
+#main-container #tree-panel {
+    width: 1fr;
+    height: 100%;
+    margin-right: 1;
+    layout: vertical;
+}
+
+/* 右侧文件列表面板 */
+#main-container #file-panel {
+    width: 1fr;
+    height: 100%;
+    layout: vertical;
+}
+
+/* 面板标签 */
+#main-container #tree-label,
+#main-container #file-label {
+    text-style: bold;
+    color: $text;
+    height: 1;
+    margin: 0 0 1 0;
+    text-align: center;
+}
+
+#main-container #tree-label {
+    color: $success;
+}
+
+#main-container #file-label {
+    color: $warning;
+}
+
+/* 目录树控件 */
 #main-container Tree {
     height: 1fr;
     border: solid $primary;
     background: $surface;
-    margin-top: 1;
+    scrollbar-background: $surface;
+    scrollbar-color: $primary;
 }
 
-/* 特定组件样式 */
-#main-container #title {
-    text-style: bold;
-    color: $accent;
-    height: 1;
-    text-align: center;
-    margin: 1;
-}
-
-#main-container #current-path {
-    color: $text-muted;
-    height: 1;
-    margin: 1 1;
-    text-align: left;
-}
-
-#main-container #tree-label {
-    text-style: bold;
-    color: $success;
-    height: 1;
-    margin: 0 1;
-}
-
-#main-container #file-label {
-    text-style: bold;
-    color: $warning;
-    height: 1;
-    margin: 0 1;
-}
-
+/* 文件列表控件 */
 #main-container #file-list {
     height: 1fr;
     border: solid $primary;
     background: $surface;
-    margin-top: 1;
     scrollbar-background: $surface;
     scrollbar-color: $primary;
 }
 
+/* ListView 和 ListItem 样式 */
 #main-container ListView {
     height: 1fr;
-    border: solid $primary;
-    background: $surface;
-    scrollbar-background: $surface;
-    scrollbar-color: $primary;
 }
 
 #main-container ListItem {
@@ -168,139 +233,59 @@
     margin: 0;
 }
 
+/* 底部状态容器 */
+#main-container #footer-container {
+    height: 3;
+    width: 100%;
+    background: $surface;
+    border-top: solid $primary;
+    align: center middle;
+    dock: bottom;
+}
+
 #main-container #status-info {
     color: $text-muted;
-    height: 1;
-    margin: 1;
+    height: 4;
     text-align: center;
+    width: 100%;
 }
 
-/* 导航按钮 */
-#main-container #back-btn {
-    background: $secondary;
-    min-width: 4;
-}
-
-#main-container #go-btn {
-    background: $primary;
-    min-width: 6;
-}
-
-#main-container #home-btn {
-    background: $accent;
-    min-width: 8;
-}
-
-/* 操作按钮 */
-#main-container #open-btn {
-    background: $success;
-    color: $text;
-    min-width: 12;
-}
-
-#main-container #add-btn {
-    background: $warning;
-    color: $text;
-    min-width: 12;
-}
-
-#main-container #back-to-bookshelf-btn {
-    background: $secondary;
-    color: $text;
-    min-width: 8;
-}
-
-/* 文件列表焦点样式 */
+/* 焦点状态 */
+#main-container Tree:focus,
 #main-container #file-list:focus {
     border: thick $accent;
 }
 
-/* 树形控件焦点样式 */
-#main-container Tree:focus {
-    border: thick $accent;
+/* 按钮悬停效果 */
+#main-container Button:hover {
+    background: $primary-darken-1;
 }
 
-#main-container #navigation-area {
-    align: center middle;
-}
-
-/* 补全建议列表样式 */
-#main-container #completion-list {
-    height: 4; /* 只显示2条的高度 */
-    max-height: 4;
-    background: $surface;
-    border: solid $primary;
-    margin-top: 0;
-    /* 始终占据空间，通过visibility属性控制可见性 */
-    visibility: hidden; /* 初始隐藏但占据空间 */
-    align: center middle;
-}
-
-#main-container #completion-list:focus {
-    border: thick $accent;
-}
-
-/* 补全列表选项样式 */
-#main-container #completion-list > .option-list--option {
-    height: 1;
-    padding: 0 1;
-}
-
-#main-container #completion-list > .option-list--option:hover {
-    background: $primary;
-}
-
-#main-container #completion-list > .option-list--option.-highlight {
-    background: $accent;
-}
-
-#file-explorer-search-input {
-    width: 15%;
-    min-width: 15;
-    height: 3;
-    margin: 0 1;
-}
-
-#file-explorer-search-btn {
-    background: $success;
-    color: $text;
-    min-width: 8;
-    height: 3;
-    margin: 0 1;
-}
-
-/* 搜索区域样式 */
-#main-container #action-buttons {
-    height: 4;
-    width: 100%;
-    margin: 0 1;
-    align: center middle;
-}
-
-/* 搜索按钮悬停效果 */
-#file-explorer-search-btn:hover {
+#navigation-bar-right #file-explorer-search-btn:hover {
     background: $success-darken-1;
 }
 
-/* 搜索输入框焦点样式 */
-#file-explorer-search-input:focus {
+/* 输入框焦点样式 */
+#main-container Input:focus,
+#main-container Select:focus {
     background: $panel;
+    border: thick $accent;
 }
 
-/* 搜索选择框样式 */
-#file-explorer-search-select {
-    width: 15%;
-    min-width: 15;
-    margin: 0 1;
-    background: $surface;
+/* 全局组件样式（命名空间限定） */
+#main-container Label {
+    text-style: bold;
     color: $text;
-}
-
-#file-explorer-search-select:focus {
-    background: $panel;
-}
-
-#file-explorer-diff-mode-label {
-    margin: 2 1 1 0;
     height: 1;
+}
+
+#main-container Button {
+    background: $primary;
+    color: $text;
+    height: 3;
+}
+
+#main-container Static {
+    color: $text;
+    background: $surface;
 }

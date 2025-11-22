@@ -96,12 +96,19 @@ class CrawlerManager:
                     except Exception as e:
                         logger.error(f"状态回调执行失败: {e}")
     
-    def _notify_crawl_success(self, task_id: str, novel_id: str, novel_title: str) -> None:
-        """通知爬取成功"""
+    def _notify_crawl_success(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False) -> None:
+        """通知爬取成功
+        
+        Args:
+            task_id: 任务ID
+            novel_id: 小说ID
+            novel_title: 小说标题
+            already_exists: 是否文件已存在
+        """
         with self._lock:
             for callback in self._notification_callbacks:
                 try:
-                    callback(task_id, novel_id, novel_title)
+                    callback(task_id, novel_id, novel_title, already_exists)
                 except Exception as e:
                     logger.error(f"成功通知回调执行失败: {e}")
     
@@ -226,18 +233,34 @@ class CrawlerManager:
                         # 调用解析器的 save_to_file 方法实际保存文件
                         file_path = parser.save_to_file(result, storage_folder)
                         
-                        # 保存到数据库
-                        db_manager.add_crawl_history(
-                            site_id=task.site_id,
-                            novel_id=novel_id,
-                            novel_title=result['title'],
-                            status="success",
-                            file_path=file_path,
-                            error_message=""
-                        )
-                        
-                        # 发送成功通知
-                        self._notify_crawl_success(task_id, novel_id, result['title'])
+                        # 检查文件是否成功保存
+                        if file_path == 'already_exists':
+                            # 文件已存在，不添加新记录，但显示成功消息
+                            logger.info(f"小说文件已存在，跳过保存: {result['title']}")
+                            # 发送成功通知（但文件已存在）
+                            self._notify_crawl_success(task_id, novel_id, result['title'], already_exists=True)
+                        else:
+                            # 文件成功保存，保存到数据库
+                            db_manager.add_crawl_history(
+                                site_id=task.site_id,
+                                novel_id=novel_id,
+                                novel_title=result['title'],
+                                status="success",
+                                file_path=file_path,
+                                error_message=""
+                            )
+                            
+                            # 将书籍添加到书库
+                            try:
+                                from src.core.bookshelf import Bookshelf
+                                bookshelf = Bookshelf()
+                                bookshelf.add_book(file_path, result['title'], result.get('author', ''))
+                                logger.info(f"小说已添加到书库: {result['title']}")
+                            except Exception as e:
+                                logger.error(f"添加到书库失败: {e}")
+                            
+                            # 发送成功通知
+                            self._notify_crawl_success(task_id, novel_id, result['title'])
                         
                 except Exception as e:
                     task.failed_count += 1

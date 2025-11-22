@@ -116,10 +116,32 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 导航栏和补全建议区域
             with Vertical(id="navigation-area"):
                 with Horizontal(id="navigation-bar", classes="form-row"):
-                    yield Button("←", id="back-btn")
-                    yield Input(placeholder=get_global_i18n().t("file_explorer.enter_path"), id="path-input")
-                    yield Button(get_global_i18n().t("file_explorer.go"), id="go-btn")
-                    yield Button(get_global_i18n().t("file_explorer.home"), id="home-btn")
+                    with Vertical(id="navigation-bar-left"):
+                        yield Button("←", id="back-btn")
+                        yield Input(placeholder=get_global_i18n().t("file_explorer.enter_path"), id="path-input")
+                        yield Button(get_global_i18n().t("file_explorer.go"), id="go-btn")
+                        yield Button(get_global_i18n().t("file_explorer.home"), id="home-btn")
+                    with Vertical(id="navigation-bar-right"):
+                        if self.selection_mode == "file":
+                            # 如果是文件选择模式，则显示搜索框和按钮 start
+                            yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
+                            yield Switch(value=False, id="file-explorer-diff-mode-switch")
+                            yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
+                            # 动态生成搜索选择框选项
+                            search_options = [(get_global_i18n().t("search.all_formats"), "all")]
+                            # 根据SUPPORTED_EXTENSIONS生成格式选项
+                            for ext in self.SUPPORTED_EXTENSIONS:
+                                # 去掉点号，转换为大写作为显示名称
+                                display_name = ext.upper().lstrip('.')
+                                search_options.append((display_name, ext))
+                            
+                            yield Select(id="file-explorer-search-select", options=search_options, prompt=get_global_i18n().t("common.select_ext_prompt"))
+                            yield Button(get_global_i18n().t("common.search"), id="file-explorer-search-btn")
+                            # 如果是文件选择模式，则显示搜索框和按钮 end
+                            yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
+                        else:
+                            yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
+                        yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
                 
                 # 补全建议列表（初始隐藏）
                 with Center():
@@ -140,27 +162,6 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 底部状态和操作区域
             with Container(id="footer-container"):
                 yield Static("", id="status-info")
-                with Horizontal(id="action-buttons", classes="btn-row"):
-                    if self.selection_mode == "file":
-                        # 如果是文件选择模式，则显示搜索框和按钮 start
-                        yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
-                        yield Switch(value=False, id="file-explorer-diff-mode-switch")
-                        yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
-                        # 动态生成搜索选择框选项
-                        search_options = [(get_global_i18n().t("search.all_formats"), "all")]
-                        # 根据SUPPORTED_EXTENSIONS生成格式选项
-                        for ext in self.SUPPORTED_EXTENSIONS:
-                            # 去掉点号，转换为大写作为显示名称
-                            display_name = ext.upper().lstrip('.')
-                            search_options.append((display_name, ext))
-                        
-                        yield Select(id="file-explorer-search-select", options=search_options, prompt=get_global_i18n().t("common.select_ext_prompt"))
-                        yield Button(get_global_i18n().t("common.search"), id="file-explorer-search-btn")
-                        # 如果是文件选择模式，则显示搜索框和按钮 end
-                        yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
-                    else:
-                        yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
-                    yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
             yield Footer()
     
     def on_mount(self) -> None:
