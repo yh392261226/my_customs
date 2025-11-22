@@ -1805,6 +1805,12 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 保存小说到文件
             file_path = parser.save_to_file(novel_content, storage_folder)
+
+            if file_path == 'already_exists':
+                return {
+                    'success': False,
+                    'error_message': 'File exists'
+                }
             
             return {
                 'success': True,

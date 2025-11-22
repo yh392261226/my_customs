@@ -657,11 +657,18 @@ class BaseParser:
         file_path = os.path.join(storage_folder, f"{filename}.txt")
         
         # 如果文件已存在，添加序号
-        counter = 1
+        # counter = 1
         original_path = file_path
-        while os.path.exists(file_path):
-            file_path = original_path.replace('.txt', f'_{counter}.txt')
-            counter += 1
+        # 如果文件已经存在, 则增书籍网站名称.
+        if os.path.exists(file_path):
+            file_path = original_path.replace('.txt', f'_{self.novel_site_name}.txt')
+        # 如果书籍网站名称的文件也存在, 则返回错误
+        if os.path.exists(file_path):
+            return 'already_exists'
+        # while os.path.exists(file_path):
+        #     # 文件已经存在的情况, 应该增加的不是序号, 而是网站名称
+        #     file_path = original_path.replace('.txt', f'_{counter}.txt')
+        #     counter += 1
         
         # 写入文件
         with open(file_path, 'w', encoding='utf-8') as f:
