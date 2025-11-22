@@ -83,9 +83,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/batch_ops_overrides.tcss"
     BINDINGS = [
-        ("n", "next_page", "下一页"),
-        ("p", "prev_page", "上一页"),
-        ("escape", "cancel", "取消"),
+        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
+        ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
+        ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -569,7 +570,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         # 显示总选中数量和当前页选中数量
         if selected_count > 0:
             status_label.update(
-                f"总选中: {selected_count} | 当前页选中: {current_page_selected_count}"
+                get_global_i18n().t("batch_ops.selected_info", count=selected_count, current_count=current_page_selected_count)
             )
         else:
             status_label.update(
@@ -723,19 +724,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                             self._load_books()
                     else:
                         self.notify(
-                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            get_global_i18n().t("batch_ops.page_error_info", pages=self._total_pages), 
                             severity="error"
                         )
                 except ValueError:
-                    self.notify("请输入有效的页码数字", severity="error")
+                    self.notify(get_global_i18n().t("batch_ops.page_error"), severity="error")
         
         # 导入并显示页码输入对话框
         from src.ui.dialogs.input_dialog import InputDialog
         dialog = InputDialog(
             self.theme_manager,
             title=get_global_i18n().t("bookshelf.jump_to"),
-            prompt=f"请输入页码 (1-{self._total_pages})",
-            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+            prompt=f"{get_global_i18n().t('batch_ops.type_num')} (1-{self._total_pages})",
+            placeholder=f"{get_global_i18n().t('batch_ops.current')}: {self._current_page}/{self._total_pages}"
         )
         self.app.push_screen(dialog, handle_jump_result)
 

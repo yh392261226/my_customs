@@ -482,19 +482,19 @@ class GetBooksScreen(Screen[None]):
                             self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
                     else:
                         self.notify(
-                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            get_global_i18n().t("batch_ops.page_error_info", pages=self._total_pages), 
                             severity="error"
                         )
                 except ValueError:
-                    self.notify("请输入有效的页码数字", severity="error")
+                    self.notify(get_global_i18n().t("batch_ops.page_error"), severity="error")
         
         # 导入并显示页码输入对话框
         from src.ui.dialogs.input_dialog import InputDialog
         dialog = InputDialog(
             self.theme_manager,
             title=get_global_i18n().t("bookshelf.jump_to"),
-            prompt=f"请输入页码 (1-{self._total_pages})",
-            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+            prompt=f"{get_global_i18n().t('batch_ops.type_num')} (1-{self._total_pages})",
+            placeholder=f"{get_global_i18n().t('batch_ops.current')}: {self._current_page}/{self._total_pages}"
         )
         self.app.push_screen(dialog, handle_jump_result)
 

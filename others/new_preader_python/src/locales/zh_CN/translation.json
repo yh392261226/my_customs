@@ -215,6 +215,11 @@
         "export": "导出",
         "cancel": "取消",
         "selected_count": "已选择 {count} 本书籍",
+        "selected_info": "总选中: {count} | 当前页选中: {current_count}",
+        "page_error_info": "页码必须在 1 到 {pages} 之间",
+        "page_error": "请输入有效的页码数字",
+        "current": "当前",
+        "type_num": "请输入页码",
         "no_books_selected": "未选择任何书籍",
         "books_deleted": "成功删除 {count} 本书籍",
         "books_exported": "成功导出 {count} 本书籍",
@@ -271,8 +276,7 @@
         "merge_tags_placeholder": "请输入新书籍标签（可选）",
         "merge_tags_description": "设置合并后书籍的标签",
         "books_already_at_top": "已在顶部",
-        "books_already_at_bottom": "已在底部",
-        "selected_count":"已选择 {count} 本书籍"
+        "books_already_at_bottom": "已在底部"
     },
     "search": {
         "title": "搜索",
@@ -956,7 +960,8 @@
         "invalid_url": "无效的网址格式",
         "save_success": "保存成功",
         "save": "保存",
-        "cancel": "取消"
+        "cancel": "取消",
+        "no_parser": "无可用解析器"
     },
     "crawler": {
         "title": "爬取管理",
@@ -1278,5 +1283,20 @@
         "status": "状态",
         "id": "ID",
         "desc": "简介"
+    },
+    "proxy_dialog": {
+        "name_required": "请输入代理名称",
+        "host_required": "请输入代理主机地址",
+        "port_required": "请输入代理端口号",
+        "port_num_required": "端口号必须在1-65535之间",
+        "port_num_number": "端口号必须是数字",
+        "testing": "正在测试连接...",
+        "testing_success": "连接测试成功",
+        "testing_failed": "连接测试失败，请检查代理设置",
+        "testing_success_info": "代理连接测试成功: {url} (响应时间: {secs}s)",
+        "testing_failed_info": "代理连接测试失败: HTTP {code}",
+        "proxy_timeout": "代理连接超时: {url}",
+        "proxy_error": "代理连接错误: {url}",
+        "proxy_exp": "代理测试异常: {err}"
     }
 }

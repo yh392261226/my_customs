@@ -224,25 +224,25 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         
         # 验证必填字段
         if not name_input.value.strip():
-            self._show_error("请输入代理名称")
+            self._show_error(get_global_i18n().t('proxy_dialog.name_required'))
             return
         
         if not host_input.value.strip():
-            self._show_error("请输入主机地址")
+            self._show_error(get_global_i18n().t('proxy_dialog.host_required'))
             return
         
         if not port_input.value.strip():
-            self._show_error("请输入端口号")
+            self._show_error(get_global_i18n().t('proxy_dialog.port_required'))
             return
         
         # 验证端口号格式
         try:
             port = int(port_input.value)
             if port < 1 or port > 65535:
-                self._show_error("端口号必须在1-65535之间")
+                self._show_error(get_global_i18n().t('proxy_dialog.port_num_required'))
                 return
         except ValueError:
-            self._show_error("端口号必须是数字")
+            self._show_error(get_global_i18n().t('proxy_dialog.port_num_number'))
             return
         
         # 构建代理数据
@@ -270,25 +270,25 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         
         # 验证必填字段
         if not host_input.value.strip():
-            self._show_message("请输入主机地址", "error")
+            self._show_message(get_global_i18n().t('proxy_dialog.host_required'), "error")
             return
         
         if not port_input.value.strip():
-            self._show_message("请输入端口号", "error")
+            self._show_message(get_global_i18n().t('proxy_dialog.port_required'), "error")
             return
         
         # 验证端口号格式
         try:
             port = int(port_input.value)
             if port < 1 or port > 65535:
-                self._show_message("端口号必须在1-65535之间", "error")
+                self._show_message(get_global_i18n().t('proxy_dialog.port_num_required'), "error")
                 return
         except ValueError:
-            self._show_message("端口号必须是数字", "error")
+            self._show_message(get_global_i18n().t('proxy_dialog.port_num_number'), "error")
             return
         
         # 显示测试中状态
-        self._show_message("正在测试连接...", "info")
+        self._show_message(get_global_i18n().t('proxy_dialog.testing'), "info")
         
         # 构建代理URL
         proxy_type = type_select.value if type_select.value else "HTTP"
@@ -306,9 +306,9 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
         test_result = self._real_test_proxy_connection(proxy_url)
         
         if test_result:
-            self._show_message("连接测试成功", "success")
+            self._show_message(get_global_i18n().t('proxy_dialog.testing_success'), "success")
         else:
-            self._show_message("连接测试失败，请检查代理设置", "error")
+            self._show_message(get_global_i18n().t('proxy_dialog.testing_failed'), "error")
     
     def _show_message(self, message: str, message_type: str = "info") -> None:
         """显示消息"""
@@ -363,20 +363,21 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
             end_time = time.time()
             
             if response.status_code == 200:
-                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                secs= f"{end_time - start_time:.2f}"
+                logger.info(get_global_i18n().t('proxy_dialog.testing_success_info', url=proxy_url, secs=secs))
                 return True
             else:
-                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
+                logger.error(get_global_i18n().t('proxy_dialog.testing_failed_info', code=response.status_code))
                 return False
                 
         except requests.exceptions.ConnectTimeout:
-            logger.error(f"代理连接超时: {proxy_url}")
+            logger.error(get_global_i18n().t('proxy_dialog.proxy_timeout', url=proxy_url))
             return False
         except requests.exceptions.ConnectionError:
-            logger.error(f"代理连接错误: {proxy_url}")
+            logger.error(get_global_i18n().t('proxy_dialog.proxy_error', url=proxy_url))
             return False
         except Exception as e:
-            logger.error(f"代理测试异常: {e}")
+            logger.error(get_global_i18n().t('proxy_dialog.proxy_error', err=e))
             return False
 
     def _show_error(self, message: str) -> None:

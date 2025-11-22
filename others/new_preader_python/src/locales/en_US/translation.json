@@ -215,6 +215,11 @@
         "export": "Export",
         "cancel": "Cancel",
         "selected_count": "Selected {count} books",
+        "selected_info": "Total selected: {count} | Current page selected: {current_count}",
+        "page_error_info": "Page num need between 1 to {pages}",
+        "page_error": "Page num must be a number",
+        "current": "Current ",
+        "type_num": "Type a page num ",
         "no_books_selected": "No books selected",
         "books_deleted": "Successfully deleted {count} books",
         "books_exported": "Successfully exported {count} books",
@@ -271,8 +276,7 @@
         "merge_tags_placeholder": "Please enter new book tags (optional)",
         "merge_tags_description": "Set tags for merged book",
         "books_already_at_top": "Book already at top",
-        "books_already_at_bottom": "Book already at bottom",
-        "selected_count":"Selected {count} books"
+        "books_already_at_bottom": "Book already at bottom"
     },
     "search": {
         "title": "Search",
@@ -956,7 +960,8 @@
         "invalid_url": "Invalid URL format",
         "save_success": "Save successful",
         "save": "Save",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "no_parser": "No parser configured"
     },
     "crawler": {
         "title": "Crawler Management",
@@ -1278,5 +1283,20 @@
         "status": "Status",
         "id": "ID",
         "desc": "Description"
+    },
+    "proxy_dialog": {
+        "name_required": "Type a name for the proxy",
+        "host_required": "Type a host for the proxy",
+        "port_required": "Type a port for the proxy",
+        "port_num_required": "Proxy port number is 1 to 65535",
+        "port_num_number": "Proxy port number is a number",
+        "testing": "Testing...",
+        "testing_success": "Testing success",
+        "testing_failed": "Testing failed, please check the proxy settings",
+        "testing_success_info": "Proxy testing success: {url} (response time: {secs}s)",
+        "testing_failed_info": "Proxy testing failed: HTTP {code}",
+        "proxy_timeout": "Proxy timeout: {url}",
+        "proxy_error": "Proxy connection error: {url}",
+        "proxy_exp": "Proxy connection error: {err}"
     }
 }

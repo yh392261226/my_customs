@@ -135,7 +135,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                         Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.parser'), id="parser-label"),
                             Select(
-                                get_parser_options() or [("", "无可用解析器")],
+                                get_parser_options() or [("", get_global_i18n().t('novel_site_dialog.no_parser'))],
                                 id="parser-select"
                             ),
                             id="parser-container", classes="form-row"

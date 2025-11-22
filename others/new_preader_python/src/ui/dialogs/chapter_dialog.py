@@ -3,6 +3,7 @@ from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, ListView, ListItem
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.locales.i18n_manager import get_global_i18n
 
 class ChapterDialog(ModalScreen[None]):
 
@@ -24,7 +25,7 @@ class ChapterDialog(ModalScreen[None]):
                 *[ListItem(Label(chapter)) for chapter in self.chapters],
                 id="chapter-list"
             )
-            yield Button("取消", id="cancel-button", variant="error")
+            yield Button(get_global_i18n().t("common.cancel"), id="cancel-button", variant="error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel-button":

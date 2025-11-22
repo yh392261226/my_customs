@@ -42,13 +42,14 @@ class BookshelfScreen(Screen[None]):
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
     CSS_PATH="../styles/bookshelf_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("a", "press('#add-book-btn')", "添加"),
-        ("d", "press('#scan-directory-btn')", "扫描目录"),
-        ("s", "press('#search-btn')", "搜索"),
-        ("r", "press('#sort-btn')", "排序"),
-        ("l", "press('#batch-ops-btn')", "批量操作"),
-        ("g", "press('#get-books-btn')", "获取书籍"),
-        ("f", "press('#refresh-btn')", "刷新"),
+        ("a", "press('#add-book-btn')", get_global_i18n().t('common.add')),
+        ("d", "press('#scan-directory-btn')", get_global_i18n().t('bookshelf.scan_directory')),
+        ("s", "press('#search-btn')", get_global_i18n().t('common.search')),
+        ("r", "press('#sort-btn')", get_global_i18n().t('bookshelf.sort_name')),
+        ("l", "press('#batch-ops-btn')", get_global_i18n().t('bookshelf.batch_ops_name')),
+        ("g", "press('#get-books-btn')", get_global_i18n().t('bookshelf.get_books')),
+        ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
+        ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -1741,19 +1742,19 @@ class BookshelfScreen(Screen[None]):
                             self._load_books(self._search_keyword, self._search_format, self._search_author)
                     else:
                         self.notify(
-                            f"页码必须在 1 到 {self._total_pages} 之间", 
+                            get_global_i18n().t("batch_ops.page_error_info", pages=self._total_pages), 
                             severity="error"
                         )
                 except ValueError:
-                    self.notify("请输入有效的页码数字", severity="error")
+                    self.notify(get_global_i18n().t("batch_ops.page_error"), severity="error")
         
         # 导入并显示页码输入对话框
         from src.ui.dialogs.input_dialog import InputDialog
         dialog = InputDialog(
             self.theme_manager,
             title=get_global_i18n().t("bookshelf.jump_to"),
-            prompt=f"请输入页码 (1-{self._total_pages})",
-            placeholder=f"当前: {self._current_page}/{self._total_pages}"
+            prompt=f"{get_global_i18n().t('batch_ops.type_num')} (1-{self._total_pages})",
+            placeholder=f"{get_global_i18n().t('batch_ops.current')}: {self._current_page}/{self._total_pages}"
         )
         self.app.push_screen(dialog, handle_jump_result)
 

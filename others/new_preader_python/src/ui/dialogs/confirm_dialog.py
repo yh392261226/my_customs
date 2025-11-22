@@ -24,8 +24,8 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
     # 加载CSS样式
     CSS_PATH = "../styles/confirm_dialog_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "press('#confirm-btn')", "确认"),
-        ("escape", "press('#cancel-btn')", "取消"),
+        ("enter", "press('#confirm-btn')", get_global_i18n().t('common.confirm')),
+        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, title: str, message: str):
@@ -59,8 +59,8 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
                 
                 # 按钮区域
                 Horizontal(
-                    Button("确认", id="confirm-btn", variant="primary"),
-                    Button("取消", id="cancel-btn"),
+                    Button(get_global_i18n().t('common.confirm'), id="confirm-btn", variant="primary"),
+                    Button(get_global_i18n().t('common.cancel'), id="cancel-btn"),
                     id="confirm-buttons", classes="btn-row"
                 ),
                 

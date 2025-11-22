@@ -24,8 +24,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     
     CSS_PATH = "../styles/search_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#select-btn')", "选择"),
-        ("escape", "press('#cancel-btn')", "取消"),
+        ("enter", "press('#select-btn')", get_global_i18n().t("common.select")),
+        ("escape", "press('#cancel-btn')", get_global_i18n().t("common.cancel")),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
