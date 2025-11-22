@@ -5,14 +5,13 @@
 import os
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from textual.screen import Screen
-from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Static, Button, Label, Input, Select, Link, Header, Footer, LoadingIndicator
+from textual.containers import Container, Vertical, Horizontal
+from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator
 from textual.widgets import DataTable
 from textual.app import ComposeResult
-from textual.reactive import reactive
 from textual import events, on
 
-from src.locales.i18n_manager import get_global_i18n, t, init_global_i18n
+from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
@@ -87,7 +86,14 @@ class CrawlerManagementScreen(Screen[None]):
         self.items_per_page = 10
         self.total_pages = 0
         self.db_manager = DatabaseManager()  # 数据库管理器
-        self.is_crawling = False  # 爬取状态标志
+        
+        # 后台爬取管理器
+        from src.core.crawler_manager import CrawlerManager
+        self.crawler_manager = CrawlerManager()
+        
+        # 爬取状态
+        self.current_task_id: Optional[str] = None  # 当前任务ID
+        self.is_crawling = False  # 爬取状态标志（用于UI显示）
         # 当前正在爬取的ID（用于状态显示）
         self.current_crawling_id: Optional[str] = None
         self.loading_animation = None  # 加载动画组件
@@ -103,6 +109,10 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 排序相关属性
         self._sorted_history: List[str] = []  # 排序后的历史记录ID顺序
+        
+        # 注册回调函数
+        self.crawler_manager.register_status_callback(self._on_crawl_status_change)
+        self.crawler_manager.register_notification_callback(self._on_crawl_success_notify)
 
     def _get_rating_display(self, rating: int) -> str:
         """
@@ -153,7 +163,9 @@ class CrawlerManagementScreen(Screen[None]):
         yield Header()
         yield Container(
             Vertical(
+                # Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
                 Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
+                # 显示星级评分
                 Label(self._get_rating_display(self.novel_site.get('rating', 2)), id="rating-label", classes="rating-display"),
                 Label(f"{get_global_i18n().t('crawler.book_id_example')}: {self.novel_site.get('book_id_example', '')}", id="book-id-example-label"),
 
@@ -189,6 +201,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 小说ID输入区域
                     Vertical(
                         Horizontal(
+                            # 根据书籍网站的"是否支持选择书籍"设置显示选择书籍按钮
                             *([Button(get_global_i18n().t('crawler.select_books'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
@@ -225,6 +238,18 @@ class CrawlerManagementScreen(Screen[None]):
                 # 加载动画区域
                 Static("", id="loading-animation"),
 
+                # 快捷键状态栏
+                # Horizontal(
+                #     Label(get_global_i18n().t('crawler.shortcut_o'), id="shortcut-o"),
+                #     Label(get_global_i18n().t('crawler.shortcut_r'), id="shortcut-r"),
+                #     Label(get_global_i18n().t('crawler.shortcut_s'), id="shortcut-s"),
+                #     Label(get_global_i18n().t('crawler.shortcut_v'), id="shortcut-v"),
+                #     Label(get_global_i18n().t('crawler.shortcut_b'), id="shortcut-b"),
+                #     Label(get_global_i18n().t('crawler.shortcut_p'), id="shortcut-p"),
+                #     Label(get_global_i18n().t('crawler.shortcut_n'), id="shortcut-n"),
+                #     Label(get_global_i18n().t('crawler.shortcut_esc'), id="shortcut-esc"),
+                #     id="shortcuts-bar", classes="status-bar"
+                # ),
                 id="crawler-container"
             )
         )
@@ -232,7 +257,10 @@ class CrawlerManagementScreen(Screen[None]):
     
     def on_mount(self) -> None:
         """屏幕挂载时的回调"""
+        # 设置挂载标志
         self.is_mounted_flag = True
+        
+        # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
         # 权限提示与按钮状态
@@ -263,7 +291,11 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.retry'), key="retry")
         
         table.zebra_stripes = True
+        
+        # 初始化加载动画
         self._initialize_loading_animation()
+        
+        # 加载爬取历史
         self._load_crawl_history()
         
         # 设置焦点到表格，确保光标位置能够正确恢复
@@ -274,17 +306,98 @@ class CrawlerManagementScreen(Screen[None]):
             # 如果表格焦点设置失败，回退到输入框
             self.query_one("#novel-id-input", Input).focus()
     
+    def _on_crawl_status_change(self, task_id: str, task: Any) -> None:
+        """爬取状态变化回调"""
+        try:
+            from src.core.crawler_manager import CrawlStatus
+            
+            # 更新UI状态
+            if task.status == CrawlStatus.RUNNING:
+                self.is_crawling = True
+                self.current_crawling_id = task.current_novel_id
+                
+                # 更新状态显示
+                if task.current_novel_id:
+                    status_text = f"{get_global_i18n().t('crawler.crawling')} ({task.progress}/{task.total}): {task.current_novel_id}"
+                    self.app.call_later(self._update_status, status_text)
+                
+            elif task.status in [CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED]:
+                self.is_crawling = False
+                self.current_crawling_id = None
+                self.current_task_id = None
+                
+                # 显示最终结果
+                if task.status == CrawlStatus.COMPLETED:
+                    status_text = f"{get_global_i18n().t('crawler.crawl_completed')}: {task.success_count} {get_global_i18n().t('crawler.success')}, {task.failed_count} {get_global_i18n().t('crawler.failed')}"
+                elif task.status == CrawlStatus.FAILED:
+                    status_text = f"{get_global_i18n().t('crawler.crawl_failed')}: {task.error_message}"
+                else:
+                    status_text = get_global_i18n().t('crawler.crawl_stopped')
+                
+                self.app.call_later(self._update_status, status_text)
+                self.app.call_later(self._update_crawl_button_state)
+                self.app.call_later(self._hide_loading_animation)
+                
+                # 刷新历史记录
+                self.app.call_later(self._load_crawl_history)
+            
+        except Exception as e:
+            logger.error(f"爬取状态回调处理失败: {e}")
+    
+    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str) -> None:
+        """爬取成功通知回调"""
+        try:
+            # 清理输入框中的ID
+            self.app.call_later(self._remove_id_from_input, novel_id)
+            
+            # 发送全局通知（跨页面）
+            def send_global_notification():
+                try:
+                    # 发送全局通知到书架页面，更新书架列表
+                    if hasattr(self.app, 'post_message'):
+                        try:
+                            from src.ui.messages import RefreshBookshelfMessage
+                            self.app.post_message(RefreshBookshelfMessage())
+                        except ImportError:
+                            logger.debug("RefreshBookshelfMessage 导入失败，使用备用通知方式")
+                    
+                    # 在主界面显示成功通知
+                    if hasattr(self.app, 'post_message'):
+                        try:
+                            from src.ui.messages import CrawlCompleteNotification
+                            self.app.post_message(CrawlCompleteNotification(
+                                success=True,
+                                novel_title=novel_title,
+                                message=f"成功爬取小说: {novel_title}"
+                            ))
+                        except ImportError:
+                            logger.debug("CrawlCompleteNotification 导入失败，使用备用通知方式")
+                except Exception as e:
+                    logger.debug(f"发送全局通知失败: {e}")
+            
+            self.app.call_later(send_global_notification)
+            
+            # 刷新当前页面的历史记录
+            self.app.call_later(self._load_crawl_history)
+            
+        except Exception as e:
+            logger.error(f"爬取成功通知回调处理失败: {e}")
+    
     def _load_crawl_history(self) -> None:
         """加载爬取历史记录"""
         try:
+            # 从数据库加载爬取历史
             site_id = self.novel_site.get('id')
             if site_id:
                 db_history = self.db_manager.get_crawl_history_by_site(site_id, limit=100)
                 
+                # 转换数据库格式为显示格式
                 self.crawler_history = []
                 for item in db_history:
+                    # 转换状态显示文本
                     status_text = get_global_i18n().t('crawler.status_success') if item['status'] == 'success' else get_global_i18n().t('crawler.status_failed')
                     
+                    # 转换时间格式
                     try:
                         from datetime import datetime
                         crawl_time = datetime.fromisoformat(item['crawl_time']).strftime("%Y-%m-%d %H:%M:%S")
@@ -330,6 +443,13 @@ class CrawlerManagementScreen(Screen[None]):
     def _update_history_table(self) -> None:
         """更新历史记录表格"""
         try:
+            # 确保组件已经挂载
+            if not self.is_mounted_flag:
+                logger.debug("组件尚未挂载，延迟更新历史记录表格")
+                # 延迟100ms后重试
+                self.set_timer(0.1, self._update_history_table)
+                return
+
             table = self.query_one("#crawl-history-table", DataTable)
             
             # 保存当前光标位置
@@ -392,11 +512,20 @@ class CrawlerManagementScreen(Screen[None]):
             table.focus()
             
         except Exception as e:
-            logger.error(f"更新历史记录表格失败: {e}")
+            logger.debug(f"更新历史记录表格失败: {e}")
+            # 延迟重试
+            self.set_timer(0.1, self._update_history_table)
     
     def _update_pagination_info(self) -> None:
         """更新分页信息"""
         try:
+            # 确保组件已经挂载
+            if not self.is_mounted_flag:
+                logger.debug("组件尚未挂载，延迟更新分页信息")
+                # 延迟100ms后重试
+                self.set_timer(0.1, self._update_pagination_info)
+                return
+
             total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
             page_info = f"第 {self.current_page} 页，共 {total_pages} 页，总计 {len(self.crawler_history)} 条记录"
             
@@ -1166,15 +1295,15 @@ class CrawlerManagementScreen(Screen[None]):
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
-        if not self.is_crawling:
+        if not self.current_task_id:
             self._update_status(get_global_i18n().t('crawler.no_crawl_in_progress'))
             return
         
-        # 设置停止标志
-        self.is_crawling = False
-        self._update_crawl_button_state()
-        self._hide_loading_animation()
-        self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+        # 使用后台爬取管理器停止任务
+        if self.crawler_manager.stop_crawl_task(self.current_task_id):
+            self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+        else:
+            self._update_status(get_global_i18n().t('crawler.stop_crawl_failed'), "error")
     
     def _start_crawl(self) -> None:
         """开始爬取小说"""
@@ -1262,21 +1391,20 @@ class CrawlerManagementScreen(Screen[None]):
         # 清空之前的提示信息
         self._update_status("")
         
-        # 设置爬取状态
-        self.is_crawling = True
+        # 使用后台爬取管理器启动任务
+        site_id = self.novel_site.get('id')
+        if not site_id:
+            self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+            return
         
-        # 立即更新按钮状态和显示加载动画
-        # 使用call_after_refresh确保在UI刷新后执行
-        self.call_after_refresh(self._update_crawl_button_state)
-        self.call_after_refresh(self._show_loading_animation)
+        # 启动后台爬取任务
+        task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
+        self.current_task_id = task_id
         
-        # 开始爬取
-        self._update_status(get_global_i18n().t('crawler.starting_crawl'))
+        # 显示启动状态
+        self._update_status(f"{get_global_i18n().t('crawler.starting_crawl')} ({len(novel_ids)} {get_global_i18n().t('crawler.books')})")
         
-        # 实现实际的爬取逻辑
-        # 使用异步执行爬取任务，避免阻塞UI更新
-        # 调用实际爬取方法 - 使用app级别的run_worker，确保页面卸载时爬取继续
-        self.app.run_worker(self._actual_crawl_multiple(novel_ids, proxy_config), name="crawl-worker")
+        # 状态更新由回调函数处理，这里不需要手动设置
     
     def _check_proxy_requirements_sync(self) -> Dict[str, Any]:
         """
@@ -1587,10 +1715,52 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             # 确保组件已经挂载
             if not self.is_mounted_flag:
-                logger.debug("组件尚未挂载，延迟重置爬取状态")
-                # 延迟100ms后重试
-                self.set_timer(0.1, self._reset_crawl_state)
                 return
+            
+            # 重置所有爬取相关的状态
+            self.is_crawling = False
+            self.current_crawling_id = None
+            self.current_task_id = None
+            
+            # 更新UI状态
+            self._update_crawl_button_state()
+            self._hide_loading_animation()
+            
+            # 重置状态显示
+            self.app.call_later(self._update_status, get_global_i18n().t('crawler.ready'))
+            
+            logger.debug("爬取状态已重置")
+        except Exception as e:
+            logger.error(f"重置爬取状态失败: {e}")
+    
+    def _sync_ui_state_with_crawler(self) -> None:
+        """同步UI状态与爬取器状态"""
+        try:
+            from src.core.crawler_manager import CrawlStatus
+            
+            # 检查当前是否有正在运行的任务
+            if self.current_task_id:
+                task = self.crawler_manager.get_task_by_id(self.current_task_id)
+                if task and task.status != CrawlStatus.COMPLETED and task.status != CrawlStatus.FAILED:
+                    # 任务仍在运行，同步状态
+                    self.is_crawling = True
+                    self.current_crawling_id = task.current_novel_id
+                else:
+                    # 任务已完成或失败，重置状态
+                    self._reset_crawl_state()
+            else:
+                # 没有任务，确保状态正确
+                self._reset_crawl_state()
+            
+            # 更新UI
+            self._update_crawl_button_state()
+            
+        except Exception as e:
+            logger.error(f"同步UI状态失败: {e}")
+            # 如果同步失败，保守地重置状态
+            self._reset_crawl_state()
+            self.set_timer(0.1, self._reset_crawl_state)
+            return
 
             self.is_crawling = False
             self._update_crawl_button_state()
@@ -1604,52 +1774,10 @@ class CrawlerManagementScreen(Screen[None]):
                 if remaining_ids and not self.is_crawling:
                     # 在UI刷新后触发下一轮爬取
                     self.call_after_refresh(self._start_crawl)
-            except Exception:
-                pass
-        except Exception as e:
-            logger.debug(f"重置爬取状态失败: {e}")
-            # 延迟重试
-            self.set_timer(0.1, self._reset_crawl_state)
-    
-    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
-        """异步解析小说详情
-        
-        Args:
-            parser: 解析器实例
-            novel_id: 小说ID
-            
-        Returns:
-            Dict[str, Any]: 解析结果
-        """
-        import asyncio
-        
-        try:
-            # 使用异步方式执行网络请求
-            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
-            
-            # 解析小说详情
-            novel_content = parser.parse_novel_detail(novel_id)
-            
-            # 获取存储文件夹
-            storage_folder = self.novel_site.get('storage_folder', 'novels')
-            # 展开路径中的 ~ 符号
-            storage_folder = os.path.expanduser(storage_folder)
-            
-            # 保存小说到文件
-            file_path = parser.save_to_file(novel_content, storage_folder)
-            
-            return {
-                'success': True,
-                'title': novel_content.get('title', novel_id),
-                'file_path': file_path
-            }
-            
-        except Exception as e:
-            logger.error(f"解析小说详情失败: {e}")
-            return {
-                'success': False,
-                'error_message': str(e)
-            }
+            except Exception as e:
+                logger.debug(f"重置爬取状态失败: {e}")
+                # 延迟重试
+                self.set_timer(0.1, self._reset_crawl_state)
     
     async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
         """异步解析小说详情
@@ -1697,86 +1825,6 @@ class CrawlerManagementScreen(Screen[None]):
         self.current_crawling_id = None
         self._update_crawl_button_state()
         self._hide_loading_animation()
-    
-    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
-        """异步解析小说详情
-        
-        Args:
-            parser: 解析器实例
-            novel_id: 小说ID
-            
-        Returns:
-            Dict[str, Any]: 解析结果
-        """
-        import asyncio
-        
-        try:
-            # 使用异步方式执行网络请求
-            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
-            
-            # 解析小说详情
-            novel_content = parser.parse_novel_detail(novel_id)
-            
-            # 获取存储文件夹
-            storage_folder = self.novel_site.get('storage_folder', 'novels')
-            # 展开路径中的 ~ 符号
-            storage_folder = os.path.expanduser(storage_folder)
-            
-            # 保存小说到文件
-            file_path = parser.save_to_file(novel_content, storage_folder)
-            
-            return {
-                'success': True,
-                'title': novel_content.get('title', novel_id),
-                'file_path': file_path
-            }
-            
-        except Exception as e:
-            logger.error(f"解析小说详情失败: {e}")
-            return {
-                'success': False,
-                'error_message': str(e)
-            }
-    
-    async def _async_parse_novel_detail(self, parser, novel_id: str) -> Dict[str, Any]:
-        """异步解析小说详情
-        
-        Args:
-            parser: 解析器实例
-            novel_id: 小说ID
-            
-        Returns:
-            Dict[str, Any]: 解析结果
-        """
-        import asyncio
-        
-        try:
-            # 使用异步方式执行网络请求
-            await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
-            
-            # 解析小说详情
-            novel_content = parser.parse_novel_detail(novel_id)
-            
-            # 获取存储文件夹
-            storage_folder = self.novel_site.get('storage_folder', 'novels')
-            # 展开路径中的 ~ 符号
-            storage_folder = os.path.expanduser(storage_folder)
-            
-            # 保存小说到文件
-            file_path = parser.save_to_file(novel_content, storage_folder)
-            
-            return {
-                'success': True,
-                'title': novel_content.get('title', novel_id),
-                'file_path': file_path
-            }
-            
-        except Exception as e:
-            logger.error(f"解析小说详情失败: {e}")
-            return {
-                'success': False,
-                'error_message': str(e)
-            }
     
     def on_unmount(self) -> None:
         """屏幕卸载时的回调"""
