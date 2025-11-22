@@ -1463,6 +1463,8 @@ class CrawlerManagementScreen(Screen[None]):
                             )
                         
                         self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.crawl_success')}: {novel_id}")
+                        # 爬取成功后清理输入框中的ID
+                        self.app.call_later(self._remove_id_from_input, novel_id)
                     else:
                         failed_count += 1
                         
