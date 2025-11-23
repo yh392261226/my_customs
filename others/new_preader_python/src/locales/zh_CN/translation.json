@@ -552,7 +552,7 @@
         "pager": "第{current}/{total}页",
         "pager_without_statistics": "第{current}/{total}页 (统计已关闭)",
         "reminder_message": "您已连续阅读 {minutes}分{seconds}秒，建议休息{interval}分钟，保护眼睛健康",
-        "vocabulary_info": "单词本中: 按删除键删除单词"
+        "vocabulary_info": "已进入单词本中: 按删除键删除单词"
     },
     "help": {
         "title": "帮助中心",

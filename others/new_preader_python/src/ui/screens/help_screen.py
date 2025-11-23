@@ -52,7 +52,7 @@ class HelpScreen(Screen[None]):
             f"### {t('reader.title')}\n"
             f"- ← p/n → : {t('help.prev_next_page')}\n"
             f"- ↑/↓ : {t('help.scroll_content')}\n"
-            f"- g   : {t('reader.go_to_page')}\n"
+            f"- g   : {t('help.go_to_page')}\n"
             f"- a   : {t('reader.auto_page')}\n"
             f"- b   : {t('reader.bookmark')}\n"
             f"- B   : {t('reader.bookmark_list')}\n"
@@ -87,7 +87,7 @@ class HelpScreen(Screen[None]):
             f"- g    : {t('bookshelf.get_books')}\n"
             f"- p/n  : {t('bookshelf.prev_page')} / {t('bookshelf.next_page')}\n"
             f"- ↑↓   : {t('bookshelf.choose_book')}\n"
-            f"- x    : {t('bookshelf.clear_search_params')}"
+            f"- x    : {t('bookshelf.clear_search_params')}\n"
             f"- Enter: {t('bookshelf.open_book')}\n"
             f"- ESC  : {t('bookshelf.back')}\n\n"
             # 文件资源管理器
@@ -108,10 +108,9 @@ class HelpScreen(Screen[None]):
             f"### {t('get_books.title')}\n"
             f"- N    : {t('get_books.novel_sites')}\n"
             f"- P    : {t('get_books.proxy_settings')}\n"
-            f"- Space: {t('get_books.shortcut_space')}\n"
-            f"- Enter: {t('get_books.shortcut_enter')}\n"
             f"- p    : {t('crawler.prev_page')}\n"
             f"- n    : {t('crawler.next_page')}\n"
+            f"- Space: {t('get_books.shortcut_space')}\n"
             f"- Enter: {t('get_books.shortcut_enter')}\n"
             f"- ESC  : {t('common.back')}\n\n"
             # 统计
@@ -127,7 +126,7 @@ class HelpScreen(Screen[None]):
             f"- b    : {t('novel_sites.batch_delete')}\n"
             f"- p    : {t('crawler.prev_page')}\n"
             f"- n    : {t('crawler.next_page')}\n"
-            f"- Enter: {t('novel_sites.shortcut_enter')}\n"
+            f"- Enter: {t('get_books.shortcut_enter')}\n"
             f"- Space: {t('batch_ops.toggle_rows')}\n"
             f"- ESC  : {t('common.back')}\n\n"
             # 代理列表
