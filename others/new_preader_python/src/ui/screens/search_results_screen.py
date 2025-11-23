@@ -109,57 +109,57 @@ class SearchResultsScreen(Screen[None]):
         if event.key == "escape":
             self.app.pop_screen()
             event.stop()
-        elif event.key == "n":
-            # N键下一页
-            if not self._has_permission("search_results.navigation"):
-                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-                event.stop()
-                return
-            if self._current_page < self._total_pages:
-                self._current_page += 1
-                self._refresh_table()
-            event.prevent_default()
-        elif event.key == "p":
-            # P键上一页
-            if not self._has_permission("search_results.navigation"):
-                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-                event.stop()
-                return
-            if self._current_page > 1:
-                self._current_page -= 1
-                self._refresh_table()
-            event.prevent_default()
+        # elif event.key == "n":
+        #     # N键下一页
+        #     if not self._has_permission("search_results.navigation"):
+        #         self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
+        #         event.stop()
+        #         return
+        #     if self._current_page < self._total_pages:
+        #         self._current_page += 1
+        #         self._refresh_table()
+        #     event.prevent_default()
+        # elif event.key == "p":
+        #     # P键上一页
+        #     if not self._has_permission("search_results.navigation"):
+        #         self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
+        #         event.stop()
+        #         return
+        #     if self._current_page > 1:
+        #         self._current_page -= 1
+        #         self._refresh_table()
+        #     event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            if not self._has_permission("search_results.navigation"):
-                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-                event.stop()
-                return
+            # if not self._has_permission("search_results.navigation"):
+            #     self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
+            #     event.stop()
+            #     return
             table = self.query_one("#results-table", DataTable)
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
-                self._current_page += 1
-                self._refresh_table()
+                self._go_to_next_page()
                 # 将光标移动到新页面的第一行
-                table = self.query_one("#results-table", DataTable)
-                table.action_cursor_down()  # 先向下移动一次
-                table.action_cursor_up()     # 再向上移动一次，确保在第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
                 event.prevent_default()
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            if not self._has_permission("search_results.navigation"):
-                self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
                 event.stop()
                 return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            # if not self._has_permission("search_results.navigation"):
+            #     self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
+            #     event.stop()
+            #     return
             table = self.query_one("#results-table", DataTable)
             if table.cursor_row == 0 and self._current_page > 1:
-                self._current_page -= 1
-                self._refresh_table()
+                self._go_to_prev_page()
                 # 将光标移动到新页面的最后一行
-                table = self.query_one("#results-table", DataTable)
-                for _ in range(len(table.rows) - 1):
-                    table.action_cursor_down()  # 移动到最底部
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
                 event.prevent_default()
+                event.stop()
+                return
 
     # Actions for BINDINGS
     def action_next_page(self) -> None:
@@ -219,12 +219,10 @@ class SearchResultsScreen(Screen[None]):
         # 填充表格数据
         table.clear()
         for row_data in table_data:
-            # 根据实际数据结构调整列
+            # 根据实际数据结构调整列（只添加2列，对应表格的2列）
             table.add_row(
-                row_data.get("column1", ""),
-                row_data.get("column2", ""),
-                row_data.get("column3", ""),
-                # 添加更多列...
+                row_data.get("page", ""),
+                row_data.get("preview", "")
             )
         
         # 更新分页信息
@@ -241,38 +239,87 @@ class SearchResultsScreen(Screen[None]):
         if table.row_count > 0:
             table.move_cursor(row=0)
 
+    def _handle_result_selection(self, result_index: int) -> None:
+        """处理结果选择跳转"""
+        if not self.results or result_index < 0 or result_index >= len(self.results):
+            return
+            
+        result = self.results[result_index]
+        page = result.get('page', 1)
+        
+        # 如果提供了renderer，直接跳转页面
+        if hasattr(self, 'renderer') and self.renderer:
+            if self.renderer.goto_page(page):
+                self.app.pop_screen()
+                # 通知阅读器页面已跳转
+                reader_screen = self.app.screen_stack[-1] if self.app.screen_stack else None
+                if reader_screen is not None:
+                    screen_any = cast(Any, reader_screen)
+                    if hasattr(screen_any, "_on_page_change"):
+                        screen_any._on_page_change(page)
+        else:
+            # 返回到阅读器并传递跳转信息
+            self.dismiss(page)
+
     @on(DataTable.RowSelected)
     def on_row_selected(self, event: DataTable.RowSelected) -> None:
-        """处理表格行选择事件"""
+        """处理表格行选择事件（点击跳转）"""
         if not self.results:
             return
             
-        # 从行键映射获取实际结果索引
-        row_key = event.row_key
-        if not row_key:
-            return
-            
-        actual_index = self._row_key_mapping.get(row_key)
-        if actual_index is None:
-            return
+        # 获取当前选中行的索引
+        table = self.query_one("#results-table", DataTable)
+        selected_row = table.cursor_row
+        
+        # 计算实际结果索引（考虑分页）
+        start_index = (self._current_page - 1) * self._results_per_page
+        actual_index = start_index + selected_row
         
         if 0 <= actual_index < len(self.results):
-            result = self.results[actual_index]
-            page = result.get('page', 1)
+            self._handle_result_selection(actual_index)
+
+    def on_key(self, event: events.Key) -> None:
+        """处理键盘导航"""
+        if event.key == "escape":
+            self.app.pop_screen()
+            event.stop()
+        elif event.key == "enter":
+            # 回车键跳转当前选中行
+            if not self.results:
+                return
+                
+            table = self.query_one("#results-table", DataTable)
+            selected_row = table.cursor_row
             
-            # 如果提供了renderer，直接跳转页面
-            if hasattr(self, 'renderer') and self.renderer:
-                if self.renderer.goto_page(page):
-                    self.app.pop_screen()
-                    # 通知阅读器页面已跳转
-                    reader_screen = self.app.screen_stack[-1] if self.app.screen_stack else None
-                    if reader_screen is not None:
-                        screen_any = cast(Any, reader_screen)
-                        if hasattr(screen_any, "_on_page_change"):
-                            screen_any._on_page_change(page)
-            else:
-                # 返回到阅读器并传递跳转信息
-                self.dismiss(page)
+            # 计算实际结果索引
+            start_index = (self._current_page - 1) * self._results_per_page
+            actual_index = start_index + selected_row
+            
+            if 0 <= actual_index < len(self.results):
+                self._handle_result_selection(actual_index)
+                event.stop()
+        elif event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            table = self.query_one("#results-table", DataTable)
+            if (table.cursor_row == len(table.rows) - 1 and 
+                self._current_page < self._total_pages):
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            table = self.query_one("#results-table", DataTable)
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._go_to_prev_page()
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
+                event.stop()
+                return
 
     @on(Button.Pressed, "#back-button")
     def on_back_button_pressed(self, event: Button.Pressed) -> None:
