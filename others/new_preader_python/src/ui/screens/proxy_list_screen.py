@@ -30,7 +30,8 @@ class ProxyListScreen(Screen[None]):
         ("t", "test_connection", get_global_i18n().t('proxy_settings.test_connection')),
         ("e", "edit_proxy", get_global_i18n().t('common.edit')),
         ("d", "delete_proxy", get_global_i18n().t('common.delete')),
-        
+        ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
+        ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
     ]
 
     """代理列表管理屏幕"""
@@ -220,6 +221,17 @@ class ProxyListScreen(Screen[None]):
         
         # 填充表格数据
         table.clear()
+        
+        # 检查表格是否已经有列，如果没有则添加列
+        if len(table.columns) == 0:
+            table.add_column("状态", key="status")
+            table.add_column("名称", key="name")
+            table.add_column("类型", key="type")
+            table.add_column("主机", key="host")
+            table.add_column("端口", key="port")
+            table.add_column("用户名", key="username")
+            table.add_column("更新时间", key="update_time")
+        
         for row_data in virtual_data:
             table.add_row(
                 row_data["status"],
@@ -470,7 +482,7 @@ class ProxyListScreen(Screen[None]):
     def _refresh_list(self) -> None:
         """刷新代理列表"""
         self._load_proxy_list()
-        self._init_table()
+        self._fill_table_data()
         self._update_pagination_info()
     
     def _update_status(self, message: str, severity: str = "information") -> None:
@@ -567,18 +579,52 @@ class ProxyListScreen(Screen[None]):
         """处理键盘事件"""
         table = self.query_one("#proxy-list-table", DataTable)
         
+        # 先检查跨页导航条件
+        if event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if table.cursor_row == len(table.rows) - 1 and self._current_page < self._total_pages:
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._go_to_prev_page()
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        
+        # 让表格处理其他键盘事件（光标移动等）
+        if table.has_focus:
+            # 如果是表格有焦点，让表格处理这些按键
+            if event.key in ["up", "down", "left", "right"]:
+                # 上下键移动时更新选中状态
+                if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+                    row_index = table.cursor_row
+                    if 0 <= row_index < len(self.proxy_list):
+                        self.selected_proxy_id = self.proxy_list[row_index].get("id")
+                        logger.debug(f"键盘移动选中代理ID: {self.selected_proxy_id}")
+                return
+        
         if event.key == "escape":
             # ESC键返回
             self.app.pop_screen()
             event.stop()
-        elif event.key in ["up", "down"]:
-            # 上下键移动时更新选中状态
-            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
-                row_index = table.cursor_row
-                if 0 <= row_index < len(self.proxy_list):
-                    self.selected_proxy_id = self.proxy_list[row_index].get("id")
-                    logger.debug(f"键盘移动选中代理ID: {self.selected_proxy_id}")
     
+    def action_next_page(self) -> None:
+        """下一页"""
+        self._go_to_next_page()
+
+    def action_prev_page(self) -> None:
+        """上一页"""
+        self._go_to_prev_page()
+
     # 分页导航方法
     def _go_to_first_page(self) -> None:
         """跳转到第一页"""

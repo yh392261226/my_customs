@@ -446,17 +446,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             table = self.query_one("#batch-ops-table", DataTable)
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
-                self._current_page += 1
-                self._load_books()
-                # 不需要手动设置光标，_load_books() 已经会自动恢复光标位置
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
                 event.stop()
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             table = self.query_one("#batch-ops-table", DataTable)
             if table.cursor_row == 0 and self._current_page > 1:
-                self._current_page -= 1
-                self._load_books()
-                # 不需要手动设置光标，_load_books() 已经会自动恢复光标位置
+                self._go_to_prev_page()
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
                 event.stop()
 
     def on_data_table_cell_selected(self, event) -> None:

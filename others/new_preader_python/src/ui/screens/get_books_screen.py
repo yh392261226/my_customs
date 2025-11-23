@@ -827,24 +827,21 @@ class GetBooksScreen(Screen[None]):
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             if (table.cursor_row == len(table.rows) - 1 and 
                 self._current_page < self._total_pages):
-                self._current_page += 1
-                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                self._go_to_next_page()
                 # 将光标移动到新页面的第一行
-                table = self.query_one("#novel-sites-table", DataTable)
-                table.action_cursor_down()  # 先向下移动一次
-                table.action_cursor_up()     # 再向上移动一次，确保在第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
                 event.prevent_default()
+                event.stop()
                 return
         elif event.key == "up":
             # 上键：如果到达当前页顶部且有上一页，则翻到上一页
             if table.cursor_row == 0 and self._current_page > 1:
-                self._current_page -= 1
-                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                self._go_to_prev_page()
                 # 将光标移动到新页面的最后一行
-                table = self.query_one("#novel-sites-table", DataTable)
-                for _ in range(len(table.rows) - 1):
-                    table.action_cursor_down()  # 移动到最底部
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
                 event.prevent_default()
+                event.stop()
                 return
 
         if event.key == "escape":

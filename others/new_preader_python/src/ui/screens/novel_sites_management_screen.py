@@ -983,11 +983,25 @@ class NovelSitesManagementScreen(Screen[None]):
         # 获取表格控件
         table = self.query_one("#novel-sites-table", DataTable)
         
-        # 让表格先处理键盘事件（光标移动等）
-        if table.has_focus:
-            # 如果是表格有焦点，让表格处理这些按键
-            if event.key in ["up", "down", "left", "right"]:
-                # 表格会处理这些按键，不需要额外处理
+        # 先检查跨页导航条件
+        if event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if table.cursor_row == len(table.rows) - 1 and self._current_page < self._total_pages:
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._go_to_prev_page()
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
+                event.stop()
                 return
         
         if event.key == "escape" or event.key == "q":
@@ -1034,26 +1048,6 @@ class NovelSitesManagementScreen(Screen[None]):
             # P键上一页
             self._go_to_prev_page()
             event.prevent_default()
-        elif event.key == "down":
-            # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            if table.cursor_row == len(table.rows) - 1 and self._current_page < self._total_pages:
-                self._current_page += 1
-                self._update_table()
-                # 将光标移动到新页面的第一行
-                table = self.query_one("#novel-sites-table", DataTable)
-                table.action_cursor_down()
-                table.action_cursor_up()
-                event.prevent_default()
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            if table.cursor_row == 0 and self._current_page > 1:
-                self._current_page -= 1
-                self._update_table()
-                # 将光标移动到新页面的最后一行
-                table = self.query_one("#novel-sites-table", DataTable)
-                for _ in range(len(table.rows) - 1):
-                    table.action_cursor_down()
-                event.prevent_default()
     
     def _update_pagination_info(self) -> None:
         """更新分页信息显示"""

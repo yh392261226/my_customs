@@ -899,4 +899,34 @@ class UsersManagementScreen(Screen[None]):
             prompt=f"{get_global_i18n().t('batch_ops.type_num')} (1-{self._total_pages})",
             placeholder=f"{get_global_i18n().t('batch_ops.current')}: {self._current_page}/{self._total_pages}"
         )
-        self.app.push_screen(dialog, handle_jump_result)        
+        self.app.push_screen(dialog, handle_jump_result)
+
+    def on_key(self, event) -> None:
+        """
+        处理键盘事件
+        
+        Args:
+            event: 键盘事件
+        """
+        table = self.query_one("#users-table", DataTable)
+        
+        # 先检查跨页导航条件
+        if event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if table.cursor_row == len(table.rows) - 1 and self._current_page < self._total_pages:
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._go_to_prev_page()
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
+                event.stop()
+                return        

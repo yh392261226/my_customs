@@ -86,10 +86,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 首先尝试使用cursor_row
         if hasattr(table, 'cursor_row') and table.cursor_row is not None:
             current_row_index = table.cursor_row
-        # 其次尝试使用内部属性
-        elif hasattr(table, '_cursor_row') and table._cursor_row is not None:
-            current_row_index = table._cursor_row
-        # 最后尝试使用cursor_coordinate
+        # 其次尝试使用cursor_coordinate
         elif hasattr(table, 'cursor_coordinate') and table.cursor_coordinate:
             coord = table.cursor_coordinate
             current_row_index = coord.row
@@ -408,6 +405,8 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             table = self.query_one("#crawl-history-table", DataTable)
             table.focus()
+            # 确保表格能够接收键盘事件
+            table.can_focus = True
         except Exception:
             # 如果表格焦点设置失败，回退到输入框
             self.query_one("#novel-id-input", Input).focus()
@@ -2141,6 +2140,33 @@ class CrawlerManagementScreen(Screen[None]):
     
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
+        table = self.query_one("#crawl-history-table", DataTable)
+        
+        # 动态计算总页数
+        total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+        
+        # 方向键翻页功能
+        if event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            if (table.cursor_row == len(table.rows) - 1 and 
+                self.current_page < total_pages):
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            if table.cursor_row == 0 and self.current_page > 1:
+                self._go_to_prev_page()
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        
         if event.key == "escape":
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()

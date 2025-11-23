@@ -16,9 +16,12 @@ from src.core.bookmark import BookmarkManager, Bookmark
 from src.ui.dialogs.bookmark_edit_dialog import BookmarkEditDialog
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from src.core.database_manager import DatabaseManager
+from src.utils.logger import get_logger
 
 # 类型与协议（消除对具体 ReaderScreen 的静态依赖）
 from typing import Protocol, runtime_checkable, cast, Any
+
+logger = get_logger(__name__)
 
 @runtime_checkable
 class ReaderLike(Protocol):
@@ -354,23 +357,11 @@ class BookmarksScreen(Screen[None]):
             self._goto_selected_bookmark()
         elif event.key == "n":
             # N键下一页
-            if not self._has_permission("bookmarks.navigation"):
-                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
-                event.stop()
-                return
-            if self._current_page < self._total_pages:
-                self._current_page += 1
-                self._refresh_bookmark_list()
+            self._go_to_next_page()
             event.prevent_default()
         elif event.key == "p":
             # P键上一页
-            if not self._has_permission("bookmarks.navigation"):
-                self.notify(get_global_i18n().t("bookmarks.np_turn_page"), severity="error")
-                event.stop()
-                return
-            if self._current_page > 1:
-                self._current_page -= 1
-                self._refresh_bookmark_list()
+            self._go_to_prev_page()
             event.prevent_default()
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
@@ -381,10 +372,8 @@ class BookmarksScreen(Screen[None]):
             list_view = self.query_one("#bookmarks-list", ListView)
             if (list_view.index == len(list_view.children) - 1 and 
                 self._current_page < self._total_pages):
-                self._current_page += 1
-                self._refresh_bookmark_list()
+                self._go_to_next_page()
                 # 将光标移动到新页面的第一项
-                list_view = self.query_one("#bookmarks-list", ListView)
                 list_view.index = 0
                 event.prevent_default()
         elif event.key == "up":
@@ -395,10 +384,8 @@ class BookmarksScreen(Screen[None]):
                 return
             list_view = self.query_one("#bookmarks-list", ListView)
             if list_view.index == 0 and self._current_page > 1:
-                self._current_page -= 1
-                self._refresh_bookmark_list()
+                self._go_to_prev_page()
                 # 将光标移动到新页面的最后一项
-                list_view = self.query_one("#bookmarks-list", ListView)
                 list_view.index = len(list_view.children) - 1
                 event.prevent_default()
     

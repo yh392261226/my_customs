@@ -1280,6 +1280,31 @@ class BookshelfScreen(Screen[None]):
             # ESC键或Q键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
             event.stop()
+        
+        elif event.key == "down":
+            # 下键：如果到达当前页底部且有下一页，则翻到下一页
+            table = self.query_one("#books-table", DataTable)
+            if (table.cursor_row == len(table.rows) - 1 and 
+                self._current_page < self._total_pages):
+                self._go_to_next_page()
+                # 将光标移动到新页面的第一行
+                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+        elif event.key == "up":
+            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
+            table = self.query_one("#books-table", DataTable)
+            if table.cursor_row == 0 and self._current_page > 1:
+                self._go_to_prev_page()
+                # 将光标移动到新页面的最后一行
+                last_row_index = len(table.rows) - 1
+                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
+                event.prevent_default()
+                event.stop()
+                return
+
+        # 方向键翻页功能（在N/P键之前检查，确保优先处理）
         elif event.key == "n":
             # N键下一页
             self._go_to_next_page()
