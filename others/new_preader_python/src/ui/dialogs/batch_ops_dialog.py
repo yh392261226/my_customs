@@ -107,7 +107,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 分页相关属性
         self._current_page = 1
-        self._books_per_page = 20
+        self._books_per_page = 15
         self._total_pages = 1
         self._all_books: List[Any] = []
         
