@@ -209,6 +209,10 @@ FZF_DEFAULT_OPTS+=' --gutter-raw="▚"'
 FZF_DEFAULT_OPTS+=' --color gutter:green '
 FZF_DEFAULT_OPTS+=' --color nomatch:dim:strip:strikethrough '
 FZF_DEFAULT_OPTS+=' --color ghost:red:italic'
+FZF_DEFAULT_OPTS+=' --freeze-left 2 '
+FZF_DEFAULT_OPTS+=' --keep-right '
+FZF_DEFAULT_OPTS+=' --freeze-right 2 '
+
 
 # 历史与标签
 FZF_DEFAULT_OPTS+=" --history=$HOME/.fzf_history "
