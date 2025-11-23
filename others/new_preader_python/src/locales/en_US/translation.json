@@ -551,11 +551,14 @@
         "copy_selected_text": "Copy Selected Text",
         "pager": "Page {current}/{total}",
         "pager_without_statistics": "Page {current}/{total} (Statistics Disabled)",
-        "reminder_message": "Already read {minutes} minutes {seconds} seconds，have a reset {interval} minutes to protect your eyes"
+        "reminder_message": "Already read {minutes} minutes {seconds} seconds，have a reset {interval} minutes to protect your eyes",
+        "vocabulary_info": "In vocabulary: Press Delete key to delete word"
     },
     "help": {
         "title": "Help Center",
+        "sub_title": "New_Preader Shortcuts",
         "keyboard_shortcuts": "Keyboard Shortcuts",
+        "global": "Global Shortcuts",
         "reading_operations": "Reading Operations",
         "prev_next_page": "Previous/Next Page",
         "auto_page_turn": "Auto Page Turn",
@@ -1140,7 +1143,9 @@
         "diff_mode": "Diff Mode",
         "files": "Files",
         "single_mode": "Single File Mode",
-        "multype_mode": "Multiple Files Mode"
+        "multype_mode": "Multiple Files Mode",
+        "right": "Complete path",
+        "updown": "Select complete suggection"
     },
     "lock_screen": {
         "placeholder": "Please enter password to continue",

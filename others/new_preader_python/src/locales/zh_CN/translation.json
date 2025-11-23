@@ -551,11 +551,14 @@
         "copy_selected_text": "复制选中文本",
         "pager": "第{current}/{total}页",
         "pager_without_statistics": "第{current}/{total}页 (统计已关闭)",
-        "reminder_message": "您已连续阅读 {minutes}分{seconds}秒，建议休息{interval}分钟，保护眼睛健康"
+        "reminder_message": "您已连续阅读 {minutes}分{seconds}秒，建议休息{interval}分钟，保护眼睛健康",
+        "vocabulary_info": "单词本中: 按删除键删除单词"
     },
     "help": {
         "title": "帮助中心",
+        "sub_title": "New_Preader 快捷键完整指南",
         "keyboard_shortcuts": "键盘快捷键",
+        "global": "全局",
         "reading_operations": "阅读操作",
         "prev_next_page": "上一页/下一页",
         "auto_page_turn": "自动翻页",
@@ -1140,7 +1143,9 @@
         "diff_mode": "差异模式",
         "files": "文件",
         "single_mode": "单选模式",
-        "multype_mode": "多选模式"
+        "multype_mode": "多选模式",
+        "right": "补全路径",
+        "updown": "选择补全建议"
     },
     "lock_screen": {
         "placeholder": "请输入密码以继续",
