@@ -30,6 +30,7 @@ class NovelSitesManagementScreen(Screen[None]):
         ("enter", "enter_crawler", get_global_i18n().t('get_books.enter')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
     ]
 
     """书籍网站管理屏幕"""
@@ -800,7 +801,7 @@ class NovelSitesManagementScreen(Screen[None]):
     def action_batch_delete(self) -> None:
         self._batch_delete()
 
-    def key_space(self) -> None:
+    def action_toggle_row(self) -> None:
         """空格键 - 选中或取消选中当前行"""
         # 直接处理空格键，不依赖BINDINGS系统
         table = self.query_one("#novel-sites-table", DataTable)

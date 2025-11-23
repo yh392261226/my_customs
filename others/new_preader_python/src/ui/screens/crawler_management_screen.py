@@ -36,19 +36,24 @@ class CrawlerManagementScreen(Screen[None]):
         ("v", "stop_crawl", get_global_i18n().t('crawler.shortcut_v')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
     ]
-    
+
     def action_open_browser(self) -> None:
         self._open_browser()
+        self._update_status(get_global_i18n().t('crawler.browser_opened'), "warning")
 
     def action_view_history(self) -> None:
         self._view_history()
+        self._update_status(get_global_i18n().t('crawler.history_loaded'), "warning")
 
     def action_start_crawl(self) -> None:
         self._start_crawl()
+        self._update_status(get_global_i18n().t('crawler.crawling'), "warning")
 
     def action_stop_crawl(self) -> None:
         self._stop_crawl()
+        self._update_status(get_global_i18n().t('crawler.crawl_stopped'), "warning")
 
     def action_note(self) -> None:
         self._open_note_dialog()
@@ -70,6 +75,107 @@ class CrawlerManagementScreen(Screen[None]):
             # 弹窗提示未开启支持选择书籍
             self._update_status(get_global_i18n().t('crawler.disabled_selectable'), "error")
     
+    def action_toggle_row(self) -> None:
+        """空格键 - 选中或取消选中当前行"""
+        # 直接处理空格键，不依赖BINDINGS系统
+        table = self.query_one("#crawl-history-table", DataTable)
+        
+        # 获取当前光标位置
+        current_row_index = None
+        
+        # 首先尝试使用cursor_row
+        if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+            current_row_index = table.cursor_row
+        # 其次尝试使用内部属性
+        elif hasattr(table, '_cursor_row') and table._cursor_row is not None:
+            current_row_index = table._cursor_row
+        # 最后尝试使用cursor_coordinate
+        elif hasattr(table, 'cursor_coordinate') and table.cursor_coordinate:
+            coord = table.cursor_coordinate
+            current_row_index = coord.row
+        
+        # 检查是否有有效的行索引
+        if current_row_index is None:
+            # 显示提示信息，要求用户先选择一行
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 检查行索引是否在有效范围内
+        current_page_row_count = min(self.items_per_page, len(self.crawler_history) - (self.current_page - 1) * self.items_per_page)
+        if current_row_index < 0 or current_row_index >= current_page_row_count:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 计算当前页的起始索引
+        start_index = (self.current_page - 1) * self.items_per_page
+        
+        # 检查当前行是否有数据
+        if start_index + current_row_index >= len(self.crawler_history):
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 获取当前行的历史记录项
+        history_item = self.crawler_history[start_index + current_row_index]
+        if not history_item:
+            return
+        
+        # 获取记录ID
+        record_id = str(history_item["id"])
+        
+        # 切换选中状态
+        if record_id in self.selected_history:
+            self.selected_history.remove(record_id)
+        else:
+            self.selected_history.add(record_id)
+        
+        # 更新表格显示
+        self._update_history_table()
+        
+        # 更新状态显示
+        selected_count = len(self.selected_history)
+        self._update_status(f"已选中 {selected_count} 项", "information")
+        
+        # 确保表格保持焦点
+        try:
+            table.focus()
+        except Exception:
+            pass
+
+    def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
+        """切换网站选中状态（参考批量操作页面的实现）"""
+        try:
+            # 计算当前页面的起始索引和全局索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            
+            # 检查当前行是否有数据
+            if start_index + current_row_index >= len(self.crawler_history):
+                return
+            
+            # 获取当前行的历史记录项
+            history_item = self.crawler_history[start_index + current_row_index]
+            if not history_item:
+                return
+            
+            # 获取记录ID
+            record_id = str(history_item["id"])
+            
+            # 切换选中状态
+            if record_id in self.selected_history:
+                self.selected_history.remove(record_id)
+            else:
+                self.selected_history.add(record_id)
+            
+            # 重新渲染表格以更新选中状态显示
+            self._update_history_table()
+            
+            # 更新状态显示
+            selected_count = len(self.selected_history)
+            self._update_status(f"已选中 {selected_count} 项", "information")
+                
+        except Exception:
+            # 如果出错，重新渲染整个表格
+            self._update_history_table()
+
     def __init__(self, theme_manager: ThemeManager, novel_site: Dict[str, Any]):
         """
         初始化爬取管理屏幕
@@ -1856,42 +1962,6 @@ class CrawlerManagementScreen(Screen[None]):
         # 爬取工作线程会通过app.call_later和app.post_message来更新UI
         # 即使页面卸载，这些消息也会被正确处理
         logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
-
-    
-    def key_o(self) -> None:
-        """O键 - 打开浏览器"""
-        if self._has_permission("crawler.open_browser"):
-            self._open_browser()
-        else:
-            self._update_status(get_global_i18n().t('crawler.np_open_browser'), "warning")
-    
-    def key_v(self) -> None:
-        """V键 - 查看历史"""
-        if self._has_permission("crawler.view_history"):
-            self._view_history()
-        else:
-            self._update_status(get_global_i18n().t('crawler.np_view_history'), "warning")
-    
-    def key_s(self) -> None:
-        """S键 - 开始爬取"""
-        if self._has_permission("crawler.start_crawl"):
-            self._start_crawl()
-        else:
-            self._update_status(get_global_i18n().t('crawler.np_crawl'), "warning")
-    
-    def key_p(self) -> None:
-        """P键 - 上一页"""
-        if self._has_permission("crawler.navigate"):
-            self._go_to_prev_page()
-        else:
-            self._update_status(get_global_i18n().t('crawler.np_nav'), "warning")
-    
-    def key_n(self) -> None:
-        """N键 - 下一页"""
-        if self._has_permission("crawler.navigate"):
-            self._go_to_next_page()
-        else:
-            self._update_status(get_global_i18n().t('crawler.np_nav'), "warning")
     
     def _view_file(self, history_item: Dict[str, Any]) -> None:
         """查看文件"""

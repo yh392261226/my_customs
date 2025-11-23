@@ -41,6 +41,7 @@ Footer {
 
 #crawler-buttons {
     height: 3;
+    overflow-x: auto;
 }
 
 #crawler-buttons Button {

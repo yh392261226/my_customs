@@ -721,46 +721,6 @@ class GetBooksScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"处理行选择时出错: {e}")
-    
-    def key_N(self) -> None:
-        """N键 - 打开书籍网站管理"""
-        if self._has_permission("get_books.manage_sites"):
-            self.app.push_screen("novel_sites_management")
-        else:
-            self.notify(get_global_i18n().t('get_books.np_manage_booksites'), severity="warning")
-    
-    def key_P(self) -> None:
-        """P键 - 打开代理设置"""
-        if self._has_permission("get_books.manage_proxy"):
-            self.app.push_screen("proxy_list")
-        else:
-            self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
-    
-    def key_enter(self) -> None:
-        """Enter键 - 打开选中的书籍网站"""
-        if self._has_permission("crawler.open"):
-            table = self.query_one("#novel-sites-table", DataTable)
-            # 获取当前光标所在的行
-            current_row = None
-            
-            # 尝试多种方式获取当前行
-            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
-                current_row = table.cursor_row
-            elif hasattr(table, 'cursor_row'):
-                # 如果 cursor_row 存在但是 None，尝试获取 DataTable 的实际光标位置
-                try:
-                    current_row = super(DataTable, table).cursor_row
-                except:
-                    pass
-            
-            if current_row is not None and current_row >= 0:
-                self._open_site_by_row_index(current_row)
-            else:
-                # 如果没有光标行，尝试使用第一行
-                if hasattr(table, '_current_data') and len(table._current_data) > 0:
-                    self._open_site_by_row_index(0)
-        else:
-            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
     # Actions for BINDINGS
     def action_open_novel_sites(self) -> None:
@@ -827,7 +787,7 @@ class GetBooksScreen(Screen[None]):
         table = self.query_one("#novel-sites-table", DataTable)
         
         # 回车键或空格键：打开当前选中的站点
-        if event.key == "enter" or event.key == "space":
+        if event.key == "space":
             # 获取当前选中的行
             if table.cursor_row is not None:
                 # 权限校验：打开爬取管理页面需 crawler.open
@@ -835,8 +795,19 @@ class GetBooksScreen(Screen[None]):
                     self._open_site_by_row_index(table.cursor_row)
                 else:
                     self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+                # 完全阻止事件传播，避免传递到新页面
                 event.prevent_default()
+                event.stop()
                 return
+        if event.key == "enter":
+            # 获取当前选中的行
+            if table.cursor_row is not None:
+                # 权限校验：打开爬取管理页面需 crawler.open
+                if self._has_permission("crawler.open"):
+                    self._open_site_by_row_index(table.cursor_row)
+                else:
+                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+                # 不阻止回车的默认行为
         
         # 数字键 1-9：打开对应行的"进入"
         if event.key in ["1","2","3","4","5","6","7","8","9"]:
