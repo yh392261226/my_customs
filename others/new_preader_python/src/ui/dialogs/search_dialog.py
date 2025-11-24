@@ -6,7 +6,7 @@ from typing import List, Optional
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Select
+from textual.widgets import Button, Input, Label, Select, Header, Footer
 from textual.widgets import DataTable
 from textual import events
 
@@ -26,6 +26,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     BINDINGS = [
         ("enter", "press('#select-btn')", get_global_i18n().t("common.select")),
         ("escape", "press('#cancel-btn')", get_global_i18n().t("common.cancel")),
+        ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -58,6 +59,7 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             display_name = ext.upper().lstrip('.')
             search_options.append((display_name, ext))
 
+        yield Header()
         with Vertical(id="search-dialog"):
             yield Label(get_global_i18n().t("search.title"), id="search-title", classes="section-title")
             with Vertical(id="search-filters", classes="form-row"):
@@ -72,7 +74,15 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             with Horizontal(id="search-buttons", classes="btn-row"):
                 yield Button("← " + get_global_i18n().t("common.cancel"), id="cancel-btn", variant="primary")
                 yield Button(get_global_i18n().t("common.select"), id="select-btn", disabled=True)
+        yield Footer()
     
+    async def action_clear_search_params(self) -> None:
+        """清除搜索参数"""
+        self.query_one("#search-input", Input).value = ""
+        self.query_one("#search-input", Input).placeholder = get_global_i18n().t("search.placeholder")
+        self.query_one("#format-filter", Select).value = "all"
+        await self._perform_search()
+
     def on_mount(self) -> None:
         """挂载时应用主题并初始化表格"""
         # 应用通用样式隔离

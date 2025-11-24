@@ -86,6 +86,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
         ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
+        ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -761,6 +762,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def action_cancel(self) -> None:
         """取消返回"""
         self.dismiss({"refresh": False})
+
+    def action_clear_search_params(self) -> None:
+        """清除搜索参数"""
+        self.query_one("#search-input-field", Input).value = ""
+        self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
+        self.query_one("#search-author-filter", Select).value = "all"
+        self._perform_search()
     
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """

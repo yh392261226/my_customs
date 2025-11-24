@@ -311,27 +311,44 @@ class CrawlerManager:
     
     def stop_crawl_task(self, task_id: str) -> bool:
         """停止爬取任务"""
-        task = self._tasks.get(task_id)
-        if not task:
+        try:
+            task = self._tasks.get(task_id)
+            if not task:
+                logger.warning(f"停止任务失败: 任务 {task_id} 不存在")
+                return False
+            
+            if task.status in [CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED]:
+                logger.info(f"停止任务: 任务 {task_id} 已处于最终状态 {task.status}")
+                return False
+            
+            # 更新任务状态
+            task.status = CrawlStatus.STOPPED
+            task.end_time = datetime.now()
+            
+            # 取消异步任务
+            running_task = self._running_tasks.get(task_id)
+            if running_task:
+                try:
+                    running_task.cancel()
+                    logger.info(f"已取消异步任务: {task_id}")
+                except Exception as e:
+                    logger.error(f"取消异步任务失败: {task_id}, 错误: {e}")
+                
+                with self._lock:
+                    if task_id in self._running_tasks:
+                        del self._running_tasks[task_id]
+                        logger.info(f"已从运行任务列表中移除: {task_id}")
+            else:
+                logger.warning(f"停止任务: 任务 {task_id} 不在运行任务列表中")
+            
+            # 发送状态变更通知
+            self._notify_status_change(task_id)
+            logger.info(f"成功停止任务: {task_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"停止任务时发生异常: {task_id}, 错误: {e}")
             return False
-        
-        if task.status in [CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED]:
-            return False
-        
-        # 更新任务状态
-        task.status = CrawlStatus.STOPPED
-        task.end_time = datetime.now()
-        
-        # 取消异步任务
-        running_task = self._running_tasks.get(task_id)
-        if running_task:
-            running_task.cancel()
-            with self._lock:
-                if task_id in self._running_tasks:
-                    del self._running_tasks[task_id]
-        
-        self._notify_status_change(task_id)
-        return True
     
     def get_crawl_summary(self) -> Dict[str, Any]:
         """获取爬取任务摘要"""

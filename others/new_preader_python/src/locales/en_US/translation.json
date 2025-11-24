@@ -1090,7 +1090,9 @@
         "retry_success": "Retry successful",
         "clear_search": "Clear Search",
         "retrying": "Retrying...",
-        "search_placeholder": "Search by book title"
+        "search_placeholder": "Search by book title",
+        "crawl_finished": "All crawl tasks finished",
+        "clear_search_params": "Clear search params"
     },
     "note": {
         "save": "Save",

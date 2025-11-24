@@ -30,6 +30,7 @@ class NovelSitesManagementScreen(Screen[None]):
         ("enter", "enter_crawler", get_global_i18n().t('get_books.enter')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
     ]
 
@@ -883,6 +884,14 @@ class NovelSitesManagementScreen(Screen[None]):
     def action_next_page(self) -> None:
         self._go_to_next_page()
     
+    def action_clear_search_params(self) -> None:
+        """清除搜索参数"""
+        self.query_one("#novel-sites-search-input", Input).value = ""
+        self.query_one("#novel-sites-search-input", Input).placeholder = get_global_i18n().t('search.site_placeholder')
+        self.query_one("#novel-sites-parser-filter", Select).value = "all"
+        self.query_one("#novel-sites-proxy-filter", Select).value = "all"
+
+
     def _update_status(self, message: str, severity: str = "information") -> None:
         """更新状态信息"""
         status_label = self.query_one("#novel-sites-status", Label)

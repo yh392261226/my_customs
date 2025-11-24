@@ -144,7 +144,7 @@ class HelpScreen(Screen[None]):
             f"- r    : {t('crawler.view_history')}\n"
             f"- s    : {t('crawler.start_crawl')}\n"
             f"- v    : {t('crawler.stop_crawl')}\n"
-            f"- x    : {t('crawler.select_books')}\n"
+            f"- X    : {t('crawler.select_books')}\n"
             f"- b    : {t('note.title')}\n"
             f"- p/n  : {t('crawler.prev_page')} / {t('crawler.next_page')}\n"
             f"- Space: {t('batch_ops.toggle_rows')}\n"

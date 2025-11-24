@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-APPPATH="/Users/yanghao/data/app/python/newreader"
+APPPATH="$HOME/data/app/python/newreader"
 
-cd $APPPATH
+cd "$APPPATH"
 python main.py "$@"

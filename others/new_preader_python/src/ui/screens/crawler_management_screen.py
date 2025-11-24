@@ -31,11 +31,12 @@ class CrawlerManagementScreen(Screen[None]):
         ("r", "view_history", get_global_i18n().t('crawler.shortcut_r')),
         ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
         ("escape", "back", get_global_i18n().t('common.back')),
-        ("x", "select_books", get_global_i18n().t('crawler.select_books')),
+        ("X", "select_books", get_global_i18n().t('crawler.select_books')),
         ("s", "start_crawl", get_global_i18n().t('crawler.shortcut_s')),
         ("v", "stop_crawl", get_global_i18n().t('crawler.shortcut_v')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
     ]
 
@@ -137,6 +138,11 @@ class CrawlerManagementScreen(Screen[None]):
             table.focus()
         except Exception:
             pass
+
+    def action_clear_search_params(self) -> None:
+        """清除搜索参数"""
+        self.query_one("#search-input-field", Input).value = ""
+        self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t('crawler.search_placeholder')
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""
@@ -445,6 +451,14 @@ class CrawlerManagementScreen(Screen[None]):
                 
                 # 刷新历史记录
                 self.app.call_later(self._load_crawl_history)
+                
+                # 自动验证：如果输入框中还有ID，继续爬取下一个
+                if task.status == CrawlStatus.COMPLETED:
+                    self.app.call_later(self._check_and_continue_crawl)
+                
+                # 自动验证：如果输入框中还有ID，继续爬取下一个
+                if task.status == CrawlStatus.COMPLETED:
+                    self.app.call_later(self._check_and_continue_crawl)
             
         except Exception as e:
             logger.error(f"爬取状态回调处理失败: {e}")
@@ -1414,15 +1428,23 @@ class CrawlerManagementScreen(Screen[None]):
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
-        if not self.current_task_id:
+        if not self.is_crawling and not self.current_task_id:
             self._update_status(get_global_i18n().t('crawler.no_crawl_in_progress'))
             return
         
-        # 使用后台爬取管理器停止任务
-        if self.crawler_manager.stop_crawl_task(self.current_task_id):
-            self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+        # 立即更新UI状态
+        self.is_crawling = False
+        self._update_crawl_button_state()
+        
+        # 如果有后台任务，停止它
+        if self.current_task_id:
+            if self.crawler_manager.stop_crawl_task(self.current_task_id):
+                self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+            else:
+                self._update_status(get_global_i18n().t('crawler.stop_crawl_failed'), "error")
         else:
-            self._update_status(get_global_i18n().t('crawler.stop_crawl_failed'), "error")
+            # 如果没有后台任务，直接显示停止状态
+            self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
     
     def _start_crawl(self) -> None:
         """开始爬取小说"""
@@ -1431,7 +1453,12 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.np_crawler'), "error")
             return
         if self.is_crawling:
+            self._update_status(get_global_i18n().t('crawler.crawling_in_progress'), "warning")
             return  # 如果正在爬取，忽略新的爬取请求
+        
+        # 设置爬取状态
+        self.is_crawling = True
+        self._update_crawl_button_state()
         
         novel_id_input = self.query_one("#novel-id-input", Input)
         novel_ids_input = novel_id_input.value.strip()
@@ -1513,15 +1540,34 @@ class CrawlerManagementScreen(Screen[None]):
         # 使用后台爬取管理器启动任务
         site_id = self.novel_site.get('id')
         if not site_id:
+            # 回滚爬取状态
+            self.is_crawling = False
+            self._update_crawl_button_state()
             self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
             return
         
         # 启动后台爬取任务
-        task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
-        self.current_task_id = task_id
-        
-        # 显示启动状态
-        self._update_status(f"{get_global_i18n().t('crawler.starting_crawl')} ({len(novel_ids)} {get_global_i18n().t('crawler.books')})")
+        try:
+            task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
+            if not task_id:
+                # 任务启动失败，回滚状态
+                self.is_crawling = False
+                self._update_crawl_button_state()
+                self._update_status(get_global_i18n().t('crawler.start_crawl_failed'), "error")
+                return
+            
+            self.current_task_id = task_id
+            
+            # 显示启动状态
+            self._update_status(f"{get_global_i18n().t('crawler.starting_crawl')} ({len(novel_ids)} {get_global_i18n().t('crawler.books')})")
+            
+        except Exception as e:
+            # 启动过程中发生异常，回滚状态
+            self.is_crawling = False
+            self._update_crawl_button_state()
+            logger.error(f"启动爬取任务失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.start_crawl_failed')}: {str(e)}", "error")
+            return
         
         # 状态更新由回调函数处理，这里不需要手动设置
     
@@ -1943,13 +1989,6 @@ class CrawlerManagementScreen(Screen[None]):
                 'success': False,
                 'error_message': str(e)
             }
-    
-    def _reset_crawl_state(self) -> None:
-        """重置爬取状态"""
-        self.is_crawling = False
-        self.current_crawling_id = None
-        self._update_crawl_button_state()
-        self._hide_loading_animation()
     
     def on_unmount(self) -> None:
         """屏幕卸载时的回调"""
@@ -2392,22 +2431,80 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 重置爬取状态
             self.app.call_later(self._reset_crawl_state)
-            
         except Exception as e:
-            logger.error(f"重试爬取小说 {novel_id} 失败: {e}")
+            logger.error(f"重试爬取过程失败: {e}")
+            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
+        except Exception as e:
+            logger.error(f"重试爬取过程失败: {e}")
+            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
+    
+    def _check_and_continue_crawl(self) -> None:
+        """检查输入框中是否还有新ID，如果有则继续爬取"""
+        try:
+            # 检查是否正在爬取
+            if self.is_crawling:
+                return
             
-            # 更新错误信息到数据库
+            # 获取输入框内容
+            novel_id_input = self.query_one("#novel-id-input", Input)
+            novel_ids_input = novel_id_input.value.strip()
+            
+            if not novel_ids_input:
+                # 输入框为空，停止爬取
+                self._update_status(get_global_i18n().t('crawler.crawl_finished'))
+                return
+            
+            # 分割多个小说ID
+            novel_ids = [id.strip() for id in novel_ids_input.split(',') if id.strip()]
+            
+            if not novel_ids:
+                # 没有有效的ID，停止爬取
+                self._update_status(get_global_i18n().t('crawler.crawl_finished'))
+                return
+            
+            # 过滤掉已存在的ID并更新输入框
             site_id = self.novel_site.get('id')
             if site_id:
-                self.db_manager.update_crawl_history_error(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    error_message=str(e)
-                )
+                valid_novel_ids = []
+                for novel_id in novel_ids:
+                    if not self.db_manager.check_novel_exists(site_id, novel_id):
+                        valid_novel_ids.append(novel_id)
+                
+                if not valid_novel_ids:
+                    # 所有ID都已存在，停止爬取
+                    self._update_status(get_global_i18n().t('crawler.all_novels_exist'))
+                    novel_id_input.value = ""  # 清空输入框
+                    return
+                
+                # 更新输入框内容，只保留未下载的ID
+                novel_id_input.value = ', '.join(valid_novel_ids)
+                novel_ids = valid_novel_ids
             
-            # 显示失败消息
-            error_message = f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}"
-            self.app.call_later(self._update_status, error_message, "error")
+            # 检查代理要求
+            proxy_check_result = self._check_proxy_requirements_sync()
+            if not proxy_check_result['can_proceed']:
+                self._update_status(proxy_check_result['message'], "error")
+                return
             
-            # 重置爬取状态
-            self.app.call_later(self._reset_crawl_state)
+            proxy_config = proxy_check_result['proxy_config']
+            
+            # 设置爬取状态
+            self.is_crawling = True
+            self._update_crawl_button_state()
+            
+            # 使用后台爬取管理器启动任务
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                return
+            
+            # 启动后台爬取任务
+            task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
+            self.current_task_id = task_id
+            
+            # 显示启动状态
+            self._update_status(f"{get_global_i18n().t('crawler.continuing_crawl')} ({len(novel_ids)} {get_global_i18n().t('crawler.books')})")
+            
+        except Exception as e:
+            logger.error(f"自动继续爬取检查失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.continue_crawl_failed')}: {str(e)}", "error")

@@ -33,6 +33,7 @@ class GetBooksScreen(Screen[None]):
         ("space", "open_selected", get_global_i18n().t('get_books.shortcut_space')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
     ]
 
 
@@ -792,6 +793,13 @@ class GetBooksScreen(Screen[None]):
 
     def action_next_page(self) -> None:
         self._go_to_next_page()
+
+    def action_clear_search_params(self) -> None:
+        """清除搜索参数"""
+        self.query_one("#novel-sites-search-input", Input).value = ""
+        self.query_one("#novel-sites-search-input", Input).placeholder = get_global_i18n().t('search.site_placeholder')
+        self.query_one("#novel-sites-parser-filter", Select).value = "all"
+        self.query_one("#novel-sites-proxy-filter", Select).value = "all"
     
     def on_input_changed(self, event: Input.Changed) -> None:
         """处理输入框内容变化事件"""
