@@ -16,6 +16,8 @@ from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.core.database_manager import DatabaseManager
+from src.config.config_manager import ConfigManager
+import platform, os
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 logger = get_logger(__name__)
@@ -26,6 +28,7 @@ class GetBooksScreen(Screen[None]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("N", "open_novel_sites", get_global_i18n().t('get_books.shortcut_n')),
         ("P", "open_proxy_list", get_global_i18n().t('get_books.shortcut_p')),
+        ("o", "open_books_folder", get_global_i18n().t('get_books.shortcut_o')),
         ("enter", "open_selected", get_global_i18n().t('get_books.shortcut_enter')),
         ("space", "open_selected", get_global_i18n().t('get_books.shortcut_space')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
@@ -87,6 +90,7 @@ class GetBooksScreen(Screen[None]):
                     Horizontal(
                         Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
+                        Button(get_global_i18n().t('get_books.shortcut_o'), id="open-books-folder-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
                         id="get-books-buttons",
                         classes="btn-row"
@@ -595,6 +599,8 @@ class GetBooksScreen(Screen[None]):
                 self.app.push_screen("proxy_list")  # 打开代理列表页面
             else:
                 self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
+        elif event.button.id == "open-books-folder-btn":
+            self.action_open_books_folder()
         elif event.button.id == "back-btn":
             self.app.pop_screen()  # 返回上一页
     
@@ -734,6 +740,23 @@ class GetBooksScreen(Screen[None]):
             self.app.push_screen("proxy_list")
         else:
             self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
+
+    def action_open_books_folder(self) -> None:
+        config_manager = ConfigManager.get_instance()
+        config = config_manager.get_config()
+        books_folder_path = os.path.expanduser(config.get("paths", {}).get("library", ""))
+        if not os.path.exists(books_folder_path):
+            self.notify(f"{books_folder_path}:{get_global_i18n().t('get_books.books-folder-not-exist')}", severity="warning")
+            return
+        # 在文件管理器中显示文件
+        system = platform.system()
+        if system == "Darwin":  # macOS
+            os.system(f'open "{books_folder_path}/"')
+        elif system == "Windows":
+            os.system(f'explorer /select,"{books_folder_path}/"')
+        elif system == "Linux":
+            os.system(f'xdg-open "{os.path.dirname(books_folder_path)}/"')
+        
 
     def action_open_selected(self) -> None:
         """打开选中的书籍网站"""

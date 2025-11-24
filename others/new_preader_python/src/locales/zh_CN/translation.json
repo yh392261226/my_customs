@@ -831,6 +831,8 @@
         "proxy_disabled": "代理未启用",
         "shortcut_n": "书籍网站",
         "shortcut_p": "代理设置",
+        "shortcut_o": "书籍目录",
+        "books-folder-not-exist": "书籍目录不存在",
         "shortcut_enter": "进入并打开浏览器",
         "shortcut_space": "进入",
         "shortcut_esc": "返回",

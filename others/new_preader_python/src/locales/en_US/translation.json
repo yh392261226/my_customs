@@ -831,6 +831,8 @@
         "proxy_disabled": "Proxy Disabled",
         "shortcut_n": "Book Sites",
         "shortcut_p": "Proxy Settings",
+        "shortcut_o": "Books Folder",
+        "books-folder-not-exist": "Books folder does not exist",
         "shortcut_enter": "Enter and Open Browser",
         "shortcut_space": "Enter",
         "shortcut_esc": "Back",

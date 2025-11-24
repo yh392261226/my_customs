@@ -15,6 +15,7 @@ from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.spiders import get_parser_options
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.config.config_manager import ConfigManager
 
 logger = get_logger(__name__)
 
@@ -192,8 +193,8 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             pass
         
         # 延迟填充现有数据，确保DOM元素已经创建
-        if self.is_edit_mode:
-            self.call_after_refresh(self._fill_existing_data)
+        # 在所有模式下都调用，确保默认值正确设置
+        self.call_after_refresh(self._fill_existing_data)
     
     def _fill_existing_data(self) -> None:
         """填充现有数据"""
@@ -207,7 +208,20 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         
         # 存储文件夹
         folder_input = self.query_one("#storage-folder-input", Input)
-        folder_input.value = self.novel_site.get("storage_folder", "")
+        # 如果是编辑模式，使用原有的存储文件夹值
+        # 如果是添加模式，从系统配置文件中获取默认值
+        if self.is_edit_mode:
+            folder_input.value = self.novel_site.get("storage_folder", "")
+        else:
+            # 从系统配置文件中获取paths.library的值作为默认值
+            try:
+                config_manager = ConfigManager.get_instance()
+                config = config_manager.get_config()
+                library_path = config.get("paths", {}).get("library", "")
+                folder_input.value = library_path
+            except Exception as e:
+                logger.error(f"获取配置路径失败: {e}")
+                folder_input.value = ""
         
         # 标签
         tags_input = self.query_one("#tags-input", Input)
