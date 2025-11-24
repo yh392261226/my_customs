@@ -38,7 +38,8 @@ class Bookshelf:
             # 默认数据目录为用户主目录下的.config/new_preader/books文件夹
             self.data_dir = os.path.join(str(Path.home()), ".config", "new_preader", "books")
         else:
-            self.data_dir = data_dir
+            # 扩展路径中的 ~ 符号为用户主目录
+            self.data_dir = os.path.expanduser(data_dir)
             
         # 确保数据目录存在
         os.makedirs(self.data_dir, exist_ok=True)
