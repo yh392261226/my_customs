@@ -1,16 +1,63 @@
 """
-海角文爱网站解析器
-支持 https://haijbookx.top/ 网站的小说解析
+HaijBookx 解析器 - 基于配置驱动版本
+继承自 BaseParser，使用属性配置实现
 """
 
+import os
 import re
+import time
+import requests
 from typing import Dict, Any, List, Optional
-from urllib.parse import urljoin
 from .base_parser_v2 import BaseParser
+from src.utils.logger import get_logger
 
+logger = get_logger(__name__)
 
-class HaijbookxParser(BaseParser):
-    """海角文爱网站解析器"""
+class HaijBookxParser(BaseParser):
+    """HaijBookx 解析器 - 配置驱动版本"""
+    
+    # 基本信息
+    name = "HaijBookx"
+    description = "HaijBookx 整本小说爬取解析器"
+    base_url = "https://haijbookx.top"
+    
+    # 编码配置 - HaijBookx 网站使用 GBK 编码
+    encoding = "gbk"
+    
+    # 正则表达式配置
+    title_reg = [
+        r'<h1[^>]*>(.*?)</h1>',  # 书籍标题在 h1 标签中
+        r'<title>(.*?)</title>'
+    ]
+    
+    content_reg = [
+        r'<div[^>]*id="nr1"[^>]*>(.*?)</div>',  # 书籍内容在第一个 nr1 div 中
+        r'<div[^>]*class="nr1"[^>]*>(.*?)</div>',
+        r'<div[^>]*class="content"[^>]*>(.*?)</div>'
+    ]
+    
+    status_reg = [
+        r'<p[^>]*>状态[:：]\s*(.*?)</p>',  # 书籍状态在 p 标签中
+        r'状态[:：]\s*(.*?)[<\s]'
+    ]
+    
+    # 内容页内分页相关配置
+    content_page_link_reg = [
+        r'<span class="left"><a href="([^"]*)">开始阅读</a></span>',  # 开始阅读链接
+        r'<a href="([^"]*)"[^>]*>开始阅读</a>'
+    ]
+    
+    next_page_link_reg = [
+        r'<a[^>]*id="pt_next"[^>]*href="([^"]*)"[^>]*>下一页</a>',  # 下一页链接
+        r'<a[^>]*href="([^"]*)"[^>]*>下一[页章]</a>'
+    ]
+    
+    # 处理函数配置
+    after_crawler_func = [
+        "_replace_img_to_text",  # 替换图片为文字
+        "_clean_html_content",  # 公共基类提供的HTML清理
+        "_remove_ads"  # 广告移除
+    ]
     
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """
@@ -18,90 +65,85 @@ class HaijbookxParser(BaseParser):
         
         Args:
             proxy_config: 代理配置
-            novel_site_name: 网站名称，如果提供则覆盖默认名称
+            novel_site_name: 从数据库获取的网站名称，用于作者信息
         """
         super().__init__(proxy_config, novel_site_name)
-    
-    # 基本信息
-    name = "海角文爱"
-    description = "海角文爱多章节小说解析器"
-    base_url = "https://haijbookx.top"
-    
-    # 正则表达式配置 - 章节列表页
-    title_reg = [
-        r'<h1[^>]*>([^<]+)</h1>',
-        r'<title[^>]*>([^<]+)</title>'
-    ]
-    
-    # 章节列表正则 - 从<ul id="ul_all_chapters">中提取
-    chapter_link_reg = [
-        r'<ul[^>]*id="ul_all_chapters"[^>]*>(.*?)</ul>',
-        r'<li[^>]*><a[^>]*href="([^"]*?)"[^>]*title="[^"]*?([^"]*?)[^"]*?"[^>]*>([^<]+)</a></li>',
-        r'<li[^>]*><a[^>]*href="([^"]*?)"[^>]*>([^<]+)</a></li>'
-    ]
-    
-    # 状态提取 - 从<div class="novel_info_title">下的<p>标签中提取
-    status_reg = [
-        r'<div[^>]*class="novel_info_title"[^>]*>(.*?)</div>',
-        r'<p[^>]*>(.*?)</p>'
-    ]
-    
-    # 简介提取 - 从<div class="intro">中提取
-    description_reg = [
-        r'<div[^>]*class="intro"[^>]*>(.*?)</div>',
-        r'<p[^>]*>(.*?)</p>'
-    ]
-    
-    # 内容页正则 - 章节内容
-    content_reg = [
-        r'<article[^>]*id="article"[^>]*class="content"[^>]*>(.*?)</article>',
-        r'<div[^>]*class="content"[^>]*>(.*?)</div>'
-    ]
-    
-    # 书籍类型配置
-    book_type = ["多章节"]
-    
-    def _detect_book_type(self, content: str) -> str:
-        """
-        重写书籍类型检测方法，专门针对海角文爱网站
         
-        Args:
-            content: 页面内容
-            
-        Returns:
-            书籍类型
-        """
-        # 检测海角文爱特有的多章节模式
-        haijbookx_patterns = [
-            r'<ul[^>]*id="ul_all_chapters"[^>]*>',
-            r'第\s*\d+\s*章',
-            r'章节列表',
-            r'目录'
-        ]
+        # 设置请求头，适配GBK编码
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'Accept-Charset': 'GBK,utf-8;q=0.7,*;q=0.3',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
+        })
         
-        for pattern in haijbookx_patterns:
-            if re.search(pattern, content, re.IGNORECASE):
-                return "多章节"
+        # 图片到文字的映射（使用87NB的替换内容）
+        self.img_to_text_mapping = {
+            '<img class="zi" src="?zi/n1.png" loading="lazy" decoding="async" />': '奶',
+            '<img class="zi" src="?zi/d2.png" loading="lazy" decoding="async" />': '屌',
+            '<img class="zi" src="?zi/r5.png" loading="lazy" decoding="async" />': '日',
+            '<img class="zi" src="?zi/q1.png" loading="lazy" decoding="async" />': '情',
+            '<img class="zi" src="?zi/k1.png" loading="lazy" decoding="async" />': '口',
+            '<img class="zi" src="?zi/n2.png" loading="lazy" decoding="async" />': '女',
+            '<img class="zi" src="?zi/r3.png" loading="lazy" decoding="async" />': '人',
+            '<img class="zi" src="?zi/s1.png" loading="lazy" decoding="async" />': '射',
+            '<img class="zi" src="?zi/j1.png" loading="lazy" decoding="async" />': '精',
+            '<img class="zi" src="?zi/y1.png" loading="lazy" decoding="async" />': '液',
+            '<img class="zi" src="?zi/r2.png" loading="lazy" decoding="async" />': '乳',
+            '<img class="zi" src="?zi/j4.png" loading="lazy" decoding="async" />': '鸡',
+            '<img class="zi" src="?zi/t1.png" loading="lazy" decoding="async" />': '头',
+            '<img class="zi" src="?zi/r1.png" loading="lazy" decoding="async" />': '肉',
+            '<img class="zi" src="?zi/b4.png" loading="lazy" decoding="async" />': '棒',
+            '<img class="zi" src="?zi/g2.png" loading="lazy" decoding="async" />': '龟',
+            '<img class="zi" src="?zi/c2.png" loading="lazy" decoding="async" />': '操',
+            '<img class="zi" src="?zi/c4.png" loading="lazy" decoding="async" />': '肏',
+            '<img class="zi" src="?zi/g1.png" loading="lazy" decoding="async" />': '肛',
+            '<img class="zi" src="?zi/c3.png" loading="lazy" decoding="async" />': '插',
+            '<img class="zi" src="?zi/y2.png" loading="lazy" decoding="async" />': '淫',
+            '<img class="zi" src="?zi/x1.png" loading="lazy" decoding="async" />': '穴',
+            '<img class="zi" src="?zi/b2.png" loading="lazy" decoding="async" />': '暴',
+            '<img class="zi" src="?zi/b3.png" loading="lazy" decoding="async" />': '屄',
+            '<img class="zi" src="?zi/d3.png" loading="lazy" decoding="async" />': '洞',
+            '<img class="zi" src="?zi/x2.png" loading="lazy" decoding="async" />': '性',
+            '<img class="zi" src="?zi/l3.png" loading="lazy" decoding="async" />': '乱',
+            '<img class="zi" src="?zi/a1.png" loading="lazy" decoding="async" />': '爱',
+            '<img class="zi" src="?zi/j3.png" loading="lazy" decoding="async" />': '交',
+            '<img class="zi" src="?zi/p1.png" loading="lazy" decoding="async" />': '喷',
+            '<img class="zi" src="?zi/c5.png" loading="lazy" decoding="async" />': '潮',
+            '<img class="zi" src="?zi/b1.png" loading="lazy" decoding="async" />': '爆',
+            '<img class="zi" src="?zi/f1.png" loading="lazy" decoding="async" />': '妇',
+            '<img class="zi" src="?zi/j2.png" loading="lazy" decoding="async" />': '奸',
+            '<img class="zi" src="?zi/n3.png" loading="lazy" decoding="async" />': '嫩',
+            '<img class="zi" src="?zi/l1.png" loading="lazy" decoding="async" />': '轮',
+            '<img class="zi" src="?zi/d1.png" loading="lazy" decoding="async" />': '荡',
+            '<img class="zi" src="?zi/l2.png" loading="lazy" decoding="async" />': '浪',
+            '<img class="zi" src="?zi/c1.png" loading="lazy" decoding="async" />': '草',
+            '<img class="zi" src="?zi/j5.png" loading="lazy" decoding="async" />': '妓',
+            '<img class="zi" src="?zi/b5.png" loading="lazy" decoding="async" />': '逼',
+            '<img class="zi" src="?zi/g3.png" loading="lazy" decoding="async" />': '干',
+            '<img class="zi" src="?zi/g4.png" loading="lazy" decoding="async" />': '股',
+            '<img class="zi" src="?zi/s2.png" loading="lazy" decoding="async" />': '深',
+            '<img class="zi" src="?zi/f2.png" loading="lazy" decoding="async" />': '粉',
+            '<img class="zi" src="?zi/r4.png" loading="lazy" decoding="async" />': '入',
+            '<img class="zi" src="?zi/b6.png" loading="lazy" decoding="async" />': '巴',
+            '<img class="zi" src="?zi/p3.png" loading="lazy" decoding="async" />': '屁',
+            '<img class="zi" src="?zi/p2.png" loading="lazy" decoding="async" />': '破',
+            '<img class="zi" src="?zi/l4.png" loading="lazy" decoding="async" />': '裸',
+            '<img class="zi" src="?zi/t2.png" loading="lazy" decoding="async" />': '臀',
+            '<img class="zi" src="?zi/y3.png" loading="lazy" decoding="async" />': '阴',
+            '<img class="zi" src="?zi/n4.png" loading="lazy" decoding="async" />': '奴',
+        }
         
-        # 检测通用的多章节模式
-        multi_chapter_patterns = [
-            r'章节列表|chapter.*list',
-            r'第\s*\d+\s*章',
-            r'目录|contents',
-            r'<div[^>]*class="[^"]*chapter[^"]*"[^>]*>',
-            r'<ul[^>]*class="[^"]*chapters[^"]*"[^>]*>'
-        ]
+        # 记录未映射的图片
+        self.unmapped_images = set()
         
-        for pattern in multi_chapter_patterns:
-            if re.search(pattern, content, re.IGNORECASE):
-                return "多章节"
-        
-        # 默认返回多章节（海角文爱主要是多章节小说）
-        return "多章节"
-    
     def get_novel_url(self, novel_id: str) -> str:
         """
-        重写URL生成方法，适配海角文爱网站的URL格式
+        重写URL生成方法，适配haijbookx的URL格式
         
         Args:
             novel_id: 小说ID
@@ -109,270 +151,517 @@ class HaijbookxParser(BaseParser):
         Returns:
             小说URL
         """
-        return f"{self.base_url}/?book/{novel_id}/"
+        return f"{self.base_url}/?bookcv/{novel_id}.html"
     
-    def _parse_multichapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
+    def _detect_book_type(self, content: str) -> str:
         """
-        解析多章节小说
+        重写书籍类型检测，适配haijbookx的特定模式
         
         Args:
-            content: 章节列表页面内容
+            content: 页面内容
+            
+        Returns:
+            书籍类型
+        """
+        # haijbookx网站使用内容页内分页模式
+        return "内容页内分页"
+    
+    def _extract_content_page_url(self, content: str) -> Optional[str]:
+        """
+        从页面内容中提取内容页面URL
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            内容页面URL或None
+        """
+        # 使用配置的正则表达式提取内容页面链接
+        if self.content_page_link_reg:
+            for pattern in self.content_page_link_reg:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    return match.group(1)
+        
+        # 默认模式：查找"开始阅读"按钮
+        patterns = [
+            r'<span class="left"><a href="([^"]*)">开始阅读</a></span>',  # 开始阅读链接
+            r'<a href="([^"]*)"[^>]*>开始阅读</a>'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, content, re.IGNORECASE)
+            if match:
+                return match.group(1)
+        
+        return None
+    
+    def _parse_content_pagination_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
+        """
+        解析内容页内分页模式的小说
+        
+        Args:
+            content: 页面内容
             novel_url: 小说URL
             title: 小说标题
             
         Returns:
-            小说内容字典
+            小说详情信息
         """
-        # 提取章节列表
-        chapters_list = self._extract_chapters(content, novel_url)
+        # 提取内容页面链接
+        content_page_url = self._extract_content_page_url(content)
+        if not content_page_url:
+            raise Exception("无法找到内容页面链接")
         
-        if not chapters_list:
-            raise Exception("无法提取章节列表")
+        # 构建完整的内容页面URL
+        full_content_url = f"{self.base_url}{content_page_url}"
         
-        print(f"开始处理 [ {title} ] - 找到 {len(chapters_list)} 个章节")
-        
-        # 解析每个章节内容
-        chapters_with_content = []
-        for i, chapter_info in enumerate(chapters_list):
-            try:
-                chapter_url = chapter_info['url']
-                chapter_content = self.parse_chapter_content(chapter_url)
-                
-                if chapter_content:
-                    chapters_with_content.append({
-                        'chapter_number': i + 1,
-                        'title': chapter_info['title'],
-                        'content': chapter_content,
-                        'url': chapter_url
-                    })
-                    print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 完成")
-                else:
-                    print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 获取内容失败")
-                    
-            except Exception as e:
-                print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 错误: {e}")
-        
-        if not chapters_with_content:
-            raise Exception("无法获取任何章节内容")
-        
-        # 提取简介和状态
-        description = self._extract_description(content)
-        status = self._extract_status(content)
-        
-        return {
+        # 创建小说内容
+        novel_content = {
             'title': title,
-            'author': self.novel_site_name or self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
-            'description': description,
-            'status': status,
-            'chapters': chapters_with_content
+            'chapters': []
         }
+        
+        # 抓取所有章节内容（通过内容页内分页）
+        self._get_all_content_pages(full_content_url, novel_content)
+        
+        return novel_content
     
-    def _extract_chapters(self, content: str, novel_url: str) -> List[Dict[str, Any]]:
+    def _get_all_content_pages(self, start_url: str, novel_content: Dict[str, Any]) -> None:
         """
-        从章节列表页面提取章节信息
+        抓取所有内容页面（通过内容页内分页）
         
         Args:
-            content: 章节列表页面内容
-            novel_url: 小说URL
+            start_url: 起始内容页面URL
+            novel_content: 小说内容字典
+        """
+        current_url = start_url
+        self.chapter_count = 0
+        
+        while current_url:
+            self.chapter_count += 1
+            print(f"正在抓取第 {self.chapter_count} 页: {current_url}")
+            
+            # 获取页面内容
+            page_content = self._get_url_content(current_url)
+            
+            if page_content:
+                # 提取章节标题
+                chapter_title = self._extract_chapter_title(page_content)
+                
+                # 提取章节内容
+                chapter_content = self._extract_with_regex(page_content, self.content_reg)
+                
+                if chapter_content:
+                    # 执行爬取后处理函数
+                    processed_content = self._execute_after_crawler_funcs(chapter_content)
+                    
+                    novel_content['chapters'].append({
+                        'chapter_number': self.chapter_count,
+                        'title': chapter_title or f"第 {self.chapter_count} 页",
+                        'content': processed_content,
+                        'url': current_url
+                    })
+                    print(f"√ 第 {self.chapter_count} 页抓取成功")
+                    
+                    # 只有在成功获取内容后才尝试获取下一页
+                    next_url = self._get_next_page_url(page_content, current_url)
+                else:
+                    print(f"× 第 {self.chapter_count} 页内容提取失败")
+                    # 内容提取失败，停止继续抓取
+                    break
+            else:
+                print(f"× 第 {self.chapter_count} 页抓取失败")
+                # 页面获取失败，停止继续抓取
+                break
+            
+            # 如果没有下一页，结束循环
+            if not next_url:
+                break
+                
+            current_url = next_url
+            
+            # 页面间延迟
+            time.sleep(1)
+    
+    def _extract_chapter_title(self, content: str) -> str:
+        """
+        提取章节标题
+        
+        Args:
+            content: 页面内容
             
         Returns:
-            章节信息列表
+            章节标题
         """
-        chapters = []
+        # 提取章节标题 - 书籍内容页面的标题在 nr_title div 中
+        patterns = [
+            r'<div[^>]*class="nr_title"[^>]*id="nr_title"[^>]*>(.*?)</div>',
+            r'<div[^>]*id="nr_title"[^>]*>(.*?)</div>',
+            r'<h1[^>]*>(.*?)</h1>',
+            r'<title>(.*?)</title>'
+        ]
         
-        # 首先尝试从ul_all_chapters中提取
-        ul_pattern = r'<ul[^>]*id="ul_all_chapters"[^>]*>(.*?)</ul>'
-        ul_match = re.search(ul_pattern, content, re.DOTALL)
-        
-        if ul_match:
-            ul_content = ul_match.group(1)
-            # 从ul中提取li链接
-            li_pattern = r'<li[^>]*><a[^>]*href="([^"]*?)"[^>]*title="[^"]*?([^"]*?)[^"]*?"[^>]*>([^<]+)</a></li>'
-            li_matches = re.finditer(li_pattern, ul_content, re.DOTALL)
-            
-            for match in li_matches:
-                chapter_url = match.group(1).strip()
-                chapter_title = match.group(3).strip()  # 优先使用链接文本
-                
-                # 清理章节标题
-                chapter_title = re.sub(r'\s+', ' ', chapter_title).strip()
-                
-                # 确保URL是完整的
-                if not chapter_url.startswith('http'):
-                    if chapter_url.startswith('/'):
-                        chapter_url = self.base_url + chapter_url
-                    else:
-                        chapter_url = urljoin(self.base_url, chapter_url)
-                
-                chapters.append({
-                    "title": chapter_title,
-                    "url": chapter_url
-                })
-        
-        # 如果没有找到，尝试通用方法
-        if not chapters:
-            # 提取章节链接和标题
-            for chapter_pattern in self.chapter_link_reg:
-                matches = re.finditer(chapter_pattern, content, re.DOTALL)
-                for match in matches:
-                    if len(match.groups()) >= 2:
-                        chapter_url = match.group(1).strip()
-                        chapter_title = match.group(2).strip() if len(match.groups()) >= 2 else "未知章节"
-                        
-                        # 清理章节标题
-                        chapter_title = re.sub(r'\s+', ' ', chapter_title).strip()
-                        
-                        # 确保URL是完整的
-                        if not chapter_url.startswith('http'):
-                            if chapter_url.startswith('/'):
-                                chapter_url = self.base_url + chapter_url
-                            else:
-                                chapter_url = urljoin(self.base_url, chapter_url)
-                        
-                        chapters.append({
-                            "title": chapter_title,
-                            "url": chapter_url
-                        })
-        
-        return chapters
-    
-    def _extract_description(self, content: str) -> str:
-        """提取小说简介"""
-        # 使用配置的正则表达式提取简介
-        for pattern in self.description_reg:
-            match = re.search(pattern, content, re.DOTALL)
+        for pattern in patterns:
+            match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
             if match:
-                desc = match.group(1).strip()
-                # 清理HTML标签
-                desc = re.sub(r'<[^>]+>', '', desc)
-                desc = re.sub(r'\s+', ' ', desc)
-                # 去掉"本站永久域名"等字样
-                desc = re.sub(r'本站永久域名[^，。]*[，。]', '', desc)
-                return desc.strip()
+                title = match.group(1).strip()
+                if title:
+                    return title
+        
         return ""
     
-    def _extract_status(self, content: str) -> str:
-        """提取小说状态"""
-        # 使用配置的正则表达式提取状态
-        status_info = []
-        
-        for pattern in self.status_reg:
-            matches = re.finditer(pattern, content, re.DOTALL)
-            for match in matches:
-                status_text = match.group(1).strip()
-                # 清理HTML标签
-                status_text = re.sub(r'<[^>]+>', '', status_text)
-                status_text = re.sub(r'\s+', ' ', status_text)
-                if status_text and status_text not in status_info:
-                    status_info.append(status_text)
-        
-        # 将状态信息用逗号连接
-        if status_info:
-            return ', '.join(status_info)
-        
-        return "连载中"
-    
-    def parse_chapter_content(self, chapter_url: str) -> Optional[str]:
+    def _get_next_page_url(self, content: str, current_url: str) -> Optional[str]:
         """
-        解析章节内容
+        获取下一页URL
         
         Args:
-            chapter_url: 章节URL
+            content: 当前页面内容
+            current_url: 当前页面URL
             
         Returns:
-            章节内容文本
+            下一页URL或None
         """
-        print(f"正在获取章节内容: {chapter_url}")
-        content = self._fetch_url(chapter_url)
+        # 使用配置的正则表达式提取下一页链接
+        if self.next_page_link_reg:
+            for pattern in self.next_page_link_reg:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    next_url = match.group(1)
+                    # 构建完整URL
+                    if next_url.startswith('/'):
+                        return f"{self.base_url}{next_url}"
+                    elif next_url.startswith('http'):
+                        return next_url
+                    elif next_url.startswith('?'):
+                        # 处理以?开头的相对路径
+                        return f"{self.base_url}{next_url}"
+                    else:
+                        # 相对路径处理 - 使用URL解析而不是文件路径
+                        from urllib.parse import urljoin
+                        return urljoin(current_url, next_url)
         
-        if not content:
-            print("无法获取章节页面内容")
-            return None
+        # 默认模式：查找"下一页"链接
+        patterns = [
+            r'<a[^>]*id="pt_next"[^>]*href="([^"]*)"[^>]*>下一页</a>',
+            r'<a[^>]*href="([^"]*)"[^>]*>下一[页章]</a>'
+        ]
         
-        print(f"获取到章节页面，长度: {len(content)}")
-        
-        # 提取章节内容
-        chapter_content = self._extract_chapter_content(content)
-        
-        if chapter_content:
-            print(f"章节内容提取成功，长度: {len(chapter_content)}")
-            return chapter_content
-        
-        print("章节内容提取失败")
-        return None
-    
-    def _extract_chapter_content(self, content: str) -> Optional[str]:
-        """
-        从章节页面提取内容
-        
-        Args:
-            content: 章节页面内容
-            
-        Returns:
-            清理后的章节内容
-        """
-        # 尝试从article标签中提取
-        for pattern in self.content_reg:
-            match = re.search(pattern, content, re.DOTALL)
+        for pattern in patterns:
+            match = re.search(pattern, content, re.IGNORECASE)
             if match:
-                article_content = match.group(1)
-                
-                # 清理内容
-                cleaned_content = self._clean_chapter_content(article_content)
-                
-                if cleaned_content:
-                    return cleaned_content
+                next_url = match.group(1)
+                # 构建完整URL
+                if next_url.startswith('/'):
+                    return f"{self.base_url}{next_url}"
+                elif next_url.startswith('http'):
+                    return next_url
+                elif next_url.startswith('?'):
+                    # 处理以?开头的相对路径
+                    return f"{self.base_url}{next_url}"
+                else:
+                    # 相对路径处理 - 使用URL解析而不是文件路径
+                    from urllib.parse import urljoin
+                    return urljoin(current_url, next_url)
+        
+        # 没有找到下一页链接
+        return None
         
         return None
     
-    def _clean_chapter_content(self, content: str) -> str:
+    def _replace_img_to_text(self, content: str) -> str:
         """
-        清理章节内容
+        替换图片为文字
         
         Args:
-            content: 原始章节内容
+            content: 原始内容
             
         Returns:
-            清理后的内容
+            处理后的内容
         """
-        # 去掉HTML标签
-        cleaned = re.sub(r'<[^>]+>', '', content)
+        # 首先替换已知的图片映射
+        for img_pattern, text in self.img_to_text_mapping.items():
+            content = content.replace(img_pattern, text)
         
-        # 去掉"本站永久域名"等字样
-        cleaned = re.sub(r'本站永久域名[^，。]*[，。]', '', cleaned)
+        # 查找并记录未映射的图片
+        img_patterns = [
+            r'<img[^>]*src="[^"]*zi/[^"]*\.png"[^>]*>',
+            r'<img[^>]*width="30px"[^>]*height="28px"[^>]*>'
+        ]
         
-        # 清理多余的空格和换行
-        cleaned = re.sub(r'\s+', ' ', cleaned)
-        cleaned = re.sub(r'^\s+', '', cleaned)
-        cleaned = re.sub(r'\s+$', '', cleaned)
+        for pattern in img_patterns:
+            matches = re.findall(pattern, content)
+            for match in matches:
+                if match not in self.img_to_text_mapping:
+                    self.unmapped_images.add(match)
         
-        # 恢复段落格式
-        cleaned = re.sub(r'\s*\n\s*', '\n', cleaned)
+        # 如果发现未映射的图片，记录到文件
+        if self.unmapped_images:
+            self._log_unmapped_images()
         
-        return cleaned.strip()
+        return content
     
-    def _fetch_url(self, url: str) -> Optional[str]:
+    def _log_unmapped_images(self):
+        """记录未映射的图片到文件"""
+        log_file = os.path.expanduser("~/.config/new_preader/replace_img2text.txt")
+        
+        # 确保目录存在
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        
+        # 读取现有的映射
+        existing_mappings = {}
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if ':' in line:
+                        img_pattern, text = line.split(':', 1)
+                        existing_mappings[img_pattern.strip()] = text.strip()
+        
+        # 写入新的未映射图片
+        with open(log_file, 'a', encoding='utf-8') as f:
+            for img_pattern in self.unmapped_images:
+                if img_pattern not in existing_mappings:
+                    f.write(f"{img_pattern}: 待替换文字\n")
+                    print(f"发现未映射的图片，已记录到: {log_file}")
+    
+    def _remove_ads(self, content: str) -> str:
         """
-        获取URL内容
+        移除广告内容
+        
+        Args:
+            content: 原始内容
+            
+        Returns:
+            处理后的内容
+        """
+        import re
+        
+        # 移除常见的广告模式
+        ad_patterns = [
+            r'<div class="ad".*?</div>',
+            r'<!--.*?广告.*?-->',
+            r'赞助.*?内容',
+            r'<script[^>]*>.*?</script>',
+            r'<style[^>]*>.*?</style>'
+        ]
+        
+        for pattern in ad_patterns:
+            content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
+        
+        return content
+    
+    def _get_url_content(self, url: str, max_retries: int = 5) -> Optional[str]:
+        """
+        获取URL内容，支持GBK编码处理
+        HaijBookx 网站使用GBK编码，需要特殊处理
         
         Args:
             url: 目标URL
+            max_retries: 最大重试次数
+            
+        Returns:
+            页面内容或None
+        """
+        proxies = None
+        if self.proxy_config.get('enabled', False):
+            proxy_url = self.proxy_config.get('proxy_url', '')
+            if proxy_url:
+                proxies = {
+                    'http': proxy_url,
+                    'https': proxy_url
+                }
+        
+        for attempt in range(max_retries):
+            try:
+                # 首先尝试普通请求
+                response = self.session.get(url, proxies=proxies, timeout=10)
+                if response.status_code == 200:
+                    # HaijBookx 网站使用GBK编码，特殊处理
+                    response.encoding = self.encoding
+                    content = response.text
+                    
+                    # 检测 Cloudflare Turnstile 等高级反爬虫机制
+                    if self._detect_advanced_anti_bot(content):
+                        logger.warning(f"检测到高级反爬虫机制，尝试使用 Playwright: {url}")
+                        return self._get_url_content_with_playwright(url, proxies)
+                    
+                    return content
+                    
+                elif response.status_code == 404:
+                    logger.warning(f"页面不存在: {url}")
+                    return None
+                elif response.status_code in [403, 429, 503]:  # 反爬虫相关状态码
+                    logger.warning(f"检测到反爬虫限制 (HTTP {response.status_code})，尝试使用cloudscraper: {url}")
+                    # 使用cloudscraper绕过反爬虫
+                    return self._get_url_content_with_cloudscraper(url, proxies)
+                else:
+                    logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
+                    
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"第 {attempt + 1} 次请求失败: {url}, 错误: {e}")
+                
+                # 根据尝试次数选择不同的绕过策略
+                if attempt == 0:  # 第一次失败：尝试 cloudscraper
+                    try:
+                        return self._get_url_content_with_cloudscraper(url, proxies)
+                    except Exception as scraper_error:
+                        logger.warning(f"cloudscraper也失败: {scraper_error}")
+                elif attempt == 1:  # 第二次失败：尝试 selenium
+                    try:
+                        return self._selenium_request(url, proxies)
+                    except Exception as selenium_error:
+                        logger.warning(f"selenium也失败: {selenium_error}")
+                else:  # 第三次及以后：尝试 playwright
+                    try:
+                        return self._get_url_content_with_playwright(url, proxies)
+                    except Exception as playwright_error:
+                        logger.warning(f"playwright也失败: {playwright_error}")
+            
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)  # 指数退避
+        
+        logger.error(f"所有反爬虫策略都失败: {url}")
+        return None
+    
+    def _get_url_content_with_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        使用cloudscraper绕过反爬虫限制获取URL内容
+        HaijBookx 网站使用GBK编码，需要特殊处理
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
             
         Returns:
             页面内容或None
         """
         try:
-            # 使用session获取页面内容
-            response = self.session.get(url, timeout=30)
+            import cloudscraper
+            
+            # 创建cloudscraper会话
+            scraper = cloudscraper.create_scraper(
+                browser={
+                    'browser': 'chrome',
+                    'platform': 'windows',
+                    'mobile': False
+                },
+                ssl_verify=False,
+                delay=2
+            )
+            
+            # 设置请求头，适配GBK编码
+            scraper.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Accept-Charset': 'GBK,utf-8;q=0.7,*;q=0.3',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive'
+            })
+            
+            # 设置代理
+            if proxies:
+                scraper.proxies = proxies
+            
+            response = scraper.get(url, timeout=30)
+            
             if response.status_code == 200:
-                # 设置正确的编码（根据网站使用gbk编码）
-                response.encoding = 'gbk'
+                # HaijBookx 网站使用GBK编码，特殊处理
+                response.encoding = self.encoding
+                logger.info(f"cloudscraper成功绕过反爬虫限制: {url}")
                 return response.text
             else:
-                print(f"请求失败，状态码: {response.status_code}")
+                logger.warning(f"cloudscraper请求失败 (HTTP {response.status_code}): {url}")
                 return None
-        except Exception as e:
-            print(f"请求异常: {e}")
+                
+        except ImportError:
+            logger.warning("cloudscraper库未安装，无法绕过反爬虫限制")
             return None
+        except Exception as e:
+            logger.warning(f"cloudscraper请求异常: {e}")
+            return None
+    
+    def save_to_file(self, novel_content: Dict[str, Any], storage_folder: str) -> str:
+        """
+        将小说内容保存到文件，处理GBK编码的文件名
+        
+        Args:
+            novel_content: 小说内容字典
+            storage_folder: 存储文件夹
+            
+        Returns:
+            文件路径
+        """
+        # 确保存储目录存在
+        os.makedirs(storage_folder, exist_ok=True)
+        
+        # 生成文件名（使用标题，避免特殊字符）
+        title = novel_content.get('title', '未知标题')
+        
+        # 处理GBK编码的标题，转换为UTF-8
+        try:
+            # 如果标题是GBK编码的字节流，先解码为字符串
+            if isinstance(title, bytes):
+                title = title.decode('gbk')
+            
+            # 清理文件名中的特殊字符
+            filename = re.sub(r'[<>:"/\\|?*]', '_', title)
+            
+            # 如果文件名仍然是乱码，尝试GBK到UTF-8转换
+            try:
+                filename.encode('utf-8')
+            except UnicodeEncodeError:
+                # 可能是GBK编码的字符串，需要转换
+                filename = title.encode('gbk').decode('utf-8', errors='ignore')
+                filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+                
+        except Exception as e:
+            logger.warning(f"文件名编码处理失败: {e}")
+            filename = f"haijbookx_novel_{int(time.time())}"
+        
+        file_path = os.path.join(storage_folder, f"{filename}.txt")
+        
+        # 如果文件已存在，添加序号
+        original_path = file_path
+        # 如果文件已经存在, 则增书籍网站名称.
+        if os.path.exists(file_path):
+            file_path = original_path.replace('.txt', f'_{self.novel_site_name}.txt')
+        # 如果书籍网站名称的文件也存在, 则返回错误
+        if os.path.exists(file_path):
+            return 'already_exists'
+        
+        # 写入文件，使用UTF-8编码
+        with open(file_path, 'w', encoding='utf-8') as f:
+            # 写入标题
+            f.write(f"# {title}\n\n")
+            
+            # 写入章节内容
+            chapters = novel_content.get('chapters', [])
+            for chapter in chapters:
+                chapter_title = chapter.get('title', '未知章节')
+                chapter_content = chapter.get('content', '')
+                
+                f.write(f"## {chapter_title}\n\n")
+                f.write(chapter_content)
+                f.write("\n\n")
+        
+        logger.info(f"小说已保存到: {file_path}")
+        return file_path
+
+
+# 使用示例
+if __name__ == "__main__":
+    parser = HaijBookxParser()
+    
+    # 测试单篇小说
+    try:
+        novel_id = "19502"  # 示例ID
+        novel_content = parser.parse_novel_detail(novel_id)
+        file_path = parser.save_to_file(novel_content, "novels")
+        print(f"小说已保存到: {file_path}")
+    except Exception as e:
+        print(f"抓取失败: {e}")

@@ -25,9 +25,6 @@ class Feiku6Parser(BaseParser):
         
         # 飞库中文网使用UTF-8编码
         self.encoding = 'utf-8'
-        
-        # 飞库中文网使用UTF-8编码
-        self.encoding = 'utf-8'
     
     # 基本信息
     name = "飞库中文网"

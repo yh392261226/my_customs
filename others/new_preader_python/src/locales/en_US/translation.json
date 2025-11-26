@@ -1092,7 +1092,19 @@
         "retrying": "Retrying...",
         "search_placeholder": "Search by book title",
         "crawl_finished": "All crawl tasks finished",
-        "clear_search_params": "Clear search params"
+        "clear_search_params": "Clear search params",
+        "no_data": "No data found",
+        "no_selected_rows": "No selected rows",
+        "multi_delete_file_success": "Multi delete completed, Success {deletes} ，Failed {fails}",
+        "multi_delete_file_success2": "Multi delete success {deletes}",
+        "multi_delete_file_failed": "Multi delete failed, Error: {fails}",
+        "confirm_title": "Multi delete （{counts}）",
+        "confirm_desc": "Confirm to delete the selected {counts} files？This operation will delete from bookshelf too .",
+        "multi_delete_record_success": "Multi delete records completed, Success {deletes}，Failed {fails}",
+        "multi_delete_record_success2": "Multi delete records success {deletes}",
+        "multi_delete_record_failed": "Multi delete records failed, Error: {fails}",
+        "confirm_record_title": "Multi delete records （{counts}）",
+        "confirm_record_desc": "Confirm to delete the selected {counts} records？This operation will not delete the real file ."
     },
     "note": {
         "save": "Save",

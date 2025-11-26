@@ -290,6 +290,8 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
                     Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t('crawler.delete_file'), id="delete-file-btn", variant="warning"),
+                    Button(get_global_i18n().t('crawler.delete_record'), id="delete-record-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.back'), id="back-btn"),
                     id="crawler-buttons", classes="btn-row"
                 ),
@@ -821,6 +823,40 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"全选失败: {e}")
             self._update_status("全选失败", "error")
     
+    def _select_all_rows(self) -> None:
+        """全选"""
+        try:
+            # 全选当前显示的所有记录
+            for item in self.crawler_history:
+                # 确保类型一致：将item["id"]转换为字符串
+                record_id = str(item["id"])
+                self.selected_history.add(record_id)
+            
+            # 更新表格显示
+            self._update_history_table()
+            self._update_selection_status()
+            
+        except Exception as e:
+            logger.error(f"全选失败: {e}")
+            self._update_status("全选失败", "error")
+    
+    def _select_all_rows(self) -> None:
+        """全选"""
+        try:
+            # 全选当前显示的所有记录
+            for item in self.crawler_history:
+                # 确保类型一致：将item["id"]转换为字符串
+                record_id = str(item["id"])
+                self.selected_history.add(record_id)
+            
+            # 更新表格显示
+            self._update_history_table()
+            self._update_selection_status()
+            
+        except Exception as e:
+            logger.error(f"全选失败: {e}")
+            self._update_status("全选失败", "error")
+    
     def _invert_selection(self) -> None:
         """反选"""
         try:
@@ -841,7 +877,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"反选失败: {e}")
             self._update_status("反选失败", "error")
     
-    def _deselect_all(self) -> None:
+    def _deselect_all_rows(self) -> None:
         """取消全选"""
         try:
             self.selected_history.clear()
@@ -1184,52 +1220,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"合并操作异常: {e}")
             return False
     
-    # ==================== 事件处理 ====================
-    
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        """按钮点击事件处理"""
-        button_id = event.button.id
-        
-        if button_id == "open-browser-btn":
-            self._open_browser()
-        elif button_id == "view-history-btn":
-            self._view_history()
-        elif button_id == "note-btn":
-            self._open_note_dialog()
-        elif button_id == "start-crawl-btn":
-            self._start_crawl()
-        elif button_id == "choose-books-btn":
-            self._open_select_books_dialog()
-        elif button_id == "stop-crawl-btn":
-            self._stop_crawl()
-        elif button_id == "search-btn":
-            self._perform_search()
-        elif button_id == "clear-search-btn":
-            self._clear_search()
-        elif button_id == "select-all-btn":
-            self._select_all()
-        elif button_id == "invert-selection-btn":
-            self._invert_selection()
-        elif button_id == "deselect-all-btn":
-            self._deselect_all()
-        elif button_id == "move-up-btn":
-            self._move_selected_up()
-        elif button_id == "move-down-btn":
-            self._move_selected_down()
-        elif button_id == "merge-btn":
-            self._merge_selected()
-        elif button_id == "first-page-btn":
-            self._go_to_first_page()
-        elif button_id == "prev-page-btn":
-            self._go_to_prev_page()
-        elif button_id == "next-page-btn":
-            self._go_to_next_page()
-        elif button_id == "last-page-btn":
-            self._go_to_last_page()
-        elif button_id == "jump-page-btn":
-            self._show_jump_dialog()
-        elif button_id == "back-btn": 
-            self.app.pop_screen()  # 返回上一页
+
     
     @on(DataTable.CellSelected, "#crawl-history-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
@@ -2434,9 +2425,6 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"重试爬取过程失败: {e}")
             self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
-        except Exception as e:
-            logger.error(f"重试爬取过程失败: {e}")
-            self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
     
     def _check_and_continue_crawl(self) -> None:
         """检查输入框中是否还有新ID，如果有则继续爬取"""
@@ -2508,3 +2496,214 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"自动继续爬取检查失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.continue_crawl_failed')}: {str(e)}", "error")
+    
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """
+        按钮按下时的回调
+        
+        Args:
+            event: 按钮按下事件
+        """
+        button_id = event.button.id
+        
+        if button_id == "open-browser-btn":
+            self._open_browser()
+        elif button_id == "view-history-btn":
+            self._view_history()
+        elif button_id == "note-btn":
+            self._open_note_dialog()
+        elif button_id == "delete-file-btn":
+            self._batch_delete_files()
+        elif button_id == "delete-record-btn":
+            self._batch_delete_records()
+        elif button_id == "back-btn":
+            self.app.pop_screen()
+        elif button_id == "search-btn":
+            self._perform_search()
+        elif button_id == "clear-search-btn":
+            self._clear_search()
+        elif button_id == "start-crawl-btn":
+            self._start_crawl()
+        elif button_id == "stop-crawl-btn":
+            self._stop_crawl()
+        elif button_id == "choose-books-btn":
+            self._open_select_books_dialog()
+        elif button_id == "first-page-btn":
+            self._go_to_first_page()
+        elif button_id == "prev-page-btn":
+            self._go_to_prev_page()
+        elif button_id == "next-page-btn":
+            self._go_to_next_page()
+        elif button_id == "last-page-btn":
+            self._go_to_last_page()
+        elif button_id == "select-all-btn":
+            self._select_all_rows()
+        elif button_id == "invert-selection-btn":
+            self._invert_selection()
+        elif button_id == "deselect-all-btn":
+            self._deselect_all_rows()
+        elif button_id == "move-up-btn":
+            self._move_selected_up()
+        elif button_id == "move-down-btn":
+            self._move_selected_down()
+        elif button_id == "merge-btn":
+            self._merge_selected()
+    
+    def _batch_delete_files(self) -> None:
+        """批量删除选中的文件"""
+        try:
+            # 获取选中的记录ID
+            selected_ids = self.selected_history
+            if not selected_ids:
+                self._update_status(get_global_i18n().t('batch_ops.no_selected_rows'), "warning")
+                return
+            
+            # 从crawler_history中获取对应的完整行数据
+            selected_rows = []
+            for item in self.crawler_history:
+                if str(item.get("id")) in selected_ids:
+                    selected_rows.append(item)
+            
+            if not selected_rows:
+                self._update_status(get_global_i18n().t('batch_ops.no_data'), "warning")
+                return
+            
+            # 检查权限
+            if not getattr(self.app, "has_permission", lambda k: True)("crawler.delete_file"):
+                self._update_status(get_global_i18n().t('crawler.np_delete_file'), "error")
+                return
+            
+            # 确认删除
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            def handle_delete_confirmation(confirmed: bool | None) -> None:
+                if confirmed:
+                    try:
+                        deleted_count = 0
+                        failed_count = 0
+                        
+                        for row_data in selected_rows:
+                            file_path = row_data.get('file_path')
+                            if not file_path:
+                                continue
+                                
+                            try:
+                                import os
+                                # 检查文件是否存在
+                                if os.path.exists(file_path):
+                                    # 删除文件
+                                    os.remove(file_path)
+                                    
+                                    # 同时删除书架中的对应书籍
+                                    try:
+                                        if self.db_manager.delete_book(file_path):
+                                            # 发送全局刷新书架消息
+                                            try:
+                                                from src.ui.messages import RefreshBookshelfMessage
+                                                self.app.post_message(RefreshBookshelfMessage())
+                                            except Exception as msg_error:
+                                                logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                                    except Exception as shelf_error:
+                                        logger.error(f"删除书架书籍失败: {shelf_error}")
+                                        
+                                    deleted_count += 1
+                                else:
+                                    failed_count += 1
+                            except Exception as e:
+                                logger.error(f"删除文件失败: {file_path}, 错误: {e}")
+                                failed_count += 1
+                        
+                        # 清除选中状态
+                        self.selected_history.clear()
+                        
+                        # 刷新历史记录
+                        self._load_crawl_history()
+                        
+                        # 显示结果
+                        if failed_count > 0:
+                            self._update_status(get_global_i18n().t('crawler.multi_delete_file_success', deletes=deleted_count, fails=failed_count), "warning")
+                        else:
+                            self._update_status(get_global_i18n().t('crawler.multi_delete_file_success2', deletes=deleted_count), "success")
+                        
+                        
+                    except Exception as e:
+                        self._update_status(get_global_i18n().t('crawler.multi_delete_file_failed', err=str(e)), "error")
+                elif confirmed is False:
+                    self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
+            
+            # 显示确认对话框
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('crawler.confirm_title', counts=len(selected_rows)),
+                    get_global_i18n().t('crawler.confirm_desc', counts=len(selected_rows))
+                ),
+                handle_delete_confirmation
+            )
+            
+        except Exception as e:
+            self._update_status(get_global_i18n().t('crawler.multi_delete_file_failed', err=str(e)), "error")
+    
+    def _batch_delete_records(self) -> None:
+        """批量删除选中的数据库记录"""
+        try:
+            # 获取选中的记录ID
+            selected_ids = self.selected_history
+            if not selected_ids:
+                self._update_status(get_global_i18n().t('batch_ops.no_selected_rows'), "warning")
+                return
+            
+            # 检查权限
+            if not getattr(self.app, "has_permission", lambda k: True)("crawler.delete_record"):
+                self._update_status(get_global_i18n().t('crawler.np_delete_record'), "error")
+                return
+            
+            # 确认删除
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            def handle_delete_confirmation(confirmed: bool | None) -> None:
+                if confirmed:
+                    try:
+                        deleted_count = 0
+                        failed_count = 0
+                        
+                        for record_id in selected_ids:
+                            try:
+                                # 删除数据库记录，将字符串ID转换为整数
+                                if self.db_manager.delete_crawl_history(int(record_id)):
+                                    deleted_count += 1
+                                else:
+                                    failed_count += 1
+                            except Exception as e:
+                                logger.error(f"删除记录失败: {record_id}, 错误: {e}")
+                                failed_count += 1
+                        
+                        # 清除选中状态
+                        self.selected_history.clear()
+                        
+                        # 刷新历史记录
+                        self._load_crawl_history()
+                        
+                        # 显示结果
+                        if failed_count > 0:
+                            self._update_status(get_global_i18n().t('crawler.multi_delete_record_success', deletes=deleted_count, fails=failed_count), "warning")
+                        else:
+                            self._update_status(get_global_i18n().t('crawler.multi_delete_record_success2', deletes=deleted_count), "success")
+                        
+                          
+                    except Exception as e:
+                        self._update_status(get_global_i18n().t('crawler.multi_delete_record_failed', err=str(e)), "error")
+                elif confirmed is False:
+                    self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
+            
+            # 显示确认对话框
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('crawler.confirm_record_title', counts=len(selected_ids)),
+                    get_global_i18n().t('crawler.confirm_record_desc', counts=len(selected_ids))
+                ),
+                handle_delete_confirmation
+            )
+            
+        except Exception as e:
+            self._update_status(get_global_i18n().t('crawler.confirm_record_title', err=str(e)), "error")
+
