@@ -491,7 +491,8 @@ class Bookshelf:
         try:
             # 从reading_history表获取最近阅读的书籍路径
             user_id = self.current_user_id if self.current_user_id else None
-            reading_history = self.db_manager.get_reading_history(user_id=user_id, limit=100)
+            # 为了获取所有记录用于排序，不限制查询数量
+            reading_history = self.db_manager.get_reading_history(user_id=user_id, limit=None)
             
             # 按阅读时间倒序排列
             recent_books_paths = []
@@ -596,9 +597,13 @@ class Bookshelf:
         Returns:
             List[Dict[str, Any]]: 阅读历史记录列表
         """
-        if limit is None:
-            return self.reading_history
-        return self.reading_history[-limit:]
+        try:
+            # 从数据库获取阅读历史记录
+            user_id = self.current_user_id if self.current_user_id else None
+            return self.db_manager.get_reading_history(user_id=user_id, limit=limit)
+        except Exception as e:
+            logger.error(f"获取阅读历史记录失败: {e}")
+            return []
     
     def clear_reading_history(self, book_path: Optional[str] = None) -> None:
         """

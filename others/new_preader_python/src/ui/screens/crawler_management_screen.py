@@ -524,7 +524,8 @@ class CrawlerManagementScreen(Screen[None]):
             # 从数据库加载爬取历史
             site_id = self.novel_site.get('id')
             if site_id:
-                db_history = self.db_manager.get_crawl_history_by_site(site_id, limit=100)
+                # 为了支持分页，不限制查询数量，由UI分页控制显示
+                db_history = self.db_manager.get_crawl_history_by_site(site_id, limit=None)
                 
                 # 转换数据库格式为显示格式
                 self.crawler_history = []

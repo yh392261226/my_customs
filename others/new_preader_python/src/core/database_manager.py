@@ -944,14 +944,14 @@ class DatabaseManager:
             logger.error(f"添加阅读记录失败: {e}")
             return False
     
-    def get_reading_history(self, book_path: Optional[str] = None, limit: int = 100, 
+    def get_reading_history(self, book_path: Optional[str] = None, limit: Optional[int] = None, 
                            user_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取阅读历史记录
         
         Args:
             book_path: 可选，指定书籍路径
-            limit: 返回的记录数量限制
+            limit: 可选，返回的记录数量限制，如果为None则返回所有记录
             user_id: 可选，用户ID，如果为None则不按用户过滤
             
         Returns:
@@ -979,8 +979,10 @@ class DatabaseManager:
                 if conditions:
                     query += " WHERE " + " AND ".join(conditions)
                 
-                query += " ORDER BY read_date DESC LIMIT ?"
-                params.append(limit)
+                query += " ORDER BY read_date DESC"
+                if limit is not None:
+                    query += " LIMIT ?"
+                    params.append(limit)
                 
                 cursor.execute(query, params)
                 rows = cursor.fetchall()
@@ -1724,13 +1726,13 @@ class DatabaseManager:
             logger.error(f"添加爬取历史记录失败: {e}")
             return False
 
-    def get_crawl_history_by_site(self, site_id: int, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_crawl_history_by_site(self, site_id: int, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取指定网站的爬取历史记录
         
         Args:
             site_id: 网站ID
-            limit: 返回的记录数量限制
+            limit: 可选，返回的记录数量限制，如果为None则返回所有记录
             
         Returns:
             List[Dict[str, Any]]: 爬取历史记录列表
@@ -1739,12 +1741,16 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("""
+                query = """
                     SELECT * FROM crawl_history 
                     WHERE site_id = ? 
-                    ORDER BY crawl_time DESC 
-                    LIMIT ?
-                """, (site_id, limit))
+                    ORDER BY crawl_time DESC
+                """
+                params = [site_id]
+                if limit is not None:
+                    query += " LIMIT ?"
+                    params.append(limit)
+                cursor.execute(query, params)
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows if row]
         except sqlite3.Error as e:
