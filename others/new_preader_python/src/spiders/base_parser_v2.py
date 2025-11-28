@@ -421,8 +421,12 @@ class BaseParser:
         Returns:
             清理后的纯文本
         """
+        # 优先清除所有的<a></a>标签及其内容
+        clean_text = re.sub(r'<a[^>]*>.*?</a>', '', html_content, flags=re.IGNORECASE | re.DOTALL)
         # 先移除<style>标签及其内容
-        clean_text = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.IGNORECASE | re.DOTALL)
+        clean_text = re.sub(r'<style[^>]*>.*?</style>', '', clean_text, flags=re.IGNORECASE | re.DOTALL)
+        # 移除<script>标签及其内容
+        clean_text = re.sub(r'<script[^>]*>.*?</script>', '', clean_text, flags=re.IGNORECASE | re.DOTALL)
         # 移除其他HTML标签
         clean_text = re.sub(r'<[^>]+>', '', clean_text)
         # 替换HTML实体
