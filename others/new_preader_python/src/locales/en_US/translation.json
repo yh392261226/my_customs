@@ -939,7 +939,8 @@
         "np_delete_site": "No permission to delete book site",
         "np_batch_delete_site": "No permission to batch delete book sites",
         "np_open_carwler": "No permission to enter crawler management page",
-        "rating": "Rating"
+        "rating": "Rating",
+        "crawl_page_unavailable": "Crawl page unavailable"
     },
     "novel_site_dialog": {
         "add_title": "Add Book Site",

@@ -16,6 +16,7 @@ from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.core.database_manager import DatabaseManager
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
+from src.ui.dialogs.note_dialog import NoteDialog
 
 logger = get_logger(__name__)
 
@@ -27,6 +28,7 @@ class NovelSitesManagementScreen(Screen[None]):
         ("e", "edit_site", get_global_i18n().t('common.edit')),
         ("d", "delete_site", get_global_i18n().t('common.delete')),
         ("b", "batch_delete", get_global_i18n().t('novel_sites.batch_delete')),
+        ("m", "note", get_global_i18n().t('crawler.shortcut_b')),
         ("enter", "enter_crawler", get_global_i18n().t('get_books.enter')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
@@ -214,6 +216,7 @@ class NovelSitesManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('novel_sites.proxy_enabled'), key="proxy_enabled")
         table.add_column(get_global_i18n().t('novel_sites.parser'), key="parser")
         table.add_column(get_global_i18n().t('novel_sites.book_id_example'), key="book_id_example")
+        table.add_column(get_global_i18n().t('crawler.note'), key="note")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
@@ -329,7 +332,8 @@ class NovelSitesManagementScreen(Screen[None]):
                 row_data["rating"],
                 row_data["proxy_enabled"],
                 row_data["parser"],
-                row_data["book_id_example"]
+                row_data["book_id_example"],
+                get_global_i18n().t('crawler.note')
             )
         
         # 更新分页信息
@@ -639,6 +643,41 @@ class NovelSitesManagementScreen(Screen[None]):
         else:
             self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
     
+    def _open_note_dialog(self, site: Dict[str, Any]) -> None:
+        """打开备注对话框"""
+        try:
+            # 获取当前网站的备注内容
+            site_id = site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                return
+            
+            # 从数据库加载现有备注
+            current_note = self.database_manager.get_novel_site_note(site_id) or ""
+            
+            # 打开备注对话框
+            def handle_note_dialog_result(result: Optional[str]) -> None:
+                if result is not None:
+                    # 保存备注到数据库
+                    if self.database_manager.save_novel_site_note(site_id, result):
+                        self._update_status(get_global_i18n().t('crawler.note_saved'), "success")
+                    else:
+                        self._update_status(get_global_i18n().t('crawler.note_save_failed'), "error")
+                # 如果result为None，表示用户取消了操作
+            
+            self.app.push_screen(
+                NoteDialog(
+                    self.theme_manager,
+                    site['name'],
+                    current_note
+                ),
+                handle_note_dialog_result
+            )
+            
+        except Exception as e:
+            logger.error(f"打开备注对话框失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.open_note_dialog_failed')}: {str(e)}", "error")
+    
     def _delete_selected(self) -> None:
         """删除选中的书籍网站"""
         table = self.query_one("#novel-sites-table", DataTable)
@@ -699,7 +738,7 @@ class NovelSitesManagementScreen(Screen[None]):
                         crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
                         self.app.push_screen(crawler_screen)
                     except ImportError:
-                        self.notify("爬取管理页面不可用", severity="error")
+                        self.notify(get_global_i18n().t('novel_sites.crawl_page_unavailable'), severity="error")
             except (ValueError, TypeError):
                 # 如果转换失败，尝试通过行数据查找
                 table = self.query_one("#novel-sites-table", DataTable)
@@ -713,7 +752,7 @@ class NovelSitesManagementScreen(Screen[None]):
                             crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
                             self.app.push_screen(crawler_screen)
                         except ImportError:
-                            self.notify("爬取管理页面不可用", severity="error")
+                            self.notify(get_global_i18n().t('novel_sites.crawl_page_unavailable'), severity="error")
     
     def on_virtual_data_table_row_selected(self, event) -> None:
         """处理虚拟数据表行选中事件（空格键触发）"""
@@ -755,6 +794,8 @@ class NovelSitesManagementScreen(Screen[None]):
             global_index = start_index + event.coordinate.row
             
             if global_index < len(self.novel_sites):
+                site = self.novel_sites[global_index]
+                
                 # 切换选择状态（第一列）
                 if event.coordinate.column == 0:
                     if global_index in self.selected_sites:
@@ -788,6 +829,28 @@ class NovelSitesManagementScreen(Screen[None]):
                             table.focus()
                         except Exception:
                             pass
+                
+                # 备注按钮（最后一列，索引为7）
+                elif event.coordinate.column == 7:
+                    self._open_note_dialog(site)
+                    
+                    # 恢复光标位置
+                    try:
+                        table.focus()
+                        if hasattr(table, 'cursor_coordinate'):
+                            table.cursor_coordinate = (saved_row, saved_col)
+                        elif hasattr(table, 'cursor_row') and hasattr(table, 'cursor_column'):
+                            table.cursor_row = saved_row
+                            table.cursor_column = saved_col
+                        elif hasattr(table, '_cursor_row') and hasattr(table, '_cursor_column'):
+                            table._cursor_row = saved_row
+                            table._cursor_column = saved_col
+                        table.refresh()
+                    except Exception:
+                        try:
+                            table.focus()
+                        except Exception:
+                            pass
     
     # Actions for BINDINGS
     def action_add_site(self) -> None:
@@ -806,6 +869,23 @@ class NovelSitesManagementScreen(Screen[None]):
         """空格键 - 选中或取消选中当前行"""
         # 直接处理空格键，不依赖BINDINGS系统
         table = self.query_one("#novel-sites-table", DataTable)
+    
+    def action_note(self) -> None:
+        """M键 - 打开当前选中网站的备注对话框"""
+        table = self.query_one("#novel-sites-table", DataTable)
+        if table.cursor_row is not None:
+            # 计算当前页面的起始索引
+            start_index = (self._current_page - 1) * self._sites_per_page
+            # 计算全局索引
+            global_index = start_index + table.cursor_row
+            
+            if global_index < len(self.novel_sites):
+                site = self.novel_sites[global_index]
+                self._open_note_dialog(site)
+            else:
+                self._update_status(get_global_i18n().t('novel_sites.site_not_found'), "error")
+        else:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
         
         # 获取当前光标位置
         current_row_index = None
