@@ -39,7 +39,6 @@ class PlaywrightCrawler:
             # 配置浏览器选项
             browser_options = {
                 'headless': self.headless,
-                'ignore_https_errors': True,
                 'args': [
                     '--disable-blink-features=AutomationControlled',
                     '--no-sandbox',
@@ -47,8 +46,8 @@ class PlaywrightCrawler:
                     '--disable-gpu',
                     '--disable-extensions',
                     '--disable-images',
-                    '--disable-javascript',
-                    '--window-size=1920,1080'
+                    '--window-size=1920,1080',
+                    '--ignore-certificate-errors'
                 ]
             }
             

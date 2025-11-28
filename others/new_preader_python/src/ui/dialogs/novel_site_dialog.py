@@ -305,9 +305,9 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # 存储文件夹现在是可选字段，不需要验证
         
         # 验证URL格式
-        if not self._is_valid_url(url_input.value.strip()):
-            self._update_status(get_global_i18n().t('novel_site_dialog.invalid_url'))
-            return  # 验证失败，停留在当前页面
+        # if not self._is_valid_url(url_input.value.strip()):
+        #     self._update_status(get_global_i18n().t('novel_site_dialog.invalid_url'))
+        #     return  # 验证失败，停留在当前页面
         
         # 获取解析器值 - 使用解析器文件名
         parser_value = ""  # 默认为空
