@@ -22,7 +22,7 @@ class XbookcnParser(BaseParser):
     # 基本信息
     name = "xbookcn.com"
     description = "xbookcn.com 小说解析器"
-    base_url = "https://blog.xbookcn.com"
+    base_url = "https://blog.xbookcn.net"
     
     # 正则表达式配置
     title_reg = [

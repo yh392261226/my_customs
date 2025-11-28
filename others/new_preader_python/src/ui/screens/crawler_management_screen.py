@@ -1350,9 +1350,14 @@ class CrawlerManagementScreen(Screen[None]):
     
     def _open_browser(self) -> None:
         """在浏览器中打开网站"""
-        import webbrowser
         try:
-            webbrowser.open(self.novel_site['url'])
+            import platform
+            system = platform.system()
+            if system == "Darwin":  # macOS
+                os.system(f'open -a "Google Chrome" "{self.novel_site['url']}"')
+            else:
+                import webbrowser
+                webbrowser.open(self.novel_site['url'])
             self._update_status(get_global_i18n().t('crawler.browser_opened'))
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_browser_failed')}: {str(e)}", "error")
@@ -1513,6 +1518,9 @@ class CrawlerManagementScreen(Screen[None]):
             novel_ids = [nid for nid in novel_ids if nid not in existing_novels]
             if not novel_ids:
                 self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}")
+                # 重置爬取状态和按钮状态
+                self.is_crawling = False
+                self._update_crawl_button_state()
                 return
             else:
                 # 汇总提示，继续爬取剩余ID
