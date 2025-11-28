@@ -240,7 +240,7 @@ class Po18Parser(BaseParser):
         # 创建小说内容
         novel_content = {
             'title': title,
-            'author': self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': [
@@ -277,7 +277,7 @@ class Po18Parser(BaseParser):
         # 创建小说内容
         novel_content = {
             'title': title,
-            'author': self.name,
+            'author': self.novel_site_name,
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': []

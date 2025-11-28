@@ -254,8 +254,24 @@ class CrawlerManager:
                             try:
                                 from src.core.bookshelf import Bookshelf
                                 bookshelf = Bookshelf()
-                                bookshelf.add_book(file_path, result['title'], result.get('author', ''))
-                                logger.info(f"小说已添加到书库: {result['title']}")
+                                
+                                # 合并网站标签和解析器返回的标签
+                                site_tags = novel_site.get('tags', '')
+                                result_tags = result.get('tags', '')
+                                
+                                # 合并标签逻辑：如果有网站标签，则添加到书籍标签中
+                                if site_tags:
+                                    if result_tags:
+                                        combined_tags = f"{result_tags},{site_tags}"
+                                    else:
+                                        combined_tags = site_tags
+                                else:
+                                    combined_tags = result_tags
+                                
+                                # 使用合并后的标签添加书籍
+                                book = bookshelf.add_book(file_path, result['title'], result.get('author', ''), combined_tags)
+                                
+                                logger.info(f"小说已添加到书库: {result['title']}, 作者: {result.get('author', '')}, 标签: {combined_tags}")
                             except Exception as e:
                                 logger.error(f"添加到书库失败: {e}")
                             
