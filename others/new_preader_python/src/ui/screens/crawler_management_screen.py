@@ -825,27 +825,15 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status("全选失败", "error")
     
     def _select_all_rows(self) -> None:
-        """全选"""
+        """全选当前页"""
         try:
-            # 全选当前显示的所有记录
-            for item in self.crawler_history:
-                # 确保类型一致：将item["id"]转换为字符串
-                record_id = str(item["id"])
-                self.selected_history.add(record_id)
+            # 计算当前页的起始索引和结束索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            end_index = min(start_index + self.items_per_page, len(self.crawler_history))
             
-            # 更新表格显示
-            self._update_history_table()
-            self._update_selection_status()
-            
-        except Exception as e:
-            logger.error(f"全选失败: {e}")
-            self._update_status("全选失败", "error")
-    
-    def _select_all_rows(self) -> None:
-        """全选"""
-        try:
-            # 全选当前显示的所有记录
-            for item in self.crawler_history:
+            # 只选择当前页的记录
+            for i in range(start_index, end_index):
+                item = self.crawler_history[i]
                 # 确保类型一致：将item["id"]转换为字符串
                 record_id = str(item["id"])
                 self.selected_history.add(record_id)
@@ -859,10 +847,15 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status("全选失败", "error")
     
     def _invert_selection(self) -> None:
-        """反选"""
+        """反选当前页"""
         try:
-            # 反选当前显示的所有记录
-            for item in self.crawler_history:
+            # 计算当前页的起始索引和结束索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            end_index = min(start_index + self.items_per_page, len(self.crawler_history))
+            
+            # 只反选当前页的记录
+            for i in range(start_index, end_index):
+                item = self.crawler_history[i]
                 # 确保类型一致：将item["id"]转换为字符串
                 record_id = str(item["id"])
                 if record_id in self.selected_history:
