@@ -351,6 +351,7 @@
         "password_enabled": "Enable Startup Password",
         "password": "Startup Password",
         "password_placeholder": "Enter new password",
+        "auto_vacuum_enabled": "Enable Auto Vacuum",
         "config_dir": "Config Directory",
         "database": "Database Path",
         "library": "Book Library Path",
@@ -396,7 +397,14 @@
         "config_refresh_failed": "Failed to refresh config preview",
         "hiddens": "***Hidden***",
         "reminder_enabled": "Enable Reminder",
-        "reminder_interval": "Reminder Interval"
+        "reminder_interval": "Reminder Interval",
+        "backup_database": "Backup Database",
+        "backup_database_desc": "Create a compressed backup of the database and save to Downloads folder",
+        "backup_success": "Database backup completed successfully",
+        "backup_failed": "Database backup failed",
+        "backup_in_progress": "Creating database backup...",
+        "database": "Database",
+        "database_management": "Database Management"
     },
     "common": {
         "close": "Close",

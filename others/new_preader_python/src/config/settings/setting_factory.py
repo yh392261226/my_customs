@@ -533,6 +533,15 @@ def create_advanced_settings() -> SettingSection:
         category="advanced",
         is_hidden=False
     ))
+
+    # 启用数据库自动清理
+    section.add_setting(BooleanSetting(
+        key="advanced.auto_vacuum_enabled",
+        default_value=True,
+        display_name="启用数据库自动清理",
+        description="自动清理数据库中的空闲空间，避免数据库文件变得臃肿",
+        category="advanced"
+    ))
     
     return section
 

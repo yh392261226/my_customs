@@ -73,6 +73,15 @@ class DatabaseManager:
             os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_database()
     
+    def get_db_path(self) -> str:
+        """
+        获取数据库文件路径
+        
+        Returns:
+            str: 数据库文件路径
+        """
+        return self.db_path
+    
     def _add_column_if_not_exists(self, cursor: sqlite3.Cursor, table_name: str, column_name: str, 
                                   column_type: str, default_value: str = "") -> None:
         """
@@ -99,8 +108,15 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
-            # 启用auto_vacuum以避免数据库臃肿
-            cursor.execute("PRAGMA auto_vacuum = 1")
+            # 根据配置启用auto_vacuum以避免数据库臃肿
+            config = ConfigManager.get_instance().get_config()
+            auto_vacuum_enabled = config.get("advanced", {}).get("auto_vacuum_enabled", True)
+            if auto_vacuum_enabled:
+                cursor.execute("PRAGMA auto_vacuum = 1")
+                logger.info("数据库自动清理已启用")
+            else:
+                cursor.execute("PRAGMA auto_vacuum = 0")
+                logger.info("数据库自动清理已禁用")
             
             # 创建书籍表（删除last_read_date、reading_progress、total_pages、word_count字段）
             cursor.execute("""

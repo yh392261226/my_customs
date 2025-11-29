@@ -4,6 +4,7 @@
 """
 
 
+import os
 from typing import Any, Dict, Optional, ClassVar
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
@@ -59,11 +60,6 @@ class SettingsScreen(Screen[Any]):
     """现代化设置屏幕"""
     
     CSS_PATH = "../styles/settings_overrides.tcss"
-    # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "press('#save-btn')", get_global_i18n().t("settings.save")),
-        ("r", "press('#reset-btn')", get_global_i18n().t("settings.reset")),
-    ]
     
 
     
@@ -82,6 +78,12 @@ class SettingsScreen(Screen[Any]):
         super().__init__()
         self.theme_manager = theme_manager
         self.config_manager = config_manager
+        
+        # 设置快捷键绑定
+        self.BINDINGS = [
+            ("enter", "press('#save-btn')", get_global_i18n().t("settings.save")),
+            ("r", "press('#reset-btn')", get_global_i18n().t("settings.reset")),
+        ]
         
         # 初始化设置系统
         self.setting_registry = SettingRegistry()
@@ -123,6 +125,10 @@ class SettingsScreen(Screen[Any]):
                 # 翻译设置标签页
                 with TabPane(get_global_i18n().t("settings.translation"), id="translation-tab"):
                     yield from self._compose_translation_settings()
+                
+                # 数据库管理标签页
+                with TabPane(get_global_i18n().t("settings.database_management"), id="database-tab"):
+                    yield from self._compose_database_settings()
                 
                 # 高级设置标签页
                 with TabPane(get_global_i18n().t("settings.advanced"), id="advanced-tab"):
@@ -566,6 +572,56 @@ class SettingsScreen(Screen[Any]):
                 password=True,
                 id="advanced-password-input"
             )
+
+            # 启用数据库自动清理
+            yield Label(get_global_i18n().t("settings.auto_vacuum_enabled"), classes="setting-label")
+            auto_vacuum_setting = self.setting_registry.get_setting("advanced.auto_vacuum_enabled")
+            if auto_vacuum_setting:
+                yield Switch(
+                    value=auto_vacuum_setting.value,
+                    id="advanced-auto-vacuum-switch"
+                )
+    
+    def _compose_database_settings(self) -> ComposeResult:
+        """组合数据库管理设置"""
+        with ScrollableContainer(id="database-settings"):
+            # 数据库信息标题
+            yield Label(get_global_i18n().t("settings.database"), classes="setting-section-title")
+            
+            # 数据库路径信息
+            yield Label("数据库路径", classes="setting-label")
+            config = self.config_manager.get_config()
+            db_path = os.path.expanduser(config["paths"]["database"])
+            yield Label(db_path, classes="setting-value")
+            
+            # 数据库文件大小
+            try:
+                if os.path.exists(db_path):
+                    file_size = os.path.getsize(db_path) / 1024 / 1024  # MB
+                    yield Label(f"文件大小: {file_size:.2f} MB", classes="setting-value")
+                else:
+                    yield Label("文件大小: 文件不存在", classes="setting-value error")
+            except Exception:
+                yield Label("文件大小: 无法获取", classes="setting-value error")
+            
+            # 分隔线
+            yield Horizontal(id="database-separator", classes="setting-separator")
+            
+            # 数据库备份
+            yield Label(get_global_i18n().t("settings.backup_database"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("settings.backup_database_desc"), classes="setting-description")
+            yield Button(
+                get_global_i18n().t("settings.backup_database"),
+                id="database-backup-btn",
+                variant="primary"
+            )
+            
+            # 数据库维护说明
+            yield Horizontal(id="database-maintenance-separator", classes="setting-separator")
+            yield Label("维护说明", classes="setting-section-title")
+            yield Label("• 启用自动清理可避免数据库文件变得臃肿", classes="setting-description")
+            yield Label("• 定期备份可保护重要数据安全", classes="setting-description")
+            yield Label("• 备份文件将保存到下载文件夹", classes="setting-description")
     
     def _compose_preview_config_settings(self) -> ComposeResult:
         """组合预览配置设置"""
@@ -742,6 +798,8 @@ class SettingsScreen(Screen[Any]):
                 self.notify(get_global_i18n().t("settings.np_reset"), severity="warning")
         elif event.button.id == "refresh-config-btn":
             self._refresh_config_preview()
+        elif event.button.id == "database-backup-btn":
+            self._backup_database()
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
@@ -1188,4 +1246,61 @@ class SettingsScreen(Screen[Any]):
         # 这个方法会在重置后重新加载UI
         # 由于Textual的限制，我们需要重新加载整个屏幕
         # 在实际应用中，可以逐个更新UI控件
+
+    def _backup_database(self) -> None:
+        """备份数据库到下载文件夹"""
+        import os
+        import shutil
+        import datetime
+        from pathlib import Path
+        from src.core.database_manager import DatabaseManager
+        
+        try:
+            # 显示备份进度提示
+            self.notify(get_global_i18n().t("settings.backup_in_progress"), severity="information")
+            
+            # 获取数据库路径
+            db_manager = DatabaseManager()
+            db_path = db_manager.get_db_path()
+            
+            # 检查数据库文件是否存在
+            if not os.path.exists(db_path):
+                self.notify(get_global_i18n().t("settings.backup_failed"), severity="error")
+                return
+            
+            # 创建下载目录
+            downloads_dir = Path.home() / "Downloads"
+            downloads_dir.mkdir(exist_ok=True)
+            
+            # 生成备份文件名（包含时间戳）
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_filename = f"newreader_database_backup_{timestamp}.zip"
+            backup_path = downloads_dir / backup_filename
+            
+            # 创建临时目录
+            import tempfile
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_db_path = os.path.join(temp_dir, "database.sqlite")
+                
+                # 复制数据库文件到临时目录
+                shutil.copy2(db_path, temp_db_path)
+                
+                # 创建ZIP压缩包
+                import zipfile
+                with zipfile.ZipFile(backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    zipf.write(temp_db_path, "database.sqlite")
+                
+                # 验证备份文件
+                if backup_path.exists() and backup_path.stat().st_size > 0:
+                    self.notify(
+                        f"{get_global_i18n().t('settings.backup_success')}: {backup_filename}", 
+                        severity="success"
+                    )
+                    logger.info(f"数据库备份成功: {backup_path}")
+                else:
+                    self.notify(get_global_i18n().t("settings.backup_failed"), severity="error")
+                    
+        except Exception as e:
+            logger.error(f"数据库备份失败: {e}")
+            self.notify(get_global_i18n().t("settings.backup_failed"), severity="error")
         pass

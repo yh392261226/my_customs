@@ -52,6 +52,7 @@ DEFAULT_CONFIG = {
         "multi_user_enabled": False,  # 是否启用多用户
         "password_enabled": False,  # 是否启用启动密码
         "password": "",  # 启动密码（明文存储）
+        "auto_vacuum_enabled": True,  # 是否启用数据库自动清理
     },
     
     # 翻译设置

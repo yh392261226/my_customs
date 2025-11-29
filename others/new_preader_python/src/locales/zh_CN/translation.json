@@ -351,6 +351,7 @@
         "password_enabled": "启用启动密码",
         "password": "启动密码",
         "password_placeholder": "输入新密码",
+        "auto_vacuum_enabled": "启用数据库自动清理",
         "config_dir": "配置目录",
         "database": "数据库路径",
         "library": "书籍库路径",
@@ -396,7 +397,14 @@
         "config_refresh_failed": "刷新配置预览失败",
         "hiddens": "***已隐藏***",
         "reminder_enabled": "启用提醒",
-        "reminder_interval": "提醒间隔"
+        "reminder_interval": "提醒间隔",
+        "backup_database": "备份数据库",
+        "backup_database_desc": "创建数据库压缩备份并保存到下载文件夹",
+        "backup_success": "数据库备份完成",
+        "backup_failed": "数据库备份失败",
+        "backup_in_progress": "正在创建数据库备份...",
+        "database": "数据库",
+        "database_management": "数据库管理"
     },
     "common": {
         "close": "关闭",
