@@ -100,8 +100,8 @@ class BaseParser:
         
         for attempt in range(max_retries):
             try:
-                # 首先尝试普通请求
-                response = self.session.get(url, proxies=proxies, timeout=10)
+                # 首先尝试普通请求 - 增加超时时间
+                response = self.session.get(url, proxies=proxies, timeout=(15, 30))  # 连接15s，读取30s
                 if response.status_code == 200:
                     # 检查内容是否为反爬虫页面
                     content = response.text

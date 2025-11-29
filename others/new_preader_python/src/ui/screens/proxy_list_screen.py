@@ -548,29 +548,62 @@ class ProxyListScreen(Screen[None]):
                 'https': proxy_url
             }
             
-            # 测试连接 - 使用Google网站进行测试（更稳定可靠）
-            test_url = "https://www.google.com"
+            # 测试连接 - 使用多个网站进行测试，提高成功率
+            test_urls = [
+                "http://httpbin.org/ip",  # 测试代理IP
+                "https://www.baidu.com",  # 国内网站测试
+                "https://www.google.com"  # 国际网站测试
+            ]
             
-            # 设置超时时间
-            timeout = 10
+            # 设置超时时间 - 增加到30秒
+            timeout = 30
+            connect_timeout = 15  # 连接超时
+            read_timeout = 15     # 读取超时
             
-            start_time = time.time()
-            response = requests.get(test_url, proxies=proxies, timeout=timeout)
-            end_time = time.time()
+            for test_url in test_urls:
+                try:
+                    start_time = time.time()
+                    response = requests.get(
+                        test_url, 
+                        proxies=proxies, 
+                        timeout=(connect_timeout, read_timeout),
+                        stream=True,  # 使用流式下载，避免大文件下载卡住
+                        headers={
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                            'Connection': 'keep-alive'
+                        }
+                    )
+                    
+                    # 只读取前1KB内容来验证连接
+                    content = response.raw.read(1024)
+                    end_time = time.time()
+                    
+                    if response.status_code == 200:
+                        logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
+                        return True
+                    else:
+                        logger.warning(f"测试站点 {test_url} 返回状态码: {response.status_code}")
+                        # 继续尝试下一个URL
+                        
+                except requests.exceptions.ConnectTimeout:
+                    logger.warning(f"代理连接超时 (连接超时 {connect_timeout}s): {proxy_url}")
+                    continue  # 尝试下一个URL
+                except requests.exceptions.ReadTimeout:
+                    logger.warning(f"代理读取超时 (读取超时 {read_timeout}s): {proxy_url}")
+                    continue  # 尝试下一个URL
+                except requests.exceptions.ConnectionError as e:
+                    logger.warning(f"代理连接错误: {proxy_url}, 错误: {e}")
+                    continue  # 尝试下一个URL
+                except Exception as e:
+                    logger.warning(f"代理测试异常 (URL: {test_url}): {e}")
+                    continue  # 尝试下一个URL
             
-            if response.status_code == 200:
-                logger.info(f"代理连接测试成功: {proxy_url} (响应时间: {end_time - start_time:.2f}s)")
-                return True
-            else:
-                logger.error(f"代理连接测试失败: HTTP {response.status_code}")
-                return False
+            # 所有URL都失败
+            logger.error(f"代理测试失败: 所有测试URL都无法连接")
+            return False
                 
-        except requests.exceptions.ConnectTimeout:
-            logger.error(f"代理连接超时: {proxy_url}")
-            return False
-        except requests.exceptions.ConnectionError:
-            logger.error(f"代理连接错误: {proxy_url}")
-            return False
         except Exception as e:
             logger.error(f"代理测试异常: {e}")
             return False
