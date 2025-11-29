@@ -82,7 +82,7 @@ Footer {
 #settings-container Select {
     width: 20%;
     min-width: 10;
-    height: 5;
+    height: 10;
     margin: 1 0;
 }
 

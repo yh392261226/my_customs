@@ -144,7 +144,13 @@ AVAILABLE_THEMES = [
     "glass-cyan", "glass-rose", "glass-amber", "glass-lime",
     "glass-violet", "glass-emerald", "glass-coral", "glass-sky", "glass-berry",
     "glass-mango", "glass-mint", "glass-lava", "glass-aqua", "glass-graphite",
-    "glass-limefresh", "glass-aurora", "glass-cherry"
+    "glass-limefresh", "glass-aurora", "glass-cherry",
+    # 新增的20款主题
+    "lemon-green", "neon-rainbow", "tropical-vibes", "candy-explosion",
+    "electric-blue", "magenta-blast", "citrus-burst", "galaxy-theme",
+    "fiesta-theme", "mint-fresh", "emerald-green", "violet-dream",
+    "amber-glow", "coral-reef", "sky-blue", "mint-green",
+    "lavender-field", "sunset-glow"
 ]
 
 # 支持的边框样式
