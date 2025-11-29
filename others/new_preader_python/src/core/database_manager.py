@@ -99,6 +99,9 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
+            # 启用auto_vacuum以避免数据库臃肿
+            cursor.execute("PRAGMA auto_vacuum = 1")
+            
             # 创建书籍表（删除last_read_date、reading_progress、total_pages、word_count字段）
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS books (
