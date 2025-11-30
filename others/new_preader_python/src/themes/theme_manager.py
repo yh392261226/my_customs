@@ -4531,29 +4531,29 @@ class ThemeManager:
                 if _fg_fallback:
                     screen.styles.set_rule("$foreground", _fg_fallback)
             
+            # 提供主色的衍生变量，兼容 TSS 中的 lighten/darken 用法
+            def _adjust_hex_lightness(hex_color: str, delta: int) -> str:
+                try:
+                    c = hex_color.strip()
+                    if c.startswith("#"):
+                        c = c[1:]
+                    # 支持简写 #rgb
+                    if len(c) == 3:
+                        c = "".join(ch*2 for ch in c)
+                    r = int(c[0:2], 16)
+                    g = int(c[2:4], 16)
+                    b = int(c[4:6], 16)
+                    def clamp(x): 
+                        return max(0, min(255, x))
+                    r = clamp(r + delta)
+                    g = clamp(g + delta)
+                    b = clamp(b + delta)
+                    return f"#{r:02x}{g:02x}{b:02x}"
+                except Exception:
+                    # 回退原色
+                    return hex_color
             if primary_color:
                 screen.styles.set_rule("$primary", primary_color)
-                # 提供主色的衍生变量，兼容 TSS 中的 lighten/darken 用法
-                def _adjust_hex_lightness(hex_color: str, delta: int) -> str:
-                    try:
-                        c = hex_color.strip()
-                        if c.startswith("#"):
-                            c = c[1:]
-                        # 支持简写 #rgb
-                        if len(c) == 3:
-                            c = "".join(ch*2 for ch in c)
-                        r = int(c[0:2], 16)
-                        g = int(c[2:4], 16)
-                        b = int(c[4:6], 16)
-                        def clamp(x): 
-                            return max(0, min(255, x))
-                        r = clamp(r + delta)
-                        g = clamp(g + delta)
-                        b = clamp(b + delta)
-                        return f"#{r:02x}{g:02x}{b:02x}"
-                    except Exception:
-                        # 回退原色
-                        return hex_color
                 screen.styles.set_rule("$primary-lighten-1", _adjust_hex_lightness(primary_color, 20))
                 screen.styles.set_rule("$primary-darken-1", _adjust_hex_lightness(primary_color, -20))
             
@@ -4575,24 +4575,6 @@ class ThemeManager:
                 screen.styles.set_rule("$surface", surface_color)
                 # 不设置 $panel（在 Textual 默认 CSS 中，$panel 用作 hatch 的百分比）
                 # 提供表面色的衍生变量（用于边框/hover 等）
-                def _adjust_hex_lightness(hex_color: str, delta: int) -> str:
-                    try:
-                        c = hex_color.strip()
-                        if c.startswith("#"):
-                            c = c[1:]
-                        if len(c) == 3:
-                            c = "".join(ch*2 for ch in c)
-                        r = int(c[0:2], 16)
-                        g = int(c[2:4], 16)
-                        b = int(c[4:6], 16)
-                        def clamp(x): 
-                            return max(0, min(255, x))
-                        r = clamp(r + delta)
-                        g = clamp(g + delta)
-                        b = clamp(b + delta)
-                        return f"#{r:02x}{g:02x}{b:02x}"
-                    except Exception:
-                        return hex_color
                 screen.styles.set_rule("$surface-lighten-1", _adjust_hex_lightness(surface_color, 20))
                 screen.styles.set_rule("$surface-darken-1", _adjust_hex_lightness(surface_color, -20))
             else:
