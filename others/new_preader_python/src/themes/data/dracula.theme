@@ -1,0 +1,153 @@
+{
+    "name": "dracula",
+    "display_name": "Dracula",
+    "description": "Dracula 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#F8F8F2",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#BFBFBF"
+        },
+        "app.accent": {
+            "color": "#BD93F9"
+        },
+        "app.highlight": {
+            "color": "#F1FA8C"
+        },
+        "app.warning": {
+            "color": "#FF5555"
+        },
+        "app.success": {
+            "color": "#50FA7B"
+        },
+        "app.info": {
+            "color": "#8BE9FD"
+        },
+        "app.muted": {
+            "color": "#6272A4"
+        },
+        "ui.border": {
+            "color": "#6272A4"
+        },
+        "ui.background": {
+            "color": "#282A36",
+            "bgcolor": "#282A36"
+        },
+        "ui.panel": {
+            "color": "#44475A",
+            "bgcolor": "#44475A"
+        },
+        "ui.panel.title": {
+            "color": "#F8F8F2",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#BD93F9"
+        },
+        "ui.button": {
+            "color": "#282A36",
+            "bgcolor": "#8BE9FD"
+        },
+        "ui.button.primary": {
+            "color": "#282A36",
+            "bgcolor": "#BD93F9"
+        },
+        "ui.button.success": {
+            "color": "#282A36",
+            "bgcolor": "#50FA7B"
+        },
+        "ui.button.warning": {
+            "color": "#282A36",
+            "bgcolor": "#F1FA8C"
+        },
+        "ui.button.danger": {
+            "color": "#F8F8F2",
+            "bgcolor": "#FF5555"
+        },
+        "ui.input": {
+            "color": "#8BE9FD",
+            "bgcolor": "#44475A"
+        },
+        "ui.input.focus": {
+            "color": "#F1FA8C",
+            "bgcolor": "#6272A4"
+        },
+        "ui.selection": {
+            "color": "#44475A",
+            "bgcolor": "#44475A"
+        },
+        "content.text": {
+            "color": "#BD93F9"
+        },
+        "content.heading": {
+            "color": "#BD93F9",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#F1FA8C",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#FF79C6",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#F1FA8C",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#50FA7B",
+            "bgcolor": "#282A36"
+        },
+        "content.highlight": {
+            "color": "#282A36",
+            "bgcolor": "#F1FA8C"
+        },
+        "progress.bar": {
+            "color": "#BD93F9"
+        },
+        "progress.text": {
+            "color": "#BD93F9"
+        },
+        "progress.percentage": {
+            "color": "#BD93F9"
+        },
+        "bookshelf.title": {
+            "color": "#BD93F9",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#BD93F9"
+        },
+        "bookshelf.progress": {
+            "color": "#FF79C6"
+        },
+        "bookshelf.tag": {
+            "color": "#8BE9FD",
+            "bgcolor": "#44475A"
+        },
+        "bookshelf.selected": {
+            "color": "#6272A4",
+            "bgcolor": "#6272A4"
+        },
+        "reader.text": {
+            "color": "#BD93F9"
+        },
+        "reader.chapter": {
+            "color": "#BD93F9",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#F1FA8C"
+        },
+        "reader.bookmark": {
+            "color": "#FF79C6"
+        },
+        "reader.search_result": {
+            "color": "#282A36",
+            "bgcolor": "#F1FA8C"
+        }
+    }
+}

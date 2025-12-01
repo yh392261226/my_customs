@@ -1,0 +1,153 @@
+{
+    "name": "amethyst-crystal",
+    "display_name": "Amethyst Crystal",
+    "description": "Amethyst Crystal 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#E1BEE7",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#CE93D8"
+        },
+        "app.accent": {
+            "color": "#BA68C8"
+        },
+        "app.highlight": {
+            "color": "#AB47BC"
+        },
+        "app.warning": {
+            "color": "#FF9800"
+        },
+        "app.success": {
+            "color": "#4CAF50"
+        },
+        "app.info": {
+            "color": "#2196F3"
+        },
+        "app.muted": {
+            "color": "#8E24AA"
+        },
+        "ui.border": {
+            "color": "#BA68C8"
+        },
+        "ui.background": {
+            "color": "#4A148C",
+            "bgcolor": "#4A148C"
+        },
+        "ui.panel": {
+            "color": "#6A1B9A",
+            "bgcolor": "#6A1B9A"
+        },
+        "ui.panel.title": {
+            "color": "#E1BEE7",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#CE93D8"
+        },
+        "ui.button": {
+            "color": "#4A148C",
+            "bgcolor": "#E1BEE7"
+        },
+        "ui.button.primary": {
+            "color": "#4A148C",
+            "bgcolor": "#BA68C8"
+        },
+        "ui.button.success": {
+            "color": "#4A148C",
+            "bgcolor": "#4CAF50"
+        },
+        "ui.button.warning": {
+            "color": "#4A148C",
+            "bgcolor": "#FF9800"
+        },
+        "ui.button.danger": {
+            "color": "#E1BEE7",
+            "bgcolor": "#E57373"
+        },
+        "ui.input": {
+            "color": "#CE93D8",
+            "bgcolor": "#6A1B9A"
+        },
+        "ui.input.focus": {
+            "color": "#E1BEE7",
+            "bgcolor": "#8E24AA"
+        },
+        "ui.selection": {
+            "color": "#8E24AA",
+            "bgcolor": "#8E24AA"
+        },
+        "content.text": {
+            "color": "#CE93D8"
+        },
+        "content.heading": {
+            "color": "#E1BEE7",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#BA68C8",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#2196F3",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#4CAF50",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#AB47BC",
+            "bgcolor": "#4A148C"
+        },
+        "content.highlight": {
+            "color": "#4A148C",
+            "bgcolor": "#AB47BC"
+        },
+        "progress.bar": {
+            "color": "#E1BEE7"
+        },
+        "progress.text": {
+            "color": "#CE93D8"
+        },
+        "progress.percentage": {
+            "color": "#BA68C8"
+        },
+        "bookshelf.title": {
+            "color": "#E1BEE7",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#CE93D8"
+        },
+        "bookshelf.progress": {
+            "color": "#2196F3"
+        },
+        "bookshelf.tag": {
+            "color": "#4CAF50",
+            "bgcolor": "#6A1B9A"
+        },
+        "bookshelf.selected": {
+            "color": "#8E24AA",
+            "bgcolor": "#8E24AA"
+        },
+        "reader.text": {
+            "color": "#CE93D8"
+        },
+        "reader.chapter": {
+            "color": "#E1BEE7",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#8E24AA"
+        },
+        "reader.bookmark": {
+            "color": "#AB47BC"
+        },
+        "reader.search_result": {
+            "color": "#4A148C",
+            "bgcolor": "#AB47BC"
+        }
+    }
+}

@@ -1,0 +1,153 @@
+{
+    "name": "molten-lava",
+    "display_name": "Molten Lava",
+    "description": "Molten Lava 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#FFEB3B",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#FFC107"
+        },
+        "app.accent": {
+            "color": "#FF9800"
+        },
+        "app.highlight": {
+            "color": "#FF5722"
+        },
+        "app.warning": {
+            "color": "#F44336"
+        },
+        "app.success": {
+            "color": "#4CAF50"
+        },
+        "app.info": {
+            "color": "#2196F3"
+        },
+        "app.muted": {
+            "color": "#FF6F00"
+        },
+        "ui.border": {
+            "color": "#FF9800"
+        },
+        "ui.background": {
+            "color": "#3E2723",
+            "bgcolor": "#3E2723"
+        },
+        "ui.panel": {
+            "color": "#4E342E",
+            "bgcolor": "#4E342E"
+        },
+        "ui.panel.title": {
+            "color": "#FFEB3B",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#FFC107"
+        },
+        "ui.button": {
+            "color": "#3E2723",
+            "bgcolor": "#FFEB3B"
+        },
+        "ui.button.primary": {
+            "color": "#3E2723",
+            "bgcolor": "#FF9800"
+        },
+        "ui.button.success": {
+            "color": "#3E2723",
+            "bgcolor": "#4CAF50"
+        },
+        "ui.button.warning": {
+            "color": "#3E2723",
+            "bgcolor": "#FF5722"
+        },
+        "ui.button.danger": {
+            "color": "#FFEB3B",
+            "bgcolor": "#F44336"
+        },
+        "ui.input": {
+            "color": "#FFC107",
+            "bgcolor": "#4E342E"
+        },
+        "ui.input.focus": {
+            "color": "#FFEB3B",
+            "bgcolor": "#5D4037"
+        },
+        "ui.selection": {
+            "color": "#5D4037",
+            "bgcolor": "#5D4037"
+        },
+        "content.text": {
+            "color": "#FFC107"
+        },
+        "content.heading": {
+            "color": "#FFEB3B",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#FF9800",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#2196F3",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#4CAF50",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#FF5722",
+            "bgcolor": "#3E2723"
+        },
+        "content.highlight": {
+            "color": "#3E2723",
+            "bgcolor": "#FF5722"
+        },
+        "progress.bar": {
+            "color": "#FFEB3B"
+        },
+        "progress.text": {
+            "color": "#FFC107"
+        },
+        "progress.percentage": {
+            "color": "#FF9800"
+        },
+        "bookshelf.title": {
+            "color": "#FFEB3B",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#FFC107"
+        },
+        "bookshelf.progress": {
+            "color": "#2196F3"
+        },
+        "bookshelf.tag": {
+            "color": "#4CAF50",
+            "bgcolor": "#4E342E"
+        },
+        "bookshelf.selected": {
+            "color": "#5D4037",
+            "bgcolor": "#5D4037"
+        },
+        "reader.text": {
+            "color": "#FFC107"
+        },
+        "reader.chapter": {
+            "color": "#FFEB3B",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#FF6F00"
+        },
+        "reader.bookmark": {
+            "color": "#FF5722"
+        },
+        "reader.search_result": {
+            "color": "#3E2723",
+            "bgcolor": "#FF5722"
+        }
+    }
+}

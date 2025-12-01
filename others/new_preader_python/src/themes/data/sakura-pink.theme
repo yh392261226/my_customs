@@ -1,0 +1,153 @@
+{
+    "name": "sakura-pink",
+    "display_name": "Sakura Pink",
+    "description": "Sakura Pink 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#F8BBD0",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#F48FB1"
+        },
+        "app.accent": {
+            "color": "#F06292"
+        },
+        "app.highlight": {
+            "color": "#E91E63"
+        },
+        "app.warning": {
+            "color": "#FF9800"
+        },
+        "app.success": {
+            "color": "#4CAF50"
+        },
+        "app.info": {
+            "color": "#2196F3"
+        },
+        "app.muted": {
+            "color": "#C2185B"
+        },
+        "ui.border": {
+            "color": "#F06292"
+        },
+        "ui.background": {
+            "color": "#880E4F",
+            "bgcolor": "#880E4F"
+        },
+        "ui.panel": {
+            "color": "#AD1457",
+            "bgcolor": "#AD1457"
+        },
+        "ui.panel.title": {
+            "color": "#F8BBD0",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#F48FB1"
+        },
+        "ui.button": {
+            "color": "#880E4F",
+            "bgcolor": "#F8BBD0"
+        },
+        "ui.button.primary": {
+            "color": "#880E4F",
+            "bgcolor": "#F06292"
+        },
+        "ui.button.success": {
+            "color": "#880E4F",
+            "bgcolor": "#4CAF50"
+        },
+        "ui.button.warning": {
+            "color": "#880E4F",
+            "bgcolor": "#FF9800"
+        },
+        "ui.button.danger": {
+            "color": "#F8BBD0",
+            "bgcolor": "#E57373"
+        },
+        "ui.input": {
+            "color": "#F48FB1",
+            "bgcolor": "#AD1457"
+        },
+        "ui.input.focus": {
+            "color": "#F8BBD0",
+            "bgcolor": "#C2185B"
+        },
+        "ui.selection": {
+            "color": "#C2185B",
+            "bgcolor": "#C2185B"
+        },
+        "content.text": {
+            "color": "#F48FB1"
+        },
+        "content.heading": {
+            "color": "#F8BBD0",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#F06292",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#2196F3",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#4CAF50",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#E91E63",
+            "bgcolor": "#880E4F"
+        },
+        "content.highlight": {
+            "color": "#880E4F",
+            "bgcolor": "#E91E63"
+        },
+        "progress.bar": {
+            "color": "#F8BBD0"
+        },
+        "progress.text": {
+            "color": "#F48FB1"
+        },
+        "progress.percentage": {
+            "color": "#F06292"
+        },
+        "bookshelf.title": {
+            "color": "#F8BBD0",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#F48FB1"
+        },
+        "bookshelf.progress": {
+            "color": "#2196F3"
+        },
+        "bookshelf.tag": {
+            "color": "#4CAF50",
+            "bgcolor": "#AD1457"
+        },
+        "bookshelf.selected": {
+            "color": "#C2185B",
+            "bgcolor": "#C2185B"
+        },
+        "reader.text": {
+            "color": "#F48FB1"
+        },
+        "reader.chapter": {
+            "color": "#F8BBD0",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#C2185B"
+        },
+        "reader.bookmark": {
+            "color": "#E91E63"
+        },
+        "reader.search_result": {
+            "color": "#880E4F",
+            "bgcolor": "#E91E63"
+        }
+    }
+}

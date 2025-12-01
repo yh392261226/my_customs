@@ -1,0 +1,153 @@
+{
+    "name": "aurora-borealis",
+    "display_name": "Aurora Borealis",
+    "description": "Aurora Borealis 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#00E5FF",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#00BCD4"
+        },
+        "app.accent": {
+            "color": "#40C4FF"
+        },
+        "app.highlight": {
+            "color": "#84FFFF"
+        },
+        "app.warning": {
+            "color": "#FFB74D"
+        },
+        "app.success": {
+            "color": "#69F0AE"
+        },
+        "app.info": {
+            "color": "#82B1FF"
+        },
+        "app.muted": {
+            "color": "#00ACC1"
+        },
+        "ui.border": {
+            "color": "#40C4FF"
+        },
+        "ui.background": {
+            "color": "#0D47A1",
+            "bgcolor": "#0D47A1"
+        },
+        "ui.panel": {
+            "color": "#1565C0",
+            "bgcolor": "#1565C0"
+        },
+        "ui.panel.title": {
+            "color": "#00E5FF",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#00BCD4"
+        },
+        "ui.button": {
+            "color": "#0D47A1",
+            "bgcolor": "#00E5FF"
+        },
+        "ui.button.primary": {
+            "color": "#0D47A1",
+            "bgcolor": "#40C4FF"
+        },
+        "ui.button.success": {
+            "color": "#0D47A1",
+            "bgcolor": "#69F0AE"
+        },
+        "ui.button.warning": {
+            "color": "#0D47A1",
+            "bgcolor": "#FFB74D"
+        },
+        "ui.button.danger": {
+            "color": "#FFFFFF",
+            "bgcolor": "#FF5252"
+        },
+        "ui.input": {
+            "color": "#00BCD4",
+            "bgcolor": "#1565C0"
+        },
+        "ui.input.focus": {
+            "color": "#00E5FF",
+            "bgcolor": "#1976D2"
+        },
+        "ui.selection": {
+            "color": "#1976D2",
+            "bgcolor": "#1976D2"
+        },
+        "content.text": {
+            "color": "#00BCD4"
+        },
+        "content.heading": {
+            "color": "#00E5FF",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#40C4FF",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#82B1FF",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#69F0AE",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#84FFFF",
+            "bgcolor": "#0D47A1"
+        },
+        "content.highlight": {
+            "color": "#0D47A1",
+            "bgcolor": "#84FFFF"
+        },
+        "progress.bar": {
+            "color": "#00E5FF"
+        },
+        "progress.text": {
+            "color": "#00BCD4"
+        },
+        "progress.percentage": {
+            "color": "#40C4FF"
+        },
+        "bookshelf.title": {
+            "color": "#00E5FF",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#00BCD4"
+        },
+        "bookshelf.progress": {
+            "color": "#82B1FF"
+        },
+        "bookshelf.tag": {
+            "color": "#69F0AE",
+            "bgcolor": "#1565C0"
+        },
+        "bookshelf.selected": {
+            "color": "#1976D2",
+            "bgcolor": "#1976D2"
+        },
+        "reader.text": {
+            "color": "#00BCD4"
+        },
+        "reader.chapter": {
+            "color": "#00E5FF",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#00ACC1"
+        },
+        "reader.bookmark": {
+            "color": "#84FFFF"
+        },
+        "reader.search_result": {
+            "color": "#0D47A1",
+            "bgcolor": "#84FFFF"
+        }
+    }
+}

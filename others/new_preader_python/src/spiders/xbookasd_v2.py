@@ -31,7 +31,6 @@ class XbookasdParser(BaseParser):
     
     # 正则表达式配置 - 章节列表页
     title_reg = [
-        r'<title>(.*?)</title>',
         r'<h2[^>]*class="dx-title font-semibold mb-1"[^>]*>(.*?)</h2>',
         r'<h2[^>]*class="dx-title[^>]*>(.*?)</h2>'
     ]
@@ -82,7 +81,12 @@ class XbookasdParser(BaseParser):
         Returns:
             小说URL
         """
-        return f"{self.base_url}/?view_novel/{novel_id}"
+        if novel_id.isdigit():
+            # 如果书籍ID是整形则返回下面的连接地址 
+            return f"{self.base_url}/?novel/detail/{novel_id}"
+        else:
+            # 如果书籍ID是字符串则返回下面的连接地址
+            return f"{self.base_url}/?view_novel/{novel_id}"
     
     def get_chapter_url(self, chapter_url: str) -> str:
         """

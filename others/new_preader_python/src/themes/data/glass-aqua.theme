@@ -1,0 +1,129 @@
+{
+    "name": "glass-aqua",
+    "display_name": "Glass Aqua",
+    "description": "Glass Aqua 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#7DF9FF",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#C4F1F9"
+        },
+        "app.accent": {
+            "color": "#00E5FF"
+        },
+        "app.highlight": {
+            "color": "#FFF176"
+        },
+        "app.warning": {
+            "color": "#FF6B6B"
+        },
+        "app.success": {
+            "color": "#00E676"
+        },
+        "app.info": {
+            "color": "#4FC3F7"
+        },
+        "app.muted": {
+            "color": "#9AA7B2"
+        },
+        "ui.border": {
+            "color": "#00E5FF"
+        },
+        "ui.panel.title": {
+            "color": "#7DF9FF",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#E6FDFF"
+        },
+        "ui.button": {
+            "color": "#E6FDFF"
+        },
+        "ui.button.primary": {
+            "color": "#00E5FF"
+        },
+        "ui.button.success": {
+            "color": "#00E676"
+        },
+        "ui.button.warning": {
+            "color": "#FFF176"
+        },
+        "ui.button.danger": {
+            "color": "#FF6B6B"
+        },
+        "ui.input": {
+            "color": "#E6FDFF"
+        },
+        "ui.input.focus": {
+            "color": "#7DF9FF"
+        },
+        "content.text": {
+            "color": "#E6FDFF"
+        },
+        "content.heading": {
+            "color": "#7DF9FF",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#00E5FF",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#00E5FF",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#00E676",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#00E676"
+        },
+        "content.highlight": {
+            "color": "#7DF9FF"
+        },
+        "progress.bar": {
+            "color": "#00E5FF"
+        },
+        "progress.text": {
+            "color": "#C4F1F9"
+        },
+        "progress.percentage": {
+            "color": "#7DF9FF"
+        },
+        "bookshelf.title": {
+            "color": "#7DF9FF",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#C4F1F9"
+        },
+        "bookshelf.progress": {
+            "color": "#00E5FF"
+        },
+        "bookshelf.tag": {
+            "color": "#00E676"
+        },
+        "bookshelf.selected": {
+            "color": "#C4F1F9"
+        },
+        "reader.text": {
+            "color": "#E6FDFF"
+        },
+        "reader.chapter": {
+            "color": "#7DF9FF",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#00E5FF"
+        },
+        "reader.bookmark": {
+            "color": "#FFF176"
+        },
+        "reader.search_result": {
+            "color": "#7DF9FF"
+        }
+    }
+}

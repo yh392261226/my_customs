@@ -131,32 +131,41 @@ DEFAULT_CONFIG = {
     }
 }
 
-# 支持的主题列表
-AVAILABLE_THEMES = [
-    "dark", "light", "nord", "dracula", "material", 
-    "github-dark", "github-light", "solarized-dark", 
-    "solarized-light", "amethyst", "forest-green",
-    "crimson", "slate", "transparent-dark", "transparent-light",
-    "paper-white", "cream", "sky-blue", "mint-green", "lavender",
-    "neon-pop", "sunset", "ocean", "pastel-dream", "cyberpunk",
-    "rainbow-bright", "tropical", "candy-pop", "flamingo", "lime-punch",
-    "electric-blue", "magenta-blast", "citrus-burst", "galaxy", "fiesta",
-    "glass-cyan", "glass-rose", "glass-amber", "glass-lime",
-    "glass-violet", "glass-emerald", "glass-coral", "glass-sky", "glass-berry",
-    "glass-mango", "glass-mint", "glass-lava", "glass-aqua", "glass-graphite",
-    "glass-limefresh", "glass-aurora", "glass-cherry",
-    # 第一批新增的20款主题
-    "lemon-green", "neon-rainbow", "tropical-vibes", "candy-explosion",
-    "electric-blue", "magenta-blast", "citrus-burst", "galaxy-theme",
-    "fiesta-theme", "mint-fresh", "emerald-green", "violet-dream",
-    "amber-glow", "coral-reef", "sky-blue", "mint-green",
-    "lavender-field", "sunset-glow",
-    # 第二批新增的20款主题 - 量大管饱
-    "diamond-cut", "deep-sea-pearl", "cyberpunk-neon", "nordic-forest",
-    "chocolate-coffee", "aurora-borealis", "desert-oasis", "obsidian-stone",
-    "molten-lava", "sakura-pink", "glacier-blue", "amethyst-crystal",
-    "jade-green", "golden-hour", "milky-way", "coral-reef-2", "forest-mist"
-]
+def get_available_themes():
+    """
+    动态获取所有可用的主题列表
+    
+    Returns:
+        List[str]: 可用主题名称列表
+    """
+    import os
+    import json
+    
+    themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes", "data")
+    available_themes = []
+    
+    if os.path.exists(themes_dir):
+        for filename in os.listdir(themes_dir):
+            if filename.endswith('.theme'):
+                theme_path = os.path.join(themes_dir, filename)
+                try:
+                    with open(theme_path, 'r', encoding='utf-8') as f:
+                        theme_data = json.load(f)
+                        theme_name = theme_data.get('name')
+                        if theme_name:
+                            available_themes.append(theme_name)
+                except Exception:
+                    # 如果读取失败，跳过该主题文件
+                    continue
+    
+    # 确保至少有基本主题
+    if not available_themes:
+        available_themes = ["dark", "light"]
+    
+    return sorted(available_themes)
+
+# 支持的主题列表（动态获取）
+AVAILABLE_THEMES = get_available_themes()
 
 # 支持的边框样式
 BORDER_STYLES = ["rounded", "single", "double", "minimal", "none"]

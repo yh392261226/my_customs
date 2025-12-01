@@ -1,0 +1,153 @@
+{
+    "name": "github-light",
+    "display_name": "Github Light",
+    "description": "Github Light 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#24292F",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#656D76"
+        },
+        "app.accent": {
+            "color": "#0969DA"
+        },
+        "app.highlight": {
+            "color": "#BF8700"
+        },
+        "app.warning": {
+            "color": "#CF222E"
+        },
+        "app.success": {
+            "color": "#1A7F37"
+        },
+        "app.info": {
+            "color": "#0969DA"
+        },
+        "app.muted": {
+            "color": "#8C959F"
+        },
+        "ui.border": {
+            "color": "#D0D7DE"
+        },
+        "ui.background": {
+            "color": "#FFFFFF",
+            "bgcolor": "#FFFFFF"
+        },
+        "ui.panel": {
+            "color": "#F6F8FA",
+            "bgcolor": "#F6F8FA"
+        },
+        "ui.panel.title": {
+            "color": "#24292F",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#24292F"
+        },
+        "ui.button": {
+            "color": "#24292F",
+            "bgcolor": "#F6F8FA"
+        },
+        "ui.button.primary": {
+            "color": "#FFFFFF",
+            "bgcolor": "#0969DA"
+        },
+        "ui.button.success": {
+            "color": "#FFFFFF",
+            "bgcolor": "#1A7F37"
+        },
+        "ui.button.warning": {
+            "color": "#24292F",
+            "bgcolor": "#BF8700"
+        },
+        "ui.button.danger": {
+            "color": "#FFFFFF",
+            "bgcolor": "#CF222E"
+        },
+        "ui.input": {
+            "color": "#24292F",
+            "bgcolor": "#FFFFFF"
+        },
+        "ui.input.focus": {
+            "color": "#24292F",
+            "bgcolor": "#F6F8FA"
+        },
+        "ui.selection": {
+            "color": "#F6F8FA",
+            "bgcolor": "#F6F8FA"
+        },
+        "content.text": {
+            "color": "#24292F"
+        },
+        "content.heading": {
+            "color": "#24292F",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#656D76",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#0969DA",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#656D76",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#1A7F37",
+            "bgcolor": "#F6F8FA"
+        },
+        "content.highlight": {
+            "color": "#24292F",
+            "bgcolor": "#FFF8C5"
+        },
+        "progress.bar": {
+            "color": "#0969DA"
+        },
+        "progress.text": {
+            "color": "#656D76"
+        },
+        "progress.percentage": {
+            "color": "#24292F"
+        },
+        "bookshelf.title": {
+            "color": "#24292F",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#656D76"
+        },
+        "bookshelf.progress": {
+            "color": "#0969DA"
+        },
+        "bookshelf.tag": {
+            "color": "#656D76",
+            "bgcolor": "#F6F8FA"
+        },
+        "bookshelf.selected": {
+            "color": "#F6F8FA",
+            "bgcolor": "#F6F8FA"
+        },
+        "reader.text": {
+            "color": "#24292F"
+        },
+        "reader.chapter": {
+            "color": "#24292F",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#8C959F"
+        },
+        "reader.bookmark": {
+            "color": "#BF8700"
+        },
+        "reader.search_result": {
+            "color": "#24292F",
+            "bgcolor": "#FFF8C5"
+        }
+    }
+}

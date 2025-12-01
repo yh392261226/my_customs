@@ -1,0 +1,129 @@
+{
+    "name": "glass-violet",
+    "display_name": "Glass Violet",
+    "description": "Glass Violet 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#B794F4",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#D6BCFA"
+        },
+        "app.accent": {
+            "color": "#8B5CF6"
+        },
+        "app.highlight": {
+            "color": "#F6E05E"
+        },
+        "app.warning": {
+            "color": "#F56565"
+        },
+        "app.success": {
+            "color": "#48BB78"
+        },
+        "app.info": {
+            "color": "#63B3ED"
+        },
+        "app.muted": {
+            "color": "#A3A3A3"
+        },
+        "ui.border": {
+            "color": "#C4B5FD"
+        },
+        "ui.panel.title": {
+            "color": "#B794F4",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#EDE9FE"
+        },
+        "ui.button": {
+            "color": "#EDE9FE"
+        },
+        "ui.button.primary": {
+            "color": "#8B5CF6"
+        },
+        "ui.button.success": {
+            "color": "#48BB78"
+        },
+        "ui.button.warning": {
+            "color": "#F6E05E"
+        },
+        "ui.button.danger": {
+            "color": "#F56565"
+        },
+        "ui.input": {
+            "color": "#EDE9FE"
+        },
+        "ui.input.focus": {
+            "color": "#B794F4"
+        },
+        "content.text": {
+            "color": "#EDE9FE"
+        },
+        "content.heading": {
+            "color": "#B794F4",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#8B5CF6",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#8B5CF6",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#48BB78",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#48BB78"
+        },
+        "content.highlight": {
+            "color": "#B794F4"
+        },
+        "progress.bar": {
+            "color": "#8B5CF6"
+        },
+        "progress.text": {
+            "color": "#D6BCFA"
+        },
+        "progress.percentage": {
+            "color": "#B794F4"
+        },
+        "bookshelf.title": {
+            "color": "#B794F4",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#D6BCFA"
+        },
+        "bookshelf.progress": {
+            "color": "#8B5CF6"
+        },
+        "bookshelf.tag": {
+            "color": "#48BB78"
+        },
+        "bookshelf.selected": {
+            "color": "#D6BCFA"
+        },
+        "reader.text": {
+            "color": "#EDE9FE"
+        },
+        "reader.chapter": {
+            "color": "#B794F4",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#C4B5FD"
+        },
+        "reader.bookmark": {
+            "color": "#F6E05E"
+        },
+        "reader.search_result": {
+            "color": "#B794F4"
+        }
+    }
+}

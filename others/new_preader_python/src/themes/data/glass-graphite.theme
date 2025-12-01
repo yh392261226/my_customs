@@ -1,0 +1,129 @@
+{
+    "name": "glass-graphite",
+    "display_name": "Glass Graphite",
+    "description": "Glass Graphite 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#E5E7EB",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#D1D5DB"
+        },
+        "app.accent": {
+            "color": "#9CA3AF"
+        },
+        "app.highlight": {
+            "color": "#FCD34D"
+        },
+        "app.warning": {
+            "color": "#F87171"
+        },
+        "app.success": {
+            "color": "#34D399"
+        },
+        "app.info": {
+            "color": "#60A5FA"
+        },
+        "app.muted": {
+            "color": "#9CA3AF"
+        },
+        "ui.border": {
+            "color": "#9CA3AF"
+        },
+        "ui.panel.title": {
+            "color": "#E5E7EB",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#F3F4F6"
+        },
+        "ui.button": {
+            "color": "#F3F4F6"
+        },
+        "ui.button.primary": {
+            "color": "#9CA3AF"
+        },
+        "ui.button.success": {
+            "color": "#34D399"
+        },
+        "ui.button.warning": {
+            "color": "#FCD34D"
+        },
+        "ui.button.danger": {
+            "color": "#F87171"
+        },
+        "ui.input": {
+            "color": "#F3F4F6"
+        },
+        "ui.input.focus": {
+            "color": "#E5E7EB"
+        },
+        "content.text": {
+            "color": "#F3F4F6"
+        },
+        "content.heading": {
+            "color": "#E5E7EB",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#9CA3AF",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#9CA3AF",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#34D399",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#34D399"
+        },
+        "content.highlight": {
+            "color": "#E5E7EB"
+        },
+        "progress.bar": {
+            "color": "#9CA3AF"
+        },
+        "progress.text": {
+            "color": "#D1D5DB"
+        },
+        "progress.percentage": {
+            "color": "#E5E7EB"
+        },
+        "bookshelf.title": {
+            "color": "#E5E7EB",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#D1D5DB"
+        },
+        "bookshelf.progress": {
+            "color": "#9CA3AF"
+        },
+        "bookshelf.tag": {
+            "color": "#34D399"
+        },
+        "bookshelf.selected": {
+            "color": "#D1D5DB"
+        },
+        "reader.text": {
+            "color": "#F3F4F6"
+        },
+        "reader.chapter": {
+            "color": "#E5E7EB",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#9CA3AF"
+        },
+        "reader.bookmark": {
+            "color": "#FCD34D"
+        },
+        "reader.search_result": {
+            "color": "#E5E7EB"
+        }
+    }
+}

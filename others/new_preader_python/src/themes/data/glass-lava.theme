@@ -1,0 +1,129 @@
+{
+    "name": "glass-lava",
+    "display_name": "Glass Lava",
+    "description": "Glass Lava 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#FF4D4F",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#FF9A8B"
+        },
+        "app.accent": {
+            "color": "#FF3B3B"
+        },
+        "app.highlight": {
+            "color": "#FFCA3A"
+        },
+        "app.warning": {
+            "color": "#E63946"
+        },
+        "app.success": {
+            "color": "#2ECC71"
+        },
+        "app.info": {
+            "color": "#339AF0"
+        },
+        "app.muted": {
+            "color": "#A8ADB4"
+        },
+        "ui.border": {
+            "color": "#FF4D4F"
+        },
+        "ui.panel.title": {
+            "color": "#FF4D4F",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#FFE5E5"
+        },
+        "ui.button": {
+            "color": "#FFE5E5"
+        },
+        "ui.button.primary": {
+            "color": "#FF3B3B"
+        },
+        "ui.button.success": {
+            "color": "#2ECC71"
+        },
+        "ui.button.warning": {
+            "color": "#FFCA3A"
+        },
+        "ui.button.danger": {
+            "color": "#E63946"
+        },
+        "ui.input": {
+            "color": "#FFE5E5"
+        },
+        "ui.input.focus": {
+            "color": "#FF4D4F"
+        },
+        "content.text": {
+            "color": "#FFE5E5"
+        },
+        "content.heading": {
+            "color": "#FF4D4F",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#FF3B3B",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#339AF0",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#2ECC71",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#2ECC71"
+        },
+        "content.highlight": {
+            "color": "#FF4D4F"
+        },
+        "progress.bar": {
+            "color": "#339AF0"
+        },
+        "progress.text": {
+            "color": "#FF9A8B"
+        },
+        "progress.percentage": {
+            "color": "#FF4D4F"
+        },
+        "bookshelf.title": {
+            "color": "#FF4D4F",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#FF9A8B"
+        },
+        "bookshelf.progress": {
+            "color": "#339AF0"
+        },
+        "bookshelf.tag": {
+            "color": "#2ECC71"
+        },
+        "bookshelf.selected": {
+            "color": "#FF9A8B"
+        },
+        "reader.text": {
+            "color": "#FFE5E5"
+        },
+        "reader.chapter": {
+            "color": "#FF4D4F",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#339AF0"
+        },
+        "reader.bookmark": {
+            "color": "#FFCA3A"
+        },
+        "reader.search_result": {
+            "color": "#FF4D4F"
+        }
+    }
+}

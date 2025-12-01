@@ -1,0 +1,153 @@
+{
+    "name": "diamond-cut",
+    "display_name": "Diamond Cut",
+    "description": "Diamond Cut 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#00ACC1",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#0097A7"
+        },
+        "app.accent": {
+            "color": "#00BCD4"
+        },
+        "app.highlight": {
+            "color": "#00E5FF"
+        },
+        "app.warning": {
+            "color": "#FF6E40"
+        },
+        "app.success": {
+            "color": "#00E676"
+        },
+        "app.info": {
+            "color": "#2979FF"
+        },
+        "app.muted": {
+            "color": "#00838F"
+        },
+        "ui.border": {
+            "color": "#00BCD4"
+        },
+        "ui.background": {
+            "color": "#004D40",
+            "bgcolor": "#004D40"
+        },
+        "ui.panel": {
+            "color": "#00695C",
+            "bgcolor": "#00695C"
+        },
+        "ui.panel.title": {
+            "color": "#00ACC1",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#0097A7"
+        },
+        "ui.button": {
+            "color": "#FFFFFF",
+            "bgcolor": "#00ACC1"
+        },
+        "ui.button.primary": {
+            "color": "#FFFFFF",
+            "bgcolor": "#00BCD4"
+        },
+        "ui.button.success": {
+            "color": "#FFFFFF",
+            "bgcolor": "#00E676"
+        },
+        "ui.button.warning": {
+            "color": "#FFFFFF",
+            "bgcolor": "#FF6E40"
+        },
+        "ui.button.danger": {
+            "color": "#FFFFFF",
+            "bgcolor": "#FF5252"
+        },
+        "ui.input": {
+            "color": "#0097A7",
+            "bgcolor": "#00695C"
+        },
+        "ui.input.focus": {
+            "color": "#00BCD4",
+            "bgcolor": "#00796B"
+        },
+        "ui.selection": {
+            "color": "#00897B",
+            "bgcolor": "#00897B"
+        },
+        "content.text": {
+            "color": "#0097A7"
+        },
+        "content.heading": {
+            "color": "#00ACC1",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#00BCD4",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#2979FF",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#00E676",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#00E5FF",
+            "bgcolor": "#004D40"
+        },
+        "content.highlight": {
+            "color": "#004D40",
+            "bgcolor": "#00E5FF"
+        },
+        "progress.bar": {
+            "color": "#00ACC1"
+        },
+        "progress.text": {
+            "color": "#0097A7"
+        },
+        "progress.percentage": {
+            "color": "#00BCD4"
+        },
+        "bookshelf.title": {
+            "color": "#00ACC1",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#0097A7"
+        },
+        "bookshelf.progress": {
+            "color": "#2979FF"
+        },
+        "bookshelf.tag": {
+            "color": "#00E676",
+            "bgcolor": "#00695C"
+        },
+        "bookshelf.selected": {
+            "color": "#00796B",
+            "bgcolor": "#00796B"
+        },
+        "reader.text": {
+            "color": "#0097A7"
+        },
+        "reader.chapter": {
+            "color": "#00ACC1",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#00838F"
+        },
+        "reader.bookmark": {
+            "color": "#00E5FF"
+        },
+        "reader.search_result": {
+            "color": "#004D40",
+            "bgcolor": "#00E5FF"
+        }
+    }
+}

@@ -1,0 +1,153 @@
+{
+    "name": "candy-pop",
+    "display_name": "Candy Pop",
+    "description": "Candy Pop 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#E91E63",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#9C27B0"
+        },
+        "app.accent": {
+            "color": "#3F51B5"
+        },
+        "app.highlight": {
+            "color": "#FFC107"
+        },
+        "app.warning": {
+            "color": "#FF5722"
+        },
+        "app.success": {
+            "color": "#4CAF50"
+        },
+        "app.info": {
+            "color": "#00BCD4"
+        },
+        "app.muted": {
+            "color": "#616161"
+        },
+        "ui.border": {
+            "color": "#BDBDBD"
+        },
+        "ui.background": {
+            "color": "#FFF0F6",
+            "bgcolor": "#FFF0F6"
+        },
+        "ui.panel": {
+            "color": "#FFE4EF",
+            "bgcolor": "#FFE4EF"
+        },
+        "ui.panel.title": {
+            "color": "#E91E63",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#9C27B0"
+        },
+        "ui.button": {
+            "color": "#FFFFFF",
+            "bgcolor": "#E91E63"
+        },
+        "ui.button.primary": {
+            "color": "#FFFFFF",
+            "bgcolor": "#3F51B5"
+        },
+        "ui.button.success": {
+            "color": "#FFFFFF",
+            "bgcolor": "#4CAF50"
+        },
+        "ui.button.warning": {
+            "color": "#9C27B0",
+            "bgcolor": "#FFC107"
+        },
+        "ui.button.danger": {
+            "color": "#FFFFFF",
+            "bgcolor": "#FF5722"
+        },
+        "ui.input": {
+            "color": "#9C27B0",
+            "bgcolor": "#FFE4EF"
+        },
+        "ui.input.focus": {
+            "color": "#9C27B0",
+            "bgcolor": "#FFD6E6"
+        },
+        "ui.selection": {
+            "color": "#FFE4EF",
+            "bgcolor": "#FFE4EF"
+        },
+        "content.text": {
+            "color": "#6A1B9A"
+        },
+        "content.heading": {
+            "color": "#E91E63",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#9C27B0",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#3F51B5",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#4CAF50",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#4CAF50",
+            "bgcolor": "#FFE4EF"
+        },
+        "content.highlight": {
+            "color": "#6A1B9A",
+            "bgcolor": "#FFF8E1"
+        },
+        "progress.bar": {
+            "color": "#3F51B5"
+        },
+        "progress.text": {
+            "color": "#9C27B0"
+        },
+        "progress.percentage": {
+            "color": "#E91E63"
+        },
+        "bookshelf.title": {
+            "color": "#E91E63",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#616161"
+        },
+        "bookshelf.progress": {
+            "color": "#3F51B5"
+        },
+        "bookshelf.tag": {
+            "color": "#4CAF50",
+            "bgcolor": "#FFE4EF"
+        },
+        "bookshelf.selected": {
+            "color": "#FFD6E6",
+            "bgcolor": "#FFD6E6"
+        },
+        "reader.text": {
+            "color": "#6A1B9A"
+        },
+        "reader.chapter": {
+            "color": "#E91E63",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#3F51B5"
+        },
+        "reader.bookmark": {
+            "color": "#FFC107"
+        },
+        "reader.search_result": {
+            "color": "#6A1B9A",
+            "bgcolor": "#FFF8E1"
+        }
+    }
+}

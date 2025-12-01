@@ -1,0 +1,153 @@
+{
+    "name": "desert-oasis",
+    "display_name": "Desert Oasis",
+    "description": "Desert Oasis 内置主题",
+    "styles": {
+        "app.title": {
+            "color": "#FFF3E0",
+            "bold": true
+        },
+        "app.subtitle": {
+            "color": "#FFE0B2"
+        },
+        "app.accent": {
+            "color": "#FFCC80"
+        },
+        "app.highlight": {
+            "color": "#FFE082"
+        },
+        "app.warning": {
+            "color": "#FF8A65"
+        },
+        "app.success": {
+            "color": "#81C784"
+        },
+        "app.info": {
+            "color": "#64B5F6"
+        },
+        "app.muted": {
+            "color": "#FFB74D"
+        },
+        "ui.border": {
+            "color": "#FFCC80"
+        },
+        "ui.background": {
+            "color": "#5D4037",
+            "bgcolor": "#5D4037"
+        },
+        "ui.panel": {
+            "color": "#6D4C41",
+            "bgcolor": "#6D4C41"
+        },
+        "ui.panel.title": {
+            "color": "#FFF3E0",
+            "bold": true
+        },
+        "ui.label": {
+            "color": "#FFE0B2"
+        },
+        "ui.button": {
+            "color": "#5D4037",
+            "bgcolor": "#FFF3E0"
+        },
+        "ui.button.primary": {
+            "color": "#5D4037",
+            "bgcolor": "#FFCC80"
+        },
+        "ui.button.success": {
+            "color": "#5D4037",
+            "bgcolor": "#81C784"
+        },
+        "ui.button.warning": {
+            "color": "#5D4037",
+            "bgcolor": "#FF8A65"
+        },
+        "ui.button.danger": {
+            "color": "#FFF3E0",
+            "bgcolor": "#E57373"
+        },
+        "ui.input": {
+            "color": "#FFE0B2",
+            "bgcolor": "#6D4C41"
+        },
+        "ui.input.focus": {
+            "color": "#FFF3E0",
+            "bgcolor": "#795548"
+        },
+        "ui.selection": {
+            "color": "#795548",
+            "bgcolor": "#795548"
+        },
+        "content.text": {
+            "color": "#FFE0B2"
+        },
+        "content.heading": {
+            "color": "#FFF3E0",
+            "bold": true
+        },
+        "content.subheading": {
+            "color": "#FFCC80",
+            "bold": true
+        },
+        "content.link": {
+            "color": "#64B5F6",
+            "underline": true
+        },
+        "content.quote": {
+            "color": "#81C784",
+            "italic": true
+        },
+        "content.code": {
+            "color": "#FFE082",
+            "bgcolor": "#5D4037"
+        },
+        "content.highlight": {
+            "color": "#5D4037",
+            "bgcolor": "#FFE082"
+        },
+        "progress.bar": {
+            "color": "#FFF3E0"
+        },
+        "progress.text": {
+            "color": "#FFE0B2"
+        },
+        "progress.percentage": {
+            "color": "#FFCC80"
+        },
+        "bookshelf.title": {
+            "color": "#FFF3E0",
+            "bold": true
+        },
+        "bookshelf.author": {
+            "color": "#FFE0B2"
+        },
+        "bookshelf.progress": {
+            "color": "#64B5F6"
+        },
+        "bookshelf.tag": {
+            "color": "#81C784",
+            "bgcolor": "#6D4C41"
+        },
+        "bookshelf.selected": {
+            "color": "#795548",
+            "bgcolor": "#795548"
+        },
+        "reader.text": {
+            "color": "#FFE0B2"
+        },
+        "reader.chapter": {
+            "color": "#FFF3E0",
+            "bold": true
+        },
+        "reader.page_number": {
+            "color": "#FFB74D"
+        },
+        "reader.bookmark": {
+            "color": "#FFE082"
+        },
+        "reader.search_result": {
+            "color": "#5D4037",
+            "bgcolor": "#FFE082"
+        }
+    }
+}

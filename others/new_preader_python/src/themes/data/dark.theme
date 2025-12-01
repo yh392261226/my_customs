@@ -1,0 +1,53 @@
+{
+    "name": "dark",
+    "display_name": "深色主题",
+    "description": "经典的深色主题，适合长时间阅读",
+    "styles": {
+        "app.title": {"color": "#90EE90", "bold": true},
+        "app.subtitle": {"color": "#C8E6C9"},
+        "app.accent": {"color": "#00BFFF"},
+        "app.highlight": {"color": "#FFD700"},
+        "app.warning": {"color": "#FF6B6B"},
+        "app.success": {"color": "#32CD32"},
+        "app.info": {"color": "#87CEEB"},
+        "app.muted": {"color": "#708090"},
+        
+        "ui.border": {"color": "#708090"},
+        "ui.background": {"bgcolor": "black"},
+        "ui.panel": {"bgcolor": "#2F2F2F"},
+        "ui.panel.title": {"color": "#90EE90", "bold": true},
+        "ui.label": {"color": "#C8E6C9"},
+        "ui.button": {"color": "#2E3440", "bgcolor": "#D8DEE9"},
+        "ui.button.primary": {"color": "#ECEFF4", "bgcolor": "#5E81AC"},
+        "ui.button.success": {"color": "#ECEFF4", "bgcolor": "#A3BE8C"},
+        "ui.button.warning": {"color": "#2E3440", "bgcolor": "#EBCB8B"},
+        "ui.button.danger": {"color": "#ECEFF4", "bgcolor": "#BF616A"},
+        "ui.input": {"color": "#C8E6C9", "bgcolor": "#434C5E"},
+        "ui.input.focus": {"color": "#90EE90", "bgcolor": "#4C566A"},
+        "ui.selection": {"bgcolor": "#3F3F3F"},
+        
+        "content.text": {"color": "#C8E6C9"},
+        "content.heading": {"color": "#90EE90", "bold": true},
+        "content.subheading": {"color": "#C8E6C9", "bold": true},
+        "content.link": {"color": "#00BFFF", "underline": true},
+        "content.quote": {"color": "#C8E6C9", "italic": true},
+        "content.code": {"color": "#32CD32", "bgcolor": "#2F2F2F"},
+        "content.highlight": {"color": "#000000", "bgcolor": "#FFD700"},
+        
+        "progress.bar": {"color": "#00BFFF"},
+        "progress.text": {"color": "#C8E6C9"},
+        "progress.percentage": {"color": "#90EE90"},
+        
+        "bookshelf.title": {"color": "#90EE90", "bold": true},
+        "bookshelf.author": {"color": "#C8E6C9"},
+        "bookshelf.progress": {"color": "#00BFFF"},
+        "bookshelf.tag": {"color": "#708090", "bgcolor": "#3F3F3F"},
+        "bookshelf.selected": {"bgcolor": "#3b3b3b"},
+        
+        "reader.text": {"color": "#C8E6C9"},
+        "reader.chapter": {"color": "#90EE90", "bold": true},
+        "reader.page_number": {"color": "#708090"},
+        "reader.bookmark": {"color": "#FFD700"},
+        "reader.search_result": {"color": "#000000", "bgcolor": "#FFD700"}
+    }
+}
