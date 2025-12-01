@@ -69,6 +69,24 @@ Footer {
     color: $text;
 }
 
+.bookshelf-screen .bookshelf-sort-key {
+    width: 12%;
+    min-width: 15;
+    height: 4;
+    background: $surface;
+    color: $text;
+    margin-right: 1;
+}
+
+.bookshelf-screen .bookshelf-sort-order {
+    width: 12%;
+    min-width: 15;
+    height: 4;
+    background: $surface;
+    color: $text;
+    margin-right: 1;
+}
+
 .bookshelf-screen .bookshelf-search-select {
     width: 15%;
     min-width: 15;

@@ -169,6 +169,18 @@ class BookshelfScreen(Screen[None]):
 
         # 使用 Bookshelf 类的 load_author_options 方法加载作者选项
         author_options = self.bookshelf.load_author_options()
+        sort_key_options = [
+            (get_global_i18n().t("common.book_name"), 'book_name'),
+            (get_global_i18n().t("bookshelf.author"), 'author'),
+            (get_global_i18n().t("bookshelf.add_date"), 'add_date'),
+            (get_global_i18n().t("bookshelf.last_read"), 'last_read'),
+            (get_global_i18n().t("bookshelf.progress"), 'progress'),
+            (get_global_i18n().t("bookshelf.file_size"), 'file_size'),
+        ]
+        sort_order_options = [
+            (get_global_i18n().t("sort.ascending"), "asc"),
+            (get_global_i18n().t("sort.descending"), "desc"),
+        ]
 
         yield Header()
         yield Container(
@@ -188,8 +200,21 @@ class BookshelfScreen(Screen[None]):
                         id="bookshelf-toolbar",
                         classes="btn-row"
                     ),
-                    # 搜索栏
                     Horizontal(
+                        # 排序
+                        Select(
+                            id="sort-key-radio",
+                            options=sort_key_options, 
+                            prompt=get_global_i18n().t("sort.sort_by"),
+                            classes="bookshelf-sort-key"
+                        ),
+                        Select(
+                            id="sort-order-radio",
+                            options=sort_order_options,
+                            prompt=get_global_i18n().t("sort.order"),
+                            classes="bookshelf-sort-order"
+                        ),
+                        # 搜索
                         Input(
                             placeholder=get_global_i18n().t("search.placeholder"), 
                             id="bookshelf-search-input", 
@@ -987,6 +1012,188 @@ class BookshelfScreen(Screen[None]):
         if event.select.id == "bookshelf-source-filter" :
             logger.info("来源下拉框选择变化")
             self._perform_search()
+        
+        # 处理排序选择变化
+        if event.select.id in ["sort-key-radio", "sort-order-radio"]:
+            self._perform_sort_from_select()
+    
+    def _perform_sort_from_select(self) -> None:
+        """根据Select组件的选择执行排序"""
+        try:
+            # 获取排序字段选择
+            sort_key_select = self.query_one("#sort-key-radio", Select)
+            sort_key = sort_key_select.value
+            
+            # 获取排序顺序选择
+            sort_order_select = self.query_one("#sort-order-radio", Select)
+            sort_order = sort_order_select.value
+            
+            # 转换排序顺序
+            reverse = sort_order == "desc"
+            
+            # 映射字段名
+            key_mapping = {
+                "book_name": "title",
+                "author": "author", 
+                "add_date": "add_date",
+                "last_read": "last_read_date",
+                "progress": "progress",
+                "file_size": "file_size"
+            }
+            
+            actual_sort_key = key_mapping.get(sort_key, "title")
+            
+            # 执行排序
+            sorted_books = self.bookshelf.sort_books(actual_sort_key, reverse)
+            
+            # 更新当前书籍列表
+            self._all_books = sorted_books
+            
+            # 重新计算分页信息
+            self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
+            # 回到第一页
+            self._current_page = 1
+            
+            # 刷新表格显示（只显示当前页的数据）
+            self._load_current_page()
+            
+            # 更新分页控件状态
+            self._update_pagination_controls()
+            
+            # 获取显示文本
+            sort_key_display = ""
+            for option in sort_key_select.options:
+                if option.value == sort_key:
+                    sort_key_display = str(option)
+                    break
+            
+            # 显示通知
+            order_text = get_global_i18n().t("sort.descending") if reverse else get_global_i18n().t("sort.ascending")
+            self.notify(f"{get_global_i18n().t('sort.sorted_by')} {sort_key_display} ({order_text})")
+            
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
+            self.notify(get_global_i18n().t("sort.sort_failed"), severity="error")
+    
+    def _load_current_page(self, page_change_only: bool = False) -> None:
+        """加载当前页的书籍数据"""
+        try:
+            table = self.query_one("#books-table", DataTable)
+            
+            # 获取当前页的书籍
+            start_index = (self._current_page - 1) * self._books_per_page
+            end_index = min(start_index + self._books_per_page, len(self._all_books))
+            current_page_books = self._all_books[start_index:end_index]
+            
+            # 每次加载都要重新创建映射，确保行键正确
+            self._book_index_mapping = {}
+            self._row_key_mapping = {}
+            
+            # 性能优化：批量处理阅读历史信息
+            reading_info_cache = {}
+            for book in current_page_books:
+                reading_info = self.bookshelf.get_book_reading_info(book.path)
+                reading_info_cache[book.path] = reading_info
+            
+            # 清空当前页的数据，但保留列
+            if page_change_only:
+                # 只清除行数据，保留列定义
+                table.clear()
+            else:
+                # 非页面切换时，确保列已正确设置
+                table.clear(columns=True)
+                self._add_table_columns(table)
+            
+            # 准备虚拟滚动数据
+            virtual_data = []
+            for index, book in enumerate(current_page_books):
+                # 计算全局索引（从1开始）
+                global_index = start_index + index + 1
+                # 存储序号到路径的映射
+                self._book_index_mapping[str(global_index)] = book.path
+                # 存储行键到路径的映射
+                row_key = f"{book.path}_{global_index}"
+                self._row_key_mapping[row_key] = book.path
+                
+                # 从缓存中获取阅读信息
+                reading_info = reading_info_cache.get(book.path, {})
+                last_read = reading_info.get('last_read_date') or ""
+                progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
+                
+                # 格式化标签显示（直接显示逗号分隔的字符串）
+                tags_display = book.tags if book.tags else ""
+                
+                # 添加操作按钮
+                # 文件不存在时，不显示阅读、查看文件、重命名按钮
+                if getattr(book, 'file_not_found', False):
+                    read_button = ""
+                    view_file_button = ""
+                    rename_button = ""
+                    delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                else:
+                    read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
+                    view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+                    rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
+                    delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
+                
+                # 如果文件不存在，在标题前添加标记
+                display_title = book.title
+                if getattr(book, 'file_not_found', False):
+                    display_title = f"[书籍文件不存在] {book.title}"
+                
+                # 格式化文件大小显示
+                from src.utils.file_utils import FileUtils
+                size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
+                
+                table.add_row(
+                    str(global_index),  # 显示数字序号而不是路径
+                    display_title,
+                    book.author,
+                    book.format.upper(),
+                    size_display,  # 文件大小显示
+                    last_read,
+                    f"{progress:.1f}%",
+                    tags_display,
+                    read_button,  # 阅读按钮
+                    view_file_button,  # 查看文件按钮
+                    rename_button,  # 重命名按钮
+                    delete_button,  # 删除按钮
+                    key=f"{book.path}_{global_index}"  # 使用唯一的key，避免重复（book.path + 索引）
+                )
+                
+        except Exception as e:
+            logger.error(f"加载当前页失败: {e}")
+            self.notify("加载当前页失败", severity="error")
+    
+    def _update_pagination_controls(self) -> None:
+        """更新分页控件状态"""
+        try:
+            # 更新分页信息显示
+            pagination_info = f" | {get_global_i18n().t('bookshelf.page_info', page=self._current_page, total_pages=self._total_pages)}"
+            
+            # 更新分页按钮状态
+            first_btn = self.query_one("#first-page-btn", Button)
+            prev_btn = self.query_one("#prev-page-btn", Button)
+            next_btn = self.query_one("#next-page-btn", Button)
+            last_btn = self.query_one("#last-page-btn", Button)
+            
+            first_btn.disabled = self._current_page <= 1
+            prev_btn.disabled = self._current_page <= 1
+            next_btn.disabled = self._current_page >= self._total_pages
+            last_btn.disabled = self._current_page >= self._total_pages
+            
+            # 更新页面信息标签
+            page_label = self.query_one("#page-label", Static)
+            page_label.update(f"{self._current_page}/{self._total_pages}")
+            
+        except Exception as e:
+            logger.error(f"更新分页控件失败: {e}")
+    
+    def _refresh_books_table(self, books: List[Book]) -> None:
+        """刷新书籍表格显示（已弃用，使用_load_current_page）"""
+        # 为了兼容性保留此方法，但实际使用_load_current_page
+        self._all_books = books
+        self._load_current_page()
     
     @on(DataTable.CellSelected, "#books-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:

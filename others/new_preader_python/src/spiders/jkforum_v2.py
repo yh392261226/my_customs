@@ -38,7 +38,8 @@ class JkforumParser(BaseParser):
     ]
     
     content_reg = [
-        r"<div[^>]*class=\"t_fsz\"[^>]*>(.*?)</div>",
+        r'<div[^>]*class="t_fsz"[^>]*>([\s\S]*?)</div>\s*(?:</div>|$)',
+        r'<div[^>]*class="t_fsz"[^>]*>([\s\S]*?)</div>',
         r"<div[^>]*class=\"nv-content-wrap entry-content\"[^>]*>(.*?)</div>"
     ]
     
@@ -53,8 +54,150 @@ class JkforumParser(BaseParser):
     # 处理函数配置
     after_crawler_func = [
         "_clean_html_content",  # 公共基类提供的HTML清理
-        "_clean_content_specific"  # 特定内容清理
+        "_clean_content_obs",  # 清理内容中的干扰
+        "_remove_ads"  # 移除广告
     ]
+
+    def _extract_with_regex(self, content: str, regex_list: List[str]) -> str:
+        """
+        重写基类的正则提取方法，专门处理jkforum.net的嵌套div结构
+        
+        Args:
+            content: 要提取的内容
+            regex_list: 正则表达式列表
+            
+        Returns:
+            提取的内容
+        """
+        # 检查是否是内容提取（通过比较regex_list与content_reg）
+        is_content_extraction = regex_list == self.content_reg
+        
+        # 如果是内容提取，首先尝试使用自定义的嵌套div提取函数
+        if is_content_extraction:
+            extracted = self._extract_content_div(content)
+            if extracted and extracted.strip():
+                return extracted
+        
+        # 使用原始的正则方法（适用于标题和其他非内容提取）
+        for regex in regex_list:
+            matches = re.findall(regex, content, re.IGNORECASE | re.DOTALL)
+            for match in matches:
+                extracted = match.strip() if isinstance(match, str) else match[0].strip() if match else ""
+                if extracted:  # 确保内容不是空的
+                    return extracted
+        return ""
+
+    def _extract_content_div(self, html: str) -> str:
+        """
+        专门处理嵌套div的内容提取函数
+        能够正确提取所有<div class="t_fsz">及其所有嵌套内容
+        页面中可能存在多个t_fsz div，每个都包含一个书籍内容
+        
+        Args:
+            html: HTML内容
+            
+        Returns:
+            提取的所有内容部分（多个div内容合并，用分隔符分开）
+        """
+        import re
+        
+        # 找到所有t_fsz div的开始位置
+        start_pattern = re.compile(r'<div[^>]*class="t_fsz"[^>]*>', re.IGNORECASE)
+        all_matches = list(start_pattern.finditer(html))
+        
+        if not all_matches:
+            return ""
+        
+        # 存储所有提取的内容
+        all_contents = []
+        
+        # 遍历每个t_fsz div
+        for match_idx, start_match in enumerate(all_matches):
+            start_pos = start_match.end()
+            
+            # 使用更精确的方法来匹配嵌套div
+            depth = 1
+            pos = start_pos
+            content_end = -1
+            
+            while pos < len(html) and depth > 0:
+                # 查找下一个div开标签和闭标签
+                next_open = html.find('<div', pos)
+                next_close = html.find('</div>', pos)
+                
+                if next_close == -1:
+                    break
+                    
+                if next_open != -1 and next_open < next_close:
+                    # 先遇到开标签
+                    depth += 1
+                    pos = next_open + 4  # 跳过"<div"
+                else:
+                    # 先遇到闭标签
+                    depth -= 1
+                    if depth == 0:
+                        content_end = next_close
+                        break
+                    pos = next_close + 6  # 跳过"</div>"
+            
+            if content_end != -1:
+                content = html[start_pos:content_end]
+                # 清理广告和不需要的div内容
+                cleaned_content = self._clean_nested_content(content)
+                if cleaned_content and cleaned_content.strip():
+                    all_contents.append(cleaned_content)
+        
+        # 合并所有内容，使用分隔符
+        if all_contents:
+            return '\n\n---\n\n'.join(all_contents)
+        
+        return ""
+
+    def _clean_nested_content(self, content: str) -> str:
+        """
+        清理嵌套div中的内容，移除广告和不需要的div，保留主要文本内容
+        
+        Args:
+            content: 原始嵌套内容
+            
+        Returns:
+            清理后的内容
+        """
+        import re
+        
+        # 移除table标签但保留内容
+        content = re.sub(r'<table[^>]*>.*?</table>', lambda m: re.sub(r'<[^>]+>', '', m.group(0)), content, flags=re.IGNORECASE | re.DOTALL)
+        
+        # 移除td/tr标签但保留内容
+        content = re.sub(r'<t[d|h][^>]*>(.*?)</t[d|h]>', r'\1', content, flags=re.IGNORECASE | re.DOTALL)
+        
+        # 移除广告相关的div
+        ad_patterns = [
+            r'<div[^>]*class="cm"[^>]*>.*?</div>\s*',
+            r'<div[^>]*id="[^"]*"[^>]*>.*?</div>\s*',
+            r'<form[^>]*>.*?</form>\s*',
+            r'<script[^>]*>.*?</script>\s*',
+        ]
+        
+        for pattern in ad_patterns:
+            content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
+        
+        # 提取所有font标签的内容
+        font_content = re.findall(r'<font[^>]*>(.*?)</font>', content, re.IGNORECASE | re.DOTALL)
+        
+        # 合并所有font标签内容
+        if font_content:
+            extracted_text = '\n'.join([f.strip() for f in font_content if f.strip()])
+        else:
+            # 如果没有找到font标签，移除所有HTML标签但保留文本内容
+            extracted_text = re.sub(r'<[^>]+>', '', content, flags=re.IGNORECASE)
+            # 清理空白字符
+            extracted_text = re.sub(r'\s+', ' ', extracted_text).strip()
+        
+        # 处理特殊的bbcode标签
+        extracted_text = re.sub(r'\[/?[^\]]+\]', '', extracted_text)
+        
+        return extracted_text
     
     def get_novel_url(self, novel_id: str) -> str:
         """

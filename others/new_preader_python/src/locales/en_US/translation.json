@@ -304,7 +304,9 @@
         "order": "Sort Order",
         "ascending": "Ascending",
         "descending": "Descending",
-        "applied": "Sorted by {sort_key} {order}"
+        "applied": "Sorted by {sort_key} {order}",
+        "sorted_by": "Sorted by",
+        "sort_failed": "Sort failed"
     },
     "settings": {
         "title": "Settings",

@@ -3,6 +3,7 @@ xbookcn.org 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，使用属性配置实现
 """
 
+import re
 from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
 
@@ -31,7 +32,9 @@ class XbookcnorgParser(BaseParser):
     ]
     
     content_reg = [
-        r'<div[^>]*class="content"[^>]*>(.*?)</div>'
+        r'<div class="content"[^>]*>([\s\S]*?)</div>\s*(?:</div>|$)',
+        r'<div class="content">([\s\S]*?)</div>',
+        r"<div class='post-body entry-content'[^>]*>(.*?)</div>"
     ]
     
     status_reg = [
@@ -48,6 +51,130 @@ class XbookcnorgParser(BaseParser):
         "_clean_content_obs",  # 清理内容中的干扰
         "_remove_ads"  # 移除广告
     ]
+
+    def _extract_with_regex(self, content: str, regex_list: List[str]) -> str:
+        """
+        重写基类的正则提取方法，专门处理xbookcn.org的嵌套div结构
+        
+        Args:
+            content: 要提取的内容
+            regex_list: 正则表达式列表
+            
+        Returns:
+            提取的内容
+        """
+        # 检查是否是内容提取（通过比较regex_list与content_reg）
+        is_content_extraction = regex_list == self.content_reg
+        
+        # 如果是内容提取，首先尝试使用自定义的嵌套div提取函数
+        if is_content_extraction:
+            extracted = self._extract_content_div(content)
+            if extracted and extracted.strip():
+                return extracted
+        
+        # 使用原始的正则方法（适用于标题和其他非内容提取）
+        for regex in regex_list:
+            matches = re.findall(regex, content, re.IGNORECASE | re.DOTALL)
+            for match in matches:
+                extracted = match.strip() if isinstance(match, str) else match[0].strip() if match else ""
+                if extracted:  # 确保内容不是空的
+                    return extracted
+        return ""
+
+    def _extract_content_div(self, html: str) -> str:
+        """
+        专门处理嵌套div的内容提取函数
+        能够正确提取<div class="content">及其所有嵌套内容
+        
+        Args:
+            html: HTML内容
+            
+        Returns:
+            提取的内容部分（不含外层div标签）
+        """
+        import re
+        
+        # 找到content div的开始
+        start_pattern = re.compile(r'<div class="content"[^>]*>', re.IGNORECASE)
+        start_match = start_pattern.search(html)
+        
+        if not start_match:
+            return ""
+            
+        start_pos = start_match.end()
+        
+        # 使用更精确的方法来匹配嵌套div
+        # 我们要找到第一个</div>，它的前面必须有相同数量的开标签和闭标签
+        depth = 1
+        pos = start_pos
+        content_end = -1
+        
+        while pos < len(html) and depth > 0:
+            # 查找下一个div开标签和闭标签
+            next_open = html.find('<div', pos)
+            next_close = html.find('</div>', pos)
+            
+            if next_close == -1:
+                break
+                
+            if next_open != -1 and next_open < next_close:
+                # 先遇到开标签
+                depth += 1
+                pos = next_open + 4  # 跳过"<div"
+            else:
+                # 先遇到闭标签
+                depth -= 1
+                if depth == 0:
+                    content_end = next_close
+                    break
+                pos = next_close + 6  # 跳过"</div>"
+        
+        if content_end != -1:
+            content = html[start_pos:content_end]
+            # 清理广告和不需要的div内容
+            return self._clean_nested_content(content)
+        
+        return ""
+
+    def _clean_nested_content(self, content: str) -> str:
+        """
+        清理嵌套div中的内容，移除广告和不需要的div，保留主要文本内容
+        
+        Args:
+            content: 原始嵌套内容
+            
+        Returns:
+            清理后的内容
+        """
+        import re
+        
+        # 移除广告相关的div - 使用非贪婪匹配，确保不会删除过多内容
+        ad_patterns = [
+            r'<div class="fiction-banner"[^>]*>.*?</div>\s*',
+            r'<div class="content-box"[^>]*>.*?</div>\s*',
+            r'<iframe[^>]*>.*?</iframe>\s*',
+            r'<script[^>]*>.*?</script>\s*',
+            r'<div class="a-media"[^>]*>.*?</div>\s*',
+            r'<div class="static-container"[^>]*>.*?</div>\s*',
+            r'<div class="banner"[^>]*>.*?</div>\s*',
+        ]
+        
+        for pattern in ad_patterns:
+            content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
+        
+        # 提取所有p标签的内容
+        p_content = re.findall(r'<p[^>]*>(.*?)</p>', content, re.IGNORECASE | re.DOTALL)
+        
+        # 合并所有p标签内容
+        if p_content:
+            extracted_text = '\n'.join([p.strip() for p in p_content if p.strip()])
+        else:
+            # 如果没有找到p标签，移除所有HTML标签但保留文本内容
+            extracted_text = re.sub(r'<[^>]+>', '', content, flags=re.IGNORECASE)
+            # 清理空白字符
+            extracted_text = re.sub(r'\s+', ' ', extracted_text).strip()
+        
+        return extracted_text
     
     def get_novel_url(self, novel_id: str) -> str:
         """

@@ -304,7 +304,9 @@
         "order": "排序顺序",
         "ascending": "升序",
         "descending": "降序",
-        "applied": "已按 {sort_key} {order}排序"
+        "applied": "已按 {sort_key} {order}排序",
+        "sorted_by": "已按",
+        "sort_failed": "排序失败"
     },
     "settings": {
         "title": "设置",
