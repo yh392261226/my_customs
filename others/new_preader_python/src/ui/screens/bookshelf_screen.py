@@ -50,6 +50,7 @@ class BookshelfScreen(Screen[None]):
         ("g", "press('#get-books-btn')", get_global_i18n().t('bookshelf.get_books')),
         ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -1927,6 +1928,9 @@ class BookshelfScreen(Screen[None]):
         self.query_one("#bookshelf-search-input", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#bookshelf-format-filter", Select).value = "all"
         self.query_one("#bookshelf-source-filter", Select).value = "all"
+
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
 
     # 分页导航方法
     def _go_to_first_page(self) -> None:

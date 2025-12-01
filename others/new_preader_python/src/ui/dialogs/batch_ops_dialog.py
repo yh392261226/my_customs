@@ -87,6 +87,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -705,6 +706,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """上一页"""
         self._go_to_prev_page()
     
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
+
     # 分页导航方法
     def _go_to_first_page(self) -> None:
         """跳转到第一页"""

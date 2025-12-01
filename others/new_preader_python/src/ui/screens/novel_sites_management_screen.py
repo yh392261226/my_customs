@@ -33,6 +33,7 @@ class NovelSitesManagementScreen(Screen[None]):
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
     ]
 
@@ -964,6 +965,9 @@ class NovelSitesManagementScreen(Screen[None]):
     def action_next_page(self) -> None:
         self._go_to_next_page()
     
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
+
     def action_clear_search_params(self) -> None:
         """清除搜索参数"""
         self.query_one("#novel-sites-search-input", Input).value = ""

@@ -17,6 +17,7 @@ class SearchResultsScreen(Screen[None]):
         ("escape", "press('#back-button')", get_global_i18n().t('common.back')),
         ("n", "next_page", get_global_i18n().t('bookshelf.next_page')),
         ("p", "prev_page", get_global_i18n().t('bookshelf.prev_page')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
     ]
     
     CSS_PATH = "../styles/search_results_screen_overrides.tcss"
@@ -177,6 +178,9 @@ class SearchResultsScreen(Screen[None]):
         if self._current_page > 1:
             self._current_page -= 1
             self._refresh_table()
+
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
 
     def _load_results(self) -> None:
         """加载搜索结果到表格"""

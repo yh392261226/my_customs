@@ -37,6 +37,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
     ]
 
@@ -143,6 +144,9 @@ class CrawlerManagementScreen(Screen[None]):
         """清除搜索参数"""
         self.query_one("#search-input-field", Input).value = ""
         self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t('crawler.search_placeholder')
+
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""

@@ -32,6 +32,7 @@ class ProxyListScreen(Screen[None]):
         ("d", "delete_proxy", get_global_i18n().t('common.delete')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
     ]
 
     """代理列表管理屏幕"""
@@ -657,6 +658,9 @@ class ProxyListScreen(Screen[None]):
     def action_prev_page(self) -> None:
         """上一页"""
         self._go_to_prev_page()
+
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
 
     # 分页导航方法
     def _go_to_first_page(self) -> None:

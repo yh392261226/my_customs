@@ -75,7 +75,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         ("shift+up", "shift_up", get_global_i18n().t('reader.shift_up')),
         ("shift+down", "shift_down", get_global_i18n().t('reader.shift_down')),
         # 其他功能
-        ("g", "goto_page", get_global_i18n().t('reader.goto_page')),
+        ("j", "goto_page", get_global_i18n().t('reader.goto_page')),
         ("b", "toggle_bookmark", get_global_i18n().t('reader.toggle_bookmark')),
         ("B", "open_bookmark_list", get_global_i18n().t('reader.toggle_bookmark')),
         ("s", "open_settings", get_global_i18n().t('reader.open_settings')),
@@ -327,7 +327,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 yield Button(f"{get_global_i18n().t('reader.prev_chapter')}【←】", classes="btn", id="prev-btn")
                 yield Label("", id="pager-status", classes="btn")
                 yield Button(f"{get_global_i18n().t('reader.next_chapter')}【→】", classes="btn", id="next-btn")
-                yield Button(f"{get_global_i18n().t('reader.goto_page')}【g】", classes="btn", id="goto-btn")
+                yield Button(f"{get_global_i18n().t('reader.goto_page')}【j】", classes="btn", id="goto-btn")
                 yield Button(f"{get_global_i18n().t('reader.search')}【f】", classes="btn", id="search-btn")
                 yield Button(f"{get_global_i18n().t('reader.add_remove_bookmark')}【b】", classes="btn", id="bookmark-btn")
                 yield Button(f"{get_global_i18n().t('reader.bookmark_list')}【B】", classes="btn", id="bookmark-list-btn")

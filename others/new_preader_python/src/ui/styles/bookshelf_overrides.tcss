@@ -61,8 +61,8 @@ Footer {
 }
 
 .bookshelf-screen .bookshelf-search-input {
-    width: 15%;
-    min-width: 15;
+    width: 20%;
+    min-width: 20;
     height: 3;
     margin-right: 1;
     background: $surface;
@@ -70,7 +70,7 @@ Footer {
 }
 
 .bookshelf-screen .bookshelf-sort-key {
-    width: 12%;
+    width: 15%;
     min-width: 15;
     height: 4;
     background: $surface;
@@ -79,7 +79,7 @@ Footer {
 }
 
 .bookshelf-screen .bookshelf-sort-order {
-    width: 12%;
+    width: 15%;
     min-width: 15;
     height: 4;
     background: $surface;
@@ -92,6 +92,7 @@ Footer {
     min-width: 15;
     height: 4;
     background: $surface;
+    margin-right: 2;
     color: $text;
 }
 

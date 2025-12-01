@@ -21,6 +21,7 @@ class UsersManagementScreen(Screen[None]):
     CSS_PATH = "../styles/users_management_overrides.tcss"
 
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("q", "press('#back-btn')", get_global_i18n().t('common.back')),
     ]
 
@@ -900,6 +901,9 @@ class UsersManagementScreen(Screen[None]):
             placeholder=f"{get_global_i18n().t('batch_ops.current')}: {self._current_page}/{self._total_pages}"
         )
         self.app.push_screen(dialog, handle_jump_result)
+
+    def action_jump_to(self) -> None:
+        self._show_jump_dialog()
 
     def on_key(self, event) -> None:
         """
