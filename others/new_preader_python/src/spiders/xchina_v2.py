@@ -1,9 +1,9 @@
 """
-xchina.co 小说网站解析器 - 基于配置驱动版本
+xchina.fit 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，使用属性配置实现
 
 网站结构特点：
-- 书籍详情页和章节列表页都是同一个URL：https://xchina.co/fiction/id-{id}.html
+- 书籍详情页和章节列表页都是同一个URL：https://xchina.fit/fiction/id-{id}.html
 - 多章节书籍：包含 <div class="fiction-overview-chapters"> 章节列表
 - 单篇书籍：包含 <div class="fiction-body"> 内容
 - 书名：<h1 class="hero-title-item">标题</h1>
@@ -15,12 +15,12 @@ from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
 
 class XchinaParser(BaseParser):
-    """xchina.co 小说解析器 - 配置驱动版本"""
+    """xchina.fit 小说解析器 - 配置驱动版本"""
     
     # 基本信息
-    name = "xchina.co"
-    description = "xchina.co 小说解析器（支持单篇和多篇）"
-    base_url = "https://xchina.co"
+    name = "xchina.fit"
+    description = "xchina.fit 小说解析器（支持单篇和多篇）"
+    base_url = "https://xchina.fit"
     
     # 正则表达式配置
     title_reg = [
@@ -29,7 +29,7 @@ class XchinaParser(BaseParser):
     ]
     
     content_reg = [
-        r'<div[^>]*class="fiction-body"[^>]*>(.*?)</div>',
+        r'<div[^>]*class="fiction-body"[^>]*>([\s\S]*?)</div>',
         r'<div[^>]*id="content"[^>]*>(.*?)</div>'
     ]
     
@@ -40,6 +40,7 @@ class XchinaParser(BaseParser):
     
     # 章节链接正则
     chapter_link_reg = [
+        r'<a href="(/fiction/id-[^"]+\.html)"[^>]*>\s*<div[^>]*class="chapter-item"[^>]*>(.*?)</div>\s*</a>',
         r'<div[^>]*class="fiction-overview-chapters"[^>]*>.*?<a href="(/fiction/id-[^"]+\.html)"[^>]*>\s*<div[^>]*class="chapter-item"[^>]*>(.*?)</div>\s*</a>',
         r'<div[^>]*class="fiction-overview-chapters"[^>]*>.*?<a href="(/fiction/id-[^"]+\.html)"[^>]*>(.*?)</a>'
     ]
@@ -62,7 +63,7 @@ class XchinaParser(BaseParser):
     
     def get_novel_url(self, novel_id: str) -> str:
         """
-        重写URL生成方法，适配xchina.co的URL格式
+        重写URL生成方法，适配xchina.fit的URL格式
         
         Args:
             novel_id: 小说ID
@@ -74,7 +75,7 @@ class XchinaParser(BaseParser):
     
     def get_homepage_meta(self, novel_id: str) -> Optional[Dict[str, str]]:
         """
-        重写获取书籍首页元数据方法，专门处理xchina.co的标签提取
+        重写获取书籍首页元数据方法，专门处理xchina.fit的标签提取
         
         Args:
             novel_id: 小说ID
@@ -212,7 +213,7 @@ class XchinaParser(BaseParser):
     
     def _extract_chapter_links(self, content: str) -> List[Dict[str, str]]:
         """
-        提取章节链接列表 - xchina.co特定实现
+        提取章节链接列表 - xchina.fit特定实现
         只在<div class="fiction-overview-chapters">标签内查找
         
         Args:
@@ -224,14 +225,11 @@ class XchinaParser(BaseParser):
         import re
         chapter_links = []
         
-        # 首先提取fiction-overview-chapters div的内容
-        chapters_div_match = re.search(r'<div[^>]*class="fiction-overview-chapters"[^>]*>(.*?)</div>', 
-                                      content, re.IGNORECASE | re.DOTALL)
+        # 使用智能方法提取fiction-overview-chapters div的完整内容
+        chapters_div_content = self._extract_fiction_overview_chapters_content(content)
         
-        if not chapters_div_match:
+        if not chapters_div_content:
             return []
-        
-        chapters_div_content = chapters_div_match.group(1)
         
         # 使用配置的章节链接正则表达式，只在chapters div内查找
         for pattern in self.chapter_link_reg:
@@ -243,6 +241,52 @@ class XchinaParser(BaseParser):
                 })
         
         return chapter_links
+    
+    def _extract_fiction_overview_chapters_content(self, content: str) -> str:
+        """
+        专门提取fiction-overview-chapters内容，处理嵌套div问题
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的完整chapters内容
+        """
+        import re
+        
+        # 找到fiction-overview-chapters的开始位置
+        start_match = re.search(r'<div[^>]*class="fiction-overview-chapters"[^>]*>', content, re.IGNORECASE)
+        if not start_match:
+            return ""
+        
+        start_pos = start_match.end()
+        
+        # 手动匹配对应的结束标签，计算嵌套层级
+        div_count = 1
+        pos = start_pos
+        
+        while pos < len(content) and div_count > 0:
+            # 查找下一个开始或结束div标签
+            next_start = content.find('<div', pos)
+            next_end = content.find('</div>', pos)
+            
+            if next_end == -1:
+                break
+                
+            if next_start != -1 and next_start < next_end:
+                # 找到开始标签
+                div_count += 1
+                pos = next_start + 1
+            else:
+                # 找到结束标签
+                div_count -= 1
+                if div_count == 0:
+                    # 找到匹配的结束标签
+                    chapters_content = content[start_pos:next_end]
+                    return chapters_content.strip()
+                pos = next_end + 1
+        
+        return ""
     
     def _get_all_chapters(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:
         """
@@ -297,7 +341,7 @@ class XchinaParser(BaseParser):
     
     def _remove_ads(self, content: str) -> str:
         """
-        移除广告内容 - xchina.co特有处理
+        移除广告内容 - xchina.fit特有处理
         
         Args:
             content: 原始内容
@@ -307,9 +351,12 @@ class XchinaParser(BaseParser):
         """
         import re
         
-        # 移除xchina.co常见的广告模式
+        # 移除xchina.fit常见的广告模式
         ad_patterns = [
-            r'<div class="ad".*?</div>',
+            r'<div[^>]*class="fiction-banner"[^>]*>.*?</div>',
+            r'<div[^>]*class="ad"[^>]*>.*?</div>',
+            r'<div[^>]*class="a-media"[^>]*>.*?</div>',
+            r'<iframe[^>]*>.*?</iframe>',
             r'<!--.*?广告.*?-->',
             r'赞助.*?内容'
         ]
@@ -319,9 +366,81 @@ class XchinaParser(BaseParser):
         
         return content
     
+    def _extract_with_regex(self, content: str, regex_list: List[str]) -> str:
+        """
+        重写基类方法，专门处理fiction-body的嵌套div问题
+        
+        Args:
+            content: 要提取的内容
+            regex_list: 正则表达式列表
+            
+        Returns:
+            提取的内容
+        """
+        import re
+        
+        for regex in regex_list:
+            if "fiction-body" in regex:
+                # 对fiction-body使用特殊处理，避免被内部div截断
+                return self._extract_fiction_body_content(content)
+            else:
+                matches = re.findall(regex, content, re.IGNORECASE | re.DOTALL)
+                for match in matches:
+                    extracted = match.strip() if isinstance(match, str) else match[0].strip() if match else ""
+                    if extracted:  # 确保内容不是空的
+                        return extracted
+        
+        return ""
+    
+    def _extract_fiction_body_content(self, content: str) -> str:
+        """
+        专门提取fiction-body内容，处理嵌套div问题
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的完整内容
+        """
+        import re
+        
+        # 找到fiction-body的开始位置
+        start_match = re.search(r'<div[^>]*class="fiction-body"[^>]*>', content, re.IGNORECASE)
+        if not start_match:
+            return ""
+        
+        start_pos = start_match.end()
+        
+        # 手动匹配对应的结束标签，计算嵌套层级
+        div_count = 1
+        pos = start_pos
+        
+        while pos < len(content) and div_count > 0:
+            # 查找下一个开始或结束div标签
+            next_start = content.find('<div', pos)
+            next_end = content.find('</div>', pos)
+            
+            if next_end == -1:
+                break
+                
+            if next_start != -1 and next_start < next_end:
+                # 找到开始标签
+                div_count += 1
+                pos = next_start + 1
+            else:
+                # 找到结束标签
+                div_count -= 1
+                if div_count == 0:
+                    # 找到匹配的结束标签
+                    fiction_content = content[start_pos:next_end]
+                    return fiction_content.strip()
+                pos = next_end + 1
+        
+        return ""
+    
     def parse_novel_list(self, url: str) -> List[Dict[str, Any]]:
         """
-        解析小说列表页 - xchina.co不需要列表页解析
+        解析小说列表页 - xchina.fit不需要列表页解析
         
         Args:
             url: 小说列表页URL
