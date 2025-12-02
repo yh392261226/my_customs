@@ -92,7 +92,7 @@ class Bookshelf:
                 if book.path and os.path.exists(book.path):
                     self.books[book.path] = book
                 else:
-                    logger.warning(f"书籍文件不存在，但保留记录: {book.path}")
+                    # logger.warning(f"书籍文件不存在，但保留记录: {book.path}")
                     # 标记书籍为文件不存在状态
                     book.file_not_found = True
                     self.books[book.path] = book

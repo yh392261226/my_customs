@@ -39,7 +39,7 @@ class Book:
         # 检查文件是否存在（允许空路径用于默认书籍）
         self.file_not_found = False
         if path and not os.path.exists(path):
-            logger.warning(f"书籍文件不存在: {path}")
+            # logger.warning(f"书籍文件不存在: {path}")
             self.file_not_found = True
             # 不抛出异常，允许创建书籍对象但标记为文件不存在
         
@@ -410,7 +410,7 @@ class Book:
         try:
             # 首先检查文件是否存在
             if not os.path.exists(self.path):
-                logger.error(f"书籍文件不存在: {self.path}")
+                # logger.error(f"书籍文件不存在: {self.path}")
                 self._hide_loading_animation()
                 return f"书籍文件不存在: {self.path}"
             
@@ -431,7 +431,7 @@ class Book:
                     logger.debug(f"使用 {encoding} 编码读取文件失败，尝试下一种编码")
                     continue
                 except FileNotFoundError:
-                    logger.error(f"书籍文件不存在: {self.path}")
+                    # logger.error(f"书籍文件不存在: {self.path}")
                     self._hide_loading_animation()
                     return f"书籍文件不存在: {self.path}"
                 except Exception as e:
@@ -456,7 +456,7 @@ class Book:
                     return content
                 
             except FileNotFoundError:
-                logger.error(f"书籍文件不存在: {self.path}")
+                # logger.error(f"书籍文件不存在: {self.path}")
                 self._hide_loading_animation()
                 return f"书籍文件不存在: {self.path}"
             except ImportError:
@@ -475,7 +475,7 @@ class Book:
                 return content
                 
             except FileNotFoundError:
-                logger.error(f"书籍文件不存在: {self.path}")
+                # logger.error(f"书籍文件不存在: {self.path}")
                 self._hide_loading_animation()
                 return f"书籍文件不存在: {self.path}"
             except Exception as e:
