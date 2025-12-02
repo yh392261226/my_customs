@@ -217,6 +217,201 @@ class HXtxt38Parser(BaseParser):
         chinese_chars = re.findall(r'[\u4e00-\u9fff]', text)
         return len(chinese_chars) > 10  # 至少有10个中文字符
     
+    def _is_multi_chapter(self, content: str) -> bool:
+        """
+        检查是否为多章节书籍
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            是否为多章节书籍
+        """
+        # 检查是否存在<div id="list">标签
+        return bool(re.search(r'<div[^>]*?id="list"[^>]*?>', content))
+    
+    def _extract_chapter_list(self, content: str) -> List[Dict[str, Any]]:
+        """
+        提取章节列表信息
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            章节信息列表
+        """
+        chapters = []
+        
+        # 查找<div id="list">标签
+        list_match = re.search(r'<div[^>]*?id="list"[^>]*?>([\s\S]*?)</div>', content)
+        if not list_match:
+            return chapters
+        
+        list_content = list_match.group(1)
+        
+        # 提取加密密钥
+        keys = self._extract_encryption_keys(content)
+        if not keys or 'aei' not in keys or 'aek' not in keys:
+            print("无法提取加密密钥")
+            return chapters
+        
+        # 查找所有<span>标签
+        span_pattern = r'<span[^>]*?class="d"[^>]*?>(.*?)</span>'
+        span_matches = re.findall(span_pattern, list_content)
+        
+        print(f"找到 {len(span_matches)} 个加密的span标签")
+        
+        chapter_number = 1
+        for span_content in span_matches:
+            encrypted_content = span_content.strip()
+            if not encrypted_content:
+                continue
+                
+            print(f"处理加密内容 {chapter_number}: {encrypted_content[:50]}...")
+            
+            # 尝试解密span内容
+            decrypted_content = self._decrypt_content(encrypted_content, keys['aek'], keys['aei'])
+            
+            if decrypted_content:
+                print(f"解密成功: {decrypted_content[:100]}...")
+                
+                # 在解密后的内容中查找章节信息
+                # 查找<a>标签
+                a_match = re.search(r'<a[^>]*?href="([^"]*?)"[^>]*?>([\s\S]*?)</a>', decrypted_content)
+                if a_match:
+                    chapter_url = urljoin(self.base_url, a_match.group(1))
+                    
+                    # 提取<dd>标签内的章节标题
+                    dd_match = re.search(r'<dd[^>]*?>(.*?)</dd>', a_match.group(2))
+                    if dd_match:
+                        chapter_title = dd_match.group(1).strip()
+                        # 清理HTML标签
+                        chapter_title = re.sub(r'<[^>]+>', '', chapter_title).strip()
+                    else:
+                        # 如果没有<dd>标签，使用整个<a>标签内容作为标题
+                        chapter_title = re.sub(r'<[^>]+>', '', a_match.group(2)).strip()
+                    
+                    if chapter_title:
+                        chapters.append({
+                            'chapter_number': chapter_number,
+                            'title': chapter_title,
+                            'url': chapter_url,
+                            'content': ''  # 稍后获取内容
+                        })
+                        chapter_number += 1
+                        print(f"提取章节 {chapter_number-1}: {chapter_title}")
+                else:
+                    # 如果没有找到<a>标签，可能整个解密内容就是章节标题
+                    # 查找可能的URL模式
+                    url_match = re.search(r'(https?://[^\s]+)', decrypted_content)
+                    if url_match:
+                        chapter_url = url_match.group(1)
+                        # 移除URL，剩余部分作为标题
+                        chapter_title = re.sub(r'https?://[^\s]+', '', decrypted_content).strip()
+                        chapter_title = re.sub(r'<[^>]+>', '', chapter_title).strip()
+                        
+                        if chapter_title:
+                            chapters.append({
+                                'chapter_number': chapter_number,
+                                'title': chapter_title,
+                                'url': chapter_url,
+                                'content': ''
+                            })
+                            chapter_number += 1
+                            print(f"提取章节 {chapter_number-1}: {chapter_title}")
+                    else:
+                        # 如果没有URL，可能只是章节标题，生成默认URL
+                        chapter_title = re.sub(r'<[^>]+>', '', decrypted_content).strip()
+                        if chapter_title:
+                            # 使用小说详情页URL加上章节编号作为章节URL
+                            base_novel_url = self.base_url
+                            chapter_url = f"{base_novel_url}/chapter_{chapter_number}.html"
+                            
+                            chapters.append({
+                                'chapter_number': chapter_number,
+                                'title': chapter_title,
+                                'url': chapter_url,
+                                'content': ''
+                            })
+                            chapter_number += 1
+                            print(f"提取章节 {chapter_number-1}: {chapter_title}")
+            else:
+                print(f"解密失败")
+        
+        # 如果仍然没有找到章节，尝试从DT标签中提取
+        if not chapters:
+            print("尝试从DT标签中提取章节信息...")
+            dt_pattern = r'<dt[^>]*?class="d"[^>]*?>(.*?)</dt>'
+            dt_matches = re.findall(dt_pattern, list_content)
+            
+            chapter_number = 1
+            for dt_content in dt_matches:
+                encrypted_content = dt_content.strip()
+                if not encrypted_content:
+                    continue
+                
+                # 解密DT内容
+                decrypted_content = self._decrypt_content(encrypted_content, keys['aek'], keys['aei'])
+                
+                if decrypted_content:
+                    chapter_title = re.sub(r'<[^>]+>', '', decrypted_content).strip()
+                    if chapter_title:
+                        base_novel_url = self.base_url
+                        chapter_url = f"{base_novel_url}/chapter_{chapter_number}.html"
+                        
+                        chapters.append({
+                            'chapter_number': chapter_number,
+                            'title': chapter_title,
+                            'url': chapter_url,
+                            'content': ''
+                        })
+                        chapter_number += 1
+                        print(f"从DT提取章节 {chapter_number-1}: {chapter_title}")
+        
+        return chapters
+    
+    def _get_chapter_content(self, chapter_url: str, keys: Dict[str, str]) -> Optional[str]:
+        """
+        获取章节内容
+        
+        Args:
+            chapter_url: 章节URL
+            keys: 解密密钥
+            
+        Returns:
+            解密后的章节内容
+        """
+        try:
+            # 获取章节页面内容
+            chapter_content = self._get_url_content(chapter_url)
+            if not chapter_content:
+                print(f"无法获取章节页面内容: {chapter_url}")
+                return None
+            
+            # 提取并解密内容
+            content_match = re.search(r'<div[^>]*?id="chaptercontent"[^>]*?class="d"[^>]*?>([\s\S]*?)</div>', chapter_content)
+            if not content_match:
+                print("无法提取章节内容")
+                return None
+            
+            encrypted_content = content_match.group(1).strip()
+            print(f"提取到章节加密内容，长度: {len(encrypted_content)}")
+            
+            # 解密内容
+            decrypted_content = self._decrypt_content(encrypted_content, keys['aek'], keys['aei'])
+            if decrypted_content:
+                print("章节内容解密成功")
+                # 执行爬取后处理函数
+                processed_content = self._execute_after_crawler_funcs(decrypted_content)
+                return processed_content
+            else:
+                print("章节内容解密失败")
+                return None
+                
+        except Exception as e:
+            print(f"获取章节内容失败: {e}")
+            return None
+    
     def _remove_external_links(self, content: str) -> str:
         """
         移除外部链接，特别是成人网址导航等广告链接
@@ -315,7 +510,7 @@ class HXtxt38Parser(BaseParser):
     
     def parse_novel_detail(self, novel_id: str) -> Dict[str, Any]:
         """
-        重写小说详情解析方法，确保解密功能被自动调用
+        重写小说详情解析方法，支持单章节和多章节书籍
         
         Args:
             novel_id: 小说ID
@@ -336,6 +531,10 @@ class HXtxt38Parser(BaseParser):
                 raise Exception("无法获取页面内容")
             
             print(f"页面获取成功，长度: {len(content)} 字符")
+            
+            # 检查是否为多章节书籍
+            is_multi_chapter = self._is_multi_chapter(content)
+            print(f"是否为多章节书籍: {is_multi_chapter}")
             
             # 提取标题（先尝试解密）
             title = ""
@@ -363,27 +562,64 @@ class HXtxt38Parser(BaseParser):
             if not title:
                 raise Exception("无法提取小说标题")
             
-            # 提取并解密内容
-            novel_content = self._extract_encrypted_content(content)
-            if not novel_content:
-                raise Exception("无法获取小说内容")
+            # 提取加密密钥
+            keys = self._extract_encryption_keys(content)
+            if not keys or 'aei' not in keys or 'aek' not in keys:
+                raise Exception("无法提取加密密钥")
             
-            # 执行爬取后处理函数
-            processed_content = self._execute_after_crawler_funcs(novel_content)
+            chapters = []
+            
+            if is_multi_chapter:
+                # 多章节处理
+                print("=== 处理多章节书籍 ===")
+                
+                # 提取章节列表
+                chapter_list = self._extract_chapter_list(content)
+                if not chapter_list:
+                    raise Exception("无法提取章节列表")
+                
+                print(f"找到 {len(chapter_list)} 个章节")
+                
+                # 获取每个章节的内容
+                for chapter in chapter_list:
+                    print(f"正在获取章节内容: {chapter['title']}")
+                    chapter_content = self._get_chapter_content(chapter['url'], keys)
+                    if chapter_content:
+                        chapter['content'] = chapter_content
+                        chapters.append(chapter)
+                    else:
+                        print(f"获取章节内容失败: {chapter['title']}")
+                        # 即使获取内容失败，也保留章节信息
+                        chapter['content'] = "内容获取失败"
+                        chapters.append(chapter)
+                
+            else:
+                # 单章节处理
+                print("=== 处理单章节书籍 ===")
+                
+                # 提取并解密内容
+                novel_content = self._extract_encrypted_content(content)
+                if not novel_content:
+                    raise Exception("无法获取小说内容")
+                
+                # 执行爬取后处理函数
+                processed_content = self._execute_after_crawler_funcs(novel_content)
+                
+                chapters.append({
+                    'chapter_number': 1,
+                    'title': title,
+                    'content': processed_content,
+                    'url': novel_url
+                })
             
             return {
                 'title': title,
                 'author': self.novel_site_name or self.name,
                 'novel_id': novel_id,
                 'url': novel_url,
-                'description': "",  # 单篇小说可能没有简介
+                'description': "",  # 可能没有简介
                 'status': "连载中",
-                'chapters': [{
-                    'chapter_number': 1,
-                    'title': title,
-                    'content': processed_content,
-                    'url': novel_url
-                }]
+                'chapters': chapters
             }
                 
         except Exception as e:
