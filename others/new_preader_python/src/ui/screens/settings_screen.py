@@ -814,7 +814,7 @@ class SettingsScreen(Screen[Any]):
                 self.notify(get_global_i18n().t("settings.saved"), severity="information")
             else:
                 self.notify(get_global_i18n().t("settings.np_save"), severity="warning")
-            event.prevent_default()
+            event.stop()
         elif event.key == "r":
             # 重置设置需要权限
             if self._has_permission("settings.reset"):
