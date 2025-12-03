@@ -1664,6 +1664,32 @@ class DatabaseManager:
             logger.error(f"获取书籍网站配置失败: {e}")
             return []
 
+    def get_crawled_books_count(self, site_id: int) -> int:
+        """
+        获取指定网站爬取成功的书籍数量
+        
+        Args:
+            site_id: 网站ID
+            
+        Returns:
+            int: 爬取成功的书籍数量
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT COUNT(DISTINCT novel_id) 
+                    FROM crawl_history 
+                    WHERE site_id = ? AND status = 'success'
+                """, (site_id,))
+                result = cursor.fetchone()
+                return result[0] if result and result[0] is not None else 0
+        except sqlite3.Error as e:
+            logger.error(f"获取网站爬取书籍数量失败: {e}")
+            return 0
+
+    
+
     def delete_novel_site(self, site_id: int) -> bool:
         """
         删除书籍网站配置

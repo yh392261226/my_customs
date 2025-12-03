@@ -405,7 +405,6 @@
         "backup_success": "数据库备份完成",
         "backup_failed": "数据库备份失败",
         "backup_in_progress": "正在创建数据库备份...",
-        "database": "数据库",
         "database_management": "数据库管理"
     },
     "common": {
@@ -851,6 +850,7 @@
         "site_url": "网站网址",
         "parser": "解析器",
         "enter": "进入",
+        "books_count": "书籍数",
         "np_action": "无权限执行此操作",
         "np_manage_booksites": "无权限管理书籍网站",
         "np_manage_proxy": "无权限管理代理设置",

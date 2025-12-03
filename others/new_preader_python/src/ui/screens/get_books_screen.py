@@ -192,6 +192,7 @@ class GetBooksScreen(Screen[None]):
         table.add_column(get_global_i18n().t('get_books.proxy_enabled'), key="proxy_enabled")
         table.add_column(get_global_i18n().t('get_books.parser'), key="parser")
         table.add_column(get_global_i18n().t('get_books.rating'), key="rating")
+        table.add_column(get_global_i18n().t('get_books.books_count'), key="books_count")
         table.add_column(get_global_i18n().t('get_books.enter'), key="enter")
         
         # 启用隔行变色效果
@@ -324,6 +325,9 @@ class GetBooksScreen(Screen[None]):
             rating = site.get("rating", 2)  # 默认2星
             rating_display = self._get_rating_display(rating)
             
+            # 获取该网站爬取成功的书籍数量
+            books_count = self.database_manager.get_crawled_books_count(site.get("id", 0))
+            
             row_data = {
                 "sequence": str(global_index),
                 "name": site.get("name", ""),
@@ -331,6 +335,7 @@ class GetBooksScreen(Screen[None]):
                 "proxy_enabled": proxy_status,
                 "parser": site.get("parser", ""),
                 "rating": rating_display,
+                "books_count": str(books_count),
                 "enter": "➤ " + get_global_i18n().t('get_books.enter'),
                 "_row_key": f"{site.get('id', '')}_{global_index}",
                 "_global_index": global_index
@@ -347,6 +352,7 @@ class GetBooksScreen(Screen[None]):
                 row_data["proxy_enabled"],
                 row_data["parser"],
                 row_data["rating"],
+                row_data["books_count"],
                 row_data["enter"]
             )
         
@@ -655,8 +661,8 @@ class GetBooksScreen(Screen[None]):
                 
                 logger.debug(f"点击的列: {column_key}, 行: {row_index}")
                 
-                # 只处理"进入"按钮列（第6列）
-                if column_key == 6:  # "进入"按钮列
+                # 只处理"进入"按钮列（第7列）
+                if column_key == 7:  # "进入"按钮列
                     # 获取当前页的数据
                     start_index = (self._current_page - 1) * self._sites_per_page
                     if row_index is not None and row_index < len(self._all_sites) - start_index:

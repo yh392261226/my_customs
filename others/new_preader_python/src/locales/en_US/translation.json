@@ -405,7 +405,6 @@
         "backup_success": "Database backup completed successfully",
         "backup_failed": "Database backup failed",
         "backup_in_progress": "Creating database backup...",
-        "database": "Database",
         "database_management": "Database Management"
     },
     "common": {
@@ -851,6 +850,7 @@
         "site_url": "Site URL",
         "parser": "Parser",
         "enter": "Enter",
+        "books_count": "Books",
         "np_action": "No permission to perform this operation",
         "np_manage_booksites": "No permission to manage book sites",
         "np_manage_proxy": "No permission to manage proxy settings",
