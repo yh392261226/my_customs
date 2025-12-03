@@ -17,7 +17,7 @@ class Ylwx74V2Parser(BaseParser):
     # 基本信息
     name = "ylwx74解析器"
     description = "ylwx74.xyz 书籍网站解析器"
-    base_url = "https://pp.ylwx74.xyz"
+    base_url = "https://www.ylwx74.xyz"
     
     # 支持的书籍类型
     book_type = ["短篇", "多章节", "短篇+多章节"]

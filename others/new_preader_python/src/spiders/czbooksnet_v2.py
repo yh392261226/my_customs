@@ -46,7 +46,8 @@ class CzbooksnetParser(BaseParser):
     after_crawler_func = [
         "_clean_html_content",  # 公共基类提供的HTML清理
         "_clean_content_obs",  # 清理内容中的干扰
-        "_remove_ads"  # 移除广告
+        "_remove_ads",  # 移除广告
+        "_convert_traditional_to_simplified" # 繁体转简体
     ]
     
     def get_novel_url(self, novel_id: str) -> str:
