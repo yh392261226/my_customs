@@ -490,6 +490,7 @@ class DatabaseManager:
                 ('小狐狸社区', 'https://huli.wanghong.rest/', '~/Documents/novels/datas', 0, 0, 'huli_wanghong_v2', '🔞成人', 2, '2025-12-03T16:46:24.973282', '2025-12-03T16:46:24.973282', '35923-1-1'),
                 ('撩人文学', 'https://www.lrwx.xyz/', '~/Documents/novels/datas', 0, 1, 'lrwx_v2', '🔞成人', 2, '2025-12-03T17:10:45.273838', '2025-12-03T17:10:45.273838', '12345'),
                 ('淫色小说网', 'https://www.yinse1xiaoshuo.com/yinse1/', '~/Documents/novels/datas', 0, 1, 'yinse1xiaoshuo_v2', '🔞成人', 2, '2025-12-03T18:08:41.159326', '2025-12-03T18:08:41.159326', '12345'),
+                ('疯情书库', 'https://www.zxcms.net/', '~/Documents/novels/datas', 0, 0, 'zxcms_v2', '🔞成人', 2, '2025-12-04T09:46:06.415248', '2025-12-04T09:46:06.415248', '26_34976'),
             ]
             
             for site_data in novel_sites_data:
