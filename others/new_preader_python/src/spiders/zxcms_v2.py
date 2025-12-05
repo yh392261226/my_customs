@@ -9,17 +9,16 @@ import base64
 from typing import Dict, Any, List, Optional
 from urllib.parse import urljoin
 from Crypto.Cipher import AES
-# 从crypto_utils导入函数，以便在需要时使用
+import time
+# 导入可能需要的工具函数
 try:
-    from src.utils.crypto_utils import AESCipher, extract_encryption_keys, is_encrypted_content
+    # 尝试从crypto_utils导入函数
+    from src.utils.crypto_utils import extract_encryption_keys
 except ImportError:
-    # 如果导入失败，提供空实现
-    def AESCipher(key, iv):
-        return None
-    def extract_encryption_keys(content):
-        return None, None
-    def is_encrypted_content(content):
-        return False
+    # 如果导入失败，定义空实现
+    from typing import Tuple
+    def extract_encryption_keys(html_content: str) -> Tuple[str, str]:
+        return "", ""
 from .base_parser_v2 import BaseParser
 
 
@@ -87,6 +86,43 @@ class ZXCMSParser(BaseParser):
     # 书籍类型配置
     book_type = ["多章节"]
     
+    def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
+        """
+        获取URL内容，带重试机制
+        
+        Args:
+            url: 要获取的URL
+            max_retries: 最大重试次数，默认为3次
+            
+        Returns:
+            页面内容或None
+        """
+        import time
+        import random
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"获取页面内容 (第{attempt + 1}/{max_retries}次): {url}")
+                
+                # 调用父类方法获取内容
+                content = super()._get_url_content(url)
+                
+                if content and len(content) > 1000:  # 只要内容不为空且有一定长度就认为成功
+                    print(f"页面获取成功，内容长度: {len(content)}")
+                    return content
+                else:
+                    print(f"获取到空内容或内容过短，尝试重试...")
+                    time.sleep(random.uniform(1, 2))  # 随机延迟1-2秒
+                    continue
+                    
+            except Exception as e:
+                print(f"获取页面内容失败 (第{attempt + 1}/{max_retries}次): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(random.uniform(1, 2))  # 随机延迟1-2秒
+        
+        print(f"获取页面内容失败，已达到最大重试次数: {url}")
+        return None
+
     def get_novel_url(self, novel_id: str) -> str:
         """
         重写URL生成方法，适配ZXCMS网站的URL格式
@@ -243,8 +279,43 @@ class ZXCMSParser(BaseParser):
                 chapter_text = self._extract_encrypted_content(chapter_content)
                 print(f"章节解密结果: {bool(chapter_text)}, 长度: {len(chapter_text) if chapter_text else 0}")
                 if not chapter_text:
-                    print(f"无法解密章节内容: {current_url}")
-                    break
+                    print(f"无法解密章节内容，可能是页面未完全加载或缺少加密密钥: {current_url}")
+                    # 重试获取当前章节，最多1次
+                    print(f"重试获取章节内容: {current_url}")
+                    import time
+                    time.sleep(2)  # 等待2秒后重试
+                    
+                    # 重新获取页面内容
+                    retry_content = self._get_url_content(current_url, max_retries=3)
+                    if retry_content:
+                        # 重新尝试解密
+                        chapter_text = self._extract_encrypted_content(retry_content)
+                        print(f"重试解密结果: {bool(chapter_text)}, 长度: {len(chapter_text) if chapter_text else 0}")
+                    
+                    if not chapter_text:
+                        print(f"重试后仍无法解密章节内容，跳过: {current_url}")
+                        # 不跳出循环，尝试继续处理下一个章节
+                        chapter_number += 1
+                        # 获取下一页链接
+                        next_url = self._extract_next_page(chapter_content)
+                        if not next_url or 'javascript:void(0)' in next_url:
+                            print("没有更多章节，结束处理")
+                            break
+                        
+                        # 构建完整的下一页URL
+                        if next_url.startswith('/'):
+                            current_url = urljoin(self.base_url, next_url)
+                        elif next_url.startswith('http'):
+                            current_url = next_url
+                        else:
+                            current_url = urljoin(current_url, next_url)
+                        
+                        # 检查构建的URL是否是javascript:void(0)链接
+                        if current_url == "https://www.zxcms.net/book_34976/javascript:void(0);" or "javascript:void(0)" in current_url:
+                            print(f"检测到javascript:void(0)链接，停止处理: {current_url}")
+                            break
+                        
+                        continue  # 跳过当前章节，继续下一个章节
                 
                 # 繁简转换内容
                 chapter_text = self._convert_traditional_to_simplified(chapter_text)
@@ -448,7 +519,7 @@ class ZXCMSParser(BaseParser):
     
     def _extract_encrypted_content(self, content: str) -> Optional[str]:
         """
-        提取并解密加密内容
+        提取并解密加密内容 - 从页面中提取真实的加密密钥
         
         Args:
             content: 章节页面内容
@@ -459,55 +530,145 @@ class ZXCMSParser(BaseParser):
         print("开始提取加密内容...")
         print(f"页面内容长度: {len(content)}")
         
-        # 只查找booktxthtml相关的x函数调用，这才是真正的文章内容
-        booktxthtml_pattern = r"#booktxthtml.*?x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)"
+        # 检查内容长度，但放宽限制以便在页面部分加载时也能尝试解密
+        if len(content) < 2000:
+            print(f"页面内容过短 ({len(content)}字节)，可能未完全加载")
+            return None  # 直接返回None，而不是提取可见内容，因为页面未加载完成
+        
+ # 查找booktxthtml相关的x函数调用，这是我们真正的加密内容来源
+        booktxthtml_pattern = r"#booktxthtml.*?x\(\s*['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"]\s*\)"
         booktxthtml_matches = re.findall(booktxthtml_pattern, content, re.DOTALL)
         
+        print(f"查找booktxthtml相关的x函数调用: 找到 {len(booktxthtml_matches)} 个匹配")
+        
+        # 如果没有找到，尝试更宽松的正则表达式
         if not booktxthtml_matches:
-            print("未找到booktxthtml相关的x函数调用")
-            # 如果没有找到，尝试提取可见的中文内容
-            return self._extract_visible_chinese_content(content)
+            print("尝试更宽松的正则表达式...")
+            booktxthtml_pattern = r"#booktxthtml.*?x\(\s*['\"]([^'\"]+)['\"],.*?['\"]([^'\"]+)['\"],.*?['\"]([^'\"]+)['\"]"
+            booktxthtml_matches = re.findall(booktxthtml_pattern, content, re.DOTALL)
+            print(f"更宽松的正则表达式找到 {len(booktxthtml_matches)} 个匹配")
         
-        print(f"找到 {len(booktxthtml_matches)} 个booktxthtml相关的x函数调用")
+        # 如果找不到booktxthtml相关的x函数，尝试查找所有x函数作为备选
+        if not booktxthtml_matches:
+            print("未找到booktxthtml相关的x函数调用，尝试查找所有x函数")
+            x_function_pattern = r"x\(\s*['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"],\s*['\"]([^'\"]+)['\"]\s*\)"
+            x_function_matches = re.findall(x_function_pattern, content, re.DOTALL)
+            
+            if not x_function_matches:
+                print("未找到任何x函数调用，页面可能未完全加载")
+                return None
+        else:
+            # 使用booktxthtml相关的x函数
+            x_function_matches = booktxthtml_matches
         
-        # 使用第一个匹配的booktxthtml x函数调用
-        encrypted_data, key, iv = booktxthtml_matches[0]
-        print(f"booktxthtml x函数: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
+        # 检查所有匹配的x函数调用，选择最有可能包含小说内容的
+        print(f"检查 {len(x_function_matches)} 个x函数调用，选择最有可能包含小说内容的...")
+        
+        # 选择数据最长的x函数调用，通常包含更多内容
+        best_match = x_function_matches[0]
+        for match in x_function_matches:
+            encrypted_data, key, iv = match
+            print(f"  数据长度={len(encrypted_data)}, key={key}, iv={iv[:20]}...")
+            if len(encrypted_data) > len(best_match[0]):
+                best_match = match
+        
+        encrypted_data, key, iv = best_match
+        print(f"选择了数据最长的x函数调用: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
+        
+        # 加密数据长度检查，但允许较短的加密数据
+        if len(encrypted_data) < 20:
+            print(f"加密数据过短: {len(encrypted_data)}字节，跳过此段加密数据")
+            return None
+        
+        print(f"找到x函数调用: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
         
         # 对转义字符进行反转义处理
-        if encrypted_data:
+        try:
             import codecs
             # 处理双重转义的情况：\u002b -> \u002b -> +
             # 第一次解码：将\u002b解码为字符串"\u002b"
-            encrypted_data = codecs.decode(encrypted_data, 'unicode-escape')
+            processed_data = codecs.decode(encrypted_data, 'unicode-escape')
             # 第二次解码：将字符串"\u002b"解码为字符"+"
-            encrypted_data = codecs.decode(encrypted_data, 'unicode-escape')
+            processed_data = codecs.decode(processed_data, 'unicode-escape')
             
             # 处理HTML实体转义
-            encrypted_data = encrypted_data.replace('\\/', '/')
-            encrypted_data = encrypted_data.replace('\\u002b', '+')
-            encrypted_data = encrypted_data.replace('\\u002f', '/')
+            processed_data = processed_data.replace('\\/', '/')
+            processed_data = processed_data.replace('\\u002b', '+')
+            processed_data = processed_data.replace('\\u002f', '/')
             
-            print(f"反转义后的加密数据长度: {len(encrypted_data)}")
-            print(f"反转义后的加密数据前50字符: {encrypted_data[:50]}...")
-        
-        # 尝试解密
-        decrypted_content = self._decrypt_content(encrypted_data, key, iv)
-        if decrypted_content:
-            print(f"解密成功，内容长度: {len(decrypted_content)}")
-            print(f"解密内容前100字符: {decrypted_content[:100]}...")
+            print(f"反转义后的加密数据长度: {len(processed_data)}")
+            print(f"反转义后的加密数据前50字符: {processed_data[:50]}...")
             
-            # 清理HTML内容
-            cleaned_content = self._clean_html_content(decrypted_content)
-            if cleaned_content:
-                print(f"内容清理成功，最终长度: {len(cleaned_content)}")
-                return cleaned_content
+            # 使用提取到的真实密钥进行解密
+            decrypted_content = self._decrypt_with_real_key(processed_data, key, iv)
+            if decrypted_content and len(decrypted_content) > 50:  # 解密内容应该有一定长度
+                print(f"解密成功，内容长度: {len(decrypted_content)}")
+                print(f"解密内容前100字符: {decrypted_content[:100]}...")
+                
+                # 先打印更多解密内容以便调试
+                print(f"完整解密内容前300字符: {decrypted_content[:300]}")
+                print(f"完整解密内容后300字符: {decrypted_content[-300:]}")
+                
+                # 清理HTML内容
+                cleaned_content = self._clean_html_content(decrypted_content)
+                if cleaned_content and len(cleaned_content) > 50:
+                    print(f"内容清理成功，最终长度: {len(cleaned_content)}")
+                    print(f"清理后内容前200字符: {cleaned_content[:200]}")
+                    return cleaned_content
+                else:
+                    print("内容清理失败或内容过短")
+                    # 尝试使用原始解密内容，不清理
+                    return decrypted_content if len(decrypted_content) > 100 else None
             else:
-                print("内容清理失败")
-                return self._extract_visible_chinese_content(content)
-        else:
-            print("解密失败，尝试提取可见的中文内容")
-            return self._extract_visible_chinese_content(content)
+                print("初次解密失败，尝试其他解密方式...")
+                # 尝试使用备选解密方式
+                decrypted_content = self._decrypt_with_alternative_methods(processed_data, key, iv)
+                if decrypted_content and len(decrypted_content) > 50:
+                    print(f"备选解密方式成功，内容长度: {len(decrypted_content)}")
+                    return self._clean_html_content(decrypted_content) or decrypted_content
+                else:
+                    print("所有解密方式均失败")
+                    return None
+        except Exception as e:
+            print(f"处理加密数据时出错: {e}")
+            return None
+    
+    def _is_valid_decrypted_content(self, content: str) -> bool:
+        """
+        检查解密后的内容是否有效
+        
+        Args:
+            content: 解密后的内容
+            
+        Returns:
+            是否是有效内容
+        """
+        if not content or len(content) < 10:
+            return False
+        
+        # 检查是否包含中文字符
+        chinese_chars = len([c for c in content if '\u4e00' <= c <= '\u9fff'])
+        
+        # 检查是否包含常见的小说内容词汇
+        novel_keywords = ['的', '了', '是', '在', '我', '你', '他', '她']
+        keyword_count = sum(1 for keyword in novel_keywords if keyword in content)
+        
+        # 检查是否是乱码（包含太多不可读字符）
+        readable_chars = len([c for c in content if 32 <= ord(c) <= 126 or ord(c) > 127])
+        readable_ratio = readable_chars / len(content)
+        
+        # 综合判断
+        is_valid = (
+            chinese_chars > 10 or  # 有足够的中文字符
+            keyword_count > 3 or  # 有足够的关键词
+            (readable_ratio > 0.7 and len(content) > 100)  # 大部分字符可读且内容足够长
+        ) and (
+            # 排除明显无效的情况
+            not content.startswith('Error') and  # 不是错误信息
+            not all(c in '0123456789abcdefABCDEF' for c in content.replace(' ', ''))  # 不是纯十六进制
+        )
+        
+        return is_valid
     
     def _extract_page_keys(self, content: str) -> Optional[Dict[str, str]]:
         """
@@ -562,7 +723,7 @@ class ZXCMSParser(BaseParser):
     
     def _find_encrypted_data_segments(self, content: str, page_keys: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
-        查找booktxthtml加密数据段
+        查找htmlContenthtml加密数据段
         
         Args:
             content: 章节页面内容
@@ -571,21 +732,21 @@ class ZXCMSParser(BaseParser):
         Returns:
             解密后的内容
         """
-        print("开始查找booktxthtml加密数据段...")
+        print("开始查找htmlContenthtml加密数据段...")
         
-        # 只查找booktxthtml相关的x函数调用
-        booktxthtml_pattern = r"#booktxthtml.*?x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)"
-        booktxthtml_matches = re.findall(booktxthtml_pattern, content, re.DOTALL)
+        # 只查找htmlContenthtml相关的x函数调用
+        htmlcontent_pattern = r"#htmlContenthtml.*?x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)"
+        htmlcontent_matches = re.findall(htmlcontent_pattern, content, re.DOTALL)
         
-        if not booktxthtml_matches:
-            print("未找到booktxthtml相关的x函数调用")
+        if not htmlcontent_matches:
+            print("未找到htmlContenthtml相关的x函数调用")
             return None
         
-        print(f"找到 {len(booktxthtml_matches)} 个booktxthtml相关的x函数调用")
+        print(f"找到 {len(htmlcontent_matches)} 个htmlContenthtml相关的x函数调用")
         
-        # 使用第一个匹配的booktxthtml x函数调用
-        encrypted_data, key, iv = booktxthtml_matches[0]
-        print(f"尝试booktxthtml x函数: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
+        # 使用第一个匹配的htmlContenthtml x函数调用
+        encrypted_data, key, iv = htmlcontent_matches[0]
+        print(f"尝试htmlContenthtml x函数: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
         
         # 对转义字符进行反转义处理
         if encrypted_data:
@@ -606,7 +767,7 @@ class ZXCMSParser(BaseParser):
         
         # 尝试解密
         try:
-            decrypted_content = self._decrypt_content(encrypted_data, key, iv)
+            decrypted_content = self._decrypt_with_real_key(encrypted_data, key, iv)
             if decrypted_content and len(decrypted_content) > 10:
                 print(f"booktxthtml x函数解密成功！内容前100字符: {decrypted_content[:100]}...")
                 
@@ -630,114 +791,193 @@ class ZXCMSParser(BaseParser):
         print("booktxthtml加密数据段解密失败")
         return None
     
-    def _decrypt_content(self, encrypted_data: str, key: str, iv: str) -> Optional[str]:
+    def _decrypt_with_real_key(self, encrypted_data: str, key: str, iv: str) -> Optional[str]:
         """
-        解密内容 - 基于CryptoJS的x函数逻辑
+        使用从页面提取的真实密钥解密内容
         
         Args:
             encrypted_data: 加密数据
-            key: 解密密钥
-            iv: 初始化向量
+            key: 从页面提取的解密密钥
+            iv: 从页面提取的初始化向量
             
         Returns:
             解密后的内容
         """
+        print(f"使用真实密钥解密: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
+        
+        # Base64解析加密数据
         try:
-            print(f"开始解密: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
-            
-            # 处理Unicode转义序列
-            encrypted_data = encrypted_data.replace('\\\\/', '/')
-            encrypted_data = encrypted_data.replace('\\\\u002b', '+')
-            encrypted_data = encrypted_data.replace('\\\\u002f', '/')
-            
-            # 基于JavaScript x函数的解密逻辑（完全对应CryptoJS的行为）
-            # 1. Base64解析加密数据 (对应 CryptoJS.enc.Base64.parse)
+            ciphertext = base64.b64decode(encrypted_data, validate=True)
+            print(f"Base64解码成功，密文长度: {len(ciphertext)}")
+        except Exception as e:
+            print(f"Base64解码失败: {e}")
+            # 修复padding
+            encrypted_data = encrypted_data.strip()
+            encrypted_data = re.sub(r'[^A-Za-z0-9+/=]', '', encrypted_data)
+            encrypted_data = encrypted_data.rstrip('=')
+            padding_needed = 4 - (len(encrypted_data) % 4)
+            if padding_needed and padding_needed != 4:
+                encrypted_data += '=' * padding_needed
             try:
-                ciphertext = base64.b64decode(encrypted_data, validate=True)
-                print(f"Base64解码成功，密文长度: {len(ciphertext)}")
-            except Exception as e:
-                print(f"Base64解码失败: {e}")
-                # 如果失败，尝试修复padding
-                encrypted_data = encrypted_data.strip()
-                # 移除非Base64字符
-                encrypted_data = re.sub(r'[^A-Za-z0-9+/=]', '', encrypted_data)
-                # 移除多余的padding
-                encrypted_data = encrypted_data.rstrip('=')
-                # 添加正确的padding
-                padding_needed = 4 - (len(encrypted_data) % 4)
-                if padding_needed and padding_needed != 4:
-                    encrypted_data += '=' * padding_needed
-                try:
-                    ciphertext = base64.b64decode(encrypted_data)
-                    print(f"修复padding后Base64解码成功，密文长度: {len(ciphertext)}")
-                except Exception as e2:
-                    print(f"修复padding后Base64解码仍失败: {e2}")
-                    return None
-            
-            # 2. Base64解析IV (对应 CryptoJS.enc.Base64.parse)
-            try:
-                iv_bytes = base64.b64decode(iv)
-                print(f"IV Base64解码成功，长度: {len(iv_bytes)}")
-            except Exception as e:
-                print(f"IV解码失败: {e}")
+                ciphertext = base64.b64decode(encrypted_data)
+                print(f"修复padding后Base64解码成功")
+            except:
+                print("Base64解码彻底失败")
                 return None
-            
-            # 3. UTF-8解析密钥 (对应 CryptoJS.enc.Utf8.parse)
+        
+        # Base64解析IV
+        try:
+            iv_bytes = base64.b64decode(iv)
+            print(f"IV解码成功，长度: {len(iv_bytes)}")
+        except Exception as e:
+            print(f"IV解码失败: {e}")
+            return None
+        
+        # UTF-8解析密钥
+        try:
             key_bytes = key.encode('utf-8')
-            print(f"密钥UTF-8编码成功，长度: {len(key_bytes)}")
+            print(f"密钥编码成功，长度: {len(key_bytes)}")
             
-            # 4. AES解密 - 使用CBC模式和ZeroPadding
-            cipher = AES.new(key_bytes, AES.MODE_CBC, iv_bytes)
-            
-            # 5. 解密
-            decrypted_bytes = cipher.decrypt(ciphertext)
-            print(f"AES解密成功，解密字节长度: {len(decrypted_bytes)}")
-            
-            # 6. ZeroPadding处理 - 手动移除零填充
-            # CryptoJS的ZeroPadding会移除末尾的null字节
-            decrypted_bytes = decrypted_bytes.rstrip(b'\x00')
-            print(f"移除零填充后长度: {len(decrypted_bytes)}")
-            
-            # 7. 转换为UTF-8字符串
-            try:
-                decrypted_text = decrypted_bytes.decode('utf-8')
-                print(f"UTF-8解码成功，文本长度: {len(decrypted_text)}")
-            except UnicodeDecodeError as e:
-                print(f"UTF-8解码失败: {e}")
-                # 如果UTF-8解码失败，尝试其他编码
-                try:
-                    decrypted_text = decrypted_bytes.decode('utf-8', errors='ignore')
-                    print(f"使用错误忽略模式解码成功，文本长度: {len(decrypted_text)}")
-                except:
-                    decrypted_text = str(decrypted_bytes)
-                    print(f"转换为字符串，长度: {len(decrypted_text)}")
-            
-            # 检查解密是否成功（内容应该不同且包含可读字符）
-            if decrypted_text and decrypted_text != encrypted_data:
-                # 检查是否包含中文字符或其他可读内容
-                if len(decrypted_text) > 10 and not decrypted_text.startswith('Error'):
-                    # 检查中文字符数量
-                    chinese_chars = len([c for c in decrypted_text if '\u4e00' <= c <= '\u9fff'])
-                    print(f"中文字符数量: {chinese_chars}")
-                    print(f"解密内容前100字符: {decrypted_text[:100]}...")
-                    
-                    # 降低中文字符要求，因为有些章节可能较少
-                    if chinese_chars > 10:
-                        return decrypted_text
-                    else:
-                        print(f"解密结果中文字符较少: {chinese_chars}个")
-                        return None
+            # 确保密钥长度为16字节
+            if len(key_bytes) != 16:
+                if len(key_bytes) < 16:
+                    key_bytes += b'\x00' * (16 - len(key_bytes))
+                    print(f"密钥长度不足，填充至16字节")
                 else:
-                    print(f"解密结果无效: {decrypted_text[:50]}...")
-                    return None
-            else:
-                print("解密失败或结果与原文相同")
+                    key_bytes = key_bytes[:16]
+                    print(f"密钥长度过长，截取前16字节")
+        except Exception as e:
+            print(f"密钥编码失败: {e}")
+            return None
+        
+        # AES解密 - 使用CBC模式
+        try:
+            cipher = AES.new(key_bytes, AES.MODE_CBC, iv_bytes)
+            decrypted_bytes = cipher.decrypt(ciphertext)
+            print(f"AES解密成功，解密数据长度: {len(decrypted_bytes)}")
+            
+            # 尝试不同的padding移除方式
+            # 使用函数列表而不是lambda表达式，避免类型错误
+            def remove_zero_padding(b):
+                return b.rstrip(b'\x00')
+            
+            def no_removal(b):
+                return b
+            
+            def remove_pkcs7_padding(b):
+                if b and len(b) > 0:
+                    padding_len = b[-1]
+                    if 0 < padding_len <= 16:  # PKCS7 padding长度在1-16之间
+                        if b[-padding_len:] == bytes([padding_len] * padding_len):
+                            return b[:-padding_len]
+                return b
+            
+            removal_functions = [remove_zero_padding, no_removal, remove_pkcs7_padding]
+            
+            for removal in removal_functions:
+                try:
+                    cleaned_bytes = removal(decrypted_bytes)
+                    # 转换为UTF-8字符串
+                    try:
+                        decrypted_text = cleaned_bytes.decode('utf-8')
+                        print(f"解密成功，尝试padding移除方法: {removal.__name__}")
+                        return decrypted_text
+                    except UnicodeDecodeError:
+                        try:
+                            decrypted_text = cleaned_bytes.decode('utf-8', errors='ignore')
+                            print(f"解密成功（忽略错误），尝试padding移除方法: {removal.__name__}")
+                            return decrypted_text
+                        except:
+                            print(f"UTF-8解码失败，尝试下一个padding移除方法")
+                            continue
+                except Exception as e:
+                    print(f"padding移除失败: {e}")
+                    continue
+            
+            print("所有padding移除方法都失败")
+            # 最后尝试直接转换为字符串
+            try:
+                return str(decrypted_bytes)
+            except:
                 return None
+        except Exception as e:
+            print(f"AES解密失败: {e}")
+            return None
+    
+    def _decrypt_with_alternative_methods(self, encrypted_data: str, key: str, iv: str) -> Optional[str]:
+        """
+        使用备选方法解密内容
+        
+        Args:
+            encrypted_data: 加密数据
+            key: 从页面提取的解密密钥
+            iv: 从页面提取的初始化向量
+            
+        Returns:
+            解密后的内容
+        """
+        print(f"尝试备选解密方法: 数据长度={len(encrypted_data)}, key={key}, iv={iv}")
+        
+        try:
+            # 备选解密方法1: 尝试不同的密钥/IV组合
+            alternative_keys = [
+                key,  # 原始密钥
+                "encryptedDatastr",  # 默认key
+                "3rptdNnUDS4FAypFfpoIpA==",  # 备选iv作为key
+                "5w9sgjdqHHEw0Fjc3C2qHg==",  # 默认iv
+            ]
+            
+            alternative_ivs = [
+                iv,  # 原始iv
+                "5w9sgjdqHHEw0Fjc3C2qHg==",  # 默认iv
+                "3rptdNnUDS4FAypFfpoIpA==",  # 备选iv
+                "encryptedDatastr",  # key作为iv（不太可能但值得一试）
+            ]
+            
+            for alt_key in alternative_keys:
+                for alt_iv in alternative_ivs:
+                    # 尝试解密
+                    decrypted = self._decrypt_with_real_key(encrypted_data, alt_key, alt_iv)
+                    if decrypted and len(decrypted) > 50:
+                        # 检查解密内容是否合理
+                        chinese_chars = len([c for c in decrypted if '\u4e00' <= c <= '\u9fff'])
+                        if chinese_chars > 10:  # 包含足够的中文字符
+                            print(f"备选方法成功: key={alt_key}, iv={alt_iv}, 中文字符数={chinese_chars}")
+                            return decrypted
+            
+            # 备选解密方法2: 尝试使用ECB模式
+            try:
+                print("尝试ECB模式解密...")
+                ciphertext = base64.b64decode(encrypted_data, validate=False)
+                key_bytes = key.encode('utf-8')
+                
+                # 确保密钥长度为16字节
+                if len(key_bytes) != 16:
+                    if len(key_bytes) < 16:
+                        key_bytes += b'\x00' * (16 - len(key_bytes))
+                    else:
+                        key_bytes = key_bytes[:16]
+                
+                cipher = AES.new(key_bytes, AES.MODE_ECB)
+                decrypted_bytes = cipher.decrypt(ciphertext)
+                
+                # 转换为UTF-8字符串
+                try:
+                    decrypted_text = decrypted_bytes.rstrip(b'\x00').decode('utf-8')
+                    chinese_chars = len([c for c in decrypted_text if '\u4e00' <= c <= '\u9fff'])
+                    if chinese_chars > 10:
+                        print(f"ECB模式解密成功，中文字符数={chinese_chars}")
+                        return decrypted_text
+                except UnicodeDecodeError:
+                    print("ECB模式解密后UTF-8解码失败")
+            except Exception as e:
+                print(f"ECB模式解密失败: {e}")
+            
+            print("所有备选解密方法均失败")
+            return None
             
         except Exception as e:
-            print(f"解密失败: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"备选解密方法出错: {e}")
             return None
     
     def _extract_novel_id_from_url(self, url: str) -> str:
@@ -756,64 +996,7 @@ class ZXCMSParser(BaseParser):
             return match.group(1)
         return "unknown"
     
-    def _extract_visible_chinese_content(self, content: str) -> Optional[str]:
-        """
-        提取页面中可见的中文内容作为备选方案
-        
-        Args:
-            content: 页面内容
-            
-        Returns:
-            提取的中文内容或None
-        """
-        try:
-            print("尝试提取可见的中文内容...")
-            
-            # 查找包含中文的段落
-            chinese_patterns = [
-                # 查找<p>标签中的中文内容
-                r'<p[^>]*>([^<]*[\u4e00-\u9fff][^<]*)</p>',
-                # 查找<div>标签中的中文内容
-                r'<div[^>]*>([^<]*[\u4e00-\u9fff][^<]*)</div>',
-                # 查找任何包含中文的文本
-                r'>([^<]*[\u4e00-\u9fff][^<]*)<'
-            ]
-            
-            chinese_content = []
-            
-            for pattern in chinese_patterns:
-                matches = re.findall(pattern, content, re.DOTALL)
-                for match in matches:
-                    # 清理HTML标签和多余空格
-                    clean_text = re.sub(r'<[^>]+>', '', match)
-                    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
-                    
-                    # 过滤掉太短的内容和常见的无关文本
-                    if (len(clean_text) > 10 and 
-                        not any(skip in clean_text for skip in [
-                            '更多内容加载中', '请稍候', '本站只支持', '手机浏览器访问',
-                            '阅读模式', '畅读模式', '章节内容加载失败', '关闭浏览器',
-                            'Copyright', '版权所有', '备案号'
-                        ])):
-                        chinese_content.append(clean_text)
-            
-            if chinese_content:
-                # 合并所有中文内容
-                result = '\n\n'.join(chinese_content)
-                print(f"成功提取可见中文内容，长度: {len(result)}")
-                print(f"提取的内容前200字符: {result[:200]}...")
-                
-                # 繁简转换
-                result = self._convert_traditional_to_simplified(result)
-                
-                return result
-            else:
-                print("未找到可见的中文内容")
-                return None
-                
-        except Exception as e:
-            print(f"提取可见中文内容失败: {e}")
-            return None
+
     
     def _clean_html_content(self, html_content: str) -> str:
         """

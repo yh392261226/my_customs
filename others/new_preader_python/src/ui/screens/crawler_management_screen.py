@@ -1855,7 +1855,15 @@ class CrawlerManagementScreen(Screen[None]):
             filtered_ids = [id for id in ids if id != novel_id]
             
             # 重新组合并更新输入框
-            novel_id_input.value = ', '.join(filtered_ids)
+            if filtered_ids:
+                # 如果还有其他ID，在最后一个ID后面添加逗号，方便继续输入
+                novel_id_input.value = ', '.join(filtered_ids) + ','
+            else:
+                # 如果没有其他ID了，清空输入框
+                novel_id_input.value = ''
+                
+            # 将光标移动到输入框末尾
+            novel_id_input.action_end()
         except Exception as e:
             logger.debug(f"从输入框中移除ID失败: {e}")
     

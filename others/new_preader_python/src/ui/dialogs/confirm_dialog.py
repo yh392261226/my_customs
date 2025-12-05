@@ -3,7 +3,7 @@
 用于确认操作
 """
 
-from typing import Optional
+from typing import Optional, ClassVar
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Button, Label
