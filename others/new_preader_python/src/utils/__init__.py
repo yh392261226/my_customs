@@ -5,3 +5,4 @@
 from src.utils.logger import LoggerSetup
 from src.utils.file_utils import FileUtils
 from src.utils.text_to_speech import TextToSpeech
+from src.utils.traditional_simplified import TraditionalSimplifiedConverter, convert_traditional_to_simplified

@@ -262,6 +262,60 @@ class FileUtils:
             return False
     
     @staticmethod
+    def save_content(file_path: str, content: str, encoding: str = 'utf-8') -> bool:
+        """
+        保存内容到文件
+        
+        Args:
+            file_path: 文件路径
+            content: 要保存的内容
+            encoding: 文件编码
+            
+        Returns:
+            bool: 是否成功保存
+        """
+        try:
+            # 确保目录存在
+            dir_path = os.path.dirname(file_path)
+            FileUtils.ensure_dir_exists(dir_path)
+            
+            # 保存内容到文件
+            with open(file_path, 'w', encoding=encoding) as f:
+                f.write(content)
+            
+            return True
+        except Exception as e:
+            logger.error(f"保存文件内容失败: {e}")
+            return False
+    
+    @staticmethod
+    def save_content(file_path: str, content: str, encoding: str = 'utf-8') -> bool:
+        """
+        保存内容到文件
+        
+        Args:
+            file_path: 文件路径
+            content: 要保存的内容
+            encoding: 文件编码
+            
+        Returns:
+            bool: 是否成功保存
+        """
+        try:
+            # 确保目录存在
+            dir_path = os.path.dirname(file_path)
+            FileUtils.ensure_dir_exists(dir_path)
+            
+            # 保存内容到文件
+            with open(file_path, 'w', encoding=encoding) as f:
+                f.write(content)
+            
+            return True
+        except Exception as e:
+            logger.error(f"保存文件内容失败: {e}")
+            return False
+    
+    @staticmethod
     def get_home_dir() -> str:
         """
         获取用户主目录

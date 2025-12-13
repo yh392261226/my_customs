@@ -277,7 +277,12 @@
         "merge_tags_description": "Set tags for merged book",
         "books_already_at_top": "Book already at top",
         "books_already_at_bottom": "Book already at bottom",
-        "toggle_row": "Toggle selected"
+        "toggle_row": "Toggle selected",
+        "convert_traditional_to_simplified": "Convert Traditional to Simplified",
+        "books_converted": "Successfully converted {count} books from Traditional to Simplified",
+        "convert_failed": "Convert Traditional to Simplified failed: {error}",
+        "convert_confirm": "Confirm Traditional to Simplified Conversion",
+        "convert_confirm_message": "Are you sure you want to convert the selected books from Traditional to Simplified? This operation will modify book content, please backup first."
     },
     "search": {
         "title": "Search",

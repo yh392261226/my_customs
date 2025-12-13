@@ -277,7 +277,12 @@
         "merge_tags_description": "设置合并后书籍的标签",
         "books_already_at_top": "已在顶部",
         "books_already_at_bottom": "已在底部",
-        "toggle_row": "选中/取消选中"
+        "toggle_row": "选中/取消选中",
+        "convert_traditional_to_simplified": "繁体转简体",
+        "books_converted": "成功为 {count} 本书籍执行繁体转简体",
+        "convert_failed": "繁体转简体失败: {error}",
+        "convert_confirm": "确认繁体转简体",
+        "convert_confirm_message": "确定要对选中的书籍执行繁体转简体操作吗？此操作将修改书籍内容，建议先备份。"
     },
     "search": {
         "title": "搜索",

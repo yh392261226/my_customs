@@ -5,6 +5,7 @@
 
 import os
 import json
+import asyncio
 from datetime import datetime
 from typing import List, Set, Optional, Dict, Any, Tuple
 from textual.screen import ModalScreen
@@ -150,6 +151,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_author"), id="set-author-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_tags"), id="set-tags-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.clear_tags"), id="clear-tags-btn", variant="warning"),
+                    Button(get_global_i18n().t("batch_ops.convert_traditional_to_simplified"), id="convert-traditional-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.delete"), id="delete-btn", variant="error"),
                     Button(get_global_i18n().t("batch_ops.remove_missing"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.export"), id="export-btn"),
@@ -801,6 +803,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             await self._set_tags_for_selected_books()
         elif event.button.id == "clear-tags-btn":
             await self._clear_tags_for_selected_books()
+        elif event.button.id == "convert-traditional-btn":
+            await self._convert_traditional_to_simplified()
         elif event.button.id == "remove-missing-btn":
             await self._remove_missing_books()
         elif event.button.id == "export-btn":
@@ -1073,6 +1077,56 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             callback=on_tags_input
         )
     
+    async def _convert_traditional_to_simplified(self) -> None:
+        """为选中的书籍执行繁体转简体"""
+        if not self.selected_books:
+            self.notify(
+                get_global_i18n().t("batch_ops.no_books_selected"),
+                severity="warning"
+            )
+            return
+        
+        # 使用ConfirmDialog实现确认功能
+        def on_confirm(confirmed: Optional[bool]) -> None:
+            """处理确认结果"""
+            if not confirmed:
+                return
+            
+            async def convert_async():
+                """异步执行繁体转简体"""
+                try:
+                    # 调用bookshelf的批量繁体转简体方法
+                    success_count = self.bookshelf.batch_convert_traditional_to_simplified(list(self.selected_books))
+                    
+                    self.notify(
+                        get_global_i18n().t("batch_ops.books_converted", count=success_count),
+                        severity="information"
+                    )
+                    
+                    # 重新加载书籍列表
+                    self._load_books()
+                    self.selected_books.clear()  # 清空选中状态
+                    self._clear_table_selection()  # 清除表格的视觉选中状态
+                    
+                except Exception as e:
+                    self.notify(
+                        get_global_i18n().t("batch_ops.convert_failed", error=str(e)),
+                        severity="error"
+                    )
+            
+            # 启动异步任务
+            asyncio.create_task(convert_async())
+        
+        # 显示确认对话框
+        self.app.push_screen(
+            ConfirmDialog(
+                theme_manager=self.theme_manager,
+                title=get_global_i18n().t("batch_ops.convert_confirm"),
+                message=get_global_i18n().t("batch_ops.convert_confirm_message")
+            ),
+            callback=on_confirm
+        )
+
     async def _clear_tags_for_selected_books(self) -> None:
         """清空选中书籍的标签"""
         if not self.selected_books:

@@ -1096,6 +1096,81 @@ class Bookshelf:
         
         return success_count
 
+    def batch_convert_traditional_to_simplified(self, book_paths: List[str]) -> int:
+        """
+        批量繁体转简体
+        
+        Args:
+            book_paths: 书籍路径列表
+            
+        Returns:
+            int: 成功转换的书籍数量
+        """
+        success_count = 0
+        
+        # 导入繁体转简体工具
+        from src.utils.traditional_simplified import convert_traditional_to_simplified
+        from src.utils.file_utils import FileUtils
+        
+        for path in book_paths:
+            # 尝试多种路径格式进行匹配
+            abs_path = os.path.abspath(path)
+            normalized_path = os.path.normpath(abs_path)
+            
+            # 尝试不同的路径格式进行匹配
+            matched_path = None
+            for book_path in self.books.keys():
+                # 直接路径比较
+                if book_path == abs_path or book_path == normalized_path:
+                    matched_path = book_path
+                    break
+                # 如果文件存在，使用 samefile 进行更精确的比较
+                if os.path.exists(abs_path) and os.path.exists(book_path):
+                    try:
+                        if os.path.samefile(book_path, abs_path):
+                            matched_path = book_path
+                            break
+                    except OSError:
+                        # 如果 samefile 失败，继续尝试其他路径
+                        pass
+            
+            if matched_path and matched_path in self.books:
+                book = self.books[matched_path]
+                
+                try:
+                    # 获取书籍内容
+                    content = book.get_content()
+                    if not content:
+                        logger.warning(f"无法获取书籍内容: {book.title}")
+                        continue
+                    
+                    # 繁体转简体
+                    simplified_content = convert_traditional_to_simplified(content)
+                    
+                    # 如果内容没有变化，跳过
+                    if simplified_content == content:
+                        logger.info(f"书籍内容无需转换: {book.title}")
+                        continue
+                    
+                    # 保存转换后的内容到文件
+                    if FileUtils.save_content(book.path, simplified_content):
+                        # 更新书籍的修改时间
+                        book.modified_time = datetime.now()
+                        
+                        # 更新数据库
+                        if self.db_manager.update_book(book):
+                            success_count += 1
+                            logger.info(f"成功转换书籍: {book.title}")
+                        else:
+                            logger.error(f"更新数据库失败: {book.title}")
+                    else:
+                        logger.error(f"保存文件失败: {book.title}")
+                        
+                except Exception as e:
+                    logger.error(f"繁体转简体失败: {book.title}, 错误: {e}")
+        
+        return success_count
+
     def verify_and_remove_missing_books(self) -> Tuple[int, List[str]]:
         """
         验证并删除不存在的书籍
