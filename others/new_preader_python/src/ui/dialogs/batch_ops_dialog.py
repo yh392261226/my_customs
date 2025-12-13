@@ -224,6 +224,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(get_global_i18n().t("bookshelf.author"), key="author")
         table.add_column(get_global_i18n().t("bookshelf.format"), key="format")
         table.add_column(get_global_i18n().t("bookshelf.tags"), key="tags")
+        table.add_column(get_global_i18n().t("bookshelf.view_file"), key="view_action")  # 查看文件按钮列
         table.add_column(get_global_i18n().t("batch_ops.selected"), key="selected")
         
         # 启用隔行变色效果
@@ -330,12 +331,16 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             is_selected = book.path in self.selected_books
             selection_marker = "✓" if is_selected else "□"
             
+            # 添加查看文件按钮
+            view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+            
             table.add_row(
                 str(index),  # 序号
                 book.title,
                 book.author,
-                book.format.upper(),
+                book.format.upper() if book.format else "",
                 tags_display,
+                view_file_button,  # 查看文件按钮
                 selection_marker,  # 根据选中状态显示不同的标记
                 key=book.path
             )
@@ -489,26 +494,40 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 获取当前页的数据
         start_index = (self._current_page - 1) * self._books_per_page
+        book = None
         if row_index is not None and row_index < len(self._all_books) - start_index:
             book = self._all_books[start_index + row_index]
             
             if not book:
                 return
         
-        # 计算是否点击的是最后一列（已选择列）
+        # 如果没有获取到书籍数据，直接返回
+        if not book:
+            return
+        
+        # 计算列索引
         try:
             # 确保使用正确的列键类型
             if hasattr(table, 'columns') and table.columns:
-                selected_col_index = len(table.columns) - 1
+                total_columns = len(table.columns)
             elif hasattr(table, 'ordered_columns') and table.ordered_columns:
-                selected_col_index = len(table.ordered_columns) - 1
+                total_columns = len(table.ordered_columns)
             else:
-                selected_col_index = 0
+                total_columns = 0
         except Exception:
-            selected_col_index = 0
+            total_columns = 0
         
-        # 处理已选择列的点击
-        if event.coordinate.column == selected_col_index:
+        # 列索引映射：
+        # 0=索引, 1=书名, 2=作者, 3=格式, 4=标签, 5=查看文件按钮, 6=已选择列
+        
+        # 处理查看文件按钮列的点击（索引5）
+        if event.coordinate.column == 5:
+            self._view_file(book.path)
+            event.stop()
+            return
+        
+        # 处理已选择列的点击（最后一列）
+        if event.coordinate.column == total_columns - 1:
             # 执行切换并阻止事件进一步影响其他处理器
             self._toggle_book_selection(str(book_id), table, row_index)
             event.stop()
@@ -786,6 +805,40 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     f"第 {self._current_page} 页，共 {self._total_pages} 页 | "
                     f"共 {len(self._all_books)} 本书"
                 )
+    
+    def _view_file(self, book_path: str) -> None:
+        """查看书籍文件"""
+        try:
+            import os
+            import subprocess
+            import platform
+            
+            # 检查文件是否存在
+            if not os.path.exists(book_path):
+                self.notify(f"{get_global_i18n().t('bookshelf.file_not_exists')}: {book_path}", severity="error")
+                return
+            
+            # 根据操作系统打开文件管理器
+            system = platform.system()
+            if system == "Darwin":  # macOS
+                subprocess.run(["open", "-R", book_path], check=False)
+            elif system == "Windows":
+                subprocess.run(["explorer", "/select,", book_path], check=False)
+            elif system == "Linux":
+                subprocess.run(["xdg-open", os.path.dirname(book_path)], check=False)
+            else:
+                # 通用方法：打开文件所在目录
+                folder_path = os.path.dirname(book_path)
+                if os.path.exists(folder_path):
+                    subprocess.run(["open", folder_path], check=False)
+                else:
+                    self.notify(get_global_i18n().t("bookshelf.open_directory_failed"), severity="warning")
+                    return
+            
+            self.notify(f"{get_global_i18n().t('bookshelf.opened_in_file_explorer')}: {os.path.basename(book_path)}", severity="information")
+            
+        except Exception as e:
+            self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
         
         # 更新分页按钮状态
         try:

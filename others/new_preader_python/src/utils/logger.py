@@ -213,10 +213,6 @@ def setup_logging_from_config(config_manager) -> None:
         if debug_mode:
             # 启用调试模式
             set_debug_mode(True)
-            # 设置文件日志输出，禁用控制台输出
-            LoggerSetup.setup_logger("main", config_manager, 
-                                   console_output=False, 
-                                   file_output=True)
         else:
             # 禁用调试模式（静默模式）
             set_debug_mode(False)
