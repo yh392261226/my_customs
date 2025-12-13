@@ -482,6 +482,7 @@ class Feiku6Parser(BaseParser):
             # 构建小说信息
             novel_content = {
                 "title": title,
+                "author": self.novel_site_name,  # 使用数据库中的网站名称
                 "content": "",  # 多章节小说，不在详情中存储内容
                 "url": novel_url,
                 "book_type": "多章节",

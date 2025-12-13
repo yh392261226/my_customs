@@ -258,6 +258,7 @@ class AareadParser(BaseParser):
             # 返回小说内容
             novel_content = {
                 "title": title,
+                "author": self.novel_site_name,  # 使用数据库中的网站名称
                 "content": "",  # 多章节小说没有统一的内容
                 "url": novel_url,
                 "book_type": book_type,

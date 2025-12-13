@@ -770,6 +770,18 @@ class BookshelfScreen(Screen[None]):
             # 构建统计信息文本
             stats_text = get_global_i18n().t("bookshelf.total_books", count=total_count)
             
+            # 添加筛选状态信息
+            filter_conditions = []
+            if self._search_keyword:
+                filter_conditions.append(f"关键词: {self._search_keyword}")
+            if self._search_format != "all":
+                filter_conditions.append(f"格式: {self._search_format.upper()}")
+            if self._search_author != "all":
+                filter_conditions.append(f"作者: {self._search_author}")
+            
+            if filter_conditions:
+                stats_text += f" [筛选: {' + '.join(filter_conditions)}]"
+            
             if format_counts:
                 format_parts = []
                 for format_name, count in sorted(format_counts.items()):
@@ -1199,7 +1211,7 @@ class BookshelfScreen(Screen[None]):
     @on(DataTable.CellSelected, "#books-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """
-        数据表单元格选择时的回调 - 与爬取管理页面一致的按钮操作方式
+        数据表单元格选择时的回调 - 支持点击筛选和操作按钮
         
         Args:
             event: 单元格选择事件
@@ -1214,11 +1226,6 @@ class BookshelfScreen(Screen[None]):
                 
                 self.logger.debug(f"点击的列: {column_key}, 行: {row_index}")
                 
-                # 只处理操作列（阅读、查看文件、重命名、删除）
-                # 列索引从0开始：8=阅读, 9=查看文件, 10=重命名, 11=删除
-                if column_key not in [8, 9, 10, 11]:
-                    return
-                
                 # 获取当前页的数据
                 start_index = (self._current_page - 1) * self._books_per_page
                 if row_index is not None and row_index < len(self._all_books) - start_index:
@@ -1229,40 +1236,150 @@ class BookshelfScreen(Screen[None]):
                         
                     book_id = book.path
                     
-                    # 根据列索引执行不同的操作
-                    if column_key == 8:  # 阅读按钮列
-                        self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
-                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                            self._open_book_fallback(book_id)
-                        else:
-                            self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
-                    elif column_key == 9:  # 查看文件按钮列
-                        self.logger.info(f"点击查看文件按钮: {book_id}")
-                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
-                            self._view_file(book_id)
-                        else:
-                            self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
-                    elif column_key == 10:  # 重命名按钮列
-                        self.logger.info(f"点击重命名按钮: {book_id}")
-                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.rename_book"):
-                            self._rename_book(book_id)
-                        else:
-                            self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
-                    elif column_key == 11:  # 删除按钮列
-                        self.logger.info(f"点击删除按钮: {book_id}")
-                        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
-                            self._delete_book(book_id)
-                        else:
-                            self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
+                    # 处理操作按钮列（阅读、查看文件、重命名、删除）
+                    # 列索引从0开始：8=阅读, 9=查看文件, 10=重命名, 11=删除
+                    if column_key in [8, 9, 10, 11]:
+                        
+                        # 根据列索引执行不同的操作
+                        if column_key == 8:  # 阅读按钮列
+                            self.logger.info(f"点击阅读按钮打开书籍: {book_id}")
+                            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+                                self._open_book_fallback(book_id)
+                            else:
+                                self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
+                        elif column_key == 9:  # 查看文件按钮列
+                            self.logger.info(f"点击查看文件按钮: {book_id}")
+                            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
+                                self._view_file(book_id)
+                            else:
+                                self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
+                        elif column_key == 10:  # 重命名按钮列
+                            self.logger.info(f"点击重命名按钮: {book_id}")
+                            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.rename_book"):
+                                self._rename_book(book_id)
+                            else:
+                                self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
+                        elif column_key == 11:  # 删除按钮列
+                            self.logger.info(f"点击删除按钮: {book_id}")
+                            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
+                                self._delete_book(book_id)
+                            else:
+                                self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
+                        
+                        # 阻止事件冒泡，避免触发其他处理程序
+                        event.stop()
                     
-                    # 阻止事件冒泡，避免触发其他处理程序
-                    event.stop()
+                    # 处理筛选列（作者、格式、标签）
+                    # 列索引从0开始：2=作者, 3=格式, 7=标签
+                    elif column_key in [2, 3, 7]:
+                        self._handle_column_filter(column_key, book)
+                        event.stop()
+                        
                 else:
                     self.logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_books)}, 起始索引={start_index}")
             else:
                 self.logger.debug("单元格选择事件没有坐标信息")
         except Exception as e:
             self.logger.error(f"处理单元格选择时出错: {e}")
+    
+    def _handle_column_filter(self, column_key: int, book) -> None:
+        """处理列筛选功能
+        
+        Args:
+            column_key: 列索引
+            book: 书籍对象
+        """
+        try:
+            # 根据列索引处理不同的筛选逻辑
+            if column_key == 2:  # 作者列
+                filter_value = book.author
+                filter_type = "author"
+                filter_display = f"作者: {filter_value}"
+            elif column_key == 3:  # 格式列
+                filter_value = book.format.lower().lstrip('.')
+                filter_type = "format"
+                filter_display = f"格式: {filter_value.upper()}"
+            elif column_key == 7:  # 标签列
+                filter_value = book.tags if book.tags else ""
+                filter_type = "tags"
+                filter_display = f"标签: {filter_value}"
+            else:
+                return
+            
+            # 如果筛选值为空，则不执行筛选
+            if not filter_value:
+                self.notify(f"{filter_display} 为空，无法筛选", severity="warning")
+                return
+            
+            # 执行筛选操作
+            self._perform_column_filter(filter_type, filter_value, filter_display)
+            
+        except Exception as e:
+            self.logger.error(f"处理列筛选时出错: {e}")
+            self.notify(f"筛选操作失败: {e}", severity="error")
+    
+    def _perform_column_filter(self, filter_type: str, filter_value: str, filter_display: str) -> None:
+        """执行列筛选操作
+        
+        Args:
+            filter_type: 筛选类型（author/format/tags）
+            filter_value: 筛选值
+            filter_display: 筛选显示文本
+        """
+        try:
+            # 重置到第一页
+            self._current_page = 1
+            
+            # 根据筛选类型设置不同的搜索条件
+            if filter_type == "author":
+                # 作者筛选
+                self._search_keyword = ""
+                self._search_format = "all"
+                self._search_author = filter_value
+                
+                # 更新作者筛选下拉框
+                author_filter = self.query_one("#bookshelf-source-filter", Select)
+                author_filter.value = filter_value
+                
+            elif filter_type == "format":
+                # 格式筛选
+                self._search_keyword = ""
+                self._search_format = filter_value
+                self._search_author = "all"
+                
+                # 更新格式筛选下拉框
+                format_filter = self.query_one("#bookshelf-format-filter", Select)
+                format_filter.value = filter_value
+                
+            elif filter_type == "tags":
+                # 标签筛选 - 使用关键词搜索
+                self._search_keyword = filter_value
+                self._search_format = "all"
+                self._search_author = "all"
+                
+                # 更新搜索输入框
+                search_input = self.query_one("#bookshelf-search-input", Input)
+                search_input.value = filter_value
+                
+                # 重置下拉框
+                format_filter = self.query_one("#bookshelf-format-filter", Select)
+                format_filter.value = "all"
+                author_filter = self.query_one("#bookshelf-source-filter", Select)
+                author_filter.value = "all"
+            
+            # 重新加载书籍数据
+            self._load_books(self._search_keyword, self._search_format, self._search_author)
+            
+            # 显示筛选结果通知
+            total_books = len(self._all_books)
+            self.notify(
+                f"已按 {filter_display} 筛选，共找到 {total_books} 本书", 
+                severity="information"
+            )
+            
+        except Exception as e:
+            self.logger.error(f"执行列筛选操作时出错: {e}")
+            self.notify(f"筛选操作失败: {e}", severity="error")
     
     def _open_book_fallback(self, book_path: str) -> None:
         """备用方法打开书籍"""

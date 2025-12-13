@@ -1154,7 +1154,8 @@ class CrawlerManagementScreen(Screen[None]):
                 from src.core.book import Book
                 
                 # 创建书籍对象
-                author = self.novel_site.get('name', '未知来源')
+                # 使用当前操作网站的数据库名称作为author字段
+                author = self.novel_site.get('name', '未知作者')
                 site_tags = self.novel_site.get('tags', '')
                 
                 book = Book(merged_file_path, new_title, author, tags=site_tags)
@@ -2421,15 +2422,15 @@ class CrawlerManagementScreen(Screen[None]):
                     bs = getattr(self.app, "bookshelf", None)
                     book = None
                     if bs and hasattr(bs, "add_book"):
-                        # 强制使用数据库中的书籍网站名称作为作者
-                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
+                        # 使用"未知作者"而不是硬编码的网站名称作为author
+                        author = "未知作者"
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         book = bs.add_book(file_path, author=author, tags=site_tags)
                     if not book:
                         from src.core.book import Book
-                        # 强制使用数据库中的书籍网站名称作为作者
-                        author = self.novel_site.get('name', get_global_i18n().t('crawler.unknown_source'))
+                        # 使用"未知作者"而不是硬编码的网站名称作为author
+                        author = "未知作者"
                         # 获取网站标签
                         site_tags = self.novel_site.get('tags', '')
                         book = Book(file_path, novel_title, author, tags=site_tags)

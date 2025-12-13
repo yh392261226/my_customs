@@ -467,14 +467,33 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
 
     def on_data_table_cell_selected(self, event) -> None:
         """
-        单元格选择事件：无论点击哪一列，都设置光标位置；
-        仅当点击“已选择”列（最后一列）时，切换该行的选中状态。
+        单元格选择事件：设置光标位置，支持点击筛选和选中状态切换
         """
         table = event.data_table
         
         # 设置光标位置：使用move_cursor方法而不是直接赋值
         if hasattr(table, 'move_cursor'):
             table.move_cursor(row=event.coordinate.row)
+        
+        # 获取行索引与行键
+        row_index = event.coordinate.row
+        
+        # 获取当前行的键（书籍路径）
+        try:
+            row_key = list(table.rows.keys())[row_index]
+        except Exception:
+            return
+        if not row_key or not getattr(row_key, "value", None):
+            return
+        book_id = row_key.value
+        
+        # 获取当前页的数据
+        start_index = (self._current_page - 1) * self._books_per_page
+        if row_index is not None and row_index < len(self._all_books) - start_index:
+            book = self._all_books[start_index + row_index]
+            
+            if not book:
+                return
         
         # 计算是否点击的是最后一列（已选择列）
         try:
@@ -488,23 +507,18 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         except Exception:
             selected_col_index = 0
         
-        if event.coordinate.column != selected_col_index:
-            return  # 非“已选择”列，不切换选中状态
-
-        # 获取行索引与行键
-        row_index = event.coordinate.row
-        # 获取当前行的键（书籍路径）
-        try:
-            row_key = list(table.rows.keys())[row_index]
-        except Exception:
+        # 处理已选择列的点击
+        if event.coordinate.column == selected_col_index:
+            # 执行切换并阻止事件进一步影响其他处理器
+            self._toggle_book_selection(str(book_id), table, row_index)
+            event.stop()
             return
-        if not row_key or not getattr(row_key, "value", None):
-            return
-        book_id = row_key.value
-
-        # 执行切换并阻止事件进一步影响其他处理器
-        self._toggle_book_selection(str(book_id), table, row_index)
-        event.stop()
+        
+        # 处理筛选列的点击（作者、格式、标签）
+        # 列索引从0开始：2=作者, 3=格式, 4=标签
+        if event.coordinate.column in [2, 3, 4]:
+            self._handle_column_filter(event.coordinate.column, book)
+            event.stop()
     
     def _toggle_book_selection(self, book_id: str, table: DataTable[str], row_index: int) -> None:
         """切换书籍选中状态"""
@@ -563,6 +577,105 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 self._load_books()
             except Exception:
                 pass
+    
+    def _handle_column_filter(self, column_key: int, book) -> None:
+        """处理列筛选功能
+        
+        Args:
+            column_key: 列索引
+            book: 书籍对象
+        """
+        try:
+            # 根据列索引处理不同的筛选逻辑
+            if column_key == 2:  # 作者列
+                filter_value = book.author
+                filter_type = "author"
+                filter_display = f"作者: {filter_value}"
+            elif column_key == 3:  # 格式列
+                filter_value = book.format.lower().lstrip('.')
+                filter_type = "format"
+                filter_display = f"格式: {filter_value.upper()}"
+            elif column_key == 4:  # 标签列
+                filter_value = book.tags if book.tags else ""
+                filter_type = "tags"
+                filter_display = f"标签: {filter_value}"
+            else:
+                return
+            
+            # 如果筛选值为空，则不执行筛选
+            if not filter_value:
+                self.notify(f"{filter_display} 为空，无法筛选", severity="warning")
+                return
+            
+            # 执行筛选操作
+            self._perform_column_filter(filter_type, filter_value, filter_display)
+            
+        except Exception as e:
+            logger.error(f"处理列筛选时出错: {e}")
+            self.notify(f"筛选操作失败: {e}", severity="error")
+    
+    def _perform_column_filter(self, filter_type: str, filter_value: str, filter_display: str) -> None:
+        """执行列筛选操作
+        
+        Args:
+            filter_type: 筛选类型（author/format/tags）
+            filter_value: 筛选值
+            filter_display: 筛选显示文本
+        """
+        try:
+            # 重置到第一页
+            self._current_page = 1
+            
+            # 根据筛选类型设置不同的搜索条件
+            if filter_type == "author":
+                # 作者筛选
+                self._search_keyword = ""
+                self._selected_format = "all"
+                self._selected_author = filter_value
+                
+                # 更新作者筛选下拉框
+                author_filter = self.query_one("#search-author-filter", Select)
+                author_filter.value = filter_value
+                
+            elif filter_type == "format":
+                # 格式筛选
+                self._search_keyword = ""
+                self._selected_format = filter_value
+                self._selected_author = "all"
+                
+                # 更新格式筛选下拉框
+                format_filter = self.query_one("#search-format-filter", Select)
+                format_filter.value = filter_value
+                
+            elif filter_type == "tags":
+                # 标签筛选 - 使用关键词搜索
+                self._search_keyword = filter_value
+                self._selected_format = "all"
+                self._selected_author = "all"
+                
+                # 更新搜索输入框
+                search_input = self.query_one("#search-input-field", Input)
+                search_input.value = filter_value
+                
+                # 重置下拉框
+                format_filter = self.query_one("#search-format-filter", Select)
+                format_filter.value = "all"
+                author_filter = self.query_one("#search-author-filter", Select)
+                author_filter.value = "all"
+            
+            # 重新加载书籍数据
+            self._load_books()
+            
+            # 显示筛选结果通知
+            total_books = len(self._all_books)
+            self.notify(
+                f"已按 {filter_display} 筛选，共找到 {total_books} 本书", 
+                severity="information"
+            )
+            
+        except Exception as e:
+            logger.error(f"执行列筛选操作时出错: {e}")
+            self.notify(f"筛选操作失败: {e}", severity="error")
     
     def _update_status(self) -> None:
         """更新状态信息"""
@@ -631,22 +744,48 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """更新分页信息"""
         page_info_label = self.query_one("#batch-ops-page-info", Label)
         
+        # 构建筛选状态信息
+        filter_conditions = []
+        if self._search_keyword:
+            filter_conditions.append(f"关键词: {self._search_keyword}")
+        if self._selected_format != "all":
+            filter_conditions.append(f"格式: {self._selected_format.upper()}")
+        if self._selected_author != "all":
+            filter_conditions.append(f"作者: {self._selected_author}")
+        
         # 如果有搜索条件，显示过滤后的结果信息
-        if self._search_keyword or self._selected_format != "all":
-            page_info_label.update(
-                get_global_i18n().t("batch_ops.page_info_filtered", 
-                                   page=self._current_page, 
-                                   total_pages=self._total_pages,
-                                   filtered_count=len(self._all_books),
-                                   total_count=len(self.bookshelf.get_all_books()))
-            )
+        if filter_conditions:
+            filter_info = f" [筛选: {' + '.join(filter_conditions)}]"
+            
+            # 使用国际化文本，添加筛选状态信息
+            if hasattr(self.i18n, 't'):
+                base_text = get_global_i18n().t("batch_ops.page_info_filtered", 
+                                               page=self._current_page, 
+                                               total_pages=self._total_pages,
+                                               filtered_count=len(self._all_books),
+                                               total_count=len(self.bookshelf.get_all_books()))
+                page_info_label.update(f"{base_text}{filter_info}")
+            else:
+                # 如果国际化不可用，使用默认文本
+                page_info_label.update(
+                    f"第 {self._current_page} 页，共 {self._total_pages} 页 | "
+                    f"筛选结果: {len(self._all_books)} 本书，总数: {len(self.bookshelf.get_all_books())}{filter_info}"
+                )
         else:
-            page_info_label.update(
-                get_global_i18n().t("batch_ops.page_info", 
-                                   page=self._current_page, 
-                                   total_pages=self._total_pages,
-                                   total_books=len(self._all_books))
-            )
+            # 没有筛选条件
+            if hasattr(self.i18n, 't'):
+                page_info_label.update(
+                    get_global_i18n().t("batch_ops.page_info", 
+                                       page=self._current_page, 
+                                       total_pages=self._total_pages,
+                                       total_books=len(self._all_books))
+                )
+            else:
+                # 如果国际化不可用，使用默认文本
+                page_info_label.update(
+                    f"第 {self._current_page} 页，共 {self._total_pages} 页 | "
+                    f"共 {len(self._all_books)} 本书"
+                )
         
         # 更新分页按钮状态
         try:
@@ -774,6 +913,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.query_one("#search-input-field", Input).value = ""
         self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#search-author-filter", Select).value = "all"
+        self.query_one("#search-format-filter", Select).value = "all"
         self._perform_search()
     
     async def on_button_pressed(self, event: Button.Pressed) -> None:

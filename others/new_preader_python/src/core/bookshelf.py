@@ -1264,11 +1264,32 @@ class Bookshelf:
             with open(new_filepath, 'w', encoding='utf-8') as f:
                 f.write(''.join(merged_content))
             
+            # 确定合并后的书籍作者
+            if new_author:
+                # 如果用户指定了作者，使用指定的作者
+                final_author = new_author
+            else:
+                # 获取所有被合并书籍的author
+                authors = [book.author for book in books_to_merge if book.author]
+                if not authors:
+                    # 如果没有author，使用默认值
+                    final_author = "未知作者"
+                else:
+                    # 检查所有author是否相同
+                    unique_authors = set(authors)
+                    if len(unique_authors) == 1:
+                        # 如果所有author都相同，使用这个author
+                        final_author = authors[0]
+                    else:
+                        # 如果author超过一个不同，随机选择一个
+                        import random
+                        final_author = random.choice(authors)
+            
             # 创建新的书籍对象并添加到书架
             new_book = self.add_book(
                 new_filepath, 
                 title=new_title,
-                author=new_author if new_author else books_to_merge[0].author,
+                author=final_author,
                 tags=new_tags if new_tags else ",".join(list(set(tag for book in books_to_merge if book.tags for tag in book.tags.split(","))))
             )
             

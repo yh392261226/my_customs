@@ -379,6 +379,7 @@ class W6180059Parser(BaseParser):
             # 构建小说信息
             novel_content = {
                 "title": title,
+                "author": self.novel_site_name,  # 使用数据库中的网站名称
                 "content": clean_content,
                 "url": novel_url,
                 "book_type": "短篇",

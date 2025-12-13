@@ -124,6 +124,7 @@ class Wushu5Parser(BaseParser):
             # 直接返回小说内容（跳过基类的正则提取步骤）
             novel_content = {
                 "title": title,
+                "author": self.novel_site_name,  # 使用数据库中的网站名称
                 "content": content_text,
                 "url": novel_url,
                 "book_type": book_type,

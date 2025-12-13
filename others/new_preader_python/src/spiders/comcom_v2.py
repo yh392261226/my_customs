@@ -162,6 +162,7 @@ class ComcomParser(BaseParser):
             # 返回小说内容
             novel_content = {
                 "title": title,
+                "author": self.novel_site_name,  # 使用数据库中的网站名称
                 "content": content_text,
                 "url": novel_url,
                 "book_type": book_type,

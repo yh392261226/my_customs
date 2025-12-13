@@ -151,7 +151,7 @@ class ChanjishiParser(BaseParser):
         # 创建小说内容
         novel_content = {
             'title': title,
-            'author': self.novel_site_name or self.name,
+            'author': self.novel_site_name,  # 使用数据库中的网站名称
             'novel_id': self._extract_novel_id_from_url(novel_url),
             'url': novel_url,
             'chapters': []

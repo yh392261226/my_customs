@@ -18,7 +18,6 @@ class JkforumParser(BaseParser):
         super().__init__(proxy_config, novel_site_name)
         # 禁用SSL验证以解决可能的SSL错误
         self.session.verify = False
-        self.novel_site_name = novel_site_name or self.name
         # 添加特定的请求头
         self.session.headers.update({
             'Referer': self.base_url,
