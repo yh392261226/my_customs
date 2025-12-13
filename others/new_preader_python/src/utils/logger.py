@@ -6,6 +6,7 @@ import os
 import logging
 import logging.handlers
 from typing import Optional, Any
+from datetime import date
 
 class LoggerSetup:
     """日志设置类"""
@@ -174,7 +175,7 @@ def set_debug_mode(debug_mode: bool) -> None:
         # 创建日志目录
         log_dir = os.path.join(os.path.expanduser("~"), ".config", "new_preader", "logs")
         os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, 'application.log')
+        log_file = os.path.join(log_dir, f'application_{date.today()}.log')
         
         # 创建文件处理器
         file_handler = logging.handlers.RotatingFileHandler(
