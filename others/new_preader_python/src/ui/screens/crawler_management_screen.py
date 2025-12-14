@@ -1408,7 +1408,16 @@ class CrawlerManagementScreen(Screen[None]):
                 if result:
                     try:
                         novel_id_input = self.query_one("#novel-id-input", Input)
-                        novel_id_input.value = result
+                        current_value = novel_id_input.value.strip()
+                        
+                        if current_value:
+                            # 如果输入框中已有内容，则在原有内容末尾添加逗号后再追加新内容
+                            new_value = f"{current_value},{result}"
+                        else:
+                            # 如果输入框为空，则直接使用新内容
+                            new_value = result
+                        
+                        novel_id_input.value = new_value
                         novel_id_input.focus()
                         self._update_status(get_global_i18n().t('crawler.filled_ids'))
                     except Exception as e:
