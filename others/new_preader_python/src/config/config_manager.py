@@ -55,6 +55,32 @@ class ConfigManager:
         self.config_file = os.path.join(self.config_dir, "config.json")
         self.config = self._load_config()
         
+        # 检测开发模式
+        self.develop_mode = self._detect_develop_mode()
+        logger.info(f"开发模式检测: {'开启' if self.develop_mode else '关闭'}")
+        
+    def _detect_develop_mode(self) -> bool:
+        """
+        检测开发模式：如果当前目录下有develop文件，则启用开发模式
+        
+        Returns:
+            bool: 是否启用开发模式
+        """
+        try:
+            # 获取当前工作目录
+            current_dir = os.getcwd()
+            develop_file = os.path.join(current_dir, "develop")
+            
+            # 检查develop文件是否存在
+            if os.path.exists(develop_file):
+                logger.info(f"检测到开发模式文件: {develop_file}")
+                return True
+            
+            return False
+        except Exception as e:
+            logger.warning(f"检测开发模式时出错: {e}")
+            return False
+    
     def _load_config(self) -> Dict[str, Any]:
         """
         加载配置文件，如果不存在则创建默认配置
@@ -147,6 +173,22 @@ class ConfigManager:
             Dict[str, Any]: 当前配置字典
         """
         return self.config
+    
+    def get_debug_mode(self) -> bool:
+        """
+        获取实际的调试模式状态，考虑开发模式
+        
+        Returns:
+            bool: 如果开发模式开启或配置中调试模式开启，则返回True
+        """
+        # 如果开发模式开启，强制启用调试模式
+        if self.develop_mode:
+            return True
+        
+        # 否则返回配置中的调试模式设置
+        advanced_config = self.config.get("advanced", {})
+        debug_mode = advanced_config.get("debug_mode", False)
+        return bool(debug_mode)
     
     def update_config(self, section: str, key: str, value: Any) -> bool:
         """

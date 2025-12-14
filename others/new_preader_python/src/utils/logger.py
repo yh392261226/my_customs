@@ -31,8 +31,8 @@ class LoggerSetup:
         # 创建日志记录器
         logger = logging.getLogger(app_name)
         
-        # 根据debug开关设置日志级别
-        debug_mode = config_manager.get_config().get("advanced", {}).get("debug_mode", False)
+        # 根据debug开关设置日志级别，支持开发模式
+        debug_mode = config_manager.get_debug_mode()
         log_level = logging.DEBUG if debug_mode else logging.WARNING
         logger.setLevel(log_level)
         
@@ -207,8 +207,8 @@ def setup_logging_from_config(config_manager) -> None:
         config = config_manager.get_config()
         advanced_config = config.get("advanced", {})
         
-        # 统一使用debug_mode控制日志
-        debug_mode = advanced_config.get("debug_mode", False)
+        # 统一使用debug_mode控制日志，支持开发模式
+        debug_mode = config_manager.get_debug_mode()
         
         if debug_mode:
             # 启用调试模式

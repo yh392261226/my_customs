@@ -99,12 +99,11 @@ def main():
     # 创建配置管理器
     config_manager = ConfigManager.get_instance(args.config)
     
-    # 如果命令行指定了debug，覆盖配置
+    # 如果命令行指定了debug，覆盖配置（仅临时生效，不保存到文件）
     if args.debug:
-        config = config_manager.get_config()
         config["advanced"] = config.get("advanced", {})
         config["advanced"]["debug_mode"] = True
-        config_manager.save_config(config)
+        # 注意：这里不保存到文件，只是临时修改配置对象
 
     # 设置日志
     try:
