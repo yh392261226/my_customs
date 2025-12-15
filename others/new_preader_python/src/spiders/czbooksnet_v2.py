@@ -18,6 +18,11 @@ class CzbooksnetParser(BaseParser):
             novel_site_name: 网站名称，如果提供则覆盖默认名称
         """
         super().__init__(proxy_config, novel_site_name)
+        
+        # 初始化实例变量
+        self._current_novel_id = ""
+        self._current_chapter_links = []
+        self.chapter_count = 0
     
     # 基本信息
     name = "czbooks.net"
@@ -112,6 +117,9 @@ class CzbooksnetParser(BaseParser):
             'chapters': []
         }
         
+        # 保存章节链接列表供排序使用
+        self._current_chapter_links = chapter_links
+        
         # 抓取所有章节内容
         self._get_all_chapters(chapter_links, novel_content)
         
@@ -138,14 +146,14 @@ class CzbooksnetParser(BaseParser):
             current_novel_id = ''
         
         # 方法1: 首先尝试从章节列表区域提取（适用于JavaScript渲染后的内容）
-        chapter_list_match = re.search(r'<ul[^>]*class="nav chapter-list"[^>]*id="chapter-list"[^>]*>(.*?)</ul>', content, re.IGNORECASE | re.DOTALL)
+        chapter_list_match = re.search(r'<ul[^>]*class\s*=\s*"nav chapter-list"[^>]*id\s*=\s*"chapter-list"[^>]*>(.*?)</ul>', content, re.IGNORECASE | re.DOTALL)
         
         if chapter_list_match:
             chapter_list_content = chapter_list_match.group(1)
             
-            # czbooks.net特定的章节链接模式，只在章节列表区域内搜索
-            # <a href="//czbooks.net/n/cr9p0/crdic?chapterNumber=0">章节标题</a>
-            pattern = r'<a[^>]*href="//([^"\]+?chapterNumber=\d+)"[^>]*>([^<]+)</a>'
+            # czbooks.net新的章节链接模式，不在链接中包含chapterNumber
+            # <a href="//czbooks.net/n/umkof/umhp9">第1章 美女班長（修改完成）</a>
+            pattern = r'<a[^>]*href="//([^"\"]+/n/[^"\"]+/[^"\"]+)"[^>]*>([^<]+)</a>'
             matches = re.findall(pattern, chapter_list_content, re.IGNORECASE)
             
             for href, chapter_title in matches:
@@ -161,12 +169,12 @@ class CzbooksnetParser(BaseParser):
         
         # 方法2: 如果章节列表区域不存在，从整个页面提取并过滤（适用于静态HTML）
         if not chapter_links and current_novel_id:
-            # 查找所有包含chapterNumber的链接
-            pattern = r'href=["\']([^"\']*chapterNumber=\d+[^"\']*)["\']'
+            # 查找所有章节链接（新的格式）
+            pattern = r'href=["\']([^"\']*//[^"\']*/n/[^"\']+/[^"\']*)["\']'
             matches = re.findall(pattern, content, re.IGNORECASE)
             
             # 提取对应的标题
-            title_pattern = r'<a[^>]*href=["\'][^"\']*chapterNumber=\d+[^"\']*["\'][^>]*>([^<]+)</a>'
+            title_pattern = r'<a[^>]*href=["\'][^"\']*//[^"\']*/n/[^"\']+/[^"\']*["\'][^>]*>([^<]+)</a>'
             title_matches = re.findall(title_pattern, content, re.IGNORECASE)
             
             for i, href in enumerate(matches):
@@ -187,8 +195,8 @@ class CzbooksnetParser(BaseParser):
                             'title': chapter_title.strip()
                         })
         
-        # 按章节编号排序
-        chapter_links.sort(key=lambda x: self._extract_chapter_number(x['url']))
+        # 按章节编号排序，优先从标题中提取章节号
+        chapter_links.sort(key=lambda x: self._extract_chapter_number_from_title(x['title']))
         
         return chapter_links
     
@@ -215,6 +223,52 @@ class CzbooksnetParser(BaseParser):
         
         return False
     
+    def _extract_chapter_number_from_title(self, title: str) -> int:
+        """
+        从章节标题中提取章节编号
+        
+        Args:
+            title: 章节标题
+            
+        Returns:
+            章节编号
+        """
+        import re
+        
+        # 尝试从标题中提取章节编号
+        # 例如: 第1章 美女班長 -> 提取 1
+        # 或者: 第一章 美女班長 -> 提取 1
+        # 或者: 第3卷 第5章 标题 -> 提取 5
+        patterns = [
+            r'第(\d+)章',  # 第1章
+            r'第(\d+)节',  # 第1节
+            r'第(\d+)回',  # 第1回
+            r'第(\d+)卷\s*第(\d+)章',  # 第1卷第5章 -> 提取5
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, title)
+            if match:
+                # 对于"第x卷第y章"模式，我们想要y（章号）
+                groups = match.groups()
+                return int(groups[-1])  # 取最后一个匹配的数字
+        
+        # 如果标题中没有明确的章节号，尝试其他方法
+        # 例如: "1. 标题" 或 "01 标题"
+        general_patterns = [
+            r'^(\d+)\.',
+            r'^(\d+)\s',
+            r'chapter\s*(\d+)',
+        ]
+        
+        for pattern in general_patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+        
+        # 如果都找不到，返回一个大数，使其排在最后
+        return 99999
+    
     def _extract_chapter_number(self, url: str) -> int:
         """
         从URL中提取章节编号
@@ -226,28 +280,51 @@ class CzbooksnetParser(BaseParser):
             章节编号
         """
         import re
-        match = re.search(r'chapterNumber=(\d+)', url)
-        if match:
-            return int(match.group(1))
+        
+        # 新版本URL不再包含chapterNumber参数，尝试从路径中提取序号
+        # 例如: //czbooks.net/n/umkof/umhp9 -> 尝试提取最后的序号部分
+        
+        # 首先尝试从标题中提取章节编号
+        # 例如: 第1章 美女班長 -> 提取 1
+        if hasattr(self, '_current_chapter_links'):
+            for link_info in self._current_chapter_links:
+                if link_info.get('url') == url:
+                    title = link_info.get('title', '')
+                    return self._extract_chapter_number_from_title(title)
+        
+        # 如果无法从标题提取，尝试从URL路径中提取
+        # 有些URL可能包含序号，如 /umhp9 -> 9
+        path_part = url.split('/')[-1]
+        number_match = re.search(r'(\d+)', path_part)
+        if number_match:
+            return int(number_match.group(1))
+        
+        # 如果都找不到，返回0（会按列表顺序排序）
         return 0
     
-    def _get_url_content(self, url: str) -> str:
+    def _get_url_content(self, url: str, max_retries: int = 3) -> str:
         """
         获取页面内容，对于章节页面使用特殊处理
         
         Args:
             url: 页面URL
+            max_retries: 最大重试次数
             
         Returns:
             页面内容
         """
+        # 新版章节URL格式: //czbooks.net/n/{novel_id}/{chapter_id}
+        # 主页格式: //czbooks.net/n/{novel_id}
+        # 通过URL路径段数区分章节页面和主页
+        url_parts = url.split('/')
+        
         # 如果是章节页面，使用特殊处理
-        if 'chapterNumber=' in url:
+        if '/n/' in url and len(url_parts) >= 6:  # 至少有 http:,, czbooks.net, n, {novel_id}, {chapter_id}
             print(f"检测到章节页面，使用增强内容获取: {url}")
             return self._get_chapter_content_enhanced(url)
         
-        # 对于非章节页面，使用普通HTTP请求
-        return super()._get_url_content(url)
+        # 对于非章节页面（如主页），使用普通HTTP请求
+        return super()._get_url_content(url, max_retries)
     
     def _get_chapter_content_enhanced(self, url: str) -> str:
         """
@@ -307,7 +384,7 @@ class CzbooksnetParser(BaseParser):
                         return cleaned_content
             
             # 如果都找不到，返回明确的错误信息
-            return f"[无法找到章节内容]\n\n页面URL: {url}\n可能的原因:\n1. 网站结构发生变化\n2. 需要特殊的访问权限\n3. 内容被JavaScript动态加载"
+            return ""
     
     def _get_all_chapters(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:
         """
@@ -544,6 +621,8 @@ class CzbooksnetParser(BaseParser):
         
         # 移除多余的空白字符
         clean_text = re.sub(r'\s+', ' ', clean_text)
+
+        clean_text = re.sub(r'(快捷键←) [上一章][回目录] [下一章] (快捷键→)书签收藏 投推荐票 打开书架 返回书目 返回书页', '', clean_text)
         
         return clean_text.strip()
     
