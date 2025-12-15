@@ -4,6 +4,7 @@
 
 import os
 from typing import Dict, Any, Optional, List, ClassVar, Set
+from urllib.parse import unquote
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator
@@ -280,7 +281,8 @@ class CrawlerManagementScreen(Screen[None]):
                 Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
                 # 显示星级评分
                 Label(self._get_rating_display(self.novel_site.get('rating', 2)), id="rating-label", classes="rating-display"),
-                Label(f"{get_global_i18n().t('crawler.book_id_example')}: {self.novel_site.get('book_id_example', '')}", id="book-id-example-label"),
+                # 对书籍ID示例进行URL解码，避免显示乱码
+                Label(f"{get_global_i18n().t('crawler.book_id_example')}: {unquote(self.novel_site.get('book_id_example', ''))}", id="book-id-example-label"),
 
                 # 顶部操作按钮（固定）
                 Horizontal(
@@ -568,13 +570,18 @@ class CrawlerManagementScreen(Screen[None]):
         if not self._search_keyword:
             return history
         
-        keyword = self._search_keyword.lower()
+        # 对搜索关键词进行URL解码，以便能正确匹配
+        keyword = unquote(self._search_keyword).lower()
         filtered_history = []
         
         for item in history:
-            # 搜索小说标题、小说ID、状态
+            # 获取解码后的novel_id
+            item_novel_id = item.get('novel_id', '')
+            decoded_novel_id = unquote(item_novel_id) if item_novel_id else ''
+            
+            # 搜索小说标题、小说ID（解码后）、状态
             if (keyword in item.get('novel_title', '').lower() or 
-                keyword in item.get('novel_id', '').lower() or 
+                keyword in decoded_novel_id.lower() or 
                 keyword in item.get('status', '').lower()):
                 filtered_history.append(item)
         
@@ -609,10 +616,14 @@ class CrawlerManagementScreen(Screen[None]):
                 # 注意：selected_history 中存储的是字符串类型的ID，需要将item["id"]转换为字符串进行比较
                 is_selected = "✓" if str(item["id"]) in self.selected_history else ""
                 
+                # 对novel_id进行URL解码，避免显示乱码
+                novel_id = item.get("novel_id", "")
+                decoded_novel_id = unquote(novel_id) if novel_id else ""
+                
                 row_data = {
                     "selected": is_selected,
                     "sequence": str(i + 1),
-                    "novel_id": item["novel_id"],
+                    "novel_id": decoded_novel_id,
                     "novel_title": item["novel_title"],
                     "crawl_time": item["crawl_time"],
                     "status": item["status"],
@@ -1407,15 +1418,17 @@ class CrawlerManagementScreen(Screen[None]):
             def handle_selected_ids(result: Optional[str]) -> None:
                 if result:
                     try:
+                        # 对选择的ID进行URL解码
+                        decoded_result = unquote(result)
                         novel_id_input = self.query_one("#novel-id-input", Input)
                         current_value = novel_id_input.value.strip()
                         
                         if current_value:
                             # 如果输入框中已有内容，则在原有内容末尾添加逗号后再追加新内容
-                            new_value = f"{current_value},{result}"
+                            new_value = f"{current_value},{decoded_result}"
                         else:
                             # 如果输入框为空，则直接使用新内容
-                            new_value = result
+                            new_value = decoded_result
                         
                         novel_id_input.value = new_value
                         novel_id_input.focus()
@@ -1473,6 +1486,9 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 分割多个小说ID
         novel_ids = [id.strip() for id in novel_ids_input.split(',') if id.strip()]
+        
+        # 对每个书籍ID进行URL解码（如果是URL编码的话）
+        novel_ids = [unquote(id) for id in novel_ids]
         
         if not novel_ids:
             self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
@@ -1857,12 +1873,14 @@ class CrawlerManagementScreen(Screen[None]):
     def _remove_id_from_input(self, novel_id: str) -> None:
         """从输入框中移除指定的ID"""
         try:
+            # 对要移除的ID进行URL解码，确保能正确匹配
+            decoded_novel_id = unquote(novel_id)
             novel_id_input = self.query_one("#novel-id-input", Input)
             current_value = novel_id_input.value.strip()
             
-            # 分割并过滤掉指定的ID
-            ids = [id.strip() for id in current_value.split(',') if id.strip()]
-            filtered_ids = [id for id in ids if id != novel_id]
+            # 分割并对每个ID进行URL解码，然后过滤掉指定的ID
+            ids = [unquote(id.strip()) for id in current_value.split(',') if id.strip()]
+            filtered_ids = [id for id in ids if id != decoded_novel_id]
             
             # 重新组合并更新输入框
             if filtered_ids:

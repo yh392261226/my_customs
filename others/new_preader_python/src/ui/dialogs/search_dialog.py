@@ -2,7 +2,7 @@
 搜索对话框组件
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen

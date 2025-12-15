@@ -3,6 +3,7 @@
 """
 
 from typing import Dict, Any, Optional, List, ClassVar
+from urllib.parse import unquote
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Static, Button, Label, Input, Select, Checkbox, Header, Footer
@@ -310,6 +311,10 @@ class NovelSitesManagementScreen(Screen[None]):
             rating = site.get("rating", 2)
             rating_display = self._get_rating_display(rating)
             
+            # 对book_id_example进行URL解码，避免显示乱码
+            book_id_example = site.get("book_id_example", "")
+            decoded_book_id_example = unquote(book_id_example) if book_id_example else ""
+            
             row_data = {
                 "selected": selected,
                 "site_name": site["name"],
@@ -317,7 +322,7 @@ class NovelSitesManagementScreen(Screen[None]):
                 "rating": rating_display,
                 "proxy_enabled": proxy_status,
                 "parser": site["parser"],
-                "book_id_example": site.get("book_id_example", ""),
+                "book_id_example": decoded_book_id_example,
                 "_row_key": str(global_index),
                 "_global_index": global_index + 1
             }

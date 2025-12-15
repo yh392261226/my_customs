@@ -3,6 +3,7 @@
 """
 
 from typing import Dict, Any, Optional, List
+from urllib.parse import unquote
 from textual.screen import ModalScreen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Label, Input, Select, Switch
@@ -229,7 +230,10 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         
         # 书籍ID样例
         book_id_example_input = self.query_one("#book-id-example-input", Input)
-        book_id_example_input.value = self.novel_site.get("book_id_example", "")
+        book_id_example = self.novel_site.get("book_id_example", "")
+        # 对书籍ID样例进行URL解码，避免显示乱码
+        decoded_book_id_example = unquote(book_id_example) if book_id_example else ""
+        book_id_example_input.value = decoded_book_id_example
         
         # 解析器 - 使用解析器文件名作为值
         parser_select = self.query_one("#parser-select", Select)
