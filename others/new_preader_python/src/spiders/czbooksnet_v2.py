@@ -195,8 +195,8 @@ class CzbooksnetParser(BaseParser):
                             'title': chapter_title.strip()
                         })
         
-        # 按章节编号排序，优先从标题中提取章节号
-        chapter_links.sort(key=lambda x: self._extract_chapter_number_from_title(x['title']))
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
         
         return chapter_links
     
@@ -223,51 +223,7 @@ class CzbooksnetParser(BaseParser):
         
         return False
     
-    def _extract_chapter_number_from_title(self, title: str) -> int:
-        """
-        从章节标题中提取章节编号
-        
-        Args:
-            title: 章节标题
-            
-        Returns:
-            章节编号
-        """
-        import re
-        
-        # 尝试从标题中提取章节编号
-        # 例如: 第1章 美女班長 -> 提取 1
-        # 或者: 第一章 美女班長 -> 提取 1
-        # 或者: 第3卷 第5章 标题 -> 提取 5
-        patterns = [
-            r'第(\d+)章',  # 第1章
-            r'第(\d+)节',  # 第1节
-            r'第(\d+)回',  # 第1回
-            r'第(\d+)卷\s*第(\d+)章',  # 第1卷第5章 -> 提取5
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, title)
-            if match:
-                # 对于"第x卷第y章"模式，我们想要y（章号）
-                groups = match.groups()
-                return int(groups[-1])  # 取最后一个匹配的数字
-        
-        # 如果标题中没有明确的章节号，尝试其他方法
-        # 例如: "1. 标题" 或 "01 标题"
-        general_patterns = [
-            r'^(\d+)\.',
-            r'^(\d+)\s',
-            r'chapter\s*(\d+)',
-        ]
-        
-        for pattern in general_patterns:
-            match = re.search(pattern, title, re.IGNORECASE)
-            if match:
-                return int(match.group(1))
-        
-        # 如果都找不到，返回一个大数，使其排在最后
-        return 99999
+
     
     def _extract_chapter_number(self, url: str) -> int:
         """

@@ -159,6 +159,9 @@ class Book18Parser(BaseParser):
                     'title': chapter_title
                 })
         
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
+
         return chapter_links
     
     def _get_all_chapters(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:

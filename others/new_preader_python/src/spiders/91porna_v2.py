@@ -98,6 +98,10 @@ class Porna91Parser(BaseParser):
             'chapters': []
         }
         
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
+
+        
         # 抓取所有章节内容
         self._get_all_chapters(chapter_links, novel_content)
         

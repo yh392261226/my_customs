@@ -240,6 +240,9 @@ class XchinaParser(BaseParser):
                     'title': title.strip()
                 })
         
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
+
         return chapter_links
     
     def _extract_fiction_overview_chapters_content(self, content: str) -> str:

@@ -214,6 +214,9 @@ class JisgeParser(BaseParser):
                 })
         
         logger.info(f"从页面提取到 {len(chapter_links)} 个章节")
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
+
         return chapter_links
     
     def _get_all_chapters(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:

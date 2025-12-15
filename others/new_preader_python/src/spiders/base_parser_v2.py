@@ -659,6 +659,73 @@ class BaseParser:
             }]
         }
     
+    def _extract_chapter_number_from_title(self, title: str) -> int:
+        """
+        从章节标题中提取章节编号
+        
+        Args:
+            title: 章节标题
+            
+        Returns:
+            章节编号
+        """
+        # 尝试从标题中提取章节编号
+        # 例如: 第1章 美女班長 -> 提取 1
+        # 或者: 第一章 美女班長 -> 提取 1
+        # 或者: 第3卷 第5章 标题 -> 提取 5
+        patterns = [
+            r'第(\d+)章',  # 第1章
+            r'第(\d+)节',  # 第1节
+            r'第(\d+)回',  # 第1回
+            r'第(\d+)卷\s*第(\d+)章',  # 第1卷第5章 -> 提取5
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, title)
+            if match:
+                # 对于"第x卷第y章"模式，我们想要y（章号）
+                groups = match.groups()
+                return int(groups[-1])  # 取最后一个匹配的数字
+        
+        # 如果标题中没有明确的章节号，尝试其他方法
+        # 例如: "1. 标题" 或 "01 标题"
+        general_patterns = [
+            r'^(\d+)\.',
+            r'^(\d+)\s',
+            r'chapter\s*(\d+)',
+        ]
+        
+        for pattern in general_patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                return int(match.group(1))
+        
+        # 检查特殊章节格式
+        # 序章、楔子、前言等通常排在最前面
+        special_patterns = [
+            (r'序章|序言|引言', 1),
+            (r'楔子', 2),
+            (r'前言|引子', 3),
+            (r'后记|尾声', 99997),
+            (r'番外|外传', 99998),
+        ]
+        
+        for pattern, default_num in special_patterns:
+            if re.search(pattern, title, re.IGNORECASE):
+                return default_num
+        
+        # 如果都找不到，返回一个大数，使其排在最后
+        return 99999
+    
+    def _sort_chapters_by_number(self, chapter_links: List[Dict[str, str]]) -> None:
+        """
+        按章节编号对章节链接列表进行排序
+        
+        Args:
+            chapter_links: 章节链接列表，会被原地排序
+        """
+        chapter_links.sort(key=lambda x: self._extract_chapter_number_from_title(x.get('title', '')))
+    
     def _parse_multichapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
         """解析多章节小说"""
         # 子类必须实现多章节解析逻辑

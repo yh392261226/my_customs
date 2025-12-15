@@ -384,6 +384,9 @@ class RenqixiaoshuoParser(BaseParser):
                 full_url = f"{self.base_url}{chapter_url}"
                 chapter_links.append(full_url)
         
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
+
         return chapter_links
     
     def _extract_chapter_title(self, content: str, current_url: str) -> str:

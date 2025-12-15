@@ -177,6 +177,8 @@ class AlhsXyzV2Parser(BaseParser):
                 
                 if chapters:
                     logger.info(f"成功提取到 {len(chapters)} 个章节")
+                    # 使用基类方法按章节编号排序
+                    self._sort_chapters_by_number(chapters)
                 else:
                     logger.info("章节列表存在但未找到有效章节项")
                 return chapters

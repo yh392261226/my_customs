@@ -241,6 +241,10 @@ class AabookParser(BaseParser):
                 })
         
         logger.info(f"从章节列表页面提取到 {len(chapter_links)} 个章节")
+        
+        # 使用基类方法按章节编号排序
+        self._sort_chapters_by_number(chapter_links)
+        
         return chapter_links
     
     def _extract_chapter_id_from_url(self, url: str) -> Optional[str]:
