@@ -51,10 +51,10 @@ class ShiYiMngParser(BaseParser):
     ]
     
     content_reg = [
-        r'<div\s+id="content">([\s\S]*?)</div>',  # 内容区域正则
-        r'<div\s+class="content">([\s\S]*?)</div>',  # 备用内容正则
-        r'<div[^>]*class="[^"]*article-content[^"]*"[^>]*>([\s\S]*?)</div>',  # 文章内容正则
-        r'<div[^>]*id="[^"]*content[^"]*"[^>]*>([\s\S]*?)</div>',  # 通用内容正则
+        r'<div\s+id="content">([\s\S]*)</div>',  # 内容区域正则（贪婪匹配）
+        r'<div\s+class="content">([\s\S]*)</div>',  # 备用内容正则（贪婪匹配）
+        r'<div[^>]*class="[^"]*article-content[^"]*"[^>]*>([\s\S]*)</div>',  # 文章内容正则（贪婪匹配）
+        r'<div[^>]*id="[^"]*content[^"]*"[^>]*>([\s\S]*)</div>',  # 通用内容正则（贪婪匹配）
     ]
     
     status_reg = [
@@ -236,12 +236,8 @@ class ShiYiMngParser(BaseParser):
         Returns:
             小说内容字典
         """
-        # 提取内容
-        chapter_content = self._extract_with_regex(content, self.content_reg)
-        
-        if not chapter_content:
-            # 如果标准正则失败，尝试备用方法
-            chapter_content = self._fallback_extract_content(content)
+        # 使用智能内容提取方法
+        chapter_content = self._smart_extract_content(content)
         
         if not chapter_content:
             raise Exception("无法提取小说内容")
@@ -262,9 +258,9 @@ class ShiYiMngParser(BaseParser):
             }]
         }
     
-    def _fallback_extract_content(self, content: str) -> str:
+    def _smart_extract_content(self, content: str) -> str:
         """
-        备用内容提取方法，当标准正则失败时使用
+        智能内容提取方法，处理嵌套标签问题
         
         Args:
             content: 页面内容
@@ -272,21 +268,138 @@ class ShiYiMngParser(BaseParser):
         Returns:
             提取的内容
         """
-        # 尝试查找包含内容的div
-        patterns = [
-            r'<div[^>]*>(.*?)</div>',
-            r'<p[^>]*>(.*?)</p>',
-            r'<article[^>]*>(.*?)</article>',
-            r'<section[^>]*>(.*?)</section>'
+        # 首先尝试标准正则
+        chapter_content = self._extract_with_regex(content, self.content_reg)
+        if chapter_content:
+            return chapter_content
+        
+        # 如果标准正则失败，使用更可靠的方法
+        return self._fallback_extract_content(content)
+    
+    def _fallback_extract_content(self, content: str) -> str:
+        """
+        备用内容提取方法，使用更可靠的方法处理嵌套标签
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的内容
+        """
+        # 方法1: 使用平衡括号匹配算法
+        result = self._extract_balanced_content(content)
+        if result:
+            return result
+        
+        # 方法2: 查找最长的文本块
+        result = self._find_longest_text_block(content)
+        if result:
+            return result
+        
+        # 方法3: 尝试查找包含中文内容的区域
+        result = self._find_chinese_content(content)
+        if result:
+            return result
+        
+        return ""
+    
+    def _extract_balanced_content(self, content: str) -> str:
+        """
+        使用平衡括号匹配算法提取内容
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的内容
+        """
+        # 查找可能的内容容器标签
+        container_patterns = [
+            r'<div[^>]*id="content"[^>]*>',
+            r'<div[^>]*class="content"[^>]*>',
+            r'<div[^>]*class="[^"]*article-content[^"]*"[^>]*>',
+            r'<article[^>]*>',
+            r'<section[^>]*>'
         ]
         
-        for pattern in patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE | re.DOTALL)
-            for match in matches:
-                # 检查内容长度是否合理
-                text_only = re.sub(r'<[^>]+>', '', match)
-                if len(text_only.strip()) > 100:  # 假设有效内容至少100字符
-                    return match
+        for pattern in container_patterns:
+            start_match = re.search(pattern, content, re.IGNORECASE)
+            if start_match:
+                start_pos = start_match.end()
+                container_tag = re.search(r'<(\w+)', pattern).group(1)
+                
+                # 使用平衡匹配算法找到对应的结束标签
+                stack = 1
+                pos = start_pos
+                
+                while stack > 0 and pos < len(content):
+                    # 查找下一个开始或结束标签
+                    tag_match = re.search(r'</?\w+[^>]*>', content[pos:])
+                    if not tag_match:
+                        break
+                    
+                    tag = tag_match.group(0)
+                    tag_pos = pos + tag_match.start()
+                    
+                    # 检查是否是相同类型的标签
+                    if re.match(r'<\s*/?\s*' + container_tag + r'\b', tag, re.IGNORECASE):
+                        if tag.startswith('</'):
+                            stack -= 1
+                        else:
+                            stack += 1
+                    
+                    pos = tag_pos + len(tag)
+                    
+                    if stack == 0:
+                        # 找到匹配的结束标签
+                        return content[start_pos:tag_pos]
+        
+        return ""
+    
+    def _find_longest_text_block(self, content: str) -> str:
+        """
+        查找最长的文本块
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            最长的文本块
+        """
+        # 移除脚本和样式
+        cleaned = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(r'<style[^>]*>.*?</style>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
+        
+        # 查找所有可能的内容块
+        blocks = re.findall(r'>([^><]{100,})<', cleaned)
+        
+        if blocks:
+            # 返回最长的块
+            return max(blocks, key=len)
+        
+        return ""
+    
+    def _find_chinese_content(self, content: str) -> str:
+        """
+        查找包含中文内容的区域
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            包含中文的内容
+        """
+        # 查找包含连续中文文本的区域
+        chinese_pattern = r'[\u4e00-\u9fff]{10,}'
+        
+        # 查找包含中文的标签块
+        matches = re.findall(r'<[^>]*>([^<]*' + chinese_pattern + r'[^<]*)</[^>]*>', content)
+        
+        if matches:
+            # 合并所有匹配的内容
+            combined = ' '.join(matches)
+            if len(combined) > 100:
+                return combined
         
         return ""
 

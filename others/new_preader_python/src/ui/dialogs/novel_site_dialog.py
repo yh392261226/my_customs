@@ -240,7 +240,9 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             parser_value = ""
         
         # 设置解析器值，空字符串使用clear()方法
-        if parser_value:
+        # 先检查值是否在可用选项中，避免无效值导致崩溃
+        available_options = [option[0] for option in get_parser_options()]
+        if parser_value and parser_value in available_options:
             parser_select.value = parser_value
         else:
             parser_select.clear()  # 清除选择

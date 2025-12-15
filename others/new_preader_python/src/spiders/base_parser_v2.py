@@ -125,8 +125,10 @@ class BaseParser:
                         logger.warning(f"检测到高级反爬虫机制，尝试使用 Playwright: {url}")
                         return self._get_url_content_with_playwright(url, proxies)
                     
-                    response.encoding = 'utf-8'
-                    return content
+                    # 优先使用子类指定的编码，如果没有则使用utf-8
+                    encoding = getattr(self, 'encoding', 'utf-8')
+                    response.encoding = encoding
+                    return response.text
                     
                 elif response.status_code == 404:
                     logger.warning(f"页面不存在: {url}")
@@ -700,15 +702,35 @@ class BaseParser:
             # 写入标题
             f.write(f"# {title}\n\n")
             
-            # 写入章节内容
+            # 检查小说类型并写入相应内容
+            # 1. 多章节小说（包含chapters字段）
             chapters = novel_content.get('chapters', [])
-            for chapter in chapters:
-                chapter_title = chapter.get('title', '未知章节')
-                chapter_content = chapter.get('content', '')
-                
-                f.write(f"## {chapter_title}\n\n")
-                f.write(chapter_content)
+            if chapters:
+                for chapter in chapters:
+                    chapter_title = chapter.get('title', '未知章节')
+                    chapter_content = chapter.get('content', '')
+                    
+                    f.write(f"## {chapter_title}\n\n")
+                    f.write(chapter_content)
+                    f.write("\n\n")
+            
+            # 2. 短篇小说（包含total_content字段）
+            elif 'total_content' in novel_content and novel_content['total_content']:
+                total_content = novel_content['total_content']
+                f.write(f"## {title}\n\n")
+                f.write(total_content)
                 f.write("\n\n")
+            
+            # 3. 单页内容（直接使用content字段）
+            elif 'content' in novel_content and novel_content['content']:
+                content = novel_content['content']
+                f.write(f"## {title}\n\n")
+                f.write(content)
+                f.write("\n\n")
+            
+            # 4. 如果都没有内容，记录警告
+            else:
+                logger.warning(f"小说内容为空，仅保存标题: {title}")
         
         logger.info(f"小说已保存到: {file_path}")
         return file_path
