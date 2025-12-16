@@ -2436,7 +2436,8 @@ class DatabaseManager:
 
     def update_crawl_history_status(self, site_id: int, novel_id: str, status: str, 
                                    file_path: Optional[str] = None, 
-                                   novel_title: Optional[str] = None) -> bool:
+                                   novel_title: Optional[str] = None,
+                                   error_message: Optional[str] = None) -> bool:
         """
         更新爬取历史记录的状态和文件路径
         
@@ -2446,6 +2447,7 @@ class DatabaseManager:
             status: 状态（success/failed）
             file_path: 文件路径（可选）
             novel_title: 小说标题（可选）
+            error_message: 错误信息（可选）
             
         Returns:
             bool: 更新是否成功
@@ -2465,6 +2467,10 @@ class DatabaseManager:
                 if novel_title:
                     update_fields.append("novel_title = ?")
                     update_values.append(novel_title)
+                
+                if error_message is not None:
+                    update_fields.append("error_message = ?")
+                    update_values.append(error_message)
                 
                 # 添加更新时间
                 update_fields.append("crawl_time = ?")

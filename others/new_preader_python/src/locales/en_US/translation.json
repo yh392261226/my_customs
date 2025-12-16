@@ -1120,7 +1120,8 @@
         "multi_delete_record_success2": "Multi delete records success {deletes}",
         "multi_delete_record_failed": "Multi delete records failed, Error: {fails}",
         "confirm_record_title": "Multi delete records （{counts}）",
-        "confirm_record_desc": "Confirm to delete the selected {counts} records？This operation will not delete the real file ."
+        "confirm_record_desc": "Confirm to delete the selected {counts} records？This operation will not delete the real file .",
+        "ready": "Ready"
     },
     "note": {
         "save": "Save",

@@ -1120,7 +1120,8 @@
         "multi_delete_record_success2": "批量删除记录完成：成功删除 {deletes} 个记录",
         "multi_delete_record_failed": "批量删除记录失败, 错误: {fails}",
         "confirm_record_title": "批量删除记录（{counts} 个）",
-        "confirm_record_desc": "确认要删除选中的 {counts} 个数据库记录吗？此操作不会删除实际文件。"
+        "confirm_record_desc": "确认要删除选中的 {counts} 个数据库记录吗？此操作不会删除实际文件。",
+        "ready": "准备就绪"
     },
     "note": {
         "save": "保存",

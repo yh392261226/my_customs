@@ -3,6 +3,7 @@
 """
 
 import os
+import glob
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
 from textual.screen import Screen
@@ -2021,13 +2022,81 @@ class CrawlerManagementScreen(Screen[None]):
             Dict[str, Any]: 解析结果
         """
         import asyncio
+        import aiohttp
         
         try:
             # 使用异步方式执行网络请求
             await asyncio.sleep(0.5)  # 添加小延迟避免同时请求过多
             
-            # 解析小说详情
-            novel_content = parser.parse_novel_detail(novel_id)
+            # 异步获取小说内容
+            novel_url = parser.get_novel_url(novel_id)
+            
+            # 准备代理配置
+            proxies = None
+            if parser.proxy_config.get('enabled', False):
+                proxy_url = parser.proxy_config.get('proxy_url', '')
+                if proxy_url:
+                    proxies = proxy_url
+            
+            # 使用aiohttp进行异步请求
+            async with aiohttp.ClientSession(headers=parser.session.headers) as session:
+                try:
+                    # 设置超时时间
+                    timeout = aiohttp.ClientTimeout(total=60, connect=15)
+                    
+                    # 发送异步请求
+                    async with session.get(novel_url, proxy=proxies, timeout=timeout) as response:
+                        if response.status == 200:
+                            # 读取内容
+                            content = await response.text()
+                            
+                            # 检测并处理高级反爬虫机制
+                            if self._detect_advanced_anti_bot(content):
+                                logger.warning(f"检测到高级反爬虫机制，回退到同步方法: {novel_url}")
+                                # 如果检测到高级反爬虫，回退到同步方法
+                                content = parser._get_url_content(novel_url)
+                                if not content:
+                                    return {
+                                        'success': False,
+                                        'error_message': f"无法获取小说页面: {novel_url}"
+                                    }
+                        else:
+                            logger.warning(f"HTTP {response.status} 获取失败，回退到同步方法: {novel_url}")
+                            # 如果异步请求失败，回退到同步方法
+                            content = parser._get_url_content(novel_url)
+                            if not content:
+                                return {
+                                    'success': False,
+                                    'error_message': f"无法获取小说页面: {novel_url}"
+                                }
+                except Exception as async_error:
+                    logger.warning(f"异步请求失败，回退到同步方法: {async_error}")
+                    # 如果异步请求失败，回退到同步方法
+                    content = parser._get_url_content(novel_url)
+                    if not content:
+                        return {
+                            'success': False,
+                            'error_message': f"无法获取小说页面: {novel_url}"
+                        }
+            
+            # 自动检测书籍类型
+            book_type = parser._detect_book_type(content)
+            
+            # 提取标题
+            title = parser._extract_with_regex(content, parser.title_reg)
+            if not title:
+                return {
+                    'success': False,
+                    'error_message': "无法提取小说标题"
+                }
+            
+            # 根据书籍类型选择处理方式
+            if book_type == "多章节":
+                novel_content = parser._parse_multichapter_novel(content, novel_url, title)
+            elif book_type == "内容页内分页":
+                novel_content = parser._parse_content_pagination_novel(content, novel_url, title)
+            else:
+                novel_content = parser._parse_single_chapter_novel(content, novel_url, title)
             
             # 获取存储文件夹
             storage_folder = self.novel_site.get('storage_folder', 'novels')
@@ -2050,11 +2119,38 @@ class CrawlerManagementScreen(Screen[None]):
             }
             
         except Exception as e:
-            logger.error(f"解析小说详情失败: {e}")
+            logger.error(f"异步解析小说详情失败: {e}")
             return {
                 'success': False,
                 'error_message': str(e)
             }
+    
+    def _detect_advanced_anti_bot(self, content: str) -> bool:
+        """
+        检测是否存在高级反爬虫机制（如 Cloudflare Turnstile）
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            是否存在高级反爬虫机制
+        """
+        try:
+            import re
+            turnstile_patterns = [
+                r'challenges\.cloudflare\.com',
+                r'cf-turnstile',
+                r'data-sitekey',
+                r'turnstile\.cloudflare\.com'
+            ]
+            
+            for pattern in turnstile_patterns:
+                if re.search(pattern, content, re.IGNORECASE):
+                    return True
+            
+            return False
+        except Exception:
+            return False
     
     def on_unmount(self) -> None:
         """屏幕卸载时的回调"""
@@ -2071,12 +2167,65 @@ class CrawlerManagementScreen(Screen[None]):
         """查看文件"""
         try:
             file_path = history_item.get('file_path')
+            
+            # 如果文件路径为空或为"already_exists"，尝试从数据库中重新获取
+            if not file_path or file_path == 'already_exists':
+                site_id = self.novel_site.get('id')
+                novel_id = history_item.get('novel_id')
+                if site_id and novel_id:
+                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    if crawl_history:
+                        # 获取最新的成功记录
+                        for record in crawl_history:
+                            if record.get('status') == 'success' and record.get('file_path') and record.get('file_path') != 'already_exists':
+                                file_path = record.get('file_path')
+                                # 更新内存中的记录
+                                history_item['file_path'] = file_path
+                                break
+            
             if not file_path:
                 self._update_status(get_global_i18n().t('crawler.no_file_path'))
                 return
                 
-            import os
+            # 如果文件路径仍然是"already_exists"，尝试查找实际文件
+            if file_path == 'already_exists':
+                # 尝试根据小说标题查找文件
+                novel_title = history_item.get('novel_title', '')
+                storage_folder = self.novel_site.get('storage_folder', 'novels')
+                
+                # 查找可能的文件
+                storage_folder = os.path.expanduser(storage_folder)
+                possible_files = glob.glob(os.path.join(storage_folder, f"*{novel_title}*"))
+                if possible_files:
+                    file_path = possible_files[0]  # 使用第一个匹配的文件
+                    # 更新内存中的记录
+                    history_item['file_path'] = file_path
+                else:
+                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}（标记为已存在，但找不到实际文件）")
+                    return
+            
             if not os.path.exists(file_path):
+                # 尝试更新数据库记录状态为失败
+                site_id = self.novel_site.get('id')
+                novel_id = history_item.get('novel_id')
+                if site_id and novel_id:
+                    # 查找并更新记录
+                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    for record in crawl_history:
+                        if record.get('file_path') == file_path:
+                            # 更新状态为文件不存在
+                            self.db_manager.update_crawl_history_status(
+                                site_id=site_id,
+                                novel_id=novel_id,
+                                status='failed',
+                                file_path=file_path,
+                                novel_title=history_item.get('novel_title', ''),
+                                error_message='文件不存在'
+                            )
+                            # 重新加载历史记录
+                            self._load_crawl_history()
+                            break
+                
                 self._update_status(get_global_i18n().t('crawler.file_not_exists'))
                 return
                 
@@ -2302,12 +2451,65 @@ class CrawlerManagementScreen(Screen[None]):
         """阅读书籍"""
         try:
             file_path = history_item.get('file_path')
+            
+            # 如果文件路径为空或为"already_exists"，尝试从数据库中重新获取
+            if not file_path or file_path == 'already_exists':
+                site_id = self.novel_site.get('id')
+                novel_id = history_item.get('novel_id')
+                if site_id and novel_id:
+                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    if crawl_history:
+                        # 获取最新的成功记录
+                        for record in crawl_history:
+                            if record.get('status') == 'success' and record.get('file_path') and record.get('file_path') != 'already_exists':
+                                file_path = record.get('file_path')
+                                # 更新内存中的记录
+                                history_item['file_path'] = file_path
+                                break
+            
             if not file_path:
                 self._update_status(get_global_i18n().t('crawler.no_file_path'))
                 return
                 
-            import os
+            # 如果文件路径仍然是"already_exists"，尝试查找实际文件
+            if file_path == 'already_exists':
+                # 尝试根据小说标题查找文件
+                novel_title = history_item.get('novel_title', '')
+                storage_folder = self.novel_site.get('storage_folder', 'novels')
+                
+                # 查找可能的文件
+                storage_folder = os.path.expanduser(storage_folder)
+                possible_files = glob.glob(os.path.join(storage_folder, f"*{novel_title}*"))
+                if possible_files:
+                    file_path = possible_files[0]  # 使用第一个匹配的文件
+                    # 更新内存中的记录
+                    history_item['file_path'] = file_path
+                else:
+                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}（标记为已存在，但找不到实际文件）")
+                    return
+            
             if not os.path.exists(file_path):
+                # 尝试更新数据库记录状态为失败
+                site_id = self.novel_site.get('id')
+                novel_id = history_item.get('novel_id')
+                if site_id and novel_id:
+                    # 查找并更新记录
+                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    for record in crawl_history:
+                        if record.get('file_path') == file_path:
+                            # 更新状态为文件不存在
+                            self.db_manager.update_crawl_history_status(
+                                site_id=site_id,
+                                novel_id=novel_id,
+                                status='failed',
+                                file_path=file_path,
+                                novel_title=history_item.get('novel_title', ''),
+                                error_message='文件不存在'
+                            )
+                            # 重新加载历史记录
+                            self._load_crawl_history()
+                            break
+                
                 self._update_status(get_global_i18n().t('crawler.file_not_exists'))
                 return
             
@@ -2408,27 +2610,39 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 解析小说详情
             novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
-            novel_title = novel_content['title']
             
-            # 获取存储文件夹
-            storage_folder = self.novel_site.get('storage_folder', 'novels')
-            # 展开路径中的 ~ 符号
-            storage_folder = os.path.expanduser(storage_folder)
+            # 检查解析是否成功
+            if not novel_content.get('success', False):
+                # 解析失败，更新数据库记录
+                site_id = self.novel_site.get('id')
+                if site_id:
+                    self.db_manager.update_crawl_history_status(
+                        site_id=site_id,
+                        novel_id=novel_id,
+                        status='failed',
+                        novel_title=history_item.get('novel_title', ''),
+                        error_message=novel_content.get('error_message', '解析失败')
+                    )
+                
+                # 更新内存中的历史记录
+                for i, item in enumerate(self.crawler_history):
+                    if item.get('novel_id') == novel_id and item.get('status') == get_global_i18n().t('crawler.status_failed'):
+                        self.crawler_history[i] = {
+                            "novel_id": novel_id,
+                            "novel_title": history_item.get('novel_title', ''),
+                            "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                            "status": get_global_i18n().t('crawler.status_failed'),
+                            "error_message": novel_content.get('error_message', '解析失败')
+                        }
+                        break
+                
+                # 更新状态
+                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {novel_content.get('error_message', '解析失败')}", "error")
+                return
             
-            # 保存小说到文件
-            file_path = parser_instance.save_to_file(novel_content, storage_folder)
-            
-            # 更新数据库记录（将失败记录更新为成功）
-            site_id = self.novel_site.get('id')
-            if site_id:
-                # 更新爬取历史记录
-                self.db_manager.update_crawl_history_status(
-                    site_id=site_id,
-                    novel_id=novel_id,
-                    status='success',
-                    file_path=file_path,
-                    novel_title=novel_title
-                )
+            # 解析成功，获取标题
+            novel_title = novel_content.get('title', history_item.get('novel_title', ''))
+            file_path = novel_content.get('file_path', '')
             
             # 更新内存中的历史记录
             for i, item in enumerate(self.crawler_history):
