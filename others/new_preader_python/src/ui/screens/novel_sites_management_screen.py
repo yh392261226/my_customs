@@ -292,6 +292,9 @@ class NovelSitesManagementScreen(Screen[None]):
         """更新数据表显示（使用虚拟滚动和分页）"""
         table = self.query_one("#novel-sites-table", DataTable)
         
+        # 保存当前光标位置
+        current_cursor_row = table.cursor_row
+        
         # 计算分页
         self._total_pages = max(1, (len(self.novel_sites) + self._sites_per_page - 1) // self._sites_per_page)
         self._current_page = min(self._current_page, self._total_pages)
@@ -345,6 +348,25 @@ class NovelSitesManagementScreen(Screen[None]):
         # 更新分页信息
         self._update_pagination_info()
         self._update_pagination_buttons()
+        
+        # 恢复光标位置，确保光标不会跳回第一行
+        if current_cursor_row is not None and current_cursor_row >= 0:
+            # 确保光标位置在有效范围内
+            if current_cursor_row < min(self._sites_per_page, len(self.novel_sites) - start_index):
+                if hasattr(table, 'move_cursor'):
+                    table.move_cursor(row=current_cursor_row)
+                # 如果move_cursor不存在，使用键盘操作来移动光标
+                else:
+                    # 将光标移动到正确位置
+                    # 先将光标移动到第一行
+                    while table.cursor_row > 0:
+                        table.action_cursor_up()
+                    # 然后向下移动到目标位置
+                    for _ in range(current_cursor_row):
+                        table.action_cursor_down()
+        
+        # 确保表格获得焦点
+        table.focus()
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""
@@ -875,7 +897,7 @@ class NovelSitesManagementScreen(Screen[None]):
         """空格键 - 选中或取消选中当前行"""
         # 直接处理空格键，不依赖BINDINGS系统
         table = self.query_one("#novel-sites-table", DataTable)
-
+        
         # 获取当前光标位置
         current_row_index = None
         
@@ -907,26 +929,26 @@ class NovelSitesManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
             return
         
-        # 获取当前行的历史记录项
-        history_item = self.novel_sites[start_index + current_row_index]
-        if not history_item:
+        # 获取当前行的网站项
+        site_item = self.novel_sites[start_index + current_row_index]
+        if not site_item:
             return
         
-        # 获取记录ID
-        record_id = str(history_item["id"])
+        # 获取全局索引（与selected_sites中存储的索引类型一致）
+        global_index = start_index + current_row_index
         
         # 切换选中状态
-        if record_id in self.selected_sites:
-            self.selected_sites.remove(record_id)
+        if global_index in self.selected_sites:
+            self.selected_sites.remove(global_index)
         else:
-            self.selected_sites.add(record_id)
+            self.selected_sites.add(global_index)
         
         # 更新表格显示
         self._update_table()
         
         # 更新状态显示
         selected_count = len(self.selected_sites)
-        self._update_status(get_global_i18n().t('novel_sites.already_selected', count=selected_count), "information")
+        self._update_status(get_global_i18n().t('novel_sites.already_selected', counts=selected_count), "information")
         
         # 确保表格保持焦点
         try:
