@@ -541,18 +541,138 @@ class HaijBookxParser(BaseParser):
         """
         try:
             import cloudscraper
+            import urllib3
+            
+            # 禁用SSL警告
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
             # 创建cloudscraper会话
-            scraper = cloudscraper.create_scraper(
-                browser={
-                    'browser': 'chrome',
-                    'platform': 'windows',
-                    'mobile': False
-                },
-                delay=2
-            )
-            # 禁用SSL验证
+            try:
+                # 先创建一个自定义的requests会话，配置好SSL
+                import requests
+                import ssl
+                from requests.adapters import HTTPAdapter
+                
+                custom_session = requests.Session()
+                
+                # 创建不验证的SSL上下文
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                # 创建自定义适配器，使用我们的SSL上下文
+                class SSLAdapter(HTTPAdapter):
+                    def init_poolmanager(self, *args, **kwargs):
+                        kwargs['ssl_context'] = ssl_context
+                        return super().init_poolmanager(*args, **kwargs)
+                
+                # 应用自定义适配器
+                custom_session.mount('https://', SSLAdapter())
+                custom_session.verify = False
+                
+                # 使用自定义会话创建cloudscraper
+                scraper = cloudscraper.create_scraper(
+                    browser={
+                        'browser': 'chrome',
+                        'platform': 'windows',
+                        'mobile': False
+                    },
+                    delay=2,
+                    sess=custom_session  # 使用预配置的会话
+                )
+                
+                # 设置SSL验证 - 先禁用check_hostname再设置verify
+                try:
+                    # 尝试在scraper对象上设置verify属性
+                    scraper.verify = False
+                    
+                    # 如果有session，需要同时禁用check_hostname
+                    if hasattr(scraper, 'session'):
+                        session = getattr(scraper, 'session')
+                        # 先禁用check_hostname
+                        try:
+                            if hasattr(session, 'check_hostname'):
+                                session.check_hostname = False
+                        except Exception as hostname_error:
+                            logger.debug(f"无法禁用check_hostname: {hostname_error}")
+                        
+                        # 尝试在底层SSL上下文中设置
+                        try:
+                            if hasattr(session, 'ssl_context'):
+                                import ssl
+                                session.ssl_context.check_hostname = False
+                                session.ssl_context.verify_mode = ssl.CERT_NONE
+                        except Exception as ssl_context_error:
+                            logger.debug(f"无法设置SSL上下文: {ssl_context_error}")
+                        
+                        # 尝试在底层requests会话上设置
+                        try:
+                            if hasattr(session, 'requests'):
+                                requests_obj = getattr(session, 'requests')
+                                if hasattr(requests_obj, 'check_hostname'):
+                                    requests_obj.check_hostname = False
+                                if hasattr(requests_obj, 'verify'):
+                                    requests_obj.verify = False
+                        except Exception as requests_error:
+                            logger.debug(f"无法在底层requests会话上设置SSL验证: {requests_error}")
+                            
+                except Exception as verify_error:
+                    logger.debug(f"无法设置SSL验证: {verify_error}")
+                    # 尝试备用方法：使用urllib3 PoolManager
+                    try:
+                        import urllib3
+                        import ssl
+                        from urllib3.util import SSLContext as Urllib3SSLContext
+                        
+                        # 创建自定义SSL上下文
+                        ssl_context = Urllib3SSLContext()
+                        ssl_context.check_hostname = False
+                        ssl_context.verify_mode = ssl.CERT_NONE
+                        
+                        # 尝试在scraper的session上设置
+                        if hasattr(scraper, 'session'):
+                            session = getattr(scraper, 'session')
+                            if hasattr(session, 'mount'):
+                                # 创建自定义PoolManager
+                                https_pool = urllib3.PoolManager(
+                                    ssl_context=ssl_context,
+                                    timeout=urllib3.Timeout(connect=10, read=30)
+                                )
+                                session.mount('https://', https_pool)
+                    except Exception as pool_error:
+                        logger.debug(f"无法创建自定义PoolManager: {pool_error}")
+                
+        except Exception as e:
+            logger.warning(f"cloudscraper创建失败，使用requests: {e}")
+            import requests
+            import ssl
+            import urllib3
+            from requests.adapters import HTTPAdapter
+            
+            # 禁用SSL警告
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            scraper = requests.Session()
+            
+            # 设置SSL验证 - 确保正确禁用验证
             scraper.verify = False
+            
+            # 也需要禁用check_hostname
+            try:
+                # 创建一个不验证的SSL上下文
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                # 应用到requests会话
+                scraper.mount('https://', HTTPAdapter(
+                    max_retries=urllib3.Retry(total=3, backoff_factor=0.1),
+                    pool_connections=10,
+                    pool_maxsize=10
+                ))
+                
+            except Exception as ssl_error:
+                logger.debug(f"无法设置SSL上下文: {ssl_error}")
             
             # 设置请求头，适配GBK编码
             scraper.headers.update({

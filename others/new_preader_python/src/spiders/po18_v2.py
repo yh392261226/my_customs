@@ -224,6 +224,9 @@ class Po18Parser(BaseParser):
         if not content_page:
             raise Exception("无法获取内容页面")
         
+        # 从内容页面提取章节标题
+        chapter_title = self._extract_chapter_title(content_page)
+        
         # 从内容页面提取小说内容
         extracted_content = self._extract_with_regex(content_page, self.content_reg)
         
@@ -237,6 +240,12 @@ class Po18Parser(BaseParser):
         # 执行爬取后处理函数
         processed_content = self._execute_after_crawler_funcs(extracted_content)
         
+        # 处理章节标题，确保不使用"第1页"这样的标题
+        final_chapter_title = chapter_title if chapter_title else title
+        # 如果提取的标题是"第1页"或类似页码标记，则使用小说标题
+        if final_chapter_title and re.search(r'第\d+页', final_chapter_title):
+            final_chapter_title = title
+        
         # 创建小说内容
         novel_content = {
             'title': title,
@@ -246,7 +255,7 @@ class Po18Parser(BaseParser):
             'chapters': [
                 {
                     'chapter_number': 1,
-                    'title': title,
+                    'title': final_chapter_title,
                     'content': processed_content,
                     'url': full_content_url
                 }
@@ -329,6 +338,9 @@ class Po18Parser(BaseParser):
             chapter_content = self._get_url_content(full_url)
             
             if chapter_content:
+                # 从章节页面提取章节标题
+                page_chapter_title = self._extract_chapter_title(chapter_content)
+                
                 # 使用配置的正则提取内容
                 extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
                 
@@ -336,9 +348,16 @@ class Po18Parser(BaseParser):
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
                     
+                    # 优先使用从页面提取的标题，如果不存在则使用链接中的标题
+                    final_title = page_chapter_title if page_chapter_title else chapter_title
+                    
+                    # 如果标题是"第1页"或类似页码标记，则使用默认标题
+                    if final_title and re.search(r'第\d+页', final_title):
+                        final_title = f"第{self.chapter_count}章"
+                    
                     novel_content['chapters'].append({
                         'chapter_number': self.chapter_count,
-                        'title': chapter_title,
+                        'title': final_title,
                         'content': processed_content,
                         'url': full_url
                     })
@@ -414,6 +433,114 @@ class Po18Parser(BaseParser):
             return title_match.group(1).strip()
         
         return "未知标题"
+    
+    def _extract_chapter_title(self, content: str) -> str:
+        """
+        从内容页面提取章节标题
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            章节标题
+        """
+        import re
+        
+        # 尝试从title标签中提取章节标题 - 先从标题中分离出小说名和章节名
+        title_match = re.search(r'<title>([^<]+)</title>', content, re.IGNORECASE)
+        if title_match:
+            full_title = title_match.group(1).strip()
+            # 常见的标题格式: "小说名 - 章节名 - 18文学网" 或 "章节名_小说名_18文学网" 等
+            # 尝试分离出章节名
+            chapter_title_patterns = [
+                r'^(.+?)\s*[-_]\s*[^-_\s]+(?:小说|正文)?\s*[-_]\s*18文学网',  # 章节名在前
+                r'^[^-_\s]+(?:小说|正文)?\s*[-_]\s*(.+?)\s*[-_]\s*18文学网',  # 章节名在中间
+                r'^(.+?)\s*[-_]\s*18文学网',  # 只有章节名和网站名
+                r'^(.+?)\s*[-_]\s*[^-_]*$',  # 只有章节名和小说名
+            ]
+            
+            for pattern in chapter_title_patterns:
+                match = re.match(pattern, full_title)
+                if match:
+                    chapter_title = match.group(1).strip()
+                    # 清理可能的页码标记
+                    chapter_title = re.sub(r'第\d+页$', '', chapter_title).strip()
+                    if chapter_title and chapter_title not in ['首页', '小说', '正文', '目录', '18文学网', 'po18']:
+                        return chapter_title
+        
+        # h1标签的各种可能形式
+        h1_patterns = [
+            r'<h1[^>]*>(.*?)</h1>',
+            r'<h1[^>]*class="[^"]*"[^>]*>(.*?)</h1>',
+            r'<h1[^>]*id="[^"]*"[^>]*>(.*?)</h1>'
+        ]
+        
+        for pattern in h1_patterns:
+            match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+            if match:
+                title = match.group(1).strip()
+                # 清理标题中的HTML标签
+                title = re.sub(r'<[^>]+>', '', title)
+                # 清理多余的空白字符
+                title = re.sub(r'\s+', ' ', title).strip()
+                # 清理可能的页码标记
+                title = re.sub(r'第\d+页$', '', title).strip()
+                
+                # 过滤掉一些明显不是标题的内容
+                if title and title not in ['首页', '小说', '正文', '目录', '下一页', '上一页', '18文学网', 'po18']:
+                    # 如果标题太短或者太通用，尝试其他模式
+                    if len(title) > 1 and not re.match(r'^[0-9]+$', title):
+                        return title
+        
+        # 其他可能的标题标签
+        other_patterns = [
+            r'<h2[^>]*>(.*?)</h2>',
+            r'<div[^>]*class="[^"]*title[^"]*"[^>]*>(.*?)</div>',
+            r'<div[^>]*id="[^"]*title[^"]*"[^>]*>(.*?)</div>',
+            # 可能包含章节信息的特定结构
+            r'<div[^>]*class="[^"]*chapter[^"]*"[^>]*>(.*?)</div>',
+            r'<div[^>]*class="[^"]*page[^"]*"[^>]*>(.*?)</div>',
+            # 从面包屑导航中提取
+            r'<div[^>]*class="[^"]*breadcrumb[^"]*"[^>]*>([^<]+)</div>',
+            # 从页面中的特定文本提取
+            r'正文\s*([^\s<>]+)',
+            r'章节\s*([^\s<>]+)',
+        ]
+        
+        for pattern in other_patterns:
+            match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+            if match:
+                title = match.group(1).strip()
+                # 清理标题中的HTML标签
+                title = re.sub(r'<[^>]+>', '', title)
+                # 清理多余的空白字符
+                title = re.sub(r'\s+', ' ', title).strip()
+                # 清理可能的页码标记
+                title = re.sub(r'第\d+页$', '', title).strip()
+                
+                # 过滤掉一些明显不是标题的内容
+                if title and title not in ['首页', '小说', '正文', '目录', '下一页', '上一页', '18文学网', 'po18']:
+                    if len(title) > 1 and not re.match(r'^[0-9]+$', title):
+                        return title
+        
+        # 如果所有模式都失败，尝试从页面中查找包含"第"和"章"的文本
+        chapter_patterns = [
+            r'第[0-9一二三四五六七八九十百千万]+[章回节][^<\s]*',
+            r'第[0-9一二三四五六七八九十百千万]+[章回节]\s*[^<]*',
+            r'第[0-9一二三四五六七八九十百千万]+页[^<\s]*',
+            r'第[0-9一二三四五六七八九十百千万]+话[^<\s]*'
+        ]
+        
+        for pattern in chapter_patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                title = match.strip()
+                # 清理可能的页码标记
+                title = re.sub(r'第\d+页$', '', title).strip()
+                if len(title) > 3 and not '第1页' in title:  # 避免返回"第1页"这样的标题
+                    return title
+        
+        return ""
     
     def _extract_content_fallback(self, content: str) -> Optional[str]:
         """
@@ -559,24 +686,139 @@ class Po18Parser(BaseParser):
         """
         try:
             import cloudscraper
+            import urllib3
+            
+            # 禁用SSL警告
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
             # 创建cloudscraper会话，直接使用requests作为fallback
             try:
+                # 先创建一个自定义的requests会话，配置好SSL
+                import requests
+                import ssl
+                import urllib3
+                from requests.adapters import HTTPAdapter
+                
+                custom_session = requests.Session()
+                
+                # 创建不验证的SSL上下文
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                
+                # 创建自定义适配器，使用我们的SSL上下文
+                class SSLAdapter(HTTPAdapter):
+                    def init_poolmanager(self, *args, **kwargs):
+                        kwargs['ssl_context'] = ssl_context
+                        return super().init_poolmanager(*args, **kwargs)
+                
+                # 应用自定义适配器
+                custom_session.mount('https://', SSLAdapter())
+                custom_session.verify = False
+                
+                # 使用自定义会话创建cloudscraper
                 scraper = cloudscraper.create_scraper(
                     browser={
                         'browser': 'chrome',
                         'platform': 'windows',
                         'mobile': False
                     },
-                    delay=2
+                    delay=2,
+                    sess=custom_session  # 使用预配置的会话
                 )
-                # 禁用SSL验证
-                scraper.verify = False
+                
+                # 设置SSL验证 - 先禁用check_hostname再设置verify
+                try:
+                    # 尝试在scraper对象上设置verify属性
+                    scraper.verify = False
+                    
+                    # 如果有session，需要同时禁用check_hostname
+                    if hasattr(scraper, 'session'):
+                        session = getattr(scraper, 'session')
+                        # 先禁用check_hostname
+                        try:
+                            if hasattr(session, 'check_hostname'):
+                                session.check_hostname = False
+                        except Exception as hostname_error:
+                            logger.debug(f"无法禁用check_hostname: {hostname_error}")
+                        
+                        # 尝试在底层SSL上下文中设置
+                        try:
+                            if hasattr(session, 'ssl_context'):
+                                import ssl
+                                session.ssl_context.check_hostname = False
+                                session.ssl_context.verify_mode = ssl.CERT_NONE
+                        except Exception as ssl_context_error:
+                            logger.debug(f"无法设置SSL上下文: {ssl_context_error}")
+                        
+                        # 尝试在底层requests会话上设置
+                        try:
+                            if hasattr(session, 'requests'):
+                                requests_obj = getattr(session, 'requests')
+                                if hasattr(requests_obj, 'check_hostname'):
+                                    requests_obj.check_hostname = False
+                                if hasattr(requests_obj, 'verify'):
+                                    requests_obj.verify = False
+                        except Exception as requests_error:
+                            logger.debug(f"无法在底层requests会话上设置SSL验证: {requests_error}")
+                            
+                except Exception as verify_error:
+                    logger.debug(f"无法设置SSL验证: {verify_error}")
+                    # 尝试备用方法：使用urllib3 PoolManager
+                    try:
+                        import urllib3
+                        import ssl
+                        from urllib3.util import SSLContext as Urllib3SSLContext
+                        
+                        # 创建自定义SSL上下文
+                        ssl_context = Urllib3SSLContext()
+                        ssl_context.check_hostname = False
+                        ssl_context.verify_mode = ssl.CERT_NONE
+                        
+                        # 尝试在scraper的session上设置
+                        if hasattr(scraper, 'session'):
+                            session = getattr(scraper, 'session')
+                            if hasattr(session, 'mount'):
+                                # 创建自定义PoolManager
+                                https_pool = urllib3.PoolManager(
+                                    ssl_context=ssl_context,
+                                    timeout=urllib3.Timeout(connect=10, read=30)
+                                )
+                                session.mount('https://', https_pool)
+                    except Exception as pool_error:
+                        logger.debug(f"无法创建自定义PoolManager: {pool_error}")
+                
             except Exception as e:
                 logger.warning(f"cloudscraper创建失败，使用requests: {e}")
                 import requests
+                import ssl
+                import urllib3
+                from requests.adapters import HTTPAdapter
+                
+                # 禁用SSL警告
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                
                 scraper = requests.Session()
+                
+                # 设置SSL验证 - 确保正确禁用验证
                 scraper.verify = False
+                
+                # 也需要禁用check_hostname
+                try:
+                    # 创建一个不验证的SSL上下文
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    
+                    # 应用到requests会话
+                    scraper.mount('https://', HTTPAdapter(
+                        max_retries=urllib3.Retry(total=3, backoff_factor=0.1),
+                        pool_connections=10,
+                        pool_maxsize=10
+                    ))
+                    
+                except Exception as ssl_error:
+                    logger.debug(f"无法设置SSL上下文: {ssl_error}")
             
             # 设置请求头，适配GBK编码
             scraper.headers.update({
