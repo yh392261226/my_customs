@@ -324,6 +324,7 @@ class CrawlerManagementScreen(Screen[None]):
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
                             Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
+                            Button(get_global_i18n().t('crawler.copy_ids'), id="copy-ids-btn"),
                             id="novel-id-container", classes="form-row"
                         ),
                         id="novel-id-section"
@@ -1630,6 +1631,58 @@ class CrawlerManagementScreen(Screen[None]):
         else:
             # 如果没有后台任务，直接显示停止状态
             self._update_status(get_global_i18n().t('crawler.crawl_stopped'))
+    
+    def _copy_novel_ids(self) -> None:
+        """复制输入框中的所有书籍ID"""
+        try:
+            # 获取输入框中的内容
+            novel_id_input = self.query_one("#novel-id-input", Input)
+            novel_ids_input = novel_id_input.value.strip()
+            
+            if not novel_ids_input:
+                self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
+                return
+            
+            # 分割多个小说ID并处理
+            novel_ids = [id.strip() for id in novel_ids_input.split(',') if id.strip()]
+            
+            if not novel_ids:
+                self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
+                return
+            
+            # 将ID列表转换为字符串，使用逗号分隔，保持原始格式
+            ids_text = ', '.join(novel_ids)
+            
+            # 显示成功消息
+            count = len(novel_ids)
+            
+            # 使用pyperclip复制到剪贴板
+            try:
+                import pyperclip
+                pyperclip.copy(ids_text)
+                self._update_status(f"{get_global_i18n().t('crawler.copy_ids_success')}: {count} {get_global_i18n().t('crawler.books_count')}")
+            except ImportError:
+                # 如果pyperclip未安装，尝试使用系统命令
+                import subprocess
+                import platform
+                
+                # 根据操作系统选择不同的复制命令
+                system = platform.system()
+                if system == 'Darwin':  # macOS
+                    process = subprocess.run(['pbcopy'], input=ids_text, text=True, check=True)
+                elif system == 'Windows':  # Windows
+                    process = subprocess.run(['clip'], input=ids_text, text=True, check=True, shell=True)
+                else:  # Linux
+                    # 尝试使用xclip或xsel
+                    try:
+                        process = subprocess.run(['xclip', '-selection', 'clipboard'], input=ids_text, text=True, check=True)
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        process = subprocess.run(['xsel', '--clipboard', '--input'], input=ids_text, text=True, check=True)
+                
+                self._update_status(f"{get_global_i18n().t('crawler.copy_ids_success')}: {count} {get_global_i18n().t('crawler.books_count')}")
+            
+        except Exception as e:
+            self._update_status(f"{get_global_i18n().t('crawler.copy_ids_failed')}: {str(e)}", "error")
     
     def _start_crawl(self) -> None:
         """开始爬取小说"""
@@ -3054,6 +3107,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._start_crawl()
         elif button_id == "stop-crawl-btn":
             self._stop_crawl()
+        elif button_id == "copy-ids-btn":
+            self._copy_novel_ids()
         elif button_id == "choose-books-btn":
             self._open_select_books_dialog()
         elif button_id == "first-page-btn":
