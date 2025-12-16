@@ -5,6 +5,7 @@
 
 import asyncio
 from typing import Dict, Any, Optional, List, ClassVar
+from requests import get
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, ScrollableContainer
 from textual.widgets import Static, Button, Label, Input, Select, Checkbox, Header, Footer
@@ -319,10 +320,10 @@ class ProxyListScreen(Screen[None]):
                 # 添加新代理
                 success = self.database_manager.add_proxy_setting(proxy_data)
                 if success:
-                    self._update_status("代理添加成功", "success")
+                    self._update_status(get_global_i18n().t('proxy_list.act_success'), "success")
                     self._refresh_list()
                 else:
-                    self._update_status("代理添加失败", "error")
+                    self._update_status(get_global_i18n().t('proxy_list.act_failed'), "error")
         
         self.app.push_screen(
             ProxyEditDialog(self.theme_manager),
@@ -332,7 +333,7 @@ class ProxyListScreen(Screen[None]):
     def _edit_proxy(self) -> None:
         """编辑代理"""
         if not self.selected_proxy_id:
-            self._update_status("请先选择一个代理", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.select_first'), "warning")
             return
         
         # 获取选中的代理数据
@@ -343,14 +344,14 @@ class ProxyListScreen(Screen[None]):
                 break
         
         if not proxy_data:
-            self._update_status("未找到选中的代理", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.no_selected'), "error")
             return
         
         # 确保代理ID是整数类型
         try:
             proxy_id = int(self.selected_proxy_id)
         except (TypeError, ValueError):
-            self._update_status("代理ID格式错误", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.id_error'), "error")
             return
         
         # 创建代理编辑对话框
@@ -362,10 +363,10 @@ class ProxyListScreen(Screen[None]):
                 # 更新代理
                 success = self.database_manager.update_proxy_setting(proxy_id, updated_data)
                 if success:
-                    self._update_status("代理更新成功", "success")
+                    self._update_status(get_global_i18n().t('proxy_list.act_success'), "success")
                     self._refresh_list()
                 else:
-                    self._update_status("代理更新失败", "error")
+                    self._update_status(get_global_i18n().t('proxy_list.act_failed'), "error")
         
         self.app.push_screen(
             ProxyEditDialog(self.theme_manager, proxy_data),
@@ -375,14 +376,14 @@ class ProxyListScreen(Screen[None]):
     def _delete_proxy(self) -> None:
         """删除代理"""
         if not self.selected_proxy_id:
-            self._update_status("请先选择一个代理", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.select_first'), "warning")
             return
         
         # 确保代理ID是整数类型
         try:
             proxy_id = int(self.selected_proxy_id)
         except (TypeError, ValueError):
-            self._update_status("代理ID格式错误", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.id_error'), "error")
             return
         
         # 创建确认对话框
@@ -394,11 +395,11 @@ class ProxyListScreen(Screen[None]):
                 # 删除代理
                 success = self.database_manager.delete_proxy_setting(proxy_id)
                 if success:
-                    self._update_status("代理删除成功", "success")
+                    self._update_status(get_global_i18n().t('proxy_list.act_success'), "success")
                     self._refresh_list()
                     self.selected_proxy_id = None
                 else:
-                    self._update_status("代理删除失败", "error")
+                    self._update_status(get_global_i18n().t('proxy_list.act_failed'), "error")
         
         self.app.push_screen(
             ConfirmDialog(
@@ -412,7 +413,7 @@ class ProxyListScreen(Screen[None]):
     def _test_connection(self) -> None:
         """测试代理连接"""
         if not self.selected_proxy_id:
-            self._update_status("请先选择一个代理", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.select_first'), "warning")
             return
         
         # 获取选中的代理数据
@@ -423,26 +424,26 @@ class ProxyListScreen(Screen[None]):
                 break
         
         if not proxy_data:
-            self._update_status("未找到选中的代理", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.no_selected'), "error")
             return
         
         # 验证代理数据
         if not proxy_data.get("host") or not proxy_data.get("port"):
-            self._update_status("代理设置不完整，请检查主机地址和端口号", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.incomplete_settings'), "error")
             return
         
         # 验证端口号格式
         try:
             port = int(proxy_data.get("port"))
             if port < 1 or port > 65535:
-                self._update_status("端口号必须在1-65535之间", "error")
+                self._update_status(get_global_i18n().t('proxy_settings.port_range_error'), "error")
                 return
         except (ValueError, TypeError):
-            self._update_status("端口号必须是数字", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.port_must_be_number'), "error")
             return
         
         # 测试连接
-        self._update_status("正在测试连接...", "information")
+        self._update_status(get_global_i18n().t('proxy_settings.on_test'), "information")
         
         # 构建代理URL
         proxy_type = proxy_data.get("type", "HTTP").lower()
@@ -460,9 +461,9 @@ class ProxyListScreen(Screen[None]):
         test_result = self._real_test_proxy_connection(proxy_url)
         
         if test_result:
-            self._update_status("连接测试成功", "success")
+            self._update_status(get_global_i18n().t('proxy_settings.act_success'), "success")
         else:
-            self._update_status("连接测试失败", "error")
+            self._update_status(get_global_i18n().t('proxy_settings.act_failed'), "error")
     
     # Actions for BINDINGS
     def action_add_proxy(self) -> None:
@@ -506,28 +507,28 @@ class ProxyListScreen(Screen[None]):
         if self._has_permission("proxy.add"):
             self._add_proxy()
         else:
-            self._update_status("无权限添加代理", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.no_permission'), "warning")
     
     def key_t(self) -> None:
         """T键 - 测试连接"""
         if self._has_permission("proxy.test"):
             self._test_connection()
         else:
-            self._update_status("无权限测试连接", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.no_permission'), "warning")
     
     def key_e(self) -> None:
         """E键 - 编辑代理"""
         if self._has_permission("proxy.edit"):
             self._edit_proxy()
         else:
-            self._update_status("无权限编辑代理", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.no_permission'), "warning")
     
     def key_d(self) -> None:
         """D键 - 删除代理"""
         if self._has_permission("proxy.delete"):
             self._delete_proxy()
         else:
-            self._update_status("无权限删除代理", "warning")
+            self._update_status(get_global_i18n().t('proxy_settings.no_permission'), "warning")
     
     def _real_test_proxy_connection(self, proxy_url: str) -> bool:
         """
@@ -633,6 +634,14 @@ class ProxyListScreen(Screen[None]):
                 event.prevent_default()
                 event.stop()
                 return
+        # 数字键功能 - 根据是否有选中项执行不同操作
+        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 0键映射到第10位
+            target_position = 9 if event.key == "0" else int(event.key) - 1
+            
+            # 将光标移动到当前页对应行
+            self._move_cursor_to_position(target_position)
+            event.stop()
         
         # 让表格处理其他键盘事件（光标移动等）
         if table.has_focus:
@@ -650,7 +659,46 @@ class ProxyListScreen(Screen[None]):
             # ESC键返回
             self.app.pop_screen()
             event.stop()
-    
+            
+    def _move_cursor_to_position(self, target_position: int) -> None:
+        """将光标移动到当前页的指定行"""
+        try:
+            # 获取表格
+            table = self.query_one("#proxy-list-table", DataTable)
+            
+            # 计算当前页的实际行数
+            start_index = (self._current_page - 1) * self._proxies_per_page
+            current_page_rows = min(self._proxies_per_page, len(self.proxy_list) - start_index)
+            
+            # 检查目标位置是否超出当前页的行数
+            if target_position >= current_page_rows:
+                target_position = current_page_rows - 1
+            
+            # 移动光标到目标行
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=target_position)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(target_position):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            
+        except Exception as e:
+            logger.error(f"移动光标失败: {e}")
+
     def action_next_page(self) -> None:
         """下一页"""
         self._go_to_next_page()

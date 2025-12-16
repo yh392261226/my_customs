@@ -367,7 +367,7 @@ class NovelSitesManagementScreen(Screen[None]):
             
             # 更新状态显示
             selected_count = len(self.selected_sites)
-            self._update_status(f"已选中 {selected_count} 个网站", "information")
+            self._update_status(get_global_i18n().t('novel_sites.already_selected', counts=selected_count), "information")
                 
         except Exception:
             # 如果出错，重新渲染整个表格
@@ -875,6 +875,64 @@ class NovelSitesManagementScreen(Screen[None]):
         """空格键 - 选中或取消选中当前行"""
         # 直接处理空格键，不依赖BINDINGS系统
         table = self.query_one("#novel-sites-table", DataTable)
+
+        # 获取当前光标位置
+        current_row_index = None
+        
+        # 首先尝试使用cursor_row
+        if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+            current_row_index = table.cursor_row
+        # 其次尝试使用cursor_coordinate
+        elif hasattr(table, 'cursor_coordinate') and table.cursor_coordinate:
+            coord = table.cursor_coordinate
+            current_row_index = coord.row
+        
+        # 检查是否有有效的行索引
+        if current_row_index is None:
+            # 显示提示信息，要求用户先选择一行
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 检查行索引是否在有效范围内
+        current_page_row_count = min(self._sites_per_page, len(self.novel_sites) - (self._current_page - 1) * self._sites_per_page)
+        if current_row_index < 0 or current_row_index >= current_page_row_count:
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 计算当前页的起始索引
+        start_index = (self._current_page - 1) * self._sites_per_page
+        
+        # 检查当前行是否有数据
+        if start_index + current_row_index >= len(self.novel_sites):
+            self._update_status(get_global_i18n().t('novel_sites.select_site_first'))
+            return
+        
+        # 获取当前行的历史记录项
+        history_item = self.novel_sites[start_index + current_row_index]
+        if not history_item:
+            return
+        
+        # 获取记录ID
+        record_id = str(history_item["id"])
+        
+        # 切换选中状态
+        if record_id in self.selected_sites:
+            self.selected_sites.remove(record_id)
+        else:
+            self.selected_sites.add(record_id)
+        
+        # 更新表格显示
+        self._update_table()
+        
+        # 更新状态显示
+        selected_count = len(self.selected_sites)
+        self._update_status(get_global_i18n().t('novel_sites.already_selected', count=selected_count), "information")
+        
+        # 确保表格保持焦点
+        try:
+            table.focus()
+        except Exception:
+            pass
     
     def action_note(self) -> None:
         """M键 - 打开当前选中网站的备注对话框"""
@@ -1146,7 +1204,54 @@ class NovelSitesManagementScreen(Screen[None]):
             # P键上一页
             self._go_to_prev_page()
             event.prevent_default()
+        # 数字键功能 - 根据是否有选中项执行不同操作
+        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 0键映射到第10位
+            target_position = 9 if event.key == "0" else int(event.key) - 1
+            
+            # 将光标移动到当前页对应行
+            self._move_cursor_to_position(target_position)
+            event.stop()
     
+    def _move_cursor_to_position(self, target_position: int) -> None:
+        """将光标移动到当前页的指定行"""
+        try:
+            # 获取表格
+            table = self.query_one("#novel-sites-table", DataTable)
+            
+            # 计算当前页的实际行数
+            start_index = (self._current_page - 1) * self._sites_per_page
+            current_page_rows = min(self._sites_per_page, len(self.novel_sites) - start_index)
+            
+            # 检查目标位置是否超出当前页的行数
+            if target_position >= current_page_rows:
+                target_position = current_page_rows - 1
+            
+            # 移动光标到目标行
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=target_position)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(target_position):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            
+        except Exception as e:
+            logger.error(f"移动光标失败: {e}")
+
     def _update_pagination_info(self) -> None:
         """更新分页信息显示"""
         try:

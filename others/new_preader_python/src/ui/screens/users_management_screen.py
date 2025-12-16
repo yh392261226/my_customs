@@ -934,3 +934,50 @@ class UsersManagementScreen(Screen[None]):
                 event.prevent_default()
                 event.stop()
                 return        
+        # 数字键功能 - 根据是否有选中项执行不同操作
+        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 0键映射到第10位
+            target_position = 9 if event.key == "0" else int(event.key) - 1
+            
+            # 将光标移动到当前页对应行
+            self._move_cursor_to_position(target_position)
+            event.stop()
+    
+    def _move_cursor_to_position(self, target_position: int) -> None:
+        """将光标移动到当前页的指定行"""
+        try:
+            # 获取表格
+            table = self.query_one("#users-table", DataTable)
+            
+            # 计算当前页的实际行数
+            start_index = (self._current_page - 1) * self._users_per_page
+            current_page_rows = min(self._users_per_page, len(self._all_users) - start_index)
+            
+            # 检查目标位置是否超出当前页的行数
+            if target_position >= current_page_rows:
+                target_position = current_page_rows - 1
+            
+            # 移动光标到目标行
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=target_position)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(target_position):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            
+        except Exception as e:
+            logger.error(f"移动光标失败: {e}")

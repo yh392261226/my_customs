@@ -110,7 +110,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 分页相关属性
         self._current_page = 1
-        self._books_per_page = 15
+        self._books_per_page = 10
         self._total_pages = 1
         self._all_books: List[Any] = []
         
@@ -469,6 +469,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
                 event.prevent_default()
                 event.stop()
+        # 数字键功能 - 根据是否有选中项执行不同操作
+        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 0键映射到第10位
+            target_position = 9 if event.key == "0" else int(event.key) - 1
+            
+            # 检查是否有选中项
+            if self.selected_books:
+                # 有选中项时，将当前光标所在行排序到指定位置
+                self._move_to_position(target_position)
+            else:
+                # 没有选中项时，将光标移动到当前页对应行
+                self._move_cursor_to_position(target_position)
+            event.stop()
 
     def on_data_table_cell_selected(self, event) -> None:
         """
@@ -1539,6 +1552,191 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 except Exception:
                     # 如果更新失败，继续处理其他行
                     continue
+    
+    def _move_to_position(self, target_position: int) -> None:
+        """将当前光标所在的项移动到指定位置"""
+        try:
+            # 获取当前表格
+            table = self.query_one("#batch-ops-table", DataTable)
+            cursor_row = table.cursor_row
+            
+            if cursor_row is None or cursor_row < 0:
+                self.notify("请先选择要移动的行", severity="warning")
+                return
+            
+            # 获取当前光标所在行的书籍路径
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[cursor_row]
+            if hasattr(row_key, 'value') and row_key.value:
+                current_book_path = str(row_key.value)
+            else:
+                current_book_path = str(row_key)
+            
+            # 检查选中项数量
+            selected_count = len(self.selected_books)
+            
+            # 如果没有选中项，提示用户
+            if selected_count == 0:
+                self.notify("请先选择要排序的项目", severity="warning")
+                return
+            
+            # 检查当前项是否为选中项
+            if current_book_path not in self.selected_books:
+                self.notify("只能对选中项进行排序", severity="warning")
+                return
+            
+            # 获取当前显示的所有书籍路径（所有搜索结果，不仅仅是当前页）
+            all_books = self.bookshelf.get_all_books()
+            filtered_books = self._filter_books(all_books)
+            current_display_paths = [book.path for book in filtered_books]
+            
+            # 如果排序列表为空，初始化排序列表为当前显示书籍的顺序
+            if not self._sorted_books:
+                self._sorted_books = current_display_paths.copy()
+            
+            # 确保排序列表只包含当前显示的书籍
+            filtered_sorted_books = [path for path in self._sorted_books if path in current_display_paths]
+            
+            # 获取当前项在排序列表中的位置
+            current_index = filtered_sorted_books.index(current_book_path)
+            
+            # 如果目标位置超出选中项数量，调整到末尾
+            if target_position >= selected_count:
+                target_position = selected_count - 1
+                self.notify(f"选中项只有{selected_count}个，已移动到末尾", severity="warning")
+            
+            # 获取所有选中项在排序列表中的位置
+            selected_indices = []
+            for path in self.selected_books:
+                if path in filtered_sorted_books:
+                    selected_indices.append(filtered_sorted_books.index(path))
+            
+            # 按照选中项在排序列表中的顺序重新排列
+            selected_items_in_order = []
+            for index in sorted(selected_indices):
+                if index < len(filtered_sorted_books):
+                    selected_items_in_order.append(filtered_sorted_books[index])
+            
+            # 如果当前项不在选中项列表中，添加它
+            if current_book_path not in selected_items_in_order:
+                selected_items_in_order.append(current_book_path)
+            
+            # 找到当前项在选中项列表中的位置
+            current_selected_index = selected_items_in_order.index(current_book_path)
+            
+            # 从选中项列表中移除当前项
+            selected_items_in_order.pop(current_selected_index)
+            
+            # 将当前项插入到目标位置
+            selected_items_in_order.insert(target_position, current_book_path)
+            
+            # 重建完整的排序列表：保持非选中项的相对位置，只调整选中项的顺序
+            new_sorted_books = []
+            selected_iter = iter(selected_items_in_order)
+            
+            for path in filtered_sorted_books:
+                if path in self.selected_books or path == current_book_path:
+                    # 使用选中项中的下一个项
+                    try:
+                        next_selected_item = next(selected_iter)
+                        new_sorted_books.append(next_selected_item)
+                    except StopIteration:
+                        # 如果已经没有更多选中项，保持原顺序
+                        new_sorted_books.append(path)
+                else:
+                    # 保持非选中项不变
+                    new_sorted_books.append(path)
+            
+            # 更新排序列表
+            self._sorted_books = new_sorted_books
+            
+            # 保存当前选中的书籍路径
+            saved_selected_books = self.selected_books.copy()
+            
+            # 重新加载书籍列表以反映排序变化
+            self._load_books()
+            
+            # 恢复选中状态
+            self.selected_books = saved_selected_books
+            
+            # 强制重新渲染表格以确保选中状态正确显示
+            self._refresh_table()
+            
+            # 计算移动后当前项的新页码
+            new_index = self._sorted_books.index(current_book_path)
+            new_page = (new_index // self._books_per_page) + 1
+            
+            # 如果移动到其他页，跳转到对应页
+            if new_page != self._current_page:
+                self._current_page = new_page
+                self._load_books()
+                # 恢复选中状态
+                self.selected_books = saved_selected_books
+                self._refresh_table()
+            
+            # 恢复光标位置到移动后的书籍
+            for i, row_key in enumerate(table.rows.keys()):
+                if hasattr(row_key, 'value') and row_key.value:
+                    row_book_path = str(row_key.value)
+                else:
+                    row_book_path = str(row_key)
+                
+                if row_book_path == current_book_path:
+                    table.move_cursor(row=i)
+                    break
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            self.notify(f"已移动到选中项的第 {display_key} 位", severity="information")
+            
+        except Exception as e:
+            logger.error(f"移动到指定位置失败: {e}")
+            self.notify("移动失败", severity="error")
+    
+    def _move_cursor_to_position(self, target_position: int) -> None:
+        """将光标移动到当前页的指定行"""
+        try:
+            # 获取表格
+            table = self.query_one("#batch-ops-table", DataTable)
+            
+            # 计算当前页的实际行数
+            current_page_rows = len(table.rows)
+            
+            # 检查目标位置是否超出当前页的行数
+            if target_position >= current_page_rows:
+                self.notify(f"当前页只有{current_page_rows}行，已移动到末尾", severity="warning")
+                target_position = current_page_rows - 1
+            
+            # 移动光标到目标行
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=target_position)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(target_position):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            self.notify(f"光标已移动到第 {display_key} 行", severity="information")
+            
+        except Exception as e:
+            logger.error(f"移动光标失败: {e}")
+            self.notify("移动光标失败", severity="error")
     
     def _move_selected_book_up(self) -> None:
         """将选中的书籍上移一位，优先使用光标所在行，若无光标则使用第一个选中的书籍"""

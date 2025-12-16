@@ -365,9 +365,13 @@ class GetBooksScreen(Screen[None]):
         except Exception as e:
             logger.debug(f"设置光标位置失败: {e}")
         
-        # 为数字快捷键1-9建立行索引映射
+        # 为数字快捷键1-9和0（第10项）建立行索引映射
         try:
+            # 1-9键映射到前9项
             self._shortcut_index_map = {str(i + 1): i for i in range(min(9, len(current_page_sites)))}
+            # 如果有第10项，将0键映射到索引9
+            if len(current_page_sites) >= 10:
+                self._shortcut_index_map["0"] = 9
         except Exception:
             self._shortcut_index_map = {}
             
@@ -380,7 +384,7 @@ class GetBooksScreen(Screen[None]):
         try:
             total_sites = len(self._all_sites)
             status_label = self.query_one("#novel-sites-list-title", Label)
-            status_text = f"{get_global_i18n().t('get_books.novel_sites_list')} - 总共 {total_sites} 个网站 | 第 {self._current_page} / {self._total_pages} 页"
+            status_text = f"{get_global_i18n().t('get_books.novel_sites_list')} - {get_global_i18n().t('page_info', total=total_sites, current=self._current_page, pages=self._total_pages)}"
             status_label.update(status_text)
             
             # 调试信息
@@ -850,12 +854,18 @@ class GetBooksScreen(Screen[None]):
                     self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
                 # 不阻止回车的默认行为
         
-        # 数字键 1-9：打开对应行的"进入"
-        if event.key in ["1","2","3","4","5","6","7","8","9"]:
-            idx = int(event.key) - 1
+        # 数字键 1-9：打开对应行的"进入"，0键打开第10行
+        if event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 默认索引计算
+            if event.key == "0":
+                idx = 9  # 0键映射到第10项（索引9）
+            else:
+                idx = int(event.key) - 1
+                
             # 使用映射，确保与当前表格行一致
             if event.key in getattr(self, "_shortcut_index_map", {}):
                 idx = self._shortcut_index_map[event.key]
+            
             if self._has_permission("crawler.open"):
                 self._open_site_by_row_index(idx)
             else:

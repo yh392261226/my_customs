@@ -1638,12 +1638,13 @@ class BookshelfScreen(Screen[None]):
             # P键上一页
             self._go_to_prev_page()
             event.prevent_default()
-        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-            # 数字键1-9：打开对应序号的书籍
-            book_index = event.key
-            if book_index in self._book_index_mapping:
-                book_path = self._book_index_mapping[book_index]
-                self.logger.info(f"按数字键 {book_index} 打开书籍: {book_path}")
+        elif event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 数字键1-9：打开对应序号的书籍, 0: 打开第10个书籍
+            book_key = "10" if event.key == "0" else event.key
+            if book_key in self._book_index_mapping:
+                book_path = self._book_index_mapping[book_key]
+                display_key = "0" if book_key == "10" else book_key
+                self.logger.info(f"按数字键 {display_key} 打开书籍: {book_path}")
                 # 使用备用方法打开书籍
                 if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
                     self._open_book_fallback(book_path)
@@ -1652,8 +1653,9 @@ class BookshelfScreen(Screen[None]):
                 event.prevent_default()
             else:
                 # 如果该序号没有对应的书籍，显示提示
+                display_key = "0" if book_key == "10" else book_key
                 self.notify(
-                    get_global_i18n().t("bookshelf.no_book_position", book_index=book_index),
+                    get_global_i18n().t("bookshelf.no_book_position", book_index=display_key),
                     severity="warning"
                 )
                 event.prevent_default()

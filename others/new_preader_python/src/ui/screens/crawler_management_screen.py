@@ -134,7 +134,7 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 更新状态显示
         selected_count = len(self.selected_history)
-        self._update_status(f"已选中 {selected_count} 项", "information")
+        self._update_status(get_global_i18n().t('crawler.already_selected', count=selected_count), "information")
         
         # 确保表格保持焦点
         try:
@@ -179,7 +179,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 更新状态显示
             selected_count = len(self.selected_history)
-            self._update_status(f"已选中 {selected_count} 项", "information")
+            self._update_status(get_global_i18n().t('crawler.already_selected', count=selected_count), "information")
                 
         except Exception:
             # 如果出错，重新渲染整个表格
@@ -489,7 +489,7 @@ class CrawlerManagementScreen(Screen[None]):
             if already_exists:
                 logger.info(f"小说文件已存在，跳过添加数据库记录: {novel_title}")
                 # 只显示消息，不发送全局通知，不刷新历史记录
-                self.app.call_later(self._update_status, f"小说已存在: {novel_title}", "information")
+                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.novel_exists')}: {novel_title}", "information")
                 return
             
             # 发送全局通知（跨页面）
@@ -679,7 +679,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return
 
             total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
-            page_info = f"第 {self.current_page} 页，共 {total_pages} 页，总计 {len(self.crawler_history)} 条记录"
+            page_info = get_global_i18n().t('page_info', total=len(self.crawler_history), current=self.current_page, pages=total_pages)
             
             page_label = self.query_one("#page-info", Label)
             page_label.update(page_info)
@@ -740,12 +740,12 @@ class CrawlerManagementScreen(Screen[None]):
             self._load_crawl_history()
             
             if self._search_keyword:
-                self._update_status(f"搜索完成: 找到 {len(self.crawler_history)} 条记录")
+                self._update_status(get_global_i18n().t('crawler.search_complete', count=len(self.crawler_history)))
             else:
-                self._update_status("已显示所有记录")
+                self._update_status(get_global_i18n().t('crawler.all_records_shown'))
         except Exception as e:
             logger.error(f"搜索失败: {e}")
-            self._update_status("搜索失败", "error")
+            self._update_status(get_global_i18n().t('crawler.search_failed'), "error")
     
     def _clear_search(self) -> None:
         """清除搜索"""
@@ -756,10 +756,10 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 重新加载历史记录
             self._load_crawl_history()
-            self._update_status("搜索已清除")
+            self._update_status(get_global_i18n().t('crawler.search_cleared'))
         except Exception as e:
             logger.error(f"清除搜索失败: {e}")
-            self._update_status("清除搜索失败", "error")
+            self._update_status(get_global_i18n().t('crawler.clear_search_failed'), "error")
     
     # ==================== 多选操作方法 ====================
     
@@ -822,7 +822,7 @@ class CrawlerManagementScreen(Screen[None]):
     def _update_selection_status(self) -> None:
         """更新选择状态显示"""
         selected_count = len(self.selected_history)
-        self._update_status(f"已选择 {selected_count} 项")
+        self._update_status(get_global_i18n().t('batch_ops.selected_count', count=selected_count))
     
     def _select_all(self) -> None:
         """全选"""
@@ -838,7 +838,6 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"全选失败: {e}")
-            self._update_status("全选失败", "error")
     
     def _select_all_rows(self) -> None:
         """全选当前页"""
@@ -860,7 +859,6 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"全选失败: {e}")
-            self._update_status("全选失败", "error")
     
     def _invert_selection(self) -> None:
         """反选当前页"""
@@ -885,7 +883,6 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"反选失败: {e}")
-            self._update_status("反选失败", "error")
     
     def _deselect_all_rows(self) -> None:
         """取消全选"""
@@ -898,7 +895,6 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"取消全选失败: {e}")
-            self._update_status("取消全选失败", "error")
     
     def _move_selected_up(self) -> None:
         """上移光标所在行"""
@@ -908,7 +904,6 @@ class CrawlerManagementScreen(Screen[None]):
             cursor_row = table.cursor_row
             
             if cursor_row is None or cursor_row < 0:
-                self._update_status("请先选择要移动的行")
                 return
             
             # 计算当前页的起始索引
@@ -919,12 +914,10 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 检查索引是否有效
             if actual_index >= len(self.crawler_history):
-                self._update_status("行索引无效")
                 return
             
             # 检查是否可以上移
             if actual_index <= 0:
-                self._update_status("已到达顶部，无法上移")
                 return
             
             # 交换位置
@@ -951,11 +944,9 @@ class CrawlerManagementScreen(Screen[None]):
             # 确保表格获得焦点
             table.focus()
             
-            self._update_status("上移成功")
             
         except Exception as e:
             logger.error(f"上移失败: {e}")
-            self._update_status("上移失败", "error")
     
     def _move_selected_down(self) -> None:
         """下移光标所在行"""
@@ -965,7 +956,6 @@ class CrawlerManagementScreen(Screen[None]):
             cursor_row = table.cursor_row
             
             if cursor_row is None or cursor_row < 0:
-                self._update_status("请先选择要移动的行")
                 return
             
             # 计算当前页的起始索引
@@ -976,12 +966,10 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 检查索引是否有效
             if actual_index >= len(self.crawler_history):
-                self._update_status("行索引无效")
                 return
             
             # 检查是否可以下移
             if actual_index >= len(self.crawler_history) - 1:
-                self._update_status("已到达底部，无法下移")
                 return
             
             # 交换位置
@@ -1015,21 +1003,200 @@ class CrawlerManagementScreen(Screen[None]):
             # 确保表格获得焦点
             table.focus()
             
-            self._update_status("下移成功")
             
         except Exception as e:
             logger.error(f"下移失败: {e}")
-            self._update_status("下移失败", "error")
+    
+    def _move_to_position(self, target_position: int) -> None:
+        """将当前光标所在的项移动到指定位置"""
+        try:
+            # 获取当前光标所在行
+            table = self.query_one("#crawl-history-table", DataTable)
+            cursor_row = table.cursor_row
+            
+            if cursor_row is None or cursor_row < 0:
+                self._update_status(get_global_i18n().t('crawler.no_selection'))
+                return
+            
+            # 计算当前页的起始索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            
+            # 计算当前项的实际索引
+            current_index = start_index + cursor_row
+            
+            # 检查索引是否有效
+            if current_index >= len(self.crawler_history):
+                self._update_status(get_global_i18n().t('crawler.id_error'))
+                return
+            
+            # 检查选中项数量
+            selected_count = len(self.selected_history)
+            
+            # 如果没有选中项，提示用户
+            if selected_count == 0:
+                self._update_status(get_global_i18n().t('crawler.no_selection'))
+                return
+            
+            # 获取当前项
+            current_item = self.crawler_history[current_index]
+            
+            # 检查当前项是否为选中项
+            current_item_id = str(current_item.get("id"))
+            if current_item_id not in self.selected_history:
+                self._update_status(get_global_i18n().t('crawler.sort_only_selected'))
+                return
+            
+            # 如果目标位置超出选中项数量，调整到末尾
+            if target_position >= selected_count:
+                target_position = selected_count - 1
+            
+            # 重新排序选中项：先获取所有选中项
+            selected_items = []
+            other_items = []
+            
+            for i, item in enumerate(self.crawler_history):
+                item_id = str(item.get("id"))
+                if item_id in self.selected_history:
+                    selected_items.append((i, item))
+                else:
+                    other_items.append((i, item))
+            
+            # 找到当前项在选中项中的位置
+            current_selected_index = -1
+            for i, (orig_idx, item) in enumerate(selected_items):
+                if str(item.get("id")) == current_item_id:
+                    current_selected_index = i
+                    break
+            
+            if current_selected_index == -1:
+                return
+            
+            # 从选中项列表中移除当前项
+            current_selected_item = selected_items.pop(current_selected_index)[1]
+            
+            # 将当前项插入到目标位置
+            selected_items.insert(target_position, (None, current_selected_item))  # 位置用None临时占位
+            
+            # 重建完整的列表：保持非选中项的相对位置，只调整选中项的顺序
+            new_crawler_history = []
+            selected_iter = iter(selected_items)
+            
+            for item in self.crawler_history:
+                item_id = str(item.get("id"))
+                if item_id in self.selected_history:
+                    # 使用选中项中的下一个项
+                    _, selected_item = next(selected_iter)
+                    new_crawler_history.append(selected_item)
+                else:
+                    # 保持非选中项不变
+                    new_crawler_history.append(item)
+            
+            # 更新历史记录
+            self.crawler_history = new_crawler_history
+            
+            # 计算移动后当前项的新索引
+            new_current_index = -1
+            for i, item in enumerate(self.crawler_history):
+                if str(item.get("id")) == current_item_id:
+                    new_current_index = i
+                    break
+            
+            if new_current_index == -1:
+                return
+            
+            # 计算移动后新的光标位置
+            if new_current_index < start_index:
+                # 移动到当前页之前，将光标移动到当前页第一行
+                new_cursor_row = 0
+            elif new_current_index >= start_index + self.items_per_page:
+                # 移动到当前页之后，可能需要翻页
+                new_cursor_row = min(self.items_per_page - 1, len(self.crawler_history) - start_index - 1)
+            else:
+                # 移动到当前页内，计算新的光标位置
+                new_cursor_row = new_current_index - start_index
+            
+            # 更新表格显示
+            self._update_history_table()
+            
+            # 如果移动到其他页，计算新页码
+            new_page = new_current_index // self.items_per_page + 1
+            if new_page != self.current_page:
+                self.current_page = new_page
+                self._update_history_table()
+            
+            # 恢复光标到正确位置
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=new_cursor_row)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(new_cursor_row):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            
+        except Exception as e:
+            logger.error(f"移动到指定位置失败: {e}")
+    
+    def _move_cursor_to_position(self, target_position: int) -> None:
+        """将光标移动到当前页的指定行"""
+        try:
+            # 获取表格
+            table = self.query_one("#crawl-history-table", DataTable)
+            
+            # 计算当前页的实际行数
+            start_index = (self.current_page - 1) * self.items_per_page
+            current_page_rows = min(self.items_per_page, len(self.crawler_history) - start_index)
+            
+            # 检查目标位置是否超出当前页的行数
+            if target_position >= current_page_rows:
+                target_position = current_page_rows - 1
+            
+            # 移动光标到目标行
+            if hasattr(table, 'move_cursor'):
+                table.move_cursor(row=target_position)
+            else:
+                # 使用键盘操作来移动光标
+                # 先将光标移动到第一行
+                while table.cursor_row > 0:
+                    table.action_cursor_up()
+                # 然后向下移动到目标位置
+                for _ in range(target_position):
+                    table.action_cursor_down()
+            
+            # 确保表格获得焦点
+            table.focus()
+            
+            # 显示成功信息
+            display_position = target_position + 1
+            if display_position == 10:
+                display_key = "0"
+            else:
+                display_key = str(display_position)
+            
+        except Exception as e:
+            logger.error(f"移动光标失败: {e}")
     
     def _merge_selected(self) -> None:
         """合并选中项"""
         try:
             if not self.selected_history:
-                self._update_status("请先选择要合并的项")
+                self._update_status(get_global_i18n().t('crawler.merge_selection'))
                 return
             
             if len(self.selected_history) < 2:
-                self._update_status("请至少选择2项进行合并")
+                self._update_status(get_global_i18n().t('crawler.merge_at_least_two'))
                 return
             
             # 获取选中项
@@ -1042,7 +1209,7 @@ class CrawlerManagementScreen(Screen[None]):
             # 检查是否都是成功状态
             for item in selected_items:
                 if item["status"] != get_global_i18n().t('crawler.status_success'):
-                    self._update_status("只能合并成功的爬取记录")
+                    self._update_status(get_global_i18n().t('crawler.merge_successful_records'))
                     return
             
             # 打开合并对话框
@@ -1059,7 +1226,7 @@ class CrawlerManagementScreen(Screen[None]):
                     try:
                         # 执行实际的合并操作
                         if self._perform_actual_merge(selected_items, new_title):
-                            self._update_status(f"合并成功: {new_title}")
+                            self._update_status(f"{get_global_i18n().t('crawler.merge_success')}: {new_title}")
                             # 清除已合并的选中项
                             for item in selected_items:
                                 item_id = item.get("id")
@@ -1068,14 +1235,14 @@ class CrawlerManagementScreen(Screen[None]):
                             # 刷新历史记录
                             self._load_crawl_history()
                         else:
-                            self._update_status("合并操作失败", "error")
+                            self._update_status(get_global_i18n().t('crawler.merge_failed'), "error")
                     except Exception as e:
                         logger.error(f"合并操作异常: {e}")
-                        self._update_status(f"合并异常: {e}", "error")
+                        self._update_status(get_global_i18n().t('crawler.merge_exception', e=e), "error")
                 else:
                     message = result.get('message', '未知错误')
                     if message != get_global_i18n().t('batch_ops.cancel_merge'):  # 不显示取消合并的错误
-                        self._update_status(f"合并失败: {message}", "error")
+                        self._update_status(get_global_i18n().t('crawler.merge_failed_with_message', message=message), "error")
             
             self.app.push_screen(
                 CrawlerMergeDialog(
@@ -1087,7 +1254,7 @@ class CrawlerManagementScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"合并失败: {e}")
-            self._update_status("合并失败", "error")
+            self._update_status(get_global_i18n().t('crawler.merge_failed'), "error")
     
     def _perform_actual_merge(self, selected_items: List[Dict[str, Any]], new_title: str) -> bool:
         """
@@ -1342,17 +1509,17 @@ class CrawlerManagementScreen(Screen[None]):
                             self.current_page = page_num
                             self._update_history_table()
                     else:
-                        self._update_status(f"页码必须在 1 到 {total_pages} 之间", "error")
+                        self._update_status(get_global_i18n().t('crawler.page_out_of_range', total_pages=total_pages), "error")
                 except ValueError:
-                    self._update_status("请输入有效的页码", "error")
+                    self._update_status(get_global_i18n().t('crawler.invalid_page_number'), "error")
         
         from src.ui.dialogs.input_dialog import InputDialog
         self.app.push_screen(
             InputDialog(
                 self.theme_manager,
-                title="跳转页码",
-                prompt="请输入要跳转的页码：",
-                placeholder="页码"
+                title=get_global_i18n().t('crawler.goto_page'),
+                prompt=get_global_i18n().t('crawler.goto_page_message'),
+                placeholder=get_global_i18n().t('crawler.page_number')
             )
         )
     
@@ -2201,7 +2368,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 更新内存中的记录
                     history_item['file_path'] = file_path
                 else:
-                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}（标记为已存在，但找不到实际文件）")
+                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}{get_global_i18n().t('crawler.not_found')}")
                     return
             
             if not os.path.exists(file_path):
@@ -2275,21 +2442,21 @@ class CrawlerManagementScreen(Screen[None]):
                                     from src.ui.messages import RefreshBookshelfMessage
                                     self.app.post_message(RefreshBookshelfMessage())
                                     logger.info("已发送书架刷新消息，书籍已从书架删除")
-                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，书架中的书籍已删除")
+                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，{get_global_i18n().t('crawler.book_deleted')}")
                                 except Exception as msg_error:
                                     logger.debug(f"发送刷新书架消息失败: {msg_error}")
-                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，书架书籍删除但刷新失败")
+                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，{get_global_i18n().t('crawler.refresh_failed')}")
                             else:
                                 # 如果删除失败，检查书籍是否存在于书架中
                                 books = self.db_manager.get_all_books()
                                 book_exists = any(book.path == file_path for book in books)
                                 if book_exists:
-                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，但删除书架书籍失败")
+                                    self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，{get_global_i18n().t('crawler.delete_failed')}")
                                 else:
                                     self._update_status(get_global_i18n().t('crawler.file_deleted'))
                         except Exception as shelf_error:
                             logger.error(f"删除书架书籍失败: {shelf_error}")
-                            self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，但删除书架书籍时出错")
+                            self._update_status(f"{get_global_i18n().t('crawler.file_deleted')}，{get_global_i18n().t('crawler.delete_error')}")
                         
                         # 刷新历史记录
                         self._load_crawl_history()
@@ -2302,8 +2469,8 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.push_screen(
                 ConfirmDialog(
                     self.theme_manager,
-                    f"{get_global_i18n().t('crawler.confirm_delete')}（删除文件及书架书籍）",
-                    f"{get_global_i18n().t('crawler.confirm_delete_message')} 注意：此操作将同时删除书架中的对应书籍。"
+                    f"{get_global_i18n().t('crawler.confirm_delete')}（{get_global_i18n().t('crawler.delete_file_and_book')}）",
+                    f"{get_global_i18n().t('crawler.confirm_delete_message')} {get_global_i18n().t('crawler.delete_book_tip')}"
                 ),
                 handle_delete_confirmation
             )
@@ -2425,6 +2592,20 @@ class CrawlerManagementScreen(Screen[None]):
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()
             event.stop()
+        
+        # 数字键功能 - 根据是否有选中项执行不同操作
+        if event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:
+            # 0键映射到第10位
+            target_position = 9 if event.key == "0" else int(event.key) - 1
+            
+            # 检查是否有选中项
+            if self.selected_history:
+                # 有选中项时，将当前光标所在行排序到指定位置
+                self._move_to_position(target_position)
+            else:
+                # 没有选中项时，将光标移动到当前页对应行
+                self._move_cursor_to_position(target_position)
+            event.stop()
     
     def _view_reason(self, history_item: Dict[str, Any]) -> None:
         """查看失败原因"""
@@ -2485,7 +2666,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 更新内存中的记录
                     history_item['file_path'] = file_path
                 else:
-                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}（标记为已存在，但找不到实际文件）")
+                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}get_global_i18n().t('crawler.not_found')")
                     return
             
             if not os.path.exists(file_path):
@@ -2621,7 +2802,7 @@ class CrawlerManagementScreen(Screen[None]):
                         novel_id=novel_id,
                         status='failed',
                         novel_title=history_item.get('novel_title', ''),
-                        error_message=novel_content.get('error_message', '解析失败')
+                        error_message=novel_content.get('error_message', get_global_i18n().t('crawler.parse_failed'))
                     )
                 
                 # 更新内存中的历史记录
