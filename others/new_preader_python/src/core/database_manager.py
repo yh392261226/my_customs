@@ -2481,13 +2481,23 @@ class DatabaseManager:
                 update_sql = f"""
                     UPDATE crawl_history 
                     SET {', '.join(update_fields)}
-                    WHERE site_id = ? AND novel_id = ?
+                    WHERE site_id = ? AND novel_id = ? AND id = (
+                        SELECT id FROM crawl_history 
+                        WHERE site_id = ? AND novel_id = ? 
+                        ORDER BY crawl_time DESC 
+                        LIMIT 1
+                    )
                 """
                 
+                # 需要重复参数，因为子查询中也需要
+                update_values.extend([site_id, novel_id])
                 cursor.execute(update_sql, update_values)
+                rows_affected = cursor.rowcount
                 conn.commit()
                 
-                logger.info(f"更新爬取历史记录状态: 网站ID={site_id}, 小说ID={novel_id}, 状态={status}")
+                logger.info(f"更新爬取历史记录状态: 网站ID={site_id}, 小说ID={novel_id}, 状态={status}, 影响行数={rows_affected}")
+                if rows_affected == 0:
+                    logger.warning(f"没有找到匹配的记录进行更新: site_id={site_id}, novel_id={novel_id}")
                 return True
                 
         except sqlite3.Error as e:

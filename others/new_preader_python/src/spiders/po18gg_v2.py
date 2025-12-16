@@ -840,14 +840,27 @@ class Po18ggParser(BaseParser):
                 # 根据尝试次数选择不同的绕过策略
                 if attempt == 0:  # 第一次失败：尝试 cloudscraper
                     try:
-                        return self._get_url_content_with_cloudscraper(url, proxies)
+                        content = self._get_url_content_with_cloudscraper(url, proxies)
+                        if content:
+                            return content
                     except Exception as scraper_error:
                         logger.warning(f"cloudscraper也失败: {scraper_error}")
-                elif attempt == 1:  # 第二次失败：尝试 selenium
+                elif attempt == 1:  # 第二次失败：尝试 playwright
                     try:
-                        return self._selenium_request(url, proxies)
-                    except Exception as selenium_error:
-                        logger.warning(f"selenium也失败: {selenium_error}")
+                        content = self._get_url_content_with_playwright(url, proxies)
+                        if content:
+                            return content
+                    except Exception as playwright_error:
+                        logger.warning(f"playwright也失败: {playwright_error}")
+                else:  # 第三次及以后：再次尝试普通请求
+                    logger.warning(f"尝试普通请求: {url}")
+                    try:
+                        response = self.session.get(url, proxies=proxies, timeout=20)
+                        if response.status_code == 200:
+                            response.encoding = self.encoding
+                            return response.text
+                    except Exception as final_error:
+                        logger.warning(f"最终请求失败: {final_error}")
                 else:  # 第三次及以后：尝试 playwright
                     try:
                         return self._get_url_content_with_playwright(url, proxies)
@@ -882,9 +895,10 @@ class Po18ggParser(BaseParser):
                     'platform': 'windows',
                     'mobile': False
                 },
-                ssl_verify=False,
                 delay=2
             )
+            # 禁用SSL验证
+            scraper.verify = False
             
             # 设置请求头，适配GBK编码
             scraper.headers.update({

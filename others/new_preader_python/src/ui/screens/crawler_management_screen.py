@@ -2214,11 +2214,29 @@ class CrawlerManagementScreen(Screen[None]):
                     # 发送异步请求
                     async with session.get(novel_url, proxy=proxies, timeout=timeout) as response:
                         if response.status == 200:
-                            # 读取内容
-                            content = await response.text()
+                            # 读取内容，处理编码问题
+                            try:
+                                # 先尝试使用UTF-8解码
+                                content = await response.text()
+                            except UnicodeDecodeError:
+                                # 如果UTF-8失败，尝试使用其他编码
+                                raw_content = await response.read()
+                                # 尝试多种编码
+                                encodings = ['utf-8', 'gbk', 'gb2312', 'big5', 'latin1']
+                                content = None
+                                for encoding in encodings:
+                                    try:
+                                        content = raw_content.decode(encoding)
+                                        logger.debug(f"使用 {encoding} 编码成功解码内容")
+                                        break
+                                    except UnicodeDecodeError:
+                                        continue
+                                if content is None:
+                                    logger.warning("无法解码内容，使用latin1作为最后手段")
+                                    content = raw_content.decode('latin1', errors='ignore')
                             
                             # 检测并处理高级反爬虫机制
-                            if self._detect_advanced_anti_bot(content):
+                            if parser._detect_advanced_anti_bot(content):
                                 logger.warning(f"检测到高级反爬虫机制，回退到同步方法: {novel_url}")
                                 # 如果检测到高级反爬虫，回退到同步方法
                                 content = parser._get_url_content(novel_url)
@@ -2794,36 +2812,76 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 检查解析是否成功
             if not novel_content.get('success', False):
-                # 解析失败，更新数据库记录
-                site_id = self.novel_site.get('id')
-                if site_id:
-                    self.db_manager.update_crawl_history_status(
-                        site_id=site_id,
-                        novel_id=novel_id,
-                        status='failed',
-                        novel_title=history_item.get('novel_title', ''),
-                        error_message=novel_content.get('error_message', get_global_i18n().t('crawler.parse_failed'))
-                    )
+                error_msg = novel_content.get('error_message', get_global_i18n().t('crawler.parse_failed'))
+                logger.warning(f"重试解析失败: {error_msg}")
                 
-                # 更新内存中的历史记录
-                for i, item in enumerate(self.crawler_history):
-                    if item.get('novel_id') == novel_id and item.get('status') == get_global_i18n().t('crawler.status_failed'):
-                        self.crawler_history[i] = {
-                            "novel_id": novel_id,
-                            "novel_title": history_item.get('novel_title', ''),
-                            "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                            "status": get_global_i18n().t('crawler.status_failed'),
-                            "error_message": novel_content.get('error_message', '解析失败')
-                        }
-                        break
+                # 检查是否是临时错误，如果是则等待后重试
+                if any(keyword in error_msg.lower() for keyword in ['timeout', 'connection', 'network', 'ssl', 'verify', 'nonetype', 'string or bytes-like']):
+                    logger.info(f"检测到临时错误，5秒后自动重试...")
+                    await asyncio.sleep(5)
+                    
+                    # 重试一次
+                    try:
+                        logger.info(f"开始第二次重试: novel_id={novel_id}")
+                        novel_content = await self._async_parse_novel_detail(parser_instance, novel_id)
+                        if novel_content.get('success', False):
+                            logger.info("第二次重试成功！")
+                        else:
+                            logger.error(f"第二次重试仍然失败: {novel_content.get('error_message', '未知错误')}")
+                    except Exception as retry_error:
+                        logger.error(f"第二次重试异常: {retry_error}")
+                        novel_content = {'success': False, 'error_message': f'重试异常: {str(retry_error)}'}
                 
-                # 更新状态
-                self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {novel_content.get('error_message', '解析失败')}", "error")
-                return
+                # 如果最终还是失败，更新数据库记录
+                if not novel_content.get('success', False):
+                    site_id = self.novel_site.get('id')
+                    if site_id:
+                        self.db_manager.update_crawl_history_status(
+                            site_id=site_id,
+                            novel_id=novel_id,
+                            status='failed',
+                            novel_title=history_item.get('novel_title', ''),
+                            error_message=novel_content.get('error_message', get_global_i18n().t('crawler.parse_failed'))
+                        )
+                    
+                    # 更新内存中的历史记录
+                    for i, item in enumerate(self.crawler_history):
+                        if item.get('novel_id') == novel_id and item.get('status') == get_global_i18n().t('crawler.status_failed'):
+                            self.crawler_history[i] = {
+                                "novel_id": novel_id,
+                                "novel_title": history_item.get('novel_title', ''),
+                                "crawl_time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                                "status": get_global_i18n().t('crawler.status_failed'),
+                                "error_message": novel_content.get('error_message', '解析失败')
+                            }
+                            break
+                    
+                    # 更新状态
+                    self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.retry_failed')}: {novel_content.get('error_message', '解析失败')}", "error")
+                    return
             
             # 解析成功，获取标题
             novel_title = novel_content.get('title', history_item.get('novel_title', ''))
             file_path = novel_content.get('file_path', '')
+            
+            logger.info(f"=== 重试成功 === novel_id={novel_id}, novel_title={novel_title}, file_path={file_path}")
+            
+            # 更新数据库中的记录
+            site_id = self.novel_site.get('id')
+            logger.info(f"准备更新数据库状态: site_id={site_id}, novel_id={novel_id}, novel_title={novel_title}")
+            if site_id:
+                logger.info(f"调用 update_crawl_history_status 更新状态为 success")
+                success = self.db_manager.update_crawl_history_status(
+                    site_id=site_id,
+                    novel_id=novel_id,
+                    status='success',
+                    novel_title=novel_title,
+                    file_path=file_path,
+                    error_message=''
+                )
+                logger.info(f"update_crawl_history_status 返回结果: {success}")
+            else:
+                logger.error(f"无法获取 site_id，novel_site={self.novel_site}")
             
             # 更新内存中的历史记录
             for i, item in enumerate(self.crawler_history):

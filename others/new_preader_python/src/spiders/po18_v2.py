@@ -517,19 +517,27 @@ class Po18Parser(BaseParser):
                 # 根据尝试次数选择不同的绕过策略
                 if attempt == 0:  # 第一次失败：尝试 cloudscraper
                     try:
-                        return self._get_url_content_with_cloudscraper(url, proxies)
+                        content = self._get_url_content_with_cloudscraper(url, proxies)
+                        if content:
+                            return content
                     except Exception as scraper_error:
                         logger.warning(f"cloudscraper也失败: {scraper_error}")
-                elif attempt == 1:  # 第二次失败：尝试 selenium
+                elif attempt == 1:  # 第二次失败：尝试 playwright
                     try:
-                        return self._selenium_request(url, proxies)
-                    except Exception as selenium_error:
-                        logger.warning(f"selenium也失败: {selenium_error}")
-                else:  # 第三次及以后：尝试 playwright
-                    try:
-                        return self._get_url_content_with_playwright(url, proxies)
+                        content = self._get_url_content_with_playwright(url, proxies)
+                        if content:
+                            return content
                     except Exception as playwright_error:
                         logger.warning(f"playwright也失败: {playwright_error}")
+                else:  # 第三次及以后：再次尝试普通请求
+                    logger.warning(f"尝试普通请求: {url}")
+                    try:
+                        response = self.session.get(url, proxies=proxies, timeout=20)
+                        if response.status_code == 200:
+                            response.encoding = self.encoding
+                            return response.text
+                    except Exception as final_error:
+                        logger.warning(f"最终请求失败: {final_error}")
             
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
@@ -552,16 +560,23 @@ class Po18Parser(BaseParser):
         try:
             import cloudscraper
             
-            # 创建cloudscraper会话
-            scraper = cloudscraper.create_scraper(
-                browser={
-                    'browser': 'chrome',
-                    'platform': 'windows',
-                    'mobile': False
-                },
-                ssl_verify=False,
-                delay=2
-            )
+            # 创建cloudscraper会话，直接使用requests作为fallback
+            try:
+                scraper = cloudscraper.create_scraper(
+                    browser={
+                        'browser': 'chrome',
+                        'platform': 'windows',
+                        'mobile': False
+                    },
+                    delay=2
+                )
+                # 禁用SSL验证
+                scraper.verify = False
+            except Exception as e:
+                logger.warning(f"cloudscraper创建失败，使用requests: {e}")
+                import requests
+                scraper = requests.Session()
+                scraper.verify = False
             
             # 设置请求头，适配GBK编码
             scraper.headers.update({
