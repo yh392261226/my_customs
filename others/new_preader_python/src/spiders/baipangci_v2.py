@@ -178,12 +178,17 @@ class BaipangciParser(BaseParser):
             'chapters': []
         }
         
-        # 使用基类方法按章节编号排序
-        self._sort_chapters_by_number(chapter_links)
-
-        
-        # 抓取所有章节内容
-        self._get_all_chapters(full_content_url, novel_content)
+        # 检查是否有章节列表，如果没有则认为是单章节小说
+        chapter_links = self._extract_chapter_links(content)
+        if chapter_links:
+            # 使用基类方法按章节编号排序
+            self._sort_chapters_by_number(chapter_links)
+            
+            # 抓取所有章节内容
+            self._get_all_chapters_from_links(chapter_links, novel_content)
+        else:
+            # 没有章节列表，使用单一内容页URL
+            self._get_all_chapters(full_content_url, novel_content)
         
         return novel_content
     
@@ -236,6 +241,101 @@ class BaipangciParser(BaseParser):
             # 获取下一章URL
             next_url = self._get_next_page_url(page_content, current_url)
             current_url = next_url
+            
+            # 章节间延迟
+            time.sleep(1)
+    
+    def _extract_chapter_links(self, content: str) -> List[Dict[str, str]]:
+        """
+        提取章节列表链接
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            章节链接列表，每个链接包含title和url
+        """
+        import re
+        
+        chapter_links = []
+        seen_urls = set()  # 用于去重
+        
+        # 查找章节链接模式
+        patterns = [
+            r'<dd><a href="([^"]+)">([^<]+)</a></dd>',
+            r'<a[^>]*class="bookchapter"[^>]*href="([^"]*)"[^>]*>([^<]+)</a>',
+            r'<a[^>]*href="([^"]*)"[^>]*>(第\d+\s*章[^<]*)</a>',
+        ]
+        
+        for pattern in patterns:
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            for match in matches:
+                if len(match) == 2:
+                    url, title = match
+                    # 清理标题
+                    title = re.sub(r'<[^>]+>', '', title).strip()
+                    
+                    # 确保URL是完整的
+                    if url.startswith('/'):
+                        url = f"{self.base_url}{url}"
+                    elif not url.startswith('http'):
+                        url = f"{self.base_url}/{url.lstrip('/')}"
+                    
+                    # 跳过非章节链接
+                    if 'javascript:' in url or '查看全部章节' in title:
+                        continue
+                    
+                    # 去重：如果URL已经见过，则跳过
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                        
+                    chapter_links.append({
+                        'title': title,
+                        'url': url
+                    })
+        
+        return chapter_links
+    
+    def _get_all_chapters_from_links(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:
+        """
+        从章节链接列表中抓取所有章节内容
+        
+        Args:
+            chapter_links: 章节链接列表
+            novel_content: 小说内容字典
+        """
+        import time
+        
+        for i, chapter in enumerate(chapter_links):
+            chapter_number = i + 1
+            title = chapter.get('title', f"第 {chapter_number} 章")
+            url = chapter.get('url')
+            
+            print(f"正在抓取第 {chapter_number} 章: {title} - {url}")
+            
+            # 获取页面内容
+            page_content = self._get_url_content(url)
+            
+            if page_content:
+                # 提取章节内容
+                chapter_content = self._extract_with_regex(page_content, self.content_reg)
+                
+                if chapter_content:
+                    # 执行爬取后处理函数
+                    processed_content = self._execute_after_crawler_funcs(chapter_content)
+                    
+                    novel_content['chapters'].append({
+                        'chapter_number': chapter_number,
+                        'title': title,
+                        'content': processed_content,
+                        'url': url
+                    })
+                    print(f"√ 第 {chapter_number} 章 [{title}] 抓取成功")
+                else:
+                    print(f"× 第 {chapter_number} 章内容提取失败")
+            else:
+                print(f"× 第 {chapter_number} 章页面抓取失败")
             
             # 章节间延迟
             time.sleep(1)
