@@ -8,6 +8,10 @@
 ######################################################
 export MYRUNTIME=$(cat $HOME/.myruntime)
 
+if [ "$(env | grep 'TERM_PROGRAM=')" = "TERM_PROGRAM=WarpTerminal" ]; then
+  clear
+fi
+
 curshell() {
     if [ -n "$ZSH_VERSION" ]; then
         echo "zsh"
