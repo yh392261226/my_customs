@@ -290,12 +290,54 @@ class BaipangciParser(BaseParser):
                         continue
                     seen_urls.add(url)
                         
+                    # 从URL中提取章节编号
+                    chapter_number = self._extract_chapter_number_from_url(url)
+                    
                     chapter_links.append({
                         'title': title,
-                        'url': url
+                        'url': url,
+                        'chapter_number': chapter_number  # 添加章节编号字段
                     })
         
+        # 按URL中的章节编号排序，确保顺序正确
+        chapter_links.sort(key=lambda x: x.get('chapter_number', 99999))
+        
         return chapter_links
+    
+    def _extract_chapter_number_from_url(self, url: str) -> int:
+        """
+        从URL中提取章节编号
+        
+        Args:
+            url: 章节URL
+            
+        Returns:
+            章节编号
+        """
+        import re
+        
+        # 尝试从URL中提取章节ID
+        # URL格式通常是: https://book.baipangci.com/read/102/16459.html
+        # 最后一个数字段可能是章节ID
+        id_patterns = [
+            r'/(\d+)\.html$',  # 末尾的数字ID
+            r'/read/[^/]+/(\d+)\.html',  # read路径中的数字ID
+        ]
+        
+        for pattern in id_patterns:
+            match = re.search(pattern, url)
+            if match:
+                try:
+                    return int(match.group(1))
+                except ValueError:
+                    continue
+        
+        # 如果无法从URL提取，尝试从标题提取
+        title = ""
+        if isinstance(url, dict) and 'title' in url:
+            title = url.get('title', '')
+        
+        return self._extract_chapter_number_from_title(title)
     
     def _get_all_chapters_from_links(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:
         """
@@ -307,8 +349,11 @@ class BaipangciParser(BaseParser):
         """
         import time
         
+        # 为了保持章节顺序的连续性，我们使用索引作为章节编号
+        # 但实际排序是基于URL中的章节ID
         for i, chapter in enumerate(chapter_links):
-            chapter_number = i + 1
+            # 优先使用URL中提取的章节编号，否则使用索引+1
+            chapter_number = chapter.get('chapter_number', i + 1)
             title = chapter.get('title', f"第 {chapter_number} 章")
             url = chapter.get('url')
             
