@@ -856,7 +856,7 @@
         "site_url": "网站网址",
         "parser": "解析器",
         "enter": "进入",
-
+        "books_count": "书籍数量",
         "np_action": "无权限执行此操作",
         "np_manage_booksites": "无权限管理书籍网站",
         "np_manage_proxy": "无权限管理代理设置",
@@ -1167,7 +1167,8 @@
         "goto_page_message": "请输入要跳转的页码：",
         "goto_page": "跳转页码",
         "page_number": "页码",
-        "novel_exists": "书籍已存在"
+        "novel_exists": "书籍已存在",
+        "only_retry_failed": "重试失败"
     },
     "note": {
         "save": "保存",

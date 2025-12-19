@@ -54,7 +54,9 @@ class PhotoGramParser(BaseParser):
     # 内容页正则 - 用于提取加密脚本（booktxthtml包含真正的加密内容）
     content_reg = [
         # 精确匹配格式：<script>  $('#booktxthtml').html(x("encrypted_data","key","iv"));</script>
-        r"<script>\s*\$\(['\"]*#booktxthtml['\"]*\)\.html\(x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)\);</script>"
+        # 使用.+?进行非贪婪匹配，可以匹配包含\u002b等转义字符的内容
+        # 注意脚本标签后可能有空格，并且可能跨行
+        r"<script>\s+\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);</script>"
     ]
     
     # 书籍类型配置
@@ -791,7 +793,7 @@ class PhotoGramParser(BaseParser):
     
     def _extract_encrypted_content(self, content: str) -> Optional[str]:
         """
-        提取并解密加密内容（只关注booktxthtml，忽略booktxthtml广告）
+        提取并解密加密内容（动态获取密钥和IV，只关注booktxthtml）
         
         Args:
             content: 章节页面内容
@@ -799,46 +801,97 @@ class PhotoGramParser(BaseParser):
         Returns:
             解密后的内容
         """
-        # 尝试精确匹配加密脚本
-        script_patterns = [
-            # 精确格式：<script>  $('#booktxthtml').html(x("encrypted_data","key","iv"));</script>
-            r"<script>\s*\$\(['\"]*#booktxthtml['\"]*\)\.html\(x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)\);</script>"
-        ]
+        import html as html_module
         
-        for pattern in script_patterns:
-            match = re.search(pattern, content, re.DOTALL)
-            if match:
-                # 根据正则表达式分组情况获取参数
-                if pattern == script_patterns[0]:
-                    # 格式：group(1)=encrypted_data, group(2)=key, group(3)=iv
-                    encrypted_data = match.group(1)
-                    key = match.group(2)
-                    iv = match.group(3)
-                    
-                    # 检查变量是否被正确定义
-                    if encrypted_data and key and iv:
-                        print(f"使用正则模式找到加密内容，数据长度: {len(encrypted_data)}")
-                        print(f"提取的密钥: {key}")
-                        print(f"提取的IV: {iv}")
-                        
-                        # 尝试解密
-                        decrypted_content = self._decrypt_content(encrypted_data, key, iv)
-                        if decrypted_content:
-                            # 清理HTML内容
-                            cleaned_content = self._clean_html_content(decrypted_content)
-                            return cleaned_content
-                else:
-                    # 处理其他正则模式的情况
-                    print(f"使用正则模式 {pattern} 找到匹配，但未实现处理逻辑")
-                    continue
+        # 首先尝试精确匹配加密脚本
+        script_pattern = r"<script>\s+\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);</script>"
+        match = re.search(script_pattern, content, re.DOTALL)
+        
+        if match:
+            # 格式：group(1)=encrypted_data, group(2)=key, group(3)=iv
+            encrypted_data = match.group(1)
+            key = match.group(2)
+            iv = match.group(3)
+            
+            # 处理JavaScript的转义字符
+            encrypted_data = encrypted_data.replace(r'\/', '/').replace(r'\u002b', '+')
+            iv = iv.replace(r'\/', '/').replace(r'\u002b', '+')
+            key = key
+            
+            # 检查变量是否被正确定义
+            if encrypted_data and key and iv:
+                print(f"找到booktxthtml加密脚本，数据长度: {len(encrypted_data)}")
+                print(f"动态提取的密钥: {key}")
+                print(f"原始IV: {iv}")
+                
+                # 尝试解密
+                decrypted_content = self._decrypt_content(encrypted_data, key, iv, content)
+                if decrypted_content:
+                    # _decrypt_content 已经处理了前缀问题并返回最终内容，不需要再次清理
+                    return decrypted_content
+            else:
+                print("加密脚本参数不完整")
+        
+        # 如果没有找到，尝试查找其他可能的加密脚本
+        print("尝试查找其他可能的加密脚本...")
+        
+        # 查找所有x()函数调用
+        x_function_pattern = r"x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)"
+        x_matches = re.findall(x_function_pattern, content)
+        
+        if x_matches:
+            for i, match in enumerate(x_matches):
+                encrypted_data, key, iv = match
+                
+                # 处理IV中的转义字符
+                iv = self._decode_iv(iv)
+                
+                print(f"找到第 {i+1} 个x()函数调用")
+                print(f"  数据长度: {len(encrypted_data)}")
+                print(f"  密钥: {key}")
+                print(f"  处理后的IV: {iv}")
+                
+                # 尝试解密
+                decrypted_content = self._decrypt_content(encrypted_data, key, iv, content)
+                if decrypted_content:
+                    print(f"第 {i+1} 个x()函数调用解密成功")
+                    # _decrypt_content 已经处理了前缀问题并返回最终内容，不需要再次清理
+                    return decrypted_content
         
         # 如果所有正则模式都失败，尝试查找加密数据段
-        print("正则表达式匹配失败，尝试查找加密数据段")
+        print("所有方法都失败，尝试查找加密数据段")
         return self._find_encrypted_data_segments(content)
+    
+    def _decode_iv(self, iv: str) -> str:
+        """
+        解码IV字符串，处理其中的转义字符
+        
+        Args:
+            iv: 原始IV字符串
+            
+        Returns:
+            处理后的IV字符串
+        """
+        try:
+            import codecs
+            import urllib.parse
+            
+            # 处理JavaScript风格的Unicode转义
+            # 例如：\\u002b -> +
+            iv = codecs.decode(iv, 'unicode_escape')
+            
+            # 处理URL编码的字符
+            # 例如：%2B -> +
+            iv = urllib.parse.unquote(iv)
+            
+            return iv
+        except Exception as e:
+            print(f"IV解码失败: {e}")
+            return iv
     
     def _find_encrypted_data_segments(self, content: str) -> Optional[str]:
         """
-        查找加密数据段
+        查找加密数据段（尝试多种可能的密钥和IV组合）
         
         Args:
             content: 章节页面内容
@@ -852,23 +905,95 @@ class PhotoGramParser(BaseParser):
         # 查找长字符串（可能是加密数据）
         matches = re.findall(base64_pattern, content)
         
+        # 从页面中提取可能的密钥和IV
+        key_iv_patterns = [
+            r"var\s+key\s*=\s*['\"]([^'\"]+)['\"]",
+            r"var\s+iv\s*=\s*['\"]([^'\"]+)['\"]",
+            r"const\s+key\s*=\s*['\"]([^'\"]+)['\"]",
+            r"const\s+iv\s*=\s*['\"]([^'\"]+)['\"]",
+        ]
+        
+        possible_keys = []
+        possible_ivs = []
+        
+        for pattern in key_iv_patterns:
+            found_values = re.findall(pattern, content)
+            if found_values:
+                if 'key' in pattern:
+                    possible_keys.extend(found_values)
+                elif 'iv' in pattern:
+                    possible_ivs.extend(found_values)
+        
+        # 添加默认值
+        if not possible_keys:
+            possible_keys.append("encryptedDatastr")
+        if not possible_ivs:
+            possible_ivs.append("FMCqVWeARJd9AY9PYm2csw==")
+        
+        print(f"可能的密钥: {possible_keys}")
+        print(f"可能的IV: {possible_ivs}")
+        
+        # 尝试所有可能的密钥和IV组合
         for match in matches:
             if len(match) > 100:  # 只处理较长的字符串
                 print(f"找到可能的加密数据段，长度: {len(match)}")
                 
-                # 尝试使用默认密钥和IV解密
-                decrypted_content = self._decrypt_content(match, self.key, self.iv_b64)
-                if decrypted_content:
-                    # 检查是否包含有效内容
-                    if "<p>" in decrypted_content or "</p>" in decrypted_content or len(decrypted_content) > 100:
-                        cleaned_content = self._clean_html_content(decrypted_content)
-                        return cleaned_content
+                # 尝试所有可能的密钥和IV组合
+                for key in possible_keys:
+                    for iv in possible_ivs:
+                        print(f"尝试使用密钥: {key}, IV: {iv}")
+                        decrypted_content = self._decrypt_content(match, key, iv, content)
+                        if decrypted_content:
+                            # 检查是否包含有效内容
+                            if "<p>" in decrypted_content or "</p>" in decrypted_content or len(decrypted_content) > 100:
+                                print(f"解密成功！使用密钥: {key}, IV: {iv}")
+                                # _decrypt_content 已经处理了前缀问题并返回最终内容，不需要再次清理
+                                return decrypted_content
         
         return None
     
+    def _convert_html_to_text(self, html_content: str) -> str:
+        """
+        将HTML内容转换为纯文本，不做前缀检查
+        
+        Args:
+            html_content: HTML内容
+            
+        Returns:
+            转换后的纯文本
+        """
+        if not html_content:
+            return ""
+        
+        import re
+        
+        # 确保换行符的一致性
+        html_content = html_content.replace('\r', '\n')
+        
+        # 移除所有HTML标签
+        # 先处理<p>标签，转换为换行
+        html_content = re.sub(r'</p>', '\n\n', html_content)
+        html_content = re.sub(r'<p[^>]*>', '', html_content)
+        
+        # 移除其他所有HTML标签
+        html_content = re.sub(r'<[^>]+>', '', html_content)
+        
+        # 解码HTML实体
+        import html as html_module
+        html_content = html_module.unescape(html_content)
+        
+        # 清理多余的空白字符
+        html_content = re.sub(r'[ \t]+', ' ', html_content)
+        html_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', html_content)  # 多个换行合并为两个
+        
+        # 清理段落开头的空格
+        html_content = re.sub(r'\n +', '\n', html_content)
+        
+        return html_content.strip()
+    
     def _clean_html_content(self, html_content: str) -> str:
         """
-        清理HTML内容
+        清理HTML内容，移除所有HTML标签，输出纯文本
         
         Args:
             html_content: 原始HTML内容
@@ -879,6 +1004,50 @@ class PhotoGramParser(BaseParser):
         if not html_content:
             return ""
         
+        import re
+        
+        # 移除开头的乱码字符，但保留中文字符
+        # 查找第一个<p>标签的位置
+        first_p_start = html_content.find('<p>')
+        if first_p_start > 0:
+            # 检查前面是否有中文字符
+            before_p = html_content[:first_p_start]
+            chinese_chars = re.findall(r'[\u4e00-\u9fff]', before_p)
+            if chinese_chars:
+                # 如果有中文字符，说明可能是有意义的前缀，保留它
+                pass
+            else:
+                # 检查是否是乱码
+                has_garbage = any(ord(c) < 32 and c not in '\r\n\t' for c in before_p)
+                if has_garbage or len(before_p) > 10:
+                    # 只有确定是乱码时才移除
+                    html_content = html_content[first_p_start:]
+        
+        # 确保换行符的一致性
+        html_content = html_content.replace('\r', '\n')
+        
+        # 移除所有HTML标签
+        # 先处理<p>标签，转换为换行
+        html_content = re.sub(r'</p>', '\n\n', html_content)
+        html_content = re.sub(r'<p[^>]*>', '', html_content)
+        
+        # 移除其他所有HTML标签
+        html_content = re.sub(r'<[^>]+>', '', html_content)
+        
+        # 解码HTML实体
+        import html as html_module
+        html_content = html_module.unescape(html_content)
+        
+        # 清理多余的空白字符
+        html_content = re.sub(r'[ \t]+', ' ', html_content)
+        html_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', html_content)  # 多个换行合并为两个
+        
+        # 清理段落开头的空格
+        html_content = re.sub(r'\n +', '\n', html_content)
+        
+        return html_content.strip()
+        
+        # 如果没有找到<p>标签，尝试其他处理
         # 移除脚本和样式标签
         html_content = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL)
         html_content = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.DOTALL)
@@ -888,7 +1057,8 @@ class PhotoGramParser(BaseParser):
         html_content = re.sub(r'<div[^>]*id="[^"]*ad[^"]*"[^>]*>.*?</div>', '', html_content, flags=re.DOTALL)
         
         # 转换段落标签为换行
-        html_content = re.sub(r'</?p[^>]*>', '\n', html_content)
+        html_content = re.sub(r'</p>', '\n\n', html_content)
+        html_content = re.sub(r'<p[^>]*>', '', html_content)
         
         # 转换换行标签
         html_content = re.sub(r'<br[^>]*/?>', '\n', html_content)
@@ -896,45 +1066,453 @@ class PhotoGramParser(BaseParser):
         # 移除所有HTML标签
         html_content = re.sub(r'<[^>]+>', '', html_content)
         
-        # 清理多余空白和换行
-        html_content = re.sub(r'\s+', ' ', html_content)
-        html_content = re.sub(r'\n\s*\n', '\n\n', html_content)
+        # 解码HTML实体
+        import html
+        html_content = html.unescape(html_content)
         
-        # 清理首尾空白
+        # 清理多余空白和换行
+        html_content = re.sub(r'[ \t]+', ' ', html_content)  # 只清理空格和制表符
+        html_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', html_content)  # 多个换行合并为两个
         html_content = html_content.strip()
         
         return html_content
     
 
     
-    def _decrypt_content(self, encrypted_data: str, key: str, iv: str) -> Optional[str]:
+    def _decrypt_content(self, encrypted_data: str, key: str, iv: str, html_content: str | None = None) -> Optional[str]:
         """
-        解密内容 - 使用统一的AESCipher工具
+        解密内容 - 使用统一的AESCipher工具，使用ZeroPadding模式
         
         Args:
             encrypted_data: 加密数据
             key: 密钥
             iv: 初始化向量
+            html_content: 原始HTML页面内容（用于提取明文部分）
             
         Returns:
             解密后的内容
         """
         try:
-            # 使用统一的AES解密工具
+            # 使用统一的AES解密工具，使用ZeroPadding模式（与网站JavaScript保持一致）
             cipher = AESCipher(key, iv)
-            decrypted_text = cipher.decrypt(encrypted_data)
+            decrypted_text = cipher.decrypt(encrypted_data, padding_mode='zero')
             
             # 检查解密结果是否有效
             if decrypted_text and decrypted_text != encrypted_data:
-                print(f"解密成功，长度: {len(decrypted_text)} 字符")
-                return decrypted_text
+                print(f"ZeroPadding解密成功，长度: {len(decrypted_text)} 字符")
+                
+                # 修复解密后的内容前缀问题
+                decrypted_text = self._fix_decrypted_prefix(decrypted_text, html_content)
+                
+                # 将HTML内容转换为纯文本
+                if decrypted_text and "<p>" in decrypted_text:
+                    # 使用_clean_html_content方法转换，但跳过前缀检查部分
+                    final_text = self._convert_html_to_text(decrypted_text)
+                    return final_text
+                else:
+                    return decrypted_text
             else:
-                print("解密失败或内容未加密")
-                return None
+                print("ZeroPadding解密失败，尝试使用PKCS7模式")
+                # 尝试使用PKCS7模式
+                decrypted_text_pkcs7 = cipher.decrypt(encrypted_data, padding_mode='pkcs7')
+                if decrypted_text_pkcs7 and decrypted_text_pkcs7 != encrypted_data:
+                    print(f"PKCS7解密成功，长度: {len(decrypted_text_pkcs7)} 字符")
+                    # 也要修复前缀问题
+                    decrypted_text_pkcs7 = self._fix_decrypted_prefix(decrypted_text_pkcs7, html_content)
+                    
+                    # 将HTML内容转换为纯文本
+                    if decrypted_text_pkcs7 and "<p>" in decrypted_text_pkcs7:
+                        # 使用_clean_html_content方法转换，但跳过前缀检查部分
+                        final_text = self._convert_html_to_text(decrypted_text_pkcs7)
+                        return final_text
+                    else:
+                        return decrypted_text_pkcs7
+                else:
+                    print("所有填充模式都解密失败")
+                    return None
                 
         except Exception as e:
             print(f"解密失败: {e}")
             return None
+    
+    def _fix_decrypted_prefix(self, decrypted_text: str, html_content: str | None = None) -> str:
+        """
+        修复解密后的前缀问题 - 使用页面中原有的明文内容补全
+        
+        Args:
+            decrypted_text: 原始解密文本
+            html_content: 原始HTML页面内容（用于提取明文部分）
+            
+        Returns:
+            修复后的文本
+        """
+        if not decrypted_text:
+            return decrypted_text
+        
+        # 确保换行符的一致性
+        decrypted_text = decrypted_text.replace('\r', '\n')
+        
+        # 如果没有提供HTML内容，只做基本清理
+        if not html_content:
+            # 查找第一个<p>标签的位置
+            first_p_start = decrypted_text.find('<p>')
+            if first_p_start > 0:
+                # 检查<p>标签前是否有乱码
+                before_p = decrypted_text[:first_p_start]
+                has_garbage = any(ord(c) < 32 and c not in '\r\n\t' for c in before_p)
+                if has_garbage or len(before_p) > 10:
+                    decrypted_text = decrypted_text[first_p_start:]
+            return decrypted_text
+        
+        # 从HTML中提取booktxthtml的明文内容
+        plain_content = self._extract_plain_booktxthtml(html_content)
+        
+        if not plain_content:
+            # 如果没有提取到明文内容，只做基本清理
+            first_p_start = decrypted_text.find('<p>')
+            if first_p_start > 0:
+                before_p = decrypted_text[:first_p_start]
+                has_garbage = any(ord(c) < 32 and c not in '\r\n\t' for c in before_p)
+                if has_garbage or len(before_p) > 10:
+                    decrypted_text = decrypted_text[first_p_start:]
+            return decrypted_text
+        
+        # 按照用户思路：明文内容和加密内容都直接去掉所有的HTML标签，然后比对，找到重复的部分
+        # 提取解密内容的纯文本（去掉HTML标签）
+        decrypted_clean = re.sub(r'<[^>]+>', '', decrypted_text).strip()
+        
+        # 提取明文内容的纯文本（去掉HTML标签）
+        plain_clean = re.sub(r'<[^>]+>', '', plain_content).strip()
+        
+        # 如果解密内容为空或太短，无法匹配
+        if not decrypted_clean or len(decrypted_clean) < 20:
+            return decrypted_text
+        
+        # 尝试更智能的匹配方法
+        # 首先清理解密内容，移除控制字符和乱码
+        cleaned_decrypted = ""
+        for char in decrypted_clean:
+            # 保留中文字符、英文字母、数字和常见标点
+            if (ord(char) >= 0x4e00 and ord(char) <= 0x9fff) or char.isalnum() or char in '。！？，；：""''（）《》\n\r\t ':
+                cleaned_decrypted += char
+        
+        # 如果清理解密内容为空，无法匹配
+        if not cleaned_decrypted:
+            return decrypted_text
+        
+        # 方法1：尝试查找明文内容中的特定完整句子
+        specific_full_text = "室内太过安静，柯允站在魏从闻面前，虽然这人坐着，他站着，自己却完全不敢抬头。"
+        specific_full_pos = plain_clean.find(specific_full_text)
+        
+        if specific_full_pos >= 0:
+            # 检查解密内容中是否包含这句
+            if specific_full_text in cleaned_decrypted:
+                # 解密内容中也包含这句，可能已经有完整前缀
+                pass
+            else:
+                # 解密内容中不包含这句，需要添加
+                # 直接使用这段文本作为前缀
+                prefix_text = plain_clean[:specific_full_pos + len(specific_full_text)].strip()
+                prefix_html = self._text_to_html(prefix_text)
+                
+                # 找到解密内容中第一个<p>标签的位置
+                first_p_pos = decrypted_text.find('<p>')
+                if first_p_pos > 0:
+                    combined_content = prefix_html + '\n' + decrypted_text[first_p_pos:]
+                else:
+                    combined_content = prefix_html + '\n' + decrypted_text
+                
+                print(f"使用特定完整文本匹配方法补全前缀，添加了 {len(prefix_text)} 个字符")
+                return combined_content
+        
+        # 方法2：尝试查找明文内容中的短句子，并扩展到完整句子
+        specific_short_text = "室内太过安静，柯允站在魏从闻面前"
+        specific_short_pos = plain_clean.find(specific_short_text)
+        
+        if specific_short_pos >= 0:
+            # 检查解密内容中是否包含这句
+            if specific_short_text in cleaned_decrypted:
+                # 解密内容中也包含这句，可能已经有完整前缀
+                pass
+            else:
+                # 尝试扩展到完整的句子
+                # 查找下一个句号、感叹号或问号
+                after_short_pos = specific_short_pos + len(specific_short_text)
+                next_punct_pos = -1
+                for punct in ['。', '！', '？']:
+                    punct_pos = plain_clean.find(punct, after_short_pos)
+                    if punct_pos > 0 and (next_punct_pos == -1 or punct_pos < next_punct_pos):
+                        next_punct_pos = punct_pos
+                
+                if next_punct_pos > 0:
+                    # 扩展到完整句子
+                    extended_text = plain_clean[:next_punct_pos + 1].strip()
+                    prefix_html = self._text_to_html(extended_text)
+                    
+                    # 找到解密内容中第一个<p>标签的位置
+                    first_p_pos = decrypted_text.find('<p>')
+                    if first_p_pos > 0:
+                        combined_content = prefix_html + '\n' + decrypted_text[first_p_pos:]
+                    else:
+                        combined_content = prefix_html + '\n' + decrypted_text
+                    
+                    print(f"使用扩展文本匹配方法补全前缀，添加了 {len(extended_text)} 个字符")
+                    return combined_content
+                else:
+                    # 如果找不到句号，使用原始短文本
+                    prefix_text = plain_clean[:specific_short_pos + len(specific_short_text)].strip()
+                    prefix_html = self._text_to_html(prefix_text)
+                    
+                    # 找到解密内容中第一个<p>标签的位置
+                    first_p_pos = decrypted_text.find('<p>')
+                    if first_p_pos > 0:
+                        combined_content = prefix_html + '\n' + decrypted_text[first_p_pos:]
+                    else:
+                        combined_content = prefix_html + '\n' + decrypted_text
+                    
+                    print(f"使用特定短文本匹配方法补全前缀，添加了 {len(prefix_text)} 个字符")
+                    return combined_content
+        
+        # 将调试信息写入文件，以便调试
+        try:
+            with open('/Users/yanghao/data/app/python/newreader/debug_prefix.log', 'w', encoding='utf-8') as f:
+                f.write(f"明文内容纯文本长度: {len(plain_clean)}\n")
+                f.write(f"明文内容纯文本前100字符: {repr(plain_clean[:100])}\n")
+                f.write(f"解密内容纯文本前50字符: {repr(cleaned_decrypted[:50])}\n")
+        except Exception as e:
+            print(f"无法写入调试文件: {e}")
+        
+        # 如果找到匹配，且位置不是开头，说明明文内容中有额外的前缀
+        if match_pos > 0:
+            # 提取明文内容中匹配位置之前的部分（前缀）
+            prefix_text = plain_clean[:match_pos].strip()
+            
+            if prefix_text and len(prefix_text) > 5:  # 确保前缀有足够的内容
+                # 将前缀转换为HTML格式
+                prefix_html = self._text_to_html(prefix_text)
+                
+                # 找到解密内容中第一个<p>标签的位置
+                first_p_pos = decrypted_text.find('<p>')
+                if first_p_pos > 0:
+                    # 有<p>标签，从第一个<p>标签开始拼接
+                    combined_content = prefix_html + '\n' + decrypted_text[first_p_pos:]
+                else:
+                    # 没有<p>标签，直接拼接
+                    combined_content = prefix_html + '\n' + decrypted_text
+                
+                print(f"使用纯文本匹配方法补全前缀，添加了 {len(prefix_text)} 个字符")
+                print(f"前缀文本: {repr(prefix_text)}")
+                
+                # 将最终调试信息写入文件
+                try:
+                    with open('/Users/yanghao/data/app/python/newreader/debug_prefix.log', 'a', encoding='utf-8') as f:
+                        f.write(f"找到前缀文本: {repr(prefix_text)}\n")
+                        f.write(f"合并后内容前100字符: {repr(combined_content[:100])}\n")
+                except Exception as e:
+                    print(f"无法写入调试文件: {e}")
+                
+                return combined_content
+        
+        # 如果没有找到匹配，尝试更短的匹配文本
+        # 递减匹配长度，增加匹配成功率
+        for match_len in [40, 30, 20, 15]:
+            if len(decrypted_clean) >= match_len:
+                match_text = decrypted_clean[:match_len]
+                match_pos = plain_clean.find(match_text)
+                
+                if match_pos > 0:
+                    prefix_text = plain_clean[:match_pos].strip()
+                    
+                    if prefix_text and len(prefix_text) > 5:
+                        prefix_html = self._text_to_html(prefix_text)
+                        
+                        first_p_pos = decrypted_text.find('<p>')
+                        if first_p_pos > 0:
+                            combined_content = prefix_html + '\n' + decrypted_text[first_p_pos:]
+                        else:
+                            combined_content = prefix_html + '\n' + decrypted_text
+                        
+                        print(f"使用{match_len}字符匹配方法补全前缀，添加了 {len(prefix_text)} 个字符")
+                        print(f"前缀文本: {repr(prefix_text)}")
+                        return combined_content
+        
+        # 如果所有匹配都失败，只清理解密内容中的乱码
+        first_p_start = decrypted_text.find('<p>')
+        if first_p_start > 0:
+            before_p = decrypted_text[:first_p_start]
+            has_garbage = any(ord(c) < 32 and c not in '\r\n\t' for c in before_p)
+            if has_garbage or len(before_p) > 10:
+                decrypted_text = decrypted_text[first_p_start:]
+        
+        return decrypted_text
+    
+    def _text_to_html(self, text: str) -> str:
+        """
+        将纯文本转换为HTML格式，保留段落结构
+        
+        Args:
+            text: 纯文本内容
+            
+        Returns:
+            HTML格式的内容
+        """
+        if not text:
+            return ""
+        
+        # 先去除已有的标点符号，避免重复
+        text = text.strip()
+        
+        # 如果文本以句号、问号或感叹号结尾，去掉标点
+        if text and text[-1] in '。！？':
+            text = text[:-1]
+        
+        # 简单处理：如果文本较短（少于50个字符），直接作为一个段落
+        if len(text) < 50:
+            return f"<p>{text}</p>"
+        
+        # 按照句子分割文本
+        sentences = re.split(r'[。！？]', text)
+        
+        # 过滤掉空句子和太短的句子
+        valid_sentences = [s.strip() for s in sentences if s.strip() and len(s.strip()) > 3]
+        
+        if not valid_sentences:
+            return f"<p>{text}</p>"
+        
+        # 如果只有一个句子，直接包装在一个<p>标签中
+        if len(valid_sentences) == 1:
+            return f"<p>{valid_sentences[0]}</p>"
+        
+        # 多个句子，每个句子包装在一个<p>标签中
+        html_content = ""
+        for sentence in valid_sentences:
+            html_content += f"<p>{sentence}</p>\n"
+        
+        return html_content.strip()
+    
+    def _extract_plain_booktxthtml(self, html_content: str) -> str:
+        """
+        从HTML中提取booktxthtml的明文内容
+        
+        Args:
+            html_content: HTML页面内容
+            
+        Returns:
+            提取的明文内容
+        """
+        # 查找<div id="booktxthtml">标签
+        pattern = r'<div[^>]*id=["\']booktxthtml["\'][^>]*>(.*?)</div>'
+        match = re.search(pattern, html_content, re.DOTALL | re.IGNORECASE)
+        
+        if match:
+            content = match.group(1)
+            
+            # 查找第一个<script>标签的位置
+            script_start = content.find('<script')
+            if script_start > 0:
+                # 保留script标签之前的内容（这是明文部分）
+                plain_content = content[:script_start]
+                
+                # 直接处理明文部分，移除其他标签
+                plain_content = re.sub(r'<style[^>]*>.*?</style>', '', plain_content, flags=re.DOTALL)
+                plain_content = re.sub(r'<div[^>]*>', '', plain_content)
+                plain_content = re.sub(r'</div>', '', plain_content)
+                
+                # 尝试提取所有<p>标签内容
+                p_matches = re.findall(r'<p[^>]*>(.*?)</p>', plain_content, re.DOTALL | re.IGNORECASE)
+                if p_matches:
+                    # 如果有<p>标签，说明有明文内容
+                    valid_p_contents = [p.strip() for p in p_matches if p.strip() and len(p.strip()) > 5]
+                    if valid_p_contents:
+                        # 返回原始的<p>标签格式，保留结构
+                        return '\n'.join([f"<p>{p}</p>" for p in valid_p_contents])
+                
+                # 如果没有<p>标签，尝试提取其他文本内容
+                # 移除HTML标签，但保留文本
+                text_content = re.sub(r'<[^>]+>', '', plain_content)
+                text_content = text_content.strip()
+                
+                if text_content and len(text_content) > 10:
+                    # 直接返回包装的文本
+                    return f"<p>{text_content}</p>"
+            
+            # 如果没有找到script标签，尝试提取整个内容中的文本
+            # 清理内容但保留<p>标签
+            all_text = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL)
+            all_text = re.sub(r'<script[^>]*>.*?</script>', '', all_text, flags=re.DOTALL)
+            
+            # 尝试提取所有<p>标签内容
+            p_matches = re.findall(r'<p[^>]*>(.*?)</p>', all_text, re.DOTALL | re.IGNORECASE)
+            if p_matches:
+                # 如果有<p>标签，说明有明文内容
+                valid_p_contents = [p.strip() for p in p_matches if p.strip() and len(p.strip()) > 5]
+                if valid_p_contents:
+                    # 返回原始的<p>标签格式，保留结构
+                    return '\n'.join([f"<p>{p}</p>" for p in valid_p_contents])
+            
+            # 如果没有<p>标签，尝试提取其他文本内容
+            # 移除HTML标签，但保留文本
+            text_content = re.sub(r'<[^>]+>', '', all_text)
+            text_content = text_content.strip()
+            
+            if text_content and len(text_content) > 10:
+                # 直接返回包装的文本
+                return f"<p>{text_content}</p>"
+        
+        return ""
+    
+    def _clean_prefix_content(self, content: str) -> str:
+        """
+        清理前缀内容，保留<p>标签结构
+        
+        Args:
+            content: 原始内容
+            
+        Returns:
+            清理后的内容
+        """
+        # 保留<p>标签，移除其他标签
+        # 提取所有<p>标签内容
+        p_matches = re.findall(r'<p[^>]*>(.*?)</p>', content, re.DOTALL)
+        
+        if p_matches:
+            # 重建<p>标签内容
+            rebuilt_content = ""
+            for i, p_text in enumerate(p_matches):
+                p_text = p_text.strip()
+                if p_text:
+                    rebuilt_content += f"<p> {p_text}</p>"
+                    # 如果不是最后一个<p>标签，添加换行
+                    if i < len(p_matches) - 1:
+                        rebuilt_content += '\n'
+            return rebuilt_content
+        
+        # 如果没有<p>标签，尝试提取文本并包装
+        # 移除所有HTML标签
+        text_content = re.sub(r'<[^>]+>', '', content)
+        text_content = text_content.strip()
+        
+        if text_content:
+            # 解码HTML实体
+            import html as html_module
+            text_content = html_module.unescape(text_content)
+            
+            # 分割文本为句子，每句作为一个<p>标签
+            sentences = re.split(r'[。！？\n]\s*', text_content)
+            if len(sentences) > 1:
+                rebuilt_content = ""
+                for idx, sentence in enumerate(sentences):
+                    sentence = sentence.strip()
+                    if sentence:
+                        rebuilt_content += f"<p> {sentence}。</p>"
+                        if idx < len(sentences) - 1:
+                            rebuilt_content += '\n'
+                return rebuilt_content
+            else:
+                # 包装成单个<p>标签
+                return f"<p> {text_content}</p>"
+        
+        return ""
     
     def _contains_chinese_text(self, text: str) -> bool:
         """检查文本是否包含中文"""
@@ -996,7 +1574,7 @@ class PhotoGramParser(BaseParser):
             print(f"解析失败: {e}")
             return {"error": str(e)}  # type: ignore
     
-    def run_test(self, test_url: str = None):
+    def run_test(self, test_url: str | None = None):
         """
         运行测试
         

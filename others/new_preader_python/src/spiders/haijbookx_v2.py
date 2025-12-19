@@ -151,7 +151,7 @@ class HaijBookxParser(BaseParser):
         Returns:
             小说URL
         """
-        return f"{self.base_url}/?bookcv/{novel_id}.html"
+        return f"{self.base_url}/?info/{novel_id}.html"
     
     def _detect_book_type(self, content: str) -> str:
         """
@@ -641,23 +641,23 @@ class HaijBookxParser(BaseParser):
                                 session.mount('https://', https_pool)
                     except Exception as pool_error:
                         logger.debug(f"无法创建自定义PoolManager: {pool_error}")
+            
+            except Exception as e:
+                logger.warning(f"cloudscraper创建失败，使用requests: {e}")
+                import requests
+                import ssl
+                import urllib3
+                from requests.adapters import HTTPAdapter
                 
-        except Exception as e:
-            logger.warning(f"cloudscraper创建失败，使用requests: {e}")
-            import requests
-            import ssl
-            import urllib3
-            from requests.adapters import HTTPAdapter
-            
-            # 禁用SSL警告
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            
-            scraper = requests.Session()
-            
-            # 设置SSL验证 - 确保正确禁用验证
-            scraper.verify = False
-            
-            # 也需要禁用check_hostname
+                # 禁用SSL警告
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                
+                scraper = requests.Session()
+                
+                # 设置SSL验证 - 确保正确禁用验证
+                scraper.verify = False
+                
+                # 也需要禁用check_hostname
             try:
                 # 创建一个不验证的SSL上下文
                 ssl_context = ssl.create_default_context()

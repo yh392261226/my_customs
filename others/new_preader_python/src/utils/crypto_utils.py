@@ -5,6 +5,7 @@ AES解密工具类 - 用于处理加密的小说内容
 import base64
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from Crypto.Util.Padding import pad
 import re
 
 class AESCipher:
@@ -41,12 +42,13 @@ class AESCipher:
         else:
             return key
     
-    def decrypt(self, encrypted_text: str) -> str:
+    def decrypt(self, encrypted_text: str, padding_mode='pkcs7') -> str:
         """
         AES解密方法
         
         Args:
             encrypted_text: 加密的Base64编码文本
+            padding_mode: 填充模式，'pkcs7'(默认) 或 'zero'
             
         Returns:
             解密后的文本
@@ -55,17 +57,47 @@ class AESCipher:
             # Base64解码
             encrypted_bytes = base64.b64decode(encrypted_text)
             
+            # 检查数据长度是否是16的倍数（AES块大小）
+            if len(encrypted_bytes) % 16 != 0:
+                print(f"警告：加密数据长度({len(encrypted_bytes)})不是16的倍数")
+                return encrypted_text
+            
             # 创建AES解密器
             cipher = AES.new(self.key, AES.MODE_CBC, self.iv)
             
             # 解密
             decrypted_bytes = cipher.decrypt(encrypted_bytes)
             
-            # 去除填充
-            unpadded_bytes = unpad(decrypted_bytes, AES.block_size)
+            # 根据填充模式去除填充
+            if padding_mode == 'zero':
+                # ZeroPadding: 移除末尾的零字节，但保留中间的零字节
+                # 找到最后一个非零字节的位置
+                last_nonzero = len(decrypted_bytes) - 1
+                while last_nonzero >= 0 and decrypted_bytes[last_nonzero] == 0:
+                    last_nonzero -= 1
+                unpadded_bytes = decrypted_bytes[:last_nonzero + 1]
+            else:
+                # PKCS7: 使用标准unpad
+                try:
+                    unpadded_bytes = unpad(decrypted_bytes, AES.block_size)
+                except Exception as e:
+                    print(f"PKCS7 unpad失败: {e}，尝试移除末尾的填充字节")
+                    # 手动移除PKCS7填充
+                    if len(decrypted_bytes) > 0:
+                        padding_length = decrypted_bytes[-1]
+                        if 1 <= padding_length <= 16:
+                            unpadded_bytes = decrypted_bytes[:-padding_length]
+                        else:
+                            unpadded_bytes = decrypted_bytes
+                    else:
+                        unpadded_bytes = decrypted_bytes
             
-            # 转换为字符串
-            return unpadded_bytes.decode('utf-8', errors='ignore')
+            # 转换为字符串，使用replace处理无效字符
+            try:
+                return unpadded_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                # 如果UTF-8解码失败，尝试使用replace模式
+                return unpadded_bytes.decode('utf-8', errors='replace')
             
         except Exception as e:
             # 如果解密失败，返回原始文本
