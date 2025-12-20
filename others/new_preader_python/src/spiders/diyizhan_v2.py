@@ -109,12 +109,33 @@ class DiyizhanParser(BaseParser):
         chapter_all_match = re.search(chapter_all_pattern, content, re.DOTALL)
         if chapter_all_match:
             chapter_all_content = chapter_all_match.group(1)
-            pattern = r'<dd><a[^>]*href="([^"]*)"[^>]*title="([^"]*)"[^>]*>([^<]*)</a></dd>'
-            matches = re.findall(pattern, chapter_all_content, re.DOTALL)
+            # 匹配双引号和单引号的href和title
+            patterns = [
+                r'<dd><a[^>]*href="([^"]*)"[^>]*title="([^"]*)"[^>]*>([^<]*)</a></dd>',
+                r"<dd><a[^>]*href='([^']*)'[^>]*title='([^']*)'[^>]*>([^<]*)</a></dd>",
+                r'<dd><a[^>]*href="([^"]*)"[^>]*title=\'([^\']*)\'[^>]*>([^<]*)</a></dd>',
+                r"<dd><a[^>]*href='([^']*)'[^>]*title=\"([^\"]*)\"[^>]*>([^<]*)</a></dd>"
+            ]
+            
+            matches = []
+            for pattern in patterns:
+                found_matches = re.findall(pattern, chapter_all_content, re.DOTALL)
+                if found_matches:
+                    matches.extend(found_matches)
         else:
             # 如果没有找到全部章节区域，尝试从页面其他区域提取
-            pattern = r'<dd><a[^>]*href="([^"]*)"[^>]*title="([^"]*)"[^>]*>([^<]*)</a></dd>'
-            matches = re.findall(pattern, content, re.DOTALL)
+            patterns = [
+                r'<dd><a[^>]*href="([^"]*)"[^>]*title="([^"]*)"[^>]*>([^<]*)</a></dd>',
+                r"<dd><a[^>]*href='([^']*)'[^>]*title='([^']*)'[^>]*>([^<]*)</a></dd>",
+                r'<dd><a[^>]*href="([^"]*)"[^>]*title=\'([^\']*)\'[^>]*>([^<]*)</a></dd>',
+                r"<dd><a[^>]*href='([^']*)'[^>]*title=\"([^\"]*)\"[^>]*>([^<]*)</a></dd>"
+            ]
+            
+            matches = []
+            for pattern in patterns:
+                found_matches = re.findall(pattern, content, re.DOTALL)
+                if found_matches:
+                    matches.extend(found_matches)
         
         novel_id = self._extract_novel_id_from_url(content)
         
