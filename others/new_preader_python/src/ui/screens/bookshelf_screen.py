@@ -207,12 +207,14 @@ class BookshelfScreen(Screen[None]):
                             id="sort-key-radio",
                             options=sort_key_options, 
                             prompt=get_global_i18n().t("sort.sort_by"),
+                            value="last_read",
                             classes="bookshelf-sort-key"
                         ),
                         Select(
                             id="sort-order-radio",
                             options=sort_order_options,
                             prompt=get_global_i18n().t("sort.order"),
+                            value="desc",
                             classes="bookshelf-sort-order"
                         ),
                         # 搜索
@@ -1075,9 +1077,9 @@ class BookshelfScreen(Screen[None]):
             
             # 获取显示文本
             sort_key_display = ""
-            for option in sort_key_select.options:
-                if option.value == sort_key:
-                    sort_key_display = str(option)
+            for option in sort_key_select._options:
+                if option[1] == sort_key:
+                    sort_key_display = str(option[0])
                     break
             
             # 显示通知
@@ -2043,6 +2045,8 @@ class BookshelfScreen(Screen[None]):
 
     def action_clear_search_params(self) -> None:
         """清除搜索参数"""
+        self.query_one("#sort-key-radio", Select).value = "last_read"
+        self.query_one("#sort-order-radio", Select).value = "desc"
         self.query_one("#bookshelf-search-input", Input).value = ""
         self.query_one("#bookshelf-search-input", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#bookshelf-format-filter", Select).value = "all"
