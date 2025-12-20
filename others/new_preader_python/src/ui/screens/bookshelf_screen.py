@@ -207,14 +207,12 @@ class BookshelfScreen(Screen[None]):
                             id="sort-key-radio",
                             options=sort_key_options, 
                             prompt=get_global_i18n().t("sort.sort_by"),
-                            value="last_read",
                             classes="bookshelf-sort-key"
                         ),
                         Select(
                             id="sort-order-radio",
                             options=sort_order_options,
                             prompt=get_global_i18n().t("sort.order"),
-                            value="desc",
                             classes="bookshelf-sort-order"
                         ),
                         # 搜索
