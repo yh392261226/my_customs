@@ -1172,7 +1172,9 @@
         "goto_page": "跳转页码",
         "page_number": "页码",
         "novel_exists": "书籍已存在",
-        "only_retry_failed": "重试失败"
+        "only_retry_failed": "重试失败",
+        "all_novels_exist": "所有小说都已存在",
+        "no_valid_novels": "没有有效的小说可爬取"
     },
     "note": {
         "save": "保存",

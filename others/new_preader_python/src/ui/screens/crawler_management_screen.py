@@ -2810,6 +2810,9 @@ class CrawlerManagementScreen(Screen[None]):
             if history_item.get('status') != get_global_i18n().t('crawler.status_failed'):
                 self._update_status(get_global_i18n().t('crawler.only_retry_failed'), "error")
                 return
+            
+            # 注意：手动重试时不检查历史失败次数，允许用户主动重试
+            # 只有在自动爬取时才会检查连续失败次数限制
                 
             # 检查代理要求
             proxy_check_result = self._check_proxy_requirements_sync()
@@ -3031,23 +3034,41 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.crawl_finished'))
                 return
             
-            # 过滤掉已存在的ID并更新输入框
+            # 过滤掉已存在的ID和连续失败3次以上的ID
             site_id = self.novel_site.get('id')
             if site_id:
                 valid_novel_ids = []
+                skipped_novel_ids = []
                 for novel_id in novel_ids:
-                    if not self.db_manager.check_novel_exists(site_id, novel_id):
-                        valid_novel_ids.append(novel_id)
+                    # 检查是否已存在
+                    if self.db_manager.check_novel_exists(site_id, novel_id):
+                        continue
+                    
+                    # 检查连续失败次数
+                    consecutive_failures = self.db_manager.get_consecutive_failure_count(site_id, novel_id)
+                    if consecutive_failures >= 3:
+                        skipped_novel_ids.append(novel_id)
+                        logger.info(f"自动跳过小说 {novel_id}，连续失败次数已达 {consecutive_failures} 次")
+                        continue
+                    
+                    valid_novel_ids.append(novel_id)
                 
-                if not valid_novel_ids:
-                    # 所有ID都已存在，停止爬取
-                    self._update_status(get_global_i18n().t('crawler.all_novels_exist'))
-                    novel_id_input.value = ""  # 清空输入框
-                    return
-                
-                # 更新输入框内容，只保留未下载的ID
+                # 更新输入框内容，只保留有效的ID
                 novel_id_input.value = ', '.join(valid_novel_ids)
                 novel_ids = valid_novel_ids
+                
+                # 如果有被跳过的ID，显示信息
+                if skipped_novel_ids:
+                    self._update_status(f"已跳过 {len(skipped_novel_ids)} 个连续失败3次以上的小说", "warning")
+                
+                if not valid_novel_ids:
+                    # 没有有效的ID，停止爬取
+                    if skipped_novel_ids:
+                        self._update_status(get_global_i18n().t('crawler.no_valid_novels'), "warning")
+                    else:
+                        self._update_status(get_global_i18n().t('crawler.all_novels_exist'))
+                    novel_id_input.value = ""  # 清空输入框
+                    return
             
             # 检查代理要求
             proxy_check_result = self._check_proxy_requirements_sync()

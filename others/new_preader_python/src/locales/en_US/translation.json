@@ -1172,7 +1172,9 @@
         "goto_page": "Go to Page",
         "page_number": "Page Number",
         "novel_exists": "Book already exists",
-        "only_retry_failed": "Only retry crawl failed"
+        "only_retry_failed": "Only retry crawl failed",
+        "all_novels_exist": "All novels already exist",
+        "no_valid_novels": "No valid novels to crawl"
     },
     "note": {
         "save": "Save",

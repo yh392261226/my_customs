@@ -197,6 +197,24 @@ class CrawlerManager:
                 if task.status == CrawlStatus.STOPPED:
                     break
                 
+                # 检查连续失败次数，如果超过3次则跳过
+                consecutive_failures = db_manager.get_consecutive_failure_count(task.site_id, novel_id)
+                if consecutive_failures >= 3:
+                    logger.info(f"跳过小说 {novel_id}，连续失败次数已达 {consecutive_failures} 次")
+                    task.failed_count += 1
+                    
+                    # 保存跳过记录，但不增加连续失败计数（使用特殊标记）
+                    db_manager.add_crawl_history(
+                        site_id=task.site_id,
+                        novel_id=novel_id,
+                        novel_title=novel_id,
+                        status="failed",
+                        file_path="",
+                        error_message=f"连续失败 {consecutive_failures} 次，已跳过"
+                    )
+                    # 跳过这个小说，继续下一个
+                    continue
+                
                 # 更新当前爬取状态
                 task.current_novel_id = novel_id
                 task.progress = i + 1

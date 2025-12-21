@@ -1989,6 +1989,46 @@ class DatabaseManager:
             logger.error(f"检查小说是否存在失败: {e}")
             return False
 
+    def get_consecutive_failure_count(self, site_id: int, novel_id: str) -> int:
+        """
+        获取小说的连续失败次数
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            
+        Returns:
+            int: 连续失败次数
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT status, error_message FROM crawl_history 
+                    WHERE site_id = ? AND novel_id = ? 
+                    ORDER BY crawl_time DESC 
+                    LIMIT 10
+                """, (site_id, novel_id))
+                rows = cursor.fetchall()
+                
+                consecutive_failures = 0
+                for row in rows:
+                    if row["status"] == "failed":
+                        # 检查是否是跳过记录，如果是则不计入连续失败次数
+                        if row["error_message"] and "已跳过" in row["error_message"]:
+                            # 遇到跳过记录就停止计数，避免死循环
+                            break
+                        consecutive_failures += 1
+                    else:
+                        # 遇到成功记录就停止计数
+                        break
+                
+                return consecutive_failures
+        except sqlite3.Error as e:
+            logger.error(f"获取连续失败次数失败: {e}")
+            return 0
+
     def delete_crawl_history(self, history_id: int) -> bool:
         """
         删除爬取历史记录
