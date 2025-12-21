@@ -857,6 +857,8 @@
         "parser": "解析器",
         "enter": "进入",
         "books_count": "书籍数量",
+        "status": "状态",
+        "check": "检测",
         "np_action": "无权限执行此操作",
         "np_manage_booksites": "无权限管理书籍网站",
         "np_manage_proxy": "无权限管理代理设置",
@@ -966,6 +968,8 @@
         "np_batch_delete_site": "无权限批量删除书籍网站",
         "np_open_carwler": "无权限进入爬取管理页面",
         "rating": "评星",
+        "status": "状态",
+        "change_status": "切换状态",
         "crawl_page_unavailable": "爬取管理页面不可用",
         "already_selected": "已选中 {count} 个网站"
     },

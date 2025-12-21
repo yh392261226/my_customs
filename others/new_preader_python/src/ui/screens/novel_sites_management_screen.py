@@ -214,14 +214,19 @@ class NovelSitesManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('novel_sites.selected'), key="selected")
         table.add_column(get_global_i18n().t('novel_sites.site_name'), key="site_name")
         table.add_column(get_global_i18n().t('novel_sites.site_url'), key="site_url")
+        table.add_column(get_global_i18n().t('novel_sites.status'), key="status")
         table.add_column(get_global_i18n().t('novel_sites.rating'), key="rating")
         table.add_column(get_global_i18n().t('novel_sites.proxy_enabled'), key="proxy_enabled")
         table.add_column(get_global_i18n().t('novel_sites.parser'), key="parser")
         table.add_column(get_global_i18n().t('novel_sites.book_id_example'), key="book_id_example")
+        table.add_column(get_global_i18n().t('novel_sites.change_status'), key="change_status")
         table.add_column(get_global_i18n().t('crawler.note'), key="note")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
+        
+        # 启用单元格选择功能，以便点击按钮
+        table.cursor_type = "cell"
         
         # 加载书籍网站数据
         self._load_novel_sites()
@@ -318,14 +323,21 @@ class NovelSitesManagementScreen(Screen[None]):
             book_id_example = site.get("book_id_example", "")
             decoded_book_id_example = unquote(book_id_example) if book_id_example else ""
             
+            # 获取网站状态，默认为正常
+            site_status = site.get("status", "正常")
+            # 根据状态显示不同的emoji
+            status_display = "✅ 正常" if site_status == "正常" else "❌ 异常"
+            
             row_data = {
                 "selected": selected,
                 "site_name": site["name"],
                 "site_url": site["url"],
+                "status": status_display,
                 "rating": rating_display,
                 "proxy_enabled": proxy_status,
                 "parser": site["parser"],
                 "book_id_example": decoded_book_id_example,
+                "change_status": "🔄 切换状态",
                 "_row_key": str(global_index),
                 "_global_index": global_index + 1
             }
@@ -338,10 +350,12 @@ class NovelSitesManagementScreen(Screen[None]):
                 row_data["selected"],
                 row_data["site_name"],
                 row_data["site_url"],
+                row_data["status"],
                 row_data["rating"],
                 row_data["proxy_enabled"],
                 row_data["parser"],
                 row_data["book_id_example"],
+                row_data["change_status"],
                 get_global_i18n().t('crawler.note')
             )
         
@@ -706,6 +720,30 @@ class NovelSitesManagementScreen(Screen[None]):
             logger.error(f"打开备注对话框失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.open_note_dialog_failed')}: {str(e)}", "error")
     
+    def _toggle_site_status(self, site: Dict[str, Any]) -> None:
+        """切换网站状态"""
+        try:
+            site_id = site.get("id")
+            if not site_id:
+                self._update_status("网站ID不存在", "error")
+                return
+                
+            current_status = site.get("status", "正常")
+            new_status = "异常" if current_status == "正常" else "正常"
+            
+            # 更新数据库中的状态
+            if self.database_manager.update_novel_site_status(site_id, new_status):
+                # 更新本地数据
+                site["status"] = new_status
+                # 重新加载表格数据
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                self._update_status(f"网站状态已更新为: {new_status}", "success")
+            else:
+                self._update_status("更新网站状态失败", "error")
+        except Exception as e:
+            logger.error(f"切换网站状态失败: {e}")
+            self._update_status(f"切换网站状态失败: {str(e)}", "error")
+    
     def _delete_selected(self) -> None:
         """删除选中的书籍网站"""
         table = self.query_one("#novel-sites-table", DataTable)
@@ -858,8 +896,57 @@ class NovelSitesManagementScreen(Screen[None]):
                         except Exception:
                             pass
                 
-                # 备注按钮（最后一列，索引为7）
-                elif event.coordinate.column == 7:
+                # 尝试获取列键名
+                column_key_name = None
+                try:
+                    # 通过表格的列索引获取列键名
+                    if hasattr(table, 'columns') and event.coordinate.column < len(table.columns):
+                        column_key_name = table.columns[event.coordinate.column].key
+                except Exception as e:
+                    logger.debug(f"获取列键名失败: {e}")
+                    # 如果无法获取列键名，则使用索引继续处理
+                    column_key_name = None
+                
+                # 尝试使用列键名或列索引处理按钮点击
+                is_change_status_column = False
+                is_note_column = False
+                
+                # 首先尝试使用列键名判断
+                if column_key_name == "change_status":
+                    is_change_status_column = True
+                elif column_key_name == "note":
+                    is_note_column = True
+                # 如果无法获取列键名，则使用列索引判断
+                elif column_key_name is None:
+                    if event.coordinate.column == 8:  # "切换状态"按钮列
+                        is_change_status_column = True
+                    elif event.coordinate.column == 9:  # "备注"按钮列
+                        is_note_column = True
+                
+                # 处理状态切换按钮点击
+                if is_change_status_column:
+                    self._toggle_site_status(site)
+                    
+                    # 恢复光标位置
+                    try:
+                        table.focus()
+                        if hasattr(table, 'cursor_coordinate'):
+                            table.cursor_coordinate = (saved_row, saved_col)
+                        elif hasattr(table, 'cursor_row') and hasattr(table, 'cursor_column'):
+                            table.cursor_row = saved_row
+                            table.cursor_column = saved_col
+                        elif hasattr(table, '_cursor_row') and hasattr(table, '_cursor_column'):
+                            table._cursor_row = saved_row
+                            table._cursor_column = saved_col
+                        table.refresh()
+                    except Exception:
+                        try:
+                            table.focus()
+                        except Exception:
+                            pass
+                
+                # 处理备注按钮点击
+                elif is_note_column:
                     self._open_note_dialog(site)
                     
                     # 恢复光标位置

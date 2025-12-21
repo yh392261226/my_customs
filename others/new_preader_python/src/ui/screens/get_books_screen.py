@@ -73,6 +73,9 @@ class GetBooksScreen(Screen[None]):
         self._search_parser = "all"
         self._search_proxy_enabled = "all"
         
+        # 按钮点击标志
+        self._button_clicked = False
+        
     def compose(self) -> ComposeResult:
         """
         组合获取书籍屏幕界面
@@ -189,17 +192,22 @@ class GetBooksScreen(Screen[None]):
         table.add_column(get_global_i18n().t('get_books.sequence'), key="sequence")
         table.add_column(get_global_i18n().t('get_books.site_name'), key="name")
         table.add_column(get_global_i18n().t('get_books.site_url'), key="url")
+        table.add_column(get_global_i18n().t('get_books.status'), key="status")
         table.add_column(get_global_i18n().t('get_books.proxy_enabled'), key="proxy_enabled")
         table.add_column(get_global_i18n().t('get_books.parser'), key="parser")
         table.add_column(get_global_i18n().t('get_books.rating'), key="rating")
         table.add_column(get_global_i18n().t('get_books.books_count'), key="books_count")
+        table.add_column(get_global_i18n().t('get_books.check'), key="check")
         table.add_column(get_global_i18n().t('get_books.enter'), key="enter")
         
         # 启用隔行变色效果
         table.zebra_stripes = True
         
-        # 启用行选择功能
-        table.cursor_type = "row"
+        # 启用单元格选择功能，以便点击按钮
+        table.cursor_type = "cell"
+        logger.debug(f"表格光标类型已设置为: {table.cursor_type}")
+        # 强制更新表格以应用单元格模式
+        table.clear()
 
         # 加载书籍网站数据
         self._load_novel_sites()
@@ -215,8 +223,8 @@ class GetBooksScreen(Screen[None]):
         try:
             table = self.query_one("#novel-sites-table", DataTable)
             table.focus()
-            # 确保表格的光标类型设置为行
-            table.cursor_type = "row"
+            # 确保表格的光标类型设置为单元格模式
+            table.cursor_type = "cell"
             # 确保表格能够接收键盘事件
             table.can_focus = True
         except Exception:
@@ -328,14 +336,21 @@ class GetBooksScreen(Screen[None]):
             # 获取该网站爬取成功的书籍数量
             books_count = self.database_manager.get_crawled_books_count(site.get("id", 0))
             
+            # 获取网站状态，默认为正常
+            site_status = site.get("status", "正常")
+            # 根据状态显示不同的emoji
+            status_display = "✅" if site_status == "正常" else "❌"
+            
             row_data = {
                 "sequence": str(global_index),
                 "name": site.get("name", ""),
                 "url": site.get("url", ""),
+                "status": status_display,
                 "proxy_enabled": proxy_status,
                 "parser": site.get("parser", ""),
                 "rating": rating_display,
                 "books_count": str(books_count),
+                "check": "🔍 检测",
                 "enter": "➤ " + get_global_i18n().t('get_books.enter'),
                 "_row_key": f"{site.get('id', '')}_{global_index}",
                 "_global_index": global_index
@@ -349,10 +364,12 @@ class GetBooksScreen(Screen[None]):
                 row_data["sequence"],
                 row_data["name"],
                 row_data["url"],
+                row_data["status"],
                 row_data["proxy_enabled"],
                 row_data["parser"],
                 row_data["rating"],
                 row_data["books_count"],
+                row_data["check"],
                 row_data["enter"]
             )
         
@@ -364,6 +381,17 @@ class GetBooksScreen(Screen[None]):
                 pass
         except Exception as e:
             logger.debug(f"设置光标位置失败: {e}")
+        
+        # 再次确保表格是单元格模式
+        try:
+            table = self.query_one("#novel-sites-table", DataTable)
+            table.cursor_type = "cell"
+            # 确保表格获得焦点
+            table.focus()
+            # 刷新表格以应用设置
+            table.refresh()
+        except Exception as e:
+            logger.debug(f"设置单元格模式失败: {e}")
         
         # 为数字快捷键1-9和0（第10项）建立行索引映射
         try:
@@ -514,6 +542,66 @@ class GetBooksScreen(Screen[None]):
         )
         self.app.push_screen(dialog, handle_jump_result)
 
+    def _check_site_status(self, site: Dict[str, Any]) -> None:
+        """检测网站状态"""
+        try:
+            site_id = site.get("id")
+            site_url = site.get("url", "")
+            site_name = site.get("name", "未知网站")
+            
+            if not site_id or not site_url:
+                self.notify("网站信息不完整，无法检测", severity="error")
+                return
+                
+            # 显示检测中状态
+            self.notify(f"正在检测网站: {site_name}...", severity="information")
+            
+            # 执行网站检测
+            result = self.database_manager.check_site_availability(site_url)
+            
+            # 更新数据库中的状态
+            self.database_manager.update_novel_site_status(site_id, result["status"])
+            
+            # 重新加载数据表，显示最新状态
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            
+            # 显示检测结果
+            self.notify(result["message"], severity="success" if result["status"] == "正常" else "warning")
+            
+        except Exception as e:
+            logger.error(f"检测网站状态失败: {e}")
+            self.notify(f"检测网站状态失败: {str(e)}", severity="error")
+    
+    def _toggle_site_status(self, site: Dict[str, Any]) -> None:
+        """切换网站状态（正常/异常）"""
+        try:
+            site_id = site.get("id")
+            site_name = site.get("name", "未知网站")
+            current_status = site.get("status", "正常")
+            
+            if not site_id:
+                self.notify("网站信息不完整，无法切换状态", severity="error")
+                return
+            
+            # 切换状态
+            new_status = "异常" if current_status == "正常" else "正常"
+            
+            # 更新数据库中的状态
+            success = self.database_manager.update_novel_site_status(site_id, new_status)
+            
+            if success:
+                # 重新加载数据表，显示最新状态
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                
+                # 显示切换结果
+                self.notify(f"网站 '{site_name}' 状态已切换为: {new_status}", severity="success")
+            else:
+                self.notify(f"切换网站状态失败: {site_name}", severity="error")
+            
+        except Exception as e:
+            logger.error(f"切换网站状态失败: {e}")
+            self.notify(f"切换网站状态失败: {str(e)}", severity="error")
+    
     def _load_proxy_settings(self) -> None:
         """加载代理设置"""
         # 从数据库加载代理设置
@@ -647,52 +735,90 @@ class GetBooksScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
-    @on(DataTable.CellSelected, "#novel-sites-table")
-    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
         """
-        数据表单元格选择时的回调
+        数据表表头选择时的回调
         
         Args:
-            event: 单元格选择事件
+            event: 表头选择事件
         """
-        logger.debug(f"单元格选择事件触发: {event}")
+        logger.debug(f"表头选择事件触发: {event}")
+        # 这里不处理任何操作，只是防止表头点击触发行选择
+    
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        """
+        数据表行选择时的回调（双击或回车）
+        
+        Args:
+            event: 行选择事件
+        """
+        logger.debug(f"行选择事件触发: {event}")
         
         try:
-            # 检查是否点击了"进入"按钮列（第6列，从0开始）
-            if hasattr(event, 'coordinate'):
-                column_key = event.coordinate.column
-                row_index = event.coordinate.row
+            # 如果是按钮点击触发的行选择事件，直接返回
+            if getattr(self, '_button_clicked', False):
+                logger.debug("按钮点击触发的行选择事件，忽略")
+                # 重置标志
+                self._button_clicked = False
+                return
+            
+            # 获取当前选中的行索引
+            table = self.query_one("#novel-sites-table", DataTable)
+            
+            # 使用 cursor_row 获取当前光标所在行
+            if hasattr(table, 'cursor_row') and table.cursor_row is not None:
+                row_index = table.cursor_row
                 
-                logger.debug(f"点击的列: {column_key}, 行: {row_index}")
-                
-                # 只处理"进入"按钮列（第7列）
-                if column_key == 7:  # "进入"按钮列
-                    # 获取当前页的数据
-                    start_index = (self._current_page - 1) * self._sites_per_page
-                    if row_index is not None and row_index < len(self._all_sites) - start_index:
-                        site = self._all_sites[start_index + row_index]
-                        logger.debug(f"选中的站点: {site.get('name', 'Unknown')}")
-                        
-                        # 权限校验：打开爬取管理页面需 crawler.open
-                        if self._has_permission("crawler.open"):
-                            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
-                            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
-                            self.app.push_screen(crawler_screen)  # 打开爬取管理页面
-                        else:
-                            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
-                        
-                        # 阻止事件冒泡，避免触发其他处理程序
-                        event.stop()
-                    else:
-                        logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
+                # 对于行选择事件（双击或回车），直接打开站点
+                # 权限校验：打开爬取管理页面需 crawler.open
+                if self._has_permission("crawler.open"):
+                    self._open_site_by_row_index(row_index)
                 else:
-                    # 如果不是"进入"按钮列，只是移动光标到该行
-                    # 这样用户可以通过键盘导航到不同行，然后按回车或空格键打开
-                    logger.debug(f"点击了非按钮列: {column_key}")
-            else:
-                logger.debug("单元格选择事件没有坐标信息")
+                    self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+            
         except Exception as e:
-            logger.error(f"处理单元格选择时出错: {e}")
+            logger.error(f"处理行选择时出错: {e}")
+    
+    def on_click(self, event: events.Click) -> None:
+        """处理鼠标点击事件"""
+        # 按钮点击现在由on_data_table_cell_selected处理
+        # 这个方法保持为空，以避免干扰
+        pass
+    
+
+    
+    def _restore_cursor_position(self, table: DataTable, row: int, col: int) -> None:
+        """
+        恢复光标位置到指定的行列
+        
+        Args:
+            table: 数据表
+            row: 行索引
+            col: 列索引
+        """
+        try:
+            # 确保表格有焦点
+            table.focus()
+            
+            # 使用Textual的标准方法恢复光标位置
+            if hasattr(table, 'cursor_coordinate'):
+                table.cursor_coordinate = (row, col)
+            elif hasattr(table, 'cursor_row') and hasattr(table, 'cursor_column'):
+                table.cursor_row = row
+                table.cursor_column = col
+            elif hasattr(table, '_cursor_row') and hasattr(table, '_cursor_column'):
+                table._cursor_row = row
+                table._cursor_column = col
+                
+            # 强制刷新表格显示
+            table.refresh()
+        except Exception as e:
+            logger.debug(f"恢复光标位置失败: {e}")
+            # 如果恢复失败，至少确保表格有焦点
+            try:
+                table.focus()
+            except Exception:
+                pass
     
     @on(DataTable.RowHighlighted, "#novel-sites-table")
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
@@ -713,7 +839,6 @@ class GetBooksScreen(Screen[None]):
         except Exception as e:
             logger.error(f"处理行高亮时出错: {e}")
     
-    @on(DataTable.RowSelected, "#novel-sites-table")
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """
         数据表行选择时的回调（双击或回车）
@@ -724,8 +849,20 @@ class GetBooksScreen(Screen[None]):
         logger.debug(f"行选择事件触发: {event}")
         
         try:
+            # 如果是按钮点击触发的行选择事件，直接返回
+            if getattr(self, '_button_clicked', False):
+                logger.debug("按钮点击触发的行选择事件，忽略")
+                # 重置标志
+                self._button_clicked = False
+                return
+            
             # 获取当前选中的行索引
             table = self.query_one("#novel-sites-table", DataTable)
+            
+            # 确保表格是单元格模式
+            if table.cursor_type != "cell":
+                logger.debug(f"在行选择事件中，表格模式不是cell，重新设置为cell")
+                table.cursor_type = "cell"
             
             # 使用 cursor_row 获取当前光标所在行
             if hasattr(table, 'cursor_row') and table.cursor_row is not None:
@@ -827,9 +964,156 @@ class GetBooksScreen(Screen[None]):
         if event.select.id in ["novel-sites-parser-filter", "novel-sites-proxy-filter"]:
             self._perform_search()
 
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        """
+        数据表单元格选择时的回调
+        
+        Args:
+            event: 单元格选择事件
+        """
+        logger.debug(f"单元格选择事件触发: {event}")
+        
+        try:
+            # 获取表格
+            table = self.query_one("#novel-sites-table", DataTable)
+            
+            # 确保表格是单元格模式
+            if table.cursor_type != "cell":
+                logger.debug(f"表格模式不是cell，重新设置为cell")
+                table.cursor_type = "cell"
+            
+            # 获取点击的行和列
+            if hasattr(event, 'coordinate') and event.coordinate is not None:
+                row_index = event.coordinate.row
+                col_index = event.coordinate.column
+                
+                # 保存当前光标位置
+                saved_row = row_index
+                saved_col = col_index
+                
+                logger.debug(f"点击位置: 行={row_index}, 列={col_index}")
+                
+                # 获取列键名
+                column_key_name = None
+                try:
+                    # 通过表格的列索引获取列键名
+                    if hasattr(table, 'columns') and col_index < len(table.columns):
+                        column_key_name = table.columns[col_index].key
+                    logger.debug(f"列键名: {column_key_name}")
+                except Exception as e:
+                    logger.debug(f"获取列键名失败: {e}")
+                    # 如果无法获取列键名，则使用索引继续处理
+                    column_key_name = None
+                
+                # 判断是否点击了按钮列
+                is_check_column = False
+                is_enter_column = False
+                
+                # 首先尝试使用列键名判断
+                if column_key_name == "check":
+                    is_check_column = True
+                elif column_key_name == "enter":
+                    is_enter_column = True
+                # 如果无法获取列键名，则使用列索引判断
+                elif column_key_name is None:
+                    if col_index == 8:  # "检测"按钮列
+                        is_check_column = True
+                    elif col_index == 9:  # "进入"按钮列
+                        is_enter_column = True
+                
+                logger.debug(f"是否是检测列: {is_check_column}, 是否是进入列: {is_enter_column}")
+                
+                # 处理检测按钮点击
+                if is_check_column:
+                    # 设置按钮点击标志
+                    self._button_clicked = True
+                    logger.debug(f"设置按钮点击标志为True")
+                    
+                    # 获取当前页的数据
+                    start_index = (self._current_page - 1) * self._sites_per_page
+                    if row_index is not None and row_index < len(self._all_sites) - start_index:
+                        site = self._all_sites[start_index + row_index]
+                        logger.debug(f"检测的站点: {site.get('name', 'Unknown')}")
+                        
+                        # 执行网站检测
+                        self._check_site_status(site)
+                    else:
+                        logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
+                    
+                    # 恢复光标位置
+                    self._restore_cursor_position(table, saved_row, saved_col)
+                
+                # 处理进入按钮点击
+                elif is_enter_column:
+                    # 设置按钮点击标志
+                    self._button_clicked = True
+                    logger.debug(f"设置按钮点击标志为True")
+                    
+                    # 获取当前页的数据
+                    start_index = (self._current_page - 1) * self._sites_per_page
+                    if row_index is not None and row_index < len(self._all_sites) - start_index:
+                        site = self._all_sites[start_index + row_index]
+                        logger.debug(f"选中的站点: {site.get('name', 'Unknown')}")
+                        
+                        # 权限校验：打开爬取管理页面需 crawler.open
+                        if self._has_permission("crawler.open"):
+                            from src.ui.screens.crawler_management_screen import CrawlerManagementScreen
+                            crawler_screen = CrawlerManagementScreen(self.theme_manager, site)
+                            self.app.push_screen(crawler_screen)  # 打开爬取管理页面
+                        else:
+                            self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
+                    else:
+                        logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
+                    
+                    # 恢复光标位置
+                    self._restore_cursor_position(table, saved_row, saved_col)
+                
+                # 处理状态列点击 - 切换网站状态
+                elif column_key_name == "status" or col_index == 3:  # 状态列
+                    # 设置按钮点击标志
+                    self._button_clicked = True
+                    logger.debug(f"设置按钮点击标志为True")
+                    
+                    # 获取当前页的数据
+                    start_index = (self._current_page - 1) * self._sites_per_page
+                    if row_index is not None and row_index < len(self._all_sites) - start_index:
+                        site = self._all_sites[start_index + row_index]
+                        logger.debug(f"切换状态的站点: {site.get('name', 'Unknown')}")
+                        
+                        # 切换网站状态
+                        self._toggle_site_status(site)
+                    else:
+                        logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
+                    
+                    # 恢复光标位置
+                    self._restore_cursor_position(table, saved_row, saved_col)
+                
+                # 处理其他列点击 - 不执行任何操作，只恢复光标位置
+                else:
+                    # 对于非按钮列的点击，不执行任何操作
+                    logger.debug(f"点击的是非按钮列: {col_index}")
+                    # 恢复光标位置
+                    self._restore_cursor_position(table, saved_row, saved_col)
+            else:
+                logger.debug("单元格选择事件没有坐标信息")
+                
+        except Exception as e:
+            logger.error(f"处理单元格选择时出错: {e}")
+            
+        # 阻止事件冒泡，防止触发行选择
+        event.stop()
+        event.prevent_default()
+
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
         table = self.query_one("#novel-sites-table", DataTable)
+        
+        # 如果是按钮点击触发的键盘事件，直接返回
+        if getattr(self, '_button_clicked', False):
+            logger.debug("按钮点击触发的键盘事件，忽略")
+            # 重置标志
+            self._button_clicked = False
+            return
         
         # 回车键或空格键：打开当前选中的站点
         if event.key == "space":

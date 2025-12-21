@@ -4,6 +4,8 @@
 
 import os
 import sqlite3
+import requests
+import socket
 
 import json
 import time
@@ -562,8 +564,8 @@ class DatabaseManager:
             # 检查并添加novel_sites表的rating列（如果不存在）
             self._add_column_if_not_exists(cursor, "novel_sites", "rating", "INTEGER NOT NULL", "2")
             
-            # 检查并添加novel_sites表的rating列（如果不存在）
-            self._add_column_if_not_exists(cursor, "novel_sites", "rating", "INTEGER NOT NULL", "2")
+            # 检查并添加novel_sites表的status列（如果不存在）
+            self._add_column_if_not_exists(cursor, "novel_sites", "status", "TEXT NOT NULL", "'正常'")
 
             conn.commit()
     
@@ -1619,7 +1621,7 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -1631,6 +1633,7 @@ class DatabaseManager:
                         site_data.get("tags", ""),
                         site_data.get("rating", 2),  # 默认2星
                         site_data.get("book_id_example", ""),
+                        site_data.get("status", "正常"),  # 默认状态为正常
                         now,
                         site_data["id"]
                     ))
@@ -1638,8 +1641,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -1650,6 +1653,7 @@ class DatabaseManager:
                         site_data.get("tags", ""),
                         site_data.get("rating", 2),  # 默认2星
                         site_data.get("book_id_example", ""),
+                        site_data.get("status", "正常"),  # 默认状态为正常
                         now,
                         now
                     ))
@@ -1737,6 +1741,97 @@ class DatabaseManager:
         """
         return self.delete_novel_site(site_id)
 
+    def update_novel_site_status(self, site_id: int, status: str) -> bool:
+        """
+        更新书籍网站状态
+        
+        Args:
+            site_id: 网站ID
+            status: 网站状态（正常/异常）
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                now = datetime.now().isoformat()
+                cursor.execute("""
+                    UPDATE novel_sites 
+                    SET status = ?, updated_at = ?
+                    WHERE id = ?
+                """, (status, now, site_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except sqlite3.Error as e:
+            logger.error(f"更新网站状态失败: {e}")
+            return False
+    
+    def check_site_availability(self, site_url: str, timeout: int = 10) -> Dict[str, Any]:
+        """
+        检测网站是否可以正常访问
+        
+        Args:
+            site_url: 网站URL
+            timeout: 请求超时时间（秒）
+            
+        Returns:
+            Dict[str, Any]: 检测结果，包含status（正常/异常）、response_time（响应时间）和message（详细信息）
+        """
+        result = {
+            "status": "异常",
+            "response_time": 0,
+            "message": ""
+        }
+        
+        try:
+            # 确保URL格式正确
+            if not site_url.startswith(("http://", "https://")):
+                site_url = "https://" + site_url
+            
+            start_time = time.time()
+            response_time = 0
+            
+            # 使用HEAD请求减少数据传输，只检查是否可达
+            try:
+                response = requests.head(site_url, timeout=timeout, allow_redirects=True)
+                response_time = round((time.time() - start_time) * 1000)  # 毫秒
+                
+                # 修正状态判断逻辑：403也表示网站可访问，只是权限问题
+                if 200 <= response.status_code < 400 or response.status_code == 403:
+                    result["status"] = "正常"
+                    status_desc = "正常" if response.status_code != 403 else "正常(需权限)"
+                    result["message"] = f"网站响应{status_desc}，状态码: {response.status_code}，响应时间: {response_time}ms"
+                else:
+                    result["message"] = f"网站响应异常，状态码: {response.status_code}，响应时间: {response_time}ms"
+            except requests.exceptions.RequestException:
+                # 如果HEAD请求失败，尝试GET请求（有些网站不支持HEAD）
+                try:
+                    response = requests.get(site_url, timeout=timeout, stream=True, allow_redirects=True)
+                    response_time = round((time.time() - start_time) * 1000)  # 毫秒
+                    
+                    # 修正状态判断逻辑：403也表示网站可访问，只是权限问题
+                    if 200 <= response.status_code < 400 or response.status_code == 403:
+                        result["status"] = "正常"
+                        status_desc = "正常" if response.status_code != 403 else "正常(需权限)"
+                        result["message"] = f"网站响应{status_desc}，状态码: {response.status_code}，响应时间: {response_time}ms"
+                    else:
+                        result["message"] = f"网站响应异常，状态码: {response.status_code}，响应时间: {response_time}ms"
+                except requests.exceptions.Timeout:
+                    result["message"] = f"网站访问超时（{timeout}秒）"
+                except requests.exceptions.ConnectionError:
+                    result["message"] = "无法连接到网站，可能是域名不存在或服务器不可达"
+                except requests.exceptions.RequestException as e:
+                    result["message"] = f"访问网站时发生错误: {str(e)}"
+            
+            result["response_time"] = response_time
+            
+        except Exception as e:
+            logger.error(f"检测网站状态失败: {e}")
+            result["message"] = f"检测过程中发生错误: {str(e)}"
+        
+        return result
+    
     def get_novel_site_by_id(self, site_id: int) -> Optional[Dict[str, Any]]:
         """
         根据ID获取书籍网站配置

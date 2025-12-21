@@ -857,6 +857,8 @@
         "parser": "Parser",
         "enter": "Enter",
         "books_count": "Books Count",
+        "status": "Status",
+        "check": "Check",
         "np_action": "No permission to perform this operation",
         "np_manage_booksites": "No permission to manage book sites",
         "np_manage_proxy": "No permission to manage proxy settings",
@@ -966,6 +968,8 @@
         "np_batch_delete_site": "No permission to batch delete book sites",
         "np_open_carwler": "No permission to enter crawler management page",
         "rating": "Rating",
+        "status": "Status",
+        "change_status": "Toggle Status",
         "crawl_page_unavailable": "Crawl page unavailable",
         "already_selected": "Selected {count}"
     },
