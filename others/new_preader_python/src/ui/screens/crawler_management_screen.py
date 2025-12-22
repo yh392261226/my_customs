@@ -526,8 +526,12 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"爬取成功通知回调处理失败: {e}")
     
-    def _load_crawl_history(self) -> None:
-        """加载爬取历史记录"""
+    def _load_crawl_history(self, from_search: bool = False) -> None:
+        """加载爬取历史记录
+        
+        Args:
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
+        """
         try:
             # 从数据库加载爬取历史
             site_id = self.novel_site.get('id')
@@ -565,7 +569,7 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 应用搜索过滤
         self.crawler_history = self._filter_history(self.crawler_history)
-        self._update_history_table()
+        self._update_history_table(from_search=from_search)
     
     def _filter_history(self, history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """根据搜索关键词过滤历史记录"""
@@ -589,8 +593,12 @@ class CrawlerManagementScreen(Screen[None]):
         
         return filtered_history
     
-    def _update_history_table(self) -> None:
-        """更新历史记录表格"""
+    def _update_history_table(self, from_search: bool = False) -> None:
+        """更新历史记录表格
+        
+        Args:
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
+        """
         try:
             # 确保组件已经挂载
             if not self.is_mounted_flag:
@@ -661,8 +669,9 @@ class CrawlerManagementScreen(Screen[None]):
                         for _ in range(current_cursor_row):
                             table.action_cursor_down()
             
-            # 确保表格获得焦点
-            table.focus()
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
             
         except Exception as e:
             logger.debug(f"更新历史记录表格失败: {e}")
@@ -731,6 +740,14 @@ class CrawlerManagementScreen(Screen[None]):
     
     # ==================== 搜索功能 ====================
     
+    def _focus_search_input(self) -> None:
+        """将焦点设置回搜索框"""
+        try:
+            search_input = self.query_one("#search-input-field", Input)
+            search_input.focus()
+        except Exception as e:
+            logger.debug(f"设置搜索框焦点失败: {e}")
+    
     def _perform_search(self) -> None:
         """执行搜索"""
         try:
@@ -738,7 +755,7 @@ class CrawlerManagementScreen(Screen[None]):
             self._search_keyword = search_input.value.strip()
             
             # 重新加载历史记录并应用搜索过滤
-            self._load_crawl_history()
+            self._load_crawl_history(from_search=True)
             
             if self._search_keyword:
                 self._update_status(get_global_i18n().t('crawler.search_complete', count=len(self.crawler_history)))
@@ -756,7 +773,7 @@ class CrawlerManagementScreen(Screen[None]):
             self._search_keyword = ""
             
             # 重新加载历史记录
-            self._load_crawl_history()
+            self._load_crawl_history(from_search=True)
             self._update_status(get_global_i18n().t('crawler.search_cleared'))
         except Exception as e:
             logger.error(f"清除搜索失败: {e}")
@@ -942,8 +959,9 @@ class CrawlerManagementScreen(Screen[None]):
                 for _ in range(new_cursor_row):
                     table.action_cursor_down()
             
-            # 确保表格获得焦点
-            table.focus()
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
             
             
         except Exception as e:
@@ -1001,8 +1019,9 @@ class CrawlerManagementScreen(Screen[None]):
                 for _ in range(new_cursor_row):
                     table.action_cursor_down()
             
-            # 确保表格获得焦点
-            table.focus()
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
             
             
         except Exception as e:
@@ -1137,8 +1156,9 @@ class CrawlerManagementScreen(Screen[None]):
                 for _ in range(new_cursor_row):
                     table.action_cursor_down()
             
-            # 确保表格获得焦点
-            table.focus()
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
             
             # 显示成功信息
             display_position = target_position + 1
@@ -1176,8 +1196,9 @@ class CrawlerManagementScreen(Screen[None]):
                 for _ in range(target_position):
                     table.action_cursor_down()
             
-            # 确保表格获得焦点
-            table.focus()
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
             
             # 显示成功信息
             display_position = target_position + 1
@@ -3122,8 +3143,12 @@ class CrawlerManagementScreen(Screen[None]):
             self.app.pop_screen()
         elif button_id == "search-btn":
             self._perform_search()
+            # 执行搜索后，保持焦点在搜索框
+            self.set_timer(0.1, lambda: self._focus_search_input())
         elif button_id == "clear-search-btn":
             self._clear_search()
+            # 清除搜索后，保持焦点在搜索框
+            self.set_timer(0.1, lambda: self._focus_search_input())
         elif button_id == "start-crawl-btn":
             self._start_crawl()
         elif button_id == "stop-crawl-btn":

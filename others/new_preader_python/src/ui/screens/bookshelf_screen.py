@@ -396,13 +396,14 @@ class BookshelfScreen(Screen[None]):
         # 启用隔行变色效果
         table.zebra_stripes = True
     
-    def _load_books(self, search_keyword: str = "", search_format: str = "all", search_author: str = "all") -> None:
+    def _load_books(self, search_keyword: str = "", search_format: str = "all", search_author: str = "all", from_search: bool = False) -> None:
         """加载书籍数据
         
         Args:
             search_keyword: 搜索关键词
             search_format: 文件格式筛选
             search_author: 作者筛选
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
         """
         # 显示加载动画
         self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=0)
@@ -886,7 +887,7 @@ class BookshelfScreen(Screen[None]):
         self._current_page = 1
         
         # 重新加载书籍数据（应用搜索条件）
-        self._load_books(self._search_keyword, self._search_format, self._search_author)
+        self._load_books(self._search_keyword, self._search_format, self._search_author, from_search=True)
         
         # 显示搜索结果的提示
         search_conditions = []
@@ -1016,6 +1017,8 @@ class BookshelfScreen(Screen[None]):
         if event.input.id == "bookshelf-search-input":
             # 输入框内容变化时立即执行搜索
             self._perform_search()
+            # 执行搜索后，保持焦点在搜索框
+            self.set_timer(0.1, lambda: self._focus_search_input())
     
     def on_select_changed(self, event) -> None:
         """下拉框选择变化时的回调"""
@@ -1029,6 +1032,14 @@ class BookshelfScreen(Screen[None]):
         # 处理排序选择变化
         if event.select.id in ["sort-key-radio", "sort-order-radio"]:
             self._perform_sort_from_select()
+    
+    def _focus_search_input(self) -> None:
+        """将焦点设置回搜索框"""
+        try:
+            search_input = self.query_one("#bookshelf-search-input", Input)
+            search_input.focus()
+        except Exception as e:
+            logger.debug(f"设置搜索框焦点失败: {e}")
     
     def _perform_sort_from_select(self) -> None:
         """根据Select组件的选择执行排序"""
@@ -1068,7 +1079,7 @@ class BookshelfScreen(Screen[None]):
             self._current_page = 1
             
             # 刷新表格显示（只显示当前页的数据）
-            self._load_current_page()
+            self._load_current_page(from_search=from_search)
             
             # 更新分页控件状态
             self._update_pagination_controls()
@@ -1088,8 +1099,13 @@ class BookshelfScreen(Screen[None]):
             logger.error(f"排序失败: {e}")
             self.notify(get_global_i18n().t("sort.sort_failed"), severity="error")
     
-    def _load_current_page(self, page_change_only: bool = False) -> None:
-        """加载当前页的书籍数据"""
+    def _load_current_page(self, page_change_only: bool = False, from_search: bool = False) -> None:
+        """加载当前页的书籍数据
+        
+        Args:
+            page_change_only: 是否仅更改页面（不需要重新加载数据）
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
+        """
         try:
             table = self.query_one("#books-table", DataTable)
             
@@ -1173,6 +1189,10 @@ class BookshelfScreen(Screen[None]):
                     delete_button,  # 删除按钮
                     key=f"{book.path}_{global_index}"  # 使用唯一的key，避免重复（book.path + 索引）
                 )
+            
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
                 
         except Exception as e:
             logger.error(f"加载当前页失败: {e}")
@@ -1202,11 +1222,16 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             logger.error(f"更新分页控件失败: {e}")
     
-    def _refresh_books_table(self, books: List[Book]) -> None:
-        """刷新书籍表格显示（已弃用，使用_load_current_page）"""
+    def _refresh_books_table(self, books: List[Book], from_search: bool = False) -> None:
+        """刷新书籍表格显示（已弃用，使用_load_current_page）
+        
+        Args:
+            books: 书籍列表
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
+        """
         # 为了兼容性保留此方法，但实际使用_load_current_page
         self._all_books = books
-        self._load_current_page()
+        self._load_current_page(from_search=from_search)
     
     @on(DataTable.CellSelected, "#books-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:

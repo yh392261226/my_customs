@@ -262,7 +262,15 @@ class GetBooksScreen(Screen[None]):
         
         return f"{filled_stars}{empty_stars}"
 
-    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all") -> None:
+    def _focus_search_input(self) -> None:
+        """将焦点设置回搜索框"""
+        try:
+            search_input = self.query_one("#novel-sites-search-input", Input)
+            search_input.focus()
+        except Exception as e:
+            logger.debug(f"设置搜索框焦点失败: {e}")
+
+    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all", from_search: bool = False) -> None:
         """加载书籍网站数据
         
         Args:
@@ -386,8 +394,9 @@ class GetBooksScreen(Screen[None]):
         try:
             table = self.query_one("#novel-sites-table", DataTable)
             table.cursor_type = "cell"
-            # 确保表格获得焦点
-            table.focus()
+            # 只有在不是来自搜索时才设置表格焦点
+            if not from_search:
+                table.focus()
             # 刷新表格以应用设置
             table.refresh()
         except Exception as e:
@@ -486,7 +495,7 @@ class GetBooksScreen(Screen[None]):
         self._current_page = 1
         
         # 重新加载数据
-        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, from_search=True)
 
     # 分页导航方法
     def _go_to_first_page(self) -> None:
@@ -957,6 +966,8 @@ class GetBooksScreen(Screen[None]):
         # 搜索输入框变化时自动执行搜索
         if event.input.id == "novel-sites-search-input":
             self._perform_search()
+            # 执行搜索后，保持焦点在搜索框
+            self.set_timer(0.1, lambda: self._focus_search_input())
     
     def on_select_changed(self, event: Select.Changed) -> None:
         """处理选择框变化事件"""

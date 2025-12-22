@@ -242,13 +242,22 @@ class NovelSitesManagementScreen(Screen[None]):
         except Exception:
             pass
     
-    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all") -> None:
+    def _focus_search_input(self) -> None:
+        """将焦点设置回搜索框"""
+        try:
+            search_input = self.query_one("#novel-sites-search-input", Input)
+            search_input.focus()
+        except Exception as e:
+            logger.debug(f"设置搜索框焦点失败: {e}")
+
+    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all", from_search: bool = False) -> None:
         """从数据库加载书籍网站数据
         
         Args:
             search_keyword: 搜索关键词
             search_parser: 解析器筛选
             search_proxy_enabled: 代理启用筛选
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
         """
         # 从数据库加载书籍网站数据
         all_sites = self.database_manager.get_novel_sites()
@@ -291,10 +300,14 @@ class NovelSitesManagementScreen(Screen[None]):
         self.novel_sites = filtered_sites
         
         # 更新数据表
-        self._update_table()
+        self._update_table(from_search=from_search)
     
-    def _update_table(self) -> None:
-        """更新数据表显示（使用虚拟滚动和分页）"""
+    def _update_table(self, from_search: bool = False) -> None:
+        """更新数据表显示（使用虚拟滚动和分页）
+        
+        Args:
+            from_search: 是否来自搜索操作（搜索时不设置表格焦点）
+        """
         table = self.query_one("#novel-sites-table", DataTable)
         
         # 保存当前光标位置
@@ -379,8 +392,9 @@ class NovelSitesManagementScreen(Screen[None]):
                     for _ in range(current_cursor_row):
                         table.action_cursor_down()
         
-        # 确保表格获得焦点
-        table.focus()
+        # 只有在不是来自搜索时才设置表格焦点
+        if not from_search:
+            table.focus()
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""
@@ -511,7 +525,7 @@ class NovelSitesManagementScreen(Screen[None]):
         self._current_page = 1
         
         # 重新加载数据
-        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, from_search=True)
     
     
     
@@ -1420,6 +1434,8 @@ class NovelSitesManagementScreen(Screen[None]):
         # 搜索输入框变化时自动执行搜索
         if event.input.id == "novel-sites-search-input":
             self._perform_search()
+            # 执行搜索后，保持焦点在搜索框
+            self.set_timer(0.1, lambda: self._focus_search_input())
     
     def on_select_changed(self, event: Select.Changed) -> None:
         """处理选择框变化事件"""
