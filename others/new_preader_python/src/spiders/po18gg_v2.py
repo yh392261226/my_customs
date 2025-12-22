@@ -861,11 +861,6 @@ class Po18ggParser(BaseParser):
                             return response.text
                     except Exception as final_error:
                         logger.warning(f"最终请求失败: {final_error}")
-                else:  # 第三次及以后：尝试 playwright
-                    try:
-                        return self._get_url_content_with_playwright(url, proxies)
-                    except Exception as playwright_error:
-                        logger.warning(f"playwright也失败: {playwright_error}")
             
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
@@ -987,6 +982,9 @@ class Po18ggParser(BaseParser):
                                 session.mount('https://', https_pool)
                     except Exception as pool_error:
                         logger.debug(f"无法创建自定义PoolManager: {pool_error}")
+            
+            except Exception as scraper_error:
+                logger.debug(f"cloudscraper创建失败: {scraper_error}")
                 
         except Exception as e:
             logger.warning(f"cloudscraper创建失败，使用requests: {e}")

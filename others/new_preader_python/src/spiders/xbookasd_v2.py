@@ -14,6 +14,9 @@ from .base_parser_v2 import BaseParser
 class XbookasdParser(BaseParser):
     """xbookasd.top 解析器 - 配置驱动版本"""
     
+    # 网站使用GBK编码
+    encoding = "gbk"
+    
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
         """
         初始化解析器
@@ -31,13 +34,16 @@ class XbookasdParser(BaseParser):
     
     # 正则表达式配置 - 章节列表页
     title_reg = [
+        r'<h1[^>]*class="dx-title font-semibold mb-1"[^>]*>(.*?)</h1>',
+        r'<h1[^>]*class="dx-title[^>]*>(.*?)</h1>',
         r'<h2[^>]*class="dx-title font-semibold mb-1"[^>]*>(.*?)</h2>',
-        r'<h2[^>]*class="dx-title[^>]*>(.*?)</h2>'
+        r'<h2[^>]*class="dx-title[^>]*>(.*?)</h2>',
+        r'<title>(.*?)</title>'
     ]
     
     # 章节列表正则
     chapter_link_reg = [
-        r'<a[^>]*class="block dx-hairline--bottom py-1\.5 mb-1\.5"[^>]*href="([^"]*?)"[^>]*>(.*?)</a>',
+        r'<li><a[^>]*class="block dx-hairline--bottom py-1\.5 mb-1\.5"[^>]*href="([^"]*?)"[^>]*>(.*?)</a></li>',
         r'<a[^>]*href="([^"]*?)"[^>]*rel="external nofollow noopener noreferrer"[^>]*>(.*?)</a>',
         r'<a[^>]*href="([^"]*?)"[^>]*>(.*?)</a>'
     ]
@@ -50,6 +56,7 @@ class XbookasdParser(BaseParser):
     
     # 简介提取
     description_reg = [
+        r'<div[^>]*class="bg-base10[^>]*mb-3[^>]*p-2.5[^>]*md:p-5[^>]*rounded-sm[^>]*dx-text">(.*?)</div>',
         r'<meta[^>]*name="description"[^>]*content="([^"]*?)"'
     ]
     

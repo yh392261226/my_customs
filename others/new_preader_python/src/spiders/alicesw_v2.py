@@ -123,9 +123,6 @@ class AliceswParser(BaseParser):
             'chapters': []
         }
         
-        # 使用基类方法按章节编号排序
-        self._sort_chapters_by_number(chapter_links)
-
         
         # 抓取所有章节内容（通过章节分页）
         self._get_all_chapters(full_first_chapter_url, novel_content)
@@ -217,7 +214,7 @@ class AliceswParser(BaseParser):
                 print(f"× 第 {self.chapter_count} 章抓取失败")
             
             # 获取下一页URL
-            next_url = self._get_next_chapter_url(page_content, current_url)
+            next_url = self._get_next_chapter_url(page_content, current_url) if page_content else None
             
             # 检查是否是最后一章
             if next_url and "/novel/" in next_url:
