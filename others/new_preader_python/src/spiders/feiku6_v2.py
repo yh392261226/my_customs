@@ -295,7 +295,7 @@ class Feiku6Parser(BaseParser):
         
         return content
     
-    def _get_url_content(self, url: str, max_retries: int = 5) -> Optional[str]:
+    def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
         获取URL内容，重写基类方法以处理飞库中文网的编码问题
         

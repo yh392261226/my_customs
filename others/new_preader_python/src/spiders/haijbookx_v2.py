@@ -365,7 +365,7 @@ class HaijBookxParser(BaseParser):
         
         return content.strip()
     
-    def _get_url_content(self, url: str, max_retries: int = 5) -> Optional[str]:
+    def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
         获取URL内容，支持GBK编码处理
         HaijBookx 网站使用GBK编码，需要特殊处理
@@ -426,11 +426,20 @@ class HaijBookxParser(BaseParser):
                         return self._get_url_content_with_playwright(url, proxies)
                     except Exception as playwright_error:
                         logger.warning(f"playwright也失败: {playwright_error}")
-                else:  # 第三次及以后：尝试 playwright
+                elif attempt == 2:  # 第三次失败：尝试 selenium
                     try:
-                        return self._get_url_content_with_playwright(url, proxies)
-                    except Exception as playwright_error:
-                        logger.warning(f"playwright也失败: {playwright_error}")
+                        return self._selenium_request(url, proxies)
+                    except Exception as selenium_error:
+                        logger.warning(f"selenium也失败: {selenium_error}")
+                        # 最后一次尝试，使用普通请求
+                        logger.warning(f"尝试普通请求: {url}")
+                        try:
+                            response = self.session.get(url, proxies=proxies, timeout=20)
+                            if response.status_code == 200:
+                                response.encoding = self.encoding
+                                return response.text
+                        except Exception as final_error:
+                            logger.warning(f"最终请求失败: {final_error}")
             
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避

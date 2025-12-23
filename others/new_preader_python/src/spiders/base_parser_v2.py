@@ -86,7 +86,7 @@ class BaseParser:
         """
         return f"{self.base_url}/b/{novel_id}"
     
-    def _get_url_content(self, url: str, max_retries: int = 5) -> Optional[str]:
+    def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
         获取URL内容，支持四层反爬虫绕过策略
         
@@ -158,16 +158,23 @@ class BaseParser:
                             return content
                     except Exception as playwright_error:
                         logger.warning(f"playwright也失败: {playwright_error}")
-                else:  # 第三次及以后：再次尝试普通请求
-                    logger.warning(f"尝试普通请求: {url}")
+                elif attempt == 2:  # 第三次失败：尝试 selenium
                     try:
-                        response = self.session.get(url, proxies=proxies, timeout=(20, 40))
-                        if response.status_code == 200:
-                            encoding = getattr(self, 'encoding', 'utf-8')
-                            response.encoding = encoding
-                            return response.text
-                    except Exception as final_error:
-                        logger.warning(f"最终请求失败: {final_error}")
+                        content = self._selenium_request(url, proxies)
+                        if content:
+                            return content
+                    except Exception as selenium_error:
+                        logger.warning(f"selenium也失败: {selenium_error}")
+                        # 最后一次尝试，使用普通请求
+                        logger.warning(f"尝试普通请求: {url}")
+                        try:
+                            response = self.session.get(url, proxies=proxies, timeout=(20, 40))
+                            if response.status_code == 200:
+                                encoding = getattr(self, 'encoding', 'utf-8')
+                                response.encoding = encoding
+                                return response.text
+                        except Exception as final_error:
+                            logger.warning(f"最终请求失败: {final_error}")
             
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
