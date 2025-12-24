@@ -78,9 +78,11 @@ class Reader:
             
             # 更新书籍信息
             book.increment_open_count()
-            book.update_reading_progress(self._get_position_from_page(self.current_page), 
-                                        self.current_page, 
-                                        self.total_pages)
+            # 只有在设置了"记住阅读位置"时才更新进度
+            if self.config["reading"]["remember_position"]:
+                book.update_reading_progress(self._get_position_from_page(self.current_page), 
+                                            self.current_page, 
+                                            self.total_pages)
             
             # 记录阅读开始时间
             self.reading_start_time = time.time()
@@ -118,10 +120,12 @@ class Reader:
             # 计算阅读时间
             reading_duration = int(time.time() - self.reading_start_time)
             
-            # 更新书籍信息
-            self.current_book.update_reading_progress(self._get_position_from_page(self.current_page), 
-                                                    self.current_page, 
-                                                    self.total_pages)
+            # 只有在设置了"记住阅读位置"时才保存阅读位置
+            if self.config["reading"]["remember_position"]:
+                # 更新书籍信息
+                self.current_book.update_reading_progress(self._get_position_from_page(self.current_page), 
+                                                        self.current_page, 
+                                                        self.total_pages)
             
             # 添加阅读记录
             if reading_duration > 0:
@@ -214,8 +218,8 @@ class Reader:
         
         self.current_page += 1
         
-        # 更新书籍进度
-        if self.current_book:
+        # 只有在设置了"记住阅读位置"时才更新书籍进度
+        if self.config["reading"]["remember_position"] and self.current_book:
             self.current_book.update_reading_progress(
                 self._get_position_from_page(self.current_page),
                 self.current_page,
@@ -236,8 +240,8 @@ class Reader:
         
         self.current_page -= 1
         
-        # 更新书籍进度
-        if self.current_book:
+        # 只有在设置了"记住阅读位置"时才更新书籍进度
+        if self.config["reading"]["remember_position"] and self.current_book:
             self.current_book.update_reading_progress(
                 self._get_position_from_page(self.current_page),
                 self.current_page,
@@ -261,8 +265,8 @@ class Reader:
         
         self.current_page = page
         
-        # 更新书籍进度
-        if self.current_book:
+        # 只有在设置了"记住阅读位置"时才更新书籍进度
+        if self.config["reading"]["remember_position"] and self.current_book:
             self.current_book.update_reading_progress(
                 self._get_position_from_page(self.current_page),
                 self.current_page,
