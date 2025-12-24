@@ -1130,3 +1130,18 @@ class BaseParser:
                     return f"{base_dir}/{next_url}"
         
         return None
+
+    @staticmethod
+    def create_cms_t1_parser(site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        创建CMS T1解析器实例的工厂方法
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            CMS T1解析器实例
+        """
+        from .cms_t1_v2 import CmsT1Parser
+        return CmsT1Parser.create_from_site_data(site_data, proxy_config)

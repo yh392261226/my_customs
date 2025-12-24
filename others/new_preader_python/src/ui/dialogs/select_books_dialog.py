@@ -40,7 +40,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
         try:
             parser_name = self.novel_site.get("parser")
             proxy_config = self._get_proxy_config()
-            self.parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name')) if parser_name else None
+            self.parser_instance = create_parser(parser_name, proxy_config, self.novel_site.get('name'), self.novel_site.get('url')) if parser_name else None
         except Exception:
             self.parser_instance = None
         self.loading_animation = None  # 加载动画组件

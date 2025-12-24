@@ -426,87 +426,7 @@ class DatabaseManager:
             # 插入书籍网站表（使用INSERT OR IGNORE避免重复）
             novel_sites_data = [
                 ('人妻小说网', 'https://www.renqixiaoshuo.net', '~/Documents/novels/datas', 1, 1, 'renqixiaoshuo_v2', '🔞成人', 0, '2025-10-30T20:57:48.693615', '2025-11-16T14:39:23.344214', '12345' ),
-                ('龙腾小说网', 'https://www.87nb.com', '~/Documents/novels/datas', 1, 1, '87nb_v2', '🔞成人', 2, '2025-10-30T21:02:02.541667', '2025-11-06T08:26:46.938189', '12345' ),
-                ('91PORNA', 'https://91porna.com/novels/new', '~/Documents/novels/datas', 0, 1, '91porna_v2', '🔞成人', 3, '2025-10-30T21:03:30.545970', '2025-11-09T08:07:53.440230', '12345678901' ),
-                ('AAA成人小說', 'https://aaanovel.com', '~/Documents/novels/datas', 0, 0, 'aaanovel_v2', '🔞成人', 2, '2025-10-30T21:06:01.281188', '2025-11-06T08:34:10.020746', '2025/11/05/小说名' ),
-                ('色情小说网', 'https://www.book18.me', '~/Documents/novels/datas', 0, 0, 'book18_v2', '🔞成人', 2, '2025-10-30T21:08:19.237376', '2025-11-06T08:35:33.860640', '书籍名(长篇)或12345(短篇)' ),
-                ('禁忌书屋', 'https://www.cool18.com/bbs4/index.php', '~/Documents/novels/datas', 0, 1, 'cool18_v2', '🔞成人', 2, '2025-10-30T21:10:45.105745', '2025-11-06T08:36:41.433836', '12345678' ),
-                ('成人小说网', 'https://crxs.me', '~/Documents/novels/datas', 0, 0, 'crxs_v2', '🔞成人', 4, '2025-10-30T21:12:13.730167', '2025-11-16T22:49:13.459173', '5fd28afaf29d8' ),
-                ('风月文学网', 'http://www.h528.com', '~/Documents/novels/datas', 0, 1, 'h528_v2', '🔞成人', 2, '2025-10-30T21:13:30.826456', '2025-11-06T08:37:49.480061', '12345' ),
-                ('色情001', 'https://seqing001.com', '~/Documents/novels/datas', 0, 1, 'seqing001_v2', '🔞成人', 2, '2025-10-30T21:15:07.819350', '2025-11-06T08:38:18.092886', '1234' ),
-                ('中文成人文學網', 'https://blog.xbookcn.net', '~/Documents/novels/datas', 0, 0, 'xbookcn_v2', '🔞成人', 2, '2025-10-30T21:17:34.683164', '2025-11-28T08:57:19.576880', '2022/01/blog-post_30' ),
-                ('小黄书XCHINA', 'http://xchina.fit/', '~/Documents/novels/datas', 0, 0, 'xchina_v2', '🔞成人', 2, '2025-10-30T21:20:42.789953', '2025-12-01T22:06:40.089494', '' ),
-                ('TXTXi', 'https://www.txtxi.com', '~/Documents/novels/datas', 0, 1, 'txtxi_v2', '🔞成人', 3, '2025-11-07T22:30:46.476963', '2025-11-09T08:08:06.643401', '123456' ),
-                ('不雅污书', 'https://www.buya6.xyz/', '~/Documents/novels/datas', 0, 1, 'buya6_v2', '🔞成人', 2, '2025-11-08T10:22:29.377424', '2025-11-08T10:25:16.856034', '12345' ),
-                ('撸撸色书', 'https://www.lulu6.xyz/', '~/Documents/novels/datas', 0, 1, 'lulu6_v2', '🔞成人', 3, '2025-11-08T10:53:40.514968', '2025-11-09T08:07:37.076044', '12345' ),
-                ('AA阅读', 'https://aaread.cc/', '~/Documents/novels/datas', 0, 1, 'aaread_v2', '🔞成人', 3, '2025-11-08T11:34:08.753646', '2025-11-09T08:06:54.217482', '12345' ),
-                ('都市小说网', 'https://comcom.cyou/', '~/Documents/novels/datas', 0, 1, 'comcom_v2', '🔞成人', 2, '2025-11-08T11:55:02.926747', '2025-11-08T11:55:02.926747', '12345' ),
-                ('肉肉阅读', 'https://xxread.net/', '~/Documents/novels/datas', 0, 1, 'xxread_v2', '🔞成人', 3, '2025-11-08T12:30:28.135995', '2025-11-09T08:07:09.145059', '12345' ),
-                ('夜色书阁', 'http://5l15cquy.yssg2.cfd/', '~/Documents/novels/datas', 0, 1, 'yssg_v2', '🔞成人', 2, '2025-11-08T13:14:29.498221', '2025-11-08T13:15:58.201261', '123456' ),
-                ('咪咕文学', 'https://74qyavudmbzu1.migu1.top/', '~/Documents/novels/datas', 0, 1, 'migu_v2', '🔞成人', 3, '2025-11-08T13:22:02.027183', '2025-11-09T08:07:26.232031', '12345' ),
-                ('狐狸小说网', 'https://huli123.xyz', '~/Documents/novels/datas', 0, 1, 'huli_v2', '🔞成人', 2, '2025-11-09T10:26:27.165173', '2025-12-03T14:08:32.731089', '123456' ),
-                ('XX小说网', 'https://xbookasd.top/', '~/Documents/novels/datas', 0, 0, 'xbookasd_v2', '🔞成人', 2, '2025-11-09T10:47:40.211715', '2025-11-09T10:47:51.131794', 'ambmwnKgMYHR1Z' ),
-                ('骚洞小说网', 'https://www.sdxs.xyz/', '~/Documents/novels/datas', 0, 1, 'sdxs_v2', '🔞成人', 2, '2025-11-09T11:57:37.511933', '2025-11-09T12:31:24.286089', '123456' ),
-                ('污X小说网', 'https://www.wux3.xyz/', '~/Documents/novels/datas', 0, 1, 'wux3_v2', '🔞成人', 2, '2025-11-09T11:59:04.060149', '2025-11-09T12:29:30.468540', '123456' ),
-                ('污污污书', 'https://www.wushu5.xyz/', '~/Documents/novels/datas', 0, 1, 'wushu5_v2', '🔞成人', 2, '2025-11-09T12:02:12.142057', '2025-11-09T13:47:43.458490', '123456' ),
-                ('色污骚文', 'https://www.sewu3.xyz/', '~/Documents/novels/datas', 0, 1, 'sewu3_v2', '🔞成人', 2, '2025-11-09T12:03:17.624025', '2025-11-09T12:28:00.349305', '123456' ),
-                ('啪啪色文', 'https://www.pa33.xyz/', '~/Documents/novels/datas', 0, 1, 'pa33_v2', '🔞成人', 2, '2025-11-09T12:04:24.421881', '2025-11-09T12:27:29.613401', '123456' ),
-                ('泄火小说网', 'https://www.xhxs2.xyz/', '~/Documents/novels/datas', 0, 1, 'xhxs2_v2', '🔞成人', 2, '2025-11-09T12:05:34.101135', '2025-12-01T08:03:36.966524', '123456' ),
-                ('渣女读书', 'https://www.zhanv9.xyz/', '~/Documents/novels/datas', 0, 1, 'zhanv9_v2', '🔞成人', 2, '2025-11-09T12:06:36.793691', '2025-11-09T12:26:31.406260', '123456' ),
-                ('撸色书吧', 'https://www.luseshuba2.xyz/', '~/Documents/novels/datas', 0, 1, 'luseshuba2_v2', '🔞成人', 2, '2025-11-09T12:07:22.853030', '2025-11-09T12:26:18.002297', '123456' ),
-                ('性侣文库', 'https://www.wen2.xyz/', '~/Documents/novels/datas', 0, 1, 'wen2_v2', '🔞成人', 2, '2025-11-09T12:08:14.058278', '2025-11-09T13:45:04.068716', '123456' ),
-                ('黄桃书屋', 'https://www.photo-gram.com/', '~/Documents/novels/datas', 0, 1, 'photo_gram_v2', '🔞成人', 3, '2025-11-09T16:22:20.668955', '2025-11-09T16:22:20.668955', 'abcde' ),
-                ('风情小说', 'https://fq.zhufuaini.top/', '~/Documents/novels/datas', 0, 1, 'fqzhufuaini_v2', '🔞成人', 2, '2025-11-10T09:46:31.635859', '2025-11-10T09:46:31.635859', '12345' ),
-                ('色情小说', 'https://sq.ranjing-cc.club/', '~/Documents/novels/datas', 0, 1, 'sqranjing_v2', '🔞成人', 2, '2025-11-10T09:50:06.559203', '2025-11-10T09:51:52.826159', '12345' ),
-                ('18禁成人小说', 'https://www.auate.icu/', '~/Documents/novels/datas', 0, 1, 'auate_v2', '🔞成人', 2, '2025-11-10T09:58:38.898508', '2025-11-10T09:58:38.898508', '12345' ),
-                ('18文学', 'https://www.po18.in/', '~/Documents/novels/datas', 1, 1, 'po18_v2', '🔞成人', 3, '2025-11-10T10:18:55.123708', '2025-11-10T10:21:10.756290', '12345' ),
-                ('四月过往', 'https://m.lllhhhgroup.cfd/', '~/Documents/novels/datas', 0, 1, 'lllhhhgroup_v2', '🔞成人', 2, '2025-11-10T11:18:31.667995', '2025-11-10T11:18:31.667995', '12345' ),
-                ('健康小说', 'https://w.jiankangxs.mom/', '~/Documents/novels/datas', 0, 1, 'jiankangxs_v2', '🔞成人', 2, '2025-11-10T11:21:26.992186', '2025-11-10T11:23:20.211275', '12345' ),
-                ('第一说吧', 'https://a.shiyimng-gyy.click/', '~/Documents/novels/datas', 0, 1, 'shiyimng_v2', '🔞成人', 2, '2025-11-10T11:25:17.111422', '2025-11-10T11:26:45.638628', '12345' ),
-                ('文字色诱', 'https://www.lxybwcchb.shop/', '~/Documents/novels/datas', 0, 1, 'lxybwcchb_v2', '🔞成人', 2, '2025-11-10T11:28:39.142711', '2025-11-10T11:31:39.049165', '12345' ),
-                ('羞涩书屋', 'https://fhjz.xiusemfxs.xyz/', '~/Documents/novels/datas', 0, 0, 'xiusemfxs_v2', '🔞成人', 2, '2025-11-10T11:36:39.729662', '2025-11-10T11:37:52.482253', 'pinyin' ),
-                ('海角文爱', 'https://haijbookx.top/', '~/Documents/novels/datas', 0, 1, 'haijbookx_v2', '🔞成人', 3, '2025-11-10T12:06:52.891538', '2025-11-10T12:12:44.484614', '12345' ),
-                ('欲仙阁', 'http://ye9t6x3i.yxg3.cfd/', '~/Documents/novels/datas', 0, 1, 'ye9t6x3i_v2', '🔞成人', 2, '2025-11-10T12:21:11.636979', '2025-11-10T12:21:44.261644', '12345' ),
-                ('色色书阁', 'http://gltb91xg.sssg3.lol/', '~/Documents/novels/datas', 0, 1, 'gltb91xg_v2', '🔞成人', 2, '2025-11-10T12:24:45.056790', '2025-11-10T12:26:00.446832', '12345' ),
-                ('闲娱乐小说网', 'https://xiyule.co/', '~/Documents/novels/datas', 0, 0, 'xiyule_v2', '🔞成人', 2, '2025-11-10T12:34:46.891577', '2025-11-10T12:35:27.736594', '12345/文字' ),
-                ('夜猫文献', 'https://g33reuec.yemao1.top/', '~/Documents/novels/datas', 0, 1, 'g33reuec_v2', '🔞成人', 2, '2025-11-10T12:39:21.930395', '2025-11-10T12:46:58.032438', '12345' ),
-                ('小爽文', 'https://chanji-shi.shop/', '~/Documents/novels/datas', 0, 1, 'chanjishi_v2', '🔞成人', 2, '2025-11-10T13:10:11.606478', '2025-11-10T13:13:27.716638', '12345' ),
-                ('飞库文学网', 'https://www.feiku6.com/', '~/Documents/novels/datas/', 0, 0, 'feiku6_v2', '流行名著', 5, '2025-11-13T11:58:47.528660', '2025-11-13T12:27:11.626752', 'shumingpinyin' ),
-                ('一个奇怪的小说网', 'https://6180059.xyz/', '~/Documents/novels/datas/', 0, 1, 'w6180059_v2', '🔞成人', 1, '2025-11-14T20:09:09.941821', '2025-11-14T20:09:09.941821', 'v=1234&name=小说名称' ),
-                ('桃花骚文', 'https://www.th5.xyz/', '~/Documents/novels/datas/', 0, 1, 'th5_v2', '🔞成人', 2, '2025-11-17T11:40:06.671215', '2025-11-17T11:40:06.671215', '12345' ),
-                ('风雪文学', 'https://fsnovel.com/', '~/Documents/novels/datas/', 0, 0, 'fsnovel_v2', '🔞成人', 2, '2025-11-17T11:48:03.240813', '2025-11-17T11:48:03.240813', '中文书名' ),
-                ('色情小说-成人小说数据库', 'https://ms01.top/', '~/Documents/novels/datas/', 0, 0, 'ms01_v2', '🔞成人', 2, '2025-11-17T14:08:31.327912', '2025-11-17T14:08:31.327912', 'E2Xq9gepkUu2f0cbV3aCtQ==' ),
-                ('69文学网', 'https://www.69hnovel.com/erotic-novel.html', '~/Documents/novels/datas/', 0, 1, '69hnovel_v2', '🔞成人', 2, '2025-11-17T15:04:42.963744', '2025-12-03T21:38:20.528843', 'school/article-17084' ),
-                ('幻想小说', 'https://799415.hxtxt38.lol/', '~/Documents/novels/datas/', 0, 1, 'hxtxt38_v2', '🔞成人', 2, '2025-11-17T18:19:51.344457', '2025-11-17T18:19:51.344457', '12345' ),
-                ('白胖次', 'https://book.baipangci.com/', '~/Documents/novels/datas', 0, 1, 'baipangci_v2', '🔞成人', 2, '2025-11-28T12:10:05.264981', '2025-11-28T12:10:05.264981', '12345' ),
-                ('爱69小说', 'https://ai69novel.com/', '~/Documents/novels/datas', 0, 1, 'ai69novel_v2', '🔞成人', 2, '2025-11-28T12:23:13.451591', '2025-11-28T12:23:32.498290', '12345' ),
-                ('x中文成人文学网', 'https://xbookcn.org/', '~/Documents/novels/datas', 0, 0, 'xbookcnorg_v2', '🔞成人', 2, '2025-11-28T12:44:10.273655', '2025-11-28T20:09:43.317399', 'MjE1MDY%3D' ),
-                ('小說狂人', 'https://czbooks.net/c/herotic', '~/Documents/novels/datas', 0, 0, 'czbooksnet_v2', '🔞成人+其他', 2, '2025-11-28T13:15:06.932933', '2025-11-28T13:15:31.602441', 'cr9p0' ),
-                ('疯情书屋', 'https://aabook.xyz/', '~/Documents/novels/datas', 0, 1, 'aabook_v2', '🔞成人', 2, '2025-11-28T16:10:19.348863', '2025-11-28T19:22:24.693534', '1234' ),
-                ('JKF成人小說', 'https://www.jkforum.net/p/forum-544-1.html', '~/Documents/novels/datas', 0, 0, 'jkforum_v2', '🔞成人', 2, '2025-11-28T20:08:09.566005', '2025-11-29T20:43:00.038775', '20570995-1-1' ),
-                ('集书阁成人小说', 'https://www.集书阁成人小说.com/', '~/Documents/novels/datas', 0, 0, 'jisge_v2', '🔞成人', 2, '2025-11-28T20:19:34.340635', '2025-11-28T20:44:11.210964', 'daa93c7a6e3459b78d23a73a5c4c01c7' ),
-                ('都市文学-成人小说', 'https://youbook.icu/', '~/Documents/novels/datas', 0, 0, 'youbook_icu_v2', '🔞成人', 2, '2025-12-02T09:06:03.016706', '2025-12-02T09:06:18.371759', 'wife/我的婚紗照' ),
-                ('艾利浩斯学院-图书馆', 'https://alhs.xyz/', '~/Documents/novels/datas', 0, 0, 'alhs_xyz_v2', '🔞成人', 2, '2025-12-02T09:42:13.286078', '2025-12-02T09:42:13.286078', '2025/11/69015' ),
-                ('17Short短故事', 'https://17short.com/', '~/Documents/novels/datas', 0, 0, '17short_v2', '🔞成人', 2, '2025-12-02T12:55:50.714297', '2025-12-02T12:56:42.928486', '2025/10/13/标题名称' ),
-                ('有料文学', 'https://www.ylwx74.xyz/', '~/Documents/novels/datas', 0, 1, 'ylwx74_v2', '🔞成人', 2, '2025-12-03T09:16:06.384572', '2025-12-03T18:42:44.687029', '1234' ),
-                ('小狐狸社区', 'https://huli.wanghong.rest/', '~/Documents/novels/datas', 0, 0, 'huli_wanghong_v2', '🔞成人', 2, '2025-12-03T16:46:24.973282', '2025-12-03T16:51:19.711316', '35923-1-1' ),
-                ('撩人文学', 'https://www.lrwx.xyz/', '~/Documents/novels/datas', 0, 1, 'lrwx_v2', '🔞成人', 2, '2025-12-03T17:10:45.273838', '2025-12-03T17:10:45.273838', '12345' ),
-                ('淫色小说网', 'https://www.yinse1xiaoshuo.com/yinse1/', '~/Documents/novels/datas', 0, 1, 'yinse1xiaoshuo_v2', '🔞成人', 2, '2025-12-03T18:08:41.159326', '2025-12-03T18:13:36.492414', '12345' ),
-                ('疯情书库', 'https://www.zxcms.net/', '~/Documents/novels/datas', 0, 0, 'zxcms_v2', '🔞成人', 2, '2025-12-04T09:46:06.415248', '2025-12-04T09:46:06.415248', '26_34976' ),
-                ('狼人小说', 'https://www.langyou894.cc/label/index.html', '~/Documents/novels/datas', 0, 1, 'langyou894_v2', '🔞成人', 2, '2025-12-05T14:28:15.851941', '2025-12-05T19:52:03.243006', '123456' ),
-                ('小黄书', 'https://www.xhs016.cc/label/%E5%B0%8F%E9%BB%84%E4%B9%A6.html', '~/Documents/novels/datas', 0, 1, 'xhs016_v2', '🔞成人', 2, '2025-12-05T14:30:39.521251', '2025-12-05T19:53:06.930371', '12345' ),
-                ('色色文学', 'https://www.xn59.cc/', '~/Documents/novels/datas', 0, 1, 'xn59_v2', '🔞成人', 2, '2025-12-05T14:31:25.999331', '2025-12-07T19:41:24.044692', '12345' ),
-                ('红尘黄书', 'https://www.hhss45.top/arttype/45.html', '~/Documents/novels/datas', 0, 1, 'hhss45_v2', '🔞成人', 2, '2025-12-05T14:32:15.764747', '2025-12-07T19:43:31.306916', '12345' ),
-                ('飘天小说网', 'https://www.dpyqxs.com/', '~/Documents/novels/datas', 0, 1, 'dpyqxs_v2', '🔞成人', 2, '2025-12-07T21:38:27.030270', '2025-12-07T21:38:27.030270', '12345' ),
-                ('爱丽丝书屋', 'https://www.alicesw.com/', '~/Documents/novels/datas', 0, 1, 'alicesw_v2', '🔞成人', 2, '2025-12-14T11:12:11.896439', '2025-12-14T11:16:10.844983', '12345' ),
-                ('发电小说', 'https://www.po18gg.com', '~/Documents/novels/datas', 0, 1, 'po18gg_v2', '🔞成人', 2, '2025-12-14T21:19:40.509990', '2025-12-14T21:19:40.509990', '12345' ),
-                ('肉文NP', 'https://www.po18rr.com/', '~/Documents/novels/datas', 0, 1, 'po18rr_v2', '🔞成人', 2, '2025-12-14T22:51:42.644398', '2025-12-14T23:17:27.478209', '12345' ),
-                ('1000成人小说网', 'https://1000novel.com/', '~/Documents/novels/datas', 0, 0, 'thousandnovel_v2', '🔞成人', 2, '2025-12-15T08:17:48.446365', '2025-12-15T09:48:59.035364', '2025/12/14/一個出軌女人的自述' ),
-                ('3H淫書 - 色情文學', 'https://hhhbook.com/', '~/Documents/novels/datas', 0, 0, 'hhhbook_v2', '🔞成人', 2, '2025-12-15T11:11:15.852199', '2025-12-15T11:11:15.852199', '2025/12/01/絕豔武林' ),
-                ('超爽文学网', 'https://xxxnovel.com/', '~/Documents/novels/datas', 0, 0, 'xxxnovel_v2', '🔞成人', 2, '2025-12-15T11:17:21.887507', '2025-12-15T11:19:56.448043', '2025/12/13/ol貴婦的誘惑' ),
-                ('飞机文学', 'https://dfjstory.com/', '~/Documents/novels/datas', 0, 0, 'dfjstory_v2', '🔞成人', 2, '2025-12-15T11:31:08.104304', '2025-12-15T11:31:08.104304', '2025/12/13/白蛇傳說之失貞' ),
-                ('春色文学', 'https://springnovel.com/', '~/Documents/novels/datas', 0, 0, 'springnovel_v2', '🔞成人', 2, '2025-12-15T12:18:52.591654', '2025-12-15T12:18:52.591654', '2025/12/13/艷陽高照，人妻偷情' ),
-                ('CA色情小说', 'https://canovel.com/', '~/Documents/novels/datas', 0, 1, 'canovel_v2', '🔞成人', 2, '2025-12-15T12:38:29.770645', '2025-12-15T12:43:34.870615', '12345' ),
+                
             ]
             
             for site_data in novel_sites_data:
@@ -1766,6 +1686,65 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"更新网站状态失败: {e}")
             return False
+    
+    def get_cms_t1_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有使用CMS T1解析器的网站
+        
+        Returns:
+            List[Dict[str, Any]]: CMS T1网站列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM novel_sites 
+                    WHERE parser = 'cms_t1_v2' 
+                    ORDER BY created_at
+                """)
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取CMS T1网站配置失败: {e}")
+            return []
+    
+    def create_cms_t1_parsers(self) -> List[Dict[str, Any]]:
+        """
+        为所有CMS T1网站创建解析器实例
+        
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.spiders.base_parser_v2 import BaseParser
+        
+        # 获取所有CMS T1网站
+        cms_sites = self.get_cms_t1_sites()
+        parser_sites = []
+        
+        for site_data in cms_sites:
+            try:
+                # 创建代理配置
+                proxy_config = {
+                    'enabled': bool(site_data.get('proxy_enabled', False)),
+                    'proxy_url': ''  # 这里可以根据需要从数据库中获取代理URL
+                }
+                
+                # 创建解析器实例
+                parser = BaseParser.create_cms_t1_parser(site_data, proxy_config)
+                
+                parser_sites.append({
+                    'site_data': site_data,
+                    'parser': parser
+                })
+                
+                logger.info(f"已为网站 {site_data.get('name')} 创建CMS T1解析器")
+                
+            except Exception as e:
+                logger.error(f"为网站 {site_data.get('name')} 创建解析器失败: {e}")
+        
+        return parser_sites
     
     def check_site_availability(self, site_url: str, timeout: int = 10) -> Dict[str, Any]:
         """

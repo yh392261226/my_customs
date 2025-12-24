@@ -54,7 +54,7 @@ def get_parser_options() -> List[tuple[str, str]]:
     # 如果没有任何解析器，返回空列表
     return options
 
-def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None) -> BaseParser:
+def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None, site_url: Optional[str] = None) -> BaseParser:
     """
     创建指定名称的解析器实例
     
@@ -62,6 +62,7 @@ def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = Non
         parser_name: 解析器文件名（不带.py后缀）
         proxy_config: 代理配置
         novel_site_name: 从数据库获取的网站名称，用于作者信息
+        site_url: 网站URL，用于CMS解析器自动配置API地址
         
     Returns:
         解析器实例
@@ -104,8 +105,14 @@ def create_parser(parser_name: str, proxy_config: Optional[Dict[str, Any]] = Non
                     break
         
         if parser_class:
-            # 创建解析器实例并传递代理配置和数据库网站名称
-            return parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name)
+            # 创建解析器实例并传递代理配置、数据库网站名称和网站URL
+            # 检查解析器类是否支持site_url参数
+            import inspect
+            init_signature = inspect.signature(parser_class.__init__)
+            if 'site_url' in init_signature.parameters:
+                return parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name, site_url=site_url)
+            else:
+                return parser_class(proxy_config=proxy_config, novel_site_name=novel_site_name)
         else:
             raise ValueError(f"解析器 {parser_name} 类不存在")
             
