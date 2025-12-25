@@ -105,7 +105,7 @@ class CmsT2Parser(BaseParser):
     
     # 基本信息 - 会被动态设置
     name = "CMS T2 通用解析器"
-    description = "CMS T2 通用HTML解析器，适用于 /index.php/art/detail/id/ 格式的网站"
+    description = "CMS T2 通用HTML解析器，适用于 /index.php/art/detail/id/ 和 /artdetail- 格式的网站（支持4huo等特殊格式）"
     base_url = ""  # 将在初始化时设置
     
     # 正则表达式配置
@@ -143,7 +143,11 @@ class CmsT2Parser(BaseParser):
         if not self.base_url:
             logger.error("base_url未设置，无法生成有效的URL")
             raise ValueError("base_url未设置，请在初始化时提供有效的site_url")
-            
+        
+        # 检查是否为4huo网站，如果是则使用特殊格式
+        if "4huo" in self.base_url:
+            return f"{self.base_url}/artdetail-{novel_id}.html"
+        
         return f"{self.base_url}/index.php/art/detail/id/{novel_id}.html"
     
     def parse_novel_list(self, url: str) -> List[Dict[str, Any]]:
@@ -360,7 +364,11 @@ class CmsT2Parser(BaseParser):
             start_match = re.search(pattern, content, re.IGNORECASE)
             if start_match:
                 start_pos = start_match.end()
-                container_tag = re.search(r'<(\w+)', pattern).group(1)
+                tag_match = re.search(r'<(\w+)', pattern)
+                if tag_match:
+                    container_tag = tag_match.group(1)
+                else:
+                    continue
                 
                 # 使用平衡匹配算法找到对应的结束标签
                 stack = 1
@@ -459,7 +467,12 @@ class CmsT2Parser(BaseParser):
         Returns:
             小说ID
         """
-        # 从URL中提取ID部分
+        # 首先尝试匹配4huo格式: artdetail-{novel_id}.html
+        match = re.search(r'/artdetail-(\d+)\.html', url)
+        if match:
+            return match.group(1)
+        
+        # 然后尝试匹配标准CMS T2格式: /id/{novel_id}.html
         match = re.search(r'/id/(\d+)\.html', url)
         if match:
             return match.group(1)
@@ -468,7 +481,12 @@ class CmsT2Parser(BaseParser):
         parts = url.split('/')
         for part in parts:
             if part.endswith('.html'):
-                return part.replace('.html', '')
+                # 移除.html后缀，并移除可能的前缀（如artdetail-）
+                clean_part = part.replace('.html', '')
+                if '-' in clean_part:
+                    # 处理artdetail-{id}格式
+                    return clean_part.split('-')[-1]
+                return clean_part
         
         return "unknown"
 
