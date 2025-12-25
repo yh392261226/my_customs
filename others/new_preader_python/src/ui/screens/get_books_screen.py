@@ -17,7 +17,7 @@ from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.core.database_manager import DatabaseManager
 from src.config.config_manager import ConfigManager
-import platform, os
+import platform, os, subprocess
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 logger = get_logger(__name__)
@@ -611,6 +611,68 @@ class GetBooksScreen(Screen[None]):
             logger.error(f"切换网站状态失败: {e}")
             self.notify(f"切换网站状态失败: {str(e)}", severity="error")
     
+    def _open_url_in_browser(self, url: str, site_name: str) -> None:
+        """使用浏览器打开网站网址"""
+        try:
+            # 确保URL格式正确
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url
+            
+            # 根据操作系统使用不同的命令打开Google Chrome
+            system = platform.system()
+            if system == "Darwin":  # macOS
+                # 尝试使用Google Chrome
+                try:
+                    subprocess.run(['open', '-a', 'Google Chrome', url], check=True)
+                    self.notify(f"正在使用Google Chrome打开网站: {site_name}", severity="success")
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    # 如果Chrome不可用，使用默认浏览器
+                    os.system(f'open "{url}"')
+                    self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+            elif system == "Windows":
+                # 尝试使用Google Chrome
+                chrome_paths = [
+                    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe')
+                ]
+                chrome_found = False
+                for chrome_path in chrome_paths:
+                    if os.path.exists(chrome_path):
+                        try:
+                            subprocess.run([chrome_path, url], check=True)
+                            self.notify(f"正在使用Google Chrome打开网站: {site_name}", severity="success")
+                            chrome_found = True
+                            break
+                        except subprocess.CalledProcessError:
+                            pass
+                if not chrome_found:
+                    # 如果Chrome不可用，使用默认浏览器
+                    os.system(f'start "" "{url}"')
+                    self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+            elif system == "Linux":
+                # 尝试使用Google Chrome
+                try:
+                    subprocess.run(['google-chrome', url], check=True)
+                    self.notify(f"正在使用Google Chrome打开网站: {site_name}", severity="success")
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    try:
+                        # 尝试使用chromium
+                        subprocess.run(['chromium-browser', url], check=True)
+                        self.notify(f"正在使用Chromium打开网站: {site_name}", severity="success")
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        # 如果Chrome/Chromium不可用，使用默认浏览器
+                        os.system(f'xdg-open "{url}"')
+                        self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+            else:
+                # 其他系统，使用默认方式
+                os.system(f'open "{url}"')
+                self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+                
+        except Exception as e:
+            logger.error(f"打开网址失败: {e}")
+            self.notify(f"打开网址失败: {str(e)}", severity="error")
+    
     def _load_proxy_settings(self) -> None:
         """加载代理设置"""
         # 从数据库加载代理设置
@@ -1101,10 +1163,39 @@ class GetBooksScreen(Screen[None]):
                 
                 # 处理其他列点击 - 不执行任何操作，只恢复光标位置
                 else:
-                    # 对于非按钮列的点击，不执行任何操作
-                    logger.debug(f"点击的是非按钮列: {col_index}")
-                    # 恢复光标位置
-                    self._restore_cursor_position(table, saved_row, saved_col)
+                    # 检查是否点击了网站网址列
+                    is_url_column = False
+                    if column_key_name == "url" or col_index == 2:  # 网站网址列
+                        is_url_column = True
+                    
+                    if is_url_column:
+                        # 设置按钮点击标志
+                        self._button_clicked = True
+                        logger.debug(f"设置按钮点击标志为True")
+                        
+                        # 获取当前页的数据
+                        start_index = (self._current_page - 1) * self._sites_per_page
+                        if row_index is not None and row_index < len(self._all_sites) - start_index:
+                            site = self._all_sites[start_index + row_index]
+                            site_url = site.get("url", "")
+                            site_name = site.get("name", "未知网站")
+                            logger.debug(f"打开的站点网址: {site_url}")
+                            
+                            if site_url:
+                                # 使用系统默认浏览器打开网址
+                                self._open_url_in_browser(site_url, site_name)
+                            else:
+                                self.notify("网站网址为空，无法打开", severity="warning")
+                        else:
+                            logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
+                        
+                        # 恢复光标位置
+                        self._restore_cursor_position(table, saved_row, saved_col)
+                    else:
+                        # 对于非特殊功能列的点击，不执行任何操作
+                        logger.debug(f"点击的是普通列: {col_index}")
+                        # 恢复光标位置
+                        self._restore_cursor_position(table, saved_row, saved_col)
             else:
                 logger.debug("单元格选择事件没有坐标信息")
                 
