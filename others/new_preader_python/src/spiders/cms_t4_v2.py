@@ -1,67 +1,40 @@
 """
-18文学网解析器 - 基于配置驱动版本
-继承自 BaseParser，使用属性配置实现
+CMS T4 小说网站解析器 - 通用成人内容解析版本
+适用于使用相同CMS结构的成人内容网站，特征为特殊图片字符替换和GBK编码
 """
 
-import os
 import re
 import time
-import requests
 from typing import Dict, Any, List, Optional
-from .base_parser_v2 import BaseParser
+from urllib.parse import urlparse
 from src.utils.logger import get_logger
+from .base_parser_v2 import BaseParser
 
 logger = get_logger(__name__)
 
-class Po18Parser(BaseParser):
-    """18文学网解析器 - 配置驱动版本"""
+class CmsT4Parser(BaseParser):
+    """CMS T4 小说解析器 - 通用成人内容解析版本"""
     
-    # 基本信息
-    name = "18文学网"
-    description = "18文学网整本小说爬取解析器"
-    base_url = "https://www.po18.in"
-    
-    # 编码配置 - PO18网站使用GBK编码
-    encoding = "gbk"
-    
-    # 正则表达式配置 - 与原始版本保持一致
-    title_reg = [
-        r'<div class="bookintro">\s*<p[^>]*>\s*<a[^>]*title="([^"]*)"[^>]*>',
-        r'<div class="bookintro">\s*<p[^>]*>\s*<a[^>]*>([^<]*)</a>',
-        r'<h1[^>]*>(.*?)</h1>',
-        r'<title>(.*?)</title>'
-    ]
-    
-    content_reg = [
-        r'<div[^>]*id="booktxt"[^>]*>(.*?)</div>',
-        r'<div class="booktxt"[^>]*>(.*?)</div>',
-        r'<div class="content"[^>]*>(.*?)</div>',
-        r'<div[^>]*class="novel-content"[^>]*>(.*?)</div>'
-    ]
-    
-    status_reg = [
-        r'<div class="bookdes">\s*<p[^>]*>(.*?)</p>',
-        r'小说状态[:：]\s*(.*?)[<\s]'
-    ]
-    
-    # 处理函数配置
-    after_crawler_func = [
-        "_replace_special_chars",  # po18特有的字符替换
-        "_clean_html_content",  # 公共基类提供的HTML清理
-        "_remove_ads"  # 广告移除
-    ]
-    
-    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
+    def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None, site_url: Optional[str] = None):
         """
         初始化解析器
         
         Args:
             proxy_config: 代理配置
-            novel_site_name: 从数据库获取的网站名称，用于作者信息
+            novel_site_name: 网站名称，如果提供则覆盖默认名称
+            site_url: 网站URL，用于自动生成base_url
         """
         super().__init__(proxy_config, novel_site_name)
         
-        # 设置请求头，适配GBK编码
+        # 初始化实例变量
+        self._detected_url_format = None
+        self.encoding = "utf-8"  # 默认UTF-8，可在检测后调整为GBK
+        
+        # 如果提供了site_url，则自动解析并设置base_url
+        if site_url:
+            self._setup_from_site_url(site_url)
+        
+        # 添加通用的请求头
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -73,19 +46,11 @@ class Po18Parser(BaseParser):
             'Cache-Control': 'max-age=0'
         })
         
-        # 设置请求头，适配GBK编码
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'Accept-Charset': 'GBK,utf-8;q=0.7,*;q=0.3',
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0'
-        })
+        # 如果base_url已设置，更新Referer头
+        if self.base_url:
+            self.session.headers.update({'Referer': self.base_url})
         
-        # po18特殊字符替换映射
+        # CMS T4 特有的特殊字符替换映射
         self.char_replacements = {
             '<img src="/zi/n1.png" width="30px" height="28px"/>': '奶',
             '<img src="/zi/d2.png" width="30px" height="28px"/>': '屌',
@@ -139,10 +104,130 @@ class Po18Parser(BaseParser):
             '<img src="/zi/l4.png" width="30px" height="28px"/>': '裸',
             '<img src="/zi/t2.png" width="30px" height="28px"/>': '臀',
         }
+        
+        # URL格式模式 - 支持多种格式
+        self.url_patterns = {
+            'po18': {
+                'info': '/info/{id}.html',
+                'content': '/info/{id}/{page}.html'
+            },
+            '87nb': {
+                'info': '/lt/{id}.html',
+                'content': '/ltxs/{id}/{page}.html'
+            }
+        }
+    
+
+    
+    def _setup_from_site_url(self, site_url: str) -> None:
+        """
+        从网站URL自动设置base_url并检测URL格式
+        
+        Args:
+            site_url: 网站URL，如 https://www.example.com/
+        """
+        logger.info(f"开始从site_url设置base_url: {site_url}")
+        
+        # 解析URL获取域名
+        parsed_url = urlparse(site_url)
+        self.base_url = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        logger.info(f"设置base_url: {self.base_url}")
+        
+        # 检测URL格式类型
+        domain = parsed_url.netloc.lower()
+        if 'po18' in domain:
+            self._detected_url_format = 'po18'
+            self.encoding = "gbk"  # po18使用GBK编码
+            logger.info("检测到po18格式URL，使用GBK编码")
+        elif '87nb' in domain:
+            self._detected_url_format = '87nb'
+            self.encoding = "utf-8"  # 87nb使用UTF-8编码
+            logger.info("检测到87nb格式URL，使用UTF-8编码")
+        else:
+            # 默认使用po18格式
+            self._detected_url_format = 'po18'
+            self.encoding = "gbk"
+            logger.info("使用默认po18格式URL和GBK编码")
+        
+        # 如果没有提供novel_site_name，使用域名作为名称
+        if not self.novel_site_name or self.novel_site_name == self.name:
+            self.novel_site_name = parsed_url.netloc
+            logger.info(f"设置novel_site_name: {self.novel_site_name}")
+    
+    @classmethod
+    def create_from_site_data(cls, site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        从数据库中的网站数据创建解析器实例
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            解析器实例
+        """
+        return cls(
+            proxy_config=proxy_config,
+            novel_site_name=site_data.get('name'),
+            site_url=site_data.get('url')
+        )
+    
+    @classmethod
+    def create_all_parsers_from_db(cls, db_path: Optional[str] = None):
+        """
+        从数据库中获取所有CMS T4网站并创建解析器实例
+        
+        Args:
+            db_path: 数据库路径，如果为None则使用默认路径
+            
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.core.database_manager import DatabaseManager
+        
+        # 创建数据库管理器
+        db_manager = DatabaseManager(db_path) if db_path else DatabaseManager()
+        
+        # 获取所有CMS T4网站并创建解析器
+        return db_manager.create_cms_t4_parsers()
+    
+    # 基本信息 - 会被动态设置
+    name = "CMS T4 通用解析器"
+    description = "CMS T4 通用成人内容解析器，适用于特殊图片字符替换的网站"
+    base_url = ""  # 将在初始化时设置
+    
+    # 正则表达式配置
+    title_reg = [
+        r'<div class="bookintro">\s*<p[^>]*>\s*<a[^>]*title="([^"]*)"[^>]*>',
+        r'<div class="bookintro">\s*<p[^>]*>\s*<a[^>]*>([^<]*)</a>',
+        r'<h1[^>]*>(.*?)</h1>',
+        r'<title>(.*?)</title>'
+    ]
+    
+    content_reg = [
+        r'<div[^>]*id="booktxt"[^>]*>(.*?)</div>',
+        r'<div class="booktxt"[^>]*>(.*?)</div>',
+        r'<div class="content"[^>]*>(.*?)</div>',
+        r'<div[^>]*class="novel-content"[^>]*>(.*?)</div>'
+    ]
+    
+    status_reg = [
+        r'<div class="bookdes">\s*<p[^>]*>(.*?)</p>',
+        r'小说状态[:：]\s*(.*?)[<\s]'
+    ]
+    
+    # 处理函数配置
+    after_crawler_func = [
+        "_replace_special_chars",  # CMS T4特有的字符替换
+        "_clean_html_content",  # 公共基类提供的HTML清理
+        "_remove_ads"  # 广告移除
+    ]
+    
+    book_type = ["短篇"]  # 这类网站主要为短篇小说
     
     def get_novel_url(self, novel_id: str) -> str:
         """
-        重写URL生成方法，适配po18的URL格式
+        根据小说ID生成小说URL，适配检测到的格式
         
         Args:
             novel_id: 小说ID
@@ -150,11 +235,34 @@ class Po18Parser(BaseParser):
         Returns:
             小说URL
         """
-        return f"{self.base_url}/info/{novel_id}.html"
+        if not self.base_url:
+            logger.error("base_url未设置，无法生成有效的URL")
+            raise ValueError("base_url未设置，请在初始化时提供有效的site_url")
+        
+        if not self._detected_url_format:
+            logger.error("未检测到URL格式，无法生成有效的URL")
+            raise ValueError("未检测到URL格式，请在初始化时提供有效的site_url")
+        
+        format_config = self.url_patterns.get(self._detected_url_format, self.url_patterns['po18'])
+        info_template = format_config['info']
+        
+        return f"{self.base_url}{info_template.format(id=novel_id)}"
+    
+    def parse_novel_list(self, url: str) -> List[Dict[str, Any]]:
+        """
+        解析小说列表页（CMS T4网站主要为单篇短篇小说，不需要列表解析）
+        
+        Args:
+            url: 小说列表页URL
+            
+        Returns:
+            小说信息列表
+        """
+        return []
     
     def _detect_book_type(self, content: str) -> str:
         """
-        重写书籍类型检测，适配po18的特定模式
+        检测书籍类型（CMS T4网站主要为短篇小说）
         
         Args:
             content: 页面内容
@@ -162,7 +270,6 @@ class Po18Parser(BaseParser):
         Returns:
             书籍类型
         """
-        # po18网站使用内容页内分页模式
         return "内容页内分页"
     
     def _extract_content_page_url(self, content: str) -> Optional[str]:
@@ -175,264 +282,56 @@ class Po18Parser(BaseParser):
         Returns:
             内容页面URL或None
         """
-        import re
-        
-        # 查找"开始阅读"链接 - 修复正则表达式匹配
-        patterns = [
-            r'<a href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>',
-            r'href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>',
-            r'<a href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>'
-        ]
+        # 根据检测到的格式使用不同的正则表达式
+        if self._detected_url_format == 'po18':
+            patterns = [
+                r'<a href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>',
+                r'href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>',
+                r'<a href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>'
+            ]
+        elif self._detected_url_format == '87nb':
+            patterns = [
+                r'<a href="(/ltxs/\d+/\d+\.html)"[^>]*>开始阅读</a>',
+                r'href="(/ltxs/\d+/\d+\.html)"[^>]*>开始阅读</a>'
+            ]
+
+        else:
+            # 默认使用po18格式
+            patterns = [
+                r'<a href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>',
+                r'href="(/info/\d+/\d+\.html)"[^>]*>开始阅读</a>'
+            ]
         
         for pattern in patterns:
             match = re.search(pattern, content)
             if match:
+                logger.info(f"使用模式 '{pattern}' 匹配到内容页URL: {match.group(1)}")
                 return match.group(1)
         
         # 备用方法：查找章节列表中的第一个章节链接
-        first_chapter_pattern = r'<a href="(/info/\d+/\d+\.html)"[^>]*rel="chapter"[^>]*>'
+        if self._detected_url_format == 'po18':
+            first_chapter_pattern = r'<a href="(/info/\d+/\d+\.html)"[^>]*rel="chapter"[^>]*>'
+        elif self._detected_url_format == '87nb':
+            first_chapter_pattern = r'<a href="(/ltxs/\d+/\d+\.html)"[^>]*rel="chapter"[^>]*>'
+
+        else:
+            first_chapter_pattern = r'<a href="(/info/\d+/\d+\.html)"[^>]*rel="chapter"[^>]*>'
+        
         first_chapter_match = re.search(first_chapter_pattern, content)
         if first_chapter_match:
+            logger.info(f"使用备用模式 '{first_chapter_pattern}' 匹配到内容页URL: {first_chapter_match.group(1)}")
             return first_chapter_match.group(1)
         
+        # 如果仍然找不到，打印网页内容的部分信息用于调试
+        logger.info(f"无法找到内容页面链接，网页内容预览: {content[:500]}")
+        
+        # 查找所有可能的链接
+        all_links = re.findall(r'<a[^>]*href="([^"]*)"[^>]*>[^<]*</a>', content)
+        html_links = [link for link in all_links if 'html' in link]
+        if html_links:
+            logger.info(f"找到的包含'html'的链接: {html_links[:5]}")  # 只显示前5个
+        
         return None
-    
-    def _parse_single_chapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
-        """
-        实现单章节小说解析逻辑 - po18特定实现
-        
-        Args:
-            content: 页面内容
-            novel_url: 小说URL
-            title: 小说标题
-            
-        Returns:
-            小说详情信息
-        """
-        # po18特殊处理：需要从"开始阅读"链接获取内容
-        content_url = self._extract_content_page_url(content)
-        
-        if not content_url:
-            raise Exception("无法找到内容页面链接")
-        
-        # 构建完整的内容页面URL
-        full_content_url = f"{self.base_url}{content_url}"
-        
-        # 获取内容页面
-        content_page = self._get_url_content(full_content_url)
-        
-        if not content_page:
-            raise Exception("无法获取内容页面")
-        
-        # 从内容页面提取章节标题
-        chapter_title = self._extract_chapter_title(content_page)
-        
-        # 从内容页面提取小说内容
-        extracted_content = self._extract_with_regex(content_page, self.content_reg)
-        
-        if not extracted_content:
-            # 尝试备用内容提取模式
-            extracted_content = self._extract_content_fallback(content_page)
-        
-        if not extracted_content:
-            raise Exception("无法提取小说内容")
-        
-        # 执行爬取后处理函数
-        processed_content = self._execute_after_crawler_funcs(extracted_content)
-        
-        # 处理章节标题，确保不使用"第1页"这样的标题
-        final_chapter_title = chapter_title if chapter_title else title
-        # 如果提取的标题是"第1页"或类似页码标记，则使用小说标题
-        if final_chapter_title and re.search(r'第\d+页', final_chapter_title):
-            final_chapter_title = title
-        
-        # 创建小说内容
-        novel_content = {
-            'title': title,
-            'author': self.novel_site_name,
-            'novel_id': self._extract_novel_id_from_url(novel_url),
-            'url': novel_url,
-            'chapters': [
-                {
-                    'chapter_number': 1,
-                    'title': final_chapter_title,
-                    'content': processed_content,
-                    'url': full_content_url
-                }
-            ]
-        }
-        
-        return novel_content
-    
-    def _parse_multichapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
-        """
-        实现多章节小说解析逻辑
-        
-        Args:
-            content: 页面内容
-            novel_url: 小说URL
-            title: 小说标题
-            
-        Returns:
-            小说详情信息
-        """
-        # 提取章节链接
-        chapter_links = self._extract_chapter_links(content)
-        if not chapter_links:
-            raise Exception("无法提取章节列表")
-        
-        print(f"发现 {len(chapter_links)} 个章节")
-        
-        # 创建小说内容
-        novel_content = {
-            'title': title,
-            'author': self.novel_site_name,
-            'novel_id': self._extract_novel_id_from_url(novel_url),
-            'url': novel_url,
-            'chapters': []
-        }
-        
-        # 使用基类方法按章节编号排序
-        self._sort_chapters_by_number(chapter_links)
-
-        
-        # 抓取所有章节内容
-        self._get_all_chapters(chapter_links, novel_content)
-        
-        return novel_content
-    
-    def _extract_chapter_links(self, content: str) -> List[Dict[str, str]]:
-        """
-        提取章节链接列表 - po18特定实现
-        
-        Args:
-            content: 页面内容
-            
-        Returns:
-            章节链接列表
-        """
-        # po18是短篇小说网站，没有章节列表
-        return []
-    
-    def _get_all_chapters(self, chapter_links: List[Dict[str, str]], novel_content: Dict[str, Any]) -> None:
-        """
-        抓取所有章节内容
-        
-        Args:
-            chapter_links: 章节链接列表
-            novel_content: 小说内容字典
-        """
-        import time
-        
-        self.chapter_count = 0
-        
-        for chapter_info in chapter_links:
-            self.chapter_count += 1
-            chapter_url = chapter_info['url']
-            chapter_title = chapter_info['title']
-            
-            print(f"正在抓取第 {self.chapter_count} 章: {chapter_title}")
-            
-            # 获取章节内容
-            full_url = f"{self.base_url}{chapter_url}"
-            chapter_content = self._get_url_content(full_url)
-            
-            if chapter_content:
-                # 从章节页面提取章节标题
-                page_chapter_title = self._extract_chapter_title(chapter_content)
-                
-                # 使用配置的正则提取内容
-                extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
-                
-                if extracted_content:
-                    # 执行爬取后处理函数
-                    processed_content = self._execute_after_crawler_funcs(extracted_content)
-                    
-                    # 优先使用从页面提取的标题，如果不存在则使用链接中的标题
-                    final_title = page_chapter_title if page_chapter_title else chapter_title
-                    
-                    # 如果标题是"第1页"或类似页码标记，则使用默认标题
-                    if final_title and re.search(r'第\d+页', final_title):
-                        final_title = f"第{self.chapter_count}章"
-                    
-                    novel_content['chapters'].append({
-                        'chapter_number': self.chapter_count,
-                        'title': final_title,
-                        'content': processed_content,
-                        'url': full_url
-                    })
-                    print(f"√ 第 {self.chapter_count} 章抓取成功")
-                else:
-                    print(f"× 第 {self.chapter_count} 章内容提取失败")
-            else:
-                print(f"× 第 {self.chapter_count} 章抓取失败")
-            
-            # 章节间延迟
-            time.sleep(1)
-    
-    def _replace_special_chars(self, content: str) -> str:
-        """
-        替换特殊字符 - po18特有处理
-        
-        Args:
-            content: 原始内容
-            
-        Returns:
-            处理后的内容
-        """
-        # 替换po18的特殊图片字符
-        for old_char, new_char in self.char_replacements.items():
-            content = content.replace(old_char, new_char)
-        
-        return content
-    
-    def _remove_ads(self, content: str) -> str:
-        """
-        移除广告内容 - po18特有处理
-        
-        Args:
-            content: 原始内容
-            
-        Returns:
-            处理后的内容
-        """
-        import re
-        
-        # 移除po18常见的广告模式
-        ad_patterns = [
-            r'<div class="ad".*?</div>',
-            r'<!--.*?广告.*?-->',
-            r'赞助.*?内容'
-        ]
-        
-        for pattern in ad_patterns:
-            content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
-        
-        return content
-    
-    def _extract_title(self, content: str) -> str:
-        """
-        提取小说标题 - po18特定实现
-        
-        Args:
-            content: 页面内容
-            
-        Returns:
-            小说标题
-        """
-        import re
-        
-        # 使用配置的正则表达式提取标题
-        title = self._extract_with_regex(content, self.title_reg)
-        if title:
-            return title
-        
-        # 备用方法：从页面标题中提取
-        title_match = re.search(r'<title>(.*?)</title>', content)
-        if title_match:
-            return title_match.group(1).strip()
-        
-        return "未知标题"
     
     def _extract_chapter_title(self, content: str) -> str:
         """
@@ -444,18 +343,16 @@ class Po18Parser(BaseParser):
         Returns:
             章节标题
         """
-        import re
-        
         # 尝试从title标签中提取章节标题 - 先从标题中分离出小说名和章节名
         title_match = re.search(r'<title>([^<]+)</title>', content, re.IGNORECASE)
         if title_match:
             full_title = title_match.group(1).strip()
-            # 常见的标题格式: "小说名 - 章节名 - 18文学网" 或 "章节名_小说名_18文学网" 等
+            # 常见的标题格式: "小说名 - 章节名 - 网站" 或 "章节名_小说名_网站" 等
             # 尝试分离出章节名
             chapter_title_patterns = [
-                r'^(.+?)\s*[-_]\s*[^-_\s]+(?:小说|正文)?\s*[-_]\s*18文学网',  # 章节名在前
-                r'^[^-_\s]+(?:小说|正文)?\s*[-_]\s*(.+?)\s*[-_]\s*18文学网',  # 章节名在中间
-                r'^(.+?)\s*[-_]\s*18文学网',  # 只有章节名和网站名
+                r'^(.+?)\s*[-_]\s*[^-_\s]+(?:小说|正文)?\s*[-_]\s*[^-_\s]+',  # 章节名在前
+                r'^[^-\s]+(?:小说|正文)?\s*[-_]\s*(.+?)\s*[-_]\s*[^-_\s]+',  # 章节名在中间
+                r'^(.+?)\s*[-_]\s*[^-_\s]+',  # 只有章节名和网站名
                 r'^(.+?)\s*[-_]\s*[^-_]*$',  # 只有章节名和小说名
             ]
             
@@ -465,7 +362,7 @@ class Po18Parser(BaseParser):
                     chapter_title = match.group(1).strip()
                     # 清理可能的页码标记
                     chapter_title = re.sub(r'第\d+页$', '', chapter_title).strip()
-                    if chapter_title and chapter_title not in ['首页', '小说', '正文', '目录', '18文学网', 'po18']:
+                    if chapter_title and chapter_title not in ['首页', '小说', '正文', '目录']:
                         return chapter_title
         
         # h1标签的各种可能形式
@@ -487,114 +384,54 @@ class Po18Parser(BaseParser):
                 title = re.sub(r'第\d+页$', '', title).strip()
                 
                 # 过滤掉一些明显不是标题的内容
-                if title and title not in ['首页', '小说', '正文', '目录', '下一页', '上一页', '18文学网', 'po18']:
+                if title and title not in ['首页', '小说', '正文', '目录', '下一页', '上一页']:
                     # 如果标题太短或者太通用，尝试其他模式
                     if len(title) > 1 and not re.match(r'^[0-9]+$', title):
                         return title
         
-        # 其他可能的标题标签
-        other_patterns = [
-            r'<h2[^>]*>(.*?)</h2>',
-            r'<div[^>]*class="[^"]*title[^"]*"[^>]*>(.*?)</div>',
-            r'<div[^>]*id="[^"]*title[^"]*"[^>]*>(.*?)</div>',
-            # 可能包含章节信息的特定结构
-            r'<div[^>]*class="[^"]*chapter[^"]*"[^>]*>(.*?)</div>',
-            r'<div[^>]*class="[^"]*page[^"]*"[^>]*>(.*?)</div>',
-            # 从面包屑导航中提取
-            r'<div[^>]*class="[^"]*breadcrumb[^"]*"[^>]*>([^<]+)</div>',
-            # 从页面中的特定文本提取
-            r'正文\s*([^\s<>]+)',
-            r'章节\s*([^\s<>]+)',
-        ]
-        
-        for pattern in other_patterns:
-            match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
-            if match:
-                title = match.group(1).strip()
-                # 清理标题中的HTML标签
-                title = re.sub(r'<[^>]+>', '', title)
-                # 清理多余的空白字符
-                title = re.sub(r'\s+', ' ', title).strip()
-                # 清理可能的页码标记
-                title = re.sub(r'第\d+页$', '', title).strip()
-                
-                # 过滤掉一些明显不是标题的内容
-                if title and title not in ['首页', '小说', '正文', '目录', '下一页', '上一页', '18文学网', 'po18']:
-                    if len(title) > 1 and not re.match(r'^[0-9]+$', title):
-                        return title
-        
-        # 如果所有模式都失败，尝试从页面中查找包含"第"和"章"的文本
-        chapter_patterns = [
-            r'第[0-9一二三四五六七八九十百千万]+[章回节][^<\s]*',
-            r'第[0-9一二三四五六七八九十百千万]+[章回节]\s*[^<]*',
-            r'第[0-9一二三四五六七八九十百千万]+页[^<\s]*',
-            r'第[0-9一二三四五六七八九十百千万]+话[^<\s]*'
-        ]
-        
-        for pattern in chapter_patterns:
-            matches = re.findall(pattern, content, re.IGNORECASE)
-            for match in matches:
-                title = match.strip()
-                # 清理可能的页码标记
-                title = re.sub(r'第\d+页$', '', title).strip()
-                if len(title) > 3 and not '第1页' in title:  # 避免返回"第1页"这样的标题
-                    return title
-        
         return ""
     
-    def _extract_content_fallback(self, content: str) -> Optional[str]:
+    def _replace_special_chars(self, content: str) -> str:
         """
-        备用内容提取方法 - 当主要正则表达式失败时使用
+        替换特殊字符 - CMS T4特有处理
         
         Args:
-            content: 页面内容
+            content: 原始内容
             
         Returns:
-            提取的内容或None
+            处理后的内容
         """
-        import re
+        # 替换CMS T4的特殊图片字符
+        for old_char, new_char in self.char_replacements.items():
+            content = content.replace(old_char, new_char)
         
-        # 备用模式1：查找包含小说内容的div
-        patterns = [
-            r'<div[^>]*class="content"[^>]*>(.*?)</div>',
-            r'<div[^>]*id="content"[^>]*>(.*?)</div>',
-            r'<div[^>]*class="novel-content"[^>]*>(.*?)</div>',
-            r'<div[^>]*class="article-content"[^>]*>(.*?)</div>',
-            r'<div[^>]*class="text"[^>]*>(.*?)</div>',
-            r'<div[^>]*class="txt"[^>]*>(.*?)</div>'
+        return content
+    
+    def _remove_ads(self, content: str) -> str:
+        """
+        移除广告内容 - CMS T4特有处理
+        
+        Args:
+            content: 原始内容
+            
+        Returns:
+            处理后的内容
+        """
+        # 移除常见的广告模式
+        ad_patterns = [
+            r'<div class="ad".*?</div>',
+            r'<!--.*?广告.*?-->',
+            r'赞助.*?内容'
         ]
         
-        for pattern in patterns:
-            match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
-            if match:
-                return match.group(1)
+        for pattern in ad_patterns:
+            content = re.sub(pattern, '', content, flags=re.IGNORECASE | re.DOTALL)
         
-        # 备用模式2：查找包含大量文本的段落
-        paragraphs = re.findall(r'<p[^>]*>(.*?)</p>', content, re.DOTALL)
-        if paragraphs:
-            # 选择最长的段落作为内容
-            longest_paragraph = max(paragraphs, key=len)
-            if len(longest_paragraph.strip()) > 100:  # 确保有足够的内容
-                return longest_paragraph
-        
-        return None
-    
-    def parse_novel_list(self, url: str) -> List[Dict[str, Any]]:
-        """
-        解析小说列表页 - po18不需要列表页解析
-        
-        Args:
-            url: 小说列表页URL
-            
-        Returns:
-            小说信息列表
-        """
-        return []
+        return content
     
     def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
-        获取URL内容，支持GBK编码处理
-        PO18网站使用GBK编码，需要特殊处理
+        获取URL内容，支持多种编码和反爬虫处理
         
         Args:
             url: 目标URL
@@ -617,11 +454,11 @@ class Po18Parser(BaseParser):
                 # 首先尝试普通请求
                 response = self.session.get(url, proxies=proxies, timeout=10)
                 if response.status_code == 200:
-                    # PO18网站使用GBK编码，特殊处理
+                    # 根据检测到的编码设置响应编码
                     response.encoding = self.encoding
                     content = response.text
                     
-                    # 检测 Cloudflare Turnstile 等高级反爬虫机制
+                    # 检测高级反爬虫机制
                     if self._detect_advanced_anti_bot(content):
                         logger.warning(f"检测到高级反爬虫机制，尝试使用 Playwright: {url}")
                         return self._get_url_content_with_playwright(url, proxies)
@@ -638,7 +475,7 @@ class Po18Parser(BaseParser):
                 else:
                     logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
                     
-            except requests.exceptions.RequestException as e:
+            except Exception as e:
                 logger.warning(f"第 {attempt + 1} 次请求失败: {url}, 错误: {e}")
                 
                 # 根据尝试次数选择不同的绕过策略
@@ -682,7 +519,6 @@ class Po18Parser(BaseParser):
     def _get_url_content_with_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         使用cloudscraper绕过反爬虫限制获取URL内容
-        PO18网站使用GBK编码，需要特殊处理
         
         Args:
             url: 目标URL
@@ -827,7 +663,7 @@ class Po18Parser(BaseParser):
                 except Exception as ssl_error:
                     logger.debug(f"无法设置SSL上下文: {ssl_error}")
             
-            # 设置请求头，适配GBK编码
+            # 设置请求头
             scraper.headers.update({
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -844,7 +680,7 @@ class Po18Parser(BaseParser):
             response = scraper.get(url, timeout=30)
             
             if response.status_code == 200:
-                # PO18网站使用GBK编码，特殊处理
+                # 根据检测到的编码设置响应编码
                 response.encoding = self.encoding
                 logger.info(f"cloudscraper成功绕过反爬虫限制: {url}")
                 return response.text
@@ -859,77 +695,145 @@ class Po18Parser(BaseParser):
             logger.warning(f"cloudscraper请求异常: {e}")
             return None
     
-    def save_to_file(self, novel_content: Dict[str, Any], storage_folder: str) -> str:
+    def _parse_single_chapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
         """
-        将小说内容保存到文件，处理GBK编码的文件名
+        实现单章节小说解析逻辑 - CMS T4特定实现
         
         Args:
-            novel_content: 小说内容字典
-            storage_folder: 存储文件夹
+            content: 页面内容
+            novel_url: 小说URL
+            title: 小说标题
             
         Returns:
-            文件路径
+            小说详情信息
         """
-        # 确保存储目录存在
-        os.makedirs(storage_folder, exist_ok=True)
+        # CMS T4特殊处理：需要从"开始阅读"链接获取内容
+        content_url = self._extract_content_page_url(content)
         
-        # 生成文件名（使用标题，避免特殊字符）
-        title = novel_content.get('title', '未知标题')
+        if not content_url:
+            raise Exception("无法找到内容页面链接")
         
-        # 处理GBK编码的标题，转换为UTF-8
-        try:
-            # 如果标题是GBK编码的字节流，先解码为字符串
-            if isinstance(title, bytes):
-                title = title.decode('gbk')
+        # 构建完整的内容页面URL
+        full_content_url = f"{self.base_url}{content_url}"
+        
+        # 获取内容页面
+        content_page = self._get_url_content(full_content_url)
+        
+        if not content_page:
+            raise Exception("无法获取内容页面")
+        
+        # 从内容页面提取章节标题
+        chapter_title = self._extract_chapter_title(content_page)
+        
+        # 从内容页面提取小说内容
+        extracted_content = self._extract_with_regex(content_page, self.content_reg)
+        
+        if not extracted_content:
+            # 尝试备用内容提取模式
+            extracted_content = self._extract_content_fallback(content_page)
+        
+        if not extracted_content:
+            raise Exception("无法提取小说内容")
+        
+        # 执行爬取后处理函数
+        processed_content = self._execute_after_crawler_funcs(extracted_content)
+        
+        # 处理章节标题，确保不使用"第1页"这样的标题
+        final_chapter_title = chapter_title if chapter_title else title
+        # 如果提取的标题是"第1页"或类似页码标记，则使用小说标题
+        if final_chapter_title and re.search(r'第\d+页', final_chapter_title):
+            final_chapter_title = title
+        
+        # 创建小说内容
+        novel_content = {
+            'title': title,
+            'author': self.novel_site_name,
+            'novel_id': self._extract_novel_id_from_url(novel_url),
+            'url': novel_url,
+            'chapters': [
+                {
+                    'chapter_number': 1,
+                    'title': final_chapter_title,
+                    'content': processed_content,
+                    'url': full_content_url
+                }
+            ]
+        }
+        
+        return novel_content
+    
+    def _extract_content_fallback(self, content: str) -> Optional[str]:
+        """
+        备用内容提取方法 - 当主要正则表达式失败时使用
+        
+        Args:
+            content: 页面内容
             
-            # 清理文件名中的特殊字符
-            filename = re.sub(r'[<>:"/\\|?*]', '_', title)
+        Returns:
+            提取的内容或None
+        """
+        # 备用模式1：查找包含小说内容的div
+        patterns = [
+            r'<div[^>]*class="content"[^>]*>(.*?)</div>',
+            r'<div[^>]*id="content"[^>]*>(.*?)</div>',
+            r'<div[^>]*class="novel-content"[^>]*>(.*?)</div>',
+            r'<div[^>]*class="article-content"[^>]*>(.*?)</div>',
+            r'<div[^>]*class="text"[^>]*>(.*?)</div>',
+            r'<div[^>]*class="txt"[^>]*>(.*?)</div>'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+            if match:
+                return match.group(1)
+        
+        # 备用模式2：查找包含大量文本的段落
+        paragraphs = re.findall(r'<p[^>]*>(.*?)</p>', content, re.DOTALL)
+        if paragraphs:
+            # 选择最长的段落作为内容
+            longest_paragraph = max(paragraphs, key=len)
+            if len(longest_paragraph.strip()) > 100:  # 确保有足够的内容
+                return longest_paragraph
+        
+        return None
+    
+    def _extract_novel_id_from_url(self, url: str) -> str:
+        """
+        从URL中提取小说ID
+        
+        Args:
+            url: 小说URL
             
-            # 如果文件名仍然是乱码，尝试GBK到UTF-8转换
-            try:
-                filename.encode('utf-8')
-            except UnicodeEncodeError:
-                # 可能是GBK编码的字符串，需要转换
-                filename = title.encode('gbk').decode('utf-8', errors='ignore')
-                filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
-                
-        except Exception as e:
-            logger.warning(f"文件名编码处理失败: {e}")
-            filename = f"po18_novel_{int(time.time())}"
+        Returns:
+            小说ID
+        """
+        # 根据检测到的URL格式使用不同的正则表达式
+        if self._detected_url_format == 'po18':
+            match = re.search(r'/info/(\d+)\.html', url)
+        elif self._detected_url_format == '87nb':
+            match = re.search(r'/lt/(\d+)\.html', url)
+        else:
+            # 默认使用po18格式
+            match = re.search(r'/info/(\d+)\.html', url)
         
-        file_path = os.path.join(storage_folder, f"{filename}.txt")
+        if match:
+            return match.group(1)
         
-        # 如果文件已存在，添加序号
-        original_path = file_path
-        # 如果文件已经存在, 则增书籍网站名称.
-        if os.path.exists(file_path):
-            file_path = original_path.replace('.txt', f'_{self.novel_site_name}.txt')
-        # 如果书籍网站名称的文件也存在, 则返回错误
-        if os.path.exists(file_path):
-            return 'already_exists'
+        # 备用方法：从URL路径中提取
+        parts = url.split('/')
+        for part in parts:
+            if part.endswith('.html'):
+                return part.replace('.html', '')
         
-        # 写入文件，使用UTF-8编码
-        with open(file_path, 'w', encoding='utf-8') as f:
-            # 写入标题
-            f.write(f"# {title}\n\n")
-            
-            # 写入章节内容
-            chapters = novel_content.get('chapters', [])
-            for chapter in chapters:
-                chapter_title = chapter.get('title', '未知章节')
-                chapter_content = chapter.get('content', '')
-                
-                f.write(f"## {chapter_title}\n\n")
-                f.write(chapter_content)
-                f.write("\n\n")
+
         
-        logger.info(f"小说已保存到: {file_path}")
-        return file_path
-   
+        return "unknown"
+
 
 # 使用示例
 if __name__ == "__main__":
-    parser = Po18Parser()
+    # 示例1: 使用site_url自动配置
+    parser = CmsT4Parser(site_url="https://www.po18.in/")
     
     # 测试单篇小说
     try:
@@ -939,3 +843,33 @@ if __name__ == "__main__":
         print(f"小说已保存到: {file_path}")
     except Exception as e:
         print(f"抓取失败: {e}")
+    
+    # 示例2: 从数据库创建所有CMS T4解析器
+    print("\n=== 从数据库创建所有CMS T4解析器 ===")
+    try:
+        parser_sites = CmsT4Parser.create_all_parsers_from_db()
+        print(f"已创建 {len(parser_sites)} 个CMS T4解析器")
+        
+        for site_info in parser_sites:
+            site_data = site_info['site_data']
+            print(f"- 网站: {site_data.get('name')} ({site_data.get('url')})")
+            print(f"  存储文件夹: {site_data.get('storage_folder')}")
+            print(f"  代理启用: {site_data.get('proxy_enabled', False)}")
+    except Exception as e:
+        print(f"从数据库创建解析器失败: {e}")
+    
+    # 示例3: 使用BaseParser工厂方法创建CMS T4解析器
+    print("\n=== 使用BaseParser工厂方法创建CMS T4解析器 ===")
+    try:
+        from src.core.database_manager import DatabaseManager
+        db_manager = DatabaseManager()
+        cms_sites = db_manager.get_cms_t4_sites()
+        
+        if cms_sites:
+            site_data = cms_sites[0]  # 使用第一个网站作为示例
+            parser = BaseParser.create_cms_t4_parser(site_data)
+            print(f"使用工厂方法创建了解析器: {parser.novel_site_name}")
+        else:
+            print("数据库中没有CMS T4网站")
+    except Exception as e:
+        print(f"使用工厂方法创建解析器失败: {e}")

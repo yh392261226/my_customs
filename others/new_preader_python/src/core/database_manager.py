@@ -1746,6 +1746,301 @@ class DatabaseManager:
         
         return parser_sites
     
+    def get_cms_t2_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有使用CMS T2解析器的网站
+        
+        Returns:
+            List[Dict[str, Any]]: CMS T2网站列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM novel_sites 
+                    WHERE parser IN ('cms_t2_v2', 'shiyimng_v2', 'lllhhhgroup_v2', 'lxybwcchb_v2', 'jiankangxs_v2') 
+                    ORDER BY created_at
+                """)
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取CMS T2网站配置失败: {e}")
+            return []
+    
+    def create_cms_t2_parsers(self) -> List[Dict[str, Any]]:
+        """
+        为所有CMS T2网站创建解析器实例
+        
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.spiders.base_parser_v2 import BaseParser
+        
+        # 获取所有CMS T2网站
+        cms_sites = self.get_cms_t2_sites()
+        parser_sites = []
+        
+        for site_data in cms_sites:
+            try:
+                # 创建代理配置
+                proxy_config = {
+                    'enabled': bool(site_data.get('proxy_enabled', False)),
+                    'proxy_url': ''  # 这里可以根据需要从数据库中获取代理URL
+                }
+                
+                # 创建解析器实例
+                parser = BaseParser.create_cms_t2_parser(site_data, proxy_config)
+                
+                parser_sites.append({
+                    'site_data': site_data,
+                    'parser': parser
+                })
+                
+                logger.info(f"已为网站 {site_data.get('name')} 创建CMS T2解析器")
+                
+            except Exception as e:
+                logger.error(f"为网站 {site_data.get('name')} 创建解析器失败: {e}")
+        
+        return parser_sites
+    
+    def get_cms_t3_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有使用CMS T3解析器的网站
+        
+        Returns:
+            List[Dict[str, Any]]: CMS T3网站列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM novel_sites 
+                    WHERE parser IN ('cms_t3_v2', 'sqranjing_v2', 'auate_v2', 'fqzhufuaini_v2') 
+                    ORDER BY created_at
+                """)
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取CMS T3网站配置失败: {e}")
+            return []
+    
+    def create_cms_t3_parsers(self) -> List[Dict[str, Any]]:
+        """
+        为所有CMS T3网站创建解析器实例
+        
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.spiders.base_parser_v2 import BaseParser
+        
+        # 获取所有CMS T3网站
+        cms_sites = self.get_cms_t3_sites()
+        parser_sites = []
+        
+        for site_data in cms_sites:
+            try:
+                # 创建代理配置
+                proxy_config = {
+                    'enabled': bool(site_data.get('proxy_enabled', False)),
+                    'proxy_url': ''  # 这里可以根据需要从数据库中获取代理URL
+                }
+                
+                # 创建解析器实例
+                parser = BaseParser.create_cms_t3_parser(site_data, proxy_config)
+                
+                parser_sites.append({
+                    'site_data': site_data,
+                    'parser': parser
+                })
+                
+                logger.info(f"已为网站 {site_data.get('name')} 创建CMS T3解析器")
+                
+            except Exception as e:
+                logger.error(f"为网站 {site_data.get('name')} 创建解析器失败: {e}")
+        
+        return parser_sites
+    
+    def get_cms_t4_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有使用CMS T4解析器的网站
+        
+        Returns:
+            List[Dict[str, Any]]: CMS T4网站列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM novel_sites 
+                    WHERE parser IN ('cms_t4_v2', 'po18_v2', '87nb_v2') 
+                    ORDER BY created_at
+                """)
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取CMS T4网站配置失败: {e}")
+            return []
+    
+    def create_cms_t4_parsers(self) -> List[Dict[str, Any]]:
+        """
+        为所有CMS T4网站创建解析器实例
+        
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.spiders.base_parser_v2 import BaseParser
+        
+        # 获取所有CMS T4网站
+        cms_sites = self.get_cms_t4_sites()
+        parser_sites = []
+        
+        for site_data in cms_sites:
+            try:
+                # 创建代理配置
+                proxy_config = {
+                    'enabled': bool(site_data.get('proxy_enabled', False)),
+                    'proxy_url': ''  # 这里可以根据需要从数据库中获取代理URL
+                }
+                
+                # 创建解析器实例
+                parser = BaseParser.create_cms_t4_parser(site_data, proxy_config)
+                
+                parser_sites.append({
+                    'site_data': site_data,
+                    'parser': parser
+                })
+                
+                logger.info(f"已为网站 {site_data.get('name')} 创建CMS T4解析器")
+                
+            except Exception as e:
+                logger.error(f"为网站 {site_data.get('name')} 创建解析器失败: {e}")
+        
+        return parser_sites
+    
+    def get_cms_t5_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有使用CMS T5解析器的网站
+        
+        Returns:
+            List[Dict[str, Any]]: CMS T5网站列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM novel_sites 
+                    WHERE parser IN ('cms_t5_v2', 'aaanovel_v2', 'xxxnovel_v2', 'hhhbook_v2', 'springnovel_v2', 'thousandnovel_v2', 'dfjstory_v2') 
+                    ORDER BY created_at
+                """)
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取CMS T5网站配置失败: {e}")
+            return []
+    
+    def create_cms_t5_parsers(self) -> List[Dict[str, Any]]:
+        """
+        为所有CMS T5网站创建解析器实例
+        
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.spiders.base_parser_v2 import BaseParser
+        
+        # 获取所有CMS T5网站
+        cms_sites = self.get_cms_t5_sites()
+        parser_sites = []
+        
+        for site_data in cms_sites:
+            try:
+                # 创建代理配置
+                proxy_config = {
+                    'enabled': bool(site_data.get('proxy_enabled', False)),
+                    'proxy_url': ''  # 这里可以根据需要从数据库中获取代理URL
+                }
+                
+                # 创建解析器实例
+                parser = BaseParser.create_cms_t5_parser(site_data, proxy_config)
+                
+                parser_sites.append({
+                    'site_data': site_data,
+                    'parser': parser
+                })
+                
+                logger.info(f"已为网站 {site_data.get('name')} 创建CMS T5解析器")
+                
+            except Exception as e:
+                logger.error(f"为网站 {site_data.get('name')} 创建解析器失败: {e}")
+        
+        return parser_sites
+    
+    def get_cms_t6_sites(self) -> List[Dict[str, Any]]:
+        """
+        获取所有使用CMS T6解析器的网站
+        
+        Returns:
+            List[Dict[str, Any]]: CMS T6网站列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM novel_sites 
+                    WHERE parser = 'cms_t6_v2' 
+                    ORDER BY created_at
+                """)
+                rows = cursor.fetchall()
+                
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"获取CMS T6网站配置失败: {e}")
+            return []
+    
+    def create_cms_t6_parsers(self) -> List[Dict[str, Any]]:
+        """
+        为所有CMS T6网站创建解析器实例
+        
+        Returns:
+            List[Dict[str, Any]]: 包含网站信息和对应解析器的列表
+        """
+        from src.spiders.base_parser_v2 import BaseParser
+        
+        # 获取所有CMS T6网站
+        cms_sites = self.get_cms_t6_sites()
+        parser_sites = []
+        
+        for site_data in cms_sites:
+            try:
+                # 创建代理配置
+                proxy_config = {
+                    'enabled': bool(site_data.get('proxy_enabled', False)),
+                    'proxy_url': ''  # 这里可以根据需要从数据库中获取代理URL
+                }
+                
+                # 创建解析器实例
+                parser = BaseParser.create_cms_t6_parser(site_data, proxy_config)
+                
+                parser_sites.append({
+                    'site_data': site_data,
+                    'parser': parser
+                })
+                
+                logger.info(f"已为网站 {site_data.get('name')} 创建CMS T6解析器")
+                
+            except Exception as e:
+                logger.error(f"为网站 {site_data.get('name')} 创建解析器失败: {e}")
+        
+        return parser_sites
+    
     def check_site_availability(self, site_url: str, timeout: int = 10) -> Dict[str, Any]:
         """
         检测网站是否可以正常访问

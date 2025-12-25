@@ -152,9 +152,11 @@ class BaseParser:
                     except Exception as scraper_error:
                         logger.warning(f"cloudscraper也失败: {scraper_error}")
                 elif attempt == 1:  # 第二次失败：尝试 playwright
+                    logger.warning(f"尝试使用 Playwright 爬虫: {url}")
                     try:
                         content = self._get_url_content_with_playwright(url, proxies)
                         if content:
+                            logger.info(f"Playwright 成功获取内容: {url}")
                             return content
                     except Exception as playwright_error:
                         logger.warning(f"playwright也失败: {playwright_error}")
@@ -248,106 +250,22 @@ class BaseParser:
         try:
             import cloudscraper
             import urllib3
+            import ssl
+            import requests
             
             # 禁用SSL警告
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
-            # 创建cloudscraper会话，使用更强大的配置
+            # 创建cloudscraper会话，使用最简单的配置
             try:
-                # 先创建一个自定义的requests会话，配置好SSL
-                import requests
-                import ssl
-                from requests.adapters import HTTPAdapter
+                # 使用最简单的方法创建cloudscraper，避免SSL配置问题
+                scraper = cloudscraper.create_scraper()
                 
-                custom_session = requests.Session()
-                
-                # 创建不验证的SSL上下文
-                ssl_context = ssl.create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-                
-                # 创建自定义适配器，使用我们的SSL上下文
-                class SSLAdapter(HTTPAdapter):
-                    def init_poolmanager(self, *args, **kwargs):
-                        kwargs['ssl_context'] = ssl_context
-                        return super().init_poolmanager(*args, **kwargs)
-                
-                # 应用自定义适配器
-                custom_session.mount('https://', SSLAdapter())
-                custom_session.verify = False
-                
-                # 使用自定义会话创建cloudscraper
-                scraper = cloudscraper.create_scraper(
-                    browser={
-                        'browser': 'chrome',
-                        'platform': 'windows',
-                        'mobile': False
-                    },
-                    # 增加延迟以模拟真实用户行为
-                    delay=2,
-                    sess=custom_session  # 使用预配置的会话
-                )
-                
-                # 设置SSL验证 - 先禁用check_hostname再设置verify
+                # 确保SSL验证被禁用
                 try:
-                    # 尝试在scraper对象上设置verify属性
                     scraper.verify = False
-                    
-                    # 如果有session，需要同时禁用check_hostname
-                    if hasattr(scraper, 'session'):
-                        session = getattr(scraper, 'session')
-                        # 先禁用check_hostname
-                        try:
-                            if hasattr(session, 'check_hostname'):
-                                session.check_hostname = False
-                        except Exception as hostname_error:
-                            logger.debug(f"无法禁用check_hostname: {hostname_error}")
-                        
-                        # 尝试在底层SSL上下文中设置
-                        try:
-                            if hasattr(session, 'ssl_context'):
-                                import ssl
-                                session.ssl_context.check_hostname = False
-                                session.ssl_context.verify_mode = ssl.CERT_NONE
-                        except Exception as ssl_context_error:
-                            logger.debug(f"无法设置SSL上下文: {ssl_context_error}")
-                        
-                        # 尝试在底层requests会话上设置
-                        try:
-                            if hasattr(session, 'requests'):
-                                requests_obj = getattr(session, 'requests')
-                                if hasattr(requests_obj, 'check_hostname'):
-                                    requests_obj.check_hostname = False
-                                if hasattr(requests_obj, 'verify'):
-                                    requests_obj.verify = False
-                        except Exception as requests_error:
-                            logger.debug(f"无法在底层requests会话上设置SSL验证: {requests_error}")
-                            
-                except Exception as verify_error:
-                    logger.debug(f"无法设置SSL验证: {verify_error}")
-                    # 尝试备用方法：使用urllib3 PoolManager
-                    try:
-                        import urllib3
-                        import ssl
-                        from urllib3.util import SSLContext as Urllib3SSLContext
-                        
-                        # 创建自定义SSL上下文
-                        ssl_context = Urllib3SSLContext()
-                        ssl_context.check_hostname = False
-                        ssl_context.verify_mode = ssl.CERT_NONE
-                        
-                        # 尝试在scraper的session上设置
-                        if hasattr(scraper, 'session'):
-                            session = getattr(scraper, 'session')
-                            if hasattr(session, 'mount'):
-                                # 创建自定义PoolManager
-                                https_pool = urllib3.PoolManager(
-                                    ssl_context=ssl_context,
-                                    timeout=urllib3.Timeout(connect=10, read=30)
-                                )
-                                session.mount('https://', https_pool)
-                    except Exception as pool_error:
-                        logger.debug(f"无法创建自定义PoolManager: {pool_error}")
+                except:
+                    pass  # 忽略设置失败
                 
                 # 设置更真实的请求头
                 scraper.headers.update({
@@ -382,40 +300,38 @@ class BaseParser:
                     
             except Exception as scraper_error:
                 logger.warning(f"cloudscraper创建失败: {scraper_error}")
-                raise  # 重新抛出异常，让外层except处理
+                # 使用备用方案
+                return self._fallback_cloudscraper(url, proxies)
+                
+        except ImportError:
+            logger.warning("cloudscraper库未安装，无法绕过反爬虫限制")
+            return self._fallback_request(url, proxies)
         except Exception as e:
-            logger.warning(f"cloudscraper创建失败，使用requests: {e}")
-            import requests
-            import ssl
+            logger.warning(f"cloudscraper请求异常: {e}")
+            return self._fallback_request(url, proxies)
+    
+    def _fallback_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        备用cloudscraper方案，使用最简单的配置
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+            
+        Returns:
+            页面内容或None
+        """
+        try:
+            import cloudscraper
             import urllib3
-            from requests.adapters import HTTPAdapter
             
             # 禁用SSL警告
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
-            scraper = requests.Session()
+            # 使用最简单的cloudscraper配置
+            scraper = cloudscraper.create_scraper()
             
-            # 设置SSL验证 - 确保正确禁用验证
-            scraper.verify = False
-            
-            # 也需要禁用check_hostname
-            try:
-                # 创建一个不验证的SSL上下文
-                ssl_context = ssl.create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-                
-                # 应用到requests会话
-                scraper.mount('https://', HTTPAdapter(
-                    max_retries=urllib3.Retry(total=3, backoff_factor=0.1),
-                    pool_connections=10,
-                    pool_maxsize=10
-                ))
-                
-            except Exception as ssl_error:
-                logger.debug(f"无法设置SSL上下文: {ssl_error}")
-            
-            # 设置更真实的请求头
+            # 设置请求头
             scraper.headers.update({
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -434,23 +350,19 @@ class BaseParser:
             if proxies:
                 scraper.proxies = proxies
             
-            # 设置更长的超时时间
+            # 设置超时
             response = scraper.get(url, timeout=30)
             
             if response.status_code == 200:
                 response.encoding = 'utf-8'
-                logger.info(f"cloudscraper成功绕过反爬虫限制: {url}")
+                logger.info(f"备用cloudscraper成功绕过反爬虫限制: {url}")
                 return response.text
             else:
-                logger.warning(f"cloudscraper请求失败 (HTTP {response.status_code}): {url}")
-                # 如果cloudscraper也失败，尝试使用requests直接请求但使用不同的User-Agent
+                logger.warning(f"备用cloudscraper请求失败 (HTTP {response.status_code}): {url}")
                 return self._fallback_request(url, proxies)
                 
-        except ImportError:
-            logger.warning("cloudscraper库未安装，无法绕过反爬虫限制")
-            return self._fallback_request(url, proxies)
         except Exception as e:
-            logger.warning(f"cloudscraper请求异常: {e}")
+            logger.warning(f"备用cloudscraper也失败: {e}")
             return self._fallback_request(url, proxies)
     
     def _fallback_request(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
@@ -1145,3 +1057,78 @@ class BaseParser:
         """
         from .cms_t1_v2 import CmsT1Parser
         return CmsT1Parser.create_from_site_data(site_data, proxy_config)
+    
+    @staticmethod
+    def create_cms_t2_parser(site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        创建CMS T2解析器实例的工厂方法
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            CMS T2解析器实例
+        """
+        from .cms_t2_v2 import CmsT2Parser
+        return CmsT2Parser.create_from_site_data(site_data, proxy_config)
+    
+    @staticmethod
+    def create_cms_t3_parser(site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        创建CMS T3解析器实例的工厂方法
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            CMS T3解析器实例
+        """
+        from .cms_t3_v2 import CmsT3Parser
+        return CmsT3Parser.create_from_site_data(site_data, proxy_config)
+    
+    @staticmethod
+    def create_cms_t4_parser(site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        创建CMS T4解析器实例的工厂方法
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            CMS T4解析器实例
+        """
+        from .cms_t4_v2 import CmsT4Parser
+        return CmsT4Parser.create_from_site_data(site_data, proxy_config)
+    
+    @staticmethod
+    def create_cms_t5_parser(site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        创建CMS T5解析器实例的工厂方法
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            CMS T5解析器实例
+        """
+        from .cms_t5_v2 import CmsT5Parser
+        return CmsT5Parser.create_from_site_data(site_data, proxy_config)
+    
+    @staticmethod
+    def create_cms_t6_parser(site_data: Dict[str, Any], proxy_config: Optional[Dict[str, Any]] = None):
+        """
+        创建CMS T6解析器实例的工厂方法
+        
+        Args:
+            site_data: 数据库中的网站数据
+            proxy_config: 代理配置
+            
+        Returns:
+            CMS T6解析器实例
+        """
+        from .cms_t6_v2 import CmsT6Parser
+        return CmsT6Parser.create_from_site_data(site_data, proxy_config)
