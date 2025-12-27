@@ -42,7 +42,7 @@ def get_parser_options() -> List[tuple[str, str]]:
     获取解析器下拉框选项
     
     Returns:
-        选项列表，格式为 [(value, label), ...]
+        选项列表，格式为 [(value, label), ...]，按首字母升序排列
     """
     parsers = get_available_parsers()
     options = []
@@ -50,6 +50,9 @@ def get_parser_options() -> List[tuple[str, str]]:
     for parser in parsers:
         # 使用文件名作为值，文件名作为显示标签（不包含"解析器"字样）
         options.append((parser['filename'], parser['filename']))
+    
+    # 按首字母升序排列
+    options.sort(key=lambda x: x[0].lower())
     
     # 如果没有任何解析器，返回空列表
     return options

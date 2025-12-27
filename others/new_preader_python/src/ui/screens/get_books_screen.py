@@ -17,7 +17,7 @@ from src.themes.theme_manager import ThemeManager
 from src.utils.logger import get_logger
 from src.core.database_manager import DatabaseManager
 from src.config.config_manager import ConfigManager
-import platform, os, subprocess
+import platform, os, subprocess, asyncio
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 logger = get_logger(__name__)
@@ -95,6 +95,7 @@ class GetBooksScreen(Screen[None]):
                     Horizontal(
                         Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
+                        Button(get_global_i18n().t('get_books.check_all'), id="check-all-sites-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.shortcut_o'), id="open-books-folder-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
                         id="get-books-buttons",
@@ -581,6 +582,121 @@ class GetBooksScreen(Screen[None]):
             logger.error(f"检测网站状态失败: {e}")
             self.notify(f"检测网站状态失败: {str(e)}", severity="error")
     
+    async def _check_all_sites_status(self) -> None:
+        """异步一键检测所有网站状态"""
+        import concurrent.futures
+        
+        try:
+            # 获取所有书籍网站
+            all_sites = self.database_manager.get_novel_sites()
+            
+            if not all_sites:
+                self.app.call_later(self.notify, "没有找到任何书籍网站", severity="warning")
+                return
+            
+            # 统计检测结果
+            total_sites = len(all_sites)
+            success_count = 0
+            failed_count = 0
+            
+            # 创建一个进度跟踪变量
+            checked_count = 0
+            
+            # 创建线程池执行器，用于运行同步的网站检测
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                # 逐个检测网站状态
+                for site in all_sites:
+                    try:
+                        site_id = site.get("id")
+                        site_url = site.get("url", "")
+                        site_name = site.get("name", "未知网站")
+                        
+                        if not site_id or not site_url:
+                            logger.warning(f"网站信息不完整，跳过检测: {site_name}")
+                            continue
+                            
+                        # 在线程池中执行网站检测，避免阻塞事件循环
+                        loop = asyncio.get_event_loop()
+                        result = await loop.run_in_executor(
+                            executor, 
+                            self.database_manager.check_site_availability, 
+                            site_url
+                        )
+                        
+                        # 更新数据库中的状态
+                        loop = asyncio.get_event_loop()
+                        await loop.run_in_executor(
+                            executor, 
+                            self.database_manager.update_novel_site_status, 
+                            site_id, 
+                            result["status"]
+                        )
+                        
+                        # 统计结果
+                        if result["status"] == "正常":
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                        
+                        # 增加已检测计数
+                        checked_count += 1
+                        
+                        # 每检测完1个网站，更新一次界面（保持更好的响应性）
+                        progress_message = f"正在检测... {checked_count}/{total_sites}"
+                        # 使用 app.call_later 来安全地更新UI
+                        self.app.call_later(self.notify, progress_message, severity="information")
+                        self.app.call_later(
+                            self._load_novel_sites, 
+                            self._search_keyword, 
+                            self._search_parser, 
+                            self._search_proxy_enabled
+                        )
+                        
+                        # 让出控制权，确保事件循环有机会处理其他任务
+                        await asyncio.sleep(0.01)
+                        
+                    except Exception as e:
+                        logger.error(f"检测网站 {site.get('name', '未知')} 状态失败: {e}")
+                        failed_count += 1
+                        checked_count += 1
+            
+            # 最终重新加载数据表，显示最新状态
+            self.app.call_later(
+                self._load_novel_sites, 
+                self._search_keyword, 
+                self._search_parser, 
+                self._search_proxy_enabled
+            )
+            
+            # 显示检测结果
+            message = f"检测完成: 成功 {success_count} 个，失败 {failed_count} 个，共 {total_sites} 个网站"
+            self.app.call_later(
+                self.notify, 
+                message, 
+                severity="success" if failed_count == 0 else "warning"
+            )
+            
+        except Exception as e:
+            logger.error(f"一键检测所有网站状态失败: {e}")
+            self.app.call_later(
+                self.notify, 
+                get_global_i18n().t('get_books.check_all_failed') + f": {str(e)}", 
+                severity="error"
+            )
+    
+    def _check_all_sites_status_async(self) -> None:
+        """调用线程检测网站状态的方法"""
+        # 显示开始检测的通知
+        self.notify(get_global_i18n().t('get_books.checking_all'), severity="information")
+        
+        # 在后台线程中执行检测
+        self.app.run_worker(self._check_all_sites_status, name="check-all-sites-worker")
+    
+    async def _yield_async(self) -> None:
+        """异步让出控制权，确保界面不卡死"""
+        # 在Textual中，使用sleep(0)可以立即让出控制权给事件循环
+        await self.sleep(0)
+    
     def _toggle_site_status(self, site: Dict[str, Any]) -> None:
         """切换网站状态（正常/异常）"""
         try:
@@ -770,6 +886,8 @@ class GetBooksScreen(Screen[None]):
                 self.app.push_screen("proxy_list")  # 打开代理列表页面
             else:
                 self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
+        elif event.button.id == "check-all-sites-btn":
+            self._check_all_sites_status_async()
         elif event.button.id == "open-books-folder-btn":
             self.action_open_books_folder()
         elif event.button.id == "back-btn":
