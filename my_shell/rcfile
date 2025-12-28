@@ -8,44 +8,44 @@
 ######################################################
 export MYRUNTIME=$(cat $HOME/.myruntime)
 
-if [ "$(env | grep 'TERM_PROGRAM=')" = "TERM_PROGRAM=WarpTerminal" ]; then
-  clear
-fi
+#if [ "$(env | grep 'TERM_PROGRAM=')" = "TERM_PROGRAM=WarpTerminal" ]; then
+#   clear
+#fi
 
 curshell() {
-    if [ -n "$ZSH_VERSION" ]; then
-        echo "zsh"
-    elif [ -n "$BASH_VERSION" ]; then
-        echo "bash"
-    else
-        echo "Unknow"
-    fi
+	if [ -n "$ZSH_VERSION" ]; then
+		echo "zsh"
+	elif [ -n "$BASH_VERSION" ]; then
+		echo "bash"
+	else
+		echo "Unknow"
+	fi
 }
 
 curterm() {
-    CURTERM="Unknow"
-    if [ "$TERM_PROGRAM" = "iTerm.app" ]; then
-        CURTERM='iTerm'
-    elif [ "$TERM_PROGRAM" = "Apple_Terminal" ]; then
-        CURTERM='Terminal'
-    elif [ "$TERM_PROGRAM" = "WarpTerminal" ]; then
-        CURTERM='Warp'
-    else
-        CURTERM='Unknow'
-    fi
-    echo $CURTERM
+	CURTERM="Unknow"
+	if [ "$TERM_PROGRAM" = "iTerm.app" ]; then
+		CURTERM='iTerm'
+	elif [ "$TERM_PROGRAM" = "Apple_Terminal" ]; then
+		CURTERM='Terminal'
+	elif [ "$TERM_PROGRAM" = "WarpTerminal" ]; then
+		CURTERM='Warp'
+	else
+		CURTERM='Unknow'
+	fi
+	echo $CURTERM
 }
 
 curPanel() {
-  panel="shell"
-  if [ ! -z "$STY" ]; then
-    panel="screen"
-  elif [ ! -z "$TMUX" ]; then
-    panel="tmux"
-  elif [ "" != "$(env | grep 'ZELLIJ')" ]; then
-    panel="zellij"
-  fi
-  echo $panel;
+	panel="shell"
+	if [ ! -z "$STY" ]; then
+		panel="screen"
+	elif [ ! -z "$TMUX" ]; then
+		panel="tmux"
+	elif [ "" != "$(env | grep 'ZELLIJ')" ]; then
+		panel="zellij"
+	fi
+	echo $panel
 }
 
 export nowshell=$(curshell)
