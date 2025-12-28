@@ -317,9 +317,7 @@ class GetBooksScreen(Screen[None]):
             if keyword_match and parser_match and proxy_match:
                 filtered_sites.append(site)
         
-        # 按照星级倒序排序（rating高的在前）
-        filtered_sites.sort(key=lambda x: x.get("rating", 0), reverse=True)
-        
+        # 数据库已经按照 rating 降序排序，无需再次排序
         self._all_sites = filtered_sites
         
         # 计算分页

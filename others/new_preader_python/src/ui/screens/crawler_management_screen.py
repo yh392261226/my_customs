@@ -400,6 +400,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.sequence'), key="sequence")
         table.add_column(get_global_i18n().t('crawler.novel_id'), key="novel_id")
         table.add_column(get_global_i18n().t('crawler.novel_title'), key="novel_title")
+        table.add_column(get_global_i18n().t('bookshelf.size'), key="file_size")
         table.add_column(get_global_i18n().t('crawler.crawl_time'), key="crawl_time")
         table.add_column(get_global_i18n().t('crawler.status'), key="status")
         table.add_column(get_global_i18n().t('crawler.view_file'), key="view_file")
@@ -552,6 +553,16 @@ class CrawlerManagementScreen(Screen[None]):
                     except:
                         crawl_time = item['crawl_time']
                     
+                    # 获取文件大小
+                    file_size = 0
+                    if item['file_path']:
+                        try:
+                            from src.utils.file_utils import FileUtils
+                            file_size = FileUtils.get_file_size(item['file_path'])
+                        except Exception as e:
+                            logger.debug(f"获取文件大小失败: {e}")
+                            file_size = 0
+                    
                     self.crawler_history.append({
                         "id": item['id'],
                         "novel_id": item['novel_id'],
@@ -559,6 +570,7 @@ class CrawlerManagementScreen(Screen[None]):
                         "crawl_time": crawl_time,
                         "status": status_text,
                         "file_path": item['file_path'] or "",
+                        "file_size": file_size,
                         "error_message": item.get('error_message', '')
                     })
             else:
@@ -630,11 +642,22 @@ class CrawlerManagementScreen(Screen[None]):
                 novel_id = item.get("novel_id", "")
                 decoded_novel_id = unquote(novel_id) if novel_id else ""
                 
+                # 格式化文件大小显示
+                size_display = ""
+                if "file_size" in item and item["file_size"]:
+                    try:
+                        from src.utils.file_utils import FileUtils
+                        size_display = FileUtils.format_file_size(item["file_size"])
+                    except Exception as e:
+                        logger.debug(f"格式化文件大小失败: {e}")
+                        size_display = ""
+                
                 row_data = {
                     "selected": is_selected,
                     "sequence": str(i + 1),
                     "novel_id": decoded_novel_id,
                     "novel_title": item["novel_title"],
+                    "file_size": size_display,
                     "crawl_time": item["crawl_time"],
                     "status": item["status"],
                     "view_file": get_global_i18n().t('crawler.view_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",

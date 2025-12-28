@@ -1595,7 +1595,7 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM novel_sites ORDER BY created_at")
+                cursor.execute("SELECT * FROM novel_sites ORDER BY rating DESC, created_at")
                 rows = cursor.fetchall()
                 
                 return [dict(row) for row in rows if row]

@@ -31,7 +31,7 @@ class XbookcnParser(BaseParser):
     ]
     
     content_reg = [
-        r"<div class='post-body entry-content'[^>]*>(.*?)</div>"
+        r"<div class='post-body entry-content'[^>]*>(.*)</div>"
     ]
     
     status_reg = [
