@@ -4,6 +4,7 @@
 
 import os
 import glob
+from send2trash import send2trash
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
 from textual.screen import Screen
@@ -1405,8 +1406,8 @@ class CrawlerManagementScreen(Screen[None]):
                 try:
                     # 删除源文件
                     if os.path.exists(file_path):
-                        os.remove(file_path)
-                        logger.info(f"删除源文件: {file_path}")
+                        send2trash(file_path)
+                        logger.info(f"源文件已移至回收站: {file_path}")
                     
                     # 删除书架中的对应书籍
                     books = self.db_manager.get_all_books()
@@ -2546,7 +2547,8 @@ class CrawlerManagementScreen(Screen[None]):
                 if confirmed:
                     try:
                         # 只删除文件，不删除数据库记录
-                        os.remove(file_path)
+                        send2trash(file_path)
+                        logger.info(f"文件已移至回收站: {file_path}")
                         
                         # 同时删除书架中的对应书籍
                         try:
@@ -2646,7 +2648,8 @@ class CrawlerManagementScreen(Screen[None]):
                 if confirmed:
                     try:
                         # 先删除文件
-                        os.remove(file_path)
+                        send2trash(file_path)
+                        logger.info(f"文件已移至回收站: {file_path}")
                         
                         # 从数据库中删除对应的记录
                         history_id = history_item.get('id')
@@ -3243,7 +3246,8 @@ class CrawlerManagementScreen(Screen[None]):
                                 # 检查文件是否存在
                                 if os.path.exists(file_path):
                                     # 删除文件
-                                    os.remove(file_path)
+                                    send2trash(file_path)
+                                    logger.info(f"文件已移至回收站: {file_path}")
                                     
                                     # 同时删除书架中的对应书籍
                                     try:

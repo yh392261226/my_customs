@@ -5,6 +5,7 @@
 import os
 
 import shutil
+from send2trash import send2trash
 import hashlib
 from typing import List, Dict, Any, Set, Optional
 from pathlib import Path
@@ -242,7 +243,7 @@ class FileUtils:
     @staticmethod
     def delete_file(file_path: str) -> bool:
         """
-        删除文件
+        删除文件（移动到回收站）
         
         Args:
             file_path: 文件路径
@@ -255,7 +256,8 @@ class FileUtils:
                 logger.warning(f"文件不存在: {file_path}")
                 return False
             
-            os.remove(file_path)
+            send2trash(file_path)
+            logger.info(f"文件已移至回收站: {file_path}")
             return True
         except Exception as e:
             logger.error(f"删除文件失败: {e}")

@@ -7,6 +7,7 @@ import os
 import re
 from typing import Dict, Any, List
 from datetime import datetime
+from send2trash import send2trash
 
 from src.utils.logger import get_logger
 
@@ -242,7 +243,7 @@ class TxtSaver:
     
     def delete_saved_file(self, file_path: str) -> bool:
         """
-        删除保存的文件
+        删除保存的文件（移动到回收站）
         
         Args:
             file_path: 文件路径
@@ -252,8 +253,8 @@ class TxtSaver:
         """
         try:
             if os.path.exists(file_path):
-                os.remove(file_path)
-                logger.info(f"文件删除成功: {file_path}")
+                send2trash(file_path)
+                logger.info(f"文件已移至回收站: {file_path}")
                 return True
             return False
         except Exception as e:

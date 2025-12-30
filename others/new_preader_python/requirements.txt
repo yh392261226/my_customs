@@ -42,6 +42,9 @@ watchdog>=3.0.0
 # AES解密支持
 pycryptodome>=3.20.0
 
+# 文件移至回收站
+send2trash>=1.8.2
+
 # 数据库（Python内置，无需安装）
 # sqlite3 - Python标准库
 

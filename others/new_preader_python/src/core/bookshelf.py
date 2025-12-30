@@ -5,6 +5,7 @@
 import os
 
 import json
+from send2trash import send2trash
 from typing import Dict, List, Any, Optional, Set, Tuple
 from datetime import datetime
 from pathlib import Path
@@ -1300,7 +1301,8 @@ class Bookshelf:
                     if self.remove_book(book.path):
                         # 删除物理文件
                         try:
-                            os.remove(book.path)
+                            send2trash(book.path)
+                            logger.info(f"原文件已移至回收站: {book.path}")
                             deleted_count += 1
                         except Exception as e:
                             logger.warning(f"删除原文件失败 {book.path}: {e}")
@@ -1310,7 +1312,8 @@ class Bookshelf:
             else:
                 # 如果添加新书籍失败，删除合并的文件
                 try:
-                    os.remove(new_filepath)
+                    send2trash(new_filepath)
+                    logger.info(f"临时合并文件已移至回收站: {new_filepath}")
                 except Exception:
                     pass
                 logger.error("添加合并后的书籍到书架失败")
