@@ -157,6 +157,9 @@ class ZXCMSParser(BaseParser):
         Returns:
             小说详情信息
         """
+        
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
         novel_url = self.get_novel_url(novel_id)
         content = self._get_url_content(novel_url)
         
@@ -295,7 +298,7 @@ class ZXCMSParser(BaseParser):
                     if not chapter_text:
                         print(f"重试后仍无法解密章节内容，跳过: {current_url}")
                         # 不跳出循环，尝试继续处理下一个章节
-                        chapter_number += 1
+                        # 不增加章节号，因为当前章节没有成功添加
                         # 获取下一页链接
                         next_url = self._extract_next_page(chapter_content)
                         if not next_url or 'javascript:void(0)' in next_url:
@@ -331,6 +334,9 @@ class ZXCMSParser(BaseParser):
                 
                 # 获取下一页链接
                 next_url = self._extract_next_page(chapter_content)
+                
+                # 只有在成功添加章节后才增加章节号
+                chapter_number += 1
                 if not next_url or 'javascript:void(0)' in next_url:
                     print("没有更多章节，结束处理")
                     break

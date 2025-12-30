@@ -327,6 +327,7 @@ class XchinaParser(BaseParser):
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
                     
+                    self.chapter_count += 1  # 只在成功添加章节后才增加计数
                     novel_content['chapters'].append({
                         'chapter_number': self.chapter_count,
                         'title': chapter_title,

@@ -171,6 +171,9 @@ class CmsT5Parser(BaseParser):
         Returns:
             小说详情信息
         """
+        
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
         # 调用现有的crawl_novel方法
         novel_info = self.crawl_novel(novel_id)
         

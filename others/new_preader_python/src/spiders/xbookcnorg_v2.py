@@ -321,11 +321,12 @@ class XbookcnorgParser(BaseParser):
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
                     
                     novel_content['chapters'].append({
-                        'chapter_number': self.chapter_count,
+                        'chapter_number': self.chapter_count
                         'title': chapter_title,
                         'content': processed_content,
                         'url': chapter_url
                     })
+                    self.chapter_count += 1  # 只在成功添加章节后才增加计数
                     print(f"√ 第 {self.chapter_count} 章抓取成功")
                 else:
                     print(f"× 第 {self.chapter_count} 章内容提取失败")

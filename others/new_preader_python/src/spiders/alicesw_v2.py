@@ -202,7 +202,7 @@ class AliceswParser(BaseParser):
                     processed_content = self._execute_after_crawler_funcs(chapter_content)
                     
                     novel_content['chapters'].append({
-                        'chapter_number': self.chapter_count,
+                        'chapter_number': self.chapter_count
                         'title': chapter_title or f"第 {self.chapter_count} 章",
                         'content': processed_content,
                         'url': current_url

@@ -221,6 +221,10 @@ class CrawlerManager:
                 self._notify_status_change(task_id)
                 
                 try:
+                    # 重置解析器的章节计数器，防止跨书籍计数延续
+                    if hasattr(parser, 'chapter_count'):
+                        parser.chapter_count = 0
+                    
                     # 执行爬取
                     result = await self._async_parse_novel_detail(parser, novel_id)
                     

@@ -688,6 +688,9 @@ class BaseParser:
         Returns:
             小说详情信息
         """
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
+        
         novel_url = self.get_novel_url(novel_id)
         content = self._get_url_content(novel_url)
         
@@ -968,8 +971,7 @@ class BaseParser:
         self.chapter_count = 0
         
         while current_url:
-            self.chapter_count += 1
-            print(f"正在抓取第 {self.chapter_count} 页: {current_url}")
+            print(f"正在抓取第 {self.chapter_count + 1} 页: {current_url}")
             
             # 获取页面内容
             page_content = self._get_url_content(current_url)
@@ -982,6 +984,7 @@ class BaseParser:
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(chapter_content)
                     
+                    self.chapter_count += 1  # 只在成功添加章节后才增加计数
                     novel_content['chapters'].append({
                         'chapter_number': self.chapter_count,
                         'title': f"第 {self.chapter_count} 页",
@@ -990,9 +993,9 @@ class BaseParser:
                     })
                     print(f"√ 第 {self.chapter_count} 页抓取成功")
                 else:
-                    print(f"× 第 {self.chapter_count} 页内容提取失败")
+                    print(f"× 页内容提取失败: {current_url}")
             else:
-                print(f"× 第 {self.chapter_count} 页抓取失败")
+                print(f"× 页抓取失败: {current_url}")
             
             # 获取下一页URL
             next_url = self._get_next_page_url(page_content, current_url)

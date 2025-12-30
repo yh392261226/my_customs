@@ -149,11 +149,10 @@ class CrxsParser(BaseParser):
         self.chapter_count = 0
         
         for chapter_info in chapter_links:
-            self.chapter_count += 1
             chapter_url = chapter_info['url']
             chapter_title = chapter_info['title']
             
-            print(f"正在抓取第 {self.chapter_count} 章: {chapter_title}")
+            print(f"正在抓取第 {self.chapter_count + 1} 章: {chapter_title}")
             
             # 获取章节内容
             full_url = f"{self.base_url}{chapter_url}"
@@ -167,6 +166,7 @@ class CrxsParser(BaseParser):
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
                     
+                    self.chapter_count += 1  # 只在成功添加章节后才增加计数
                     novel_content['chapters'].append({
                         'chapter_number': self.chapter_count,
                         'title': chapter_title,
@@ -175,9 +175,9 @@ class CrxsParser(BaseParser):
                     })
                     print(f"√ 第 {self.chapter_count} 章抓取成功")
                 else:
-                    print(f"× 第 {self.chapter_count} 章内容提取失败")
+                    print(f"× 章节内容提取失败: {chapter_title}")
             else:
-                print(f"× 第 {self.chapter_count} 章抓取失败")
+                print(f"× 章节抓取失败: {chapter_title}")
             
             # 章节间延迟
             time.sleep(1)

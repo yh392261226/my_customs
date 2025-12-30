@@ -161,6 +161,9 @@ class XxreadParser(BaseParser):
         Returns:
             小说详情信息
         """
+        
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
         # 获取章节列表JSON
         novel_url = self.get_novel_url(novel_id)
         content = self._get_url_content(novel_url)

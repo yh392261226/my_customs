@@ -234,6 +234,7 @@ class AaccooParser(BaseParser):
                     'content': chapter_content,
                     'url': current_url
                 })
+                self.chapter_count += 1  # 只在成功添加章节后才增加计数
                 print(f"√ 第 {self.chapter_count} 章抓取成功: {chapter_title}")
             else:
                 print(f"× 第 {self.chapter_count} 章内容抓取失败")

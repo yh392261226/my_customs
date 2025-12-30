@@ -336,6 +336,9 @@ class W6180059Parser(BaseParser):
         Returns:
             小说详情信息
         """
+        
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
         try:
             # 从ID中提取标题
             title = self._extract_book_title_from_id(novel_id)

@@ -491,6 +491,9 @@ class HXtxt38Parser(BaseParser):
         Returns:
             小说内容字典
         """
+        
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
         # 生成小说URL
         novel_url = self.get_novel_url(novel_id)
         

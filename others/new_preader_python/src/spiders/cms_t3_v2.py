@@ -413,6 +413,9 @@ class CmsT3Parser(BaseParser):
         Returns:
             小说详情信息
         """
+        
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
         # 测试URL格式并获取内容
         if hasattr(self, '_url_format_detected') and self._url_format_detected:
             logger.info(f"使用已检测的URL格式: {self.url_format}")

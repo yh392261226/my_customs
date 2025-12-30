@@ -166,6 +166,9 @@ class RenqixiaoshuoParser(BaseParser):
         Returns:
             小说详细信息
         """
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
+        
         # 首先验证novel_id参数的有效性
         if not novel_id or novel_id.strip() == "":
             raise ValueError("小说ID不能为空")
