@@ -560,7 +560,7 @@ class CrawlerManagementScreen(Screen[None]):
                             from src.utils.file_utils import FileUtils
                             file_size = FileUtils.get_file_size(item['file_path'])
                         except Exception as e:
-                            logger.debug(f"获取文件大小失败: {e}")
+                            # logger.debug(f"获取文件大小失败: {e}")
                             file_size = 0
                     
                     self.crawler_history.append({
