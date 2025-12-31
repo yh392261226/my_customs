@@ -196,7 +196,7 @@ class ChanjishiParser(BaseParser):
                     cleaned_content = self._clean_chapter_content(processed_content)
                     
                     novel_content['chapters'].append({
-                        'chapter_number': self.chapter_count
+                        'chapter_number': self.chapter_count,
                         'title': f"第 {self.chapter_count} 页",
                         'content': cleaned_content,
                         'url': current_url

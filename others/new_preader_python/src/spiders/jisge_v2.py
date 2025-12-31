@@ -241,7 +241,7 @@ class JisgeParser(BaseParser):
             
             if chapter_content:
                 novel_content['chapters'].append({
-                    'chapter_number': self.chapter_count
+                    'chapter_number': self.chapter_count,
                     'title': chapter_title,
                     'content': chapter_content,
                     'url': chapter_url

@@ -177,7 +177,7 @@ class XbookcnParser(BaseParser):
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
                     
                     novel_content['chapters'].append({
-                        'chapter_number': self.chapter_count
+                        'chapter_number': self.chapter_count,
                         'title': chapter_title,
                         'content': processed_content,
                         'url': full_url
