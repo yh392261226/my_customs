@@ -196,6 +196,7 @@ class GetBooksScreen(Screen[None]):
         table.add_column(get_global_i18n().t('get_books.status'), key="status")
         table.add_column(get_global_i18n().t('get_books.proxy_enabled'), key="proxy_enabled")
         table.add_column(get_global_i18n().t('get_books.parser'), key="parser")
+        table.add_column(get_global_i18n().t('get_books.tags'), key="tags")
         table.add_column(get_global_i18n().t('get_books.rating'), key="rating")
         table.add_column(get_global_i18n().t('get_books.books_count'), key="books_count")
         table.add_column(get_global_i18n().t('get_books.check'), key="check")
@@ -348,6 +349,10 @@ class GetBooksScreen(Screen[None]):
             # 根据状态显示不同的emoji
             status_display = "✅" if site_status == "正常" else "❌"
             
+            # 获取网站标签
+            tags = site.get("tags", "")
+            tags_display = tags if tags else "-"
+            
             row_data = {
                 "sequence": str(global_index),
                 "name": site.get("name", ""),
@@ -355,9 +360,10 @@ class GetBooksScreen(Screen[None]):
                 "status": status_display,
                 "proxy_enabled": proxy_status,
                 "parser": site.get("parser", ""),
+                "tags": tags_display,
                 "rating": rating_display,
                 "books_count": str(books_count),
-                "check": "🔍 检测",
+                "check": "🔍 " + get_global_i18n().t('get_books.check'),
                 "enter": "➤ " + get_global_i18n().t('get_books.enter'),
                 "_row_key": f"{site.get('id', '')}_{global_index}",
                 "_global_index": global_index
@@ -374,6 +380,7 @@ class GetBooksScreen(Screen[None]):
                 row_data["status"],
                 row_data["proxy_enabled"],
                 row_data["parser"],
+                row_data["tags"],
                 row_data["rating"],
                 row_data["books_count"],
                 row_data["check"],
@@ -558,11 +565,11 @@ class GetBooksScreen(Screen[None]):
             site_name = site.get("name", "未知网站")
             
             if not site_id or not site_url:
-                self.notify("网站信息不完整，无法检测", severity="error")
+                self.notify(get_global_i18n().t('get_books.site_info_incomplete') + " - " + get_global_i18n().t('get_books.cannot_check_site'), severity="error")
                 return
                 
             # 显示检测中状态
-            self.notify(f"正在检测网站: {site_name}...", severity="information")
+            self.notify(get_global_i18n().t('get_books.checking_site', name=site_name), severity="information")
             
             # 执行网站检测
             result = self.database_manager.check_site_availability(site_url)
@@ -578,7 +585,7 @@ class GetBooksScreen(Screen[None]):
             
         except Exception as e:
             logger.error(f"检测网站状态失败: {e}")
-            self.notify(f"检测网站状态失败: {str(e)}", severity="error")
+            self.notify(get_global_i18n().t('get_books.check_site_status_failed', error=str(e)), severity="error")
     
     async def _check_all_sites_status(self) -> None:
         """异步一键检测所有网站状态"""
@@ -589,7 +596,7 @@ class GetBooksScreen(Screen[None]):
             all_sites = self.database_manager.get_novel_sites()
             
             if not all_sites:
-                self.app.call_later(self.notify, "没有找到任何书籍网站", severity="warning")
+                self.app.call_later(self.notify, get_global_i18n().t('get_books.no_sites_found'), severity="warning")
                 return
             
             # 统计检测结果
@@ -640,7 +647,7 @@ class GetBooksScreen(Screen[None]):
                         checked_count += 1
                         
                         # 每检测完1个网站，更新一次界面（保持更好的响应性）
-                        progress_message = f"正在检测... {checked_count}/{total_sites}"
+                        progress_message = get_global_i18n().t('get_books.checking_progress', count=checked_count, total=total_sites)
                         # 使用 app.call_later 来安全地更新UI
                         self.app.call_later(self.notify, progress_message, severity="information")
                         self.app.call_later(
@@ -667,7 +674,7 @@ class GetBooksScreen(Screen[None]):
             )
             
             # 显示检测结果
-            message = f"检测完成: 成功 {success_count} 个，失败 {failed_count} 个，共 {total_sites} 个网站"
+            message = get_global_i18n().t('get_books.check_complete', success=success_count, failed=failed_count, total=total_sites)
             self.app.call_later(
                 self.notify, 
                 message, 
@@ -703,7 +710,7 @@ class GetBooksScreen(Screen[None]):
             current_status = site.get("status", "正常")
             
             if not site_id:
-                self.notify("网站信息不完整，无法切换状态", severity="error")
+                self.notify(get_global_i18n().t('get_books.site_info_incomplete') + " - " + get_global_i18n().t('get_books.cannot_switch_status'), severity="error")
                 return
             
             # 切换状态
@@ -717,13 +724,13 @@ class GetBooksScreen(Screen[None]):
                 self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
                 
                 # 显示切换结果
-                self.notify(f"网站 '{site_name}' 状态已切换为: {new_status}", severity="success")
+                self.notify(get_global_i18n().t('get_books.toggle_site_status_failed', name=site_name) + " -> " + new_status, severity="success")
             else:
-                self.notify(f"切换网站状态失败: {site_name}", severity="error")
+                self.notify(get_global_i18n().t('get_books.toggle_site_status_failed', name=site_name), severity="error")
             
         except Exception as e:
             logger.error(f"切换网站状态失败: {e}")
-            self.notify(f"切换网站状态失败: {str(e)}", severity="error")
+            self.notify(get_global_i18n().t('get_books.toggle_site_status_error', error=str(e)), severity="error")
     
     def _open_url_in_browser(self, url: str, site_name: str) -> None:
         """使用浏览器打开网站网址"""
@@ -738,11 +745,11 @@ class GetBooksScreen(Screen[None]):
                 # 尝试使用Google Chrome
                 try:
                     subprocess.run(['open', '-a', 'Google Chrome', url], check=True)
-                    self.notify(f"正在使用Google Chrome打开网站: {site_name}", severity="success")
+                    self.notify(get_global_i18n().t('get_books.using_chrome_browser', name=site_name), severity="success")
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     # 如果Chrome不可用，使用默认浏览器
                     os.system(f'open "{url}"')
-                    self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+                    self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
             elif system == "Windows":
                 # 尝试使用Google Chrome
                 chrome_paths = [
@@ -755,7 +762,7 @@ class GetBooksScreen(Screen[None]):
                     if os.path.exists(chrome_path):
                         try:
                             subprocess.run([chrome_path, url], check=True)
-                            self.notify(f"正在使用Google Chrome打开网站: {site_name}", severity="success")
+                            self.notify(get_global_i18n().t('get_books.using_chrome_browser', name=site_name), severity="success")
                             chrome_found = True
                             break
                         except subprocess.CalledProcessError:
@@ -763,12 +770,12 @@ class GetBooksScreen(Screen[None]):
                 if not chrome_found:
                     # 如果Chrome不可用，使用默认浏览器
                     os.system(f'start "" "{url}"')
-                    self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+                    self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
             elif system == "Linux":
                 # 尝试使用Google Chrome
                 try:
                     subprocess.run(['google-chrome', url], check=True)
-                    self.notify(f"正在使用Google Chrome打开网站: {site_name}", severity="success")
+                    self.notify(get_global_i18n().t('get_books.using_chrome_browser', name=site_name), severity="success")
                 except (subprocess.CalledProcessError, FileNotFoundError):
                     try:
                         # 尝试使用chromium
@@ -777,15 +784,15 @@ class GetBooksScreen(Screen[None]):
                     except (subprocess.CalledProcessError, FileNotFoundError):
                         # 如果Chrome/Chromium不可用，使用默认浏览器
                         os.system(f'xdg-open "{url}"')
-                        self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+                        self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
             else:
                 # 其他系统，使用默认方式
                 os.system(f'open "{url}"')
-                self.notify(f"正在使用默认浏览器打开网站: {site_name}", severity="success")
+                self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
                 
         except Exception as e:
             logger.error(f"打开网址失败: {e}")
-            self.notify(f"打开网址失败: {str(e)}", severity="error")
+            self.notify(get_global_i18n().t('get_books.open_url_failed', error=str(e)), severity="error")
     
     def _load_proxy_settings(self) -> None:
         """加载代理设置"""
@@ -834,14 +841,14 @@ class GetBooksScreen(Screen[None]):
             # 检查权限并设置按钮状态
             if not self._has_permission("get_books.manage_sites"):
                 novel_sites_btn.disabled = True
-                novel_sites_btn.tooltip = "无权限"
+                novel_sites_btn.tooltip = get_global_i18n().t('get_books.no_permission')
             else:
                 novel_sites_btn.disabled = False
                 novel_sites_btn.tooltip = None
                 
             if not self._has_permission("get_books.manage_proxy"):
                 proxy_settings_btn.disabled = True
-                proxy_settings_btn.tooltip = "无权限"
+                proxy_settings_btn.tooltip = get_global_i18n().t('get_books.no_permission')
             else:
                 proxy_settings_btn.disabled = False
                 proxy_settings_btn.tooltip = None
@@ -1205,9 +1212,9 @@ class GetBooksScreen(Screen[None]):
                     is_enter_column = True
                 # 如果无法获取列键名，则使用列索引判断
                 elif column_key_name is None:
-                    if col_index == 8:  # "检测"按钮列
+                    if col_index == 9:  # "检测"按钮列
                         is_check_column = True
-                    elif col_index == 9:  # "进入"按钮列
+                    elif col_index == 10:  # "进入"按钮列
                         is_enter_column = True
                 
                 logger.debug(f"是否是检测列: {is_check_column}, 是否是进入列: {is_enter_column}")
@@ -1301,7 +1308,7 @@ class GetBooksScreen(Screen[None]):
                                 # 使用系统默认浏览器打开网址
                                 self._open_url_in_browser(site_url, site_name)
                             else:
-                                self.notify("网站网址为空，无法打开", severity="warning")
+                                self.notify(get_global_i18n().t('get_books.site_url_empty'), severity="warning")
                         else:
                             logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_sites)}, 起始索引={start_index}")
                         

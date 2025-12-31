@@ -337,8 +337,8 @@ class PhotoGramParser(BaseParser):
         
         print(f"获取到章节页面，长度: {len(content)} 字符")
         
-        # 提取加密内容并解密
-        encrypted_content = self._extract_encrypted_content(content)
+        # 提取加密内容并解密（这是单独获取章节内容，所以是第一页）
+        encrypted_content = self._extract_encrypted_content(content, is_first_page=True)
         if encrypted_content:
             print("成功解密内容")
             return encrypted_content
@@ -408,7 +408,7 @@ class PhotoGramParser(BaseParser):
             return []
         
         # 获取第一页的内容（这是主章节内容）
-        first_content = self._extract_encrypted_content(first_page_content)
+        first_content = self._extract_encrypted_content(first_page_content, is_first_page=True)
         if first_content:
             sub_contents.append(first_content)
             print(f"✅ 成功解密第一页内容: {first_content[:50]}...")
@@ -500,8 +500,8 @@ class PhotoGramParser(BaseParser):
                 print(f"无法获取页面内容: {current_url}")
                 break
             
-            # 提取当前页面的内容
-            sub_content = self._extract_encrypted_content(content)
+            # 提取当前页面的内容（不是第一页）
+            sub_content = self._extract_encrypted_content(content, is_first_page=False)
             if not sub_content:
                 print(f"无法解密当前页面内容，尝试备用方法: {current_url}")
                 # 尝试备用方法
@@ -791,9 +791,9 @@ class PhotoGramParser(BaseParser):
         # 调用新的_is_sub_chapter方法
         return self._is_sub_chapter(current_url, xlink)
     
-    def _extract_encrypted_content(self, content: str) -> Optional[str]:
+    def debug_decrypt_content(self, content: str) -> Optional[str]:
         """
-        提取并解密加密内容（动态获取密钥和IV，只关注booktxthtml）
+        调试解密内容的方法，用于诊断问题
         
         Args:
             content: 章节页面内容
@@ -801,64 +801,199 @@ class PhotoGramParser(BaseParser):
         Returns:
             解密后的内容
         """
+        print("=== 开始调试解密过程 ===")
+        print(f"页面内容长度: {len(content)}")
+        
+        # 1. 检查页面是否包含booktxthtml元素
+        if 'booktxthtml' not in content:
+            print("❌ 页面不包含booktxthtml元素")
+            return None
+        
+        print("✅ 页面包含booktxthtml元素")
+        
+        # 2. 查找所有script标签
+        script_pattern = r'<script[^>]*>(.*?)</script>'
+        scripts = re.findall(script_pattern, content, re.DOTALL | re.IGNORECASE)
+        
+        print(f"找到 {len(scripts)} 个script标签")
+        
+        # 3. 查找所有可能的加密数据
+        base64_pattern = r"['\"]([A-Za-z0-9+/=]{50,})['\"]"
+        encrypted_data = re.findall(base64_pattern, content)
+        
+        print(f"找到 {len(encrypted_data)} 个可能的加密数据段")
+        for i, data in enumerate(encrypted_data[:3]):  # 只显示前3个
+            print(f"  数据段 {i+1}: 长度={len(data)}, 前20字符={data[:20]}...")
+        
+        # 4. 查找所有可能的密钥和IV
+        keys = re.findall(r"key\s*=\s*['\"]([^'\"]+)['\"]", content)
+        ivs = re.findall(r"iv\s*=\s*['\"]([^'\"]+)['\"]", content)
+        
+        print(f"找到 {len(keys)} 个可能的密钥: {keys}")
+        print(f"找到 {len(ivs)} 个可能的IV: {ivs}")
+        
+        # 5. 尝试使用默认配置解密
+        default_key = "encryptedDatastr"
+        default_iv = "FMCqVWeARJd9AY9PYm2csw=="
+        
+        print(f"\n尝试使用默认配置解密: key={default_key}, iv={default_iv}")
+        
+        for i, data in enumerate(encrypted_data):
+            if len(data) > 100:  # 只尝试较长的数据
+                print(f"\n尝试解密数据段 {i+1}...")
+                try:
+                    from ..utils.crypto_utils import AESCipher
+                    cipher = AESCipher(default_key, default_iv)
+                    decrypted = cipher.decrypt(data, padding_mode='zero')
+                    
+                    if decrypted and decrypted != data:
+                        chinese_chars = len([c for c in decrypted if '\u4e00' <= c <= '\u9fff'])
+                        print(f"  解密成功! 长度={len(decrypted)}, 中文字符数={chinese_chars}")
+                        print(f"  前100字符: {decrypted[:100]}...")
+                        
+                        if chinese_chars > 10:
+                            print("✅ 解密结果包含有效中文内容")
+                            return decrypted
+                    else:
+                        print("  解密失败或返回原数据")
+                        
+                        # 尝试PKCS7模式
+                        decrypted_pkcs7 = cipher.decrypt(data, padding_mode='pkcs7')
+                        if decrypted_pkcs7 and decrypted_pkcs7 != data:
+                            chinese_chars = len([c for c in decrypted_pkcs7 if '\u4e00' <= c <= '\u9fff'])
+                            print(f"  PKCS7解密成功! 长度={len(decrypted_pkcs7)}, 中文字符数={chinese_chars}")
+                            
+                            if chinese_chars > 10:
+                                print("✅ PKCS7解密结果包含有效中文内容")
+                                return decrypted_pkcs7
+                except Exception as e:
+                    print(f"  解密出错: {e}")
+        
+        # 6. 尝试所有密钥和IV组合
+        print("\n尝试所有密钥和IV组合...")
+        all_keys = [default_key] + keys
+        all_ivs = [default_iv] + ivs
+        
+        for key in all_keys:
+            for iv in all_ivs:
+                print(f"  尝试组合: key={key}, iv={iv}")
+                for data in encrypted_data:
+                    if len(data) > 50:
+                        try:
+                            cipher = AESCipher(key, iv)
+                            decrypted = cipher.decrypt(data, padding_mode='zero')
+                            
+                            if decrypted and decrypted != data:
+                                chinese_chars = len([c for c in decrypted if '\u4e00' <= c <= '\u9fff'])
+                                if chinese_chars > 10:
+                                    print(f"✅ 找到有效组合! key={key}, iv={iv}")
+                                    return decrypted
+                        except:
+                            pass
+        
+        print("❌ 所有解密尝试都失败")
+        return None
+
+    def _extract_encrypted_content(self, content: str, is_first_page: bool = False) -> Optional[str]:
+        """
+        提取并解密加密内容（动态获取密钥和IV，只关注booktxthtml）
+        
+        Args:
+            content: 章节页面内容
+            is_first_page: 是否是第一页（用于决定是否提取正文开始位置）
+            
+        Returns:
+            解密后的内容
+        """
+        # 首先尝试调试方法
+        debug_result = self.debug_decrypt_content(content)
+        if debug_result:
+            return debug_result
+        
+        # 如果调试失败，尝试原始方法
+        print("\n=== 尝试原始解密方法 ===")
         import html as html_module
         
-        # 首先尝试精确匹配加密脚本
-        script_pattern = r"<script>\s+\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);</script>"
-        match = re.search(script_pattern, content, re.DOTALL)
+        print(f"开始提取加密内容，页面内容长度: {len(content)} 字符")
         
-        if match:
-            # 格式：group(1)=encrypted_data, group(2)=key, group(3)=iv
-            encrypted_data = match.group(1)
-            key = match.group(2)
-            iv = match.group(3)
+        # 尝试多种可能的脚本模式
+        script_patterns = [
+            # 原始模式
+            r"<script>\s+\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);</script>",
+            # 新增模式1：空格变体
+            r"<script>\s*\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);</script>",
+            # 新增模式2：换行变体
+            r"<script>\s*\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);?\s*</script>",
+            # 新增模式3：可能有其他字符
+            r"<script[^>]*>\s*\$\(['\"]#booktxthtml['\"]\)\.html\(x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\)\);?\s*</script>",
+            # 新增模式4：不带jQuery
+            r"<script>\s*document\.getElementById\(['\"]booktxthtml['\"]\)\.innerHTML\s*=\s*x\(['\"](.+?)['\"],['\"](.+?)['\"],['\"](.+?)['\"]\);?\s*</script>",
+        ]
+        
+        for i, script_pattern in enumerate(script_patterns):
+            print(f"尝试第 {i+1} 种脚本模式匹配...")
+            match = re.search(script_pattern, content, re.DOTALL)
             
-            # 处理JavaScript的转义字符
-            encrypted_data = encrypted_data.replace(r'\/', '/').replace(r'\u002b', '+')
-            iv = iv.replace(r'\/', '/').replace(r'\u002b', '+')
-            key = key
-            
-            # 检查变量是否被正确定义
-            if encrypted_data and key and iv:
-                print(f"找到booktxthtml加密脚本，数据长度: {len(encrypted_data)}")
-                print(f"动态提取的密钥: {key}")
-                print(f"原始IV: {iv}")
+            if match:
+                # 格式：group(1)=encrypted_data, group(2)=key, group(3)=iv
+                encrypted_data = match.group(1)
+                key = match.group(2)
+                iv = match.group(3)
                 
-                # 尝试解密
-                decrypted_content = self._decrypt_content(encrypted_data, key, iv, content)
-                if decrypted_content:
-                    # _decrypt_content 已经处理了前缀问题并返回最终内容，不需要再次清理
-                    return decrypted_content
+                print(f"✅ 第 {i+1} 种模式匹配成功")
+                print(f"加密数据长度: {len(encrypted_data)}")
+                print(f"密钥: {key}")
+                print(f"IV: {iv}")
+                
+                # 处理JavaScript的转义字符
+                encrypted_data = encrypted_data.replace(r'\/', '/').replace(r'\u002b', '+')
+                iv = iv.replace(r'\/', '/').replace(r'\u002b', '+')
+                key = key
+                
+                # 检查变量是否被正确定义
+                if encrypted_data and key and iv:
+                    print(f"开始解密，使用模式 {i+1} 的参数")
+                    # 尝试解密
+                    decrypted_content = self._decrypt_content(encrypted_data, key, iv, content, is_first_page)
+                    if decrypted_content:
+                        print(f"✅ 使用模式 {i+1} 解密成功")
+                        return decrypted_content
+                    else:
+                        print(f"❌ 使用模式 {i+1} 解密失败")
+                else:
+                    print("❌ 加密脚本参数不完整")
             else:
-                print("加密脚本参数不完整")
+                print(f"❌ 第 {i+1} 种模式未匹配")
         
-        # 如果没有找到，尝试查找其他可能的加密脚本
-        print("尝试查找其他可能的加密脚本...")
+        # 如果所有精确模式都失败，尝试更宽松的匹配
+        print("尝试更宽松的匹配...")
         
         # 查找所有x()函数调用
         x_function_pattern = r"x\(['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"],['\"]([^'\"]+)['\"]\)"
         x_matches = re.findall(x_function_pattern, content)
         
         if x_matches:
+            print(f"找到 {len(x_matches)} 个x()函数调用")
             for i, match in enumerate(x_matches):
                 encrypted_data, key, iv = match
                 
                 # 处理IV中的转义字符
                 iv = self._decode_iv(iv)
                 
-                print(f"找到第 {i+1} 个x()函数调用")
+                print(f"尝试第 {i+1} 个x()函数调用")
                 print(f"  数据长度: {len(encrypted_data)}")
                 print(f"  密钥: {key}")
                 print(f"  处理后的IV: {iv}")
                 
                 # 尝试解密
-                decrypted_content = self._decrypt_content(encrypted_data, key, iv, content)
+                decrypted_content = self._decrypt_content(encrypted_data, key, iv, content, is_first_page)
                 if decrypted_content:
-                    print(f"第 {i+1} 个x()函数调用解密成功")
-                    # _decrypt_content 已经处理了前缀问题并返回最终内容，不需要再次清理
+                    print(f"✅ 第 {i+1} 个x()函数调用解密成功")
                     return decrypted_content
+                else:
+                    print(f"❌ 第 {i+1} 个x()函数调用解密失败")
         
-        # 如果所有正则模式都失败，尝试查找加密数据段
+        # 如果所有方法都失败，尝试查找加密数据段
         print("所有方法都失败，尝试查找加密数据段")
         return self._find_encrypted_data_segments(content)
     
@@ -899,11 +1034,25 @@ class PhotoGramParser(BaseParser):
         Returns:
             解密后的内容
         """
-        # 查找可能的base64编码数据段
-        base64_pattern = r"['\"]([A-Za-z0-9+/=]{100,})['\"]"
+        print(f"开始查找加密数据段，页面内容长度: {len(content)} 字符")
+        
+        # 多种可能的base64编码数据段模式
+        base64_patterns = [
+            r"['\"]([A-Za-z0-9+/=]{100,})['\"]",  # 标准模式
+            r"['\"]([A-Za-z0-9+/=]{50,100})['\"]",  # 较短模式
+            r"x\(['\"]([A-Za-z0-9+/=]{50,})['\"]",  # x函数模式
+            r"html\(['\"]([A-Za-z0-9+/=]{50,})['\"]",  # html函数模式
+        ]
         
         # 查找长字符串（可能是加密数据）
-        matches = re.findall(base64_pattern, content)
+        all_matches = []
+        for pattern in base64_patterns:
+            matches = re.findall(pattern, content)
+            all_matches.extend(matches)
+        
+        # 去重并过滤长度
+        unique_matches = list(set([m for m in all_matches if len(m) > 50]))
+        print(f"找到 {len(unique_matches)} 个可能的加密数据段")
         
         # 从页面中提取可能的密钥和IV
         key_iv_patterns = [
@@ -911,6 +1060,9 @@ class PhotoGramParser(BaseParser):
             r"var\s+iv\s*=\s*['\"]([^'\"]+)['\"]",
             r"const\s+key\s*=\s*['\"]([^'\"]+)['\"]",
             r"const\s+iv\s*=\s*['\"]([^'\"]+)['\"]",
+            # 新增模式
+            r"key\s*=\s*['\"]([^'\"]+)['\"]",
+            r"iv\s*=\s*['\"]([^'\"]+)['\"]",
         ]
         
         possible_keys = []
@@ -925,39 +1077,57 @@ class PhotoGramParser(BaseParser):
                     possible_ivs.extend(found_values)
         
         # 添加默认值
-        if not possible_keys:
-            possible_keys.append("encryptedDatastr")
-        if not possible_ivs:
-            possible_ivs.append("FMCqVWeARJd9AY9PYm2csw==")
+        default_keys = ["encryptedDatastr", "mAf6AupVNiH5u4vS", "BaL94DxIbGhdAJ80"]
+        default_ivs = ["FMCqVWeARJd9AY9PYm2csw==", "mAf6AupVNiH5u4vS", "BaL94DxIbGhdAJ80"]
+        
+        for key in default_keys:
+            if key not in possible_keys:
+                possible_keys.append(key)
+        
+        for iv in default_ivs:
+            if iv not in possible_ivs:
+                possible_ivs.append(iv)
         
         print(f"可能的密钥: {possible_keys}")
         print(f"可能的IV: {possible_ivs}")
         
         # 尝试所有可能的密钥和IV组合
-        for match in matches:
-            if len(match) > 100:  # 只处理较长的字符串
-                print(f"找到可能的加密数据段，长度: {len(match)}")
+        for match in unique_matches:
+            if len(match) > 50:  # 处理所有可能的加密数据
+                print(f"尝试解密数据段，长度: {len(match)}")
                 
                 # 尝试所有可能的密钥和IV组合
                 for key in possible_keys:
                     for iv in possible_ivs:
-                        print(f"尝试使用密钥: {key}, IV: {iv}")
-                        decrypted_content = self._decrypt_content(match, key, iv, content)
+                        print(f"  尝试使用密钥: {key}, IV: {iv}")
+                        decrypted_content = self._decrypt_content(match, key, iv, content, is_first_page)
                         if decrypted_content:
                             # 检查是否包含有效内容
-                            if "<p>" in decrypted_content or "</p>" in decrypted_content or len(decrypted_content) > 100:
-                                print(f"解密成功！使用密钥: {key}, IV: {iv}")
-                                # _decrypt_content 已经处理了前缀问题并返回最终内容，不需要再次清理
+                            if ("<p>" in decrypted_content or "</p>" in decrypted_content or 
+                                len(decrypted_content) > 100 or 
+                                any('\u4e00' <= c <= '\u9fff' for c in decrypted_content)):
+                                print(f"✅ 解密成功！使用密钥: {key}, IV: {iv}")
                                 return decrypted_content
+                            else:
+                                print(f"  解密结果无效或不包含有效内容")
         
+        # 最后尝试：直接提取页面中的文本内容作为备用
+        print("所有解密方法都失败，尝试直接提取页面文本")
+        plain_text = self._extract_plain_text(content)
+        if plain_text and len(plain_text) > 100:
+            print(f"✅ 直接提取到页面文本，长度: {len(plain_text)}")
+            return plain_text
+        
+        print("所有解密和提取方法都失败")
         return None
     
-    def _convert_html_to_text(self, html_content: str) -> str:
+    def _convert_html_to_text(self, html_content: str, is_first_page: bool = True) -> str:
         """
-        将HTML内容转换为纯文本，不做前缀检查
+        将HTML内容转换为纯文本，并提取小说正文部分
         
         Args:
             html_content: HTML内容
+            is_first_page: 是否是第一页（第一页需要提取正文开始位置）
             
         Returns:
             转换后的纯文本
@@ -989,7 +1159,30 @@ class PhotoGramParser(BaseParser):
         # 清理段落开头的空格
         html_content = re.sub(r'\n +', '\n', html_content)
         
-        return html_content.strip()
+        text = html_content.strip()
+        
+        # 只在第一页尝试找到小说正文开始位置
+        if is_first_page:
+            # 常见的小说开头模式
+            start_patterns = [
+                r"曾经的我",
+                r"我叫谷宇",
+                r"初中的我是",
+                r"同学都是",
+                r"如果不是认识了",
+                r"上篇",
+                r"下篇"
+            ]
+            
+            for pattern in start_patterns:
+                match_pos = text.find(pattern)
+                if match_pos > 0 and match_pos < 500:  # 确保不是太远的位置
+                    print(f"找到小说正文开始位置: {pattern} 在位置 {match_pos}")
+                    # 从这个位置开始截取
+                    text = text[match_pos:]
+                    break
+        
+        return text.strip()
     
     def _clean_html_content(self, html_content: str) -> str:
         """
@@ -1079,60 +1272,65 @@ class PhotoGramParser(BaseParser):
     
 
     
-    def _decrypt_content(self, encrypted_data: str, key: str, iv: str, html_content: str | None = None) -> Optional[str]:
+    def _decrypt_content(self, encrypted_data: str, key: str, iv: str, html_content: str | None = None, is_first_page: bool = False) -> Optional[str]:
         """
-        解密内容 - 使用统一的AESCipher工具，使用ZeroPadding模式
+        解密内容 - 使用统一的AESCipher工具，使用多种填充模式尝试
         
         Args:
             encrypted_data: 加密数据
             key: 密钥
             iv: 初始化向量
             html_content: 原始HTML页面内容（用于提取明文部分）
+            is_first_page: 是否是第一页（用于决定是否提取正文开始位置）
             
         Returns:
             解密后的内容
         """
         try:
-            # 使用统一的AES解密工具，使用ZeroPadding模式（与网站JavaScript保持一致）
+            # 使用统一的AES解密工具
             cipher = AESCipher(key, iv)
-            decrypted_text = cipher.decrypt(encrypted_data, padding_mode='zero')
             
-            # 检查解密结果是否有效
-            if decrypted_text and decrypted_text != encrypted_data:
-                print(f"ZeroPadding解密成功，长度: {len(decrypted_text)} 字符")
+            # 尝试多种填充模式
+            padding_modes = ['zero', 'pkcs7']
+            
+            for padding_mode in padding_modes:
+                decrypted_text = cipher.decrypt_with_fallback(encrypted_data, key, iv, padding_mode)
                 
-                # 修复解密后的内容前缀问题
-                decrypted_text = self._fix_decrypted_prefix(decrypted_text, html_content)
-                
-                # 将HTML内容转换为纯文本
-                if decrypted_text and "<p>" in decrypted_text:
-                    # 使用_clean_html_content方法转换，但跳过前缀检查部分
-                    final_text = self._convert_html_to_text(decrypted_text)
-                    return final_text
-                else:
-                    return decrypted_text
-            else:
-                print("ZeroPadding解密失败，尝试使用PKCS7模式")
-                # 尝试使用PKCS7模式
-                decrypted_text_pkcs7 = cipher.decrypt(encrypted_data, padding_mode='pkcs7')
-                if decrypted_text_pkcs7 and decrypted_text_pkcs7 != encrypted_data:
-                    print(f"PKCS7解密成功，长度: {len(decrypted_text_pkcs7)} 字符")
-                    # 也要修复前缀问题
-                    decrypted_text_pkcs7 = self._fix_decrypted_prefix(decrypted_text_pkcs7, html_content)
+                # 检查解密结果是否有效
+                if decrypted_text and decrypted_text != encrypted_data:
+                    # 检查是否包含有意义的内容
+                    chinese_chars = len([c for c in decrypted_text if '\u4e00' <= c <= '\u9fff'])
+                    has_html_tags = '<p>' in decrypted_text or '</p>' in decrypted_text
                     
-                    # 将HTML内容转换为纯文本
-                    if decrypted_text_pkcs7 and "<p>" in decrypted_text_pkcs7:
-                        # 使用_clean_html_content方法转换，但跳过前缀检查部分
-                        final_text = self._convert_html_to_text(decrypted_text_pkcs7)
-                        return final_text
+                    if chinese_chars > 10 or has_html_tags or len(decrypted_text) > 200:
+                        print(f"✅ {padding_mode}解密成功，长度: {len(decrypted_text)} 字符，中文字符数: {chinese_chars}")
+                        
+                        # 修复解密后的内容前缀问题
+                        decrypted_text = self._fix_decrypted_prefix(decrypted_text, html_content)
+                        
+                        # 将HTML内容转换为纯文本
+                        if decrypted_text and "<p>" in decrypted_text:
+                            # 使用_convert_html_to_text方法转换
+                            final_text = self._convert_html_to_text(decrypted_text, is_first_page)
+                            return final_text
+                        elif decrypted_text and len(decrypted_text.strip()) > 50:
+                            # 如果没有HTML标签但有足够的文本内容，直接返回
+                            return decrypted_text
+                        else:
+                            print(f"解密内容过短或无意义: {len(decrypted_text)} 字符")
+                            continue
                     else:
-                        return decrypted_text_pkcs7
+                        print(f"❌ {padding_mode}解密结果无效或不包含有意义内容")
                 else:
-                    print("所有填充模式都解密失败")
-                    return None
+                    print(f"❌ {padding_mode}解密失败或返回原数据")
+            
+            print("所有填充模式都解密失败")
+            return None
                 
         except Exception as e:
-            print(f"解密失败: {e}")
+            print(f"解密过程中发生错误: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def _fix_decrypted_prefix(self, decrypted_text: str, html_content: str | None = None) -> str:
@@ -1273,16 +1471,8 @@ class PhotoGramParser(BaseParser):
                     print(f"使用特定短文本匹配方法补全前缀，添加了 {len(prefix_text)} 个字符")
                     return combined_content
         
-        # 将调试信息写入文件，以便调试
-        try:
-            with open('/Users/yanghao/data/app/python/newreader/debug_prefix.log', 'w', encoding='utf-8') as f:
-                f.write(f"明文内容纯文本长度: {len(plain_clean)}\n")
-                f.write(f"明文内容纯文本前100字符: {repr(plain_clean[:100])}\n")
-                f.write(f"解密内容纯文本前50字符: {repr(cleaned_decrypted[:50])}\n")
-        except Exception as e:
-            print(f"无法写入调试文件: {e}")
-        
-        # 如果找到匹配，且位置不是开头，说明明文内容中有额外的前缀
+        # 查找解密内容在明文内容中的位置
+        match_pos = plain_clean.find(decrypted_clean[:50])  # 使用前50个字符匹配
         if match_pos > 0:
             # 提取明文内容中匹配位置之前的部分（前缀）
             prefix_text = plain_clean[:match_pos].strip()
@@ -1302,14 +1492,6 @@ class PhotoGramParser(BaseParser):
                 
                 print(f"使用纯文本匹配方法补全前缀，添加了 {len(prefix_text)} 个字符")
                 print(f"前缀文本: {repr(prefix_text)}")
-                
-                # 将最终调试信息写入文件
-                try:
-                    with open('/Users/yanghao/data/app/python/newreader/debug_prefix.log', 'a', encoding='utf-8') as f:
-                        f.write(f"找到前缀文本: {repr(prefix_text)}\n")
-                        f.write(f"合并后内容前100字符: {repr(combined_content[:100])}\n")
-                except Exception as e:
-                    print(f"无法写入调试文件: {e}")
                 
                 return combined_content
         

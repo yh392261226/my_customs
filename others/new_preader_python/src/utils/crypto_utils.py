@@ -42,6 +42,36 @@ class AESCipher:
         else:
             return key
     
+    def _process_key_iv(self, key: str, iv: str) -> tuple:
+        """
+        处理密钥和IV，支持多种格式
+        
+        Args:
+            key: 密钥字符串
+            iv: IV字符串
+            
+        Returns:
+            处理后的(key_bytes, iv_bytes)
+        """
+        # 处理密钥
+        key_bytes = key.encode('utf-8')
+        key_bytes = self._pad_key(key_bytes)
+        
+        # 处理IV - 支持base64编码的IV
+        try:
+            # 尝试base64解码
+            iv_bytes = base64.b64decode(iv)
+            if len(iv_bytes) < 16:
+                iv_bytes = self._pad_key(iv_bytes)
+            elif len(iv_bytes) > 16:
+                iv_bytes = iv_bytes[:16]
+        except:
+            # 如果base64解码失败，尝试UTF-8编码
+            iv_bytes = iv.encode('utf-8')
+            iv_bytes = self._pad_key(iv_bytes)
+        
+        return key_bytes, iv_bytes
+    
     def decrypt(self, encrypted_text: str, padding_mode='pkcs7') -> str:
         """
         AES解密方法
@@ -59,8 +89,10 @@ class AESCipher:
             
             # 检查数据长度是否是16的倍数（AES块大小）
             if len(encrypted_bytes) % 16 != 0:
-                print(f"警告：加密数据长度({len(encrypted_bytes)})不是16的倍数")
-                return encrypted_text
+                # 尝试填充到16的倍数
+                padding_needed = 16 - (len(encrypted_bytes) % 16)
+                encrypted_bytes += b'\x00' * padding_needed
+                print(f"警告：加密数据长度({len(encrypted_bytes)-padding_needed})不是16的倍数，已填充{padding_needed}字节")
             
             # 创建AES解密器
             cipher = AES.new(self.key, AES.MODE_CBC, self.iv)
@@ -103,6 +135,36 @@ class AESCipher:
             # 如果解密失败，返回原始文本
             print(f"AES解密失败: {e}")
             return encrypted_text
+    
+    def decrypt_with_fallback(self, encrypted_text: str, key: str = None, iv: str = None, 
+                            padding_mode='pkcs7') -> str:
+        """
+        带备用方案的AES解密方法
+        
+        Args:
+            encrypted_text: 加密的Base64编码文本
+            key: 可选的密钥，如果提供则覆盖初始化时的密钥
+            iv: 可选的IV，如果提供则覆盖初始化时的IV
+            padding_mode: 填充模式，'pkcs7'(默认) 或 'zero'
+            
+        Returns:
+            解密后的文本
+        """
+        original_key = self.key
+        original_iv = self.iv
+        
+        # 如果提供了备用密钥和IV，使用它们
+        if key and iv:
+            self.key, self.iv = self._process_key_iv(key, iv)
+        
+        # 尝试解密
+        result = self.decrypt(encrypted_text, padding_mode)
+        
+        # 恢复原始密钥和IV
+        self.key = original_key
+        self.iv = original_iv
+        
+        return result
 
 
 def extract_encryption_keys(html_content: str) -> tuple:
