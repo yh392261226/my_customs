@@ -403,6 +403,13 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             deleted_count = 0
             failed_count = 0
             
+            # 获取书库对象
+            bookshelf = getattr(self.app, "bookshelf", None)
+            if not bookshelf:
+                logger.error("无法获取书库对象")
+                self.notify("无法获取书库对象", severity="error")
+                return
+            
             for book_path in self.selected_books:
                 try:
                     if os.path.exists(book_path):
@@ -413,6 +420,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                         
                         shutil.move(book_path, trash_path)
                         deleted_count += 1
+                        
+                        # 从书库中删除书籍
+                        bookshelf.remove_book(book_path)
                 except Exception as e:
                     logger.error(f"删除书籍失败: {book_path}, 错误: {e}")
                     failed_count += 1
