@@ -184,3 +184,68 @@ class StringUtils:
             return 0.0
         
         return len(intersection) / len(union)
+    
+    @staticmethod
+    def book_content_similarity(content1: str, content2: str, sample_size: int = 5000) -> float:
+        """
+        计算两个书籍内容的相似度（适用于大文件）
+        
+        Args:
+            content1: 书籍内容1
+            content2: 书籍内容2
+            sample_size: 采样大小（字符数）
+            
+        Returns:
+            float: 相似度（0-1）
+        """
+        # 规范化文本
+        content1 = StringUtils.normalize(content1)
+        content2 = StringUtils.normalize(content2)
+        
+        # 对于大文件，采用采样方式比较
+        if len(content1) > sample_size or len(content2) > sample_size:
+            # 取文件开头、中间和结尾的采样
+            samples1 = StringUtils._sample_content(content1, sample_size)
+            samples2 = StringUtils._sample_content(content2, sample_size)
+            
+            # 计算各采样部分的相似度
+            total_similarity = 0
+            for i, (s1, s2) in enumerate(zip(samples1, samples2)):
+                sim = StringUtils.similarity(s1, s2)
+                total_similarity += sim
+            
+            return total_similarity / len(samples1)
+        else:
+            # 对于小文件，直接比较全部内容
+            return StringUtils.similarity(content1, content2)
+    
+    @staticmethod
+    def _sample_content(content: str, sample_size: int, parts: int = 3) -> List[str]:
+        """
+        对内容进行采样
+        
+        Args:
+            content: 原始内容
+            sample_size: 采样总大小
+            parts: 采样部分数
+            
+        Returns:
+            List[str]: 采样内容列表
+        """
+        if len(content) <= sample_size:
+            return [content]
+        
+        part_size = sample_size // parts
+        samples = []
+        
+        # 采样开头
+        samples.append(content[:part_size])
+        
+        # 采样中间
+        middle_start = (len(content) - part_size) // 2
+        samples.append(content[middle_start:middle_start + part_size])
+        
+        # 采样结尾
+        samples.append(content[-part_size:])
+        
+        return samples

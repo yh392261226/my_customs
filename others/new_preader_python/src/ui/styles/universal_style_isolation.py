@@ -122,13 +122,17 @@ class UniversalStyleIsolationManager:
             if not css_path:
                 return ""
                 
-            # 构建完整路径
-            if hasattr(component, '__file__'):
-                base_dir = os.path.dirname(component.__file__)
+            # 如果是绝对路径，直接使用
+            if os.path.isabs(css_path):
+                full_path = css_path
             else:
-                base_dir = os.path.dirname(__file__)
-                
-            full_path = os.path.join(base_dir, css_path)
+                # 构建完整路径
+                if hasattr(component, '__file__'):
+                    base_dir = os.path.dirname(component.__file__)
+                else:
+                    base_dir = os.path.dirname(__file__)
+                    
+                full_path = os.path.join(base_dir, css_path)
             
             if os.path.exists(full_path):
                 with open(full_path, 'r', encoding='utf-8') as f:

@@ -1,0 +1,130 @@
+/* 书籍对比对话框样式 */
+
+#book-comparison-dialog-container {
+    width: 95%;
+    height: 95%;
+    background: $primary;
+    border: solid $primary 80%;
+}
+
+#book-comparison-dialog {
+    height: 100%;
+    padding: 1;
+}
+
+#book-comparison-title {
+    text-align: center;
+    text-style: bold;
+    margin: 1 0;
+}
+
+.section-subtitle {
+    text-style: bold;
+    margin: 1 0 1 0;
+    color: $accent;
+}
+
+.similarity-info {
+    text-align: center;
+    margin: 1 0;
+}
+
+.similarity-bar {
+    width: 80%;
+    margin: 1 0;
+    align: center middle;
+}
+
+.comparison-row {
+    height: 2fr;
+    margin: 1 0;
+}
+
+.book-info {
+    width: 1fr;
+    padding: 1;
+    border: solid $panel;
+    background: $surface;
+}
+
+.book-content {
+    width: 1fr;
+    padding: 1;
+    border: solid $panel;
+    background: $surface;
+}
+
+.content-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.sample-title {
+    text-style: bold;
+    margin: 1 0 1 0;
+    color: $accent;
+}
+
+.sample-content {
+    margin: 1 0;
+    padding: 1;
+    background: $panel;
+}
+
+.loading-text {
+    color: $text-muted;
+    align: center middle;
+    margin: 2 0;
+}
+
+.error-text {
+    color: $error;
+    align: center middle;
+    margin: 2 0;
+}
+
+.comparison-buttons {
+    margin: 1 0 0 0;
+    align: center middle;
+}
+
+/* 差异视图样式 */
+.diff-container {
+    height: 1fr;
+    padding: 1;
+}
+
+.diff-view {
+    height: 100%;
+    background: $surface;
+    border: solid $panel;
+    padding: 1;
+}
+
+/* 相似度进度条颜色 */
+#similarity-bar > .bar--bar {
+    background: $accent;
+}
+
+#similarity-bar > .bar--complete {
+    background: $success;
+}
+
+/* 内容区域滚动条样式 */
+.book-content, .diff-container {
+    scrollbar-size: 1 1;
+}
+
+/* 选项卡样式 */
+#comparison-tabs {
+    margin: 1 0;
+}
+
+#comparison-tabs > .tabs--tab {
+    text-style: bold;
+}
+
+#comparison-tabs > .tabs--tab-active {
+    color: $accent;
+    border: solid $accent;
+}

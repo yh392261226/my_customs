@@ -1,0 +1,86 @@
+/* 重复书籍对话框样式 */
+
+#duplicate-books-dialog-container {
+    width: 90%;
+    height: 90%;
+    background: $primary;
+    border: solid $primary 80%;
+}
+
+#duplicate-books-dialog {
+    height: 100%;
+    padding: 1;
+}
+
+#duplicate-books-title {
+    align: center middle;
+    text-style: bold;
+    margin: 1 0;
+}
+
+#duplicate-books-description {
+    align: center middle;
+    margin: 0 0 1 0;
+    color: $text-muted;
+}
+
+#duplicate-group-info {
+    align: center middle;
+    margin: 1 0;
+    color: $accent;
+    text-style: bold;
+}
+
+#duplicate-books-table {
+    height: 1fr;
+    margin: 1 0;
+    border: solid $panel;
+}
+
+#duplicate-books-table .data-table--header {
+    background: $panel;
+    text-style: bold;
+}
+
+#duplicate-books-table .data-table--row-selected {
+    background: $accent;
+}
+
+#duplicate-books-buttons {
+    margin: 1 0 0 0;
+}
+
+#duplicate-books-status {
+    align: center middle;
+    margin: 1 0 0 0;
+    color: $text-muted;
+}
+
+.btn-row {
+    height: auto;
+    align: center middle;
+}
+
+.btn-row > Button {
+    margin: 0 1;
+}
+
+.comparison-row {
+    height: auto;
+}
+
+.book-info {
+    width: 1fr;
+    padding: 1;
+    border: solid $panel;
+    background: $surface;
+}
+
+.info-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.info-item {
+    margin: 1 0;
+}

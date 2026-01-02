@@ -22,7 +22,9 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
+from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
+from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -148,6 +150,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("batch_ops.move_up"), id="move-up-btn"),
                     Button(get_global_i18n().t("batch_ops.move_down"), id="move-down-btn"),
                     Button(get_global_i18n().t("batch_ops.merge"), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t("batch_ops.find_duplicates"), id="find-duplicates-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_author"), id="set-author-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_tags"), id="set-tags-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.clear_tags"), id="clear-tags-btn", variant="warning"),
@@ -1001,6 +1004,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._move_selected_book_down()
         elif event.button.id == "merge-btn":
             await self._merge_selected_books()
+        elif event.button.id == "find-duplicates-btn":
+            await self._find_duplicate_books()
         elif event.button.id == "delete-btn":
             self._delete_selected_books()
         elif event.button.id == "set-author-btn":
@@ -2031,5 +2036,101 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 get_global_i18n().t("batch_ops.merge_description")
             ),
             callback=on_title_input
+        )
+    
+    async def _find_duplicate_books(self) -> None:
+        """查找重复书籍"""
+        try:
+            # 获取所有书籍
+            all_books = self.bookshelf.get_all_books()
+            
+            if len(all_books) < 2:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.need_at_least_two"),
+                    severity="warning"
+                )
+                return
+            
+            # 显示进度消息
+            self.notify(
+                get_global_i18n().t("duplicate_books.finding"),
+                severity="information"
+            )
+            
+            # 异步查找重复书籍
+            def find_duplicates_async():
+                """异步查找重复书籍"""
+                return OptimizedBookDuplicateDetector.find_duplicates(all_books)
+            
+            # 在后台线程中执行查找
+            import asyncio
+            loop = asyncio.get_event_loop()
+            
+            # 显示进度条的回调函数
+            def progress_callback(current, total):
+                progress_percent = int((current / total) * 100) if total > 0 else 0
+                self.call_after_refresh(
+                    self._show_duplicate_progress,
+                    current, total, progress_percent
+                )
+            
+            # 执行查找
+            duplicate_groups = await loop.run_in_executor(None, find_duplicates_async)
+            
+            # 检查是否找到重复书籍
+            if not duplicate_groups:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.no_duplicates_found"),
+                    severity="information"
+                )
+                return
+            
+            # 显示重复书籍对话框
+            def on_duplicate_dialog_closed(result: dict) -> None:
+                """处理重复书籍对话框关闭事件"""
+                if result.get("deleted", False):
+                    # 如果有书籍被删除，重新加载书籍列表
+                    deleted_count = result.get("count", 0)
+                    self.notify(
+                        get_global_i18n().t("duplicate_books.deleted_count", count=deleted_count),
+                        severity="information"
+                    )
+                    
+                    # 重新加载书籍列表
+                    self._load_books()
+                    self.selected_books.clear()
+                    self._update_status()
+                    
+                    # 设置返回结果为需要刷新
+                    self.dismiss({"refresh": True})
+            
+            # 显示重复书籍对话框
+            dialog = DuplicateBooksDialog(self.theme_manager, duplicate_groups)
+            self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
+            
+        except Exception as e:
+            logger.error(f"查找重复书籍失败: {e}")
+            self.notify(
+                get_global_i18n().t("duplicate_books.find_failed"),
+                severity="error"
+            )
+    
+    def _show_duplicate_progress(self, current: int, total: int, progress_percent: int) -> None:
+        """显示查找重复书籍的进度
+        
+        Args:
+            current: 当前处理的书籍数量
+            total: 总书籍数量
+            progress_percent: 进度百分比
+        """
+        # 更新状态信息
+        status_label = self.query_one("#batch-ops-status", Label)
+        status_label.update(
+            get_global_i18n().t(
+                "duplicate_books.finding_progress",
+                current=current,
+                total=total,
+                progress=progress_percent
+            )
         )
 
