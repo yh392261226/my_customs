@@ -837,7 +837,17 @@
         "books_deleted": "成功删除 {count} 本重复书籍",
         "deleted_count": "共删除 {count} 本重复书籍",
         "delete_failed": "删除重复书籍失败",
-        "some_delete_failed": "，其中 {count} 本删除失败"
+        "some_delete_failed": "，其中 {count} 本删除失败",
+        "all_batches_completed": "所有批次处理完成",
+        "processing_remaining_batches": "后台仍在处理剩余批次，可以继续操作",
+        "batch_found": "第 {batch} 批找到 {count} 组重复书籍",
+        "batch_no_duplicate_processing_next": "第 {batch} 批未找到重复项，继续处理下一批",
+        "new_batch_added": "第 {batch} 批已添加，新增 {count} 组重复书籍",
+        "books_deleted_continue_processing": "成功删除 {count} 本重复书籍，后台仍在处理",
+        "toggle_row": "选中/取消选中行",
+        "select_current": "选择当前行",
+        "processing_remaining": "正在处理第 {batch}/{total} 批",
+        "all_duplicates_processed": "所有重复书籍已处理完成"
     },
     "book_comparison": {
         "title": "书籍内容对比",

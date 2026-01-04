@@ -42,3 +42,13 @@ class CrawlCompleteNotification(Message):
         self.success = success
         self.novel_title = novel_title
         self.message = message
+
+
+class UpdateDuplicateGroupsMessage(Message):
+    """更新重复书籍组消息"""
+    def __init__(self, batch_groups: list, batch_index: int, total_batches: int, processing_remaining: bool) -> None:
+        super().__init__()
+        self.batch_groups = batch_groups
+        self.batch_index = batch_index
+        self.total_batches = total_batches
+        self.processing_remaining = processing_remaining

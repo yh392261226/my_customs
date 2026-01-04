@@ -17,6 +17,7 @@ from src.utils.book_duplicate_detector import BookDuplicateDetector, DuplicateGr
 from src.core.book import Book
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.book_comparison_dialog import BookComparisonDialog
+from src.ui.messages import UpdateDuplicateGroupsMessage
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,13 +33,17 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("s", "select_current", get_global_i18n().t('duplicate_books.select_current')),
     ]
     
-    def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup]):
+    def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup], 
+                 current_batch: int = 1, total_batches: int = 1, processing_remaining: bool = False):
         """
         初始化重复书籍对话框
         
         Args:
             theme_manager: 主题管理器
             duplicate_groups: 重复书籍组列表
+            current_batch: 当前批次数
+            total_batches: 总批次数
+            processing_remaining: 是否还有剩余批次需要处理
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -46,6 +51,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         self.selected_books: set[str] = set()  # 选中的书籍路径
         self.recommended_selected_books: set[str] = set()  # 推荐选中的书籍路径
         self.current_group_index = 0  # 当前显示的重复组索引
+        self.current_batch = current_batch  # 当前批次数
+        self.total_batches = total_batches  # 总批次数
+        self.processing_remaining = processing_remaining  # 是否还有剩余批次需要处理
         
         # 预先推荐选中所有组中推荐的删除书籍
         for group in duplicate_groups:
@@ -196,16 +204,26 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             logger.error("无法找到DataTable组件")
             return
         
-        table.clear()
+        # 准备所有行数据和选中的键
+        rows_data = []
+        selected_keys = set()
         
         for i, book in enumerate(group.books):
             # 检查是否为推荐的保留书籍
             is_recommended_keep = book in group.recommended_to_keep
             recommended_text = "保留" if is_recommended_keep else "删除"
             
+            # 关键修改：直接在这里检查并添加推荐删除的书籍到选中集合
+            # 这样可以确保即使是新追加的组，推荐的书籍也会被选中
+            if book in group.recommended_to_delete:
+                if book.path not in self.selected_books:
+                    self.selected_books.add(book.path)
+                    self.recommended_selected_books.add(book.path)
+            
             # 检查是否被选中
             is_selected = book.path in self.selected_books
-            selection_marker = "✓" if is_selected else "□"
+            if is_selected:
+                selected_keys.add(book.path)
             
             # 获取文件大小
             size_str = ""
@@ -224,18 +242,48 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             # 添加查看文件按钮
             view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
             
-            # 添加行
-            table.add_row(
-                str(i + 1),
-                book.title,
-                book.author,
-                size_str,
-                book.format.upper() if book.format else "",
-                recommended_text,
-                view_file_button,  # 查看文件按钮
-                selection_marker,
-                key=book.path
-            )
+            # 准备行数据 - 使用书籍路径作为键
+            try:
+                rows_data.append(
+                    (book.path,  # 键
+                    str(i + 1),
+                    book.title,
+                    book.author,
+                    size_str,
+                    book.format.upper() if book.format else "",
+                    recommended_text,
+                    view_file_button,  # 查看文件按钮
+                    "✓" if is_selected else "□")  # 直接在这里设置选中标记
+                )
+            except Exception as e:
+                # 如果出错，跳过这本书
+                logger.warning(f"准备行数据时出错: {book.path}, 错误: {e}")
+                continue
+        
+        # 清空表格
+        table.clear()
+        
+        # 直接添加所有行，选中标记已在准备数据时设置
+        for row_data in rows_data:
+            try:
+                # 获取书籍路径
+                book_path = row_data[0]
+                
+                # 添加行，使用书籍路径作为键
+                table.add_row(
+                    str(row_data[1]),  # 索引
+                    row_data[2],       # 书名
+                    row_data[3],       # 作者
+                    row_data[4],       # 大小
+                    row_data[5],       # 格式
+                    row_data[6],       # 推荐
+                    row_data[7],       # 查看文件按钮
+                    row_data[8],       # 选中标记（已在准备数据时设置）
+                    key=book_path      # 使用书籍路径作为键
+                )
+            except Exception as add_error:
+                logger.warning(f"添加行时出错: {add_error}")
+                continue
         
         # 更新状态信息
         self._update_status()
@@ -410,6 +458,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 self.notify("无法获取书库对象", severity="error")
                 return
             
+            # 记录被删除的书籍路径
+            deleted_book_paths = set()
+            
             for book_path in self.selected_books:
                 try:
                     if os.path.exists(book_path):
@@ -420,12 +471,29 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                         
                         shutil.move(book_path, trash_path)
                         deleted_count += 1
+                        deleted_book_paths.add(book_path)
                         
                         # 从书库中删除书籍
                         bookshelf.remove_book(book_path)
                 except Exception as e:
                     logger.error(f"删除书籍失败: {book_path}, 错误: {e}")
                     failed_count += 1
+            
+            # 从选中集合中移除已删除的书籍
+            for book_path in deleted_book_paths:
+                self.selected_books.discard(book_path)
+                self.recommended_selected_books.discard(book_path)
+            
+            # 识别包含已删除书籍的组
+            groups_to_remove = []
+            for i, group in enumerate(self.duplicate_groups):
+                has_deleted_book = any(book.path in deleted_book_paths for book in group.books)
+                if has_deleted_book:
+                    groups_to_remove.append(i)
+            
+            # 从后往前删除，避免索引变化问题
+            for i in reversed(groups_to_remove):
+                del self.duplicate_groups[i]
             
             # 显示结果
             if failed_count == 0:
@@ -440,8 +508,34 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     severity="warning"
                 )
             
-            # 关闭对话框并刷新
-            self.dismiss({"refresh": True})
+            # 检查是否还有重复组
+            if not self.duplicate_groups:
+                # 没有重复组了，关闭对话框
+                self.notify(get_global_i18n().t("duplicate_books.all_duplicates_processed"), severity="information")
+                self.dismiss({"refresh": True})
+                return
+            
+            # 检查当前组索引是否仍然有效
+            if self.current_group_index >= len(self.duplicate_groups):
+                self.current_group_index = len(self.duplicate_groups) - 1
+            
+            # 如果所有批次已完成且没有更多组，关闭对话框
+            if not self.processing_remaining:
+                self.dismiss({"refresh": True})
+            else:
+                # 重新加载当前组，显示更新后的书籍列表
+                if 0 <= self.current_group_index < len(self.duplicate_groups):
+                    self._display_duplicate_group(self.current_group_index)
+                else:
+                    # 如果当前索引无效，显示第一个组
+                    if self.duplicate_groups:
+                        self._display_duplicate_group(0)
+                
+                # 通知用户删除成功但继续处理
+                self.notify(
+                    get_global_i18n().t("duplicate_books.books_deleted_continue_processing", count=deleted_count),
+                    severity="information"
+                )
         except Exception as e:
             logger.error(f"删除书籍失败: {e}")
             self.notify(get_global_i18n().t("duplicate_books.delete_failed"), severity="error")
@@ -467,11 +561,22 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             row_keys = list(table.rows.keys())
             row_key = row_keys[row_index]
             
-            # 获取书籍路径
+            # 获取书籍路径 - 现在row key格式为 {group_index}_{i}_{book.path}
             if hasattr(row_key, 'value') and row_key.value:
-                book_path = str(row_key.value)
+                row_key_str = str(row_key.value)
             else:
-                book_path = str(row_key)
+                row_key_str = str(row_key)
+            
+            # 从row key中提取书籍路径（格式：group_index_i_book_path）
+            if '_' in row_key_str:
+                # 分割字符串，最后一部分是书籍路径
+                parts = row_key_str.split('_', 2)  # 最多分割成3部分
+                if len(parts) >= 3:
+                    book_path = parts[2]  # 获取书籍路径部分
+                else:
+                    book_path = row_key_str
+            else:
+                book_path = row_key_str
             
             # 获取当前组的书籍
             if not self.duplicate_groups or self.current_group_index < 0 or self.current_group_index >= len(self.duplicate_groups):
@@ -545,3 +650,86 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
         except Exception as e:
             self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
+    
+    @on(UpdateDuplicateGroupsMessage)
+    def on_update_duplicate_groups(self, message: UpdateDuplicateGroupsMessage) -> None:
+        """处理更新重复组消息"""
+        logger.info(f"收到UpdateDuplicateGroupsMessage消息，批次索引: {message.batch_index}, 组数: {len(message.batch_groups)}")
+        self.update_duplicate_groups(
+            message.batch_groups,
+            message.batch_index,
+            message.total_batches,
+            message.processing_remaining
+        )
+    
+    def update_duplicate_groups(self, new_groups: List[DuplicateGroup], batch_index: int, 
+                          total_batches: int, processing_remaining: bool) -> None:
+        """动态更新重复书籍组（用于分批处理）
+        
+        Args:
+            new_groups: 新增的重复组
+            batch_index: 批次索引
+            total_batches: 总批次数
+            processing_remaining: 是否还有剩余批次需要处理
+        """
+        try:
+            # 更新状态变量
+            self.current_batch = batch_index + 1
+            self.total_batches = total_batches
+            self.processing_remaining = processing_remaining
+            
+            # 添加新组到现有列表
+            self.duplicate_groups.extend(new_groups)
+            
+            # 显示通知
+            if processing_remaining:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.new_batch_added", 
+                                        batch=batch_index+1, count=len(new_groups)),
+                    severity="information"
+                )
+            else:
+                # 所有批次已完成
+                self.notify(
+                    get_global_i18n().t("duplicate_books.all_batches_completed"),
+                    severity="information"
+                )
+            
+            # 如果有新组，直接显示新添加的第一组
+            if new_groups and len(self.duplicate_groups) > 0:
+                # 显示新添加的第一组
+                new_group_index = len(self.duplicate_groups) - len(new_groups)
+                
+                # 显示新组
+                self._display_duplicate_group(new_group_index)
+            else:
+                # 没有新组，刷新当前显示
+                self._display_duplicate_group(self.current_group_index)
+            
+            # 显示通知
+            if processing_remaining:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.new_batch_added", 
+                                        batch=batch_index+1, count=len(new_groups)),
+                    severity="information"
+                )
+            else:
+                # 所有批次已完成
+                self.notify(
+                    get_global_i18n().t("duplicate_books.all_batches_completed"),
+                    severity="information"
+                )
+            
+            # 如果还有剩余批次，显示处理状态
+            if processing_remaining:
+                # 更新标题显示处理状态
+                try:
+                    title_label = self.query_one("#duplicate-books-status", Label)
+                    title_label.update(
+                        f"{get_global_i18n().t('duplicate_books.processing_remaining', batch=self.current_batch, total=self.total_batches)}"
+                    )
+                except:
+                    pass
+                    
+        except Exception as e:
+            logger.error(f"更新重复组失败: {e}")

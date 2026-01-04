@@ -50,13 +50,14 @@ class OptimizedBookDuplicateDetector:
     """优化的书籍重复检测器"""
     
     @staticmethod
-    def find_duplicates(books: List[Book], progress_callback=None) -> List[DuplicateGroup]:
+    def find_duplicates(books: List[Book], progress_callback=None, batch_callback=None) -> List[DuplicateGroup]:
         """
         查找重复书籍（优化版本）
         
         Args:
             books: 书籍列表
             progress_callback: 进度回调函数
+            batch_callback: 批次完成回调函数，参数为(batch_groups, batch_index, total_batches, processing_remaining)
             
         Returns:
             List[DuplicateGroup]: 重复书籍组列表
@@ -140,60 +141,112 @@ class OptimizedBookDuplicateDetector:
         for group in duplicate_groups:
             all_processed_books.update(group.books)
         
-        # 只对未处理的书籍进行内容相似度检测，并且限制数量
+        # 只对未处理的书籍进行内容相似度检测
         remaining_books = [book for book in books if book not in all_processed_books]
         
-        # 如果剩余书籍太多，随机采样一部分进行比较
-        max_content_compare = min(1000, len(remaining_books))  # 最多比较1000本书
-        if len(remaining_books) > max_content_compare:
-            remaining_books = random.sample(remaining_books, max_content_compare)
-            logger.info(f"书籍数量过多，随机采样{max_content_compare}本书进行内容相似度检测")
+        # 分批处理书籍，每批处理50本
+        batch_size = 50
+        total_batches = (len(remaining_books) + batch_size - 1) // batch_size
         
-        # 对剩余书籍进行两两内容相似度比较
-        processed_in_content = 0
+        logger.info(f"将进行内容相似度检测，共{len(remaining_books)}本书，分{total_batches}批处理，每批{batch_size}本")
         
-        for i in range(len(remaining_books)):
-            if progress_callback and processed_in_content % 100 == 0:
-                progress_callback(total * 2 + processed_in_content, total * 3)
-                
-            book1 = remaining_books[i]
-            similar_books = [book1]
+        # 对剩余书籍进行两两内容相似度比较（分批处理）
+        processed_books_in_content = 0  # 已处理的书籍数量（而不是比较次数）
+        
+        # 分批处理书籍
+        content_similar_groups = []  # 用于存放内容相似度重复组
+        
+        for batch_index in range(total_batches):
+            start_index = batch_index * batch_size
+            end_index = min(start_index + batch_size, len(remaining_books))
+            batch_books = remaining_books[start_index:end_index]
             
-            for j in range(i + 1, len(remaining_books)):
-                book2 = remaining_books[j]
-                processed_in_content += 1
+            logger.info(f"处理第{batch_index + 1}批书籍，共{len(batch_books)}本")
+            
+            # 在当前批内进行两两比较
+            batch_found_duplicates = False
+            batch_duplicate_groups = []
+            
+            for i in range(len(batch_books)):
+                book1 = batch_books[i]
+                similar_books = [book1]  # 始终包含当前书籍
                 
-                # 只比较文件大小相近的书籍（减少比较次数）
-                if book1.size and book2.size:
-                    size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
-                    if size_ratio < 0.5:  # 文件大小相差超过一倍，不太可能内容相似
+                # 只与当前批中后续的书籍比较，避免跨批重复
+                for j in range(i + 1, len(batch_books)):
+                    book2 = batch_books[j]
+                    
+                    # 确保不是同一本书（路径不同）
+                    if book1.path == book2.path:
                         continue
-                
-                try:
-                    comparison = OptimizedBookDuplicateDetector._compare_books_fast(book1, book2)
-                    if comparison.duplicate_types and DuplicateType.CONTENT_SIMILAR in comparison.duplicate_types:
-                        similar_books.append(book2)
-                except Exception as e:
-                    logger.error(f"比较书籍内容时出错: {e}")
-            
-            if len(similar_books) > 1:
-                # 计算最大相似度
-                max_sim = 0.0
-                for j in range(1, len(similar_books)):
+                    
+                    # 只比较文件大小相近的书籍（减少比较次数）
+                    if book1.size and book2.size:
+                        size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
+                        if size_ratio < 0.5:  # 文件大小相差超过一倍，不太可能内容相似
+                            continue
+                    
                     try:
-                        comparison = OptimizedBookDuplicateDetector._compare_books_fast(similar_books[0], similar_books[j])
-                        if comparison.similarity > max_sim:
-                            max_sim = comparison.similarity
-                    except:
-                        pass
+                        comparison = OptimizedBookDuplicateDetector._compare_books_fast(book1, book2)
+                        if comparison.duplicate_types and DuplicateType.CONTENT_SIMILAR in comparison.duplicate_types:
+                            similar_books.append(book2)
+                            batch_found_duplicates = True
+                    except Exception as e:
+                        logger.error(f"比较书籍内容时出错: {e}")
                 
-                group = DuplicateGroup(
-                    duplicate_type=DuplicateType.CONTENT_SIMILAR,
-                    books=similar_books,
-                    similarity=max_sim
-                )
-                OptimizedBookDuplicateDetector._recommend_deletion(group)
-                duplicate_groups.append(group)
+                if len(similar_books) > 1:
+                    # 计算最大相似度
+                    max_sim = 0.0
+                    for j in range(1, len(similar_books)):
+                        try:
+                            comparison = OptimizedBookDuplicateDetector._compare_books_fast(similar_books[0], similar_books[j])
+                            if comparison.similarity > max_sim:
+                                max_sim = comparison.similarity
+                        except:
+                            pass
+                    
+                    group = DuplicateGroup(
+                        duplicate_type=DuplicateType.CONTENT_SIMILAR,
+                        books=similar_books,
+                        similarity=max_sim
+                    )
+                    OptimizedBookDuplicateDetector._recommend_deletion(group)
+                    batch_duplicate_groups.append(group)
+            
+            # 更新已处理的书籍数量
+            processed_books_in_content += len(batch_books)
+            
+            # 调用进度回调，使用已处理的书籍数量而不是比较次数
+            if progress_callback:
+                # 第三阶段进度是total*2 + 已处理的书籍数量
+                progress_callback(total * 2 + processed_books_in_content, total * 3)
+            
+            # 将当前批的重复组添加到总列表
+            content_similar_groups.extend(batch_duplicate_groups)
+            
+            # 如果是第一批或找到重复项，调用批次回调
+            if batch_index == 0 or batch_found_duplicates:
+                # 计算是否还有剩余批次需要处理
+                processing_remaining = batch_index < total_batches - 1
+                
+                # 调用批次回调，更新UI
+                if batch_callback:
+                    batch_callback(
+                        batch_duplicate_groups, 
+                        batch_index, 
+                        total_batches, 
+                        processing_remaining
+                    )
+            
+            # 记录日志
+            if batch_found_duplicates:
+                logger.info(f"第{batch_index + 1}批找到{len(batch_duplicate_groups)}组重复内容")
+            elif batch_index == 0:
+                logger.info(f"第{batch_index + 1}批未找到重复项，继续处理下一批")
+            elif batch_index == total_batches - 1:
+                logger.info(f"所有批次处理完成，共处理{len(remaining_books)}本书，内容相似组共{len(content_similar_groups)}组")
+        
+        # 将内容相似度组添加到总体重复组列表
+        duplicate_groups.extend(content_similar_groups)
         
         if progress_callback:
             progress_callback(total * 3, total * 3)

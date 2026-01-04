@@ -14,7 +14,7 @@ from textual.containers import Container, Vertical, Horizontal, Center
 from textual.widgets import Header, Static, Button, Label, Input, Select, Header, Footer
 from textual.widgets import DataTable
 from textual import on, events
-from src.ui.messages import RefreshBookshelfMessage
+from src.ui.messages import RefreshBookshelfMessage, UpdateDuplicateGroupsMessage
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 
 from src.locales.i18n import I18n
@@ -24,7 +24,7 @@ from src.core.bookshelf import Bookshelf
 from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
-from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector
+from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector, DuplicateGroup
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -2060,7 +2060,46 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 异步查找重复书籍
             def find_duplicates_async():
                 """异步查找重复书籍"""
-                return OptimizedBookDuplicateDetector.find_duplicates(all_books)
+                try:
+                    result = OptimizedBookDuplicateDetector.find_duplicates(
+                        all_books,
+                        progress_callback=progress_callback,
+                        batch_callback=batch_callback
+                    )
+                    
+                    # 所有批次完成后，通知UI
+                    self.app.call_from_thread(self._on_all_batches_completed, result)
+                    return result
+                except Exception as e:
+                    # 处理错误
+                    self.app.call_from_thread(self._on_duplicate_search_error, e)
+                    return None
+            
+            # 批次完成的回调函数
+            def batch_callback(batch_groups, batch_index, total_batches, processing_remaining):
+                """处理批次完成"""
+                # 添加调试信息
+                logger.info(f"批回调被调用: 批次 {batch_index+1}, 找到 {len(batch_groups)} 组重复")
+                
+                # 第一批找到重复项时显示结果，后续批次只有找到重复项才更新
+                if (batch_index == 0 and batch_groups) or (batch_index > 0 and batch_groups):
+                    # 使用 app.call_from_thread 确保线程安全
+                    logger.info(f"准备显示重复结果: 批次 {batch_index+1}, 组数 {len(batch_groups)}")
+                    self.app.call_from_thread(
+                        self._show_duplicate_results,
+                        batch_groups,
+                        batch_index,
+                        total_batches,
+                        processing_remaining
+                    )
+            
+            # 用于存储已显示的重复组
+            self._shown_duplicate_groups = []
+            self._total_batches = 0
+            self._current_batch = 0
+            self._processing_remaining = False
+            self._duplicate_dialog_created = False
+            self._all_batches_completed = False  # 标记所有批次是否已完成
             
             # 在后台线程中执行查找
             import asyncio
@@ -2068,14 +2107,39 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             
             # 显示进度条的回调函数
             def progress_callback(current, total):
-                progress_percent = int((current / total) * 100) if total > 0 else 0
+                # 确保进度百分比正确，限制在0-100之间
+                progress_percent = min(int((current / total) * 100) if total > 0 else 0, 100)
                 self.call_after_refresh(
                     self._show_duplicate_progress,
                     current, total, progress_percent
                 )
             
-            # 执行查找
-            duplicate_groups = await loop.run_in_executor(None, find_duplicates_async)
+            # 在后台线程中启动重复检测，不阻塞主线程
+            import threading
+            duplicate_thread = threading.Thread(
+                target=find_duplicates_async,
+                daemon=True
+            )
+            duplicate_thread.start()
+            
+            # 注意：重复检测结果完全通过批回调处理，不在这里等待完成
+            # 这样用户可以立即与第一批结果交互，而检测在后台继续运行
+            
+            # 立即返回，让UI保持响应
+            return
+            
+        except Exception as e:
+            logger.error(f"查找重复书籍失败: {e}")
+            self.notify(
+                get_global_i18n().t("duplicate_books.find_failed"),
+                severity="error"
+            )
+    
+    def _on_all_batches_completed(self, duplicate_groups) -> None:
+        """所有批次完成后的回调"""
+        try:
+            # 标记所有批次已完成
+            self._all_batches_completed = True
             
             # 检查是否找到重复书籍
             if not duplicate_groups:
@@ -2085,52 +2149,274 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 )
                 return
             
-            # 显示重复书籍对话框
-            def on_duplicate_dialog_closed(result: dict) -> None:
-                """处理重复书籍对话框关闭事件"""
-                if result.get("deleted", False):
-                    # 如果有书籍被删除，重新加载书籍列表
-                    deleted_count = result.get("count", 0)
-                    self.notify(
-                        get_global_i18n().t("duplicate_books.deleted_count", count=deleted_count),
-                        severity="information"
-                    )
-                    
-                    # 重新加载书籍列表
-                    self._load_books()
-                    self.selected_books.clear()
-                    self._update_status()
-                    
-                    # 设置返回结果为需要刷新
-                    self.dismiss({"refresh": True})
-            
-            # 显示重复书籍对话框
-            dialog = DuplicateBooksDialog(self.theme_manager, duplicate_groups)
-            self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
-            
+            # 如果没有打开对话框，创建一个显示所有结果的对话框
+            # 这只在没有通过批回调创建对话框时才会发生
+            if not hasattr(self, '_duplicate_dialog_created') or not self._duplicate_dialog_created:
+                # 显示重复书籍对话框
+                def on_duplicate_dialog_closed(result: dict) -> None:
+                    """处理重复书籍对话框关闭事件"""
+                    if result.get("deleted", False):
+                        # 如果有书籍被删除，重新加载书籍列表
+                        deleted_count = result.get("count", 0)
+                        self.notify(
+                            get_global_i18n().t("duplicate_books.deleted_count", count=deleted_count),
+                            severity="information"
+                        )
+                        
+                        # 重新加载书籍列表
+                        self._load_books()
+                        self.selected_books.clear()
+                        self._update_status()
+                        
+                        # 设置返回结果为需要刷新
+                        self.dismiss({"refresh": True})
+                
+                # 显示重复书籍对话框
+                dialog = DuplicateBooksDialog(
+                    self.theme_manager, 
+                    self._shown_duplicate_groups,
+                    self._current_batch,
+                    self._total_batches,
+                    self._processing_remaining
+                )
+                self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
+            else:
+                # 如果对话框已打开，通知用户所有批次已完成
+                self.notify(
+                    get_global_i18n().t("duplicate_books.all_batches_completed"),
+                    severity="information"
+                )
         except Exception as e:
-            logger.error(f"查找重复书籍失败: {e}")
-            self.notify(
-                get_global_i18n().t("duplicate_books.find_failed"),
-                severity="error"
-            )
+            logger.error(f"处理所有批次完成时出错: {e}")
+    
+    def _on_duplicate_search_error(self, error) -> None:
+        """重复搜索出错时的回调"""
+        logger.error(f"查找重复书籍失败: {error}")
+        self.notify(
+            get_global_i18n().t("duplicate_books.find_failed"),
+            severity="error"
+        )
     
     def _show_duplicate_progress(self, current: int, total: int, progress_percent: int) -> None:
         """显示查找重复书籍的进度
         
         Args:
-            current: 当前处理的书籍数量
-            total: 总书籍数量
+            current: 当前进度值
+            total: 总进度值
             progress_percent: 进度百分比
         """
+        # 重复检测使用3阶段算法，total是原始书籍数量的3倍
+        # 需要将进度值转换为实际的书籍进度
+        if total > 0:
+            # 计算实际书籍数量
+            actual_book_total = total // 3
+            
+            # 根据当前进度判断处于哪个阶段
+            if current <= actual_book_total:
+                # 第一阶段：哈希和文件名检测
+                display_current = current
+                display_total = actual_book_total
+                # 使用简洁的阶段描述
+                phase = "哈希和文件名检测" if self.i18n.current_locale == "zh_CN" else "Hash and Filename Detection"
+                # 计算此阶段的百分比
+                display_percent = int((current / actual_book_total) * 33)  # 第一阶段占33%
+            elif current <= actual_book_total * 2:
+                # 第二阶段：准备内容相似度检测
+                display_current = current - actual_book_total  # 相对于第二阶段开始的位置
+                display_total = actual_book_total
+                # 使用简洁的阶段描述
+                phase = "准备内容相似度检测" if self.i18n.current_locale == "zh_CN" else "Preparing Content Similarity Detection"
+                # 计算此阶段的百分比
+                phase_progress = int((display_current / actual_book_total) * 33)  # 第二阶段占33%
+                display_percent = 33 + phase_progress  # 加上第一阶段的33%
+            else:
+                # 第三阶段：内容相似度检测
+                # 在这个阶段，current是total*2 + processed_books_in_content
+                display_current = current - actual_book_total * 2  # 相对于第三阶段开始的位置
+                display_total = actual_book_total
+                # 使用简洁的阶段描述
+                phase = "内容相似度检测" if self.i18n.current_locale == "zh_CN" else "Content Similarity Detection"
+                # 计算此阶段的百分比
+                phase_progress = int((display_current / actual_book_total) * 34)  # 第三阶段占34%
+                display_percent = 66 + phase_progress  # 加上前两个阶段的66%
+                
+                # 确保显示合理的当前值
+                # 在第三阶段，我们显示实际处理的书籍数量，而不是比较次数
+                if display_current > actual_book_total:
+                    display_current = actual_book_total
+            
+            # 确保百分比在合理范围内
+            display_percent = min(max(display_percent, 0), 100)
+            
+            # 构建状态文本 - 只显示百分比和阶段信息，不显示书籍数量
+            # 使用语言包中的翻译，但去掉current/total部分
+            base_text = get_global_i18n().t("duplicate_books.finding")
+            status_text = f"{base_text} ({display_percent}%) [{phase}]"
+        else:
+            status_text = f"正在查找重复书籍: {current}/{total} ({progress_percent}%)"
+        
         # 更新状态信息
         status_label = self.query_one("#batch-ops-status", Label)
-        status_label.update(
-            get_global_i18n().t(
-                "duplicate_books.finding_progress",
-                current=current,
-                total=total,
-                progress=progress_percent
-            )
-        )
+        status_label.update(status_text)
+    
+    def _show_duplicate_results(self, batch_groups: List[DuplicateGroup], batch_index: int, 
+                            total_batches: int, processing_remaining: bool) -> None:
+        """显示重复书籍结果（分批）
+        
+        Args:
+            batch_groups: 当前批的重复组
+            batch_index: 批次索引
+            total_batches: 总批次数
+            processing_remaining: 是否还有剩余批次需要处理
+        """
+        try:
+            # 添加调试信息
+            logger.info(f"_show_duplicate_results被调用: 批次 {batch_index+1}, 组数 {len(batch_groups)}")
+            
+            # 更新状态变量
+            self._total_batches = total_batches
+            self._current_batch = batch_index + 1
+            self._processing_remaining = processing_remaining
+            
+            # 将当前批的重复组添加到已显示列表，避免重复
+            if not hasattr(self, '_shown_duplicate_groups'):
+                self._shown_duplicate_groups = []
+            
+            # 检查并避免重复添加相同的重复组
+            # 使用书籍路径集合来跟踪已添加的书籍
+            if not hasattr(self, '_added_book_paths'):
+                self._added_book_paths = set()
+            
+            # 只添加包含新书籍的重复组
+            new_unique_groups = []
+            for group in batch_groups:
+                # 检查组中是否有未添加的书籍
+                has_new_book = False
+                for book in group.books:
+                    if book.path not in self._added_book_paths:
+                        has_new_book = True
+                        break
+                
+                if has_new_book:
+                    new_unique_groups.append(group)
+                    # 添加组中所有书籍的路径到已添加集合
+                    for book in group.books:
+                        self._added_book_paths.add(book.path)
+            
+            # 只添加不重复的组
+            self._shown_duplicate_groups.extend(new_unique_groups)
+            batch_groups = new_unique_groups  # 更新batch_groups以只包含新组
+            
+            # 如果是第一批或对话框还未创建，创建并显示重复书籍对话框
+            if batch_index == 0 or (not hasattr(self, '_duplicate_dialog_created') or not self._duplicate_dialog_created):
+                if self._shown_duplicate_groups:
+                    # 显示重复书籍对话框
+                    def on_duplicate_dialog_closed(result: dict) -> None:
+                        """处理重复书籍对话框关闭事件"""
+                        if result.get("deleted", False):
+                            # 如果有书籍被删除，重新加载书籍列表
+                            deleted_count = result.get("count", 0)
+                            self.notify(
+                                get_global_i18n().t("duplicate_books.deleted_count", count=deleted_count),
+                                severity="information"
+                            )
+                            
+                            # 重新加载书籍列表
+                            self._load_books()
+                            self.selected_books.clear()
+                            self._update_status()
+                            
+                            # 设置返回结果为需要刷新
+                            self.dismiss({"refresh": True})
+                        
+                        # 检查是否还有未处理的批次
+                        if self._processing_remaining:
+                            self.notify(
+                                get_global_i18n().t("duplicate_books.processing_remaining_batches"),
+                                severity="information"
+                            )
+                    
+                    dialog = DuplicateBooksDialog(
+                        self.theme_manager, 
+                        self._shown_duplicate_groups,
+                        batch_index + 1,
+                        total_batches,
+                        processing_remaining
+                    )
+                    self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
+                    
+                    # 标记对话框已创建
+                    self._duplicate_dialog_created = True
+            else:
+                # 后续批次，检查对话框是否仍在打开
+                # 检查对话框是否仍在屏幕栈中
+                screen_stack = self.app.screen_stack
+                dialog_is_open = False
+                
+                logger.info(f"检查对话框是否打开，当前屏幕堆栈中有 {len(screen_stack)} 个屏幕")
+                
+                for i, screen in enumerate(screen_stack):
+                    screen_type = type(screen).__name__
+                    logger.info(f"屏幕堆栈 {i}: {screen_type}")
+                    if isinstance(screen, DuplicateBooksDialog):
+                        dialog_is_open = True
+                        logger.info(f"找到打开的重复书籍对话框")
+                        break
+                
+                logger.info(f"对话框打开状态: {dialog_is_open}")
+                
+                if dialog_is_open:
+                    # 如果对话框仍打开，通过消息系统通知对话框更新
+                    self.post_message(UpdateDuplicateGroupsMessage(batch_groups, batch_index, total_batches, processing_remaining))
+                else:
+                    # 如果对话框已关闭，重新打开一个新的对话框
+                    logger.info(f"对话框已关闭，重新打开以显示批次 {batch_index+1} 的结果")
+                    
+                    # 创建一个新的对话框显示结果
+                    def on_duplicate_dialog_closed(result: dict) -> None:
+                        """处理重复书籍对话框关闭事件"""
+                        if result.get("deleted", False):
+                            # 如果有书籍被删除，重新加载书籍列表
+                            deleted_count = result.get("count", 0)
+                            self.notify(
+                                get_global_i18n().t("duplicate_books.deleted_count", count=deleted_count),
+                                severity="information"
+                            )
+                            
+                            # 重新加载书籍列表
+                            self._load_books()
+                            self.selected_books.clear()
+                            self._update_status()
+                            
+                            # 设置返回结果为需要刷新
+                            self.dismiss({"refresh": True})
+                    
+                    # 显示重复书籍对话框
+                    dialog = DuplicateBooksDialog(
+                        self.theme_manager, 
+                        self._shown_duplicate_groups,
+                        self._current_batch,
+                        self._total_batches,
+                        self._processing_remaining
+                    )
+                    self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
+                    
+                    # 重新标记对话框已创建
+                    self._duplicate_dialog_created = True
+            
+            # 显示通知
+            if batch_groups:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.batch_found", 
+                                        batch=batch_index+1, count=len(batch_groups)),
+                    severity="information"
+                )
+            elif processing_remaining:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.batch_no_duplicate_processing_next", batch=batch_index+1),
+                    severity="information"
+                )
+                
+        except Exception as e:
+            logger.error(f"显示重复结果失败: {e}")
 

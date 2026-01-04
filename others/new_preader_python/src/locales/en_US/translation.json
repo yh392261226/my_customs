@@ -1442,7 +1442,17 @@
         "books_deleted": "Successfully deleted {count} duplicate books",
         "deleted_count": "Deleted {count} duplicate books in total",
         "delete_failed": "Failed to delete duplicate books",
-        "some_delete_failed": ", {count} books failed to delete"
+        "some_delete_failed": ", {count} books failed to delete",
+        "all_batches_completed": "All batches processing completed",
+        "processing_remaining_batches": "Background processing remaining batches, you can continue operations",
+        "batch_found": "Batch {batch} found {count} groups of duplicate books",
+        "batch_no_duplicate_processing_next": "Batch {batch} found no duplicates, processing next batch",
+        "new_batch_added": "Batch {batch} added, {count} new duplicate groups found",
+        "books_deleted_continue_processing": "Successfully deleted {count} duplicate books, still processing in background",
+        "toggle_row": "Select/Deselect Row",
+        "select_current": "Select Current Row",
+        "processing_remaining": "Processing batch {batch}/{total}",
+        "all_duplicates_processed": "All duplicate books have been processed"
     },
     "book_comparison": {
         "title": "Book Content Comparison",
