@@ -411,7 +411,22 @@
         "backup_success": "Database backup completed successfully",
         "backup_failed": "Database backup failed",
         "backup_in_progress": "Creating database backup...",
-        "database_management": "Database Management"
+        "restore_database": "Restore Database",
+        "restore_database_desc": "Restore database from backup ZIP file (will overwrite current data)",
+        "select_backup_file": "Select Backup File",
+        "restore_success": "Database restore successful",
+        "restore_failed": "Database restore failed",
+        "restore_confirm": "Are you sure you want to restore the database? Current data will be lost.",
+        "restore_warning": "Warning: Restore operation is irreversible",
+        "database_management": "Database Management",
+        "database_path_label": "Database Path",
+        "file_size_label": "File Size: {size:.2f} MB",
+        "file_size_not_exists": "File Size: File not found",
+        "file_size_error": "File Size: Unknown",
+        "maintenance_tips_title": "Maintenance Tips",
+        "maintenance_tip_vacuum": "• Auto-vacuum prevents database bloat",
+        "maintenance_tip_backup": "• Regular backups ensure data safety",
+        "maintenance_tip_location": "• Backups are saved to the Downloads folder"
     },
     "common": {
         "close": "Close",
@@ -546,7 +561,7 @@
         "right": "Next Page/Move Selection Right",
         "up": "Scroll Up/Move Selection Up",
         "down": "Scroll Down/Move Selection Down",
-        "enter_selection_mode": "Enter Text Selection Mode", 
+        "enter_selection_mode": "Enter Text Selection Mode",
         "enter_key": "Submit Selection and Translate",
         "escape_key": "Exit or Cancel",
         "shift_left": "Extend Selection: Left",
@@ -640,7 +655,7 @@
         "export_not_supported": "Direct database version does not support export feature",
         "reset_not_supported": "Direct database version does not support reset feature",
         "no_data": "No reading statistics data yet, please read some books first",
-        "not_suppose_reset":"Direct database version does not support reset feature, data is stored directly in the database",
+        "not_suppose_reset": "Direct database version does not support reset feature, data is stored directly in the database",
         "no_trend_data": "No reading trend data available",
         "trend_7days_data": "Last 7 Days Reading Trend",
         "format_trend_failed": "Failed to format reading trend",
@@ -914,10 +929,10 @@
         "shortcut_t": "T: Test",
         "shortcut_tab": "Tab: Switch Input",
         "shortcut_esc": "ESC: Back",
-        "proxy_disabled":"Proxy Disabled",
-        "proxy_enabled":"Proxy Enabled",
-        "act_success":"Action Success",
-        "act_failed":"Action Failed",
+        "proxy_disabled": "Proxy Disabled",
+        "proxy_enabled": "Proxy Enabled",
+        "act_success": "Action Success",
+        "act_failed": "Action Failed",
         "select_first": "Please select a proxy first",
         "no_selected": "No selected proxy found",
         "id_error": "Proxy ID format error",
@@ -1384,7 +1399,7 @@
         "permissions_dialog": {
             "title": "Permission Settings",
             "view_title": "View Permissions",
-            "status":"Status"
+            "status": "Status"
         }
     },
     "select_books": {

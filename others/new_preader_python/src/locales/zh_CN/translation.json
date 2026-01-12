@@ -411,7 +411,22 @@
         "backup_success": "数据库备份完成",
         "backup_failed": "数据库备份失败",
         "backup_in_progress": "正在创建数据库备份...",
-        "database_management": "数据库管理"
+        "restore_database": "还原数据库",
+        "restore_database_desc": "从备份ZIP文件还原数据库（将覆盖当前数据）",
+        "select_backup_file": "选择备份文件",
+        "restore_success": "数据库还原成功",
+        "restore_failed": "数据库还原失败",
+        "restore_confirm": "确定要还原数据库吗？当前数据将丢失。",
+        "restore_warning": "警告：还原操作不可逆",
+        "database_management": "数据库管理",
+        "database_path_label": "数据库路径",
+        "file_size_label": "文件大小: {size:.2f} MB",
+        "file_size_not_exists": "文件大小: 文件不存在",
+        "file_size_error": "文件大小: 无法获取",
+        "maintenance_tips_title": "维护说明",
+        "maintenance_tip_vacuum": "• 启用自动清理可避免数据库文件变得臃肿",
+        "maintenance_tip_backup": "• 定期备份可保护重要数据安全",
+        "maintenance_tip_location": "• 备份文件将保存到下载文件夹"
     },
     "common": {
         "close": "关闭",
@@ -546,7 +561,7 @@
         "right": "下一页/选择右移",
         "up": "向上滚动/选择上移",
         "down": "向下滚动/选择下移",
-        "enter_selection_mode": "进入划词模式", 
+        "enter_selection_mode": "进入划词模式",
         "enter_key": "提交选择并翻译",
         "escape_key": "退出或取消",
         "shift_left": "扩展选择：左",
@@ -640,7 +655,7 @@
         "export_not_supported": "直接数据库版本暂不支持导出功能",
         "reset_not_supported": "直接数据库版本不支持重置功能",
         "no_data": "暂无阅读统计数据，请先阅读一些书籍",
-        "not_suppose_reset":"直接数据库版本不支持重置功能，数据直接存储在数据库中",
+        "not_suppose_reset": "直接数据库版本不支持重置功能，数据直接存储在数据库中",
         "no_trend_data": "暂无阅读趋势数据",
         "trend_7days_data": "最近7天阅读趋势",
         "format_trend_failed": "格式化阅读趋势失败",
@@ -976,10 +991,10 @@
         "shortcut_t": "T: 测试",
         "shortcut_tab": "Tab: 切换输入框",
         "shortcut_esc": "ESC: 返回",
-        "proxy_disabled":"代理未启用",
-        "proxy_enabled":"代理已启用",
-        "act_success":"操作成功",
-        "act_failed":"操作失败",
+        "proxy_disabled": "代理未启用",
+        "proxy_enabled": "代理已启用",
+        "act_success": "操作成功",
+        "act_failed": "操作失败",
         "select_first": "请先选择一个代理",
         "no_selected": "未找到选中的代理",
         "id_error": "代理ID格式错误",
@@ -1446,7 +1461,7 @@
         "permissions_dialog": {
             "title": "权限设置",
             "view_title": "查看权限",
-            "status":"状态"
+            "status": "状态"
         }
     },
     "select_books": {

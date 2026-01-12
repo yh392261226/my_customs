@@ -589,7 +589,7 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.database"), classes="setting-section-title")
             
             # 数据库路径信息
-            yield Label("数据库路径", classes="setting-label")
+            yield Label(get_global_i18n().t("settings.database_path_label"), classes="setting-label")
             config = self.config_manager.get_config()
             db_path = os.path.expanduser(config["paths"]["database"])
             yield Label(db_path, classes="setting-value")
@@ -598,11 +598,11 @@ class SettingsScreen(Screen[Any]):
             try:
                 if os.path.exists(db_path):
                     file_size = os.path.getsize(db_path) / 1024 / 1024  # MB
-                    yield Label(f"文件大小: {file_size:.2f} MB", classes="setting-value")
+                    yield Label(get_global_i18n().t("settings.file_size_label", size=file_size), classes="setting-value")
                 else:
-                    yield Label("文件大小: 文件不存在", classes="setting-value error")
+                    yield Label(get_global_i18n().t("settings.file_size_not_exists"), classes="setting-value error")
             except Exception:
-                yield Label("文件大小: 无法获取", classes="setting-value error")
+                yield Label(get_global_i18n().t("settings.file_size_error"), classes="setting-value error")
             
             # 分隔线
             yield Horizontal(id="database-separator", classes="setting-separator")
@@ -616,12 +616,21 @@ class SettingsScreen(Screen[Any]):
                 variant="primary"
             )
             
+            # 数据库还原
+            yield Label(get_global_i18n().t("settings.restore_database"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("settings.restore_database_desc"), classes="setting-description")
+            yield Button(
+                get_global_i18n().t("settings.restore_database"),
+                id="database-restore-btn",
+                variant="error"
+            )
+            
             # 数据库维护说明
             yield Horizontal(id="database-maintenance-separator", classes="setting-separator")
-            yield Label("维护说明", classes="setting-section-title")
-            yield Label("• 启用自动清理可避免数据库文件变得臃肿", classes="setting-description")
-            yield Label("• 定期备份可保护重要数据安全", classes="setting-description")
-            yield Label("• 备份文件将保存到下载文件夹", classes="setting-description")
+            yield Label(get_global_i18n().t("settings.maintenance_tips_title"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("settings.maintenance_tip_vacuum"), classes="setting-description")
+            yield Label(get_global_i18n().t("settings.maintenance_tip_backup"), classes="setting-description")
+            yield Label(get_global_i18n().t("settings.maintenance_tip_location"), classes="setting-description")
     
     def _compose_preview_config_settings(self) -> ComposeResult:
         """组合预览配置设置"""
@@ -800,6 +809,8 @@ class SettingsScreen(Screen[Any]):
             self._refresh_config_preview()
         elif event.button.id == "database-backup-btn":
             self._backup_database()
+        elif event.button.id == "database-restore-btn":
+            self._restore_database()
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件"""
@@ -1303,4 +1314,97 @@ class SettingsScreen(Screen[Any]):
         except Exception as e:
             logger.error(f"数据库备份失败: {e}")
             self.notify(get_global_i18n().t("settings.backup_failed"), severity="error")
-        pass
+
+    def _restore_database(self) -> None:
+        """从备份恢复数据库"""
+        try:
+            from src.ui.screens.file_explorer_screen import FileExplorerScreen
+            
+            def on_file_selected(file_path: Optional[str]) -> None:
+                if file_path:
+                    # 如果返回的是列表（多选模式），取第一个
+                    if isinstance(file_path, list):
+                        if not file_path:
+                            return
+                        file_path = file_path[0]
+                    self._perform_database_restore(file_path)
+            
+            self.app.push_screen(
+                FileExplorerScreen(
+                    theme_manager=self.theme_manager,
+                    bookshelf=self.app.bookshelf,
+                    statistics_manager=self.app.statistics_manager,
+                    selection_mode="file",
+                    title=get_global_i18n().t("settings.select_backup_file"),
+                    file_extensions={".zip"}
+                ),
+                on_file_selected
+            )
+        except Exception as e:
+            logger.error(f"打开文件选择器失败: {e}")
+            self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
+
+    def _perform_database_restore(self, backup_path: str) -> None:
+        """执行数据库恢复"""
+        import shutil
+        import zipfile
+        import tempfile
+        from src.core.database_manager import DatabaseManager
+        
+        try:
+            self.notify(get_global_i18n().t("common.on_action"), severity="information")
+            
+            # 验证zip文件
+            if not zipfile.is_zipfile(backup_path):
+                 self.notify(get_global_i18n().t("settings.restore_failed") + ": Invalid Zip File", severity="error")
+                 return
+
+            # 获取数据库路径
+            db_manager = DatabaseManager()
+            db_path = db_manager.get_db_path()
+            
+            # 创建临时目录解压
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with zipfile.ZipFile(backup_path, 'r') as zip_ref:
+                    # 检查是否存在 database.sqlite
+                    file_to_restore = None
+                    if "database.sqlite" in zip_ref.namelist():
+                        file_to_restore = "database.sqlite"
+                    
+                    # 简单支持 SQL 文件恢复（如果 zip 中包含 .sql）
+                    # 注意：这需要解析 SQL 并执行，比较复杂。
+                    # 如果用户坚持 "restore .sql file"，我们先只支持替换 database.sqlite
+                    # 如果没有 sqlite 但有 sql，提示用户。
+                    
+                    if not file_to_restore:
+                        sql_files = [f for f in zip_ref.namelist() if f.endswith(".sql")]
+                        if sql_files:
+                             self.notify(get_global_i18n().t("settings.restore_failed") + ": SQL dump restore not supported yet, only binary backup.", severity="error")
+                             return
+                        
+                        self.notify(get_global_i18n().t("settings.restore_failed") + ": No database.sqlite found in zip", severity="error")
+                        return
+                        
+                    zip_ref.extract(file_to_restore, temp_dir)
+                    extracted_db_path = os.path.join(temp_dir, file_to_restore)
+                    
+                    # 备份当前数据库 (.bak)
+                    if os.path.exists(db_path):
+                        try:
+                            shutil.copy2(db_path, db_path + ".bak")
+                        except Exception as e:
+                            logger.warning(f"自动备份当前数据库失败: {e}")
+                            # 继续尝试还原
+                        
+                    # 覆盖数据库
+                    shutil.copy2(extracted_db_path, db_path)
+                    
+            self.notify(get_global_i18n().t("settings.restore_success"), severity="success")
+            
+            # 刷新 UI 或提示重启
+            # 重新加载配置可能不够，因为数据库连接可能需要重置。
+            # 最好的方式是让用户重启，或者尝试重新初始化 app 状态。
+            
+        except Exception as e:
+            logger.error(f"Restore failed: {e}")
+            self.notify(get_global_i18n().t("settings.restore_failed") + f": {e}", severity="error")

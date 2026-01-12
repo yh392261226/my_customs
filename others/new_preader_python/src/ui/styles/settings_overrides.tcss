@@ -114,6 +114,12 @@ Footer {
     color: $text;
     border: solid $success;
 }
+#database-restore-btn {
+    width: 20%;
+    min-width: 15;
+    height: 3;
+    margin: 1 0;
+}
 
 /* 设置描述文本样式 */
 .setting-description {

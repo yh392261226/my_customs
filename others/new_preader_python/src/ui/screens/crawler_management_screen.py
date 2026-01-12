@@ -333,7 +333,7 @@ class CrawlerManagementScreen(Screen[None]):
 
                     # 爬取历史区域
                     Vertical(
-                        Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
+                        # Label(get_global_i18n().t('crawler.crawl_history'), id="crawl-history-title"),
                         DataTable(id="crawl-history-table"),
                         id="crawl-history-section"
                     ),

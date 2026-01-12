@@ -50,7 +50,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect,
                  selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False,
-                 multiple: bool = False):
+                 multiple: bool = False, file_extensions: Optional[Set[str]] = None):
         """
         初始化文件资源管理器屏幕
         
@@ -61,6 +61,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             selection_mode: 选择模式，"file" 或 "directory"
             title: 自定义标题
             multiple: 是否允许多选
+            file_extensions: 自定义文件扩展名集合（如 {".zip", ".tar"}），如果为None则使用默认的书籍格式
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -69,6 +70,12 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         self.selection_mode = selection_mode
         self.direct_open = direct_open  # 使用传入的direct_open参数
         self.multiple = multiple  # 多选模式
+        
+        # 使用自定义文件扩展名或默认的书籍格式
+        if file_extensions is not None:
+            self.file_extensions = file_extensions
+        else:
+            self.file_extensions = self.SUPPORTED_EXTENSIONS
         
         # 设置标题
         if title:
@@ -129,8 +136,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                             yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
                             # 动态生成搜索选择框选项
                             search_options = [(get_global_i18n().t("search.all_formats"), "all")]
-                            # 根据SUPPORTED_EXTENSIONS生成格式选项
-                            for ext in self.SUPPORTED_EXTENSIONS:
+                            # 根据self.file_extensions生成格式选项
+                            for ext in self.file_extensions:
                                 # 去掉点号，转换为大写作为显示名称
                                 display_name = ext.upper().lstrip('.')
                                 search_options.append((display_name, ext))
@@ -259,7 +266,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 elif os.path.isfile(item_path):
                     # 文件项，只显示支持的书籍格式
                     ext = FileUtils.get_file_extension(item_path)
-                    if ext in self.SUPPORTED_EXTENSIONS:
+                    if ext in self.file_extensions:
                         items.append({"name": item, "path": item_path, "type": "book", "display": f"📖 {item}"})
             
             if items:
@@ -1012,7 +1019,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         try:
             # 检查文件是否为支持的格式
             ext = FileUtils.get_file_extension(self.selected_file)
-            if ext not in self.SUPPORTED_EXTENSIONS:
+            if ext not in self.file_extensions:
                 self.notify(get_global_i18n().t("file_explorer.unsupported_format"), severity="error")
                 return
             
@@ -1229,7 +1236,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                 if os.path.isfile(item_path):
                     # 获取文件信息，只显示支持的书籍格式
                     ext = FileUtils.get_file_extension(item_path)
-                    if ext in self.SUPPORTED_EXTENSIONS:
+                    if ext in self.file_extensions:
                         file_type_display = "book"
                         
                         all_files.append({
@@ -1376,7 +1383,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                     if self._match_search_criteria(item, keyword, file_type):
                         # 获取文件信息
                         ext = FileUtils.get_file_extension(item_path)
-                        file_type_display = "book" if ext in self.SUPPORTED_EXTENSIONS else "file"
+                        file_type_display = "book" if ext in self.file_extensions else "file"
                         
                         search_results.append({
                             "name": item,

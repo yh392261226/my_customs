@@ -158,7 +158,7 @@ Footer {
 #crawl-history-section {
     height: auto;
     border: solid $primary;
-    padding: 1;
+    padding: 0;
     margin: 0 0;
 }
 
@@ -168,7 +168,8 @@ Footer {
 }
 
 #crawl-history-table {
-    height: 10;
+    height: auto;
+    max-height: 15;
     border: round $primary;
 }
 
