@@ -473,7 +473,9 @@
         "yes": "Yes",
         "no": "No",
         "book": "Book",
-        "book_name": "Book Name"
+        "book_name": "Book Name",
+        "asc": "Asc",
+        "desc": "Desc"
     },
     "reader": {
         "author": "Author",

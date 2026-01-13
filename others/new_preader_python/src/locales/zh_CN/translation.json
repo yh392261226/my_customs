@@ -473,7 +473,9 @@
         "yes": "是",
         "no": "否",
         "book": "书籍",
-        "book_name": "书籍名称"
+        "book_name": "书籍名称",
+        "asc": "正序",
+        "desc": "倒序"
     },
     "reader": {
         "author": "作者",

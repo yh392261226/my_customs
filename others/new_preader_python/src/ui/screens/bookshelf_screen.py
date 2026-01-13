@@ -117,7 +117,7 @@ class BookshelfScreen(Screen[None]):
         # 初始化数据表列
         self.columns = [
             ("ID", "id"),
-            (get_global_i18n().t("bookshelf.title"), "title"),
+            (get_global_i18n().t("common.book_name"), "title"),
             (get_global_i18n().t("bookshelf.author"), "author"),
             (get_global_i18n().t("bookshelf.format"), "format"),
             (get_global_i18n().t("bookshelf.size"), "size"),  # 新增文件大小列
@@ -1267,19 +1267,19 @@ class BookshelfScreen(Screen[None]):
                 self._load_books(self._search_keyword, self._search_format, self._search_author)
 
                 # 显示排序提示
-                sort_direction = "倒序" if self._sort_reverse else "正序"
+                sort_direction = get_global_i18n().t('common.desc') if self._sort_reverse else get_global_i18n().t('common.asc')
                 column_names = {
                     "id": "ID",
-                    "title": "标题",
-                    "author": "作者",
-                    "format": "格式",
-                    "size": "大小",
-                    "last_read": "最后阅读",
-                    "progress": "进度",
-                    "tags": "标签"
+                    "title": get_global_i18n().t('common.book_name'),
+                    "author": get_global_i18n().t('bookshelf.author'),
+                    "format": get_global_i18n().t('bookshelf.format'),
+                    "size": get_global_i18n().t('bookshelf.size'),
+                    "last_read": get_global_i18n().t('bookshelf.last_read'),
+                    "progress": get_global_i18n().t('bookshelf.progress'),
+                    "tags": get_global_i18n().t('bookshelf.tags')
                 }
                 column_name = column_names.get(column_key, column_key)
-                self.notify(f"已按 {column_name} {sort_direction} 排列", severity="information")
+                self.notify(f"Sort by {column_name} {sort_direction}", severity="information")
 
         except Exception as e:
             self.logger.error(f"表头点击事件处理失败: {e}")
@@ -1891,7 +1891,7 @@ class BookshelfScreen(Screen[None]):
                 
                 # 将字段名映射到翻译文本
                 sort_key_translations = {
-                    "title": get_global_i18n().t("bookshelf.title"),
+                    "title": get_global_i18n().t("common.book_name"),
                     "author": get_global_i18n().t("bookshelf.author"),
                     "add_date": get_global_i18n().t("bookshelf.add_date"),
                     "last_read_date": get_global_i18n().t("bookshelf.last_read"),

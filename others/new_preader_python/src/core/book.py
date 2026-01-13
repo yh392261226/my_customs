@@ -406,27 +406,35 @@ class Book:
         """读取文本文件，支持多种编码自动检测"""
         # 显示加载动画
         self._show_loading_animation("正在读取文件...")
-        
+
         try:
             # 首先检查文件是否存在
             if not os.path.exists(self.path):
                 # logger.error(f"书籍文件不存在: {self.path}")
                 self._hide_loading_animation()
                 return f"书籍文件不存在: {self.path}"
-            
+
+            # 检查文件大小，如果超过阈值（如100MB）则使用流式处理
+            file_size = os.path.getsize(self.path)
+            large_file_threshold = 100 * 1024 * 1024  # 100MB
+
+            if file_size > large_file_threshold:
+                logger.info(f"检测到大文件 ({file_size} bytes)，使用流式处理: {self.path}")
+                return self._read_large_text_file()
+
             # 尝试多种编码读取文件
             encodings = ['utf-8', 'gbk', 'gb2312', 'big5', 'utf-16', 'ascii']
-            
+
             for encoding in encodings:
                 try:
                     with open(self.path, 'r', encoding=encoding) as f:
                         content = f.read()
                     logger.debug(f"成功使用 {encoding} 编码读取文件: {self.path}")
-                    
+
                     # 隐藏加载动画
                     self._hide_loading_animation()
                     return content
-                    
+
                 except (UnicodeDecodeError, UnicodeError):
                     logger.debug(f"使用 {encoding} 编码读取文件失败，尝试下一种编码")
                     continue
@@ -437,24 +445,24 @@ class Book:
                 except Exception as e:
                     logger.error(f"读取书籍内容时出错 (编码: {encoding}): {e}")
                     continue
-            
+
             # 如果所有编码都失败，尝试二进制读取并使用chardet检测编码
             try:
                 import chardet
                 with open(self.path, 'rb') as f:
                     raw_data = f.read()
-                
+
                 # 检测编码
                 detected = chardet.detect(raw_data)
                 detected_encoding = detected.get('encoding')
                 if detected_encoding:
                     content = raw_data.decode(detected_encoding, errors='ignore')
                     logger.debug(f"使用检测编码 {detected_encoding} 成功读取文件")
-                    
+
                     # 隐藏加载动画
                     self._hide_loading_animation()
                     return content
-                
+
             except FileNotFoundError:
                 # logger.error(f"书籍文件不存在: {self.path}")
                 self._hide_loading_animation()
@@ -463,17 +471,17 @@ class Book:
                 logger.warning("chardet 库未安装，无法进行编码检测")
             except Exception as e:
                 logger.error(f"使用编码检测读取文件失败: {e}")
-            
+
             # 最后的备用方案：使用utf-8并忽略错误
             try:
                 with open(self.path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 logger.warning(f"使用 UTF-8 编码并忽略错误读取文件，可能存在字符丢失")
-                
+
                 # 隐藏加载动画
                 self._hide_loading_animation()
                 return content
-                
+
             except FileNotFoundError:
                 # logger.error(f"书籍文件不存在: {self.path}")
                 self._hide_loading_animation()
@@ -481,7 +489,125 @@ class Book:
             except Exception as e:
                 logger.error(f"所有编码尝试都失败: {e}")
                 return f"无法读取文件 {self.path}，请检查文件是否损坏或编码不支持"
-                
+
+        finally:
+            # 确保在任何情况下都隐藏加载动画
+            self._hide_loading_animation()
+
+    def _read_large_text_file(self) -> str:
+        """流式读取大文件，避免一次性加载到内存"""
+        # 显示加载动画
+        self._show_loading_animation("正在流式读取大文件...")
+
+        try:
+            # 首先检查文件是否存在
+            if not os.path.exists(self.path):
+                self._hide_loading_animation()
+                return f"书籍文件不存在: {self.path}"
+
+            # 尝试多种编码流式读取文件
+            encodings = ['utf-8', 'gbk', 'gb2312', 'big5', 'utf-16', 'ascii']
+            chunk_size = 8192  # 8KB 每次读取块大小
+            max_content_size = 10 * 1024 * 1024  # 限制内容大小为10MB，避免内存溢出
+
+            for encoding in encodings:
+                try:
+                    content_parts = []
+                    total_size = 0
+
+                    with open(self.path, 'r', encoding=encoding, errors='ignore') as f:
+                        while total_size < max_content_size:
+                            chunk = f.read(chunk_size)
+                            if not chunk:
+                                break  # 文件读取完毕
+
+                            content_parts.append(chunk)
+                            total_size += len(chunk.encode('utf-8', errors='ignore'))
+
+                    content = ''.join(content_parts)
+                    logger.debug(f"成功使用 {encoding} 编码流式读取大文件: {self.path}")
+
+                    # 隐藏加载动画
+                    self._hide_loading_animation()
+                    return content
+
+                except (UnicodeDecodeError, UnicodeError):
+                    logger.debug(f"使用 {encoding} 编码流式读取大文件失败，尝试下一种编码")
+                    continue
+                except FileNotFoundError:
+                    self._hide_loading_animation()
+                    return f"书籍文件不存在: {self.path}"
+                except Exception as e:
+                    logger.error(f"流式读取大文件时出错 (编码: {encoding}): {e}")
+                    continue
+
+            # 如果所有编码都失败，尝试二进制读取并使用chardet检测编码
+            try:
+                import chardet
+                with open(self.path, 'rb') as f:
+                    # 只读取文件开头部分来检测编码
+                    sample_data = f.read(1024 * 1024)  # 读取1MB样本
+
+                # 检测编码
+                detected = chardet.detect(sample_data)
+                detected_encoding = detected.get('encoding')
+                if detected_encoding:
+                    # 使用检测到的编码重新打开文件进行流式读取
+                    with open(self.path, 'r', encoding=detected_encoding, errors='ignore') as f:
+                        content_parts = []
+                        total_size = 0
+
+                        while total_size < max_content_size:
+                            chunk = f.read(chunk_size)
+                            if not chunk:
+                                break  # 文件读取完毕
+
+                            content_parts.append(chunk)
+                            total_size += len(chunk.encode('utf-8', errors='ignore'))
+
+                    content = ''.join(content_parts)
+                    logger.debug(f"使用检测编码 {detected_encoding} 成功流式读取大文件")
+
+                    # 隐藏加载动画
+                    self._hide_loading_animation()
+                    return content
+
+            except FileNotFoundError:
+                self._hide_loading_animation()
+                return f"书籍文件不存在: {self.path}"
+            except ImportError:
+                logger.warning("chardet 库未安装，无法进行编码检测")
+            except Exception as e:
+                logger.error(f"使用编码检测流式读取大文件失败: {e}")
+
+            # 最后的备用方案：使用utf-8并忽略错误
+            try:
+                content_parts = []
+                total_size = 0
+
+                with open(self.path, 'r', encoding='utf-8', errors='ignore') as f:
+                    while total_size < max_content_size:
+                        chunk = f.read(chunk_size)
+                        if not chunk:
+                            break  # 文件读取完毕
+
+                        content_parts.append(chunk)
+                        total_size += len(chunk.encode('utf-8', errors='ignore'))
+
+                content = ''.join(content_parts)
+                logger.warning(f"使用 UTF-8 编码并忽略错误流式读取大文件，可能存在字符丢失")
+
+                # 隐藏加载动画
+                self._hide_loading_animation()
+                return content
+
+            except FileNotFoundError:
+                self._hide_loading_animation()
+                return f"书籍文件不存在: {self.path}"
+            except Exception as e:
+                logger.error(f"所有流式读取编码尝试都失败: {e}")
+                return f"无法流式读取文件 {self.path}，请检查文件是否损坏或编码不支持"
+
         finally:
             # 确保在任何情况下都隐藏加载动画
             self._hide_loading_animation()
@@ -991,12 +1117,16 @@ class Book:
             # 不支持的格式，尝试作为文本文件读取
             logger.warning(f"不支持的格式 {self.format}，尝试作为文本文件读取")
             return self._read_text_file()
-        
+
         # 显示加载动画
         self._show_loading_animation("正在解析文件...")
-        
+
         try:
-            result = self._safe_async_call(parser.parse, self.path)
+            # 创建解析上下文以支持进度回调
+            from src.parsers.progress_callback import ParsingContext, SimpleProgressCallback
+            parsing_context = ParsingContext(progress_callback=SimpleProgressCallback())
+
+            result = self._safe_async_call(parser.parse, self.path, parsing_context)
             self._hide_loading_animation()
 
             content = result.get('content', '')
@@ -1030,3 +1160,28 @@ class Book:
         except Exception as e:
             self._hide_loading_animation()
             raise e
+
+    def get_content_chunk(self, start_pos: int, length: int) -> str:
+        """
+        获取内容的指定块，用于大文件的按需加载
+        :param start_pos: 开始位置
+        :param length: 获取长度
+        :return: 指定块的内容
+        """
+        if not self.path or not os.path.exists(self.path):
+            return ""
+        
+        # 对于大文件，直接从文件读取指定块
+        if os.path.getsize(self.path) > 100 * 1024 * 1024:  # 100MB
+            try:
+                with open(self.path, "r", encoding="utf-8", errors="ignore") as f:
+                    f.seek(start_pos)
+                    return f.read(length)
+            except Exception as e:
+                logger.error(f"读取文件块失败: {e}")
+                return ""
+        else:
+            # 对于小文件，使用完整内容
+            full_content = self.get_content()
+            end_pos = min(start_pos + length, len(full_content))
+            return full_content[start_pos:end_pos]

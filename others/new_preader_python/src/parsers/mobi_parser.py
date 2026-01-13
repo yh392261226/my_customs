@@ -23,43 +23,49 @@ logger = get_logger(__name__)
 class MobiParser(BaseParser):
     """MOBI文件解析器"""
     
-    async def parse(self, file_path: str) -> Dict[str, Any]:
+    async def parse(self, file_path: str, parsing_context: Optional[ParsingContext] = None) -> Dict[str, Any]:
         """
         解析MOBI文件
-        
+
         Args:
             file_path: 文件路径
-            
+            parsing_context: 解析上下文，包含进度回调等信息
+
         Returns:
             Dict[str, Any]: 解析结果
         """
+        # 为了保持向后兼容，如果parsing_context为None，创建一个默认的
+        if parsing_context is None:
+            from .progress_callback import ParsingContext
+            parsing_context = ParsingContext()
+
         logger.info(f"解析MOBI文件: {file_path}")
-        
+
         if not MOBI_AVAILABLE:
             raise ImportError("mobi库未安装，无法解析MOBI文件。请运行: pip install mobi")
-        
+
         tempdir = None
         try:
             # 创建临时目录
             tempdir = os.path.join(os.path.dirname(file_path), ".temp_mobi")
             os.makedirs(tempdir, exist_ok=True)
-            
+
             # 使用mobi库的extract函数解析MOBI文件
             from mobi import extract
-            
+
             # 提取MOBI文件内容
             extracted_data = extract(file_path)
-            
+
             # 提取元数据
             metadata = self._extract_mobi_metadata_from_extracted(extracted_data)
-            
+
             # 如果没有从内容中提取到标题，使用文件名作为标题
             if "title" not in metadata or not metadata["title"]:
                 metadata["title"] = os.path.splitext(os.path.basename(file_path))[0]
-            
+
             # 提取内容和章节
-            content, chapters = self._extract_mobi_content_from_extracted(extracted_data)
-            
+            content, chapters = self._extract_mobi_content_from_extracted(extracted_data, parsing_context)
+
             return {
                 "content": content,
                 "title": metadata.get("title", ""),
@@ -109,13 +115,14 @@ class MobiParser(BaseParser):
         
         return metadata
     
-    def _extract_mobi_content_from_extracted(self, extracted_data) -> tuple:
+    def _extract_mobi_content_from_extracted(self, extracted_data, parsing_context) -> tuple:
         """
         从MOBI书籍中提取内容和章节，严格注意章节顺序
-        
+
         Args:
             extracted_data: MOBI提取数据（通常是包含路径的元组）
-            
+            parsing_context: 解析上下文
+
         Returns:
             tuple: (完整内容, 章节列表)
         """

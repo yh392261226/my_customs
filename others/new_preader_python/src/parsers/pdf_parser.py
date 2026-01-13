@@ -23,16 +23,24 @@ class PdfParser(BaseParser):
         self.app = app
         self.max_password_attempts = 3
 
-    async def parse(self, file_path: str, provided_password: Optional[str] = None) -> Dict[str, Any]:
+    async def parse(self, file_path: str, parsing_context: Optional[ParsingContext] = None) -> Dict[str, Any]:
         """
         解析PDF文件
-        
+
         Args:
             file_path: 文件路径
-            
+            parsing_context: 解析上下文，包含进度回调等信息
+
         Returns:
             Dict[str, Any]: 解析结果
         """
+        # 为了保持向后兼容，如果parsing_context为None，创建一个默认的
+        if parsing_context is None:
+            from .progress_callback import ParsingContext
+            parsing_context = ParsingContext()
+
+        # 从parsing_context中获取可能提供的密码
+        provided_password = getattr(parsing_context, 'provided_password', None)
         logger.info(f"解析PDF文件: {file_path}")
         # 抑制 pypdf 提示信息与特定 warnings
         try:

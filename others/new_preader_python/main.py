@@ -82,7 +82,7 @@ def main():
         # 在启动 UI 之前，如果是加密 PDF，提前从 CLI 获取密码
         cli_password = None
         try:
-            if args.book_file.lower().endswith(".pdf"):
+            if args.book_file and args.book_file.lower().endswith(".pdf"):
                 from src.parsers.pdf_encrypt_parser import PdfEncryptParser
                 enc = PdfEncryptParser()
                 if enc.is_encrypted_pdf(args.book_file):
@@ -101,6 +101,7 @@ def main():
     
     # 如果命令行指定了debug，覆盖配置（仅临时生效，不保存到文件）
     if args.debug:
+        config = config_manager.get_config()
         config["advanced"] = config.get("advanced", {})
         config["advanced"]["debug_mode"] = True
         # 注意：这里不保存到文件，只是临时修改配置对象

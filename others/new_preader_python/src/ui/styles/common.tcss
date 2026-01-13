@@ -204,6 +204,111 @@ Grid {
     grid-rows: 2fr 12fr 1fr 1fr;
 }
 
+/* 响应式设计规则 - Textual 不支持 @media 查询，使用条件样式替代 */
+/* 小尺寸终端适配（宽度 <= 60）*/
+Screen.-narrow {
+    layout: vertical;
+}
+
+Screen.-narrow Header {
+    height: 1;
+}
+
+Screen.-narrow Footer {
+    height: 1;
+}
+
+Screen.-narrow Container {
+    width: 100%;
+    height: 1fr;
+}
+
+Screen.-narrow Button {
+    height: 3;
+    min-width: 6;
+}
+
+Screen.-narrow #welcome-container {
+    width: 100%;
+    height: 100%;
+    layout: vertical;
+    align: center middle;
+}
+
+Screen.-narrow #welcome-buttons {
+    layout: vertical;
+    width: 100%;
+    align: center middle;
+}
+
+Screen.-narrow #welcome-buttons Button {
+    width: 100%;
+    margin: 1 1;  /* 使用整数值 */
+}
+
+/* 中等尺寸终端适配（宽度 61-100）*/
+Screen.-medium {
+    layout: horizontal;
+}
+
+Screen.-medium #welcome-buttons {
+    layout: horizontal;
+}
+
+Screen.-medium #welcome-buttons Button {
+    min-width: 12;
+    margin: 0 1;  /* 使用整数值 */
+}
+
+/* 大尺寸终端适配（宽度 > 100）*/
+Screen.-wide {
+    layout: horizontal;
+}
+
+Screen.-wide #welcome-buttons {
+    layout: horizontal;
+}
+
+Screen.-wide #welcome-buttons Button {
+    min-width: 15;
+    margin: 0 1;  /* 使用整数值 */
+}
+
+/* 动态内容区域适配 */
+.content-area {
+    width: 100%;
+    height: 1fr;
+    layout: vertical;
+}
+
+.content-area Horizontal {
+    width: 100%;
+    height: 1fr;
+}
+
+.content-area Vertical {
+    width: 100%;
+    height: 1fr;
+}
+
+/* 极端尺寸限制 */
+/* 使用类选择器替代伪选择器 */
+.min-width-30 {
+    width: 30;
+}
+
+.max-width-200 {
+    width: 200;
+}
+
+.min-height-10 {
+    height: 10;
+}
+
+.max-height-full {
+    height: 100%;
+}
+
 /* 标签页内容样式 */
 TabPane {
     width: 100%;
