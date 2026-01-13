@@ -150,6 +150,10 @@ class BookshelfScreen(Screen[None]):
         self._reading_info_cache: Dict[str, Dict[str, Any]] = {}
         self._reading_info_cache_timestamp: Dict[str, float] = {}
         self._reading_info_cache_ttl = 60  # 缓存60秒
+
+        # 排序相关属性
+        self._sort_column: Optional[str] = None  # 当前排序的列
+        self._sort_reverse: bool = True  # 排序方向，True表示倒序
     
 
     
@@ -626,13 +630,17 @@ class BookshelfScreen(Screen[None]):
                 for book in filtered_books:
                     reading_info = self.bookshelf.get_book_reading_info(book.path)
                     reading_info_cache[book.path] = reading_info.get('last_read_date') or ""
-                
-                self._all_books = sorted(filtered_books, 
-                                       key=lambda book: reading_info_cache.get(book.path, ""), 
+
+                self._all_books = sorted(filtered_books,
+                                       key=lambda book: reading_info_cache.get(book.path, ""),
                                        reverse=True)
             else:
                 # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取的阅读时间）
                 self._all_books = self.bookshelf.get_sorted_books("last_read_date", reverse=True)
+
+            # 应用自定义排序（如果用户点击了表头进行排序）
+            if self._sort_column is not None:
+                self._sort_books(self._sort_column, self._sort_reverse)
         
         # 计算总页数
         self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
@@ -1077,9 +1085,9 @@ class BookshelfScreen(Screen[None]):
             self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
             # 回到第一页
             self._current_page = 1
-            
+
             # 刷新表格显示（只显示当前页的数据）
-            self._load_current_page(from_search=from_search)
+            self._load_current_page(from_search=False)
             
             # 更新分页控件状态
             self._update_pagination_controls()
@@ -1233,6 +1241,111 @@ class BookshelfScreen(Screen[None]):
         self._all_books = books
         self._load_current_page(from_search=from_search)
     
+    @on(DataTable.HeaderSelected, "#books-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            self.logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：ID、标题、作者、格式、大小、最后阅读时间、进度、标签
+            sortable_columns = ["id", "title", "author", "format", "size", "last_read", "progress", "tags"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_books(column_key, self._sort_reverse)
+
+                # 重新加载表格显示
+                self._load_books(self._search_keyword, self._search_format, self._search_author)
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "id": "ID",
+                    "title": "标题",
+                    "author": "作者",
+                    "format": "格式",
+                    "size": "大小",
+                    "last_read": "最后阅读",
+                    "progress": "进度",
+                    "tags": "标签"
+                }
+                column_name = column_names.get(column_key, column_key)
+                self.notify(f"已按 {column_name} {sort_direction} 排列", severity="information")
+
+        except Exception as e:
+            self.logger.error(f"表头点击事件处理失败: {e}")
+
+    def _sort_books(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对书籍进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            # 性能优化：预先获取所有书籍的阅读信息
+            reading_info_cache = {}
+            if column_key in ["last_read", "progress"]:
+                for book in self._all_books:
+                    reading_info = self.bookshelf.get_book_reading_info(book.path)
+                    reading_info_cache[book.path] = reading_info
+
+            def get_sort_key(book: Book) -> Any:
+                """获取排序键值"""
+                if column_key == "id":
+                    # ID排序，使用路径作为唯一标识
+                    return book.path
+                elif column_key == "title":
+                    # 标题排序
+                    return book.title or ""
+                elif column_key == "author":
+                    # 作者排序
+                    return book.author or ""
+                elif column_key == "format":
+                    # 格式排序，转换为小写进行比较
+                    return book.format.lower() if book.format else ""
+                elif column_key == "size":
+                    # 大小排序，使用原始字节数
+                    return book.size
+                elif column_key == "last_read":
+                    # 最后阅读时间排序
+                    from datetime import datetime
+                    try:
+                        reading_info = reading_info_cache.get(book.path, {})
+                        last_read = reading_info.get('last_read_date') or ""
+                        if last_read:
+                            return datetime.fromisoformat(last_read)
+                        else:
+                            return datetime.min
+                    except:
+                        return datetime.min
+                elif column_key == "progress":
+                    # 进度排序，从阅读信息中获取
+                    try:
+                        reading_info = reading_info_cache.get(book.path, {})
+                        return reading_info.get('reading_progress', 0)
+                    except:
+                        return 0.0
+                elif column_key == "tags":
+                    # 标签排序
+                    return book.tags or ""
+                return None
+
+            # 使用 sort 函数进行排序
+            self._all_books.sort(key=get_sort_key, reverse=reverse)
+
+        except Exception as e:
+            self.logger.error(f"排序失败: {e}")
+
     @on(DataTable.CellSelected, "#books-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """

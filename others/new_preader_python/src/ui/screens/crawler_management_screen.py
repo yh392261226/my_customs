@@ -225,6 +225,8 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 排序相关属性
         self._sorted_history: List[str] = []  # 排序后的历史记录ID顺序
+        self._sort_column: Optional[str] = None  # 当前排序的列
+        self._sort_reverse: bool = True  # 排序方向，True表示倒序
         
         # 注册回调函数
         self.crawler_manager.register_status_callback(self._on_crawl_status_change)
@@ -1445,7 +1447,91 @@ class CrawlerManagementScreen(Screen[None]):
             return False
     
 
-    
+
+    @on(DataTable.HeaderSelected, "#crawl-history-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：序号、书籍ID、书籍标题、大小、爬取时间、状态
+            sortable_columns = ["sequence", "novel_id", "novel_title", "file_size", "crawl_time", "status"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_history(column_key, self._sort_reverse)
+
+                # 更新表格显示
+                self._update_history_table()
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "sequence": "序号",
+                    "novel_id": "书籍ID",
+                    "novel_title": "书籍标题",
+                    "file_size": "大小",
+                    "crawl_time": "爬取时间",
+                    "status": "状态"
+                }
+                column_name = column_names.get(column_key, column_key)
+                self._update_status(f"已按 {column_name} {sort_direction} 排列", "information")
+
+        except Exception as e:
+            logger.error(f"表头点击事件处理失败: {e}")
+
+    def _sort_history(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对历史记录进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            def get_sort_key(item: Dict[str, Any]) -> Any:
+                """获取排序键值"""
+                if column_key == "sequence":
+                    # 序号无法直接排序，使用原始数据顺序
+                    # 由于排序后序号会重新编号，这里使用ID作为替代
+                    return item.get("id", "")
+                elif column_key == "novel_id":
+                    # 书籍ID排序，需要URL解码
+                    novel_id = item.get("novel_id", "")
+                    return unquote(novel_id) if novel_id else ""
+                elif column_key == "novel_title":
+                    # 书籍标题排序
+                    return item.get("novel_title", "")
+                elif column_key == "file_size":
+                    # 大小排序，使用原始文件大小数值
+                    return item.get("file_size", 0)
+                elif column_key == "crawl_time":
+                    # 爬取时间排序，需要解析时间字符串
+                    try:
+                        from datetime import datetime
+                        time_str = item.get("crawl_time", "")
+                        return datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S")
+                    except:
+                        return datetime.min
+                elif column_key == "status":
+                    # 状态排序
+                    return item.get("status", "")
+                return None
+
+            # 使用 sort 函数进行排序
+            self.crawler_history.sort(key=get_sort_key, reverse=reverse)
+
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
+
     @on(DataTable.CellSelected, "#crawl-history-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
         """数据表格单元格选择事件"""

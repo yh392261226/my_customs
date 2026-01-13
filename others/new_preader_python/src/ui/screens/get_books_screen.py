@@ -73,6 +73,10 @@ class GetBooksScreen(Screen[None]):
         self._search_parser = "all"
         self._search_proxy_enabled = "all"
         
+        # 排序相关属性
+        self._sort_column: Optional[str] = None
+        self._sort_reverse: bool = False
+        
         # 按钮点击标志
         self._button_clicked = False
         
@@ -231,11 +235,14 @@ class GetBooksScreen(Screen[None]):
             table.can_focus = True
         except Exception:
             pass
-    
+
     def on_screen_resume(self) -> None:
         """屏幕恢复时的回调（从其他屏幕返回时调用）"""
         # 重新加载代理设置，确保显示最新状态
         self._load_proxy_settings()
+        # 重置排序状态并重新加载数据
+        self._sort_column = None
+        self._sort_reverse = False
         self._load_novel_sites()
         
     def on_unmount(self) -> None:
@@ -274,15 +281,21 @@ class GetBooksScreen(Screen[None]):
 
     def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all", from_search: bool = False) -> None:
         """加载书籍网站数据
-        
+
         Args:
             search_keyword: 搜索关键词
             search_parser: 解析器筛选
             search_proxy_enabled: 代理启用筛选
+            from_search: 是否来自搜索操作
         """
-        # 从数据库加载书籍网站数据
-        all_sites = self.database_manager.get_novel_sites()
-        
+        # 如果没有排序条件，从数据库加载数据；否则使用已有数据
+        if self._sort_column is None:
+            # 从数据库加载书籍网站数据
+            all_sites = self.database_manager.get_novel_sites()
+        else:
+            # 使用已有的数据（已经排序过的）
+            all_sites = self._all_sites
+
         # 应用搜索筛选
         filtered_sites = []
         for site in all_sites:
@@ -294,7 +307,7 @@ class GetBooksScreen(Screen[None]):
                     search_keyword.lower() in site.get("url", "").lower() or
                     search_keyword.lower() in site.get("parser", "").lower()
                 )
-            
+
             # 解析器筛选
             parser_match = True
             if search_parser != "all":
@@ -305,7 +318,7 @@ class GetBooksScreen(Screen[None]):
                     parser_match = not parser_value.endswith("_v2")
                 else:
                     parser_match = parser_value == search_parser.lower()
-            
+
             # 代理启用筛选
             proxy_match = True
             if search_proxy_enabled != "all":
@@ -314,7 +327,7 @@ class GetBooksScreen(Screen[None]):
                     proxy_match = proxy_enabled
                 else:
                     proxy_match = not proxy_enabled
-            
+
             if keyword_match and parser_match and proxy_match:
                 filtered_sites.append(site)
         
@@ -499,7 +512,11 @@ class GetBooksScreen(Screen[None]):
         
         # 重置到第一页
         self._current_page = 1
-        
+
+        # 重置排序状态
+        self._sort_column = None
+        self._sort_reverse = False
+
         # 重新加载数据
         self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, from_search=True)
 
@@ -527,6 +544,39 @@ class GetBooksScreen(Screen[None]):
         if self._current_page != self._total_pages:
             self._current_page = self._total_pages
             self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+    def _sort_sites(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对网站进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            def get_sort_key(site: Dict[str, Any]) -> Any:
+                """获取排序键值"""
+                if column_key == "name":
+                    return site.get("name", "")
+                elif column_key == "url":
+                    return site.get("url", "")
+                elif column_key == "status":
+                    return site.get("status", "")
+                elif column_key == "rating":
+                    return site.get("rating", 0)
+                elif column_key == "proxy_enabled":
+                    return site.get("proxy_enabled", False)
+                elif column_key == "parser":
+                    return site.get("parser", "")
+                elif column_key == "tags":
+                    return site.get("tags", "")
+                elif column_key == "books_count":
+                    return self.database_manager.get_crawled_books_count(site.get("id", 0))
+                return None
+
+            self._all_sites.sort(key=get_sort_key, reverse=reverse)
+
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
 
     def _show_jump_dialog(self) -> None:
         """显示跳转页码对话框"""
@@ -929,15 +979,48 @@ class GetBooksScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t('get_books.np_open_carwler'), severity="warning")
 
+    @on(DataTable.HeaderSelected, "#novel-sites-table")
     def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
-        """
-        数据表表头选择时的回调
-        
-        Args:
-            event: 表头选择事件
-        """
-        logger.debug(f"表头选择事件触发: {event}")
-        # 这里不处理任何操作，只是防止表头点击触发行选择
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：网站名称、网站URL、状态、评分、代理启用、解析器、标签、书籍数量
+            sortable_columns = ["name", "url", "status", "proxy_enabled", "parser", "tags", "rating", "books_count"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_sites(column_key, self._sort_reverse)
+
+                # 重新加载表格显示（由于有排序条件，会使用已有的排序数据）
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "name": "网站名称",
+                    "url": "网站URL",
+                    "status": "状态",
+                    "proxy_enabled": "代理启用",
+                    "parser": "解析器",
+                    "tags": "标签",
+                    "rating": "评分",
+                    "books_count": "书籍数量"
+                }
+                column_name = column_names.get(column_key, column_key)
+                self.notify(f"已按 {column_name} {sort_direction} 排列", severity="information")
+
+        except Exception as e:
+            logger.error(f"表头点击事件处理失败: {e}")
     
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """

@@ -120,9 +120,11 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self._search_keyword = ""
         self._selected_format = "all"
         self._selected_author = "all"
-        
+
         # 排序相关属性
         self._sorted_books: List[str] = []  # 存储排序后的书籍路径顺序
+        self._sort_column: Optional[str] = None  # 当前排序的列
+        self._sort_reverse: bool = True  # 排序方向，True表示倒序
     
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
@@ -716,16 +718,16 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         """更新状态信息"""
         status_label = self.query_one("#batch-ops-status", Label)
         selected_count = len(self.selected_books)
-        
+
         # 计算当前页面的选中数量
         current_page_books = []
         if len(self._all_books) > 0:
             start_index = (self._current_page - 1) * self._books_per_page
             end_index = min(start_index + self._books_per_page, len(self._all_books))
             current_page_books = self._all_books[start_index:end_index]
-        
+
         current_page_selected_count = sum(1 for book in current_page_books if book.path in self.selected_books)
-        
+
         # 显示总选中数量和当前页选中数量
         if selected_count > 0:
             status_label.update(
@@ -735,6 +737,84 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             status_label.update(
                 get_global_i18n().t("batch_ops.selected_count", count=selected_count)
             )
+
+    @on(DataTable.HeaderSelected, "#batch-ops-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：序号、标题、作者、格式、标签
+            sortable_columns = ["index", "title", "author", "format", "tags"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_books(column_key, self._sort_reverse)
+
+                # 重新加载表格显示
+                self._load_books()
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "index": "序号",
+                    "title": "标题",
+                    "author": "作者",
+                    "format": "格式",
+                    "tags": "标签"
+                }
+                column_name = column_names.get(column_key, column_key)
+                status_label = self.query_one("#batch-ops-status", Label)
+                current_status = status_label.renderable
+                status_label.update(f"已按 {column_name} {sort_direction} 排列 | {current_status}")
+
+        except Exception as e:
+            logger.error(f"表头点击事件处理失败: {e}")
+
+    def _sort_books(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对书籍进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            def get_sort_key(book: Any) -> Any:
+                """获取排序键值"""
+                if column_key == "index":
+                    # 序号排序，使用路径作为唯一标识
+                    return book.path
+                elif column_key == "title":
+                    # 标题排序
+                    return book.title or ""
+                elif column_key == "author":
+                    # 作者排序
+                    return book.author or ""
+                elif column_key == "format":
+                    # 格式排序，转换为小写进行比较
+                    return book.format.lower() if book.format else ""
+                elif column_key == "tags":
+                    # 标签排序
+                    return book.tags or ""
+                return None
+
+            # 使用 sort 函数进行排序
+            self._all_books.sort(key=get_sort_key, reverse=reverse)
+
+            # 更新排序列表
+            self._sorted_books = [book.path for book in self._all_books]
+
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
     
     def _filter_books(self, books: List[Any]) -> List[Any]:
         """根据搜索关键词、文件格式和作者过滤书籍"""

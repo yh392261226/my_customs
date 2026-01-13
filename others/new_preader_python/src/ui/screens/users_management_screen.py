@@ -6,6 +6,7 @@ from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Label, Input, Button, Header, Footer, DataTable
 from textual.app import ComposeResult
+from textual import on
 from src.core.database_manager import DatabaseManager
 from src.themes.theme_manager import ThemeManager
 from src.locales.i18n_manager import get_global_i18n
@@ -40,6 +41,10 @@ class UsersManagementScreen(Screen[None]):
         self._users_per_page = 10
         self._total_pages = 1
         self._all_users: List[Dict[str, Any]] = []
+
+        # 排序相关属性
+        self._sort_column: Optional[str] = None  # 当前排序的列
+        self._sort_reverse: bool = True  # 排序方向，True表示倒序
 
     def compose(self) -> ComposeResult:
         t = get_global_i18n()
@@ -200,7 +205,11 @@ class UsersManagementScreen(Screen[None]):
                     "username": row["username"],
                     "role": row["role"]
                 })
-            
+
+            # 应用自定义排序（如果用户点击了表头进行排序）
+            if self._sort_column is not None:
+                self._sort_users(self._sort_column, self._sort_reverse)
+
             # 计算分页
             self._total_pages = max(1, (len(self._all_users) + self._users_per_page - 1) // self._users_per_page)
             self._current_page = min(self._current_page, self._total_pages)
@@ -285,6 +294,71 @@ class UsersManagementScreen(Screen[None]):
                     conn.close()
             except Exception:
                 pass
+
+    @on(DataTable.HeaderSelected, "#users-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：ID、用户名、角色
+            sortable_columns = ["id", "username", "role"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_users(column_key, self._sort_reverse)
+
+                # 重新加载表格显示
+                self._reload_users_table()
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "id": "ID",
+                    "username": "用户名",
+                    "role": "角色"
+                }
+                column_name = column_names.get(column_key, column_key)
+                self.notify(f"已按 {column_name} {sort_direction} 排列", severity="information")
+
+        except Exception as e:
+            logger.error(f"表头点击事件处理失败: {e}")
+
+    def _sort_users(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对用户进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            def get_sort_key(user: Dict[str, Any]) -> Any:
+                """获取排序键值"""
+                if column_key == "id":
+                    # ID排序，使用整数比较
+                    return int(user.get("id", 0))
+                elif column_key == "username":
+                    # 用户名排序
+                    return user.get("username", "")
+                elif column_key == "role":
+                    # 角色排序
+                    return user.get("role", "")
+                return None
+
+            # 使用 sort 函数进行排序
+            self._all_users.sort(key=get_sort_key, reverse=reverse)
+
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
 
     def _open_permissions_dialog(self, uid: int) -> None:
         """打开权限管理对话框"""

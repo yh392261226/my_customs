@@ -13,6 +13,7 @@ from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
+from textual import on
 from pathlib import Path
 
 from src.locales.i18n_manager import get_global_i18n, t
@@ -60,6 +61,10 @@ class ProxyListScreen(Screen[None]):
         self._proxies_per_page = 10
         self._total_pages = 1
         self._all_proxies: List[Dict[str, Any]] = []
+
+        # 排序相关属性
+        self._sort_column: Optional[str] = None  # 当前排序的列
+        self._sort_reverse: bool = True  # 排序方向，True表示倒序
 
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限"""
@@ -160,11 +165,15 @@ class ProxyListScreen(Screen[None]):
     def _load_proxy_list(self) -> None:
         """从数据库加载代理列表"""
         self._all_proxies = self.database_manager.get_all_proxy_settings()
-        
+
+        # 应用自定义排序（如果用户点击了表头进行排序）
+        if self._sort_column is not None:
+            self._sort_proxies(self._sort_column, self._sort_reverse)
+
         # 计算分页
         self._total_pages = max(1, (len(self._all_proxies) + self._proxies_per_page - 1) // self._proxies_per_page)
         self._current_page = min(self._current_page, self._total_pages)
-        
+
         # 获取当前页的数据
         start_index = (self._current_page - 1) * self._proxies_per_page
         end_index = min(start_index + self._proxies_per_page, len(self._all_proxies))
@@ -244,7 +253,89 @@ class ProxyListScreen(Screen[None]):
                 row_data["username"],
                 row_data["update_time"]
             )
-    
+
+    @on(DataTable.HeaderSelected, "#proxy-list-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：状态、名称、类型、主机、端口、用户名、更新时间
+            sortable_columns = ["status", "name", "type", "host", "port", "username", "update_time"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_proxies(column_key, self._sort_reverse)
+
+                # 重新加载表格显示
+                self._load_proxy_list()
+                self._fill_table_data()
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "status": "状态",
+                    "name": "名称",
+                    "type": "类型",
+                    "host": "主机",
+                    "port": "端口",
+                    "username": "用户名",
+                    "update_time": "更新时间"
+                }
+                column_name = column_names.get(column_key, column_key)
+                self._update_status(f"已按 {column_name} {sort_direction} 排列")
+
+        except Exception as e:
+            logger.error(f"表头点击事件处理失败: {e}")
+
+    def _sort_proxies(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对代理进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            def get_sort_key(proxy: Dict[str, Any]) -> Any:
+                """获取排序键值"""
+                if column_key == "status":
+                    # 状态排序，enabled的在前
+                    return not proxy.get("enabled", False)
+                elif column_key == "name":
+                    # 名称排序
+                    return proxy.get("name", "")
+                elif column_key == "type":
+                    # 类型排序
+                    return proxy.get("type", "")
+                elif column_key == "host":
+                    # 主机排序
+                    return proxy.get("host", "")
+                elif column_key == "port":
+                    # 端口排序，使用整数比较
+                    return int(proxy.get("port", 0))
+                elif column_key == "username":
+                    # 用户名排序
+                    return proxy.get("username", "")
+                elif column_key == "update_time":
+                    # 更新时间排序
+                    return proxy.get("updated_at", "")
+                return None
+
+            # 使用 sort 函数进行排序
+            self._all_proxies.sort(key=get_sort_key, reverse=reverse)
+
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
+
     def _set_initial_cursor(self) -> None:
         """设置初始光标位置"""
         try:

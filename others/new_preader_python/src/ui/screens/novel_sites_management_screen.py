@@ -11,6 +11,7 @@ from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual.reactive import reactive
 from textual import events
+from textual import on
 
 from src.locales.i18n_manager import get_global_i18n, t
 from src.themes.theme_manager import ThemeManager
@@ -69,6 +70,10 @@ class NovelSitesManagementScreen(Screen[None]):
         self._search_keyword = ""
         self._search_parser = "all"
         self._search_proxy_enabled = "all"
+
+        # 排序相关属性
+        self._sort_column: Optional[str] = None  # 当前排序的列
+        self._sort_reverse: bool = True  # 排序方向，True表示倒序
 
     def _get_rating_display(self, rating: int) -> str:
         """
@@ -296,9 +301,13 @@ class NovelSitesManagementScreen(Screen[None]):
             
             if keyword_match and parser_match and proxy_match:
                 filtered_sites.append(site)
-        
+
         self.novel_sites = filtered_sites
-        
+
+        # 应用自定义排序（如果用户点击了表头进行排序）
+        if self._sort_column is not None:
+            self._sort_sites(self._sort_column, self._sort_reverse)
+
         # 更新数据表
         self._update_table(from_search=from_search)
     
@@ -395,6 +404,88 @@ class NovelSitesManagementScreen(Screen[None]):
         # 只有在不是来自搜索时才设置表格焦点
         if not from_search:
             table.focus()
+
+    @on(DataTable.HeaderSelected, "#novel-sites-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 处理排序"""
+        try:
+            column_key = event.column_key.value or ""
+
+            logger.debug(f"表头点击事件: column={column_key}")
+
+            # 只对特定列进行排序：网站名称、网站URL、状态、评分、代理启用、解析器、书籍ID示例
+            sortable_columns = ["site_name", "site_url", "status", "rating", "proxy_enabled", "parser", "book_id_example"]
+
+            if column_key in sortable_columns:
+                # 切换排序方向
+                if self._sort_column == column_key:
+                    self._sort_reverse = not self._sort_reverse
+                else:
+                    self._sort_column = column_key
+                    self._sort_reverse = True  # 新列默认倒序
+
+                # 执行排序
+                self._sort_sites(column_key, self._sort_reverse)
+
+                # 重新加载表格显示
+                self._update_table()
+
+                # 显示排序提示
+                sort_direction = "倒序" if self._sort_reverse else "正序"
+                column_names = {
+                    "site_name": "网站名称",
+                    "site_url": "网站URL",
+                    "status": "状态",
+                    "rating": "评分",
+                    "proxy_enabled": "代理启用",
+                    "parser": "解析器",
+                    "book_id_example": "书籍ID示例"
+                }
+                column_name = column_names.get(column_key, column_key)
+                self._update_status(f"已按 {column_name} {sort_direction} 排列", "information")
+
+        except Exception as e:
+            logger.error(f"表头点击事件处理失败: {e}")
+
+    def _sort_sites(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对网站进行排序
+
+        Args:
+            column_key: 排序的列键
+            reverse: 是否倒序
+        """
+        try:
+            def get_sort_key(site: Dict[str, Any]) -> Any:
+                """获取排序键值"""
+                if column_key == "site_name":
+                    # 网站名称排序
+                    return site.get("name", "")
+                elif column_key == "site_url":
+                    # 网站URL排序
+                    return site.get("url", "")
+                elif column_key == "status":
+                    # 状态排序
+                    return site.get("status", "")
+                elif column_key == "rating":
+                    # 评分排序
+                    return site.get("rating", 0)
+                elif column_key == "proxy_enabled":
+                    # 代理启用排序
+                    return site.get("proxy_enabled", False)
+                elif column_key == "parser":
+                    # 解析器排序
+                    return site.get("parser", "")
+                elif column_key == "book_id_example":
+                    # 书籍ID示例排序，需要URL解码
+                    book_id_example = site.get("book_id_example", "")
+                    return unquote(book_id_example) if book_id_example else ""
+                return None
+
+            # 使用 sort 函数进行排序
+            self.novel_sites.sort(key=get_sort_key, reverse=reverse)
+
+        except Exception as e:
+            logger.error(f"排序失败: {e}")
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""
