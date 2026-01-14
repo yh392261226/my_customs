@@ -4,6 +4,7 @@
 
 import re
 import unicodedata
+from difflib import SequenceMatcher
 from typing import List, Dict, Any, Optional
 
 class StringUtils:
@@ -162,7 +163,7 @@ class StringUtils:
     @staticmethod
     def similarity(text1: str, text2: str) -> float:
         """
-        计算两个文本的相似度（简单实现）
+        计算两个文本的相似度（改进版，支持中文）
         
         Args:
             text1: 文本1
@@ -171,53 +172,94 @@ class StringUtils:
         Returns:
             float: 相似度（0-1）
         """
-        # 将文本转换为小写并分词
-        words1 = set(re.findall(r'\b\w+\b', text1.lower()))
-        words2 = set(re.findall(r'\b\w+\b', text2.lower()))
-        
-        # 计算交集和并集
-        intersection = words1.intersection(words2)
-        union = words1.union(words2)
-        
-        # 计算Jaccard相似度
-        if not union:
+        if not text1 or not text2:
             return 0.0
         
-        return len(intersection) / len(union)
+        # 规范化文本
+        text1 = StringUtils._normalize_for_comparison(text1)
+        text2 = StringUtils._normalize_for_comparison(text2)
+        
+        # 使用SequenceMatcher计算序列相似度（对中文更友好）
+        matcher = SequenceMatcher(None, text1, text2)
+        ratio = matcher.ratio()
+        
+        return ratio
     
     @staticmethod
-    def book_content_similarity(content1: str, content2: str, sample_size: int = 5000) -> float:
+    def _normalize_for_comparison(text: str) -> str:
         """
-        计算两个书籍内容的相似度（适用于大文件）
+        规范化文本用于比较（更激进的清理）
+        
+        Args:
+            text: 原始文本
+            
+        Returns:
+            str: 规范化后的文本
+        """
+        # 移除所有空白字符（包括空格、换行、制表符等）
+        text = re.sub(r'\s+', '', text)
+        
+        # 移除标点符号（中文和英文）
+        text = re.sub(r'[^\u4e00-\u9fff\w]', '', text)
+        
+        # 统一为小写
+        text = text.lower()
+        
+        return text
+    
+    @staticmethod
+    def book_content_similarity(content1: str, content2: str, sample_size: int = 10000) -> float:
+        """
+        计算两个书籍内容的相似度（适用于大文件，改进版）
         
         Args:
             content1: 书籍内容1
             content2: 书籍内容2
-            sample_size: 采样大小（字符数）
+            sample_size: 采样大小（字符数），默认10000以提高准确性
             
         Returns:
             float: 相似度（0-1）
         """
-        # 规范化文本
-        content1 = StringUtils.normalize(content1)
-        content2 = StringUtils.normalize(content2)
+        if not content1 or not content2:
+            return 0.0
         
-        # 对于大文件，采用采样方式比较
-        if len(content1) > sample_size or len(content2) > sample_size:
-            # 取文件开头、中间和结尾的采样
-            samples1 = StringUtils._sample_content(content1, sample_size)
-            samples2 = StringUtils._sample_content(content2, sample_size)
-            
-            # 计算各采样部分的相似度
-            total_similarity = 0
-            for i, (s1, s2) in enumerate(zip(samples1, samples2)):
-                sim = StringUtils.similarity(s1, s2)
-                total_similarity += sim
-            
-            return total_similarity / len(samples1)
-        else:
-            # 对于小文件，直接比较全部内容
+        # 规范化文本（去除空白字符）
+        content1 = re.sub(r'\s+', '', content1)
+        content2 = re.sub(r'\s+', '', content2)
+        
+        # 计算实际内容长度
+        len1 = len(content1)
+        len2 = len(content2)
+        
+        # 如果文件较小，直接比较全部内容
+        if len1 <= sample_size and len2 <= sample_size:
             return StringUtils.similarity(content1, content2)
+        
+        # 对于大文件，采用多段采样方式比较
+        samples1 = StringUtils._sample_content(content1, sample_size)
+        samples2 = StringUtils._sample_content(content2, sample_size)
+        
+        # 计算各采样部分的相似度，并加权平均
+        similarities = []
+        weights = []
+        
+        for i, (s1, s2) in enumerate(zip(samples1, samples2)):
+            sim = StringUtils.similarity(s1, s2)
+            similarities.append(sim)
+            
+            # 开头和结尾部分权重更高（0.4），中间部分权重较低（0.2）
+            if i == 0 or i == len(samples1) - 1:
+                weights.append(0.4)
+            else:
+                weights.append(0.2)
+        
+        # 计算加权平均相似度
+        if similarities:
+            weighted_sum = sum(s * w for s, w in zip(similarities, weights))
+            total_weight = sum(weights)
+            return weighted_sum / total_weight
+        
+        return 0.0
     
     @staticmethod
     def _sample_content(content: str, sample_size: int, parts: int = 3) -> List[str]:
