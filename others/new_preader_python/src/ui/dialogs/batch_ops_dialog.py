@@ -2159,12 +2159,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             def batch_callback(batch_groups, batch_index, total_batches, processing_remaining):
                 """处理批次完成"""
                 # 添加调试信息
-                logger.info(f"批回调被调用: 批次 {batch_index+1}, 找到 {len(batch_groups)} 组重复")
-                
+                logger.info(f"批回调被调用: 批次 {batch_index+1 if batch_index >= 0 else '初始'}, 找到 {len(batch_groups)} 组重复")
+
+                # 批次索引为-1表示初始批次(哈希值或文件名相同的重复组)
                 # 第一批找到重复项时显示结果，后续批次只有找到重复项才更新
-                if (batch_index == 0 and batch_groups) or (batch_index > 0 and batch_groups):
+                if (batch_index == -1 and batch_groups) or (batch_index == 0 and batch_groups) or (batch_index > 0 and batch_groups):
                     # 使用 app.call_from_thread 确保线程安全
-                    logger.info(f"准备显示重复结果: 批次 {batch_index+1}, 组数 {len(batch_groups)}")
+                    logger.info(f"准备显示重复结果: 批次 {batch_index+1 if batch_index >= 0 else '初始'}, 组数 {len(batch_groups)}")
                     self.app.call_from_thread(
                         self._show_duplicate_results,
                         batch_groups,
@@ -2339,23 +2340,24 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         status_label = self.query_one("#batch-ops-status", Label)
         status_label.update(status_text)
     
-    def _show_duplicate_results(self, batch_groups: List[DuplicateGroup], batch_index: int, 
+    def _show_duplicate_results(self, batch_groups: List[DuplicateGroup], batch_index: int,
                             total_batches: int, processing_remaining: bool) -> None:
         """显示重复书籍结果（分批）
-        
+
         Args:
             batch_groups: 当前批的重复组
-            batch_index: 批次索引
+            batch_index: 批次索引(-1表示初始批次,即哈希值或文件名相同的重复组)
             total_batches: 总批次数
             processing_remaining: 是否还有剩余批次需要处理
         """
         try:
             # 添加调试信息
-            logger.info(f"_show_duplicate_results被调用: 批次 {batch_index+1}, 组数 {len(batch_groups)}")
-            
+            logger.info(f"_show_duplicate_results被调用: 批次 {batch_index+1 if batch_index >= 0 else '初始'}, 组数 {len(batch_groups)}")
+
             # 更新状态变量
             self._total_batches = total_batches
-            self._current_batch = batch_index + 1
+            # 批次索引为-1表示初始批次,显示为批次0
+            self._current_batch = 0 if batch_index == -1 else batch_index + 1
             self._processing_remaining = processing_remaining
             
             # 将当前批的重复组添加到已显示列表，避免重复
@@ -2387,8 +2389,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._shown_duplicate_groups.extend(new_unique_groups)
             batch_groups = new_unique_groups  # 更新batch_groups以只包含新组
             
-            # 如果是第一批或对话框还未创建，创建并显示重复书籍对话框
-            if batch_index == 0 or (not hasattr(self, '_duplicate_dialog_created') or not self._duplicate_dialog_created):
+            # 如果是初始批次(-1)或第一批(0),或对话框还未创建，创建并显示重复书籍对话框
+            if batch_index == -1 or batch_index == 0 or (not hasattr(self, '_duplicate_dialog_created') or not self._duplicate_dialog_created):
                 if self._shown_duplicate_groups:
                     # 显示重复书籍对话框
                     def on_duplicate_dialog_closed(result: dict) -> None:

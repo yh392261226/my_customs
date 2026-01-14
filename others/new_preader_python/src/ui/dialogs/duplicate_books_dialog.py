@@ -33,15 +33,15 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("s", "select_current", get_global_i18n().t('duplicate_books.select_current')),
     ]
     
-    def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup], 
-                 current_batch: int = 1, total_batches: int = 1, processing_remaining: bool = False):
+    def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
+                 current_batch: int = 0, total_batches: int = 1, processing_remaining: bool = False):
         """
         初始化重复书籍对话框
-        
+
         Args:
             theme_manager: 主题管理器
             duplicate_groups: 重复书籍组列表
-            current_batch: 当前批次数
+            current_batch: 当前批次数(0表示初始批次,即哈希值或文件名相同的重复组)
             total_batches: 总批次数
             processing_remaining: 是否还有剩余批次需要处理
         """
@@ -51,7 +51,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         self.selected_books: set[str] = set()  # 选中的书籍路径
         self.recommended_selected_books: set[str] = set()  # 推荐选中的书籍路径
         self.current_group_index = 0  # 当前显示的重复组索引
-        self.current_batch = current_batch  # 当前批次数
+        self.current_batch = current_batch  # 当前批次数(0表示初始批次)
         self.total_batches = total_batches  # 总批次数
         self.processing_remaining = processing_remaining  # 是否还有剩余批次需要处理
         

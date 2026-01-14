@@ -134,7 +134,12 @@ class OptimizedBookDuplicateDetector:
         # 更新进度
         if progress_callback:
             progress_callback(total * 2, total * 3)
-        
+
+        # 如果有哈希值或文件名相同的重复组,立即通过批回调通知UI
+        if duplicate_groups and batch_callback:
+            logger.info(f"找到{len(duplicate_groups)}组哈希值或文件名相同的重复书籍,立即通知UI")
+            batch_callback(duplicate_groups, -1, 0, False)
+
         # 对剩余书籍进行内容相似度检测（限制数量以提高性能）
         # 收集所有已经在其他组中的书籍
         all_processed_books = set()
@@ -298,7 +303,7 @@ class OptimizedBookDuplicateDetector:
         duplicate_types = []
         if hash_match:
             duplicate_types.append(DuplicateType.HASH_IDENTICAL)
-        if similarity >= 0.7:  # 相似度超过70%
+        if similarity >= 0.4:  # 相似度超过40%
             duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
         if file_name_match:
             duplicate_types.append(DuplicateType.FILE_NAME)
