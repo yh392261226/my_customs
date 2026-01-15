@@ -371,6 +371,11 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_author ON books(author)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_add_date ON books(add_date)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_history_date ON reading_history(read_date)")
+            # 添加复合索引以优化联合查询
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_history_book_user ON reading_history(book_path, user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_history_book_date ON reading_history(book_path, read_date)")
+            # 添加格式索引用于筛选
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_books_format ON books(format)")
             
             # 创建代理设置表（支持多条记录）
             cursor.execute("""
@@ -635,6 +640,119 @@ class DatabaseManager:
                 return [self._row_to_book(row) for row in rows if row]
         except sqlite3.Error as e:
             logger.error(f"按用户获取书籍失败: {e}")
+            return []
+
+    def get_all_books_with_reading_info(self, user_id: Optional[int] = None) -> List[tuple]:
+        """
+        批量获取所有书籍及其阅读信息（性能优化版本）
+
+        Args:
+            user_id: 用户ID，如果为None则获取所有书籍
+
+        Returns:
+            List[tuple]: 书籍和阅读信息的元组列表 [(book, reading_info), ...]
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                if user_id is None:
+                    # 非多用户模式或超级管理员：获取所有书籍及阅读信息
+                    query = """
+                        SELECT
+                            b.*,
+                            bm.metadata as reading_metadata,
+                            rh.last_read_date,
+                            rh.reading_progress,
+                            rh.total_pages,
+                            rh.word_count
+                        FROM books b
+                        LEFT JOIN book_metadata bm ON b.path = bm.book_path AND bm.user_id = 0
+                        LEFT JOIN (
+                            SELECT
+                                book_path,
+                                MAX(read_date) as last_read_date,
+                                SUM(reading_progress) / COUNT(*) as reading_progress,
+                                MAX(total_pages) as total_pages,
+                                MAX(word_count) as word_count
+                            FROM reading_history
+                            GROUP BY book_path
+                        ) rh ON b.path = rh.book_path
+                        ORDER BY b.pinyin ASC
+                    """
+                    cursor.execute(query)
+                else:
+                    # 多用户模式：获取用户书籍及阅读信息
+                    query = """
+                        SELECT
+                            b.*,
+                            bm.metadata as reading_metadata,
+                            rh.last_read_date,
+                            rh.reading_progress,
+                            rh.total_pages,
+                            rh.word_count
+                        FROM books b
+                        JOIN user_books ub ON ub.book_path = b.path AND ub.user_id = ?
+                        LEFT JOIN book_metadata bm ON b.path = bm.book_path AND bm.user_id = ?
+                        LEFT JOIN (
+                            SELECT
+                                book_path,
+                                MAX(read_date) as last_read_date,
+                                SUM(reading_progress) / COUNT(*) as reading_progress,
+                                MAX(total_pages) as total_pages,
+                                MAX(word_count) as word_count
+                            FROM reading_history
+                            WHERE user_id = ?
+                            GROUP BY book_path
+                        ) rh ON b.path = rh.book_path
+                        ORDER BY b.pinyin ASC
+                    """
+                    cursor.execute(query, (user_id, user_id, user_id))
+
+                rows = cursor.fetchall()
+                results = []
+
+                for row in rows:
+                    # 将行转换为Book对象
+                    book = self._row_to_book(row)
+
+                    # 构建阅读信息
+                    reading_info = {}
+
+                    # 优先从book_metadata获取
+                    if row['reading_metadata']:
+                        try:
+                            metadata = json.loads(row['reading_metadata'])
+                            reading_info = {
+                                'last_read_date': metadata.get('last_read_date'),
+                                'reading_progress': metadata.get('reading_progress', 0),
+                                'total_pages': metadata.get('total_pages', 0),
+                                'word_count': metadata.get('word_count', 0),
+                                'current_page': metadata.get('current_page', 0),
+                                'current_position': metadata.get('current_position', 0),
+                                'anchor_text': metadata.get('anchor_text', ''),
+                                'anchor_hash': metadata.get('anchor_hash', '')
+                            }
+                        except (json.JSONDecodeError, KeyError):
+                            # 解析失败，使用reading_history的数据
+                            pass
+
+                    # 如果book_metadata没有数据或解析失败，使用reading_history的数据
+                    if not reading_info and row['last_read_date']:
+                        reading_info = {
+                            'last_read_date': row['last_read_date'],
+                            'reading_progress': row['reading_progress'] if row['reading_progress'] else 0,
+                            'total_pages': row['total_pages'] if row['total_pages'] else 0,
+                            'word_count': row['word_count'] if row['word_count'] else 0
+                        }
+
+                    results.append((book, reading_info))
+
+                return results
+
+        except sqlite3.Error as e:
+            logger.error(f"批量获取书籍和阅读信息失败: {e}")
             return []
     
     def update_book(self, book: Book, old_path: Optional[str] = None) -> bool:

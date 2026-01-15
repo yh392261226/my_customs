@@ -621,14 +621,15 @@ class BookshelfScreen(Screen[None]):
             
             # 更新进度：排序开始
             self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=60)
-            
+
             # 对筛选后的书籍进行排序
             if search_keyword or search_format != "all" or search_author != "all":
-                # 有搜索条件时，手动排序（使用从reading_history表获取的阅读时间）
-                # 性能优化：批量获取阅读历史信息
+                # 有搜索条件时，手动排序（使用缓存的阅读信息，避免重复查询）
+                # 性能优化：使用书架缓存中的阅读信息
                 reading_info_cache = {}
                 for book in filtered_books:
-                    reading_info = self.bookshelf.get_book_reading_info(book.path)
+                    # 从书架的缓存中获取阅读信息，避免重复查询数据库
+                    reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
                     reading_info_cache[book.path] = reading_info.get('last_read_date') or ""
 
                 self._all_books = sorted(filtered_books,
@@ -654,11 +655,12 @@ class BookshelfScreen(Screen[None]):
         # 每次加载都要重新创建映射，确保行键正确
         self._book_index_mapping = {}
         self._row_key_mapping = {}
-        
-        # 性能优化：批量处理阅读历史信息
+
+        # 性能优化：直接使用书架缓存的阅读信息，避免重复查询数据库
         reading_info_cache = {}
         for book in current_page_books:
-            reading_info = self.bookshelf.get_book_reading_info(book.path)
+            # 从书架缓存中获取阅读信息，避免重复查询数据库
+            reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
             reading_info_cache[book.path] = reading_info
         
         # 清空当前页的数据，但保留列

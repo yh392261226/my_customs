@@ -30,7 +30,7 @@ class Bookshelf:
     def __init__(self, data_dir: Optional[str] = None, app=None):
         """
         初始化书架
-        
+
         Args:
             data_dir: 数据目录，如果为None则使用默认目录
             app: 应用实例，用于获取配置
@@ -41,10 +41,10 @@ class Bookshelf:
         else:
             # 扩展路径中的 ~ 符号为用户主目录
             self.data_dir = os.path.expanduser(data_dir)
-            
+
         # 确保数据目录存在
         os.makedirs(self.data_dir, exist_ok=True)
-        
+
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
         # 当前登录用户ID（伪用户系统）
@@ -52,51 +52,61 @@ class Bookshelf:
         self.current_user_role: str = "user"
         # 应用实例，用于获取配置
         self.app = app
-        
+
         self.books: Dict[str, Book] = {}  # 书籍字典，键为书籍路径
         self.reading_history: List[Dict[str, Any]] = []  # 阅读历史记录
-        
+        self._reading_info_cache: Dict[str, Dict[str, Any]] = {}  # 阅读信息缓存
+
         # 加载书籍数据
         self._load_books()
         self._load_reading_history()
     
     def _load_books(self) -> None:
-        """从数据库加载书籍数据（按当前用户过滤）"""
+        """从数据库加载书籍数据（按当前用户过滤）- 性能优化版本"""
         try:
             self.books.clear()
-            books: List[Book]
+            self._reading_info_cache.clear()
+
             # 获取配置管理器以检查多用户模式
             config_manager = getattr(self.app, 'config_manager', None) if hasattr(self, 'app') else None
             multi_user_enabled = False
-            
+
             if config_manager:
                 config = config_manager.get_config()
                 multi_user_enabled = config.get('advanced', {}).get('multi_user_enabled', False)
-            
+
             logger.info(f"当前用户类型为:{self.current_user_role}, 用户ID为:{self.current_user_id}, 多用户模式: {multi_user_enabled}")
-            
-            # 多用户模式判断逻辑
+
+            # 确定用户ID用于查询
+            user_id = None
             if not multi_user_enabled:
-                # 非多用户模式：获取全部书籍
-                books = self.db_manager.get_all_books()
+                # 非多用户模式：user_id传None
+                user_id = None
             elif self.current_user_role in ["superadmin", "super_admin"]:
-                # 多用户模式下超级管理员：获取全部书籍（无论user_id是否为None）
-                books = self.db_manager.get_all_books()
+                # 多用户模式下超级管理员：获取全部书籍
+                user_id = None
             elif self.current_user_id is not None:
                 # 多用户模式下普通用户：只获取自己的书籍
-                books = self.db_manager.get_books_for_user(self.current_user_id)
+                user_id = self.current_user_id
             else:
                 # 多用户模式下但用户ID为空：返回空列表（安全默认）
-                books = []
+                user_id = 0  # 使用0表示无效用户
 
-            for book in books:
-                if book.path and os.path.exists(book.path):
-                    self.books[book.path] = book
-                else:
-                    # logger.warning(f"书籍文件不存在，但保留记录: {book.path}")
-                    # 标记书籍为文件不存在状态
-                    book.file_not_found = True
-                    self.books[book.path] = book
+            # 使用批量查询方法获取书籍和阅读信息
+            book_info_list = self.db_manager.get_all_books_with_reading_info(user_id)
+
+            for book, reading_info in book_info_list:
+                if book.path:
+                    if os.path.exists(book.path):
+                        self.books[book.path] = book
+                    else:
+                        # 标记书籍为文件不存在状态
+                        book.file_not_found = True
+                        self.books[book.path] = book
+
+                    # 缓存阅读信息
+                    self._reading_info_cache[book.path] = reading_info
+
             logger.info(f"已加载 {len(self.books)} 本书籍（用户过滤：{self.current_user_id is not None}）")
         except Exception as e:
             logger.error(f"从数据库加载书籍数据时出错: {e}")
@@ -380,24 +390,29 @@ class Bookshelf:
     
     def get_book_reading_info(self, book_path: str) -> Dict[str, Any]:
         """
-        获取书籍的阅读信息（优先从book_metadata表，备选从reading_history表）
-        
+        获取书籍的阅读信息（优先从缓存，备选从book_metadata表和reading_history表）
+
         Args:
             book_path: 书籍路径
-            
+
         Returns:
             Dict[str, Any]: 阅读信息，包含last_read_date、reading_progress等
         """
         try:
+            # 优先从缓存获取
+            if book_path in self._reading_info_cache:
+                return self._reading_info_cache[book_path]
+
+            # 缓存未命中，查询数据库
             user_id = self.current_user_id if self.current_user_id else None
-            
+
             # 首先尝试从新的book_metadata表获取阅读进度信息
             metadata_json = self.db_manager.get_book_metadata(book_path, user_id)
             if metadata_json:
                 try:
                     metadata_dict = json.loads(metadata_json)
                     # 从book_metadata表获取最新的阅读进度信息
-                    return {
+                    result = {
                         "last_read_date": metadata_dict.get('last_read_date'),
                         "reading_progress": metadata_dict.get('reading_progress', 0),
                         "total_pages": metadata_dict.get('total_pages', 0),
@@ -407,14 +422,17 @@ class Bookshelf:
                         "anchor_text": metadata_dict.get('anchor_text', ''),
                         "anchor_hash": metadata_dict.get('anchor_hash', '')
                     }
+                    # 缓存结果
+                    self._reading_info_cache[book_path] = result
+                    return result
                 except (json.JSONDecodeError, KeyError) as e:
                     logger.warning(f"从book_metadata表解析阅读信息失败，回退到reading_history表: {e}")
-            
+
             # 如果book_metadata表没有数据，回退到reading_history表
             latest_record = self.db_manager.get_latest_reading_record(book_path, user_id)
-            
+
             if latest_record:
-                return {
+                result = {
                     "last_read_date": latest_record.get('last_read_date'),
                     "reading_progress": latest_record.get('reading_progress', 0),
                     "total_pages": latest_record.get('total_pages', 0),
@@ -422,12 +440,17 @@ class Bookshelf:
                 }
             else:
                 # 没有阅读记录，返回默认值
-                return {
+                result = {
                     "last_read_date": None,
                     "reading_progress": 0,
                     "total_pages": 0,
                     "word_count": 0
                 }
+
+            # 缓存结果
+            self._reading_info_cache[book_path] = result
+            return result
+
         except Exception as e:
             logger.error(f"获取书籍阅读信息失败: {e}")
             return {
@@ -457,9 +480,9 @@ class Bookshelf:
         elif key == "add_date":
             return sorted(books, key=lambda x: x.add_date, reverse=reverse)
         elif key == "last_read_date":
-            # 从reading_history表获取最后阅读时间进行排序
+            # 从缓存的阅读信息中获取最后阅读时间进行排序（避免重复查询数据库）
             def get_book_last_read_date(book):
-                reading_info = self.get_book_reading_info(book.path)
+                reading_info = self._reading_info_cache.get(book.path, {})
                 last_read_date = reading_info.get('last_read_date')
                 if last_read_date:
                     return last_read_date
@@ -467,9 +490,9 @@ class Bookshelf:
                 return datetime.min.isoformat()
             return sorted(books, key=get_book_last_read_date, reverse=reverse)
         elif key == "progress":
-            # 从reading_history表获取阅读进度进行排序
+            # 从缓存的阅读信息中获取阅读进度进行排序（避免重复查询数据库）
             def get_book_progress(book):
-                reading_info = self.get_book_reading_info(book.path)
+                reading_info = self._reading_info_cache.get(book.path, {})
                 return reading_info.get('reading_progress', 0)
             return sorted(books, key=get_book_progress, reverse=reverse)
         elif key == "file_size":
