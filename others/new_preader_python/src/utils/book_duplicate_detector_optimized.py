@@ -303,7 +303,7 @@ class OptimizedBookDuplicateDetector:
         duplicate_types = []
         if hash_match:
             duplicate_types.append(DuplicateType.HASH_IDENTICAL)
-        if similarity >= 0.4:  # 相似度超过40%
+        if similarity >= 0.2:  # 相似度超过20%
             duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
         if file_name_match:
             duplicate_types.append(DuplicateType.FILE_NAME)

@@ -267,7 +267,7 @@ class BookComparisonDialog(ModalScreen[None]):
             duplicate_types.append(get_global_i18n().t("duplicate_books.type_file_name"))
         if basic_comparison.hash_match:
             duplicate_types.append(get_global_i18n().t("duplicate_books.type_hash_identical"))
-        if similarity >= 0.4:
+        if similarity >= 0.2:
             duplicate_types.append(get_global_i18n().t("duplicate_books.type_content_similar", similarity=f"{similarity:.1%}"))
         
         if duplicate_types:
