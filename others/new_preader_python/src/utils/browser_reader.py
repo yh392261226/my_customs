@@ -1209,6 +1209,604 @@ class BrowserReader:
         ::-webkit-scrollbar-thumb:hover {{
             background: rgba(128, 128, 128, 0.5);
         }}
+        
+        /* 翻页功能样式 */
+        .pagination-container {{
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 160px); /* 减去工具栏和其他元素的高度 */
+            overflow: hidden;
+            margin-top: 60px;
+            background-color: {settings['background']};
+            color: {settings['text']};
+            font-family: {settings['font_family']};
+            font-size: {settings['font_size']}px;
+            line-height: {settings['line_height']};
+            font-weight: {settings['font_weight']};
+            font-style: {settings['font_style']};
+            text-decoration: {settings['text_decoration']};
+            letter-spacing: {settings['letter_spacing']}px;
+            word-spacing: {settings['word_spacing']}px;
+            text-align: {settings['text_align']};
+        }}
+        
+        .page-content {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 40px;
+            box-sizing: border-box;
+            background-color: {settings['background']};
+            color: {settings['text']};
+            font-family: {settings['font_family']};
+            font-size: {settings['font_size']}px;
+            line-height: {settings['line_height']};
+            font-weight: {settings['font_weight']};
+            font-style: {settings['font_style']};
+            text-decoration: {settings['text_decoration']};
+            letter-spacing: {settings['letter_spacing']}px;
+            word-spacing: {settings['word_spacing']}px;
+            text-align: {settings['text_align']};
+            overflow: hidden;
+        }}
+        
+        .page {{
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }}
+        
+        .page h1 {{
+            color: {settings['title']};
+            font-size: 2em;
+            margin: 1em 0 0.5em 0;
+            font-weight: bold;
+        }}
+        
+        .page h2 {{
+            color: {settings['title']};
+            font-size: 1.5em;
+            margin: 0.8em 0 0.4em 0;
+            font-weight: bold;
+        }}
+        
+        .page h3 {{
+            color: {settings['title']};
+            font-size: 1.2em;
+            margin: 0.6em 0 0.3em 0;
+            font-weight: bold;
+        }}
+        
+        .page p {{
+            margin: 0.8em 0;
+            text-align: justify;
+            text-indent: 2em;
+        }}
+            overflow-y: auto;
+            background: {settings['background']};
+            color: {settings['text']};
+            font-family: {settings['font_family']};
+            font-size: {settings['font_size']}px;
+            line-height: {settings['line_height']};
+        }}
+        
+        /* 翻页效果 - 滑动 */
+        .page-content.slide-effect {{
+            animation: slideEffect 0.3s ease-in-out;
+        }}
+        
+        @keyframes slideEffect {{
+            0% {{
+                transform: translateX(100%);
+                opacity: 0;
+            }}
+            100% {{
+                transform: translateX(0);
+                opacity: 1;
+            }}
+        }}
+        
+        /* 翻页效果 - 淡入淡出 */
+        .page-content.fade-effect {{
+            animation: fadeEffect 0.3s ease-in-out;
+        }}
+        
+        @keyframes fadeEffect {{
+            0% {{
+                opacity: 0;
+            }}
+            100% {{
+                opacity: 1;
+            }}
+        }}
+        
+        /* 翻页效果 - 翻转 */
+        .page-content.flip-effect {{
+            animation: flipEffect 0.6s ease-in-out;
+            transform-style: preserve-3d;
+        }}
+        
+        @keyframes flipEffect {{
+            0% {{
+                transform: rotateY(180deg);
+            }}
+            100% {{
+                transform: rotateY(0deg);
+            }}
+        }}
+        
+        /* 翻页效果 - 仿真翻页 */
+        .page-content.realistic-flip {{
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }}
+        
+        .page-content.realistic-flip-left {{
+            transform-origin: right bottom;
+            transform: rotateY(0deg);
+            animation: realisticFlipLeft 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }}
+        
+        .page-content.realistic-flip-right {{
+            transform-origin: left bottom;
+            transform: rotateY(0deg);
+            animation: realisticFlipRight 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }}
+        
+        /* 书页翻页效果 - 更逼真的实现 */
+        .page-content.book-flip {{
+            position: relative;
+            transform-style: preserve-3d;
+            perspective: 2000px;
+            backface-visibility: hidden;
+            will-change: transform;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }}
+        
+        .page-content.book-flip-next {{
+            animation: bookFlipNext 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }}
+        
+        .page-content.book-flip-prev {{
+            animation: bookFlipPrev 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }}
+        
+        /* 书页翻页动画 */
+        @keyframes bookFlipNext {{
+            0% {{
+                transform: rotateY(0deg) rotateX(0deg);
+                transform-origin: right bottom;
+            }}
+            25% {{
+                transform: rotateY(30deg) rotateX(-5deg);
+                transform-origin: right bottom;
+            }}
+            50% {{
+                transform: rotateY(90deg) rotateX(-10deg);
+                transform-origin: right bottom;
+            }}
+            75% {{
+                transform: rotateY(150deg) rotateX(-5deg);
+                transform-origin: right bottom;
+            }}
+            100% {{
+                transform: rotateY(180deg) rotateX(0deg);
+                transform-origin: right bottom;
+            }}
+        }}
+        
+        @keyframes bookFlipPrev {{
+            0% {{
+                transform: rotateY(0deg) rotateX(0deg);
+                transform-origin: left bottom;
+            }}
+            25% {{
+                transform: rotateY(-30deg) rotateX(-5deg);
+                transform-origin: left bottom;
+            }}
+            50% {{
+                transform: rotateY(-90deg) rotateX(-10deg);
+                transform-origin: left bottom;
+            }}
+            75% {{
+                transform: rotateY(-150deg) rotateX(-5deg);
+                transform-origin: left bottom;
+            }}
+            100% {{
+                transform: rotateY(-180deg) rotateX(0deg);
+                transform-origin: left bottom;
+            }}
+        }}
+        
+        /* 书页弯曲效果 */
+        .page-curve {{
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(0,0,0,0.1) 45%, 
+                rgba(0,0,0,0.2) 50%, 
+                rgba(0,0,0,0.1) 55%, 
+                transparent 100%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }}
+        
+        .page-curve.active {{
+            opacity: 1;
+        }}
+        
+        /* 书页阴影效果 */
+        .page-book-shadow {{
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }}
+        
+        .page-book-shadow-next {{
+            background: 
+                radial-gradient(ellipse at right bottom, 
+                    rgba(0,0,0,0.6) 0%, 
+                    rgba(0,0,0,0.4) 30%, 
+                    rgba(0,0,0,0.2) 60%, 
+                    rgba(0,0,0,0.1) 80%, 
+                    transparent 100%),
+                linear-gradient(to left, 
+                    rgba(0,0,0,0.3) 0%, 
+                    rgba(0,0,0,0.2) 20%, 
+                    rgba(0,0,0,0.15) 40%, 
+                    rgba(0,0,0,0.1) 60%, 
+                    rgba(0,0,0,0.05) 80%, 
+                    transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            mix-blend-mode: multiply;
+        }}
+        
+        .page-book-shadow-prev {{
+            background: 
+                radial-gradient(ellipse at left bottom, 
+                    rgba(0,0,0,0.6) 0%, 
+                    rgba(0,0,0,0.4) 30%, 
+                    rgba(0,0,0,0.2) 60%, 
+                    rgba(0,0,0,0.1) 80%, 
+                    transparent 100%),
+                linear-gradient(to right, 
+                    rgba(0,0,0,0.3) 0%, 
+                    rgba(0,0,0,0.2) 20%, 
+                    rgba(0,0,0,0.15) 40%, 
+                    rgba(0,0,0,0.1) 60%, 
+                    rgba(0,0,0,0.05) 80%, 
+                    transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            mix-blend-mode: multiply;
+        }}
+        
+        .page-book-shadow-next.active {{
+            opacity: 1;
+        }}
+        
+        .page-book-shadow-prev.active {{
+            opacity: 1;
+        }}
+        
+        /* 书页厚度效果 */
+        .page-thickness {{
+            position: absolute;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to right, 
+                rgba(0,0,0,0.3) 0%, 
+                rgba(0,0,0,0.1) 50%, 
+                transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }}
+        
+        .page-thickness-right {{
+            right: 0;
+        }}
+        
+        .page-thickness-left {{
+            left: 0;
+        }}
+        
+        .page-thickness.active {{
+            opacity: 1;
+        }}
+        
+        /* 仿真翻页阴影效果 */
+        .page-shadow {{
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }}
+        
+        .page-shadow-left {{
+            left: 0;
+            background: linear-gradient(to right, 
+                rgba(0,0,0,0.3) 0%, 
+                rgba(0,0,0,0.15) 20%, 
+                rgba(0,0,0,0.05) 40%, 
+                rgba(0,0,0,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }}
+        
+        .page-shadow-right {{
+            right: 0;
+            background: linear-gradient(to left, 
+                rgba(0,0,0,0.3) 0%, 
+                rgba(0,0,0,0.15) 20%, 
+                rgba(0,0,0,0.05) 40%, 
+                rgba(0,0,0,0) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }}
+        
+        .page-shadow-left.active {{
+            opacity: 1;
+        }}
+        
+        .page-shadow-right.active {{
+            opacity: 1;
+        }}
+        
+        /* 翻页时的页面背面 */
+        .page-back {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            transform: rotateY(180deg);
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.2);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }}
+        
+        /* 仿真翻页动画 */
+        @keyframes realisticFlipLeft {{
+            0% {{
+                transform: rotateY(0deg);
+            }}
+            100% {{
+                transform: rotateY(-180deg);
+            }}
+        }}
+        
+        @keyframes realisticFlipRight {{
+            0% {{
+                transform: rotateY(0deg);
+            }}
+            100% {{
+                transform: rotateY(180deg);
+            }}
+        }}
+        
+        .page-content.realistic-flip-left-animation {{
+            animation: realisticFlipLeft 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }}
+        
+        .page-content.realistic-flip-right-animation {{
+            animation: realisticFlipRight 0.6s cubic-bezier(0.645, 0.045, 0.355, 1);
+        }}
+        
+        /* 翻页控制按钮 */
+        .pagination-controls {{
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: {settings['background']};
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 997;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+        }}
+        
+        .pagination-controls button {{
+            padding: 8px 16px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }}
+        
+        .pagination-controls button:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+        
+        .pagination-controls button:disabled {{
+            opacity: 0.5;
+            cursor: not-allowed;
+        }}
+        
+        .pagination-controls button:disabled:hover {{
+            background: {settings['background']};
+        }}
+        
+        .page-info {{
+            font-size: 14px;
+            color: {settings['text']};
+            min-width: 80px;
+            text-align: center;
+        }}
+        
+        .page-jump {{
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }}
+        
+        .page-jump input {{
+            width: 50px;
+            padding: 4px 8px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            font-size: 14px;
+            text-align: center;
+        }}
+        
+        /* 翻页设置面板 */
+        .pagination-settings {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            width: 90%;
+            max-width: 400px;
+            display: none;
+        }}
+        
+        .pagination-settings.show {{
+            display: block;
+        }}
+        
+        .pagination-settings-content {{
+            padding: 20px;
+        }}
+        
+        .pagination-settings h3 {{
+            margin: 0 0 20px 0;
+            color: {settings['title']};
+            font-size: 18px;
+            border-bottom: 2px solid rgba(128, 128, 128, 0.2);
+            padding-bottom: 10px;
+        }}
+        
+        .pagination-settings-close {{
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: {settings['text']};
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }}
+        
+        .pagination-settings-close:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+        
+        .setting-item {{
+            margin-bottom: 15px;
+        }}
+        
+        .setting-item label {{
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: {settings['text']};
+        }}
+        
+        .setting-item select {{
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            font-size: 14px;
+        }}
+        
+        .setting-actions {{
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }}
+        
+        .setting-actions button {{
+            flex: 1;
+            padding: 8px 16px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+        }}
+        
+        .setting-actions button:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+        
+        /* 翻页模式切换按钮 */
+        .pagination-mode-toggle {{
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 997;
+            transition: all 0.2s;
+        }}
+        
+        .pagination-mode-toggle:hover {{
+            background: rgba(128, 128, 128, 0.1);
+            transform: scale(1.05);
+        }}
+        
+        .pagination-mode-toggle.active {{
+            background: rgba(100, 149, 237, 0.3);
+            border-color: rgba(100, 149, 237, 0.6);
+        }}
+        
+        /* 隐藏滚动条（翻页模式） */
+        .pagination-mode .page-content::-webkit-scrollbar {{
+            display: none;
+        }}
+        
+        .pagination-mode .page-content {{
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }}
     </style>
 </head>
 <body>
@@ -1271,6 +1869,12 @@ class BrowserReader:
         <span id="nightModeText">夜间模式</span>
     </div>
     
+    <!-- 翻页模式切换 -->
+    <div class="pagination-mode-toggle" id="paginationModeToggle" onclick="togglePaginationMode()">
+        <span id="paginationModeIcon">📖</span>
+        <span id="paginationModeText">翻页模式</span>
+    </div>
+    
     <!-- 工具栏 -->
     <div class="toolbar">
         <button onclick="changeFontSize(-2)">A-</button>
@@ -1304,6 +1908,7 @@ class BrowserReader:
         <button onclick="toggleAutoScrollPanel()">自动滚动</button>
         <button onclick="toggleSpeech()">朗读设置</button>
         <button onclick="toggleReadingStats()">统计</button>
+        <button onclick="togglePaginationSettings()">翻页设置</button>
         <button onclick="toggleFocusMode()">专注模式</button>
         <button onclick="toggleFullscreen()">全屏</button>
         <button onclick="scrollToTop()">顶部</button>
@@ -1460,6 +2065,60 @@ class BrowserReader:
         <span class="speech-status" id="speechStatus">未朗读</span>
     </div>
     
+    <!-- 翻页容器 -->
+    <div class="pagination-container" id="paginationContainer" style="display: none;">
+        <div class="page-content" id="pageContent"></div>
+    </div>
+    
+    <!-- 翻页控制按钮 -->
+    <div class="pagination-controls" id="paginationControls" style="display: none;">
+        <button onclick="previousPage()" id="prevPageBtn">上一页</button>
+        <div class="page-info">
+            <span id="currentPage">1</span> / <span id="totalPages">1</span>
+        </div>
+        <div class="page-jump">
+            <input type="number" id="pageJumpInput" min="1" value="1" onchange="jumpToPage()">
+            <button onclick="jumpToPage()">跳转</button>
+        </div>
+        <button onclick="nextPage()" id="nextPageBtn">下一页</button>
+    </div>
+    
+    <!-- 翻页设置面板 -->
+    <div class="pagination-settings" id="paginationSettings">
+        <div class="pagination-settings-content">
+            <h3>翻页设置</h3>
+            <button class="pagination-settings-close" onclick="togglePaginationSettings()">×</button>
+            
+            <div class="setting-item">
+                <label>翻页效果：</label>
+                <select id="pageEffectSelect" onchange="changePageEffect(this.value)">
+                    <option value="none">无效果</option>
+                    <option value="slide">滑动效果</option>
+                    <option value="fade">淡入淡出</option>
+                    <option value="flip">翻转效果</option>
+                    <option value="realistic">仿真翻页</option>
+                    <option value="book">书页翻页</option>
+                </select>
+            </div>
+            
+            <div class="setting-item">
+                <label>自动翻页：</label>
+                <select id="autoPageTurnSelect" onchange="changeAutoPageTurn(this.value)">
+                    <option value="off">关闭</option>
+                    <option value="10">10秒</option>
+                    <option value="15">15秒</option>
+                    <option value="30">30秒</option>
+                    <option value="60">60秒</option>
+                </select>
+            </div>
+            
+            <div class="setting-actions">
+                <button onclick="resetPaginationSettings()">重置</button>
+                <button onclick="togglePaginationSettings()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- 内容区域 -->
     <div class="content" id="content">
         {content}
@@ -1468,6 +2127,17 @@ class BrowserReader:
     <script>
         // 当前设置
         let currentSettings = {str(settings)};
+        
+        // 全局主题变量
+        const themes = {str(BrowserReader.THEMES)};
+        
+        // 翻页功能变量
+        let isPaginationMode = false;
+        let currentPageIndex = 0;
+        let pages = [];
+        let pageEffect = 'none';
+        let autoPageTurnTimer = null;
+        let autoPageTurnInterval = 0;
 
         // 自动保存进度定时器
         let saveProgressTimer = null;
@@ -1538,6 +2208,11 @@ class BrowserReader:
             body.style.fontSize = (currentSize + delta) + 'px';
             currentSettings['font_size'] = String(currentSize + delta);
             saveSettings();
+            
+            // 如果在翻页模式，更新翻页样式
+            if (isPaginationMode) {{
+                updatePaginationStyles(currentSettings);
+            }}
         }}
 
         // 切换字体设置面板
@@ -1554,6 +2229,11 @@ class BrowserReader:
                 document.body.style.fontFamily = font.value;
                 currentSettings['font_family'] = font.value;
                 saveSettings();
+                
+                // 如果在翻页模式，更新翻页样式
+                if (isPaginationMode) {{
+                    updatePaginationStyles(currentSettings);
+                }}
             }}
         }}
 
@@ -1592,6 +2272,11 @@ class BrowserReader:
             document.body.style.color = color;
             currentSettings['text'] = color;
             saveSettings();
+            
+            // 如果在翻页模式，更新翻页样式
+            if (isPaginationMode) {{
+                updatePaginationStyles(currentSettings);
+            }}
         }}
 
         // 修改背景颜色
@@ -1599,6 +2284,11 @@ class BrowserReader:
             document.body.style.backgroundColor = color;
             currentSettings['background'] = color;
             saveSettings();
+            
+            // 如果在翻页模式，更新翻页样式
+            if (isPaginationMode) {{
+                updatePaginationStyles(currentSettings);
+            }}
         }}
 
         // 修改字间距
@@ -1626,7 +2316,6 @@ class BrowserReader:
 
         // 重置字体设置
         function resetFontSettings() {{
-            const themes = {str(BrowserReader.THEMES)};
             const defaultSettings = themes['light'];
 
             document.body.style.fontWeight = 'normal';
@@ -1934,7 +2623,6 @@ class BrowserReader:
 
         // 切换主题
         function changeTheme(theme) {{
-            const themes = {str(BrowserReader.THEMES)};
             const selectedTheme = themes[theme];
             
             document.body.style.backgroundColor = selectedTheme.background;
@@ -1943,7 +2631,19 @@ class BrowserReader:
             document.body.style.lineHeight = selectedTheme.line_height;
             document.body.style.fontFamily = selectedTheme.font_family;
             
-            currentSettings = selectedTheme;
+            currentSettings = {{...selectedTheme}};
+            
+            // 更新UI控件
+            const themeSelect = document.getElementById('themeSelect');
+            if (themeSelect) {{
+                themeSelect.value = getThemeName(selectedTheme);
+            }}
+            
+            // 如果在翻页模式，更新翻页样式
+            if (isPaginationMode) {{
+                updatePaginationStyles(currentSettings);
+            }}
+            
             saveSettings();
         }}
         
@@ -2126,6 +2826,9 @@ class BrowserReader:
             document.body.style.wordSpacing = settings.word_spacing + 'px';
             document.body.style.textAlign = settings.text_align;
 
+            // 更新翻页模式的样式
+            updatePaginationStyles(settings);
+
             // 更新UI控件
             const fontColorInput = document.getElementById('fontColorInput');
             const bgColorInput = document.getElementById('bgColorInput');
@@ -2140,7 +2843,247 @@ class BrowserReader:
             if (themeSelect) themeSelect.value = getThemeName(settings);
 
             currentSettings = {{...settings}};
-            saveSettings();
+            
+            // 只在设置真正改变时才保存
+            const currentSettingsStr = JSON.stringify(currentSettings);
+            const savedSettingsStr = localStorage.getItem('readerSettings');
+            if (currentSettingsStr !== savedSettingsStr) {{
+                saveSettings();
+            }}
+        }}
+        
+        // 更新翻页模式的进度
+        function updatePaginationProgress() {{
+            if (!isPaginationMode || pages.length === 0) return;
+            
+            // 计算进度百分比
+            const pageProgress = ((currentPageIndex + 1) / pages.length) * 100;
+            
+            // 更新进度条
+            const progressFill = document.getElementById('progressFill');
+            if (progressFill) {{
+                progressFill.style.width = pageProgress + '%';
+            }}
+            
+            // 更新进度信息
+            const progressInfo = document.getElementById('progressInfo');
+            if (progressInfo) {{
+                progressInfo.textContent = '进度: ' + pageProgress.toFixed(1) + '% (第' + (currentPageIndex + 1) + '页/共' + pages.length + '页)' + getBackendStatusText();
+            }}
+            
+            // 触发进度保存
+            triggerPaginationProgressSave(pageProgress);
+        }}
+        
+        // 触发翻页模式下的进度保存
+        function triggerPaginationProgressSave(progress) {{
+            // 页面加载冷却期间不保存
+            const elapsedTime = Date.now() - pageLoadStartTime;
+            if (elapsedTime < pageLoadCooldown) {{
+                console.log('页面加载冷却期间,跳过自动保存:', Math.round(elapsedTime / 1000), 's/', Math.round(pageLoadCooldown / 1000), 's');
+                return;
+            }}
+
+            if (saveProgressTimer) {{
+                clearTimeout(saveProgressTimer);
+            }}
+
+            saveProgressTimer = setTimeout(() => {{
+                savePaginationProgress(progress);
+            }}, saveProgressInterval);
+        }}
+        
+        // 加载翻页模式下的进度
+        function loadPaginationProgress() {{
+            console.log('开始加载翻页模式进度，LOAD_PROGRESS_URL:', LOAD_PROGRESS_URL);
+            if (!LOAD_PROGRESS_URL) {{
+                console.log('LOAD_PROGRESS_URL 为空，跳过加载进度');
+                return;
+            }}
+
+            fetch(LOAD_PROGRESS_URL)
+                .then(response => {{
+                    console.log('服务器响应状态:', response.status);
+                    return response.json();
+                }})
+                .then(data => {{
+                    console.log('加载到的翻页进度数据:', data);
+                    if (data && data.progress !== undefined && pages.length > 0) {{
+                        // 从数据库加载的是小数(0-1),转换为百分比(0-100)
+                        const progressDecimal = parseFloat(data.progress);
+                        const loadedProgress = progressDecimal * 100;  // 转换为百分比
+                        
+                        // 根据进度计算目标页码
+                        const targetPage = Math.min(Math.floor(progressDecimal * pages.length), pages.length - 1);
+                        
+                        console.log('解析翻页进度 - progressDecimal:', progressDecimal, 'loadedProgress:', loadedProgress + '%', 'targetPage:', targetPage);
+                        
+                        // 如果进度大于0，跳转到对应页面
+                        if (loadedProgress > 0 && targetPage > 0) {{
+                            // 延迟跳转，确保DOM完全渲染
+                            setTimeout(() => {{
+                                showPage(targetPage);
+                                console.log('已恢复翻页进度:', loadedProgress + '%', '跳转到第', targetPage + 1, '页');
+                            }}, 300);
+                        }} else {{
+                            console.log('进度为0，从第一页开始');
+                        }}
+                    }} else {{
+                        console.log('进度数据不完整或无效:', data);
+                    }}
+                }})
+                .catch(err => {{
+                    console.log('加载翻页进度失败:', err);
+                }});
+        }}
+        
+        // 保存翻页模式下的进度
+        function savePaginationProgress(progress) {{
+            console.log('开始保存翻页模式进度，SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
+            if (!SAVE_PROGRESS_URL) {{
+                console.log('SAVE_PROGRESS_URL 为空，跳过保存进度');
+                return;
+            }}
+
+            // 检测后端是否在线
+            const backendOnline = checkBackendStatus();
+            if (!backendOnline) {{
+                console.log('后端离线，跳过保存进度');
+                updateBackendStatusDisplay();
+                return;
+            }}
+
+            // 计算页面相关的进度信息
+            const totalPages = pages.length;
+            const currentPage = currentPageIndex + 1;
+            
+            // 估算总字数
+            let totalWordCount = 0;
+            if (window.cachedWordCount) {{
+                totalWordCount = window.cachedWordCount;
+            }} else {{
+                // 从所有页面计算字数
+                pages.forEach(page => {{
+                    totalWordCount += page.textContent.replace(/\s+/g, '').length;
+                }});
+                window.cachedWordCount = totalWordCount;
+            }}
+            
+            // 估算已读字数（基于页数比例）
+            const readWordCount = Math.floor(totalWordCount * (currentPage / totalPages));
+            
+            // 估算滚动位置（用于兼容）
+            const estimatedScrollTop = (currentPageIndex / totalPages) * 10000; // 假设每10000px代表全书
+            
+            const data = {{
+                progress: (progress / 100).toFixed(15), // 转换为小数(0-1)
+                scrollTop: estimatedScrollTop,
+                scrollHeight: 10000, // 固定高度用于兼容
+                current_page: currentPage,
+                total_pages: totalPages,
+                word_count: readWordCount,
+                timestamp: Date.now()
+            }};
+            
+            console.log('翻页模式保存数据:', data);
+
+            fetch(SAVE_PROGRESS_URL, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }},
+                body: JSON.stringify(data)
+            }}).then(response => {{
+                console.log('保存翻页进度响应状态:', response.status);
+                if (response.ok) {{
+                    isBackendOnline = true;
+                    updateBackendStatusDisplay();
+                }}
+            }}).catch(err => {{
+                console.log('保存翻页进度失败:', err);
+                isBackendOnline = false;
+                updateBackendStatusDisplay();
+            }});
+        }}
+        
+        // 更新翻页模式的样式
+        function updatePaginationStyles(settings) {{
+            const paginationContainer = document.getElementById('paginationContainer');
+            const pageContentEl = document.getElementById('pageContent');
+            
+            if (paginationContainer) {{
+                paginationContainer.style.backgroundColor = settings.background;
+                paginationContainer.style.color = settings.text;
+                paginationContainer.style.fontFamily = settings.font_family;
+                paginationContainer.style.fontSize = settings.font_size + 'px';
+                paginationContainer.style.lineHeight = settings.line_height;
+                paginationContainer.style.fontWeight = settings.font_weight;
+                paginationContainer.style.fontStyle = settings.font_style;
+                paginationContainer.style.textDecoration = settings.text_decoration;
+                paginationContainer.style.letterSpacing = settings.letter_spacing + 'px';
+                paginationContainer.style.wordSpacing = settings.word_spacing + 'px';
+                paginationContainer.style.textAlign = settings.text_align;
+            }}
+            
+            if (pageContent) {{
+                pageContent.style.backgroundColor = settings.background;
+                pageContent.style.color = settings.text;
+                pageContent.style.fontFamily = settings.font_family;
+                pageContent.style.fontSize = settings.font_size + 'px';
+                pageContent.style.lineHeight = settings.line_height;
+                pageContent.style.fontWeight = settings.font_weight;
+                pageContent.style.fontStyle = settings.font_style;
+                pageContent.style.textDecoration = settings.text_decoration;
+                pageContent.style.letterSpacing = settings.letter_spacing + 'px';
+                pageContent.style.wordSpacing = settings.word_spacing + 'px';
+                pageContent.style.textAlign = settings.text_align;
+                
+                // 更新页面内容内部的所有元素样式
+                updatePageContentElements(pageContent, settings);
+            }}
+        }}
+        
+        // 更新页面内容内部元素的样式
+        function updatePageContentElements(pageContent, settings) {{
+            // 更新标题样式
+            const headers = pageContent.querySelectorAll('h1, h2, h3');
+            headers.forEach(header => {{
+                header.style.color = settings.title;
+            }});
+            
+            // 更新段落样式
+            const paragraphs = pageContent.querySelectorAll('p');
+            paragraphs.forEach(p => {{
+                p.style.color = settings.text;
+                p.style.fontFamily = settings.font_family;
+                p.style.fontSize = settings.font_size + 'px';
+                p.style.lineHeight = settings.line_height;
+                p.style.fontWeight = settings.font_weight;
+                p.style.fontStyle = settings.font_style;
+                p.style.textDecoration = settings.text_decoration;
+                p.style.letterSpacing = settings.letter_spacing + 'px';
+                p.style.wordSpacing = settings.word_spacing + 'px';
+                p.style.textAlign = settings.text_align;
+            }});
+            
+            // 更新所有文本元素
+            const textElements = pageContent.querySelectorAll('div, span, article, section');
+            textElements.forEach(element => {{
+                if (!element.classList.contains('page-book-shadow') && 
+                    !element.classList.contains('page-curve') && 
+                    !element.classList.contains('page-thickness')) {{
+                    element.style.color = settings.text;
+                    element.style.fontFamily = settings.font_family;
+                    element.style.fontSize = settings.font_size + 'px';
+                    element.style.lineHeight = settings.line_height;
+                    element.style.fontWeight = settings.font_weight;
+                    element.style.fontStyle = settings.font_style;
+                    element.style.textDecoration = settings.text_decoration;
+                    element.style.letterSpacing = settings.letter_spacing + 'px';
+                    element.style.wordSpacing = settings.word_spacing + 'px';
+                    element.style.textAlign = settings.text_align;
+                }}
+            }});
         }}
 
         // 夜间模式切换
@@ -2914,14 +3857,35 @@ class BrowserReader:
         function loadSettings() {{
             const saved = localStorage.getItem('readerSettings');
             if (saved) {{
-                currentSettings = JSON.parse(saved);
-                applySettings(currentSettings);
+                try {{
+                    currentSettings = JSON.parse(saved);
+                    applySettings(currentSettings);
+                }} catch (e) {{
+                    console.error('加载设置失败:', e);
+                    // 使用默认设置
+                    currentSettings = {str(BrowserReader.THEMES['light'])};
+                    applySettings(currentSettings);
+                }}
             }} else {{
                 // 首次加载，检测系统主题
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 if (prefersDark) {{
-                    changeTheme('dark');
+                    currentSettings = themes['dark'];
+                    applySettings(currentSettings);
+                }} else {{
+                    currentSettings = themes['light'];
+                    applySettings(currentSettings);
                 }}
+            }}
+            
+            // 恢复翻页模式状态
+            const savedPaginationMode = localStorage.getItem('paginationMode');
+            if (savedPaginationMode === 'true') {{
+                console.log('恢复翻页模式状态');
+                // 延迟切换到翻页模式，确保DOM完全加载
+                setTimeout(() => {{
+                    togglePaginationMode();
+                }}, 500);
             }}
         }}
         
@@ -2929,7 +3893,6 @@ class BrowserReader:
         
         // 获取主题名称
         function getThemeName(settings) {{
-            const themes = {str(BrowserReader.THEMES)};
             for (const [name, theme] of Object.entries(themes)) {{
                 if (theme.background === settings.background) {{
                     return name;
@@ -2945,19 +3908,35 @@ class BrowserReader:
 
             switch(e.key) {{
                 case 'ArrowUp':
-                    window.scrollBy({{ top: -window.innerHeight * 0.8, behavior: 'smooth' }});
+                    if (isPaginationMode) {{
+                        previousPage();
+                    }} else {{
+                        window.scrollBy({{ top: -window.innerHeight * 0.8, behavior: 'smooth' }});
+                    }}
                     e.preventDefault();
                     break;
                 case 'ArrowDown':
-                    window.scrollBy({{ top: window.innerHeight * 0.8, behavior: 'smooth' }});
+                    if (isPaginationMode) {{
+                        nextPage();
+                    }} else {{
+                        window.scrollBy({{ top: window.innerHeight * 0.8, behavior: 'smooth' }});
+                    }}
                     e.preventDefault();
                     break;
                 case 'PageUp':
-                    window.scrollBy({{ top: -window.innerHeight * 0.9, behavior: 'smooth' }});
+                    if (isPaginationMode) {{
+                        previousPage();
+                    }} else {{
+                        window.scrollBy({{ top: -window.innerHeight * 0.9, behavior: 'smooth' }});
+                    }}
                     e.preventDefault();
                     break;
                 case 'PageDown':
-                    window.scrollBy({{ top: window.innerHeight * 0.9, behavior: 'smooth' }});
+                    if (isPaginationMode) {{
+                        nextPage();
+                    }} else {{
+                        window.scrollBy({{ top: window.innerHeight * 0.9, behavior: 'smooth' }});
+                    }}
                     e.preventDefault();
                     break;
                 case 'Home':
@@ -3028,6 +4007,11 @@ class BrowserReader:
                 case 'n':
                 case 'N':
                     toggleNotesMode();
+                    e.preventDefault();
+                    break;
+                case 'p':
+                case 'P':
+                    togglePaginationMode();
                     e.preventDefault();
                     break;
                 case 'Escape':
@@ -3425,10 +4409,679 @@ class BrowserReader:
             }}
         }}
         
+// 尝试分割元素
+        function trySplitElement(element, remainingHeight, lineHeight) {{
+            // 只对段落和文本元素进行分割
+            const tagName = element.tagName.toLowerCase();
+            if (tagName === 'p' || tagName === 'div' || tagName === 'span') {{
+                const text = element.textContent.trim();
+                if (text.length > 0) {{
+                    return true; // 文本元素可以分割
+                }}
+            }}
+            return false; // 其他元素不分割
+        }}
+        
+        // 分割元素内容
+        function splitElementContent(element, remainingHeight, lineHeight) {{
+            const clone = element.cloneNode(true);
+            document.body.appendChild(clone);
+            clone.style.position = 'absolute';
+            clone.style.visibility = 'hidden';
+            clone.style.height = 'auto';
+            
+            const originalHeight = clone.offsetHeight;
+            document.body.removeChild(clone);
+            
+            // 如果元素高度小于剩余高度，不需要分割
+            if (originalHeight <= remainingHeight) {{
+                return {{
+                    firstPart: element,
+                    secondPart: null
+                }};
+            }}
+            
+            // 计算可以显示的行数
+            const availableLines = Math.floor(remainingHeight / lineHeight);
+            if (availableLines <= 0) {{
+                return {{
+                    firstPart: null,
+                    secondPart: element
+                }};
+            }}
+            
+            // 分割文本内容
+            const text = element.textContent.trim();
+            const words = text.split('');
+            const wordsPerLine = Math.ceil(text.length / (originalHeight / lineHeight));
+            const wordsToFit = availableLines * wordsPerLine;
+            
+            if (wordsToFit >= words.length) {{
+                return {{
+                    firstPart: element,
+                    secondPart: null
+                }};
+            }}
+            
+            // 创建两个新元素
+            const firstPart = element.cloneNode(false);
+            const secondPart = element.cloneNode(false);
+            
+            // 分割文本
+            const firstText = words.slice(0, wordsToFit).join('');
+            const secondText = words.slice(wordsToFit).join('');
+            
+            firstPart.textContent = firstText;
+            secondPart.textContent = secondText;
+            
+            return {{
+                firstPart: firstPart,
+                secondPart: secondPart
+            }};
+        }}
+        
+        // 内容分页函数
+        function paginateContent() {{
+            const content = document.getElementById('content');
+            const pageContainer = document.getElementById('paginationContainer');
+            const pageContent = document.getElementById('pageContent');
+            
+            if (!content || !pageContainer || !pageContent) return;
+            
+            // 获取可用高度
+            const containerHeight = pageContainer.offsetHeight;
+            const containerWidth = pageContainer.offsetWidth;
+            const pageContentEl = document.getElementById('pageContent');
+            const pageContentStyle = window.getComputedStyle(pageContentEl);
+            const paddingTop = parseInt(pageContentStyle.paddingTop) || 0;
+            const paddingBottom = parseInt(pageContentStyle.paddingBottom) || 0;
+            const totalPadding = paddingTop + paddingBottom;
+            const availableHeight = containerHeight - totalPadding;
+            
+            console.log('=== 分页调试信息 ===');
+            console.log('  容器尺寸:', containerWidth, 'x', containerHeight);
+            console.log('  可用高度:', availableHeight);
+            console.log('  内容元素总数:', content.children.length);
+            console.log('  容器计算样式:', window.getComputedStyle(pageContainer).height);
+            console.log('  容器实际高度:', pageContainer.getBoundingClientRect().height);
+            
+            // 克隆内容以避免修改原始内容
+            const contentClone = content.cloneNode(true);
+            contentClone.style.display = 'block';
+            contentClone.style.height = 'auto';
+            contentClone.style.overflow = 'visible';
+            contentClone.style.padding = '0';
+            contentClone.style.margin = '0';
+            
+            // 临时添加到DOM以计算高度
+            document.body.appendChild(contentClone);
+            
+            // 获取所有内容元素
+            const elements = Array.from(contentClone.children);
+            pages = [];
+            let currentPage = document.createElement('div');
+            currentPage.className = 'page';
+            let currentHeight = 0;
+            
+            // 简化的分页逻辑 - 强制按段落分页
+            let elementCount = 0;
+            elements.forEach((element, index) => {{
+                elementCount++;
+                console.log('处理元素 ' + index + ': ' + element.tagName + ' - ' + (element.textContent || '').substring(0, 30) + '...');
+                
+                // 强制分页策略：每2个段落分一页
+                if (elementCount > 2 && currentPage.children.length > 0) {{
+                    console.log('  -> 强制创建新页 (元素计数: ' + elementCount + ')');
+                    // 当前页已满，创建新页
+                    pages.push(currentPage);
+                    currentPage = document.createElement('div');
+                    currentPage.className = 'page';
+                    currentHeight = 0;
+                    elementCount = 1; // 重置计数，当前元素算作新页的第一个
+                }}
+                
+                // 正式添加元素到当前页
+                currentPage.appendChild(element);
+                currentHeight = currentPage.offsetHeight;
+                
+                console.log('  -> 已添加，当前页元素数: ' + currentPage.children.length + ', 高度: ' + currentHeight);
+            }});
+            
+            // 添加最后一页
+            if (currentPage.children.length > 0) {{
+                pages.push(currentPage);
+            }}
+            
+            // 移除临时元素
+            document.body.removeChild(contentClone);
+            
+            // 更新总页数
+            document.getElementById('totalPages').textContent = pages.length;
+            
+            // 注意：不再自动显示第一页，由调用者决定显示哪一页
+        }}
+        
+        // 显示指定页面
+        function showPage(pageIndex, direction = 'next') {{
+            if (pageIndex < 0 || pageIndex >= pages.length) return;
+            
+            const pageContent = document.getElementById('pageContent');
+            if (!pageContent) return;
+            
+            currentPageIndex = pageIndex;
+            
+            // 更新页码显示和按钮状态
+            document.getElementById('currentPage').textContent = pageIndex + 1;
+            document.getElementById('pageJumpInput').value = pageIndex + 1;
+            document.getElementById('pageJumpInput').max = pages.length;
+            document.getElementById('prevPageBtn').disabled = pageIndex === 0;
+            document.getElementById('nextPageBtn').disabled = pageIndex === pages.length - 1;
+            
+            // 计算并更新阅读进度
+            updatePaginationProgress();
+            
+            // 根据不同的翻页效果应用不同的动画
+            if (pageEffect === 'none') {{
+                // 无效果，直接更新内容
+                pageContent.innerHTML = '';
+                pageContent.appendChild(pages[pageIndex].cloneNode(true));
+            }} else if (pageEffect === 'realistic') {{
+                // 仿真翻页效果
+                applyRealisticFlipWithContent(pageContent, pageIndex, direction);
+            }} else if (pageEffect === 'book') {{
+                // 书页翻页效果
+                applyBookFlipWithContent(pageContent, pageIndex, direction);
+            }} else {{
+                // 其他效果
+                applyOtherEffectWithContent(pageContent, pageIndex, direction);
+            }}
+            
+            // 延迟更新样式，确保内容已经加载
+            setTimeout(() => {{
+                updatePaginationStyles(currentSettings);
+            }}, 100);
+        }}
+        
+        // 应用仿真翻页效果并更新内容
+        function applyRealisticFlipWithContent(element, pageIndex, direction) {{
+            // 创建新内容容器
+            const newContent = document.createElement('div');
+            newContent.className = 'page-content realistic-flip';
+            newContent.innerHTML = '';
+            newContent.appendChild(pages[pageIndex].cloneNode(true));
+            
+            // 添加阴影效果
+            const shadowLeft = document.createElement('div');
+            shadowLeft.className = 'page-shadow page-shadow-left';
+            
+            const shadowRight = document.createElement('div');
+            shadowRight.className = 'page-shadow page-shadow-right';
+            
+            newContent.appendChild(shadowLeft);
+            newContent.appendChild(shadowRight);
+            
+            // 根据方向应用不同的翻页效果
+            if (direction === 'next') {{
+                newContent.classList.add('realistic-flip-left');
+                shadowLeft.classList.add('active');
+            }} else {{
+                newContent.classList.add('realistic-flip-right');
+                shadowRight.classList.add('active');
+            }}
+            
+            // 替换内容
+            element.parentNode.replaceChild(newContent, element);
+            newContent.id = 'pageContent';
+            
+            // 动画结束后移除效果类
+            setTimeout(() => {{
+                newContent.className = 'page-content';
+                // 移除阴影元素
+                const shadows = newContent.querySelectorAll('.page-shadow');
+                shadows.forEach(shadow => shadow.remove());
+            }}, 800);
+        }}
+        
+        // 应用书页翻页效果并更新内容
+        function applyBookFlipWithContent(element, pageIndex, direction) {{
+            // 使用DocumentFragment优化性能
+            const fragment = document.createDocumentFragment();
+            
+            // 创建新内容容器
+            const newContent = document.createElement('div');
+            newContent.className = 'page-content book-flip';
+            newContent.innerHTML = '';
+            newContent.appendChild(pages[pageIndex].cloneNode(true));
+            
+            // 创建效果元素
+            const effects = [];
+            
+            // 添加书页阴影效果
+            const bookShadowNext = document.createElement('div');
+            bookShadowNext.className = 'page-book-shadow page-book-shadow-next';
+            effects.push(bookShadowNext);
+            
+            const bookShadowPrev = document.createElement('div');
+            bookShadowPrev.className = 'page-book-shadow page-book-shadow-prev';
+            effects.push(bookShadowPrev);
+            
+            // 添加页面弯曲效果
+            const pageCurve = document.createElement('div');
+            pageCurve.className = 'page-curve';
+            effects.push(pageCurve);
+            
+            // 添加页面厚度效果
+            const thicknessRight = document.createElement('div');
+            thicknessRight.className = 'page-thickness page-thickness-right';
+            effects.push(thicknessRight);
+            
+            const thicknessLeft = document.createElement('div');
+            thicknessLeft.className = 'page-thickness page-thickness-left';
+            effects.push(thicknessLeft);
+            
+            // 批量添加效果元素
+            effects.forEach(effect => newContent.appendChild(effect));
+            
+            // 根据方向应用不同的翻页效果
+            if (direction === 'next') {{
+                requestAnimationFrame(() => {{
+                    newContent.classList.add('book-flip-next');
+                    bookShadowNext.classList.add('active');
+                    pageCurve.classList.add('active');
+                    thicknessRight.classList.add('active');
+                }});
+            }} else {{
+                requestAnimationFrame(() => {{
+                    newContent.classList.add('book-flip-prev');
+                    bookShadowPrev.classList.add('active');
+                    pageCurve.classList.add('active');
+                    thicknessLeft.classList.add('active');
+                }});
+            }}
+            
+            // 替换内容
+            element.parentNode.replaceChild(newContent, element);
+            newContent.id = 'pageContent';
+            
+            // 使用更精确的动画结束检测
+            const handleAnimationEnd = () => {{
+                newContent.className = 'page-content';
+                // 移除所有效果元素
+                const effectsToRemove = newContent.querySelectorAll('.page-book-shadow, .page-curve, .page-thickness');
+                effectsToRemove.forEach(effect => effect.remove());
+            }};
+            
+            // 使用setTimeout确保动画完成
+            setTimeout(handleAnimationEnd, 800);
+        }}
+        
+        // 应用其他翻页效果并更新内容
+        function applyOtherEffectWithContent(element, pageIndex, direction) {{
+            // 创建新内容容器
+            const newContent = document.createElement('div');
+            newContent.className = 'page-content';
+            newContent.innerHTML = '';
+            newContent.appendChild(pages[pageIndex].cloneNode(true));
+            
+            // 应用效果
+            switch(pageEffect) {{
+                case 'slide':
+                    newContent.classList.add('slide-effect');
+                    break;
+                case 'fade':
+                    newContent.classList.add('fade-effect');
+                    break;
+                case 'flip':
+                    newContent.classList.add('flip-effect');
+                    break;
+            }}
+            
+            // 替换内容
+            element.parentNode.replaceChild(newContent, element);
+            newContent.id = 'pageContent';
+            
+            // 动画结束后移除效果类
+            setTimeout(() => {{
+                newContent.className = 'page-content';
+            }}, 300);
+        }}
+        
+        // 应用翻页效果
+        function applyPageEffect(element, effect, direction = 'next') {{
+            element.className = 'page-content';
+            
+            switch(effect) {{
+                case 'slide':
+                    element.classList.add('slide-effect');
+                    break;
+                case 'fade':
+                    element.classList.add('fade-effect');
+                    break;
+                case 'flip':
+                    element.classList.add('flip-effect');
+                    break;
+                case 'realistic':
+                    applyRealisticFlipEffect(element, direction);
+                    break;
+                case 'book':
+                    applyBookFlipEffect(element, direction);
+                    break;
+            }}
+        }}
+        
+        // 应用书页翻页效果
+        function applyBookFlipEffect(element, direction) {{
+            element.classList.add('book-flip');
+            
+            // 添加书页阴影效果
+            const bookShadowNext = document.createElement('div');
+            bookShadowNext.className = 'page-book-shadow page-book-shadow-next';
+            
+            const bookShadowPrev = document.createElement('div');
+            bookShadowPrev.className = 'page-book-shadow page-book-shadow-prev';
+            
+            // 添加页面弯曲效果
+            const pageCurve = document.createElement('div');
+            pageCurve.className = 'page-curve';
+            
+            // 添加页面厚度效果
+            const thicknessRight = document.createElement('div');
+            thicknessRight.className = 'page-thickness page-thickness-right';
+            
+            const thicknessLeft = document.createElement('div');
+            thicknessLeft.className = 'page-thickness page-thickness-left';
+            
+            element.appendChild(bookShadowNext);
+            element.appendChild(bookShadowPrev);
+            element.appendChild(pageCurve);
+            element.appendChild(thicknessRight);
+            element.appendChild(thicknessLeft);
+            
+            // 根据方向应用不同的翻页效果
+            if (direction === 'next') {{
+                element.classList.add('book-flip-next');
+                bookShadowNext.classList.add('active');
+                pageCurve.classList.add('active');
+                thicknessRight.classList.add('active');
+            }} else {{
+                element.classList.add('book-flip-prev');
+                bookShadowPrev.classList.add('active');
+                pageCurve.classList.add('active');
+                thicknessLeft.classList.add('active');
+            }}
+            
+            // 动画结束后移除效果
+            setTimeout(() => {{
+                const effects = element.querySelectorAll('.page-book-shadow, .page-curve, .page-thickness');
+                effects.forEach(effect => effect.remove());
+            }}, 800);
+        }}
+        
+        // 应用仿真翻页效果
+        function applyRealisticFlipEffect(element, direction) {{
+            element.classList.add('realistic-flip');
+            
+            // 添加阴影效果
+            const shadowLeft = document.createElement('div');
+            shadowLeft.className = 'page-shadow page-shadow-left';
+            
+            const shadowRight = document.createElement('div');
+            shadowRight.className = 'page-shadow page-shadow-right';
+            
+            element.appendChild(shadowLeft);
+            element.appendChild(shadowRight);
+            
+            // 根据方向应用不同的翻页效果
+            if (direction === 'next') {{
+                element.classList.add('realistic-flip-left');
+                shadowLeft.classList.add('active');
+            }} else {{
+                element.classList.add('realistic-flip-right');
+                shadowRight.classList.add('active');
+            }}
+            
+            // 动画结束后移除阴影
+            setTimeout(() => {{
+                if (shadowLeft.parentNode) shadowLeft.remove();
+                if (shadowRight.parentNode) shadowRight.remove();
+            }}, 600);
+        }}
+        
+        // 上一页
+        function previousPage() {{
+            if (currentPageIndex > 0) {{
+                showPage(currentPageIndex - 1, 'prev');
+            }}
+        }}
+        
+        // 下一页
+        function nextPage() {{
+            if (currentPageIndex < pages.length - 1) {{
+                showPage(currentPageIndex + 1, 'next');
+            }}
+        }}
+        
+        // 跳转到指定页
+        function jumpToPage() {{
+            const input = document.getElementById('pageJumpInput');
+            const targetPage = parseInt(input.value) - 1;
+            
+            if (targetPage >= 0 && targetPage < pages.length) {{
+                // 确定翻页方向
+                const direction = targetPage > currentPageIndex ? 'next' : 'prev';
+                showPage(targetPage, direction);
+            }} else {{
+                input.value = currentPageIndex + 1;
+                showNotification('页码超出范围');
+            }}
+        }}
+        
+        // 执行分页和导航的辅助函数
+        function performPaginationAndNavigation() {{
+            // 获取当前滚动位置（在分页前获取）
+            const scrollTop = window.scrollY;
+            const documentHeight = document.documentElement.scrollHeight;
+            const clientHeight = window.innerHeight;
+            const scrollProgress = scrollTop / (documentHeight - clientHeight);
+            
+            // 分页
+            paginateContent();
+            
+            // 根据当前滚动位置计算应该显示的页码
+            if (scrollProgress > 0 && pages.length > 0) {{
+                const targetPage = Math.min(Math.floor(scrollProgress * pages.length), pages.length - 1);
+                console.log('根据滚动位置计算目标页码:', targetPage + 1, '/', pages.length, '进度:', (scrollProgress * 100).toFixed(1) + '%');
+                showPage(targetPage);
+            }} else {{
+                showPage(0);
+            }}
+            
+            // 更新翻页模式的样式
+            updatePaginationStyles(currentSettings);
+        }}
+        
+        // 切换翻页模式
+        function togglePaginationMode() {{
+            const toggle = document.getElementById('paginationModeToggle');
+            const icon = document.getElementById('paginationModeIcon');
+            const text = document.getElementById('paginationModeText');
+            const content = document.getElementById('content');
+            const paginationContainer = document.getElementById('paginationContainer');
+            const paginationControls = document.getElementById('paginationControls');
+            const toolbar = document.querySelector('.toolbar');
+            
+            isPaginationMode = !isPaginationMode;
+            
+            // 保存翻页模式状态到localStorage
+            localStorage.setItem('paginationMode', isPaginationMode.toString());
+            console.log('保存翻页模式状态:', isPaginationMode);
+            
+            if (isPaginationMode) {{
+                // 进入翻页模式
+                toggle.classList.add('active');
+                icon.textContent = '📄';
+                text.textContent = '滚动模式';
+                
+                // 隐藏原始内容，显示翻页容器
+                content.style.display = 'none';
+                paginationContainer.style.display = 'block';
+                paginationControls.style.display = 'flex';
+                
+                // 显示进度条和进度信息
+                const progressBar = document.querySelector('.progress-bar');
+                const progressInfo = document.getElementById('progressInfo');
+                if (progressBar) progressBar.style.display = 'block';
+                if (progressInfo) progressInfo.style.display = 'block';
+                
+                // 延迟分页，确保翻页容器完全渲染
+                setTimeout(() => {{
+                    // 检查容器是否有有效尺寸
+                    const containerHeight = paginationContainer.offsetHeight;
+                    const containerWidth = paginationContainer.offsetWidth;
+                    
+                    console.log('翻页容器初始尺寸:', containerWidth, 'x', containerHeight);
+                    
+                    // 如果容器尺寸太小，说明还没有完全渲染，需要等待更长时间
+                    if (containerHeight < 200) {{
+                        console.log('容器高度不足，等待更长时间...');
+                        setTimeout(() => {{
+                            const newHeight = paginationContainer.offsetHeight;
+                            const newWidth = paginationContainer.offsetWidth;
+                            console.log('翻页容器最终尺寸:', newWidth, 'x', newHeight);
+                            
+                            performPaginationAndNavigation();
+                        }}, 500);
+                    }} else {{
+                        performPaginationAndNavigation();
+                    }}
+                }}, 300); // 延迟300ms确保容器完全渲染
+                
+                // 隐藏滚动相关功能
+                if (toolbar) {{
+                    const scrollBtn = toolbar.querySelector('button[onclick*="AutoScroll"]');
+                    if (scrollBtn) scrollBtn.style.display = 'none';
+                }}
+                
+                showNotification('已进入翻页模式');
+            }} else {{
+                // 退出翻页模式
+                toggle.classList.remove('active');
+                icon.textContent = '📖';
+                text.textContent = '翻页模式';
+                
+                // 显示原始内容，隐藏翻页容器
+                content.style.display = 'block';
+                paginationContainer.style.display = 'none';
+                paginationControls.style.display = 'none';
+                
+                // 隐藏进度条和进度信息（如果是在专注模式下）
+                if (isFocusMode) {{
+                    const progressBar = document.querySelector('.progress-bar');
+                    const progressInfo = document.getElementById('progressInfo');
+                    if (progressBar) progressBar.style.display = 'none';
+                    if (progressInfo) progressInfo.style.display = 'none';
+                }}
+                
+                // 显示滚动相关功能
+                if (toolbar) {{
+                    const scrollBtn = toolbar.querySelector('button[onclick*="AutoScroll"]');
+                    if (scrollBtn) scrollBtn.style.display = '';
+                }}
+                
+                // 根据当前页码计算滚动位置
+                if (pages.length > 0 && currentPageIndex > 0) {{
+                    const pageProgress = currentPageIndex / pages.length;
+                    const documentHeight = document.documentElement.scrollHeight;
+                    const clientHeight = window.innerHeight;
+                    const scrollableHeight = documentHeight - clientHeight;
+                    const targetScrollTop = Math.round(pageProgress * scrollableHeight);
+                    
+                    console.log('根据页码计算滚动位置:', targetScrollTop + 'px', '页码:', currentPageIndex + 1, '/', pages.length, '进度:', (pageProgress * 100).toFixed(1) + '%');
+                    
+                    // 延迟滚动，确保DOM完全渲染
+                    setTimeout(() => {{
+                        window.scrollTo({{ top: targetScrollTop, behavior: 'smooth' }});
+                    }}, 100);
+                }}
+                
+                // 停止自动翻页
+                if (autoPageTurnTimer) {{
+                    clearInterval(autoPageTurnTimer);
+                    autoPageTurnTimer = null;
+                }}
+                
+                showNotification('已退出翻页模式');
+            }}
+        }}
+        
+        // 切换翻页设置面板
+        function togglePaginationSettings() {{
+            const panel = document.getElementById('paginationSettings');
+            panel.classList.toggle('show');
+        }}
+        
+        // 改变翻页效果
+        function changePageEffect(effect) {{
+            pageEffect = effect;
+            localStorage.setItem('pageEffect', effect);
+            showNotification('翻页效果已更改');
+        }}
+        
+        // 改变自动翻页
+        function changeAutoPageTurn(interval) {{
+            autoPageTurnInterval = parseInt(interval);
+            
+            // 清除现有定时器
+            if (autoPageTurnTimer) {{
+                clearInterval(autoPageTurnTimer);
+                autoPageTurnTimer = null;
+            }}
+            
+            // 设置新的定时器
+            if (autoPageTurnInterval > 0 && isPaginationMode) {{
+                autoPageTurnTimer = setInterval(() => {{
+                    if (currentPageIndex < pages.length - 1) {{
+                        nextPage();
+                    }} else {{
+                        // 到达最后一页，停止自动翻页
+                        clearInterval(autoPageTurnTimer);
+                        autoPageTurnTimer = null;
+                        showNotification('已到达最后一页，自动翻页已停止');
+                    }}
+                }}, autoPageTurnInterval * 1000);
+                
+                showNotification(`自动翻页已开启，每${{autoPageTurnInterval}}秒翻页`);
+            }} else {{
+                showNotification('自动翻页已关闭');
+            }}
+            
+            localStorage.setItem('autoPageTurnInterval', interval);
+        }}
+        
+        // 重置翻页设置
+        function resetPaginationSettings() {{
+            document.getElementById('pageEffectSelect').value = 'none';
+            document.getElementById('autoPageTurnSelect').value = 'off';
+            
+            changePageEffect('none');
+            changeAutoPageTurn(0);
+            
+            showNotification('翻页设置已重置');
+        }}
+        
         // 监听滚动事件，更新进度和当前章节
         window.addEventListener('scroll', () => {{
-            updateProgress();
-            highlightCurrentChapter();
+            if (!isPaginationMode) {{
+                updateProgress();
+                highlightCurrentChapter();
+            }}
+        }});
+        
+        // 监听窗口大小改变，重新计算分页
+        window.addEventListener('resize', () => {{
+            if (isPaginationMode) {{
+                paginateContent();
+            }}
         }});
         
         // 页面加载时恢复设置和进度
@@ -3462,14 +5115,60 @@ class BrowserReader:
             
             // 初始化夜间模式状态
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (prefersDark && !isNightMode) {{
-                toggleNightMode();
+            // 注意：不要在这里自动切换主题，因为loadSettings()已经处理了主题加载
+            // 只有在没有保存设置的情况下才使用系统主题偏好
+            if (!localStorage.getItem('readerSettings') && prefersDark && !isNightMode) {{
+                // 检查当前设置是否已经是深色主题，如果不是才切换
+                if (currentSettings.background !== themes['dark'].background) {{
+                    toggleNightMode();
+                }}
             }}
+            
+            // 加载翻页设置
+            const savedPageEffect = localStorage.getItem('pageEffect') || 'none';
+            const savedAutoPageTurn = localStorage.getItem('autoPageTurnInterval') || '0';
+            
+            document.getElementById('pageEffectSelect').value = savedPageEffect;
+            document.getElementById('autoPageTurnSelect').value = savedAutoPageTurn;
+            
+            pageEffect = savedPageEffect;
+            autoPageTurnInterval = parseInt(savedAutoPageTurn);
 
             // 延迟加载进度，等待内容完全渲染
             setTimeout(() => {{
                 console.log('延迟加载进度开始，文档高度:', document.documentElement.scrollHeight);
-                loadProgress();
+                
+                // 检查是否需要恢复翻页模式
+                const savedPaginationMode = localStorage.getItem('paginationMode');
+                
+                if (savedPaginationMode === 'true') {{
+                    // 先切换到翻页模式，然后加载进度
+                    setTimeout(() => {{
+                        if (isPaginationMode) {{
+                            // 确保页面已经分页完成后再加载进度
+                            if (pages && pages.length > 0) {{
+                                // 翻页模式下，从后端加载进度并跳转到对应页面
+                                loadPaginationProgress();
+                            }} else {{
+                                // 如果页面还未分页，等待分页完成后再加载进度
+                                setTimeout(() => {{
+                                    if (pages && pages.length > 0) {{
+                                        loadPaginationProgress();
+                                    }} else {{
+                                        console.log('页面分页失败，使用滚动模式加载进度');
+                                        loadProgress();
+                                    }}
+                                }}, 1000);
+                            }}
+                        }} else {{
+                            console.log('翻页模式未正确激活，使用滚动模式加载进度');
+                            loadProgress();
+                        }}
+                    }}, 500);
+                }} else {{
+                    // 滚动模式下，正常加载进度
+                    loadProgress();
+                }}
 
                 // 延迟取消冷却标记,允许正常自动保存
                 setTimeout(() => {{
