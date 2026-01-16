@@ -308,7 +308,7 @@ class Book:
         """加载阅读位置信息的实现"""
         # 从数据库获取阅读信息
         reading_info = db_manager.get_book_reading_info(self.path)
-        
+
         if reading_info:
             # 更新阅读位置信息
             self.current_position = reading_info.get('current_position', 0)
@@ -317,13 +317,23 @@ class Book:
             self.reading_progress = reading_info.get('reading_progress', 0.0)
             self.last_read_date = reading_info.get('last_read_date')
             self.word_count = reading_info.get('word_count', 0)
-            
+
             # 如果有锚点信息，也加载
             if 'anchor_text' in reading_info:
                 self.anchor_text = reading_info.get('anchor_text', '')
             if 'anchor_hash' in reading_info:
                 self.anchor_hash = reading_info.get('anchor_hash', '')
-            
+
+            # 如果没有保存 current_position 但有进度,说明是浏览器阅读器保存的
+            # 根据进度百分比和总页数计算页码
+            if self.current_position == 0 and self.reading_progress > 0 and self.total_pages > 0:
+                self.current_page = int(self.reading_progress * self.total_pages)
+                # 估算字符偏移量 (假设每页字符数相同)
+                if hasattr(self, '_content') and self._content:
+                    chars_per_page = len(self._content) // self.total_pages if self.total_pages > 0 else 0
+                    self.current_position = int(self.reading_progress * len(self._content))
+                logger.info(f"根据浏览器阅读进度计算页码和位置: 页码={self.current_page}, 位置={self.current_position}")
+
             logger.info(f"成功加载上次阅读位置: {self.title} - 位置: {self.current_position}, 页码: {self.current_page}/{self.total_pages}")
             return True
         else:

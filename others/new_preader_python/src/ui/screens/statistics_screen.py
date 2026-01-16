@@ -332,13 +332,14 @@ class StatisticsScreen(Screen[None]):
             else:
                 for idx, book_stats in enumerate(self.book_stats):
                     reading_time = book_stats.get("reading_time", 0)
-                    progress = book_stats.get("progress", 0)
-                    
+                    # 数据库中存储的是小数(0-1),需要乘以100转换为百分比显示
+                    progress = book_stats.get("progress", 0) * 100
+
                     virtual_data.append({
                         "title": book_stats.get("title", get_global_i18n().t("statistics.unknown_book")),
                         "reading_time": self._format_time(reading_time),
                         "open_count": str(book_stats.get('open_count', 0)),
-                        "progress": f"{progress * 100:.1f}%",
+                        "progress": f"{progress:.1f}%",
                         "_row_key": f"book_{idx}"
                     })
             
@@ -421,7 +422,9 @@ class StatisticsScreen(Screen[None]):
                 db_manager = DatabaseManager()
                 
                 for idx, book in enumerate(self.book_stats[:10]):  # 只显示前10本
-                    progress = book.get("progress", 0)
+                    # 数据库中存储的是小数(0-1),需要乘以100转换为百分比显示
+                    progress = book.get("progress", 0) * 100
+
                     book_path = book.get("path", "")
                     
                     # 从book_metadata表中获取当前页和总页数
@@ -460,7 +463,7 @@ class StatisticsScreen(Screen[None]):
                         "title": book.get("title", get_global_i18n().t("statistics.unknown_book")),
                         "current_page": current_page,
                         "total_pages": total_pages,
-                        "progress": f"{progress * 100:.1f}%",
+                        "progress": f"{progress:.1f}%",
                         "_row_key": f"progress_{idx}"
                     })
             

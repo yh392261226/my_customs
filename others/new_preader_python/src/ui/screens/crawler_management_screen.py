@@ -4,6 +4,8 @@
 
 import os
 import glob
+import subprocess
+import platform
 from send2trash import send2trash
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
@@ -408,6 +410,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.status'), key="status")
         table.add_column(get_global_i18n().t('crawler.view_file'), key="view_file")
         table.add_column(get_global_i18n().t('crawler.read_book'), key="read_book")
+        table.add_column("浏览器阅读", key="browser_read_book")
         table.add_column(get_global_i18n().t('crawler.delete_file'), key="delete_file")
         table.add_column(get_global_i18n().t('crawler.delete_record'), key="delete_record")
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
@@ -665,6 +668,7 @@ class CrawlerManagementScreen(Screen[None]):
                     "status": item["status"],
                     "view_file": get_global_i18n().t('crawler.view_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
                     "read_book": get_global_i18n().t('crawler.read_book') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "browser_read_book": get_global_i18n().t('crawler.browser_read_book') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
                     "delete_file": get_global_i18n().t('crawler.delete_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
                     "delete_record": get_global_i18n().t('crawler.delete_record'),
                     "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
@@ -1547,11 +1551,11 @@ class CrawlerManagementScreen(Screen[None]):
                 self._handle_cell_selection(row_key)
                 
             # 处理其他列的按钮点击
-            elif column in ["view_file", "read_book", "delete_file", "delete_record", "view_reason", "retry"]:
+            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry"]:
                 self._handle_button_click(column, row_key)
                 
             # 处理空格键选择：当点击任何非按钮列时，触发选择切换
-            elif column not in ["selected", "view_file", "read_book", "delete_file", "delete_record", "view_reason", "retry"]:
+            elif column not in ["selected", "view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry"]:
                 self._handle_cell_selection(row_key)
                     
         except Exception as e:
@@ -1578,6 +1582,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self._view_file(history_item)
             elif column == "read_book":
                 self._read_book(history_item)
+            elif column == "browser_read_book":
+                self._read_book_in_browser(history_item)
             elif column == "delete_file":
                 self._delete_file(history_item)
             elif column == "delete_record":
@@ -2919,6 +2925,134 @@ class CrawlerManagementScreen(Screen[None]):
                 
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_failed')}: {str(e)}", "error")
+    
+    def _read_book_in_browser(self, history_item: Dict[str, Any]) -> None:
+        """使用浏览器阅读书籍"""
+        try:
+            from src.utils.browser_reader import BrowserReader
+            
+            file_path = history_item.get('file_path')
+            
+            # 如果文件路径为空或为"already_exists"，尝试从数据库中重新获取
+            if not file_path or file_path == 'already_exists':
+                site_id = self.novel_site.get('id')
+                novel_id = history_item.get('novel_id')
+                if site_id and novel_id:
+                    crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    if crawl_history:
+                        # 获取最新的成功记录
+                        for record in crawl_history:
+                            if record.get('status') == 'success' and record.get('file_path') and record.get('file_path') != 'already_exists':
+                                file_path = record.get('file_path')
+                                # 更新内存中的记录
+                                history_item['file_path'] = file_path
+                                break
+            
+            if not file_path:
+                self._update_status(get_global_i18n().t('crawler.no_file_path'))
+                return
+                
+            # 如果文件路径仍然是"already_exists"，尝试查找实际文件
+            if file_path == 'already_exists':
+                # 尝试根据小说标题查找文件
+                novel_title = history_item.get('novel_title', '')
+                storage_folder = self.novel_site.get('storage_folder', 'novels')
+                
+                # 查找可能的文件
+                storage_folder = os.path.expanduser(storage_folder)
+                possible_files = glob.glob(os.path.join(storage_folder, f"*{novel_title}*"))
+                if possible_files:
+                    file_path = possible_files[0]  # 使用第一个匹配的文件
+                    # 更新内存中的记录
+                    history_item['file_path'] = file_path
+                else:
+                    self._update_status(f"{get_global_i18n().t('crawler.file_not_exists')}get_global_i18n().t('crawler.not_found')")
+                    return
+            
+            if not os.path.exists(file_path):
+                self._update_status(get_global_i18n().t('crawler.file_not_exists'))
+                return
+            
+            # 保存进度回调
+            def on_progress_save(progress: float, scroll_top: int, scroll_height: int) -> None:
+                """保存阅读进度"""
+                logger.info(f"收到保存进度回调: progress={progress:.4f} (小数), scrollTop={scroll_top}px, scrollHeight={scroll_height}px")
+                try:
+                    # 保存阅读进度到数据库
+                    from src.core.bookmark import BookmarkManager
+                    bookmark_manager = BookmarkManager()
+
+                    # 计算页数（根据进度估算）
+                    total_pages = int(scroll_height / 1000)  # 假设每页1000px
+                    # progress 已经是小数(0-1),直接乘以总页数
+                    current_page = int(progress * total_pages)
+
+                    logger.info(f"准备保存到数据库: book_path={file_path}, current_page={current_page}, total_pages={total_pages}")
+
+                    # 保存阅读信息
+                    success = bookmark_manager.save_reading_info(
+                        file_path,
+                        current_page=current_page,
+                        total_pages=total_pages,
+                        reading_progress=progress,
+                        scroll_top=scroll_top,
+                        scroll_height=scroll_height
+                    )
+
+                    if success:
+                        logger.info(f"保存浏览器阅读进度成功: {progress:.4f} ({progress*100:.2f}%), 位置: {scroll_top}px")
+                    else:
+                        logger.error(f"保存浏览器阅读进度失败: save_reading_info 返回 False")
+                except Exception as e:
+                    logger.error(f"保存阅读进度异常: {e}", exc_info=True)
+            
+            # 加载进度回调
+            def on_progress_load() -> Optional[Dict[str, Any]]:
+                """加载阅读进度"""
+                try:
+                    from src.core.bookmark import BookmarkManager
+                    bookmark_manager = BookmarkManager()
+
+                    reading_info = bookmark_manager.get_reading_info(file_path)
+                    logger.debug(f"从数据库获取到阅读信息: {reading_info}")
+
+                    if reading_info:
+                        progress = reading_info.get('progress', 0)
+                        scroll_top = reading_info.get('scrollTop', 0)
+                        scroll_height = reading_info.get('scrollHeight', 0)
+
+                        # 只要有 progress 数据就返回，即使 scroll_top 为 0 也返回
+                        if progress > 0:
+                            logger.debug(f"返回阅读进度: {progress:.2f}%, 位置: {scroll_top}px, 高度: {scroll_height}px")
+                            return {
+                                'progress': progress,
+                                'scrollTop': scroll_top,
+                                'scrollHeight': scroll_height if scroll_height > 0 else 10000
+                            }
+                        else:
+                            logger.debug("阅读进度为 0，不返回进度数据")
+                    else:
+                        logger.debug("数据库中没有阅读进度数据")
+                except Exception as e:
+                    logger.error(f"加载阅读进度失败: {e}")
+
+                return None
+            
+            # 使用自定义浏览器阅读器打开，支持进度同步
+            success, message = BrowserReader.open_book_in_browser(
+                file_path,
+                on_progress_save=on_progress_save,
+                on_progress_load=on_progress_load
+            )
+            
+            if success:
+                book_title = history_item.get('novel_title', get_global_i18n().t('crawler.unknown_book'))
+                self._update_status(f"{message}: {book_title}", "success")
+            else:
+                self._update_status(message, "error")
+                
+        except Exception as e:
+            self._update_status(f"浏览器打开失败: {str(e)}", "error")
     
     def _retry_crawl(self, history_item: Dict[str, Any]) -> None:
         """重试爬取失败的记录"""

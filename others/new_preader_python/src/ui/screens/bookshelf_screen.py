@@ -3,6 +3,7 @@
 """
 
 
+import os
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from webbrowser import get
 from src.core import book
@@ -125,6 +126,7 @@ class BookshelfScreen(Screen[None]):
             (get_global_i18n().t("bookshelf.progress"), "progress"),
             (get_global_i18n().t("bookshelf.tags"), "tags"),
             (get_global_i18n().t("bookshelf.read"), "read_action"),  # 阅读按钮列
+            (get_global_i18n().t("bookshelf.browser_read"), "browser_read_action"),  # 浏览器阅读按钮列
             (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
             (get_global_i18n().t("bookshelf.rename"), "rename_action"),  # 重命名按钮列
             (get_global_i18n().t("bookshelf.delete"), "delete_action"),  # 删除按钮列
@@ -307,6 +309,8 @@ class BookshelfScreen(Screen[None]):
         for label, key in self.columns:
             if key == "read_action" and not can_read:
                 continue
+            if key == "browser_read_action" and not can_read:
+                continue
             if key == "view_action" and not can_view:
                 continue
             if key == "delete_action" and not can_delete:
@@ -387,6 +391,8 @@ class BookshelfScreen(Screen[None]):
         cols = []
         for label, key in self.columns:
             if key == "read_action" and not can_read:
+                continue
+            if key == "browser_read_action" and not can_read:
                 continue
             if key == "view_action" and not can_view:
                 continue
@@ -686,7 +692,8 @@ class BookshelfScreen(Screen[None]):
             # 从缓存中获取阅读信息
             reading_info = reading_info_cache.get(book.path, {})
             last_read = reading_info.get('last_read_date') or ""
-            progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
+            # 数据库中存储的是小数(0-1),需要乘以100转换为百分比显示
+            progress = reading_info.get('reading_progress', 0) * 100
             
             # 格式化标签显示（直接显示逗号分隔的字符串）
             tags_display = book.tags if book.tags else ""
@@ -711,6 +718,7 @@ class BookshelfScreen(Screen[None]):
                 'progress': f"{progress:.1f}%",
                 'tags': tags_display,
                 'read_action': '',
+                'browser_read_action': '',
                 'view_action': '',
                 'rename_action': '',
                 'delete_action': '',
@@ -721,6 +729,7 @@ class BookshelfScreen(Screen[None]):
             # 根据权限设置操作按钮
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read") and not getattr(book, 'file_not_found', False):
                 row_data['read_action'] = f"[{get_global_i18n().t('bookshelf.read')}]"
+                row_data['browser_read_action'] = f"[{get_global_i18n().t('bookshelf.browser_read')}]"
             
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file") and not getattr(book, 'file_not_found', False):
                 row_data['view_action'] = f"[{get_global_i18n().t('bookshelf.view_file')}]"
@@ -746,6 +755,7 @@ class BookshelfScreen(Screen[None]):
                 row_data['progress'],
                 row_data['tags'],
                 row_data['read_action'],
+                row_data['browser_read_action'],
                 row_data['view_action'],
                 row_data['rename_action'],
                 row_data['delete_action']
@@ -1157,7 +1167,8 @@ class BookshelfScreen(Screen[None]):
                 # 从缓存中获取阅读信息
                 reading_info = reading_info_cache.get(book.path, {})
                 last_read = reading_info.get('last_read_date') or ""
-                progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
+                # 数据库中存储的是小数(0-1),需要乘以100转换为百分比显示
+                progress = reading_info.get('reading_progress', 0) * 100
                 
                 # 格式化标签显示（直接显示逗号分隔的字符串）
                 tags_display = book.tags if book.tags else ""
@@ -1376,9 +1387,9 @@ class BookshelfScreen(Screen[None]):
                         
                     book_id = book.path
                     
-                    # 处理操作按钮列（阅读、查看文件、重命名、删除）
-                    # 列索引从0开始：8=阅读, 9=查看文件, 10=重命名, 11=删除
-                    if column_key in [8, 9, 10, 11]:
+                    # 处理操作按钮列（阅读、浏览器阅读、查看文件、重命名、删除）
+                    # 列索引从0开始：8=阅读, 9=浏览器阅读, 10=查看文件, 11=重命名, 12=删除
+                    if column_key in [8, 9, 10, 11, 12]:
                         
                         # 根据列索引执行不同的操作
                         if column_key == 8:  # 阅读按钮列
@@ -1387,19 +1398,25 @@ class BookshelfScreen(Screen[None]):
                                 self._open_book_fallback(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
-                        elif column_key == 9:  # 查看文件按钮列
+                        elif column_key == 9:  # 浏览器阅读按钮列
+                            self.logger.info(f"点击浏览器阅读按钮打开书籍: {book_id}")
+                            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+                                self._open_book_in_browser(book_id)
+                            else:
+                                self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
+                        elif column_key == 10:  # 查看文件按钮列
                             self.logger.info(f"点击查看文件按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
                                 self._view_file(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
-                        elif column_key == 10:  # 重命名按钮列
+                        elif column_key == 11:  # 重命名按钮列
                             self.logger.info(f"点击重命名按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.rename_book"):
                                 self._rename_book(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
-                        elif column_key == 11:  # 删除按钮列
+                        elif column_key == 12:  # 删除按钮列
                             self.logger.info(f"点击删除按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
                                 self._delete_book(book_id)
@@ -1581,6 +1598,103 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"查看文件失败: {e}")
             self.notify(f"{get_global_i18n().t("bookshelf.view_file_failed")}: {e}", severity="error")
+    
+    def _open_book_in_browser(self, book_path: str) -> None:
+        """使用浏览器打开书籍"""
+        try:
+            from src.utils.browser_reader import BrowserReader
+            
+            # 检查文件是否存在
+            if not os.path.exists(book_path):
+                self.notify(f"{get_global_i18n().t("bookshelf.file_not_exists")}: {book_path}", severity="error")
+                return
+            
+            # 获取书籍
+            book = self.bookshelf.get_book(book_path)
+            if not book:
+                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                return
+            
+            # 保存进度回调
+            def on_progress_save(progress: float, scroll_top: int, scroll_height: int) -> None:
+                """保存阅读进度"""
+                self.logger.info(f"收到保存进度回调: progress={progress:.4f} (小数), scrollTop={scroll_top}px, scrollHeight={scroll_height}px")
+                try:
+                    # 保存阅读进度到数据库
+                    from src.core.bookmark import BookmarkManager
+                    bookmark_manager = BookmarkManager()
+
+                    # 计算页数（根据进度估算）
+                    total_pages = int(scroll_height / 1000)  # 假设每页1000px
+                    # progress 已经是小数(0-1),直接乘以总页数
+                    current_page = int(progress * total_pages)
+
+                    self.logger.info(f"准备保存到数据库: book_path={book.path}, current_page={current_page}, total_pages={total_pages}")
+
+                    # 保存阅读信息
+                    success = bookmark_manager.save_reading_info(
+                        book.path,
+                        current_page=current_page,
+                        total_pages=total_pages,
+                        reading_progress=progress,
+                        scroll_top=scroll_top,
+                        scroll_height=scroll_height
+                    )
+
+                    if success:
+                        self.logger.info(f"保存浏览器阅读进度成功: {progress:.4f} ({progress*100:.2f}%), 位置: {scroll_top}px")
+                    else:
+                        self.logger.error(f"保存浏览器阅读进度失败: save_reading_info 返回 False")
+                except Exception as e:
+                    self.logger.error(f"保存阅读进度异常: {e}", exc_info=True)
+            
+            # 加载进度回调
+            def on_progress_load() -> Optional[Dict[str, Any]]:
+                """加载阅读进度"""
+                try:
+                    from src.core.bookmark import BookmarkManager
+                    bookmark_manager = BookmarkManager()
+
+                    reading_info = bookmark_manager.get_reading_info(book.path)
+                    self.logger.debug(f"从数据库获取到阅读信息: {reading_info}")
+
+                    if reading_info:
+                        progress = reading_info.get('progress', 0)
+                        scroll_top = reading_info.get('scrollTop', 0)
+                        scroll_height = reading_info.get('scrollHeight', 0)
+
+                        # 只要有 progress 数据就返回，即使 scroll_top 为 0 也返回
+                        if progress > 0:
+                            self.logger.debug(f"返回阅读进度: {progress:.2f}%, 位置: {scroll_top}px, 高度: {scroll_height}px")
+                            return {
+                                'progress': progress,
+                                'scrollTop': scroll_top,
+                                'scrollHeight': scroll_height if scroll_height > 0 else 10000
+                            }
+                        else:
+                            self.logger.debug("阅读进度为 0，不返回进度数据")
+                    else:
+                        self.logger.debug("数据库中没有阅读进度数据")
+                except Exception as e:
+                    self.logger.error(f"加载阅读进度失败: {e}")
+
+                return None
+            
+            # 使用自定义浏览器阅读器打开，支持进度同步
+            success, message = BrowserReader.open_book_in_browser(
+                book_path,
+                on_progress_save=on_progress_save,
+                on_progress_load=on_progress_load
+            )
+            
+            if success:
+                self.notify(message, severity="information")
+            else:
+                self.notify(message, severity="error")
+            
+        except Exception as e:
+            self.logger.error(f"浏览器打开书籍失败: {e}")
+            self.notify(f"浏览器打开书籍失败: {e}", severity="error")
     
     def _rename_book(self, book_path: str) -> None:
         """重命名书籍"""
@@ -1848,7 +1962,8 @@ class BookshelfScreen(Screen[None]):
                     # 从reading_history表获取阅读信息
                     reading_info = self.bookshelf.get_book_reading_info(book.path)
                     last_read = reading_info.get('last_read_date') or ""
-                    progress = reading_info.get('reading_progress', 0) * 100  # 转换为百分比
+                    # 数据库中存储的是小数(0-1),需要乘以100转换为百分比显示
+                    progress = reading_info.get('reading_progress', 0) * 100
                     
                     # 格式化标签显示（直接显示逗号分隔的字符串）
                     tags_display = book.tags if book.tags else ""
