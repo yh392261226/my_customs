@@ -63,6 +63,61 @@ class BrowserReader:
             "font_family": '"Georgia", "Microsoft YaHei", serif',
             "width": "800px",
             "padding": "40px"
+        },
+        "matrix": {
+            "name": "黑客绿主题",
+            "background": "#000000",
+            "text": "#00ff00",
+            "title": "#00ff00",
+            "line_height": "1.8",
+            "font_size": "18",
+            "font_family": '"Courier New", monospace',
+            "width": "800px",
+            "padding": "40px"
+        },
+        "ocean": {
+            "name": "海洋蓝主题",
+            "background": "#0a1628",
+            "text": "#7dd3fc",
+            "title": "#38bdf8",
+            "line_height": "1.8",
+            "font_size": "18",
+            "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "width": "800px",
+            "padding": "40px"
+        },
+        "forest": {
+            "name": "森林绿主题",
+            "background": "#0d1f0d",
+            "text": "#90EE90",
+            "title": "#98FB98",
+            "line_height": "1.8",
+            "font_size": "18",
+            "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "width": "800px",
+            "padding": "40px"
+        },
+        "warm": {
+            "name": "暖色调主题",
+            "background": "#fef3c7",
+            "text": "#78350f",
+            "title": "#451a03",
+            "line_height": "1.8",
+            "font_size": "18",
+            "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "width": "800px",
+            "padding": "40px"
+        },
+        "purple": {
+            "name": "紫罗兰主题",
+            "background": "#2d1b4e",
+            "text": "#e9d5ff",
+            "title": "#d8b4fe",
+            "line_height": "1.8",
+            "font_size": "18",
+            "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "width": "800px",
+            "padding": "40px"
         }
     }
     
@@ -177,6 +232,268 @@ class BrowserReader:
             font-size: 12px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             z-index: 1000;
+            min-width: 100px;
+        }}
+
+        /* 快捷键提示 */
+        .keyboard-hint {{
+            position: fixed;
+            bottom: 45px;
+            right: 10px;
+            background: {settings['background']};
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 998;
+            max-width: 200px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+        }}
+
+        .keyboard-hint h4 {{
+            margin: 0 0 5px 0;
+            font-size: 12px;
+            color: {settings['title']};
+        }}
+
+        .keyboard-hint ul {{
+            margin: 0;
+            padding-left: 15px;
+        }}
+
+        .keyboard-hint li {{
+            margin: 2px 0;
+        }}
+
+        .keyboard-hint kbd {{
+            background: rgba(128, 128, 128, 0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }}
+
+        /* 章节目录 */
+        .toc-container {{
+            position: fixed;
+            right: 20px;
+            top: 80px;
+            width: 250px;
+            max-height: 70vh;
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 998;
+            overflow-y: auto;
+            display: none;
+            transition: all 0.3s ease;
+        }}
+
+        .toc-container.show {{
+            display: block;
+        }}
+
+        .toc-header {{
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: {settings['background']};
+            z-index: 1;
+        }}
+
+        .toc-header h3 {{
+            margin: 0;
+            font-size: 16px;
+            color: {settings['title']};
+        }}
+
+        .toc-close {{
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: {settings['text']};
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }}
+
+        .toc-close:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+
+        .toc-list {{
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }}
+
+        .toc-item {{
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+        }}
+
+        .toc-item:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+
+        .toc-item.h1 {{
+            font-weight: bold;
+            padding-left: 16px;
+        }}
+
+        .toc-item.h2 {{
+            padding-left: 32px;
+        }}
+
+        .toc-item.h3 {{
+            padding-left: 48px;
+        }}
+
+        .toc-item.active {{
+            background: rgba(100, 149, 237, 0.15);
+            border-left: 3px solid rgba(100, 149, 237, 0.6);
+        }}
+
+        /* 目录切换按钮 */
+        .toc-toggle-btn {{
+            position: fixed;
+            right: 20px;
+            top: 70px;
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 997;
+            transition: all 0.2s;
+        }}
+
+        .toc-toggle-btn:hover {{
+            background: rgba(128, 128, 128, 0.1);
+            transform: scale(1.05);
+        }}
+
+        /* 搜索框 */
+        .search-container {{
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: {settings['background']};
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 997;
+            display: none;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+        }}
+
+        .search-container.show {{
+            display: block;
+        }}
+
+        .search-container input {{
+            width: 200px;
+            padding: 6px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.05);
+            color: {settings['text']};
+            font-size: 14px;
+            margin-right: 5px;
+        }}
+
+        .search-container button {{
+            padding: 6px 12px;
+            background: rgba(100, 149, 237, 0.6);
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }}
+
+        .search-container button:hover {{
+            background: rgba(100, 149, 237, 0.8);
+        }}
+
+        .search-count {{
+            font-size: 12px;
+            margin-left: 10px;
+            color: {settings['text']};
+        }}
+
+        /* 书签按钮 */
+        .bookmark-btn {{
+            position: fixed;
+            right: 70px;
+            top: 70px;
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 997;
+            transition: all 0.2s;
+        }}
+
+        .bookmark-btn:hover {{
+            background: rgba(128, 128, 128, 0.1);
+            transform: scale(1.05);
+        }}
+
+        .bookmark-btn.bookmarked {{
+            color: #ffd700;
+            border-color: #ffd700;
+        }}
+
+        /* 阅读统计 */
+        .reading-stats {{
+            position: fixed;
+            bottom: 140px;
+            right: 10px;
+            background: {settings['background']};
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 997;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            min-width: 120px;
+        }}
+
+        .reading-stats p {{
+            margin: 3px 0;
+        }}
+
+        /* 高亮搜索结果 */
+        ::-webkit-input-placeholder {{
+            color: rgba(128, 128, 128, 0.5);
         }}
         
         /* 工具栏样式 */
@@ -276,29 +593,80 @@ class BrowserReader:
     
     <!-- 进度信息 -->
     <div class="progress-info" id="progressInfo">进度: 0%</div>
+
+    <!-- 快捷键提示 -->
+    <div class="keyboard-hint" id="keyboardHint">
+        <h4>快捷键</h4>
+        <ul>
+            <li><kbd>+</kbd>/<kbd>-</kbd> 字体大小</li>
+            <li><kbd>↑</kbd>/<kbd>↓</kbd> 翻页</li>
+            <li><kbd>Home</kbd>/<kbd>End</kbd> 首尾</li>
+            <li><kbd>c</kbd> 章节目录</li>
+            <li><kbd>s</kbd> 搜索</li>
+            <li><kbd>b</kbd> 书签</li>
+            <li><kbd>f</kbd> 全屏</li>
+            <li><kbd>h</kbd> 隐藏提示</li>
+        </ul>
+    </div>
+
+    <!-- 阅读统计 -->
+    <div class="reading-stats" id="readingStats">
+        <p>阅读时间: <span id="readingTime">0:00</span></p>
+        <p>已读字数: <span id="wordCount">0</span></p>
+    </div>
     
     <!-- 工具栏 -->
     <div class="toolbar">
         <button onclick="changeFontSize(-2)">A-</button>
         <button onclick="changeFontSize(2)">A+</button>
-        
+
         <label>
             主题：
             <select id="themeSelect" onchange="changeTheme(this.value)">
                 <option value="light">浅色</option>
                 <option value="dark">深色</option>
                 <option value="sepia">羊皮纸</option>
+                <option value="matrix">黑客绿</option>
+                <option value="ocean">海洋蓝</option>
+                <option value="forest">森林绿</option>
+                <option value="warm">暖色调</option>
+                <option value="purple">紫罗兰</option>
             </select>
         </label>
-        
+
         <label>
             行高：
             <input type="range" min="1.2" max="2.5" step="0.1" value="{settings['line_height']}" onchange="changeLineHeight(this.value)">
         </label>
-        
+
+        <button onclick="toggleSearch()">搜索</button>
         <button onclick="scrollToTop()">顶部</button>
         <button onclick="scrollToBottom()">底部</button>
         <button onclick="printContent()">打印</button>
+        <button onclick="toggleTOC()">目录</button>
+    </div>
+
+    <!-- 搜索框 -->
+    <div class="search-container" id="searchContainer">
+        <input type="text" id="searchInput" placeholder="搜索内容..." onkeypress="handleSearchKeypress(event)">
+        <button onclick="searchText()">搜索</button>
+        <button onclick="searchNext()">下一个</button>
+        <span class="search-count" id="searchCount"></span>
+    </div>
+
+    <!-- 目录切换按钮 -->
+    <button class="toc-toggle-btn" onclick="toggleTOC()" title="目录">☰</button>
+
+    <!-- 书签按钮 -->
+    <button class="bookmark-btn" id="bookmarkBtn" onclick="toggleBookmark()" title="书签">🔖</button>
+
+    <!-- 章节目录 -->
+    <div class="toc-container" id="tocContainer">
+        <div class="toc-header">
+            <h3>章节目录</h3>
+            <button class="toc-close" onclick="toggleTOC()">×</button>
+        </div>
+        <ul class="toc-list" id="tocList"></ul>
     </div>
     
     <!-- 内容区域 -->
@@ -327,6 +695,50 @@ class BrowserReader:
         // 进度API地址
         const SAVE_PROGRESS_URL = {f'"{save_progress_url}"' if save_progress_url else 'null'};
         const LOAD_PROGRESS_URL = {f'"{load_progress_url}"' if load_progress_url else 'null'};
+
+        // 后端在线状态
+        let isBackendOnline = true;
+
+        // 检测后端是否在线
+        async function checkBackendStatus() {{
+            if (!SAVE_PROGRESS_URL && !LOAD_PROGRESS_URL) {{
+                isBackendOnline = false;
+                return false;
+            }}
+
+            try {{
+                const checkUrl = SAVE_PROGRESS_URL || LOAD_PROGRESS_URL;
+                const response = await fetch(checkUrl.replace(/save_progress|load_progress/, 'health_check'), {{
+                    method: 'GET',
+                    cache: 'no-cache',
+                    timeout: 3000
+                }}).catch(() => null);
+
+                if (response && response.ok) {{
+                    isBackendOnline = true;
+                    return true;
+                }} else {{
+                    // 尝试HEAD请求作为备用检测
+                    const headResponse = await fetch(checkUrl, {{
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        cache: 'no-cache'
+                    }}).catch(() => null);
+
+                    isBackendOnline = headResponse !== null;
+                    return isBackendOnline;
+                }}
+            }} catch (error) {{
+                console.log('后端检测失败:', error);
+                isBackendOnline = false;
+                return false;
+            }}
+        }}
+
+        // 获取后端状态提示
+        function getBackendStatusText() {{
+            return isBackendOnline ? '' : '（后端离线）';
+        }}
         
         // 修改字体大小
         function changeFontSize(delta) {{
@@ -392,10 +804,19 @@ class BrowserReader:
             console.log('updateProgress - scrollTop:', scrollTop, 'scrollHeight:', scrollHeight, 'clientHeight:', clientHeight, 'scrollableHeight:', scrollableHeight, 'calculated progress:', progress);
 
             document.getElementById('progressFill').style.width = progress + '%';
-            document.getElementById('progressInfo').textContent = '进度: ' + progress.toFixed(1) + '%';
+            document.getElementById('progressInfo').textContent = '进度: ' + progress.toFixed(1) + '%' + getBackendStatusText();
 
             // 触发自动保存进度
             triggerProgressSave(progress);
+        }}
+
+        // 更新后端状态显示
+        function updateBackendStatusDisplay() {{
+            const progressInfo = document.getElementById('progressInfo');
+            if (progressInfo) {{
+                const currentText = progressInfo.textContent.replace(/（后端离线）|（后端在线）/, '').trim();
+                progressInfo.textContent = currentText + getBackendStatusText();
+            }}
         }}
         
         // 触发进度保存（防抖）
@@ -417,10 +838,18 @@ class BrowserReader:
         }}
         
         // 保存进度到服务器
-        function saveProgress(progress) {{
+        async function saveProgress(progress) {{
             console.log('开始保存进度，SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
             if (!SAVE_PROGRESS_URL) {{
                 console.log('SAVE_PROGRESS_URL 为空，跳过保存进度');
+                return;
+            }}
+
+            // 检测后端是否在线
+            const backendOnline = await checkBackendStatus();
+            if (!backendOnline) {{
+                console.log('后端离线，跳过保存进度');
+                updateBackendStatusDisplay();
                 return;
             }}
 
@@ -470,8 +899,14 @@ class BrowserReader:
                 body: JSON.stringify(data)
             }}).then(response => {{
                 console.log('保存进度响应状态:', response.status);
+                if (response.ok) {{
+                    isBackendOnline = true;
+                    updateBackendStatusDisplay();
+                }}
             }}).catch(err => {{
                 console.log('保存进度失败:', err);
+                isBackendOnline = false;
+                updateBackendStatusDisplay();
             }});
         }}
         
@@ -561,6 +996,12 @@ class BrowserReader:
             if (saved) {{
                 currentSettings = JSON.parse(saved);
                 applySettings(currentSettings);
+            }} else {{
+                // 首次加载，检测系统主题
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) {{
+                    changeTheme('dark');
+                }}
             }}
         }}
         
@@ -591,7 +1032,7 @@ class BrowserReader:
         document.addEventListener('keydown', function(e) {{
             // 防止输入框触发
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-            
+
             switch(e.key) {{
                 case 'ArrowUp':
                     window.scrollBy({{ top: -window.innerHeight * 0.8, behavior: 'smooth' }});
@@ -620,16 +1061,412 @@ class BrowserReader:
                 case '+':
                 case '=':
                     changeFontSize(2);
+                    e.preventDefault();
                     break;
                 case '-':
+                case '_':
                     changeFontSize(-2);
+                    e.preventDefault();
+                    break;
+                case 'c':
+                case 'C':
+                    toggleTOC();
+                    e.preventDefault();
+                    break;
+                case 's':
+                case 'S':
+                    toggleSearch();
+                    e.preventDefault();
+                    break;
+                case 'b':
+                case 'B':
+                    toggleBookmark();
+                    e.preventDefault();
+                    break;
+                case 'f':
+                case 'F':
+                    toggleFullscreen();
+                    e.preventDefault();
+                    break;
+                case 'h':
+                case 'H':
+                    toggleKeyboardHint();
+                    e.preventDefault();
+                    break;
+                case 'Escape':
+                    if (document.fullscreenElement) {{
+                        document.exitFullscreen();
+                    }}
+                    // 关闭搜索框
+                    const searchContainer = document.getElementById('searchContainer');
+                    if (searchContainer && searchContainer.classList.contains('show')) {{
+                        toggleSearch();
+                    }}
+                    // 关闭目录
+                    const toc = document.getElementById('tocContainer');
+                    if (toc && toc.classList.contains('show')) {{
+                        toggleTOC();
+                    }}
                     break;
             }}
         }});
+
+        // 切换全屏
+        function toggleFullscreen() {{
+            if (!document.fullscreenElement) {{
+                document.documentElement.requestFullscreen();
+            }} else {{
+                document.exitFullscreen();
+            }}
+        }}
+
+        // 切换快捷键提示显示
+        function toggleKeyboardHint() {{
+            const hint = document.getElementById('keyboardHint');
+            if (hint) {{
+                hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
+            }}
+        }}
+
+        // 生成章节目录
+        function generateTOC() {{
+            const content = document.getElementById('content');
+            const tocList = document.getElementById('tocList');
+
+            if (!content || !tocList) return;
+
+            tocList.innerHTML = '';
+
+            // 获取所有标题
+            const headers = content.querySelectorAll('h1, h2, h3');
+
+            console.log('正在生成章节目录，找到的标题数量:', headers.length);
+            headers.forEach((header, index) => {{
+                console.log('标题', index + 1, ':', header.tagName, header.textContent.substring(0, 50));
+            }});
+
+            if (headers.length === 0) {{
+                tocList.innerHTML = '<li class="toc-item">暂无章节目录</li>';
+                console.log('未找到任何标题，请在文件内容中使用章节标题格式，如：');
+                console.log('  - 第X章、第X节、第X回');
+                console.log('  - Chapter X');
+                console.log('  - Markdown格式：# 标题');
+                console.log('  - 一、二、三、');
+                return;
+            }}
+
+            // 为每个标题添加唯一ID
+            headers.forEach((header, index) => {{
+                if (!header.id) {{
+                    header.id = 'section-' + index;
+                }}
+            }});
+
+            // 生成目录项，添加章节序号
+            let h1Count = 0;
+            let h2Count = 0;
+
+            headers.forEach((header, index) => {{
+                const li = document.createElement('li');
+                li.className = 'toc-item ' + header.tagName.toLowerCase();
+
+                let chapterNumber = '';
+                if (header.tagName.toLowerCase() === 'h1') {{
+                    h1Count++;
+                    h2Count = 0;
+                    chapterNumber = h1Count + '. ';
+                }} else if (header.tagName.toLowerCase() === 'h2') {{
+                    h2Count++;
+                    chapterNumber = h1Count + '.' + h2Count + ' ';
+                }}
+
+                // 截断过长的标题（超过30个字符）
+                let titleText = header.textContent;
+                if (titleText.length > 30) {{
+                    titleText = titleText.substring(0, 30) + '...';
+                }}
+
+                li.textContent = chapterNumber + titleText;
+                li.setAttribute('data-full-title', header.textContent); // 保存完整标题
+                li.onclick = () => {{
+                    // 滚动到对应位置
+                    header.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+                    // 高亮当前章节
+                    document.querySelectorAll('.toc-item').forEach(item => item.classList.remove('active'));
+                    li.classList.add('active');
+
+                    // 关闭目录面板（可选）
+                    // toggleTOC();
+                }};
+                tocList.appendChild(li);
+            }});
+
+            console.log('已生成章节目录，共', headers.length, '个章节');
+
+            // 在目录面板添加搜索框
+            addTOCSearch();
+        }}
+
+        // 为目录添加搜索功能
+        function addTOCSearch() {{
+            const tocContainer = document.getElementById('tocContainer');
+            if (!tocContainer || tocContainer.querySelector('.toc-search')) return;
+
+            // 在标题后面添加搜索框
+            const tocHeader = tocContainer.querySelector('.toc-header');
+            if (!tocHeader) return;
+
+            const searchDiv = document.createElement('div');
+            searchDiv.className = 'toc-search';
+            searchDiv.style.cssText = 'padding: 8px 16px; border-bottom: 1px solid rgba(128, 128, 128, 0.3);';
+
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.placeholder = '搜索章节...';
+            searchInput.style.cssText = 'width: 100%; padding: 6px 10px; border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 4px; background: rgba(128, 128, 128, 0.05); color: inherit; font-size: 14px; box-sizing: border-box;';
+
+            searchInput.addEventListener('input', function(e) {{
+                const searchText = e.target.value.toLowerCase();
+                const tocItems = document.querySelectorAll('.toc-item');
+
+                tocItems.forEach(item => {{
+                    const fullTitle = item.getAttribute('data-full-title') || item.textContent;
+                    if (fullTitle.toLowerCase().includes(searchText)) {{
+                        item.style.display = 'block';
+                    }} else {{
+                        item.style.display = 'none';
+                    }}
+                }});
+            }});
+
+            searchDiv.appendChild(searchInput);
+            tocContainer.insertBefore(searchDiv, tocContainer.querySelector('.toc-list'));
+        }}
+
+        // 切换目录显示
+        function toggleTOC() {{
+            const toc = document.getElementById('tocContainer');
+            if (toc) {{
+                toc.classList.toggle('show');
+            }}
+        }}
+
+        // 监听滚动，高亮当前章节
+        function highlightCurrentChapter() {{
+            const headers = document.querySelectorAll('#content h1, #content h2, #content h3');
+            const tocItems = document.querySelectorAll('.toc-item');
+
+            if (headers.length === 0) return;
+
+            let currentHeaderIndex = -1;
+            const scrollPosition = window.scrollY + 100;
+
+            for (let i = 0; i < headers.length; i++) {{
+                const header = headers[i];
+                if (header.offsetTop <= scrollPosition) {{
+                    currentHeaderIndex = i;
+                }} else {{
+                    break;
+                }}
+            }}
+
+            tocItems.forEach((item, index) => {{
+                if (index === currentHeaderIndex) {{
+                    item.classList.add('active');
+                }} else {{
+                    item.classList.remove('active');
+                }}
+            }});
+        }}
+
+        // 搜索功能
+        let searchResults = [];
+        let currentSearchIndex = 0;
+
+        function toggleSearch() {{
+            const searchContainer = document.getElementById('searchContainer');
+            if (searchContainer) {{
+                searchContainer.classList.toggle('show');
+                if (searchContainer.classList.contains('show')) {{
+                    document.getElementById('searchInput').focus();
+                }}
+            }}
+        }}
+
+        function handleSearchKeypress(event) {{
+            if (event.key === 'Enter') {{
+                searchText();
+            }}
+        }}
+
+        function searchText() {{
+            const searchQuery = document.getElementById('searchInput').value.trim();
+            if (!searchQuery) return;
+
+            const content = document.getElementById('content');
+            if (!content) return;
+
+            // 清除之前的搜索结果高亮
+            clearSearchHighlights();
+
+            // 查找所有文本节点
+            const walker = document.createTreeWalker(
+                content,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+
+            const nodes = [];
+            let node;
+            while ((node = walker.nextNode())) {{
+                if (node.textContent.toLowerCase().includes(searchQuery.toLowerCase())) {{
+                    nodes.push(node);
+                }}
+            }}
+
+            // 高亮搜索结果
+            searchResults = [];
+            const regex = new RegExp('(' + searchQuery + ')', 'gi');
+
+            nodes.forEach((node, index) => {{
+                const span = document.createElement('span');
+                span.innerHTML = node.textContent.replace(regex, '<mark style="background: yellow; padding: 0 2px;">$1</mark>');
+                node.parentNode.replaceChild(span, node);
+                searchResults.push(span);
+            }});
+
+            document.getElementById('searchCount').textContent = '找到 ' + searchResults.length + ' 个结果';
+            currentSearchIndex = 0;
+
+            if (searchResults.length > 0) {{
+                highlightSearchResult(0);
+            }}
+        }}
+
+        function searchNext() {{
+            if (searchResults.length === 0) return;
+
+            // 清除当前高亮
+            if (searchResults[currentSearchIndex]) {{
+                searchResults[currentSearchIndex].querySelectorAll('mark').forEach(mark => {{
+                    mark.style.background = 'yellow';
+                }});
+            }}
+
+            // 移动到下一个结果
+            currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+            highlightSearchResult(currentSearchIndex);
+        }}
+
+        function highlightSearchResult(index) {{
+            const result = searchResults[index];
+            if (!result) return;
+
+            const marks = result.querySelectorAll('mark');
+            marks.forEach(mark => {{
+                mark.style.background = 'orange';
+            }});
+
+            // 滚动到搜索结果
+            result.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        }}
+
+        function clearSearchHighlights() {{
+            const content = document.getElementById('content');
+            if (!content) return;
+
+            const marks = content.querySelectorAll('mark');
+            marks.forEach(mark => {{
+                const parent = mark.parentNode;
+                parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                parent.normalize();
+            }});
+        }}
+
+        // 书签功能
+        function toggleBookmark() {{
+            const bookmarkBtn = document.getElementById('bookmarkBtn');
+            const scrollTop = window.scrollY;
+            const progress = (scrollTop / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+
+            if (bookmarkBtn.classList.contains('bookmarked')) {{
+                // 移除书签
+                bookmarkBtn.classList.remove('bookmarked');
+                localStorage.removeItem('bookmark');
+                console.log('书签已移除');
+            }} else {{
+                // 添加书签
+                bookmarkBtn.classList.add('bookmarked');
+                localStorage.setItem('bookmark', JSON.stringify({{
+                    scrollTop: scrollTop,
+                    progress: progress,
+                    timestamp: Date.now()
+                }}));
+                console.log('书签已添加:', scrollTop, progress.toFixed(2) + '%');
+            }}
+        }}
+
+        function loadBookmark() {{
+            const bookmarkData = localStorage.getItem('bookmark');
+            if (bookmarkData) {{
+                try {{
+                    const bookmark = JSON.parse(bookmarkData);
+                    const bookmarkBtn = document.getElementById('bookmarkBtn');
+                    if (bookmarkBtn) {{
+                        bookmarkBtn.classList.add('bookmarked');
+                    }}
+                    console.log('已加载书签:', bookmark);
+                }} catch (e) {{
+                    console.error('加载书签失败:', e);
+                }}
+            }}
+        }}
+
+        function jumpToBookmark() {{
+            const bookmarkData = localStorage.getItem('bookmark');
+            if (bookmarkData) {{
+                try {{
+                    const bookmark = JSON.parse(bookmarkData);
+                    window.scrollTo({{ top: bookmark.scrollTop, behavior: 'smooth' }});
+                    console.log('已跳转到书签位置');
+                }} catch (e) {{
+                    console.error('跳转到书签失败:', e);
+                }}
+            }}
+        }}
+
+        // 阅读统计
+        let readingStartTime = Date.now();
+        let readingTimer = null;
+
+        function updateReadingStats() {{
+            const elapsedTime = Math.floor((Date.now() - readingStartTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60);
+            const seconds = elapsedTime % 60;
+
+            document.getElementById('readingTime').textContent =
+                minutes + ':' + seconds.toString().padStart(2, '0');
+
+            // 计算已读字数（基于滚动位置）
+            const scrollTop = window.scrollY;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = window.innerHeight;
+            const progress = scrollTop / (scrollHeight - clientHeight);
+
+            // 估算总字数
+            const content = document.getElementById('content');
+            if (content) {{
+                const totalWords = content.textContent.replace(/\s+/g, '').length;
+                const readWords = Math.floor(totalWords * progress);
+                document.getElementById('wordCount').textContent = readWords;
+            }}
+        }}
         
-        // 监听滚动事件，更新进度
+        // 监听滚动事件，更新进度和当前章节
         window.addEventListener('scroll', () => {{
             updateProgress();
+            highlightCurrentChapter();
         }});
         
         // 页面加载时恢复设置和进度
@@ -639,6 +1476,14 @@ class BrowserReader:
             console.log('页面加载完成，开始初始化');
             console.log('文档高度:', document.documentElement.scrollHeight, '视口高度:', window.innerHeight);
 
+            // 生成章节目录
+            setTimeout(() => {{
+                generateTOC();
+            }}, 500);
+
+            // 加载书签状态
+            loadBookmark();
+
             // 延迟加载进度，等待内容完全渲染
             setTimeout(() => {{
                 console.log('延迟加载进度开始，文档高度:', document.documentElement.scrollHeight);
@@ -647,9 +1492,12 @@ class BrowserReader:
                 // 延迟取消冷却标记,允许正常自动保存
                 setTimeout(() => {{
                     isPageLoading = false;
-                    console.log('页面加载冷却结束,允许自动保存');
+                    console.log('页面加载冷却结束,允许正常自动保存');
                 }}, pageLoadCooldown);
             }}, 1000);
+
+            // 启动阅读统计定时器
+            readingTimer = setInterval(updateReadingStats, 1000);
         }};
         
         // 页面关闭前保存进度
@@ -717,19 +1565,186 @@ class BrowserReader:
                 ext = Path(file_path).suffix.lower()
                 
                 if ext == '.txt':
-                    # TXT文件：将段落转换为HTML
+                    # TXT文件：智能识别章节标题并转换为HTML
                     paragraphs = content.split('\n')
                     html_content = ''
+
+                    # 常见的章节标题模式
+                    chapter_patterns = [
+                        r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]',
+                        r'^Chapter\s*\d+',
+                        r'^Part\s*\d+',
+                        r'^第\d+[章节回篇]',
+                        r'^[零一二三四五六七八九十百千万]+、',
+                        r'^[一二三四五六七八九十]+、',
+                        r'^\d+[\.、\s]+[^\s]+',
+                        r'^卷[一二三四五六七八九十百千万\d]+',
+                        r'^篇[一二三四五六七八九十百千万\d]+',
+                        r'^序\s*[言章篇]',
+                        r'^前\s*言',
+                        r'^引\s*言',
+                        r'^楔\s*子',
+                        r'^尾声',
+                        r'^后记',
+                        r'^【.*】',
+                        r'^\[.*\]',
+                        r'^<.*>',
+                        r'^=+\s*.*\s*=+',  # Markdown风格的h1
+                        r'^-+\s*.*\s*-',   # Markdown风格的h2
+                    ]
+
+                    import re
+
                     for para in paragraphs:
                         para = para.strip()
-                        if para:
+                        if not para:
+                            continue
+
+                        # 检查是否是章节标题
+                        is_chapter = False
+                        for pattern in chapter_patterns:
+                            if re.match(pattern, para, re.IGNORECASE):
+                                # 判断标题级别
+                                if re.match(r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]', para) or re.match(r'^Chapter\s*\d+', para, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\d]+', para):
+                                    html_content += f'<h1>{para}</h1>'
+                                elif re.match(r'^第\d+[章节回篇]', para) or re.match(r'^Part\s*\d+', para, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\d]+', para):
+                                    html_content += f'<h2>{para}</h2>'
+                                elif re.match(r'^[零一二三四五六七八九十]+、', para) or re.match(r'^[一二三四五六七八九十]+、', para):
+                                    html_content += f'<h3>{para}</h3>'
+                                else:
+                                    html_content += f'<h3>{para}</h3>'
+                                is_chapter = True
+                                break
+
+                        if not is_chapter:
                             html_content += f'<p>{para}</p>'
+
+                    # 如果没有识别到任何章节标题，尝试自动分段
+                    if '<h1>' not in html_content and '<h2>' not in html_content and '<h3>' not in html_content:
+                        # 统计段落数量
+                        paragraph_count = html_content.count('<p>')
+                        logger.info(f'未识别到章节标题，共有 {paragraph_count} 个段落')
+
+                        # 如果段落数量大于20，尝试按照固定间隔添加章节标记
+                        if paragraph_count > 20:
+                            logger.info('段落数量较多，尝试自动分段')
+                            paragraphs_with_chapters = html_content.split('<p>')
+                            html_content_new = ''
+
+                            # 每10个段落添加一个章节标题
+                            chapter_num = 1
+                            for i, para in enumerate(paragraphs_with_chapters):
+                                if i == 0:
+                                    continue  # 跳过第一个空段落
+
+                                # 每10个段落添加章节标记
+                                if (i - 1) % 10 == 0 and i > 1:
+                                    html_content_new += f'<h3>章节 {chapter_num}</h3>'
+                                    chapter_num += 1
+
+                                if para:
+                                    html_content_new += f'<p>{para}'
+
+                            html_content = html_content_new
+
                     return html_content
                     
                 elif ext == '.md':
-                    # Markdown文件：简单处理（可以使用markdown库增强）
-                    import markdown
-                    return markdown.markdown(content)
+                    # Markdown文件：智能识别章节标题并转换为HTML
+                    paragraphs = content.split('\n')
+                    html_content = ''
+
+                    # 常见的章节标题模式
+                    chapter_patterns = [
+                        r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]',
+                        r'^Chapter\s*\d+',
+                        r'^Part\s*\d+',
+                        r'^第\d+[章节回篇]',
+                        r'^[零一二三四五六七八九十]+、',
+                        r'^[一二三四五六七八九十]+、',
+                        r'^\d+[\.、\s]+[^\s]+',
+                        r'^卷[一二三四五六七八九十百千万\d]+',
+                        r'^篇[一二三四五六七八九十百千万\d]+',
+                        r'^序\s*[言章篇]',
+                        r'^前\s*言',
+                        r'^引\s*言',
+                        r'^楔\s*子',
+                        r'^尾声',
+                        r'^后记',
+                        r'^【.*】',
+                        r'^\[.*\]',
+                        r'^<.*>',
+                    ]
+
+                    import re
+
+                    for line in paragraphs:
+                        line = line.strip()
+                        if not line:
+                            continue
+
+                        # 检查是否是Markdown标准标题
+                        if line.startswith('###'):
+                            # 三级标题
+                            title = line.lstrip('#').strip()
+                            html_content += f'<h3>{title}</h3>'
+                        elif line.startswith('##'):
+                            # 二级标题
+                            title = line.lstrip('#').strip()
+                            html_content += f'<h2>{title}</h2>'
+                        elif line.startswith('#'):
+                            # 一级标题
+                            title = line.lstrip('#').strip()
+                            html_content += f'<h1>{title}</h1>'
+                        else:
+                            # 检查是否是章节标题
+                            is_chapter = False
+                            for pattern in chapter_patterns:
+                                if re.match(pattern, line, re.IGNORECASE):
+                                    # 判断标题级别
+                                    if re.match(r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]', line) or re.match(r'^Chapter\s*\d+', line, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\d]+', line):
+                                        html_content += f'<h1>{line}</h1>'
+                                    elif re.match(r'^第\d+[章节回篇]', line) or re.match(r'^Part\s*\d+', line, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\d]+', line):
+                                        html_content += f'<h2>{line}</h2>'
+                                    elif re.match(r'^[零一二三四五六七八九十]+、', line) or re.match(r'^[一二三四五六七八九十]+、', line):
+                                        html_content += f'<h3>{line}</h3>'
+                                    else:
+                                        html_content += f'<h3>{line}</h3>'
+                                    is_chapter = True
+                                    break
+
+                            if not is_chapter:
+                                html_content += f'<p>{line}</p>'
+
+                    # 如果没有识别到任何章节标题，尝试自动分段
+                    if '<h1>' not in html_content and '<h2>' not in html_content and '<h3>' not in html_content:
+                        # 统计段落数量
+                        paragraph_count = html_content.count('<p>')
+                        logger.info(f'未识别到章节标题，共有 {paragraph_count} 个段落')
+
+                        # 如果段落数量大于20，尝试按照固定间隔添加章节标记
+                        if paragraph_count > 20:
+                            logger.info('段落数量较多，尝试自动分段')
+                            paragraphs_with_chapters = html_content.split('<p>')
+                            html_content_new = ''
+
+                            # 每10个段落添加一个章节标题
+                            chapter_num = 1
+                            for i, para in enumerate(paragraphs_with_chapters):
+                                if i == 0:
+                                    continue  # 跳过第一个空段落
+
+                                # 每10个段落添加章节标记
+                                if (i - 1) % 10 == 0 and i > 1:
+                                    html_content_new += f'<h3>章节 {chapter_num}</h3>'
+                                    chapter_num += 1
+
+                                if para:
+                                    html_content_new += f'<p>{para}'
+
+                            html_content = html_content_new
+
+                    return html_content
                     
                 else:
                     # 其他格式：直接返回，将换行转换为段落
@@ -899,9 +1914,13 @@ class BrowserReader:
                         else:
                             self.send_response(404)
                             self.end_headers()
-                    else:
-                        self.send_response(404)
-                        self.end_headers()
+                elif self.path == '/health_check':
+                    # 健康检查
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({{"status": "ok"}}).encode())
                 else:
                     self.send_response(404)
                     self.end_headers()
