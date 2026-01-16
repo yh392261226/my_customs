@@ -217,7 +217,7 @@ class BookmarkManager:
 
     def save_reading_info(self, book_path: str, current_page: int = 0, total_pages: int = 0,
                          reading_progress: float = 0.0, scroll_top: int = 0, scroll_height: int = 0,
-                         user_id: Optional[int] = None) -> bool:
+                         word_count: Optional[int] = None, user_id: Optional[int] = None) -> bool:
         """
         保存阅读信息到数据库
 
@@ -228,6 +228,7 @@ class BookmarkManager:
             reading_progress: 阅读进度（0-1的小数）
             scroll_top: 浏览器滚动位置（像素）
             scroll_height: 浏览器内容总高度（像素）
+            word_count: 字数（可选）
             user_id: 用户ID，如果为None则使用默认值0
 
         Returns:
@@ -242,14 +243,49 @@ class BookmarkManager:
             metadata_json = self.db_manager.get_book_metadata(book_path, user_id)
             metadata = {}
             previous_progress = 0.0
+            previous_reading_time = 0
             if metadata_json:
                 try:
                     metadata = json.loads(metadata_json)
                     previous_progress = metadata.get('reading_progress', 0.0)
+                    previous_reading_time = metadata.get('reading_time', 0)
                     logger.info(f"从数据库加载到现有元数据: {metadata}")
                 except json.JSONDecodeError as e:
                     logger.warning(f"解析现有元数据失败: {e}")
                     pass
+            else:
+                # 如果没有现有元数据，初始化完整的元数据
+                import os
+                file_name = os.path.basename(book_path)
+                title = os.path.splitext(file_name)[0]
+                author = "未知作者"
+                format_ext = os.path.splitext(book_path)[1].lower()
+
+                # 尝试从books表中获取作者信息
+                try:
+                    with sqlite3.connect(self.db_manager.db_path) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT title, author FROM books WHERE path = ?", (book_path,))
+                        result = cursor.fetchone()
+                        if result:
+                            if result[0]:  # title
+                                title = result[0]
+                            if result[1]:  # author
+                                author = result[1]
+                            logger.info(f"从books表获取到书籍信息: title={title}, author={author}")
+                except Exception as e:
+                    logger.warning(f"从books表获取书籍信息失败: {e}")
+
+                metadata = {
+                    'path': book_path,
+                    'title': title,
+                    'author': author,
+                    'format': format_ext,
+                    'current_position': 0,
+                    'reading_time': 0,
+                    'last_read_date': datetime.now().isoformat()
+                }
+                logger.info(f"初始化新元数据: {metadata}")
 
             # 更新元数据
             metadata['current_page'] = current_page
@@ -257,6 +293,18 @@ class BookmarkManager:
             metadata['reading_progress'] = reading_progress
             metadata['scroll_top'] = scroll_top
             metadata['scroll_height'] = scroll_height
+
+            # 如果提供了字数，更新字数信息
+            if word_count is not None:
+                metadata['word_count'] = word_count
+
+            # 估算阅读时长（每次保存至少30秒，最多5分钟）
+            progress_delta = abs(reading_progress - previous_progress)
+            estimated_duration = max(30, min(300, int(progress_delta * 300)))  # 最少30秒，最多5分钟
+
+            # 更新总阅读时间
+            metadata['reading_time'] = previous_reading_time + estimated_duration
+            metadata['last_read_date'] = datetime.now().isoformat()
             metadata['last_updated'] = datetime.now().isoformat()
 
             logger.info(f"更新后的元数据: {metadata}")
@@ -274,11 +322,6 @@ class BookmarkManager:
                       datetime.now().isoformat()))
 
                 # 同时向 reading_history 表添加阅读记录
-                # 估算阅读时长：根据进度变化估算（每次保存至少30秒，最多5分钟）
-                progress_delta = abs(reading_progress - previous_progress)
-                # 如果进度变化很小，使用最小时长；如果变化很大，使用更长时长
-                estimated_duration = max(30, min(300, int(progress_delta * 300)))  # 最少30秒，最多5分钟
-
                 # 估算阅读页数
                 pages_read = max(1, int(progress_delta * total_pages)) if total_pages > 0 else 1
 

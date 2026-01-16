@@ -2972,49 +2972,63 @@ class CrawlerManagementScreen(Screen[None]):
             if not os.path.exists(file_path):
                 self._update_status(get_global_i18n().t('crawler.file_not_exists'))
                 return
-            
+
+            # 捕获文件路径，避免闭包问题
+            captured_file_path = file_path
+
             # 保存进度回调
-            def on_progress_save(progress: float, scroll_top: int, scroll_height: int) -> None:
+            logger.info(f"[爬取管理-浏览器阅读] 注册进度保存回调函数: file_path={captured_file_path}")
+            def on_progress_save(progress: float, scroll_top: int, scroll_height: int,
+                                 current_page: Optional[int] = None, total_pages: Optional[int] = None,
+                                 word_count: Optional[int] = None) -> None:
                 """保存阅读进度"""
-                logger.info(f"收到保存进度回调: progress={progress:.4f} (小数), scrollTop={scroll_top}px, scrollHeight={scroll_height}px")
+                logger.info(f"[爬取管理-浏览器阅读] 收到保存进度回调: progress={progress:.4f} (小数), scrollTop={scroll_top}px, scrollHeight={scroll_height}px")
+                if current_page is not None:
+                    logger.info(f"[爬取管理-浏览器阅读] current_page={current_page}, total_pages={total_pages}")
+                if word_count is not None:
+                    logger.info(f"[爬取管理-浏览器阅读] word_count={word_count}")
+
                 try:
                     # 保存阅读进度到数据库
                     from src.core.bookmark import BookmarkManager
                     bookmark_manager = BookmarkManager()
 
-                    # 计算页数（根据进度估算）
-                    total_pages = int(scroll_height / 1000)  # 假设每页1000px
-                    # progress 已经是小数(0-1),直接乘以总页数
-                    current_page = int(progress * total_pages)
+                    # 如果前端没有传递页数信息，根据进度估算
+                    if total_pages is None or total_pages <= 0:
+                        total_pages = int(scroll_height / 1000)  # 假设每页1000px
+                    if current_page is None:
+                        current_page = int(progress * total_pages)
 
-                    logger.info(f"准备保存到数据库: book_path={file_path}, current_page={current_page}, total_pages={total_pages}")
+                    logger.info(f"[爬取管理-浏览器阅读] 准备保存到数据库: book_path={captured_file_path}, current_page={current_page}, total_pages={total_pages}")
 
                     # 保存阅读信息
                     success = bookmark_manager.save_reading_info(
-                        file_path,
+                        captured_file_path,
                         current_page=current_page,
                         total_pages=total_pages,
                         reading_progress=progress,
                         scroll_top=scroll_top,
-                        scroll_height=scroll_height
+                        scroll_height=scroll_height,
+                        word_count=word_count if word_count is not None else None
                     )
 
                     if success:
-                        logger.info(f"保存浏览器阅读进度成功: {progress:.4f} ({progress*100:.2f}%), 位置: {scroll_top}px")
+                        logger.info(f"[爬取管理-浏览器阅读] 保存浏览器阅读进度成功: {progress:.4f} ({progress*100:.2f}%), 位置: {scroll_top}px")
                     else:
-                        logger.error(f"保存浏览器阅读进度失败: save_reading_info 返回 False")
+                        logger.error(f"[爬取管理-浏览器阅读] 保存浏览器阅读进度失败: save_reading_info 返回 False")
                 except Exception as e:
-                    logger.error(f"保存阅读进度异常: {e}", exc_info=True)
-            
+                    logger.error(f"[爬取管理-浏览器阅读] 保存阅读进度异常: {e}", exc_info=True)
+
             # 加载进度回调
+            logger.info(f"[爬取管理-浏览器阅读] 注册进度加载回调函数: file_path={captured_file_path}")
             def on_progress_load() -> Optional[Dict[str, Any]]:
                 """加载阅读进度"""
                 try:
                     from src.core.bookmark import BookmarkManager
                     bookmark_manager = BookmarkManager()
 
-                    reading_info = bookmark_manager.get_reading_info(file_path)
-                    logger.debug(f"从数据库获取到阅读信息: {reading_info}")
+                    reading_info = bookmark_manager.get_reading_info(captured_file_path)
+                    logger.debug(f"[爬取管理-浏览器阅读] 从数据库获取到阅读信息: {reading_info}")
 
                     if reading_info:
                         progress = reading_info.get('progress', 0)
@@ -3023,28 +3037,30 @@ class CrawlerManagementScreen(Screen[None]):
 
                         # 只要有 progress 数据就返回，即使 scroll_top 为 0 也返回
                         if progress > 0:
-                            logger.debug(f"返回阅读进度: {progress:.2f}%, 位置: {scroll_top}px, 高度: {scroll_height}px")
+                            logger.debug(f"[爬取管理-浏览器阅读] 返回阅读进度: {progress:.2f}%, 位置: {scroll_top}px, 高度: {scroll_height}px")
                             return {
                                 'progress': progress,
                                 'scrollTop': scroll_top,
                                 'scrollHeight': scroll_height if scroll_height > 0 else 10000
                             }
                         else:
-                            logger.debug("阅读进度为 0，不返回进度数据")
+                            logger.debug("[爬取管理-浏览器阅读] 阅读进度为 0，不返回进度数据")
                     else:
-                        logger.debug("数据库中没有阅读进度数据")
+                        logger.debug("[爬取管理-浏览器阅读] 数据库中没有阅读进度数据")
                 except Exception as e:
-                    logger.error(f"加载阅读进度失败: {e}")
+                    logger.error(f"[爬取管理-浏览器阅读] 加载阅读进度失败: {e}")
 
                 return None
-            
+
             # 使用自定义浏览器阅读器打开，支持进度同步
+            logger.info(f"[爬取管理-浏览器阅读] 正在打开浏览器阅读器: file_path={file_path}")
             success, message = BrowserReader.open_book_in_browser(
                 file_path,
                 on_progress_save=on_progress_save,
                 on_progress_load=on_progress_load
             )
-            
+            logger.info(f"[爬取管理-浏览器阅读] 浏览器阅读器打开结果: success={success}, message={message}")
+
             if success:
                 book_title = history_item.get('novel_title', get_global_i18n().t('crawler.unknown_book'))
                 self._update_status(f"{message}: {book_title}", "success")

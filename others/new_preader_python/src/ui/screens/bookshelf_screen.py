@@ -1616,18 +1616,26 @@ class BookshelfScreen(Screen[None]):
                 return
             
             # 保存进度回调
-            def on_progress_save(progress: float, scroll_top: int, scroll_height: int) -> None:
+            def on_progress_save(progress: float, scroll_top: int, scroll_height: int,
+                             current_page: Optional[int] = None, total_pages: Optional[int] = None,
+                             word_count: Optional[int] = None) -> None:
                 """保存阅读进度"""
                 self.logger.info(f"收到保存进度回调: progress={progress:.4f} (小数), scrollTop={scroll_top}px, scrollHeight={scroll_height}px")
+                if current_page is not None:
+                    self.logger.info(f"current_page={current_page}, total_pages={total_pages}")
+                if word_count is not None:
+                    self.logger.info(f"word_count={word_count}")
+
                 try:
                     # 保存阅读进度到数据库
                     from src.core.bookmark import BookmarkManager
                     bookmark_manager = BookmarkManager()
 
-                    # 计算页数（根据进度估算）
-                    total_pages = int(scroll_height / 1000)  # 假设每页1000px
-                    # progress 已经是小数(0-1),直接乘以总页数
-                    current_page = int(progress * total_pages)
+                    # 如果前端没有传递页数信息，根据进度估算
+                    if total_pages is None or total_pages <= 0:
+                        total_pages = int(scroll_height / 1000)  # 假设每页1000px
+                    if current_page is None:
+                        current_page = int(progress * total_pages)
 
                     self.logger.info(f"准备保存到数据库: book_path={book.path}, current_page={current_page}, total_pages={total_pages}")
 
@@ -1638,7 +1646,8 @@ class BookshelfScreen(Screen[None]):
                         total_pages=total_pages,
                         reading_progress=progress,
                         scroll_top=scroll_top,
-                        scroll_height=scroll_height
+                        scroll_height=scroll_height,
+                        word_count=word_count if word_count is not None else None
                     )
 
                     if success:

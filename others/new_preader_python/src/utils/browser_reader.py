@@ -29,6 +29,38 @@ _active_servers: Dict[str, Dict[str, Any]] = {}
 class BrowserReader:
     """浏览器阅读器类"""
 
+    # 可用字体列表
+    FONT_FAMILIES = {
+        "system": {
+            "name": "系统默认",
+            "value": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif"
+        },
+        "serif": {
+            "name": "宋体/衬线",
+            "value": "'SimSun', 'Songti SC', 'Times New Roman', serif"
+        },
+        "sans-serif": {
+            "name": "黑体/无衬线",
+            "value": "'SimHei', 'Microsoft YaHei', 'Arial', sans-serif"
+        },
+        "georgia": {
+            "name": "Georgia",
+            "value": "'Georgia', 'Times New Roman', serif"
+        },
+        "kai": {
+            "name": "楷体",
+            "value": "'KaiTi', 'STKaiti', '楷体', serif"
+        },
+        "fangsong": {
+            "name": "仿宋",
+            "value": "'FangSong', 'STFangsong', '仿宋', serif"
+        },
+        "monospace": {
+            "name": "等宽字体",
+            "value": "'Courier New', 'Consolas', monospace"
+        }
+    }
+
     # 默认阅读主题
     THEMES = {
         "light": {
@@ -39,6 +71,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         },
@@ -50,6 +88,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         },
@@ -61,6 +105,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         },
@@ -72,6 +122,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Courier New", monospace',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "left",
             "width": "800px",
             "padding": "40px"
         },
@@ -83,6 +139,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         },
@@ -94,6 +156,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         },
@@ -105,6 +173,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         },
@@ -116,6 +190,12 @@ class BrowserReader:
             "line_height": "1.8",
             "font_size": "18",
             "font_family": '"Georgia", "Microsoft YaHei", serif',
+            "font_weight": "normal",
+            "font_style": "normal",
+            "text_decoration": "none",
+            "letter_spacing": "0",
+            "word_spacing": "0",
+            "text_align": "justify",
             "width": "800px",
             "padding": "40px"
         }
@@ -168,6 +248,12 @@ class BrowserReader:
             font-family: {settings['font_family']};
             font-size: {settings['font_size']}px;
             line-height: {settings['line_height']};
+            font-weight: {settings['font_weight']};
+            font-style: {settings['font_style']};
+            text-decoration: {settings['text_decoration']};
+            letter-spacing: {settings['letter_spacing']}px;
+            word-spacing: {settings['word_spacing']}px;
+            text-align: {settings['text_align']};
             padding: {settings['padding']};
             margin: 0 auto;
             max-width: {settings['width']};
@@ -565,7 +651,547 @@ class BrowserReader:
         ::selection {{
             background: rgba(100, 149, 237, 0.3);
         }}
+
+        /* 设置面板 */
+        .settings-panel {{
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }}
+
+        .settings-content {{
+            padding: 20px;
+        }}
+
+        .settings-content h3 {{
+            margin: 0 0 20px 0;
+            color: {settings['title']};
+            font-size: 18px;
+            border-bottom: 2px solid rgba(128, 128, 128, 0.2);
+            padding-bottom: 10px;
+        }}
+
+        .settings-close {{
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: {settings['text']};
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }}
+
+        .settings-close:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+
+        .setting-item {{
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }}
+
+        .setting-item label {{
+            font-size: 14px;
+            color: {settings['text']};
+            min-width: 80px;
+        }}
+
+        .setting-item select,
+        .setting-item input[type="range"],
+        .setting-item input[type="color"] {{
+            flex: 1;
+            margin-left: 10px;
+        }}
+
+        .toggle-btn {{
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }}
+
+        .toggle-btn:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+
+        .toggle-btn.active {{
+            background: rgba(100, 149, 237, 0.3);
+            border-color: rgba(100, 149, 237, 0.6);
+        }}
+
+        .setting-actions {{
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(128, 128, 128, 0.2);
+        }}
+
+        .setting-actions button {{
+            flex: 1;
+            padding: 8px 16px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+        }}
+
+        .setting-actions button:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+
+        /* 笔记和高亮 */
+        .notes-tabs {{
+            display: flex;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+            margin-bottom: 15px;
+        }}
+
+        .tab-btn {{
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: {settings['text']};
+            cursor: pointer;
+            font-size: 14px;
+        }}
+
+        .tab-btn:hover {{
+            background: rgba(128, 128, 128, 0.05);
+        }}
+
+        .tab-btn.active {{
+            border-bottom-color: rgba(100, 149, 237, 0.6);
+            color: rgba(100, 149, 237, 1);
+        }}
+
+        .notes-content {{
+            min-height: 200px;
+        }}
+
+        .notes-list {{
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }}
+
+        .notes-hint {{
+            text-align: center;
+            color: rgba(128, 128, 128, 0.7);
+            font-size: 12px;
+            margin-top: 20px;
+        }}
+
+        .note-item {{
+            padding: 10px;
+            background: rgba(128, 128, 128, 0.05);
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }}
+
+        .note-item:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+
+        .note-text {{
+            margin-bottom: 5px;
+        }}
+
+        .note-time {{
+            font-size: 11px;
+            color: rgba(128, 128, 128, 0.7);
+        }}
+
+        .note-delete {{
+            float: right;
+            cursor: pointer;
+            color: rgba(255, 0, 0, 0.6);
+            font-size: 14px;
+        }}
+
+        .note-delete:hover {{
+            color: rgba(255, 0, 0, 1);
+        }}
+
+        #noteInput {{
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 4px;
+            background: {settings['background']};
+            color: {settings['text']};
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }}
+
+        .add-btn {{
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: rgba(100, 149, 237, 0.3);
+            border: 1px solid rgba(100, 149, 237, 0.6);
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }}
+
+        .add-btn:hover {{
+            background: rgba(100, 149, 237, 0.5);
+        }}
+
+        /* 高亮样式 */
+        .highlight {{
+            background-color: rgba(255, 255, 0, 0.4);
+            cursor: pointer;
+        }}
+
+        .highlight.active {{
+            background-color: rgba(255, 255, 0, 0.7);
+        }}
+
+        /* 动画 */
+        @keyframes fadeInOut {{
+            0% {{
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }}
+            15% {{
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }}
+            85% {{
+                opacity: 1;
+            }}
+            100% {{
+                opacity: 0;
+            }}
+        }}
         
+        /* 主题管理面板样式 */
+        .theme-manager-panel {{
+            max-width: 600px;
+        }}
+        
+        .theme-manager-content {{
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }}
+        
+        .current-theme-info {{
+            background: rgba(128, 128, 128, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+        }}
+        
+        .current-theme-info h4 {{
+            margin: 0 0 10px 0;
+            color: {settings['title']};
+        }}
+        
+        .current-theme-info p {{
+            margin: 5px 0;
+            font-size: 14px;
+        }}
+        
+        .theme-actions-top {{
+            display: flex;
+            justify-content: center;
+        }}
+        
+        .themes-list h4 {{
+            margin: 0 0 15px 0;
+            color: {settings['title']};
+        }}
+        
+        .theme-item {{
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(128, 128, 128, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+        }}
+        
+        .theme-name {{
+            flex: 1;
+            font-weight: bold;
+            margin-right: 10px;
+        }}
+        
+        .theme-preview {{
+            width: 60px;
+            height: 30px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-right: 10px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+        }}
+        
+        .theme-actions {{
+            display: flex;
+            gap: 5px;
+        }}
+        
+        .theme-actions button {{
+            padding: 4px 8px;
+            font-size: 12px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+        }}
+        
+        .theme-actions button:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+        
+        .no-themes {{
+            text-align: center;
+            color: rgba(128, 128, 128, 0.7);
+            padding: 20px;
+            font-style: italic;
+        }}
+        
+        /* 夜间模式切换按钮 */
+        .night-mode-toggle {{
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: {settings['background']};
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 997;
+            transition: all 0.2s;
+        }}
+        
+        .night-mode-toggle:hover {{
+            background: rgba(128, 128, 128, 0.1);
+            transform: translateX(-50%) scale(1.05);
+        }}
+        
+        .night-mode-toggle.active {{
+            background: #1a1a1a;
+            color: #ffd700;
+            border-color: #ffd700;
+        }}
+        
+        /* 全屏状态指示器 */
+        .fullscreen-indicator {{
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 3000;
+            display: none;
+        }}
+        
+        .fullscreen-indicator.show {{
+            display: block;
+        }}
+        
+        /* 增强的阅读统计面板 */
+        .reading-stats-enhanced {{
+            position: fixed;
+            bottom: 140px;
+            right: 10px;
+            background: {settings['background']};
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 997;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            min-width: 180px;
+            display: none;
+        }}
+        
+        .reading-stats-enhanced.show {{
+            display: block;
+        }}
+        
+        .reading-stats-enhanced h4 {{
+            margin: 0 0 10px 0;
+            color: {settings['title']};
+            font-size: 14px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+            padding-bottom: 5px;
+        }}
+        
+        .reading-stats-enhanced p {{
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }}
+        
+        .reading-stats-enhanced .stat-value {{
+            font-weight: bold;
+            color: {settings['title']};
+        }}
+        
+        /* 自动滚动控制面板 */
+        .auto-scroll-controls {{
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: {settings['background']};
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 997;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }}
+        
+        .auto-scroll-controls.show {{
+            display: flex;
+        }}
+        
+        .auto-scroll-controls button {{
+            padding: 6px 12px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }}
+        
+        .auto-scroll-controls button:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+        
+        .auto-scroll-controls button.active {{
+            background: rgba(100, 149, 237, 0.3);
+            border-color: rgba(100, 149, 237, 0.6);
+        }}
+        
+        .auto-scroll-controls input[type="range"] {{
+            width: 100px;
+        }}
+        
+        .scroll-speed-display {{
+            font-size: 14px;
+            font-weight: bold;
+            color: {settings['title']};
+            min-width: 30px;
+            text-align: center;
+        }}
+        
+        /* 朗读控制面板 */
+        .speech-controls {{
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: {settings['background']};
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 997;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }}
+        
+        .speech-controls.show {{
+            display: flex;
+        }}
+        
+        .speech-controls button {{
+            padding: 6px 12px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }}
+        
+        .speech-controls button:hover {{
+            background: rgba(128, 128, 128, 0.1);
+        }}
+        
+        .speech-controls button.active {{
+            background: rgba(100, 149, 237, 0.3);
+            border-color: rgba(100, 149, 237, 0.6);
+        }}
+        
+        .speech-controls select {{
+            padding: 6px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            background: {settings['background']};
+            color: {settings['text']};
+            border-radius: 4px;
+            font-size: 14px;
+        }}
+        
+        .speech-controls input[type="range"] {{
+            width: 100px;
+        }}
+        
+        .speech-status {{
+            font-size: 14px;
+            font-weight: bold;
+            color: {settings['title']};
+            min-width: 80px;
+            text-align: center;
+        }}
+
         /* 滚动条样式 */
         ::-webkit-scrollbar {{
             width: 10px;
@@ -586,6 +1212,11 @@ class BrowserReader:
     </style>
 </head>
 <body>
+    <!-- 全屏状态指示器 -->
+    <div class="fullscreen-indicator" id="fullscreenIndicator">
+        全屏模式 (按 ESC 退出)
+    </div>
+    
     <!-- 进度条 -->
     <div class="progress-bar">
         <div class="progress-fill" id="progressFill"></div>
@@ -600,12 +1231,19 @@ class BrowserReader:
         <ul>
             <li><kbd>+</kbd>/<kbd>-</kbd> 字体大小</li>
             <li><kbd>↑</kbd>/<kbd>↓</kbd> 翻页</li>
+            <li><kbd>PageUp</kbd>/<kbd>PageDown</kbd> 上下翻页</li>
             <li><kbd>Home</kbd>/<kbd>End</kbd> 首尾</li>
             <li><kbd>c</kbd> 章节目录</li>
             <li><kbd>s</kbd> 搜索</li>
             <li><kbd>b</kbd> 书签</li>
             <li><kbd>f</kbd> 全屏</li>
+            <li><kbd>F</kbd> 专注模式</li>
+            <li><kbd>a</kbd> 自动滚动</li>
+            <li><kbd>Space</kbd> 朗读选中内容</li>
             <li><kbd>h</kbd> 隐藏提示</li>
+            <li><kbd>g</kbd> 字体设置</li>
+            <li><kbd>n</kbd> 笔记/高亮</li>
+            <li><kbd>ESC</kbd> 退出全屏/专注模式</li>
         </ul>
     </div>
 
@@ -613,6 +1251,24 @@ class BrowserReader:
     <div class="reading-stats" id="readingStats">
         <p>阅读时间: <span id="readingTime">0:00</span></p>
         <p>已读字数: <span id="wordCount">0</span></p>
+        <p>阅读速度: <span id="readingSpeed">0</span> 字/分</p>
+    </div>
+    
+    <!-- 增强的阅读统计面板 -->
+    <div class="reading-stats-enhanced" id="readingStatsEnhanced">
+        <h4>阅读统计</h4>
+        <p>总阅读时间: <span class="stat-value" id="totalReadingTime">0:00</span></p>
+        <p>本次阅读时间: <span class="stat-value" id="sessionReadingTime">0:00</span></p>
+        <p>已读字数: <span class="stat-value" id="totalWordCount">0</span></p>
+        <p>阅读进度: <span class="stat-value" id="readingProgress">0%</span></p>
+        <p>平均阅读速度: <span class="stat-value" id="avgReadingSpeed">0</span> 字/分</p>
+        <p>预计剩余时间: <span class="stat-value" id="estimatedTimeLeft">--</span></p>
+    </div>
+    
+    <!-- 夜间模式切换 -->
+    <div class="night-mode-toggle" id="nightModeToggle" onclick="toggleNightMode()">
+        <span id="nightModeIcon">🌙</span>
+        <span id="nightModeText">夜间模式</span>
     </div>
     
     <!-- 工具栏 -->
@@ -631,7 +1287,9 @@ class BrowserReader:
                 <option value="forest">森林绿</option>
                 <option value="warm">暖色调</option>
                 <option value="purple">紫罗兰</option>
+                <option value="custom">自定义</option>
             </select>
+            <button onclick="showThemeManager()" style="margin-left: 5px; padding: 4px 8px; font-size: 12px;">主题管理</button>
         </label>
 
         <label>
@@ -639,11 +1297,122 @@ class BrowserReader:
             <input type="range" min="1.2" max="2.5" step="0.1" value="{settings['line_height']}" onchange="changeLineHeight(this.value)">
         </label>
 
+        <button onclick="toggleFontSettings()">字体</button>
+        <button onclick="toggleHighlightMode()">高亮</button>
+        <button onclick="toggleNotesMode()">笔记</button>
         <button onclick="toggleSearch()">搜索</button>
+        <button onclick="toggleAutoScrollPanel()">自动滚动</button>
+        <button onclick="toggleSpeech()">朗读设置</button>
+        <button onclick="toggleReadingStats()">统计</button>
+        <button onclick="toggleFocusMode()">专注模式</button>
+        <button onclick="toggleFullscreen()">全屏</button>
         <button onclick="scrollToTop()">顶部</button>
         <button onclick="scrollToBottom()">底部</button>
         <button onclick="printContent()">打印</button>
         <button onclick="toggleTOC()">目录</button>
+    </div>
+
+    <!-- 字体设置面板 -->
+    <div class="settings-panel" id="fontSettingsPanel" style="display: none;">
+        <div class="settings-content">
+            <h3>字体设置</h3>
+            <button class="settings-close" onclick="toggleFontSettings()">×</button>
+
+            <div class="setting-item">
+                <label>字体：</label>
+                <select id="fontFamilySelect" onchange="changeFontFamily(this.value)">
+                    <option value="system">系统默认</option>
+                    <option value="serif">宋体/衬线</option>
+                    <option value="sans-serif">黑体/无衬线</option>
+                    <option value="georgia">Georgia</option>
+                    <option value="kai">楷体</option>
+                    <option value="fangsong">仿宋</option>
+                    <option value="monospace">等宽字体</option>
+                </select>
+            </div>
+
+            <div class="setting-item">
+                <label>加粗：</label>
+                <button class="toggle-btn" id="boldBtn" onclick="toggleBold()">B</button>
+            </div>
+
+            <div class="setting-item">
+                <label>倾斜：</label>
+                <button class="toggle-btn" id="italicBtn" onclick="toggleItalic()">I</button>
+            </div>
+
+            <div class="setting-item">
+                <label>下划线：</label>
+                <button class="toggle-btn" id="underlineBtn" onclick="toggleUnderline()">U</button>
+            </div>
+
+            <div class="setting-item">
+                <label>字体颜色：</label>
+                <input type="color" id="fontColorInput" value="{settings['text']}" onchange="changeFontColor(this.value)">
+            </div>
+
+            <div class="setting-item">
+                <label>背景颜色：</label>
+                <input type="color" id="bgColorInput" value="{settings['background']}" onchange="changeBackgroundColor(this.value)">
+            </div>
+
+            <div class="setting-item">
+                <label>字间距：</label>
+                <input type="range" min="-2" max="5" step="0.5" value="{settings['letter_spacing']}" onchange="changeLetterSpacing(this.value)">
+                <span id="letterSpacingValue">{settings['letter_spacing']}</span>
+            </div>
+
+            <div class="setting-item">
+                <label>词间距：</label>
+                <input type="range" min="-2" max="10" step="1" value="{settings['word_spacing']}" onchange="changeWordSpacing(this.value)">
+                <span id="wordSpacingValue">{settings['word_spacing']}</span>
+            </div>
+
+            <div class="setting-item">
+                <label>对齐方式：</label>
+                <select id="textAlignSelect" onchange="changeTextAlign(this.value)">
+                    <option value="left">左对齐</option>
+                    <option value="center">居中</option>
+                    <option value="right">右对齐</option>
+                    <option value="justify">两端对齐</option>
+                </select>
+            </div>
+
+            <div class="setting-actions">
+                <button onclick="resetFontSettings()">重置</button>
+                <button onclick="toggleFontSettings()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 高亮和笔记面板 -->
+    <div class="settings-panel" id="notesPanel" style="display: none;">
+        <div class="settings-content">
+            <h3 id="notesTitle">阅读助手</h3>
+            <button class="settings-close" onclick="closeNotesPanel()">×</button>
+
+            <div class="notes-tabs">
+                <button class="tab-btn active" onclick="switchNotesTab('highlights')">高亮</button>
+                <button class="tab-btn" onclick="switchNotesTab('bookmarks')">书签</button>
+                <button class="tab-btn" onclick="switchNotesTab('notes')">笔记</button>
+            </div>
+
+            <div class="notes-content" id="highlightsTab">
+                <div class="notes-list" id="highlightsList"></div>
+                <div class="notes-hint">选中文字后点击高亮按钮添加高亮</div>
+            </div>
+
+            <div class="notes-content" id="bookmarksTab" style="display: none;">
+                <div class="notes-list" id="bookmarksList"></div>
+                <button onclick="addBookmark()" class="add-btn">添加当前书签</button>
+            </div>
+
+            <div class="notes-content" id="notesTab" style="display: none;">
+                <textarea id="noteInput" placeholder="输入笔记内容..." rows="3"></textarea>
+                <button onclick="addNote()" class="add-btn">添加笔记</button>
+                <div class="notes-list" id="notesList"></div>
+            </div>
+        </div>
     </div>
 
     <!-- 搜索框 -->
@@ -667,6 +1436,28 @@ class BrowserReader:
             <button class="toc-close" onclick="toggleTOC()">×</button>
         </div>
         <ul class="toc-list" id="tocList"></ul>
+    </div>
+    
+    <!-- 自动滚动控制面板 -->
+    <div class="auto-scroll-controls" id="autoScrollControls">
+        <button onclick="decreaseScrollSpeed()">−</button>
+        <span class="scroll-speed-display" id="scrollSpeedDisplay">1</span>
+        <button onclick="increaseScrollSpeed()">+</button>
+        <input type="range" id="scrollSpeedSlider" min="0.5" max="10" step="0.5" value="1" onchange="setScrollSpeed(this.value)">
+        <button onclick="toggleAutoScroll()" id="autoScrollToggleBtn">开始滚动</button>
+        <button onclick="resetAutoScroll()">重置</button>
+    </div>
+    
+    <!-- 朗读控制面板 -->
+    <div class="speech-controls" id="speechControls">
+        <button onclick="toggleSpeechPlayback()" id="speechPlaybackBtn">开始朗读</button>
+        <select id="voiceSelect" onchange="changeVoice(this.value)">
+            <option value="">选择语音</option>
+        </select>
+        <label>速度: <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechRate(this.value)"></label>
+        <label>音调: <input type="range" id="speechPitch" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechPitch(this.value)"></label>
+        <button onclick="stopSpeech()">停止</button>
+        <span class="speech-status" id="speechStatus">未朗读</span>
     </div>
     
     <!-- 内容区域 -->
@@ -748,7 +1539,399 @@ class BrowserReader:
             currentSettings['font_size'] = String(currentSize + delta);
             saveSettings();
         }}
-        
+
+        // 切换字体设置面板
+        function toggleFontSettings() {{
+            const panel = document.getElementById('fontSettingsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }}
+
+        // 修改字体
+        function changeFontFamily(fontKey) {{
+            const fontFamilies = {str(BrowserReader.FONT_FAMILIES)};
+            const font = fontFamilies[fontKey];
+            if (font) {{
+                document.body.style.fontFamily = font.value;
+                currentSettings['font_family'] = font.value;
+                saveSettings();
+            }}
+        }}
+
+        // 切换加粗
+        function toggleBold() {{
+            const btn = document.getElementById('boldBtn');
+            const isBold = document.body.style.fontWeight === 'bold';
+            document.body.style.fontWeight = isBold ? 'normal' : 'bold';
+            currentSettings['font_weight'] = isBold ? 'normal' : 'bold';
+            btn.classList.toggle('active', !isBold);
+            saveSettings();
+        }}
+
+        // 切换倾斜
+        function toggleItalic() {{
+            const btn = document.getElementById('italicBtn');
+            const isItalic = document.body.style.fontStyle === 'italic';
+            document.body.style.fontStyle = isItalic ? 'normal' : 'italic';
+            currentSettings['font_style'] = isItalic ? 'normal' : 'italic';
+            btn.classList.toggle('active', !isItalic);
+            saveSettings();
+        }}
+
+        // 切换下划线
+        function toggleUnderline() {{
+            const btn = document.getElementById('underlineBtn');
+            const isUnderline = document.body.style.textDecoration === 'underline';
+            document.body.style.textDecoration = isUnderline ? 'none' : 'underline';
+            currentSettings['text_decoration'] = isUnderline ? 'none' : 'underline';
+            btn.classList.toggle('active', !isUnderline);
+            saveSettings();
+        }}
+
+        // 修改字体颜色
+        function changeFontColor(color) {{
+            document.body.style.color = color;
+            currentSettings['text'] = color;
+            saveSettings();
+        }}
+
+        // 修改背景颜色
+        function changeBackgroundColor(color) {{
+            document.body.style.backgroundColor = color;
+            currentSettings['background'] = color;
+            saveSettings();
+        }}
+
+        // 修改字间距
+        function changeLetterSpacing(value) {{
+            document.body.style.letterSpacing = value + 'px';
+            currentSettings['letter_spacing'] = value;
+            document.getElementById('letterSpacingValue').textContent = value;
+            saveSettings();
+        }}
+
+        // 修改词间距
+        function changeWordSpacing(value) {{
+            document.body.style.wordSpacing = value + 'px';
+            currentSettings['word_spacing'] = value;
+            document.getElementById('wordSpacingValue').textContent = value;
+            saveSettings();
+        }}
+
+        // 修改对齐方式
+        function changeTextAlign(align) {{
+            document.body.style.textAlign = align;
+            currentSettings['text_align'] = align;
+            saveSettings();
+        }}
+
+        // 重置字体设置
+        function resetFontSettings() {{
+            const themes = {str(BrowserReader.THEMES)};
+            const defaultSettings = themes['light'];
+
+            document.body.style.fontWeight = 'normal';
+            document.body.style.fontStyle = 'normal';
+            document.body.style.textDecoration = 'none';
+            document.body.style.letterSpacing = '0px';
+            document.body.style.wordSpacing = '0px';
+            document.body.style.textAlign = 'justify';
+
+            currentSettings['font_weight'] = 'normal';
+            currentSettings['font_style'] = 'normal';
+            currentSettings['text_decoration'] = 'none';
+            currentSettings['letter_spacing'] = '0';
+            currentSettings['word_spacing'] = '0';
+            currentSettings['text_align'] = 'justify';
+
+            document.getElementById('boldBtn').classList.remove('active');
+            document.getElementById('italicBtn').classList.remove('active');
+            document.getElementById('underlineBtn').classList.remove('active');
+            document.getElementById('letterSpacingValue').textContent = '0';
+            document.getElementById('wordSpacingValue').textContent = '0';
+
+            saveSettings();
+        }}
+
+        // 高亮模式
+        let isHighlightMode = false;
+        let highlights = JSON.parse(localStorage.getItem('reader_highlights') || '[]');
+
+        function toggleHighlightMode() {{
+            isHighlightMode = !isHighlightMode;
+            const btn = event.target;
+            btn.classList.toggle('active', isHighlightMode);
+
+            if (isHighlightMode) {{
+                document.body.style.cursor = 'text';
+                showNotification('已进入高亮模式，选中文字后点击添加高亮');
+            }} else {{
+                document.body.style.cursor = 'default';
+                showNotification('已退出高亮模式');
+            }}
+        }}
+
+        function addHighlight() {{
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0 && !selection.isCollapsed) {{
+                const range = selection.getRangeAt(0);
+                const text = selection.toString();
+                const highlight = document.createElement('span');
+                highlight.className = 'highlight';
+                highlight.textContent = text;
+
+                try {{
+                    range.surroundContents(highlight);
+                    selection.removeAllRanges();
+
+                    const highlightData = {{
+                        id: Date.now(),
+                        text: text,
+                        position: Math.floor(window.scrollY)
+                    }};
+
+                    highlights.push(highlightData);
+                    localStorage.setItem('reader_highlights', JSON.stringify(highlights));
+
+                    updateHighlightsList();
+                    showNotification('高亮已添加');
+                }} catch (e) {{
+                    console.error('添加高亮失败:', e);
+                    showNotification('无法在此位置添加高亮');
+                }}
+            }}
+        }}
+
+        function updateHighlightsList() {{
+            const list = document.getElementById('highlightsList');
+            if (!list) return;
+
+            list.innerHTML = '';
+            highlights.forEach((h, index) => {{
+                const item = document.createElement('div');
+                item.className = 'note-item';
+                item.innerHTML = `
+                    <div class="note-text">${{h.text.substring(0, 50)}}...</div>
+                    <div class="note-time">位置: ${{h.position}}px</div>
+                    <span class="note-delete" onclick="deleteHighlight(${{h.id}})">×</span>
+                `;
+                item.onclick = (e) => {{
+                    if (e.target.className !== 'note-delete') {{
+                        window.scrollTo({{ top: h.position, behavior: 'smooth' }});
+                    }}
+                }};
+                list.appendChild(item);
+            }});
+        }}
+
+        function deleteHighlight(id) {{
+            highlights = highlights.filter(h => h.id !== id);
+            localStorage.setItem('reader_highlights', JSON.stringify(highlights));
+
+            const highlightElements = document.querySelectorAll('.highlight');
+            highlightElements.forEach(el => {{
+                const text = el.textContent;
+                if (highlights.find(h => h.text === text) === undefined) {{
+                    el.outerHTML = text;
+                }}
+            }});
+
+            updateHighlightsList();
+            showNotification('高亮已删除');
+        }}
+
+        // 笔记功能
+        let notes = JSON.parse(localStorage.getItem('reader_notes') || '[]');
+        let currentNoteTab = 'highlights';
+
+        function toggleNotesMode() {{
+            const panel = document.getElementById('notesPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            updateHighlightsList();
+            updateBookmarksList();
+            updateNotesList();
+        }}
+
+        function closeNotesPanel() {{
+            document.getElementById('notesPanel').style.display = 'none';
+        }}
+
+        function switchNotesTab(tab) {{
+            currentNoteTab = tab;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.notes-content').forEach(content => content.style.display = 'none');
+            document.getElementById(tab + 'Tab').style.display = 'block';
+
+            if (tab === 'highlights') {{
+                updateHighlightsList();
+            }} else if (tab === 'bookmarks') {{
+                updateBookmarksList();
+            }} else if (tab === 'notes') {{
+                updateNotesList();
+            }}
+        }}
+
+        function addNote() {{
+            const input = document.getElementById('noteInput');
+            const text = input.value.trim();
+
+            if (!text) {{
+                showNotification('请输入笔记内容');
+                return;
+            }}
+
+            const note = {{
+                id: Date.now(),
+                text: text,
+                position: Math.floor(window.scrollY),
+                time: new Date().toLocaleString()
+            }};
+
+            notes.push(note);
+            localStorage.setItem('reader_notes', JSON.stringify(notes));
+
+            input.value = '';
+            updateNotesList();
+            showNotification('笔记已添加');
+        }}
+
+        function updateNotesList() {{
+            const list = document.getElementById('notesList');
+            if (!list) return;
+
+            list.innerHTML = '';
+            notes.forEach(note => {{
+                const item = document.createElement('div');
+                item.className = 'note-item';
+                item.innerHTML = `
+                    <span class="note-delete" onclick="deleteNote(${{note.id}})">×</span>
+                    <div class="note-text">${{note.text}}</div>
+                    <div class="note-time">${{note.time}}</div>
+                `;
+                item.onclick = (e) => {{
+                    if (e.target.className !== 'note-delete') {{
+                        window.scrollTo({{ top: note.position, behavior: 'smooth' }});
+                    }}
+                }};
+                list.appendChild(item);
+            }});
+        }}
+
+        function deleteNote(id) {{
+            notes = notes.filter(n => n.id !== id);
+            localStorage.setItem('reader_notes', JSON.stringify(notes));
+            updateNotesList();
+            showNotification('笔记已删除');
+        }}
+
+        function updateBookmarksList() {{
+            const list = document.getElementById('bookmarksList');
+            if (!list) return;
+
+            const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
+            list.innerHTML = '';
+
+            savedBookmarks.forEach((bm, index) => {{
+                const item = document.createElement('div');
+                item.className = 'note-item';
+                item.innerHTML = `
+                    <span class="note-delete" onclick="deleteBookmark(${{bm.id}})">×</span>
+                    <div class="note-text">书签 ${{index + 1}}</div>
+                    <div class="note-time">${{new Date(bm.time).toLocaleString()}}</div>
+                `;
+                item.onclick = (e) => {{
+                    if (e.target.className !== 'note-delete') {{
+                        window.scrollTo({{ top: bm.position, behavior: 'smooth' }});
+                    }}
+                }};
+                list.appendChild(item);
+            }});
+        }}
+
+        function addBookmark() {{
+            const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
+
+            const bookmark = {{
+                id: Date.now(),
+                position: Math.floor(window.scrollY),
+                time: Date.now()
+            }};
+
+            savedBookmarks.push(bookmark);
+            localStorage.setItem('reader_bookmarks', JSON.stringify(savedBookmarks));
+
+            updateBookmarksList();
+            showNotification('书签已添加');
+        }}
+
+        function deleteBookmark(id) {{
+            const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
+            const filtered = savedBookmarks.filter(b => b.id !== id);
+            localStorage.setItem('reader_bookmarks', JSON.stringify(filtered));
+            updateBookmarksList();
+            showNotification('书签已删除');
+        }}
+
+        // 显示通知
+        function showNotification(message) {{
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 4px;
+                z-index: 3000;
+                animation: fadeInOut 2s ease-in-out;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {{
+                notification.remove();
+            }}, 2000);
+        }}
+
+        // 监听文本选择事件，在高亮模式下自动添加高亮
+        document.addEventListener('mouseup', function(e) {{
+            if (isHighlightMode && e.target.id !== 'highlight' && !e.target.classList.contains('highlight')) {{
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed) {{
+                    const rect = selection.getRangeAt(0).getBoundingClientRect();
+                    const btn = document.createElement('button');
+                    btn.textContent = '高亮';
+                    btn.style.cssText = `
+                        position: fixed;
+                        top: ${{rect.top - 40}}px;
+                        left: ${{rect.left}}px;
+                        background: rgba(100, 149, 237, 0.9);
+                        color: white;
+                        border: none;
+                        padding: 5px 10px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        z-index: 2000;
+                    `;
+                    btn.onclick = function() {{
+                        addHighlight();
+                        btn.remove();
+                    }};
+                    document.body.appendChild(btn);
+
+                    setTimeout(() => {{
+                        if (document.body.contains(btn)) {{
+                            btn.remove();
+                        }}
+                    }}, 3000);
+                }}
+            }}
+        }});
+
         // 切换主题
         function changeTheme(theme) {{
             const themes = {str(BrowserReader.THEMES)};
@@ -787,6 +1970,726 @@ class BrowserReader:
         function printContent() {{
             window.print();
         }}
+
+        // 主题管理面板
+        function showThemeManager() {{
+            const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
+            const themeNames = Object.keys(customThemes);
+            
+            let themesHtml = '';
+            themeNames.forEach(name => {{
+                themesHtml += `
+                    <div class="theme-item" data-theme="${{name}}">
+                        <div class="theme-name">${{name}}</div>
+                        <div class="theme-preview" style="background: ${{customThemes[name].background}}; color: ${{customThemes[name].text}};">预览</div>
+                        <div class="theme-actions">
+                            <button onclick="loadCustomThemeByName('${{name}}')">加载</button>
+                            <button onclick="deleteCustomTheme('${{name}}')">删除</button>
+                        </div>
+                    </div>
+                `;
+            }});
+            
+            if (themeNames.length === 0) {{
+                themesHtml = '<div class="no-themes">暂无自定义主题</div>';
+            }}
+            
+            const panel = document.createElement('div');
+            panel.className = 'settings-panel theme-manager-panel';
+            panel.innerHTML = `
+                <div class="settings-content">
+                    <h3>主题管理</h3>
+                    <button class="settings-close" onclick="closeThemeManager()">×</button>
+                    
+                    <div class="theme-manager-content">
+                        <div class="current-theme-info">
+                            <h4>当前主题设置</h4>
+                            <p>背景色: <span style="display: inline-block; width: 20px; height: 20px; background: ${{currentSettings.background}}; vertical-align: middle;"></span> ${{currentSettings.background}}</p>
+                            <p>文字色: <span style="display: inline-block; width: 20px; height: 20px; background: ${{currentSettings.text}}; vertical-align: middle;"></span> ${{currentSettings.text}}</p>
+                            <p>字体大小: ${{currentSettings.font_size}}px</p>
+                            <p>行高: ${{currentSettings.line_height}}</p>
+                        </div>
+                        
+                        <div class="theme-actions-top">
+                            <button onclick="saveCustomThemeFromManager()">保存当前主题</button>
+                        </div>
+                        
+                        <div class="themes-list">
+                            <h4>已保存的主题</h4>
+                            ${{themesHtml}}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(panel);
+        }}
+        
+        function closeThemeManager() {{
+            const panel = document.querySelector('.theme-manager-panel');
+            if (panel) {{
+                panel.remove();
+            }}
+        }}
+        
+        // 保存自定义主题
+        function saveCustomTheme() {{
+            const themeName = prompt('请输入自定义主题名称:', '我的主题');
+            if (!themeName) {{
+                showNotification('主题名称不能为空');
+                return;
+            }}
+
+            const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
+            customThemes[themeName] = {{...currentSettings}};
+            localStorage.setItem('reader_custom_themes', JSON.stringify(customThemes));
+            showNotification('主题已保存: ' + themeName);
+        }}
+        
+        // 从主题管理器保存主题
+        function saveCustomThemeFromManager() {{
+            const themeName = prompt('请输入自定义主题名称:', '我的主题');
+            if (!themeName) {{
+                showNotification('主题名称不能为空');
+                return;
+            }}
+
+            const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
+            customThemes[themeName] = {{...currentSettings}};
+            localStorage.setItem('reader_custom_themes', JSON.stringify(customThemes));
+            showNotification('主题已保存: ' + themeName);
+            
+            // 刷新主题管理面板
+            closeThemeManager();
+            showThemeManager();
+        }}
+
+        // 加载自定义主题
+        function loadCustomTheme() {{
+            const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
+            const themeNames = Object.keys(customThemes);
+
+            if (themeNames.length === 0) {{
+                showNotification('没有已保存的自定义主题');
+                return;
+            }}
+
+            const themeName = prompt('请选择要加载的主题（输入名称）：\\n' + themeNames.join('\\n'), themeNames[0]);
+            if (!themeName || !customThemes[themeName]) {{
+                showNotification('主题不存在');
+                return;
+            }}
+
+            applySettings(customThemes[themeName]);
+            showNotification('已加载主题: ' + themeName);
+        }}
+        
+        // 通过名称加载自定义主题
+        function loadCustomThemeByName(themeName) {{
+            const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
+            if (!customThemes[themeName]) {{
+                showNotification('主题不存在');
+                return;
+            }}
+
+            applySettings(customThemes[themeName]);
+            showNotification('已加载主题: ' + themeName);
+        }}
+        
+        // 删除自定义主题
+        function deleteCustomTheme(themeName) {{
+            if (!confirm('确定要删除主题 "' + themeName + '" 吗？')) {{
+                return;
+            }}
+            
+            const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
+            delete customThemes[themeName];
+            localStorage.setItem('reader_custom_themes', JSON.stringify(customThemes));
+            showNotification('主题已删除: ' + themeName);
+            
+            // 刷新主题管理面板
+            closeThemeManager();
+            showThemeManager();
+        }}
+
+        // 应用设置
+        function applySettings(settings) {{
+            document.body.style.backgroundColor = settings.background;
+            document.body.style.color = settings.text;
+            document.body.style.fontSize = settings.font_size + 'px';
+            document.body.style.lineHeight = settings.line_height;
+            document.body.style.fontFamily = settings.font_family;
+            document.body.style.fontWeight = settings.font_weight;
+            document.body.style.fontStyle = settings.font_style;
+            document.body.style.textDecoration = settings.text_decoration;
+            document.body.style.letterSpacing = settings.letter_spacing + 'px';
+            document.body.style.wordSpacing = settings.word_spacing + 'px';
+            document.body.style.textAlign = settings.text_align;
+
+            // 更新UI控件
+            const fontColorInput = document.getElementById('fontColorInput');
+            const bgColorInput = document.getElementById('bgColorInput');
+            const letterSpacingValue = document.getElementById('letterSpacingValue');
+            const wordSpacingValue = document.getElementById('wordSpacingValue');
+            const themeSelect = document.getElementById('themeSelect');
+            
+            if (fontColorInput) fontColorInput.value = settings.text;
+            if (bgColorInput) bgColorInput.value = settings.background;
+            if (letterSpacingValue) letterSpacingValue.textContent = settings.letter_spacing;
+            if (wordSpacingValue) wordSpacingValue.textContent = settings.word_spacing;
+            if (themeSelect) themeSelect.value = getThemeName(settings);
+
+            currentSettings = {{...settings}};
+            saveSettings();
+        }}
+
+        // 夜间模式切换
+        let isNightMode = false;
+        let previousTheme = 'light';
+        
+        function toggleNightMode() {{
+            const toggle = document.getElementById('nightModeToggle');
+            const icon = document.getElementById('nightModeIcon');
+            const text = document.getElementById('nightModeText');
+            
+            isNightMode = !isNightMode;
+            
+            if (isNightMode) {{
+                // 保存当前主题
+                previousTheme = document.getElementById('themeSelect').value;
+                
+                // 切换到深色主题
+                changeTheme('dark');
+                
+                // 更新UI
+                toggle.classList.add('active');
+                icon.textContent = '☀️';
+                text.textContent = '日间模式';
+                
+                showNotification('已切换到夜间模式');
+            }} else {{
+                // 恢复之前的主题
+                changeTheme(previousTheme);
+                
+                // 更新UI
+                toggle.classList.remove('active');
+                icon.textContent = '🌙';
+                text.textContent = '夜间模式';
+                
+                showNotification('已切换到日间模式');
+            }}
+        }}
+        
+        // 全屏模式
+        function toggleFullscreen() {{
+            if (!document.fullscreenElement) {{
+                document.documentElement.requestFullscreen().then(() => {{
+                    document.getElementById('fullscreenIndicator').classList.add('show');
+                }}).catch(err => {{
+                    showNotification('全屏模式不可用');
+                }});
+            }} else {{
+                document.exitFullscreen();
+            }}
+        }}
+        
+        // 监听全屏变化事件
+        document.addEventListener('fullscreenchange', () => {{
+            const indicator = document.getElementById('fullscreenIndicator');
+            if (document.fullscreenElement) {{
+                indicator.classList.add('show');
+            }} else {{
+                indicator.classList.remove('show');
+            }}
+        }});
+
+        // 专注模式
+        let isFocusMode = false;
+        let focusModeHiddenElements = [];
+        
+        function toggleFocusMode() {{
+            isFocusMode = !isFocusMode;
+            const toolbar = document.querySelector('.toolbar');
+            const stats = document.querySelector('.reading-stats');
+            const statsEnhanced = document.querySelector('.reading-stats-enhanced');
+            const progress = document.querySelector('.progress-bar');
+            const nightModeToggle = document.querySelector('.night-mode-toggle');
+            const tocToggle = document.querySelector('.toc-toggle-btn');
+            const bookmarkBtn = document.querySelector('.bookmark-btn');
+            const autoScrollControls = document.querySelector('.auto-scroll-controls');
+            const speechControls = document.querySelector('.speech-controls');
+            const keyboardHint = document.querySelector('.keyboard-hint');
+            const searchContainer = document.querySelector('.search-container');
+            const tocContainer = document.querySelector('.toc-container');
+            const fontSettingsPanel = document.querySelector('#fontSettingsPanel');
+            const notesPanel = document.querySelector('#notesPanel');
+
+            if (isFocusMode) {{
+                // 记录当前显示状态并隐藏元素
+                focusModeHiddenElements = [];
+                
+                const elementsToHide = [
+                    toolbar, stats, statsEnhanced, progress, nightModeToggle, 
+                    tocToggle, bookmarkBtn, autoScrollControls, speechControls, 
+                    keyboardHint, searchContainer, tocContainer
+                ];
+                
+                elementsToHide.forEach(element => {{
+                    if (element && element.style.display !== 'none') {{
+                        focusModeHiddenElements.push(element);
+                        element.style.display = 'none';
+                    }}
+                }});
+                
+                // 隐藏面板
+                if (fontSettingsPanel && fontSettingsPanel.style.display !== 'none') {{
+                    focusModeHiddenElements.push(fontSettingsPanel);
+                    fontSettingsPanel.style.display = 'none';
+                }}
+                
+                if (notesPanel && notesPanel.style.display !== 'none') {{
+                    focusModeHiddenElements.push(notesPanel);
+                    notesPanel.style.display = 'none';
+                }}
+                
+                // 退出高亮模式
+                if (isHighlightMode) {{
+                    toggleHighlightMode();
+                }}
+                
+                // 停止自动滚动
+                if (autoScrollInterval) {{
+                    toggleAutoScroll();
+                }}
+                
+                // 停止朗读
+                if (isSpeaking) {{
+                    stopSpeech();
+                }}
+                
+                showNotification('已进入专注模式，按 ESC 退出');
+            }} else {{
+                // 恢复隐藏的元素
+                focusModeHiddenElements.forEach(element => {{
+                    if (element === toolbar) {{
+                        element.style.display = 'flex';
+                    }} else if (element === stats || element === statsEnhanced) {{
+                        element.style.display = 'block';
+                    }} else {{
+                        element.style.display = '';
+                    }}
+                }});
+                
+                focusModeHiddenElements = [];
+                showNotification('已退出专注模式');
+            }}
+        }}
+
+        // 增强的自动滚动
+        let autoScrollInterval = null;
+        let autoScrollSpeed = 1;
+        let autoScrollPanelVisible = false;
+        
+        function toggleAutoScroll() {{
+            const controls = document.getElementById('autoScrollControls');
+            const toggleBtn = document.getElementById('autoScrollToggleBtn');
+            
+            if (autoScrollInterval) {{
+                // 停止自动滚动
+                clearInterval(autoScrollInterval);
+                autoScrollInterval = null;
+                toggleBtn.textContent = '开始滚动';
+                toggleBtn.classList.remove('active');
+                showNotification('自动滚动已停止');
+            }} else {{
+                // 开始自动滚动
+                autoScrollPanelVisible = true;
+                controls.classList.add('show');
+                
+                autoScrollInterval = setInterval(() => {{
+                    window.scrollBy(0, autoScrollSpeed);
+                    updateProgress();
+                    updateEnhancedReadingStats();
+                }}, 100);
+                
+                toggleBtn.textContent = '停止滚动';
+                toggleBtn.classList.add('active');
+                showNotification('自动滚动已开启，速度: ' + autoScrollSpeed);
+            }}
+        }}
+        
+        function increaseScrollSpeed() {{
+            if (autoScrollSpeed < 10) {{
+                autoScrollSpeed += 0.5;
+                updateScrollSpeedDisplay();
+            }}
+        }}
+        
+        function decreaseScrollSpeed() {{
+            if (autoScrollSpeed > 0.5) {{
+                autoScrollSpeed -= 0.5;
+                updateScrollSpeedDisplay();
+            }}
+        }}
+        
+        function setScrollSpeed(value) {{
+            autoScrollSpeed = parseFloat(value);
+            updateScrollSpeedDisplay();
+        }}
+        
+        function updateScrollSpeedDisplay() {{
+            document.getElementById('scrollSpeedDisplay').textContent = autoScrollSpeed;
+            document.getElementById('scrollSpeedSlider').value = autoScrollSpeed;
+        }}
+        
+        function resetAutoScroll() {{
+            autoScrollSpeed = 1;
+            updateScrollSpeedDisplay();
+            
+            if (autoScrollInterval) {{
+                toggleAutoScroll();
+            }}
+            
+            showNotification('自动滚动已重置');
+        }}
+        
+        function toggleAutoScrollPanel() {{
+            const controls = document.getElementById('autoScrollControls');
+            autoScrollPanelVisible = !autoScrollPanelVisible;
+            
+            if (autoScrollPanelVisible) {{
+                controls.classList.add('show');
+            }} else {{
+                controls.classList.remove('show');
+            }}
+        }}
+
+        // 增强的文字朗读
+        let isSpeaking = false;
+        let speechSynthesis = window.speechSynthesis;
+        let currentUtterance = null;
+        let speechPanelVisible = false;
+        let voices = [];
+        let selectedVoice = null;
+        let speechRate = 1.0;
+        let speechPitch = 1.0;
+        let currentParagraphIndex = 0;
+        let paragraphs = [];
+        
+        // 初始化语音
+        function initSpeech() {{
+            // 加载语音列表
+            function loadVoices() {{
+                voices = speechSynthesis.getVoices();
+                const voiceSelect = document.getElementById('voiceSelect');
+                voiceSelect.innerHTML = '<option value="">选择语音</option>';
+                
+                // 优先显示中文语音
+                const chineseVoices = voices.filter(voice => voice.lang.includes('zh'));
+                const otherVoices = voices.filter(voice => !voice.lang.includes('zh'));
+                
+                [...chineseVoices, ...otherVoices].forEach((voice, index) => {{
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${{voice.name}} (${{voice.lang}})`;
+                    if (voice.default) {{
+                        option.textContent += ' [默认]';
+                    }}
+                    voiceSelect.appendChild(option);
+                }});
+                
+                // 默认选择第一个中文语音
+                if (chineseVoices.length > 0) {{
+                    const firstChineseIndex = voices.indexOf(chineseVoices[0]);
+                    voiceSelect.value = firstChineseIndex;
+                    selectedVoice = chineseVoices[0];
+                }}
+            }}
+            
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {{
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }}
+        }}
+        
+        function toggleSpeech() {{
+            const controls = document.getElementById('speechControls');
+            
+            // 切换控制面板显示状态
+            speechPanelVisible = !speechPanelVisible;
+            
+            if (speechPanelVisible) {{
+                controls.classList.add('show');
+                if (voices.length === 0) {{
+                    initSpeech();
+                }}
+            }} else {{
+                controls.classList.remove('show');
+            }}
+        }}
+        
+        function toggleSpeechPlayback() {{
+            const playbackBtn = document.getElementById('speechPlaybackBtn');
+            const statusDisplay = document.getElementById('speechStatus');
+            
+            if (isSpeaking) {{
+                stopSpeech();
+            }} else {{
+                startSpeech();
+            }}
+        }}
+        
+        function startSpeech() {{
+            const selectedText = window.getSelection().toString();
+            const playbackBtn = document.getElementById('speechPlaybackBtn');
+            const statusDisplay = document.getElementById('speechStatus');
+            
+            if (selectedText) {{
+                // 朗读选中文本
+                speakText(selectedText);
+            }} else {{
+                // 朗读书籍内容
+                paragraphs = Array.from(document.querySelectorAll('#content p, #content div, #content h1, #content h2, #content h3'));
+                if (paragraphs.length === 0) {{
+                    showNotification('没有可朗读的内容');
+                    return;
+                }}
+                
+                // 找到当前可见的段落
+                const scrollPos = window.scrollY + 100;
+                currentParagraphIndex = 0;
+                
+                for (let i = 0; i < paragraphs.length; i++) {{
+                    if (paragraphs[i].offsetTop >= scrollPos) {{
+                        currentParagraphIndex = i;
+                        break;
+                    }}
+                }}
+                
+                speakCurrentParagraph();
+            }}
+            
+            if (playbackBtn) {{
+                playbackBtn.textContent = '停止朗读';
+                playbackBtn.classList.add('active');
+            }}
+            
+            if (statusDisplay) {{
+                statusDisplay.textContent = '正在朗读';
+            }}
+        }}
+        
+        function stopSpeech() {{
+            speechSynthesis.cancel();
+            isSpeaking = false;
+            
+            const playbackBtn = document.getElementById('speechPlaybackBtn');
+            const statusDisplay = document.getElementById('speechStatus');
+            
+            if (playbackBtn) {{
+                playbackBtn.textContent = '开始朗读';
+                playbackBtn.classList.remove('active');
+            }}
+            
+            if (statusDisplay) {{
+                statusDisplay.textContent = '已停止';
+            }}
+            
+            showNotification('朗读已停止');
+        }}
+        
+        function speakCurrentParagraph() {{
+            if (currentParagraphIndex >= paragraphs.length) {{
+                stopSpeech();
+                showNotification('朗读完成');
+                return;
+            }}
+            
+            const paragraph = paragraphs[currentParagraphIndex];
+            const text = paragraph.textContent.trim();
+            
+            if (!text) {{
+                currentParagraphIndex++;
+                speakCurrentParagraph();
+                return;
+            }}
+            
+            // 滚动到当前段落
+            paragraph.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+            
+            // 更新状态
+            const statusDisplay = document.getElementById('speechStatus');
+            statusDisplay.textContent = `段落 ${{currentParagraphIndex + 1}}/${{paragraphs.length}}`;
+            
+            speakText(text, () => {{
+                currentParagraphIndex++;
+                setTimeout(speakCurrentParagraph, 500);
+            }});
+        }}
+        
+        function speakText(text, onEnd) {{
+            speechSynthesis.cancel();
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // 设置语音参数
+            if (selectedVoice) {{
+                currentUtterance.voice = selectedVoice;
+            }}
+            currentUtterance.rate = speechRate;
+            currentUtterance.pitch = speechPitch;
+            currentUtterance.lang = 'zh-CN';
+            currentUtterance.volume = 1.0;
+
+            currentUtterance.onend = () => {{
+                isSpeaking = false;
+                const playbackBtn = document.getElementById('speechPlaybackBtn');
+                const statusDisplay = document.getElementById('speechStatus');
+                
+                if (playbackBtn) {{
+                    playbackBtn.textContent = '开始朗读';
+                    playbackBtn.classList.remove('active');
+                }}
+                
+                if (statusDisplay) {{
+                    statusDisplay.textContent = '已停止';
+                }}
+                
+                if (onEnd) {{
+                    onEnd();
+                }}
+            }};
+
+            currentUtterance.onerror = (event) => {{
+                isSpeaking = false;
+                const playbackBtn = document.getElementById('speechPlaybackBtn');
+                const statusDisplay = document.getElementById('speechStatus');
+                
+                if (playbackBtn) {{
+                    playbackBtn.textContent = '开始朗读';
+                    playbackBtn.classList.remove('active');
+                }}
+                
+                if (statusDisplay) {{
+                    statusDisplay.textContent = '朗读出错';
+                }}
+                
+                showNotification('朗读出错: ' + event.error);
+            }};
+
+            speechSynthesis.speak(currentUtterance);
+            isSpeaking = true;
+        }}
+        
+        function changeVoice(voiceIndex) {{
+            if (voiceIndex === '') {{
+                selectedVoice = null;
+            }} else {{
+                selectedVoice = voices[parseInt(voiceIndex)];
+            }}
+        }}
+        
+        function changeSpeechRate(rate) {{
+            speechRate = parseFloat(rate);
+        }}
+        
+        function changeSpeechPitch(pitch) {{
+            speechPitch = parseFloat(pitch);
+        }}
+
+        // 增强的阅读统计
+        let readingStartTime = Date.now();
+        let sessionStartTime = Date.now();
+        let totalReadingTime = parseInt(localStorage.getItem('totalReadingTime') || '0');
+        let lastWordCount = 0;
+        let statsPanelVisible = false;
+        
+        function toggleReadingStats() {{
+            const panel = document.getElementById('readingStatsEnhanced');
+            statsPanelVisible = !statsPanelVisible;
+            
+            if (statsPanelVisible) {{
+                panel.classList.add('show');
+                updateEnhancedReadingStats();
+            }} else {{
+                panel.classList.remove('show');
+            }}
+        }}
+        
+        function updateEnhancedReadingStats() {{
+            if (!statsPanelVisible) return;
+            
+            const currentTime = Date.now();
+            const sessionElapsed = Math.floor((currentTime - sessionStartTime) / 1000);
+            const totalElapsed = totalReadingTime + sessionElapsed;
+            
+            // 格式化时间显示
+            const formatTime = (seconds) => {{
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                if (hours > 0) {{
+                    return `${{hours}}:${{minutes.toString().padStart(2, '0')}}:${{secs.toString().padStart(2, '0')}}`;
+                }} else {{
+                    return `${{minutes}}:${{secs.toString().padStart(2, '0')}}`;
+                }}
+            }};
+            
+            // 更新时间显示
+            document.getElementById('totalReadingTime').textContent = formatTime(totalElapsed);
+            document.getElementById('sessionReadingTime').textContent = formatTime(sessionElapsed);
+            
+            // 计算进度
+            const scrollTop = window.scrollY;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = window.innerHeight;
+            const progress = Math.min(100, Math.max(0, (scrollTop / (scrollHeight - clientHeight)) * 100));
+            
+            document.getElementById('readingProgress').textContent = progress.toFixed(1) + '%';
+            
+            // 计算总字数和已读字数
+            const content = document.getElementById('content');
+            if (content) {{
+                const totalWords = content.textContent.replace(/\\s+/g, '').length;
+                const readWords = Math.floor(totalWords * (progress / 100));
+                
+                document.getElementById('totalWordCount').textContent = readWords.toLocaleString();
+                
+                // 计算平均阅读速度
+                if (sessionElapsed > 0) {{
+                    const avgSpeed = Math.round(readWords / (sessionElapsed / 60));
+                    document.getElementById('avgReadingSpeed').textContent = avgSpeed;
+                }}
+                
+                // 估算剩余时间
+                if (avgSpeed > 0) {{
+                    const remainingWords = totalWords - readWords;
+                    const estimatedMinutes = Math.ceil(remainingWords / avgSpeed);
+                    document.getElementById('estimatedTimeLeft').textContent = formatTime(estimatedMinutes * 60);
+                }}
+            }}
+        }}
+        
+        // 阅读时间统计
+        function updateReadingStats() {{
+            const elapsed = Math.floor((Date.now() - readingStartTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('readingTime').textContent = minutes + '分' + seconds + '秒';
+
+            // 计算阅读速度（字/分）
+            const wordCountElement = document.getElementById('wordCount');
+            const currentWordCount = parseInt(wordCountElement.textContent) || 0;
+            if (minutes > 0 && currentWordCount > lastWordCount) {{
+                const wordsRead = currentWordCount - lastWordCount;
+                const speed = Math.round(wordsRead / minutes);
+                document.getElementById('readingSpeed').textContent = speed;
+            }}
+        }}
+
+        // 每10秒更新一次阅读统计
+        setInterval(updateReadingStats, 10000);
+
         
         // 更新进度条
         function updateProgress() {{
@@ -877,10 +2780,27 @@ class BrowserReader:
             const progressDecimal = progress / 100;
             const progressDecimalString = progressDecimal.toFixed(15);
 
+            // 计算页数（假设每页1000px）
+            const estimatedPageHeight = 1000;
+            const total_pages = Math.max(1, Math.floor(scrollHeight / estimatedPageHeight));
+            const current_page = Math.min(total_pages, Math.floor(progressDecimal * total_pages));
+
+            // 计算字数（缓存，避免每次都计算）
+            if (!window.cachedWordCount) {{
+                const content = document.getElementById('content');
+                if (content) {{
+                    window.cachedWordCount = content.textContent.replace(/\\s+/g, '').length;
+                }}
+            }}
+            const word_count = window.cachedWordCount || 0;
+
             const data = {{
                 progress: progressDecimalString,
                 scrollTop: scrollTop,
                 scrollHeight: scrollHeight,
+                current_page: current_page,
+                total_pages: total_pages,
+                word_count: word_count,
                 timestamp: Date.now()
             }};
             console.log('最终保存数据(小数):', data);
@@ -1005,17 +2925,7 @@ class BrowserReader:
             }}
         }}
         
-        // 应用设置
-        function applySettings(settings) {{
-            document.body.style.backgroundColor = settings.background;
-            document.body.style.color = settings.text;
-            document.body.style.fontSize = settings.font_size + 'px';
-            document.body.style.lineHeight = settings.line_height;
-            document.body.style.fontFamily = settings.font_family;
-            
-            // 更新控件状态
-            document.getElementById('themeSelect').value = getThemeName(settings);
-        }}
+        
         
         // 获取主题名称
         function getThemeName(settings) {{
@@ -1085,17 +2995,56 @@ class BrowserReader:
                     break;
                 case 'f':
                 case 'F':
-                    toggleFullscreen();
+                    if (e.shiftKey || e.key === 'F') {{
+                        toggleFocusMode();
+                    }} else {{
+                        toggleFullscreen();
+                    }}
                     e.preventDefault();
+                    break;
+                case 'a':
+                case 'A':
+                    toggleAutoScroll();
+                    e.preventDefault();
+                    break;
+                case ' ':
+                    // 空格键朗读选中的文本
+                    const selection = window.getSelection().toString();
+                    if (selection) {{
+                        toggleSpeech();
+                        e.preventDefault();
+                    }}
                     break;
                 case 'h':
                 case 'H':
                     toggleKeyboardHint();
                     e.preventDefault();
                     break;
+                case 'g':
+                case 'G':
+                    toggleFontSettings();
+                    e.preventDefault();
+                    break;
+                case 'n':
+                case 'N':
+                    toggleNotesMode();
+                    e.preventDefault();
+                    break;
                 case 'Escape':
                     if (document.fullscreenElement) {{
                         document.exitFullscreen();
+                    }}
+                    // 退出专注模式
+                    if (isFocusMode) {{
+                        toggleFocusMode();
+                    }}
+                    // 停止自动滚动
+                    if (autoScrollInterval) {{
+                        clearInterval(autoScrollInterval);
+                        autoScrollInterval = null;
+                        const btn = document.querySelector('button[onclick="toggleAutoScroll()"]');
+                        if (btn) btn.classList.remove('active');
+                        showNotification('自动滚动已停止');
                     }}
                     // 关闭搜索框
                     const searchContainer = document.getElementById('searchContainer');
@@ -1106,6 +3055,20 @@ class BrowserReader:
                     const toc = document.getElementById('tocContainer');
                     if (toc && toc.classList.contains('show')) {{
                         toggleTOC();
+                    }}
+                    // 关闭字体设置面板
+                    const fontPanel = document.getElementById('fontSettingsPanel');
+                    if (fontPanel && fontPanel.style.display !== 'none') {{
+                        toggleFontSettings();
+                    }}
+                    // 关闭笔记面板
+                    const notesPanel = document.getElementById('notesPanel');
+                    if (notesPanel && notesPanel.style.display !== 'none') {{
+                        closeNotesPanel();
+                    }}
+                    // 退出高亮模式
+                    if (isHighlightMode) {{
+                        toggleHighlightMode();
                     }}
                     break;
             }}
@@ -1437,7 +3400,6 @@ class BrowserReader:
         }}
 
         // 阅读统计
-        let readingStartTime = Date.now();
         let readingTimer = null;
 
         function updateReadingStats() {{
@@ -1457,7 +3419,7 @@ class BrowserReader:
             // 估算总字数
             const content = document.getElementById('content');
             if (content) {{
-                const totalWords = content.textContent.replace(/\s+/g, '').length;
+                const totalWords = content.textContent.replace(/\\s+/g, '').length;
                 const readWords = Math.floor(totalWords * progress);
                 document.getElementById('wordCount').textContent = readWords;
             }}
@@ -1483,6 +3445,26 @@ class BrowserReader:
 
             // 加载书签状态
             loadBookmark();
+            
+            // 初始化语音功能
+            initSpeech();
+
+            // 初始化字体设置状态
+            if (currentSettings['font_weight'] === 'bold') {{
+                document.getElementById('boldBtn').classList.add('active');
+            }}
+            if (currentSettings['font_style'] === 'italic') {{
+                document.getElementById('italicBtn').classList.add('active');
+            }}
+            if (currentSettings['text_decoration'] === 'underline') {{
+                document.getElementById('underlineBtn').classList.add('active');
+            }}
+            
+            // 初始化夜间模式状态
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark && !isNightMode) {{
+                toggleNightMode();
+            }}
 
             // 延迟加载进度，等待内容完全渲染
             setTimeout(() => {{
@@ -1498,10 +3480,18 @@ class BrowserReader:
 
             // 启动阅读统计定时器
             readingTimer = setInterval(updateReadingStats, 1000);
+            
+            // 启动增强阅读统计定时器
+            setInterval(updateEnhancedReadingStats, 5000);
         }};
         
-        // 页面关闭前保存进度
+        // 页面关闭前保存进度和统计
         window.addEventListener('beforeunload', function() {{
+            // 保存阅读统计
+            const sessionElapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const newTotalTime = totalReadingTime + sessionElapsed;
+            localStorage.setItem('totalReadingTime', newTotalTime.toString());
+            
             const scrollTop = window.scrollY;
             // 使用 document.documentElement.scrollHeight 更准确
             const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
@@ -1530,11 +3520,28 @@ class BrowserReader:
                 // 将百分比(0-100)转换为小数(0-1)保存到数据库
                 // 使用高精度(15位小数)以匹配终端阅读器的精度
                 const progressDecimal = progress / 100;
+
+                // 计算页数（假设每页1000px）
+                const estimatedPageHeight = 1000;
+                const total_pages = Math.max(1, Math.floor(scrollHeight / estimatedPageHeight));
+                const current_page = Math.min(total_pages, Math.floor(progressDecimal * total_pages));
+
+                // 计算字数（估算）
+                const content = document.getElementById('content');
+                let word_count = 0;
+                if (content) {{
+                    word_count = content.textContent.replace(/\\s+/g, '').length;
+                }}
+
                 const data = {{
                     progress: progressDecimal.toFixed(15),
                     scrollTop: scrollTop,
                     scrollHeight: scrollHeight,
-                    timestamp: Date.now()
+                    current_page: current_page,
+                    total_pages: total_pages,
+                    word_count: word_count,
+                    timestamp: Date.now(),
+                    reading_time: newTotalTime
                 }};
                 console.log('beforeunload - 发送数据(小数):', data);
                 console.log('beforeunload - 发送JSON:', JSON.stringify(data));
@@ -1571,26 +3578,26 @@ class BrowserReader:
 
                     # 常见的章节标题模式
                     chapter_patterns = [
-                        r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]',
-                        r'^Chapter\s*\d+',
-                        r'^Part\s*\d+',
-                        r'^第\d+[章节回篇]',
+                        r'^第[零一二三四五六七八九十百千万\d]+\\s*[章节回篇部页]',  # 添加了 \\s* 以匹配可能存在的空格
+                        r'^Chapter\\s*\\d+',
+                        r'^Part\\s*\\d+',
+                        r'^第\\d+\\s*[章节回篇部页]',  # 添加了 \\s* 以匹配可能存在的空格
                         r'^[零一二三四五六七八九十百千万]+、',
                         r'^[一二三四五六七八九十]+、',
-                        r'^\d+[\.、\s]+[^\s]+',
-                        r'^卷[一二三四五六七八九十百千万\d]+',
-                        r'^篇[一二三四五六七八九十百千万\d]+',
-                        r'^序\s*[言章篇]',
-                        r'^前\s*言',
-                        r'^引\s*言',
-                        r'^楔\s*子',
+                        r'^\\d+[\\.、\\s]+[^\\s]+',
+                        r'^卷[一二三四五六七八九十百千万\\d]+',
+                        r'^篇[一二三四五六七八九十百千万\\d]+',
+                        r'^序\\s*[言章篇页]',
+                        r'^前\\s*言',
+                        r'^引\\s*言',
+                        r'^楔\\s*子',
                         r'^尾声',
                         r'^后记',
                         r'^【.*】',
-                        r'^\[.*\]',
+                        r'^\\[.*\\]',
                         r'^<.*>',
-                        r'^=+\s*.*\s*=+',  # Markdown风格的h1
-                        r'^-+\s*.*\s*-',   # Markdown风格的h2
+                        r'^=+\\s*.*\\s*=+',  # Markdown风格的h1
+                        r'^-+\\s*.*\\s*-',   # Markdown风格的h2
                     ]
 
                     import re
@@ -1605,9 +3612,9 @@ class BrowserReader:
                         for pattern in chapter_patterns:
                             if re.match(pattern, para, re.IGNORECASE):
                                 # 判断标题级别
-                                if re.match(r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]', para) or re.match(r'^Chapter\s*\d+', para, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\d]+', para):
+                                if re.match(r'^第[零一二三四五六七八九十百千万\d]+\\s*[章节回篇部页]', para) or re.match(r'^Chapter\\s*\\d+', para, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\\d]+', para):
                                     html_content += f'<h1>{para}</h1>'
-                                elif re.match(r'^第\d+[章节回篇]', para) or re.match(r'^Part\s*\d+', para, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\d]+', para):
+                                elif re.match(r'^第\\d+\\s*[章节回篇部页]', para) or re.match(r'^Part\\s*\\d+', para, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\\d]+', para):
                                     html_content += f'<h2>{para}</h2>'
                                 elif re.match(r'^[零一二三四五六七八九十]+、', para) or re.match(r'^[一二三四五六七八九十]+、', para):
                                     html_content += f'<h3>{para}</h3>'
@@ -1656,23 +3663,23 @@ class BrowserReader:
 
                     # 常见的章节标题模式
                     chapter_patterns = [
-                        r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]',
-                        r'^Chapter\s*\d+',
-                        r'^Part\s*\d+',
-                        r'^第\d+[章节回篇]',
+                        r'^第[零一二三四五六七八九十百千万\d]+[章节回篇部页]',
+                        r'^Chapter\\s*\\d+',
+                        r'^Part\\s*\\d+',
+                        r'^第\\d+[章节回篇部页]',
                         r'^[零一二三四五六七八九十]+、',
                         r'^[一二三四五六七八九十]+、',
-                        r'^\d+[\.、\s]+[^\s]+',
-                        r'^卷[一二三四五六七八九十百千万\d]+',
-                        r'^篇[一二三四五六七八九十百千万\d]+',
-                        r'^序\s*[言章篇]',
-                        r'^前\s*言',
-                        r'^引\s*言',
-                        r'^楔\s*子',
+                        r'^\\d+[\\.、\\s]+[^\\s]+',
+                        r'^卷[一二三四五六七八九十百千万\\d]+',
+                        r'^篇[一二三四五六七八九十百千万\\d]+',
+                        r'^序\\s*[言章篇页]',
+                        r'^前\\s*言',
+                        r'^引\\s*言',
+                        r'^楔\\s*子',
                         r'^尾声',
                         r'^后记',
                         r'^【.*】',
-                        r'^\[.*\]',
+                        r'^\\[.*\\]',
                         r'^<.*>',
                     ]
 
@@ -1702,9 +3709,9 @@ class BrowserReader:
                             for pattern in chapter_patterns:
                                 if re.match(pattern, line, re.IGNORECASE):
                                     # 判断标题级别
-                                    if re.match(r'^第[零一二三四五六七八九十百千万\d]+[章节回篇]', line) or re.match(r'^Chapter\s*\d+', line, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\d]+', line):
+                                    if re.match(r'^第[零一二三四五六七八九十百千万\d]+[章节回篇部页]', line) or re.match(r'^Chapter\\s*\\d+', line, re.IGNORECASE) or re.match(r'^卷[一二三四五六七八九十百千万\\d]+', line):
                                         html_content += f'<h1>{line}</h1>'
-                                    elif re.match(r'^第\d+[章节回篇]', line) or re.match(r'^Part\s*\d+', line, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\d]+', line):
+                                    elif re.match(r'^第\\d+[章节回篇部页]', line) or re.match(r'^Part\\s*\\d+', line, re.IGNORECASE) or re.match(r'^篇[一二三四五六七八九十百千万\\d]+', line):
                                         html_content += f'<h2>{line}</h2>'
                                     elif re.match(r'^[零一二三四五六七八九十]+、', line) or re.match(r'^[一二三四五六七八九十]+、', line):
                                         html_content += f'<h3>{line}</h3>'
@@ -1950,8 +3957,16 @@ class BrowserReader:
                         logger.info(f"  - scrollTop: {scroll_top}px")
                         logger.info(f"  - scrollHeight: {scroll_height}px")
 
+                        # 获取额外信息
+                        current_page = int(data.get('current_page', 0))
+                        total_pages = int(data.get('total_pages', 0))
+                        word_count = int(data.get('word_count', 0))
+
+                        logger.info(f"  - current_page: {current_page}, total_pages: {total_pages}, word_count: {word_count}")
+
                         if on_progress_save:
-                            on_progress_save(progress, scroll_top, scroll_height)
+                            on_progress_save(progress, scroll_top, scroll_height,
+                                              current_page, total_pages, word_count)
 
                         self.send_response(200)
                         self.send_header('Content-type', 'application/json')
