@@ -295,6 +295,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('crawler.open_browser'), id="open-browser-btn"),
                     Button(get_global_i18n().t('crawler.view_history'), id="view-history-btn"),
                     Button(get_global_i18n().t('crawler.note'), id="note-btn"),
+                    Button(get_global_i18n().t('crawler.clear_invalid'), id="clear-invalid-btn", variant="error"),
                     # 多选操作按钮
                     Button(get_global_i18n().t('bookshelf.batch_ops.select_all'), id="select-all-btn"),
                     Button(get_global_i18n().t('bookshelf.batch_ops.invert_selection'), id="invert-selection-btn"),
@@ -3397,6 +3398,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._view_history()
         elif button_id == "note-btn":
             self._open_note_dialog()
+        elif button_id == "clear-invalid-btn":
+            self._clear_invalid_records()
         elif button_id == "delete-file-btn":
             self._batch_delete_files()
         elif button_id == "delete-record-btn":
@@ -3595,7 +3598,116 @@ class CrawlerManagementScreen(Screen[None]):
                 ),
                 handle_delete_confirmation
             )
-            
+
         except Exception as e:
             self._update_status(get_global_i18n().t('crawler.confirm_record_title', err=str(e)), "error")
+
+    def _clear_invalid_records(self) -> None:
+        """清理无效记录（没有文件的记录和爬取失败的记录）"""
+        try:
+            # 获取网站ID
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                return
+
+            # 检查权限
+            if not getattr(self.app, "has_permission", lambda k: True)("crawler.delete_record"):
+                self._update_status(get_global_i18n().t('crawler.np_clear_invalid'), "error")
+                return
+
+            # 查询无效记录
+            import sqlite3
+            invalid_records = []
+            try:
+                with sqlite3.connect(self.db_manager.db_path) as conn:
+                    conn.row_factory = sqlite3.Row
+                    cursor = conn.cursor()
+
+                    # 1. 查询所有失败的记录
+                    cursor.execute("""
+                        SELECT id, novel_id, novel_title, file_path, status, error_message
+                        FROM crawl_history
+                        WHERE site_id = ? AND status = 'failed'
+                    """, (site_id,))
+                    failed_rows = cursor.fetchall()
+                    for row in failed_rows:
+                        invalid_records.append(dict(row))
+
+                    # 2. 查询所有成功的记录，然后检查文件是否存在
+                    cursor.execute("""
+                        SELECT id, novel_id, novel_title, file_path, status, error_message
+                        FROM crawl_history
+                        WHERE site_id = ? AND status = 'success'
+                    """, (site_id,))
+                    success_rows = cursor.fetchall()
+                    for row in success_rows:
+                        record = dict(row)
+                        # 检查文件路径是否为空或文件是否存在
+                        if not record.get('file_path') or not os.path.exists(record['file_path']):
+                            invalid_records.append(record)
+
+            except Exception as e:
+                logger.error(f"查询无效记录失败: {e}")
+                self._update_status(f"查询失败: {str(e)}", "error")
+                return
+
+            # 如果没有无效记录
+            if not invalid_records:
+                self._update_status(get_global_i18n().t('crawler.clear_invalid_no_data'), "information")
+                return
+
+            # 显示确认对话框
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            def handle_clear_confirmation(confirmed: bool | None) -> None:
+                if confirmed:
+                    try:
+                        deleted_count = 0
+                        failed_count = 0
+
+                        # 删除所有无效记录
+                        for record in invalid_records:
+                            try:
+                                record_id = record['id']
+                                if self.db_manager.delete_crawl_history(record_id):
+                                    deleted_count += 1
+                                else:
+                                    failed_count += 1
+                            except Exception as e:
+                                logger.error(f"删除记录失败: {record['id']}, 错误: {e}")
+                                failed_count += 1
+
+                        # 刷新历史记录
+                        self._load_crawl_history()
+
+                        # 显示结果
+                        if failed_count > 0:
+                            self._update_status(
+                                get_global_i18n().t('crawler.clear_invalid_success', success=deleted_count, fail=failed_count),
+                                "warning"
+                            )
+                        else:
+                            self._update_status(
+                                get_global_i18n().t('crawler.clear_invalid_success', success=deleted_count, fail=failed_count),
+                                "success"
+                            )
+                    except Exception as e:
+                        logger.error(f"清理无效记录失败: {e}")
+                        self._update_status(get_global_i18n().t('crawler.clear_invalid_failed', error=str(e)), "error")
+                elif confirmed is False:
+                    self._update_status(get_global_i18n().t('crawler.delete_cancelled'))
+
+            # 显示确认对话框
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('crawler.clear_invalid_confirm'),
+                    get_global_i18n().t('crawler.clear_invalid_desc', count=len(invalid_records))
+                ),
+                handle_clear_confirmation
+            )
+
+        except Exception as e:
+            logger.error(f"清理无效记录操作失败: {e}")
+            self._update_status(get_global_i18n().t('crawler.clear_invalid_failed', error=str(e)), "error")
 
