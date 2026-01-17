@@ -645,7 +645,7 @@ class BrowserReader:
         .minimap-container {{
             position: fixed;
             left: 0;
-            top: 170px;
+            top: 210px;
             width: 120px;
             height: 60vh;
             max-height: 600px;
@@ -745,7 +745,7 @@ class BrowserReader:
         .minimap-toggle {{
             position: fixed;
             left: 10px;
-            top: 70px;
+            top: 170px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
