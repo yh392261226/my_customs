@@ -656,11 +656,6 @@ class BrowserReader:
             transition: top 0.3s ease;
         }}
 
-        /* 工具栏展开状态下，按钮容器下移 */
-        .toolbar:not(.collapsed) ~ .toolbar-toggle-container {{
-            top: 60px;
-        }}
-
         /* 工具栏收缩按钮 */
         .toolbar-toggle-btn {{
             width: 80px;
@@ -1102,8 +1097,8 @@ class BrowserReader:
         /* 夜间模式切换按钮 */
         .night-mode-toggle {{
             position: fixed;
-            top: 70px;
-            left: 50%;
+            top: 120px;
+            left: 80px;
             transform: translateX(-50%);
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
@@ -2375,6 +2370,26 @@ class BrowserReader:
             }} else {{
                 icon.textContent = '︽';
                 showNotification('工具栏已展开');
+            }}
+            
+            // 更新 toolbar-toggle-container 的位置
+            updateToolbarTogglePosition();
+        }}
+        
+        // 动态更新 toolbar-toggle-container 的位置，使其始终跟随在 toolbar 底部
+        function updateToolbarTogglePosition() {{
+            const toolbar = document.getElementById('toolbar');
+            const toggleContainer = document.getElementById('toolbarToggleContainer');
+            
+            if (toolbar && toggleContainer) {{
+                if (toolbar.classList.contains('collapsed')) {{
+                    // 如果工具栏收缩，将按钮容器定位到屏幕顶部
+                    toggleContainer.style.top = '0px';
+                }} else {{
+                    // 如果工具栏展开，将按钮容器定位到工具栏底部
+                    const toolbarHeight = toolbar.offsetHeight;
+                    toggleContainer.style.top = toolbarHeight + 'px';
+                }}
             }}
         }}
         
@@ -4055,6 +4070,9 @@ class BrowserReader:
                 }}
             }}
             
+            // 更新 toolbar-toggle-container 的位置
+            setTimeout(updateToolbarTogglePosition, 100);
+            
             // 恢复翻页模式状态
             const savedPaginationMode = localStorage.getItem('paginationMode');
             if (savedPaginationMode === 'true') {{
@@ -5259,6 +5277,8 @@ class BrowserReader:
             if (isPaginationMode) {{
                 paginateContent();
             }}
+            // 更新 toolbar-toggle-container 的位置
+            updateToolbarTogglePosition();
         }});
         
         // 页面加载时恢复设置和进度
@@ -5278,6 +5298,9 @@ class BrowserReader:
             
             // 初始化语音功能
             initSpeech();
+            
+            // 初始化 toolbar-toggle-container 的位置
+            updateToolbarTogglePosition();
 
             // 初始化字体设置状态
             if (currentSettings['font_weight'] === 'bold') {{
