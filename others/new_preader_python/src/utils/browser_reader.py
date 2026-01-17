@@ -641,6 +641,172 @@ class BrowserReader:
             transition: transform 0.3s ease, opacity 0.3s ease;
         }}
 
+        /* 缩略图导航样式 */
+        .minimap-container {{
+            position: fixed;
+            left: 0;
+            top: 170px;
+            width: 120px;
+            height: 60vh;
+            max-height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            z-index: 996;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+        }}
+
+        .minimap-container:hover {{
+            background: rgba(255, 255, 255, 0.1);
+            width: 140px;
+        }}
+
+        .minimap-content {{
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 0 0 6px 0;
+        }}
+        
+        .minimap-content-inner {{
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-origin: top left;
+            transform: scale(0.15);
+            margin-left: 8px;
+            margin-top: 8px;
+            pointer-events: none;
+            overflow: hidden;
+        }}
+        
+        .minimap-content::-webkit-scrollbar {{
+            width: 2px;
+        }}
+        
+        .minimap-content::-webkit-scrollbar-track {{
+            background: transparent;
+        }}
+        
+        .minimap-content::-webkit-scrollbar-thumb {{
+            background: rgba(128, 128, 128, 0.3);
+            border-radius: 1px;
+        }}
+
+        .minimap-viewport {{
+            position: absolute;
+            left: -2px;
+            right: -2px;
+            width: calc(100% + 4px);
+            background: rgba(100, 149, 237, 0.3);
+            border: 3px solid rgba(100, 149, 237, 1);
+            pointer-events: none;
+            transition: top 0.05s ease, height 0.05s ease;
+            box-shadow: 0 0 8px rgba(100, 149, 237, 0.8);
+            min-height: 15px;
+            border-radius: 2px;
+        }}
+        
+        .minimap-viewport::before {{
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            border-radius: 3px;
+        }}
+        
+        .minimap-viewport::after {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, 
+                rgba(100, 149, 237, 0.2) 0%, 
+                rgba(100, 149, 237, 0.1) 50%, 
+                rgba(100, 149, 237, 0.2) 100%);
+            pointer-events: none;
+            border-radius: 1px;
+        }}
+
+        .minimap-toggle {{
+            position: fixed;
+            left: 10px;
+            top: 70px;
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 997;
+            transition: all 0.2s;
+        }}
+
+        .minimap-toggle:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            transform: scale(1.05);
+        }}
+
+        .minimap-toggle.active {{
+            background: rgba(100, 149, 237, 0.3);
+            border-color: rgba(100, 149, 237, 0.6);
+        }}
+
+        .minimap-container.hidden {{
+            transform: translateX(-100%);
+        }}
+
+        .minimap-container.collapsed {{
+            width: 40px;
+        }}
+
+        .minimap-container.collapsed .minimap-content {{
+            transform: scale(0.05);
+            margin-left: 5px;
+            margin-top: 5px;
+        }}
+
+        /* 章节标记 */
+        .minimap-chapter-marker {{
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 165, 0, 0.6);
+            pointer-events: none;
+        }}
+
+        /* 搜索结果标记 */
+        .minimap-search-marker {{
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 0, 0.8);
+            pointer-events: none;
+        }}
+
         .toolbar.collapsed {{
             transform: translateY(-100%);
             opacity: 0;
@@ -1972,6 +2138,18 @@ class BrowserReader:
     <!-- 进度信息 -->
     <div class="progress-info" id="progressInfo">进度: 0%</div>
 
+    <!-- 缩略图导航 -->
+    <div class="minimap-container" id="minimapContainer">
+        <div class="minimap-content" id="minimapContent">
+            <div class="minimap-viewport" id="minimapViewport"></div>
+        </div>
+    </div>
+
+    <!-- 缩略图切换按钮 -->
+    <div class="minimap-toggle" id="minimapToggle" onclick="toggleMinimap()" title="缩略图导航">
+        📍
+    </div>
+
     <!-- 快捷键提示 -->
     <div class="keyboard-hint" id="keyboardHint">
         <h4>快捷键</h4>
@@ -1990,6 +2168,7 @@ class BrowserReader:
             <li><kbd>h</kbd> 隐藏提示</li>
             <li><kbd>g</kbd> 字体设置</li>
             <li><kbd>n</kbd> 笔记/高亮</li>
+            <li><kbd>m</kbd> 缩略图导航</li>
             <li><kbd>ESC</kbd> 退出全屏/专注模式</li>
         </ul>
     </div>
@@ -2063,6 +2242,7 @@ class BrowserReader:
         <button onclick="scrollToTop()">顶部</button>
         <button onclick="scrollToBottom()">底部</button>
         <button onclick="printContent()">打印</button>
+        <button onclick="toggleMinimap()" id="minimapToolbarBtn">缩略图</button>
         <button onclick="toggleTOC()">目录</button>
     </div>
 
@@ -4045,6 +4225,371 @@ class BrowserReader:
             localStorage.setItem('readerSettings', JSON.stringify(currentSettings));
         }}
         
+        // 缩略图导航功能
+        let isMinimapVisible = true;
+        let minimapScale = 0.15;
+        let minimapContent = null;
+        let minimapViewport = null;
+        let minimapContainer = null;
+        let isDragging = false;
+        let dragStartY = 0;
+        let dragStartScrollTop = 0;
+        let minimapUpdateTimer = null;
+        let viewportUpdateTimer = null;
+        let lastContentUpdate = 0;
+        let isUpdating = false;
+
+        // 防抖函数
+        function debounce(func, wait) {{
+            let timeout;
+            return function executedFunction(...args) {{
+                const later = () => {{
+                    clearTimeout(timeout);
+                    func(...args);
+                }};
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            }};
+        }}
+
+        // 节流函数
+        function throttle(func, limit) {{
+            let inThrottle;
+            return function() {{
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {{
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }}
+            }}
+        }}
+
+        // 初始化缩略图导航
+        function initMinimap() {{
+            minimapContainer = document.getElementById('minimapContainer');
+            minimapContent = document.getElementById('minimapContent');
+            minimapViewport = document.getElementById('minimapViewport');
+            
+            if (!minimapContainer || !minimapContent || !minimapViewport) {{
+                console.error('缩略图导航元素未找到');
+                return;
+            }}
+
+            // 设置初始状态
+            const savedState = localStorage.getItem('minimapVisible');
+            const toolbarBtn = document.getElementById('minimapToolbarBtn');
+            
+            if (savedState === 'false') {{
+                isMinimapVisible = false;
+                minimapContainer.classList.add('hidden');
+                document.getElementById('minimapToggle').classList.remove('active');
+                if (toolbarBtn) {{
+                    toolbarBtn.classList.remove('active');
+                    toolbarBtn.textContent = '缩略图';
+                }}
+            }} else {{
+                document.getElementById('minimapToggle').classList.add('active');
+                if (toolbarBtn) {{
+                    toolbarBtn.classList.add('active');
+                    toolbarBtn.textContent = '隐藏缩略图';
+                }}
+            }}
+
+            // 使用节流的滚动事件监听
+            window.addEventListener('scroll', throttle(updateMinimapViewport, 50));
+            
+            // 使用防抖的窗口大小变化监听
+            window.addEventListener('resize', debounce(updateMinimap, 300));
+            
+            // 只监听内容区域的变化，而不是整个文档
+            const content = document.getElementById('content');
+            if (content) {{
+                const observer = new MutationObserver(debounce(() => {{
+                    const now = Date.now();
+                    // 限制更新频率，至少间隔1秒
+                    if (now - lastContentUpdate > 1000 && !isUpdating) {{
+                        lastContentUpdate = now;
+                        updateMinimap();
+                    }}
+                }}, 500));
+                
+                observer.observe(content, {{
+                    childList: true,
+                    subtree: false,  // 不监听子树，减少事件
+                    attributes: false,  // 不监听属性变化
+                    characterData: false  // 不监听文本变化
+                }});
+            }}
+
+            // 添加拖拽功能
+            minimapContainer.addEventListener('mousedown', startMinimapDrag);
+            document.addEventListener('mousemove', handleMinimapDrag);
+            document.addEventListener('mouseup', endMinimapDrag);
+
+            // 初始化缩略图
+            setTimeout(updateMinimap, 1000);
+        }}
+
+        // 更新缩略图内容
+        function updateMinimap() {{
+            if (!minimapContent || !minimapContainer || isUpdating) return;
+
+            const content = document.getElementById('content');
+            if (!content) return;
+
+            isUpdating = true;
+            
+            try {{
+                // 限制内容长度，避免内存问题
+                const contentText = content.textContent || '';
+                if (contentText.length > 100000) {{
+                    console.warn('内容过长，缩略图功能可能受到影响');
+                    minimapContent.innerHTML = '<div class="minimap-content-inner"><div style="color: #666; font-size: 10px; padding: 10px;">内容过长，缩略图已禁用</div></div>';
+                    return;
+                }}
+
+                // 克隆内容到缩略图
+                const clonedContent = content.cloneNode(false);  // 只克隆节点，不克隆子节点
+                
+                // 清除之前的缩略图内容
+                minimapContent.innerHTML = '';
+                
+                // 重新添加视口元素
+                const viewport = document.createElement('div');
+                viewport.className = 'minimap-viewport';
+                viewport.id = 'minimapViewport';
+                minimapContent.appendChild(viewport);
+                minimapViewport = viewport;
+
+                // 创建内容容器
+                const contentContainer = document.createElement('div');
+                contentContainer.className = 'minimap-content-inner';
+
+                // 创建简化的内容表示
+                const simplifiedContent = document.createElement('div');
+                simplifiedContent.style.width = '800px';
+                simplifiedContent.style.transform = 'scale(0.15)';
+                simplifiedContent.style.transformOrigin = 'top left';
+                simplifiedContent.style.pointerEvents = 'none';
+                simplifiedContent.style.opacity = '0.9';
+                simplifiedContent.style.fontSize = '2px';
+                simplifiedContent.style.lineHeight = '1.2';
+                simplifiedContent.style.color = '#333';
+                simplifiedContent.style.background = 'rgba(255, 255, 255, 0.8)';
+                simplifiedContent.style.borderRadius = '2px';
+
+                // 只复制主要结构（标题）
+                const headers = content.querySelectorAll('h1, h2, h3');
+                headers.forEach(header => {{
+                    const headerClone = document.createElement('div');
+                    const fontSize = header.tagName === 'H1' ? '3' : header.tagName === 'H2' ? '2.5' : '2';
+                    headerClone.style.margin = '2px 0';
+                    headerClone.style.fontSize = fontSize + 'px';
+                    headerClone.style.fontWeight = 'bold';
+                    headerClone.style.color = 'inherit';
+                    headerClone.textContent = header.textContent.substring(0, 50) + (header.textContent.length > 50 ? '...' : '');
+                    simplifiedContent.appendChild(headerClone);
+                }});
+
+                // 添加内容块指示器
+                const paragraphs = content.querySelectorAll('p');
+                const totalParagraphs = Math.min(paragraphs.length, 20);  // 限制段落数量
+                for (let i = 0; i < totalParagraphs; i += 5) {{
+                    const block = document.createElement('div');
+                    block.style.height = '2px';
+                    block.style.background = 'rgba(128, 128, 128, 0.3)';
+                    block.style.margin = '1px 0';
+                    simplifiedContent.appendChild(block);
+                }}
+
+                contentContainer.appendChild(simplifiedContent);
+                minimapContent.appendChild(contentContainer);
+
+                // 添加章节标记
+                addMinimapChapterMarkers(simplifiedContent);
+                
+                // 更新视口位置
+                updateMinimapViewport();
+            }} catch (error) {{
+                console.error('更新缩略图时出错:', error);
+                minimapContent.innerHTML = '<div style="color: red; font-size: 10px; padding: 10px;">缩略图更新失败</div>';
+            }} finally {{
+                isUpdating = false;
+            }}
+        }}
+
+        // 添加章节标记
+        function addMinimapChapterMarkers(clonedContent) {{
+            const headers = clonedContent.querySelectorAll('h1, h2, h3');
+            const contentContainer = document.querySelector('.minimap-content-inner');
+            
+            headers.forEach(header => {{
+                const marker = document.createElement('div');
+                marker.className = 'minimap-chapter-marker';
+                marker.style.position = 'absolute';
+                marker.style.left = '0';
+                marker.style.width = '100%';
+                marker.style.height = '3px';
+                marker.style.background = '#ff8c00';
+                marker.style.top = (header.offsetTop * 0.15) + 8 + 'px';
+                marker.style.pointerEvents = 'none';
+                marker.style.zIndex = '1';
+                if (contentContainer) {{
+                    contentContainer.appendChild(marker);
+                }}
+            }});
+        }}
+
+        // 更新视口位置
+        function updateMinimapViewport() {{
+            if (!minimapViewport || !minimapContent || isDragging) return;
+
+            try {{
+                const scrollTop = window.scrollY;
+                const documentHeight = document.documentElement.scrollHeight;
+                const viewportHeight = window.innerHeight;
+                
+                // 避免除零错误
+                if (documentHeight <= viewportHeight) {{
+                    // 如果文档高度小于视口，显示整个文档
+                    minimapViewport.style.top = '0px';
+                    minimapViewport.style.height = '100%';
+                    return;
+                }}
+                
+                // 计算视口在文档中的位置比例
+                const scrollProgress = scrollTop / (documentHeight - viewportHeight);
+                const viewportHeightRatio = viewportHeight / documentHeight;
+                
+                // 获取缩略图内容的实际高度
+                const contentElement = document.getElementById('content');
+                const actualContentHeight = contentElement ? contentElement.offsetHeight : documentHeight;
+                
+                // 缩略图显示区域的高度（容器高度减去内边距）
+                const minimapDisplayHeight = minimapContainer.offsetHeight - 16;
+                
+                // 计算内容在缩略图中的显示高度
+                const scaledContentHeight = Math.min(actualContentHeight * minimapScale, minimapDisplayHeight);
+                
+                // 调整缩放比例，使视口更加明显
+                const adjustedScale = 0.15; // 稍微增大缩放比例
+                const adjustedHeight = actualContentHeight * adjustedScale;
+                
+                // 计算视口在缩略图中的位置（使用调整后的高度）
+                const availableHeight = Math.min(adjustedHeight, minimapDisplayHeight);
+                const viewportTop = scrollProgress * (availableHeight - viewportHeightRatio * availableHeight);
+                const viewportHeightPx = Math.max(30, viewportHeightRatio * availableHeight); // 增加最小高度
+                
+                // 确保视口不超出缩略图范围
+                const maxTop = availableHeight - viewportHeightPx;
+                const finalTop = Math.max(0, Math.min(viewportTop, maxTop));
+                
+                // 批量更新样式，减少重排
+                minimapViewport.style.top = finalTop + 'px';
+                minimapViewport.style.height = viewportHeightPx + 'px';
+                minimapViewport.style.background = 'rgba(100, 149, 237, 0.3)';
+                minimapViewport.style.border = '3px solid rgba(100, 149, 237, 1)';
+                minimapViewport.style.boxShadow = '0 0 8px rgba(100, 149, 237, 0.8)';
+                minimapViewport.style.minHeight = '30px';
+                minimapViewport.style.borderRadius = '2px';
+                
+                // 添加调试信息
+                if (window.console && window.console.debug) {{
+                    console.debug('视口更新:', {{
+                        scrollProgress: (scrollProgress * 100).toFixed(1) + '%',
+                        viewportHeightRatio: (viewportHeightRatio * 100).toFixed(1) + '%',
+                        finalTop: finalTop.toFixed(1) + 'px',
+                        viewportHeightPx: viewportHeightPx.toFixed(1) + 'px'
+                    }});
+                }}
+            }} catch (error) {{
+                console.error('更新视口位置时出错:', error);
+            }}
+        }}
+
+        // 切换缩略图显示
+        function toggleMinimap() {{
+            isMinimapVisible = !isMinimapVisible;
+            const toggle = document.getElementById('minimapToggle');
+            const toolbarBtn = document.getElementById('minimapToolbarBtn');
+            
+            if (isMinimapVisible) {{
+                minimapContainer.classList.remove('hidden');
+                toggle.classList.add('active');
+                if (toolbarBtn) {{
+                    toolbarBtn.classList.add('active');
+                    toolbarBtn.textContent = '隐藏缩略图';
+                }}
+                updateMinimap();
+            }} else {{
+                minimapContainer.classList.add('hidden');
+                toggle.classList.remove('active');
+                if (toolbarBtn) {{
+                    toolbarBtn.classList.remove('active');
+                    toolbarBtn.textContent = '缩略图';
+                }}
+            }}
+            
+            localStorage.setItem('minimapVisible', isMinimapVisible.toString());
+        }}
+
+        // 开始拖拽
+        function startMinimapDrag(e) {{
+            if (e.target === minimapViewport) return; // 不允许直接拖拽视口
+            
+            isDragging = true;
+            dragStartY = e.clientY;
+            dragStartScrollTop = window.scrollY;
+            
+            // 禁用过渡动画，提高响应性
+            if (minimapViewport) {{
+                minimapViewport.style.transition = 'none';
+            }}
+            
+            e.preventDefault();
+        }}
+
+        // 处理拖拽
+        function handleMinimapDrag(e) {{
+            if (!isDragging) return;
+            
+            try {{
+                const deltaY = e.clientY - dragStartY;
+                const documentHeight = document.documentElement.scrollHeight;
+                const viewportHeight = window.innerHeight;
+                const scrollableHeight = documentHeight - viewportHeight;
+                
+                // 避免除零错误
+                if (scrollableHeight <= 0) return;
+                
+                // 计算新的滚动位置
+                const scrollRatio = deltaY / (minimapContainer.offsetHeight * minimapScale);
+                const newScrollTop = dragStartScrollTop + (scrollRatio * scrollableHeight);
+                
+                // 限制滚动范围
+                const clampedScrollTop = Math.max(0, Math.min(newScrollTop, scrollableHeight));
+                
+                // 使用 requestAnimationFrame 优化性能
+                requestAnimationFrame(() => {{
+                    window.scrollTo(0, clampedScrollTop);
+                }});
+            }} catch (error) {{
+                console.error('拖拽处理时出错:', error);
+            }}
+        }}
+
+        // 结束拖拽
+        function endMinimapDrag() {{
+            isDragging = false;
+            
+            // 恢复过渡动画
+            if (minimapViewport) {{
+                minimapViewport.style.transition = 'top 0.1s ease';
+            }}
+        }}
+
         // 加载设置
         function loadSettings() {{
             const saved = localStorage.getItem('readerSettings');
@@ -4207,6 +4752,11 @@ class BrowserReader:
                 case 'p':
                 case 'P':
                     togglePaginationMode();
+                    e.preventDefault();
+                    break;
+                case 'm':
+                case 'M':
+                    toggleMinimap();
                     e.preventDefault();
                     break;
                 case 'Escape':
@@ -5287,6 +5837,11 @@ class BrowserReader:
 
             console.log('页面加载完成，开始初始化');
             console.log('文档高度:', document.documentElement.scrollHeight, '视口高度:', window.innerHeight);
+
+            // 初始化缩略图导航
+            setTimeout(() => {{
+                initMinimap();
+            }}, 300);
 
             // 生成章节目录
             setTimeout(() => {{
