@@ -312,31 +312,44 @@ class BrowserReader:
             position: fixed;
             bottom: 10px;
             right: 10px;
-            background: {settings['background']};
+            background: transparent;
             padding: 5px 10px;
             border-radius: 4px;
             font-size: 12px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             min-width: 100px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            transition: background 0.3s ease;
+        }}
+
+        .progress-info:hover {{
+            background: rgba(255, 255, 255, 0.95);
         }}
 
         /* 快捷键提示 */
-        .keyboard-hint {{
-            position: fixed;
-            bottom: 45px;
-            right: 10px;
-            background: {settings['background']};
+        .keyboard-hint, #keyboardHint {{
+            position: fixed !important;
+            bottom: 45px !important;
+            right: 10px !important;
+            top: auto !important;
+            left: auto !important;
+            background: transparent;
             padding: 10px;
             border-radius: 4px;
             font-size: 11px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            z-index: 998;
+            z-index: 9999 !important;
             max-width: 200px;
             border: 1px solid rgba(128, 128, 128, 0.3);
+            transition: background 0.3s ease;
         }}
 
-        .keyboard-hint h4 {{
+        .keyboard-hint:hover, #keyboardHint:hover {{
+            background: rgba(255, 255, 255, 0.95);
+        }}
+
+        .keyboard-hint h4, #keyboardHint h4 {{
             margin: 0 0 5px 0;
             font-size: 12px;
             color: {settings['title']};
@@ -356,6 +369,14 @@ class BrowserReader:
             padding: 1px 4px;
             border-radius: 3px;
             font-family: monospace;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(128, 128, 128, 0.2);
+        }}
+
+        .keyboard-hint kbd:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            border-color: rgba(0, 0, 0, 0.3);
         }}
 
         /* 章节目录 */
@@ -365,7 +386,7 @@ class BrowserReader:
             top: 80px;
             width: 250px;
             max-height: 70vh;
-            background: {settings['background']};
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -373,6 +394,10 @@ class BrowserReader:
             overflow-y: auto;
             display: none;
             transition: all 0.3s ease;
+        }}
+
+        .toc-container:hover {{
+            background: rgba(255, 255, 255, 0.95);
         }}
 
         .toc-container.show {{
@@ -413,7 +438,9 @@ class BrowserReader:
         }}
 
         .toc-close:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            border-radius: 4px;
         }}
 
         .toc-list {{
@@ -457,7 +484,7 @@ class BrowserReader:
             position: fixed;
             right: 20px;
             top: 70px;
-            background: {settings['background']};
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             width: 40px;
@@ -474,7 +501,8 @@ class BrowserReader:
         }}
 
         .toc-toggle-btn:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
             transform: scale(1.05);
         }}
 
@@ -483,13 +511,18 @@ class BrowserReader:
             position: fixed;
             top: 70px;
             left: 20px;
-            background: {settings['background']};
+            background: transparent;
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 997;
             display: none;
             border: 1px solid rgba(128, 128, 128, 0.3);
+            transition: background 0.3s ease;
+        }}
+
+        .search-container:hover {{
+            background: rgba(255, 255, 255, 0.95);
         }}
 
         .search-container.show {{
@@ -509,15 +542,16 @@ class BrowserReader:
 
         .search-container button {{
             padding: 6px 12px;
-            background: rgba(100, 149, 237, 0.6);
-            border: none;
-            color: white;
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
         }}
 
         .search-container button:hover {{
+            color: #000;
             background: rgba(100, 149, 237, 0.8);
         }}
 
@@ -532,7 +566,7 @@ class BrowserReader:
             position: fixed;
             right: 70px;
             top: 70px;
-            background: {settings['background']};
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             width: 40px;
@@ -549,7 +583,8 @@ class BrowserReader:
         }}
 
         .bookmark-btn:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
             transform: scale(1.05);
         }}
 
@@ -563,7 +598,7 @@ class BrowserReader:
             position: fixed;
             bottom: 140px;
             right: 10px;
-            background: {settings['background']};
+            background: transparent;
             padding: 10px;
             border-radius: 4px;
             font-size: 11px;
@@ -571,6 +606,11 @@ class BrowserReader:
             z-index: 997;
             border: 1px solid rgba(128, 128, 128, 0.3);
             min-width: 120px;
+            transition: background 0.3s ease;
+        }}
+
+        .reading-stats:hover {{
+            background: rgba(255, 255, 255, 0.95);
         }}
 
         .reading-stats p {{
@@ -593,15 +633,66 @@ class BrowserReader:
             padding: 10px 20px;
             display: flex;
             justify-content: center;
+            align-items: center;
             gap: 20px;
             z-index: 1000;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             flex-wrap: wrap;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }}
+
+        .toolbar.collapsed {{
+            transform: translateY(-100%);
+            opacity: 0;
+        }}
+
+        /* 工具栏收缩按钮容器 */
+        .toolbar-toggle-container {{
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            transition: top 0.3s ease;
+        }}
+
+        /* 工具栏展开状态下，按钮容器下移 */
+        .toolbar:not(.collapsed) ~ .toolbar-toggle-container {{
+            top: 60px;
+        }}
+
+        /* 工具栏收缩按钮 */
+        .toolbar-toggle-btn {{
+            width: 80px;
+            height: 24px;
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            cursor: pointer;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            padding: 0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }}
+
+        .toolbar-toggle-btn:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            transform: scale(1.05);
+        }}
+
+        #toolbarToggleIcon {{
+            transition: transform 0.3s ease;
+            user-select: none;
         }}
         
         .toolbar button {{
             padding: 6px 12px;
-            background: rgba(128, 128, 128, 0.1);
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             cursor: pointer;
@@ -611,7 +702,8 @@ class BrowserReader:
         }}
         
         .toolbar button:hover {{
-            background: rgba(128, 128, 128, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
         
         .toolbar button:active {{
@@ -620,12 +712,18 @@ class BrowserReader:
         
         .toolbar select {{
             padding: 6px 12px;
-            background: rgba(128, 128, 128, 0.1);
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             border-radius: 4px;
             font-size: 14px;
             cursor: pointer;
+            transition: all 0.2s;
+        }}
+
+        .toolbar select:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
         
         .toolbar label {{
@@ -658,8 +756,13 @@ class BrowserReader:
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: {settings['background']};
+            background: rgba(255, 255, 255, 0.95);
             border: 1px solid rgba(128, 128, 128, 0.3);
+            transition: background 0.3s ease;
+        }}
+
+        .settings-panel:hover {{
+            background: rgba(255, 255, 255, 1);
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 2000;
@@ -699,7 +802,9 @@ class BrowserReader:
         }}
 
         .settings-close:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            border-radius: 4px;
         }}
 
         .setting-item {{
@@ -726,7 +831,7 @@ class BrowserReader:
             width: 40px;
             height: 40px;
             border: 2px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
@@ -736,7 +841,8 @@ class BrowserReader:
         }}
 
         .toggle-btn:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
 
         .toggle-btn.active {{
@@ -756,14 +862,15 @@ class BrowserReader:
             flex: 1;
             padding: 8px 16px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
         }}
 
         .setting-actions button:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
 
         /* 笔记和高亮 */
@@ -858,8 +965,8 @@ class BrowserReader:
             width: 100%;
             padding: 10px;
             margin-top: 10px;
-            background: rgba(100, 149, 237, 0.3);
-            border: 1px solid rgba(100, 149, 237, 0.6);
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
@@ -867,7 +974,8 @@ class BrowserReader:
         }}
 
         .add-btn:hover {{
-            background: rgba(100, 149, 237, 0.5);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
 
         /* 高亮样式 */
@@ -973,16 +1081,17 @@ class BrowserReader:
             padding: 4px 8px;
             font-size: 12px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
         }}
-        
+
         .theme-actions button:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
-        
+
         .no-themes {{
             text-align: center;
             color: rgba(128, 128, 128, 0.7);
@@ -996,7 +1105,7 @@ class BrowserReader:
             top: 70px;
             left: 50%;
             transform: translateX(-50%);
-            background: {settings['background']};
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             padding: 8px 16px;
@@ -1012,7 +1121,8 @@ class BrowserReader:
         }}
         
         .night-mode-toggle:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
             transform: translateX(-50%) scale(1.05);
         }}
         
@@ -1045,7 +1155,7 @@ class BrowserReader:
             position: fixed;
             bottom: 140px;
             right: 10px;
-            background: {settings['background']};
+            background: transparent;
             padding: 15px;
             border-radius: 8px;
             font-size: 12px;
@@ -1053,7 +1163,12 @@ class BrowserReader:
             z-index: 997;
             border: 1px solid rgba(128, 128, 128, 0.3);
             min-width: 180px;
-            display: none;
+            transition: background 0.3s ease;
+            display:none;
+        }}
+
+        .reading-stats-enhanced:hover {{
+            background: rgba(255, 255, 255, 0.95);
         }}
         
         .reading-stats-enhanced.show {{
@@ -1085,13 +1200,18 @@ class BrowserReader:
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: {settings['background']};
+            background: transparent;
             padding: 10px 20px;
             border-radius: 25px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 997;
             border: 1px solid rgba(128, 128, 128, 0.3);
             display: none;
+            transition: background 0.3s ease;
+        }}
+
+        .auto-scroll-controls:hover {{
+            background: rgba(255, 255, 255, 0.95);
             align-items: center;
             gap: 15px;
         }}
@@ -1103,17 +1223,18 @@ class BrowserReader:
         .auto-scroll-controls button {{
             padding: 6px 12px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
         }}
-        
+
         .auto-scroll-controls button:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
-        
+
         .auto-scroll-controls button.active {{
             background: rgba(100, 149, 237, 0.3);
             border-color: rgba(100, 149, 237, 0.6);
@@ -1137,13 +1258,18 @@ class BrowserReader:
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: {settings['background']};
+            background: transparent;
             padding: 10px 20px;
             border-radius: 25px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 997;
             border: 1px solid rgba(128, 128, 128, 0.3);
             display: none;
+            transition: background 0.3s ease;
+        }}
+
+        .speech-controls:hover {{
+            background: rgba(255, 255, 255, 0.95);
             align-items: center;
             gap: 15px;
         }}
@@ -1155,17 +1281,18 @@ class BrowserReader:
         .speech-controls button {{
             padding: 6px 12px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
         }}
-        
+
         .speech-controls button:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
-        
+
         .speech-controls button.active {{
             background: rgba(100, 149, 237, 0.3);
             border-color: rgba(100, 149, 237, 0.6);
@@ -1284,7 +1411,6 @@ class BrowserReader:
             margin: 0.8em 0;
             text-align: justify;
             text-indent: 2em;
-        }}
             overflow-y: auto;
             background: {settings['background']};
             color: {settings['text']};
@@ -1618,10 +1744,15 @@ class BrowserReader:
             display: flex;
             align-items: center;
             gap: 15px;
-            background: {settings['background']};
+            background: transparent;
             padding: 10px 20px;
             border-radius: 25px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: background 0.3s ease;
+        }}
+
+        .pagination-controls:hover {{
+            background: rgba(255, 255, 255, 0.95);
             z-index: 997;
             border: 1px solid rgba(128, 128, 128, 0.3);
         }}
@@ -1629,12 +1760,17 @@ class BrowserReader:
         .pagination-controls button {{
             padding: 8px 16px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s;
+        }}
+
+        .pagination-controls button:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
         
         .pagination-controls button:hover {{
@@ -1680,14 +1816,23 @@ class BrowserReader:
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: {settings['background']};
+            background: rgba(255, 255, 255, 0.95);
             border: 1px solid rgba(128, 128, 128, 0.3);
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 2000;
+            transition: background 0.3s ease;
+            display: none;
+        }}
+
+        .pagination-settings:hover {{
+            background: rgba(255, 255, 255, 1);
+        }}
+
+        .pagination-settings.show {{
+            display: block;
             width: 90%;
             max-width: 400px;
-            display: none;
         }}
         
         .pagination-settings.show {{
@@ -1724,7 +1869,9 @@ class BrowserReader:
         }}
         
         .pagination-settings-close:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            border-radius: 4px;
         }}
         
         .setting-item {{
@@ -1742,10 +1889,15 @@ class BrowserReader:
             width: 100%;
             padding: 8px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             font-size: 14px;
+        }}
+
+        .setting-item select:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
         
         .setting-actions {{
@@ -1758,14 +1910,15 @@ class BrowserReader:
             flex: 1;
             padding: 8px 16px;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            background: {settings['background']};
+            background: transparent;
             color: {settings['text']};
             border-radius: 4px;
             cursor: pointer;
         }}
-        
+
         .setting-actions button:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
         }}
         
         /* 翻页模式切换按钮 */
@@ -1773,7 +1926,7 @@ class BrowserReader:
             position: fixed;
             top: 70px;
             left: 20px;
-            background: {settings['background']};
+            background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
             color: {settings['text']};
             padding: 8px 16px;
@@ -1789,7 +1942,8 @@ class BrowserReader:
         }}
         
         .pagination-mode-toggle:hover {{
-            background: rgba(128, 128, 128, 0.1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
             transform: scale(1.05);
         }}
         
@@ -1876,7 +2030,7 @@ class BrowserReader:
     </div>
     
     <!-- 工具栏 -->
-    <div class="toolbar">
+    <div class="toolbar" id="toolbar">
         <button onclick="changeFontSize(-2)">A-</button>
         <button onclick="changeFontSize(2)">A+</button>
 
@@ -1915,6 +2069,13 @@ class BrowserReader:
         <button onclick="scrollToBottom()">底部</button>
         <button onclick="printContent()">打印</button>
         <button onclick="toggleTOC()">目录</button>
+    </div>
+
+    <!-- 工具栏收缩/展开按钮 -->
+    <div class="toolbar-toggle-container" id="toolbarToggleContainer">
+        <button class="toolbar-toggle-btn" onclick="toggleToolbar()" title="收缩/展开工具栏">
+            <span id="toolbarToggleIcon">︽</span>
+        </button>
     </div>
 
     <!-- 字体设置面板 -->
@@ -2199,6 +2360,22 @@ class BrowserReader:
         // 获取后端状态提示
         function getBackendStatusText() {{
             return isBackendOnline ? '' : '（后端离线）';
+        }}
+        
+        // 切换工具栏收缩/展开
+        function toggleToolbar() {{
+            const toolbar = document.getElementById('toolbar');
+            const icon = document.getElementById('toolbarToggleIcon');
+            
+            toolbar.classList.toggle('collapsed');
+            
+            if (toolbar.classList.contains('collapsed')) {{
+                icon.textContent = '︾';
+                showNotification('工具栏已隐藏');
+            }} else {{
+                icon.textContent = '︽';
+                showNotification('工具栏已展开');
+            }}
         }}
         
         // 修改字体大小
