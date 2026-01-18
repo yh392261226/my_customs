@@ -100,6 +100,7 @@ class GetBooksScreen(Screen[None]):
                         Button(get_global_i18n().t('get_books.novel_sites'), id="novel-sites-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.proxy_settings'), id="proxy-settings-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.check_all'), id="check-all-sites-btn", classes="btn"),
+                        Button(get_global_i18n().t('get_books.clear_all_invalid'), id="clear-all-invalid-btn", classes="btn", variant="error"),
                         Button(get_global_i18n().t('get_books.shortcut_o'), id="open-books-folder-btn", classes="btn"),
                         Button(get_global_i18n().t('get_books.back'), id="back-btn", classes="btn"),
                         id="get-books-buttons",
@@ -943,6 +944,8 @@ class GetBooksScreen(Screen[None]):
                 self.notify(get_global_i18n().t('get_books.np_manage_proxy'), severity="warning")
         elif event.button.id == "check-all-sites-btn":
             self._check_all_sites_status_async()
+        elif event.button.id == "clear-all-invalid-btn":
+            self._clear_all_invalid_records()
         elif event.button.id == "open-books-folder-btn":
             self.action_open_books_folder()
         elif event.button.id == "back-btn":
@@ -1491,3 +1494,107 @@ class GetBooksScreen(Screen[None]):
             # ESC键返回（仅一次）
             self.app.pop_screen()
             event.stop()
+
+    def _clear_all_invalid_records(self) -> None:
+        """清理所有无效记录（没有文件的记录和爬取失败的记录）"""
+        import sqlite3
+
+        try:
+            # 检查权限
+            if not self._has_permission("crawler.delete_record"):
+                self.notify(get_global_i18n().t('get_books.np_clear_all_invalid'), severity="error")
+                return
+
+            # 查询所有无效记录
+            invalid_records = []
+            try:
+                with sqlite3.connect(self.database_manager.db_path) as conn:
+                    conn.row_factory = sqlite3.Row
+                    cursor = conn.cursor()
+
+                    # 1. 查询所有失败的记录
+                    cursor.execute("""
+                        SELECT id, site_id, novel_id, novel_title, file_path, status, error_message
+                        FROM crawl_history
+                        WHERE status = 'failed'
+                    """)
+                    failed_rows = cursor.fetchall()
+                    for row in failed_rows:
+                        invalid_records.append(dict(row))
+
+                    # 2. 查询所有成功的记录，然后检查文件是否存在
+                    cursor.execute("""
+                        SELECT id, site_id, novel_id, novel_title, file_path, status, error_message
+                        FROM crawl_history
+                        WHERE status = 'success'
+                    """)
+                    success_rows = cursor.fetchall()
+                    for row in success_rows:
+                        record = dict(row)
+                        # 检查文件路径是否为空或文件是否存在
+                        if not record.get('file_path') or not os.path.exists(record['file_path']):
+                            invalid_records.append(record)
+
+            except Exception as e:
+                logger.error(f"查询无效记录失败: {e}")
+                self.notify(get_global_i18n().t('get_books.clear_all_invalid_failed', error=str(e)), severity="error")
+                return
+
+            # 如果没有无效记录
+            if not invalid_records:
+                self.notify(get_global_i18n().t('get_books.clear_all_invalid_no_data'), severity="information")
+                return
+
+            # 显示确认对话框
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            def handle_clear_confirmation(confirmed: bool | None) -> None:
+                if confirmed:
+                    try:
+                        deleted_count = 0
+                        failed_count = 0
+
+                        # 删除所有无效记录
+                        for record in invalid_records:
+                            try:
+                                record_id = record['id']
+                                if self.database_manager.delete_crawl_history(record_id):
+                                    deleted_count += 1
+                                else:
+                                    failed_count += 1
+                            except Exception as e:
+                                logger.error(f"删除记录失败: {record['id']}, 错误: {e}")
+                                failed_count += 1
+
+                        # 刷新书籍网站列表（更新书籍数量）
+                        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+
+                        # 显示结果
+                        if failed_count > 0:
+                            self.notify(
+                                get_global_i18n().t('get_books.clear_all_invalid_success', success=deleted_count, fail=failed_count),
+                                severity="warning"
+                            )
+                        else:
+                            self.notify(
+                                get_global_i18n().t('get_books.clear_all_invalid_success', success=deleted_count, fail=failed_count),
+                                severity="success"
+                            )
+                    except Exception as e:
+                        logger.error(f"清理无效记录失败: {e}")
+                        self.notify(get_global_i18n().t('get_books.clear_all_invalid_failed', error=str(e)), severity="error")
+                elif confirmed is False:
+                    self.notify(get_global_i18n().t('crawler.delete_cancelled'))
+
+            # 显示确认对话框
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('get_books.clear_all_invalid_confirm'),
+                    get_global_i18n().t('get_books.clear_all_invalid_desc', count=len(invalid_records))
+                ),
+                handle_clear_confirmation
+            )
+
+        except Exception as e:
+            logger.error(f"清理无效记录操作失败: {e}")
+            self.notify(get_global_i18n().t('get_books.clear_all_invalid_failed', error=str(e)), severity="error")

@@ -902,7 +902,14 @@
         "checking_progress": "Checking... {count}/{total}",
         "check_complete": "Check complete: {success} successful, {failed} failed, {total} total websites",
         "using_chrome_browser": "Opening website with Google Chrome: {name}",
-        "open_url_failed": "Failed to open URL: {error}"
+        "open_url_failed": "Failed to open URL: {error}",
+        "clear_all_invalid": "Clear Invalid Crawled Records",
+        "clear_all_invalid_confirm": "Confirm Clear Invalid Records",
+        "clear_all_invalid_desc": "Will clear all invalid crawl records for all book websites (failed records and successful records with missing files), totaling {count} records. This action cannot be undone.",
+        "clear_all_invalid_success": "Clear completed: {success} success, {fail} failed",
+        "clear_all_invalid_failed": "Clear failed: {error}",
+        "clear_all_invalid_no_data": "No invalid records to clear",
+        "np_clear_all_invalid": "No permission to clear invalid records"
     },
     "proxy_settings": {
         "title": "Proxy Settings",

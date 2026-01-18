@@ -3649,7 +3649,7 @@ class CrawlerManagementScreen(Screen[None]):
 
             except Exception as e:
                 logger.error(f"查询无效记录失败: {e}")
-                self._update_status(f"查询失败: {str(e)}", "error")
+                self._update_status(get_global_i18n().t('crawler.clear_invalid_failed', error=str(e)), "error")
                 return
 
             # 如果没有无效记录

@@ -964,7 +964,14 @@
         "checking_progress": "检测中... {count}/{total}",
         "check_complete": "检测完成: 成功 {success} 个，失败 {failed} 个，共 {total} 个网站",
         "using_chrome_browser": "正在使用Google Chrome打开网站: {name}",
-        "open_url_failed": "打开网址失败: {error}"
+        "open_url_failed": "打开网址失败: {error}",
+        "clear_all_invalid": "清理无效爬取记录",
+        "clear_all_invalid_confirm": "确认清理无效记录",
+        "clear_all_invalid_desc": "将清理所有书籍网站的无效爬取记录（失败记录和成功但文件不存在的记录），共 {count} 条。此操作不可撤销。",
+        "clear_all_invalid_success": "清理完成：成功 {success} 条，失败 {fail} 条",
+        "clear_all_invalid_failed": "清理失败：{error}",
+        "clear_all_invalid_no_data": "没有需要清理的无效记录",
+        "np_clear_all_invalid": "无权限清理无效记录"
     },
     "proxy_settings": {
         "title": "代理设置",
