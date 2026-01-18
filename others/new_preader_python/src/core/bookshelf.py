@@ -491,10 +491,25 @@ class Bookshelf:
             return sorted(books, key=get_book_last_read_date, reverse=reverse)
         elif key == "progress":
             # 从缓存的阅读信息中获取阅读进度进行排序（避免重复查询数据库）
-            def get_book_progress(book):
+            # 核心概念：阅读进度 100% 的永远在最后面，无论正序还是倒序
+            # 方法：先分组，然后分别排序，最后合并
+            not_completed_books = []
+            completed_books = []
+
+            for book in books:
                 reading_info = self._reading_info_cache.get(book.path, {})
-                return reading_info.get('reading_progress', 0)
-            return sorted(books, key=get_book_progress, reverse=reverse)
+                progress = reading_info.get('reading_progress', 0)
+                if progress >= 1.0:
+                    completed_books.append(book)
+                else:
+                    not_completed_books.append(book)
+
+            # 按进度分别排序
+            not_completed_books.sort(key=lambda x: self._reading_info_cache.get(x.path, {}).get('reading_progress', 0), reverse=reverse)
+            completed_books.sort(key=lambda x: self._reading_info_cache.get(x.path, {}).get('reading_progress', 0), reverse=reverse)
+
+            # 合并：未完成在前，已完成在后
+            return not_completed_books + completed_books
         elif key == "file_size":
             # 按文件大小排序
             return sorted(books, key=lambda x: x.file_size if hasattr(x, 'file_size') else 0, reverse=reverse)

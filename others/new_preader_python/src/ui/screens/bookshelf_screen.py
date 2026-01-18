@@ -423,13 +423,14 @@ class BookshelfScreen(Screen[None]):
         # 性能优化：检查是否只需要更新当前页数据（分页切换时）
         current_search_params = f"{search_keyword}_{search_format}_{search_author}"
         page_change_only = False
-        
+
         # 如果搜索条件未改变且书籍数据已存在，只需更新分页
-        if (hasattr(self, '_last_search_params') and 
-            self._last_search_params == current_search_params and 
+        # 除非：有自定义排序（_sort_column 不为 None）
+        if (hasattr(self, '_last_search_params') and
+            self._last_search_params == current_search_params and
             hasattr(self, '_all_books') and self._all_books):
             page_change_only = True
-        
+
         if not page_change_only:
             # 完全清除表格数据，包括行键缓存
             table.clear(columns=True)
@@ -502,9 +503,48 @@ class BookshelfScreen(Screen[None]):
             except Exception as e:
                 self.logger.warning(f"重新加载书架数据失败: {e}")
             
-            # 缓存搜索参数
-            self._last_search_params = current_search_params
-        
+        # 缓存搜索参数
+        self._last_search_params = current_search_params
+
+        # 如果只是分页切换但有自定义排序，需要重新应用排序
+        if page_change_only and self._sort_column is not None:
+            # 核心概念：阅读进度 100% 的永远在最后面，无论什么排序方式
+            not_completed_books = []
+            completed_books = []
+
+            for book in self._all_books:
+                reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
+                progress = reading_info.get('reading_progress', 0)
+                if progress >= 1.0:
+                    completed_books.append(book)
+                else:
+                    not_completed_books.append(book)
+
+            self.logger.debug(f"重新排序前 - 未完成: {len(not_completed_books)}, 已完成: {len(completed_books)}")
+
+            # 预先获取阅读信息
+            reading_info_cache = {}
+            for book in not_completed_books + completed_books:
+                reading_info = self.bookshelf.get_book_reading_info(book.path)
+                reading_info_cache[book.path] = reading_info
+
+            def get_sort_key(book):
+                return self._get_sort_key_with_cache(book, self._sort_column, reading_info_cache)
+
+            not_completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+            completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+
+            self._all_books = not_completed_books + completed_books
+
+            self.logger.debug(f"重新应用排序: {self._sort_column}, 倒序: {self._sort_reverse}")
+            if not_completed_books:
+                self.logger.debug(f"未完成前3本: {[b.title[:15] for b in not_completed_books[:3]]}")
+            if completed_books:
+                self.logger.debug(f"已完成前3本: {[b.title[:15] for b in completed_books[:3]]}")
+            self.logger.debug(f"合并后前3本: {[b.title[:15] for b in self._all_books[:3]]}")
+            if len(self._all_books) > 3:
+                self.logger.debug(f"合并后最后3本: {[b.title[:15] for b in self._all_books[-3:]]}")
+
         # 性能优化：使用缓存
         cache_key = self._get_cache_key()
         if not page_change_only:
@@ -629,25 +669,53 @@ class BookshelfScreen(Screen[None]):
             self._show_loading_animation(f"{get_global_i18n().t('book_on_loadding')}", progress=60)
 
             # 对筛选后的书籍进行排序
-            if search_keyword or search_format != "all" or search_author != "all":
-                # 有搜索条件时，手动排序（使用缓存的阅读信息，避免重复查询）
-                # 性能优化：使用书架缓存中的阅读信息
-                reading_info_cache = {}
-                for book in filtered_books:
-                    # 从书架的缓存中获取阅读信息，避免重复查询数据库
-                    reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
-                    reading_info_cache[book.path] = reading_info.get('last_read_date') or ""
+            # 核心概念：阅读进度 100% 的永远在最后面，无论什么排序方式
+            # 先分组：未完成和已完成
+            not_completed_books = []
+            completed_books = []
 
-                self._all_books = sorted(filtered_books,
-                                       key=lambda book: reading_info_cache.get(book.path, ""),
-                                       reverse=True)
-            else:
-                # 没有搜索条件时，使用书架管理器的排序方法（从reading_history表获取的阅读时间）
-                self._all_books = self.bookshelf.get_sorted_books("last_read_date", reverse=True)
+            for book in filtered_books:
+                reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
+                progress = reading_info.get('reading_progress', 0)
+                self.logger.debug(f"书籍: {book.title[:20]}, 进度: {progress}")
+                if progress >= 1.0:
+                    completed_books.append(book)
+                else:
+                    not_completed_books.append(book)
 
-            # 应用自定义排序（如果用户点击了表头进行排序）
+            self.logger.debug(f"未完成: {len(not_completed_books)}, 已完成: {len(completed_books)}")
+
+            # 根据选择的排序字段对两组分别排序
             if self._sort_column is not None:
-                self._sort_books(self._sort_column, self._sort_reverse)
+                # 用户点击了表头，使用自定义排序
+                # 预先获取阅读信息，避免在排序时重复查询
+                reading_info_cache = {}
+                for book in not_completed_books + completed_books:
+                    reading_info = self.bookshelf.get_book_reading_info(book.path)
+                    reading_info_cache[book.path] = reading_info
+
+                def get_sort_key(book):
+                    return self._get_sort_key_with_cache(book, self._sort_column, reading_info_cache)
+
+                not_completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+                completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+
+                self.logger.debug(f"排序字段: {self._sort_column}, 倒序: {self._sort_reverse}")
+                if not_completed_books:
+                    self.logger.debug(f"未完成前3本: {[b.title[:15] for b in not_completed_books[:3]]}")
+                if completed_books:
+                    self.logger.debug(f"已完成前3本: {[b.title[:15] for b in completed_books[:3]]}")
+            else:
+                # 默认按最后阅读时间排序
+                not_completed_books.sort(key=lambda book: self.bookshelf._reading_info_cache.get(book.path, {}).get('last_read_date', ""), reverse=True)
+                completed_books.sort(key=lambda book: self.bookshelf._reading_info_cache.get(book.path, {}).get('last_read_date', ""), reverse=True)
+
+            # 合并：未完成在前，已完成在后
+            self._all_books = not_completed_books + completed_books
+
+            self.logger.debug(f"合并后前3本: {[b.title[:15] for b in self._all_books[:3]]}")
+            if len(self._all_books) > 3:
+                self.logger.debug(f"合并后最后3本: {[b.title[:15] for b in self._all_books[-3:]]}")
         
         # 计算总页数
         self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
@@ -1273,10 +1341,7 @@ class BookshelfScreen(Screen[None]):
                     self._sort_column = column_key
                     self._sort_reverse = True  # 新列默认倒序
 
-                # 执行排序
-                self._sort_books(column_key, self._sort_reverse)
-
-                # 重新加载表格显示
+                # 重新加载表格显示（会在 _load_books 中应用排序）
                 self._load_books(self._search_keyword, self._search_format, self._search_author)
 
                 # 显示排序提示
@@ -1297,67 +1362,55 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"表头点击事件处理失败: {e}")
 
-    def _sort_books(self, column_key: str, reverse: bool) -> None:
-        """根据指定列对书籍进行排序
+    def _get_sort_key_with_cache(self, book: Book, column_key: str, reading_info_cache: Dict[str, Dict[str, Any]]) -> Any:
+        """获取书籍的排序键值（使用缓存的阅读信息）
 
         Args:
+            book: 书籍对象
             column_key: 排序的列键
-            reverse: 是否倒序
+            reading_info_cache: 阅读信息缓存
+
+        Returns:
+            排序键值
         """
-        try:
-            # 性能优化：预先获取所有书籍的阅读信息
-            reading_info_cache = {}
-            if column_key in ["last_read", "progress"]:
-                for book in self._all_books:
-                    reading_info = self.bookshelf.get_book_reading_info(book.path)
-                    reading_info_cache[book.path] = reading_info
-
-            def get_sort_key(book: Book) -> Any:
-                """获取排序键值"""
-                if column_key == "id":
-                    # ID排序，使用路径作为唯一标识
-                    return book.path
-                elif column_key == "title":
-                    # 标题排序
-                    return book.title or ""
-                elif column_key == "author":
-                    # 作者排序
-                    return book.author or ""
-                elif column_key == "format":
-                    # 格式排序，转换为小写进行比较
-                    return book.format.lower() if book.format else ""
-                elif column_key == "size":
-                    # 大小排序，使用原始字节数
-                    return book.size
-                elif column_key == "last_read":
-                    # 最后阅读时间排序
-                    from datetime import datetime
-                    try:
-                        reading_info = reading_info_cache.get(book.path, {})
-                        last_read = reading_info.get('last_read_date') or ""
-                        if last_read:
-                            return datetime.fromisoformat(last_read)
-                        else:
-                            return datetime.min
-                    except:
-                        return datetime.min
-                elif column_key == "progress":
-                    # 进度排序，从阅读信息中获取
-                    try:
-                        reading_info = reading_info_cache.get(book.path, {})
-                        return reading_info.get('reading_progress', 0)
-                    except:
-                        return 0.0
-                elif column_key == "tags":
-                    # 标签排序
-                    return book.tags or ""
-                return None
-
-            # 使用 sort 函数进行排序
-            self._all_books.sort(key=get_sort_key, reverse=reverse)
-
-        except Exception as e:
-            self.logger.error(f"排序失败: {e}")
+        if column_key == "id":
+            # ID排序，使用路径作为唯一标识
+            return book.path
+        elif column_key == "title":
+            # 标题排序
+            return book.title or ""
+        elif column_key == "author":
+            # 作者排序
+            return book.author or ""
+        elif column_key == "format":
+            # 格式排序，转换为小写进行比较
+            return book.format.lower() if book.format else ""
+        elif column_key == "size":
+            # 大小排序，使用原始字节数
+            return book.size
+        elif column_key == "last_read":
+            # 最后阅读时间排序
+            from datetime import datetime
+            try:
+                reading_info = reading_info_cache.get(book.path, {})
+                last_read = reading_info.get('last_read_date') or ""
+                if last_read:
+                    return datetime.fromisoformat(last_read)
+                else:
+                    return datetime.min
+            except:
+                return datetime.min
+        elif column_key == "progress":
+            # 进度排序，从阅读信息中获取
+            try:
+                reading_info = reading_info_cache.get(book.path, {})
+                return reading_info.get('reading_progress', 0)
+            except:
+                return 0.0
+        elif column_key == "tags":
+            # 标签排序
+            return book.tags or ""
+        return None
 
     @on(DataTable.CellSelected, "#books-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
