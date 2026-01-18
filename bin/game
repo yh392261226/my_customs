@@ -13,164 +13,345 @@ END='\033[0m'
 custom_gum_show2hide_header "游戏脚本"
 
 function lottery() {
-    ### 双色球
-    function doubleBall() {
-        #定义零长度数组
-        local result=()
-        local length=${#result[@]}
-        while [ "${length}" -lt 6 ]; do
-            #取1到33的随机数
-            s=$[$RANDOM%33+1]
-            #判断随机数是否在数组中，不在就赋值给数组
-            if [[ ! "${result[@]}" =~ "${s}" ]]; then
-                result["${length}"]=$s
-                let length+=1
-            fi
-        done
-        #原数组
-        #echo ${result[*]}
-        #对数组进行排序操作
-        for ((i=0; i<${#result[@]}; i++)); do
-            for ((j=0; j<${#result[@]}-1; j++)); do
-                #${result[j]}获取单个元素，-gt为大于
-                if [[ ${result[j]} -gt ${result[j+1]} ]]; then
-                    #分别定义min为小值，MAX为大值
-                    local min=${result[j+1]}
-                    local max=${result[j]}
-                    #调整数组result中数值顺序
-                    result[j]=$min
-                    result[j+1]=$max
-                fi
-            done
-        done
-        blue=$[$RANDOM%16+1]
-        [[ "$blue" -lt "10" ]] && blue="0$blue"
-        # echo ${result[*]}
-        n=0
-        for i in ${result[*]}; do
-            if [[ ${result[$n]} -lt 10 ]]; then
-                result[$n]="0${result[$n]}"
-            fi
-            ((n=n+1))
-        done
-        #输出冒泡排序结果 #蓝色球从1到16中随意选择一个
-        echo -e "${RED}${result[@]}${END} | ${BLUE}${blue}${END}"
-    }
-    
-    ### 多票双色球
-    function multipleDoubleBall() {
-        local times=1
-        [[ "" != "$1" ]] && times=$1
-        for ((i=0; i<$times; i++)); do
-            $0 lottery doubleball
-            echo "--------------------"
-        done
-    }
-
-    ### 双色球开奖结果
-    function resultDoubleBall() {
-    echo "开奖期数:$1"
-        local result_no=$1
-        if [ "" = "$result_no" ]; then
-            echo "请输入开奖期数"
-            return 1
-            exit 1
-        fi
-        local TMPHTMLPATH=/tmp/result_doubleball_html.log
-        # https://kaijiang.500.com/shtml/ssq/22027.shtml
-        local HOSTURL='https://kaijiang.500.com/shtml/ssq/'
-
-        rm -f $TMPHTMLPATH
-        local result_content=""
-        curl -s ${HOSTURL}${result_no}.shtml > ${TMPHTMLPATH}
-        if [ -f $TMPHTMLPATH ] && [ "" != "$(cat $TMPHTMLPATH)" ]; then
-            echo "红球："
-            cat $TMPHTMLPATH | grep -E '\=\"ball_red\">([0-9]{2})<' | sed 's,<li class="ball_red">,,g' | sed 's,</li>,,g' | sed 's, ,,g' | sed 's,  ,,g'
-            echo "篮球："
-            cat $TMPHTMLPATH | grep -E '\=\"ball_blue\">([0-9]{2})<' | sed 's,<li class="ball_blue">,,g' | sed 's,</li>,,g' | sed 's, ,,g' | sed 's,  ,,g'
-        fi
-    }
-
-    ### 大乐透
-    function lotto() {
-        local i=1
-        local a=()
-        while [ $i -le 5 ]; do
-            if [ $i -eq 1 ]; then
-                a[$i]=$(( $RANDOM % 35 +1 ))
-            else
-                j=$i
-                a[$j]=$(( $RANDOM % 35 +1 ))
-                while [ $j -ge 2 ] && [ ${a[$j]} -le ${a[$((j - 1))]} ]; do
-                    t=${a[$j]}
-                    a[$j]=${a[$((j -1 ))]}
-                    a[$((j - 1))]=$t
-                    j=$((j - 1))
-                done
-                i=$j
-            fi
-            i=$((i + 1))
-        done
-        local p=`echo ${a[@]}`
-        local m=1
-        while [ $m -le 2 ]; do
-            if [ $m -eq 1 ]; then
-                b[$m]=$(( $RANDOM % 12 + 1 ))
-            else
-                n=$m
-                b[$n]=$(( $RANDOM % 12 + 1 ))
-                while [ $n -ge 2 ] && [ ${b[$n]} -le ${b[$((n - 1))]} ]; do
-                    r=${b[$n]}
-                    b[$n]=${b[$((n -1 ))]}
-                    b[$((n - 1))]=$r
-                    n=$((n - 1))
-                done
-                m=$n
-            fi
-            m=$((m + 1))
-        done
-        local q=`echo ${b[@]}`
-        echo -e "${RED}${p}${END} | ${BLUE}${q}${END}"
-    }
-    
-    ### 多票大乐透
-    function multipleLotto() {
-        local times=1
-        [[ "" != "$1" ]] && times=$1
-        for ((i=0; i<$times; i++)); do
-            $0 lottery lotto
-            echo "--------------------"
-        done
-    }
-    
     if [ "$1" = "" ]; then
         echo "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･
 │ 使用方法: ${0##*/} lottery / l [command(可用命令)]
 ╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･" | lolcat -f -F 0.05
 echo "╭──────────────────────────────────────────────────────────────────────────────────────── -- - ･
 │ command(可用命令):
-│  doubleball / ssq   双色球 [生成数量 | result / r]    [开奖期号]
-│  lotto      / lt    大乐透 [生成数量]
+│  ssq   双色球 [生成数量 | history]    查看历史记录使用 history
+│  dlt   大乐透 [生成数量 | history]    查看历史记录使用 history
 ╰──────────────────────────────────────────────────────────────────────────────────────── -- - ･" | lolcat -f -F 0.05
         return
     fi
     
+    # 设置默认注数
+    local count=1
+    if [ "$2" != "" ] && [ "$2" != "history" ]; then
+        count="$2"
+    fi
+    
     case "$1" in
         'ssq'|'doubleball')
-            if [ "result" = "$2" ] || [ "r" = "$2" ]; then
-                resultDoubleBall $3
-            elif [ "" != "$2" ]; then
-                multipleDoubleBall $2
+            if [ "$2" = "history" ]; then
+                python3 -c "
+import requests
+import json
+import random
+
+EXPECT_KEYS = {'expect', 'code', 'issue'}
+NUMBER_KEYS = {'opencode', 'number', 'openCode'}
+
+def fetch_history(lottery_type, limit=10):
+    url = f'https://api.huiniao.top/interface/home/lotteryHistory?type={lottery_type}&limit={limit}'
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    raw = resp.json()
+
+    data_outer = raw.get('data') or {}
+    nested = data_outer.get('data') or {}
+    items = nested.get('list') or []
+
+    if not isinstance(items, list) or not items:
+        raise RuntimeError('未获取到 list 格式的历史开奖数据，请检查 API 接口返回')
+
+    history = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        code = item.get('code') or item.get('issue') or item.get('expect')
+
+        numbers = []
+        for key in sorted(item.keys()):
+            if key.isalpha() and len(key) <= 5:
+                val = item.get(key)
+                if isinstance(val, (int, str)) and str(val).isdigit():
+                    numbers.append(int(val))
+
+        if len(numbers) >= 6:
+            history.append({'code': code, 'results': numbers})
+
+        if len(history) >= limit:
+            break
+
+    if not history:
+        raise RuntimeError('解析后历史开奖数据为空，请检查 API 返回格式')
+
+    return history
+
+def show_ssq_history(history):
+    print('双色球近10期开奖记录：')
+    print('=' * 40)
+    for idx, h in enumerate(history):
+        reds = h['results'][:6]
+        blue = h['results'][6] if len(h['results']) > 6 else '?'
+        reds_str = ' '.join(f'{x:02d}' for x in reds)
+        print(f'第{idx+1:2d}期 {h[\"code\"]}: {reds_str} + {blue:02d}')
+
+hist = fetch_history('ssq', limit=10)
+show_ssq_history(hist)
+"
             else
-                doubleBall
+                python3 -c "
+import requests
+import json
+import random
+
+EXPECT_KEYS = {'expect', 'code', 'issue'}
+NUMBER_KEYS = {'opencode', 'number', 'openCode'}
+
+def fetch_history(lottery_type, limit=50):
+    url = f'https://api.huiniao.top/interface/home/lotteryHistory?type={lottery_type}&limit={limit}'
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    raw = resp.json()
+
+    data_outer = raw.get('data') or {}
+    nested = data_outer.get('data') or {}
+    items = nested.get('list') or []
+
+    if not isinstance(items, list) or not items:
+        raise RuntimeError('未获取到 list 格式的历史开奖数据，请检查 API 接口返回')
+
+    history = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        code = item.get('code') or item.get('issue') or item.get('expect')
+
+        numbers = []
+        for key in sorted(item.keys()):
+            if key.isalpha() and len(key) <= 5:
+                val = item.get(key)
+                if isinstance(val, (int, str)) and str(val).isdigit():
+                    numbers.append(int(val))
+
+        if len(numbers) >= 5:
+            history.append({'code': code, 'results': numbers})
+
+        if len(history) >= limit:
+            break
+
+    if not history:
+        raise RuntimeError('解析后历史开奖数据为空，请检查 API 返回格式')
+
+    return history
+
+def build_weights(numbers, history, avoid_recent=2):
+    weight = {n: 10 for n in numbers}
+    last_seen = {n: None for n in numbers}
+
+    for idx, h in enumerate(history):
+        for n in h['results']:
+            if n in last_seen and last_seen[n] is None:
+                last_seen[n] = idx + 1
+
+    for n, gap in last_seen.items():
+        if gap is None:
+            weight[n] += 5
+        else:
+            if gap <= avoid_recent:
+                weight[n] *= 0.2
+            elif gap <= 5:
+                weight[n] *= 0.6
+            if gap >= 12:
+                weight[n] += 4
+            elif gap >= 8:
+                weight[n] += 2
+
+    return {k: max(1, int(v)) for k, v in weight.items()}
+
+def weighted_choice(numbers, weights, k):
+    pool = []
+    for n in numbers:
+        pool.extend([n] * weights[n])
+    return sorted(random.sample(pool, k))
+
+def generate_ssq(history, count):
+    reds = list(range(1, 34))
+    blues = list(range(1, 17))
+
+    red_history = [{'code': h['code'], 'results': h['results'][:6]} for h in history]
+
+    for _ in range(count):
+        w_red = build_weights(reds, red_history)
+        chosen_red = weighted_choice(reds, w_red, 6)
+        chosen_blue = random.choice(blues)
+        print(f'双色球: {' '.join(f'{x:02d}' for x in chosen_red)} + {chosen_blue:02d}')
+
+hist = fetch_history('ssq', limit=50)
+generate_ssq(hist, $count)
+"
             fi
         ;;
-        'lt'|'lotto')
-            if [ "" != "$2" ]; then
-                multipleLotto $2
+        'dlt'|'lotto')
+            if [ "$2" = "history" ]; then
+                python3 -c "
+import requests
+import json
+import random
+
+EXPECT_KEYS = {'expect', 'code', 'issue'}
+NUMBER_KEYS = {'opencode', 'number', 'openCode'}
+
+def fetch_history(lottery_type, limit=10):
+    url = f'https://api.huiniao.top/interface/home/lotteryHistory?type={lottery_type}&limit={limit}'
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    raw = resp.json()
+
+    data_outer = raw.get('data') or {}
+    nested = data_outer.get('data') or {}
+    items = nested.get('list') or []
+
+    if not isinstance(items, list) or not items:
+        raise RuntimeError('未获取到 list 格式的历史开奖数据，请检查 API 接口返回')
+
+    history = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        code = item.get('code') or item.get('issue') or item.get('expect')
+
+        numbers = []
+        for key in sorted(item.keys()):
+            if key.isalpha() and len(key) <= 5:
+                val = item.get(key)
+                if isinstance(val, (int, str)) and str(val).isdigit():
+                    numbers.append(int(val))
+
+        if len(numbers) >= 7:
+            history.append({'code': code, 'results': numbers})
+
+        if len(history) >= limit:
+            break
+
+    if not history:
+        raise RuntimeError('解析后历史开奖数据为空，请检查 API 返回格式')
+
+    return history
+
+def show_dlt_history(history):
+    print('大乐透近10期开奖记录：')
+    print('=' * 40)
+    for idx, h in enumerate(history):
+        front = h['results'][:5]
+        back = h['results'][5:7]
+        front_str = ' '.join(f'{x:02d}' for x in front)
+        back_str = ' '.join(f'{x:02d}' for x in back)
+        print(f'第{idx+1:2d}期 {h[\"code\"]}: {front_str} + {back_str}')
+
+hist = fetch_history('dlt', limit=10)
+show_dlt_history(hist)
+"
             else
-                lotto
+                python3 -c "
+import requests
+import json
+import random
+
+EXPECT_KEYS = {'expect', 'code', 'issue'}
+NUMBER_KEYS = {'opencode', 'number', 'openCode'}
+
+def fetch_history(lottery_type, limit=50):
+    url = f'https://api.huiniao.top/interface/home/lotteryHistory?type={lottery_type}&limit={limit}'
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    raw = resp.json()
+
+    data_outer = raw.get('data') or {}
+    nested = data_outer.get('data') or {}
+    items = nested.get('list') or []
+
+    if not isinstance(items, list) or not items:
+        raise RuntimeError('未获取到 list 格式的历史开奖数据，请检查 API 接口返回')
+
+    history = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        code = item.get('code') or item.get('issue') or item.get('expect')
+
+        numbers = []
+        for key in sorted(item.keys()):
+            if key.isalpha() and len(key) <= 5:
+                val = item.get(key)
+                if isinstance(val, (int, str)) and str(val).isdigit():
+                    numbers.append(int(val))
+
+        if len(numbers) >= 5:
+            history.append({'code': code, 'results': numbers})
+
+        if len(history) >= limit:
+            break
+
+    if not history:
+        raise RuntimeError('解析后历史开奖数据为空，请检查 API 返回格式')
+
+    return history
+
+def build_weights(numbers, history, avoid_recent=2):
+    weight = {n: 10 for n in numbers}
+    last_seen = {n: None for n in numbers}
+
+    for idx, h in enumerate(history):
+        for n in h['results']:
+            if n in last_seen and last_seen[n] is None:
+                last_seen[n] = idx + 1
+
+    for n, gap in last_seen.items():
+        if gap is None:
+            weight[n] += 5
+        else:
+            if gap <= avoid_recent:
+                weight[n] *= 0.2
+            elif gap <= 5:
+                weight[n] *= 0.6
+            if gap >= 12:
+                weight[n] += 4
+            elif gap >= 8:
+                weight[n] += 2
+
+    return {k: max(1, int(v)) for k, v in weight.items()}
+
+def weighted_choice(numbers, weights, k):
+    pool = []
+    for n in numbers:
+        pool.extend([n] * weights[n])
+    return sorted(random.sample(pool, k))
+
+def generate_dlt(history, count):
+    front = list(range(1, 36))
+    back = list(range(1, 13))
+
+    front_history = [{'code': h['code'], 'results': h['results'][:5]} for h in history]
+    back_history = [{'code': h['code'], 'results': h['results'][5:]} for h in history]
+
+    for _ in range(count):
+        w_front = build_weights(front, front_history)
+        chosen_front = weighted_choice(front, w_front, 5)
+
+        w_back = build_weights(back, back_history)
+        chosen_back = weighted_choice(back, w_back, 2)
+
+        print(
+            f'大乐透: {' '.join(f'{x:02d}' for x in chosen_front)} + {' '.join(f'{x:02d}' for x in chosen_back)}'
+        )
+
+hist = fetch_history('dlt', limit=50)
+generate_dlt(hist, $count)
+"
             fi
+        ;;
+        *)
+            echo "错误: 不支持的命令 '$1'"
+            echo "支持的命令: ssq (双色球), dlt (大乐透)"
+            echo "使用 history 参数查看历史开奖记录"
+            return 1
         ;;
     esac
 }
