@@ -2477,7 +2477,7 @@ class BrowserReader:
 
         // 自动保存进度定时器
         let saveProgressTimer = null;
-        let saveProgressInterval = 3000; // 3秒保存一次
+        let saveProgressInterval = 7200000; // 2 小时保存一次
 
         // 标记:页面加载后短时间内禁用自动保存,避免恢复进度时触发错误保存
         let isPageLoading = true;
