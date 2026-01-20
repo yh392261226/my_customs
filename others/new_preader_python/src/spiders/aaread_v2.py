@@ -3,10 +3,13 @@ aaread.cc 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，支持多章节小说解析
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 import json
 import re
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 class AareadParser(BaseParser):
     """aaread.cc 小说解析器 - 多章节版本"""
@@ -306,8 +309,8 @@ class AareadParser(BaseParser):
         chapters = self._extract_chapters(content)
         
         # 实际爬取每个章节的内容
-        for i, chapter in enumerate(chapters):
-            print(f"正在爬取第 {i+1}/{len(chapters)} 章: {chapter['title']}")
+        for i, chapter in enumerate(chapters, 1):
+            self.logger.info(f"正在爬取第 {i}/{len(chapters)} 章: {chapter['title']}")
             
             # 构建完整的章节URL
             chapter_url = self.get_chapter_url(chapter['url'])
@@ -322,9 +325,9 @@ class AareadParser(BaseParser):
                     "order": chapter["order"],
                     "content": chapter_content
                 })
-                print(f"√ 第 {i+1} 章爬取成功")
+                self.logger.info(f"✓ 第 {i}/{len(chapters)} 章爬取成功")
             else:
-                print(f"× 第 {i+1} 章爬取失败")
+                self.logger.warning(f"✗ 第 {i}/{len(chapters)} 章爬取失败")
                 # 即使失败也添加章节信息，但内容为空
                 novel_info["chapters"].append({
                     "title": chapter["title"],
@@ -400,4 +403,4 @@ if __name__ == "__main__":
         print(f"小说已保存到: {file_path}")
         print(f"共解析 {len(novel_content['chapters'])} 个章节")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        self.logger.error(f"抓取失败: {e}")

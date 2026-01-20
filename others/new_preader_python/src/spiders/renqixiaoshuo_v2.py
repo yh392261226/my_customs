@@ -3,9 +3,12 @@
 www.renqixiaoshuo.net
 """
 
+from src.utils.logger import get_logger
 import re
 from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 class RenqixiaoshuoParser(BaseParser):
     """热奇小说网解析器 - 配置驱动版本"""
@@ -319,7 +322,7 @@ class RenqixiaoshuoParser(BaseParser):
         
         # 抓取每个章节的内容
         for i, chapter_url in enumerate(chapter_links, 1):
-            print(f"正在抓取第 {i} 章: {chapter_url}")
+        logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_url}")
             
             # 获取章节内容
             chapter_content = self._get_url_content(chapter_url)
@@ -342,16 +345,16 @@ class RenqixiaoshuoParser(BaseParser):
                         'content': processed_content,
                         'url': chapter_url
                     })
-                    print(f"√ 第 {i} 章抓取成功")
+                    logger.info(f"✓ 第 {i} 章抓取成功")
                 else:
-                    print(f"× 第 {i} 章内容提取失败")
+                    logger.warning(f"✗ 第 {i} 章内容提取失败")
             else:
-                print(f"× 第 {i} 章抓取失败")
+                logger.warning(f"✗ 第 {i} 章抓取失败")
             
             # 章节间延迟
             time.sleep(1)
         
-        print(f"总共抓取 {len(novel_content['chapters'])} 章内容")
+        logger.info(f"总共抓取 {len(novel_content['chapters'])} 章内容")
         return novel_content
     
     def _extract_chapter_links(self, content: str) -> List[str]:

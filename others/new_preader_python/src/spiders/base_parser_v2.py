@@ -971,7 +971,7 @@ class BaseParser:
         self.chapter_count = 0
         
         while current_url:
-            print(f"正在抓取第 {self.chapter_count + 1} 页: {current_url}")
+            logger.info(f"正在爬取第 {self.chapter_count + 1} 页: {current_url}")
             
             # 获取页面内容
             page_content = self._get_url_content(current_url)
@@ -991,11 +991,11 @@ class BaseParser:
                         'content': processed_content,
                         'url': current_url
                     })
-                    print(f"√ 第 {self.chapter_count} 页抓取成功")
+                    logger.info(f"✓ 第 {self.chapter_count} 页抓取成功")
                 else:
-                    print(f"× 页内容提取失败: {current_url}")
+                    logger.warning(f"✗ 页内容提取失败: {current_url}")
             else:
-                print(f"× 页抓取失败: {current_url}")
+                logger.warning(f"✗ 页抓取失败: {current_url}")
             
             # 获取下一页URL
             next_url = self._get_next_page_url(page_content, current_url)

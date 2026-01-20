@@ -379,7 +379,7 @@ class Po18rrParser(BaseParser):
             chapters: 章节列表
             novel_content: 小说内容字典
         """
-        for i, chapter in enumerate(chapters):
+        for i, chapter in enumerate(chapters, 1):
             chapter_number = i + 1
             chapter_url = chapter['url']
             chapter_title = chapter['title']

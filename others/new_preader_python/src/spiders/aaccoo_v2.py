@@ -222,7 +222,7 @@ class AaccooParser(BaseParser):
         while current_url:
             self.chapter_count += 1
             
-            print(f"正在抓取第 {self.chapter_count} 章: {current_url}")
+            logger.info(f"正在爬取第 {self.chapter_count} 章: {current_url}")
             
             # 获取章节标题和内容
             chapter_title, chapter_content, next_url = self._get_chapter_info(current_url)
@@ -235,9 +235,9 @@ class AaccooParser(BaseParser):
                     'url': current_url
                 })
                 self.chapter_count += 1  # 只在成功添加章节后才增加计数
-                print(f"√ 第 {self.chapter_count} 章抓取成功: {chapter_title}")
+                logger.info(f"✓ 第 {self.chapter_count} 章抓取成功: {chapter_title}")
             else:
-                print(f"× 第 {self.chapter_count} 章内容抓取失败")
+                logger.warning(f"✗ 第 {self.chapter_count} 章内容抓取失败")
                 break  # 如果无法获取内容，停止继续
             
             # 更新下一页URL

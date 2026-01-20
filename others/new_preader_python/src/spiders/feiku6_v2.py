@@ -3,6 +3,7 @@
 基于配置驱动版本，继承自 BaseParser
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 import json
 import re
@@ -10,7 +11,10 @@ import time
 from datetime import datetime
 from .base_parser_v2 import BaseParser
 
+logger = get_logger(__name__)
+
 class Feiku6Parser(BaseParser):
+
     """飞库中文网 (feiku6.com) 小说解析器"""
     
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
@@ -346,7 +350,7 @@ class Feiku6Parser(BaseParser):
                     print(f"页面不存在: {url}")
                     return None
                 else:
-                    print(f"HTTP {response.status_code} 获取失败: {url}")
+                    logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
                     
             except requests.exceptions.RequestException as e:
                 print(f"第 {attempt + 1} 次请求失败: {url}, 错误: {e}")
@@ -440,14 +444,14 @@ class Feiku6Parser(BaseParser):
                 chapter_id = chapter_info['chapter_id']
                 volume_name = chapter_info['volume_name']
                 
-                print(f"正在处理第 {i+1}/{len(chapters_info)} 章: {chapter_name}")
+                logger.info(f"正在爬取第 {i+1}/{len(chapters_info)} 章: {chapter_name}")
                 
                 # 获取章节详情页
                 chapter_url = self.get_chapter_url(novel_id, chapter_id)
                 chapter_content = self._get_url_content(chapter_url)
                 
                 if not chapter_content:
-                    print(f"警告: 无法获取章节内容: {chapter_url}")
+                    logger.warning(f"警告: 无法获取章节内容: {chapter_url}")
                     continue
                 
                 # 提取章节内容
@@ -549,4 +553,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

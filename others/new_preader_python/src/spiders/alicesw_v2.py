@@ -185,7 +185,7 @@ class AliceswParser(BaseParser):
         
         while current_url:
             self.chapter_count += 1
-            print(f"正在抓取第 {self.chapter_count} 章: {current_url}")
+            logger.info(f"正在爬取第 {self.chapter_count} 章: {current_url}")
             
             # 获取章节页面内容
             page_content = self._get_url_content(current_url)
@@ -207,18 +207,18 @@ class AliceswParser(BaseParser):
                         'content': processed_content,
                         'url': current_url
                     })
-                    print(f"√ 第 {self.chapter_count} 章抓取成功")
+                    logger.info(f"✓ 第 {self.chapter_count} 章抓取成功")
                 else:
-                    print(f"× 第 {self.chapter_count} 章内容提取失败")
+                    logger.warning(f"✗ 第 {self.chapter_count} 章内容提取失败")
             else:
-                print(f"× 第 {self.chapter_count} 章抓取失败")
+                logger.warning(f"✗ 第 {self.chapter_count} 章抓取失败")
             
             # 获取下一页URL
             next_url = self._get_next_chapter_url(page_content, current_url) if page_content else None
             
             # 检查是否是最后一章
             if next_url and "/novel/" in next_url:
-                print("检测到最后一章，停止抓取")
+                logger.info("检测到最后一章，停止抓取")
                 break
             
             current_url = next_url

@@ -249,13 +249,13 @@ class Po18ggParser(BaseParser):
         chapter_number = 1
         
         while current_url:
-            print(f"正在抓取第 {chapter_number} 章: {current_url}")
+            logger.info(f"正在爬取第 {chapter_number} 章: {current_url}")
             
             # 获取章节页面内容
             chapter_content = self._get_url_content(current_url)
             
             if not chapter_content:
-                print(f"× 第 {chapter_number} 章抓取失败")
+                logger.warning(f"✗ 第 {chapter_number} 章抓取失败")
                 break
             
             # 提取章节标题
@@ -279,10 +279,10 @@ class Po18ggParser(BaseParser):
                         'content': processed_content,
                         'url': current_url
                     })
-                    print(f"√ 第 {chapter_number} 章抓取成功，内容长度: {len(processed_content)}")
+                    logger.info(f"✓ 第 {chapter_number} 章抓取成功，内容长度: {len(processed_content)}")
                     print(f"处理后内容预览: {processed_content[:200]}...")
                 else:
-                    print(f"× 第 {chapter_number} 章内容处理后为空")
+                    logger.warning(f"✗ 第 {chapter_number} 章内容处理后为空")
                     # 尝试正则表达式方法作为备选
                     regex_content = self._extract_with_regex(chapter_content, self.content_reg)
                     if regex_content:
@@ -293,13 +293,13 @@ class Po18ggParser(BaseParser):
                             'content': processed_content,
                             'url': current_url
                         })
-                        print(f"√ 第 {chapter_number} 章使用正则表达式方法抓取成功，内容长度: {len(processed_content)}")
+                        logger.info(f"✓ 第 {chapter_number} 章使用正则表达式方法抓取成功，内容长度: {len(processed_content)}")
                     else:
-                        print(f"× 第 {chapter_number} 章所有内容提取方法都失败")
+                        logger.warning(f"✗ 第 {chapter_number} 章所有内容提取方法都失败")
                         break
             else:
                 # 添加调试信息，查看为什么内容提取失败
-                print(f"× 第 {chapter_number} 章内容提取失败")
+                logger.warning(f"✗ 第 {chapter_number} 章内容提取失败")
                 print(f"页面内容预览: {chapter_content[:500]}...")
                 
                 # 尝试正则表达式方法作为备选
@@ -312,9 +312,9 @@ class Po18ggParser(BaseParser):
                         'content': processed_content,
                         'url': current_url
                     })
-                    print(f"√ 第 {chapter_number} 章使用正则表达式方法抓取成功，内容长度: {len(processed_content)}")
+                    logger.info(f"✓ 第 {chapter_number} 章使用正则表达式方法抓取成功，内容长度: {len(processed_content)}")
                 else:
-                    print(f"× 第 {chapter_number} 章所有内容提取方法都失败")
+                    logger.warning(f"✗ 第 {chapter_number} 章所有内容提取方法都失败")
                     break
             
             # 提取下一页链接
@@ -1068,4 +1068,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

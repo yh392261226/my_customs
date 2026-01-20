@@ -3,10 +3,13 @@
 基于配置驱动版本，继承自 BaseParser
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 import re
 from urllib.parse import unquote
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 class W6180059Parser(BaseParser):
     """6180059.xyz 小说解析器"""
@@ -202,7 +205,7 @@ class W6180059Parser(BaseParser):
             return None
             
         except Exception as e:
-            print(f"获取txt内容失败: {url}, 错误: {e}")
+            logger.error(f"获取txt内容失败: {url}, 错误: {e}")
             return None
     
     def _is_valid_chinese_content(self, content: str) -> bool:
@@ -427,4 +430,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

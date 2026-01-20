@@ -145,7 +145,7 @@ class AabookParser(BaseParser):
         """
         chapter_list_url = f"{self.base_url}/chapterList-{book_id}.html"
         
-        print(f"正在获取章节列表: {chapter_list_url}")
+        logger.info(f"正在获取章节列表: {chapter_list_url}")
         
         content = self._get_url_content(chapter_list_url)
         if not content:
@@ -270,27 +270,27 @@ class AabookParser(BaseParser):
         """
         self.chapter_count = 0
         
-        for chapter_info in chapter_links:
-            self.chapter_count += 1
+        for i, chapter_info in enumerate(chapter_links, 1):
             chapter_url = chapter_info['url']
             chapter_title = chapter_info['title']
             chapter_id = chapter_info['chapter_id']
-            
-            print(f"正在抓取第 {self.chapter_count} 章: {chapter_title}")
-            
+
+            logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_title}")
+
             # 获取章节内容
             chapter_content = self._get_chapter_content(chapter_url, chapter_id)
-            
+
             if chapter_content:
+                self.chapter_count += 1
                 novel_content['chapters'].append({
                     'chapter_number': self.chapter_count,
                     'title': chapter_title,
                     'content': chapter_content,
                     'url': chapter_url
                 })
-                print(f"√ 第 {self.chapter_count} 章抓取成功")
+                logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
             else:
-                print(f"× 第 {self.chapter_count} 章内容抓取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容抓取失败")
             
             # 章节间延迟
             time.sleep(1)
@@ -321,7 +321,7 @@ class AabookParser(BaseParser):
         # 构建AJAX请求URL
         ajax_url = f"{self.base_url}/_getcontent.php?id={chapter_id}&v={v_parameter}"
         
-        print(f"正在通过AJAX获取内容: {ajax_url}")
+        logger.info(f"正在通过AJAX获取内容: {ajax_url}")
         
         # 发送AJAX请求获取内容
         try:

@@ -285,6 +285,9 @@ class AlhsXyzV2Parser(BaseParser):
         for i, chapter_info in enumerate(chapters_info, 1):
             chapter_url = chapter_info.get('url', '')
             chapter_title = chapter_info.get('title', f'第{i}章')
+
+            if chapter_url:
+                logger.info(f"正在爬取第 {i}/{len(chapters_info)} 章: {chapter_title}")
             
             if chapter_url:
                 # 有链接的章节，需要获取内容
@@ -300,9 +303,9 @@ class AlhsXyzV2Parser(BaseParser):
                             'content': processed_content,
                             'url': chapter_url
                         })
-                        logger.info(f"成功获取第 {i} 章: {chapter_title}")
+                        logger.info(f"✓ 第 {i}/{len(chapters_info)} 章抓取成功: {chapter_title}")
                     else:
-                        logger.warning(f"无法获取第 {i} 章内容: {chapter_title}")
+                        logger.warning(f"✗ 第 {i}/{len(chapters_info)} 章内容获取失败: {chapter_title}")
                 except Exception as e:
                     logger.error(f"获取第 {i} 章时出错: {e}")
                     continue

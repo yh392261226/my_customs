@@ -4,11 +4,14 @@ PhotoGram网站解析器 v2
 使用统一的crypto_utils解密工具
 """
 
+from src.utils.logger import get_logger
 import re
 from typing import Dict, Any, List, Optional
 from urllib.parse import urljoin
 from ..utils.crypto_utils import AESCipher, extract_encryption_keys, is_encrypted_content
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 
 class PhotoGramParser(BaseParser):
@@ -295,7 +298,7 @@ class PhotoGramParser(BaseParser):
         Returns:
             章节内容文本（包含所有子章节内容）
         """
-        print(f"正在获取章节内容: {chapter_url}")
+        logger.info(f"正在爬取章节内容: {chapter_url}")
         
         # 获取所有子章节内容（包含第一页）
         sub_contents = self._get_sub_chapters_content(chapter_url)
@@ -315,7 +318,7 @@ class PhotoGramParser(BaseParser):
             # 没有获取到任何内容，尝试直接获取章节内容
             main_content = self._get_single_chapter_content(chapter_url)
             if not main_content:
-                print("无法获取主章节内容")
+                logger.warning("无法获取主章节内容")
                 return None
             return main_content
     
@@ -332,10 +335,10 @@ class PhotoGramParser(BaseParser):
         content = self._get_url_content(chapter_url)
         
         if not content:
-            print("无法获取章节页面内容")
+            logger.warning("无法获取章节页面内容")
             return None
         
-        print(f"获取到章节页面，长度: {len(content)} 字符")
+        logger.info(f"获取到章节页面，长度: {len(content)} 字符")
         
         # 提取加密内容并解密（这是单独获取章节内容，所以是第一页）
         encrypted_content = self._extract_encrypted_content(content, is_first_page=True)
@@ -394,13 +397,13 @@ class PhotoGramParser(BaseParser):
         print(f"主章节基本名称: {chapter_base_name}")
         
         # 获取第一页的页面内容，用于提取xlink
-        print(f"正在获取第一页内容: {chapter_url}")
+        logger.info(f"正在获取第一页内容: {chapter_url}")
         first_page_content = self._get_url_content(chapter_url)
         if not first_page_content:
-            print(f"❌ 无法获取第一页页面内容: {chapter_url}")
+            logger.error(f"❌ 无法获取第一页页面内容: {chapter_url}")
             return []
         
-        print(f"✅ 第一页获取成功，长度: {len(first_page_content)} 字符")
+        logger.info(f"✅ 第一页获取成功，长度: {len(first_page_content)} 字符")
         
         # 检查页面内容是否包含常见的错误信息
         if "404" in first_page_content or "Not Found" in first_page_content:
@@ -426,7 +429,7 @@ class PhotoGramParser(BaseParser):
                     print(f"✅ 使用备用方法提取到第一页内容: {text_content[:50]}...")
         
         # 立即提取第一页的xlink，用于判断是否需要继续
-        print("正在提取第一页的xlink...")
+        logger.info("正在提取第一页的xlink...")
         slink, xlink = self._extract_slink_xlink(first_page_content)
         if not xlink:
             print(f"❌ 无法从第一页提取xlink，尝试其他提取方法")

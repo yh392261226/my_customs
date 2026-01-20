@@ -3,13 +3,17 @@
 支持 https://chanji-shi.shop/ 网站的小说解析
 """
 
+from src.utils.logger import get_logger
 import re
 from typing import Dict, Any, List, Optional
 from urllib.parse import urljoin
 from .base_parser_v2 import BaseParser
 
+logger = get_logger(__name__)
+
 
 class ChanjishiParser(BaseParser):
+
     """小爽文网站解析器"""
     
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
@@ -179,7 +183,7 @@ class ChanjishiParser(BaseParser):
         while current_url and current_url not in processed_urls:
             processed_urls.add(current_url)
             self.chapter_count += 1
-            print(f"正在抓取第 {self.chapter_count} 页: {current_url}")
+            logger.info(f"正在爬取第 {self.chapter_count} 页: {current_url}")
             
             # 获取页面内容
             page_content = self._get_url_content(current_url)
@@ -201,21 +205,21 @@ class ChanjishiParser(BaseParser):
                         'content': cleaned_content,
                         'url': current_url
                     })
-                    print(f"√ 第 {self.chapter_count} 页抓取成功")
+                    logger.info(f"✓ 第 {self.chapter_count} 页抓取成功")
                 else:
-                    print(f"× 第 {self.chapter_count} 页内容提取失败")
+                    logger.warning(f"✗ 第 {self.chapter_count} 页内容提取失败")
                     
                 # 获取下一页URL
                 next_url = self._get_next_page_url(page_content, current_url)
                 
                 # 如果下一页URL与当前页相同，则停止
                 if next_url == current_url:
-                    print("下一页URL与当前页相同，停止抓取")
+                    logger.info("下一页URL与当前页相同，停止抓取")
                     break
                     
                 current_url = next_url
             else:
-                print(f"× 第 {self.chapter_count} 页抓取失败")
+                logger.warning(f"✗ 第 {self.chapter_count} 页抓取失败")
                 break
             
             # 页面间延迟

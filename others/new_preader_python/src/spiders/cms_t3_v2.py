@@ -515,7 +515,7 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")
     
     # 示例2: 从数据库创建所有CMS T3解析器
     print("\n=== 从数据库创建所有CMS T3解析器 ===")

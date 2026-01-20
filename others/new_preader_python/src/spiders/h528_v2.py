@@ -3,10 +3,14 @@ h528.com 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，使用属性配置实现
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
 
+logger = get_logger(__name__)
+
 class H528Parser(BaseParser):
+
     """h528.com 小说解析器 - 配置驱动版本"""
     
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
@@ -144,12 +148,11 @@ class H528Parser(BaseParser):
         
         self.chapter_count = 0
         
-        for chapter_info in chapter_links:
-            self.chapter_count += 1
+        for i, chapter_info in enumerate(chapter_links, 1):
             chapter_url = chapter_info['url']
             chapter_title = chapter_info['title']
-            
-            print(f"正在抓取第 {self.chapter_count} 章: {chapter_title}")
+
+            logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_title}")
             
             # 获取章节内容
             full_url = f"{self.base_url}{chapter_url}"
@@ -162,19 +165,19 @@ class H528Parser(BaseParser):
                 if extracted_content:
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
-                    
+
+                    self.chapter_count += 1
                     novel_content['chapters'].append({
                         'chapter_number': self.chapter_count,
                         'title': chapter_title,
                         'content': processed_content,
                         'url': full_url
                     })
-                    self.chapter_count += 1  # 只在成功添加章节后才增加计数
-                    print(f"√ 第 {self.chapter_count} 章抓取成功")
+                    logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
                 else:
-                    print(f"× 第 {self.chapter_count} 章内容提取失败")
+                    logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容提取失败")
             else:
-                print(f"× 第 {self.chapter_count} 章抓取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章抓取失败")
             
             # 章节间延迟
             time.sleep(1)

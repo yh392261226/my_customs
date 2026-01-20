@@ -4,6 +4,7 @@ ZXCMS网站解析器 v2
 使用统一的crypto_utils解密工具
 """
 
+from src.utils.logger import get_logger
 import re
 import base64
 from typing import Dict, Any, List, Optional
@@ -20,6 +21,8 @@ except ImportError:
     def extract_encryption_keys(html_content: str) -> Tuple[str, str]:
         return "", ""
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 
 class ZXCMSParser(BaseParser):
@@ -102,7 +105,7 @@ class ZXCMSParser(BaseParser):
         
         for attempt in range(max_retries):
             try:
-                print(f"获取页面内容 (第{attempt + 1}/{max_retries}次): {url}")
+                logger.info(f"获取页面内容 (第{attempt + 1}/{max_retries}次): {url}")
                 
                 # 调用父类方法获取内容
                 content = super()._get_url_content(url)
@@ -111,16 +114,16 @@ class ZXCMSParser(BaseParser):
                     print(f"页面获取成功，内容长度: {len(content)}")
                     return content
                 else:
-                    print(f"获取到空内容或内容过短，尝试重试...")
+                    logger.warning(f"获取到空内容或内容过短，尝试重试...")
                     time.sleep(random.uniform(1, 2))  # 随机延迟1-2秒
                     continue
                     
             except Exception as e:
-                print(f"获取页面内容失败 (第{attempt + 1}/{max_retries}次): {e}")
+                logger.error(f"获取页面内容失败 (第{attempt + 1}/{max_retries}次): {e}")
                 if attempt < max_retries - 1:
                     time.sleep(random.uniform(1, 2))  # 随机延迟1-2秒
         
-        print(f"获取页面内容失败，已达到最大重试次数: {url}")
+        logger.error(f"获取页面内容失败，已达到最大重试次数: {url}")
         return None
 
     def get_novel_url(self, novel_id: str) -> str:
@@ -258,12 +261,12 @@ class ZXCMSParser(BaseParser):
         
         while current_url:
             try:
-                print(f"正在获取章节 {chapter_number}: {current_url}")
+                logger.info(f"正在爬取第 {chapter_number} 章: {current_url}")
                 
                 # 获取章节页面内容
                 chapter_content = self._get_url_content(current_url)
                 if not chapter_content:
-                    print(f"无法获取章节页面内容: {current_url}")
+                    logger.warning(f"无法获取章节页面内容: {current_url}")
                     break
                 
                 # 提取章节标题
@@ -284,7 +287,7 @@ class ZXCMSParser(BaseParser):
                 if not chapter_text:
                     print(f"无法解密章节内容，可能是页面未完全加载或缺少加密密钥: {current_url}")
                     # 重试获取当前章节，最多1次
-                    print(f"重试获取章节内容: {current_url}")
+                    logger.info(f"重试获取章节内容: {current_url}")
                     import time
                     time.sleep(2)  # 等待2秒后重试
                     

@@ -3,12 +3,14 @@ hxtxt38.lol 小说网站解析器 - 支持AES解密
 继承自 BaseParser，使用统一的crypto_utils解密工具
 """
 
+from src.utils.logger import get_logger
 import re
 from typing import Dict, Any, List, Optional
 from urllib.parse import urljoin
 from ..utils.crypto_utils import AESCipher, extract_encryption_keys, is_encrypted_content
 from .base_parser_v2 import BaseParser
 
+logger = get_logger(__name__)
 
 class HXtxt38Parser(BaseParser):
     """hxtxt38.lol 小说解析器 - 支持AES解密"""
@@ -358,7 +360,7 @@ class HXtxt38Parser(BaseParser):
             # 获取章节页面内容
             chapter_content = self._get_url_content(chapter_url)
             if not chapter_content:
-                print(f"无法获取章节页面内容: {chapter_url}")
+                self.logger.warning(f"无法获取章节页面内容: {chapter_url}")
                 return None
             
             # 提取并解密内容
@@ -382,7 +384,7 @@ class HXtxt38Parser(BaseParser):
                 return None
                 
         except Exception as e:
-            print(f"获取章节内容失败: {e}")
+            self.logger.error(f"获取章节内容失败: {e}")
             return None
     
     def _remove_external_links(self, content: str) -> str:
@@ -569,14 +571,15 @@ class HXtxt38Parser(BaseParser):
                     print(f"找到 {len(chapter_list)} 个章节")
                     
                     # 获取每个章节的内容
-                    for chapter in chapter_list:
-                        print(f"正在获取章节内容: {chapter['title']}")
+                    for i, chapter in enumerate(chapter_list, 1):
+                        self.logger.info(f"正在爬取第 {i}/{len(chapter_list)} 章: {chapter['title']}")
                         chapter_content = self._get_chapter_content(chapter['url'], keys)
                         if chapter_content:
                             chapter['content'] = chapter_content
                             chapters.append(chapter)
+                            self.logger.info(f"✓ 第 {i}/{len(chapter_list)} 章抓取成功")
                         else:
-                            print(f"获取章节内容失败: {chapter['title']}")
+                            self.logger.warning(f"✗ 第 {i}/{len(chapter_list)} 章内容获取失败: {chapter['title']}")
                             # 即使获取内容失败，也保留章节信息
                             chapter['content'] = "内容获取失败"
                             chapters.append(chapter)

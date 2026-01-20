@@ -201,8 +201,8 @@ class HaijBookxParser(BaseParser):
         chapters = self._extract_chapters(content)
         
         # 实际爬取每个章节的内容
-        for i, chapter in enumerate(chapters):
-            print(f"正在爬取第 {i+1}/{len(chapters)} 章: {chapter['title']}")
+        for i, chapter in enumerate(chapters, 1):
+            logger.info(f"正在爬取第 {i}/{len(chapters if "chapters_info" in content else chapters_info)} 章: {chapter["title"]}")
             
             # 构建完整的章节URL
             chapter_url = self.get_chapter_url(chapter['url'])
@@ -217,9 +217,9 @@ class HaijBookxParser(BaseParser):
                     "order": chapter["order"],
                     "content": chapter_content
                 })
-                print(f"√ 第 {i+1} 章爬取成功")
+                logger.info(f"✓ 第 {i}/{len(chapters)} 章爬取成功")
             else:
-                print(f"× 第 {i+1} 章爬取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapters)} 章爬取失败")
                 # 即使失败也添加章节信息，但内容为空
                 novel_info["chapters"].append({
                     "title": chapter["title"],
@@ -705,4 +705,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

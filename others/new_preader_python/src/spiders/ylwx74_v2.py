@@ -142,10 +142,10 @@ class Ylwx74V2Parser(BaseParser):
             'chapters': []
         }
         
-        print(f"开始抓取章节内容，共 {len(chapters)} 章")
+        logger.info(f"开始抓取章节内容，共 {len(chapters)} 章")
         
         for i, chapter in enumerate(chapters, 1):
-            print(f"正在抓取第 {i} 章: {chapter['title']}")
+            logger.info(f"正在爬取第 {i}/{len(chapters)} 章: {chapter['title']}")
             
             # 获取章节内容
             chapter_content = self._get_chapter_content(chapter['url'])
@@ -157,9 +157,9 @@ class Ylwx74V2Parser(BaseParser):
                     'content': chapter_content,
                     'url': chapter['url']
                 })
-                print(f"√ 第 {i} 章抓取成功")
+                logger.info(f"✓ 第 {i} 章抓取成功")
             else:
-                print(f"× 第 {i} 章抓取失败")
+                logger.warning(f"✗ 第 {i} 章抓取失败")
             
             # 章节间延迟
             import time

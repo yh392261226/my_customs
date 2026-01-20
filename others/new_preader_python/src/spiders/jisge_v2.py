@@ -229,27 +229,26 @@ class JisgeParser(BaseParser):
         """
         self.chapter_count = 0
         
-        for chapter_info in chapter_links:
-            self.chapter_count += 1
+        for i, chapter_info in enumerate(chapter_links, 1):
             chapter_url = chapter_info['url']
             chapter_title = chapter_info['title']
-            
-            print(f"正在抓取第 {self.chapter_count} 章: {chapter_title}")
+
+            logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_title}")
             
             # 获取章节内容
             chapter_content = self._get_chapter_content(chapter_url)
             
             if chapter_content:
+                self.chapter_count += 1
                 novel_content['chapters'].append({
                     'chapter_number': self.chapter_count,
                     'title': chapter_title,
                     'content': chapter_content,
                     'url': chapter_url
                 })
-                self.chapter_count += 1  # 只在成功添加章节后才增加计数
-                print(f"√ 第 {self.chapter_count} 章抓取成功")
+                logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
             else:
-                print(f"× 第 {self.chapter_count} 章内容抓取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容抓取失败")
             
             # 章节间延迟
             time.sleep(1)

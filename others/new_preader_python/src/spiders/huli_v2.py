@@ -5,9 +5,11 @@
 基于配置驱动版本，遵循txtxi_v2.py格式
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
 
+logger = get_logger(__name__)
 
 class HuliParser(BaseParser):
     """狐狸小说网解析器 - 配置驱动版本"""
@@ -142,4 +144,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        self.logger.error(f"抓取失败: {e}")

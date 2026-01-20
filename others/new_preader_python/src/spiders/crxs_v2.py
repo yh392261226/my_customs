@@ -3,10 +3,15 @@ crxs.me 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，使用属性配置实现
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
 
+logger = get_logger(__name__)
+
+
 class CrxsParser(BaseParser):
+
     """crxs.me 小说解析器 - 配置驱动版本"""
     
     def __init__(self, proxy_config: Optional[Dict[str, Any]] = None, novel_site_name: Optional[str] = None):
@@ -148,11 +153,11 @@ class CrxsParser(BaseParser):
         
         self.chapter_count = 0
         
-        for chapter_info in chapter_links:
+        for i, chapter_info in enumerate(chapter_links, 1):
             chapter_url = chapter_info['url']
             chapter_title = chapter_info['title']
-            
-            print(f"正在抓取第 {self.chapter_count + 1} 章: {chapter_title}")
+
+            logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_title}")
             
             # 获取章节内容
             full_url = f"{self.base_url}{chapter_url}"
@@ -165,19 +170,19 @@ class CrxsParser(BaseParser):
                 if extracted_content:
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(extracted_content)
-                    
-                    self.chapter_count += 1  # 只在成功添加章节后才增加计数
+
+                    self.chapter_count += 1
                     novel_content['chapters'].append({
                         'chapter_number': self.chapter_count,
                         'title': chapter_title,
                         'content': processed_content,
                         'url': full_url
                     })
-                    print(f"√ 第 {self.chapter_count} 章抓取成功")
+                    logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
                 else:
-                    print(f"× 章节内容提取失败: {chapter_title}")
+                    logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容提取失败: {chapter_title}")
             else:
-                print(f"× 章节抓取失败: {chapter_title}")
+                logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章抓取失败: {chapter_title}")
             
             # 章节间延迟
             time.sleep(1)
@@ -249,7 +254,7 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"单篇小说已保存到: {file_path}")
     except Exception as e:
-        print(f"单篇抓取失败: {e}")
+        logger.error(f"单篇抓取失败: {e}")
     
     # 测试多篇小说
     try:
@@ -258,4 +263,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"多篇小说已保存到: {file_path}")
     except Exception as e:
-        print(f"多篇抓取失败: {e}")
+        logger.error(f"多篇抓取失败: {e}")

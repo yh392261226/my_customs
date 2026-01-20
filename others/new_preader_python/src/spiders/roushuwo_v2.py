@@ -132,7 +132,7 @@ class RoushuwoParser(BaseParser):
         # 抓取所有章节内容
         for i, chapter in enumerate(chapter_links):
             try:
-                logger.info(f"正在抓取章节 {i+1}/{len(chapter_links)}: {chapter['title']}")
+                logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter['title']}")
                 
                 # 获取章节内容
                 chapter_content = self._get_chapter_content(chapter['url'])

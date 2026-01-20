@@ -4,10 +4,13 @@ xxread.net 小说网站解析器
 特殊说明：xxread.net使用JSON API接口，需要特殊处理
 """
 
+from src.utils.logger import get_logger
 import json
 import base64
 from typing import Dict, List, Optional, Any
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 
 class XxreadParser(BaseParser):
@@ -305,4 +308,4 @@ if __name__ == "__main__":
         print(f"小说标题: {novel_content.get('title')}")
         print(f"章节数量: {len(novel_content.get('chapters', []))}")
     except Exception as e:
-        print(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

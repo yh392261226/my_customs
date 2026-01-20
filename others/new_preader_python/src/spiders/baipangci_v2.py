@@ -3,8 +3,11 @@
 继承自 BaseParser，使用属性配置实现
 """
 
+from src.utils.logger import get_logger
 from typing import Dict, Any, List, Optional
 from .base_parser_v2 import BaseParser
+
+logger = get_logger(__name__)
 
 class BaipangciParser(BaseParser):
     """白胖次小说网解析器 - 配置驱动版本"""
@@ -208,7 +211,7 @@ class BaipangciParser(BaseParser):
         
         while current_url:
             chapter_count += 1
-            print(f"正在抓取第 {chapter_count} 章: {current_url}")
+            self.logger.info(f"正在爬取第 {chapter_count} 章: {current_url}")
             
             # 获取页面内容
             page_content = self._get_url_content(current_url)
@@ -232,11 +235,11 @@ class BaipangciParser(BaseParser):
                         'content': processed_content,
                         'url': current_url
                     })
-                    print(f"√ 第 {chapter_count} 章 [{chapter_title}] 抓取成功")
+                    self.logger.info(f"✓ 第 {chapter_count} 章 [{chapter_title}] 抓取成功")
                 else:
-                    print(f"× 第 {chapter_count} 章内容提取失败")
+                    self.logger.warning(f"✗ 第 {chapter_count} 章内容提取失败")
             else:
-                print(f"× 第 {chapter_count} 章页面抓取失败")
+                self.logger.warning(f"✗ 第 {chapter_count} 章页面抓取失败")
             
             # 获取下一章URL
             next_url = self._get_next_page_url(page_content, current_url)
@@ -351,13 +354,13 @@ class BaipangciParser(BaseParser):
         
         # 为了保持章节顺序的连续性，我们使用索引作为章节编号
         # 但实际排序是基于URL中的章节ID
-        for i, chapter in enumerate(chapter_links):
+        for i, chapter in enumerate(chapter_links, 1):
             # 优先使用URL中提取的章节编号，否则使用索引+1
-            chapter_number = chapter.get('chapter_number', i + 1)
+            chapter_number = chapter.get('chapter_number', i)
             title = chapter.get('title', f"第 {chapter_number} 章")
             url = chapter.get('url')
-            
-            print(f"正在抓取第 {chapter_number} 章: {title} - {url}")
+
+            self.logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {title}")
             
             # 获取页面内容
             page_content = self._get_url_content(url)
@@ -376,11 +379,11 @@ class BaipangciParser(BaseParser):
                         'content': processed_content,
                         'url': url
                     })
-                    print(f"√ 第 {chapter_number} 章 [{title}] 抓取成功")
+                    self.logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
                 else:
-                    print(f"× 第 {chapter_number} 章内容提取失败")
+                    self.logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容提取失败")
             else:
-                print(f"× 第 {chapter_number} 章页面抓取失败")
+                self.logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章页面抓取失败")
             
             # 章节间延迟
             time.sleep(1)

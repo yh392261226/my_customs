@@ -579,7 +579,7 @@ class DiyizhanParser(BaseParser):
             chapter_title = chapter['title']
             chapter_url = chapter['url']
             
-            print(f"正在爬取第 {i}/{len(chapter_list)} 章: {chapter_title}")
+            logger.info(f"正在爬取第 {i}/{len(chapter_list)} 章: {chapter_title}")
             
             # 获取章节内容（只获取第一页，不进行分页处理）
             chapter_content = self._get_chapter_content_first_page(chapter_url)
@@ -591,7 +591,7 @@ class DiyizhanParser(BaseParser):
                     'url': chapter_url
                 })
             else:
-                print(f"警告: 无法获取章节内容: {chapter_title}")
+                logger.warning(f"警告: 无法获取章节内容: {chapter_title}")
                 # 仍然添加空章节以保持章节顺序
                 chapters.append({
                     'chapter_number': i,
