@@ -22,6 +22,7 @@ from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
+from src.utils.chrome_tab_monitor import ChromeTabMonitor
 
 logger = get_logger(__name__)
 
@@ -230,6 +231,11 @@ class CrawlerManagementScreen(Screen[None]):
         self._sort_column: Optional[str] = None  # 当前排序的列
         self._sort_reverse: bool = True  # 排序方向，True表示倒序
         
+# Chrome标签页监听器（AppleScript模式）
+        from src.utils.chrome_tab_monitor import ChromeTabMonitor
+        self.chrome_monitor: Optional[ChromeTabMonitor] = None
+        self.chrome_monitor_active = False  # 监听器状态
+        
         # 注册回调函数
         self.crawler_manager.register_status_callback(self._on_crawl_status_change)
         self.crawler_manager.register_notification_callback(self._on_crawl_success_notify)
@@ -331,6 +337,7 @@ class CrawlerManagementScreen(Screen[None]):
                             Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
                             Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
                             Button(get_global_i18n().t('crawler.copy_ids'), id="copy-ids-btn"),
+                            Button(get_global_i18n().t('crawler.toggle_monitor'), id="toggle-monitor-btn", variant="success"),
                             id="novel-id-container", classes="form-row"
                         ),
                         id="novel-id-section"
@@ -421,6 +428,9 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 初始化加载动画
         self._initialize_loading_animation()
+        
+        # 初始化Chrome监听器
+        self._init_chrome_monitor()
         
         # 加载爬取历史
         self._load_crawl_history()
@@ -2528,16 +2538,7 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception:
             return False
     
-    def on_unmount(self) -> None:
-        """屏幕卸载时的回调"""
-        self.is_mounted_flag = False
-        # 确保爬取状态被正确清理
-        self.is_crawling = False
-        self.current_crawling_id = None
-        # 注意：这里不停止爬取工作线程，让爬取继续在后台运行
-        # 爬取工作线程会通过app.call_later和app.post_message来更新UI
-        # 即使页面卸载，这些消息也会被正确处理
-        logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
+    
     
     def _view_file(self, history_item: Dict[str, Any]) -> None:
         """查看文件"""
@@ -3442,6 +3443,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._move_selected_down()
         elif button_id == "merge-btn":
             self._merge_selected()
+        elif button_id == "toggle-monitor-btn":
+            self._toggle_chrome_monitor()
     
     def _batch_delete_files(self) -> None:
         """批量删除选中的文件"""
@@ -3710,4 +3713,197 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"清理无效记录操作失败: {e}")
             self._update_status(get_global_i18n().t('crawler.clear_invalid_failed', error=str(e)), "error")
+
+    # Chrome标签页监听器相关方法
+    def _init_chrome_monitor(self) -> None:
+        """初始化Chrome标签页监听器"""
+        try:
+            # 获取所有支持的小说网站配置
+            from src.core.database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+            novel_sites = db_manager.get_novel_sites()
+            
+            # 初始化Chrome监听器（AppleScript模式）
+            try:
+                self.chrome_monitor = ChromeTabMonitor(
+                    novel_sites=novel_sites,
+                    on_url_detected=self._on_chrome_url_detected,
+                    headless=False  # AppleScript模式不需要headless
+                )
+                logger.info("Chrome标签页监听器初始化成功")
+            except Exception as e:
+                logger.error(f"Chrome监听器初始化失败: {e}")
+                self.chrome_monitor = None
+            
+        except Exception as e:
+            logger.error(f"初始化Chrome监听器失败: {e}")
+            self._update_status(f"初始化Chrome监听器失败: {str(e)}", "error")
+
+    def _on_chrome_url_detected(self, result: Dict[str, Any]) -> None:
+        """
+        Chrome监听器检测到URL时的回调函数
+        
+        Args:
+            result: 包含网站信息、小说ID和URL的字典
+        """
+        try:
+            site = result['site']
+            novel_id = result['novel_id']
+            url = result['url']
+            
+            logger.info(f"检测到小说URL: {url}, 小说ID: {novel_id}")
+            
+            # 验证书籍ID是否已爬取过
+            if self._is_novel_already_crawled(site.get('id'), novel_id):
+                logger.info(f"小说 {novel_id} 已爬取过，跳过")
+                # 关闭对应的标签页
+                if self.chrome_monitor:
+                    self.chrome_monitor.close_tab(url)
+                return
+            
+            # 将小说ID添加到输入框
+            self._add_novel_id_to_input(novel_id)
+            
+            # 关闭对应的标签页
+            if self.chrome_monitor:
+                self.chrome_monitor.close_tab(url)
+            
+            # 更新状态
+            novel_title = site.get('name', '未知网站')
+            self._update_status(f"自动检测到小说: {novel_id} ({novel_title})", "success")
+            
+        except Exception as e:
+            logger.error(f"处理检测到的URL失败: {e}")
+
+    def _is_novel_already_crawled(self, site_id: str, novel_id: str) -> bool:
+        """
+        检查小说是否已经爬取过
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            
+        Returns:
+            是否已爬取过
+        """
+        try:
+            # 从数据库查询
+            crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+            if crawl_history:
+                # 检查是否有成功的记录
+                for record in crawl_history:
+                    if record.get('status') == 'success':
+                        return True
+            return False
+            
+        except Exception as e:
+            logger.error(f"检查小说爬取状态失败: {e}")
+            return False
+
+    def _add_novel_id_to_input(self, novel_id: str) -> None:
+        """
+        将小说ID添加到输入框（追加形式）
+        
+        Args:
+            novel_id: 小说ID
+        """
+        try:
+            input_field = self.query_one("#novel-id-input", Input)
+            current_value = input_field.value.strip()
+            
+            # URL解码小说ID
+            from urllib.parse import unquote
+            decoded_novel_id = unquote(novel_id)
+            
+            if current_value:
+                # 如果已有内容，用逗号追加到末尾
+                new_value = f"{current_value},{decoded_novel_id}"
+            else:
+                # 如果为空，直接设置
+                new_value = decoded_novel_id
+            
+            input_field.value = new_value
+            logger.info(f"已将小说ID {decoded_novel_id} 添加到输入框")
+            
+        except Exception as e:
+            logger.error(f"添加小说ID到输入框失败: {e}")
+
+    def _toggle_chrome_monitor(self) -> None:
+            """切换监听状态"""
+            try:
+                if self.chrome_monitor_active:
+                    self._stop_chrome_monitor()
+                else:
+                    self._start_chrome_monitor()
+            except Exception as e:
+                logger.error(f"切换监听状态失败: {e}")
+                self._update_status(f"切换监听状态失败: {str(e)}", "error")
+
+    def _start_chrome_monitor(self) -> None:
+        """开始监听"""
+        try:
+            if not self.chrome_monitor:
+                self._update_status("监听器未初始化", "error")
+                return
+            
+            success = self.chrome_monitor.start_monitoring()
+            if success:
+                self.chrome_monitor_active = True
+                self._update_status(get_global_i18n().t('crawler.monitor_started'), "success")
+                self._update_monitor_button_state()
+            else:
+                self._update_status(get_global_i18n().t('crawler.monitor_start_failed'), "error")
+                
+        except Exception as e:
+            logger.error(f"启动监听失败: {e}")
+            self._update_status(f"启动监听失败: {str(e)}", "error")
+
+    def _stop_chrome_monitor(self) -> None:
+        """停止监听"""
+        try:
+            # 停止Chrome监听
+            if self.chrome_monitor:
+                self.chrome_monitor.stop_monitoring()
+            
+            self.chrome_monitor_active = False
+            self._update_status(get_global_i18n().t('crawler.monitor_stopped'), "information")
+            self._update_monitor_button_state()
+            
+        except Exception as e:
+            logger.error(f"停止监听失败: {e}")
+            self._update_status(f"停止监听失败: {str(e)}", "error")
+    def _update_monitor_button_state(self) -> None:
+        """更新监听按钮状态"""
+        try:
+            toggle_btn = self.query_one("#toggle-monitor-btn", Button)
+            if self.chrome_monitor_active:
+                toggle_btn.label = get_global_i18n().t("crawler.stop_monitor")
+                toggle_btn.variant = "error"
+            else:
+                toggle_btn.label = get_global_i18n().t("crawler.start_monitor")
+                toggle_btn.variant = "success"
+        except Exception:
+            pass
+
+
+    def on_unmount(self) -> None:
+        """屏幕卸载时的回调"""
+        # 停止Chrome监听器
+        if self.chrome_monitor and self.chrome_monitor_active:
+            try:
+                self.chrome_monitor.stop_monitoring()
+                self.chrome_monitor_active = False
+                logger.info("页面卸载，Chrome监听器已停止")
+            except Exception as e:
+                logger.error(f"停止Chrome监听器失败: {e}")
+        
+        # 调用父类的卸载方法
+        self.is_mounted_flag = False
+        # 确保爬取状态被正确清理
+        self.is_crawling = False
+        self.current_crawling_id = None
+        # 注意：这里不停止爬取工作线程，让爬取继续在后台运行
+        # 爬取工作线程会通过app.call_later和app.post_message来更新UI
+        # 即使页面卸载，这些消息也会被正确处理
+        logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
 

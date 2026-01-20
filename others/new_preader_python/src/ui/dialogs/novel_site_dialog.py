@@ -32,6 +32,38 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
+    # 解析器到URL模式的映射表
+    PARSER_URL_PATTERNS = {
+        # CMS类型
+        'cms_t1_v2': 'vue.php?act=detail&id={novel_id}',
+        'cms_t2_v2': 'index.php/art/detail/id/{novel_id}.html',
+        'cms_t3_v2': 'article/{novel_id}.html',
+        'cms_t4_v2': 'novel/{novel_id}.html',
+        'cms_t5_v2': '{novel_id}/',
+        'cms_t6_v2': 'article.php?id={novel_id}',
+        
+        # 特殊网站
+        'feiku6_v2': 'book/{novel_id}.html',
+        'kunnu8_v2': '{novel_id}/',
+        'luoxiadushu_v2': '{novel_id}/',
+        'aaread_v2': 'book/{novel_id}#Catalog',
+        'xxread_v2': 'book/{novel_id}.html',
+        'migu_v2': 'book/{novel_id}.html',
+        'photo_gram_v2': 'html/{novel_id}.html',
+        'po18_v2': 'novel/{novel_id}.html',
+        'haijbookx_v2': 'book/{novel_id}.html',
+        'fsnovel_v2': '{novel_id}/',
+        'po18gg_v2': 'novel/{novel_id}.html',
+        'po18rr_v2': 'novel/{novel_id}.html',
+        'chanjishi_v2': 'index.php/art/detail/id/{novel_id}/page/1.html',
+        'zxcms_v2': 'show/{novel_id}.html',
+        
+        # 默认模式（不需要设置，会使用 /b/{novel_id}）
+        'txtxi_v2': '',
+        '91porna_v2': '',
+        'crxs_v2': '',
+    }
+    
     def __init__(self, theme_manager: ThemeManager, novel_site: Optional[Dict[str, Any]] = None):
         """
         初始化书籍网站对话框
@@ -112,6 +144,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                                 id="book-id-example-input"
                             ),
                             id="book-id-example-container", classes="form-row"
+                        ),
+                        Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.url_pattern'), id="url-pattern-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.url_pattern_placeholder'),
+                                id="url-pattern-input"
+                            ),
+                            id="url-pattern-container", classes="form-row"
                         ),
                         Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.rating'), id="rating-label"),
@@ -266,6 +306,15 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             rating_select.value = rating_value
         else:
             rating_select.value = 2  # 默认2星
+        
+        # URL模式
+        url_pattern_input = self.query_one("#url-pattern-input", Input)
+        url_pattern_value = self.novel_site.get("url_pattern", "")
+        url_pattern_input.value = url_pattern_value
+        
+        # 如果没有URL模式且已选择解析器，自动填充
+        if not url_pattern_value and parser_value:
+            self._auto_fill_url_pattern(parser_value)
     
     # Actions for BINDINGS
     def action_save(self) -> None:
@@ -283,8 +332,36 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         """
         if event.button.id == "save-btn":
             self._save_novel_site()
-        elif event.button.id == "cancel-btn":
-            self.dismiss(None)  # 取消并返回None
+    
+    def on_select_changed(self, event: Select.Changed) -> None:
+        """
+        选择框变化时的回调
+        
+        Args:
+            event: 选择框变化事件
+        """
+        if event.select.id == "parser-select":
+            parser_value = str(event.value) if event.value else ""
+            self._auto_fill_url_pattern(parser_value)
+    
+    def _auto_fill_url_pattern(self, parser_value: str) -> None:
+        """
+        根据解析器自动填充URL模式
+        
+        Args:
+            parser_value: 解析器值
+        """
+        try:
+            url_pattern_input = self.query_one("#url-pattern-input", Input)
+            
+            # 从映射表中获取URL模式
+            url_pattern = self.PARSER_URL_PATTERNS.get(parser_value, "")
+            
+            # 如果找到模式且当前输入框为空，则自动填充
+            if url_pattern and not url_pattern_input.value.strip():
+                url_pattern_input.value = url_pattern
+        except Exception as e:
+            logger.error(f"自动填充URL模式失败: {e}")
     
     def _save_novel_site(self) -> None:
         """保存书籍网站信息"""
@@ -294,6 +371,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         folder_input = self.query_one("#storage-folder-input", Input)
         tags_input = self.query_one("#tags-input", Input)
         book_id_example_input = self.query_one("#book-id-example-input", Input)
+        url_pattern_input = self.query_one("#url-pattern-input", Input)
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
@@ -338,6 +416,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "storage_folder": folder_input.value.strip(),
             "tags": tags_input.value.strip(),
             "book_id_example": book_id_example_input.value.strip(),
+            "url_pattern": url_pattern_input.value.strip(),
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value,

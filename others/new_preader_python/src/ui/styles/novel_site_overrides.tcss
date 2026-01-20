@@ -74,6 +74,7 @@ Container {
 #enable-selectable-label,
 #tags-label,
 #book-id-example-label,
+#url-pattern-label,
 #rating-label {
     width: 30%;
     height: 1;
@@ -86,11 +87,16 @@ Container {
 #site-url-input,
 #storage-folder-input,
 #tags-input,
-#book-id-example-input {
+#book-id-example-input,
+#url-pattern-input {
     width: 70%;
     min-width: 40;
     height: 3;
     margin: 0;
+}
+
+#rating-container {
+    margin: 1 0 0 0;
 }
 
 /* 选择框样式 */
