@@ -3747,7 +3747,7 @@ class CrawlerManagementScreen(Screen[None]):
             result: 包含网站信息、小说ID和URL的字典
         """
         try:
-            site = result['site']
+            site = result.get('site_config')
             novel_id = result['novel_id']
             url = result['url']
             
@@ -3863,7 +3863,9 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             # 停止Chrome监听
             if self.chrome_monitor:
-                self.chrome_monitor.stop_monitoring()
+                success = self.chrome_monitor.stop_monitoring()
+                if not success:
+                    logger.warning("停止监听可能未完全成功")
             
             self.chrome_monitor_active = False
             self._update_status(get_global_i18n().t('crawler.monitor_stopped'), "information")
