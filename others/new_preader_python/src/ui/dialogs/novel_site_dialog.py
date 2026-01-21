@@ -310,7 +310,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         # URL模式
         url_pattern_input = self.query_one("#url-pattern-input", Input)
         url_pattern_value = self.novel_site.get("url_pattern", "")
-        url_pattern_input.value = url_pattern_value
+        url_pattern_input.value = url_pattern_value if url_pattern_value is not None else ""
         
         # 如果没有URL模式且已选择解析器，自动填充
         if not url_pattern_value and parser_value:
