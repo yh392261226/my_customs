@@ -172,6 +172,36 @@ class ChromeTabMonitor:
                     else:
                         return None
                 
+                # 特殊处理lulu6_v2解析器 - URL格式为/{category}/{novel_id}.html
+                elif site_config.get('parser') == 'lulu6_v2':
+                    # lulu6_v2实际URL格式：{base_url}/{category}/{novel_id}.html
+                    # 其中category可以是luanqing、dushi、xiaoshuo等各种分类
+                    pattern = rf"{re.escape(base_url)}/([^/]+)/([^/?]+)\.html"
+                    match = re.search(pattern, url)
+                    if match:
+                        category = unquote(match.group(1))
+                        novel_id = unquote(match.group(2))
+                        # 确保novel_id是数字
+                        if novel_id.isdigit():
+                            return novel_id
+                    else:
+                        return None
+                
+                # 特殊处理cms_t7_v2解析器 - URL格式为/{category}/{novel_id}.html
+                elif site_config.get('parser') == 'cms_t7_v2':
+                    # cms_t7_v2实际URL格式：{base_url}/{category}/{novel_id}.html
+                    # 其中category可以是各种分类，novel_id通常是数字
+                    pattern = rf"{re.escape(base_url)}/([^/]+)/([^/?]+)\.html"
+                    match = re.search(pattern, url)
+                    if match:
+                        category = unquote(match.group(1))
+                        novel_id = unquote(match.group(2))
+                        # 确保novel_id是数字
+                        if novel_id.isdigit():
+                            return novel_id
+                    else:
+                        return None
+                
                 # 特殊处理cms_t3_v2解析器 - url_pattern不匹配实际URL格式
                 elif site_config.get('parser') == 'cms_t3_v2':
                     # cms_t3_v2支持两种URL格式：

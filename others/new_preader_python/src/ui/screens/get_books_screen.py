@@ -241,10 +241,10 @@ class GetBooksScreen(Screen[None]):
         """屏幕恢复时的回调（从其他屏幕返回时调用）"""
         # 重新加载代理设置，确保显示最新状态
         self._load_proxy_settings()
-        # 重置排序状态并重新加载数据
+        # 重置排序状态并重新加载数据（使用保存的搜索参数）
         self._sort_column = None
         self._sort_reverse = False
-        self._load_novel_sites()
+        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
         
     def on_unmount(self) -> None:
         """屏幕卸载时移除样式隔离，避免残留影响其他屏幕"""

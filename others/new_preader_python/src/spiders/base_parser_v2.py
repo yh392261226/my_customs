@@ -828,9 +828,16 @@ class BaseParser:
         # 确保存储目录存在
         os.makedirs(storage_folder, exist_ok=True)
         
-        # 生成文件名（使用标题，避免特殊字符）
+        # 生成文件名（使用标题，避免特殊字符，限制长度）
         title = novel_content.get('title', '未知标题')
-        filename = re.sub(r'[<>:"/\\|?*]', '_', title)
+        # 清理文件名中的特殊字符
+        clean_title = re.sub(r'[<>:"/\\|?*]', '_', title)
+        # 限制文件名长度，避免过长
+        if len(clean_title) > 50:
+            clean_title = clean_title[:50] + '...'
+        # 添加网站标识
+        site_name = getattr(self, 'novel_site_name', 'unknown')
+        filename = f"{site_name}_{clean_title}"
         file_path = os.path.join(storage_folder, f"{filename}.txt")
         
         # 如果文件已存在，添加序号
