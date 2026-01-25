@@ -115,6 +115,25 @@ class ChromeTabMonitor:
             else:
                 base_url = site_url.rstrip('/')
             
+            # 特殊处理xx-book.com网站 - 优先处理
+            if 'xx-book.com' in site_url or 'seqing001.com' in site_url:
+                # xx-book.com实际URL格式：/?p={novel_id}
+                pattern = rf"{re.escape(base_url)}/\?p=(\d+)"
+                match = re.search(pattern, url)
+                if match:
+                    return match.group(1)
+
+            # 特殊处理x6wx.com网站 - 优先处理
+            elif 'x6wx.com' in site_url:
+                # x6wx.com实际URL格式：/{category}/{novel_id}.html
+                pattern = rf"{re.escape(base_url)}/([^/]+)/([^/?]+)\.html"
+                match = re.search(pattern, url)
+                if match:
+                    category = unquote(match.group(1))
+                    novel_id = unquote(match.group(2))
+                    # x6wx.com的书籍ID格式为：category/novel_id
+                    return f"{category}/{novel_id}"
+
             # 优先使用url_pattern（数据库中的精确配置）
             if url_pattern:
                 # 特殊处理69hnovel.com - 需要精确匹配包含斜杠的ID
@@ -344,9 +363,8 @@ class ChromeTabMonitor:
                                             # 如果novel_id不足3位，期望的prefix应该是"0"
                                             if prefix == "0":
                                                 return potential_novel_id
-                                
 
-            
+
             # 使用默认模式：/b/{novel_id}
             else:
                 pattern = rf"{re.escape(base_url)}/b/([^/?]+)"

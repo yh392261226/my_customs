@@ -3718,15 +3718,10 @@ class CrawlerManagementScreen(Screen[None]):
     def _init_chrome_monitor(self) -> None:
         """初始化Chrome标签页监听器"""
         try:
-            # 获取所有支持的小说网站配置
-            from src.core.database_manager import DatabaseManager
-            db_manager = DatabaseManager()
-            novel_sites = db_manager.get_novel_sites()
-            
-            # 初始化Chrome监听器（AppleScript模式）
+            # 初始化Chrome监听器（AppleScript模式） - 只监听当前网站
             try:
                 self.chrome_monitor = ChromeTabMonitor(
-                    novel_sites=novel_sites,
+                    novel_sites=[self.novel_site],  # 只传入当前网站，而不是所有网站
                     on_url_detected=self._on_chrome_url_detected,
                     headless=False  # AppleScript模式不需要headless
                 )
@@ -3734,7 +3729,7 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception as e:
                 logger.error(f"Chrome监听器初始化失败: {e}")
                 self.chrome_monitor = None
-            
+
         except Exception as e:
             logger.error(f"初始化Chrome监听器失败: {e}")
             self._update_status(f"初始化Chrome监听器失败: {str(e)}", "error")
