@@ -127,6 +127,195 @@ class CmsT7Parser(BaseParser):
             书籍类型
         """
         return "短篇"
+    
+    def parse_novel_detail(self, novel_id: str, category: str = "") -> Dict[str, Any]:
+        """
+        重写小说详情解析方法，支持分类参数
+        
+        Args:
+            novel_id: 小说ID
+            category: 分类（可选）
+            
+        Returns:
+            小说详情信息
+        """
+        # 重置章节计数器，防止跨书籍或重试时计数延续
+        self.chapter_count = 0
+        
+        novel_url = self.get_novel_url(novel_id, category)
+        content = self._get_url_content(novel_url)
+        
+        if not content:
+            raise Exception(f"无法获取小说页面: {novel_url}")
+        
+        # 自动检测书籍类型
+        book_type = self._detect_book_type(content)
+        
+        # 提取标题
+        title = self._extract_with_regex(content, self.title_reg)
+        if not title:
+            raise Exception("无法提取小说标题")
+        
+        print(f"开始处理 [ {title} ] - 类型: {book_type}")
+        
+        # 根据书籍类型选择处理方式
+        if book_type == "多章节":
+            novel_content = self._parse_multichapter_novel(content, novel_url, title)
+        elif book_type == "内容页内分页":
+            novel_content = self._parse_content_pagination_novel(content, novel_url, title)
+        else:
+            novel_content = self._parse_single_chapter_novel(content, novel_url, title)
+        
+        print(f'[ {title} ] 完成')
+        return novel_content
+    
+    def _parse_single_chapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
+        """
+        重写单章节小说解析方法，使用通用内容提取
+        
+        Args:
+            content: 页面内容
+            novel_url: 小说URL
+            title: 小说标题
+            
+        Returns:
+            小说详情信息
+        """
+        # 使用通用内容提取方法
+        chapter_content = self._extract_content_universal(content)
+        
+        if not chapter_content:
+            raise Exception("无法提取小说内容")
+        
+        # 执行爬取后处理函数
+        processed_content = self._execute_after_crawler_funcs(chapter_content)
+        
+        return {
+            'title': title,
+            'author': self.novel_site_name,
+            'novel_id': self._extract_novel_id_from_url(novel_url),
+            'url': novel_url,
+            'chapters': [{
+                'chapter_number': 1,
+                'title': title,
+                'content': processed_content,
+                'url': novel_url
+            }]
+        }
+    
+    def _extract_p_tags_intelligent(self, content: str) -> List[str]:
+        """
+        智能提取P标签，处理多层嵌套问题
+        
+        Args:
+            content: 页面内容
+            
+        Returns:
+            提取的P标签内容列表
+        """
+        try:
+            # 方法1：使用标准的非贪婪模式
+            p_matches = re.findall(r'<p[^>]*>(.*?)</p>', content, re.DOTALL | re.IGNORECASE)
+            
+            # 方法2：如果发现可能的嵌套问题，使用手动解析
+            if len(p_matches) < 10:  # 如果P标签数量异常少，可能存在嵌套问题
+                logger.info(f"P标签数量较少({len(p_matches)})，可能存在嵌套问题，使用智能解析")
+                
+                # 手动解析P标签
+                intelligent_matches = []
+                p_start_positions = []
+                p_end_positions = []
+                
+                # 查找所有P标签的开始和结束位置
+                for match in re.finditer(r'<p[^>]*>', content, re.IGNORECASE):
+                    p_start_positions.append(match.start())
+                
+                for match in re.finditer(r'</p>', content, re.IGNORECASE):
+                    p_end_positions.append(match.end())
+                
+                # 智能配对P标签
+                if p_start_positions and p_end_positions:
+                    stack = []
+                    i = 0
+                    j = 0
+                    
+                    while i < len(p_start_positions) and j < len(p_end_positions):
+                        start_pos = p_start_positions[i]
+                        end_pos = p_end_positions[j]
+                        
+                        if start_pos < end_pos:
+                            stack.append(start_pos)
+                            i += 1
+                        else:
+                            if stack:
+                                # 找到匹配的P标签
+                                matched_start = stack.pop()
+                                p_content = content[matched_start:end_pos]
+                                intelligent_matches.append(p_content)
+                            j += 1
+                    
+                    # 处理剩余的栈
+                    while stack and j < len(p_end_positions):
+                        matched_start = stack.pop()
+                        end_pos = p_end_positions[j]
+                        p_content = content[matched_start:end_pos]
+                        intelligent_matches.append(p_content)
+                        j += 1
+                
+                if len(intelligent_matches) > len(p_matches):
+                    p_matches = intelligent_matches
+                    logger.info(f"智能解析找到 {len(p_matches)} 个P标签")
+            
+            # 方法3：如果还是有问题，使用最精确的模式
+            if len(p_matches) < 5:
+                logger.info("使用最精确的模式提取P标签")
+                # 使用递归模式匹配，避免嵌套
+                precise_pattern = r'<p[^>]*>(?:[^<]|<(?!/?p[^>]*>))*?</p>'
+                p_matches = re.findall(precise_pattern, content, re.DOTALL | re.IGNORECASE)
+                logger.info(f"精确模式找到 {len(p_matches)} 个P标签")
+            
+            logger.info(f"最终找到 {len(p_matches)} 个P标签")
+            return p_matches
+            
+        except Exception as e:
+            logger.error(f"智能P标签提取失败: {e}")
+            # 回退到简单模式
+            return re.findall(r'<p[^>]*>(.*?)</p>', content, re.DOTALL | re.IGNORECASE)
+
+    def _remove_ads(self, content: str) -> str:
+        """
+        移除广告和无关内容
+        
+        Args:
+            content: 原始内容
+            
+        Returns:
+            清理后的内容
+        """
+        try:
+            # 更保守的广告移除，只移除明确的广告内容
+            ad_patterns = [
+                r'点此下载.*?成人.*?视频.*?香嫩.*?少女.*?包你射.*?',
+                r'更多小说尽在CR小说.*$',
+                r'更多小说尽在.*$',
+                r'CR小说.*$',
+                r'<a[^>]*>.*?下载.*?成人.*?视频.*?</a>',
+                r'<a[^>]*>.*?点此.*?下载.*?</a>',
+                r'var[^=]*=[^;]*;',
+                r'Copyright.*?All Rights Reserved',
+            ]
+            
+            for pattern in ad_patterns:
+                content = re.sub(pattern, '', content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # 清理多余空白
+            content = re.sub(r'\n\s*\n\s*\n', '\n\n', content).strip()
+            
+            return content
+            
+        except Exception as e:
+            logger.error(f"移除广告失败: {e}")
+            return content
 
     def _extract_content_universal(self, content: str) -> str:
         """
@@ -139,27 +328,78 @@ class CmsT7Parser(BaseParser):
             提取的完整内容
         """
         try:
-            # 第一步：提取所有可能的可见开头（P标签或art-content）
+            # 第一步：提取标题和发布日期
+            title = ""
+            publish_date = ""
+            
+            # 提取标题
+            title_patterns = [
+                r'<h1[^>]*class=["\']title["\'][^>]*>([^<]+)</h1>',
+                r'<h1[^>]*>([^<]+)</h1>',
+                r'<title[^>]*>([^<]+)</title>',
+            ]
+            
+            for pattern in title_patterns:
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    title = match.group(1).strip()
+                    # 移除网站后缀
+                    title = re.sub(r'[-—].*?$', '', title)
+                    break
+            
+            # 提取发布日期
+            date_patterns = [
+                r'发布于[：:]\s*(\d{4}-\d{2}-\d{2})',
+                r'发布时间[：:]\s*(\d{4}-\d{2}-\d{2})',
+                r'(\d{4}-\d{2}-\d{2})',
+            ]
+            
+            for pattern in date_patterns:
+                match = re.search(pattern, content)
+                if match:
+                    publish_date = match.group(1)
+                    break
+            
+            # 第二步：提取所有可能的可见开头（P标签或art-content）
+            # 但首先构建完整的开头部分
+            header_content = ""
+            if title and publish_date:
+                header_content = f"{title}\n\n发布于：{publish_date}\n\n"
+            elif title:
+                header_content = f"{title}\n\n"
+            
+            # 第三步：提取所有可能的可见开头（P标签或art-content）
             visible_starts = []
 
-            # 从P标签中提取可见开头
-            p_matches = re.findall(r'<p[^>]*>(.*?)</p>', content, re.DOTALL | re.IGNORECASE)
+            # 从P标签中提取可见开头（使用更智能的算法处理嵌套问题）
+            p_matches = self._extract_p_tags_intelligent(content)
             logger.info(f"找到 {len(p_matches)} 个P标签")
 
-            for i, p_match in enumerate(p_matches):  # 检查所有P标签
-                cleaned = self._clean_html_tags(p_match)
+            # 使用原来的逻辑处理其他网站
+            for i, p_match in enumerate(p_matches):
+                    cleaned = self._clean_html_tags(p_match)
 
-                # 过滤掉广告
-                ad_keywords = ['TikTok', '成人导航', 'APP破解', '点此下载', '包你射', '香嫩少女']
-                is_ad = any(keyword in cleaned for keyword in ad_keywords)
+                    # 过滤掉导航信息和广告
+                    skip_keywords = ['当前位置', '首页', 'TikTok', '成人导航', 'APP破解', '点此下载', '包你射', '香嫩少女', '柠檬导航', 'Copyright']
+                    is_skip = any(keyword in cleaned for keyword in skip_keywords)
 
-                if cleaned and not is_ad:
-                    chinese_chars = len(re.findall(r'[一-龯]', cleaned))
-                    if len(cleaned.strip()) > 20 and chinese_chars > 10:
-                        # 收集所有可能的P标签
-                        visible_starts.append(cleaned)
-                        logger.info(f"P标签 #{i+1} 添加到visible_starts")
-                        break
+                    if cleaned and not is_skip:
+                        # 特殊处理章节标记（如（１）、（2）、①等）
+                        chapter_marker_pattern = r'^[（\(][0-9一二三四五六七八九十０-９]+[）\)]$|^第[一二三四五六七八九十]+[章节回]$|^①$|^②$|^③$|^④$|^⑤$|^⑥$|^⑦$|^⑧$|^⑨$|^⑩$'
+                        is_chapter_marker = re.match(chapter_marker_pattern, cleaned.strip())
+                        
+                        if is_chapter_marker:
+                            # 如果是章节标记，直接添加
+                            visible_starts.append(cleaned)
+                            logger.info(f"P标签 #{i+1} 章节标记添加到visible_starts")
+                            continue
+                        
+                        chinese_chars = len(re.findall(r'[一-龯]', cleaned))
+                        if len(cleaned.strip()) > 20 and chinese_chars > 10:
+                            # 收集所有可能的P标签
+                            visible_starts.append(cleaned)
+                            logger.info(f"P标签 #{i+1} 添加到visible_starts")
+                            break
 
             # 如果没有从P标签中找到有效内容,尝试从div中提取
             if not visible_starts:
@@ -168,7 +408,12 @@ class CmsT7Parser(BaseParser):
 
                 for i, div_match in enumerate(div_matches[:15]):
                     cleaned = self._clean_html_tags(div_match)
-                    if cleaned and len(cleaned.strip()) > 50:
+
+                    # 过滤掉导航信息
+                    skip_keywords = ['当前位置', '首页', 'TikTok', '成人导航', 'APP破解', '柠檬导航', 'Copyright', '阅读是一场修行']
+                    is_skip = any(keyword in cleaned for keyword in skip_keywords)
+
+                    if cleaned and not is_skip and len(cleaned.strip()) > 50:
                         chinese_chars = len(re.findall(r'[一-龯]', cleaned))
                         if chinese_chars > 20:
                             visible_starts.append(cleaned)
@@ -182,24 +427,60 @@ class CmsT7Parser(BaseParser):
 
                 for i, article_match in enumerate(article_matches):
                     cleaned = self._clean_html_tags(article_match)
-                    if cleaned and len(cleaned.strip()) > 50:
+
+                    # 过滤掉导航信息
+                    skip_keywords = ['当前位置', '首页', 'TikTok', '成人导航', 'APP破解', '柠檬导航']
+                    is_skip = any(keyword in cleaned for keyword in skip_keywords)
+
+                    if cleaned and not is_skip and len(cleaned.strip()) > 50:
                         chinese_chars = len(re.findall(r'[一-龯]', cleaned))
                         if chinese_chars > 20:
                             visible_starts.append(cleaned)
                             logger.info(f"Article #{i+1} 添加到visible_starts")
                             break
 
-            # 如果还是没有任何可见开头,尝试从整个页面提取
-            if not visible_starts and not full_visible_content:
-                logger.info("无法从任何标签中提取可见内容,尝试从整个页面提取")
-                # 移除所有HTML标签
-                full_page_cleaned = self._clean_html_tags(content)
-                # 检查清理后的内容
-                if full_page_cleaned and len(full_page_cleaned.strip()) > 100:
-                    chinese_chars = len(re.findall(r'[一-龯]', full_page_cleaned))
-                    if chinese_chars > 50:
-                        full_visible_content = full_page_cleaned
-                        logger.info(f"从整个页面提取内容,长度: {len(full_visible_content)}")
+            # 如果还是没有任何可见开头,尝试从section标签提取
+            if not visible_starts:
+                section_matches = re.findall(r'<section[^>]*>(.*?)</section>', content, re.DOTALL | re.IGNORECASE)
+                logger.info(f"未从article找到有效内容,检查 {len(section_matches)} 个section标签")
+
+                for i, section_match in enumerate(section_matches):
+                    cleaned = self._clean_html_tags(section_match)
+
+                    # 过滤掉导航信息
+                    skip_keywords = ['当前位置', '首页', 'TikTok', '成人导航', 'APP破解', '柠檬导航', 'Toggle navigation']
+                    is_skip = any(keyword in cleaned for keyword in skip_keywords)
+
+                    if cleaned and not is_skip and len(cleaned.strip()) > 50:
+                        chinese_chars = len(re.findall(r'[一-龯]', cleaned))
+                        if chinese_chars > 20:
+                            visible_starts.append(cleaned)
+                            logger.info(f"Section #{i+1} 添加到visible_starts")
+                            break
+            
+            # 特殊处理：提取隐藏内容之前的可见文本
+            if not visible_starts:
+                hidden_pos = content.find('id="xiaoshuo_str"')
+                if hidden_pos != -1:
+                    # 查找h1标题位置
+                    h1_match = re.search(r'<h1[^>]*>([^<]+)</h1>', content[:hidden_pos], re.IGNORECASE)
+                    if h1_match:
+                        h1_end = h1_match.end()
+                        # 提取h1标题到隐藏内容之间的文本
+                        text_before_hidden = content[h1_end:hidden_pos]
+                        
+                        # 清理HTML标签和广告
+                        cleaned_text = self._clean_html_tags(text_before_hidden)
+                        cleaned_text = re.sub(r'TikTok成人版.*?幸福每一天', '', cleaned_text)
+                        cleaned_text = re.sub(r'点此打开隐藏内容继续看.*$', '', cleaned_text)
+                        cleaned_text = cleaned_text.strip()
+                        
+                        # 检查是否包含有效的故事内容
+                        chinese_chars = len(re.findall(r'[一-龯]', cleaned_text))
+                        if len(cleaned_text) > 20 and chinese_chars > 10:
+                            visible_starts.append(cleaned_text)
+                            logger.info(f"从隐藏内容之前提取可见文本，长度: {len(cleaned_text)}")
+                            logger.info(f"可见文本开头: {cleaned_text[:100]}...")
 
             # 从art-content div中提取完整可见内容
             art_content_matches = re.findall(r'<div[^>]*class="art-content[^"]*"[^>]*>(.*?)</div>', content, re.DOTALL | re.IGNORECASE)
@@ -256,20 +537,75 @@ class CmsT7Parser(BaseParser):
                             break
 
             # 第四步：根据提取的内容情况决定返回内容
-            # 情况1: 只有完整可见内容，没有隐藏内容（如buya6.xyz）
-            if full_visible_content and not hidden_content:
-                logger.info("使用完整可见内容（无隐藏内容）")
-                return full_visible_content
+            
+            # 如果有header_content，确保它被包含在最终结果中
+            if header_content:
+                # 暂时将header_content添加到visible_starts的开头
+                visible_starts.insert(0, header_content)
 
-            # 情况2: 有完整可见内容和隐藏内容，优先使用可见内容
+            # 情况1: 有完整可见内容和隐藏内容
             if full_visible_content and hidden_content:
-                logger.info(f"情况2: full_visible_content长度={len(full_visible_content)}, hidden_content长度={len(hidden_content)}")
-                # 如果可见内容足够长（>500字），优先使用可见内容
-                if len(full_visible_content) > 500:
+                logger.info(f"情况1: full_visible_content长度={len(full_visible_content)}, hidden_content长度={len(hidden_content)}")
+                
+                # 检查是否有章节标记在visible_starts中
+                has_chapter_marker = False
+                chapter_marker_start = None
+                for start in visible_starts:
+                    chapter_marker_pattern = r'^[（\(][0-9一二三四五六七八九十０-９]+[）\)]$|^第[一二三四五六七八九十]+[章节回]$|^①$|^②$|^③$|^④$|^⑤$|^⑥$|^⑦$|^⑧$|^⑨$|^⑩$'
+                    if re.match(chapter_marker_pattern, start.strip()):
+                        has_chapter_marker = True
+                        chapter_marker_start = start
+                        break
+                
+                # 如果有章节标记，使用章节标记开头，然后合并可见内容和隐藏内容
+                if has_chapter_marker and chapter_marker_start:
+                    # 从可见内容中找到章节标记后面的内容
+                    visible_after_marker = ""
+                    for start in visible_starts:
+                        if start != chapter_marker_start and len(start.strip()) > 10:
+                            visible_after_marker = start
+                            break
+                    
+                    # 如果没有找到章节标记后的可见内容，使用full_visible_content的一部分
+                    if not visible_after_marker and full_visible_content:
+                        # 从full_visible_content中提取章节标记后的内容
+                        marker_pos = full_visible_content.find(chapter_marker_start)
+                        if marker_pos != -1:
+                            after_marker = full_visible_content[marker_pos + len(chapter_marker_start):].strip()
+                            if len(after_marker) > 10:
+                                visible_after_marker = after_marker
+                    
+                    # 智能跳过隐藏内容中的错误开头
+                    clean_hidden = self._skip_error_start_in_hidden(chapter_marker_start, hidden_content)
+                    
+                    # 合并内容：章节标记 + 可见内容（如果有） + 隐藏内容
+                    if visible_after_marker:
+                        merged_content = f"{chapter_marker_start}\n\n{visible_after_marker}\n\n{clean_hidden}"
+                        logger.info(f"使用章节标记开头合并可见内容和隐藏内容，总长度: {len(merged_content)}")
+                    else:
+                        merged_content = f"{chapter_marker_start}\n\n{clean_hidden}"
+                        logger.info(f"使用章节标记开头合并隐藏内容，总长度: {len(merged_content)}")
+                    return merged_content
+                # 检查可见内容是否包含故事开头但可能不完整
+                # 如果隐藏内容明显比可见内容长，说明需要合并
+                if len(hidden_content) > len(full_visible_content) * 0.8:
+                    logger.info(f"隐藏内容长度({len(hidden_content)})与可见内容长度({len(full_visible_content)})相近，需要合并")
+                    
+                    # 选择最长的可见开头
+                    best_start = max(visible_starts, key=len) if visible_starts else full_visible_content[:200]
+                    if best_start:
+                        clean_hidden = self._skip_error_start_in_hidden(best_start, hidden_content)
+                        merged_content = f"{best_start}\n\n{clean_hidden}"
+                        logger.info(f"合并可见开头和隐藏内容，总长度: {len(merged_content)}")
+                        return merged_content
+                
+                # 如果可见内容足够长（>500字）且隐藏内容相对较短，优先使用可见内容
+                elif len(full_visible_content) > 500:
                     logger.info(f"可见内容长度足够（{len(full_visible_content)}），优先使用可见内容")
                     return full_visible_content
-                # 否则合并
-                best_start = visible_starts[0] if visible_starts else ""
+                # 否则使用可见内容的第一部分和隐藏内容
+                # 提取visible_starts中的第一个作为开头
+                best_start = visible_starts[0] if visible_starts else full_visible_content[:200]
                 if best_start:
                     clean_hidden = self._skip_error_start_in_hidden(best_start, hidden_content)
                     merged_content = f"{best_start}\n\n{clean_hidden}"
@@ -279,28 +615,69 @@ class CmsT7Parser(BaseParser):
                     logger.info("使用隐藏内容（无可见开头）")
                     return hidden_content
 
-            # 情况3: 有隐藏内容和可见开头，需要合并
+            # 情况2: 有隐藏内容和可见开头，需要合并
             if hidden_content and visible_starts:
-                # 选择最长的可见开头
-                best_start = max(visible_starts, key=len)
+                # 检查是否有章节标记
+                chapter_marker_start = None
+                other_visible_content = ""
+                
+                for start in visible_starts:
+                    chapter_marker_pattern = r'^[（\(][0-9一二三四五六七八九十０-９]+[）\)]$|^第[一二三四五六七八九十]+[章节回]$|^①$|^②$|^③$|^④$|^⑤$|^⑥$|^⑦$|^⑧$|^⑨$|^⑩$'
+                    if re.match(chapter_marker_pattern, start.strip()):
+                        chapter_marker_start = start
+                    elif len(start.strip()) > 10:
+                        other_visible_content = start
+                
+                # 构建完整的开头部分（标题 + 发布日期 + 章节标记/可见内容）
+                header_parts = []
+                if title:
+                    header_parts.append(title)
+                if publish_date:
+                    header_parts.append(f"发布于：{publish_date}")
+                
+                # 如果有章节标记，使用章节标记开头
+                if chapter_marker_start:
+                    header_parts.append(chapter_marker_start)
+                    # 智能跳过隐藏内容中的错误开头
+                    clean_hidden = self._skip_error_start_in_hidden(chapter_marker_start, hidden_content)
+                    
+                    # 合并内容：标题 + 发布日期 + 章节标记 + 其他可见内容（如果有） + 隐藏内容
+                    if other_visible_content:
+                        merged_content = "\n\n".join(header_parts + [other_visible_content, clean_hidden])
+                        logger.info(f"使用章节标记开头合并可见内容和隐藏内容，总长度: {len(merged_content)}")
+                    else:
+                        merged_content = "\n\n".join(header_parts + [clean_hidden])
+                        logger.info(f"使用章节标记开头合并隐藏内容，总长度: {len(merged_content)}")
+                    return merged_content
+                else:
+                    # 没有章节标记，选择最长的可见开头
+                    best_start = max(visible_starts, key=len)
+                    header_parts.append(best_start)
+                    
+                    # 智能跳过隐藏内容中的错误开头
+                    clean_hidden = self._skip_error_start_in_hidden(best_start, hidden_content)
+                    
+                    # 合并内容：标题 + 发布日期 + 可见开头 + 隐藏内容
+                    merged_content = "\n\n".join(header_parts + [clean_hidden])
+                    logger.info(f"合并可见开头和隐藏内容，总长度: {len(merged_content)}")
+                    return merged_content
 
-                # 智能跳过隐藏内容中的错误开头
-                clean_hidden = self._skip_error_start_in_hidden(best_start, hidden_content)
-
-                # 合并内容
-                merged_content = f"{best_start}\n\n{clean_hidden}"
-                logger.info(f"合并可见开头和隐藏内容，总长度: {len(merged_content)}")
-                return merged_content
-
-            # 情况4: 只有隐藏内容
-            if hidden_content:
-                logger.info("只找到隐藏内容")
-                return hidden_content
-
-            # 情况5: 只有完整可见内容
+            # 情况3: 只有完整可见内容
             if full_visible_content:
                 logger.info("使用完整可见内容")
                 return full_visible_content
+
+            # 情况4: 只有可见开头
+            if visible_starts:
+                # 选择最长的可见开头
+                best_start = max(visible_starts, key=len)
+                logger.info(f"使用可见开头，长度: {len(best_start)}")
+                return best_start
+
+            # 情况5: 只有隐藏内容
+            if hidden_content:
+                logger.info("只找到隐藏内容")
+                return hidden_content
 
             # 情况6: 都没找到，返回空
             logger.warning("未找到任何有效内容")
@@ -309,6 +686,136 @@ class CmsT7Parser(BaseParser):
         except Exception as e:
             logger.error(f"通用内容提取失败: {e}")
             return ""
+
+    def _clean_visible_content(self, raw_content: str) -> str:
+        """
+        清理可见内容，移除广告和导航信息，处理各种边界情况
+        包括嵌套、缺失、多重、多个、半个等情况
+        """
+        try:
+            content = raw_content
+            
+            # 移除各种广告div - 处理多重和嵌套情况
+            ad_div_patterns = [
+                r'<div[^>]*class="[^"]*download[^"]*"[^>]*>.*?</div>',
+                r'<div[^>]*id="[^"]*open[^"]*xiaoshuo[^"]*"[^>]*>.*?</div>',
+                r'<div[^>]*style="text-align:center[^>]*>.*?<a[^>]*>.*?下载.*?</a>.*?</div>',
+            ]
+            for pattern in ad_div_patterns:
+                content = re.sub(pattern, '', content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # 移除导航和发布信息 - 处理各种格式，包括wux3.xyz的特殊格式
+            nav_patterns = [
+                r'^[\s\S]*?当前位置\s*[:：].*?\n',
+                r'^[\s\S]*?发布于\s*[:：][^\n]*?\n',
+                r'^[\s\S]*?首页\s*>\s*[^>\n]+(?:\s*>\s*[^>\n]+)*\s*',
+                r'当前位置\s*[:：].*?(?=\n|$)',
+                r'发布于\s*[:：][^\n]*(?=\n|$)',
+                r'首页\s*>\s*[^>\n]+(?:\s*>\s*[^>\n]+)*\s*(?=\n|$)',
+            ]
+            for pattern in nav_patterns:
+                content = re.sub(pattern, '', content, flags=re.DOTALL)
+            
+            # 移除各种广告链接 - 处理多个和半个标签
+            ad_link_patterns = [
+                r'<a[^>]*>.*?下载.*?成人.*?视频.*?</a>',
+                r'<a[^>]*>.*?点此.*?下载.*?</a>',
+                r'<a[^>]*>.*?嫩女.*?视频.*?</a>',
+                r'<a[^>]*>.*?香嫩.*?少女.*?</a>',
+                r'<a[^>]*>.*?包你射.*?</a>',
+                r'<a[^>]*>.*?点此打开.*?隐藏.*?内容.*?</a>',
+                r'<a[^>]*>.*?PornHub.*?</a>',
+                r'<a[^>]*>.*?51色.*?</a>',
+                r'<a[^>]*>.*?高能.*?污漫.*?</a>',
+                r'<a[^>]*href="[^"]*"[^>]*>.*?</a>',  # 移除所有外部链接
+                r'<a[^>]*>.*?</a>',  # 移除剩余的a标签
+            ]
+            for pattern in ad_link_patterns:
+                content = re.sub(pattern, '', content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # 移除script和style标签 - 处理嵌套情况
+            content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE)
+            content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # 处理HTML标签 - 保留换行，处理各种br变体
+            br_patterns = [
+                r'<br[^>]*>',
+                r'<br/>',
+                r'<br />',
+                r'<BR[^>]*>',
+                r'<BR/>',
+                r'<BR />',
+            ]
+            for br_pattern in br_patterns:
+                content = re.sub(br_pattern, '\n', content, flags=re.IGNORECASE)
+            
+            # 处理嵌套的P标签 - 处理多个和半个标签
+            content = re.sub(r'</p>', '\n', content, flags=re.IGNORECASE)
+            content = re.sub(r'<p[^>]*>', '\n', content, flags=re.IGNORECASE)
+            content = re.sub(r'<P[^>]*>', '\n', content, flags=re.IGNORECASE)
+            content = re.sub(r'</P>', '\n', content, flags=re.IGNORECASE)
+            
+            # 移除剩余的HTML标签 - 处理半个标签
+            content = re.sub(r'<[^>]*>', '', content)
+            
+            # 清理多余空白和换行
+            content = re.sub(r'\n\s*\n\s*\n+', '\n\n', content)
+            content = re.sub(r'[ \t]+', ' ', content)
+            
+            # 过滤掉导航、版权和无关信息 - 处理各种情况
+            skip_patterns = [
+                r'当前位置\s*[:：].*',
+                r'首页\s*>.*',
+                r'TikTok.*',
+                r'成人导航.*',
+                r'APP破解.*',
+                r'柠檬导航.*',
+                r'Copyright.*',
+                r'阅读是一场修行.*',
+                r'©.*',
+                r'更多小说尽在.*',
+                r'CR小说.*',
+                r'本帖最后由.*编辑.*',
+                r'^\s*[＞>]\s*',
+                r'^\s*【.*】\s*$',
+                r'^\s*$\s*$',  # 空行
+            ]
+            
+            lines = content.split('\n')
+            filtered_lines = []
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                    
+                # 检查是否匹配跳过模式
+                should_skip = False
+                for pattern in skip_patterns:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        should_skip = True
+                        break
+                
+                if not should_skip:
+                    # 检查是否是有意义的中文内容
+                    chinese_chars = len(re.findall(r'[一-龯]', line))
+                    total_chars = len(line)
+                    
+                    # 特殊处理章节标记（如（１）、（2）、①等）
+                    chapter_marker_pattern = r'^[（\(][0-9一二三四五六七八九十０-９]+[）\)]$|^第[一二三四五六七八九十]+[章节回]$|^①$|^②$|^③$|^④$|^⑤$|^⑥$|^⑦$|^⑧$|^⑨$|^⑩$'
+                    is_chapter_marker = re.match(chapter_marker_pattern, line.strip())                    
+                    # 如果是章节标记，直接保留
+                    if is_chapter_marker:
+                        filtered_lines.append(line)
+                    # 如果中文字符占比超过30%且至少有5个字符，保留
+                    elif total_chars > 0 and chinese_chars / total_chars > 0.3 and chinese_chars >= 5:
+                        filtered_lines.append(line)
+            
+            final_content = '\n\n'.join(filtered_lines).strip()
+            return final_content
+            
+        except Exception as e:
+            logger.error(f"清理可见内容失败: {e}")
+            return raw_content
 
     def _skip_error_start_in_hidden(self, visible_start: str, hidden_content: str) -> str:
         """
@@ -331,52 +838,45 @@ class CmsT7Parser(BaseParser):
             hidden_lines = hidden_content.split('\n')
             hidden_start_text = '\n'.join(hidden_lines[:5])  # 前5句话
 
+            # 默认假设没有重叠
+            has_overlap = False
+
             # 策略1: 如果可见开头和隐藏开头明显不同，跳过隐藏内容的第一句
             if visible_start and len(visible_start) > 20 and len(visible_keywords) > 0:
                 # 检查隐藏内容开头是否包含可见开头的关键词
-                has_overlap = False
                 for keyword in visible_keywords[:3]:  # 检查前3个关键词
                     if keyword in hidden_start_text:
                         has_overlap = True
                         break
 
-                # 只有在没有重叠且可见开头确实不同时才跳过
-                # 使用更严格的条件：可见开头必须在隐藏内容的前200个字符中找不到任何匹配
-                if not has_overlap:
-                    # 额外检查：可见开头的第一个词是否在隐藏内容的前100字符中
-                    first_word = re.findall(r'[一-龯]{2,}', visible_start)
-                    if first_word and first_word[0] not in hidden_content[:100]:
-                        if len(hidden_lines) > 1:
-                            # 跳过第一句，从第二句开始
-                            # 但要保留第二句的完整性（不要从中间截断）
-                            skip_count = 1
-                            while skip_count < len(hidden_lines):
-                                # 跳过太短的句子
-                                if len(hidden_lines[skip_count].strip()) > 10:
-                                    break
-                                skip_count += 1
+            # 只有在没有重叠时才考虑跳过
+            if not has_overlap:
+                # 额外检查：检查可见开头和隐藏内容的前3行是否明显不同
+                # 通过比较前100个字符来判断
+                visible_prefix = visible_start[:100]
+                hidden_prefix = hidden_content[:100]
 
-                            if skip_count < len(hidden_lines):
-                                clean_hidden = '\n'.join(hidden_lines[skip_count:]).strip()
-                                logger.info(f"跳过隐藏内容前{skip_count}句话")
-                                return clean_hidden
+                # 如果前100个字符相同度很低（小于50%），则跳过第一句
+                similarity = sum(1 for a, b in zip(visible_prefix, hidden_prefix) if a == b)
+                if len(visible_prefix) > 0 and similarity / len(visible_prefix) < 0.5:
+                    # 前100字符相同度很低，可能需要跳过
+                    if len(hidden_lines) > 1:
+                        # 跳过第一句，从第二句开始
+                        skip_count = 1
+                        while skip_count < len(hidden_lines):
+                            # 跳过太短的句子
+                            if len(hidden_lines[skip_count].strip()) > 10:
+                                break
+                            skip_count += 1
 
-            # 策略2: 如果可见开头很短（小于100字符），但隐藏内容很长
-            # 可能需要跳过隐藏内容的一部分
-            if len(visible_start) < 100 and len(hidden_content) > 500:
-                # 尝试找到隐藏内容中与可见开头最不相似的部分
-                for i in range(min(3, len(hidden_lines))):
-                    line = hidden_lines[i].strip()
-                    if len(line) > 20:
-                        # 检查这行是否明显不同于可见开头
-                        if not any(kw in line for kw in visible_keywords):
-                            # 找到第一句明显不同的，从这行开始
-                            clean_hidden = '\n'.join(hidden_lines[i:]).strip()
-                            logger.info(f"从第{i+1}句开始使用隐藏内容")
+                        if skip_count < len(hidden_lines):
+                            clean_hidden = '\n'.join(hidden_lines[skip_count:]).strip()
+                            logger.info(f"可见开头和隐藏开头相似度低，跳过前{skip_count}句话")
                             return clean_hidden
 
             # 默认返回原始隐藏内容
             return hidden_content
+
 
         except Exception as e:
             logger.error(f"跳过隐藏内容错误开头失败: {e}")
@@ -423,6 +923,175 @@ class CmsT7Parser(BaseParser):
         except Exception as e:
             logger.error(f"清理HTML标签失败: {e}")
             return html_content
+
+    def _extract_p_tag_split_content(self, content: str) -> str:
+        """
+        提取P标签分割型网站的内容（sewu3.xyz, xhxs2.xyz等）
+        
+        策略：
+        1. 智能提取可见内容，包括被广告截断的部分和多个P标签
+        2. 提取xiaoshuo_str标签中的隐藏内容
+        3. 合并两部分内容并去重
+        """
+        try:
+            logger.info("使用P标签分割型内容提取策略")
+            
+            # 1. 提取可见内容 - 处理多个P标签的情况
+            visible_content = ""
+            
+            # 查找第一个P标签开始到xiaoshuo_str标签之前的所有内容
+            p_start_match = re.search(r'<p[^>]*>', content, re.IGNORECASE)
+            xiaoshuo_match = re.search(r'<span[^>]*id="xiaoshuo_str"[^>]*>', content, re.IGNORECASE)
+            
+            if p_start_match and xiaoshuo_match:
+                # 提取从第一个P标签开始到xiaoshuo_str标签之前的所有内容
+                start_pos = p_start_match.start()
+                end_pos = xiaoshuo_match.start()
+                raw_visible_section = content[start_pos:end_pos]
+                
+                # 提取所有P标签的内容，包括嵌套的P标签
+                all_p_contents = []
+                
+                # 特殊处理：对于被广告截断的嵌套P标签，直接手动提取
+                # 查找所有开P标签和闭P标签的位置
+                p_open_positions = []
+                p_close_positions = []
+                
+                for match in re.finditer(r'<p[^>]*>', raw_visible_section, re.IGNORECASE):
+                    p_open_positions.append(match.start())
+                
+                for match in re.finditer(r'</p>', raw_visible_section, re.IGNORECASE):
+                    p_close_positions.append(match.end())
+                
+                # 如果开P标签比闭P标签多，说明有被截断的P标签
+                if len(p_open_positions) > len(p_close_positions):
+                    logger.info(f"检测到被截断的P标签：开标签{len(p_open_positions)}个，闭标签{len(p_close_positions)}个")
+                    
+                    # 手动提取每个P标签的内容
+                    for i, open_pos in enumerate(p_open_positions):
+                        # 确定这个P标签的结束位置
+                        if i < len(p_close_positions):
+                            # 有对应的闭标签
+                            end_pos = p_close_positions[i]
+                            p_content = raw_visible_section[open_pos:end_pos]
+                        else:
+                            # 没有对应的闭标签，提取到xiaoshuo_str之前
+                            p_content = raw_visible_section[open_pos:]
+                        
+                        # 提取P标签内的文本内容
+                        p_text_match = re.search(r'<p[^>]*>(.*)', p_content, re.DOTALL | re.IGNORECASE)
+                        if p_text_match:
+                            p_text = p_text_match.group(1)
+                            # 如果有闭标签，移除它
+                            p_text = re.sub(r'</p>.*$', '', p_text, flags=re.DOTALL)
+                            
+                            # 只保留有实际内容的P标签（长度大于5且包含中文字符）
+                            if len(p_text.strip()) > 5 and re.search(r'[一-龯]', p_text):
+                                all_p_contents.append(p_text.strip())
+                            elif re.match(r'^[（\(][0-9一二三四五六七八九十]+[）\)]$', p_text.strip()) or p_text.strip() == '（１）':
+                                # 特殊处理章节标记
+                                all_p_contents.append(p_text.strip())
+                else:
+                    # 正常情况：使用非贪婪匹配按顺序提取
+                    temp_content = raw_visible_section
+                    extracted_contents = []
+                    
+                    while True:
+                        p_match = re.search(r'<p[^>]*>(.*?)</p>', temp_content, re.DOTALL | re.IGNORECASE)
+                        if p_match:
+                            p_content = p_match.group(1)
+                            extracted_contents.append(p_content)
+                            temp_content = temp_content[p_match.end():]
+                        else:
+                            break
+                    
+                    p_matches = extracted_contents
+                    
+                    # 对于每个提取的P标签内容，检查是否还包含嵌套的P标签
+                    final_contents = []
+                    for p_content in p_matches:
+                        # 如果P标签内容中还包含P标签，递归提取
+                        if re.search(r'<p[^>]*>', p_content, re.IGNORECASE):
+                            # 递归提取嵌套的P标签
+                            nested_temp = p_content
+                            while True:
+                                nested_match = re.search(r'<p[^>]*>(.*?)</p>', nested_temp, re.DOTALL | re.IGNORECASE)
+                                if nested_match:
+                                    nested_content = nested_match.group(1)
+                                    final_contents.append(nested_content)
+                                    nested_temp = nested_temp[nested_match.end():]
+                                else:
+                                    break
+                        else:
+                            final_contents.append(p_content)
+                    
+                    for p_content in final_contents:
+                        # 清理每个P标签的内容
+                        clean_p = self._clean_visible_content(p_content)
+                        if clean_p.strip():
+                            all_p_contents.append(clean_p.strip())
+                
+                # 对提取的内容进行最终清理
+                cleaned_contents = []
+                for p_content in all_p_contents:
+                    clean_p = self._clean_visible_content(p_content)
+                    if clean_p.strip():
+                        cleaned_contents.append(clean_p.strip())
+                
+                all_p_contents = cleaned_contents
+                
+                # 合并所有P标签内容
+                raw_visible = '\n\n'.join(all_p_contents)
+                logger.info(f"提取到{len(all_p_contents)}个P标签内容，总长度: {len(raw_visible)}")
+                
+                # 进一步清理合并后的内容
+                visible_content = self._clean_visible_content(raw_visible)
+                logger.info(f"清理后可见内容长度: {len(visible_content)}")
+            else:
+                # 备用方案：提取第一个P标签
+                p_match = re.search(r'<p[^>]*>(.*?)</p>', content, re.DOTALL | re.IGNORECASE)
+                if p_match:
+                    raw_visible = p_match.group(1)
+                    visible_content = self._clean_visible_content(raw_visible)
+                    logger.info(f"备用方案提取P标签内容，长度: {len(visible_content)}")
+            
+            # 2. 提取隐藏内容
+            hidden_content = ""
+            hidden_patterns = [
+                r'<span[^>]*id="xiaoshuo_str"[^>]*style="display:none;"[^>]*>(.*?)</span>',
+                r'<span[^>]*id="xiaoshuo_str"[^>]*style="display:none"[^>]*>(.*?)</span>',
+                r'<span[^>]*id="xiaoshuo_str"[^>]*>(.*?)</span>',
+            ]
+            
+            for pattern in hidden_patterns:
+                hidden_match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+                if hidden_match:
+                    raw_hidden = hidden_match.group(1)
+                    logger.info(f"提取到原始隐藏内容，长度: {len(raw_hidden)}")
+                    
+                    # 清理隐藏内容
+                    hidden_content = self._clean_hidden_content(raw_hidden)
+                    logger.info(f"清理后隐藏内容长度: {len(hidden_content)}")
+                    break
+            
+            # 3. 智能合并内容
+            if visible_content and hidden_content:
+                merged_content = self._merge_visible_and_hidden(visible_content, hidden_content)
+                logger.info(f"合并内容总长度: {len(merged_content)}")
+                return merged_content
+            elif visible_content:
+                logger.info("只有可见内容，返回可见内容")
+                return visible_content
+            elif hidden_content:
+                logger.info("只有隐藏内容，返回隐藏内容")
+                return hidden_content
+            else:
+                logger.warning("未找到有效内容，尝试备用方案")
+                return self._extract_content_fallback(content)
+                
+        except Exception as e:
+            logger.error(f"P标签分割型内容提取失败: {e}")
+            return self._extract_content_fallback(content)
 
     def _extract_sewu3_content(self, content: str) -> str:
         """
@@ -712,13 +1381,13 @@ class CmsT7Parser(BaseParser):
             提取的内容
         """
         try:
-            # 检查是否是8个有问题的网站，如果是则使用通用内容提取方法
-            if hasattr(self, 'novel_site_name') and self.novel_site_name:
-                problematic_sites = ['sewu3.xyz', 'xhxs2.xyz', 'luseshuba2.xyz', 'th5.xyz',
-                                   'lrwx.xyz', 'meiseshuba2.xyz', 'sw2.xyz', 'scxs2.xyz']
-                logger.info(f"novel_site_name: {self.novel_site_name}")
+            # 检查是否是9个有问题的网站，使用base_url来判断
+            problematic_sites = ['sewu3.xyz', 'xhxs2.xyz', 'luseshuba2.xyz', 'th5.xyz',
+                               'lrwx.xyz', 'meiseshuba2.xyz', 'sw2.xyz', 'scxs2.xyz', 'sdxs.xyz']
+            
+            if self.base_url:
                 for site in problematic_sites:
-                    if site in self.novel_site_name:
+                    if site in self.base_url:
                         logger.info(f"检测到{site}网站，使用通用内容提取方法")
                         return self._extract_content_universal(content)
             
@@ -868,9 +1537,7 @@ class CmsT7Parser(BaseParser):
         """
         # 开头常见模式
         start_patterns = [
-            r'^[一-龯].*?(?:我是|我叫|今年|刚刚|记得|小时候|一天|从前)',
-            r'^[一-龯].*?[一-九][0-9]?岁',
-            r'^[一-龯].*?(?:小学|中学|大学|高中)',
+            r'^[一-龯].*?(?:发布于|20|本帖|我)',
             r'^[一-龯].*?字数[：:]\s*\d+字',  # 带字数信息的通常是开头
         ]
         
