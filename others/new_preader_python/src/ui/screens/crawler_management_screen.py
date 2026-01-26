@@ -237,33 +237,7 @@ class CrawlerManagementScreen(Screen[None]):
         self.selected_browser = "chrome"  # 默认选择Chrome
         self.browser_options = ["chrome", "safari", "brave", "firefox"]
         self._browser_config_file = os.path.expanduser("~/.newreader/browser_config.json")  # 浏览器配置文件路径
-
-    def _load_browser_config(self) -> None:
-        """加载浏览器配置"""
-        try:
-            if os.path.exists(self._browser_config_file):
-                with open(self._browser_config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                    saved_browser = config.get('selected_browser')
-                    if saved_browser and saved_browser in self.browser_options:
-                        self.selected_browser = saved_browser
-                        logger.info(f"从配置加载浏览器: {saved_browser}")
-        except Exception as e:
-            logger.warning(f"加载浏览器配置失败: {e}")
-
-    def _save_browser_config(self) -> None:
-        """保存浏览器配置"""
-        try:
-            os.makedirs(os.path.dirname(self._browser_config_file), exist_ok=True)
-            config = {
-                'selected_browser': self.selected_browser
-            }
-            with open(self._browser_config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
-            logger.info(f"保存浏览器配置: {self.selected_browser}")
-        except Exception as e:
-            logger.warning(f"保存浏览器配置失败: {e}")
-
+        
         # 浏览器标签页监听器（AppleScript模式）
         self.browser_monitor: Optional[BrowserTabMonitor] = None
         self.browser_monitor_active = False  # 监听器状态
@@ -271,6 +245,59 @@ class CrawlerManagementScreen(Screen[None]):
         # 注册回调函数
         self.crawler_manager.register_status_callback(self._on_crawl_status_change)
         self.crawler_manager.register_notification_callback(self._on_crawl_success_notify)
+
+    def _load_browser_config(self) -> None:
+        """加载浏览器配置"""
+        try:
+            # 从设置中读取默认浏览器
+            try:
+                from src.config.settings import get_config_value
+                default_browser = get_config_value("browser.default_browser", "chrome")
+                if default_browser in self.browser_options:
+                    self.selected_browser = default_browser
+                    logger.info(f"从设置加载默认浏览器: {default_browser}")
+                else:
+                    logger.warning(f"设置的浏览器 {default_browser} 不在支持列表中，使用默认Chrome")
+                    self.selected_browser = "chrome"
+            except Exception as e:
+                logger.error(f"从设置读取浏览器配置失败: {e}")
+                self.selected_browser = "chrome"
+                
+            # 注释掉旧配置文件的读取逻辑，使用新的设置系统
+            # if os.path.exists(self._browser_config_file):
+            #     try:
+            #         with open(self._browser_config_file, 'r', encoding='utf-8') as f:
+            #             config = json.load(f)
+            #             saved_browser = config.get('selected_browser')
+            #             if saved_browser and saved_browser in self.browser_options:
+            #                 self.selected_browser = saved_browser
+            #                 logger.info(f"从旧配置文件加载浏览器: {saved_browser}")
+            #     except Exception as e:
+            #         logger.error(f"读取旧浏览器配置失败: {e}")
+        except Exception as e:
+            logger.error(f"加载浏览器配置失败: {e}")
+
+    def _save_browser_config(self) -> None:
+        """保存浏览器配置"""
+        try:
+            # 保存到设置中
+            try:
+                from src.config.settings import set_config_value
+                set_config_value("browser.default_browser", self.selected_browser)
+                logger.info(f"保存浏览器配置到设置: {self.selected_browser}")
+            except Exception as e:
+                logger.error(f"保存浏览器配置到设置失败: {e}")
+                
+            # 同时保存到旧配置文件（向后兼容）
+            os.makedirs(os.path.dirname(self._browser_config_file), exist_ok=True)
+            config = {
+                'selected_browser': self.selected_browser
+            }
+            with open(self._browser_config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            logger.info(f"保存浏览器配置到文件: {self.selected_browser}")
+        except Exception as e:
+            logger.error(f"保存浏览器配置失败: {e}")
 
     def _get_rating_display(self, rating: int) -> str:
         """
@@ -1732,14 +1759,25 @@ class CrawlerManagementScreen(Screen[None]):
     def _open_browser(self) -> None:
         """在浏览器中打开网站"""
         try:
-            import platform
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                os.system(f'open -a "Google Chrome" "{self.novel_site['url']}"')
-            else:
+            # 使用BrowserManager打开URL
+            try:
+                from src.utils.browser_manager import BrowserManager
+                
+                success = BrowserManager.open_url(self.novel_site['url'])
+                if success:
+                    browser_name = BrowserManager.get_default_browser()
+                    self._update_status(get_global_i18n().t('crawler.browser_opened_with', browser=browser_name), "information")
+                else:
+                    # 如果BrowserManager失败，使用默认浏览器
+                    import webbrowser
+                    webbrowser.open(self.novel_site['url'])
+                    self._update_status(get_global_i18n().t('crawler.browser_opened'))
+            except Exception as e:
+                # 如果BrowserManager失败，回退到默认浏览器
                 import webbrowser
                 webbrowser.open(self.novel_site['url'])
-            self._update_status(get_global_i18n().t('crawler.browser_opened'))
+                self._update_status(get_global_i18n().t('crawler.browser_opened'))
+                logger.warning(f"BrowserManager失败，使用默认浏览器: {e}")
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.open_browser_failed')}: {str(e)}", "error")
     

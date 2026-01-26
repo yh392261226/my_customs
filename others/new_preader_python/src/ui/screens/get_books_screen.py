@@ -790,56 +790,25 @@ class GetBooksScreen(Screen[None]):
             if not url.startswith(('http://', 'https://')):
                 url = 'https://' + url
             
-            # 根据操作系统使用不同的命令打开Google Chrome
-            system = platform.system()
-            if system == "Darwin":  # macOS
-                # 尝试使用Google Chrome
-                try:
-                    subprocess.run(['open', '-a', 'Google Chrome', url], check=True)
-                    self.notify(get_global_i18n().t('get_books.using_chrome_browser', name=site_name), severity="success")
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    # 如果Chrome不可用，使用默认浏览器
-                    os.system(f'open "{url}"')
+            # 使用BrowserManager打开URL
+            try:
+                from src.utils.browser_manager import BrowserManager
+                
+                success = BrowserManager.open_url(url)
+                if success:
+                    browser_name = BrowserManager.get_default_browser()
+                    self.notify(f"正在使用{browser_name}浏览器打开网站: {site_name}", severity="success")
+                else:
+                    # 如果BrowserManager失败，使用默认浏览器
+                    import webbrowser
+                    webbrowser.open(url)
                     self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
-            elif system == "Windows":
-                # 尝试使用Google Chrome
-                chrome_paths = [
-                    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-                    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe')
-                ]
-                chrome_found = False
-                for chrome_path in chrome_paths:
-                    if os.path.exists(chrome_path):
-                        try:
-                            subprocess.run([chrome_path, url], check=True)
-                            self.notify(get_global_i18n().t('get_books.using_chrome_browser', name=site_name), severity="success")
-                            chrome_found = True
-                            break
-                        except subprocess.CalledProcessError:
-                            pass
-                if not chrome_found:
-                    # 如果Chrome不可用，使用默认浏览器
-                    os.system(f'start "" "{url}"')
-                    self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
-            elif system == "Linux":
-                # 尝试使用Google Chrome
-                try:
-                    subprocess.run(['google-chrome', url], check=True)
-                    self.notify(get_global_i18n().t('get_books.using_chrome_browser', name=site_name), severity="success")
-                except (subprocess.CalledProcessError, FileNotFoundError):
-                    try:
-                        # 尝试使用chromium
-                        subprocess.run(['chromium-browser', url], check=True)
-                        self.notify(f"正在使用Chromium打开网站: {site_name}", severity="success")
-                    except (subprocess.CalledProcessError, FileNotFoundError):
-                        # 如果Chrome/Chromium不可用，使用默认浏览器
-                        os.system(f'xdg-open "{url}"')
-                        self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
-            else:
-                # 其他系统，使用默认方式
-                os.system(f'open "{url}"')
+            except Exception as e:
+                # 如果BrowserManager失败，回退到默认浏览器
+                import webbrowser
+                webbrowser.open(url)
                 self.notify(get_global_i18n().t('get_books.using_default_browser', name=site_name), severity="success")
+                logger.warning(f"BrowserManager失败，使用默认浏览器: {e}")
                 
         except Exception as e:
             logger.error(f"打开网址失败: {e}")

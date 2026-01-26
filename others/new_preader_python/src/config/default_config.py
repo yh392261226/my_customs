@@ -91,6 +91,14 @@ DEFAULT_CONFIG = {
         "retry_count": 3
     },
     
+    # 浏览器设置
+    "browser": {
+        "default_browser": "chrome",  # 默认浏览器: chrome, safari, brave
+        "chrome_path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "safari_path": "/Applications/Safari.app/Contents/MacOS/Safari",
+        "brave_path": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+    },
+    
     # 快捷键设置
     "keybindings": {
         # 阅读操作

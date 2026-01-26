@@ -6300,32 +6300,23 @@ class BrowserReader:
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html)
 
-            # 使用 Chrome 浏览器打开
-            chrome_path = None
-            if platform.system() == 'Darwin':  # macOS
-                chrome_path = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-            elif platform.system() == 'Windows':
-                chrome_paths = [
-                    r'C:\Program Files\Google\Chrome\Application\chrome.exe',
-                    r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
-                    os.path.expandvars(r'%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe')
-                ]
-                for path in chrome_paths:
-                    if os.path.exists(path):
-                        chrome_path = path
-                        break
-            elif platform.system() == 'Linux':
-                chrome_path = '/usr/bin/google-chrome'
-
-            if chrome_path and os.path.exists(chrome_path):
-                # 使用 Chrome 打开
-                webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
-                webbrowser.get('chrome').open(f'file://{html_path}')
-                logger.info(f"使用 Chrome 浏览器打开书籍: {html_path}")
-            else:
-                # 回退到默认浏览器
+            # 使用BrowserManager打开浏览器
+            try:
+                from src.utils.browser_manager import BrowserManager
+                
+                # 使用默认浏览器打开HTML文件
+                success = BrowserManager.open_file(html_path)
+                if success:
+                    browser_name = BrowserManager.get_default_browser()
+                    logger.info(f"使用 {browser_name} 浏览器打开书籍: {html_path}")
+                else:
+                    # 回退到默认浏览器
+                    webbrowser.open(f'file://{html_path}')
+                    logger.warning(f"使用系统默认浏览器打开: {html_path}")
+            except Exception as e:
+                # 如果BrowserManager失败，回退到默认浏览器
                 webbrowser.open(f'file://{html_path}')
-                logger.warning(f"未找到 Chrome 浏览器,使用默认浏览器打开: {html_path}")
+                logger.warning(f"BrowserManager失败，使用系统默认浏览器打开: {e}")
 
             return True, f"已在浏览器中打开：{title}"
 

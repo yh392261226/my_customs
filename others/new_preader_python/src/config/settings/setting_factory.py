@@ -545,6 +545,56 @@ def create_advanced_settings() -> SettingSection:
     
     return section
 
+def create_browser_settings() -> SettingSection:
+    """创建浏览器相关设置项"""
+    section = SettingSection(
+        name="browser",
+        display_name="Browser",  # 将在UI中通过国际化显示
+        description="Configure default browser and browser paths",  # 将在UI中通过国际化显示
+        icon="🌐",
+        order=5
+    )
+    
+    # 默认浏览器
+    section.add_setting(SelectSetting(
+        key="browser.default_browser",
+        default_value="chrome",
+        display_name="Default Browser",  # 将在UI中通过国际化显示
+        description="Select the default browser for opening web pages and browser reading",  # 将在UI中通过国际化显示
+        options=["chrome", "safari", "brave"],
+        option_labels=["Chrome", "Safari", "Brave"],  # 这些是浏览器名称，不需要国际化
+        category="browser"
+    ))
+    
+    # Chrome路径
+    section.add_setting(StringSetting(
+        key="browser.chrome_path",
+        default_value="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        display_name="Chrome Path",  # 将在UI中通过国际化显示
+        description="Chrome browser executable file path",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
+    # Safari路径
+    section.add_setting(StringSetting(
+        key="browser.safari_path",
+        default_value="/Applications/Safari.app/Contents/MacOS/Safari",
+        display_name="Safari Path",  # 将在UI中通过国际化显示
+        description="Safari browser executable file path",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
+    # Brave路径
+    section.add_setting(StringSetting(
+        key="browser.brave_path",
+        default_value="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        display_name="Brave Path",  # 将在UI中通过国际化显示
+        description="Brave browser executable file path",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
+    return section
+
 def create_path_settings() -> SettingSection:
     """创建路径相关设置项"""
     section = SettingSection(
@@ -552,7 +602,7 @@ def create_path_settings() -> SettingSection:
         display_name="路径设置",
         description="配置文件和目录路径设置",
         icon="📁",
-        order=4
+        order=6
     )
     
     # 配置目录
@@ -597,6 +647,7 @@ def create_all_settings() -> List[SettingSection]:
         create_audio_settings(),
         create_translation_settings(),
         create_advanced_settings(),
+        create_browser_settings(),
         create_path_settings()
     ]
 

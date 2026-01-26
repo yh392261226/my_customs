@@ -130,6 +130,10 @@ class SettingsScreen(Screen[Any]):
                 with TabPane(get_global_i18n().t("settings.database_management"), id="database-tab"):
                     yield from self._compose_database_settings()
                 
+                # 浏览器设置标签页
+                with TabPane(get_global_i18n().t("settings.browser"), id="browser-tab"):
+                    yield from self._compose_browser_settings()
+                
                 # 高级设置标签页
                 with TabPane(get_global_i18n().t("settings.advanced"), id="advanced-tab"):
                     yield from self._compose_advanced_settings()
@@ -515,6 +519,50 @@ class SettingsScreen(Screen[Any]):
                         placeholder=microsoft_region.default_value,
                         id="microsoft-region-input"
                     )
+
+    def _compose_browser_settings(self) -> ComposeResult:
+        """组合浏览器设置"""
+        with ScrollableContainer(id="browser-settings"):
+            # 默认浏览器
+            yield Label(get_global_i18n().t("settings.default_browser"), classes="setting-label")
+            browser_setting = self.setting_registry.get_setting("browser.default_browser")
+            if browser_setting and isinstance(browser_setting, SelectSetting):
+                options_text = options_by_locale(browser_setting.options, browser_setting.option_labels)
+                yield Select(
+                    options_text,
+                    value=browser_setting.value,
+                    id="browser-default-select"
+                )
+            
+            # Chrome路径
+            yield Label(get_global_i18n().t("settings.chrome_path"), classes="setting-label")
+            chrome_setting = self.setting_registry.get_setting("browser.chrome_path")
+            if chrome_setting:
+                yield Input(
+                    value=chrome_setting.value,
+                    id="browser-chrome-input",
+                    placeholder=chrome_setting.default_value
+                )
+            
+            # Safari路径
+            yield Label(get_global_i18n().t("settings.safari_path"), classes="setting-label")
+            safari_setting = self.setting_registry.get_setting("browser.safari_path")
+            if safari_setting:
+                yield Input(
+                    value=safari_setting.value,
+                    id="browser-safari-input",
+                    placeholder=safari_setting.default_value
+                )
+            
+            # Brave路径
+            yield Label(get_global_i18n().t("settings.brave_path"), classes="setting-label")
+            brave_setting = self.setting_registry.get_setting("browser.brave_path")
+            if brave_setting:
+                yield Input(
+                    value=brave_setting.value,
+                    id="browser-brave-input",
+                    placeholder=brave_setting.default_value
+                )
 
     def _compose_advanced_settings(self) -> ComposeResult:
         """组合高级设置"""
@@ -1172,6 +1220,20 @@ class SettingsScreen(Screen[Any]):
         
         microsoft_region = self.query_one("#microsoft-region-input", Input)
         self.setting_registry.set_value("translation.translation_services.microsoft.region", microsoft_region.value)
+        
+        # 浏览器设置
+        browser_select = self.query_one("#browser-default-select", Select)
+        if browser_select.value is not None:
+            self.setting_registry.set_value("browser.default_browser", browser_select.value)
+        
+        chrome_input = self.query_one("#browser-chrome-input", Input)
+        self.setting_registry.set_value("browser.chrome_path", chrome_input.value)
+        
+        safari_input = self.query_one("#browser-safari-input", Input)
+        self.setting_registry.set_value("browser.safari_path", safari_input.value)
+        
+        brave_input = self.query_one("#browser-brave-input", Input)
+        self.setting_registry.set_value("browser.brave_path", brave_input.value)
         
         # 高级设置
         lang_select = self.query_one("#advanced-language-select", Select)
