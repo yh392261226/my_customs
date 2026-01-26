@@ -3,7 +3,7 @@
 """
 
 import os
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List, Dict, Tuple, Optional, Set, Any
 from dataclasses import dataclass
 from enum import Enum
 
@@ -258,7 +258,7 @@ class BookDuplicateDetector:
             return None
     
     @staticmethod
-    def compare_books_content(book1: Book, book2: Book) -> Dict[str, any]:
+    def compare_books_content(book1: Book, book2: Book) -> Dict[str, Any]:
         """
         详细比较两本书籍的内容
         
@@ -267,7 +267,7 @@ class BookDuplicateDetector:
             book2: 书籍2
             
         Returns:
-            Dict[str, any]: 比较结果
+            Dict[str, Any]: 比较结果
         """
         result = {
             "book1_info": {

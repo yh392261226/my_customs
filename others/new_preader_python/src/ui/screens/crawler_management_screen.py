@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator
+from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select
 from textual.widgets import DataTable
 from textual.app import ComposeResult
 from textual import events, on
@@ -22,7 +22,9 @@ from src.core.database_manager import DatabaseManager
 from src.utils.logger import get_logger
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
-from src.utils.chrome_tab_monitor import ChromeTabMonitor
+from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
+import json
+import os
 
 logger = get_logger(__name__)
 
@@ -230,11 +232,41 @@ class CrawlerManagementScreen(Screen[None]):
         self._sorted_history: List[str] = []  # 排序后的历史记录ID顺序
         self._sort_column: Optional[str] = None  # 当前排序的列
         self._sort_reverse: bool = True  # 排序方向，True表示倒序
-        
-# Chrome标签页监听器（AppleScript模式）
-        from src.utils.chrome_tab_monitor import ChromeTabMonitor
-        self.chrome_monitor: Optional[ChromeTabMonitor] = None
-        self.chrome_monitor_active = False  # 监听器状态
+
+        # 浏览器选择相关属性
+        self.selected_browser = "chrome"  # 默认选择Chrome
+        self.browser_options = ["chrome", "safari", "brave", "firefox"]
+        self._browser_config_file = os.path.expanduser("~/.newreader/browser_config.json")  # 浏览器配置文件路径
+
+    def _load_browser_config(self) -> None:
+        """加载浏览器配置"""
+        try:
+            if os.path.exists(self._browser_config_file):
+                with open(self._browser_config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    saved_browser = config.get('selected_browser')
+                    if saved_browser and saved_browser in self.browser_options:
+                        self.selected_browser = saved_browser
+                        logger.info(f"从配置加载浏览器: {saved_browser}")
+        except Exception as e:
+            logger.warning(f"加载浏览器配置失败: {e}")
+
+    def _save_browser_config(self) -> None:
+        """保存浏览器配置"""
+        try:
+            os.makedirs(os.path.dirname(self._browser_config_file), exist_ok=True)
+            config = {
+                'selected_browser': self.selected_browser
+            }
+            with open(self._browser_config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            logger.info(f"保存浏览器配置: {self.selected_browser}")
+        except Exception as e:
+            logger.warning(f"保存浏览器配置失败: {e}")
+
+        # 浏览器标签页监听器（AppleScript模式）
+        self.browser_monitor: Optional[BrowserTabMonitor] = None
+        self.browser_monitor_active = False  # 监听器状态
         
         # 注册回调函数
         self.crawler_manager.register_status_callback(self._on_crawl_status_change)
@@ -338,6 +370,18 @@ class CrawlerManagementScreen(Screen[None]):
                             Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
                             Button(get_global_i18n().t('crawler.copy_ids'), id="copy-ids-btn"),
                             Button(get_global_i18n().t('crawler.toggle_monitor'), id="toggle-monitor-btn", variant="success"),
+                            # Label(get_global_i18n().t('crawler.browser_label'), id="browser-label", classes="browser-label"),
+                            Select(
+                                id="browser-select",
+                                options=[
+                                    (get_global_i18n().t('crawler.browser_label'), "chrome"),
+                                    ("Chrome", "chrome"),
+                                    ("Safari", "safari"),
+                                    ("Brave", "brave")
+                                ],
+                                value="chrome",
+                                classes="browser-select"
+                            ),
                             id="novel-id-container", classes="form-row"
                         ),
                         id="novel-id-section"
@@ -428,13 +472,24 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 初始化加载动画
         self._initialize_loading_animation()
-        
-        # 初始化Chrome监听器
-        self._init_chrome_monitor()
-        
+
+        # 加载浏览器配置 - 必须在初始化监听器之前
+        self._load_browser_config()
+
+        # 更新浏览器选择下拉框的值为加载的配置
+        try:
+            browser_select = self.query_one("#browser-select", Select)
+            browser_select.value = self.selected_browser
+            logger.info(f"浏览器选择下拉框已更新为: {self.selected_browser}")
+        except Exception as e:
+            logger.warning(f"更新浏览器选择下拉框失败: {e}")
+
+        # 初始化Chrome监听器 - 使用加载后的配置
+        self._init_browser_monitor()
+
         # 加载爬取历史
         self._load_crawl_history()
-        
+
         # 设置焦点到表格，确保光标位置能够正确恢复
         try:
             table = self.query_one("#crawl-history-table", DataTable)
@@ -3444,7 +3499,7 @@ class CrawlerManagementScreen(Screen[None]):
         elif button_id == "merge-btn":
             self._merge_selected()
         elif button_id == "toggle-monitor-btn":
-            self._toggle_chrome_monitor()
+            self._toggle_browser_monitor()
     
     def _batch_delete_files(self) -> None:
         """批量删除选中的文件"""
@@ -3715,26 +3770,57 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.clear_invalid_failed', error=str(e)), "error")
 
     # Chrome标签页监听器相关方法
-    def _init_chrome_monitor(self) -> None:
-        """初始化Chrome标签页监听器"""
+    def _init_browser_monitor(self) -> None:
+        """初始化浏览器标签页监听器"""
         try:
-            # 初始化Chrome监听器（AppleScript模式） - 只监听当前网站
+            # 初始化浏览器监听器（AppleScript模式） - 只监听当前网站
+            # 根据选择确定浏览器类型
+            if self.selected_browser == "safari":
+                browser_type = BrowserType.SAFARI
+            elif self.selected_browser == "brave":
+                browser_type = BrowserType.BRAVE
+            elif self.selected_browser == "firefox":
+                browser_type = BrowserType.FIREFOX
+            else:  # chrome
+                browser_type = BrowserType.CHROME
+
             try:
-                self.chrome_monitor = ChromeTabMonitor(
+                self.browser_monitor = BrowserTabMonitor(
                     novel_sites=[self.novel_site],  # 只传入当前网站，而不是所有网站
-                    on_url_detected=self._on_chrome_url_detected,
-                    headless=False  # AppleScript模式不需要headless
+                    on_url_detected=self._on_browser_url_detected,
+                    headless=False,  # AppleScript模式不需要headless
+                    browser_type=browser_type  # 传递浏览器类型
                 )
-                logger.info("Chrome标签页监听器初始化成功")
+                logger.info(f"初始化监听器: selected_browser={self.selected_browser}, browser_type={browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}")
+                logger.info(f"{self.selected_browser}浏览器标签页监听器初始化成功")
             except Exception as e:
-                logger.error(f"Chrome监听器初始化失败: {e}")
-                self.chrome_monitor = None
+                logger.error(f"{self.selected_browser}监听器初始化失败: {e}")
+                self.browser_monitor = None
 
         except Exception as e:
-            logger.error(f"初始化Chrome监听器失败: {e}")
-            self._update_status(f"初始化Chrome监听器失败: {str(e)}", "error")
+            logger.error(f"初始化浏览器监听器失败: {e}")
 
-    def _on_chrome_url_detected(self, result: Dict[str, Any]) -> None:
+    def _reinit_monitor_with_browser(self) -> None:
+        """使用新浏览器类型重新初始化监听器"""
+        try:
+            # 停止并清理旧监听器
+            if self.browser_monitor and hasattr(self.browser_monitor, 'stop_monitoring'):
+                self.browser_monitor.stop_monitoring()
+
+            # 将旧监听器设置为None
+            self.browser_monitor = None
+
+            # 重新初始化监听器
+            self._init_browser_monitor()
+            self.browser_monitor_active = False
+
+            logger.info(f"监听器已重新初始化,使用浏览器类型: {self.selected_browser}")
+
+        except Exception as e:
+            logger.error(f"重新初始化监听器失败: {e}")
+            self._update_status(f"初始化浏览器监听器失败: {str(e)}", "error")
+
+    def _on_browser_url_detected(self, result: Dict[str, Any]) -> None:
         """
         Chrome监听器检测到URL时的回调函数
         
@@ -3752,16 +3838,16 @@ class CrawlerManagementScreen(Screen[None]):
             if self._is_novel_already_crawled(site.get('id'), novel_id):
                 logger.info(f"小说 {novel_id} 已爬取过，跳过")
                 # 关闭对应的标签页
-                if self.chrome_monitor:
-                    self.chrome_monitor.close_tab(url)
+                if self.browser_monitor:
+                    self.browser_monitor.close_tab(url)
                 return
             
             # 将小说ID添加到输入框
             self._add_novel_id_to_input(novel_id)
             
             # 关闭对应的标签页
-            if self.chrome_monitor:
-                self.chrome_monitor.close_tab(url)
+            if self.browser_monitor:
+                self.browser_monitor.close_tab(url)
             
             # 更新状态
             novel_title = site.get('name', '未知网站')
@@ -3823,27 +3909,27 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"添加小说ID到输入框失败: {e}")
 
-    def _toggle_chrome_monitor(self) -> None:
+    def _toggle_browser_monitor(self) -> None:
             """切换监听状态"""
             try:
-                if self.chrome_monitor_active:
-                    self._stop_chrome_monitor()
+                if self.browser_monitor_active:
+                    self._stop_browser_monitor()
                 else:
-                    self._start_chrome_monitor()
+                    self._start_browser_monitor()
             except Exception as e:
                 logger.error(f"切换监听状态失败: {e}")
                 self._update_status(f"切换监听状态失败: {str(e)}", "error")
 
-    def _start_chrome_monitor(self) -> None:
+    def _start_browser_monitor(self) -> None:
         """开始监听"""
         try:
-            if not self.chrome_monitor:
+            if not self.browser_monitor:
                 self._update_status("监听器未初始化", "error")
                 return
             
-            success = self.chrome_monitor.start_monitoring()
+            success = self.browser_monitor.start_monitoring()
             if success:
-                self.chrome_monitor_active = True
+                self.browser_monitor_active = True
                 self._update_status(get_global_i18n().t('crawler.monitor_started'), "success")
                 self._update_monitor_button_state()
             else:
@@ -3853,16 +3939,16 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"启动监听失败: {e}")
             self._update_status(f"启动监听失败: {str(e)}", "error")
 
-    def _stop_chrome_monitor(self) -> None:
+    def _stop_browser_monitor(self) -> None:
         """停止监听"""
         try:
             # 停止Chrome监听
-            if self.chrome_monitor:
-                success = self.chrome_monitor.stop_monitoring()
+            if self.browser_monitor:
+                success = self.browser_monitor.stop_monitoring()
                 if not success:
                     logger.warning("停止监听可能未完全成功")
             
-            self.chrome_monitor_active = False
+            self.browser_monitor_active = False
             self._update_status(get_global_i18n().t('crawler.monitor_stopped'), "information")
             self._update_monitor_button_state()
             
@@ -3873,7 +3959,7 @@ class CrawlerManagementScreen(Screen[None]):
         """更新监听按钮状态"""
         try:
             toggle_btn = self.query_one("#toggle-monitor-btn", Button)
-            if self.chrome_monitor_active:
+            if self.browser_monitor_active:
                 toggle_btn.label = get_global_i18n().t("crawler.stop_monitor")
                 toggle_btn.variant = "error"
             else:
@@ -3882,14 +3968,52 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception:
             pass
 
+    @on(Select.Changed)
+    def on_select_changed(self, event: Select.Changed) -> None:
+        """
+        下拉选择框值变化时的回调
+
+        Args:
+            event: 下拉选择框变化事件
+        """
+        if event.select.id == "browser-select" and event.value is not None:
+            # 更新当前选择的浏览器
+            self.selected_browser = event.value
+            browser_name = {
+                "chrome": "Chrome",
+                "safari": "Safari",
+                "brave": "Brave"
+            }.get(self.selected_browser, "Chrome")
+            logger.info(f"浏览器选择已更改为: {browser_name}")
+            self._update_status(get_global_i18n().t("crawler.browser_changed", browser=browser_name), "information")
+            # 保存浏览器配置
+            self._save_browser_config()
+
+            # 检查当前监听器的浏览器类型是否与新选择一致
+            logger.info(f"浏览器切换检查: self.selected_browser={self.selected_browser}, self.browser_monitor_active={self.browser_monitor_active}")
+
+            # 无论监听器是否正在运行,都需要重新初始化以确保使用正确的浏览器类型
+            if self.browser_monitor:
+                logger.info("检测到监听器对象存在,准备重新初始化...")
+                # 如果监听器正在运行,先停止
+                if self.browser_monitor_active:
+                    self._stop_browser_monitor()
+                # 重新初始化监听器以使用新浏览器类型
+                self._reinit_monitor_with_browser()
+            else:
+                logger.info("监听器对象不存在,创建新监听器...")
+                # 直接初始化监听器
+                self._init_browser_monitor()
+
+
 
     def on_unmount(self) -> None:
         """屏幕卸载时的回调"""
         # 停止Chrome监听器
-        if self.chrome_monitor and self.chrome_monitor_active:
+        if self.browser_monitor and self.browser_monitor_active:
             try:
-                self.chrome_monitor.stop_monitoring()
-                self.chrome_monitor_active = False
+                self.browser_monitor.stop_monitoring()
+                self.browser_monitor_active = False
                 logger.info("页面卸载，Chrome监听器已停止")
             except Exception as e:
                 logger.error(f"停止Chrome监听器失败: {e}")

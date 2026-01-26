@@ -155,6 +155,10 @@ Footer {
     width: auto;
 }
 
+#browser-select {
+    width: 17;
+}
+
 #crawl-history-section {
     height: auto;
     min-height: 10;
