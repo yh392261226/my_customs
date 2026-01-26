@@ -23,7 +23,6 @@ from src.utils.logger import get_logger
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
 from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
-import json
 import os
 
 logger = get_logger(__name__)
@@ -236,7 +235,6 @@ class CrawlerManagementScreen(Screen[None]):
         # 浏览器选择相关属性
         self.selected_browser = "chrome"  # 默认选择Chrome
         self.browser_options = ["chrome", "safari", "brave", "firefox"]
-        self._browser_config_file = os.path.expanduser("~/.newreader/browser_config.json")  # 浏览器配置文件路径
         
         # 浏览器标签页监听器（AppleScript模式）
         self.browser_monitor: Optional[BrowserTabMonitor] = None
@@ -249,53 +247,32 @@ class CrawlerManagementScreen(Screen[None]):
     def _load_browser_config(self) -> None:
         """加载浏览器配置"""
         try:
-            # 从设置中读取默认浏览器
+            # 从配置管理器中读取默认浏览器
             try:
                 from src.config.settings import get_config_value
                 default_browser = get_config_value("browser.default_browser", "chrome")
                 if default_browser in self.browser_options:
                     self.selected_browser = default_browser
-                    logger.info(f"从设置加载默认浏览器: {default_browser}")
+                    logger.info(f"从配置管理器加载默认浏览器: {default_browser}")
                 else:
                     logger.warning(f"设置的浏览器 {default_browser} 不在支持列表中，使用默认Chrome")
                     self.selected_browser = "chrome"
             except Exception as e:
-                logger.error(f"从设置读取浏览器配置失败: {e}")
+                logger.error(f"从配置管理器读取浏览器配置失败: {e}")
                 self.selected_browser = "chrome"
-                
-            # 注释掉旧配置文件的读取逻辑，使用新的设置系统
-            # if os.path.exists(self._browser_config_file):
-            #     try:
-            #         with open(self._browser_config_file, 'r', encoding='utf-8') as f:
-            #             config = json.load(f)
-            #             saved_browser = config.get('selected_browser')
-            #             if saved_browser and saved_browser in self.browser_options:
-            #                 self.selected_browser = saved_browser
-            #                 logger.info(f"从旧配置文件加载浏览器: {saved_browser}")
-            #     except Exception as e:
-            #         logger.error(f"读取旧浏览器配置失败: {e}")
         except Exception as e:
             logger.error(f"加载浏览器配置失败: {e}")
 
     def _save_browser_config(self) -> None:
         """保存浏览器配置"""
         try:
-            # 保存到设置中
+            # 保存到配置管理器中
             try:
                 from src.config.settings import set_config_value
                 set_config_value("browser.default_browser", self.selected_browser)
-                logger.info(f"保存浏览器配置到设置: {self.selected_browser}")
+                logger.info(f"保存浏览器配置到配置管理器: {self.selected_browser}")
             except Exception as e:
-                logger.error(f"保存浏览器配置到设置失败: {e}")
-                
-            # 同时保存到旧配置文件（向后兼容）
-            os.makedirs(os.path.dirname(self._browser_config_file), exist_ok=True)
-            config = {
-                'selected_browser': self.selected_browser
-            }
-            with open(self._browser_config_file, 'w', encoding='utf-8') as f:
-                json.dump(config, f, ensure_ascii=False, indent=2)
-            logger.info(f"保存浏览器配置到文件: {self.selected_browser}")
+                logger.error(f"保存浏览器配置到配置管理器失败: {e}")
         except Exception as e:
             logger.error(f"保存浏览器配置失败: {e}")
 
