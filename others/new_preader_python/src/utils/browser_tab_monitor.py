@@ -430,6 +430,16 @@ class BrowserTabMonitor:
                                             if prefix == "0":
                                                 return potential_novel_id
 
+            # 特殊处理aaread.cc网站
+            elif 'aaread.cc' in site_url:
+                # aaread.cc实际URL格式：/book/{novel_id}
+                pattern = rf"{re.escape(base_url)}/book/([^/?]+)"
+                match = re.search(pattern, url)
+                if match:
+                    novel_id = unquote(match.group(1))
+                    # 确保是纯数字ID
+                    if novel_id.isdigit():
+                        return novel_id
 
             # 使用默认模式：/b/{novel_id}
             else:
@@ -437,7 +447,7 @@ class BrowserTabMonitor:
                 match = re.search(pattern, url)
                 if match:
                     return unquote(match.group(1))
-            
+
             return None
             
         except Exception as e:
