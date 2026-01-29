@@ -88,18 +88,19 @@ class BaseParser:
     
     def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
-        获取URL内容，支持四层反爬虫绕过策略
-        
+        获取URL内容，支持四层反爬虫绕过策略 + 网络检测
+
         策略层级：
         1. 普通请求 (requests)
         2. Cloudscraper 绕过
         3. Selenium 浏览器模拟
         4. Playwright 高级反爬虫处理
-        
+        5. 失败时检测网络并等待恢复
+
         Args:
             url: 目标URL
             max_retries: 最大重试次数
-            
+
         Returns:
             页面内容或None
         """
@@ -111,7 +112,7 @@ class BaseParser:
                     'http': proxy_url,
                     'https': proxy_url
                 }
-        
+
         for attempt in range(max_retries):
             try:
                 # 首先尝试普通请求 - 增加超时时间
@@ -119,17 +120,17 @@ class BaseParser:
                 if response.status_code == 200:
                     # 检查内容是否为反爬虫页面
                     content = response.text
-                    
+
                     # 检测 Cloudflare Turnstile 等高级反爬虫机制
                     if self._detect_advanced_anti_bot(content):
                         logger.warning(f"检测到高级反爬虫机制，尝试使用 Playwright: {url}")
                         return self._get_url_content_with_playwright(url, proxies)
-                    
+
                     # 优先使用子类指定的编码，如果没有则使用utf-8
                     encoding = getattr(self, 'encoding', 'utf-8')
                     response.encoding = encoding
                     return response.text
-                    
+
                 elif response.status_code == 404:
                     logger.warning(f"页面不存在: {url}")
                     return None
@@ -139,10 +140,18 @@ class BaseParser:
                     return self._get_url_content_with_cloudscraper(url, proxies)
                 else:
                     logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
-                    
+
             except requests.exceptions.RequestException as e:
                 logger.warning(f"第 {attempt + 1} 次请求失败: {url}, 错误: {e}")
-                
+
+                # 如果是网络连接错误，检测网络并等待恢复
+                if isinstance(e, (requests.exceptions.ConnectionError,
+                                  requests.exceptions.Timeout,
+                                  requests.exceptions.ConnectTimeout)):
+                    logger.warning(f"检测到网络连接问题，开始网络检测...")
+                    from src.utils.network_checker import NetworkChecker
+                    NetworkChecker.check_with_retry()
+
                 # 根据尝试次数选择不同的绕过策略
                 if attempt == 0:  # 第一次失败：尝试 cloudscraper
                     try:
@@ -177,10 +186,10 @@ class BaseParser:
                                 return response.text
                         except Exception as final_error:
                             logger.warning(f"最终请求失败: {final_error}")
-            
+
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
-        
+
         logger.error(f"所有反爬虫策略都失败: {url}")
         return None
     
