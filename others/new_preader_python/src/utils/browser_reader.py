@@ -220,6 +220,70 @@ class BrowserReader:
         Returns:
             HTML字符串
         """
+        # 页面加载完成后执行的全局初始化
+        global_init_code = """
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化主题
+            applyTheme(currentSettings);
+            
+            // 加载保存的进度
+            if (LOAD_PROGRESS_URL) {
+                loadProgress();
+            }
+            
+            // 检查后端状态
+            checkBackendStatus();
+            
+            // 启动自动保存进度
+            startAutoSaveProgress();
+            
+            // 初始化工具栏位置
+            updateToolbarTogglePosition();
+            
+            // 添加键盘快捷键监听
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+            
+            // 初始化缩略图导航
+            initMinimap();
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', handleWindowResize);
+            
+            // 监听滚动事件
+            window.addEventListener('scroll', handleScroll);
+            
+            // 初始化阅读统计
+            initReadingStats();
+            
+            // 延迟初始化拖放区域（即使面板未打开也预先初始化）
+            setTimeout(() => {
+                const dropZone = document.getElementById('dropZone');
+                if (dropZone) {
+                    console.log('找到拖放区域，开始初始化');
+                    console.log('拖放区域类名:', dropZone.className);
+                    console.log('拖放区域样式:', window.getComputedStyle(dropZone));
+                    initDropZone();
+                } else {
+                    console.log('未找到拖放区域');
+                }
+            }, 500);
+        });
+        """
+        """
+        创建浏览器阅读器HTML
+        
+        Args:
+            content: 书籍内容
+            title: 书籍标题
+            theme: 主题名称（light/dark/sepia）
+            custom_settings: 自定义设置，可覆盖主题设置
+            save_progress_url: 保存进度的API端点
+            load_progress_url: 加载进度的API端点
+            
+        Returns:
+            HTML字符串
+        """
         # 获取主题设置
         settings = BrowserReader.THEMES.get(theme, BrowserReader.THEMES["light"]).copy()
         
@@ -1139,6 +1203,70 @@ class BrowserReader:
         .add-btn:hover {{
             background: rgba(255, 255, 255, 0.9);
             color: #000;
+        }}
+
+        /* 拖放区域样式 */
+        .drop-zone {{
+            border: 2px dashed rgba(128, 128, 128, 0.3) !important;
+            border-radius: 8px !important;
+            padding: 10px 10px !important;
+            text-align: center !important;
+            background: rgba(128, 128, 128, 0.05) !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            position: relative !important;
+            min-height: 120px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            display: block !important;
+            margin: 10px 0 !important;
+        }}
+
+        .drop-zone:hover {{
+            border-color: rgba(100, 149, 237, 0.6);
+            background: rgba(100, 149, 237, 0.1);
+        }}
+
+        .drop-zone.dragover {{
+            border-color: rgba(100, 149, 237, 1);
+            background: rgba(100, 149, 237, 0.2);
+            transform: scale(1.02);
+        }}
+
+        .drop-zone-content {{
+            pointer-events: none !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }}
+
+        .drop-icon {{
+            font-size: 48px !important;
+            margin-bottom: 10px !important;
+            opacity: 0.6 !important;
+            display: block !important;
+        }}
+
+        .drop-hint {{
+            font-size: 12px !important;
+            color: rgba(128, 128, 128, 0.7) !important;
+            margin-top: 5px !important;
+            display: block !important;
+        }}
+
+        .drop-zone input[type="file"] {{
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            opacity: 0 !important;
+            cursor: pointer !important;
+            pointer-events: all !important;
+            z-index: 2 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
         }}
 
         /* 高亮样式 */
@@ -2668,8 +2796,15 @@ class BrowserReader:
             <button class="settings-close" onclick="toggleFileImport()">×</button>
             
             <div class="setting-item">
-                <label>选择文件：</label>
-                <input type="file" id="fileInput" accept=".txt,.html,.htm,.md" onchange="handleFileSelect(event)">
+                <label>拖放文件或选择文件：</label>
+                <div id="dropZone" class="drop-zone">
+                    <div class="drop-zone-content">
+                        <div class="drop-icon">📁</div>
+                        <p>将文件拖放到此处</p>
+                        <p class="drop-hint">或点击选择文件</p>
+                        <input type="file" id="fileInput" accept=".txt,.html,.htm,.md,.pdf,.epub,.mobi,.azw,.azw3" onchange="handleFileSelect(event)">
+                    </div>
+                </div>
             </div>
             
             <div class="setting-item">
@@ -6358,9 +6493,163 @@ class BrowserReader:
             const panel = document.getElementById('fileImportPanel');
             if (panel.style.display === 'none') {{
                 panel.style.display = 'block';
+                // 延迟初始化拖放区域，确保DOM完全渲染
+                setTimeout(() => {{
+                    initDropZone();
+                }}, 100);
             }} else {{
                 panel.style.display = 'none';
             }}
+        }}
+        
+        // 初始化拖放区域
+        function initDropZone() {{
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+            
+            // 移除可能存在的事件监听器
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {{
+                dropZone.removeEventListener(eventName, preventDefaults);
+                document.body.removeEventListener(eventName, preventDefaults);
+                dropZone.removeEventListener(eventName, highlight);
+                dropZone.removeEventListener(eventName, unhighlight);
+                dropZone.removeEventListener(eventName, handleDrop);
+            }});
+            
+            // 防止默认的拖放行为
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {{
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            }});
+            
+            // 添加拖放事件监听器
+            ['dragenter', 'dragover'].forEach(eventName => {{
+                dropZone.addEventListener(eventName, highlight, false);
+            }});
+            
+            ['dragleave', 'drop'].forEach(eventName => {{
+                dropZone.addEventListener(eventName, unhighlight, false);
+            }});
+            
+            // 处理文件拖放
+            dropZone.addEventListener('drop', handleDrop, false);
+            
+            console.log('拖放区域已初始化');
+        }}
+        
+        // 防止默认行为
+        function preventDefaults(e) {{
+            e.preventDefault();
+            e.stopPropagation();
+        }}
+        
+        // 高亮拖放区域
+        function highlight(e) {{
+            console.log('拖放区域高亮');
+            const dropZone = document.getElementById('dropZone');
+            if (dropZone) {{
+                dropZone.classList.add('dragover');
+            }}
+        }}
+        
+        // 取消高亮
+        function unhighlight(e) {{
+            console.log('拖放区域取消高亮');
+            const dropZone = document.getElementById('dropZone');
+            if (dropZone) {{
+                dropZone.classList.remove('dragover');
+            }}
+        }}
+        
+        // 处理文件拖放
+        function handleDrop(e) {{
+            console.log('拖放事件触发');
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            console.log(`拖放了 ${{files.length}} 个文件`);
+            
+            if (files.length > 0) {{
+                // 处理第一个文件
+                console.log(`处理文件: ${{files[0].name}}`);
+                handleDroppedFile(files[0]);
+            }} else {{
+                console.log('没有检测到文件');
+            }}
+        }}
+        
+        
+        
+        // 处理拖放的文件
+        function handleDroppedFile(file) {{
+            // 检查文件类型
+            const fileName = file.name.toLowerCase();
+            const allowedTypes = ['.txt', '.html', '.htm', '.md', '.pdf', '.epub', '.mobi', '.azw', '.azw3'];
+            
+            const isValidType = allowedTypes.some(type => fileName.endsWith(type));
+            
+            if (!isValidType) {{
+                showNotification('不支持的文件类型，请选择 .txt, .html, .htm, .md, .pdf, .epub, .mobi, .azw 或 .azw3 文件');
+                return;
+            }}
+            
+            // 设置选中的文件
+            selectedFile = file;
+            const fileTitle = document.getElementById('fileTitle');
+            const filePreview = document.getElementById('filePreview');
+            
+            // 自动填充标题
+            if (fileTitle && !fileTitle.value) {{
+                fileTitle.value = file.name.replace(/\\.[^/.]+$/, '');
+            }}
+            
+            // 检查是否为二进制电子书格式
+            const isBinaryFormat = ['.pdf', '.epub', '.mobi', '.azw', '.azw3'].some(type => fileName.endsWith(type));
+            
+            // 读取并预览文件
+            const reader = new FileReader();
+            reader.onload = function(e) {{
+                fileContent = e.target.result;
+                
+                if (isBinaryFormat) {{
+                    // 对于二进制格式，只显示文件信息
+                    if (filePreview) {{
+                        filePreview.innerHTML = `
+                            <div style="padding: 10px; background: rgba(100, 149, 237, 0.1); border-radius: 4px; border-left: 4px solid rgba(100, 149, 237, 0.6);">
+                                <h4 style="margin: 0 0 10px 0; color: {settings['title']};">电子书文件</h4>
+                                <p style="margin: 5px 0;"><strong>文件名：</strong>${{file.name}}</p>
+                                <p style="margin: 5px 0;"><strong>文件大小：</strong>${{(file.size / 1024 / 1024).toFixed(2)}} MB</p>
+                                <p style="margin: 5px 0;"><strong>文件类型：</strong>${{fileName.substring(fileName.lastIndexOf('.'))}}</p>
+                                <p style="margin: 10px 0; color: #666; font-size: 12px;">此文件将在后端进行解析处理</p>
+                            </div>
+                        `;
+                    }}
+                }} else {{
+                    // 对于文本格式，显示内容预览
+                    let preview = fileContent;
+                    if (preview.length > 1000) {{
+                        preview = preview.substring(0, 1000) + '...';
+                    }}
+                    
+                    // 转换HTML特殊字符
+                    preview = preview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    
+                    if (filePreview) {{
+                        filePreview.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${{preview}}</pre>`;
+                    }}
+                }}
+                
+                showNotification(`已加载文件：${{file.name}}`);
+            }};
+            
+            reader.onerror = function() {{
+                showNotification('文件读取失败');
+                if (filePreview) {{
+                    filePreview.innerHTML = '<p style="color: red;">文件读取失败</p>';
+                }}
+            }};
+            
+            reader.readAsText(file, 'utf-8');
         }}
         
         // 从书库添加书籍（关闭书库面板，打开文件导入面板）
@@ -6434,7 +6723,26 @@ class BrowserReader:
             
             // 根据文件类型处理
             const fileName = selectedFile.name.toLowerCase();
-            if (fileName.endsWith('.txt')) {{
+            const isBinaryFormat = ['.pdf', '.epub', '.mobi', '.azw', '.azw3'].some(type => fileName.endsWith(type));
+            
+            if (isBinaryFormat) {{
+                // 对于二进制电子书格式，显示等待处理的提示
+                processedContent = `
+                    <div style="text-align: center; padding: 50px 20px; color: {settings['text']};">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📚</div>
+                        <h2 style="color: {settings['title']}; margin-bottom: 15px;">${{title}}</h2>
+                        <p style="margin-bottom: 10px;">正在处理电子书文件...</p>
+                        <p style="font-size: 14px; color: rgba(128, 128, 128, 0.7);">
+                            文件类型：${{fileName.substring(fileName.lastIndexOf('.'))}}<br>
+                            文件大小：${{(selectedFile.size / 1024 / 1024).toFixed(2)}} MB
+                        </p>
+                        <div style="margin-top: 30px; padding: 15px; background: rgba(128, 128, 128, 0.1); border-radius: 8px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">
+                            <p style="margin: 5px 0; font-size: 12px;">💡 此电子书文件需要后端解析服务进行处理</p>
+                            <p style="margin: 5px 0; font-size: 12px;">📖 支持的格式：PDF、EPUB、MOBI、AZW、AZW3</p>
+                        </div>
+                    </div>
+                `;
+            }} else if (fileName.endsWith('.txt')) {{
                 // TXT文件：转换为HTML段落
                 const paragraphs = fileContent.split('\\n');
                 processedContent = '';
@@ -6475,7 +6783,10 @@ class BrowserReader:
                 content: processedContent,
                 importTime: Date.now(),
                 lastReadTime: null,
-                progress: 0
+                progress: 0,
+                isBinary: isBinaryFormat,
+                fileSize: selectedFile.size,
+                fileType: fileName.substring(fileName.lastIndexOf('.'))
             }};
             
             importedBooks.unshift(bookInfo);
