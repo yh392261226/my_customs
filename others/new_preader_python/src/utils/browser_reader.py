@@ -920,6 +920,10 @@ class BrowserReader:
             background: rgba(255, 255, 255, 0.95);
             border: 1px solid rgba(128, 128, 128, 0.3);
             transition: background 0.3s ease;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
         }}
 
         .settings-panel:hover {{
@@ -927,8 +931,6 @@ class BrowserReader:
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             z-index: 2000;
-            width: 90%;
-            max-width: 500px;
             max-height: 80vh;
             overflow-y: auto;
         }}
@@ -2122,6 +2124,168 @@ class BrowserReader:
             -ms-overflow-style: none;
             scrollbar-width: none;
         }}
+        
+        /* 书库面板样式 */
+        .book-library-panel {{
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }}
+        
+        /* 书库面板悬停样式 - 只保留视觉效果 */
+        .book-library-panel:hover {{
+            background: rgba(255, 255, 255, 1);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+        }}
+        
+        /* 文件导入面板悬停样式 - 只保留视觉效果 */
+        #fileImportPanel:hover {{
+            background: rgba(255, 255, 255, 1);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+        }}
+        
+        /* 进度同步面板悬停样式 - 只保留视觉效果 */
+        #progressSyncPanel:hover {{
+            background: rgba(255, 255, 255, 1);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+        }}
+        
+        .library-tabs {{
+            display: flex;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+            margin-bottom: 20px;
+        }}
+        
+        .library-tabs .tab-btn {{
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: {settings['text']};
+            cursor: pointer;
+            font-size: 14px;
+        }}
+        
+        .library-tabs .tab-btn:hover {{
+            background: rgba(128, 128, 128, 0.05);
+        }}
+        
+        .library-tabs .tab-btn.active {{
+            border-bottom-color: rgba(100, 149, 237, 0.6);
+            color: rgba(100, 149, 237, 1);
+        }}
+        
+        .library-content {{
+            min-height: 300px;
+        }}
+        
+        .library-actions {{
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+        }}
+        
+        .library-actions button {{
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }}
+        
+        .library-actions button:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+        }}
+        
+        .book-list {{
+            max-height: 400px;
+            overflow-y: auto;
+        }}
+        
+        .book-item {{
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+            cursor: pointer;
+            transition: background 0.2s;
+        }}
+        
+        .book-item:hover {{
+            background: rgba(128, 128, 128, 0.05);
+        }}
+        
+        .book-item:last-child {{
+            border-bottom: none;
+        }}
+        
+        .book-cover {{
+            width: 40px;
+            height: 60px;
+            background: rgba(100, 149, 237, 0.2);
+            border: 1px solid rgba(100, 149, 237, 0.4);
+            border-radius: 4px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: {settings['text']};
+        }}
+        
+        .book-info {{
+            flex: 1;
+        }}
+        
+        .book-title {{
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: {settings['text']};
+        }}
+        
+        .book-meta {{
+            font-size: 12px;
+            color: rgba(128, 128, 128, 0.8);
+        }}
+        
+        .book-actions {{
+            display: flex;
+            gap: 8px;
+        }}
+        
+        .book-actions button {{
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            color: {settings['text']};
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }}
+        
+        .book-actions button:hover {{
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+        }}
+        
+        .empty-state {{
+            text-align: center;
+            padding: 40px;
+            color: rgba(128, 128, 128, 0.6);
+        }}
     </style>
 </head>
 <body>
@@ -2244,6 +2408,9 @@ class BrowserReader:
         <button onclick="printContent()">打印</button>
         <button onclick="toggleMinimap()" id="minimapToolbarBtn">缩略图</button>
         <button onclick="toggleTOC()">目录</button>
+        <button onclick="toggleProgressSync()" id="progressSyncBtn">进度同步</button>
+        <button onclick="toggleFileImport()" id="fileImportBtn">导入文件</button>
+        <button onclick="toggleBookLibrary()" id="bookLibraryBtn">书库</button>
     </div>
 
     <!-- 工具栏收缩/展开按钮 -->
@@ -2455,6 +2622,110 @@ class BrowserReader:
         </div>
     </div>
     
+    <!-- 进度同步设置面板 -->
+    <div class="settings-panel" id="progressSyncPanel" style="display: none;">
+        <div class="settings-content">
+            <h3>进度同步设置</h3>
+            <button class="settings-close" onclick="toggleProgressSync()">×</button>
+            
+            <div class="setting-item">
+                <label>启用进度同步：</label>
+                <button class="toggle-btn" id="progressSyncToggle" onclick="toggleProgressSyncEnabled()">启用</button>
+            </div>
+            
+            <div class="setting-item">
+                <label>同步状态：</label>
+                <span id="syncStatusText">未连接</span>
+            </div>
+            
+            <div class="setting-item">
+                <label>上次同步时间：</label>
+                <span id="lastSyncTime">从未同步</span>
+            </div>
+            
+            <div class="setting-item">
+                <label>自动同步间隔：</label>
+                <select id="syncIntervalSelect" onchange="changeSyncInterval(this.value)">
+                    <option value="300000">5分钟</option>
+                    <option value="600000">10分钟</option>
+                    <option value="1800000">30分钟</option>
+                    <option value="3600000">1小时</option>
+                    <option value="7200000">2小时</option>
+                </select>
+            </div>
+            
+            <div class="setting-actions">
+                <button onclick="manualSync()">立即同步</button>
+                <button onclick="toggleProgressSync()">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件导入面板 -->
+    <div class="settings-panel" id="fileImportPanel" style="display: none;">
+        <div class="settings-content">
+            <h3>导入文件</h3>
+            <button class="settings-close" onclick="toggleFileImport()">×</button>
+            
+            <div class="setting-item">
+                <label>选择文件：</label>
+                <input type="file" id="fileInput" accept=".txt,.html,.htm,.md" onchange="handleFileSelect(event)">
+            </div>
+            
+            <div class="setting-item">
+                <label>文件预览：</label>
+                <div id="filePreview" style="max-height: 200px; overflow-y: auto; border: 1px solid rgba(128, 128, 128, 0.3); padding: 10px; background: rgba(128, 128, 128, 0.05);">
+                    <p style="color: #666;">请选择文件进行预览</p>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label>文件标题：</label>
+                <input type="text" id="fileTitle" placeholder="自动从文件名提取">
+            </div>
+            
+            <div class="setting-actions">
+                <button onclick="importFile()">导入并打开</button>
+                <button onclick="toggleFileImport()">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 书库面板 -->
+    <div class="settings-panel book-library-panel" id="bookLibraryPanel" style="display: none;">
+        <div class="settings-content">
+            <h3>我的书库</h3>
+            <button class="settings-close" onclick="toggleBookLibrary()">×</button>
+            
+            <div class="library-tabs">
+                <button class="tab-btn active" onclick="switchLibraryTab('history')">阅读历史</button>
+                <button class="tab-btn" onclick="switchLibraryTab('imported')">导入书籍</button>
+            </div>
+            
+            <!-- 阅读历史 -->
+            <div class="library-content" id="historyTab">
+                <div class="library-actions">
+                    <button onclick="clearHistory()">清空历史</button>
+                    <button onclick="refreshHistory()">刷新</button>
+                </div>
+                <div class="book-list" id="historyBookList">
+                    <p style="color: #666; text-align: center; padding: 20px;">暂无阅读历史</p>
+                </div>
+            </div>
+            
+            <!-- 导入书籍 -->
+            <div class="library-content" id="importedTab" style="display: none;">
+                <div class="library-actions">
+                    <button onclick="addBookFromLibrary()">添加书籍</button>
+                    <button onclick="exportLibrary()">导出书库</button>
+                </div>
+                <div class="book-list" id="importedBookList">
+                    <p style="color: #666; text-align: center; padding: 20px;">暂无导入书籍</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- 内容区域 -->
     <div class="content" id="content">
         {content}
@@ -2495,6 +2766,19 @@ class BrowserReader:
 
         // 后端在线状态
         let isBackendOnline = true;
+        
+        // 进度同步设置
+        let progressSyncEnabled = localStorage.getItem('progressSyncEnabled') === 'true';
+        let syncInterval = parseInt(localStorage.getItem('syncInterval') || '7200000'); // 默认2小时
+        let lastSyncTime = localStorage.getItem('lastSyncTime') || null;
+        
+        // 文件导入相关
+        let selectedFile = null;
+        let fileContent = null;
+        
+        // 书库相关
+        let readingHistory = JSON.parse(localStorage.getItem('readingHistory') || '[]');
+        let importedBooks = JSON.parse(localStorage.getItem('importedBooks') || '[]');
 
         // 检测后端是否在线
         async function checkBackendStatus() {{
@@ -3316,6 +3600,12 @@ class BrowserReader:
                 console.log('SAVE_PROGRESS_URL 为空，跳过保存进度');
                 return;
             }}
+            
+            // 检查进度同步设置
+            if (!progressSyncEnabled) {{
+                console.log('进度同步已禁用，跳过保存进度');
+                return;
+            }}
 
             // 检测后端是否在线
             const backendOnline = checkBackendStatus();
@@ -3336,7 +3626,7 @@ class BrowserReader:
             }} else {{
                 // 从所有页面计算字数
                 pages.forEach(page => {{
-                    totalWordCount += page.textContent.replace(/\s+/g, '').length;
+                    totalWordCount += page.textContent.replace(/\\s+/g, '').length;
                 }});
                 window.cachedWordCount = totalWordCount;
             }}
@@ -4060,6 +4350,12 @@ class BrowserReader:
             console.log('开始保存进度，SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
             if (!SAVE_PROGRESS_URL) {{
                 console.log('SAVE_PROGRESS_URL 为空，跳过保存进度');
+                return;
+            }}
+            
+            // 检查进度同步设置
+            if (!progressSyncEnabled) {{
+                console.log('进度同步已禁用，跳过保存进度');
                 return;
             }}
 
@@ -5854,6 +6150,18 @@ class BrowserReader:
             // 初始化语音功能
             initSpeech();
             
+            // 初始化进度同步设置
+            updateProgressSyncUI();
+            
+            // 3秒后自动隐藏帮助看板和工具栏
+            setTimeout(() => {{
+                // 隐藏帮助看板
+                toggleKeyboardHint()
+                
+                // 隐藏工具栏
+                toggleToolbar();
+            }}, 3000);
+            
             // 初始化 toolbar-toggle-container 的位置
             updateToolbarTogglePosition();
 
@@ -5939,6 +6247,494 @@ class BrowserReader:
             setInterval(updateEnhancedReadingStats, 5000);
         }};
         
+        // 进度同步相关函数
+        function toggleProgressSync() {{
+            const panel = document.getElementById('progressSyncPanel');
+            if (panel.style.display === 'none') {{
+                panel.style.display = 'block';
+                updateProgressSyncUI();
+            }} else {{
+                panel.style.display = 'none';
+            }}
+        }}
+        
+        function toggleProgressSyncEnabled() {{
+            progressSyncEnabled = !progressSyncEnabled;
+            localStorage.setItem('progressSyncEnabled', progressSyncEnabled.toString());
+            updateProgressSyncUI();
+            showNotification(progressSyncEnabled ? '已启用进度同步' : '已禁用进度同步');
+        }}
+        
+        function updateProgressSyncUI() {{
+            const toggle = document.getElementById('progressSyncToggle');
+            const statusText = document.getElementById('syncStatusText');
+            const lastSyncTimeEl = document.getElementById('lastSyncTime');
+            const syncIntervalSelect = document.getElementById('syncIntervalSelect');
+            
+            if (toggle) {{
+                toggle.textContent = progressSyncEnabled ? '禁用' : '启用';
+                toggle.classList.toggle('active', progressSyncEnabled);
+            }}
+            
+            if (statusText) {{
+                statusText.textContent = isBackendOnline ? '已连接' : '未连接';
+            }}
+            
+            if (lastSyncTimeEl) {{
+                if (lastSyncTime) {{
+                    const date = new Date(parseInt(lastSyncTime));
+                    lastSyncTimeEl.textContent = date.toLocaleString();
+                }} else {{
+                    lastSyncTimeEl.textContent = '从未同步';
+                }}
+            }}
+            
+            if (syncIntervalSelect) {{
+                syncIntervalSelect.value = syncInterval.toString();
+            }}
+        }}
+        
+        function changeSyncInterval(value) {{
+            syncInterval = parseInt(value);
+            localStorage.setItem('syncInterval', syncInterval.toString());
+            showNotification('同步间隔已更新');
+        }}
+        
+        function manualSync() {{
+            if (!progressSyncEnabled) {{
+                showNotification('请先启用进度同步');
+                return;
+            }}
+            
+            if (SAVE_PROGRESS_URL) {{
+                const scrollTop = window.scrollY;
+                const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+                const clientHeight = window.innerHeight;
+                const scrollableHeight = Math.max(scrollHeight - clientHeight, 1);
+                const progress = (scrollTop / scrollableHeight) * 100;
+                const progressDecimal = progress / 100;
+                
+                const content = document.getElementById('content');
+                let word_count = 0;
+                if (content) {{
+                    word_count = content.textContent.replace(/\\s+/g, '').length;
+                }}
+                
+                const data = {{
+                    progress: progressDecimal.toFixed(15),
+                    scrollTop: scrollTop,
+                    scrollHeight: scrollHeight,
+                    current_page: Math.floor(progressDecimal * 100),
+                    total_pages: 100,
+                    word_count: word_count,
+                    timestamp: Date.now()
+                }};
+                
+                fetch(SAVE_PROGRESS_URL, {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                    }},
+                    body: JSON.stringify(data)
+                }}).then(response => {{
+                    if (response.ok) {{
+                        lastSyncTime = Date.now().toString();
+                        localStorage.setItem('lastSyncTime', lastSyncTime);
+                        updateProgressSyncUI();
+                        showNotification('同步成功');
+                    }} else {{
+                        showNotification('同步失败');
+                    }}
+                }}).catch(err => {{
+                    showNotification('同步失败: ' + err.message);
+                }});
+            }} else {{
+                showNotification('后端未连接，无法同步');
+            }}
+        }}
+        
+        // 文件导入相关函数
+        function toggleFileImport() {{
+            const panel = document.getElementById('fileImportPanel');
+            if (panel.style.display === 'none') {{
+                panel.style.display = 'block';
+            }} else {{
+                panel.style.display = 'none';
+            }}
+        }}
+        
+        // 从书库添加书籍（关闭书库面板，打开文件导入面板）
+        function addBookFromLibrary() {{
+            // 关闭书库面板
+            const libraryPanel = document.getElementById('bookLibraryPanel');
+            if (libraryPanel) {{
+                libraryPanel.style.display = 'none';
+            }}
+            
+            // 打开文件导入面板
+            const importPanel = document.getElementById('fileImportPanel');
+            if (importPanel) {{
+                importPanel.style.display = 'block';
+            }}
+        }}
+        
+        function handleFileSelect(event) {{
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            selectedFile = file;
+            const fileTitle = document.getElementById('fileTitle');
+            const filePreview = document.getElementById('filePreview');
+            
+            // 自动填充标题
+            if (fileTitle && !fileTitle.value) {{
+                fileTitle.value = file.name.replace(/\\.[^/.]+$/, '');
+            }}
+            
+            // 读取并预览文件
+            const reader = new FileReader();
+            reader.onload = function(e) {{
+                fileContent = e.target.result;
+                
+                // 限制预览长度
+                let preview = fileContent;
+                if (preview.length > 1000) {{
+                    preview = preview.substring(0, 1000) + '...';
+                }}
+                
+                // 转换HTML特殊字符
+                preview = preview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                
+                if (filePreview) {{
+                    filePreview.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${{preview}}</pre>`;
+                }}
+            }};
+            
+            reader.onerror = function() {{
+                showNotification('文件读取失败');
+                if (filePreview) {{
+                    filePreview.innerHTML = '<p style="color: red;">文件读取失败</p>';
+                }}
+            }};
+            
+            reader.readAsText(file, 'utf-8');
+        }}
+        
+        function importFile() {{
+            if (!selectedFile || !fileContent) {{
+                showNotification('请先选择文件');
+                return;
+            }}
+            
+            const titleInput = document.getElementById('fileTitle');
+            const title = titleInput && titleInput.value ? titleInput.value : selectedFile.name;
+            
+            // 处理文件内容
+            let processedContent = fileContent;
+            
+            // 根据文件类型处理
+            const fileName = selectedFile.name.toLowerCase();
+            if (fileName.endsWith('.txt')) {{
+                // TXT文件：转换为HTML段落
+                const paragraphs = fileContent.split('\\n');
+                processedContent = '';
+                paragraphs.forEach(para => {{
+                    para = para.trim();
+                    if (para) {{
+                        processedContent += `<p>${{para}}</p>`;
+                    }}
+                }});
+            }} else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {{
+                // HTML文件：直接使用
+                processedContent = fileContent;
+            }} else if (fileName.endsWith('.md')) {{
+                // 简单的Markdown处理
+                const lines = fileContent.split('\\n');
+                processedContent = '';
+                lines.forEach(line => {{
+                    line = line.trim();
+                    if (!line) return;
+                    
+                    if (line.startsWith('# ')) {{
+                        processedContent += `<h1>${{line.substring(2)}}</h1>`;
+                    }} else if (line.startsWith('## ')) {{
+                        processedContent += `<h2>${{line.substring(3)}}</h2>`;
+                    }} else if (line.startsWith('### ')) {{
+                        processedContent += `<h3>${{line.substring(4)}}</h3>`;
+                    }} else {{
+                        processedContent += `<p>${{line}}</p>`;
+                    }}
+                }});
+            }}
+            
+            // 添加到导入书籍列表
+            const bookInfo = {{
+                id: Date.now().toString(),
+                title: title,
+                fileName: selectedFile.name,
+                content: processedContent,
+                importTime: Date.now(),
+                lastReadTime: null,
+                progress: 0
+            }};
+            
+            importedBooks.unshift(bookInfo);
+            localStorage.setItem('importedBooks', JSON.stringify(importedBooks));
+            
+            // 添加到阅读历史
+            addToReadingHistory(title, 'imported', bookInfo.id);
+            
+            // 更新内容显示
+            const contentEl = document.getElementById('content');
+            if (contentEl) {{
+                contentEl.innerHTML = processedContent;
+            }}
+            
+            // 更新页面标题
+            document.title = title + ' - 浏览器阅读器';
+            
+            // 关闭面板并重置
+            toggleFileImport();
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileTitle').value = '';
+            document.getElementById('filePreview').innerHTML = '<p style="color: #666;">请选择文件进行预览</p>';
+            selectedFile = null;
+            fileContent = null;
+            
+            showNotification(`已导入文件：${{title}}`);
+            
+            // 如果书库面板当前是打开的，更新书库显示
+            const libraryPanel = document.getElementById('bookLibraryPanel');
+            if (libraryPanel && libraryPanel.style.display !== 'none') {{
+                loadBookLibrary();
+            }}
+        }}
+        
+        // 书库相关函数
+        function toggleBookLibrary() {{
+            const panel = document.getElementById('bookLibraryPanel');
+            if (panel.style.display === 'none') {{
+                panel.style.display = 'block';
+                loadBookLibrary();
+            }} else {{
+                panel.style.display = 'none';
+            }}
+        }}
+        
+        function switchLibraryTab(tab) {{
+            const historyTab = document.getElementById('historyTab');
+            const importedTab = document.getElementById('importedTab');
+            const tabBtns = document.querySelectorAll('.library-tabs .tab-btn');
+            
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+            
+            if (tab === 'history') {{
+                historyTab.style.display = 'block';
+                importedTab.style.display = 'none';
+                tabBtns[0].classList.add('active');
+                loadReadingHistory();
+            }} else {{
+                historyTab.style.display = 'none';
+                importedTab.style.display = 'block';
+                tabBtns[1].classList.add('active');
+                loadImportedBooks();
+            }}
+        }}
+        
+        function addToReadingHistory(title, type, bookId) {{
+            const historyItem = {{
+                id: Date.now().toString(),
+                title: title,
+                type: type, // 'file' or 'imported'
+                bookId: bookId,
+                readTime: Date.now(),
+                progress: 0
+            }};
+            
+            // 移除重复项（如果存在）
+            readingHistory = readingHistory.filter(item => item.bookId !== bookId);
+            
+            // 添加到开头
+            readingHistory.unshift(historyItem);
+            
+            // 限制历史记录数量
+            if (readingHistory.length > 50) {{
+                readingHistory = readingHistory.slice(0, 50);
+            }}
+            
+            localStorage.setItem('readingHistory', JSON.stringify(readingHistory));
+        }}
+        
+        function loadReadingHistory() {{
+            const historyList = document.getElementById('historyBookList');
+            if (!historyList) return;
+            
+            if (readingHistory.length === 0) {{
+                historyList.innerHTML = '<div class="empty-state">暂无阅读历史</div>';
+                return;
+            }}
+            
+            let html = '';
+            readingHistory.forEach(item => {{
+                const date = new Date(item.readTime);
+                const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                
+                html += `
+                    <div class="book-item" onclick="openHistoryBook('${{item.bookId}}', '${{item.type}}')">
+                        <div class="book-cover">${{item.type === 'imported' ? '导入' : '文件'}}</div>
+                        <div class="book-info">
+                            <div class="book-title">${{item.title}}</div>
+                            <div class="book-meta">${{dateStr}} · 进度 ${{Math.round(item.progress || 0)}}%</div>
+                        </div>
+                        <div class="book-actions">
+                            <button onclick="event.stopPropagation(); removeHistoryItem('${{item.id}}')">删除</button>
+                        </div>
+                    </div>
+                `;
+            }});
+            
+            historyList.innerHTML = html;
+        }}
+        
+        function loadImportedBooks() {{
+            const bookList = document.getElementById('importedBookList');
+            if (!bookList) return;
+            
+            if (importedBooks.length === 0) {{
+                bookList.innerHTML = '<div class="empty-state">暂无导入书籍</div>';
+                return;
+            }}
+            
+            let html = '';
+            importedBooks.forEach(book => {{
+                const date = new Date(book.importTime);
+                const dateStr = date.toLocaleDateString();
+                
+                html += `
+                    <div class="book-item" onclick="openImportedBook('${{book.id}}')">
+                        <div class="book-cover">书籍</div>
+                        <div class="book-info">
+                            <div class="book-title">${{book.title}}</div>
+                            <div class="book-meta">${{dateStr}} · ${{book.fileName}}</div>
+                        </div>
+                        <div class="book-actions">
+                            <button onclick="event.stopPropagation(); deleteImportedBook('${{book.id}}')">删除</button>
+                        </div>
+                    </div>
+                `;
+            }});
+            
+            bookList.innerHTML = html;
+        }}
+        
+        function loadBookLibrary() {{
+            loadReadingHistory();
+            loadImportedBooks();
+        }}
+        
+        function openHistoryBook(bookId, type) {{
+            if (type === 'imported') {{
+                openImportedBook(bookId);
+            }} else {{
+                showNotification('文件类型暂不支持重新打开');
+            }}
+        }}
+        
+        function openImportedBook(bookId) {{
+            const book = importedBooks.find(b => b.id === bookId);
+            if (!book) {{
+                showNotification('书籍不存在');
+                return;
+            }}
+            
+            // 更新内容
+            const contentEl = document.getElementById('content');
+            if (contentEl) {{
+                contentEl.innerHTML = book.content;
+            }}
+            
+            // 更新页面标题
+            document.title = book.title + ' - 浏览器阅读器';
+            
+            // 更新阅读历史
+            addToReadingHistory(book.title, 'imported', bookId);
+            
+            // 更新最后阅读时间
+            book.lastReadTime = Date.now();
+            localStorage.setItem('importedBooks', JSON.stringify(importedBooks));
+            
+            // 关闭书库面板
+            toggleBookLibrary();
+            
+            // 滚动到顶部
+            scrollToTop();
+            
+            showNotification(`已打开书籍：${{book.title}}`);
+        }}
+        
+        function removeHistoryItem(itemId) {{
+            if (!confirm('确定要删除这条历史记录吗？')) {{
+                return;
+            }}
+            
+            readingHistory = readingHistory.filter(item => item.id !== itemId);
+            localStorage.setItem('readingHistory', JSON.stringify(readingHistory));
+            loadReadingHistory();
+            showNotification('历史记录已删除');
+        }}
+        
+        function deleteImportedBook(bookId) {{
+            if (!confirm('确定要删除这本书吗？删除后无法恢复。')) {{
+                return;
+            }}
+            
+            importedBooks = importedBooks.filter(book => book.id !== bookId);
+            localStorage.setItem('importedBooks', JSON.stringify(importedBooks));
+            
+            // 同时删除相关的历史记录
+            readingHistory = readingHistory.filter(item => item.bookId !== bookId);
+            localStorage.setItem('readingHistory', JSON.stringify(readingHistory));
+            
+            loadImportedBooks();
+            showNotification('书籍已删除');
+        }}
+        
+        function clearHistory() {{
+            if (!confirm('确定要清空所有阅读历史吗？')) {{
+                return;
+            }}
+            
+            readingHistory = [];
+            localStorage.setItem('readingHistory', JSON.stringify(readingHistory));
+            loadReadingHistory();
+            showNotification('阅读历史已清空');
+        }}
+        
+        function refreshHistory() {{
+            loadReadingHistory();
+            showNotification('历史记录已刷新');
+        }}
+        
+        function exportLibrary() {{
+            const libraryData = {{
+                importedBooks: importedBooks,
+                readingHistory: readingHistory,
+                exportTime: Date.now()
+            }};
+            
+            const dataStr = JSON.stringify(libraryData, null, 2);
+            const dataBlob = new Blob([dataStr], {{type: 'application/json'}});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `book_library_${{new Date().toISOString().split('T')[0]}}.json`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            showNotification('书库已导出');
+        }}
+        
         // 页面关闭前保存进度和统计
         window.addEventListener('beforeunload', function() {{
             // 保存阅读统计
@@ -5997,9 +6793,14 @@ class BrowserReader:
                     timestamp: Date.now(),
                     reading_time: newTotalTime
                 }};
-                console.log('beforeunload - 发送数据(小数):', data);
-                console.log('beforeunload - 发送JSON:', JSON.stringify(data));
-                navigator.sendBeacon(SAVE_PROGRESS_URL, JSON.stringify(data));
+                // 只有在启用进度同步时才发送
+                if (progressSyncEnabled) {{
+                    console.log('beforeunload - 发送数据(小数):', data);
+                    console.log('beforeunload - 发送JSON:', JSON.stringify(data));
+                    navigator.sendBeacon(SAVE_PROGRESS_URL, JSON.stringify(data));
+                }} else {{
+                    console.log('beforeunload - 进度同步已禁用，跳过发送');
+                }}
             }}
         }});
     </script>
