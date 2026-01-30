@@ -375,51 +375,24 @@ class AareadParser(BaseParser):
         # 5. 清理转义字符
         html_content = html_content.replace('\\r', '').replace('\\n', ' ')
 
-        # 6. 清理 AA阅读 特定的垃圾文字和广告
-        # 主要垃圾文字列表
-        garbage_patterns = [
-            'out_cache',
-            'feng情书库',
-            '疯 情 书 库p>',
-            '疯 情 书 库',
-            '疯 情书 库le>',
-            '疯 情书 库',
-            'book.aavideo.net>',
-            'book.aavideo.net',
-            '疯情 书ku',
-            'aabook.cc',
-            'aabook',
-            'fengqing书库/p>',
-            'fengqing书库>',
-            'fengqing书库',
-            '疯情书库',
-            'aabook.ccp>',
-            'feng情 书库',
-        ]
-
-        # 清理主要垃圾文字
-        for pattern in garbage_patterns:
-            html_content = re.sub(re.escape(pattern), '', html_content)
-
-        # 7. 清理残留的 HTML 片段
-        # 清理各种残留片段
-        html_content = re.sub(r"p>", '', html_content)
-        html_content = re.sub(r"aria-hidden='true'>", '', html_content)
-        html_content = re.sub(r"='true'>书", '', html_content)
-        html_content = re.sub(r'book.aavideo', '', html_content)
-        html_content = re.sub(r'aabook.ccp', '', html_content)
-        html_content = re.sub(r'aavbook', '', html_content)
-        html_content = re.sub(r"09bd7597'", '', html_content)
-        html_content = re.sub(r"09bd7597", '', html_content)
-        html_content = re.sub(r"' 书", '', html_content)
-        html_content = re.sub(r'</', '', html_content)
-        html_content = re.sub(r'<', '', html_content)
-        # 清理额外的 HTML 片段
-        html_content = re.sub(r"'aria-hidden='true'>", '', html_content)
-        html_content = re.sub(r"' aria-hidden='true'>", '', html_content)
-        html_content = re.sub(r"9da", '', html_content)
-        html_content = re.sub(r">\s*$", '', html_content)  # 清理行尾的 >（可能前后有空格）
-        html_content = re.sub(r"。$", '', html_content)  # 清理单独的中文句号行
+        html_content = re.sub(r'out_cache', '', html_content)
+        html_content = re.sub(r'feng情书库', '', html_content)
+        html_content = re.sub(r'疯 情 书 库p>', '', html_content)
+        html_content = re.sub(r'疯 情 书 库', '', html_content)
+        html_content = re.sub(r'疯 情书 库', '', html_content)
+        html_content = re.sub(r'疯 情书 库le>', '', html_content)
+        html_content = re.sub(r'book.aavideo.net>', '', html_content)
+        html_content = re.sub(r'book.aavideo.net', '', html_content)
+        html_content = re.sub(r'疯情 书ku', '', html_content)
+        html_content = re.sub(r'aabook.cc', '', html_content)
+        html_content = re.sub(r'aabook', '', html_content)
+        html_content = re.sub(r'fengqing书库/p>', '', html_content)
+        html_content = re.sub(r'fengqing书库>', '', html_content)
+        html_content = re.sub(r'fengqing书库', '', html_content)
+        html_content = re.sub(r'疯情书库', '', html_content)
+        html_content = re.sub(r'aabook.ccp>', '', html_content)
+        html_content = re.sub(r'aabook.cc', '', html_content)
+        html_content = re.sub(r'feng情 书库', '', html_content)
 
         # 6. 调用基类的通用HTML清理方法
         return super()._clean_html_content(html_content)
