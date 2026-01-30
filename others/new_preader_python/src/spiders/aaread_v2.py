@@ -412,6 +412,8 @@ class AareadParser(BaseParser):
         html_content = re.sub(r"09bd7597'", '', html_content)
         html_content = re.sub(r"09bd7597", '', html_content)
         html_content = re.sub(r"' 书", '', html_content)
+        html_content = re.sub(r'</', '', html_content)
+        html_content = re.sub(r'<', '', html_content)
         # 清理额外的 HTML 片段
         html_content = re.sub(r"'aria-hidden='true'>", '', html_content)
         html_content = re.sub(r"' aria-hidden='true'>", '', html_content)
