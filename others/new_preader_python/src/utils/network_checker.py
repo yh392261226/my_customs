@@ -26,9 +26,10 @@ class NetworkChecker:
         """
         检查网络连通性
 
-        尝试多个可靠的公共 DNS/服务来检测网络连通性：
-        1. TCP 连接到公共 DNS（8.8.8.8:53）
-        2. 如果 TCP 连接失败，尝试 HTTP 请求（www.baidu.com）
+        尝试多个可靠的检测方法来检测网络连通性：
+        1. TCP 连接到公共 DNS（8.8.8.8:53）- 测试基础网络连接
+        2. DNS 解析测试（解析 www.baidu.com）- 测试 DNS 服务
+        3. HTTP 请求（访问 www.baidu.com）- 测试完整网络访问
 
         Args:
             timeout: 连接超时时间（秒）
@@ -42,19 +43,30 @@ class NetworkChecker:
             # 尝试连接 Google DNS (8.8.8.8) 的 53 端口
             # 这个方法不依赖 DNS 解析，直接使用 IP 地址
             socket.setdefaulttimeout(timeout)
-            socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(("8.8.8.8", 53))
+            sock.close()
             logger.debug(f"网络检测通过 (TCP DNS 连接成功)")
-            return True
         except (socket.timeout, socket.error) as e:
-            logger.debug(f"TCP DNS 连接失败: {e}")
+            logger.warning(f"TCP DNS 连接失败: {e}")
+            return False
 
-        # 方法2: 尝试 HTTP 请求到百度
+        # 方法2: 尝试 DNS 解析
+        try:
+            # 尝试解析域名，测试 DNS 服务是否正常
+            socket.gethostbyname("www.baidu.com")
+            logger.debug(f"网络检测通过 (DNS 解析成功)")
+        except socket.gaierror as e:
+            logger.warning(f"DNS 解析失败: {e}")
+            return False
+
+        # 方法3: 尝试 HTTP 请求到百度
         try:
             urllib.request.urlopen("http://www.baidu.com", timeout=timeout)
             logger.debug(f"网络检测通过 (HTTP 请求成功)")
             return True
         except (URLError, HTTPError, socket.timeout) as e:
-            logger.warning(f"网络检测失败: {e}")
+            logger.warning(f"HTTP 请求失败: {e}")
             return False
 
     @staticmethod
