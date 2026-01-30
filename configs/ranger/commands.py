@@ -890,3 +890,84 @@ class dir_history_navigate(Command):
         navigate_path(fm, selected)
 
 
+# 自定义的稳定 fzf_filter 实现
+class custom_fzf_filter(Command):
+    """
+    :custom_fzf_filter <query>
+
+    自定义的模糊搜索命令，稳定且不会卡死
+    """
+    
+    def execute(self):
+        query = self.rest(1)
+        fm = self.fm
+        
+        # 如果查询为空，清除过滤器
+        if not query or query.strip() == '':
+            fm.thisdir.filter = None
+            fm.thisdir.refilter()
+            if self.quickly_executed:
+                fm.open_console(self.line)
+            return
+        
+        # 使用 ranger 内置的搜索功能
+        try:
+            # 直接调用 ranger 的搜索命令
+            fm.execute_console(f"search {query}")
+        except:
+            # 如果内置搜索失败，使用简单的过滤
+            query_lower = query.strip().lower()
+            
+            def simple_filter(fobj):
+                try:
+                    return query_lower in fobj.relative_path.lower()
+                except:
+                    return True
+            
+            fm.thisdir.filter = simple_filter
+            fm.thisdir.refilter()
+        
+        if self.quickly_executed:
+            fm.open_console(self.line)
+
+    def cancel(self):
+        fm = self.fm
+        try:
+            fm.thisdir.filter = None
+            fm.thisdir.refilter()
+        except:
+            pass
+
+    def quick(self):
+        return True
+
+
+class test_command(Command):
+    """:test_command
+
+    测试命令
+    """
+    
+    def execute(self):
+        self.fm.notify("测试命令工作正常！", bad=False)
+
+
+class which_key(Command):
+    """:which_key
+
+    显示快捷键菜单，类似 neovim 的 which-key 插件
+    """
+    
+    def execute(self):
+        fm = self.fm
+        
+        # 完整的快捷键菜单
+        help_text = "=== 快捷键菜单 ===\n\n【文件操作】\n  o           - 打开文件\n  r           - 打开方式选择\n  y           - 复制文件名\n  Y           - 复制路径\n  d           - 剪切文件\n  c           - 复制文件\n  p           - 粘贴文件\n  D           - 删除文件\n  R           - 重命名文件\n  ms          - 选择/取消选择\n\n【导航操作】\n  h           - 进入上级目录\n  l           - 进入目录/打开文件\n  j           - 向下移动\n  k           - 向上移动\n  gg          - 跳到顶部\n  G           - 跳到底部\n  cd          - 切换目录\n  tab         - 切换面板\n\n【搜索过滤】\n  f           - fzf 搜索\n  ff          - 内置搜索\n  /           - 搜索\n  n           - 下一个搜索结果\n  N           - 上一个搜索结果\n  zf          - 添加过滤器\n  zr          - 重置过滤器\n\n【标签书签】\n  m           - 设置书签\n  '           - 跳转到书签\n  b           - 显示书签\n  B           - 删除书签\n\n【标签页】\n  Ctrl+n      - 新建标签页\n  Ctrl+w      - 关闭标签页\n  Tab         - 下一个标签页\n  Shift+Tab   - 上一个标签页\n  1-9         - 切换到标签页\n\n【显示设置】\n  zh          - 显示隐藏文件\n  zi          - 切换预览\n  zp          - 预览文件\n  zv          - 垂直分割\n  zx          - 水平分割\n\n【其他功能】\n  E           - 编辑文件\n  S           - Shell 命令\n  Q           - 退出\n  R           - 重新加载\n  !           - 终端命令\n  ?           - 内置帮助\n  Space       - 显示此菜单"
+        
+        # 使用 ranger 的通知系统显示，延长显示时间
+        fm.notify(help_text, duration=10)
+        
+    def quick(self):
+        return False
+
+
