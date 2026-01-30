@@ -215,3 +215,15 @@
 [submodule "others/new_preader_python/src/parsers/KindleUnpack"]
 	path = others/new_preader_python/src/parsers/KindleUnpack
 	url = git@github.com:kevinhendricks/KindleUnpack.git
+[submodule "configs/ranger/plugins/ranger_devicons"]
+	path = configs/ranger/plugins/ranger_devicons
+	url = git@github.com:alexanderjeurissen/ranger_devicons.git
+[submodule "configs/ranger/plugins/ranger-archives"]
+	path = configs/ranger/plugins/ranger-archives
+	url = git@github.com:maximtrp/ranger-archives.git
+[submodule "configs/ranger/plugins/ranger-zoxide"]
+	path = configs/ranger/plugins/ranger-zoxide
+	url = git@github.com:jchook/ranger-zoxide.git
+[submodule "configs/ranger/plugins/ranger_tmux"]
+	path = configs/ranger/plugins/ranger_tmux
+	url = git@github.com:joouha/ranger_tmux.git

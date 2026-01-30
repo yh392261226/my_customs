@@ -1,0 +1,1 @@
+/opt/homebrew/lib/python3.14/site-packages/ranger_tmux/plugin.py
