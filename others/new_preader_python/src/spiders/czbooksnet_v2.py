@@ -279,7 +279,7 @@ class CzbooksnetParser(BaseParser):
         
         # 如果是章节页面，使用特殊处理
         if '/n/' in url and len(url_parts) >= 6:  # 至少有 http:,, czbooks.net, n, {novel_id}, {chapter_id}
-            self.logger.info(f"检测到章节页面，使用增强内容获取: {url}")
+            logger.info(f"检测到章节页面，使用增强内容获取: {url}")
             return self._get_chapter_content_enhanced(url)
         
         # 对于非章节页面（如主页），使用普通HTTP请求
@@ -301,7 +301,7 @@ class CzbooksnetParser(BaseParser):
         html_content = super()._get_url_content(url)
         
         if not html_content:
-            self.logger.warning(f"⚠ 无法获取章节页面HTML: {url}")
+            logger.warning(f"⚠ 无法获取章节页面HTML: {url}")
             return ""
         
         # 直接使用配置的正则表达式提取 <div class="content"> 内容
@@ -361,7 +361,7 @@ class CzbooksnetParser(BaseParser):
             chapter_url = chapter_info['url']
             chapter_title = chapter_info['title']
 
-            self.logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_title}")
+            logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {chapter_title}")
             
             # 获取章节内容
             chapter_content = self._get_url_content(chapter_url)
@@ -375,11 +375,11 @@ class CzbooksnetParser(BaseParser):
                     # 执行爬取后处理函数
                     processed_content = self._execute_after_crawler_funcs(final_content)
                     final_content = processed_content
-                    self.logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
+                    logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
                 else:
                     # 内容提取失败，但至少保存章节标题
                     final_content = f"[章节内容暂时无法获取]\n\n章节标题: {chapter_title}\n章节链接: {chapter_url}"
-                    self.logger.warning(f"⚠ 第 {i}/{len(chapter_links)} 章内容提取失败，但保存了标题")
+                    logger.warning(f"⚠ 第 {i}/{len(chapter_links)} 章内容提取失败，但保存了标题")
                 
                 novel_content['chapters'].append({
                     'chapter_number': self.chapter_count,
@@ -388,7 +388,7 @@ class CzbooksnetParser(BaseParser):
                     'url': chapter_url
                 })
             else:
-                self.logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章抓取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章抓取失败")
             
             # 章节间延迟
             time.sleep(1)

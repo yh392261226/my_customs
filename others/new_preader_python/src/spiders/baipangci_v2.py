@@ -211,7 +211,7 @@ class BaipangciParser(BaseParser):
         
         while current_url:
             chapter_count += 1
-            self.logger.info(f"正在爬取第 {chapter_count} 章: {current_url}")
+            logger.info(f"正在爬取第 {chapter_count} 章: {current_url}")
             
             # 获取页面内容
             page_content = self._get_url_content(current_url)
@@ -235,11 +235,11 @@ class BaipangciParser(BaseParser):
                         'content': processed_content,
                         'url': current_url
                     })
-                    self.logger.info(f"✓ 第 {chapter_count} 章 [{chapter_title}] 抓取成功")
+                    logger.info(f"✓ 第 {chapter_count} 章 [{chapter_title}] 抓取成功")
                 else:
-                    self.logger.warning(f"✗ 第 {chapter_count} 章内容提取失败")
+                    logger.warning(f"✗ 第 {chapter_count} 章内容提取失败")
             else:
-                self.logger.warning(f"✗ 第 {chapter_count} 章页面抓取失败")
+                logger.warning(f"✗ 第 {chapter_count} 章页面抓取失败")
             
             # 获取下一章URL
             next_url = self._get_next_page_url(page_content, current_url)
@@ -360,7 +360,7 @@ class BaipangciParser(BaseParser):
             title = chapter.get('title', f"第 {chapter_number} 章")
             url = chapter.get('url')
 
-            self.logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {title}")
+            logger.info(f"正在爬取第 {i}/{len(chapter_links)} 章: {title}")
             
             # 获取页面内容
             page_content = self._get_url_content(url)
@@ -379,11 +379,11 @@ class BaipangciParser(BaseParser):
                         'content': processed_content,
                         'url': url
                     })
-                    self.logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
+                    logger.info(f"✓ 第 {i}/{len(chapter_links)} 章抓取成功")
                 else:
-                    self.logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容提取失败")
+                    logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章内容提取失败")
             else:
-                self.logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章页面抓取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapter_links)} 章页面抓取失败")
             
             # 章节间延迟
             time.sleep(1)

@@ -310,7 +310,7 @@ class AareadParser(BaseParser):
         
         # 实际爬取每个章节的内容
         for i, chapter in enumerate(chapters, 1):
-            self.logger.info(f"正在爬取第 {i}/{len(chapters)} 章: {chapter['title']}")
+            logger.info(f"正在爬取第 {i}/{len(chapters)} 章: {chapter['title']}")
             
             # 构建完整的章节URL
             chapter_url = self.get_chapter_url(chapter['url'])
@@ -325,9 +325,9 @@ class AareadParser(BaseParser):
                     "order": chapter["order"],
                     "content": chapter_content
                 })
-                self.logger.info(f"✓ 第 {i}/{len(chapters)} 章爬取成功")
+                logger.info(f"✓ 第 {i}/{len(chapters)} 章爬取成功")
             else:
-                self.logger.warning(f"✗ 第 {i}/{len(chapters)} 章爬取失败")
+                logger.warning(f"✗ 第 {i}/{len(chapters)} 章爬取失败")
                 # 即使失败也添加章节信息，但内容为空
                 novel_info["chapters"].append({
                     "title": chapter["title"],
@@ -422,4 +422,4 @@ if __name__ == "__main__":
         print(f"小说已保存到: {file_path}")
         print(f"共解析 {len(novel_content['chapters'])} 个章节")
     except Exception as e:
-        self.logger.error(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

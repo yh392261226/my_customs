@@ -143,4 +143,4 @@ if __name__ == "__main__":
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
     except Exception as e:
-        self.logger.error(f"抓取失败: {e}")
+        logger.error(f"抓取失败: {e}")

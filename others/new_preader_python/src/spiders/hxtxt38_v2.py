@@ -360,7 +360,7 @@ class HXtxt38Parser(BaseParser):
             # 获取章节页面内容
             chapter_content = self._get_url_content(chapter_url)
             if not chapter_content:
-                self.logger.warning(f"无法获取章节页面内容: {chapter_url}")
+                logger.warning(f"无法获取章节页面内容: {chapter_url}")
                 return None
             
             # 提取并解密内容
@@ -384,7 +384,7 @@ class HXtxt38Parser(BaseParser):
                 return None
                 
         except Exception as e:
-            self.logger.error(f"获取章节内容失败: {e}")
+            logger.error(f"获取章节内容失败: {e}")
             return None
     
     def _remove_external_links(self, content: str) -> str:
@@ -572,14 +572,14 @@ class HXtxt38Parser(BaseParser):
                     
                     # 获取每个章节的内容
                     for i, chapter in enumerate(chapter_list, 1):
-                        self.logger.info(f"正在爬取第 {i}/{len(chapter_list)} 章: {chapter['title']}")
+                        logger.info(f"正在爬取第 {i}/{len(chapter_list)} 章: {chapter['title']}")
                         chapter_content = self._get_chapter_content(chapter['url'], keys)
                         if chapter_content:
                             chapter['content'] = chapter_content
                             chapters.append(chapter)
-                            self.logger.info(f"✓ 第 {i}/{len(chapter_list)} 章抓取成功")
+                            logger.info(f"✓ 第 {i}/{len(chapter_list)} 章抓取成功")
                         else:
-                            self.logger.warning(f"✗ 第 {i}/{len(chapter_list)} 章内容获取失败: {chapter['title']}")
+                            logger.warning(f"✗ 第 {i}/{len(chapter_list)} 章内容获取失败: {chapter['title']}")
                             # 即使获取内容失败，也保留章节信息
                             chapter['content'] = "内容获取失败"
                             chapters.append(chapter)
