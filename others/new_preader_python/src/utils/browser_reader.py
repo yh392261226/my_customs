@@ -3688,13 +3688,24 @@ class BrowserReader:
         function loadPaginationProgress() {{
             console.log('开始加载翻页模式进度，LOAD_PROGRESS_URL:', LOAD_PROGRESS_URL);
             if (!LOAD_PROGRESS_URL) {{
-                console.log('LOAD_PROGRESS_URL 为空，跳过加载进度');
+                console.log('LOAD_PROGRESS_URL 为空，尝试加载本地翻页进度');
+                loadLocalPaginationProgress();
                 return;
             }}
 
+            // 设置超时，如果服务器响应太慢则使用本地进度
+            const serverTimeout = setTimeout(() => {{
+                console.log('服务器响应超时，尝试加载本地翻页进度');
+                loadLocalPaginationProgress();
+            }}, 3000); // 3秒超时
+
             fetch(LOAD_PROGRESS_URL)
                 .then(response => {{
+                    clearTimeout(serverTimeout);
                     console.log('服务器响应状态:', response.status);
+                    if (!response.ok) {{
+                        throw new Error('服务器响应错误: ' + response.status);
+                    }}
                     return response.json();
                 }})
                 .then(data => {{
@@ -3703,53 +3714,87 @@ class BrowserReader:
                         // 从数据库加载的是小数(0-1),转换为百分比(0-100)
                         const progressDecimal = parseFloat(data.progress);
                         const loadedProgress = progressDecimal * 100;  // 转换为百分比
-                        
-                        // 根据进度计算目标页码
-                        const targetPage = Math.min(Math.floor(progressDecimal * pages.length), pages.length - 1);
-                        
-                        console.log('解析翻页进度 - progressDecimal:', progressDecimal, 'loadedProgress:', loadedProgress + '%', 'targetPage:', targetPage);
-                        
-                        // 如果进度大于0，跳转到对应页面
-                        if (loadedProgress > 0 && targetPage > 0) {{
-                            // 延迟跳转，确保DOM完全渲染
-                            setTimeout(() => {{
-                                showPage(targetPage);
-                                console.log('已恢复翻页进度:', loadedProgress + '%', '跳转到第', targetPage + 1, '页');
-                            }}, 300);
-                        }} else {{
-                            console.log('进度为0，从第一页开始');
+
+                        // 验证进度是否有效
+                        if (isNaN(progressDecimal) || progressDecimal < 0 || progressDecimal > 1) {{
+                            console.log('服务器翻页进度数据无效，尝试加载本地翻页进度');
+                            loadLocalPaginationProgress();
+                            return;
                         }}
+
+                        // 如果进度为0，也尝试加载本地进度
+                        if (loadedProgress <= 0) {{
+                            console.log('服务器翻页进度为0%，尝试加载本地翻页进度');
+                            loadLocalPaginationProgress();
+                            return;
+                        }}
+                        
+                        // 服务器进度有效，应用进度
+                        applyPaginationProgress(data, progressDecimal, loadedProgress);
                     }} else {{
-                        console.log('进度数据不完整或无效:', data);
+                        console.log('翻页进度数据不完整或无效，尝试加载本地翻页进度');
+                        loadLocalPaginationProgress();
                     }}
                 }})
                 .catch(err => {{
+                    clearTimeout(serverTimeout);
                     console.log('加载翻页进度失败:', err);
+                    console.log('尝试加载本地翻页进度');
+                    loadLocalPaginationProgress();
                 }});
+        }}
+        
+        // 加载本地翻页进度
+        function loadLocalPaginationProgress() {{
+            try {{
+                // 从localStorage获取本地保存的进度
+                const localProgressData = localStorage.getItem('localReadingProgress');
+                if (localProgressData) {{
+                    const data = JSON.parse(localProgressData);
+                    console.log('加载到本地翻页进度数据:', data);
+                    
+                    if (data && data.progress !== undefined && pages.length > 0) {{
+                        const progressDecimal = parseFloat(data.progress);
+                        const loadedProgress = progressDecimal * 100;
+                        
+                        // 验证本地进度是否有效
+                        if (!isNaN(progressDecimal) && progressDecimal >= 0 && progressDecimal <= 1 && loadedProgress > 0) {{
+                            // 使用本地进度
+                            applyPaginationProgress(data, progressDecimal, loadedProgress);
+                            console.log('已应用本地保存的翻页进度:', loadedProgress + '%');
+                            return;
+                        }}
+                    }}
+                }}
+                console.log('没有找到有效的本地翻页进度数据');
+            }} catch (e) {{
+                console.log('加载本地翻页进度失败:', e);
+            }}
+        }}
+        
+        // 应用翻页进度（服务器或本地）
+        function applyPaginationProgress(data, progressDecimal, loadedProgress) {{
+            // 根据进度计算目标页码
+            const targetPage = Math.min(Math.floor(progressDecimal * pages.length), pages.length - 1);
+            
+            console.log('解析翻页进度 - progressDecimal:', progressDecimal, 'loadedProgress:', loadedProgress + '%', 'targetPage:', targetPage);
+            
+            // 如果进度大于0，跳转到对应页面
+            if (loadedProgress > 0 && targetPage > 0) {{
+                // 延迟跳转，确保DOM完全渲染
+                setTimeout(() => {{
+                    showPage(targetPage);
+                    console.log('已恢复翻页进度:', loadedProgress + '%', '跳转到第', targetPage + 1, '页');
+                }}, 300);
+            }} else {{
+                console.log('翻页进度为0，从第一页开始');
+            }}
         }}
         
         // 保存翻页模式下的进度
         function savePaginationProgress(progress) {{
             console.log('开始保存翻页模式进度，SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
-            if (!SAVE_PROGRESS_URL) {{
-                console.log('SAVE_PROGRESS_URL 为空，跳过保存进度');
-                return;
-            }}
             
-            // 检查进度同步设置
-            if (!progressSyncEnabled) {{
-                console.log('进度同步已禁用，跳过保存进度');
-                return;
-            }}
-
-            // 检测后端是否在线
-            const backendOnline = checkBackendStatus();
-            if (!backendOnline) {{
-                console.log('后端离线，跳过保存进度');
-                updateBackendStatusDisplay();
-                return;
-            }}
-
             // 计算页面相关的进度信息
             const totalPages = pages.length;
             const currentPage = currentPageIndex + 1;
@@ -3784,6 +3829,35 @@ class BrowserReader:
             
             console.log('翻页模式保存数据:', data);
 
+            // 保存进度到本地localStorage作为备份
+            try {{
+                localStorage.setItem('localReadingProgress', JSON.stringify(data));
+                console.log('翻页进度已保存到本地存储');
+            }} catch (e) {{
+                console.log('保存翻页进度到本地存储失败:', e);
+            }}
+
+            // 如果没有SAVE_PROGRESS_URL或进度同步已禁用，只保存到本地
+            if (!SAVE_PROGRESS_URL) {{
+                console.log('SAVE_PROGRESS_URL 为空，仅保存翻页进度到本地');
+                return;
+            }}
+            
+            // 检查进度同步设置
+            if (!progressSyncEnabled) {{
+                console.log('进度同步已禁用，仅保存翻页进度到本地');
+                return;
+            }}
+
+            // 检测后端是否在线
+            const backendOnline = checkBackendStatus();
+            if (!backendOnline) {{
+                console.log('后端离线，仅保存翻页进度到本地');
+                updateBackendStatusDisplay();
+                return;
+            }}
+
+            // 尝试保存到服务器
             fetch(SAVE_PROGRESS_URL, {{
                 method: 'POST',
                 headers: {{
@@ -3795,9 +3869,14 @@ class BrowserReader:
                 if (response.ok) {{
                     isBackendOnline = true;
                     updateBackendStatusDisplay();
+                    console.log('翻页进度已成功保存到服务器');
+                }} else {{
+                    console.log('服务器保存翻页进度失败，状态码:', response.status);
+                    isBackendOnline = false;
+                    updateBackendStatusDisplay();
                 }}
             }}).catch(err => {{
-                console.log('保存翻页进度失败:', err);
+                console.log('保存翻页进度到服务器失败:', err);
                 isBackendOnline = false;
                 updateBackendStatusDisplay();
             }});
@@ -4483,25 +4562,7 @@ class BrowserReader:
         // 保存进度到服务器
         async function saveProgress(progress) {{
             console.log('开始保存进度，SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
-            if (!SAVE_PROGRESS_URL) {{
-                console.log('SAVE_PROGRESS_URL 为空，跳过保存进度');
-                return;
-            }}
             
-            // 检查进度同步设置
-            if (!progressSyncEnabled) {{
-                console.log('进度同步已禁用，跳过保存进度');
-                return;
-            }}
-
-            // 检测后端是否在线
-            const backendOnline = await checkBackendStatus();
-            if (!backendOnline) {{
-                console.log('后端离线，跳过保存进度');
-                updateBackendStatusDisplay();
-                return;
-            }}
-
             const scrollTop = window.scrollY;
             // 使用 document.documentElement.scrollHeight 更准确
             const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
@@ -4557,6 +4618,35 @@ class BrowserReader:
             cachedScrollHeight = scrollHeight;
             console.log('缓存进度值(小数):', cachedProgress);
 
+            // 保存进度到本地localStorage作为备份
+            try {{
+                localStorage.setItem('localReadingProgress', JSON.stringify(data));
+                console.log('进度已保存到本地存储');
+            }} catch (e) {{
+                console.log('保存进度到本地存储失败:', e);
+            }}
+
+            // 如果没有SAVE_PROGRESS_URL或进度同步已禁用，只保存到本地
+            if (!SAVE_PROGRESS_URL) {{
+                console.log('SAVE_PROGRESS_URL 为空，仅保存到本地');
+                return;
+            }}
+            
+            // 检查进度同步设置
+            if (!progressSyncEnabled) {{
+                console.log('进度同步已禁用，仅保存到本地');
+                return;
+            }}
+
+            // 检测后端是否在线
+            const backendOnline = await checkBackendStatus();
+            if (!backendOnline) {{
+                console.log('后端离线，仅保存到本地');
+                updateBackendStatusDisplay();
+                return;
+            }}
+
+            // 尝试保存到服务器
             fetch(SAVE_PROGRESS_URL, {{
                 method: 'POST',
                 headers: {{
@@ -4568,9 +4658,14 @@ class BrowserReader:
                 if (response.ok) {{
                     isBackendOnline = true;
                     updateBackendStatusDisplay();
+                    console.log('进度已成功保存到服务器');
+                }} else {{
+                    console.log('服务器保存进度失败，状态码:', response.status);
+                    isBackendOnline = false;
+                    updateBackendStatusDisplay();
                 }}
             }}).catch(err => {{
-                console.log('保存进度失败:', err);
+                console.log('保存进度到服务器失败:', err);
                 isBackendOnline = false;
                 updateBackendStatusDisplay();
             }});
@@ -4580,13 +4675,24 @@ class BrowserReader:
         function loadProgress() {{
             console.log('开始加载进度，LOAD_PROGRESS_URL:', LOAD_PROGRESS_URL);
             if (!LOAD_PROGRESS_URL) {{
-                console.log('LOAD_PROGRESS_URL 为空，跳过加载进度');
+                console.log('LOAD_PROGRESS_URL 为空，尝试加载本地进度');
+                loadLocalProgress();
                 return;
             }}
 
+            // 设置超时，如果服务器响应太慢则使用本地进度
+            const serverTimeout = setTimeout(() => {{
+                console.log('服务器响应超时，尝试加载本地进度');
+                loadLocalProgress();
+            }}, 3000); // 3秒超时
+
             fetch(LOAD_PROGRESS_URL)
                 .then(response => {{
+                    clearTimeout(serverTimeout);
                     console.log('服务器响应状态:', response.status);
+                    if (!response.ok) {{
+                        throw new Error('服务器响应错误: ' + response.status);
+                    }}
                     return response.json();
                 }})
                 .then(data => {{
@@ -4596,59 +4702,111 @@ class BrowserReader:
                         const progressDecimal = parseFloat(data.progress);
                         const progress = progressDecimal * 100;  // 转换为百分比
 
-                        // 尝试获取保存的滚动位置
-                        let scrollTop = parseInt(data.scrollTop || 0);
-                        let savedScrollHeight = parseInt(data.scrollHeight || 0);
-
-                        // 如果没有保存的滚动位置但有进度,根据进度计算滚动位置
-                        if (scrollTop === 0 && progress > 0) {{
-                            const actualScrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-                            const clientHeight = window.innerHeight;
-                            const scrollableHeight = Math.max(actualScrollHeight - clientHeight, 1);
-                            scrollTop = Math.round((progressDecimal) * scrollableHeight);
-                            console.log('根据进度计算滚动位置:', scrollTop + 'px', '可滚动高度:', scrollableHeight + 'px');
+                        // 验证进度是否有效
+                        if (isNaN(progressDecimal) || progressDecimal < 0 || progressDecimal > 1) {{
+                            console.log('服务器进度数据无效，尝试加载本地进度');
+                            loadLocalProgress();
+                            return;
                         }}
 
-                        console.log('解析进度 - progressDecimal:', progressDecimal, 'progress:', progress + '%', 'scrollTop:', scrollTop + 'px', 'savedScrollHeight:', savedScrollHeight + 'px');
-                        console.log('当前文档实际高度:', (document.documentElement.scrollHeight || document.body.scrollHeight) + 'px');
-
-                        // 检查 scrollTop 是否合理（不应超过文档实际高度太多）
-                        const actualScrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-                        const maxScrollTop = Math.max(actualScrollHeight - window.innerHeight, 0);
-                        const safeScrollTop = Math.min(scrollTop, maxScrollTop);
-
-                        console.log('安全滚动位置 - maxScrollTop:', maxScrollTop + 'px', 'safeScrollTop:', safeScrollTop + 'px');
-
-                        // 只有当进度大于 0 且滚动位置大于 0 时才滚动
-                        if (progress > 0 && safeScrollTop > 0) {{
-                            // 延迟滚动，确保 DOM 完全渲染
-                            setTimeout(() => {{
-                                window.scrollTo({{ top: safeScrollTop, behavior: 'smooth' }});
-
-                                // 验证滚动是否成功
-                                setTimeout(() => {{
-                                    const currentScroll = window.scrollY;
-                                    console.log('当前滚动位置:', currentScroll + 'px, 期望位置:', safeScrollTop + 'px');
-
-                                    // 如果滚动位置差异很大，尝试直接设置
-                                    if (Math.abs(currentScroll - safeScrollTop) > 100) {{
-                                        console.log('平滑滚动可能失败，尝试直接设置滚动位置');
-                                        window.scrollTo(0, safeScrollTop);
-                                    }}
-                                }}, 100);
-                            }}, 300);
-
-                            console.log('已恢复阅读进度:', progress + '%');
-                        }} else {{
-                            console.log('进度为 0 或滚动位置为 0，不恢复阅读位置');
+                        // 如果进度为0，也尝试加载本地进度
+                        if (progress <= 0) {{
+                            console.log('服务器进度为0%，尝试加载本地进度');
+                            loadLocalProgress();
+                            return;
                         }}
+
+                        // 服务器进度有效，使用服务器进度
+                        applyServerProgress(data, progressDecimal, progress);
                     }} else {{
-                        console.log('进度数据不完整或无效:', data);
+                        console.log('进度数据不完整或无效，尝试加载本地进度');
+                        loadLocalProgress();
                     }}
                 }})
                 .catch(err => {{
+                    clearTimeout(serverTimeout);
                     console.log('加载进度失败:', err);
+                    console.log('尝试加载本地进度');
+                    loadLocalProgress();
                 }});
+        }}
+        
+        // 加载本地进度
+        function loadLocalProgress() {{
+            try {{
+                // 从localStorage获取本地保存的进度
+                const localProgressData = localStorage.getItem('localReadingProgress');
+                if (localProgressData) {{
+                    const data = JSON.parse(localProgressData);
+                    console.log('加载到本地进度数据:', data);
+                    
+                    if (data && data.progress !== undefined) {{
+                        const progressDecimal = parseFloat(data.progress);
+                        const progress = progressDecimal * 100;
+                        
+                        // 验证本地进度是否有效
+                        if (!isNaN(progressDecimal) && progressDecimal >= 0 && progressDecimal <= 1 && progress > 0) {{
+                            // 使用本地进度
+                            applyServerProgress(data, progressDecimal, progress);
+                            console.log('已应用本地保存的阅读进度:', progress + '%');
+                            return;
+                        }}
+                    }}
+                }}
+                console.log('没有找到有效的本地进度数据');
+            }} catch (e) {{
+                console.log('加载本地进度失败:', e);
+            }}
+        }}
+        
+        // 应用进度（服务器或本地）
+        function applyServerProgress(data, progressDecimal, progress) {{
+            // 尝试获取保存的滚动位置
+            let scrollTop = parseInt(data.scrollTop || 0);
+            let savedScrollHeight = parseInt(data.scrollHeight || 0);
+
+            // 如果没有保存的滚动位置但有进度,根据进度计算滚动位置
+            if (scrollTop === 0 && progress > 0) {{
+                const actualScrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+                const clientHeight = window.innerHeight;
+                const scrollableHeight = Math.max(actualScrollHeight - clientHeight, 1);
+                scrollTop = Math.round((progressDecimal) * scrollableHeight);
+                console.log('根据进度计算滚动位置:', scrollTop + 'px', '可滚动高度:', scrollableHeight + 'px');
+            }}
+
+            console.log('解析进度 - progressDecimal:', progressDecimal, 'progress:', progress + '%', 'scrollTop:', scrollTop + 'px', 'savedScrollHeight:', savedScrollHeight + 'px');
+            console.log('当前文档实际高度:', (document.documentElement.scrollHeight || document.body.scrollHeight) + 'px');
+
+            // 检查 scrollTop 是否合理（不应超过文档实际高度太多）
+            const actualScrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+            const maxScrollTop = Math.max(actualScrollHeight - window.innerHeight, 0);
+            const safeScrollTop = Math.min(scrollTop, maxScrollTop);
+
+            console.log('安全滚动位置 - maxScrollTop:', maxScrollTop + 'px', 'safeScrollTop:', safeScrollTop + 'px');
+
+            // 只有当进度大于 0 且滚动位置大于 0 时才滚动
+            if (progress > 0 && safeScrollTop > 0) {{
+                // 延迟滚动，确保 DOM 完全渲染
+                setTimeout(() => {{
+                    window.scrollTo({{ top: safeScrollTop, behavior: 'smooth' }});
+
+                    // 验证滚动是否成功
+                    setTimeout(() => {{
+                        const currentScroll = window.scrollY;
+                        console.log('当前滚动位置:', currentScroll + 'px, 期望位置:', safeScrollTop + 'px');
+
+                        // 如果滚动位置差异很大，尝试直接设置
+                        if (Math.abs(currentScroll - safeScrollTop) > 100) {{
+                            console.log('平滑滚动可能失败，尝试直接设置滚动位置');
+                            window.scrollTo(0, safeScrollTop);
+                        }}
+                    }}, 100);
+                }}, 300);
+
+                console.log('已恢复阅读进度:', progress + '%');
+            }} else {{
+                console.log('进度为 0 或滚动位置为 0，不恢复阅读位置');
+            }}
         }}
         
         // 保存设置到localStorage
@@ -7066,7 +7224,7 @@ class BrowserReader:
             const elapsedTime = Date.now() - pageLoadStartTime;
             if (elapsedTime < pageLoadCooldown && cachedProgress !== null) {{
                 console.log('beforeunload - 使用缓存的进度值:', cachedProgress);
-                progress = cachedProgress;
+                progress = cachedProgress * 100; // 转换为百分比
             }} else {{
                 // 否则重新计算
                 const scrollableHeight = Math.max(scrollHeight - clientHeight, 1);
@@ -7077,40 +7235,51 @@ class BrowserReader:
 
             console.log('beforeunload - 最终使用的进度(百分比):', progress.toFixed(2) + '%');
 
-            if (SAVE_PROGRESS_URL) {{
-                // 将百分比(0-100)转换为小数(0-1)保存到数据库
-                // 使用高精度(15位小数)以匹配终端阅读器的精度
-                const progressDecimal = progress / 100;
+            // 将百分比(0-100)转换为小数(0-1)保存到数据库
+            // 使用高精度(15位小数)以匹配终端阅读器的精度
+            const progressDecimal = progress / 100;
 
-                // 计算页数（假设每页1000px）
-                const estimatedPageHeight = 1000;
-                const total_pages = Math.max(1, Math.floor(scrollHeight / estimatedPageHeight));
-                const current_page = Math.min(total_pages, Math.floor(progressDecimal * total_pages));
+            // 计算页数（假设每页1000px）
+            const estimatedPageHeight = 1000;
+            const total_pages = Math.max(1, Math.floor(scrollHeight / estimatedPageHeight));
+            const current_page = Math.min(total_pages, Math.floor(progressDecimal * total_pages));
 
-                // 计算字数（估算）
-                const content = document.getElementById('content');
-                let word_count = 0;
-                if (content) {{
-                    word_count = content.textContent.replace(/\\s+/g, '').length;
-                }}
+            // 计算字数（估算）
+            const content = document.getElementById('content');
+            let word_count = 0;
+            if (content) {{
+                word_count = content.textContent.replace(/\\s+/g, '').length;
+            }}
 
-                const data = {{
-                    progress: progressDecimal.toFixed(15),
-                    scrollTop: scrollTop,
-                    scrollHeight: scrollHeight,
-                    current_page: current_page,
-                    total_pages: total_pages,
-                    word_count: word_count,
-                    timestamp: Date.now(),
-                    reading_time: newTotalTime
-                }};
-                // 只有在启用进度同步时才发送
-                if (progressSyncEnabled) {{
-                    console.log('beforeunload - 发送数据(小数):', data);
-                    console.log('beforeunload - 发送JSON:', JSON.stringify(data));
-                    navigator.sendBeacon(SAVE_PROGRESS_URL, JSON.stringify(data));
-                }} else {{
-                    console.log('beforeunload - 进度同步已禁用，跳过发送');
+            const data = {{
+                progress: progressDecimal.toFixed(15),
+                scrollTop: scrollTop,
+                scrollHeight: scrollHeight,
+                current_page: current_page,
+                total_pages: total_pages,
+                word_count: word_count,
+                timestamp: Date.now(),
+                reading_time: newTotalTime
+            }};
+
+            // 总是保存到本地localStorage作为备份
+            try {{
+                localStorage.setItem('localReadingProgress', JSON.stringify(data));
+                console.log('beforeunload - 进度已保存到本地存储');
+            }} catch (e) {{
+                console.log('beforeunload - 保存进度到本地存储失败:', e);
+            }}
+
+            // 如果有SAVE_PROGRESS_URL且启用进度同步，也发送到服务器
+            if (SAVE_PROGRESS_URL && progressSyncEnabled) {{
+                console.log('beforeunload - 发送数据(小数):', data);
+                console.log('beforeunload - 发送JSON:', JSON.stringify(data));
+                navigator.sendBeacon(SAVE_PROGRESS_URL, JSON.stringify(data));
+            }} else {{
+                if (!SAVE_PROGRESS_URL) {{
+                    console.log('beforeunload - SAVE_PROGRESS_URL 为空，仅保存到本地');
+                }} else if (!progressSyncEnabled) {{
+                    console.log('beforeunload - 进度同步已禁用，仅保存到本地');
                 }}
             }}
         }});
