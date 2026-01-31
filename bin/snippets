@@ -23,6 +23,8 @@ custom_gum_show2hide_header "所有常用snippet选择器"
 #!!#
 
 #!!!#-- 文件、文件夹管理
+#!!#|- 终端文件管理器(好看可配置)yazi
+#!!#|- 终端文件管理器(好看有图标)rovr
 #!!#|- 终端文件管理器broot	broot
 #!!#|- 终端文件管理器ranger	ranger
 #!!#|- 终端文件管理器xplr	xplr
