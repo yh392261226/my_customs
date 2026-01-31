@@ -67,15 +67,19 @@ class Lulu6Parser(BaseParser):
         重写URL生成方法，适配撸撸色书的URL格式
         
         Args:
-            novel_id: 小说ID
+            novel_id: 小说ID，可以是纯数字（如"123456"）或包含分类的格式（如"luanqing/123456"）
             category: 分类，默认为luanqing
             
         Returns:
             小说URL
         """
-        # 撸撸色书的URL格式：/{category}/{novel_id}.html
-        # 其中category可以是luanqing、dushi、xiaoshuo等各种分类
-        return f"{self.base_url}/{category}/{novel_id}.html"
+        # 如果novel_id包含斜杠，说明已经包含了category，直接使用
+        if '/' in novel_id:
+            # 格式如 "luanqing/123456" 或 "dushi/234567"
+            return f"{self.base_url}/{novel_id}.html"
+        else:
+            # 纯数字格式，使用默认category
+            return f"{self.base_url}/{category}/{novel_id}.html"
     
     def _detect_book_type(self, content: str) -> str:
         """
@@ -194,14 +198,21 @@ class Lulu6Parser(BaseParser):
         重写小说详情解析方法，支持category参数
         
         Args:
-            novel_id: 小说ID
-            category: 分类
+            novel_id: 小说ID，可以是纯数字（如"123456"）或包含分类的格式（如"luanqing/123456"）
+            category: 分类，默认为luanqing
             
         Returns:
             小说详情信息
         """
         # 重置章节计数器
         self.chapter_count = 0
+        
+        # 如果novel_id包含斜杠，提取实际的category
+        if '/' in novel_id:
+            parts = novel_id.split('/')
+            if len(parts) >= 2:
+                category = parts[0]
+                novel_id = parts[1]
         
         novel_url = self.get_novel_url(novel_id, category)
         content = self._get_url_content(novel_url)
@@ -216,10 +227,25 @@ class Lulu6Parser(BaseParser):
         
         logger.info(f"开始处理 [ {title} ] - 分类: {category}")
         
-        # 提取内容
-        content_text = self._extract_with_regex(content, self.content_reg)
+        # 提取内容 - 只取第一个article标签（避免提取列表部分）
+        content_text = self._extract_with_regex(content, [r'<article[^>]*>(.*?)</article>'])
         if not content_text:
             raise Exception("无法提取小说内容")
+        
+        # 清理内容，移除后面的列表部分
+        # 查找"友情链接"或"友情链接"等列表开始的标记
+        cut_patterns = [
+            r'友情链接',
+            r'<div class="side">',
+            r'<article class="post_excerpt cate',
+        ]
+        
+        for pattern in cut_patterns:
+            if pattern in content_text:
+                cut_pos = content_text.find(pattern)
+                if cut_pos != -1:
+                    content_text = content_text[:cut_pos]
+                    break
         
         # 应用撸撸色书特定的内容清理
         content_text = self._clean_content_specific(content_text)
