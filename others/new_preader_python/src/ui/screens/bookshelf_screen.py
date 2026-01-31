@@ -677,7 +677,7 @@ class BookshelfScreen(Screen[None]):
             for book in filtered_books:
                 reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
                 progress = reading_info.get('reading_progress', 0)
-                self.logger.debug(f"书籍: {book.title[:20]}, 进度: {progress}")
+                # self.logger.debug(f"书籍: {book.title[:20]}, 进度: {progress}")
                 if progress >= 1.0:
                     completed_books.append(book)
                 else:
