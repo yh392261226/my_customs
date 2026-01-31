@@ -962,6 +962,6 @@ class which_key(Command):
         fm = self.fm
         
         # 直接显示最重要的快捷键，保持简洁
-        fm.notify("🎯 快捷键菜单: 📁o-打开 r-方式 y-文件名 Y-路径 dd-剪切 yy-复制 pp-粘贴 D-删除 R-重命名 v-选择 | 🧭h-上级 l-进入 j-下 k-上 gg-顶 G-底 cd-切换 | 🔍f-fzf ff-内置 /-搜索 n-下 N-上 | ✅已屏蔽永久删除", bad=False)
+        fm.notify("🎯 菜单: 📁o-打开  r-方式  y-文件名  Y-路径  dd-剪切  yy-复制  pp-粘贴  D-删除  R-重命名  v-选择 | 🧭h-上级. l-进入. j-下. k-上. gg-顶. G-底. cd-切换 | 🔍C-f-fzf  ff-内置  /-搜索  n-下  N-上", bad=False)
 
 

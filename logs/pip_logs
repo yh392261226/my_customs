@@ -102,3 +102,5 @@ pipx install jc
 pipx install pyinstaller
 
 pipx install posting
+
+pipx install rovr
