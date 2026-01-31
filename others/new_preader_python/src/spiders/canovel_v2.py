@@ -117,7 +117,7 @@ class CanovelParser(BaseParser):
         if not title:
             raise Exception("无法提取小说标题")
         
-        print(f"开始处理 [ {title} ] - 类型: 内容页内分页")
+        logger.info(f"开始处理 [ {title} ] - 类型: 内容页内分页")
         
         # 创建小说内容结构
         novel_content = {
@@ -131,7 +131,7 @@ class CanovelParser(BaseParser):
         # 抓取所有内容页
         self._get_all_content_pages_direct(start_url, novel_content)
         
-        print(f'[ {title} ] 完成')
+        logger.info(f'[ {title} ] 完成')
         return novel_content
     
     def _get_all_content_pages_direct(self, start_url: str, novel_content: Dict[str, Any]) -> None:

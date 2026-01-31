@@ -714,7 +714,7 @@ class BaseParser:
         if not title:
             raise Exception("无法提取小说标题")
         
-        print(f"开始处理 [ {title} ] - 类型: {book_type}")
+        logger.info(f"开始处理 [ {title} ] - 类型: {book_type}")
         
         # 根据书籍类型选择处理方式
         if book_type == "多章节":
@@ -724,7 +724,7 @@ class BaseParser:
         else:
             novel_content = self._parse_single_chapter_novel(content, novel_url, title)
         
-        print(f'[ {title} ] 完成')
+        logger.info(f'[ {title} ] 完成')
         return novel_content
     
     def _parse_single_chapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:

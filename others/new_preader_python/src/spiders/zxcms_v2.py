@@ -181,12 +181,12 @@ class ZXCMSParser(BaseParser):
         # 繁简转换标题
         title = self._convert_traditional_to_simplified(title)
         
-        print(f"开始处理 [ {title} ]")
+        logger.info(f"开始处理 [ {title} ]")
         
         # 使用自己的多章节解析逻辑
         novel_content = self._parse_multichapter_novel(content, novel_url, title)
         
-        print(f'[ {title} ] 完成')
+        logger.info(f'[ {title} ] 完成')
         return novel_content
     
     def _get_next_page_url(self, content: str, current_url: str) -> Optional[str]:
@@ -252,7 +252,7 @@ class ZXCMSParser(BaseParser):
         if not read_url:
             raise Exception("无法提取开始阅读链接")
         
-        print(f"开始处理 [ {title} ] - 开始阅读链接: {read_url}")
+        logger.info(f"开始处理 [ {title} ] - 开始阅读链接: {read_url}")
         
         # 获取所有章节内容
         chapters_with_content = []
@@ -333,7 +333,7 @@ class ZXCMSParser(BaseParser):
                     'url': current_url
                 })
                 
-                print(f"章节 {chapter_number}: {chapter_title} - 完成")
+                logger.info(f"章节 {chapter_number}: {chapter_title} - 完成")
                 
                 # 获取下一页链接
                 next_url = self._extract_next_page(chapter_content)
@@ -437,7 +437,7 @@ class ZXCMSParser(BaseParser):
                         title = re.sub(r'\s+', ' ', title)
                         return title.strip()
         except Exception as e:
-            print(f"提取章节标题失败: {e}")
+            logger.warning(f"提取章节标题失败: {e}")
         return None
     
     def _extract_next_page(self, content: str) -> Optional[str]:

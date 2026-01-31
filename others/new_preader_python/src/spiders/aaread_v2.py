@@ -232,7 +232,7 @@ class AareadParser(BaseParser):
             if not chapters_info:
                 raise ValueError("未获取到章节列表")
             
-            print(f"开始处理 [ {title} ] - 找到 {len(chapters_info)} 个章节")
+            logger.info(f"开始处理 [ {title} ] - 找到 {len(chapters_info)} 个章节")
             
             # 解析每个章节内容
             chapters = []
@@ -248,10 +248,10 @@ class AareadParser(BaseParser):
                         'word_count': chapter_content['word_count']
                     })
                     
-                    print(f"章节 {i+1}/{len(chapters_info)}: {chapter_content['chapter_title']} - 完成")
+                    logger.info(f"章节 {i+1}/{len(chapters_info)}: {chapter_content['chapter_title']} - 完成")
                     
                 except Exception as e:
-                    print(f"章节 {i+1}/{len(chapters_info)}: 解析失败 - {e}")
+                    logger.error(f"章节 {i+1}/{len(chapters_info)}: {chapter_content['chapter_title']} - 错误: {e}")
                     # 继续处理其他章节，不中断整个流程
                     continue
             
@@ -273,7 +273,7 @@ class AareadParser(BaseParser):
                 "chapters": chapters
             }
             
-            print(f'[ {title} ] 完成 - 成功解析 {len(chapters)} 个章节')
+            logger.info(f'[ {title} ] 完成 - 成功解析 {len(chapters)} 个章节')
             return novel_content
             
         except Exception as e:

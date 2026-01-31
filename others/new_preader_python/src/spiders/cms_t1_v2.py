@@ -292,7 +292,7 @@ class CmsT1Parser(BaseParser):
             # 自动检测书籍类型
             book_type = self._detect_book_type(content_text)
             
-            print(f"开始处理 [ {title} ] - 类型: {book_type}")
+            logger.info(f"开始处理 [ {title} ] - 类型: {book_type}")
             
             # 直接返回小说内容（跳过基类的正则提取步骤）
             novel_content = {
@@ -311,7 +311,7 @@ class CmsT1Parser(BaseParser):
                 ]
             }
             
-            print(f'[ {title} ] 完成')
+            logger.info(f'[ {title} ] 完成')
             return novel_content
             
         except json.JSONDecodeError as e:

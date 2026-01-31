@@ -275,7 +275,7 @@ class Kunnu8Parser(BaseParser):
             if not chapters_info:
                 raise ValueError("未获取到章节列表")
             
-            print(f"开始处理 [ {title} ] - 章节数: {len(chapters_info)}")
+            logger.info(f"开始处理 [ {title} ] - 章节数: {len(chapters_info)}")
             
             # 逐章获取内容
             chapters = []
@@ -337,7 +337,7 @@ class Kunnu8Parser(BaseParser):
                 "chapters": chapters
             }
             
-            print(f'[ {title} ] 完成，共处理 {len(chapters)} 章')
+            logger.info(f'[ {title} ] 完成，共处理 {len(chapters)} 章')
             return novel_content
             
         except Exception as e:

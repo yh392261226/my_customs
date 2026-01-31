@@ -125,7 +125,7 @@ class Yinse1xiaoshuoParser(BaseParser):
         current_url = novel_url
         page_count = 1
         
-        print(f"开始爬取分页内容: {title}")
+        logger.info(f"开始爬取分页内容: {title}")
         
         while current_url:
             # 获取当前页面内容

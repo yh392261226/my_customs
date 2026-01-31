@@ -380,7 +380,7 @@ class W6180059Parser(BaseParser):
             # 获取详情页URL
             novel_url = self.get_novel_url(novel_id)
             
-            print(f"开始处理 [ {title} ]")
+            logger.info(f"开始处理 [ {title} ]")
             
             # 构建小说信息
             novel_content = {
@@ -400,7 +400,7 @@ class W6180059Parser(BaseParser):
                 ]
             }
             
-            print(f'[ {title} ] 完成')
+            logger.info(f'[ {title} ] 完成')
             return novel_content
             
         except Exception as e:

@@ -440,7 +440,7 @@ class CmsT3Parser(BaseParser):
         if not novel_content:
             raise Exception("无法提取小说内容")
         
-        print(f"开始处理 [ {title} ] - 状态: {status}")
+        logger.info(f"开始处理 [ {title} ] - 状态: {status}")
         
         # 清理和格式化内容
         cleaned_content = self._clean_and_format_content(novel_content)

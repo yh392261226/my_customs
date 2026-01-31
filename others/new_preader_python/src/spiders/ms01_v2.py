@@ -162,7 +162,7 @@ class Ms01Parser(BaseParser):
         if not title:
             raise Exception("无法提取小说标题")
         
-        print(f"开始处理 [ {title} ]")
+        logger.info(f"开始处理 [ {title} ]")
         
         # 提取加密内容
         encrypted_content = self._extract_with_regex(content, self.content_reg)
@@ -173,7 +173,7 @@ class Ms01Parser(BaseParser):
         # 执行解密和处理函数
         processed_content = self._execute_after_crawler_funcs(encrypted_content)
         
-        print(f'[ {title} ] 完成')
+        logger.info(f'[ {title} ] 完成')
         
         return {
             'title': title,

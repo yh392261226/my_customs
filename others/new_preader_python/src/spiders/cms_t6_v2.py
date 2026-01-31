@@ -214,12 +214,12 @@ class CmsT6Parser(BaseParser):
         if not description:
             description = "无简介"
         
-        print(f"开始处理 [ {title} ] - 类型: 短篇")
+        logger.info(f"开始处理 [ {title} ] - 类型: 短篇")
         
         # 提取内容
         novel_content = self._parse_single_chapter_novel(content, novel_url, title, description)
         
-        print(f'[ {title} ] 完成')
+        logger.info(f'[ {title} ] 完成')
         return novel_content
     
     def _parse_single_chapter_novel(self, content: str, novel_url: str, title: str, description: str) -> Dict[str, Any]:
@@ -492,7 +492,7 @@ if __name__ == "__main__":
         novel_content = parser.parse_novel_detail(novel_id)
         
         # 打印小说信息
-        print(f"标题: {novel_content['title']}")
+        logger.info(f"标题: {novel_content['title']}")
         if 'description' in novel_content:
             print(f"简介: {novel_content['description']}")
         print(f"内容长度: {len(novel_content['chapters'][0]['content'])}")

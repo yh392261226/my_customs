@@ -160,25 +160,25 @@ class HXtxt38Parser(BaseParser):
         title_match = re.search(r'<title>([^<]+)</title>', content)
         if title_match:
             encrypted_title = title_match.group(1).strip()
-            print(f"提取到加密标题: {encrypted_title}")
+            logger.debug(f"提取到加密标题: {encrypted_title}")
             decrypted_title = self._decrypt_content(encrypted_title, keys['aek'], keys['aei'])
             if decrypted_title:
-                print(f"解密标题成功: {decrypted_title}")
+                logger.info(f"解密标题成功: {decrypted_title}")
                 return decrypted_title
             else:
-                print("标题解密失败")
+                logger.warning("标题解密失败")
         
         # 如果<title>标签解密失败，尝试从<h1>标签提取
         title_match = re.search(r'<h1 class="bookname d">([^<]+)</h1>', content)
         if title_match:
             encrypted_title = title_match.group(1).strip()
-            print(f"从h1标签提取到加密标题: {encrypted_title}")
+            logger.debug(f"从h1标签提取到加密标题: {encrypted_title}")
             decrypted_title = self._decrypt_content(encrypted_title, keys['aek'], keys['aei'])
             if decrypted_title:
-                print(f"h1标签解密标题成功: {decrypted_title}")
+                logger.info(f"h1标签解密标题成功: {decrypted_title}")
                 return decrypted_title
             else:
-                print("h1标签标题解密失败")
+                logger.warning("h1标签标题解密失败")
         
         return None
     
@@ -313,9 +313,9 @@ class HXtxt38Parser(BaseParser):
                             'content': ''  # 稍后获取内容
                         })
                         chapter_number += 1
-                        print(f"提取章节 {chapter_number-1}: {chapter_title} -> {chapter_url}")
+                        logger.debug(f"提取章节 {chapter_number-1}: {chapter_title} -> {chapter_url}")
                     else:
-                        print("章节标题为空，跳过")
+                        logger.debug("章节标题为空，跳过")
                 else:
                     # 如果没有找到标准的<a>标签，尝试其他格式
                     print(f"未找到标准的<a>标签，尝试其他格式解析...")
@@ -336,13 +336,13 @@ class HXtxt38Parser(BaseParser):
                             'content': ''
                         })
                         chapter_number += 1
-                        print(f"提取章节 {chapter_number-1}: {chapter_title} -> {chapter_url}")
+                        logger.debug(f"提取章节 {chapter_number-1}: {chapter_title} -> {chapter_url}")
                     else:
-                        print("无法提取章节标题，跳过")
+                        logger.debug("无法提取章节标题，跳过")
             else:
-                print(f"解密失败，跳过此内容")
+                logger.warning(f"解密失败，跳过此内容")
         
-        print(f"总共提取到 {len(chapters)} 个章节")
+        logger.info(f"总共提取到 {len(chapters)} 个章节")
         return chapters
     
     def _get_chapter_content(self, chapter_url: str, keys: Dict[str, str]) -> Optional[str]:
@@ -525,7 +525,7 @@ class HXtxt38Parser(BaseParser):
             if not title:
                 title = self._extract_with_regex(content, self.title_reg)
                 if title:
-                    print(f"直接提取标题: {title}")
+                    logger.info(f"直接提取标题: {title}")
                 else:
                     # 尝试从<title>标签提取
                     title_match = re.search(r'<title>([^<]+)</title>', content)
@@ -535,7 +535,7 @@ class HXtxt38Parser(BaseParser):
                         # 从URL提取小说ID作为标题
                         title = f"小说_{novel_id}"
             
-            print(f"小说标题: {title}")
+            logger.info(f"小说标题: {title}")
             
             if not title:
                 raise Exception("无法提取小说标题")
@@ -664,7 +664,7 @@ class HXtxt38Parser(BaseParser):
             print(f"测试失败: {result['error']}")
         else:
             print(f"测试成功!")
-            print(f"小说标题: {result['title']}")
+            logger.info(f"小说标题: {result['title']}")
             print(f"作者: {result['author']}")
             print(f"小说ID: {result['novel_id']}")
             print(f"章节数量: {len(result['chapters'])}")
@@ -673,7 +673,7 @@ class HXtxt38Parser(BaseParser):
             # 显示章节内容预览
             if result['chapters']:
                 chapter = result['chapters'][0]
-                print(f"章节标题: {chapter['title']}")
+                logger.info(f"章节标题: {chapter['title']}")
                 if chapter['content']:
                     print(f"内容预览: {chapter['content'][:200]}...")
 

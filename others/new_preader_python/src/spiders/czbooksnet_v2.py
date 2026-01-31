@@ -101,7 +101,7 @@ class CzbooksnetParser(BaseParser):
         novel_id = self._extract_novel_id_from_url(novel_url)
         self._current_novel_id = novel_id
         
-        print(f"开始解析书籍: {title} (ID: {novel_id})")
+        logger.info(f"开始解析书籍: {title} (ID: {novel_id})")
         
         # 提取章节链接
         chapter_links = self._extract_chapter_links(content)

@@ -6,7 +6,7 @@ Playwright 爬虫工具类
 import re
 import time
 import asyncio
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -91,16 +91,29 @@ class PlaywrightCrawler:
         try:
             if self.page:
                 await self.page.close()
+                self.page = None
             if self.context:
                 await self.context.close()
+                self.context = None
             if self.browser:
                 await self.browser.close()
-            if hasattr(self, 'playwright'):
+                self.browser = None
+            if hasattr(self, 'playwright') and self.playwright:
                 await self.playwright.stop()
+                self.playwright = None
             
             logger.info("Playwright 浏览器已关闭")
         except Exception as e:
             logger.warning(f"关闭 Playwright 浏览器时出错: {e}")
+
+    async def __aenter__(self):
+        """异步上下文管理器入口"""
+        await self.init_browser()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """异步上下文管理器出口"""
+        await self.close()
     
     async def get_page_content(self, url: str, timeout: int = 60) -> Optional[str]:
         """
@@ -413,25 +426,46 @@ def detect_cloudflare_turnstile_in_content(content: str) -> bool:
     return False
 
 
+async def get_playwright_content_async(url: str, proxy_config: Optional[Dict[str, Any]] = None, 
+                                       timeout: int = 60, headless: bool = True) -> Optional[str]:
+    """
+    便捷函数：使用 Playwright 异步获取页面内容
+    
+    Args:
+        url: 目标URL
+        proxy_config: 代理配置
+        timeout: 超时时间
+        headless: 是否无头模式
+        
+    Returns:
+        页面内容或None
+    """
+    crawler = PlaywrightCrawler(proxy_config, headless)
+    
+    try:
+        async with crawler:
+            return await crawler.get_page_content(url, timeout)
+    except Exception as e:
+        logger.error(f"获取页面内容失败: {url}, 错误: {e}")
+        return None
+
+
 def get_playwright_content(url: str, proxy_config: Optional[Dict[str, Any]] = None, 
                           timeout: int = 60, headless: bool = True) -> Optional[str]:
     """
-    便捷函数：使用 Playwright 获取页面内容
+    便捷函数：使用 Playwright 获取页面内容（同步版本）
     
-        Args:
-            url: 目标URL
-            proxy_config: 代理配置
-            timeout: 超时时间
-            headless: 是否无头模式
-            
-        Returns:
-            页面内容或None
-        """
-    manager = PlaywrightManager()
-    crawler = manager.get_crawler(proxy_config, headless)
-    
+    Args:
+        url: 目标URL
+        proxy_config: 代理配置
+        timeout: 超时时间
+        headless: 是否无头模式
+        
+    Returns:
+        页面内容或None
+    """
     try:
-        return crawler.get_content_sync(url, timeout)
+        return asyncio.run(get_playwright_content_async(url, proxy_config, timeout, headless))
     except Exception as e:
         logger.error(f"获取页面内容失败: {url}, 错误: {e}")
         return None

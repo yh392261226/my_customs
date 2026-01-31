@@ -107,7 +107,7 @@ class PhotoGramParser(BaseParser):
         if not chapters_list:
             raise Exception("无法提取章节列表")
         
-        print(f"开始处理 [ {title} ] - 找到 {len(chapters_list)} 个章节")
+        logger.info(f"开始处理 [ {title} ] - 找到 {len(chapters_list)} 个章节")
         
         # 创建URL记录文件
         novel_id = self._extract_novel_id_from_url(novel_url)
@@ -132,10 +132,10 @@ class PhotoGramParser(BaseParser):
                         'url': chapter_url
                     })
                     # successful_urls.append(chapter_url)
-                    print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 完成")
+                    logger.info(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 完成")
                 else:
                     # failed_urls.append(chapter_url)
-                    print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 获取内容失败")
+                    logger.warning(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 获取内容失败")
                     
                 # 章节间延迟
                 import time
@@ -143,7 +143,7 @@ class PhotoGramParser(BaseParser):
                     
             except Exception as e:
                 # failed_urls.append(chapter_info['url'])
-                print(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 错误: {e}")
+                logger.error(f"章节 {i+1}/{len(chapters_list)}: {chapter_info['title']} - 错误: {e}")
         
         # 写入URL记录文件
         # self._write_urls_to_file(url_record_file, successful_urls, failed_urls, novel_url, title)
@@ -1745,7 +1745,7 @@ class PhotoGramParser(BaseParser):
             
             # 提取标题
             title = self._extract_with_regex(content, self.title_reg)
-            print(f"提取标题: {title}")
+            logger.info(f"提取标题: {title}")
             
             if not title:
                 return {"error": "无法提取小说标题"}  # type: ignore
@@ -1776,7 +1776,7 @@ class PhotoGramParser(BaseParser):
             print(f"测试失败: {result['error']}")
         else:
             print(f"测试成功!")
-            print(f"小说标题: {result['title']}")
+            logger.info(f"小说标题: {result['title']}")
             print(f"作者: {result['author']}")
             print(f"小说ID: {result['novel_id']}")
             print(f"章节数量: {len(result['chapters'])}")
@@ -1784,7 +1784,7 @@ class PhotoGramParser(BaseParser):
             
             # 显示前3个章节的标题
             for i, chapter in enumerate(result['chapters'][:3]):
-                print(f"章节 {i+1}: {chapter['title']}")
+                logger.info(f"章节 {i+1}: {chapter['title']}")
                 if chapter['content']:
                     print(f"  内容预览: {chapter['content'][:100]}...")
             

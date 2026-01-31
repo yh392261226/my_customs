@@ -305,7 +305,7 @@ if __name__ == "__main__":
         novel_content = parser.parse_novel_detail(novel_id)
         file_path = parser.save_to_file(novel_content, "novels")
         print(f"小说已保存到: {file_path}")
-        print(f"小说标题: {novel_content.get('title')}")
+        logger.info(f"小说标题: {novel_content.get('title')}")
         print(f"章节数量: {len(novel_content.get('chapters', []))}")
     except Exception as e:
         logger.error(f"抓取失败: {e}")

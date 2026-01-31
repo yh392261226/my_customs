@@ -214,7 +214,7 @@ class Lulu6Parser(BaseParser):
         if not title:
             raise Exception("无法提取小说标题")
         
-        print(f"开始处理 [ {title} ] - 分类: {category}")
+        logger.info(f"开始处理 [ {title} ] - 分类: {category}")
         
         # 提取内容
         content_text = self._extract_with_regex(content, self.content_reg)
