@@ -1,0 +1,5 @@
+[plugin]
+deps = [{ use = "KKV9/command", rev = "dc9b483" }, { use = "AnirudhG07/custom-shell", rev = "d7fb2b3" }, { use = "yazi-rs/plugins:max-preview", rev = "ec97f88" }, { use = "yazi-rs/plugins:hide-preview", rev = "ec97f88" }]
+
+[flavor]
+deps = [{ use = "kmlupreti/ayu-dark", rev = "441a38d" }, { use = "sanjinso/monokai-vibrant", rev = "8b68223" }]

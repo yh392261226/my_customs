@@ -201,5 +201,7 @@ if [ "y" = "$choose" ] || [ "yes" = "$choose" ]; then
     ln -sf $MYRUNTIME/customs/configs/helix/languages.toml      ~/.config/helix/languages.toml
     mv ~/.config/lf ~/bak/config/
     ln -sf $MYRUNTIME/customs/configs/lf                        ~/.config/lf
+    mv ~/.config/yazi ~/bak/config/
+    ln -sf $MYRUNTIME/customs/configs/yazi                      ~/.config/yazi
 fi
 # ----------------------------------------------------------------------------------- #

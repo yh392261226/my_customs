@@ -1,0 +1,23 @@
+[[mgr.prepend_keymap]]
+on = "!"
+run = 'shell "$SHELL" --block'
+desc = "Open shell here"
+
+[[input.prepend_keymap]]
+on = "<Esc>"
+run = "close"
+desc = "Cancel input"
+
+[[mgr.prepend_keymap]]
+on = "T"
+run = "plugin --sync max-preview"
+# For upcoming Yazi 0.4 (nightly version):
+# run  = "plugin max-preview"
+desc = "Maximize or restore preview"
+
+[[mgr.prepend_keymap]]
+on = "T"
+run = "plugin --sync hide-preview"
+# For upcoming Yazi 0.4 (nightly version):
+# run  = "plugin hide-preview"
+desc = "Hide or show preview"

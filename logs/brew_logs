@@ -991,3 +991,4 @@ brew install pup
 brew install ffmpegthumbnailer poppler
 brew install --cask raycast
 brew install harlequin
+brew install yazi
