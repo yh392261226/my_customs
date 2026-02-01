@@ -1536,3 +1536,135 @@ class Bookshelf:
             logger.warning(f"读取作者列表失败: {e}")
         
         return author_options
+    
+    def update_book_progress(self, book_path: str, progress: float, scroll_top: int, scroll_height: int) -> bool:
+        """
+        更新书籍阅读进度
+        
+        Args:
+            book_path: 书籍路径
+            progress: 阅读进度 (0.0-1.0)
+            scroll_top: 滚动位置
+            scroll_height: 总高度
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            import json
+            from datetime import datetime
+            
+            # 获取当前书籍元数据
+            metadata_json = self.db_manager.get_book_metadata(book_path, self.current_user_id)
+            metadata = {}
+            
+            if metadata_json:
+                try:
+                    metadata = json.loads(metadata_json)
+                except json.JSONDecodeError:
+                    logger.warning(f"解析书籍元数据失败: {book_path}")
+                    metadata = {}
+            
+            # 更新进度相关字段
+            metadata.update({
+                'reading_progress': progress,
+                'scroll_top': scroll_top,
+                'scroll_height': scroll_height,
+                'last_read_date': datetime.now().isoformat()
+            })
+            
+            # 保存更新后的元数据
+            success = self.db_manager.save_book_metadata(
+                book_path, 
+                json.dumps(metadata, ensure_ascii=False), 
+                self.current_user_id
+            )
+            
+            if success:
+                # 更新缓存
+                if book_path in self._reading_info_cache:
+                    self._reading_info_cache[book_path]['reading_progress'] = progress
+                    self._reading_info_cache[book_path]['last_read_date'] = metadata['last_read_date']
+                
+                logger.info(f"书籍进度更新成功: {book_path} - {progress * 100:.2f}%")
+            
+            return success
+            
+        except Exception as e:
+            logger.error(f"更新书籍进度失败: {e}")
+            return False
+    
+    def get_book_progress(self, book_path: str) -> Optional[Dict[str, Any]]:
+        """
+        获取书籍阅读进度
+        
+        Args:
+            book_path: 书籍路径
+            
+        Returns:
+            Optional[Dict[str, Any]]: 进度数据，包含progress, scroll_top, scroll_height等
+        """
+        try:
+            import json
+            
+            # 获取书籍元数据
+            metadata_json = self.db_manager.get_book_metadata(book_path, self.current_user_id)
+            
+            if not metadata_json:
+                return None
+            
+            try:
+                metadata = json.loads(metadata_json)
+                
+                # 提取进度相关字段
+                progress_data = {
+                    'progress': metadata.get('reading_progress', 0.0),
+                    'scroll_top': metadata.get('scroll_top', 0),
+                    'scroll_height': metadata.get('scroll_height', 0),
+                    'last_read_date': metadata.get('last_read_date'),
+                    'current_page': metadata.get('current_page', 0),
+                    'total_pages': metadata.get('total_pages', 0),
+                    'word_count': metadata.get('word_count', 0)
+                }
+                
+                return progress_data
+                
+            except json.JSONDecodeError:
+                logger.warning(f"解析书籍元数据失败: {book_path}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"获取书籍进度失败: {e}")
+            return None
+    
+    def get_recent_books(self, limit: int = 1) -> List[Any]:
+        """
+        获取最近阅读的书籍
+        
+        Args:
+            limit: 返回的书籍数量限制
+            
+        Returns:
+            List[Any]: 最近阅读的书籍列表
+        """
+        try:
+            # 获取所有书籍
+            all_books = self.get_all_books()
+            
+            # 为每本书获取阅读信息
+            books_with_info = []
+            for book in all_books:
+                reading_info = self.get_reading_info(book.path)
+                if reading_info and reading_info.get('last_read_date'):
+                    book.last_read_date = reading_info['last_read_date']
+                    book.reading_progress = reading_info.get('reading_progress', 0)
+                    books_with_info.append(book)
+            
+            # 按最后阅读日期排序
+            books_with_info.sort(key=lambda x: x.last_read_date, reverse=True)
+            
+            return books_with_info[:limit]
+            
+        except Exception as e:
+            logger.error(f"获取最近阅读书籍失败: {e}")
+            return []

@@ -205,7 +205,9 @@ class BrowserReader:
     def create_reader_html(content: str, title: str = "书籍阅读", theme: str = "light", 
                         custom_settings: Optional[Dict[str, str]] = None,
                         save_progress_url: Optional[str] = None,
-                        load_progress_url: Optional[str] = None) -> str:
+                        load_progress_url: Optional[str] = None,
+                        book_id: Optional[str] = None,
+                        initial_progress: Optional[float] = None) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -228,9 +230,7 @@ class BrowserReader:
             applyTheme(currentSettings);
             
             // 加载保存的进度
-            if (LOAD_PROGRESS_URL) {
-                loadProgress();
-            }
+            loadBookProgress();
             
             // 检查后端状态
             checkBackendStatus();
@@ -2907,6 +2907,97 @@ class BrowserReader:
         let syncInterval = parseInt(localStorage.getItem('syncInterval') || '7200000'); // 默认2小时
         let lastSyncTime = localStorage.getItem('lastSyncTime') || null;
         
+        // 书籍ID（用于区分不同书籍的进度）
+        let BOOK_ID = '{book_id or title}';
+        
+        // 初始进度（从Python端传递）
+        const INITIAL_PROGRESS = {initial_progress if initial_progress is not None else 'null'};
+        
+        // 获取书籍特定的本地进度键名
+        function getLocalProgressKey(bookId = BOOK_ID) {{
+            return `localReadingProgress_${{bookId}}`;
+        }}
+        
+        // 获取书籍特定的本地进度数据
+        function getLocalProgressData(bookId = BOOK_ID) {{
+            const key = getLocalProgressKey(bookId);
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }}
+        
+        // 保存书籍特定的本地进度数据
+        function setLocalProgressData(data, bookId = BOOK_ID) {{
+            const key = getLocalProgressKey(bookId);
+            localStorage.setItem(key, JSON.stringify(data));
+            console.log(`进度已保存到本地存储 [${{bookId}}]`);
+        }}
+        
+        // 更新当前书籍ID并重新加载进度
+        function updateCurrentBook(newBookId) {{
+            if (newBookId !== BOOK_ID) {{
+                console.log(`切换书籍：从 [${{BOOK_ID}}] 到 [${{newBookId}}]`);
+                
+                // 保存当前书籍的进度（如果有的话）
+                const currentScrollTop = window.scrollY;
+                const currentScrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+                const currentClientHeight = window.innerHeight;
+                const currentProgress = currentScrollHeight > currentClientHeight ? 
+                    (currentScrollTop / (currentScrollHeight - currentClientHeight)) * 100 : 0;
+                
+                if (currentProgress > 0) {{
+                    const currentData = {{
+                        progress: (currentProgress / 100).toFixed(15),
+                        scrollTop: currentScrollTop,
+                        scrollHeight: currentScrollHeight,
+                        current_page: Math.floor(currentProgress / 100 * 100),
+                        total_pages: 100,
+                        word_count: 0,
+                        timestamp: Date.now()
+                    }};
+                    setLocalProgressData(currentData, BOOK_ID);
+                    console.log(`已保存书籍 [${{BOOK_ID}}] 的当前进度: ${{currentProgress.toFixed(2)}}%`);
+                }}
+                
+                // 更新书籍ID
+                BOOK_ID = newBookId;
+                console.log(`当前书籍ID已更新为: [${{BOOK_ID}}]`);
+                
+                // 重新加载新书籍的进度
+                loadBookProgress();
+            }}
+        }}
+        
+        // 加载当前书籍的进度
+        function loadBookProgress() {{
+            console.log('开始加载当前书籍的进度 [书籍ID:', BOOK_ID + ']');
+            
+            // 优先使用Python端传递的初始进度（仅在首次加载时）
+            if (INITIAL_PROGRESS !== null && INITIAL_PROGRESS > 0 && !window.hasLoadedInitialProgress) {{
+                console.log('应用Python端传递的初始进度:', (INITIAL_PROGRESS * 100).toFixed(2) + '%');
+                
+                const initialData = {{
+                    progress: INITIAL_PROGRESS.toFixed(15),
+                    scrollTop: 0,
+                    scrollHeight: document.documentElement.scrollHeight || 10000,
+                    current_page: Math.floor(INITIAL_PROGRESS * 100),
+                    total_pages: 100,
+                    word_count: 0,
+                    timestamp: Date.now(),
+                    isInitial: true
+                }};
+                
+                applyServerProgress(initialData, INITIAL_PROGRESS, INITIAL_PROGRESS * 100);
+                setLocalProgressData(initialData);
+                window.hasLoadedInitialProgress = true;
+                return;
+            }}
+            
+            // 尝试加载本地进度
+            loadLocalProgress();
+        }}
+        
+        
+        
         // 文件导入相关
         let selectedFile = null;
         let fileContent = null;
@@ -3687,6 +3778,28 @@ class BrowserReader:
         // 加载翻页模式下的进度
         function loadPaginationProgress() {{
             console.log('开始加载翻页模式进度，LOAD_PROGRESS_URL:', LOAD_PROGRESS_URL);
+            
+            // 优先使用Python端传递的初始进度（仅在首次加载时）
+            if (INITIAL_PROGRESS !== null && INITIAL_PROGRESS > 0 && !window.hasLoadedInitialProgress) {{
+                console.log('应用Python端传递的初始进度（翻页模式）:', (INITIAL_PROGRESS * 100).toFixed(2) + '%');
+                
+                const initialData = {{
+                    progress: INITIAL_PROGRESS.toFixed(15),
+                    scrollTop: 0,
+                    scrollHeight: 10000,
+                    current_page: Math.floor(INITIAL_PROGRESS * 100),
+                    total_pages: 100,
+                    word_count: 0,
+                    timestamp: Date.now(),
+                    isInitial: true
+                }};
+                
+                applyPaginationProgress(initialData, INITIAL_PROGRESS, INITIAL_PROGRESS * 100);
+                setLocalProgressData(initialData);
+                window.hasLoadedInitialProgress = true;
+                return;
+            }}
+            
             if (!LOAD_PROGRESS_URL) {{
                 console.log('LOAD_PROGRESS_URL 为空，尝试加载本地翻页进度');
                 loadLocalPaginationProgress();
@@ -3746,27 +3859,27 @@ class BrowserReader:
         
         // 加载本地翻页进度
         function loadLocalPaginationProgress() {{
+            console.log('开始加载本地翻页进度 [书籍ID:', BOOK_ID + ']');
             try {{
                 // 从localStorage获取本地保存的进度
-                const localProgressData = localStorage.getItem('localReadingProgress');
+                const localProgressData = getLocalProgressData();
                 if (localProgressData) {{
-                    const data = JSON.parse(localProgressData);
-                    console.log('加载到本地翻页进度数据:', data);
+                    console.log('加载到本地翻页进度数据:', localProgressData);
                     
-                    if (data && data.progress !== undefined && pages.length > 0) {{
-                        const progressDecimal = parseFloat(data.progress);
+                    if (localProgressData && localProgressData.progress !== undefined && pages.length > 0) {{
+                        const progressDecimal = parseFloat(localProgressData.progress);
                         const loadedProgress = progressDecimal * 100;
                         
                         // 验证本地进度是否有效
                         if (!isNaN(progressDecimal) && progressDecimal >= 0 && progressDecimal <= 1 && loadedProgress > 0) {{
                             // 使用本地进度
-                            applyPaginationProgress(data, progressDecimal, loadedProgress);
-                            console.log('已应用本地保存的翻页进度:', loadedProgress + '%');
+                            applyPaginationProgress(localProgressData, progressDecimal, loadedProgress);
+                            console.log('已应用本地保存的翻页进度:', loadedProgress + '%', '[书籍ID:', BOOK_ID + ']');
                             return;
                         }}
                     }}
                 }}
-                console.log('没有找到有效的本地翻页进度数据');
+                console.log('没有找到本地翻页进度数据 [书籍ID:', BOOK_ID + ']');
             }} catch (e) {{
                 console.log('加载本地翻页进度失败:', e);
             }}
@@ -3829,10 +3942,10 @@ class BrowserReader:
             
             console.log('翻页模式保存数据:', data);
 
-            // 保存进度到本地localStorage作为备份
+            // 保存进度到本地localStorage作为备份（始终保存，不管是否启用同步）
             try {{
-                localStorage.setItem('localReadingProgress', JSON.stringify(data));
-                console.log('翻页进度已保存到本地存储');
+                setLocalProgressData(data);
+                console.log('翻页进度已保存到本地存储 [书籍ID:', BOOK_ID + ']');
             }} catch (e) {{
                 console.log('保存翻页进度到本地存储失败:', e);
             }}
@@ -4618,10 +4731,10 @@ class BrowserReader:
             cachedScrollHeight = scrollHeight;
             console.log('缓存进度值(小数):', cachedProgress);
 
-            // 保存进度到本地localStorage作为备份
+            // 保存进度到本地localStorage作为备份（始终保存，不管是否启用同步）
             try {{
-                localStorage.setItem('localReadingProgress', JSON.stringify(data));
-                console.log('进度已保存到本地存储');
+                setLocalProgressData(data);
+                console.log('进度已保存到本地存储 [书籍ID:', BOOK_ID + ']');
             }} catch (e) {{
                 console.log('保存进度到本地存储失败:', e);
             }}
@@ -4674,6 +4787,13 @@ class BrowserReader:
         // 从服务器加载进度
         function loadProgress() {{
             console.log('开始加载进度，LOAD_PROGRESS_URL:', LOAD_PROGRESS_URL);
+            
+            // 使用新的进度加载函数
+            if (INITIAL_PROGRESS !== null && INITIAL_PROGRESS > 0 && !window.hasLoadedInitialProgress) {{
+                loadBookProgress();
+                return;
+            }}
+            
             if (!LOAD_PROGRESS_URL) {{
                 console.log('LOAD_PROGRESS_URL 为空，尝试加载本地进度');
                 loadLocalProgress();
@@ -4733,27 +4853,27 @@ class BrowserReader:
         
         // 加载本地进度
         function loadLocalProgress() {{
+            console.log('开始加载本地进度 [书籍ID:', BOOK_ID + ']');
             try {{
                 // 从localStorage获取本地保存的进度
-                const localProgressData = localStorage.getItem('localReadingProgress');
+                const localProgressData = getLocalProgressData();
                 if (localProgressData) {{
-                    const data = JSON.parse(localProgressData);
-                    console.log('加载到本地进度数据:', data);
+                    console.log('加载到本地进度数据:', localProgressData);
                     
-                    if (data && data.progress !== undefined) {{
-                        const progressDecimal = parseFloat(data.progress);
+                    if (localProgressData && localProgressData.progress !== undefined) {{
+                        const progressDecimal = parseFloat(localProgressData.progress);
                         const progress = progressDecimal * 100;
                         
                         // 验证本地进度是否有效
                         if (!isNaN(progressDecimal) && progressDecimal >= 0 && progressDecimal <= 1 && progress > 0) {{
                             // 使用本地进度
-                            applyServerProgress(data, progressDecimal, progress);
-                            console.log('已应用本地保存的阅读进度:', progress + '%');
+                            applyServerProgress(localProgressData, progressDecimal, progress);
+                            console.log('已应用本地保存的阅读进度:', progress + '%', '[书籍ID:', BOOK_ID + ']');
                             return;
                         }}
                     }}
                 }}
-                console.log('没有找到有效的本地进度数据');
+                console.log('没有找到本地进度数据 [书籍ID:', BOOK_ID + ']');
             }} catch (e) {{
                 console.log('加载本地进度失败:', e);
             }}
@@ -6523,7 +6643,7 @@ class BrowserReader:
                     }}, 500);
                 }} else {{
                     // 滚动模式下，正常加载进度
-                    loadProgress();
+                    loadBookProgress();
                 }}
 
                 // 延迟取消冷却标记,允许正常自动保存
@@ -7116,6 +7236,9 @@ class BrowserReader:
                 return;
             }}
             
+            // 更新当前书籍ID并重新加载进度
+            updateCurrentBook(bookId);
+            
             // 更新内容
             const contentEl = document.getElementById('content');
             if (contentEl) {{
@@ -7135,8 +7258,10 @@ class BrowserReader:
             // 关闭书库面板
             toggleBookLibrary();
             
-            // 滚动到顶部
-            scrollToTop();
+            // 延迟加载进度，等待内容完全渲染
+            setTimeout(() => {{
+                loadBookProgress();
+            }}, 100);
             
             showNotification(`已打开书籍：${{book.title}}`);
         }}
@@ -7262,10 +7387,10 @@ class BrowserReader:
                 reading_time: newTotalTime
             }};
 
-            // 总是保存到本地localStorage作为备份
+            // 总是保存到本地localStorage作为备份（始终保存，不管是否启用同步）
             try {{
-                localStorage.setItem('localReadingProgress', JSON.stringify(data));
-                console.log('beforeunload - 进度已保存到本地存储');
+                setLocalProgressData(data);
+                console.log('beforeunload - 进度已保存到本地存储 [书籍ID:', BOOK_ID + ']');
             }} catch (e) {{
                 console.log('beforeunload - 保存进度到本地存储失败:', e);
             }}
@@ -7568,9 +7693,24 @@ class BrowserReader:
                 }
                 logger.info(f"已保存服务器对象到全局字典，server_id={server_id}")
             
+            # 获取书籍ID和初始进度
+            book_id = Path(file_path).stem
+            initial_progress = None
+            
+            # 如果有进度加载回调，尝试获取初始进度
+            if on_progress_load:
+                try:
+                    progress_data = on_progress_load()
+                    if progress_data and progress_data.get('progress') is not None:
+                        initial_progress = float(progress_data['progress'])
+                        logger.info(f"从Python端获取到初始进度: {initial_progress * 100:.2f}%")
+                except Exception as e:
+                    logger.warning(f"获取初始进度失败: {e}")
+            
             # 创建HTML
             html = BrowserReader.create_reader_html(
-                content, title, theme, custom_settings, save_url, load_url
+                content, title, theme, custom_settings, save_url, load_url,
+                book_id, initial_progress
             )
             
             # 创建临时HTML文件

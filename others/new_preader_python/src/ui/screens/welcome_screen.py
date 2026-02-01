@@ -36,10 +36,11 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         ("f1,1", "open_book", get_global_i18n().t('welcome.shortcut_f1')),
         ("f2,2", "browse_library", get_global_i18n().t('welcome.shortcut_f2')),
         ("f3,3", "get_books", get_global_i18n().t('welcome.shortcut_f3')),
-        ("f4,4", "open_user_management", get_global_i18n().t('welcome.shortcut_f4')),
-        ("f5,5", "open_settings", get_global_i18n().t('welcome.shortcut_f5')),
-        ("f6,6", "open_statistics", get_global_i18n().t('welcome.shortcut_f6')),
-        ("f7,7", "open_help", get_global_i18n().t('welcome.shortcut_f7')),
+        ("f4,4", "open_browser_reader", get_global_i18n().t('welcome.shortcut_f4')),
+        ("f5,5", "open_user_management", get_global_i18n().t('welcome.shortcut_f5')),
+        ("f6,6", "open_settings", get_global_i18n().t('welcome.shortcut_f6')),
+        ("f7,7", "open_statistics", get_global_i18n().t('welcome.shortcut_f7')),
+        ("f8,8", "open_help", get_global_i18n().t('welcome.shortcut_f8')),
         ("escape,q", "exit_app", get_global_i18n().t('welcome.shortcut_esc'))
     ]
     
@@ -74,6 +75,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     Button(get_global_i18n().t('welcome.open_book'), id="open-book-btn"),
                     Button(get_global_i18n().t('welcome.browse_library'), id="browse-library-btn"),
                     Button(get_global_i18n().t('welcome.get_books'), id="get-books-btn"),
+                    Button(get_global_i18n().t('welcome.browser_reader'), id="browser-reader-btn"),
                     Button(get_global_i18n().t('welcome.manage'), id="manage-btn"),
                     Button(get_global_i18n().t('welcome.settings'), id="settings-btn"),
                     Button(get_global_i18n().t('welcome.statistics'), id="statistics-btn"),
@@ -130,10 +132,11 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 ("f1,1", "open_book", i18n.t('welcome.open_book')),
                 ("f2,2", "browse_library", i18n.t('welcome.browse_library')),
                 ("f3,3", "get_books", i18n.t('welcome.get_books')),
-                ("f4,4", "open_user_management", i18n.t('welcome.manage')),
-                ("f5,5", "open_settings", i18n.t('welcome.settings')),
-                ("f6,6", "open_statistics", i18n.t('welcome.statistics')),
-                ("f7,7", "open_help", i18n.t('welcome.help')),
+                ("f4,4", "open_browser_reader", i18n.t('welcome.browser_reader')),
+                ("f5,5", "open_user_management", i18n.t('welcome.manage')),
+                ("f6,6", "open_settings", i18n.t('welcome.settings')),
+                ("f7,7", "open_statistics", i18n.t('welcome.statistics')),
+                ("f8,8", "open_help", i18n.t('welcome.help')),
                 ("escape,q", "exit_app", i18n.t('welcome.exit')),
             ]
         except Exception:
@@ -183,6 +186,11 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 self.app.push_screen("get_books")
             else:
                 self.notify(get_global_i18n().t('welcome.np_get_books'), severity="warning")
+        elif event.button.id == "browser-reader-btn":
+            if has_perm("welcome.browser_reader"):
+                self._open_browser_reader()
+            else:
+                self.notify(get_global_i18n().t('welcome.np_browser_reader'), severity="warning")
         elif event.button.id == "settings-btn":
             if has_perm("welcome.settings"):
                 self.app.push_screen("settings")
@@ -266,32 +274,32 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             self.notify(get_global_i18n().t('welcome.np_open_getbooks'), severity="warning")
 
     def key_f5(self) -> None:
-        """F5快捷键 - 打开设置"""
+        """F5快捷键 - 管理用户"""
+        if getattr(self.app, "has_permission", lambda k: True)("admin.manage_users"):
+            self.app.push_screen("users_management")
+        else:
+            self.notify(get_global_i18n().t('welcome.np_open_manageuser'), severity="warning")
+
+    def key_f6(self) -> None:
+        """F6快捷键 - 打开设置"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.settings"):
             self.app.push_screen("settings")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_settings'), severity="warning")
 
-    def key_f6(self) -> None:
-        """F6快捷键 - 打开统计"""
+    def key_f7(self) -> None:
+        """F7快捷键 - 打开统计"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.statistics"):
             self.app.push_screen("statistics")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_statistics'), severity="warning")
 
-    def key_f7(self) -> None:
-        """F7快捷键 - 打开帮助"""
+    def key_f8(self) -> None:
+        """F8快捷键 - 打开帮助"""
         if getattr(self.app, "has_permission", lambda k: True)("welcome.help"):
             self.app.push_screen("help")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_help'), severity="warning")
-
-    def key_f4(self) -> None:
-        """F4快捷键 - 管理用户"""
-        if getattr(self.app, "has_permission", lambda k: True)("admin.manage_users"):
-            self.app.push_screen("users_management")
-        else:
-            self.notify(get_global_i18n().t('welcome.np_open_manageuser'), severity="warning")
 
     # Actions for BINDINGS
     def action_open_book(self) -> None:
@@ -311,6 +319,13 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             self.app.push_screen("get_books")
         else:
             self.notify(get_global_i18n().t('welcome.np_open_getbooks'), severity="warning")
+
+    def action_open_browser_reader(self) -> None:
+        """Action: 打开浏览器阅读器（F4）"""
+        if getattr(self.app, "has_permission", lambda k: True)("welcome.browser_reader"):
+            self._open_browser_reader()
+        else:
+            self.notify(get_global_i18n().t('welcome.np_browser_reader'), severity="warning")
 
     def action_open_settings(self) -> None:
         if getattr(self.app, "has_permission", lambda k: True)("welcome.settings"):
@@ -341,3 +356,49 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
     def on_key(self, event: events.Key) -> None:
         """已由 BINDINGS 处理，避免重复触发"""
         pass
+
+    def _open_browser_reader(self) -> None:
+            """打开浏览器阅读器（会自动打开其书库中的上一次阅读书籍）"""
+            try:
+                from src.utils.browser_reader import BrowserReader
+                from src.utils.browser_manager import BrowserManager
+                import tempfile
+                import os
+                # 创建浏览器阅读器的HTML内容
+                # 使用书库作为默认内容，浏览器会自动加载上一次阅读的书籍
+                library_content = """
+                <div class="book-library-container">
+                    <h2>🌐 浏览器阅读器</h2>
+                    <p>正在从书库加载上一次阅读的书籍...</p>
+                    <p>如果没有找到上一次阅读的书籍，请使用书库功能添加书籍。</p>
+                    <div class="library-actions">
+                        <button onclick="toggleBookLibrary()">打开书库</button>
+                    </div>
+                </div>
+                """
+                # 创建HTML
+                html = BrowserReader.create_reader_html(
+                    content=library_content,
+                    title="浏览器阅读器",
+                    theme="light"
+                )
+                # 创建临时HTML文件
+                temp_dir = tempfile.gettempdir()
+                html_filename = "browser_reader.html"
+                html_path = os.path.join(temp_dir, html_filename)
+                with open(html_path, 'w', encoding='utf-8') as f:
+                    f.write(html)
+                # 使用BrowserManager打开HTML文件，支持系统浏览器设置
+                success = BrowserManager.open_file(html_path)
+                if success:
+                    browser_name = BrowserManager.get_default_browser()
+                    logger.info(f"使用 {browser_name} 浏览器打开浏览器阅读器: {html_path}")
+                else:
+                    # 回退到默认浏览器
+                    import webbrowser
+                    webbrowser.open(f'file://{html_path}')
+                    logger.warning(f"使用系统默认浏览器打开: {html_path}")
+                self.notify(get_global_i18n().t('welcome.browser_reader_opened', title="浏览器阅读器"), severity="information")
+            except Exception as e:
+                logger.error(get_global_i18n().t('welcome.browser_reader_open_failed', error=str(e)))
+                self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', error=str(e)), severity="error")
