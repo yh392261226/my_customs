@@ -128,7 +128,7 @@ alias tiw="tmux_iris_window"                                                    
 function tmux_list() {                                                                 # Desc: function: tmux_list:列出所有tmux会话
     tmux ls
 }
-alias tl="tmux_list"                                                                   # Desc: alias: tl: tmux_list命令的别名,列出所有tmux会话
+alias tml="tmux_list"                                                                  # Desc: alias: tml: tmux_list命令的别名,列出所有tmux会话
 
 function tmux_new() {                                                                  # Desc: function: tmux_new:新建名称为传参的会话
     tmux new -s $1
