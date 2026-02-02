@@ -400,5 +400,5 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                     logger.warning(f"使用系统默认浏览器打开: {html_path}")
                 self.notify(get_global_i18n().t('welcome.browser_reader_opened', title="浏览器阅读器"), severity="information")
             except Exception as e:
-                logger.error(get_global_i18n().t('welcome.browser_reader_open_failed', error=str(e)))
-                self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', error=str(e)), severity="error")
+                logger.error(get_global_i18n().t('welcome.browser_reader_open_failed', message=str(e)))
+                self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', message=str(e)), severity="error")

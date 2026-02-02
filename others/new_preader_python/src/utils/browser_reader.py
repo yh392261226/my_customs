@@ -29,6 +29,191 @@ _active_servers: Dict[str, Dict[str, Any]] = {}
 class BrowserReader:
     """浏览器阅读器类"""
 
+    @staticmethod
+    def get_permission_script():
+        """生成权限检查JavaScript代码"""
+        try:
+            from src.utils.multi_user_manager import MultiUserManager
+            user_permissions = MultiUserManager.get_current_user_permissions()
+            is_multi_user = MultiUserManager.is_multi_user_enabled()
+            current_user = MultiUserManager.get_current_user()
+            
+            # 确保包含浏览器阅读器需要的细粒度权限
+            required_permissions = [
+                "book.read", "book.write", "book.add", "book.delete",
+                "bookmark.read", "bookmark.write", "bookmark.delete",
+                "settings.read", "settings.write",
+                "search.read", "stats.read"
+            ]
+            
+            # 添加缺失的权限
+            for perm in required_permissions:
+                if perm not in user_permissions:
+                    user_permissions.append(perm)
+                    
+        except:
+            user_permissions = [
+                "read", "write", "delete", "manage_users", "manage_books", "manage_settings",
+                "book.read", "book.write", "book.add", "book.delete",
+                "bookmark.read", "bookmark.write", "bookmark.delete",
+                "settings.read", "settings.write",
+                "search.read", "stats.read"
+            ]
+            is_multi_user = False
+            current_user = {"id": 1, "role": "super_admin"}
+        
+        permissions_json = json.dumps(user_permissions)
+        user_json = json.dumps(current_user)
+        
+        return f"""
+        // 权限管理
+        window.userPermissions = {permissions_json};
+        window.isMultiUser = {str(is_multi_user).lower()};
+        window.currentUser = {user_json};
+        
+        function hasPermission(permission) {{
+            return window.userPermissions.includes(permission);
+        }}
+        
+        function checkPermission(operation) {{
+            if (!hasPermission(operation)) {{
+                alert(t('browser_reader.permission_denied', {{operation: operation}}));
+                return false;
+            }}
+            return true;
+        }}
+        """
+
+    @staticmethod
+    def get_translations():
+        """获取浏览器阅读器的翻译"""
+        try:
+            from src.locales.i18n_manager import get_global_i18n, init_global_i18n
+            try:
+                i18n = get_global_i18n()
+            except RuntimeError:
+                init_global_i18n()
+                i18n = get_global_i18n()
+            
+            # 获取当前语言
+            current_lang = getattr(i18n, 'current_language', 'zh_CN')
+            
+            # 直接从文件加载翻译数据
+            import json
+            import os
+            translation_file = f'/Users/yanghao/data/app/python/newreader/src/locales/{current_lang}/translation.json'
+            
+            if os.path.exists(translation_file):
+                with open(translation_file, 'r', encoding='utf-8') as f:
+                    file_translations = json.load(f)
+                    browser_translations = file_translations.get('browser_reader', {})
+            else:
+                # 如果文件不存在，使用默认翻译
+                browser_translations = {
+                    "title": "浏览器阅读器",
+                    "permission_denied": "无权限执行此操作: {{operation}}",
+                    "font_button": "字体",
+                    "font_settings_title": "字体设置",
+                    "highlight_button": "高亮",
+                    "notes_button": "笔记",
+                    "search_button": "搜索",
+                    "stats_button": "统计",
+                    "pagination_settings": "翻页设置",
+                    "print_button": "打印",
+                    "progress_sync": "进度同步",
+                    "import_file": "导入文件",
+                    "bottom": "底部",
+                    "toc_toggle_title": "目录",
+                    "bookmark_title": "书签",
+                    "auto_scroll_start": "开始滚动",
+                    "reset_button": "重置",
+                    "preview": "预览",
+                    "load": "加载",
+                    "delete": "删除",
+                    "no_custom_themes": "暂无自定义主题",
+                    "theme_manager": "主题管理",
+                    "note_placeholder": "输入笔记内容...",
+                    "search_placeholder": "搜索内容...",
+                    "auto_extract_title": "自动从文件名提取",
+                    "position_jump": {
+                        "title": "位置跳转",
+                        "input_label": "输入位置百分比 (0-100):",
+                        "input_placeholder": "0.00",
+                        "jump_button": "跳转",
+                        "jump_button_title": "跳转到指定位置",
+                        "quick_jump_label": "快速跳转:",
+                        "jump_25": "25%",
+                        "jump_50": "50%",
+                        "jump_75": "75%",
+                        "input_error": "请输入0-100之间的数值（支持小数点后两位）",
+                        "jump_success": "已跳转到 {percentage}% 位置",
+                        "jump_25_success": "已跳转到 25% 位置",
+                        "jump_50_success": "跳转到 50% 位置",
+                        "jump_75_success": "跳转到 75% 位置"
+                    }
+                }
+            
+            # 返回带有browser_reader命名空间的翻译
+            return {'browser_reader': browser_translations}
+        except:
+            # 如果无法加载翻译，直接从文件加载
+            import json
+            import os
+            
+            try:
+                translation_file = '/Users/yanghao/data/app/python/newreader/src/locales/zh_CN/translation.json'
+                if os.path.exists(translation_file):
+                    with open(translation_file, 'r', encoding='utf-8') as f:
+                        file_translations = json.load(f)
+                        browser_translations = file_translations.get('browser_reader', {})
+                        return {'browser_reader': browser_translations}
+            except:
+                pass
+            
+            # 如果文件也加载失败，返回基本的键值对
+            return {
+                "browser_reader": {
+                    "title": "浏览器阅读器",
+                    "permission_denied": "无权限执行此操作: {operation}",
+                    "font_button": "字体",
+                    "font_settings_title": "字体设置",
+                    "highlight_button": "高亮",
+                    "notes_button": "笔记",
+                    "search_button": "搜索",
+                    "stats_button": "统计",
+                    "pagination_settings": "翻页设置",
+                    "print_button": "打印",
+                    "progress_sync": "进度同步",
+                    "import_file": "导入文件",
+                    "bottom": "底部",
+                    "toc_toggle_title": "目录",
+                    "bookmark_title": "书签",
+                    "auto_scroll_start": "开始滚动",
+                    "reset_button": "重置",
+                    "preview": "预览",
+                    "load": "加载",
+                    "delete": "删除",
+                    "no_custom_themes": "暂无自定义主题",
+                    "theme_manager": "主题管理",
+                    "position_jump": {
+                        "title": "位置跳转",
+                        "input_label": "输入位置百分比 (0-100):",
+                        "input_placeholder": "0.00",
+                        "jump_button": "跳转",
+                        "jump_button_title": "跳转到指定位置",
+                        "quick_jump_label": "快速跳转:",
+                        "jump_25": "25%",
+                        "jump_50": "50%",
+                        "jump_75": "75%",
+                        "input_error": "请输入0-100之间的数值（支持小数点后两位）",
+                        "jump_success": "已跳转到 {percentage}% 位置",
+                        "jump_25_success": "已跳转到 25% 位置",
+                        "jump_50_success": "已跳转到 50% 位置",
+                        "jump_75_success": "跳转到 75% 位置"
+                    }
+                }
+            }
+
     # 可用字体列表
     FONT_FAMILIES = {
         "system": {
@@ -229,6 +414,9 @@ class BrowserReader:
             // 初始化主题
             applyTheme(currentSettings);
             
+            // 更新跳转弹窗的语言文本
+            updatePositionJumpTranslations();
+            
             // 加载保存的进度
             loadBookProgress();
             
@@ -297,7 +485,10 @@ class BrowserReader:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title} - 浏览器阅读器</title>
+    <title>{{title}} - {{t('browser_reader.title')}}</title>
+    
+    
+    
     <style>
         /* 基础样式重置 */
         * {{
@@ -964,6 +1155,8 @@ class BrowserReader:
             cursor: pointer;
         }}
         
+        
+        
         /* 内容区域 */
         .content {{
             margin-top: 60px;
@@ -1203,6 +1396,71 @@ class BrowserReader:
         .add-btn:hover {{
             background: rgba(255, 255, 255, 0.9);
             color: #000;
+        }}
+
+        /* 位置跳转弹窗专用样式 */
+        .position-input {{
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100px;
+            transition: all 0.2s ease;
+            outline: none;
+        }}
+
+        .position-input:focus {{
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(66, 153, 225, 0.8);
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+        }}
+
+        .position-input::placeholder {{
+            color: rgba(255, 255, 255, 0.6);
+        }}
+
+        .jump-btn {{
+            background: rgba(66, 153, 225, 0.8);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+        }}
+
+        .jump-btn:hover {{
+            background: rgba(66, 153, 225, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(66, 153, 225, 0.3);
+        }}
+
+        .quick-jump-buttons {{
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }}
+
+        .quick-jump-btn {{
+            background: rgba(72, 187, 120, 0.8);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            min-width: 40px;
+            transition: all 0.2s ease;
+        }}
+
+        .quick-jump-btn:hover {{
+            background: rgba(72, 187, 120, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
         }}
 
         /* 拖放区域样式 */
@@ -1774,94 +2032,126 @@ class BrowserReader:
             animation: realisticFlipRight 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }}
         
-        /* 书页翻页效果 - 更逼真的实现 */
+        /* 3D书籍翻页效果 - 融合test.html的优秀设计 */
         .page-content.book-flip {{
             position: relative;
+            width: 100%;
+            height: 100%;
             transform-style: preserve-3d;
-            perspective: 2000px;
+            transform-origin: left center;
+            transition: transform 1s ease;
+            cursor: pointer;
             backface-visibility: hidden;
-            will-change: transform;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }}
         
         .page-content.book-flip-next {{
-            animation: bookFlipNext 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: rotateY(-180deg);
         }}
         
         .page-content.book-flip-prev {{
-            animation: bookFlipPrev 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: rotateY(0deg);
         }}
         
-        /* 书页翻页动画 */
-        @keyframes bookFlipNext {{
-            0% {{
-                transform: rotateY(0deg) rotateX(0deg);
-                transform-origin: right bottom;
-            }}
-            25% {{
-                transform: rotateY(30deg) rotateX(-5deg);
-                transform-origin: right bottom;
-            }}
-            50% {{
-                transform: rotateY(90deg) rotateX(-10deg);
-                transform-origin: right bottom;
-            }}
-            75% {{
-                transform: rotateY(150deg) rotateX(-5deg);
-                transform-origin: right bottom;
-            }}
-            100% {{
-                transform: rotateY(180deg) rotateX(0deg);
-                transform-origin: right bottom;
-            }}
+        /* 书页容器 */
+        .book-container {{
+            position: relative;
+            width: 100%;
+            height: 100%;
+            perspective: 2000px;
         }}
         
-        @keyframes bookFlipPrev {{
-            0% {{
-                transform: rotateY(0deg) rotateX(0deg);
-                transform-origin: left bottom;
-            }}
-            25% {{
-                transform: rotateY(-30deg) rotateX(-5deg);
-                transform-origin: left bottom;
-            }}
-            50% {{
-                transform: rotateY(-90deg) rotateX(-10deg);
-                transform-origin: left bottom;
-            }}
-            75% {{
-                transform: rotateY(-150deg) rotateX(-5deg);
-                transform-origin: left bottom;
-            }}
-            100% {{
-                transform: rotateY(-180deg) rotateX(0deg);
-                transform-origin: left bottom;
-            }}
+        /* 页面样式 */
+        .book-page {{
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            color: inherit;
+            padding: 40px;
+            backface-visibility: hidden;
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.12);
+            overflow-y: auto;
         }}
         
-        /* 书页弯曲效果 */
+        .book-page.front {{
+            background: linear-gradient(to right, 
+                {settings['background']} 95%, 
+                rgba(0,0,0,0.05) 100%);
+        }}
+        
+        .book-page.back {{
+            transform: rotateY(180deg);
+            background: linear-gradient(to left, 
+                {settings['background']} 95%, 
+                rgba(0,0,0,0.05) 100%);
+        }}
+        
+        /* 3D书页容器 */
+        .book-3d-container {{
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            perspective: 1500px;
+        }}
+        
+        /* 书页背面 */
+        .page-back {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotateY(180deg);
+            backface-visibility: hidden;
+            background: inherit;
+            color: inherit;
+        }}
+        
+        
+        
+        /* 自然的3D书页弯曲效果 */
         .page-curve {{
             position: absolute;
             top: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                rgba(0,0,0,0.1) 45%, 
-                rgba(0,0,0,0.2) 50%, 
-                rgba(0,0,0,0.1) 55%, 
-                transparent 100%);
+            background: 
+                radial-gradient(ellipse at right center, 
+                    rgba(0,0,0,0.3) 0%, 
+                    rgba(0,0,0,0.15) 30%, 
+                    rgba(0,0,0,0.08) 60%, 
+                    transparent 100%),
+                linear-gradient(90deg, 
+                    transparent 0%, 
+                    rgba(0,0,0,0.02) 30%, 
+                    rgba(0,0,0,0.08) 50%, 
+                    rgba(0,0,0,0.15) 70%,
+                    rgba(0,0,0,0.08) 85%,
+                    transparent 100%);
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+            border-radius: 0 2px 2px 0;
+            mix-blend-mode: multiply;
         }}
         
         .page-curve.active {{
             opacity: 1;
+            animation: pageCurveNaturalAnimation 1.6s cubic-bezier(0.4, 0.0, 0.2, 1);
         }}
         
-        /* 书页阴影效果 */
+        @keyframes pageCurveNaturalAnimation {{
+            0% {{ opacity: 0; transform: scaleX(1); }}
+            10% {{ opacity: 0.3; transform: scaleX(1.01); }}
+            30% {{ opacity: 0.8; transform: scaleX(1.02); }}
+            50% {{ opacity: 1; transform: scaleX(1.03); }}
+            70% {{ opacity: 0.8; transform: scaleX(1.02); }}
+            90% {{ opacity: 0.3; transform: scaleX(1.01); }}
+            100% {{ opacity: 0; transform: scaleX(1); }}
+        }}
+        
+        /* 3D书页阴影效果 */
         .page-book-shadow {{
             position: absolute;
             top: 0;
@@ -1869,6 +2159,7 @@ class BrowserReader:
             height: 100%;
             pointer-events: none;
             z-index: 10;
+            transition: all 0.4s ease;
         }}
         
         .page-book-shadow-next {{
@@ -1909,6 +2200,47 @@ class BrowserReader:
             opacity: 0;
             transition: opacity 0.4s ease;
             mix-blend-mode: multiply;
+        }}
+        
+        /* 自然的页面光泽效果 */
+        .page-gloss {{
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 30% 30%, 
+                    rgba(255,255,255,0.3) 0%, 
+                    rgba(255,255,255,0.15) 40%, 
+                    rgba(255,255,255,0.05) 70%, 
+                    transparent 100%),
+                linear-gradient(135deg, 
+                    transparent 0%, 
+                    rgba(255,255,255,0.08) 20%, 
+                    rgba(255,255,255,0.15) 40%, 
+                    rgba(255,255,255,0.08) 60%, 
+                    rgba(255,255,255,0.03) 80%,
+                    transparent 100%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+            mix-blend-mode: overlay;
+            filter: blur(0.5px);
+        }}
+        
+        .page-gloss.active {{
+            opacity: 1;
+            animation: pageGlossNaturalAnimation 1.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }}
+        
+        @keyframes pageGlossNaturalAnimation {{
+            0% {{ opacity: 0; transform: translateY(0); }}
+            15% {{ opacity: 0.2; transform: translateY(-2px); }}
+            35% {{ opacity: 0.6; transform: translateY(-4px); }}
+            50% {{ opacity: 0.8; transform: translateY(-5px); }}
+            65% {{ opacity: 0.6; transform: translateY(-4px); }}
+            85% {{ opacity: 0.2; transform: translateY(-2px); }}
+            100% {{ opacity: 0; transform: translateY(0); }}
         }}
         
         .page-book-shadow-next.active {{
@@ -2419,7 +2751,7 @@ class BrowserReader:
 <body>
     <!-- 全屏状态指示器 -->
     <div class="fullscreen-indicator" id="fullscreenIndicator">
-        全屏模式 (按 ESC 退出)
+        <script>document.write(t('browser_reader.fullscreen_indicator'));</script>
     </div>
     
     <!-- 进度条 -->
@@ -2428,7 +2760,7 @@ class BrowserReader:
     </div>
     
     <!-- 进度信息 -->
-    <div class="progress-info" id="progressInfo">进度: 0%</div>
+    <div class="progress-info" id="progressInfo" onclick="togglePositionJump()" title="{{t('browser_reader.progress_click_title')}}"><script>document.write(t('browser_reader.progress_info'));</script></div>
 
     <!-- 缩略图导航 -->
     <div class="minimap-container" id="minimapContainer">
@@ -2438,61 +2770,85 @@ class BrowserReader:
     </div>
 
     <!-- 缩略图切换按钮 -->
-    <div class="minimap-toggle" id="minimapToggle" onclick="toggleMinimap()" title="缩略图导航">
+    <div class="minimap-toggle" id="minimapToggle" onclick="toggleMinimap()" title="{{t('browser_reader.minimap')}}">
         📍
     </div>
 
     <!-- 快捷键提示 -->
     <div class="keyboard-hint" id="keyboardHint">
-        <h4>快捷键</h4>
+        <h4><script>document.write(t('browser_reader.shortcuts_title'));</script></h4>
         <ul>
-            <li><kbd>+</kbd>/<kbd>-</kbd> 字体大小</li>
-            <li><kbd>↑</kbd>/<kbd>↓</kbd> 翻页</li>
-            <li><kbd>PageUp</kbd>/<kbd>PageDown</kbd> 上下翻页</li>
-            <li><kbd>Home</kbd>/<kbd>End</kbd> 首尾</li>
-            <li><kbd>c</kbd> 章节目录</li>
-            <li><kbd>s</kbd> 搜索</li>
-            <li><kbd>b</kbd> 书签</li>
-            <li><kbd>f</kbd> 全屏</li>
-            <li><kbd>F</kbd> 专注模式</li>
-            <li><kbd>a</kbd> 自动滚动</li>
-            <li><kbd>Space</kbd> 朗读选中内容</li>
-            <li><kbd>h</kbd> 隐藏提示</li>
-            <li><kbd>g</kbd> 字体设置</li>
-            <li><kbd>n</kbd> 笔记/高亮</li>
-            <li><kbd>m</kbd> 缩略图导航</li>
-            <li><kbd>ESC</kbd> 退出全屏/专注模式</li>
+            <li><kbd>+</kbd>/<kbd>-</kbd> <script>document.write(t('browser_reader.shortcut_font_size'));</script></li>
+            <li><kbd>↑</kbd>/<kbd>↓</kbd> <script>document.write(t('browser_reader.shortcut_page_up_down'));</script></li>
+            <li><kbd>PageUp</kbd>/<kbd>PageDown</kbd> <script>document.write(t('browser_reader.shortcut_page_up_down_keys'));</script></li>
+            <li><kbd>Home</kbd>/<kbd>End</kbd> <script>document.write(t('browser_reader.shortcut_home_end'));</script></li>
+            <li><kbd>c</kbd> <script>document.write(t('browser_reader.shortcut_chapter'));</script></li>
+            <li><kbd>s</kbd> <script>document.write(t('browser_reader.shortcut_search'));</script></li>
+            <li><kbd>b</kbd> <script>document.write(t('browser_reader.shortcut_bookmark'));</script></li>
+            <li><kbd>f</kbd> <script>document.write(t('browser_reader.shortcut_fullscreen'));</script></li>
+            <li><kbd>F</kbd> <script>document.write(t('browser_reader.shortcut_focus'));</script></li>
+            <li><kbd>a</kbd> <script>document.write(t('browser_reader.shortcut_auto_scroll'));</script></li>
+            <li><kbd>Space</kbd> <script>document.write(t('browser_reader.shortcut_speech'));</script></li>
+            <li><kbd>h</kbd> <script>document.write(t('browser_reader.shortcut_hide'));</script></li>
+            <li><kbd>Ctrl+G</kbd> <script>document.write(t('browser_reader.shortcut_position_jump'));</script></li>
+            <li><kbd>g</kbd> <script>document.write(t('browser_reader.shortcut_font_settings'));</script></li>
+            <li><kbd>n</kbd> <script>document.write(t('browser_reader.shortcut_notes'));</script></li>
+            <li><kbd>m</kbd> <script>document.write(t('browser_reader.shortcut_minimap'));</script></li>
+            <li><kbd>ESC</kbd> <script>document.write(t('browser_reader.shortcut_escape'));</script></li>
         </ul>
     </div>
 
     <!-- 阅读统计 -->
     <div class="reading-stats" id="readingStats">
-        <p>阅读时间: <span id="readingTime">0:00</span></p>
-        <p>已读字数: <span id="wordCount">0</span></p>
-        <p>阅读速度: <span id="readingSpeed">0</span> 字/分</p>
+        <p><script>document.write(t('browser_reader.reading_time'));</script> <span id="readingTime">0:00</span></p>
+        <p><script>document.write(t('browser_reader.word_count'));</script> <span id="wordCount">0</span></p>
+        <p><script>document.write(t('browser_reader.reading_speed'));</script> <span id="readingSpeed">0</span> 字/分</p>
     </div>
     
     <!-- 增强的阅读统计面板 -->
     <div class="reading-stats-enhanced" id="readingStatsEnhanced">
-        <h4>阅读统计</h4>
-        <p>总阅读时间: <span class="stat-value" id="totalReadingTime">0:00</span></p>
-        <p>本次阅读时间: <span class="stat-value" id="sessionReadingTime">0:00</span></p>
-        <p>已读字数: <span class="stat-value" id="totalWordCount">0</span></p>
-        <p>阅读进度: <span class="stat-value" id="readingProgress">0%</span></p>
-        <p>平均阅读速度: <span class="stat-value" id="avgReadingSpeed">0</span> 字/分</p>
-        <p>预计剩余时间: <span class="stat-value" id="estimatedTimeLeft">--</span></p>
+        <h4><script>document.write(t('browser_reader.stats_title'));</script></h4>
+        <p><script>document.write(t('browser_reader.stats_total_time'));</script> <span class="stat-value" id="totalReadingTime">0:00</span></p>
+        <p><script>document.write(t('browser_reader.stats_session_time'));</script> <span class="stat-value" id="sessionReadingTime">0:00</span></p>
+        <p><script>document.write(t('browser_reader.stats_total_words'));</script> <span class="stat-value" id="totalWordCount">0</span></p>
+        <p><script>document.write(t('browser_reader.stats_progress'));</script> <span class="stat-value" id="readingProgress">0%</span></p>
+        <p><script>document.write(t('browser_reader.stats_avg_speed'));</script> <span class="stat-value" id="avgReadingSpeed">0</span> 字/分</p>
+        <p><script>document.write(t('browser_reader.stats_estimated_time'));</script> <span class="stat-value" id="estimatedTimeLeft">--</span></p>
     </div>
     
     <!-- 夜间模式切换 -->
     <div class="night-mode-toggle" id="nightModeToggle" onclick="toggleNightMode()">
         <span id="nightModeIcon">🌙</span>
-        <span id="nightModeText">夜间模式</span>
+        <span id="nightModeText"><script>document.write(t('browser_reader.night_mode'));</script></span>
     </div>
     
     <!-- 翻页模式切换 -->
     <div class="pagination-mode-toggle" id="paginationModeToggle" onclick="togglePaginationMode()">
         <span id="paginationModeIcon">📖</span>
-        <span id="paginationModeText">翻页模式</span>
+        <span id="paginationModeText"><script>document.write(t('browser_reader.pagination_mode'));</script></span>
+    </div>
+    
+    <!-- 位置跳转弹窗 -->
+    <div class="settings-panel" id="positionJumpModal" style="display: none;">
+        <div class="settings-content">
+            <h3 id="positionJumpTitle"><script>document.write(t('browser_reader.position_jump.title'));</script></h3>
+            <button class="settings-close" onclick="closePositionJumpModal()">×</button>
+            
+            <div class="setting-item">
+                <label id="positionJumpInputLabel"><script>document.write(t('browser_reader.position_jump.input_label'));</script></label>
+                <input type="number" id="positionJumpInputModal" class="position-input" min="0" max="100" step="0.01" placeholder="{{t('browser_reader.position_jump.input_placeholder')}}">
+                <button onclick="jumpToPositionFromModal()" id="positionJumpButton" class="jump-btn" title="{{t('browser_reader.position_jump.jump_button_title')}}"><script>document.write(t('browser_reader.position_jump.jump_button'));</script></button>
+            </div>
+            
+            <div class="setting-item">
+                <label id="positionJumpQuickLabel"><script>document.write(t('browser_reader.position_jump.quick_jump_label'));</script></label>
+                <div class="quick-jump-buttons">
+                    <button onclick="quickJumpToFromModal(25)" id="positionJump25" class="quick-jump-btn" title="{{t('browser_reader.position_jump.jump_25')}}"><script>document.write(t('browser_reader.position_jump.jump_25'));</script></button>
+                    <button onclick="quickJumpToFromModal(50)" id="positionJump50" class="quick-jump-btn" title="{{t('browser_reader.position_jump.jump_50')}}"><script>document.write(t('browser_reader.position_jump.jump_50'));</script></button>
+                    <button onclick="quickJumpToFromModal(75)" id="positionJump75" class="quick-jump-btn" title="{{t('browser_reader.position_jump.jump_75')}}"><script>document.write(t('browser_reader.position_jump.jump_75'));</script></button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- 工具栏 -->
@@ -2501,49 +2857,51 @@ class BrowserReader:
         <button onclick="changeFontSize(2)">A+</button>
 
         <label>
-            主题：
+            <script>document.write(t('browser_reader.theme_label'));</script>
             <select id="themeSelect" onchange="changeTheme(this.value)">
-                <option value="light">浅色</option>
-                <option value="dark">深色</option>
-                <option value="sepia">羊皮纸</option>
-                <option value="matrix">黑客绿</option>
-                <option value="ocean">海洋蓝</option>
-                <option value="forest">森林绿</option>
-                <option value="warm">暖色调</option>
-                <option value="purple">紫罗兰</option>
-                <option value="custom">自定义</option>
+                <option value="light"><script>document.write(t('browser_reader.theme_light'));</script></option>
+                <option value="dark"><script>document.write(t('browser_reader.theme_dark'));</script></option>
+                <option value="sepia"><script>document.write(t('browser_reader.theme_sepia'));</script></option>
+                <option value="matrix"><script>document.write(t('browser_reader.theme_matrix'));</script></option>
+                <option value="ocean"><script>document.write(t('browser_reader.theme_ocean'));</script></option>
+                <option value="forest"><script>document.write(t('browser_reader.theme_forest'));</script></option>
+                <option value="warm"><script>document.write(t('browser_reader.theme_warm'));</script></option>
+                <option value="purple"><script>document.write(t('browser_reader.theme_purple'));</script></option>
+                <option value="custom"><script>document.write(t('browser_reader.theme_custom'));</script></option>
             </select>
-            <button onclick="showThemeManager()" style="margin-left: 5px; padding: 4px 8px; font-size: 12px;">主题管理</button>
+            <button onclick="showThemeManager()" style="margin-left: 5px; padding: 4px 8px; font-size: 12px;"><script>document.write(t('browser_reader.theme_manager'));</script></button>
         </label>
 
         <label>
-            行高：
+            <script>document.write(t('browser_reader.line_height_label'));</script>
             <input type="range" min="1.2" max="2.5" step="0.1" value="{settings['line_height']}" onchange="changeLineHeight(this.value)">
         </label>
 
-        <button onclick="toggleFontSettings()">字体</button>
-        <button onclick="toggleHighlightMode()">高亮</button>
-        <button onclick="toggleNotesMode()">笔记</button>
-        <button onclick="toggleSearch()">搜索</button>
-        <button onclick="toggleAutoScrollPanel()">自动滚动</button>
-        <button onclick="toggleSpeech()">朗读设置</button>
-        <button onclick="toggleReadingStats()">统计</button>
-        <button onclick="togglePaginationSettings()">翻页设置</button>
-        <button onclick="toggleFocusMode()">专注模式</button>
-        <button onclick="toggleFullscreen()">全屏</button>
-        <button onclick="scrollToTop()">顶部</button>
-        <button onclick="scrollToBottom()">底部</button>
-        <button onclick="printContent()">打印</button>
-        <button onclick="toggleMinimap()" id="minimapToolbarBtn">缩略图</button>
-        <button onclick="toggleTOC()">目录</button>
-        <button onclick="toggleProgressSync()" id="progressSyncBtn">进度同步</button>
-        <button onclick="toggleFileImport()" id="fileImportBtn">导入文件</button>
-        <button onclick="toggleBookLibrary()" id="bookLibraryBtn">书库</button>
+        <button onclick="if(checkPermission('settings.write')) toggleFontSettings()"><script>document.write(t('browser_reader.font_button'));</script></button>
+        <button onclick="if(checkPermission('bookmark.write')) toggleHighlightMode()"><script>document.write(t('browser_reader.highlight_button'));</script></button>
+        <button onclick="if(checkPermission('bookmark.write')) toggleNotesMode()"><script>document.write(t('browser_reader.notes_button'));</script></button>
+        <button onclick="if(checkPermission('search.read')) toggleSearch()"><script>document.write(t('browser_reader.search_button'));</script></button>
+        <button onclick="toggleAutoScrollPanel()"><script>document.write(t('browser_reader.auto_scroll_button'));</script></button>
+        <button onclick="toggleSpeech()"><script>document.write(t('browser_reader.speech_settings'));</script></button>
+        <button onclick="if(checkPermission('stats.read')) toggleReadingStats()"><script>document.write(t('browser_reader.stats_button'));</script></button>
+        <button onclick="if(checkPermission('settings.write')) togglePaginationSettings()"><script>document.write(t('browser_reader.pagination_settings'));</script></button>
+        <button onclick="toggleFocusMode()"><script>document.write(t('browser_reader.focus_mode'));</script></button>
+        <button onclick="toggleFullscreen()"><script>document.write(t('browser_reader.fullscreen'));</script></button>
+        <button onclick="scrollToTop()"><script>document.write(t('browser_reader.scroll_to_top'));</script></button>
+        <button onclick="scrollToBottom()"><script>document.write(t('browser_reader.bottom'));</script></button>
+        
+        <button onclick="togglePositionJump()" id="positionJumpBtn" title="{{t('browser_reader.position_jump.title')}}"><script>document.write(t('browser_reader.position_jump.title'));</script></button>
+        <button onclick="if(checkPermission('book.write')) printContent()"><script>document.write(t('browser_reader.print_button'));</script></button>
+        <button onclick="toggleMinimap()" id="minimapToolbarBtn"><script>document.write(t('browser_reader.minimap'));</script></button>
+        <button onclick="toggleTOC()"><script>document.write(t('browser_reader.toc'));</script></button>
+        <button onclick="if(checkPermission('book.write')) toggleProgressSync()" id="progressSyncBtn"><script>document.write(t('browser_reader.progress_sync'));</script></button>
+        <button onclick="if(checkPermission('book.add')) toggleFileImport()" id="fileImportBtn"><script>document.write(t('browser_reader.import_file'));</script></button>
+        <button onclick="toggleBookLibrary()" id="bookLibraryBtn"><script>document.write(t('browser_reader.book_library'));</script></button>
     </div>
 
     <!-- 工具栏收缩/展开按钮 -->
     <div class="toolbar-toggle-container" id="toolbarToggleContainer">
-        <button class="toolbar-toggle-btn" onclick="toggleToolbar()" title="收缩/展开工具栏">
+        <button class="toolbar-toggle-btn" onclick="toggleToolbar()" title="{{t('browser_reader.toolbar_toggle_title')}}">
             <span id="toolbarToggleIcon">︽</span>
         </button>
     </div>
@@ -2551,72 +2909,72 @@ class BrowserReader:
     <!-- 字体设置面板 -->
     <div class="settings-panel" id="fontSettingsPanel" style="display: none;">
         <div class="settings-content">
-            <h3>字体设置</h3>
+            <h3><script>document.write(t('browser_reader.font_settings_title'));</script></h3>
             <button class="settings-close" onclick="toggleFontSettings()">×</button>
 
             <div class="setting-item">
-                <label>字体：</label>
+                <label><script>document.write(t('browser_reader.font_label'));</script></label>
                 <select id="fontFamilySelect" onchange="changeFontFamily(this.value)">
-                    <option value="system">系统默认</option>
-                    <option value="serif">宋体/衬线</option>
-                    <option value="sans-serif">黑体/无衬线</option>
+                    <option value="system"><script>document.write(t('browser_reader.font_system'));</script></option>
+                    <option value="serif"><script>document.write(t('browser_reader.font_serif'));</script></option>
+                    <option value="sans-serif"><script>document.write(t('browser_reader.font_sans_serif'));</script></option>
                     <option value="georgia">Georgia</option>
-                    <option value="kai">楷体</option>
-                    <option value="fangsong">仿宋</option>
-                    <option value="monospace">等宽字体</option>
+                    <option value="kai"><script>document.write(t('browser_reader.font_kai'));</script></option>
+                    <option value="fangsong"><script>document.write(t('browser_reader.font_fangsong'));</script></option>
+                    <option value="monospace"><script>document.write(t('browser_reader.font_monospace'));</script></option>
                 </select>
             </div>
 
             <div class="setting-item">
-                <label>加粗：</label>
+                <label><script>document.write(t('browser_reader.bold_label'));</script></label>
                 <button class="toggle-btn" id="boldBtn" onclick="toggleBold()">B</button>
             </div>
 
             <div class="setting-item">
-                <label>倾斜：</label>
+                <label><script>document.write(t('browser_reader.italic_label'));</script></label>
                 <button class="toggle-btn" id="italicBtn" onclick="toggleItalic()">I</button>
             </div>
 
             <div class="setting-item">
-                <label>下划线：</label>
+                <label><script>document.write(t('browser_reader.underline_label'));</script></label>
                 <button class="toggle-btn" id="underlineBtn" onclick="toggleUnderline()">U</button>
             </div>
 
             <div class="setting-item">
-                <label>字体颜色：</label>
+                <label><script>document.write(t('browser_reader.font_color_label'));</script></label>
                 <input type="color" id="fontColorInput" value="{settings['text']}" onchange="changeFontColor(this.value)">
             </div>
 
             <div class="setting-item">
-                <label>背景颜色：</label>
+                <label><script>document.write(t('browser_reader.bg_color_label'));</script></label>
                 <input type="color" id="bgColorInput" value="{settings['background']}" onchange="changeBackgroundColor(this.value)">
             </div>
 
             <div class="setting-item">
-                <label>字间距：</label>
+                <label><script>document.write(t('browser_reader.letter_spacing_label'));</script></label>
                 <input type="range" min="-2" max="5" step="0.5" value="{settings['letter_spacing']}" onchange="changeLetterSpacing(this.value)">
-                <span id="letterSpacingValue">{settings['letter_spacing']}</span>
+                <span id="letterSpacingValue">{settings['letter_spacing']}</span> <script>document.write(t('browser_reader.pixel_unit'));</script>
             </div>
 
             <div class="setting-item">
-                <label>词间距：</label>
+                <label><script>document.write(t('browser_reader.word_spacing_label'));</script></label>
                 <input type="range" min="-2" max="10" step="1" value="{settings['word_spacing']}" onchange="changeWordSpacing(this.value)">
-                <span id="wordSpacingValue">{settings['word_spacing']}</span>
+                <span id="wordSpacingValue">{settings['word_spacing']}</span> <script>document.write(t('browser_reader.pixel_unit'));</script>
             </div>
 
             <div class="setting-item">
-                <label>对齐方式：</label>
+                <label><script>document.write(t('browser_reader.alignment_label'));</script></label>
                 <select id="textAlignSelect" onchange="changeTextAlign(this.value)">
-                    <option value="left">左对齐</option>
-                    <option value="center">居中</option>
-                    <option value="right">右对齐</option>
-                    <option value="justify">两端对齐</option>
+                    <option value="left"><script>document.write(t('browser_reader.align_left'));</script></option>
+                    <option value="center"><script>document.write(t('browser_reader.align_center'));</script></option>
+                    <option value="right"><script>document.write(t('browser_reader.align_right'));</script></option>
+                    <option value="justify"><script>document.write(t('browser_reader.align_justify'));</script></option>
                 </select>
             </div>
 
             <div class="setting-actions">
-                <button onclick="resetFontSettings()">重置</button>
-                <button onclick="toggleFontSettings()">关闭</button>
+                <button onclick="resetFontSettings()"><script>document.write(t('browser_reader.reset_button'));</script></button>
+                <button onclick="toggleFontSettings()"><script>document.write(t('browser_reader.close_button'));</script></button>
             </div>
         </div>
     </div>
@@ -2624,28 +2982,28 @@ class BrowserReader:
     <!-- 高亮和笔记面板 -->
     <div class="settings-panel" id="notesPanel" style="display: none;">
         <div class="settings-content">
-            <h3 id="notesTitle">阅读助手</h3>
+            <h3 id="notesTitle"><script>document.write(t('browser_reader.notes_title'));</script></h3>
             <button class="settings-close" onclick="closeNotesPanel()">×</button>
 
             <div class="notes-tabs">
-                <button class="tab-btn active" onclick="switchNotesTab('highlights')">高亮</button>
-                <button class="tab-btn" onclick="switchNotesTab('bookmarks')">书签</button>
-                <button class="tab-btn" onclick="switchNotesTab('notes')">笔记</button>
+                <button class="tab-btn active" onclick="switchNotesTab('highlights')"><script>document.write(t('browser_reader.highlights_tab'));</script></button>
+                <button class="tab-btn" onclick="switchNotesTab('bookmarks')"><script>document.write(t('browser_reader.bookmarks_tab'));</script></button>
+                <button class="tab-btn" onclick="switchNotesTab('notes')"><script>document.write(t('browser_reader.notes_tab'));</script></button>
             </div>
 
             <div class="notes-content" id="highlightsTab">
                 <div class="notes-list" id="highlightsList"></div>
-                <div class="notes-hint">选中文字后点击高亮按钮添加高亮</div>
+                <div class="notes-hint"><script>document.write(t('browser_reader.highlights_hint'));</script></div>
             </div>
 
             <div class="notes-content" id="bookmarksTab" style="display: none;">
                 <div class="notes-list" id="bookmarksList"></div>
-                <button onclick="addBookmark()" class="add-btn">添加当前书签</button>
+                <button onclick="addBookmark()" class="add-btn"><script>document.write(t('browser_reader.add_bookmark'));</script></button>
             </div>
 
             <div class="notes-content" id="notesTab" style="display: none;">
-                <textarea id="noteInput" placeholder="输入笔记内容..." rows="3"></textarea>
-                <button onclick="addNote()" class="add-btn">添加笔记</button>
+                <textarea id="noteInput" placeholder="{{t('browser_reader.note_placeholder')}}" rows="3"></textarea>
+                <button onclick="addNote()" class="add-btn"><script>document.write(t('browser_reader.add_note'));</script></button>
                 <div class="notes-list" id="notesList"></div>
             </div>
         </div>
@@ -2653,22 +3011,22 @@ class BrowserReader:
 
     <!-- 搜索框 -->
     <div class="search-container" id="searchContainer">
-        <input type="text" id="searchInput" placeholder="搜索内容..." onkeypress="handleSearchKeypress(event)">
-        <button onclick="searchText()">搜索</button>
-        <button onclick="searchNext()">下一个</button>
+        <input type="text" id="searchInput" placeholder="{{t('browser_reader.search_placeholder')}}" onkeypress="handleSearchKeypress(event)">
+        <button onclick="searchText()"><script>document.write(t('browser_reader.search_button_text'));</script></button>
+        <button onclick="searchNext()"><script>document.write(t('browser_reader.search_next'));</script></button>
         <span class="search-count" id="searchCount"></span>
     </div>
 
     <!-- 目录切换按钮 -->
-    <button class="toc-toggle-btn" onclick="toggleTOC()" title="目录">☰</button>
+    <button class="toc-toggle-btn" onclick="toggleTOC()" title="{{t('browser_reader.toc_toggle_title')}}">☰</button>
 
     <!-- 书签按钮 -->
-    <button class="bookmark-btn" id="bookmarkBtn" onclick="toggleBookmark()" title="书签">🔖</button>
+    <button class="bookmark-btn" id="bookmarkBtn" onclick="toggleBookmark()" title="{{t('browser_reader.bookmark_title')}}">🔖</button>
 
     <!-- 章节目录 -->
     <div class="toc-container" id="tocContainer">
         <div class="toc-header">
-            <h3>章节目录</h3>
+            <h3><script>document.write(t('browser_reader.toc_title'));</script></h3>
             <button class="toc-close" onclick="toggleTOC()">×</button>
         </div>
         <ul class="toc-list" id="tocList"></ul>
@@ -2680,20 +3038,20 @@ class BrowserReader:
         <span class="scroll-speed-display" id="scrollSpeedDisplay">1</span>
         <button onclick="increaseScrollSpeed()">+</button>
         <input type="range" id="scrollSpeedSlider" min="0.5" max="10" step="0.5" value="1" onchange="setScrollSpeed(this.value)">
-        <button onclick="toggleAutoScroll()" id="autoScrollToggleBtn">开始滚动</button>
-        <button onclick="resetAutoScroll()">重置</button>
+        <button onclick="toggleAutoScroll()" id="autoScrollToggleBtn"><script>document.write(t('browser_reader.auto_scroll_start'));</script></button>
+        <button onclick="resetAutoScroll()"><script>document.write(t('browser_reader.reset_button'));</script></button>
     </div>
     
     <!-- 朗读控制面板 -->
     <div class="speech-controls" id="speechControls">
-        <button onclick="toggleSpeechPlayback()" id="speechPlaybackBtn">开始朗读</button>
+        <button onclick="toggleSpeechPlayback()" id="speechPlaybackBtn"><script>document.write(t('browser_reader.speech_start'));</script></button>
         <select id="voiceSelect" onchange="changeVoice(this.value)">
-            <option value="">选择语音</option>
+            <option value=""><script>document.write(t('browser_reader.speech_select_voice'));</script></option>
         </select>
-        <label>速度: <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechRate(this.value)"></label>
-        <label>音调: <input type="range" id="speechPitch" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechPitch(this.value)"></label>
-        <button onclick="stopSpeech()">停止</button>
-        <span class="speech-status" id="speechStatus">未朗读</span>
+        <label><script>document.write(t('browser_reader.speech_speed'));</script> <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechRate(this.value)"></label>
+        <label><script>document.write(t('browser_reader.speech_pitch'));</script> <input type="range" id="speechPitch" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechPitch(this.value)"></label>
+        <button onclick="stopSpeech()"><script>document.write(t('browser_reader.speech_stop'));</script></button>
+        <span class="speech-status" id="speechStatus"><script>document.write(t('browser_reader.speech_not_started'));</script></span>
     </div>
     
     <!-- 翻页容器 -->
@@ -2703,49 +3061,49 @@ class BrowserReader:
     
     <!-- 翻页控制按钮 -->
     <div class="pagination-controls" id="paginationControls" style="display: none;">
-        <button onclick="previousPage()" id="prevPageBtn">上一页</button>
+        <button onclick="previousPage()" id="prevPageBtn"><script>document.write(t('browser_reader.prev_page'));</script></button>
         <div class="page-info">
             <span id="currentPage">1</span> / <span id="totalPages">1</span>
         </div>
         <div class="page-jump">
             <input type="number" id="pageJumpInput" min="1" value="1" onchange="jumpToPage()">
-            <button onclick="jumpToPage()">跳转</button>
+            <button onclick="jumpToPage()"><script>document.write(t('browser_reader.page_jump'));</script></button>
         </div>
-        <button onclick="nextPage()" id="nextPageBtn">下一页</button>
+        <button onclick="nextPage()" id="nextPageBtn"><script>document.write(t('browser_reader.next_page'));</script></button>
     </div>
     
     <!-- 翻页设置面板 -->
     <div class="pagination-settings" id="paginationSettings">
         <div class="pagination-settings-content">
-            <h3>翻页设置</h3>
+            <h3><script>document.write(t('browser_reader.pagination_settings'));</script></h3>
             <button class="pagination-settings-close" onclick="togglePaginationSettings()">×</button>
             
             <div class="setting-item">
-                <label>翻页效果：</label>
+                <label><script>document.write(t('browser_reader.page_effect'));</script></label>
                 <select id="pageEffectSelect" onchange="changePageEffect(this.value)">
-                    <option value="none">无效果</option>
-                    <option value="slide">滑动效果</option>
-                    <option value="fade">淡入淡出</option>
-                    <option value="flip">翻转效果</option>
-                    <option value="realistic">仿真翻页</option>
-                    <option value="book">书页翻页</option>
+                    <option value="none"><script>document.write(t('browser_reader.effect_none'));</script></option>
+                    <option value="slide"><script>document.write(t('browser_reader.effect_slide'));</script></option>
+                    <option value="fade"><script>document.write(t('browser_reader.effect_fade'));</script></option>
+                    <option value="flip"><script>document.write(t('browser_reader.effect_flip'));</script></option>
+                    <option value="realistic"><script>document.write(t('browser_reader.effect_realistic'));</script></option>
+                    <option value="book"><script>document.write(t('browser_reader.effect_book'));</script></option>
                 </select>
             </div>
             
             <div class="setting-item">
-                <label>自动翻页：</label>
+                <label><script>document.write(t('browser_reader.auto_page_turn'));</script></label>
                 <select id="autoPageTurnSelect" onchange="changeAutoPageTurn(this.value)">
-                    <option value="off">关闭</option>
-                    <option value="10">10秒</option>
-                    <option value="15">15秒</option>
-                    <option value="30">30秒</option>
-                    <option value="60">60秒</option>
+                    <option value="off"><script>document.write(t('browser_reader.pagination_off'));</script></option>
+                    <option value="10"><script>document.write(t('browser_reader.pagination_10s'));</script></option>
+                    <option value="15"><script>document.write(t('browser_reader.pagination_15s'));</script></option>
+                    <option value="30"><script>document.write(t('browser_reader.pagination_30s'));</script></option>
+                    <option value="60"><script>document.write(t('browser_reader.pagination_60s'));</script></option>
                 </select>
             </div>
             
             <div class="setting-actions">
-                <button onclick="resetPaginationSettings()">重置</button>
-                <button onclick="togglePaginationSettings()">关闭</button>
+                <button onclick="resetPaginationSettings()"><script>document.write(t('browser_reader.reset_button'));</script></button>
+                <button onclick="togglePaginationSettings()"><script>document.write(t('browser_reader.close_button'));</script></button>
             </div>
         </div>
     </div>
@@ -2753,38 +3111,38 @@ class BrowserReader:
     <!-- 进度同步设置面板 -->
     <div class="settings-panel" id="progressSyncPanel" style="display: none;">
         <div class="settings-content">
-            <h3>进度同步设置</h3>
+            <h3><script>document.write(t('browser_reader.progress_sync_settings'));</script></h3>
             <button class="settings-close" onclick="toggleProgressSync()">×</button>
             
             <div class="setting-item">
-                <label>启用进度同步：</label>
-                <button class="toggle-btn" id="progressSyncToggle" onclick="toggleProgressSyncEnabled()">启用</button>
+                <label><script>document.write(t('browser_reader.enable_progress_sync'));</script></label>
+                <button class="toggle-btn" id="progressSyncToggle" onclick="toggleProgressSyncEnabled()"><script>document.write(t('browser_reader.enable'));</script></button>
             </div>
             
             <div class="setting-item">
-                <label>同步状态：</label>
-                <span id="syncStatusText">未连接</span>
+                <label><script>document.write(t('browser_reader.sync_status'));</script></label>
+                <span id="syncStatusText"><script>document.write(t('browser_reader.not_connected'));</script></span>
             </div>
             
             <div class="setting-item">
-                <label>上次同步时间：</label>
-                <span id="lastSyncTime">从未同步</span>
+                <label><script>document.write(t('browser_reader.last_sync_time'));</script></label>
+                <span id="lastSyncTime"><script>document.write(t('browser_reader.never_synced'));</script></span>
             </div>
             
             <div class="setting-item">
-                <label>自动同步间隔：</label>
+                <label><script>document.write(t('browser_reader.auto_sync_interval'));</script></label>
                 <select id="syncIntervalSelect" onchange="changeSyncInterval(this.value)">
-                    <option value="300000">5分钟</option>
-                    <option value="600000">10分钟</option>
-                    <option value="1800000">30分钟</option>
-                    <option value="3600000">1小时</option>
-                    <option value="7200000">2小时</option>
+                    <option value="300000"><script>document.write(t('browser_reader.sync_5min'));</script></option>
+                    <option value="600000"><script>document.write(t('browser_reader.sync_10min'));</script></option>
+                    <option value="1800000"><script>document.write(t('browser_reader.sync_30min'));</script></option>
+                    <option value="3600000"><script>document.write(t('browser_reader.sync_1hour'));</script></option>
+                    <option value="7200000"><script>document.write(t('browser_reader.sync_2hours'));</script></option>
                 </select>
             </div>
             
             <div class="setting-actions">
-                <button onclick="manualSync()">立即同步</button>
-                <button onclick="toggleProgressSync()">关闭</button>
+                <button onclick="manualSync()"><script>document.write(t('browser_reader.sync_now'));</script></button>
+                <button onclick="toggleProgressSync()"><script>document.write(t('browser_reader.close_button'));</script></button>
             </div>
         </div>
     </div>
@@ -2792,36 +3150,36 @@ class BrowserReader:
     <!-- 文件导入面板 -->
     <div class="settings-panel" id="fileImportPanel" style="display: none;">
         <div class="settings-content">
-            <h3>导入文件</h3>
+            <h3><script>document.write(t('browser_reader.import_file'));</script></h3>
             <button class="settings-close" onclick="toggleFileImport()">×</button>
             
             <div class="setting-item">
-                <label>拖放文件或选择文件：</label>
+                <label><script>document.write(t('browser_reader.drag_drop_file'));</script></label>
                 <div id="dropZone" class="drop-zone">
                     <div class="drop-zone-content">
                         <div class="drop-icon">📁</div>
-                        <p>将文件拖放到此处</p>
-                        <p class="drop-hint">或点击选择文件</p>
+                        <p><script>document.write(t('browser_reader.drop_file_here'));</script></p>
+                        <p class="drop-hint"><script>document.write(t('browser_reader.or_click_select'));</script></p>
                         <input type="file" id="fileInput" accept=".txt,.html,.htm,.md,.pdf,.epub,.mobi,.azw,.azw3" onchange="handleFileSelect(event)">
                     </div>
                 </div>
             </div>
             
             <div class="setting-item">
-                <label>文件预览：</label>
+                <label><script>document.write(t('browser_reader.file_preview'));</script></label>
                 <div id="filePreview" style="max-height: 200px; overflow-y: auto; border: 1px solid rgba(128, 128, 128, 0.3); padding: 10px; background: rgba(128, 128, 128, 0.05);">
-                    <p style="color: #666;">请选择文件进行预览</p>
+                    <p style="color: #666;"><script>document.write(t('browser_reader.select_file_preview'));</script></p>
                 </div>
             </div>
             
             <div class="setting-item">
-                <label>文件标题：</label>
-                <input type="text" id="fileTitle" placeholder="自动从文件名提取">
+                <label><script>document.write(t('browser_reader.file_title'));</script></label>
+                <input type="text" id="fileTitle" placeholder="{{t('browser_reader.auto_extract_title')}}">
             </div>
             
             <div class="setting-actions">
-                <button onclick="importFile()">导入并打开</button>
-                <button onclick="toggleFileImport()">取消</button>
+                <button onclick="importFile()"><script>document.write(t('browser_reader.import_and_open'));</script></button>
+                <button onclick="toggleFileImport()"><script>document.write(t('browser_reader.cancel'));</script></button>
             </div>
         </div>
     </div>
@@ -2829,33 +3187,33 @@ class BrowserReader:
     <!-- 书库面板 -->
     <div class="settings-panel book-library-panel" id="bookLibraryPanel" style="display: none;">
         <div class="settings-content">
-            <h3>我的书库</h3>
+            <h3><script>document.write(t('browser_reader.my_library'));</script></h3>
             <button class="settings-close" onclick="toggleBookLibrary()">×</button>
             
             <div class="library-tabs">
-                <button class="tab-btn active" onclick="switchLibraryTab('history')">阅读历史</button>
-                <button class="tab-btn" onclick="switchLibraryTab('imported')">导入书籍</button>
+                <button class="tab-btn active" onclick="switchLibraryTab('history')"><script>document.write(t('browser_reader.reading_history'));</script></button>
+                <button class="tab-btn" onclick="switchLibraryTab('imported')"><script>document.write(t('browser_reader.imported_books'));</script></button>
             </div>
             
             <!-- 阅读历史 -->
             <div class="library-content" id="historyTab">
                 <div class="library-actions">
-                    <button onclick="clearHistory()">清空历史</button>
-                    <button onclick="refreshHistory()">刷新</button>
+                    <button onclick="clearHistory()"><script>document.write(t('browser_reader.clear_history'));</script></button>
+                    <button onclick="refreshHistory()"><script>document.write(t('browser_reader.refresh'));</script></button>
                 </div>
                 <div class="book-list" id="historyBookList">
-                    <p style="color: #666; text-align: center; padding: 20px;">暂无阅读历史</p>
+                    <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_reading_history'));</script></p>
                 </div>
             </div>
             
             <!-- 导入书籍 -->
             <div class="library-content" id="importedTab" style="display: none;">
                 <div class="library-actions">
-                    <button onclick="addBookFromLibrary()">添加书籍</button>
-                    <button onclick="exportLibrary()">导出书库</button>
+                    <button onclick="addBookFromLibrary()"><script>document.write(t('browser_reader.add_book'));</script></button>
+                    <button onclick="exportLibrary()"><script>document.write(t('browser_reader.export_library'));</script></button>
                 </div>
                 <div class="book-list" id="importedBookList">
-                    <p style="color: #666; text-align: center; padding: 20px;">暂无导入书籍</p>
+                    <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_imported_books'));</script></p>
                 </div>
             </div>
         </div>
@@ -2867,8 +3225,95 @@ class BrowserReader:
     </div>
     
     <script>
+        // 语言包支持 - 直接嵌入翻译数据
+        const translations = {str(BrowserReader.get_translations())};
+        
+        
+        // 替换所有翻译占位符
+        function replaceAllPlaceholders() {{
+            // 替换所有包含翻译占位符的文本节点
+            const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            const textNodes = [];
+            let node;
+            while (node = walker.nextNode()) {{
+                if (node.textContent.includes('{{t(') && node.textContent.includes(')}}')) {{
+                    textNodes.push(node);
+                }}
+            }}
+            
+            textNodes.forEach(textNode => {{
+                const text = textNode.textContent;
+                const newText = text.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
+                    const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+                    return value || match;
+                }});
+                textNode.textContent = newText;
+            }});
+            
+            // 替换所有元素的placeholder属性中的翻译占位符
+            const elementsWithPlaceholder = document.querySelectorAll('[placeholder*="{{t("]');
+            elementsWithPlaceholder.forEach(element => {{
+                const placeholder = element.getAttribute('placeholder');
+                const newPlaceholder = placeholder.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
+                    const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+                    return value || match;
+                }});
+                element.setAttribute('placeholder', newPlaceholder);
+            }});
+            
+            // 替换所有元素的title属性中的翻译占位符
+            const elementsWithTitle = document.querySelectorAll('[title*="{{t("]');
+            elementsWithTitle.forEach(element => {{
+                const title = element.getAttribute('title');
+                const newTitle = title.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
+                    const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+                    return value || match;
+                }});
+                element.setAttribute('title', newTitle);
+            }});
+        }}
+        
+        // 翻译函数
+        function t(key, params = {{}}) {{
+            let value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+            if (!value) return key;
+            
+            // 替换参数
+            for (const [param, val] of Object.entries(params)) {{
+                value = value.replace(new RegExp(`{{${{param}}}}`, 'g'), val);
+            }}
+            return value;
+        }}
+        
+        // 页面加载完成后替换翻译占位符
+        document.addEventListener('DOMContentLoaded', function() {{
+            replaceAllPlaceholders();
+        }});
+        
+        function t(key, params = {{}}) {{
+            let value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+            if (!value) return key;
+            
+            // 替换参数
+            for (const [param, val] of Object.entries(params)) {{
+                value = value.replace(new RegExp(`{{${{param}}}}`, 'g'), val);
+            }}
+            return value;
+        }}
+        
+        // 权限管理
+        {BrowserReader.get_permission_script()}
+        
         // 当前设置
         let currentSettings = {str(settings)};
+        
+        
         
         // 全局主题变量
         const themes = {str(BrowserReader.THEMES)};
@@ -2915,7 +3360,7 @@ class BrowserReader:
         
         // 获取书籍特定的本地进度键名
         function getLocalProgressKey(bookId = BOOK_ID) {{
-            return `localReadingProgress_${{bookId}}`;
+            return 'localReadingProgress_' + bookId;
         }}
         
         // 获取书籍特定的本地进度数据
@@ -2929,13 +3374,13 @@ class BrowserReader:
         function setLocalProgressData(data, bookId = BOOK_ID) {{
             const key = getLocalProgressKey(bookId);
             localStorage.setItem(key, JSON.stringify(data));
-            console.log(`进度已保存到本地存储 [${{bookId}}]`);
+            console.log('进度已保存到本地存储 [' + bookId + ']');
         }}
         
         // 更新当前书籍ID并重新加载进度
         function updateCurrentBook(newBookId) {{
             if (newBookId !== BOOK_ID) {{
-                console.log(`切换书籍：从 [${{BOOK_ID}}] 到 [${{newBookId}}]`);
+                console.log('切换书籍：从 [' + BOOK_ID + '] 到 [' + newBookId + ']');
                 
                 // 保存当前书籍的进度（如果有的话）
                 const currentScrollTop = window.scrollY;
@@ -2955,12 +3400,12 @@ class BrowserReader:
                         timestamp: Date.now()
                     }};
                     setLocalProgressData(currentData, BOOK_ID);
-                    console.log(`已保存书籍 [${{BOOK_ID}}] 的当前进度: ${{currentProgress.toFixed(2)}}%`);
+                    console.log('已保存书籍 [' + BOOK_ID + '] 的当前进度: ' + currentProgress.toFixed(2) + '%');
                 }}
                 
                 // 更新书籍ID
                 BOOK_ID = newBookId;
-                console.log(`当前书籍ID已更新为: [${{BOOK_ID}}]`);
+                console.log('当前书籍ID已更新为: [' + BOOK_ID + ']');
                 
                 // 重新加载新书籍的进度
                 loadBookProgress();
@@ -3036,7 +3481,7 @@ class BrowserReader:
                     return isBackendOnline;
                 }}
             }} catch (error) {{
-                console.log('后端检测失败:', error);
+                console.log(t('browser_reader.backend_check_failed'), error);
                 isBackendOnline = false;
                 return false;
             }}
@@ -3044,7 +3489,7 @@ class BrowserReader:
 
         // 获取后端状态提示
         function getBackendStatusText() {{
-            return isBackendOnline ? '' : '（后端离线）';
+            return isBackendOnline ? '' : t('browser_reader.backend_offline');
         }}
         
         // 切换工具栏收缩/展开
@@ -3056,10 +3501,10 @@ class BrowserReader:
             
             if (toolbar.classList.contains('collapsed')) {{
                 icon.textContent = '︾';
-                showNotification('工具栏已隐藏');
+                showNotification(t('browser_reader.toolbar_hidden'));
             }} else {{
                 icon.textContent = '︽';
-                showNotification('工具栏已展开');
+                showNotification(t('browser_reader.toolbar_expanded'));
             }}
             
             // 更新 toolbar-toggle-container 的位置
@@ -3221,6 +3666,7 @@ class BrowserReader:
             document.getElementById('wordSpacingValue').textContent = '0';
 
             saveSettings();
+            showNotification(t('browser_reader.font_settings_reset'));
         }}
 
         // 高亮模式
@@ -3234,10 +3680,10 @@ class BrowserReader:
 
             if (isHighlightMode) {{
                 document.body.style.cursor = 'text';
-                showNotification('已进入高亮模式，选中文字后点击添加高亮');
+                showNotification(t('browser_reader.highlight_mode_entered'));
             }} else {{
                 document.body.style.cursor = 'default';
-                showNotification('已退出高亮模式');
+                showNotification(t('browser_reader.highlight_mode_exited'));
             }}
         }}
 
@@ -3264,10 +3710,10 @@ class BrowserReader:
                     localStorage.setItem('reader_highlights', JSON.stringify(highlights));
 
                     updateHighlightsList();
-                    showNotification('高亮已添加');
+                    showNotification(t('browser_reader.highlight_added'));
                 }} catch (e) {{
                     console.error('添加高亮失败:', e);
-                    showNotification('无法在此位置添加高亮');
+                    showNotification(t('browser_reader.highlight_add_failed'));
                 }}
             }}
         }}
@@ -3280,11 +3726,9 @@ class BrowserReader:
             highlights.forEach((h, index) => {{
                 const item = document.createElement('div');
                 item.className = 'note-item';
-                item.innerHTML = `
-                    <div class="note-text">${{h.text.substring(0, 50)}}...</div>
-                    <div class="note-time">位置: ${{h.position}}px</div>
-                    <span class="note-delete" onclick="deleteHighlight(${{h.id}})">×</span>
-                `;
+                item.innerHTML = '<div class="note-text">' + h.text.substring(0, 50) + '...</div>' +
+                                    '<div class="note-time">位置: ' + h.position + 'px</div>' +
+                                    '<span class="note-delete" onclick="deleteHighlight(' + h.id + ')">×</span>';
                 item.onclick = (e) => {{
                     if (e.target.className !== 'note-delete') {{
                         window.scrollTo({{ top: h.position, behavior: 'smooth' }});
@@ -3297,6 +3741,7 @@ class BrowserReader:
         function deleteHighlight(id) {{
             highlights = highlights.filter(h => h.id !== id);
             localStorage.setItem('reader_highlights', JSON.stringify(highlights));
+            showNotification(t('browser_reader.highlight_deleted'));
 
             const highlightElements = document.querySelectorAll('.highlight');
             highlightElements.forEach(el => {{
@@ -3349,7 +3794,7 @@ class BrowserReader:
             const text = input.value.trim();
 
             if (!text) {{
-                showNotification('请输入笔记内容');
+                showNotification(t('browser_reader.note_empty'));
                 return;
             }}
 
@@ -3365,7 +3810,7 @@ class BrowserReader:
 
             input.value = '';
             updateNotesList();
-            showNotification('笔记已添加');
+            showNotification(t('browser_reader.note_added'));
         }}
 
         function updateNotesList() {{
@@ -3376,11 +3821,9 @@ class BrowserReader:
             notes.forEach(note => {{
                 const item = document.createElement('div');
                 item.className = 'note-item';
-                item.innerHTML = `
-                    <span class="note-delete" onclick="deleteNote(${{note.id}})">×</span>
-                    <div class="note-text">${{note.text}}</div>
-                    <div class="note-time">${{note.time}}</div>
-                `;
+                item.innerHTML = '<span class="note-delete" onclick="deleteNote(' + note.id + ')">×</span>' +
+                                    '<div class="note-text">' + note.text + '</div>' +
+                                    '<div class="note-time">' + note.time + '</div>';
                 item.onclick = (e) => {{
                     if (e.target.className !== 'note-delete') {{
                         window.scrollTo({{ top: note.position, behavior: 'smooth' }});
@@ -3394,7 +3837,7 @@ class BrowserReader:
             notes = notes.filter(n => n.id !== id);
             localStorage.setItem('reader_notes', JSON.stringify(notes));
             updateNotesList();
-            showNotification('笔记已删除');
+            showNotification(t('browser_reader.note_deleted'));
         }}
 
         function updateBookmarksList() {{
@@ -3407,11 +3850,11 @@ class BrowserReader:
             savedBookmarks.forEach((bm, index) => {{
                 const item = document.createElement('div');
                 item.className = 'note-item';
-                item.innerHTML = `
-                    <span class="note-delete" onclick="deleteBookmark(${{bm.id}})">×</span>
-                    <div class="note-text">书签 ${{index + 1}}</div>
-                    <div class="note-time">${{new Date(bm.time).toLocaleString()}}</div>
-                `;
+                const bookmarkText = typeof t === 'function' ? t('browser_reader.bookmark_item', {{number: index + 1}}) : ('书签 ' + (index + 1));
+                const bookmarkTime = new Date(bm.time).toLocaleString();
+                item.innerHTML = '<span class="note-delete" onclick="deleteBookmark(' + bm.id + ')">×</span>' +
+                                    '<div class="note-text">' + bookmarkText + '</div>' +
+                                    '<div class="note-time">' + bookmarkTime + '</div>';
                 item.onclick = (e) => {{
                     if (e.target.className !== 'note-delete') {{
                         window.scrollTo({{ top: bm.position, behavior: 'smooth' }});
@@ -3422,6 +3865,10 @@ class BrowserReader:
         }}
 
         function addBookmark() {{
+            if (!checkPermission('bookmark.write')) {{
+                return;
+            }}
+            
             const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
 
             const bookmark = {{
@@ -3434,15 +3881,19 @@ class BrowserReader:
             localStorage.setItem('reader_bookmarks', JSON.stringify(savedBookmarks));
 
             updateBookmarksList();
-            showNotification('书签已添加');
+            showNotification(t('browser_reader.bookmark_added'));
         }}
 
         function deleteBookmark(id) {{
+            if (!checkPermission('bookmark.delete')) {{
+                return;
+            }}
+            
             const savedBookmarks = JSON.parse(localStorage.getItem('reader_bookmarks') || '[]');
             const filtered = savedBookmarks.filter(b => b.id !== id);
             localStorage.setItem('reader_bookmarks', JSON.stringify(filtered));
             updateBookmarksList();
-            showNotification('书签已删除');
+            showNotification(t('browser_reader.bookmark_deleted'));
         }}
 
         // 显示通知
@@ -3476,18 +3927,16 @@ class BrowserReader:
                     const rect = selection.getRangeAt(0).getBoundingClientRect();
                     const btn = document.createElement('button');
                     btn.textContent = '高亮';
-                    btn.style.cssText = `
-                        position: fixed;
-                        top: ${{rect.top - 40}}px;
-                        left: ${{rect.left}}px;
-                        background: rgba(100, 149, 237, 0.9);
-                        color: white;
-                        border: none;
-                        padding: 5px 10px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        z-index: 2000;
-                    `;
+                    btn.style.cssText = 'position: fixed;' +
+                        'top: ' + (rect.top - 40) + 'px;' +
+                        'left: ' + rect.left + 'px;' +
+                        'background: rgba(100, 149, 237, 0.9);' +
+                        'color: white;' +
+                        'border: none;' +
+                        'padding: 5px 10px;' +
+                        'border-radius: 4px;' +
+                        'cursor: pointer;' +
+                        'z-index: 2000;';
                     btn.onclick = function() {{
                         addHighlight();
                         btn.remove();
@@ -3548,6 +3997,230 @@ class BrowserReader:
             updateProgress();
         }}
         
+        // 切换位置跳转弹窗显示/隐藏
+        function togglePositionJump() {{
+            const modal = document.getElementById('positionJumpModal');
+            const input = document.getElementById('positionJumpInputModal');
+            
+            if (modal.style.display === 'none' || modal.style.display === '') {{
+                modal.style.display = 'block';
+                
+                // 获取当前滚动位置并设置为百分比
+                const scrollTop = window.scrollY;
+                const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const currentPercentage = Math.round((scrollTop / scrollHeight) * 100 * 100) / 100; // 保留两位小数
+                input.value = currentPercentage.toFixed(2);
+                
+                // 自动聚焦输入框
+                setTimeout(() => {{
+                    input.focus();
+                    input.select();
+                }}, 100);
+            }} else {{
+                modal.style.display = 'none';
+            }}
+        }}
+        
+        // 更新跳转弹窗的语言文本
+        function updatePositionJumpTranslations() {{
+            if (typeof t === 'function') {{
+                document.getElementById('positionJumpTitle').textContent = t('browser_reader.position_jump.title');
+                document.getElementById('positionJumpInputLabel').textContent = t('browser_reader.position_jump.input_label');
+                document.getElementById('positionJumpInputModal').placeholder = t('browser_reader.position_jump.input_placeholder');
+                document.getElementById('positionJumpButton').textContent = t('browser_reader.position_jump.jump_button');
+                document.getElementById('positionJumpButton').title = t('browser_reader.position_jump.jump_button_title');
+                document.getElementById('positionJumpQuickLabel').textContent = t('browser_reader.position_jump.quick_jump_label');
+                document.getElementById('positionJump25').textContent = t('browser_reader.position_jump.jump_25');
+                document.getElementById('positionJump25').title = t('browser_reader.position_jump.jump_25');
+                document.getElementById('positionJump50').textContent = t('browser_reader.position_jump.jump_50');
+                document.getElementById('positionJump50').title = t('browser_reader.position_jump.jump_50');
+                document.getElementById('positionJump75').textContent = t('browser_reader.position_jump.jump_75');
+                document.getElementById('positionJump75').title = t('browser_reader.position_jump.jump_75');
+            }}
+        }}
+        
+        // 关闭位置跳转弹窗
+        function closePositionJumpModal() {{
+            const modal = document.getElementById('positionJumpModal');
+            modal.style.display = 'none';
+        }}
+        
+        // 从弹窗跳转到指定位置
+        function jumpToPositionFromModal() {{
+            const input = document.getElementById('positionJumpInputModal');
+            const targetPercentage = parseFloat(input.value);
+            
+            // 验证输入值
+            if (isNaN(targetPercentage) || targetPercentage < 0 || targetPercentage > 100) {{
+                const errorMsg = typeof t === 'function' ? t('browser_reader.position_jump.input_error') : '请输入0-100之间的数值（支持小数点后两位）';
+                showNotification(errorMsg);
+                return;
+            }}
+            
+            // 计算目标滚动位置
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const targetScrollTop = Math.round((targetPercentage / 100) * scrollHeight);
+            
+            // 执行跳转
+            window.scrollTo({{ 
+                top: targetScrollTop, 
+                behavior: 'smooth' 
+            }});
+            
+            // 更新进度
+            updateProgress();
+            
+            // 显示跳转成功提示
+            const successMsg = typeof t === 'function' ? t('browser_reader.position_jump.jump_success', {{percentage: targetPercentage.toFixed(2)}}) : '已跳转到 ' + targetPercentage.toFixed(2) + '% 位置';
+            showNotification(successMsg);
+            
+            // 关闭弹窗
+            closePositionJumpModal();
+        }}
+        
+        // 从弹窗快速跳转到指定位置
+        function quickJumpToFromModal(percentage) {{
+            // 计算目标滚动位置
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const targetScrollTop = Math.round((percentage / 100) * scrollHeight);
+            
+            // 执行跳转
+            window.scrollTo({{ 
+                top: targetScrollTop, 
+                behavior: 'smooth' 
+            }});
+            
+            // 更新进度
+            updateProgress();
+            
+            // 显示跳转成功提示
+            let successMsg;
+            if (typeof t === 'function') {{
+                const key = 'browser_reader.position_jump.jump_' + percentage + '_success';
+                successMsg = t(key);
+            }} else {{
+                successMsg = '已跳转到 ' + percentage + '% 位置';
+            }}
+            showNotification(successMsg);
+            
+            // 关闭弹窗
+            closePositionJumpModal();
+        }}
+        
+        // 跳转到指定位置
+        function jumpToPosition() {{
+            const input = document.getElementById('positionJumpInput');
+            const targetPercentage = parseFloat(input.value);
+            
+            // 验证输入值
+            if (isNaN(targetPercentage) || targetPercentage < 0 || targetPercentage > 100) {{
+                showNotification(t('browser_reader.position_input_error'));
+                // 恢复当前滚动位置的百分比
+                const scrollTop = window.scrollY;
+                const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const currentPercentage = Math.round((scrollTop / scrollHeight) * 100 * 100) / 100; // 保留两位小数
+                input.value = currentPercentage.toFixed(2);
+                return;
+            }}
+            
+            performJump(targetPercentage);
+        }}
+        
+        // 执行跳转的通用函数
+        function performJump(targetPercentage) {{
+            // 计算目标滚动位置
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const targetScrollTop = Math.round((targetPercentage / 100) * scrollHeight);
+            
+            // 执行跳转
+            window.scrollTo({{ 
+                top: targetScrollTop, 
+                behavior: 'smooth' 
+            }});
+            
+            // 更新进度
+            updateProgress();
+            
+            // 显示跳转成功提示
+            showNotification(t('browser_reader.position_jump_success', {{percentage: targetPercentage.toFixed(2)}}));
+            
+            // 更新输入框的值
+            const input = document.getElementById('positionJumpInput');
+            input.value = targetPercentage.toFixed(2);
+        }}
+        
+        // 快速跳转到指定位置
+        function quickJumpTo(percentage) {{
+            performJump(percentage);
+        }}
+        
+        // 处理位置跳转输入框的回车键
+        document.addEventListener('DOMContentLoaded', function() {{
+            const positionJumpInput = document.getElementById('positionJumpInput');
+            if (positionJumpInput) {{
+                positionJumpInput.addEventListener('keypress', function(e) {{
+                    if (e.key === 'Enter') {{
+                        jumpToPosition();
+                    }}
+                }});
+                
+                // 限制输入范围
+                positionJumpInput.addEventListener('input', function(e) {{
+                    let value = parseFloat(e.target.value);
+                    if (value > 100) {{
+                        e.target.value = 100;
+                    }} else if (value < 0) {{
+                        e.target.value = 0;
+                    }}
+                }});
+            }}
+            
+            // 弹窗输入框事件监听
+            const positionJumpInputModal = document.getElementById('positionJumpInputModal');
+            if (positionJumpInputModal) {{
+                positionJumpInputModal.addEventListener('keypress', function(e) {{
+                    if (e.key === 'Enter') {{
+                        jumpToPositionFromModal();
+                    }}
+                }});
+                
+                // 限制输入范围
+                positionJumpInputModal.addEventListener('input', function(e) {{
+                    let value = parseFloat(e.target.value);
+                    if (value > 100) {{
+                        e.target.value = 100;
+                    }} else if (value < 0) {{
+                        e.target.value = 0;
+                    }}
+                }});
+                
+                // ESC键关闭弹窗
+                positionJumpInputModal.addEventListener('keydown', function(e) {{
+                    if (e.key === 'Escape') {{
+                        closePositionJumpModal();
+                    }}
+                }});
+            }}
+            
+            // 添加滚动监听，实时更新位置跳转输入框
+            let scrollUpdateTimeout;
+            window.addEventListener('scroll', function() {{
+                clearTimeout(scrollUpdateTimeout);
+                scrollUpdateTimeout = setTimeout(function() {{
+                    const positionJump = document.getElementById('positionJump');
+                    const positionJumpInput = document.getElementById('positionJumpInput');
+                    
+                    // 只有在位置跳转面板显示时才更新输入框
+                    if (positionJump && positionJump.style.display !== 'none' && positionJumpInput) {{
+                        const scrollTop = window.scrollY;
+                        const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+                        const currentPercentage = Math.round((scrollTop / scrollHeight) * 100 * 100) / 100; // 保留两位小数
+                        positionJumpInput.value = currentPercentage.toFixed(2);
+                    }}
+                }}, 100); // 防抖处理，避免频繁更新
+            }});
+        }});
+        
         // 打印内容
         function printContent() {{
             window.print();
@@ -3560,49 +4233,45 @@ class BrowserReader:
             
             let themesHtml = '';
             themeNames.forEach(name => {{
-                themesHtml += `
-                    <div class="theme-item" data-theme="${{name}}">
-                        <div class="theme-name">${{name}}</div>
-                        <div class="theme-preview" style="background: ${{customThemes[name].background}}; color: ${{customThemes[name].text}};">预览</div>
-                        <div class="theme-actions">
-                            <button onclick="loadCustomThemeByName('${{name}}')">加载</button>
-                            <button onclick="deleteCustomTheme('${{name}}')">删除</button>
-                        </div>
-                    </div>
-                `;
+                themesHtml += '<div class="theme-item" data-theme="' + name + '">' +
+                                        '<div class="theme-name">' + name + '</div>' +
+                                        '<div class="theme-preview" style="background: ' + customThemes[name].background + '; color: ' + customThemes[name].text + ';">' + (typeof t === 'function' ? t('browser_reader.preview') : '预览') + '</div>' +
+                                        '<div class="theme-actions">' +
+                                            '<button onclick="loadCustomThemeByName(\\'' + name + '\\')">' + (typeof t === 'function' ? t('browser_reader.load') : '加载') + '</button>' +
+                                            '<button onclick="deleteCustomTheme(\\'' + name + '\\')">' + (typeof t === 'function' ? t('browser_reader.delete') : '删除') + '</button>' +
+                                        '</div>' +
+                                    '</div>';
             }});
             
             if (themeNames.length === 0) {{
-                themesHtml = '<div class="no-themes">暂无自定义主题</div>';
+                themesHtml = '<div class="no-themes">' + (typeof t === 'function' ? t('browser_reader.no_custom_themes') : '暂无自定义主题') + '</div>';
             }}
             
             const panel = document.createElement('div');
             panel.className = 'settings-panel theme-manager-panel';
-            panel.innerHTML = `
-                <div class="settings-content">
-                    <h3>主题管理</h3>
-                    <button class="settings-close" onclick="closeThemeManager()">×</button>
+            panel.innerHTML = '<div class="settings-content">' +
+                    '<h3>' + (typeof t === 'function' ? t('browser_reader.theme_manager') : '主题管理') + '</h3>' +
+                    '<button class="settings-close" onclick="closeThemeManager()">×</button>' +
                     
-                    <div class="theme-manager-content">
-                        <div class="current-theme-info">
-                            <h4>当前主题设置</h4>
-                            <p>背景色: <span style="display: inline-block; width: 20px; height: 20px; background: ${{currentSettings.background}}; vertical-align: middle;"></span> ${{currentSettings.background}}</p>
-                            <p>文字色: <span style="display: inline-block; width: 20px; height: 20px; background: ${{currentSettings.text}}; vertical-align: middle;"></span> ${{currentSettings.text}}</p>
-                            <p>字体大小: ${{currentSettings.font_size}}px</p>
-                            <p>行高: ${{currentSettings.line_height}}</p>
-                        </div>
+                    '<div class="theme-manager-content">' +
+                        '<div class="current-theme-info">' +
+                            '<h4>当前主题设置</h4>' +
+                            '<p>背景色: <span style="display: inline-block; width: 20px; height: 20px; background: ' + currentSettings.background + '; vertical-align: middle;"></span> ' + currentSettings.background + '</p>' +
+                            '<p>文字色: <span style="display: inline-block; width: 20px; height: 20px; background: ' + currentSettings.text + '; vertical-align: middle;"></span> ' + currentSettings.text + '</p>' +
+                            '<p>字体大小: ' + currentSettings.font_size + 'px</p>' +
+                            '<p>行高: ' + currentSettings.line_height + '</p>' +
+                        '</div>' +
                         
-                        <div class="theme-actions-top">
-                            <button onclick="saveCustomThemeFromManager()">保存当前主题</button>
-                        </div>
+                        '<div class="theme-actions-top">' +
+                            '<button onclick="saveCustomThemeFromManager()">保存当前主题</button>' +
+                        '</div>' +
                         
-                        <div class="themes-list">
-                            <h4>已保存的主题</h4>
-                            ${{themesHtml}}
-                        </div>
-                    </div>
-                </div>
-            `;
+                        '<div class="themes-list">' +
+                            '<h4>已保存的主题</h4>' +
+                            themesHtml +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
             
             document.body.appendChild(panel);
         }}
@@ -3616,30 +4285,30 @@ class BrowserReader:
         
         // 保存自定义主题
         function saveCustomTheme() {{
-            const themeName = prompt('请输入自定义主题名称:', '我的主题');
+            const themeName = prompt(t('browser_reader.theme_name_prompt'), t('browser_reader.default_theme_name'));
             if (!themeName) {{
-                showNotification('主题名称不能为空');
+                showNotification(t('browser_reader.theme_name_empty'));
                 return;
             }}
 
             const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
             customThemes[themeName] = {{...currentSettings}};
             localStorage.setItem('reader_custom_themes', JSON.stringify(customThemes));
-            showNotification('主题已保存: ' + themeName);
+            showNotification(t('browser_reader.theme_saved', {{name: themeName}}));
         }}
         
         // 从主题管理器保存主题
         function saveCustomThemeFromManager() {{
-            const themeName = prompt('请输入自定义主题名称:', '我的主题');
+            const themeName = prompt(t('browser_reader.theme_name_prompt'), t('browser_reader.default_theme_name'));
             if (!themeName) {{
-                showNotification('主题名称不能为空');
+                showNotification(t('browser_reader.theme_name_empty'));
                 return;
             }}
 
             const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
             customThemes[themeName] = {{...currentSettings}};
             localStorage.setItem('reader_custom_themes', JSON.stringify(customThemes));
-            showNotification('主题已保存: ' + themeName);
+            showNotification(t('browser_reader.theme_saved', {{name: themeName}}));
             
             // 刷新主题管理面板
             closeThemeManager();
@@ -3658,24 +4327,24 @@ class BrowserReader:
 
             const themeName = prompt('请选择要加载的主题（输入名称）：\\n' + themeNames.join('\\n'), themeNames[0]);
             if (!themeName || !customThemes[themeName]) {{
-                showNotification('主题不存在');
+                showNotification(t('browser_reader.theme_not_exist'));
                 return;
             }}
 
             applySettings(customThemes[themeName]);
-            showNotification('已加载主题: ' + themeName);
+            showNotification(t('browser_reader.theme_loaded', {{name: themeName}}));
         }}
         
         // 通过名称加载自定义主题
         function loadCustomThemeByName(themeName) {{
             const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
             if (!customThemes[themeName]) {{
-                showNotification('主题不存在');
+                showNotification(t('browser_reader.theme_not_exist'));
                 return;
             }}
 
             applySettings(customThemes[themeName]);
-            showNotification('已加载主题: ' + themeName);
+            showNotification(t('browser_reader.theme_loaded', {{name: themeName}}));
         }}
         
         // 删除自定义主题
@@ -3687,7 +4356,7 @@ class BrowserReader:
             const customThemes = JSON.parse(localStorage.getItem('reader_custom_themes') || '{{}}');
             delete customThemes[themeName];
             localStorage.setItem('reader_custom_themes', JSON.stringify(customThemes));
-            showNotification('主题已删除: ' + themeName);
+            showNotification(t('browser_reader.theme_deleted', {{name: themeName}}));
             
             // 刷新主题管理面板
             closeThemeManager();
@@ -4098,7 +4767,7 @@ class BrowserReader:
                 icon.textContent = '☀️';
                 text.textContent = '日间模式';
                 
-                showNotification('已切换到夜间模式');
+                showNotification(t('browser_reader.night_mode_on'));
             }} else {{
                 // 恢复之前的主题
                 changeTheme(previousTheme);
@@ -4108,7 +4777,7 @@ class BrowserReader:
                 icon.textContent = '🌙';
                 text.textContent = '夜间模式';
                 
-                showNotification('已切换到日间模式');
+                showNotification(t('browser_reader.night_mode_off'));
             }}
         }}
         
@@ -4199,7 +4868,7 @@ class BrowserReader:
                     stopSpeech();
                 }}
                 
-                showNotification('已进入专注模式，按 ESC 退出');
+                showNotification(t('browser_reader.focus_mode_on'));
             }} else {{
                 // 恢复隐藏的元素
                 focusModeHiddenElements.forEach(element => {{
@@ -4213,7 +4882,7 @@ class BrowserReader:
                 }});
                 
                 focusModeHiddenElements = [];
-                showNotification('已退出专注模式');
+                showNotification(t('browser_reader.focus_mode_off'));
             }}
         }}
 
@@ -4323,7 +4992,7 @@ class BrowserReader:
                 [...chineseVoices, ...otherVoices].forEach((voice, index) => {{
                     const option = document.createElement('option');
                     option.value = index;
-                    option.textContent = `${{voice.name}} (${{voice.lang}})`;
+                    option.textContent = voice.name + ' (' + voice.lang + ')';
                     if (voice.default) {{
                         option.textContent += ' [默认]';
                     }}
@@ -4419,7 +5088,7 @@ class BrowserReader:
             const statusDisplay = document.getElementById('speechStatus');
             
             if (playbackBtn) {{
-                playbackBtn.textContent = '开始朗读';
+                playbackBtn.textContent = typeof t === 'function' ? t('browser_reader.speech_start') : '开始朗读';
                 playbackBtn.classList.remove('active');
             }}
             
@@ -4451,7 +5120,7 @@ class BrowserReader:
             
             // 更新状态
             const statusDisplay = document.getElementById('speechStatus');
-            statusDisplay.textContent = `段落 ${{currentParagraphIndex + 1}}/${{paragraphs.length}}`;
+            statusDisplay.textContent = '段落 ' + (currentParagraphIndex + 1) + '/' + paragraphs.length;
             
             speakText(text, () => {{
                 currentParagraphIndex++;
@@ -4478,7 +5147,7 @@ class BrowserReader:
                 const statusDisplay = document.getElementById('speechStatus');
                 
                 if (playbackBtn) {{
-                    playbackBtn.textContent = '开始朗读';
+                    playbackBtn.textContent = typeof t === 'function' ? t('browser_reader.speech_start') : '开始朗读';
                     playbackBtn.classList.remove('active');
                 }}
                 
@@ -4497,7 +5166,7 @@ class BrowserReader:
                 const statusDisplay = document.getElementById('speechStatus');
                 
                 if (playbackBtn) {{
-                    playbackBtn.textContent = '开始朗读';
+                    playbackBtn.textContent = typeof t === 'function' ? t('browser_reader.speech_start') : '开始朗读';
                     playbackBtn.classList.remove('active');
                 }}
                 
@@ -4561,9 +5230,9 @@ class BrowserReader:
                 const secs = seconds % 60;
                 
                 if (hours > 0) {{
-                    return `${{hours}}:${{minutes.toString().padStart(2, '0')}}:${{secs.toString().padStart(2, '0')}}`;
+                    return hours + ':' + minutes.toString().padStart(2, '0') + ':' + secs.toString().padStart(2, '0');
                 }} else {{
-                    return `${{minutes}}:${{secs.toString().padStart(2, '0')}}`;
+                    return minutes + ':' + secs.toString().padStart(2, '0');
                 }}
             }};
             
@@ -5450,8 +6119,14 @@ class BrowserReader:
                     break;
                 case 'g':
                 case 'G':
-                    toggleFontSettings();
-                    e.preventDefault();
+                    if (e.ctrlKey || e.metaKey) {{
+                        // Ctrl+G 或 Cmd+G 激活位置跳转
+                        togglePositionJump();
+                        e.preventDefault();
+                    }} else {{
+                        toggleFontSettings();
+                        e.preventDefault();
+                    }}
                     break;
                 case 'n':
                 case 'N':
@@ -5543,11 +6218,13 @@ class BrowserReader:
 
             console.log('正在生成章节目录，找到的标题数量:', headers.length);
             headers.forEach((header, index) => {{
-                console.log('标题', index + 1, ':', header.tagName, header.textContent.substring(0, 50));
+                const titleNumber = index + 1;
+                const titleText = header.tagName + ' ' + header.textContent.substring(0, 50);
+                console.log('标题', titleNumber + ':', titleText);
             }});
 
             if (headers.length === 0) {{
-                tocList.innerHTML = '<li class="toc-item">暂无章节目录</li>';
+                tocList.innerHTML = '<li class="toc-item">' + (typeof t === 'function' ? t('browser_reader.no_chapters') : '暂无章节目录') + '</li>';
                 console.log('未找到任何标题，请在文件内容中使用章节标题格式，如：');
                 console.log('  - 第X章、第X节、第X回');
                 console.log('  - Chapter X');
@@ -5559,7 +6236,8 @@ class BrowserReader:
             // 为每个标题添加唯一ID
             headers.forEach((header, index) => {{
                 if (!header.id) {{
-                    header.id = 'section-' + index;
+                    const sectionId = 'section-' + index;
+                    header.id = sectionId;
                 }}
             }});
 
@@ -5934,71 +6612,100 @@ class BrowserReader:
             }};
         }}
         
-        // 内容分页函数
+        // 智能内容分页函数 - 确保内容完整显示
         function paginateContent() {{
             const content = document.getElementById('content');
             const pageContainer = document.getElementById('paginationContainer');
             const pageContent = document.getElementById('pageContent');
             
-            if (!content || !pageContainer || !pageContent) return;
+            if (!content || !pageContainer || !pageContent) {{
+                console.error('分页失败：缺少必要的DOM元素');
+                return;
+            }}
             
-            // 获取可用高度
+            // 确保容器有正确的尺寸
+            if (pageContainer.offsetHeight === 0 || pageContainer.offsetWidth === 0) {{
+                console.error('分页失败：容器尺寸为0');
+                return;
+            }}
+            
+            // 获取容器和样式信息
             const containerHeight = pageContainer.offsetHeight;
             const containerWidth = pageContainer.offsetWidth;
-            const pageContentEl = document.getElementById('pageContent');
-            const pageContentStyle = window.getComputedStyle(pageContentEl);
-            const paddingTop = parseInt(pageContentStyle.paddingTop) || 0;
-            const paddingBottom = parseInt(pageContentStyle.paddingBottom) || 0;
-            const totalPadding = paddingTop + paddingBottom;
-            const availableHeight = containerHeight - totalPadding;
+            const pageContentStyle = window.getComputedStyle(pageContent);
+            const paddingTop = parseInt(pageContentStyle.paddingTop) || 40;
+            const paddingBottom = parseInt(pageContentStyle.paddingBottom) || 40;
+            const availableHeight = containerHeight - paddingTop - paddingBottom;
             
-            console.log('=== 分页调试信息 ===');
+            console.log('=== 智能分页调试信息 ===');
             console.log('  容器尺寸:', containerWidth, 'x', containerHeight);
             console.log('  可用高度:', availableHeight);
             console.log('  内容元素总数:', content.children.length);
-            console.log('  容器计算样式:', window.getComputedStyle(pageContainer).height);
-            console.log('  容器实际高度:', pageContainer.getBoundingClientRect().height);
             
-            // 克隆内容以避免修改原始内容
+            // 验证容器尺寸
+            if (containerWidth <= 0 || availableHeight <= 0) {{
+                console.error('容器尺寸无效，无法进行分页');
+                return;
+            }}
+            
+            // 创建测试容器来测量元素高度
+            const testContainer = document.createElement('div');
+            const testWidth = containerWidth - 80;
+            testContainer.style.position = 'absolute';
+            testContainer.style.top = '-9999px';
+            testContainer.style.left = '-9999px';
+            testContainer.style.width = testWidth + 'px';
+            testContainer.style.padding = paddingTop + 'px ' + paddingBottom + 'px';
+            testContainer.style.fontFamily = pageContentStyle.fontFamily;
+            testContainer.style.fontSize = pageContentStyle.fontSize;
+            testContainer.style.lineHeight = pageContentStyle.lineHeight;
+            testContainer.style.visibility = 'hidden';
+            document.body.appendChild(testContainer);
+            
+            // 克隆内容并分析每个元素
             const contentClone = content.cloneNode(true);
-            contentClone.style.display = 'block';
-            contentClone.style.height = 'auto';
-            contentClone.style.overflow = 'visible';
-            contentClone.style.padding = '0';
-            contentClone.style.margin = '0';
-            
-            // 临时添加到DOM以计算高度
-            document.body.appendChild(contentClone);
-            
-            // 获取所有内容元素
             const elements = Array.from(contentClone.children);
             pages = [];
+            
             let currentPage = document.createElement('div');
             currentPage.className = 'page';
             let currentHeight = 0;
+            let currentPageText = '';
             
-            // 简化的分页逻辑 - 强制按段落分页
-            let elementCount = 0;
             elements.forEach((element, index) => {{
-                elementCount++;
-                console.log('处理元素 ' + index + ': ' + element.tagName + ' - ' + (element.textContent || '').substring(0, 30) + '...');
+                // 测试当前元素的高度
+                testContainer.innerHTML = '';
+                const elementClone = element.cloneNode(true);
+                testContainer.appendChild(elementClone);
+                const elementHeight = testContainer.offsetHeight;
                 
-                // 强制分页策略：每2个段落分一页
-                if (elementCount > 2 && currentPage.children.length > 0) {{
-                    console.log('  -> 强制创建新页 (元素计数: ' + elementCount + ')');
-                    // 当前页已满，创建新页
+                // 获取元素文本（用于检查是否在句子中间）
+                const elementText = element.textContent || '';
+                
+                const logMessage = '元素 ' + index + ': ' + element.tagName + ', 高度: ' + elementHeight + ', 文本长度: ' + elementText.length;
+                console.log(logMessage);
+                
+                // 检查添加这个元素是否会超出页面高度
+                if (currentHeight + elementHeight > availableHeight && currentPage.children.length > 0) {{
+                    const exceedMessage = '  -> 高度超出 (' + (currentHeight + elementHeight) + ' > ' + availableHeight + ')，创建新页';
+                    console.log(exceedMessage);
+                    
+                    // 保存当前页
                     pages.push(currentPage);
+                    
+                    // 创建新页
                     currentPage = document.createElement('div');
                     currentPage.className = 'page';
                     currentHeight = 0;
-                    elementCount = 1; // 重置计数，当前元素算作新页的第一个
+                    currentPageText = '';
                 }}
                 
-                // 正式添加元素到当前页
-                currentPage.appendChild(element);
-                currentHeight = currentPage.offsetHeight;
+                // 添加元素到当前页
+                currentPage.appendChild(element.cloneNode(true));
+                currentHeight += elementHeight;
+                currentPageText += elementText;
                 
-                console.log('  -> 已添加，当前页元素数: ' + currentPage.children.length + ', 高度: ' + currentHeight);
+                console.log('  -> 已添加，当前页高度: ' + currentHeight);
             }});
             
             // 添加最后一页
@@ -6006,16 +6713,18 @@ class BrowserReader:
                 pages.push(currentPage);
             }}
             
-            // 移除临时元素
-            document.body.removeChild(contentClone);
+            // 清理测试容器
+            document.body.removeChild(testContainer);
             
             // 更新总页数
             document.getElementById('totalPages').textContent = pages.length;
             
+            console.log('分页完成，共 ' + pages.length + ' 页');
+            
             // 注意：不再自动显示第一页，由调用者决定显示哪一页
         }}
         
-        // 显示指定页面
+        // 显示指定页面 - 确保内容完整显示
         function showPage(pageIndex, direction = 'next') {{
             if (pageIndex < 0 || pageIndex >= pages.length) return;
             
@@ -6034,11 +6743,20 @@ class BrowserReader:
             // 计算并更新阅读进度
             updatePaginationProgress();
             
+            // 确保页面内容完整
+            const pageData = pages[pageIndex];
+            if (!pageData) {{
+                console.error('页面数据不存在:', pageIndex);
+                return;
+            }}
+            
+            console.log('显示页面 ' + (pageIndex + 1) + '/' + pages.length + '，包含 ' + pageData.children.length + ' 个元素');
+            
             // 根据不同的翻页效果应用不同的动画
             if (pageEffect === 'none') {{
                 // 无效果，直接更新内容
                 pageContent.innerHTML = '';
-                pageContent.appendChild(pages[pageIndex].cloneNode(true));
+                pageContent.appendChild(pageData.cloneNode(true));
             }} else if (pageEffect === 'realistic') {{
                 // 仿真翻页效果
                 applyRealisticFlipWithContent(pageContent, pageIndex, direction);
@@ -6053,6 +6771,11 @@ class BrowserReader:
             // 延迟更新样式，确保内容已经加载
             setTimeout(() => {{
                 updatePaginationStyles(currentSettings);
+                // 验证内容是否完整显示
+                const displayedContent = pageContent.querySelector('.page, .book-page');
+                if (displayedContent) {{
+                    console.log('页面内容验证: ' + displayedContent.children.length + ' 个元素已显示');
+                }}
             }}, 100);
         }}
         
@@ -6143,6 +6866,12 @@ class BrowserReader:
                     bookShadowNext.classList.add('active');
                     pageCurve.classList.add('active');
                     thicknessRight.classList.add('active');
+                    pageGloss.classList.add('active');
+                    
+                    // 添加动态阴影效果
+                    setTimeout(() => {{
+                        bookShadowNext.style.opacity = '0.8';
+                    }}, 200);
                 }});
             }} else {{
                 requestAnimationFrame(() => {{
@@ -6150,6 +6879,12 @@ class BrowserReader:
                     bookShadowPrev.classList.add('active');
                     pageCurve.classList.add('active');
                     thicknessLeft.classList.add('active');
+                    pageGloss.classList.add('active');
+                    
+                    // 添加动态阴影效果
+                    setTimeout(() => {{
+                        bookShadowPrev.style.opacity = '0.8';
+                    }}, 200);
                 }});
             }}
             
@@ -6200,6 +6935,8 @@ class BrowserReader:
             }}, 300);
         }}
         
+        
+        
         // 应用翻页效果
         function applyPageEffect(element, effect, direction = 'next') {{
             element.className = 'page-content';
@@ -6223,52 +6960,58 @@ class BrowserReader:
             }}
         }}
         
-        // 应用书页翻页效果
+        // 应用简洁的3D书页翻页效果 (参考test.html)
         function applyBookFlipEffect(element, direction) {{
-            element.classList.add('book-flip');
+            // 创建书页容器
+            const bookContainer = document.createElement('div');
+            bookContainer.className = 'book-container';
             
-            // 添加书页阴影效果
-            const bookShadowNext = document.createElement('div');
-            bookShadowNext.className = 'page-book-shadow page-book-shadow-next';
+            // 创建页面内容
+            const pageContent = element.innerHTML;
+            const pageStyles = window.getComputedStyle(element);
             
-            const bookShadowPrev = document.createElement('div');
-            bookShadowPrev.className = 'page-book-shadow page-book-shadow-prev';
+            // 创建正面页面
+            const frontPage = document.createElement('div');
+            frontPage.className = 'book-page front';
+            frontPage.innerHTML = pageContent;
+            frontPage.style.cssText = 
+                'font-family: ' + pageStyles.fontFamily + ';' +
+                'font-size: ' + pageStyles.fontSize + ';' +
+                'line-height: ' + pageStyles.lineHeight + ';' +
+                'color: ' + pageStyles.color + ';' +
+                'background: ' + pageStyles.backgroundColor + ';';
             
-            // 添加页面弯曲效果
-            const pageCurve = document.createElement('div');
-            pageCurve.className = 'page-curve';
+            // 创建背面页面
+            const backPage = document.createElement('div');
+            backPage.className = 'book-page back';
+            backPage.innerHTML = pageContent;
+            backPage.style.cssText = frontPage.style.cssText;
             
-            // 添加页面厚度效果
-            const thicknessRight = document.createElement('div');
-            thicknessRight.className = 'page-thickness page-thickness-right';
-            
-            const thicknessLeft = document.createElement('div');
-            thicknessLeft.className = 'page-thickness page-thickness-left';
-            
-            element.appendChild(bookShadowNext);
-            element.appendChild(bookShadowPrev);
-            element.appendChild(pageCurve);
-            element.appendChild(thicknessRight);
-            element.appendChild(thicknessLeft);
-            
-            // 根据方向应用不同的翻页效果
+            // 创建书页
+            const sheet = document.createElement('div');
+            sheet.className = 'page-content book-flip';
             if (direction === 'next') {{
-                element.classList.add('book-flip-next');
-                bookShadowNext.classList.add('active');
-                pageCurve.classList.add('active');
-                thicknessRight.classList.add('active');
+                sheet.classList.add('book-flip-next');
             }} else {{
-                element.classList.add('book-flip-prev');
-                bookShadowPrev.classList.add('active');
-                pageCurve.classList.add('active');
-                thicknessLeft.classList.add('active');
+                sheet.classList.add('book-flip-prev');
             }}
             
-            // 动画结束后移除效果
+            sheet.appendChild(frontPage);
+            sheet.appendChild(backPage);
+            bookContainer.appendChild(sheet);
+            
+            // 替换原元素
+            element.parentNode.replaceChild(bookContainer, element);
+            bookContainer.id = 'pageContent';
+            
+            // 动画结束后清理
             setTimeout(() => {{
-                const effects = element.querySelectorAll('.page-book-shadow, .page-curve, .page-thickness');
-                effects.forEach(effect => effect.remove());
-            }}, 800);
+                if (direction === 'next') {{
+                    sheet.classList.remove('book-flip-next');
+                }} else {{
+                    sheet.classList.remove('book-flip-prev');
+                }}
+            }}, 1000);
         }}
         
         // 应用仿真翻页效果
@@ -6504,7 +7247,7 @@ class BrowserReader:
                     }}
                 }}, autoPageTurnInterval * 1000);
                 
-                showNotification(`自动翻页已开启，每${{autoPageTurnInterval}}秒翻页`);
+                showNotification('自动翻页已开启，每' + autoPageTurnInterval + '秒翻页');
             }} else {{
                 showNotification('自动翻页已关闭');
             }}
@@ -6845,11 +7588,11 @@ class BrowserReader:
             const dt = e.dataTransfer;
             const files = dt.files;
             
-            console.log(`拖放了 ${{files.length}} 个文件`);
+            console.log('拖放了 ' + files.length + ' 个文件');
             
             if (files.length > 0) {{
                 // 处理第一个文件
-                console.log(`处理文件: ${{files[0].name}}`);
+                console.log('处理文件: ' + files[0].name);
                 handleDroppedFile(files[0]);
             }} else {{
                 console.log('没有检测到文件');
@@ -6892,15 +7635,13 @@ class BrowserReader:
                 if (isBinaryFormat) {{
                     // 对于二进制格式，只显示文件信息
                     if (filePreview) {{
-                        filePreview.innerHTML = `
-                            <div style="padding: 10px; background: rgba(100, 149, 237, 0.1); border-radius: 4px; border-left: 4px solid rgba(100, 149, 237, 0.6);">
-                                <h4 style="margin: 0 0 10px 0; color: {settings['title']};">电子书文件</h4>
-                                <p style="margin: 5px 0;"><strong>文件名：</strong>${{file.name}}</p>
-                                <p style="margin: 5px 0;"><strong>文件大小：</strong>${{(file.size / 1024 / 1024).toFixed(2)}} MB</p>
-                                <p style="margin: 5px 0;"><strong>文件类型：</strong>${{fileName.substring(fileName.lastIndexOf('.'))}}</p>
-                                <p style="margin: 10px 0; color: #666; font-size: 12px;">此文件将在后端进行解析处理</p>
-                            </div>
-                        `;
+                                                filePreview.innerHTML = '<div style="padding: 10px; background: rgba(100, 149, 237, 0.1); border-radius: 4px; border-left: 4px solid rgba(100, 149, 237, 0.6);">' +
+                                    '<h4 style="margin: 0 0 10px 0; color: ' + currentSettings.title + ';">电子书文件</h4>' +
+                                    '<p style="margin: 5px 0;"><strong>文件名：</strong>' + file.name + '</p>' +
+                                    '<p style="margin: 5px 0;"><strong>文件大小：</strong>' + (file.size / 1024 / 1024).toFixed(2) + ' MB</p>' +
+                                    '<p style="margin: 5px 0;"><strong>文件类型：</strong>' + fileName.substring(fileName.lastIndexOf('.')) + '</p>' +
+                                    '<p style="margin: 10px 0; color: #666; font-size: 12px;">此文件将在后端进行解析处理</p>' +
+                                '</div>';
                     }}
                 }} else {{
                     // 对于文本格式，显示内容预览
@@ -6913,11 +7654,11 @@ class BrowserReader:
                     preview = preview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                     
                     if (filePreview) {{
-                        filePreview.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${{preview}}</pre>`;
+                        filePreview.innerHTML = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">' + preview + '</pre>';
                     }}
                 }}
                 
-                showNotification(`已加载文件：${{file.name}}`);
+                showNotification('已加载文件：' + file.name);
             }};
             
             reader.onerror = function() {{
@@ -6973,7 +7714,7 @@ class BrowserReader:
                 preview = preview.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 
                 if (filePreview) {{
-                    filePreview.innerHTML = `<pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">${{preview}}</pre>`;
+                    filePreview.innerHTML = '<pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">' + preview + '</pre>';
                 }}
             }};
             
@@ -7005,21 +7746,19 @@ class BrowserReader:
             
             if (isBinaryFormat) {{
                 // 对于二进制电子书格式，显示等待处理的提示
-                processedContent = `
-                    <div style="text-align: center; padding: 50px 20px; color: {settings['text']};">
-                        <div style="font-size: 48px; margin-bottom: 20px;">📚</div>
-                        <h2 style="color: {settings['title']}; margin-bottom: 15px;">${{title}}</h2>
-                        <p style="margin-bottom: 10px;">正在处理电子书文件...</p>
-                        <p style="font-size: 14px; color: rgba(128, 128, 128, 0.7);">
-                            文件类型：${{fileName.substring(fileName.lastIndexOf('.'))}}<br>
-                            文件大小：${{(selectedFile.size / 1024 / 1024).toFixed(2)}} MB
-                        </p>
-                        <div style="margin-top: 30px; padding: 15px; background: rgba(128, 128, 128, 0.1); border-radius: 8px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">
-                            <p style="margin: 5px 0; font-size: 12px;">💡 此电子书文件需要后端解析服务进行处理</p>
-                            <p style="margin: 5px 0; font-size: 12px;">📖 支持的格式：PDF、EPUB、MOBI、AZW、AZW3</p>
-                        </div>
-                    </div>
-                `;
+                processedContent = '<div style="text-align: center; padding: 50px 20px; color: ' + currentSettings.text + ';">' +
+                        '<div style="font-size: 48px; margin-bottom: 20px;">📚</div>' +
+                        '<h2 style="color: ' + currentSettings.title + '; margin-bottom: 15px;">' + title + '</h2>' +
+                        '<p style="margin-bottom: 10px;">正在处理电子书文件...</p>' +
+                        '<p style="font-size: 14px; color: rgba(128, 128, 128, 0.7);">' +
+                            '文件类型：' + fileName.substring(fileName.lastIndexOf('.')) + '<br>' +
+                            '文件大小：' + (selectedFile.size / 1024 / 1024).toFixed(2) + ' MB' +
+                        '</p>' +
+                        '<div style="margin-top: 30px; padding: 15px; background: rgba(128, 128, 128, 0.1); border-radius: 8px; text-align: left; max-width: 400px; margin-left: auto; margin-right: auto;">' +
+                            '<p style="margin: 5px 0; font-size: 12px;">💡 此电子书文件需要后端解析服务进行处理</p>' +
+                            '<p style="margin: 5px 0; font-size: 12px;">📖 支持的格式：PDF、EPUB、MOBI、AZW、AZW3</p>' +
+                        '</div>' +
+                    '</div>';
             }} else if (fileName.endsWith('.txt')) {{
                 // TXT文件：转换为HTML段落
                 const paragraphs = fileContent.split('\\n');
@@ -7027,7 +7766,7 @@ class BrowserReader:
                 paragraphs.forEach(para => {{
                     para = para.trim();
                     if (para) {{
-                        processedContent += `<p>${{para}}</p>`;
+                        processedContent += '<p>' + para + '</p>';
                     }}
                 }});
             }} else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {{
@@ -7042,13 +7781,13 @@ class BrowserReader:
                     if (!line) return;
                     
                     if (line.startsWith('# ')) {{
-                        processedContent += `<h1>${{line.substring(2)}}</h1>`;
+                        processedContent += '<h1>' + line.substring(2) + '</h1>';
                     }} else if (line.startsWith('## ')) {{
-                        processedContent += `<h2>${{line.substring(3)}}</h2>`;
+                        processedContent += '<h2>' + line.substring(3) + '</h2>';
                     }} else if (line.startsWith('### ')) {{
-                        processedContent += `<h3>${{line.substring(4)}}</h3>`;
+                        processedContent += '<h3>' + line.substring(4) + '</h3>';
                     }} else {{
-                        processedContent += `<p>${{line}}</p>`;
+                        processedContent += '<p>' + line + '</p>';
                     }}
                 }});
             }}
@@ -7090,7 +7829,7 @@ class BrowserReader:
             selectedFile = null;
             fileContent = null;
             
-            showNotification(`已导入文件：${{title}}`);
+            showNotification(typeof t === 'function' ? t('browser_reader.file_imported', {{title: title}}) : ('已导入文件：' + title));
             
             // 如果书库面板当前是打开的，更新书库显示
             const libraryPanel = document.getElementById('bookLibraryPanel');
@@ -7168,18 +7907,16 @@ class BrowserReader:
                 const date = new Date(item.readTime);
                 const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
                 
-                html += `
-                    <div class="book-item" onclick="openHistoryBook('${{item.bookId}}', '${{item.type}}')">
-                        <div class="book-cover">${{item.type === 'imported' ? '导入' : '文件'}}</div>
-                        <div class="book-info">
-                            <div class="book-title">${{item.title}}</div>
-                            <div class="book-meta">${{dateStr}} · 进度 ${{Math.round(item.progress || 0)}}%</div>
-                        </div>
-                        <div class="book-actions">
-                            <button onclick="event.stopPropagation(); removeHistoryItem('${{item.id}}')">删除</button>
-                        </div>
-                    </div>
-                `;
+                html += '<div class="book-item" onclick="openHistoryBook(\\'' + item.bookId + '\\', \\'' + item.type + '\\')">' +
+                    '<div class="book-cover">' + (item.type === 'imported' ? '导入' : '文件') + '</div>' +
+                    '<div class="book-info">' +
+                        '<div class="book-title">' + item.title + '</div>' +
+                        '<div class="book-meta">' + dateStr + ' · 进度 ' + Math.round(item.progress || 0) + '%</div>' +
+                    '</div>' +
+                    '<div class="book-actions">' +
+                        '<button onclick="event.stopPropagation(); removeHistoryItem(\\'' + item.id + '\\')">删除</button>' +
+                    '</div>' +
+                '</div>';
             }});
             
             historyList.innerHTML = html;
@@ -7199,18 +7936,16 @@ class BrowserReader:
                 const date = new Date(book.importTime);
                 const dateStr = date.toLocaleDateString();
                 
-                html += `
-                    <div class="book-item" onclick="openImportedBook('${{book.id}}')">
-                        <div class="book-cover">书籍</div>
-                        <div class="book-info">
-                            <div class="book-title">${{book.title}}</div>
-                            <div class="book-meta">${{dateStr}} · ${{book.fileName}}</div>
-                        </div>
-                        <div class="book-actions">
-                            <button onclick="event.stopPropagation(); deleteImportedBook('${{book.id}}')">删除</button>
-                        </div>
-                    </div>
-                `;
+                html += '<div class="book-item" onclick="openImportedBook(\\'' + book.id + '\\')">' +
+                    '<div class="book-cover">📄</div>' +
+                    '<div class="book-info">' +
+                        '<div class="book-title">' + book.title + '</div>' +
+                        '<div class="book-meta">' + dateStr + ' · ' + book.fileName + '</div>' +
+                    '</div>' +
+                    '<div class="book-actions">' +
+                        '<button onclick="event.stopPropagation(); deleteImportedBook(\\'' + book.id + '\\')">删除</button>' +
+                    '</div>' +
+                '</div>';
             }});
             
             bookList.innerHTML = html;
@@ -7263,7 +7998,7 @@ class BrowserReader:
                 loadBookProgress();
             }}, 100);
             
-            showNotification(`已打开书籍：${{book.title}}`);
+            showNotification('已打开书籍：' + book.title);
         }}
         
         function removeHistoryItem(itemId) {{
@@ -7322,7 +8057,7 @@ class BrowserReader:
             
             const link = document.createElement('a');
             link.href = url;
-            link.download = `book_library_${{new Date().toISOString().split('T')[0]}}.json`;
+            link.download = 'book_library_' + new Date().toISOString().split('T')[0] + '.json';
             link.click();
             
             URL.revokeObjectURL(url);
@@ -7409,8 +8144,56 @@ class BrowserReader:
             }}
         }});
     </script>
+
+    
 </body>
 </html>"""
+        
+        # 替换所有document.write调用为直接文本
+        import re
+        
+        def replace_document_write(match):
+            key = match.group(1)
+            return f"{{t('browser_reader.{key}')}}"
+        
+        # 替换 <script>document.write(t('key'));</script> 为 {t('key')}
+        html = re.sub(r"<script>document\.write\(t\('browser_reader\.([^']+)'\)\);</script>", 
+                     lambda m: f"{{t('browser_reader.{m.group(1)}')}}", html)
+        
+        # 然后在JavaScript中添加一个函数来处理这些占位符
+        placeholder_script = """
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 替换所有翻译占位符
+            function replacePlaceholders() {
+                const walker = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                
+                let node;
+                while (node = walker.nextNode()) {
+                    const text = node.textContent;
+                    if (text.includes('{t(') && text.includes(')}')) {
+                        // 替换翻译占位符
+                        const newText = text.replace(/{t\('([^']+)'\)}/g, function(match, key) {
+                            return t(key);
+                        });
+                        node.textContent = newText;
+                    }
+                }
+            }
+            
+            replacePlaceholders();
+        });
+        </script>
+        """
+        
+        # 在</body>前插入脚本
+        html = html.replace('</body>', placeholder_script + '</body>')
+        
         return html
     
     @staticmethod
@@ -7794,8 +8577,42 @@ class BrowserReader:
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
                     self.wfile.write(json.dumps({{"status": "ok"}}).encode())
+                elif self.path.startswith('/src/locales/'):
+                    # 提供静态文件访问（翻译文件）
+                    self.serve_static_file(self.path[1:])  # 移除开头的 /
                 else:
                     self.send_response(404)
+                    self.end_headers()
+            
+            def serve_static_file(self, relative_path):
+                """提供静态文件访问"""
+                try:
+                    # 构建绝对路径
+                    base_path = Path(__file__).parent.parent
+                    file_path = base_path / relative_path
+                    
+                    if file_path.exists() and file_path.is_file():
+                        # 读取文件内容
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        # 设置正确的Content-Type
+                        if file_path.suffix == '.json':
+                            content_type = 'application/json; charset=utf-8'
+                        else:
+                            content_type = 'text/plain; charset=utf-8'
+                        
+                        self.send_response(200)
+                        self.send_header('Content-Type', content_type)
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(content.encode('utf-8'))
+                    else:
+                        self.send_response(404)
+                        self.end_headers()
+                except Exception as e:
+                    logger.error(f"静态文件访问错误: {e}")
+                    self.send_response(500)
                     self.end_headers()
             
             def do_POST(self):

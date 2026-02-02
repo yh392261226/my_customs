@@ -89,7 +89,7 @@ class ThemeManager:
                 'modified_time': os.path.getmtime(theme_path)
             }
             
-            logger.info(f"成功加载主题: {theme_name} from {theme_path}")
+            # logger.info(f"成功加载主题: {theme_name} from {theme_path}")
             
         except json.JSONDecodeError as e:
             logger.error(f"主题文件JSON格式错误 {theme_path}: {e}")
