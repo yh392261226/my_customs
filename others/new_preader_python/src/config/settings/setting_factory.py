@@ -9,8 +9,21 @@ if TYPE_CHECKING:
     from src.config.settings.setting_registry import SettingRegistry
 
 from src.config.settings.setting_types import (
-    BooleanSetting, IntegerSetting, FloatSetting,
-    StringSetting, SelectSetting, ListSetting
+
+    BooleanSetting,
+
+    IntegerSetting,
+
+    FloatSetting,
+
+    StringSetting,
+
+    SelectSetting,
+
+    ListSetting,
+
+    SeparatorSetting
+
 )
 from src.config.settings.setting_section import SettingSection
 from src.config.default_config import (
@@ -590,6 +603,66 @@ def create_browser_settings() -> SettingSection:
         default_value="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
         display_name="Brave Path",  # 将在UI中通过国际化显示
         description="Brave browser executable file path",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
+    # 分隔线
+    section.add_setting(SeparatorSetting(
+        key="browser.server_separator",
+        display_name="Browser Reader Server",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
+    # 服务器主机地址
+    section.add_setting(StringSetting(
+        key="browser_server.host",
+        default_value="localhost",
+        display_name="Server Host",  # 将在UI中通过国际化显示
+        description="Host address for browser reader server (supports any address like 0.0.0.0, 192.168.1.100, etc.)",  # 将在UI中通过国际化显示
+        category="browser"
+    ))
+    
+    # 服务器端口
+    section.add_setting(IntegerSetting(
+        key="browser_server.port",
+        default_value=54321,
+        display_name="Server Port",  # 将在UI中通过国际化显示
+        description="Port number for browser reader server (set to 0 for random port assignment)",  # 将在UI中通过国际化显示
+        min_value=0,
+        max_value=65535,
+        category="browser"
+    ))
+    
+    # 随机端口范围最小值
+    section.add_setting(IntegerSetting(
+        key="browser_server.port_range_min",
+        default_value=10000,
+        display_name="Random Port Range Min",  # 将在UI中通过国际化显示
+        description="Minimum port for random port assignment (when port is 0)",  # 将在UI中通过国际化显示
+        min_value=1024,
+        max_value=60000,
+        category="browser"
+    ))
+    
+    # 随机端口范围最大值
+    section.add_setting(IntegerSetting(
+        key="browser_server.port_range_max",
+        default_value=60000,
+        display_name="Random Port Range Max",  # 将在UI中通过国际化显示
+        description="Maximum port for random port assignment (when port is 0)",  # 将在UI中通过国际化显示
+        min_value=1025,
+        max_value=65535,
+        category="browser"
+    ))
+    
+    # 端口冲突最大重试次数
+    section.add_setting(IntegerSetting(
+        key="browser_server.max_retry_attempts",
+        default_value=10,
+        display_name="Max Retry Attempts",  # 将在UI中通过国际化显示
+        description="Maximum retry attempts when port conflict occurs",  # 将在UI中通过国际化显示
+        min_value=1,
+        max_value=50,
         category="browser"
     ))
     

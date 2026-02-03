@@ -159,3 +159,20 @@ Footer {
     background: $panel;
     border-top: solid $primary;
 }
+
+#browser-server-check-area {
+    width: 100%;
+    height: 6;
+    border-top: solid $primary;
+    border-bottom: solid $primary;
+}
+
+#browser-server-check-port-btn {
+    width: 20;
+    height: 3;
+    margin: 0 2 0 2;
+}
+
+.port-status {
+    margin-top: 1;
+}

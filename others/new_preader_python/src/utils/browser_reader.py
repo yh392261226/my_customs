@@ -3125,6 +3125,16 @@ class BrowserReader:
             </div>
             
             <div class="setting-item">
+                <label>服务器地址</label>
+                <span id="serverAddressText" style="font-family: monospace; font-size: 12px; color: #666;">检测中...</span>
+            </div>
+            
+            <div class="setting-item">
+                <label>连接模式</label>
+                <span id="connectionModeText" style="color: #666;">检测中...</span>
+            </div>
+            
+            <div class="setting-item">
                 <label><script>document.write(t('browser_reader.last_sync_time'));</script></label>
                 <span id="lastSyncTime"><script>document.write(t('browser_reader.never_synced'));</script></span>
             </div>
@@ -3468,6 +3478,8 @@ class BrowserReader:
 
                 if (response && response.ok) {{
                     isBackendOnline = true;
+                    // 更新服务器连接信息显示
+                    updateServerConnectionInfo();
                     return true;
                 }} else {{
                     // 尝试HEAD请求作为备用检测
@@ -3478,11 +3490,15 @@ class BrowserReader:
                     }}).catch(() => null);
 
                     isBackendOnline = headResponse !== null;
+                    // 更新服务器连接信息显示
+                    updateServerConnectionInfo();
                     return isBackendOnline;
                 }}
             }} catch (error) {{
                 console.log(t('browser_reader.backend_check_failed'), error);
                 isBackendOnline = false;
+                // 更新服务器连接信息显示
+                updateServerConnectionInfo();
                 return false;
             }}
         }}
@@ -3491,6 +3507,72 @@ class BrowserReader:
         function getBackendStatusText() {{
             return isBackendOnline ? '' : t('browser_reader.backend_offline');
         }}
+        
+        // 更新服务器连接信息显示
+        function updateServerConnectionInfo() {{
+            const serverAddressElement = document.getElementById('serverAddressText');
+            const connectionModeElement = document.getElementById('connectionModeText');
+            
+            if (serverAddressElement && connectionModeElement) {{
+                try {{
+                    // 从当前URL提取服务器信息
+                    const currentUrl = window.location.href;
+                    const url = new URL(currentUrl);
+                    const host = url.hostname || 'localhost';
+                    const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+                    const serverAddress = host + ':' + port;
+                    
+                    // 检测连接模式
+                    let connectionMode = '未知';
+                    let modeColor = '#666';
+                    
+                    if (typeof SAVE_PROGRESS_URL !== 'undefined' && SAVE_PROGRESS_URL) {{
+                        try {{
+                            const serverUrl = new URL(SAVE_PROGRESS_URL);
+                            const serverPort = serverUrl.port;
+                            
+                            if (serverPort === '54321') {{
+                                connectionMode = '固定端口模式';
+                                modeColor = '#4CAF50'; // 绿色
+                            }} else if (serverPort >= 10000 && serverPort <= 60000) {{
+                                connectionMode = '随机端口模式';
+                                modeColor = '#FF9800'; // 橙色
+                            }} else {{
+                                connectionMode = '端口 ' + serverPort;
+                                modeColor = '#2196F3'; // 蓝色
+                            }}
+                        }} catch (e) {{
+                            connectionMode = '配置解析错误';
+                            modeColor = '#F44336'; // 红色
+                        }}
+                    }} else {{
+                        connectionMode = '离线模式';
+                        modeColor = '#9E9E9E'; // 灰色
+                    }}
+                    
+                    // 更新显示
+                    serverAddressElement.textContent = serverAddress;
+                    serverAddressElement.style.color = isBackendOnline ? '#4CAF50' : '#F44336';
+                    connectionModeElement.textContent = connectionMode;
+                    connectionModeElement.style.color = modeColor;
+                }} catch (error) {{
+                    console.error('更新服务器连接信息失败:', error);
+                    serverAddressElement.textContent = '连接信息获取失败';
+                    connectionModeElement.textContent = '未知';
+                    connectionModeElement.style.color = '#F44336';
+                }}
+            }}
+        }}
+        
+        // 在页面加载完成后更新服务器信息
+        document.addEventListener('DOMContentLoaded', function() {{
+            updateServerConnectionInfo();
+            
+            // 每隔一段时间更新连接状态
+            setInterval(function() {{
+                updateServerConnectionInfo();
+            }}, 5000);
+        }});
         
         // 切换工具栏收缩/展开
         function toggleToolbar() {{
@@ -8543,9 +8625,46 @@ class BrowserReader:
             (save_url, load_url, server, server_thread)
         """
         import random
+        from src.config.config_manager import ConfigManager
         
-        # 生成随机端口
-        port = random.randint(10000, 60000)
+        # 获取配置管理器
+        config_manager = ConfigManager.get_instance()
+        config = config_manager.get_config()
+        browser_server_config = config.get("browser_server", {})
+        
+        # 获取配置
+        host = browser_server_config.get("host", "localhost")
+        port = browser_server_config.get("port", 54321)
+        port_range_min = browser_server_config.get("port_range_min", 10000)
+        port_range_max = browser_server_config.get("port_range_max", 60000)
+        max_retry = browser_server_config.get("max_retry_attempts", 10)
+        
+        # 确定最终端口
+        if port == 0:
+            # 端口为0时，随机分配端口
+            final_port = random.randint(port_range_min, port_range_max)
+            logger.info(f"端口设置为0，使用随机端口: {final_port}")
+        else:
+            final_port = port
+            logger.info(f"使用指定端口: {final_port}")
+        
+        # 检测端口是否可用，如果不可用则重试
+        for attempt in range(max_retry):
+            if BrowserReader._is_port_available(host, final_port):
+                logger.info(f"端口 {host}:{final_port} 可用")
+                port = final_port
+                break
+            else:
+                logger.warning(f"端口 {host}:{final_port} 被占用，尝试其他端口")
+                if port == 0:
+                    # 原本就是随机端口，继续随机
+                    final_port = random.randint(port_range_min, port_range_max)
+                else:
+                    # 指定端口被占用，也使用随机端口
+                    final_port = random.randint(port_range_min, port_range_max)
+        else:
+            logger.error(f"经过 {max_retry} 次重试仍找不到可用端口")
+            return None, None, None, None
         
         # 存储进度数据
         progress_data = {}
@@ -8673,33 +8792,155 @@ class BrowserReader:
                 self.end_headers()
         
         # 启动服务器
+        def try_start_server(port_to_try, server_host):
+            """尝试在指定端口启动服务器"""
+            try:
+                server = HTTPServer((server_host, port_to_try), ProgressHandler)
+                server_thread = Thread(target=server.serve_forever, daemon=True)
+                server_thread.start()
+                
+                save_url = f"http://{server_host}:{port_to_try}/save_progress"
+                load_url = f"http://{server_host}:{port_to_try}/load_progress"
+                
+                logger.info(f"浏览器阅读器服务器已启动: {server_host}:{port_to_try}")
+                return save_url, load_url, server, server_thread
+            except OSError as e:
+                logger.warning(f"端口 {port_to_try} 启动失败: {e}")
+                return None
+        
+        # 首先尝试初始端口
+        result = try_start_server(port, host)
+        if result:
+            # 如果是固定端口且成功启动，保存配置
+            if enable_fixed_port and fixed_port > 0 and port == fixed_port:
+                logger.info(f"固定端口 {fixed_port} 启动成功")
+            return result[0], result[1], result[2], result[3]
+        
+        # 如果固定端口启动失败，尝试其他端口
+        if enable_fixed_port and fixed_port > 0 and port == fixed_port:
+            logger.warning(f"固定端口 {fixed_port} 被占用，尝试其他端口")
+            
+            # 尝试端口范围内的随机端口
+            for attempt in range(max_retry):
+                fallback_port = random.randint(port_range_min, port_range_max)
+                result = try_start_server(fallback_port, host)
+                if result:
+                    logger.info(f"使用备用端口 {fallback_port} 启动服务器")
+                    return result[0], result[1], result[2], result[3]
+            
+            # 如果指定范围内都失败，扩大范围再尝试
+            logger.warning("指定端口范围内都无可用的端口，扩大范围尝试")
+            for attempt in range(5):
+                fallback_port = random.randint(8000, 65000)
+                result = try_start_server(fallback_port, host)
+                if result:
+                    logger.info(f"使用扩展范围端口 {fallback_port} 启动服务器")
+                    return result[0], result[1], result[2], result[3]
+        else:
+            # 随机端口失败，继续尝试其他随机端口
+            for attempt in range(max_retry - 1):
+                fallback_port = random.randint(port_range_min, port_range_max)
+                result = try_start_server(fallback_port, host)
+                if result:
+                    return result[0], result[1], result[2], result[3]
+        
+        # 所有尝试都失败
+        logger.error("无法启动浏览器阅读器服务器，所有端口都被占用")
+        return None, None, None, None
+
+    @staticmethod
+    def _is_port_available(host: str, port: int) -> bool:
+        """
+        检测端口是否可用
+        
+        Args:
+            host: 主机地址
+            port: 端口号
+            
+        Returns:
+            bool: 端口是否可用
+        """
+        import socket
+        
         try:
-            server = HTTPServer(('localhost', port), ProgressHandler)
-            server_thread = Thread(target=server.serve_forever, daemon=True)
-            server_thread.start()
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(1)
+                result = sock.connect_ex((host, port))
+                return result != 0  # 连接失败表示端口可用
+        except Exception:
+            return False
+    
+    @staticmethod
+    def _resolve_host_address(host_config: str, custom_host: str) -> str:
+        """
+        解析主机地址
+        
+        Args:
+            host_config: 主机配置值
+            custom_host: 自定义主机地址
             
-            save_url = f"http://localhost:{port}/save_progress"
-            load_url = f"http://localhost:{port}/load_progress"
+        Returns:
+            str: 解析后的主机地址
+        """
+        if host_config == "custom" and custom_host:
+            return custom_host.strip()
+        elif host_config == "0.0.0.0":
+            return "0.0.0.0"
+        elif host_config == "127.0.0.1":
+            return "127.0.0.1"
+        else:
+            return "localhost"
+    
+    @staticmethod
+    def get_server_info() -> Dict[str, Any]:
+        """
+        获取浏览器阅读器服务器配置信息
+        
+        Returns:
+            Dict[str, Any]: 服务器配置信息
+        """
+        from src.config.config_manager import ConfigManager
+        
+        config_manager = ConfigManager.get_instance()
+        config = config_manager.get_config()
+        browser_server_config = config.get("browser_server", {})
+        
+        return {
+            "host": browser_server_config.get("host", "localhost"),
+            "port": browser_server_config.get("port", 54321),
+            "port_range_min": browser_server_config.get("port_range_min", 10000),
+            "port_range_max": browser_server_config.get("port_range_max", 60000),
+            "max_retry_attempts": browser_server_config.get("max_retry_attempts", 10),
+        }
+    
+    @staticmethod
+    def update_server_config(config: Dict[str, Any]) -> bool:
+        """
+        更新浏览器阅读器服务器配置
+        
+        Args:
+            config: 新的配置字典
             
-            return save_url, load_url, server, server_thread
-        except OSError:
-            # 端口被占用，尝试其他端口
-            for _ in range(10):
-                port = random.randint(10000, 60000)
-                try:
-                    server = HTTPServer(('localhost', port), ProgressHandler)
-                    server_thread = Thread(target=server.serve_forever, daemon=True)
-                    server_thread.start()
-                    
-                    save_url = f"http://localhost:{port}/save_progress"
-                    load_url = f"http://localhost:{port}/load_progress"
-                    
-                    return save_url, load_url, server, server_thread
-                except OSError:
-                    continue
+        Returns:
+            bool: 更新是否成功
+        """
+        from src.config.config_manager import ConfigManager
+        
+        try:
+            config_manager = ConfigManager.get_instance()
+            full_config = config_manager.get_config()
+            current_config = full_config.get("browser_server", {})
             
-            # 所有端口都被占用，不启用进度同步
-            return None, None, None, None
+            # 合并配置
+            current_config.update(config)
+            full_config["browser_server"] = current_config
+            config_manager.save_config(full_config)
+            
+            logger.info(f"浏览器服务器配置已更新: {config}")
+            return True
+        except Exception as e:
+            logger.error(f"更新浏览器服务器配置失败: {e}")
+            return False
 
     @staticmethod
     def _cleanup_old_servers(max_age_hours: int = 24) -> None:

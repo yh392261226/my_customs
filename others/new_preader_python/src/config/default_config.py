@@ -131,14 +131,28 @@ DEFAULT_CONFIG = {
         "view_global_statistics": ["C"],
         
         # 高级功能
-        "boss_key": ["/"],
-        "reset_progress": ["R"],
-        "adjust_font_size": ["F"],
-        "adjust_line_spacing": ["L"],
-        "adjust_paragraph_spacing": ["P"],
-    }
-}
-
+            "boss_key": ["/"],
+            "reset_progress": ["R"],
+            "adjust_font_size": ["F"],
+            "adjust_line_spacing": ["L"],
+            "adjust_paragraph_spacing": ["P"],
+            },
+            
+            # 浏览器服务器设置
+            
+                "browser_server": {
+            
+                    "host": "localhost",  # 服务器主机地址（支持任意地址）
+            
+                    "port": 54321,  # 服务器端口（0表示随机分配）
+            
+                    "port_range_min": 10000,  # 随机端口范围最小值
+            
+                    "port_range_max": 60000,  # 随机端口范围最大值
+            
+                    "max_retry_attempts": 10,  # 端口冲突时最大重试次数
+            
+                }        }
 def get_available_themes():
     """
     动态获取所有可用的主题列表

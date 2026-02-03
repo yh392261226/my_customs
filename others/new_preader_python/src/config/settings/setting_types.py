@@ -252,3 +252,30 @@ class ListSetting(BaseSetting):
                     )
         
         return SettingValidationResult(True)
+
+
+class SeparatorSetting(BaseSetting):
+    """分隔符设置项，用于在UI中显示分隔线"""
+    
+    def __init__(
+        self,
+        key: str,
+        display_name: str,
+        description: str = "",
+        category: str = "general",
+        is_hidden: bool = False
+    ):
+        super().__init__(
+            key, None, display_name, description,
+            category, None, None, is_hidden
+        )
+    
+    def _validate_type_specific(self, value: Any) -> SettingValidationResult:
+        """分隔符设置项不需要验证值"""
+        return SettingValidationResult(True)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式"""
+        result = super().to_dict()
+        result["type"] = "separator"
+        return result

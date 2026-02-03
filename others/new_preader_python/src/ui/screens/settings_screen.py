@@ -563,6 +563,74 @@ class SettingsScreen(Screen[Any]):
                     id="browser-brave-input",
                     placeholder=brave_setting.default_value
                 )
+            
+            # 分隔线
+            yield Static("─", classes="setting-separator")
+            yield Label(get_global_i18n().t("settings.browser_server"), classes="setting-section-title")
+            
+            # 服务器主机地址
+            host_setting = self.setting_registry.get_setting("browser_server.host")
+            if host_setting:
+                yield Label(get_global_i18n().t("settings.server_host"), classes="setting-label")
+                yield Input(
+                    value=host_setting.value,
+                    id="browser-server-host-input",
+                    placeholder=host_setting.default_value
+                )
+            
+            # 服务器端口
+            port_setting = self.setting_registry.get_setting("browser_server.port")
+            if port_setting:
+                yield Label(get_global_i18n().t("settings.server_port"), classes="setting-label")
+                yield Input(
+                    value=str(port_setting.value),
+                    id="browser-server-port-input",
+                    placeholder=str(port_setting.default_value)
+                )
+            
+            # 随机端口范围最小值
+            port_range_min_setting = self.setting_registry.get_setting("browser_server.port_range_min")
+            if port_range_min_setting:
+                yield Label(get_global_i18n().t("settings.port_range_min"), classes="setting-label")
+                yield Input(
+                    value=str(port_range_min_setting.value),
+                    id="browser-server-port-range-min-input",
+                    placeholder=str(port_range_min_setting.default_value)
+                )
+            
+            # 随机端口范围最大值
+            port_range_max_setting = self.setting_registry.get_setting("browser_server.port_range_max")
+            if port_range_max_setting:
+                yield Label(get_global_i18n().t("settings.port_range_max"), classes="setting-label")
+                yield Input(
+                    value=str(port_range_max_setting.value),
+                    id="browser-server-port-range-max-input",
+                    placeholder=str(port_range_max_setting.default_value)
+                )
+            
+            # 最大重试次数
+            max_retry_setting = self.setting_registry.get_setting("browser_server.max_retry_attempts")
+            if max_retry_setting:
+                yield Label(get_global_i18n().t("settings.max_retry_attempts"), classes="setting-label")
+                yield Input(
+                    value=str(max_retry_setting.value),
+                    id="browser-server-max-retry-input",
+                    placeholder=str(max_retry_setting.default_value)
+                )
+            
+            # 端口检测按钮和状态
+            yield Label(get_global_i18n().t("settings.check_port"), classes="setting-label")
+            with Horizontal(id="browser-server-check-area"):
+                yield Button(
+                    get_global_i18n().t('settings.check_port'),
+                    id="browser-server-check-port-btn",
+                    variant="primary"
+                )
+                yield Static(
+                    get_global_i18n().t("settings.port_not_checked", default="Not checked"),
+                    id="browser-server-port-status",
+                    classes="port-status"
+                )
 
     def _compose_advanced_settings(self) -> ComposeResult:
         """组合高级设置"""
@@ -921,6 +989,49 @@ class SettingsScreen(Screen[Any]):
             self.setting_registry.set_value("reading.paragraph_spacing", new_val)
             notify_setting_change("reading.paragraph_spacing", old_value, new_val, "settings_screen")
     
+    
+
+    @on(Button.Pressed)
+    def on_port_check_pressed(self, event: Button.Pressed) -> None:
+        """端口检测按钮按下时的回调"""
+        if event.button.id == "browser-server-check-port-btn":
+            self._check_current_port_availability()
+    
+    def _check_current_port_availability(self) -> None:
+        """检测当前端口配置的可用性"""
+        try:
+            from src.utils.browser_reader import BrowserReader
+            
+            # 获取当前配置
+            host_input = self.query_one("#browser-server-host-input", Input)
+            port_input = self.query_one("#browser-server-port-input", Input)
+            status_text = self.query_one("#browser-server-port-status", Static)
+            
+            # 解析主机地址
+            host = host_input.value.strip() or "localhost"
+            
+            # 解析端口
+            try:
+                port = int(port_input.value or "0")
+            except ValueError:
+                port = 0
+            
+            # 检测端口
+            if port == 0:
+                status_text.update(get_global_i18n().t("settings.port_status_random"))
+                status_text.styles.color = "blue"
+            elif BrowserReader._is_port_available(host, port):
+                status_text.update(get_global_i18n().t("settings.port_status_available").format(host=host, port=port))
+                status_text.styles.color = "green"
+            else:
+                status_text.update(get_global_i18n().t("settings.port_status_occupied").format(host=host, port=port))
+                status_text.styles.color = "red"
+                
+        except Exception as e:
+            status_text = self.query_one("#browser-server-port-status", Static)
+            status_text.update(get_global_i18n().t("settings.port_check_failed").format(error=str(e)))
+            status_text.styles.color = "red"
+
     @on(Switch.Changed)
     def on_switch_changed(self, event: Switch.Changed) -> None:
         """
@@ -1234,6 +1345,34 @@ class SettingsScreen(Screen[Any]):
         
         brave_input = self.query_one("#browser-brave-input", Input)
         self.setting_registry.set_value("browser.brave_path", brave_input.value)
+        
+        # 浏览器服务器设置
+        host_input = self.query_one("#browser-server-host-input", Input)
+        self.setting_registry.set_value("browser_server.host", host_input.value)
+        
+        port_input = self.query_one("#browser-server-port-input", Input)
+        try:
+            self.setting_registry.set_value("browser_server.port", int(port_input.value))
+        except ValueError:
+            pass
+        
+        port_range_min_input = self.query_one("#browser-server-port-range-min-input", Input)
+        try:
+            self.setting_registry.set_value("browser_server.port_range_min", int(port_range_min_input.value))
+        except ValueError:
+            pass
+        
+        port_range_max_input = self.query_one("#browser-server-port-range-max-input", Input)
+        try:
+            self.setting_registry.set_value("browser_server.port_range_max", int(port_range_max_input.value))
+        except ValueError:
+            pass
+        
+        max_retry_input = self.query_one("#browser-server-max-retry-input", Input)
+        try:
+            self.setting_registry.set_value("browser_server.max_retry_attempts", int(max_retry_input.value))
+        except ValueError:
+            pass
         
         # 高级设置
         lang_select = self.query_one("#advanced-language-select", Select)
