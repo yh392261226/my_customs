@@ -486,14 +486,47 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
             # 识别包含已删除书籍的组
             groups_to_remove = []
+            remaining_books_from_deleted_groups = []  # 收集被删除组中剩余的书籍
+            
             for i, group in enumerate(self.duplicate_groups):
                 has_deleted_book = any(book.path in deleted_book_paths for book in group.books)
                 if has_deleted_book:
                     groups_to_remove.append(i)
+                    # 收集该组中未被删除的书籍
+                    for book in group.books:
+                        if book.path not in deleted_book_paths:
+                            remaining_books_from_deleted_groups.append(book)
             
             # 从后往前删除，避免索引变化问题
             for i in reversed(groups_to_remove):
                 del self.duplicate_groups[i]
+            
+            # 重新检测剩余书籍是否形成新的重复关系
+            if remaining_books_from_deleted_groups and len(remaining_books_from_deleted_groups) >= 2:
+                logger.info(f"重新检测{len(remaining_books_from_deleted_groups)}本剩余书籍中的新重复关系")
+                
+                # 对剩余书籍进行重复检测
+                try:
+                    from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector
+                    new_duplicate_groups = OptimizedBookDuplicateDetector.find_duplicates(
+                        remaining_books_from_deleted_groups,
+                        progress_callback=None,
+                        batch_callback=None
+                    )
+                    
+                    if new_duplicate_groups:
+                        logger.info(f"在剩余书籍中发现{len(new_duplicate_groups)}组新的重复关系")
+                        # 将新的重复组添加到列表中
+                        self.duplicate_groups.extend(new_duplicate_groups)
+                        self.notify(
+                            f"删除完成后，在剩余书籍中发现{len(new_duplicate_groups)}组新的重复关系",
+                            severity="information"
+                        )
+                    else:
+                        logger.info("剩余书籍中未发现新的重复关系")
+                except Exception as e:
+                    logger.error(f"重新检测剩余书籍时出错: {e}")
+                    # 不影响删除操作，只是记录错误
             
             # 显示结果
             if failed_count == 0:
@@ -530,6 +563,16 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     # 如果当前索引无效，显示第一个组
                     if self.duplicate_groups:
                         self._display_duplicate_group(0)
+                
+                # 如果发现了新的重复组，显示提示
+                if remaining_books_from_deleted_groups and any(
+                    any(book.path in [rb.path for rb in remaining_books_from_deleted_groups] for book in group.books)
+                    for group in self.duplicate_groups
+                ):
+                    self.notify(
+                        "发现新的重复关系，请检查并处理",
+                        severity="information"
+                    )
                 
                 # 通知用户删除成功但继续处理
                 self.notify(
