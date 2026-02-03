@@ -9,6 +9,11 @@ Header {
     content-align: left middle;
 }
 
+#welcome-buttons {
+    overflow-x: auto;
+    height: 3;
+}
+
 #user-info-container {
     align: center middle;
     content-align: center middle;
