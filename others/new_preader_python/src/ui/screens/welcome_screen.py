@@ -361,44 +361,59 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
             """打开浏览器阅读器（会自动打开其书库中的上一次阅读书籍）"""
             try:
                 from src.utils.browser_reader import BrowserReader
-                from src.utils.browser_manager import BrowserManager
+                from src.core.bookmark import BookmarkManager
                 import tempfile
                 import os
-                # 创建浏览器阅读器的HTML内容
-                # 使用书库作为默认内容，浏览器会自动加载上一次阅读的书籍
-                library_content = """
-                <div class="book-library-container">
-                    <h2>🌐 浏览器阅读器</h2>
-                    <p>正在从书库加载上一次阅读的书籍...</p>
-                    <p>如果没有找到上一次阅读的书籍，请使用书库功能添加书籍。</p>
-                    <div class="library-actions">
-                        <button onclick="toggleBookLibrary()">打开书库</button>
-                    </div>
-                </div>
-                """
-                # 创建HTML
-                html = BrowserReader.create_reader_html(
-                    content=library_content,
-                    title="浏览器阅读器",
-                    theme="light"
-                )
-                # 创建临时HTML文件
-                temp_dir = tempfile.gettempdir()
-                html_filename = "browser_reader.html"
-                html_path = os.path.join(temp_dir, html_filename)
-                with open(html_path, 'w', encoding='utf-8') as f:
-                    f.write(html)
-                # 使用BrowserManager打开HTML文件，支持系统浏览器设置
-                success = BrowserManager.open_file(html_path)
-                if success:
-                    browser_name = BrowserManager.get_default_browser()
-                    logger.info(f"使用 {browser_name} 浏览器打开浏览器阅读器: {html_path}")
+                
+                # 尝试获取上一次阅读的书籍
+                last_book_path = None
+                try:
+                    bookmark_manager = BookmarkManager()
+                    # 获取最近有阅读记录的书籍
+                    last_book = bookmark_manager.get_last_read_book()
+                    if last_book:
+                        last_book_path = last_book.get('book_path')
+                        logger.info(f"找到上一次阅读的书籍: {last_book_path}")
+                except Exception as e:
+                    logger.warning(f"获取上一次阅读书籍失败: {e}")
+                
+                # 如果找到上一次的书籍，直接打开
+                if last_book_path and os.path.exists(last_book_path):
+                    logger.info(f"打开上一次阅读的书籍: {last_book_path}")
+                    success, message = BrowserReader.open_book_in_browser(
+                        last_book_path,
+                        theme="light"
+                    )
                 else:
-                    # 回退到默认浏览器
-                    import webbrowser
-                    webbrowser.open(f'file://{html_path}')
-                    logger.warning(f"使用系统默认浏览器打开: {html_path}")
-                self.notify(get_global_i18n().t('welcome.browser_reader_opened', title="浏览器阅读器"), severity="information")
+                    # 创建一个临时文件用于浏览器阅读器
+                    temp_dir = tempfile.gettempdir()
+                    temp_file = os.path.join(temp_dir, "browser_reader_placeholder.txt")
+                    
+                    # 创建临时文件内容
+                    library_content = """🌐 浏览器阅读器
+
+正在从书库加载上一次阅读的书籍...
+
+如果没有找到上一次阅读的书籍，请使用书库功能添加书籍。
+
+提示：使用文件导入功能可以打开本地书籍文件。"""
+                    
+                    with open(temp_file, 'w', encoding='utf-8') as f:
+                        f.write(library_content)
+                    
+                    # 使用open_book_in_browser打开，确保启动后端服务器
+                    success, message = BrowserReader.open_book_in_browser(
+                        temp_file,
+                        theme="light"
+                    )
+                
+                if success:
+                    logger.info(f"浏览器阅读器已打开: {message}")
+                    self.notify(get_global_i18n().t('welcome.browser_reader_opened', title="浏览器阅读器"), severity="information")
+                else:
+                    logger.error(f"浏览器阅读器打开失败: {message}")
+                    self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', message=message), severity="error")
+                    
             except Exception as e:
                 logger.error(get_global_i18n().t('welcome.browser_reader_open_failed', message=str(e)))
                 self.notify(get_global_i18n().t('welcome.browser_reader_open_failed', message=str(e)), severity="error")

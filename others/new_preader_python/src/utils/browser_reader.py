@@ -392,7 +392,9 @@ class BrowserReader:
                         save_progress_url: Optional[str] = None,
                         load_progress_url: Optional[str] = None,
                         book_id: Optional[str] = None,
-                        initial_progress: Optional[float] = None) -> str:
+                        initial_progress: Optional[float] = None,
+                        browser_server_host: str = "localhost",
+                        browser_server_port: int = 54321) -> str:
         """
         创建浏览器阅读器HTML
         
@@ -1652,7 +1654,7 @@ class BrowserReader:
         .night-mode-toggle {{
             position: fixed;
             top: 120px;
-            left: 80px;
+            left: 76px;
             transform: translateX(-50%);
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
@@ -3304,20 +3306,11 @@ class BrowserReader:
         // 页面加载完成后替换翻译占位符
         document.addEventListener('DOMContentLoaded', function() {{
             replaceAllPlaceholders();
+            
+            // 确保进度同步UI正确初始化
+            updateProgressSyncUI();
         }});
         
-        function t(key, params = {{}}) {{
-            let value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
-            if (!value) return key;
-            
-            // 替换参数
-            for (const [param, val] of Object.entries(params)) {{
-                value = value.replace(new RegExp(`{{${{param}}}}`, 'g'), val);
-            }}
-            return value;
-        }}
-        
-        // 权限管理
         {BrowserReader.get_permission_script()}
         
         // 当前设置
@@ -3350,12 +3343,23 @@ class BrowserReader:
         let cachedScrollTop = 0;
         let cachedScrollHeight = 0;
         
-        // 进度API地址
-        const SAVE_PROGRESS_URL = {f'"{save_progress_url}"' if save_progress_url else 'null'};
-        const LOAD_PROGRESS_URL = {f'"{load_progress_url}"' if load_progress_url else 'null'};
+        // 进度API地址 - 使用let而不是const，以便可以动态更新
+        let SAVE_PROGRESS_URL = {f'"{save_progress_url}"' if save_progress_url else 'null'};
+        let LOAD_PROGRESS_URL = {f'"{load_progress_url}"' if load_progress_url else 'null'};
+        
+        // 暴露到window对象，以便可以动态更新
+        window.SAVE_PROGRESS_URL = SAVE_PROGRESS_URL;
+        window.LOAD_PROGRESS_URL = LOAD_PROGRESS_URL;
+        
+        // 调试：输出URL设置情况
+        console.log('=== 浏览器阅读器初始化 ===');
+        console.log('SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
+        console.log('LOAD_PROGRESS_URL:', LOAD_PROGRESS_URL);
+        console.log('Python传入的save_progress_url:', {f'"{save_progress_url}"' if save_progress_url else 'null'});
+        console.log('Python传入的load_progress_url:', {f'"{load_progress_url}"' if load_progress_url else 'null'});
 
         // 后端在线状态
-        let isBackendOnline = true;
+        let isBackendOnline = SAVE_PROGRESS_URL ? true : false;
         
         // 进度同步设置
         let progressSyncEnabled = localStorage.getItem('progressSyncEnabled') === 'true';
@@ -3469,37 +3473,164 @@ class BrowserReader:
             }}
 
             try {{
-                const checkUrl = SAVE_PROGRESS_URL || LOAD_PROGRESS_URL;
-                const response = await fetch(checkUrl.replace(/save_progress|load_progress/, 'health_check'), {{
-                    method: 'GET',
-                    cache: 'no-cache',
-                    timeout: 3000
-                }}).catch(() => null);
-
-                if (response && response.ok) {{
-                    isBackendOnline = true;
-                    // 更新服务器连接信息显示
-                    updateServerConnectionInfo();
-                    return true;
-                }} else {{
-                    // 尝试HEAD请求作为备用检测
-                    const headResponse = await fetch(checkUrl, {{
+                let checkUrl = SAVE_PROGRESS_URL || LOAD_PROGRESS_URL;
+                
+                // 创建带超时的Promise
+                const fetchWithTimeout = (url, options, timeout = 3000) => {{
+                    return Promise.race([
+                        fetch(url, options),
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Timeout')), timeout)
+                        )
+                    ]);
+                }};
+                
+                // 首先尝试health_check端点
+                try {{
+                    const healthCheckUrl = checkUrl.replace(/save_progress|load_progress/, 'health_check');
+                    console.log('尝试健康检查URL:', healthCheckUrl);
+                    const response = await fetchWithTimeout(healthCheckUrl, {{
+                        method: 'GET',
+                        cache: 'no-cache'
+                    }});
+                    
+                    if (response.ok) {{
+                        isBackendOnline = true;
+                        updateServerConnectionInfo();
+                        return true;
+                    }}
+                }} catch (e) {{
+                    console.log('Health check failed, trying to discover server:', e);
+                    
+                    // 尝试发现新的服务器
+                    const serverInfo = await discoverServer();
+                    if (serverInfo && (serverInfo.host !== 'localhost' || serverInfo.port !== getCurrentPort())) {{
+                        console.log(`发现服务器: ${{serverInfo.host}}:${{serverInfo.port}}`);
+                        // 更新URL
+                        const baseUrl = checkUrl.split('/').slice(0, 3).join('/');
+                        const newPath = checkUrl.split('/').slice(3).join('/');
+                        checkUrl = `http://${{serverInfo.host}}:${{serverInfo.port}}/${{newPath}}`;
+                        
+                        // 更新全局变量和本地变量
+                        if (SAVE_PROGRESS_URL) {{
+                            window.SAVE_PROGRESS_URL = checkUrl;
+                            SAVE_PROGRESS_URL = checkUrl;
+                        }}
+                        if (LOAD_PROGRESS_URL) {{
+                            const newLoadUrl = checkUrl.replace('save_progress', 'load_progress');
+                            window.LOAD_PROGRESS_URL = newLoadUrl;
+                            LOAD_PROGRESS_URL = newLoadUrl;
+                        }}
+                        
+                        // 重新尝试连接
+                        const response = await fetchWithTimeout(checkUrl.replace(/save_progress|load_progress/, 'health_check'), {{
+                            method: 'GET',
+                            cache: 'no-cache'
+                        }});
+                        
+                        if (response.ok) {{
+                            isBackendOnline = true;
+                            updateServerConnectionInfo();
+                            return true;
+                        }}
+                    }}
+                }}
+                
+                // 如果health_check失败，尝试原端点的HEAD请求
+                try {{
+                    const headResponse = await fetchWithTimeout(checkUrl, {{
                         method: 'HEAD',
                         mode: 'no-cors',
                         cache: 'no-cache'
-                    }}).catch(() => null);
-
-                    isBackendOnline = headResponse !== null;
-                    // 更新服务器连接信息显示
+                    }});
+                    
+                    // no-cors模式下，即使失败也会返回opaque response
+                    isBackendOnline = true;
                     updateServerConnectionInfo();
-                    return isBackendOnline;
+                    return true;
+                }} catch (e) {{
+                    console.log('HEAD request failed:', e);
+                    isBackendOnline = false;
+                    updateServerConnectionInfo();
+                    return false;
                 }}
             }} catch (error) {{
                 console.log(t('browser_reader.backend_check_failed'), error);
                 isBackendOnline = false;
-                // 更新服务器连接信息显示
                 updateServerConnectionInfo();
                 return false;
+            }}
+        }}
+        
+        // 发现服务器
+        async function discoverServer() {{
+            // 从配置获取期望的host和port
+            const expectedHost = '{browser_server_host}'; // 从配置获取
+            const expectedPort = {browser_server_port}; // 从配置获取
+            
+            // 尝试连接期望的地址
+            try {{
+                const response = await fetch("http://" + expectedHost + ":" + expectedPort + "/health_check", {{
+                    method: 'GET',
+                    cache: 'no-cache',
+                    timeout: 500
+                }});
+                if (response.ok) {{
+                    return {{host: expectedHost, port: expectedPort}};
+                }}
+            }} catch (e) {{
+                // 继续尝试其他端口
+            }}
+            
+            // 扫描端口范围
+            for (let port = expectedPort; port < expectedPort + 100; port++) {{
+                try {{
+                    const response = await fetch("http://" + expectedHost + ":" + port + "/health_check", {{
+                        method: 'GET',
+                        cache: 'no-cache',
+                        timeout: 200
+                    }});
+                    if (response.ok) {{
+                        return {{host: expectedHost, port: port}};
+                    }}
+                }} catch (e) {{
+                    // 继续尝试
+                }}
+            }}
+            
+            return null;
+        }}
+        
+        // 获取当前端口号
+        function getCurrentPort() {{
+            const url = SAVE_PROGRESS_URL || LOAD_PROGRESS_URL;
+            if (!url) return {browser_server_port};
+            
+            try {{
+                const parsed = new URL(url);
+                return parseInt(parsed.port) || {browser_server_port};
+            }} catch (e) {{
+                return {browser_server_port};
+            }}
+        }}
+        
+        // 获取当前服务器信息
+        function getCurrentServerInfo() {{
+            const url = SAVE_PROGRESS_URL || LOAD_PROGRESS_URL;
+            // 使用配置的默认端口而不是硬编码的80
+            const defaultPort = {browser_server_port};
+            const defaultHost = '{browser_server_host}';
+            
+            if (!url) return {{host: defaultHost, port: defaultPort}};
+            
+            try {{
+                const parsed = new URL(url);
+                return {{
+                    host: parsed.hostname || defaultHost,
+                    port: parseInt(parsed.port) || defaultPort
+                }};
+            }} catch (e) {{
+                return {{host: defaultHost, port: defaultPort}};
             }}
         }}
 
@@ -3515,39 +3646,55 @@ class BrowserReader:
             
             if (serverAddressElement && connectionModeElement) {{
                 try {{
-                    // 从当前URL提取服务器信息
-                    const currentUrl = window.location.href;
-                    const url = new URL(currentUrl);
-                    const host = url.hostname || 'localhost';
-                    const port = url.port || (url.protocol === 'https:' ? '443' : '80');
-                    const serverAddress = host + ':' + port;
+                    // 使用配置的默认值而不是硬编码
+                    let serverAddress = '{browser_server_host}:{browser_server_port}'; // 默认值
+                    let connectionMode = '离线模式';
+                    let modeColor = '#9E9E9E'; // 灰色
                     
-                    // 检测连接模式
-                    let connectionMode = '未知';
-                    let modeColor = '#666';
-                    
+                    // 如果有配置的服务器URL，使用配置的地址
                     if (typeof SAVE_PROGRESS_URL !== 'undefined' && SAVE_PROGRESS_URL) {{
                         try {{
+                            console.log('更新服务器信息 - SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
                             const serverUrl = new URL(SAVE_PROGRESS_URL);
-                            const serverPort = serverUrl.port;
+                            const host = serverUrl.hostname || 'localhost';
+                            // 处理端口：serverUrl.port在没有指定端口时返回空字符串
+                            let port = serverUrl.port;
+                            console.log('更新服务器信息 - 原始端口值:', port, typeof port);
+                            if (!port || port === '') {{
+                                // 使用配置的默认端口而不是硬编码
+                                port = '{browser_server_port}';
+                                console.log('更新服务器信息 - 使用配置端口:', port);
+                            }}
+                            serverAddress = host + ':' + port;
+                            console.log('更新服务器信息 - 最终服务器地址:', serverAddress);
                             
-                            if (serverPort === '54321') {{
+                            // 根据端口设置连接模式
+                            if (port === '54321') {{
                                 connectionMode = '固定端口模式';
                                 modeColor = '#4CAF50'; // 绿色
-                            }} else if (serverPort >= 10000 && serverPort <= 60000) {{
+                            }} else if (port >= 10000 && port <= 60000) {{
                                 connectionMode = '随机端口模式';
                                 modeColor = '#FF9800'; // 橙色
                             }} else {{
-                                connectionMode = '端口 ' + serverPort;
+                                connectionMode = '端口 ' + port;
                                 modeColor = '#2196F3'; // 蓝色
                             }}
                         }} catch (e) {{
+                            console.warn('解析SAVE_PROGRESS_URL失败:', e);
                             connectionMode = '配置解析错误';
                             modeColor = '#F44336'; // 红色
                         }}
                     }} else {{
-                        connectionMode = '离线模式';
-                        modeColor = '#9E9E9E'; // 灰色
+                        // 没有配置URL，尝试从当前页面获取
+                        try {{
+                            const currentUrl = window.location.href;
+                            const url = new URL(currentUrl);
+                            const host = url.hostname || 'localhost';
+                            const port = url.port || '{browser_server_port}';
+                            serverAddress = host + ':' + port;
+                        }} catch (e) {{
+                            console.warn('解析当前URL失败:', e);
+                        }}
                     }}
                     
                     // 更新显示
@@ -3568,10 +3715,22 @@ class BrowserReader:
         document.addEventListener('DOMContentLoaded', function() {{
             updateServerConnectionInfo();
             
+            // 立即检查后端状态
+            checkBackendStatus().then(isOnline => {{
+                if (!isOnline) {{
+                    console.log('后端离线，将在用户操作时尝试重连');
+                }}
+            }});
+            
             // 每隔一段时间更新连接状态
             setInterval(function() {{
                 updateServerConnectionInfo();
             }}, 5000);
+            
+            // 每30秒检查一次后端状态
+            setInterval(function() {{
+                checkBackendStatus();
+            }}, 30000);
         }});
         
         // 切换工具栏收缩/展开
@@ -4563,7 +4722,7 @@ class BrowserReader:
                 loadLocalPaginationProgress();
             }}, 3000); // 3秒超时
 
-            fetch(LOAD_PROGRESS_URL)
+            fetch(`${{LOAD_PROGRESS_URL}}?book_id=${{BOOK_ID}}`)
                 .then(response => {{
                     clearTimeout(serverTimeout);
                     console.log('服务器响应状态:', response.status);
@@ -4722,10 +4881,14 @@ class BrowserReader:
             }}
 
             // 尝试保存到服务器
+            console.log('发送翻页进度数据到服务器:', data);
+            // 对BOOK_ID进行URL编码，避免非ASCII字符
+            const encodedBookId = encodeURIComponent(BOOK_ID);
             fetch(SAVE_PROGRESS_URL, {{
                 method: 'POST',
                 headers: {{
                     'Content-Type': 'application/json',
+                    'X-Book-ID': encodedBookId
                 }},
                 body: JSON.stringify(data)
             }}).then(response => {{
@@ -5511,10 +5674,14 @@ class BrowserReader:
             }}
 
             // 尝试保存到服务器
+            console.log('发送进度数据到服务器:', data);
+            // 对BOOK_ID进行URL编码，避免非ASCII字符
+            const encodedBookId = encodeURIComponent(BOOK_ID);
             fetch(SAVE_PROGRESS_URL, {{
                 method: 'POST',
                 headers: {{
                     'Content-Type': 'application/json',
+                    'X-Book-ID': encodedBookId
                 }},
                 body: JSON.stringify(data)
             }}).then(response => {{
@@ -5529,9 +5696,14 @@ class BrowserReader:
                     updateBackendStatusDisplay();
                 }}
             }}).catch(err => {{
-                console.log('保存进度到服务器失败:', err);
+                console.error('保存进度到服务器失败:', err);
+                console.error('错误详情:', err.message, err.stack);
                 isBackendOnline = false;
                 updateBackendStatusDisplay();
+                // 显示错误通知
+                if (typeof showNotification === 'function') {{
+                    showNotification('保存进度失败: ' + err.message);
+                }}
             }});
         }}
         
@@ -5557,7 +5729,7 @@ class BrowserReader:
                 loadLocalProgress();
             }}, 3000); // 3秒超时
 
-            fetch(LOAD_PROGRESS_URL)
+            fetch(`${{LOAD_PROGRESS_URL}}?book_id=${{BOOK_ID}}`)
                 .then(response => {{
                     clearTimeout(serverTimeout);
                     console.log('服务器响应状态:', response.status);
@@ -7504,6 +7676,20 @@ class BrowserReader:
         }}
         
         function updateProgressSyncUI() {{
+            // 确保变量已初始化
+            if (typeof progressSyncEnabled === 'undefined') {{
+                progressSyncEnabled = localStorage.getItem('progressSyncEnabled') === 'true';
+            }}
+            if (typeof isBackendOnline === 'undefined') {{
+                isBackendOnline = SAVE_PROGRESS_URL ? true : false;
+            }}
+            if (typeof syncInterval === 'undefined') {{
+                syncInterval = parseInt(localStorage.getItem('syncInterval') || '7200000');
+            }}
+            if (typeof lastSyncTime === 'undefined') {{
+                lastSyncTime = localStorage.getItem('lastSyncTime') || null;
+            }}
+            
             const toggle = document.getElementById('progressSyncToggle');
             const statusText = document.getElementById('syncStatusText');
             const lastSyncTimeEl = document.getElementById('lastSyncTime');
@@ -7539,8 +7725,31 @@ class BrowserReader:
         }}
         
         function manualSync() {{
+            console.log('手动同步进度');
+            console.log('进度同步启用状态:', progressSyncEnabled);
+            console.log('后端连接状态:', isBackendOnline);
+            console.log('SAVE_PROGRESS_URL:', SAVE_PROGRESS_URL);
+            console.log('BOOK_ID:', BOOK_ID);
+            
             if (!progressSyncEnabled) {{
+                console.log('进度同步未启用');
                 showNotification('请先启用进度同步');
+                return;
+            }}
+            
+            // 检查后端是否在线
+            if (!isBackendOnline) {{
+                showNotification('后端未连接，正在尝试重新连接...');
+                // 尝试重新检查后端状态
+                checkBackendStatus().then(async isOnline => {{
+                    if (isOnline) {{
+                        showNotification('后端已重新连接，正在同步...');
+                        // 如果重新检查后发现在线，自动执行同步
+                        setTimeout(() => manualSync(), 500);
+                    }} else {{
+                        showNotification('无法连接到后端服务器');
+                    }}
+                }});
                 return;
             }}
             
@@ -7568,10 +7777,14 @@ class BrowserReader:
                     timestamp: Date.now()
                 }};
                 
+                console.log('手动同步 - 发送数据:', data);
+                // 对BOOK_ID进行URL编码，避免非ASCII字符
+                const encodedBookId = encodeURIComponent(BOOK_ID);
                 fetch(SAVE_PROGRESS_URL, {{
                     method: 'POST',
                     headers: {{
                         'Content-Type': 'application/json',
+                        'X-Book-ID': encodedBookId
                     }},
                     body: JSON.stringify(data)
                 }}).then(response => {{
@@ -8220,8 +8433,11 @@ class BrowserReader:
             }} else {{
                 if (!SAVE_PROGRESS_URL) {{
                     console.log('beforeunload - SAVE_PROGRESS_URL 为空，仅保存到本地');
+                    console.log('beforeunload - SAVE_PROGRESS_URL类型:', typeof SAVE_PROGRESS_URL);
+                    console.log('beforeunload - SAVE_PROGRESS_URL值:', SAVE_PROGRESS_URL);
                 }} else if (!progressSyncEnabled) {{
                     console.log('beforeunload - 进度同步已禁用，仅保存到本地');
+                    console.log('beforeunload - 但SAVE_PROGRESS_URL存在:', SAVE_PROGRESS_URL);
                 }}
             }}
         }});
@@ -8523,6 +8739,7 @@ class BrowserReader:
         Returns:
             (success: bool, message: str)
         """
+        print(f"\n=== open_book_in_browser 被调用: {file_path} ===")
         try:
             # 清理旧的服务器
             BrowserReader._cleanup_old_servers()
@@ -8537,6 +8754,19 @@ class BrowserReader:
             # 读取文件内容
             content = BrowserReader.read_file_content(file_path)
             
+            # 获取browser_server配置
+            browser_server_host = "localhost"
+            browser_server_port = 54321
+            try:
+                from src.config.config_manager import ConfigManager
+                config_manager = ConfigManager.get_instance()
+                config = config_manager.get_config()
+                browser_server_config = config.get("browser_server", {})
+                browser_server_host = browser_server_config.get("host", "localhost")
+                browser_server_port = browser_server_config.get("port", 54321)
+            except Exception as e:
+                logger.warning(f"无法获取browser_server配置，使用默认值: {e}")
+            
             # 如果需要进度同步，启动HTTP服务器
             save_url = None
             load_url = None
@@ -8548,6 +8778,79 @@ class BrowserReader:
                 save_url, load_url, server, server_thread = BrowserReader._start_progress_server(
                     file_path, on_progress_save, on_progress_load
                 )
+            # 使用全局浏览器阅读器服务器
+            save_url = None
+            load_url = None
+            
+            try:
+                from src.utils.browser_reader_server_manager import get_browser_reader_server_manager
+                server_manager = get_browser_reader_server_manager()
+                
+                # 确保服务器正在运行
+                if not server_manager.is_server_running():
+                    logger.info("全局服务器未运行，尝试启动...")
+                    server_started = server_manager.start_server()
+                    if server_started:
+                        logger.info("全局服务器启动成功")
+                        # 等待一下确保服务器完全启动
+                        time.sleep(0.5)
+                    else:
+                        logger.error("全局服务器启动失败")
+                        # 启动失败，继续尝试启动独立服务器
+                        pass
+                else:
+                    logger.info("全局服务器已在运行")
+                
+                # 获取服务器URL
+                save_url, load_url = server_manager.get_server_urls()
+                logger.info(f"获取到的服务器URL - save_url: {save_url}, load_url: {load_url}")
+                logger.info(f"服务器状态 - running: {server_manager.is_server_running()}, server: {server_manager._server}")
+                
+                if save_url and load_url:
+                    # 注册书籍特定的回调
+                    if on_progress_save or on_progress_load:
+                        # 使用文件路径作为书籍ID
+                        book_id = Path(file_path).stem
+                        server_manager.register_callbacks(book_id, on_progress_save, on_progress_load)
+                    
+                    logger.info(f"使用全局浏览器阅读器服务器: {save_url}")
+                else:
+                    logger.warning("无法获取服务器URL，尝试启动独立服务器")
+                    # 如果全局服务器不可用，启动独立服务器
+                    save_url, load_url, server, server_thread = BrowserReader._start_progress_server(
+                        file_path, on_progress_save, on_progress_load
+                    )
+                    if save_url and load_url:
+                        # 保存服务器对象到全局字典，防止被垃圾回收
+                        server_id = str(uuid.uuid4())
+                        _active_servers[server_id] = {
+                            'server': server,
+                            'server_thread': server_thread,
+                            'file_path': file_path,
+                            'created_at': time.time()
+                        }
+                        logger.info(f"已启动独立服务器: {save_url}")
+                
+            except Exception as e:
+                logger.error(f"获取或启动浏览器阅读器服务器失败: {e}", exc_info=True)
+                # 最后的回退：尝试启动独立服务器
+                try:
+                    save_url, load_url, server, server_thread = BrowserReader._start_progress_server(
+                        file_path, on_progress_save, on_progress_load
+                    )
+                    if save_url and load_url:
+                        server_id = str(uuid.uuid4())
+                        _active_servers[server_id] = {
+                            'server': server,
+                            'server_thread': server_thread,
+                            'file_path': file_path,
+                            'created_at': time.time()
+                        }
+                        logger.info(f"已启动备用服务器: {save_url}")
+                except Exception as e2:
+                    logger.error(f"启动备用服务器也失败: {e2}")
+                    save_url = None
+                    load_url = None
                 # 保存服务器对象到全局字典，防止被垃圾回收
                 server_id = str(uuid.uuid4())
                 _active_servers[server_id] = {
@@ -8575,7 +8878,7 @@ class BrowserReader:
             # 创建HTML
             html = BrowserReader.create_reader_html(
                 content, title, theme, custom_settings, save_url, load_url,
-                book_id, initial_progress
+                book_id, initial_progress, browser_server_host, browser_server_port
             )
             
             # 创建临时HTML文件
@@ -8638,6 +8941,8 @@ class BrowserReader:
         port_range_min = browser_server_config.get("port_range_min", 10000)
         port_range_max = browser_server_config.get("port_range_max", 60000)
         max_retry = browser_server_config.get("max_retry_attempts", 10)
+        enable_fixed_port = browser_server_config.get("enable_fixed_port", True)
+        fixed_port = browser_server_config.get("fixed_port", 54321)
         
         # 确定最终端口
         if port == 0:
@@ -8648,23 +8953,33 @@ class BrowserReader:
             final_port = port
             logger.info(f"使用指定端口: {final_port}")
         
-        # 检测端口是否可用，如果不可用则重试
-        for attempt in range(max_retry):
-            if BrowserReader._is_port_available(host, final_port):
-                logger.info(f"端口 {host}:{final_port} 可用")
-                port = final_port
-                break
+        # 检测端口是否可用
+        if enable_fixed_port and final_port == fixed_port:
+            # 固定端口模式：如果端口被占用，直接失败（让上层处理）
+            if not BrowserReader._is_port_available(host, final_port):
+                logger.error(f"固定端口 {host}:{final_port} 被占用")
+                return None, None, None, None
             else:
-                logger.warning(f"端口 {host}:{final_port} 被占用，尝试其他端口")
-                if port == 0:
-                    # 原本就是随机端口，继续随机
-                    final_port = random.randint(port_range_min, port_range_max)
-                else:
-                    # 指定端口被占用，也使用随机端口
-                    final_port = random.randint(port_range_min, port_range_max)
+                logger.info(f"固定端口 {host}:{final_port} 可用")
+                port = final_port
         else:
-            logger.error(f"经过 {max_retry} 次重试仍找不到可用端口")
-            return None, None, None, None
+            # 非固定端口模式：检测端口是否可用，如果不可用则重试
+            for attempt in range(max_retry):
+                if BrowserReader._is_port_available(host, final_port):
+                    logger.info(f"端口 {host}:{final_port} 可用")
+                    port = final_port
+                    break
+                else:
+                    logger.warning(f"端口 {host}:{final_port} 被占用，尝试其他端口")
+                    if port == 0:
+                        # 原本就是随机端口，继续随机
+                        final_port = random.randint(port_range_min, port_range_max)
+                    else:
+                        # 指定端口被占用，也使用随机端口
+                        final_port = random.randint(port_range_min, port_range_max)
+            else:
+                logger.error(f"经过 {max_retry} 次重试仍找不到可用端口")
+                return None, None, None, None
         
         # 存储进度数据
         progress_data = {}
@@ -8695,7 +9010,7 @@ class BrowserReader:
                     self.send_header('Content-type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
-                    self.wfile.write(json.dumps({{"status": "ok"}}).encode())
+                    self.wfile.write(json.dumps({"status": "ok"}).encode())
                 elif self.path.startswith('/src/locales/'):
                     # 提供静态文件访问（翻译文件）
                     self.serve_static_file(self.path[1:])  # 移除开头的 /

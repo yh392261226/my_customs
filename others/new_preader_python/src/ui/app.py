@@ -624,6 +624,17 @@ class NewReaderApp(App[None]):
             self._main_loop = _asyncio.get_running_loop()
         except Exception:
             self._main_loop = None
+        
+        # 启动浏览器阅读器服务器
+        try:
+            from src.utils.browser_reader_server_manager import start_browser_reader_server
+            success = start_browser_reader_server()
+            if success:
+                logger.info("浏览器阅读器服务器已自动启动")
+            else:
+                logger.warning("浏览器阅读器服务器启动失败")
+        except Exception as e:
+            logger.error(f"启动浏览器阅读器服务器时出错: {e}")
 
         # 启动对齐：若 appearance.theme 与 app.theme 不一致，统一为 appearance.theme 并持久化
         try:
@@ -1630,6 +1641,14 @@ def on_app_exit(app: NewReaderApp) -> None:
             app._memory_monitor.stop()
     except Exception:
         pass
+    
+    # 停止浏览器阅读器服务器
+    try:
+        from src.utils.browser_reader_server_manager import stop_browser_reader_server
+        stop_browser_reader_server()
+        logger.info("浏览器阅读器服务器已停止")
+    except Exception as e:
+        logger.error(f"停止浏览器阅读器服务器时出错: {e}")
 
 # 伪用户系统：权限检查
 def _has_permission(app_self: NewReaderApp, perm_key: str) -> bool:
