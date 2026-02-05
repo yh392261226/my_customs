@@ -244,6 +244,83 @@ class BrowserReaderServerManager:
                         self.send_header('Access-Control-Allow-Origin', '*')
                         self.end_headers()
                         self.wfile.write(json.dumps({"error": str(e), "traceback": traceback.format_exc()}).encode())
+                elif self.path == '/scan_directory':
+                    # 扫描目录并导入书籍
+                    import os
+                    from src.config.default_config import SUPPORTED_FORMATS
+                    
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    
+                    try:
+                        data = json.loads(post_data.decode('utf-8'))
+                        directory = data.get('directory', '')
+                        recursive = data.get('recursive', True)
+                        
+                        if not directory or not os.path.isdir(directory):
+                            self.send_response(400)
+                            self.send_header('Content-type', 'application/json')
+                            self.send_header('Access-Control-Allow-Origin', '*')
+                            self.end_headers()
+                            self.wfile.write(json.dumps({"success": False, "error": "无效的目录路径"}).encode())
+                            return
+                        
+                        # 支持的书籍文件扩展名
+                        supported_extensions = set(SUPPORTED_FORMATS)
+                        
+                        books = []
+                        scan_count = 0
+                        
+                        if recursive:
+                            # 递归扫描
+                            for root, dirs, files in os.walk(directory):
+                                for file in files:
+                                    file_lower = file.lower()
+                                    if any(file_lower.endswith(ext) for ext in supported_extensions):
+                                        file_path = os.path.join(root, file)
+                                        books.append({
+                                            "file_name": file,
+                                            "file_path": file_path,
+                                            "title": os.path.splitext(file)[0]
+                                        })
+                                        scan_count += 1
+                        else:
+                            # 只扫描当前目录
+                            for file in os.listdir(directory):
+                                file_lower = file.lower()
+                                if any(file_lower.endswith(ext) for ext in supported_extensions):
+                                    file_path = os.path.join(directory, file)
+                                    books.append({
+                                        "file_name": file,
+                                        "file_path": file_path,
+                                        "title": os.path.splitext(file)[0]
+                                    })
+                                    scan_count += 1
+                        
+                        logger.info(f"扫描目录 {directory} 完成，找到 {scan_count} 本书籍")
+                        
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            "success": True,
+                            "books": books,
+                            "count": scan_count
+                        }).encode())
+                        
+                    except Exception as e:
+                        import traceback
+                        logger.error(f"扫描目录出错: {e}", exc_info=True)
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            "success": False,
+                            "error": str(e),
+                            "traceback": traceback.format_exc()
+                        }).encode())
                 else:
                     self.send_response(404)
                     self.end_headers()

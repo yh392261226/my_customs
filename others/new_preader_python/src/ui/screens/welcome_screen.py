@@ -387,7 +387,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                 else:
                     # 创建一个临时文件用于浏览器阅读器
                     temp_dir = tempfile.gettempdir()
-                    temp_file = os.path.join(temp_dir, "browser_reader_placeholder.txt")
+                    temp_file = os.path.join(temp_dir, "welcome.txt")
                     
                     # 创建临时文件内容
                     library_content = """🌐 浏览器阅读器

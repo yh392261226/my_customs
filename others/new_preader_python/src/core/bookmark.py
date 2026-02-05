@@ -387,3 +387,60 @@ class BookmarkManager:
         except Exception as e:
             logger.error(f"获取阅读信息失败: {e}")
             return None
+
+    def get_last_read_book(self, user_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """
+        获取最近阅读的书籍
+
+        Args:
+            user_id: 用户ID，如果为None则不按用户过滤
+
+        Returns:
+            Optional[Dict[str, Any]]: 最近阅读的书籍信息，包含:
+                - book_path: 书籍路径
+                - last_read_date: 最后阅读日期
+                - reading_progress: 阅读进度
+            如果没有找到则返回None
+        """
+        try:
+            import sqlite3
+
+            with sqlite3.connect(self.db_manager.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+
+                # 从book_metadata表查询最近更新的书籍
+                query = """
+                    SELECT book_path, metadata, last_updated
+                    FROM book_metadata
+                """
+                params = []
+
+                if user_id is not None and user_id > 0:
+                    query += " WHERE user_id = ?"
+                    params.append(user_id)
+                else:
+                    query += " WHERE user_id = 0"
+
+                query += " ORDER BY last_updated DESC LIMIT 1"
+
+                cursor.execute(query, params)
+                row = cursor.fetchone()
+
+                if row:
+                    metadata = {}
+                    if row['metadata']:
+                        try:
+                            metadata = json.loads(row['metadata'])
+                        except json.JSONDecodeError:
+                            pass
+
+                    return {
+                        'book_path': row['book_path'],
+                        'last_read_date': metadata.get('last_read_date') or row['last_updated'],
+                        'reading_progress': metadata.get('reading_progress', 0.0)
+                    }
+                return None
+        except Exception as e:
+            logger.error(f"获取最近阅读书籍失败: {e}")
+            return None

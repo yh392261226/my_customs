@@ -135,6 +135,21 @@ class BrowserReader:
                     "note_placeholder": "输入笔记内容...",
                     "search_placeholder": "搜索内容...",
                     "auto_extract_title": "自动从文件名提取",
+                    "add_directory": "添加目录",
+                    "add_directory_title": "添加目录",
+                    "select_directory_label": "选择目录",
+                    "select_directory_hint": "将目录拖放到此处",
+                    "or_click_select_directory": "或点击选择目录",
+                    "selected_directory": "已选择的目录",
+                    "no_directory_selected": "未选择目录",
+                    "directory_path": "目录路径",
+                    "directory_path_placeholder": "请输入书籍所在目录的路径",
+                    "recursive_scan": "递归扫描子目录",
+                    "confirm_add_directory": "确认添加",
+                    "scan_in_progress": "正在扫描目录...",
+                    "scan_success": "成功添加 {count} 本书籍",
+                    "scan_failed": "扫描目录失败",
+                    "no_books_found": "目录中没有找到支持的书籍文件",
                     "position_jump": {
                         "title": "位置跳转",
                         "input_label": "输入位置百分比 (0-100):",
@@ -195,6 +210,21 @@ class BrowserReader:
                     "delete": "删除",
                     "no_custom_themes": "暂无自定义主题",
                     "theme_manager": "主题管理",
+                    "add_directory": "添加目录",
+                    "add_directory_title": "添加目录",
+                    "select_directory_label": "选择目录",
+                    "select_directory_hint": "将目录拖放到此处",
+                    "or_click_select_directory": "或点击选择目录",
+                    "selected_directory": "已选择的目录",
+                    "no_directory_selected": "未选择目录",
+                    "directory_path": "目录路径",
+                    "directory_path_placeholder": "请输入书籍所在目录的路径",
+                    "recursive_scan": "递归扫描子目录",
+                    "confirm_add_directory": "确认添加",
+                    "scan_in_progress": "正在扫描目录...",
+                    "scan_success": "成功添加 {count} 本书籍",
+                    "scan_failed": "扫描目录失败",
+                    "no_books_found": "目录中没有找到支持的书籍文件",
                     "position_jump": {
                         "title": "位置跳转",
                         "input_label": "输入位置百分比 (0-100):",
@@ -434,6 +464,9 @@ class BrowserReader:
             // 添加键盘快捷键监听
             document.addEventListener('keydown', handleKeyboardShortcuts);
             
+            // 初始化老板键模式
+            initBossMode();
+            
             // 初始化缩略图导航
             initMinimap();
             
@@ -481,13 +514,17 @@ class BrowserReader:
         if custom_settings:
             settings.update(custom_settings)
         
+        # 获取翻译文本
+        browser_reader_translations = BrowserReader.get_translations()
+        browser_reader_title = browser_reader_translations.get('browser_reader', {}).get('title', '浏览器阅读器')
+        
         # 生成HTML
         html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{title}} - {{t('browser_reader.title')}}</title>
+    <title id="pageTitle" data-original-title="{title} - {browser_reader_title}">{title} - {browser_reader_title}</title>
     
     
     
@@ -787,6 +824,17 @@ class BrowserReader:
         }}
 
         .search-container input {{
+            width: 200px;
+            padding: 6px 10px;
+            border: 1px solid rgba(128, 128, 128, 0.3);
+            border-radius: 4px;
+            background: rgba(128, 128, 128, 0.05);
+            color: {settings['text']};
+            font-size: 14px;
+            margin-right: 5px;
+        }}
+
+        .library-search input {{
             width: 200px;
             padding: 6px 10px;
             border: 1px solid rgba(128, 128, 128, 0.3);
@@ -2665,6 +2713,9 @@ class BrowserReader:
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            height: 30px;
+            width: 100px;
+            margin: 12px;
         }}
         
         .library-actions button:hover {{
@@ -2751,6 +2802,137 @@ class BrowserReader:
     </style>
 </head>
 <body>
+    <!-- 老板键 - 百度首页 -->
+    <div id="bossModeBaidu" style="display:none;">
+        <style>
+            #bossModeBaidu {{
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #fff;
+                z-index: 999999;
+                font-family: Arial, sans-serif;
+            }}
+            #bossModeBaidu .baidu-header {{
+                background: #fff;
+                padding: 10px 20px;
+                display: flex;
+                align-items: center;
+                border-bottom: 1px solid #e8e8e8;
+            }}
+            #bossModeBaidu .baidu-logo {{
+                font-size: 24px;
+                font-weight: bold;
+                color: #3385ff;
+                margin-right: 10px;
+            }}
+            #bossModeBaidu .baidu-logo span {{
+                color: #ff4d4f;
+            }}
+            #bossModeBaidu .baidu-nav {{
+                display: flex;
+                gap: 20px;
+                margin-left: auto;
+                font-size: 14px;
+                color: #333;
+            }}
+            #bossModeBaidu .baidu-nav a {{
+                color: #333;
+                text-decoration: none;
+            }}
+            #bossModeBaidu .baidu-nav a:hover {{
+                color: #3385ff;
+            }}
+            #bossModeBaidu .baidu-main {{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: calc(100% - 60px);
+                padding-top: 80px;
+            }}
+            #bossModeBaidu .baidu-main-logo {{
+                font-size: 48px;
+                font-weight: bold;
+                margin-bottom: 30px;
+            }}
+            #bossModeBaidu .baidu-main-logo span:first-child {{
+                color: #3385ff;
+            }}
+            #bossModeBaidu .baidu-main-logo span:last-child {{
+                color: #ff4d4f;
+            }}
+            #bossModeBaidu .baidu-search-box {{
+                width: 600px;
+                max-width: 90%;
+                display: flex;
+                gap: 10px;
+            }}
+            #bossModeBaidu .baidu-search-box input {{
+                flex: 1;
+                padding: 12px 16px;
+                border: 2px solid #3385ff;
+                border-radius: 4px 0 0 4px;
+                font-size: 16px;
+                outline: none;
+            }}
+            #bossModeBaidu .baidu-search-box input:focus {{
+                border-color: #3385ff;
+            }}
+            #bossModeBaidu .baidu-search-box button {{
+                padding: 12px 30px;
+                background: #3385ff;
+                color: #fff;
+                border: none;
+                border-radius: 0 4px 4px 0;
+                font-size: 16px;
+                cursor: pointer;
+                font-weight: bold;
+            }}
+            #bossModeBaidu .baidu-search-box button:hover {{
+                background: #2d7aff;
+            }}
+            #bossModeBaidu .baidu-footer {{
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background: #fff;
+                padding: 10px 20px;
+                text-align: center;
+                font-size: 12px;
+                color: #999;
+                border-top: 1px solid #e8e8e8;
+            }}
+        </style>
+        <div class="baidu-header">
+            <div class="baidu-logo"><span></span></div>
+            <div class="baidu-nav">
+                <a href="https://news.baidu.com" target="_blank">新闻</a>
+                <a href="https://www.hao123.com" target="_blank">hao123</a>
+                <a href="https://map.baidu.com" target="_blank">地图</a>
+                <a href="https://tieba.baidu.com" target="_blank">贴吧</a>
+                <a href="https://video.baidu.com" target="_blank">视频</a>
+                <a href="https://image.baidu.com" target="_blank">图片</a>
+                <a href="https://pan.baidu.com" target="_blank">网盘</a>
+            </div>
+        </div>
+        <div class="baidu-main">
+            <div class="baidu-main-logo">
+                <img hidefocus="true" id="s_lg_img" class="index-logo-src" src="https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png" width="270" height="129" onerror="this.src='//www.baidu.com/img/flexible/logo/pc/index.png';this.onerror=null;" usemap="#mp">
+            </div>
+            <div class="baidu-search-box">
+                <input type="text" id="baiduSearchInput" placeholder="请输入搜索内容" />
+                <button onclick="performBaiduSearch()">百度一下</button>
+            </div>
+        </div>
+        <div class="baidu-footer">
+            © 2026 Baidu <a href="https://www.baidu.com/duty/" target="_blank" style="color:#999;">使用百度前必读</a> <a href="https://www.baidu.com/licence/" target="_blank" style="color:#999;">意见反馈</a> 京ICP证030173号
+        </div>
+    </div>
+
     <!-- 全屏状态指示器 -->
     <div class="fullscreen-indicator" id="fullscreenIndicator">
         <script>document.write(t('browser_reader.fullscreen_indicator'));</script>
@@ -2796,6 +2978,7 @@ class BrowserReader:
             <li><kbd>g</kbd> <script>document.write(t('browser_reader.shortcut_font_settings'));</script></li>
             <li><kbd>n</kbd> <script>document.write(t('browser_reader.shortcut_notes'));</script></li>
             <li><kbd>m</kbd> <script>document.write(t('browser_reader.shortcut_minimap'));</script></li>
+            <li><kbd>/</kbd> 老板键</li>
             <li><kbd>ESC</kbd> <script>document.write(t('browser_reader.shortcut_escape'));</script></li>
         </ul>
     </div>
@@ -3210,6 +3393,10 @@ class BrowserReader:
             <!-- 阅读历史 -->
             <div class="library-content" id="historyTab">
                 <div class="library-actions">
+                    <div class="library-search">
+                        <input type="text" id="librarySearchInput" placeholder="搜索书籍标题..." onkeyup="searchLibraryBooks()">
+                        <button onclick="clearLibrarySearch()" id="clearSearchBtn" style="display: none;">×</button>
+                    </div>
                     <button onclick="clearHistory()"><script>document.write(t('browser_reader.clear_history'));</script></button>
                     <button onclick="refreshHistory()"><script>document.write(t('browser_reader.refresh'));</script></button>
                 </div>
@@ -3221,12 +3408,52 @@ class BrowserReader:
             <!-- 导入书籍 -->
             <div class="library-content" id="importedTab" style="display: none;">
                 <div class="library-actions">
+                    <div class="library-search">
+                        <input type="text" id="importedSearchInput" placeholder="搜索书籍标题..." onkeyup="searchImportedBooks()">
+                        <button onclick="clearImportedSearch()" id="clearImportedSearchBtn" style="display: none;">×</button>
+                    </div>
                     <button onclick="addBookFromLibrary()"><script>document.write(t('browser_reader.add_book'));</script></button>
+                    <button onclick="showAddDirectoryModal()"><script>document.write(t('browser_reader.add_directory'));</script></button>
                     <button onclick="exportLibrary()"><script>document.write(t('browser_reader.export_library'));</script></button>
                 </div>
                 <div class="book-list" id="importedBookList">
                     <p style="color: #666; text-align: center; padding: 20px;"><script>document.write(t('browser_reader.no_imported_books'));</script></p>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加目录弹窗 -->
+    <div class="settings-panel" id="addDirectoryModal" style="display: none;">
+        <div class="settings-content">
+            <h3><script>document.write(t('browser_reader.add_directory_title'));</script></h3>
+            <button class="settings-close" onclick="closeAddDirectoryModal()">×</button>
+            
+            <div class="setting-item">
+                <label><script>document.write(t('browser_reader.select_directory_label'));</script></label>
+                <div id="directoryDropZone" class="drop-zone">
+                    <div class="drop-zone-content">
+                        <div class="drop-icon">📁</div>
+                        <p><script>document.write(t('browser_reader.select_directory_hint'));</script></p>
+                        <p class="drop-hint"><script>document.write(t('browser_reader.or_click_select_directory'));</script></p>
+                        <input type="file" id="directoryInput" webkitdirectory directory multiple style="display: none;" onchange="handleDirectorySelect(event)">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <label><script>document.write(t('browser_reader.selected_directory'));</script></label>
+                <input type="text" id="directoryPath" placeholder="{{t('browser_reader.no_directory_selected')}}" readonly style="background: rgba(128, 128, 128, 0.1);">
+            </div>
+            
+            <div class="setting-item">
+                <label><script>document.write(t('browser_reader.recursive_scan'));</script></label>
+                <input type="checkbox" id="recursiveScan" checked>
+            </div>
+            
+            <div class="setting-actions">
+                <button onclick="confirmAddDirectory()"><script>document.write(t('browser_reader.confirm_add_directory'));</script></button>
+                <button onclick="closeAddDirectoryModal()"><script>document.write(t('browser_reader.cancel'));</script></button>
             </div>
         </div>
     </div>
@@ -3267,27 +3494,27 @@ class BrowserReader:
                 }});
                 textNode.textContent = newText;
             }});
-            
+
             // 替换所有元素的placeholder属性中的翻译占位符
-            const elementsWithPlaceholder = document.querySelectorAll('[placeholder*="{{t("]');
-            elementsWithPlaceholder.forEach(element => {{
+            const allElements = document.querySelectorAll('*');
+            allElements.forEach(element => {{
                 const placeholder = element.getAttribute('placeholder');
-                const newPlaceholder = placeholder.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
-                    const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
-                    return value || match;
-                }});
-                element.setAttribute('placeholder', newPlaceholder);
-            }});
-            
-            // 替换所有元素的title属性中的翻译占位符
-            const elementsWithTitle = document.querySelectorAll('[title*="{{t("]');
-            elementsWithTitle.forEach(element => {{
+                if (placeholder && placeholder.includes('{{t(')) {{
+                    const newPlaceholder = placeholder.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
+                        const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+                        return value || match;
+                    }});
+                    element.setAttribute('placeholder', newPlaceholder);
+                }}
+                
                 const title = element.getAttribute('title');
-                const newTitle = title.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
-                    const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
-                    return value || match;
-                }});
-                element.setAttribute('title', newTitle);
+                if (title && title.includes('{{t(')) {{
+                    const newTitle = title.replace(/{{t\('([^']+)'\)}}/g, function(match, key) {{
+                        const value = key.split('.').reduce((obj, k) => obj && obj[k], translations);
+                        return value || match;
+                    }});
+                    element.setAttribute('title', newTitle);
+                }}
             }});
         }}
         
@@ -3460,6 +3687,7 @@ class BrowserReader:
         // 文件导入相关
         let selectedFile = null;
         let fileContent = null;
+        let selectedDirectoryFiles = null; // 存储选择的目录文件列表
         
         // 书库相关
         let readingHistory = JSON.parse(localStorage.getItem('readingHistory') || '[]');
@@ -6167,6 +6395,85 @@ class BrowserReader:
             localStorage.setItem('minimapVisible', isMinimapVisible.toString());
         }}
 
+        // 老板键模式
+        let isBossMode = false;
+
+        function initBossMode() {{
+            // 获取原始标题
+            const titleEl = document.getElementById('pageTitle');
+            if (titleEl) {{
+                originalTitle = titleEl.getAttribute('data-original-title') || document.title;
+            }}
+            
+            // 监听页面可见性变化
+            document.addEventListener('visibilitychange', function() {{
+                handleVisibilityChange();
+            }});
+
+            // 监听窗口焦点变化（补充监听，确保在标签切换时也能触发）
+            window.addEventListener('focus', function() {{
+                handleVisibilityChange();
+            }});
+            
+            window.addEventListener('blur', function() {{
+                handleVisibilityChange();
+            }});
+
+            // 监听百度搜索框的回车键
+            const searchInput = document.getElementById('baiduSearchInput');
+            if (searchInput) {{
+                searchInput.addEventListener('keypress', function(e) {{
+                    if (e.key === 'Enter') {{
+                        performBaiduSearch();
+                    }}
+                }});
+            }}
+        }}
+
+        function handleVisibilityChange() {{
+            // 检查页面是否隐藏
+            if (document.hidden || !document.hasFocus()) {{
+                // 页面不可见或失去焦点时，修改标题
+                document.title = '百度一下,你就知道';
+            }} else {{
+                // 页面可见且有焦点时，恢复原始标题
+                if (!isBossMode) {{
+                    document.title = originalTitle;
+                }}
+            }}
+        }}
+
+        function toggleBossMode() {{
+            isBossMode = !isBossMode;
+            const bossModeDiv = document.getElementById('bossModeBaidu');
+            const body = document.body;
+            
+            if (isBossMode) {{
+                // 进入老板键模式
+                bossModeDiv.style.display = 'block';
+                document.title = '百度一下,你就知道';
+                // 隐藏页面滚动
+                body.style.overflow = 'hidden';
+            }} else {{
+                // 退出老板键模式
+                bossModeDiv.style.display = 'none';
+                document.title = originalTitle;
+                body.style.overflow = '';
+            }}
+        }}
+
+        function performBaiduSearch() {{
+            const searchInput = document.getElementById('baiduSearchInput');
+            if (!searchInput) return;
+            
+            const keyword = searchInput.value.trim();
+            if (keyword) {{
+                // 在新标签页打开百度搜索
+                const searchUrl = 'https://www.baidu.com/s?ie=utf-8&tn=baidu&wd=' + encodeURIComponent(keyword);
+                window.open(searchUrl, '_blank');
+            }}
+        }}
+
         // 开始拖拽
         function startMinimapDrag(e) {{
             if (e.target === minimapViewport) return; // 不允许直接拖拽视口
@@ -6395,6 +6702,10 @@ class BrowserReader:
                 case 'm':
                 case 'M':
                     toggleMinimap();
+                    e.preventDefault();
+                    break;
+                case '/':
+                    toggleBossMode();
                     e.preventDefault();
                     break;
                 case 'Escape':
@@ -8164,6 +8475,138 @@ class BrowserReader:
             }}
         }}
         
+        // 搜索阅读历史
+        function searchLibraryBooks() {{
+            const searchInput = document.getElementById('librarySearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const bookList = document.getElementById('historyBookList');
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            // 显示/隐藏清除按钮
+            clearBtn.style.display = searchTerm ? 'block' : 'none';
+            
+            // 获取所有书籍项
+            const bookItems = bookList.querySelectorAll('.book-item');
+            let visibleCount = 0;
+            
+            bookItems.forEach(item => {{
+                const title = item.querySelector('.book-title');
+                if (title) {{
+                    const titleText = title.textContent.toLowerCase();
+                    if (titleText.includes(searchTerm)) {{
+                        item.style.display = 'block';
+                        visibleCount++;
+                    }} else {{
+                        item.style.display = 'none';
+                    }}
+                }}
+            }});
+            
+            // 显示搜索结果状态
+            if (searchTerm && visibleCount === 0) {{
+                if (!bookList.querySelector('.search-no-results')) {{
+                    const noResults = document.createElement('p');
+                    noResults.className = 'search-no-results';
+                    noResults.style.cssText = 'color: #666; text-align: center; padding: 20px;';
+                    noResults.textContent = t('browser_reader.library_search_no_results');
+                    bookList.appendChild(noResults);
+                }}
+            }} else {{
+                const noResults = bookList.querySelector('.search-no-results');
+                if (noResults) {{
+                    noResults.remove();
+                }}
+            }}
+        }}
+        
+        // 清除阅读历史搜索
+        function clearLibrarySearch() {{
+            const searchInput = document.getElementById('librarySearchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const bookList = document.getElementById('historyBookList');
+            
+            searchInput.value = '';
+            clearBtn.style.display = 'none';
+            
+            // 显示所有书籍项
+            const bookItems = bookList.querySelectorAll('.book-item');
+            bookItems.forEach(item => {{
+                item.style.display = 'block';
+            }});
+            
+            // 移除搜索结果状态
+            const noResults = bookList.querySelector('.search-no-results');
+            if (noResults) {{
+                noResults.remove();
+            }}
+        }}
+        
+        // 搜索导入书籍
+        function searchImportedBooks() {{
+            const searchInput = document.getElementById('importedSearchInput');
+            const clearBtn = document.getElementById('clearImportedSearchBtn');
+            const bookList = document.getElementById('importedBookList');
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            // 显示/隐藏清除按钮
+            clearBtn.style.display = searchTerm ? 'block' : 'none';
+            
+            // 获取所有书籍项
+            const bookItems = bookList.querySelectorAll('.book-item');
+            let visibleCount = 0;
+            
+            bookItems.forEach(item => {{
+                const title = item.querySelector('.book-title');
+                if (title) {{
+                    const titleText = title.textContent.toLowerCase();
+                    if (titleText.includes(searchTerm)) {{
+                        item.style.display = 'block';
+                        visibleCount++;
+                    }} else {{
+                        item.style.display = 'none';
+                    }}
+                }}
+            }});
+            
+            // 显示搜索结果状态
+            if (searchTerm && visibleCount === 0) {{
+                if (!bookList.querySelector('.search-no-results')) {{
+                    const noResults = document.createElement('p');
+                    noResults.className = 'search-no-results';
+                    noResults.style.cssText = 'color: #666; text-align: center; padding: 20px;';
+                    noResults.textContent = t('browser_reader.library_search_no_results');
+                    bookList.appendChild(noResults);
+                }}
+            }} else {{
+                const noResults = bookList.querySelector('.search-no-results');
+                if (noResults) {{
+                    noResults.remove();
+                }}
+            }}
+        }}
+        
+        // 清除导入书籍搜索
+        function clearImportedSearch() {{
+            const searchInput = document.getElementById('importedSearchInput');
+            const clearBtn = document.getElementById('clearImportedSearchBtn');
+            const bookList = document.getElementById('importedBookList');
+            
+            searchInput.value = '';
+            clearBtn.style.display = 'none';
+            
+            // 显示所有书籍项
+            const bookItems = bookList.querySelectorAll('.book-item');
+            bookItems.forEach(item => {{
+                item.style.display = 'block';
+            }});
+            
+            // 移除搜索结果状态
+            const noResults = bookList.querySelector('.search-no-results');
+            if (noResults) {{
+                noResults.remove();
+            }}
+        }}
+        
         function addToReadingHistory(title, type, bookId) {{
             const historyItem = {{
                 id: Date.now().toString(),
@@ -8359,6 +8802,169 @@ class BrowserReader:
             showNotification('书库已导出');
         }}
         
+        // 显示添加目录弹窗
+        function showAddDirectoryModal() {{
+            const modal = document.getElementById('addDirectoryModal');
+            const directoryDropZone = document.getElementById('directoryDropZone');
+            const directoryInput = document.getElementById('directoryInput');
+            
+            if (modal) {{
+                modal.style.display = 'block';
+            }}
+            
+            // 设置目录选择区域的点击事件
+            if (directoryDropZone && directoryInput) {{
+                directoryDropZone.onclick = function() {{
+                    directoryInput.click();
+                }};
+            }}
+
+            // 关闭书库面板
+            toggleBookLibrary();
+        }}
+        
+        // 处理目录选择
+        function handleDirectorySelect(event) {{
+            const files = event.target.files;
+            
+            if (files && files.length > 0) {{
+                // 保存文件列表到全局变量
+                selectedDirectoryFiles = Array.from(files);
+                
+                // 获取第一个文件的路径（所有文件都在同一目录）
+                const firstFile = files[0];
+                const directoryPath = firstFile.webkitRelativePath.split('/')[0];
+                
+                const directoryPathInput = document.getElementById('directoryPath');
+                if (directoryPathInput) {{
+                    directoryPathInput.value = directoryPath;
+                }}
+                
+                showNotification('已选择目录: ' + directoryPath + '，共 ' + files.length + ' 个文件');
+            }} else {{
+                showNotification('未选择目录');
+                selectedDirectoryFiles = null;
+            }}
+        }}
+        
+        // 关闭添加目录弹窗
+        function closeAddDirectoryModal() {{
+            const modal = document.getElementById('addDirectoryModal');
+            const directoryPathInput = document.getElementById('directoryPath');
+            
+            if (modal) {{
+                modal.style.display = 'none';
+            }}
+            
+            // 清空目录路径和文件列表
+            if (directoryPathInput) {{
+                directoryPathInput.value = '';
+            }}
+            selectedDirectoryFiles = null;
+        }}
+        
+        // 确认添加目录
+        async function confirmAddDirectory() {{
+            const directoryPathInput = document.getElementById('directoryPath');
+            
+            if (!directoryPathInput) {{
+                showNotification('无法获取输入框');
+                return;
+            }}
+            
+            const directoryPath = directoryPathInput.value.trim();
+            
+            // 检查是否已选择目录文件
+            if (!selectedDirectoryFiles || selectedDirectoryFiles.length === 0) {{
+                showNotification('请选择目录');
+                return;
+            }}
+            
+            // 支持的书籍文件扩展名
+            const supportedExtensions = ['.txt', '.html', '.htm', '.md', '.pdf', '.epub', '.mobi', '.azw', '.azw3'];
+            
+            showNotification('正在处理书籍文件...');
+            
+            try {{
+                // 过滤出支持的书籍文件
+                const bookFiles = selectedDirectoryFiles.filter(file => {{
+                    const fileName = file.name.toLowerCase();
+                    return supportedExtensions.some(ext => fileName.endsWith(ext));
+                }});
+                
+                if (bookFiles.length === 0) {{
+                    showNotification('目录中没有找到支持的书籍文件');
+                    return;
+                }}
+                
+                // 将扫描到的书籍添加到导入书籍列表
+                let addedCount = 0;
+                
+                // 处理每个书籍文件
+                bookFiles.forEach(file => {{
+                    // 检查是否已存在
+                    const exists = importedBooks.find(b => b.fileName === file.name);
+                    if (!exists) {{
+                        // 检查文件类型
+                        const fileName = file.name.toLowerCase();
+                        let content = '';
+                        
+                        if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {{
+                            // 对于文本文件，尝试读取内容
+                            const reader = new FileReader();
+                            reader.onload = function(e) {{
+                                const textContent = e.target.result;
+                                const bookData = importedBooks.find(b => b.fileName === file.name);
+                                if (bookData) {{
+                                    bookData.content = '<div style="padding: 20px; line-height: 1.8; white-space: pre-wrap;">' + 
+                                                     textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+                                    // 保存到本地存储
+                                    localStorage.setItem('importedBooks', JSON.stringify(importedBooks));
+                                    // 刷新列表
+                                    loadImportedBooks();
+                                }}
+                            }};
+                            reader.readAsText(file);
+                        }} else {{
+                            // 其他文件类型显示提示
+                            content = '<div style="text-align: center; padding: 50px 20px;">' +
+                                     '<div style="font-size: 48px; margin-bottom: 20px;">📚</div>' +
+                                     '<h2>' + file.name + '</h2>' +
+                                     '<p style="color: #666; margin: 20px 0;">路径: ' + file.webkitRelativePath + '</p>' +
+                                     '<p style="color: #666;">大小: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB</p>' +
+                                     '<p style="color: #666;">此文件类型需要后端解析</p>' +
+                                     '</div>';
+                        }}
+                        
+                        importedBooks.push({{
+                            id: 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                            title: file.name.replace(/\.[^/.]+$/, ""), // 移除文件扩展名作为标题
+                            fileName: file.name,
+                            importTime: Date.now(),
+                            filePath: file.webkitRelativePath,
+                            content: content || '<div style="text-align: center; padding: 50px 20px;">正在读取文件...</div>'
+                        }});
+                        addedCount++;
+                    }}
+                }});
+                
+                // 保存到本地存储
+                localStorage.setItem('importedBooks', JSON.stringify(importedBooks));
+                
+                // 刷新列表
+                loadImportedBooks();
+                
+                // 关闭弹窗
+                closeAddDirectoryModal();
+                
+                showNotification('成功添加 ' + addedCount + ' 本书籍');
+                
+            }} catch (error) {{
+                console.error('添加目录出错:', error);
+                showNotification('添加目录时出错: ' + error.message);
+            }}
+        }}
+        
         // 页面关闭前保存进度和统计
         window.addEventListener('beforeunload', function() {{
             // 保存阅读统计
@@ -8470,7 +9076,7 @@ class BrowserReader:
                     null,
                     false
                 );
-                
+
                 let node;
                 while (node = walker.nextNode()) {
                     const text = node.textContent;
@@ -8483,16 +9089,58 @@ class BrowserReader:
                     }
                 }
             }
-            
+
             replacePlaceholders();
         });
         </script>
         """
-        
+
+        # 标题切换脚本
+        title_change_script = """
+        <script>
+        // 保存原始标题
+        let originalTitle = document.title;
+
+        // 设置离开时的标题
+        const hiddenTitle = "百度一下，你就知道";
+
+        // 监听可见性变化
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                // 页面隐藏时修改标题
+                document.title = hiddenTitle;
+            } else {
+                // 页面恢复可见时还原标题
+                document.title = originalTitle;
+            }
+        });
+
+        // 监听页面关闭/刷新，避免标题被缓存导致还原异常
+        window.addEventListener('beforeunload', function() {
+            document.title = originalTitle;
+        });
+        </script>
+        """
+
         # 在</body>前插入脚本
-        html = html.replace('</body>', placeholder_script + '</body>')
+        html = html.replace('</body>', placeholder_script + title_change_script + '</body>')
+        
+
+        # Python端翻译处理 - 替换所有{t('browser_reader.xxx')}占位符
+        def get_translation(key):
+            keys = key.split('.')
+            value = BrowserReader.get_translations()
+            for k in keys:
+                value = value.get(k) if isinstance(value, dict) else None
+                if value is None:
+                    break
+            return value or key
+        
+        # 使用正则表达式替换所有翻译占位符
+        html = re.sub(r"\{t\('([^']+)'\)\}", lambda m: get_translation(m.group(1)), html)
         
         return html
+
     
     @staticmethod
     def read_file_content(file_path: str) -> str:
