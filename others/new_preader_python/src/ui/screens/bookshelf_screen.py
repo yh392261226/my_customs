@@ -1668,6 +1668,9 @@ class BookshelfScreen(Screen[None]):
                 self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
                 return
             
+            # 保存书籍路径，避免回调函数中的作用域问题
+            book_path_for_callback = book.path
+            
             # 保存进度回调
             def on_progress_save(progress: float, scroll_top: int, scroll_height: int,
                              current_page: Optional[int] = None, total_pages: Optional[int] = None,
@@ -1690,11 +1693,11 @@ class BookshelfScreen(Screen[None]):
                     if current_page is None:
                         current_page = int(progress * total_pages)
 
-                    self.logger.info(f"准备保存到数据库: book_path={book.path}, current_page={current_page}, total_pages={total_pages}")
+                    self.logger.info(f"准备保存到数据库: book_path={book_path_for_callback}, current_page={current_page}, total_pages={total_pages}")
 
                     # 保存阅读信息
                     success = bookmark_manager.save_reading_info(
-                        book.path,
+                        book_path_for_callback,
                         current_page=current_page,
                         total_pages=total_pages,
                         reading_progress=progress,
@@ -1717,7 +1720,7 @@ class BookshelfScreen(Screen[None]):
                     from src.core.bookmark import BookmarkManager
                     bookmark_manager = BookmarkManager()
 
-                    reading_info = bookmark_manager.get_reading_info(book.path)
+                    reading_info = bookmark_manager.get_reading_info(book_path_for_callback)
                     self.logger.debug(f"从数据库获取到阅读信息: {reading_info}")
 
                     if reading_info:

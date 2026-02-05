@@ -1812,6 +1812,7 @@
     "no_reading_history": "暂无阅读历史",
     "add_book": "添加书籍",
     "export_library": "导出书库",
+    "clear_all_books": "清空书籍",
     "no_imported_books": "暂无导入书籍",
     "notes_title": "阅读助手",
     "highlights_tab": "高亮",

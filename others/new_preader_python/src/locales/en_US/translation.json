@@ -1812,6 +1812,7 @@
     "no_reading_history": "No reading history",
     "add_book": "Add Book",
     "export_library": "Export Library",
+    "clear_all_books": "Clear Books",
     "no_imported_books": "No imported books",
     "notes_title": "Reading Assistant",
     "highlights_tab": "Highlights",
