@@ -2087,14 +2087,13 @@ class CrawlerManagementScreen(Screen[None]):
                     self._update_status(get_global_i18n().t('crawler.invalid_page_number'), "error")
         
         from src.ui.dialogs.input_dialog import InputDialog
-        self.app.push_screen(
-            InputDialog(
-                self.theme_manager,
-                title=get_global_i18n().t('crawler.goto_page'),
-                prompt=get_global_i18n().t('crawler.goto_page_message'),
-                placeholder=get_global_i18n().t('crawler.page_number')
-            )
+        dialog = InputDialog(
+            self.theme_manager,
+            title=get_global_i18n().t('crawler.goto_page'),
+            prompt=get_global_i18n().t('crawler.goto_page_message'),
+            placeholder=get_global_i18n().t('crawler.page_number')
         )
+        self.app.push_screen(dialog, handle_jump_result)
     
     # ==================== 基础功能方法 ====================
     
@@ -3868,6 +3867,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._go_to_next_page()
         elif button_id == "last-page-btn":
             self._go_to_last_page()
+        elif button_id == "jump-page-btn":
+            self._show_jump_dialog()
         elif button_id == "select-all-btn":
             self._select_all_rows()
         elif button_id == "invert-selection-btn":
