@@ -9477,6 +9477,7 @@ class BrowserReader:
                         document.getElementById('viewLibraryBtn').onclick = function() {{
                             saveImportedBooksToStorage();
                             loadImportedBooks();
+                            toggleBookLibrary();
                             showNotification(`已刷新书库，已导入 ${{addedCount}} 本书籍`);
                         }};
                         document.getElementById('cancelAddBtn').onclick = function() {{
