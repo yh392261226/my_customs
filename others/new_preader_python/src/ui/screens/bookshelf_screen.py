@@ -67,8 +67,14 @@ class BookshelfScreen(Screen[None]):
             self.logger.info("书架数据已重新加载")
         except Exception as e:
             self.logger.warning(f"重新加载书架数据失败: {e}")
-        
-        self._load_books()
+
+        # 刷新时保持当前搜索条件
+        self._load_books(
+            search_keyword=self._search_keyword,
+            search_format=self._search_format,
+            search_author=self._search_author,
+            from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+        )
         self.logger.info("书架数据已刷新")
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect):
@@ -1135,32 +1141,66 @@ class BookshelfScreen(Screen[None]):
             # 获取排序字段选择
             sort_key_select = self.query_one("#sort-key-radio", Select)
             sort_key = sort_key_select.value
-            
+
             # 获取排序顺序选择
             sort_order_select = self.query_one("#sort-order-radio", Select)
             sort_order = sort_order_select.value
-            
+
             # 转换排序顺序
             reverse = sort_order == "desc"
-            
+
             # 映射字段名
             key_mapping = {
                 "book_name": "title",
-                "author": "author", 
+                "author": "author",
                 "add_date": "add_date",
                 "last_read": "last_read_date",
                 "progress": "progress",
                 "file_size": "file_size"
             }
-            
+
             actual_sort_key = key_mapping.get(sort_key, "title")
-            
-            # 执行排序
-            sorted_books = self.bookshelf.sort_books(actual_sort_key, reverse)
-            
-            # 更新当前书籍列表
-            self._all_books = sorted_books
-            
+
+            # 保存排序配置
+            self._sort_column = actual_sort_key
+            self._sort_reverse = reverse
+
+            # 对当前书籍列表进行排序（保持搜索条件）
+            # 核心概念：阅读进度 100% 的永远在最后面，无论什么排序方式
+            not_completed_books = []
+            completed_books = []
+
+            for book in self._all_books:
+                reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
+                progress = reading_info.get('reading_progress', 0)
+                if progress >= 1.0:
+                    completed_books.append(book)
+                else:
+                    not_completed_books.append(book)
+
+            self.logger.debug(f"排序前 - 未完成: {len(not_completed_books)}, 已完成: {len(completed_books)}")
+
+            # 预先获取阅读信息
+            reading_info_cache = {}
+            for book in not_completed_books + completed_books:
+                reading_info = self.bookshelf.get_book_reading_info(book.path)
+                reading_info_cache[book.path] = reading_info
+
+            def get_sort_key(book):
+                return self._get_sort_key_with_cache(book, self._sort_column, reading_info_cache)
+
+            not_completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+            completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+
+            # 合并：未完成在前，已完成在后
+            self._all_books = not_completed_books + completed_books
+
+            self.logger.debug(f"排序后 - 总计: {len(self._all_books)}, 排序字段: {self._sort_column}, 倒序: {self._sort_reverse}")
+            if not_completed_books:
+                self.logger.debug(f"未完成前3本: {[b.title[:15] for b in not_completed_books[:3]]}")
+            if completed_books:
+                self.logger.debug(f"已完成前3本: {[b.title[:15] for b in completed_books[:3]]}")
+
             # 重新计算分页信息
             self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
             # 回到第一页
@@ -1305,7 +1345,7 @@ class BookshelfScreen(Screen[None]):
             last_btn.disabled = self._current_page >= self._total_pages
             
             # 更新页面信息标签
-            page_label = self.query_one("#page-label", Static)
+            page_label = self.query_one("#page-info", Label)
             page_label.update(f"{self._current_page}/{self._total_pages}")
             
         except Exception as e:
@@ -1375,7 +1415,7 @@ class BookshelfScreen(Screen[None]):
         """
         if column_key == "id":
             # ID排序，使用路径作为唯一标识
-            return book.path
+            return book.path or ""
         elif column_key == "title":
             # 标题排序
             return book.title or ""
@@ -1387,8 +1427,11 @@ class BookshelfScreen(Screen[None]):
             return book.format.lower() if book.format else ""
         elif column_key == "size":
             # 大小排序，使用原始字节数
-            return book.size
-        elif column_key == "last_read":
+            return book.size or 0
+        elif column_key == "file_size":
+            # 文件大小排序，使用原始字节数
+            return getattr(book, 'file_size', 0) or 0
+        elif column_key == "last_read" or column_key == "last_read_date":
             # 最后阅读时间排序
             from datetime import datetime
             try:
@@ -1404,13 +1447,24 @@ class BookshelfScreen(Screen[None]):
             # 进度排序，从阅读信息中获取
             try:
                 reading_info = reading_info_cache.get(book.path, {})
-                return reading_info.get('reading_progress', 0)
+                return reading_info.get('reading_progress', 0) or 0
             except:
                 return 0.0
         elif column_key == "tags":
             # 标签排序
             return book.tags or ""
-        return None
+        elif column_key == "add_date":
+            # 添加日期排序
+            from datetime import datetime
+            try:
+                if hasattr(book, 'add_date') and book.add_date:
+                    return datetime.fromisoformat(book.add_date)
+                else:
+                    return datetime.min
+            except:
+                return datetime.min
+        # 默认返回空字符串，避免None导致的比较错误
+        return ""
 
     @on(DataTable.CellSelected, "#books-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
@@ -1819,9 +1873,14 @@ class BookshelfScreen(Screen[None]):
                         success = self.bookshelf.remove_book(book_path)
                         if success:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
-                            # 刷新书库内存缓存和书架列表
+                            # 刷新书库内存缓存和书架列表（保持当前搜索条件）
                             self.bookshelf._load_books()
-                            self._load_books()
+                            self._load_books(
+                                search_keyword=self._search_keyword,
+                                search_format=self._search_format,
+                                search_author=self._search_author,
+                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+                            )
                         else:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_failed"), severity="error")
                     except Exception as e:
@@ -2002,37 +2061,74 @@ class BookshelfScreen(Screen[None]):
         def handle_sort_result(result: Optional[Dict[str, Any]]) -> None:
             """处理排序结果"""
             if result:
-                # 使用bookshelf的排序功能
-                sorted_books = self.bookshelf.sort_books(
-                    result["sort_key"], 
-                    result["reverse"]
-                )
-                
+                # 保存排序配置
+                self._sort_column = result["sort_key"]
+                self._sort_reverse = result["reverse"]
+
+                # 对当前书籍列表进行排序（保持搜索条件）
+                # 核心概念：阅读进度 100% 的永远在最后面，无论什么排序方式
+                not_completed_books = []
+                completed_books = []
+
+                for book in self._all_books:
+                    reading_info = self.bookshelf._reading_info_cache.get(book.path, {})
+                    progress = reading_info.get('reading_progress', 0)
+                    if progress >= 1.0:
+                        completed_books.append(book)
+                    else:
+                        not_completed_books.append(book)
+
+                self.logger.debug(f"排序前 - 未完成: {len(not_completed_books)}, 已完成: {len(completed_books)}")
+
+                # 预先获取阅读信息
+                reading_info_cache = {}
+                for book in not_completed_books + completed_books:
+                    reading_info = self.bookshelf.get_book_reading_info(book.path)
+                    reading_info_cache[book.path] = reading_info
+
+                def get_sort_key(book):
+                    return self._get_sort_key_with_cache(book, self._sort_column, reading_info_cache)
+
+                not_completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+                completed_books.sort(key=get_sort_key, reverse=self._sort_reverse)
+
+                # 合并：未完成在前，已完成在后
+                sorted_books = not_completed_books + completed_books
+
+                self.logger.debug(f"排序后 - 总计: {len(sorted_books)}, 排序字段: {self._sort_column}, 倒序: {self._sort_reverse}")
+                if not_completed_books:
+                    self.logger.debug(f"未完成前3本: {[b.title[:15] for b in not_completed_books[:3]]}")
+                if completed_books:
+                    self.logger.debug(f"已完成前3本: {[b.title[:15] for b in completed_books[:3]]}")
+
+                # 更新当前书籍列表
+                self._all_books = sorted_books
+
                 # 更新表格显示排序后的书籍
                 table = self.query_one("#books-table", DataTable)
                 table.clear()
-                
+
                 # 更新序号到书籍路径的映射
                 self._book_index_mapping = {}
                 # 创建行键到书籍路径的映射
                 self._row_key_mapping = {}
-                
+
                 for index, book in enumerate(sorted_books, 1):
                     # 存储序号到路径的映射
                     self._book_index_mapping[str(index)] = book.path
                     # 存储行键到路径的映射
                     row_key = f"{book.path}_{index}"
                     self._row_key_mapping[row_key] = book.path
-                    
+
                     # 从reading_history表获取阅读信息
                     reading_info = self.bookshelf.get_book_reading_info(book.path)
                     last_read = reading_info.get('last_read_date') or ""
                     # 数据库中存储的是小数(0-1),需要乘以100转换为百分比显示
                     progress = reading_info.get('reading_progress', 0) * 100
-                    
+
                     # 格式化标签显示（直接显示逗号分隔的字符串）
                     tags_display = book.tags if book.tags else ""
-                    
+
                     # 添加操作按钮
                     # 文件不存在时，不显示阅读、查看文件、重命名按钮
                     if getattr(book, 'file_not_found', False):
@@ -2045,16 +2141,16 @@ class BookshelfScreen(Screen[None]):
                         view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
                         rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
                         delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
-                    
+
                     # 如果文件不存在，在标题前添加标记
                     display_title = book.title
                     if getattr(book, 'file_not_found', False):
                         display_title = f"[书籍文件不存在] {book.title}"
-                    
+
                     # 格式化文件大小显示
                     from src.utils.file_utils import FileUtils
                     size_display = FileUtils.format_file_size(book.file_size) if hasattr(book, 'file_size') and book.file_size else ""
-                    
+
                     table.add_row(
                         str(index),  # 显示数字序号而不是路径
                         display_title,
@@ -2070,7 +2166,15 @@ class BookshelfScreen(Screen[None]):
                         delete_button,  # 删除按钮
                         key=f"{book.path}_{index}"  # 使用唯一的key，避免重复（book.path + 索引）
                     )
-                
+
+                # 重新计算分页信息
+                self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
+                # 回到第一页
+                self._current_page = 1
+
+                # 更新分页控件状态
+                self._update_pagination_controls()
+
                 # 将字段名映射到翻译文本
                 sort_key_translations = {
                     "title": get_global_i18n().t("common.book_name"),
@@ -2080,20 +2184,20 @@ class BookshelfScreen(Screen[None]):
                     "progress": get_global_i18n().t("bookshelf.progress"),
                     "file_size": get_global_i18n().t("bookshelf.file_size")
                 }
-                
+
                 # 将排序顺序映射到翻译文本
                 order_translations = {
                     False: get_global_i18n().t("sort.ascending"),
                     True: get_global_i18n().t("sort.descending")
                 }
-                
+
                 translated_sort_key = sort_key_translations.get(
                     result["sort_key"], result["sort_key"]
                 )
                 translated_order = order_translations.get(
                     result["reverse"], result["reverse"]
                 )
-                
+
                 self.notify(
                     get_global_i18n().t("sort.applied", sort_key=translated_sort_key, order=translated_order),
                     severity="information"
@@ -2172,8 +2276,13 @@ class BookshelfScreen(Screen[None]):
         def handle_batch_ops(result: Optional[Dict[str, Any]]) -> None:
             """处理批量操作结果"""
             if result and result.get("refresh"):
-                # 重新加载书籍数据
-                self._load_books()
+                # 重新加载书籍数据（保持当前搜索条件）
+                self._load_books(
+                    search_keyword=self._search_keyword,
+                    search_format=self._search_format,
+                    search_author=self._search_author,
+                    from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+                )
                 self.notify(
                     get_global_i18n().t("batch_ops.operation_completed"),
                     severity="information"
@@ -2205,7 +2314,12 @@ class BookshelfScreen(Screen[None]):
                                 get_global_i18n().t("bookshelf.book_added", count=added_count),
                                 severity="information"
                             )
-                            self._load_books()
+                            self._load_books(
+                                search_keyword=self._search_keyword,
+                                search_format=self._search_format,
+                                search_author=self._search_author,
+                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+                            )
                         else:
                             self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                     else:
@@ -2216,7 +2330,12 @@ class BookshelfScreen(Screen[None]):
                                 get_global_i18n().t("bookshelf.book_added", count=1),
                                 severity="information"
                             )
-                            self._load_books()
+                            self._load_books(
+                                search_keyword=self._search_keyword,
+                                search_format=self._search_format,
+                                search_author=self._search_author,
+                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+                            )
                         else:
                             self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                 except Exception as e:
@@ -2255,7 +2374,12 @@ class BookshelfScreen(Screen[None]):
                                 get_global_i18n().t("bookshelf.scan_success", count=added_count),
                                 severity="information"
                             )
-                            self._load_books()
+                            self._load_books(
+                                search_keyword=self._search_keyword,
+                                search_format=self._search_format,
+                                search_author=self._search_author,
+                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+                            )
                         else:
                             self.notify(
                                 get_global_i18n().t("bookshelf.no_books_found"),
@@ -2363,12 +2487,17 @@ class BookshelfScreen(Screen[None]):
 
     def action_clear_search_params(self) -> None:
         """清除搜索参数"""
+        self._search_keyword = ""
+        self._search_format = "all"
+        self._search_author = "all"
         self.query_one("#sort-key-radio", Select).value = "last_read"
         self.query_one("#sort-order-radio", Select).value = "desc"
         self.query_one("#bookshelf-search-input", Input).value = ""
         self.query_one("#bookshelf-search-input", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#bookshelf-format-filter", Select).value = "all"
         self.query_one("#bookshelf-source-filter", Select).value = "all"
+        # 重新加载书籍数据以应用清除的搜索条件
+        self._load_books()
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
