@@ -3753,7 +3753,7 @@ class BrowserReader:
             }},
 
             // 保存书籍内容到 IndexedDB
-            saveBookContent: async function(bookId, content) {{
+            saveBookContent: async function(bookId, content, retryCount = 0) {{
                 try {{
                     const db = await this.openDB();
                     const transaction = db.transaction([BOOK_CONTENT_STORE], 'readwrite');
@@ -3762,11 +3762,11 @@ class BrowserReader:
                     const request = store.put({{ bookId: bookId, content: content }});
 
                     return new Promise((resolve, reject) => {{
-                        // 设置超时机制
+                        // 设置超时机制 - Safari 需要更长的超时时间
                         const timeout = setTimeout(() => {{
                             console.warn('IndexedDB 保存超时:', bookId);
                             reject(new Error('保存超时'));
-                        }}, 5000); // 5秒超时
+                        }}, 30000); // 增加到 30 秒超时
 
                         request.onsuccess = function() {{
                             clearTimeout(timeout);
@@ -3785,6 +3785,71 @@ class BrowserReader:
                 }}
             }},
 
+            // 带重试机制的保存书籍内容
+            saveBookContentWithRetry: async function(bookId, content, maxRetries = 3) {{
+                for (let i = 0; i < maxRetries; i++) {{
+                    try {{
+                        await this.saveBookContent(bookId, content);
+                        return true;
+                    }} catch (error) {{
+                        console.error(`保存书籍内容失败 (尝试 ${{i + 1}}/${{maxRetries}}):`, error);
+                        if (i < maxRetries - 1) {{
+                            // 指数退避重试
+                            const delay = Math.pow(2, i) * 1000;
+                            console.log(`等待 ${{delay}}ms 后重试...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }} else {{
+                            throw error;
+                        }}
+                    }}
+                }}
+            }},
+
+            // 保存队列 - 用于批量保存，避免并发过多导致 Safari 崩溃或超时
+            saveQueue: [],
+            isProcessing: false,
+
+            // 添加到保存队列
+            addToQueue: async function(bookId, content) {{
+                return new Promise((resolve, reject) => {{
+                    this.saveQueue.push({{
+                        bookId,
+                        content,
+                        resolve,
+                        reject
+                    }});
+                    this.processQueue();
+                }});
+            }},
+
+            // 处理保存队列
+            processQueue: async function() {{
+                if (this.isProcessing || this.saveQueue.length === 0) {{
+                    return;
+                }}
+
+                this.isProcessing = true;
+                console.log(`开始处理保存队列，队列长度: ${{this.saveQueue.length}}`);
+
+                while (this.saveQueue.length > 0) {{
+                    const item = this.saveQueue.shift();
+                    try {{
+                        await this.saveBookContentWithRetry(item.bookId, item.content);
+                        item.resolve(true);
+                    }} catch (error) {{
+                        console.error(`队列保存失败:`, item.bookId, error);
+                        item.reject(error);
+                    }}
+                    // 添加小延迟，避免 Safari 压力过大
+                    if (this.saveQueue.length > 0) {{
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }}
+                }}
+
+                this.isProcessing = false;
+                console.log('保存队列处理完成');
+            }},
+
             // 从 IndexedDB 获取书籍内容
             getBookContent: async function(bookId) {{
                 try {{
@@ -3794,11 +3859,11 @@ class BrowserReader:
                     const request = store.get(bookId);
 
                     return new Promise((resolve, reject) => {{
-                        // 设置超时机制
+                        // 设置超时机制 - Safari 需要更长的超时时间
                         const timeout = setTimeout(() => {{
                             console.warn('IndexedDB 读取超时:', bookId);
                             resolve(null);
-                        }}, 5000); // 5秒超时
+                        }}, 30000); // 增加到 30 秒超时
 
                         request.onsuccess = function() {{
                             clearTimeout(timeout);
@@ -3892,7 +3957,7 @@ class BrowserReader:
                 for (const book of importedBooks) {{
                     if (book.content && typeof book.content === 'string') {{
                         try {{
-                            await IndexedDBUtils.saveBookContent(book.id, book.content);
+                            await IndexedDBUtils.saveBookContentWithRetry(book.id, book.content);
                             // 移除本地存储中的 content，只保留元数据
                             book.content = undefined;
                             book.isLoaded = true;
@@ -9404,159 +9469,114 @@ class BrowserReader:
                 }}
                 
                 progressCount.textContent = `0 / ${{bookFiles.length}}`;
-                
+
                 // 将扫描到的书籍添加到导入书籍列表
                 let addedCount = 0;
                 let processedCount = 0;
-                
-                // 处理每个书籍文件
-                for (let i = 0; i < bookFiles.length; i++) {{
-                    const file = bookFiles[i];
-                    processedCount++;
-                    
-                    // 更新进度
-                    if (progressBar) {{
-                        const progress = (processedCount / bookFiles.length) * 100;
-                        progressBar.style.width = progress + '%';
-                    }}
-                    if (progressText) {{
-                        progressText.textContent = `正在处理: ${{file.name}}`;
-                    }}
-                    if (progressCount) {{
-                        progressCount.textContent = `${{processedCount}} / ${{bookFiles.length}}`;
-                    }}
-                    
-                    // 检查是否已存在
-                    const exists = importedBooks.find(b => b.fileName === file.name);
-                    if (!exists) {{
-                        // 检查文件类型
-                        const fileName = file.name.toLowerCase();
-                        let content = '';
-                        
-                        if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {{
-                            // 对于文本文件，尝试读取内容
-                            const bookId = 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                            
-                            // 先添加元数据到列表，标记为正在加载
-                            importedBooks.push({{
-                                id: bookId,
-                                title: file.name.replace(/\.[^/.]+$/, ""),
-                                fileName: file.name,
-                                importTime: Date.now(),
-                                filePath: file.webkitRelativePath,
-                                isLoaded: undefined // 正在加载
-                            }});
-                            addedCount++;
-                            
-                            // 异步读取文件内容并保存到 IndexedDB
-                            const reader = new FileReader();
-                            reader.onload = function(e) {{
-                                const textContent = e.target.result;
-                                const bookData = importedBooks.find(b => b.fileName === file.name);
-                                if (bookData) {{
-                                    // 将内容保存到 IndexedDB
-                                    const formattedContent = '<div style="padding: 20px; line-height: 1.8; white-space: pre-wrap;">' + 
-                                                          textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
-                                    IndexedDBUtils.saveBookContent(bookId, formattedContent).then(() => {{
-                                        bookData.isLoaded = true; // 标记文件已加载
+
+                // 使用队列逐个处理书籍文件，避免 Safari 并发压力过大
+                const processFileQueue = async function(files) {{
+                    for (let i = 0; i < files.length; i++) {{
+                        const file = files[i];
+                        processedCount++;
+
+                        // 更新进度
+                        if (progressBar) {{
+                            const progress = (processedCount / files.length) * 100;
+                            progressBar.style.width = progress + '%';
+                        }}
+                        if (progressText) {{
+                            progressText.textContent = `正在处理: ${{file.name}}`;
+                        }}
+                        if (progressCount) {{
+                            progressCount.textContent = `${{processedCount}} / ${{files.length}}`;
+                        }}
+
+                        // 检查是否已存在
+                        const exists = importedBooks.find(b => b.fileName === file.name);
+                        if (!exists) {{
+                            // 检查文件类型
+                            const fileName = file.name.toLowerCase();
+                            let content = '';
+
+                            if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {{
+                                // 对于文本文件，读取内容
+                                const bookId = 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+                                // 先添加元数据到列表，标记为正在加载
+                                importedBooks.push({{
+                                    id: bookId,
+                                    title: file.name.replace(/\.[^/.]+$/, ""),
+                                    fileName: file.name,
+                                    importTime: Date.now(),
+                                    filePath: file.webkitRelativePath,
+                                    isLoaded: undefined // 正在加载
+                                }});
+                                addedCount++;
+
+                                // 读取文件内容并保存到 IndexedDB
+                                try {{
+                                    const textContent = await new Promise((resolve, reject) => {{
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => resolve(e.target.result);
+                                        reader.onerror = (e) => reject(reader.error);
+                                        reader.readAsText(file);
+                                    }});
+
+                                    const bookData = importedBooks.find(b => b.fileName === file.name);
+                                    if (bookData) {{
+                                        const formattedContent = '<div style="padding: 20px; line-height: 1.8; white-space: pre-wrap;">' +
+                                                              textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+
+                                        // 使用队列保存，避免并发压力
+                                        await IndexedDBUtils.addToQueue(bookId, formattedContent);
+                                        bookData.isLoaded = true;
                                         console.log('书籍内容已保存到 IndexedDB:', file.name);
-                                        
-                                        // 如果当前正在显示这本书，从 IndexedDB 加载内容
-                                        const contentEl = document.getElementById('content');
-                                        if (contentEl && contentEl.innerHTML.includes('正在读取文件')) {{
-                                            IndexedDBUtils.getBookContent(bookId).then(savedContent => {{
-                                                if (savedContent) {{
-                                                    contentEl.innerHTML = savedContent;
-                                                }}
-                                            }}).catch(error => {{
-                                                console.error('加载书籍内容失败:', error);
-                                                contentEl.innerHTML = '<div style="text-align: center; padding: 50px 20px;">' +
-                                                                     '<div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>' +
-                                                                     '<h2>' + file.name + '</h2>' +
-                                                                     '<p style="color: #ff666;">加载内容失败</p>' +
-                                                                     '</div>';
-                                            }});
-                                        }}
-                                    }}).catch(error => {{
-                                        console.error('保存书籍内容到 IndexedDB 失败:', error);
+                                    }}
+                                }} catch (error) {{
+                                    console.error('处理文件失败:', file.name, error);
+                                    const bookData = importedBooks.find(b => b.fileName === file.name);
+                                    if (bookData) {{
                                         bookData.isLoaded = false;
-                                        // 如果当前正在显示这本书，显示错误信息
-                                        const contentEl = document.getElementById('content');
-                                        if (contentEl && contentEl.innerHTML.includes('正在读取文件')) {{
-                                            contentEl.innerHTML = '<div style="text-align: center; padding: 50px 20px;">' +
-                                                                 '<div style="font-size: 48px; margin-bottom: 20px;">❌</div>' +
-                                                                 '<h2>' + file.name + '</h2>' +
-                                                                 '<p style="color: #ff666;">保存内容失败</p>' +
-                                                                 '<p style="color: #666;">请重新导入此文件</p>' +
-                                                                 '</div>';
-                                        }}
-                                    }}).finally(() => {{
-                                        // 刷新列表并保存状态
-                                        loadImportedBooks();
-                                        saveImportedBooksToStorage();
-                                    }});
+                                    }}
                                 }}
-                            }};
-                            reader.onerror = function() {{
-                                const bookData = importedBooks.find(b => b.fileName === file.name);
-                                if (bookData) {{
-                                    console.error('FileReader 读取文件失败:', reader.error);
-                                    bookData.isLoaded = false;
-                                    const errorContent = '<div style="text-align: center; padding: 50px 20px;">' +
-                                                       '<div style="font-size: 48px; margin-bottom: 20px;">❌</div>' +
-                                                       '<h2>' + file.name + '</h2>' +
-                                                       '<p style="color: #ff666;">文件读取失败</p>' +
-                                                       '<p style="color: #666;">请检查文件是否损坏</p>' +
-                                                       '</div>';
-                                    IndexedDBUtils.saveBookContent(bookId, errorContent).then(() => {{
-                                        // 如果当前正在显示这本书，显示错误信息
-                                        const contentEl = document.getElementById('content');
-                                        if (contentEl && contentEl.innerHTML.includes('正在读取文件')) {{
-                                            contentEl.innerHTML = errorContent;
-                                        }}
-                                        loadImportedBooks();
-                                        saveImportedBooksToStorage();
-                                    }}).catch(e => {{
-                                        console.error('保存错误内容失败:', e);
-                                        // 如果当前正在显示这本书，显示错误信息
-                                        const contentEl = document.getElementById('content');
-                                        if (contentEl && contentEl.innerHTML.includes('正在读取文件')) {{
-                                            contentEl.innerHTML = errorContent;
-                                        }}
-                                        loadImportedBooks();
-                                        saveImportedBooksToStorage();
-                                    }});
-                                }}
-                            }};
-                            reader.readAsText(file);
-                        }} else {{
-                            // 其他文件类型显示提示，保存到 IndexedDB
-                            content = '<div style="text-align: center; padding: 50px 20px;">' +
-                                     '<div style="font-size: 48px; margin-bottom: 20px;">📚</div>' +
-                                     '<h2>' + file.name + '</h2>' +
-                                     '<p style="color: #666; margin: 20px 0;">路径: ' + file.webkitRelativePath + '</p>' +
-                                     '<p style="color: #666;">大小: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB</p>' +
-                                     '<p style="color: #666;">此文件类型需要后端解析</p>' +
-                                     '</div>';
-                            
-                            const bookId = 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                            importedBooks.push({{
-                                id: bookId,
-                                title: file.name.replace(/\.[^/.]+$/, ""),
-                                fileName: file.name,
-                                importTime: Date.now(),
-                                filePath: file.webkitRelativePath,
-                                isLoaded: true
-                            }});
-                            addedCount++;
-                            
-                            // 将提示内容保存到 IndexedDB
-                            IndexedDBUtils.saveBookContent(bookId, content).catch(err => {{
-                                console.error('保存提示内容失败:', err);
-                            }});
+                            }} else {{
+                                // 其他文件类型显示提示，保存到 IndexedDB
+                                content = '<div style="text-align: center; padding: 50px 20px;">' +
+                                         '<div style="font-size: 48px; margin-bottom: 20px;">📚</div>' +
+                                         '<h2>' + file.name + '</h2>' +
+                                         '<p style="color: #666; margin: 20px 0;">路径: ' + file.webkitRelativePath + '</p>' +
+                                         '<p style="color: #666;">大小: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB</p>' +
+                                         '<p style="color: #666;">此文件类型需要后端解析</p>' +
+                                         '</div>';
+
+                                const bookId = 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                                importedBooks.push({{
+                                    id: bookId,
+                                    title: file.name.replace(/\.[^/.]+$/, ""),
+                                    fileName: file.name,
+                                    importTime: Date.now(),
+                                    filePath: file.webkitRelativePath,
+                                    isLoaded: true
+                                }});
+                                addedCount++;
+
+                                // 使用队列保存
+                                await IndexedDBUtils.addToQueue(bookId, content).catch(err => {{
+                                    console.error('保存提示内容失败:', err);
+                                }});
+                            }}
+                        }}
+
+                        // 每处理完一个文件后短暂延迟，让 IndexedDB 有时间处理
+                        if (i < files.length - 1) {{
+                            await new Promise(resolve => setTimeout(resolve, 150));
                         }}
                     }}
-                }}
+                }};
+
+                // 开始处理文件队列
+                await processFileQueue(bookFiles);
                 
                 // 保存到本地存储
                 saveImportedBooksToStorage();
