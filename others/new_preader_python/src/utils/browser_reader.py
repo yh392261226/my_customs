@@ -9408,6 +9408,126 @@ class BrowserReader:
             // 支持的书籍文件扩展名
             const supportedExtensions = ['.txt', '.html', '.htm', '.md', '.pdf', '.epub', '.mobi', '.azw', '.azw3'];
             
+            // 创建右下角悬浮指示器
+            const floatingIndicator = document.createElement('div');
+            floatingIndicator.id = 'importFloatingIndicator';
+            floatingIndicator.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 12px 20px;
+                border-radius: 50px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                cursor: pointer;
+                z-index: 9999;
+                font-size: 14px;
+                font-weight: 500;
+                display: none;
+                align-items: center;
+                gap: 10px;
+                transition: all 0.3s ease;
+                user-select: none;
+            `;
+            floatingIndicator.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 6v6l4 2"></path>
+                </svg>
+                <span>正在导入 <strong id="indicatorCount">0</strong> / <strong id="indicatorTotal">0</strong></span>
+            `;
+            document.body.appendChild(floatingIndicator);
+
+            // 悬浮指示器悬停效果
+            floatingIndicator.onmouseenter = function() {{
+                this.style.transform = 'scale(1.05)';
+                this.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+            }};
+            floatingIndicator.onmouseleave = function() {{
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+            }};
+
+            // 点击悬浮指示器打开进度窗口
+            floatingIndicator.onclick = function() {{
+                if (progressModal) {{
+                    // 恢复到完整进度窗口
+                    progressModal.style.position = 'fixed';
+                    progressModal.style.top = '50%';
+                    progressModal.style.left = '50%';
+                    progressModal.style.transform = 'translate(-50%, -50%)';
+                    progressModal.style.width = '300px';
+                    progressModal.style.bottom = 'auto';
+                    progressModal.style.right = 'auto';
+
+                    // 恢复按钮
+                    const btnContainer = progressModal.querySelector('div[style*="margin-top: 15px"]');
+                    if (btnContainer) {{
+                        btnContainer.innerHTML = `
+                            <button id="bgImportBtn" style="padding: 5px 15px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">后台导入</button>
+                            <button id="viewLibraryBtn" style="padding: 5px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">查看书库</button>
+                            <button id="cancelAddBtn" style="padding: 5px 15px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+                        `;
+
+                        // 重新绑定按钮事件
+                        document.getElementById('bgImportBtn').onclick = function() {{
+                            convertToMiniModal();
+                        }};
+                        document.getElementById('viewLibraryBtn').onclick = function() {{
+                            saveImportedBooksToStorage();
+                            loadImportedBooks();
+                            showNotification(`已刷新书库，已导入 ${{addedCount}} 本书籍`);
+                        }};
+                        document.getElementById('cancelAddBtn').onclick = function() {{
+                            progressModal.style.display = 'none';
+                            floatingIndicator.style.display = 'flex';
+                            showNotification('导入在后台继续进行，点击右下角指示器查看进度');
+                        }};
+                    }}
+
+                    // 恢复标题
+                    const titleEl = progressModal.querySelector('h3');
+                    if (titleEl) {{
+                        titleEl.textContent = '正在添加书籍...';
+                    }}
+
+                    progressModal.style.display = 'block';
+                    floatingIndicator.style.display = 'none';
+                }}
+            }};
+
+            // 转换为迷你进度窗口
+            function convertToMiniModal() {{
+                if (progressModal) {{
+                    progressModal.style.position = 'fixed';
+                    progressModal.style.bottom = '20px';
+                    progressModal.style.right = '20px';
+                    progressModal.style.top = 'auto';
+                    progressModal.style.left = 'auto';
+                    progressModal.style.width = '300px';
+                    progressModal.style.zIndex = '10000';
+                    progressModal.style.minHeight = 'auto';
+
+                    // 隐藏取消和查看书库按钮，只保留关闭按钮
+                    const btnContainer = progressModal.querySelector('div[style*="margin-top: 15px"]');
+                    if (btnContainer) {{
+                        btnContainer.innerHTML = '<button id="closeBgImportBtn" style="padding: 5px 15px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭</button>';
+                        document.getElementById('closeBgImportBtn').onclick = function() {{
+                            progressModal.style.display = 'none';
+                            floatingIndicator.style.display = 'flex';
+                            showNotification('导入在后台继续进行，点击右下角指示器查看进度');
+                        }};
+                    }}
+
+                    // 简化进度显示
+                    const titleEl = progressModal.querySelector('h3');
+                    if (titleEl) {{
+                        titleEl.textContent = '后台导入中...';
+                    }}
+                }}
+            }}
+
             // 显示进度提示
                 const progressModal = document.createElement('div');
                 progressModal.style.cssText = `
@@ -9434,12 +9554,14 @@ class BrowserReader:
                     <div style="margin-top: 10px; font-size: 12px; color: #666;">
                         <span id="progressCount">0 / 0</span>
                     </div>
-                    <div style="margin-top: 15px;">
+                    <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                        <button id="bgImportBtn" style="padding: 5px 15px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">后台导入</button>
+                        <button id="viewLibraryBtn" style="padding: 5px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">查看书库</button>
                         <button id="cancelAddBtn" style="padding: 5px 15px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
                     </div>
                 `;
                 document.body.appendChild(progressModal);
-                
+
                 // 添加取消按钮事件
                 const cancelBtn = document.getElementById('cancelAddBtn');
                 if (cancelBtn) {{
@@ -9447,7 +9569,14 @@ class BrowserReader:
                         if (progressModal && progressModal.parentElement) {{
                             progressModal.remove();
                         }}
-                        showNotification('已取消添加目录');
+                        // 显示悬浮指示器
+                        floatingIndicator.style.display = 'flex';
+                        // 设置指示器总数
+                        const indicatorTotal = document.getElementById('indicatorTotal');
+                        if (indicatorTotal) {{
+                            indicatorTotal.textContent = bookFiles.length;
+                        }}
+                        showNotification('导入在后台继续进行，点击右下角指示器查看进度');
                     }};
                 }}
                 
@@ -9470,9 +9599,42 @@ class BrowserReader:
                 
                 progressCount.textContent = `0 / ${{bookFiles.length}}`;
 
+                // 初始化悬浮指示器
+                const indicatorTotal = document.getElementById('indicatorTotal');
+                const indicatorCount = document.getElementById('indicatorCount');
+                if (indicatorTotal) {{
+                    indicatorTotal.textContent = bookFiles.length;
+                }}
+                if (indicatorCount) {{
+                    indicatorCount.textContent = '0';
+                }}
+
                 // 将扫描到的书籍添加到导入书籍列表
                 let addedCount = 0;
                 let processedCount = 0;
+                let isBackgroundImport = false; // 是否切换到后台导入
+                let refreshCounter = 0; // 刷新计数器
+
+                // 添加后台导入按钮事件
+                const bgImportBtn = document.getElementById('bgImportBtn');
+                const viewLibraryBtn = document.getElementById('viewLibraryBtn');
+
+                if (bgImportBtn) {{
+                    bgImportBtn.onclick = function() {{
+                        isBackgroundImport = true;
+                        convertToMiniModal();
+                        showNotification('已切换到后台导入，您可以查看已导入的书籍');
+                    }};
+                }}
+
+                if (viewLibraryBtn) {{
+                    viewLibraryBtn.onclick = function() {{
+                        // 先保存当前进度
+                        saveImportedBooksToStorage();
+                        loadImportedBooks();
+                        showNotification(`已刷新书库，已导入 ${{addedCount}} 本书籍`);
+                    }};
+                }}
 
                 // 使用队列逐个处理书籍文件，避免 Safari 并发压力过大
                 const processFileQueue = async function(files) {{
@@ -9490,6 +9652,11 @@ class BrowserReader:
                         }}
                         if (progressCount) {{
                             progressCount.textContent = `${{processedCount}} / ${{files.length}}`;
+                        }}
+
+                        // 更新悬浮指示器
+                        if (indicatorCount) {{
+                            indicatorCount.textContent = processedCount;
                         }}
 
                         // 检查是否已存在
@@ -9532,6 +9699,17 @@ class BrowserReader:
                                         await IndexedDBUtils.addToQueue(bookId, formattedContent);
                                         bookData.isLoaded = true;
                                         console.log('书籍内容已保存到 IndexedDB:', file.name);
+
+                                        // 每处理完 5 本书（或在后台导入模式下每处理完 1 本）就保存并刷新
+                                        refreshCounter++;
+                                        if (refreshCounter >= (isBackgroundImport ? 1 : 5)) {{
+                                            saveImportedBooksToStorage();
+                                            loadImportedBooks();
+                                            refreshCounter = 0;
+                                            if (isBackgroundImport) {{
+                                                console.log('后台导入：已刷新书库，已导入', addedCount, '本书籍');
+                                            }}
+                                        }}
                                     }}
                                 }} catch (error) {{
                                     console.error('处理文件失败:', file.name, error);
@@ -9577,31 +9755,41 @@ class BrowserReader:
 
                 // 开始处理文件队列
                 await processFileQueue(bookFiles);
-                
+
                 // 保存到本地存储
                 saveImportedBooksToStorage();
-                
+
                 // 刷新列表
                 loadImportedBooks();
-                
+
                 // 关闭进度模态框
                 if (progressModal && progressModal.parentElement) {{
                     progressModal.remove();
                 }}
-                
+
+                // 移除悬浮指示器
+                if (floatingIndicator && floatingIndicator.parentElement) {{
+                    floatingIndicator.remove();
+                }}
+
                 // 关闭弹窗
                 closeAddDirectoryModal();
-                
+
                 showNotification(`成功添加 ${{addedCount}} 本书籍（总共处理 ${{bookFiles.length}} 个文件）`);
-                
+
             }} catch (error) {{
                 console.error('添加目录出错:', error);
-                
+
                 // 关闭进度模态框
                 if (progressModal && progressModal.parentElement) {{
                     progressModal.remove();
                 }}
-                
+
+                // 移除悬浮指示器
+                if (floatingIndicator && floatingIndicator.parentElement) {{
+                    floatingIndicator.remove();
+                }}
+
                 showNotification('添加目录时出错: ' + error.message);
             }}
         }}
