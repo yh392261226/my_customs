@@ -149,8 +149,8 @@ class OptimizedBookDuplicateDetector:
         # 只对未处理的书籍进行内容相似度检测
         remaining_books = [book for book in books if book not in all_processed_books]
         
-        # 分批处理书籍，每批处理50本
-        batch_size = 50
+        # 分批处理书籍，每批处理200本
+        batch_size = 200
         total_batches = (len(remaining_books) + batch_size - 1) // batch_size
         
         logger.info(f"将进行内容相似度检测，共{len(remaining_books)}本书，分{total_batches}批处理，每批{batch_size}本")
