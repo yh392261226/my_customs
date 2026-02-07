@@ -96,7 +96,8 @@ DEFAULT_CONFIG = {
         "default_browser": "chrome",  # 默认浏览器: chrome, safari, brave
         "chrome_path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
         "safari_path": "/Applications/Safari.app/Contents/MacOS/Safari",
-        "brave_path": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+        "brave_path": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        "start_page": "last_book"  # 浏览器阅读器起始页: last_book(最后一次阅读书籍), welcome(欢迎页)
     },
     
     # 快捷键设置

@@ -605,7 +605,18 @@ def create_browser_settings() -> SettingSection:
         description="Brave browser executable file path",  # 将在UI中通过国际化显示
         category="browser"
     ))
-    
+
+    # 起始页设置
+    section.add_setting(SelectSetting(
+        key="browser.start_page",
+        default_value="last_book",
+        display_name="Start Page",  # 将在UI中通过国际化显示
+        description="Select the starting page for browser reader",  # 将在UI中通过国际化显示
+        options=["last_book", "welcome"],
+        option_labels=["Start Page: Last Read Book", "Start Page: Welcome Page"],
+        category="browser"
+    ))
+
     # 分隔线
     section.add_setting(SeparatorSetting(
         key="browser.server_separator",

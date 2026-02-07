@@ -563,7 +563,28 @@ class SettingsScreen(Screen[Any]):
                     id="browser-brave-input",
                     placeholder=brave_setting.default_value
                 )
-            
+
+            # 起始页设置
+            yield Label(get_global_i18n().t("settings.start_page"), classes="setting-label")
+            start_page_setting = self.setting_registry.get_setting("browser.start_page")
+            if start_page_setting and isinstance(start_page_setting, SelectSetting):
+                # 使用国际化的选项标签
+                options = []
+                for opt in start_page_setting.options:
+                    if opt == "last_book":
+                        label = get_global_i18n().t("settings.start_page_last_book")
+                    elif opt == "welcome":
+                        label = get_global_i18n().t("settings.start_page_welcome")
+                    else:
+                        label = opt
+                    options.append((label, opt))
+
+                yield Select(
+                    options,
+                    value=start_page_setting.value,
+                    id="browser-start-page-select"
+                )
+
             # 分隔线
             yield Static("─", classes="setting-separator")
             yield Label(get_global_i18n().t("settings.browser_server"), classes="setting-section-title")
@@ -1345,7 +1366,12 @@ class SettingsScreen(Screen[Any]):
         
         brave_input = self.query_one("#browser-brave-input", Input)
         self.setting_registry.set_value("browser.brave_path", brave_input.value)
-        
+
+        # 起始页设置
+        start_page_select = self.query_one("#browser-start-page-select", Select)
+        if start_page_select.value is not None:
+            self.setting_registry.set_value("browser.start_page", start_page_select.value)
+
         # 浏览器服务器设置
         host_input = self.query_one("#browser-server-host-input", Input)
         self.setting_registry.set_value("browser_server.host", host_input.value)
