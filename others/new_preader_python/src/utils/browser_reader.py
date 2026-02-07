@@ -3992,7 +3992,8 @@ class BrowserReader:
                     fileName: book.fileName,
                     importTime: book.importTime,
                     filePath: book.filePath,
-                    lastReadTime: book.lastReadTime
+                    lastReadTime: book.lastReadTime,
+                    isLoaded: book.isLoaded
                 }}));
                 localStorage.setItem('importedBooks', JSON.stringify(booksMetadata));
                 return true;
@@ -8675,8 +8676,8 @@ class BrowserReader:
             
             reader.readAsText(file, 'utf-8');
         }}
-        
-        function importFile() {{
+
+        async function importFile() {{
             if (!selectedFile || !fileContent) {{
                 showNotification('请先选择文件');
                 return;
@@ -8741,21 +8742,31 @@ class BrowserReader:
             }}
             
             // 添加到导入书籍列表
+            const bookId = Date.now().toString();
             const bookInfo = {{
-                id: Date.now().toString(),
+                id: bookId,
                 title: title,
                 fileName: selectedFile.name,
-                content: processedContent,
                 importTime: Date.now(),
                 lastReadTime: null,
-                progress: 0,
+                isLoaded: true, // 标记为已加载
                 isBinary: isBinaryFormat,
                 fileSize: selectedFile.size,
                 fileType: fileName.substring(fileName.lastIndexOf('.'))
             }};
-            
+
+            // 保存书籍内容到 IndexedDB
+            try {{
+                await IndexedDBUtils.saveBookContentWithRetry(bookId, processedContent);
+                console.log('书籍内容已保存到 IndexedDB:', title);
+            }} catch (error) {{
+                console.error('保存书籍内容到 IndexedDB 失败:', error);
+                showNotification('保存书籍失败，请重试');
+                return;
+            }}
+
             importedBooks.unshift(bookInfo);
-            saveImportedBooksToStorage();
+            await saveImportedBooksToStorage();
             
             // 添加到阅读历史
             addToReadingHistory(title, 'imported', bookInfo.id);
@@ -9543,8 +9554,8 @@ class BrowserReader:
                         document.getElementById('bgImportBtn').onclick = function() {{
                             convertToMiniModal();
                         }};
-                        document.getElementById('viewLibraryBtn').onclick = function() {{
-                            saveImportedBooksToStorage();
+                        document.getElementById('viewLibraryBtn').onclick = async function() {{
+                            await saveImportedBooksToStorage();
                             loadImportedBooks();
                             toggleBookLibrary();
                             showNotification(`已刷新书库，已导入 ${{addedCount}} 本书籍`);
@@ -9698,9 +9709,9 @@ class BrowserReader:
                 }}
 
                 if (viewLibraryBtn) {{
-                    viewLibraryBtn.onclick = function() {{
+                    viewLibraryBtn.onclick = async function() {{
                         // 先保存当前进度
-                        saveImportedBooksToStorage();
+                        await saveImportedBooksToStorage();
                         loadImportedBooks();
                         showNotification(`已刷新书库，已导入 ${{addedCount}} 本书籍`);
                     }};
@@ -9776,7 +9787,7 @@ class BrowserReader:
                                         // 每处理完 5 本书（或在后台导入模式下每处理完 1 本）就保存并刷新
                                         refreshCounter++;
                                         if (refreshCounter >= (isBackgroundImport ? 1 : 5)) {{
-                                            saveImportedBooksToStorage();
+                                            await saveImportedBooksToStorage();
                                             loadImportedBooks();
                                             refreshCounter = 0;
                                             if (isBackgroundImport) {{
@@ -9830,7 +9841,7 @@ class BrowserReader:
                 await processFileQueue(bookFiles);
 
                 // 保存到本地存储
-                saveImportedBooksToStorage();
+                await saveImportedBooksToStorage();
 
                 // 刷新列表
                 loadImportedBooks();
