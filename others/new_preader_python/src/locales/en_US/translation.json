@@ -428,7 +428,7 @@
     "chrome_path": "Chrome Path",
     "safari_path": "Safari Path",
     "brave_path": "Brave Path",
-    "start_page": "Start Page",
+    "start_page": "Browser Reader Start Page",
     "start_page_desc": "Starting page for browser reader",
     "start_page_last_book": "Last Read Book",
     "start_page_welcome": "Welcome Page",

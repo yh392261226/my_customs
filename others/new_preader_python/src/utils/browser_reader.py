@@ -3912,6 +3912,11 @@ class BrowserReader:
                 }}
             }},
 
+            // 获取队列长度
+            getQueueLength: function() {{
+                return this.saveQueue.length;
+            }},
+
             // 获取所有书籍内容的 ID
             getAllBookIds: async function() {{
                 try {{
@@ -8789,6 +8794,7 @@ class BrowserReader:
                 loadBookLibrary();
             }} else {{
                 panel.style.display = 'none';
+                stopImportRefresh();
             }}
         }}
         
@@ -9000,32 +9006,72 @@ class BrowserReader:
         async function loadImportedBooks() {{
             const bookList = document.getElementById('importedBookList');
             if (!bookList) return;
-            
+
+            // 检查是否有正在导入的书籍
+            const isImporting = IndexedDBUtils.isProcessing || IndexedDBUtils.saveQueue.length > 0;
+
+            // 检查 importedBooks 中是否有正在导入的书籍（isLoaded === undefined）
+            const hasLoadingBooks = importedBooks.some(book => book.isLoaded === undefined);
+
             if (importedBooks.length === 0) {{
-                bookList.innerHTML = '<div class="empty-state">暂无导入书籍</div>';
+                // 没有任何书籍记录，检查 IndexedDB 中是否有数据
+                let idbBookCount = 0;
+                try {{
+                    const bookIds = await IndexedDBUtils.getAllBookIds();
+                    idbBookCount = bookIds.length;
+                }} catch (e) {{
+                    console.error('获取 IndexedDB 信息失败:', e);
+                }}
+
+                if (idbBookCount > 0 || isImporting) {{
+                    // IndexedDB 中有数据或正在导入
+                    bookList.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px 20px;">' +
+                        '<div style="font-size: 48px; margin-bottom: 20px;">⏳</div>' +
+                        '<p style="color: #666; font-size: 16px;">正在导入书籍,请稍后</p>' +
+                        '</div>';
+                }} else {{
+                    // 完全没有任何书籍数据
+                    bookList.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px 20px;">' +
+                        '<div style="font-size: 48px; margin-bottom: 20px;">📚</div>' +
+                        '<p style="color: #666; font-size: 16px;">请添加书籍或目录</p>' +
+                        '</div>';
+                }}
                 return;
             }}
-            
-            // 清理无效的书籍状态
-            for (const book of importedBooks) {{
-                if (book.isLoaded === undefined) {{
-                    // 检查 IndexedDB 中是否有内容
-                    try {{
-                        const content = await IndexedDBUtils.getBookContent(book.id);
-                        book.isLoaded = content !== null;
-                    }} catch (error) {{
-                        console.warn('检查书籍状态失败:', book.id, error);
-                        book.isLoaded = false;
+
+            // 如果有正在导入的书籍或队列中有数据，立即显示导入提示，然后后台检查状态
+            if (hasLoadingBooks || isImporting) {{
+                bookList.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px 20px;">' +
+                    '<div style="font-size: 48px; margin-bottom: 20px;">⏳</div>' +
+                    '<p style="color: #666; font-size: 16px;">正在导入书籍,请稍后</p>' +
+                    '<p style="color: #999; font-size: 12px; margin-top: 10px;">已找到 ' + importedBooks.length + ' 本书籍，正在加载内容...</p>' +
+                    '</div>';
+
+                // 后台检查书籍状态，完成后自动刷新
+                for (const book of importedBooks) {{
+                    if (book.isLoaded === undefined) {{
+                        try {{
+                            const content = await IndexedDBUtils.getBookContent(book.id);
+                            book.isLoaded = content !== null;
+                        }} catch (error) {{
+                            console.warn('检查书籍状态失败:', book.id, error);
+                            book.isLoaded = false;
+                        }}
                     }}
                 }}
+
+                // 所有检查完成后，重新加载显示
+                loadImportedBooks();
+                return;
             }}
-            
+
+            // 所有书籍都加载完成，直接显示书籍列表
             let html = '';
             importedBooks.forEach(book => {{
                 const date = new Date(book.importTime);
                 const dateStr = date.toLocaleDateString();
-                const statusIcon = book.isLoaded === false ? '❌' : (book.isLoaded === true ? '✅' : '⏳');
-                
+                const statusIcon = book.isLoaded === false ? '❌' : '✅';
+
                 html += '<div class="book-item" onclick="openImportedBook(\\'' + book.id + '\\')">' +
                     '<div class="book-cover">' + statusIcon + '</div>' +
                     '<div class="book-info">' +
@@ -9035,15 +9081,38 @@ class BrowserReader:
                     '<div class="book-actions">' +
                         '<button onclick="event.stopPropagation(); deleteImportedBook(\\'' + book.id + '\\')">删除</button>' +
                     '</div>' +
-                '</div>';
+                    '</div>';
             }});
-            
+
             bookList.innerHTML = html;
         }}
         
         function loadBookLibrary() {{
             loadReadingHistory();
             loadImportedBooks();
+
+            // 设置定时刷新，当有正在导入的书籍时自动刷新
+            if (!window.importRefreshInterval) {{
+                window.importRefreshInterval = setInterval(async () => {{
+                    // 检查是否有正在导入的书籍（队列中有数据或正在处理）
+                    const queueLength = IndexedDBUtils.getQueueLength();
+                    const isProcessing = IndexedDBUtils.isProcessing;
+
+                    // 如果有正在导入的书籍，刷新显示
+                    if (queueLength > 0 || isProcessing) {{
+                        console.log('自动刷新导入状态...');
+                        await loadImportedBooks();
+                    }}
+                }}, 2000); // 每2秒检查一次
+            }}
+        }}
+
+        // 停止定时刷新
+        function stopImportRefresh() {{
+            if (window.importRefreshInterval) {{
+                clearInterval(window.importRefreshInterval);
+                window.importRefreshInterval = null;
+            }}
         }}
         
         // 初始化书籍状态检查
@@ -9639,6 +9708,9 @@ class BrowserReader:
 
                 // 使用队列逐个处理书籍文件，避免 Safari 并发压力过大
                 const processFileQueue = async function(files) {{
+                    // 在开始导入前立即刷新书库，显示"正在导入"状态
+                    await loadImportedBooks();
+
                     for (let i = 0; i < files.length; i++) {{
                         const file = files[i];
                         processedCount++;
