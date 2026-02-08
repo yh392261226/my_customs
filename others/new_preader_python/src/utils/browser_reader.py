@@ -9090,7 +9090,9 @@ class BrowserReader:
                         '<div class="book-meta">' + dateStr + ' · ' + book.fileName + '</div>' +
                     '</div>' +
                     '<div class="book-actions">' +
-                        '<button onclick="event.stopPropagation(); deleteImportedBook(\\'' + book.id + '\\')">删除</button>' +
+                        '<button onclick="event.stopPropagation(); copyBookName(\\'' + book.title + '\\')" title="复制书名">复制书名</button>' +
+                        (book.filePath ? '<button onclick="event.stopPropagation(); openBookLocation(\\'' + book.filePath + '\\')" title="打开位置">打开位置</button>' : '') +
+                        '<button onclick="event.stopPropagation(); deleteImportedBook(\\'' + book.id + '\\')" title="删除书籍">删除</button>' +
                     '</div>' +
                     '</div>';
             }});
@@ -9294,6 +9296,55 @@ class BrowserReader:
             showNotification('历史记录已删除');
         }}
         
+        // 复制书名
+        function copyBookName(bookTitle) {{
+            try {{
+                navigator.clipboard.writeText(bookTitle).then(() => {{
+                    showNotification('书名已复制: ' + bookTitle);
+                }}).catch(err => {{
+                    // 如果 clipboard API 失败，使用传统方法
+                    const textarea = document.createElement('textarea');
+                    textarea.value = bookTitle;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {{
+                        document.execCommand('copy');
+                        showNotification('书名已复制: ' + bookTitle);
+                    }} catch (e) {{
+                        showNotification('复制失败，请手动复制');
+                    }}
+                    document.body.removeChild(textarea);
+                }});
+            }} catch (error) {{
+                console.error('复制书名失败:', error);
+                showNotification('复制失败: ' + error.message);
+            }}
+        }}
+
+        // 打开书籍位置
+        function openBookLocation(filePath) {{
+            if (!filePath) {{
+                showNotification('此书籍没有路径信息（可能是单独导入的书籍）');
+                return;
+            }}
+
+            // 显示书籍路径信息
+            // 注意：浏览器环境无法直接打开本地文件夹，这里只显示路径
+            const pathParts = filePath.split('/');
+            const fileName = pathParts[pathParts.length - 1];
+            const directory = pathParts.slice(0, -1).join('/') || '/';
+
+            // 复制路径到剪贴板
+            navigator.clipboard.writeText(filePath).then(() => {{
+                showNotification('书籍路径已复制到剪贴板：\\n' + filePath + '\\n\\n请在文件管理器中手动打开该目录');
+            }}).catch(() => {{
+                // 如果复制失败，直接显示通知
+                showNotification('书籍位置：' + filePath + '\\n（请手动在文件管理器中打开）');
+            }});
+        }}
+
         async function deleteImportedBook(bookId) {{
             if (!confirm('确定要删除这本书吗？删除后无法恢复。')) {{
                 return;
