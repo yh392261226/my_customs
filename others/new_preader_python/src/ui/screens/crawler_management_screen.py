@@ -613,8 +613,9 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             # 从配置管理器中读取默认浏览器
             try:
-                from src.config.settings import get_config_value
-                default_browser = get_config_value("browser.default_browser", "chrome")
+                config_manager = ConfigManager.get_instance()
+                config = config_manager.get_config()
+                default_browser = config.get("browser", {}).get("default_browser", "chrome")
                 if default_browser in self.browser_options:
                     self.selected_browser = default_browser
                     logger.info(f"从配置管理器加载默认浏览器: {default_browser}")
@@ -632,9 +633,19 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             # 保存到配置管理器中
             try:
-                from src.config.settings import set_config_value
-                set_config_value("browser.default_browser", self.selected_browser)
-                logger.info(f"保存浏览器配置到配置管理器: {self.selected_browser}")
+                config_manager = ConfigManager.get_instance()
+                config = config_manager.get_config()
+                
+                # 确保 browser 配置节存在
+                if "browser" not in config:
+                    config["browser"] = {}
+                
+                config["browser"]["default_browser"] = self.selected_browser
+                
+                if config_manager.save_config(config):
+                    logger.info(f"保存浏览器配置到配置管理器: {self.selected_browser}")
+                else:
+                    logger.error(f"保存浏览器配置失败: 保存操作返回 False")
             except Exception as e:
                 logger.error(f"保存浏览器配置到配置管理器失败: {e}")
         except Exception as e:
