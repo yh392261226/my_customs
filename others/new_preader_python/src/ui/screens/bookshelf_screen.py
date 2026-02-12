@@ -1873,6 +1873,10 @@ class BookshelfScreen(Screen[None]):
                         success = self.bookshelf.remove_book(book_path)
                         if success:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
+                            # 清空缓存以强制重新加载
+                            self.clear_cache()
+                            # 设置一个特殊的搜索参数，强制_load_books认为搜索条件已改变
+                            self._last_search_params = "__force_reload__"
                             # 刷新书库内存缓存和书架列表（保持当前搜索条件）
                             self.bookshelf._load_books()
                             self._load_books(
