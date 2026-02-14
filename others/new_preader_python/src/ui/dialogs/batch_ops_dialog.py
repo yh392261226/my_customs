@@ -89,6 +89,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
         ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
+        ("d", "find_duplicates", get_global_i18n().t('batch_ops.find_duplicates')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
@@ -442,6 +443,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         if event.key == "escape":
             # ESC键返回，效果与点击取消按钮相同
             self.dismiss({"refresh": False})
+            event.stop()
+        elif event.key == "d":
+            # D键执行批量去重
+            # 使用call_later异步执行,避免在同步函数中直接await
+            import asyncio
+            asyncio.create_task(self._find_duplicate_books())
             event.stop()
         elif event.key == "n":
             # N键下一页
