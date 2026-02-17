@@ -120,4 +120,5 @@ export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
 
 alias wxmd="md-cli port=8899 > /dev/null &; open http://127.0.0.1:8899/md/"
 [[ -f $MYRUNTIME/customs/bin/npreader ]] && alias np="$MYRUNTIME/customs/bin/npreader"
+[[ -f $MYRUNTIME/customs/bin/npreader ]] && alias cr="$MYRUNTIME/customs/bin/npreader"
 
