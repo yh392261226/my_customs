@@ -1932,10 +1932,14 @@ class BookshelfScreen(Screen[None]):
     def on_key(self, event: events.Key) -> None:
         """
         键盘事件处理
-        
+
         Args:
             event: 键盘事件
         """
+        # 只在当前屏幕是活动屏幕时才处理快捷键,避免 ModalScreen 打开时的事件穿透
+        if self.app.screen is not self:
+            return
+
         table = self.query_one("#books-table", DataTable)
         
         if event.key == "s":
@@ -1945,6 +1949,7 @@ class BookshelfScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_search"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "r":
             # R键排序
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
@@ -1952,30 +1957,35 @@ class BookshelfScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_sort"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "l":
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
                 self._show_batch_ops_menu()
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_opts"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "a":
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.add_book"):
                 self._show_add_book_dialog()
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_add_books"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "d":
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.scan_directory"):
                 self._show_scan_directory_dialog()
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_scan_directory"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "g":
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
                 self._get_books()
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_get_books"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "f":
             # F键刷新书架
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
@@ -1983,6 +1993,7 @@ class BookshelfScreen(Screen[None]):
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_refresh"), severity="warning")
             event.prevent_default()
+            event.stop()
         elif event.key == "escape" or event.key == "q":
             # ESC键或Q键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()

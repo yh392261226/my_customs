@@ -6,13 +6,13 @@
 import os
 import json
 import asyncio
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Set, Optional, Dict, Any, Tuple
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal, Center
 from textual.widgets import Header, Static, Button, Label, Input, Select, Header, Footer
-from textual.widgets import DataTable
+from textual.widgets import DataTable, Log
 from textual import on, events
 from src.ui.messages import RefreshBookshelfMessage, UpdateDuplicateGroupsMessage
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
@@ -26,8 +26,355 @@ from src.ui.dialogs.duplicate_books_dialog import DuplicateBooksDialog
 from src.config.default_config import SUPPORTED_FORMATS
 from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector, DuplicateGroup
 from src.utils.logger import get_logger
+from src.config.config_manager import ConfigManager
 
 logger = get_logger(__name__)
+
+class LogViewerPopup(ModalScreen[None]):
+    """日志查看器弹窗"""
+
+    BINDINGS = [("escape", "close", get_global_i18n().t('crawler.close_popup')),
+            ("q", "force_close", get_global_i18n().t('crawler.force_close')),
+            ("e", "scroll_to_bottom", get_global_i18n().t('crawler.scroll_to_bottom')),
+            ("c", "sync_close", get_global_i18n().t('crawler.sync_close'))]
+
+    DEFAULT_CSS = """
+    LogViewerPopup {
+        height: 80%;
+        width: 80%;
+        align: center middle;
+    }
+
+    LogViewerPopup > Container {
+        width: 90%;
+        height: 90%;
+        align: center middle;
+        background: $surface;
+        border: solid $accent;
+    }
+
+    .log-popup-container {
+        width: 85%;
+        height: 85%;
+        align: center middle;
+        layout: vertical;
+    }
+
+    .log-popup-header {
+        height: 1;
+        background: $accent;
+        color: $text;
+        content-align: center middle;
+    }
+
+    .log-popup-controls {
+        height: 4;
+        margin: 0 0 1 0;
+    }
+
+    #close-log-btn, #toggle-scroll-btn, #clear-log-btn, #refresh-log-btn {
+        margin: 0;
+        padding: 0;
+        border: none;
+        height: 3;
+    }
+
+    .log-popup-content {
+        height: 55%;
+        background: $background;
+    }
+
+    #log-viewer {
+        width: 100%;
+        height: 40%;
+        background: $background;
+        padding: 5 1 5 1;
+        border: solid $border;
+        overflow: auto;
+    }
+    """
+
+    def __init__(self, log_file_path: str):
+        super().__init__()
+        self.log_file_path = log_file_path
+        self.auto_scroll = True
+        self.last_position = 0
+        self.file_watcher_task = None
+        self.stop_watching = False
+
+    def compose(self) -> ComposeResult:
+        """组合日志查看器界面"""
+        yield Header()
+        yield Container(
+            Vertical(
+                # 标题栏
+                Horizontal(
+                    Label(f"📋 {get_global_i18n().t('crawler.viewing_logs')}: {os.path.basename(self.log_file_path)}", classes="log-popup-title"),
+                    classes="log-popup-header"
+                ),
+
+                # 控制按钮
+                Horizontal(
+                    Button(get_global_i18n().t('common.close'), id="close-log-btn", variant="primary"),
+                    Button(get_global_i18n().t('crawler.toggle_auto_scroll'), id="toggle-scroll-btn", variant="default"),
+                    Button(get_global_i18n().t('crawler.clear_display'), id="clear-log-btn", variant="warning"),
+                    Button(get_global_i18n().t('crawler.refresh_log'), id="refresh-log-btn", variant="success"),
+                    classes="log-popup-controls"
+                ),
+
+                # 日志内容区域
+                Log(id="log-viewer", auto_scroll=True, max_lines=1000, classes="log-popup-content"),
+
+                classes="log-popup-container"
+            )
+        )
+        yield Footer()
+
+    def on_mount(self) -> None:
+        """弹窗挂载时的回调"""
+        self._load_initial_log_content()
+        self._start_file_watching()
+
+        # 设置焦点到关闭按钮，方便操作
+        try:
+            self.query_one("#close-log-btn", Button).focus()
+        except Exception:
+            pass
+
+        # 确保滚动到底部
+        self.set_timer(0.05, self._ensure_scroll_to_bottom)
+
+    async def on_unmount(self) -> None:
+        """弹窗卸载时的回调"""
+        await self._stop_file_watching()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """按钮按下事件处理"""
+        if event.button.id == "close-log-btn":
+            # 异步关闭
+            asyncio.create_task(self._async_close())
+        elif event.button.id == "toggle-scroll-btn":
+            self._toggle_auto_scroll()
+        elif event.button.id == "clear-log-btn":
+            self._clear_log_content()
+        elif event.button.id == "refresh-log-btn":
+            self._refresh_log_content()
+
+    async def _async_close(self) -> None:
+        """异步关闭弹窗"""
+        try:
+            await self._stop_file_watching()
+            self.dismiss()
+        except Exception as e:
+            logger.error(f"关闭日志查看器失败: {e}")
+            # 强制关闭
+            self._force_close()
+
+    def _load_initial_log_content(self) -> None:
+        """加载初始日志内容"""
+        try:
+            if os.path.exists(self.log_file_path):
+                with open(self.log_file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    log_viewer = self.query_one("#log-viewer", Log)
+                    log_viewer.clear()
+                    # 只显示最后1000行
+                    lines = content.split('\n')
+                    if len(lines) > 1000:
+                        lines = lines[-1000:]
+                    log_viewer.write('\n'.join(lines))
+
+                    # 记录当前位置
+                    self.last_position = len(content.encode('utf-8'))
+
+                    # 滚动到底部
+                    if self.auto_scroll:
+                        self.set_timer(0.02, lambda: log_viewer.scroll_end(animate=False))
+                        self.set_timer(0.05, lambda: log_viewer.scroll_end(animate=False))
+            else:
+                log_viewer = self.query_one("#log-viewer", Log)
+                log_viewer.write(f"📁 {get_global_i18n().t('crawler.log_file_not_found')}: {self.log_file_path}")
+        except Exception as e:
+            logger.error(f"加载日志内容失败: {e}")
+            log_viewer = self.query_one("#log-viewer", Log)
+            log_viewer.write(f"❌ {get_global_i18n().t('crawler.load_log_failed')}: {e}")
+
+    def _start_file_watching(self) -> None:
+        """启动文件监控任务"""
+        self.stop_watching = False
+        self.file_watcher_task = asyncio.create_task(self._watch_file_changes())
+
+    async def _stop_file_watching(self) -> None:
+        """停止文件监控"""
+        try:
+            self.stop_watching = True
+            if self.file_watcher_task and not self.file_watcher_task.done():
+                # 取消任务，等待它完成
+                self.file_watcher_task.cancel()
+                try:
+                    await asyncio.wait_for(self.file_watcher_task, timeout=0.1)
+                except asyncio.CancelledError:
+                    pass
+                except asyncio.TimeoutError:
+                    pass
+        except Exception as e:
+            logger.error(f"停止文件监控失败: {e}")
+            # 不抛出异常，继续关闭流程
+
+    async def _watch_file_changes(self) -> None:
+        """异步监控文件变化"""
+        while not self.stop_watching:
+            try:
+                # 检查是否应该停止
+                if self.stop_watching:
+                    break
+
+                if os.path.exists(self.log_file_path):
+                    current_size = os.path.getsize(self.log_file_path)
+                    if current_size > self.last_position:
+                        # 文件有新内容
+                        with open(self.log_file_path, 'r', encoding='utf-8') as f:
+                            f.seek(self.last_position)
+                            new_content = f.read()
+
+                            # 更新UI（在主线程中）
+                            try:
+                                log_viewer = self.query_one("#log-viewer", Log)
+                                log_viewer.write(new_content)
+                                if self.auto_scroll:
+                                    self.set_timer(0.02, lambda: log_viewer.scroll_end(animate=False))
+                                    self.set_timer(0.05, lambda: log_viewer.scroll_end(animate=False))
+                            except Exception:
+                                # 弹窗可能已经关闭，停止监控
+                                self.stop_watching = True
+                                break
+
+                            self.last_position = current_size
+                else:
+                    self.last_position = 0
+
+            except Exception as e:
+                logger.error(f"监控日志文件变化失败: {e}")
+                # 出错时也停止监控，避免无限循环
+                self.stop_watching = True
+                break
+
+            # 使用更短的异步睡眠，可以被取消，提高响应速度
+            try:
+                await asyncio.sleep(0.2)
+            except asyncio.CancelledError:
+                break
+
+    def _toggle_auto_scroll(self) -> None:
+        """切换自动滚动"""
+        self.auto_scroll = not self.auto_scroll
+        log_viewer = self.query_one("#log-viewer", Log)
+        log_viewer.auto_scroll = self.auto_scroll
+
+        # 更新按钮文本
+        toggle_btn = self.query_one("#toggle-scroll-btn", Button)
+        toggle_btn.label = f"{get_global_i18n().t('crawler.auto_scroll')}: {'开' if self.auto_scroll else '关'}"
+
+        if self.auto_scroll:
+            self.app.notify(get_global_i18n().t('crawler.auto_scroll_enabled'))
+            # 立即滚动到底部
+            self.set_timer(0.02, lambda: log_viewer.scroll_end(animate=False))
+            self.set_timer(0.05, lambda: log_viewer.scroll_end(animate=False))
+        else:
+            self.app.notify(get_global_i18n().t('crawler.auto_scroll_disabled'))
+
+        # 如果开启自动滚动，立即滚动到底部
+        if self.auto_scroll:
+            log_viewer.scroll_end(animate=False)
+
+    def _clear_log_content(self) -> None:
+        """清空日志内容显示"""
+        log_viewer = self.query_one("#log-viewer", Log)
+        log_viewer.clear()
+        log_viewer.write(f"📝 {get_global_i18n().t('crawler.log_cleared_message')}")
+
+    def _refresh_log_content(self) -> None:
+        """刷新日志内容"""
+        self.last_position = 0  # 重置位置，重新加载全部内容
+        self._load_initial_log_content()
+        self.app.notify(f"📋 {get_global_i18n().t('crawler.log_refreshed')}")
+
+    async def action_close(self) -> None:
+        """关闭弹窗"""
+        try:
+            await self._stop_file_watching()
+            self.dismiss()
+            # 显示关闭提示
+            self.app.notify(f"📋 {get_global_i18n().t('crawler.log_viewer_closed')}")
+        except Exception as e:
+            logger.error(f"关闭日志查看器失败: {e}")
+            # 强制关闭
+            await self._force_close()
+
+    async def action_force_close(self) -> None:
+        """强制关闭弹窗"""
+        await self._force_close()
+
+    async def _force_close(self) -> None:
+        """强制关闭弹窗的内部方法"""
+        try:
+            self.stop_watching = True
+            if self.file_watcher_task and not self.file_watcher_task.done():
+                # 取消异步任务
+                self.file_watcher_task.cancel()
+                # 等待任务真正取消
+                try:
+                    await asyncio.wait_for(self.file_watcher_task, timeout=0.1)
+                except asyncio.TimeoutError:
+                    pass  # 超时也没关系，继续关闭
+            self.dismiss()
+            # 显示强制关闭提示
+            self.app.notify("[Closed] Log viewer closed")
+        except Exception as e:
+            logger.error(f"Force close failed: {e}")
+            # 最后的手段：直接移除
+            try:
+                self.remove()
+                # 即使移除也显示提示
+                self.app.notify("[Closed] Log viewer closed")
+            except Exception:
+                pass
+
+    def action_sync_close(self) -> None:
+        """同步关闭弹窗（备用方法）"""
+        try:
+            self.stop_watching = True
+            # 不等待异步任务，直接关闭
+            self.dismiss()
+            # 显示同步关闭提示
+            self.app.notify("[Closed] Log viewer closed")
+        except Exception as e:
+            logger.error(f"Sync close failed: {e}")
+            try:
+                self.remove()
+                # 即使移除也显示提示
+                self.app.notify("[Closed] Log viewer closed")
+            except Exception:
+                pass
+
+    def _ensure_scroll_to_bottom(self) -> None:
+        """确保滚动到底部的内部方法"""
+        try:
+            log_viewer = self.query_one("#log-viewer", Log)
+            log_viewer.scroll_end(animate=False)
+        except Exception:
+            pass
+
+    def action_scroll_to_bottom(self) -> None:
+        """手动滚动到底部"""
+        try:
+            log_viewer = self.query_one("#log-viewer", Log)
+            # 立即滚动，然后再次确保滚动到绝对底部
+            log_viewer.scroll_end(animate=False)
+            self.set_timer(0.02, lambda: log_viewer.scroll_end(animate=False))
+            self.app.notify("Scrolled to bottom")
+        except Exception as e:
+            logger.error(f"Scroll to bottom failed: {e}")
 
 class BatchInputDialog(ModalScreen[str]):
     """批量输入对话框"""
@@ -90,9 +437,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
         ("d", "find_duplicates", get_global_i18n().t('batch_ops.find_duplicates')),
-        ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
-        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("escape", "cancel", get_global_i18n().t('common.cancel')),
+        ("x", "clear_search_params", "Clear Search Params"),
+        ("j", "jump_to", "Jump To"),
+        ("l", "view_logs", "View Logs"),
+        ("escape", "cancel", "Cancel"),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -161,6 +509,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("bookshelf.batch_ops.delete"), id="delete-btn", variant="error"),
                     Button(get_global_i18n().t("batch_ops.remove_missing"), id="remove-missing-btn", variant="error"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.export"), id="export-btn"),
+                    Button(get_global_i18n().t('crawler.view_logs'), id="view-logs-btn", variant="success"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.cancel"), id="cancel-btn"),
                     id="batch-ops-buttons", classes="btn-row"
                 ),
@@ -1071,7 +1420,11 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.query_one("#search-author-filter", Select).value = "all"
         self.query_one("#search-format-filter", Select).value = "all"
         self._perform_search()
-    
+
+    def action_view_logs(self) -> None:
+        """打开日志查看器弹窗"""
+        self._open_log_viewer()
+
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """
         按钮按下时的回调
@@ -1119,6 +1472,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._go_to_last_page()
         elif event.button.id == "jump-page-btn":
             self._show_jump_dialog()
+        elif event.button.id == "view-logs-btn":
+            self._open_log_viewer()
         elif event.button.id == "cancel-btn":
             self.dismiss({"refresh": False})
     
@@ -2496,7 +2851,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 显示通知
             if batch_groups:
                 self.notify(
-                    get_global_i18n().t("duplicate_books.batch_found", 
+                    get_global_i18n().t("duplicate_books.batch_found",
                                         batch=batch_index+1, count=len(batch_groups)),
                     severity="information"
                 )
@@ -2505,7 +2860,73 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     get_global_i18n().t("duplicate_books.batch_no_duplicate_processing_next", batch=batch_index+1),
                     severity="information"
                 )
-                
+
         except Exception as e:
             logger.error(f"显示重复结果失败: {e}")
+
+    def _get_log_file_path(self) -> str:
+        """
+        获取当前日志文件路径
+
+        Returns:
+            str: 日志文件路径
+        """
+        try:
+            # 获取配置管理器
+            config_manager = ConfigManager.get_instance()
+
+            # 获取日志目录
+            log_dir = os.path.join(os.path.expanduser("~"), ".config", "new_preader", "logs")
+
+            # 根据调试模式确定日志文件名
+            if config_manager.get_debug_mode():
+                # 开发模式使用带日期的日志文件
+                log_file = os.path.join(log_dir, f'application_{date.today()}.log')
+            else:
+                # 生产模式使用应用主日志文件
+                log_file = os.path.join(log_dir, 'application.log')
+
+            # 如果主日志文件不存在，尝试查找最新的日志文件
+            if not os.path.exists(log_file):
+                if os.path.exists(log_dir):
+                    # 查找目录下最新的.log文件
+                    log_files = [f for f in os.listdir(log_dir) if f.endswith('.log')]
+                    if log_files:
+                        log_files.sort(key=lambda x: os.path.getmtime(os.path.join(log_dir, x)), reverse=True)
+                        log_file = os.path.join(log_dir, log_files[0])
+
+            return log_file
+
+        except Exception as e:
+            logger.error(f"获取日志文件路径失败: {e}")
+            # 返回默认路径
+            return os.path.join(os.path.expanduser("~"), ".config", "new_preader", "logs", "application.log")
+
+    def _open_log_viewer(self) -> None:
+        """打开日志查看器弹窗"""
+        try:
+            log_file_path = self._get_log_file_path()
+
+            # 检查日志文件是否存在
+            if not os.path.exists(log_file_path):
+                self.notify("Log file not found", severity="warning")
+                return
+
+            # 检查是否已经有日志查看器弹窗存在
+            existing_screens = self.app.screen_stack
+            log_viewer_exists = any(isinstance(screen, LogViewerPopup) for screen in existing_screens)
+
+            if log_viewer_exists:
+                # 如果弹窗已存在，不重复显示消息
+                return
+
+            # 创建并显示日志查看器弹窗
+            log_viewer = LogViewerPopup(log_file_path)
+            self.app.push_screen(log_viewer)
+
+            self.notify(f"📋 {get_global_i18n().t('crawler.log_viewer_opened')}")
+
+        except Exception as e:
+            logger.error(f"打开日志查看器失败: {e}")
+            self.notify(f"❌ {get_global_i18n().t('crawler.open_log_viewer_failed')}: {e}")
 
