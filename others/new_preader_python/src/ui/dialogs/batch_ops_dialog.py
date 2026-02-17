@@ -437,10 +437,10 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
         ("d", "find_duplicates", get_global_i18n().t('batch_ops.find_duplicates')),
-        ("x", "clear_search_params", "Clear Search Params"),
-        ("j", "jump_to", "Jump To"),
-        ("l", "view_logs", "View Logs"),
-        ("escape", "cancel", "Cancel"),
+        ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
+        ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
+        ("l", "view_logs", get_global_i18n().t('crawler.view_logs')),
+        ("escape", "cancel", get_global_i18n().t('batch_ops.cancel')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
