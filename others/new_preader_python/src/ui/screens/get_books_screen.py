@@ -72,6 +72,8 @@ class GetBooksScreen(Screen[None]):
         self._search_keyword = ""
         self._search_parser = "all"
         self._search_proxy_enabled = "all"
+        self._search_status = "all"
+        self._search_rating = "all"
         
         # 排序相关属性
         self._sort_column: Optional[str] = None
@@ -110,8 +112,8 @@ class GetBooksScreen(Screen[None]):
                     # 搜索栏
                     Horizontal(
                         Input(
-                            placeholder=get_global_i18n().t('search.site_placeholder'), 
-                            id="novel-sites-search-input", 
+                            placeholder=get_global_i18n().t('search.site_placeholder'),
+                            id="novel-sites-search-input",
                             classes="novel-sites-search-input"
                         ),
                         Select(
@@ -120,7 +122,7 @@ class GetBooksScreen(Screen[None]):
                                 (get_global_i18n().t('search.all_parsers'), "all"),
                                 ("V2 Parser", "v2"),
                                 ("Legacy Parser", "legacy")
-                            ], 
+                            ],
                             value="all",
                             prompt=get_global_i18n().t('search.select_parser_prompt'),
                             classes="novel-sites-search-select"
@@ -134,6 +136,32 @@ class GetBooksScreen(Screen[None]):
                             ],
                             value="all",
                             prompt=get_global_i18n().t('search.select_proxy_prompt'),
+                            classes="novel-sites-search-select"
+                        ),
+                        Select(
+                            id="novel-sites-status-filter",
+                            options=[
+                                (get_global_i18n().t('search.all_status'), "all"),
+                                (get_global_i18n().t('crawler.status_success'), "normal"),
+                                (get_global_i18n().t('crawler.status_failed'), "abnormal")
+                            ],
+                            value="all",
+                            prompt=get_global_i18n().t('search.select_status_prompt'),
+                            classes="novel-sites-search-select"
+                        ),
+                        Select(
+                            id="novel-sites-rating-filter",
+                            options=[
+                                (get_global_i18n().t('search.all_ratings'), "all"),
+                                ("★★★★★", "5"),
+                                ("★★★★☆", "4"),
+                                ("★★★☆☆", "3"),
+                                ("★★☆☆☆", "2"),
+                                ("★☆☆☆☆", "1"),
+                                ("☆☆☆☆☆", "0")
+                            ],
+                            value="all",
+                            prompt=get_global_i18n().t('search.select_rating_prompt'),
                             classes="novel-sites-search-select"
                         ),
                         id="novel-sites-search-bar",
@@ -244,7 +272,7 @@ class GetBooksScreen(Screen[None]):
         # 重置排序状态并重新加载数据（使用保存的搜索参数）
         self._sort_column = None
         self._sort_reverse = False
-        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
         
     def on_unmount(self) -> None:
         """屏幕卸载时移除样式隔离，避免残留影响其他屏幕"""
@@ -280,13 +308,15 @@ class GetBooksScreen(Screen[None]):
         except Exception as e:
             logger.debug(f"设置搜索框焦点失败: {e}")
 
-    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all", from_search: bool = False) -> None:
+    def _load_novel_sites(self, search_keyword: str = "", search_parser: str = "all", search_proxy_enabled: str = "all", search_status: str = "all", search_rating: str = "all", from_search: bool = False) -> None:
         """加载书籍网站数据
 
         Args:
             search_keyword: 搜索关键词
             search_parser: 解析器筛选
             search_proxy_enabled: 代理启用筛选
+            search_status: 状态筛选
+            search_rating: 评星筛选
             from_search: 是否来自搜索操作
         """
         # 如果没有排序条件，从数据库加载数据；否则使用已有数据
@@ -329,7 +359,22 @@ class GetBooksScreen(Screen[None]):
                 else:
                     proxy_match = not proxy_enabled
 
-            if keyword_match and parser_match and proxy_match:
+            # 状态筛选
+            status_match = True
+            if search_status != "all":
+                site_status = site.get("status", "正常")
+                if search_status == "normal":
+                    status_match = site_status == "正常"
+                elif search_status == "abnormal":
+                    status_match = site_status != "正常"
+
+            # 评星筛选
+            rating_match = True
+            if search_rating != "all":
+                site_rating = site.get("rating", 0)
+                rating_match = str(site_rating) == search_rating
+
+            if keyword_match and parser_match and proxy_match and status_match and rating_match:
                 filtered_sites.append(site)
         
         # 数据库已经按照 rating 降序排序，无需再次排序
@@ -486,31 +531,55 @@ class GetBooksScreen(Screen[None]):
         search_input = self.query_one("#novel-sites-search-input", Input)
         parser_filter = self.query_one("#novel-sites-parser-filter", Select)
         proxy_filter = self.query_one("#novel-sites-proxy-filter", Select)
-        
+        status_filter = self.query_one("#novel-sites-status-filter", Select)
+        rating_filter = self.query_one("#novel-sites-rating-filter", Select)
+
         # 更新搜索状态
         self._search_keyword = search_input.value or ""
-        
+
         # 处理下拉框值，确保正确处理NoSelection对象和_BLANK值
         parser_value = parser_filter.value
-        if (parser_value is None or 
-            parser_value == "" or 
+        if (parser_value is None or
+            parser_value == "" or
             (hasattr(parser_value, 'value') and getattr(parser_value, 'value', '') == "") or
             (hasattr(parser_value, 'is_blank') and getattr(parser_value, 'is_blank', False)) or
             str(parser_value) == 'Select.BLANK'):
             self._search_parser = "all"
         else:
             self._search_parser = str(parser_value) if parser_value else "all"
-        
+
         proxy_value = proxy_filter.value
-        if (proxy_value is None or 
-            proxy_value == "" or 
+        if (proxy_value is None or
+            proxy_value == "" or
             (hasattr(proxy_value, 'value') and getattr(proxy_value, 'value', '') == "") or
             (hasattr(proxy_value, 'is_blank') and getattr(proxy_value, 'is_blank', False)) or
             str(proxy_value) == 'Select.BLANK'):
             self._search_proxy_enabled = "all"
         else:
             self._search_proxy_enabled = str(proxy_value) if proxy_value else "all"
-        
+
+        # 状态筛选
+        status_value = status_filter.value
+        if (status_value is None or
+            status_value == "" or
+            (hasattr(status_value, 'value') and getattr(status_value, 'value', '') == "") or
+            (hasattr(status_value, 'is_blank') and getattr(status_value, 'is_blank', False)) or
+            str(status_value) == 'Select.BLANK'):
+            self._search_status = "all"
+        else:
+            self._search_status = str(status_value) if status_value else "all"
+
+        # 评星筛选
+        rating_value = rating_filter.value
+        if (rating_value is None or
+            rating_value == "" or
+            (hasattr(rating_value, 'value') and getattr(rating_value, 'value', '') == "") or
+            (hasattr(rating_value, 'is_blank') and getattr(rating_value, 'is_blank', False)) or
+            str(rating_value) == 'Select.BLANK'):
+            self._search_rating = "all"
+        else:
+            self._search_rating = str(rating_value) if rating_value else "all"
+
         # 重置到第一页
         self._current_page = 1
 
@@ -519,32 +588,32 @@ class GetBooksScreen(Screen[None]):
         self._sort_reverse = False
 
         # 重新加载数据
-        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, from_search=True)
+        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating, from_search=True)
 
     # 分页导航方法
     def _go_to_first_page(self) -> None:
         """跳转到第一页"""
         if self._current_page != 1:
             self._current_page = 1
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
 
     def _go_to_prev_page(self) -> None:
         """跳转到上一页"""
         if self._current_page > 1:
             self._current_page -= 1
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
 
     def _go_to_next_page(self) -> None:
         """跳转到下一页"""
         if self._current_page < self._total_pages:
             self._current_page += 1
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
 
     def _go_to_last_page(self) -> None:
         """跳转到最后一页"""
         if self._current_page != self._total_pages:
             self._current_page = self._total_pages
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
 
     def _sort_sites(self, column_key: str, reverse: bool) -> None:
         """根据指定列对网站进行排序
@@ -589,15 +658,15 @@ class GetBooksScreen(Screen[None]):
                     if 1 <= page_num <= self._total_pages:
                         if page_num != self._current_page:
                             self._current_page = page_num
-                            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
                     else:
                         self.notify(
-                            get_global_i18n().t("batch_ops.page_error_info", pages=self._total_pages), 
+                            get_global_i18n().t("batch_ops.page_error_info", pages=self._total_pages),
                             severity="error"
                         )
                 except ValueError:
                     self.notify(get_global_i18n().t("batch_ops.page_error"), severity="error")
-        
+
         # 导入并显示页码输入对话框
         from src.ui.dialogs.input_dialog import InputDialog
         dialog = InputDialog(
@@ -627,9 +696,9 @@ class GetBooksScreen(Screen[None]):
             
             # 更新数据库中的状态
             self.database_manager.update_novel_site_status(site_id, result["status"])
-            
+
             # 重新加载数据表，显示最新状态
-            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+            self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
             
             # 显示检测结果
             self.notify(result["message"], severity="success" if result["status"] == "正常" else "warning")
@@ -710,18 +779,20 @@ class GetBooksScreen(Screen[None]):
                         
                         # 让出控制权，确保事件循环有机会处理其他任务
                         await asyncio.sleep(0.01)
-                        
+
                     except Exception as e:
                         logger.error(f"检测网站 {site.get('name', '未知')} 状态失败: {e}")
                         failed_count += 1
                         checked_count += 1
-            
+
             # 最终重新加载数据表，显示最新状态
             self.app.call_later(
-                self._load_novel_sites, 
-                self._search_keyword, 
-                self._search_parser, 
-                self._search_proxy_enabled
+                self._load_novel_sites,
+                self._search_keyword,
+                self._search_parser,
+                self._search_proxy_enabled,
+                self._search_status,
+                self._search_rating
             )
             
             # 显示检测结果
@@ -769,10 +840,10 @@ class GetBooksScreen(Screen[None]):
             
             # 更新数据库中的状态
             success = self.database_manager.update_novel_site_status(site_id, new_status)
-            
+
             if success:
                 # 重新加载数据表，显示最新状态
-                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
                 
                 # 显示切换结果
                 self.notify(get_global_i18n().t('get_books.toggle_site_status_failed', name=site_name) + " -> " + new_status, severity="success")
@@ -974,7 +1045,7 @@ class GetBooksScreen(Screen[None]):
                 self._sort_sites(column_key, self._sort_reverse)
 
                 # 重新加载表格显示（由于有排序条件，会使用已有的排序数据）
-                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
 
                 # 显示排序提示
                 sort_direction = "倒序" if self._sort_reverse else "正序"
@@ -1200,6 +1271,8 @@ class GetBooksScreen(Screen[None]):
         self.query_one("#novel-sites-search-input", Input).placeholder = get_global_i18n().t('search.site_placeholder')
         self.query_one("#novel-sites-parser-filter", Select).value = "all"
         self.query_one("#novel-sites-proxy-filter", Select).value = "all"
+        self.query_one("#novel-sites-status-filter", Select).value = "all"
+        self.query_one("#novel-sites-rating-filter", Select).value = "all"
     
     def on_input_changed(self, event: Input.Changed) -> None:
         """处理输入框内容变化事件"""
@@ -1212,7 +1285,7 @@ class GetBooksScreen(Screen[None]):
     def on_select_changed(self, event: Select.Changed) -> None:
         """处理选择框变化事件"""
         # 筛选器变化时自动执行搜索
-        if event.select.id in ["novel-sites-parser-filter", "novel-sites-proxy-filter"]:
+        if event.select.id in ["novel-sites-parser-filter", "novel-sites-proxy-filter", "novel-sites-status-filter", "novel-sites-rating-filter"]:
             self._perform_search()
 
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
@@ -1535,7 +1608,7 @@ class GetBooksScreen(Screen[None]):
                                 failed_count += 1
 
                         # 刷新书籍网站列表（更新书籍数量）
-                        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled)
+                        self._load_novel_sites(self._search_keyword, self._search_parser, self._search_proxy_enabled, self._search_status, self._search_rating)
 
                         # 显示结果
                         if failed_count > 0:

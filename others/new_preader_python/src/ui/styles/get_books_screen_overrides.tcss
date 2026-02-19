@@ -179,7 +179,7 @@ Footer {
     color: $text;
 }
 
-#get-books-container  #novel-sites-parser-filter, #novel-sites-proxy-filter {
+#get-books-container  #novel-sites-parser-filter, #novel-sites-proxy-filter, #novel-sites-status-filter, #novel-sites-rating-filter {
     width: 15%;
     min-width: 15;
     height: 3;
