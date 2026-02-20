@@ -1503,7 +1503,7 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"下移失败: {e}")
     
-    def _move_to_position(self, target_position: int) -> None:
+    def _move_to_position(self, target_position: int, from_search: bool = False) -> None:
         """将当前光标所在的项移动到指定位置"""
         try:
             # 获取当前光标所在行
@@ -1646,7 +1646,7 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"移动到指定位置失败: {e}")
     
-    def _move_cursor_to_position(self, target_position: int) -> None:
+    def _move_cursor_to_position(self, target_position: int, from_search: bool = False) -> None:
         """将光标移动到当前页的指定行"""
         try:
             # 获取表格
