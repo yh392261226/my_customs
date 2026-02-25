@@ -225,11 +225,20 @@ class CrawlerManager:
                     if hasattr(parser, 'chapter_count'):
                         parser.chapter_count = 0
                     
-                    # 执行爬取
-                    result = await self._async_parse_novel_detail(parser, novel_id)
+                    # 获取存储文件夹
+                    storage_folder = novel_site.get('storage_folder', 'novels')
+                    
+                    # 使用增量爬取方法
+                    result = await self._incremental_crawl(
+                        parser=parser,
+                        novel_id=novel_id,
+                        site_id=task.site_id,
+                        novel_title=novel_id,
+                        storage_folder=storage_folder
+                    )
                     
                     # 假设解析器成功执行时返回的结果就是成功的
-                    # 如果解析器抛出异常，_async_parse_novel_detail 会返回 {'success': False, ...}
+                    # 如果解析器抛出异常，_incremental_crawl 会返回 {'success': False, ...}
                     if 'success' in result and not result['success']:
                         # 解析器明确返回失败
                         task.failed_count += 1
@@ -247,32 +256,12 @@ class CrawlerManager:
                         # 解析器成功返回小说内容
                         task.success_count += 1
                         
-                        # 获取存储文件夹并保存文件
-                        storage_folder = novel_site.get('storage_folder', 'novels')
-                        import os
-                        storage_folder = os.path.expanduser(storage_folder)
+                        # 检查是否是新爬取或更新
+                        already_exists = result.get('already_exists', False)
+                        file_path = result.get('file_path', '')
                         
-                        # 调用解析器的 save_to_file 方法实际保存文件
-                        file_path = parser.save_to_file(result, storage_folder)
-                        
-                        # 检查文件是否成功保存
-                        if file_path == 'already_exists':
-                            # 文件已存在，不添加新记录，但显示成功消息
-                            logger.info(f"小说文件已存在，跳过保存: {result['title']}")
-                            # 发送成功通知（但文件已存在）
-                            self._notify_crawl_success(task_id, novel_id, result['title'], already_exists=True)
-                        else:
-                            # 文件成功保存，保存到数据库
-                            db_manager.add_crawl_history(
-                                site_id=task.site_id,
-                                novel_id=novel_id,
-                                novel_title=result['title'],
-                                status="success",
-                                file_path=file_path,
-                                error_message=""
-                            )
-                            
-                            # 将书籍添加到书库
+                        if file_path and not already_exists and result.get('new_chapters', 0) > 0:
+                            # 新爬取或有新章节更新，将书籍添加到书库
                             try:
                                 from src.core.bookshelf import Bookshelf
                                 bookshelf = Bookshelf()
@@ -296,9 +285,18 @@ class CrawlerManager:
                                 logger.info(f"小说已添加到书库: {result['title']}, 作者: {result.get('author', '')}, 标签: {combined_tags}")
                             except Exception as e:
                                 logger.error(f"添加到书库失败: {e}")
-                            
-                            # 发送成功通知
-                            self._notify_crawl_success(task_id, novel_id, result['title'])
+                        
+                        # 发送成功通知
+                        new_chapters = result.get('new_chapters', 0)
+                        duplicate_count = result.get('duplicate_count', 0)
+                        message = result.get('message', '')
+                        
+                        if new_chapters > 0:
+                            logger.info(f"爬取成功: {result['title']}, 新增 {new_chapters} 章, 跳过 {duplicate_count} 章")
+                        elif duplicate_count > 0:
+                            logger.info(f"爬取成功: {result['title']}, 跳过 {duplicate_count} 个重复章节")
+                        
+                        self._notify_crawl_success(task_id, novel_id, result['title'], already_exists=already_exists)
                         
                 except Exception as e:
                     task.failed_count += 1
@@ -346,6 +344,200 @@ class CrawlerManager:
                 'success': False,
                 'error_message': str(e)
             }
+    
+    async def _incremental_crawl(self, parser, novel_id: str, site_id: int, novel_title: str, storage_folder: str) -> Dict[str, Any]:
+        """
+        增量爬取：只爬取新章节，追加到已有文件
+        
+        Args:
+            parser: 解析器实例
+            novel_id: 小说ID
+            site_id: 网站ID
+            novel_title: 小说标题
+            storage_folder: 存储文件夹
+        
+        Returns:
+            爬取结果
+        """
+        from src.core.database_manager import DatabaseManager
+        from src.utils.file_helpers import (
+            read_text_file, write_text_file, append_chapters_to_file,
+            calculate_file_hash, calculate_content_hash, detect_chapter_duplicates
+        )
+        import os
+        
+        db_manager = DatabaseManager()
+        
+        # 1. 检查历史记录
+        last_successful = db_manager.get_last_successful_crawl(site_id, novel_id)
+        
+        # 2. 获取已有的章节信息
+        saved_chapters = {}
+        if last_successful and last_successful.get('serial_mode'):
+            saved_chapters = db_manager.get_saved_chapters(
+                site_id, 
+                novel_id, 
+                record_id=last_successful['id']
+            )
+            
+            # 如果没有追踪记录，尝试自动修复
+            if not saved_chapters:
+                logger.info(f"没有找到章节追踪记录，尝试自动修复...")
+                repair_result = db_manager.repair_chapter_tracking(site_id, novel_id)
+                if repair_result['success']:
+                    logger.info(f"自动修复成功: {repair_result['message']}")
+                    # 重新获取章节信息
+                    saved_chapters = db_manager.get_saved_chapters(
+                        site_id, 
+                        novel_id, 
+                        record_id=last_successful['id']
+                    )
+            
+            logger.info(f"已有 {len(saved_chapters)} 个章节，从第 {len(saved_chapters)+1} 章开始爬取")
+        
+        # 3. 爬取所有章节
+        result = await self._async_parse_novel_detail(parser, novel_id)
+        if 'success' in result and not result['success']:
+            return result
+        
+        all_chapters = result.get('chapters', [])
+        
+        # 4. 章节去重
+        new_chapters, duplicate_count = detect_chapter_duplicates(all_chapters, saved_chapters)
+        
+        # 5. 保存策略
+        if new_chapters:
+            if last_successful and os.path.exists(last_successful['file_path']):
+                # 检查是否是真正的增量更新（有章节追踪记录）
+                if saved_chapters and len(saved_chapters) > 0:
+                    # 追加模式：读取已有文件，追加新章节
+                    old_content = read_text_file(last_successful['file_path'])
+                    new_content = append_chapters_to_file(old_content, new_chapters)
+                    
+                    # 保存文件
+                    file_path = last_successful['file_path']
+                    write_text_file(file_path, new_content)
+                    
+                    logger.info(f"追加模式：追加 {len(new_chapters)} 个新章节，跳过 {duplicate_count} 个重复章节")
+                else:
+                    # 覆盖模式：没有章节追踪记录，直接覆盖整个文件
+                    storage_folder = os.path.expanduser(storage_folder)
+                    file_path = parser.save_to_file(result, storage_folder)
+                    
+                    logger.info(f"覆盖模式：没有章节追踪记录，直接覆盖文件（共 {len(all_chapters)} 章）")
+                
+                # 更新数据库记录
+                db_manager.update_crawl_history_full(
+                    last_successful['id'],
+                    file_path=file_path,
+                    chapter_count=len(all_chapters),
+                    last_chapter_index=len(all_chapters) - 1,
+                    last_chapter_title=all_chapters[-1].get('title', '') if all_chapters else '',
+                    content_hash=calculate_file_hash(file_path) if file_path else '',
+                    last_update_time=datetime.now().isoformat()
+                )
+            else:
+                # 首次爬取：保存完整文件
+                storage_folder = os.path.expanduser(storage_folder)
+                file_path = parser.save_to_file(result, storage_folder)
+                
+                # 创建爬取历史记录
+                db_manager.add_crawl_history(
+                    site_id=site_id,
+                    novel_id=novel_id,
+                    novel_title=novel_title,
+                    status='success',
+                    file_path=file_path,
+                    error_message='',
+                    book_type='多章节' if len(all_chapters) > 1 else '短篇',
+                    chapter_count=len(all_chapters),
+                    last_chapter_index=len(all_chapters) - 1 if all_chapters else -1,
+                    last_chapter_title=all_chapters[-1].get('title', '') if all_chapters else '',
+                    content_hash=calculate_file_hash(file_path) if file_path else '',
+                    serial_mode=len(all_chapters) > 1  # 多章节自动启用连载模式
+                )
+                
+                logger.info(f"首次爬取，保存 {len(all_chapters)} 个章节")
+        else:
+            # 没有新章节
+            logger.info(f"没有新章节，跳过爬取（已跳过 {duplicate_count} 个重复章节）")
+            return {
+                'success': True,
+                'title': novel_title,
+                'message': '没有新章节需要更新',
+                'new_chapters': 0,
+                'duplicate_count': duplicate_count,
+                'already_exists': True
+            }
+        
+        # 6. 记录章节追踪信息
+        chapter_tracking_data = []
+        
+        # 判断是否需要记录所有章节
+        should_record_all = False
+        
+        # 如果是首次爬取（没有last_successful），记录所有章节
+        if not last_successful:
+            should_record_all = True
+            logger.info(f"首次爬取，记录所有章节追踪信息")
+        # 如果没有章节追踪记录（saved_chapters为空），说明是旧数据，也记录所有章节
+        elif not saved_chapters:
+            should_record_all = True
+            logger.info(f"旧数据（无追踪记录），记录所有章节追踪信息")
+        
+        if should_record_all:
+            # 记录所有章节
+            for idx, chapter in enumerate(all_chapters):
+                chapter_hash = calculate_content_hash(chapter.get('content', ''))
+                chapter_tracking_data.append({
+                    'chapter_index': idx,
+                    'chapter_title': chapter.get('title', ''),
+                    'chapter_hash': chapter_hash,
+                    'crawl_time': datetime.now().isoformat()
+                })
+            logger.info(f"记录 {len(chapter_tracking_data)} 个章节追踪信息")
+        else:
+            # 如果是真正的增量更新，只记录新章节
+            for idx, chapter in enumerate(new_chapters):
+                # 找到该章节在所有章节中的实际索引
+                actual_index = -1
+                for i, ch in enumerate(all_chapters):
+                    if ch.get('title') == chapter.get('title') or calculate_content_hash(ch.get('content', '')) == chapter.get('hash'):
+                        actual_index = i
+                        break
+                
+                if actual_index >= 0:
+                    chapter_tracking_data.append({
+                        'chapter_index': actual_index,
+                        'chapter_title': chapter.get('title', ''),
+                        'chapter_hash': chapter.get('hash', ''),
+                        'crawl_time': datetime.now().isoformat()
+                    })
+            logger.info(f"增量更新，记录 {len(chapter_tracking_data)} 个新章节追踪信息")
+        
+        if chapter_tracking_data:
+            db_manager.batch_add_chapter_tracking(
+                site_id=site_id,
+                novel_id=novel_id,
+                chapters=chapter_tracking_data
+            )
+        
+        # 反爬虫优化：添加延迟
+        if len(new_chapters) > 5:
+            import time
+            delay = min(len(new_chapters) * 0.5, 10)  # 最多延迟10秒
+            logger.info(f"爬取了 {len(new_chapters)} 个新章节，延迟 {delay} 秒")
+            await asyncio.sleep(delay)
+        
+        return {
+            'success': True,
+            'title': result['title'],
+            'file_path': file_path if 'file_path' in locals() else last_successful.get('file_path') if last_successful else '',
+            'total_chapters': len(all_chapters),
+            'new_chapters': len(new_chapters),
+            'duplicate_count': duplicate_count,
+            'already_exists': bool(last_successful)
+        }
     
     def stop_crawl_task(self, task_id: str) -> bool:
         """停止爬取任务"""

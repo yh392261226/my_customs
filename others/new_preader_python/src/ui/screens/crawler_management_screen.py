@@ -29,6 +29,7 @@ from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
 from src.config.config_manager import ConfigManager
 import threading
 import time
+from datetime import datetime
 
 logger = get_logger(__name__)
 
@@ -669,6 +670,27 @@ class CrawlerManagementScreen(Screen[None]):
         empty_stars = "☆" * (5 - rating)
         
         return f"{filled_stars}{empty_stars}"
+    
+    def _format_chapter_info(self, record: Dict[str, Any]) -> str:
+        """
+        格式化章节信息用于显示
+        
+        Args:
+            record: 爬取记录字典
+        
+        Returns:
+            格式化的章节信息字符串
+        """
+        book_type = record.get('book_type', '短篇')
+        
+        if book_type == '短篇':
+            return "短篇"
+        elif record.get('chapter_count', 0) > 0:
+            current = record.get('last_chapter_index', -1) + 1
+            total = record['chapter_count']
+            return f"{current}/{total}章"
+        else:
+            return "-"
 
     def _has_permission(self, permission_key: str) -> bool:
         """检查权限（兼容单/多用户）"""
@@ -701,7 +723,7 @@ class CrawlerManagementScreen(Screen[None]):
         yield Container(
             Vertical(
                 # Label(f"{get_global_i18n().t('crawler.title')} - {self.novel_site['name']}", id="crawler-title", classes="section-title"),
-                Link(f"{self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
+                Link(f"{self.novel_site['name']} : {self.novel_site['url']}", url=f"{self.novel_site['url']}", id="crawler-url", tooltip=f"{get_global_i18n().t('crawler.click_me')}"),
                 # 显示星级评分
                 Label(self._get_rating_display(self.novel_site.get('rating', 2)), id="rating-label", classes="rating-display"),
                 # 对书籍ID示例进行URL解码，避免显示乱码
@@ -721,6 +743,8 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
                     Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
+                    Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
                     Button(get_global_i18n().t('crawler.delete_file'), id="delete-file-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.delete_record'), id="delete-record-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.back'), id="back-btn"),
@@ -837,16 +861,21 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.sequence'), key="sequence")
         table.add_column(get_global_i18n().t('crawler.novel_id'), key="novel_id")
         table.add_column(get_global_i18n().t('crawler.novel_title'), key="novel_title")
+        table.add_column(get_global_i18n().t('crawler.book_type'), key="book_type")
+        table.add_column(get_global_i18n().t('crawler.chapters'), key="chapter_info")
+        table.add_column(get_global_i18n().t('crawler.serial_mode'), key="serial_mode")
         table.add_column(get_global_i18n().t('bookshelf.size'), key="file_size")
+        table.add_column(get_global_i18n().t('crawler.last_update_time'), key="last_update_time")
         table.add_column(get_global_i18n().t('crawler.crawl_time'), key="crawl_time")
         table.add_column(get_global_i18n().t('crawler.status'), key="status")
         table.add_column(get_global_i18n().t('crawler.view_file'), key="view_file")
         table.add_column(get_global_i18n().t('crawler.read_book'), key="read_book")
-        table.add_column("浏览器阅读", key="browser_read_book")
+        table.add_column(get_global_i18n().t('crawler.browser_read_book'), key="browser_read_book")
         table.add_column(get_global_i18n().t('crawler.delete_file'), key="delete_file")
         table.add_column(get_global_i18n().t('crawler.delete_record'), key="delete_record")
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
         table.add_column(get_global_i18n().t('crawler.retry'), key="retry")
+        table.add_column(get_global_i18n().t('crawler.crawl_latest'), key="crawl_latest")
         
         table.zebra_stripes = True
         
@@ -1016,15 +1045,24 @@ class CrawlerManagementScreen(Screen[None]):
                             file_size = 0
                     
                     self.crawler_history.append({
-                        "id": item['id'],
-                        "novel_id": item['novel_id'],
-                        "novel_title": item['novel_title'],
-                        "crawl_time": crawl_time,
-                        "status": status_text,
-                        "file_path": item['file_path'] or "",
-                        "file_size": file_size,
-                        "error_message": item.get('error_message', '')
-                    })
+                                        "id": item['id'],
+                                        "novel_id": item['novel_id'],
+                                        "novel_title": item['novel_title'],
+                                        "crawl_time": crawl_time,
+                                        "status": status_text,
+                                        "file_path": item['file_path'] or "",
+                                        "file_size": file_size,
+                                        "error_message": item.get('error_message', ''),
+                                        # 新增字段
+                                        "book_type": item.get('book_type', '短篇'),
+                                        "chapter_count": item.get('chapter_count', 0),
+                                        "last_chapter_index": item.get('last_chapter_index', -1),
+                                        "last_chapter_title": item.get('last_chapter_title', ''),
+                                        "serial_mode": item.get('serial_mode', 0),
+                                        "content_hash": item.get('content_hash', ''),
+                                        "first_crawl_time": item.get('first_crawl_time', crawl_time),
+                                        "last_update_time": item.get('last_update_time', '')
+                                    })
             else:
                 self.crawler_history = []
         except Exception as e:
@@ -1109,7 +1147,11 @@ class CrawlerManagementScreen(Screen[None]):
                     "sequence": str(i + 1),
                     "novel_id": decoded_novel_id,
                     "novel_title": item["novel_title"],
+                    "book_type": item.get("book_type", "短篇"),
+                    "chapter_info": self._format_chapter_info(item),
+                    "serial_mode": "是" if item.get("serial_mode") else "否",
                     "file_size": size_display,
+                    "last_update_time": item.get("last_update_time", item.get("crawl_time", "")),
                     "crawl_time": item["crawl_time"],
                     "status": item["status"],
                     "view_file": get_global_i18n().t('crawler.view_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
@@ -1118,8 +1160,16 @@ class CrawlerManagementScreen(Screen[None]):
                     "delete_file": get_global_i18n().t('crawler.delete_file') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
                     "delete_record": get_global_i18n().t('crawler.delete_record'),
                     "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
-                    "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('crawler.status_failed') else ""
+                    "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
+                    "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('crawler.status_success') else ""
                 }
+                
+                # 调试：打印row_data
+                if item.get("novel_id") == "41723":
+                    logger.debug(f"书籍41723的row_data: {row_data}")
+                    logger.debug(f"  crawl_latest值: '{row_data.get('crawl_latest')}'")
+                    logger.debug(f"  serial_mode值: '{row_data.get('serial_mode')}'")
+                    logger.debug(f"  status值: '{row_data.get('status')}'")
                 
                 table.add_row(*row_data.values(), key=str(item["id"]))
             
@@ -1999,6 +2049,14 @@ class CrawlerManagementScreen(Screen[None]):
             # 处理其他列的按钮点击
             elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry"]:
                 self._handle_button_click(column, row_key)
+            
+            # 处理连载列点击：切换连载模式
+            elif column == "serial_mode":
+                self._toggle_serial_mode(row_key)
+            
+            # 处理爬取最新按钮点击
+            elif column == "crawl_latest":
+                self._crawl_latest_chapters(row_key)
                 
             # 处理空格键选择：当点击任何非按钮列时，触发选择切换
             elif column not in ["selected", "view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry"]:
@@ -2006,6 +2064,256 @@ class CrawlerManagementScreen(Screen[None]):
                     
         except Exception as e:
             logger.error(f"单元格选择事件处理失败: {e}")
+    
+    def _toggle_serial_mode(self, row_key: str) -> None:
+        """切换连载模式"""
+        try:
+            # 查找对应的历史记录
+            history_item = None
+            for item in self.crawler_history:
+                if str(item.get("id")) == row_key:
+                    history_item = item
+                    break
+            
+            if not history_item:
+                logger.debug(f"无法找到对应的历史记录: {row_key}")
+                return
+            
+            # 切换连载模式
+            new_serial_mode = not history_item.get("serial_mode", 0)
+            new_book_type = "连载" if new_serial_mode else "短篇"
+            
+            # 更新数据库
+            success = self.db_manager.update_crawl_history_full(
+                history_id=int(row_key),
+                book_type=new_book_type,
+                serial_mode=1 if new_serial_mode else 0,
+                last_update_time=datetime.now().isoformat()
+            )
+            
+            if success:
+                # 更新内存中的数据
+                history_item["serial_mode"] = new_serial_mode
+                history_item["book_type"] = new_book_type
+                history_item["last_update_time"] = datetime.now().isoformat()
+                
+                # 刷新表格显示
+                self._update_history_table()
+                
+                # 显示提示
+                if new_serial_mode:
+                    self._update_status(get_global_i18n().t('crawler.toggle_serial_to_serial'), "success")
+                else:
+                    self._update_status(get_global_i18n().t('crawler.toggle_serial_to_short'), "success")
+            else:
+                self._update_status(get_global_i18n().t('crawler.toggle_serial_failed'), "error")
+                
+        except Exception as e:
+            logger.error(f"切换连载模式失败: {e}")
+            self._update_status(f"切换失败: {e}", "error")
+    
+    def _set_selected_as_serial(self) -> None:
+        """批量将选中的记录设为连载模式"""
+        try:
+            if not self.selected_history:
+                self._update_status("请先选择要修改的记录", "warning")
+                return
+            
+            success_count = 0
+            fail_count = 0
+            
+            for record_id in self.selected_history:
+                # 更新数据库
+                success = self.db_manager.update_crawl_history_full(
+                    history_id=int(record_id),
+                    book_type="连载",
+                    serial_mode=1,
+                    last_update_time=datetime.now().isoformat()
+                )
+                
+                if success:
+                    # 更新内存中的数据
+                    for item in self.crawler_history:
+                        if str(item.get("id")) == record_id:
+                            item["serial_mode"] = 1
+                            item["book_type"] = "连载"
+                            item["last_update_time"] = datetime.now().isoformat()
+                            break
+                    success_count += 1
+                else:
+                    fail_count += 1
+            
+            # 刷新表格显示
+            self._update_history_table()
+            
+            # 清空选择
+            self.selected_history.clear()
+            
+            # 显示结果
+            if fail_count == 0:
+                self._update_status(get_global_i18n().t('crawler.set_serial_batch_success', count=success_count), "success")
+            else:
+                self._update_status(get_global_i18n().t('crawler.set_serial_batch_partial', success=success_count, fail=fail_count), "warning")
+                
+        except Exception as e:
+            logger.error(f"批量设置连载模式失败: {e}")
+            self._update_status(f"操作失败: {e}", "error")
+    
+    def _batch_crawl_latest(self) -> None:
+        """批量爬取选中书籍的最新章节"""
+        try:
+            if not self.selected_history:
+                self._update_status("请先选择要爬取的记录", "warning")
+                return
+            
+            # 检查是否正在爬取
+            if self.is_crawling:
+                self._update_status(get_global_i18n().t('crawler.incremental_crawl_in_progress'), "warning")
+                return
+            
+            # 获取网站ID
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                return
+            
+            # 筛选出连载模式且状态为成功的记录
+            serial_novels = []
+            skipped_count = 0
+            
+            for item in self.crawler_history:
+                if str(item.get("id")) in self.selected_history:
+                    # 检查是否为连载模式
+                    if not item.get("serial_mode"):
+                        skipped_count += 1
+                        continue
+                    # 检查状态是否为成功
+                    if item.get("status") != get_global_i18n().t('crawler.status_success'):
+                        skipped_count += 1
+                        continue
+                    # 添加到待爬取列表
+                    serial_novels.append({
+                        "novel_id": item.get("novel_id"),
+                        "novel_title": item.get("novel_title")
+                    })
+            
+            if not serial_novels:
+                if skipped_count > 0:
+                    self._update_status(f"没有符合条件的记录（跳过了{skipped_count}条）", "warning")
+                else:
+                    self._update_status("请先选择要爬取的记录", "warning")
+                return
+            
+            # 检查代理配置
+            proxy_check_result = self._check_proxy_requirements_sync()
+            if not proxy_check_result['can_proceed']:
+                self._update_status(proxy_check_result['message'], "error")
+                return
+            
+            # 显示开始爬取提示
+            novel_count = len(serial_novels)
+            self._update_status(get_global_i18n().t('crawler.start_incremental_crawl', title=f"{novel_count}本书籍"), "information")
+            
+            # 设置爬取状态
+            self.is_crawling = True
+            self._update_crawl_button_state()
+            
+            # 使用后台爬取管理器启动任务
+            from src.core.crawler_manager import CrawlerManager
+            crawler_manager = CrawlerManager()
+            
+            # 提取书籍ID列表
+            novel_ids = [novel["novel_id"] for novel in serial_novels]
+            
+            # 启动批量爬取任务
+            task_id = crawler_manager.start_crawl_task(
+                site_id=site_id,
+                novel_ids=novel_ids,
+                proxy_config=proxy_check_result['proxy_config']
+            )
+            
+            # 保存当前任务ID
+            self.current_task_id = task_id
+            
+            logger.debug(f"已启动批量增量爬取任务，任务ID: {task_id}")
+            
+        except Exception as e:
+            logger.error(f"批量爬取最新失败: {e}")
+            self._update_status(f"操作失败: {e}", "error")
+            self.is_crawling = False
+            self._update_crawl_button_state()
+    
+    def _crawl_latest_chapters(self, row_key: str) -> None:
+        """爬取指定书籍的最新章节（增量更新）"""
+        try:
+            # 查找对应的历史记录
+            history_item = None
+            for item in self.crawler_history:
+                if str(item.get("id")) == row_key:
+                    history_item = item
+                    break
+            
+            if not history_item:
+                logger.debug(f"无法找到对应的历史记录: {row_key}")
+                return
+            
+            # 检查是否为连载模式
+            if not history_item.get("serial_mode"):
+                self._update_status(get_global_i18n().t('crawler.incremental_crawl_only_serial'), "warning")
+                return
+            
+            # 获取书籍ID
+            novel_id = history_item.get("novel_id")
+            novel_title = history_item.get("novel_title")
+            
+            # 检查是否正在爬取
+            if self.is_crawling:
+                self._update_status(get_global_i18n().t('crawler.incremental_crawl_in_progress'), "warning")
+                return
+            
+            # 获取网站ID
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
+                return
+            
+            # 显示开始爬取提示
+            self._update_status(get_global_i18n().t('crawler.start_incremental_crawl', title=novel_title), "information")
+            
+            # 设置爬取状态
+            self.is_crawling = True
+            self._update_crawl_button_state()
+            
+            # 使用后台爬取管理器启动任务
+            from src.core.crawler_manager import CrawlerManager
+            crawler_manager = CrawlerManager()
+            
+            # 获取代理配置
+            proxy_check_result = self._check_proxy_requirements_sync()
+            if not proxy_check_result['can_proceed']:
+                self._update_status(proxy_check_result['message'], "error")
+                self.is_crawling = False
+                self._update_crawl_button_state()
+                return
+            
+            # 启动爬取任务
+            task_id = crawler_manager.start_crawl_task(
+                site_id=site_id,
+                novel_ids=[novel_id],
+                proxy_config=proxy_check_result['proxy_config']
+            )
+            
+            # 保存当前任务ID
+            self.current_task_id = task_id
+            self.current_crawling_id = novel_id
+            
+            logger.info(f"已启动增量爬取任务: {task_id}, 书籍ID: {novel_id}")
+            
+        except Exception as e:
+            logger.error(f"爬取最新章节失败: {e}")
+            self._update_status(f"爬取失败: {e}", "error")
+            self.is_crawling = False
+            self._update_crawl_button_state()
     
     def _handle_button_click(self, column: str, row_key: str) -> None:
         """处理按钮点击"""
@@ -2333,35 +2641,62 @@ class CrawlerManagementScreen(Screen[None]):
         # 检查是否已经下载过且文件存在
         site_id = self.novel_site.get('id')
         existing_novels = []
+        serial_novels = []
         if site_id:
             for novel_id in novel_ids:
-                if self.db_manager.check_novel_exists(site_id, novel_id):
-                    existing_novels.append(novel_id)
+                # 检查是否已存在（不检查连载模式，用于提示）
+                if self.db_manager.check_novel_exists(site_id, novel_id, check_serial_mode=False):
+                    # 检查是否是连载模式
+                    last_crawl = self.db_manager.get_last_successful_crawl(site_id, novel_id)
+                    if last_crawl and last_crawl.get('serial_mode'):
+                        serial_novels.append(novel_id)
+                        # 连载书籍允许增量更新，不跳过
+                        continue
+                    else:
+                        # 短篇书籍，跳过
+                        existing_novels.append(novel_id)
         
         if existing_novels:
-            # 自动跳过并清理已存在的ID
+            # 自动跳过并清理已存在的短篇ID
             try:
                 for _eid in existing_novels:
                     # 清理输入框中的已存在ID
                     self.app.call_later(self._remove_id_from_input, _eid)
                     # 单独提示每个被跳过的ID
                     try:
-                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.skipped')}: {_eid}", "information")
+                        self.app.call_later(self._update_status, f"{get_global_i18n().t('crawler.skipped')} (短篇): {_eid}", "information")
                     except Exception:
                         pass
             except Exception:
                 pass
-            # 过滤掉已存在的ID，继续爬取剩余的
+            # 过滤掉已存在的短篇ID，保留连载ID
             novel_ids = [nid for nid in novel_ids if nid not in existing_novels]
-            if not novel_ids:
-                self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}")
-                # 重置爬取状态和按钮状态
-                self.is_crawling = False
-                self._update_crawl_button_state()
-                return
-            else:
-                # 汇总提示，继续爬取剩余ID
-                self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')}: {', '.join(existing_novels)}，{get_global_i18n().t('crawler.skip')}", "information")
+        
+        # 如果有连载书籍，提示将进行增量更新
+        if serial_novels:
+            try:
+                for _sid in serial_novels:
+                    self.app.call_later(self._update_status, f"连载模式，将增量更新: {_sid}", "information")
+            except Exception:
+                pass
+        
+        if not novel_ids and not existing_novels and not serial_novels:
+            # 没有有效的ID
+            self._update_status(get_global_i18n().t('crawler.no_valid_novels'))
+            # 重置爬取状态和按钮状态
+            self.is_crawling = False
+            self._update_crawl_button_state()
+            return
+        elif not novel_ids and existing_novels:
+            # 所有ID都是已存在的短篇书籍
+            self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')} (短篇): {', '.join(existing_novels)}")
+            # 重置爬取状态和按钮状态
+            self.is_crawling = False
+            self._update_crawl_button_state()
+            return
+        elif existing_novels:
+            # 有部分ID已存在（短篇），提示并继续爬取剩余ID
+            self._update_status(f"{get_global_i18n().t('crawler.novel_already_exists')} (短篇): {', '.join(existing_novels)}，{get_global_i18n().t('crawler.skip')}", "information")
         
         # 检查代理要求
         proxy_check_result = self._check_proxy_requirements_sync()
@@ -3769,10 +4104,20 @@ class CrawlerManagementScreen(Screen[None]):
             if site_id:
                 valid_novel_ids = []
                 skipped_novel_ids = []
+                serial_novel_ids = []
                 for novel_id in novel_ids:
                     # 检查是否已存在
-                    if self.db_manager.check_novel_exists(site_id, novel_id):
-                        continue
+                    if self.db_manager.check_novel_exists(site_id, novel_id, check_serial_mode=False):
+                        # 检查是否是连载模式
+                        last_crawl = self.db_manager.get_last_successful_crawl(site_id, novel_id)
+                        if last_crawl and last_crawl.get('serial_mode'):
+                            # 连载书籍，允许增量更新
+                            serial_novel_ids.append(novel_id)
+                            valid_novel_ids.append(novel_id)
+                            continue
+                        else:
+                            # 短篇书籍，跳过
+                            continue
                     
                     # 检查连续失败次数
                     consecutive_failures = self.db_manager.get_consecutive_failure_count(site_id, novel_id)
@@ -3790,6 +4135,10 @@ class CrawlerManagementScreen(Screen[None]):
                 # 如果有被跳过的ID，显示信息
                 if skipped_novel_ids:
                     self._update_status(f"已跳过 {len(skipped_novel_ids)} 个连续失败3次以上的小说", "warning")
+                
+                # 如果有连载书籍，显示信息
+                if serial_novel_ids:
+                    self._update_status(f"检测到 {len(serial_novel_ids)} 个连载书籍，将进行增量更新", "information")
                 
                 if not valid_novel_ids:
                     # 没有有效的ID，停止爬取
@@ -3892,6 +4241,10 @@ class CrawlerManagementScreen(Screen[None]):
             self._move_selected_down()
         elif button_id == "merge-btn":
             self._merge_selected()
+        elif button_id == "set-serial-btn":
+            self._set_selected_as_serial()
+        elif button_id == "batch-crawl-latest-btn":
+            self._batch_crawl_latest()
         elif button_id == "toggle-monitor-btn":
             self._toggle_browser_monitor()
     

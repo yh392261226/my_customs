@@ -313,7 +313,17 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
             site_id = self.novel_site.get("id")
             if not site_id:
                 return False
-            return self.db_manager.check_novel_exists(site_id, book_id)
+            # 检查是否已存在（不检查连载模式，用于显示）
+            if self.db_manager.check_novel_exists(site_id, book_id, check_serial_mode=False):
+                # 检查是否是连载模式
+                last_crawl = self.db_manager.get_last_successful_crawl(site_id, book_id)
+                if last_crawl and last_crawl.get('serial_mode'):
+                    # 连载书籍，不跳过（允许增量更新）
+                    return False
+                else:
+                    # 短篇书籍，跳过
+                    return True
+            return False
         except Exception:
             return False
 

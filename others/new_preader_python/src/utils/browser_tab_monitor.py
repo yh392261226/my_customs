@@ -501,6 +501,40 @@ class BrowserTabMonitor:
             logger.error(f"检查URL有效性失败: {url}, 错误: {e}")
             return None
     
+    def should_allow_crawl(self, site_id: int, novel_id: str) -> tuple[bool, str]:
+        """
+        检查是否应该允许爬取（基于连载模式判断）
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+        
+        Returns:
+            (allow_crawl, reason)
+        """
+        try:
+            # 检查历史记录
+            last_successful = self.db_manager.get_last_successful_crawl(site_id, novel_id)
+            
+            if not last_successful:
+                # 首次爬取，允许
+                return True, "首次爬取"
+            
+            # 检查是否为连载模式
+            if last_successful.get('serial_mode'):
+                # 连载模式，允许重复爬取（增量更新）
+                chapter_count = last_successful.get('chapter_count', 0)
+                last_chapter_index = last_successful.get('last_chapter_index', -1) + 1
+                return True, f"连载模式，已爬取 {last_chapter_index}/{chapter_count} 章"
+            else:
+                # 非连载模式（短篇），不允许重复爬取
+                return False, "短篇书籍，已爬取完成"
+                
+        except Exception as e:
+            logger.error(f"检查是否允许爬取失败: {e}")
+            # 出错时默认允许
+            return True, "检查失败，允许爬取"
+    
     def monitor_tabs(self, callback=None) -> List[Dict[str, Any]]:
         """
         监控Chrome标签页，查找小说URL
