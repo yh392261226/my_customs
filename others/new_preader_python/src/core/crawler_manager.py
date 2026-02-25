@@ -228,13 +228,32 @@ class CrawlerManager:
                     # 获取存储文件夹
                     storage_folder = novel_site.get('storage_folder', 'novels')
                     
-                    # 使用增量爬取方法
+                    # 先解析小说详情获取标题
+                    parse_result = await self._async_parse_novel_detail(parser, novel_id)
+                    if 'success' in parse_result and not parse_result['success']:
+                        # 解析失败
+                        task.failed_count += 1
+                        db_manager.add_crawl_history(
+                            site_id=task.site_id,
+                            novel_id=novel_id,
+                            novel_title=f"书籍ID: {novel_id}",
+                            status="failed",
+                            file_path="",
+                            error_message=parse_result.get('error_message', get_global_i18n().t('crawler.unknown_error'))
+                        )
+                        continue
+                    
+                    # 使用解析后的标题
+                    actual_novel_title = parse_result.get('title', f"书籍ID: {novel_id}")
+                    
+                    # 使用增量爬取方法，传入已解析的结果
                     result = await self._incremental_crawl(
                         parser=parser,
                         novel_id=novel_id,
                         site_id=task.site_id,
-                        novel_title=novel_id,
-                        storage_folder=storage_folder
+                        novel_title=actual_novel_title,
+                        storage_folder=storage_folder,
+                        parse_result=parse_result
                     )
                     
                     # 假设解析器成功执行时返回的结果就是成功的
@@ -345,7 +364,7 @@ class CrawlerManager:
                 'error_message': str(e)
             }
     
-    async def _incremental_crawl(self, parser, novel_id: str, site_id: int, novel_title: str, storage_folder: str) -> Dict[str, Any]:
+    async def _incremental_crawl(self, parser, novel_id: str, site_id: int, novel_title: str, storage_folder: str, parse_result: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         增量爬取：只爬取新章节，追加到已有文件
         
@@ -355,6 +374,7 @@ class CrawlerManager:
             site_id: 网站ID
             novel_title: 小说标题
             storage_folder: 存储文件夹
+            parse_result: 可选，已解析的结果（避免重复解析）
         
         Returns:
             爬取结果
@@ -395,10 +415,16 @@ class CrawlerManager:
             
             logger.info(f"已有 {len(saved_chapters)} 个章节，从第 {len(saved_chapters)+1} 章开始爬取")
         
-        # 3. 爬取所有章节
-        result = await self._async_parse_novel_detail(parser, novel_id)
-        if 'success' in result and not result['success']:
-            return result
+        # 3. 爬取所有章节（如果提供了parse_result则使用，否则重新解析）
+        if parse_result is None:
+            result = await self._async_parse_novel_detail(parser, novel_id)
+            if 'success' in result and not result['success']:
+                return result
+        else:
+            result = parse_result
+        
+        # 更新标题（从解析结果中获取）
+        actual_title = result.get('title', novel_title)
         
         all_chapters = result.get('chapters', [])
         
@@ -427,14 +453,24 @@ class CrawlerManager:
                     logger.info(f"覆盖模式：没有章节追踪记录，直接覆盖文件（共 {len(all_chapters)} 章）")
                 
                 # 更新数据库记录
+                # 检查是否需要修复标题（如果标题等于ID，说明是旧数据）
+                update_data = {
+                    'file_path': file_path,
+                    'chapter_count': len(all_chapters),
+                    'last_chapter_index': len(all_chapters) - 1,
+                    'last_chapter_title': all_chapters[-1].get('title', '') if all_chapters else '',
+                    'content_hash': calculate_file_hash(file_path) if file_path else '',
+                    'last_update_time': datetime.now().isoformat()
+                }
+                
+                # 如果标题等于ID，修复为正确的标题
+                if last_successful.get('novel_title') == novel_id:
+                    logger.info(f"检测到错误标题（等于ID），自动修复: {novel_id} -> {actual_title}")
+                    update_data['novel_title'] = actual_title
+                
                 db_manager.update_crawl_history_full(
                     last_successful['id'],
-                    file_path=file_path,
-                    chapter_count=len(all_chapters),
-                    last_chapter_index=len(all_chapters) - 1,
-                    last_chapter_title=all_chapters[-1].get('title', '') if all_chapters else '',
-                    content_hash=calculate_file_hash(file_path) if file_path else '',
-                    last_update_time=datetime.now().isoformat()
+                    **update_data
                 )
             else:
                 # 首次爬取：保存完整文件
@@ -445,7 +481,7 @@ class CrawlerManager:
                 db_manager.add_crawl_history(
                     site_id=site_id,
                     novel_id=novel_id,
-                    novel_title=novel_title,
+                    novel_title=actual_title,
                     status='success',
                     file_path=file_path,
                     error_message='',

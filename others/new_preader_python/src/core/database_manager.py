@@ -2564,6 +2564,41 @@ class DatabaseManager:
             logger.error(f"批量添加章节追踪记录失败: {e}")
             return False
 
+    def repair_novel_title(self, site_id: int, novel_id: str, new_title: str) -> bool:
+        """
+        修复小说标题
+        
+        Args:
+            site_id: 网站ID
+            novel_id: 小说ID
+            new_title: 新的标题
+        
+        Returns:
+            是否成功
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    UPDATE crawl_history
+                    SET novel_title = ?
+                    WHERE site_id = ? AND novel_id = ?
+                """, (new_title, site_id, novel_id))
+                
+                conn.commit()
+                
+                if cursor.rowcount > 0:
+                    logger.info(f"修复小说标题成功: {novel_id} -> {new_title}")
+                    return True
+                else:
+                    logger.warning(f"未找到需要修复的记录: site_id={site_id}, novel_id={novel_id}")
+                    return False
+                    
+        except sqlite3.Error as e:
+            logger.error(f"修复小说标题失败: {e}")
+            return False
+    
     def repair_chapter_tracking(self, site_id: int, novel_id: str) -> Dict[str, Any]:
         """
         修复章节追踪信息：从已有文件中提取章节信息并补充到chapter_tracking表
