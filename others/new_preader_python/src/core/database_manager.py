@@ -110,6 +110,15 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
+            # 启用 WAL 模式以支持并发读写
+            # WAL 模式允许多个读操作和一个写操作同时进行
+            cursor.execute("PRAGMA journal_mode = WAL")
+            logger.info("数据库 WAL 模式已启用，支持并发读写")
+            
+            # 设置繁忙超时（5秒），当数据库被锁定时等待最多5秒
+            cursor.execute("PRAGMA busy_timeout = 5000")
+            logger.info("数据库繁忙超时已设置为 5000ms")
+            
             # 根据配置启用auto_vacuum以避免数据库臃肿
             config = ConfigManager.get_instance().get_config()
             auto_vacuum_enabled = config.get("advanced", {}).get("auto_vacuum_enabled", True)
@@ -525,8 +534,44 @@ class DatabaseManager:
             self._add_column_if_not_exists(cursor, "crawl_history", "serial_mode", "BOOLEAN", "0")
             self._add_column_if_not_exists(cursor, "crawl_history", "first_crawl_time", "TEXT")
             self._add_column_if_not_exists(cursor, "crawl_history", "last_update_time", "TEXT")
+            self._add_column_if_not_exists(cursor, "crawl_history", "pinyin", "TEXT", "''")
 
             conn.commit()
+    
+    def _get_connection_with_retry(self, max_retries: int = 3) -> sqlite3.Connection:
+        """
+        获取数据库连接，支持重试机制
+        
+        Args:
+            max_retries: 最大重试次数
+            
+        Returns:
+            sqlite3.Connection: 数据库连接对象
+            
+        Raises:
+            sqlite3.OperationalError: 连接失败时抛出异常
+        """
+        import time
+        
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                conn = sqlite3.connect(self.db_path)
+                # 设置繁忙超时
+                conn.execute("PRAGMA busy_timeout = 5000")
+                return conn
+            except sqlite3.OperationalError as e:
+                last_error = e
+                if "database is locked" in str(e) and attempt < max_retries - 1:
+                    wait_time = 0.1 * (2 ** attempt)  # 指数退避：0.1s, 0.2s, 0.4s
+                    logger.warning(f"数据库被锁定，等待 {wait_time:.1f}s 后重试 (尝试 {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise
+        
+        # 如果所有重试都失败，抛出最后一个错误
+        raise last_error if last_error else sqlite3.OperationalError("无法连接到数据库")
     
     def _build_minimal_metadata(self, book: Book) -> str:
         """
@@ -2318,6 +2363,9 @@ class DatabaseManager:
             bool: 添加是否成功
         """
         try:
+            # 生成书名拼音
+            pinyin_text = convert_to_pinyin(novel_title) if novel_title else ""
+            
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 crawl_time = datetime.now().isoformat()
@@ -2326,8 +2374,8 @@ class DatabaseManager:
                     INSERT INTO crawl_history 
                     (site_id, novel_id, novel_title, crawl_time, status, file_path, error_message,
                      book_type, chapter_count, last_chapter_index, last_chapter_title, 
-                     content_hash, serial_mode, first_crawl_time, last_update_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     content_hash, serial_mode, first_crawl_time, last_update_time, pinyin)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     site_id,
                     novel_id,
@@ -2343,7 +2391,8 @@ class DatabaseManager:
                     content_hash,
                     1 if serial_mode else 0,
                     crawl_time if status == 'success' else None,
-                    crawl_time if status == 'success' else None
+                    crawl_time if status == 'success' else None,
+                    pinyin_text
                 ))
                 conn.commit()
                 return True

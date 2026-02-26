@@ -20,6 +20,7 @@ class DuplicateType(Enum):
     FILE_NAME = "文件名相同"
     CONTENT_SIMILAR = "内容相似"
     HASH_IDENTICAL = "哈希值相同"
+    CONTENT_SUBSET = "内容子集"
 
 @dataclass
 class DuplicateGroup:
@@ -289,6 +290,20 @@ class OptimizedBookDuplicateDetector:
         except Exception as e:
             logger.error(f"比较书籍内容时出错: {e}")
         
+        # 检查包含关系（当文件大小差异较大时）
+        subset_relationship = None
+        try:
+            if book1.size and book2.size:
+                size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
+                # 当文件大小差异超过30%时，检查包含关系
+                if size_ratio < 0.7:
+                    subset_relationship, subset_ratio = StringUtils.check_subset_relationship(book1, book2)
+                    if subset_relationship != "none" and subset_ratio >= 0.8:
+                        # 如果包含关系成立，使用子集匹配比例作为相似度
+                        similarity = subset_ratio
+        except Exception as e:
+            logger.error(f"检查包含关系时出错: {e}")
+        
         # 检查哈希值是否相同
         hash_match = False
         try:
@@ -305,6 +320,8 @@ class OptimizedBookDuplicateDetector:
             duplicate_types.append(DuplicateType.HASH_IDENTICAL)
         if similarity >= 0.2:  # 相似度超过20%
             duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
+        if subset_relationship and subset_relationship != "none" and subset_relationship in ["subset", "superset"]:
+            duplicate_types.append(DuplicateType.CONTENT_SUBSET)
         if file_name_match:
             duplicate_types.append(DuplicateType.FILE_NAME)
         
@@ -360,12 +377,17 @@ class OptimizedBookDuplicateDetector:
         if not group.books or len(group.books) < 2:
             return
         
-        # 按照优先级排序：文件大小 > 修改时间 > 阅读进度
-        sorted_books = sorted(group.books, key=lambda b: (
-            b.size,  # 文件大小
-            b.modified_time if hasattr(b, 'modified_time') else 0,  # 修改时间
-            b.read_progress if hasattr(b, 'read_progress') else 0  # 阅读进度
-        ), reverse=True)
+        # 对于包含关系类型，优先保留大书
+        if group.duplicate_type == DuplicateType.CONTENT_SUBSET:
+            # 按文件大小排序，大的优先
+            sorted_books = sorted(group.books, key=lambda b: b.size if b.size else 0, reverse=True)
+        else:
+            # 其他类型按照优先级排序：文件大小 > 修改时间 > 阅读进度
+            sorted_books = sorted(group.books, key=lambda b: (
+                b.size,  # 文件大小
+                b.modified_time if hasattr(b, 'modified_time') else 0,  # 修改时间
+                b.read_progress if hasattr(b, 'read_progress') else 0  # 阅读进度
+            ), reverse=True)
         
         # 保留第一个（最优的），其余推荐删除
         group.recommended_to_keep = [sorted_books[0]]

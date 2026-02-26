@@ -1626,6 +1626,7 @@
     "type_file_name": "Same File Name",
     "type_content_similar": "Content Similar {similarity}",
     "type_hash_identical": "Identical Hash",
+    "type_content_subset": "Content Subset {similarity}",
     "types": "Duplicate Type",
     "recommended": "Recommended Action",
     "selected": "Selected",

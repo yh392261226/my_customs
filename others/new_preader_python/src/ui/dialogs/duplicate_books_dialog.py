@@ -182,6 +182,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             duplicate_type_text = get_global_i18n().t("duplicate_books.type_content_similar", similarity=f"{group.similarity:.1%}")
         elif group.duplicate_type == DuplicateType.HASH_IDENTICAL:
             duplicate_type_text = get_global_i18n().t("duplicate_books.type_hash_identical")
+        elif group.duplicate_type == DuplicateType.CONTENT_SUBSET:
+            duplicate_type_text = get_global_i18n().t("duplicate_books.type_content_subset", similarity=f"{group.similarity:.1%}")
         
         group_info_label.update(
             get_global_i18n().t(
@@ -213,14 +215,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             is_recommended_keep = book in group.recommended_to_keep
             recommended_text = "保留" if is_recommended_keep else "删除"
             
-            # 关键修改：直接在这里检查并添加推荐删除的书籍到选中集合
-            # 这样可以确保即使是新追加的组，推荐的书籍也会被选中
-            if book in group.recommended_to_delete:
-                if book.path not in self.selected_books:
-                    self.selected_books.add(book.path)
-                    self.recommended_selected_books.add(book.path)
-            
-            # 检查是否被选中
+            # 检查是否被选中（不再强制添加推荐书籍，让用户自由选择）
             is_selected = book.path in self.selected_books
             if is_selected:
                 selected_keys.add(book.path)

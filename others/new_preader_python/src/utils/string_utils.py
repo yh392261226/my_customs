@@ -2,10 +2,15 @@
 字符串工具类，提供文本处理功能
 """
 
+import os
 import re
 import unicodedata
 from difflib import SequenceMatcher
 from typing import List, Dict, Any, Optional
+
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class StringUtils:
     """字符串工具类"""
@@ -291,3 +296,125 @@ class StringUtils:
         samples.append(content[-part_size:])
         
         return samples
+    
+    @staticmethod
+    def is_content_subset(content1: str, content2: str, min_match_ratio: float = 0.8) -> Tuple[bool, float]:
+        """
+        检查一个内容是否是另一个内容的子集
+        
+        Args:
+            content1: 内容1（较小的内容）
+            content2: 内容2（较大的内容）
+            min_match_ratio: 最小匹配比例，默认0.8（80%）
+            
+        Returns:
+            Tuple[bool, float]: (是否为子集, 匹配比例)
+        """
+        if not content1 or not content2:
+            return False, 0.0
+        
+        # 规范化文本（去除空白字符）
+        content1 = re.sub(r'\s+', '', content1)
+        content2 = re.sub(r'\s+', '', content2)
+        
+        len1 = len(content1)
+        len2 = len(content2)
+        
+        # 如果两者长度相同，不可能是子集关系
+        if len1 >= len2:
+            return False, 0.0
+        
+        # 使用 SequenceMatcher 检查 content1 是否完全包含在 content2 中
+        # 先检查是否是连续的子串
+        if content1 in content2:
+            return True, 1.0
+        
+        # 如果不是连续子串，检查分散匹配
+        # 使用 SequenceMatcher 计算最长公共子序列
+        matcher = SequenceMatcher(None, content1, content2)
+        
+        # 获取匹配块
+        matches = matcher.get_opcodes()
+        
+        # 计算 content1 中匹配的内容长度
+        matched_length = 0
+        for op in matches:
+            if op[0] == 'equal':  # 匹配的内容
+                matched_length += op[2] - op[1]
+        
+        # 计算匹配比例
+        match_ratio = matched_length / len1 if len1 > 0 else 0.0
+        
+        # 判断是否为子集（匹配比例超过阈值）
+        is_subset = match_ratio >= min_match_ratio
+        
+        return is_subset, match_ratio
+    
+    @staticmethod
+    def check_subset_relationship(book1: Book, book2: Book) -> Tuple[Optional[str], float]:
+        """
+        检查两本书之间的包含关系
+        
+        Args:
+            book1: 书籍1
+            book2: 书籍2
+            
+        Returns:
+            Tuple[Optional[str], float]: (包含关系类型, 相似度)
+                - "subset": book1 是 book2 的子集
+                - "superset": book1 是 book2 的超集
+                - "none": 无包含关系
+        """
+        try:
+            # 获取内容采样
+            content1 = StringUtils._read_book_sample(book1.path, sample_size=10000)
+            content2 = StringUtils._read_book_sample(book2.path, sample_size=10000)
+            
+            if not content1 or not content2:
+                return "none", 0.0
+            
+            # 检查 book1 是否是 book2 的子集
+            is_subset, ratio1 = StringUtils.is_content_subset(content1, content2)
+            if is_subset:
+                return "subset", ratio1
+            
+            # 检查 book2 是否是 book1 的子集
+            is_subset, ratio2 = StringUtils.is_content_subset(content2, content1)
+            if is_subset:
+                return "superset", ratio2
+            
+            return "none", 0.0
+        except Exception as e:
+            logger.error(f"检查包含关系时出错: {e}")
+            return "none", 0.0
+    
+    @staticmethod
+    def _read_book_sample(book_path: str, sample_size: int = 10000) -> Optional[str]:
+        """
+        读取书籍内容采样
+        
+        Args:
+            book_path: 书籍路径
+            sample_size: 采样大小
+            
+        Returns:
+            Optional[str]: 内容采样
+        """
+        try:
+            if not os.path.exists(book_path):
+                return None
+            
+            # 检查文件扩展名
+            _, ext = os.path.splitext(book_path.lower())
+            binary_extensions = {'.epub', '.mobi', '.azw', '.azw3', '.pdf', '.djvu', '.cbr', '.cbz', '.fb2'}
+            
+            if ext in binary_extensions:
+                # 对于二进制格式，返回 None
+                return None
+            
+            # 读取开头部分
+            with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read(sample_size)
+        except Exception as e:
+            logger.error(f"读取书籍内容时出错: {e}")
+            return None

@@ -934,6 +934,7 @@
     "type_file_name": "文件名相同",
     "type_content_similar": "内容相似 {similarity}",
     "type_hash_identical": "哈希值相同",
+    "type_content_subset": "内容子集 {similarity}",
     "types": "重复类型",
     "recommended": "推荐操作",
     "selected": "选中",

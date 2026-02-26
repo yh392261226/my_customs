@@ -19,6 +19,7 @@ class DuplicateType(Enum):
     FILE_NAME = "文件名相同"
     CONTENT_SIMILAR = "内容相似"
     HASH_IDENTICAL = "哈希值相同"
+    CONTENT_SUBSET = "内容子集"
 
 @dataclass
 class DuplicateGroup:
@@ -191,12 +192,17 @@ class BookDuplicateDetector:
         if not group.books or len(group.books) < 2:
             return
         
-        # 按照优先级排序：文件大小 > 修改时间 > 阅读进度
-        sorted_books = sorted(group.books, key=lambda b: (
-            b.size,  # 文件大小
-            b.modified_time if hasattr(b, 'modified_time') else 0,  # 修改时间
-            b.read_progress if hasattr(b, 'read_progress') else 0  # 阅读进度
-        ), reverse=True)
+        # 对于包含关系类型，优先保留大书
+        if group.duplicate_type == DuplicateType.CONTENT_SUBSET:
+            # 按文件大小排序，大的优先
+            sorted_books = sorted(group.books, key=lambda b: b.size if b.size else 0, reverse=True)
+        else:
+            # 其他类型按照优先级排序：文件大小 > 修改时间 > 阅读进度
+            sorted_books = sorted(group.books, key=lambda b: (
+                b.size,  # 文件大小
+                b.modified_time if hasattr(b, 'modified_time') else 0,  # 修改时间
+                b.read_progress if hasattr(b, 'read_progress') else 0  # 阅读进度
+            ), reverse=True)
         
         # 保留第一个（最优的），其余推荐删除
         group.recommended_to_keep = [sorted_books[0]]

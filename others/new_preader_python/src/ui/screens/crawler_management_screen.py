@@ -1061,7 +1061,8 @@ class CrawlerManagementScreen(Screen[None]):
                                         "serial_mode": item.get('serial_mode', 0),
                                         "content_hash": item.get('content_hash', ''),
                                         "first_crawl_time": item.get('first_crawl_time', crawl_time),
-                                        "last_update_time": item.get('last_update_time', '')
+                                        "last_update_time": item.get('last_update_time', ''),
+                                        "pinyin": item.get('pinyin', '')
                                     })
             else:
                 self.crawler_history = []
@@ -1087,10 +1088,11 @@ class CrawlerManagementScreen(Screen[None]):
             item_novel_id = item.get('novel_id', '')
             decoded_novel_id = unquote(item_novel_id) if item_novel_id else ''
             
-            # 搜索小说标题、小说ID（解码后）、状态
+            # 搜索小说标题、小说ID（解码后）、状态、拼音
             if (keyword in item.get('novel_title', '').lower() or 
                 keyword in decoded_novel_id.lower() or 
-                keyword in item.get('status', '').lower()):
+                keyword in item.get('status', '').lower() or
+                keyword in item.get('pinyin', '').lower()):
                 filtered_history.append(item)
         
         return filtered_history

@@ -31,7 +31,9 @@ class CrxsParser(BaseParser):
     
     # 正则表达式配置
     title_reg = [
+        r'<meta name="twitter:title" content="\s*(.*?)\s*" />',
         r'<div class="title">\s*(.*?)\s*</div>',
+        r'<div class="fiction-overview-info-item title">\s*(.*?)\s*</div>',
         r'<title>(.*?)</title>'
     ]
     
