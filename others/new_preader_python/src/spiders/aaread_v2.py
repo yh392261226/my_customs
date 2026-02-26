@@ -412,6 +412,86 @@ class AareadParser(BaseParser):
 
 # 使用示例
 if __name__ == "__main__":
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定章节URL开始继续爬取
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节URL（最后一章的URL）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引
+            
+        Returns:
+            小说详情信息
+        """
+        # 获取小说页面，提取章节列表
+        novel_url = self.get_novel_url(novel_id)
+        content = self._get_url_content(novel_url)
+        
+        if not content:
+            raise Exception(f"无法获取小说页面: {novel_url}")
+        
+        # 提取章节列表
+        chapter_list = self._extract_chapter_list(content)
+        if not chapter_list:
+            raise Exception("无法获取章节列表")
+        
+        # 通过比对URL找到起始位置
+        start_pos = 0
+        for i, chapter in enumerate(chapter_list):
+            chapter_full_url = self.get_chapter_url(novel_id, chapter['chapter_id'])
+            if chapter_full_url == start_url:
+                start_pos = i + 1  # 从下一章开始
+                break
+        
+        if start_pos >= len(chapter_list):
+            # 没有新章节
+            return {
+                'title': title or f'书籍-{novel_id}',
+                'chapters': []
+            }
+        
+        logger.info(f"从第 {start_pos + 1} 章开始爬取，共 {len(chapter_list) - start_pos} 个新章节")
+        
+        # 创建小说内容
+        novel_content = {
+            'title': title or f'书籍-{novel_id}',
+            'author': author or self.novel_site_name,
+            'novel_id': novel_id,
+            'url': novel_url,
+            'chapters': []
+        }
+        
+        # 从起始位置开始爬取
+        for i in range(start_pos, len(chapter_list)):
+            chapter_info = chapter_list[i]
+            chapter_title = chapter_info['chapter_title']
+            
+            logger.info(f"正在爬取第 {i+1}/{len(chapter_list)} 章: {chapter_title}")
+            
+            # 获取章节内容
+            chapter_result = self._parse_chapter_content(novel_id, chapter_info['chapter_id'])
+            
+            if chapter_result and 'content' in chapter_result:
+                novel_content['chapters'].append({
+                    'chapter_number': start_index + (i - start_pos) + 1,
+                    'title': chapter_title,
+                    'content': chapter_result['content'],
+                    'url': self.get_chapter_url(novel_id, chapter_info['chapter_id'])
+                })
+                logger.info(f"✓ 第 {i+1} 章抓取成功")
+            else:
+                logger.warning(f"✗ 第 {i+1} 章内容抓取失败")
+            
+            # 章节间延迟
+            time.sleep(1)
+        
+        return novel_content
+
+
+if __name__ == "__main__":
     parser = AareadParser()
     
     # 测试单篇小说

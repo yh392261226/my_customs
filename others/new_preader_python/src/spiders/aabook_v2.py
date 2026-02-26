@@ -584,3 +584,83 @@ class AabookParser(BaseParser):
             小说信息列表
         """
         return []
+    
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定URL开始爬取新章节（章节列表类型）
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节的URL（最后一章的链接）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引（从0开始）
+        
+        Returns:
+            小说详情信息（只包含新章节）
+        """
+        # 重置章节计数器
+        self.chapter_count = 0
+        
+        # 获取章节列表
+        book_id = self._extract_book_id_from_url(start_url)
+        if not book_id:
+            raise Exception("无法提取书籍ID")
+        
+        chapter_links = self._get_chapter_list(book_id)
+        if not chapter_links:
+            raise Exception("无法获取章节列表")
+        
+        # 在章节列表中找到 start_url 对应的索引
+        start_link_index = -1
+        for i, link in enumerate(chapter_links):
+            if link.get('url') == start_url:
+                start_link_index = i
+                break
+        
+        if start_link_index == -1:
+            logger.warning(f"在章节列表中未找到起始URL: {start_url}，将从第1章开始爬取")
+            start_link_index = -1
+        
+        logger.info(f"章节列表中共有 {len(chapter_links)} 个章节，从第 {start_link_index + 2} 章开始增量爬取")
+        
+        # 创建小说内容
+        novel_content = {
+            'title': title if title else f"小说ID-{novel_id}",
+            'author': author if author else self.novel_site_name,
+            'novel_id': book_id,
+            'url': start_url,
+            'chapters': []
+        }
+        
+        # 从 start_link_index + 1 开始爬取（跳过最后一章）
+        for i in range(start_link_index + 1, len(chapter_links)):
+            chapter_info = chapter_links[i]
+            chapter_url = chapter_info['url']
+            chapter_title = chapter_info['title']
+            chapter_id = chapter_info['chapter_id']
+            
+            logger.info(f"正在爬取第 {i + 1}/{len(chapter_links)} 章: {chapter_title}")
+            
+            # 获取章节内容
+            chapter_content = self._get_chapter_content(chapter_url, chapter_id)
+            
+            if chapter_content:
+                self.chapter_count += 1
+                actual_index = start_index + self.chapter_count
+                
+                novel_content['chapters'].append({
+                    'chapter_number': actual_index,
+                    'title': chapter_title,
+                    'content': chapter_content,
+                    'url': chapter_url
+                })
+                logger.info(f"✓ 第 {actual_index} 章抓取成功")
+            else:
+                logger.warning(f"✗ 第 {i + 1} 章内容抓取失败")
+            
+            # 章节间延迟
+            time.sleep(1)
+        
+        logger.info(f"增量爬取完成，新增 {len(novel_content['chapters'])} 章")
+        return novel_content

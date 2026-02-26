@@ -382,7 +382,7 @@ class CrawlerManager:
         from src.core.database_manager import DatabaseManager
         from src.utils.file_helpers import (
             read_text_file, write_text_file, append_chapters_to_file,
-            calculate_file_hash, calculate_content_hash, detect_chapter_duplicates
+            calculate_file_hash, calculate_content_hash
         )
         import os
         
@@ -391,33 +391,52 @@ class CrawlerManager:
         # 1. 检查历史记录
         last_successful = db_manager.get_last_successful_crawl(site_id, novel_id)
         
-        # 2. 获取已有的章节信息
-        saved_chapters = {}
+        # 2. 获取最后一章的URL
+        last_chapter_url = None
+        start_index = 0
+        
         if last_successful and last_successful.get('serial_mode'):
-            saved_chapters = db_manager.get_saved_chapters(
-                site_id, 
-                novel_id, 
-                record_id=last_successful['id']
-            )
+            # 从 crawl_history 表获取最后一章的URL
+            last_chapter_url = last_successful.get('last_chapter_url', '')
+            start_index = last_successful.get('last_chapter_index', -1) + 1
             
-            # 如果没有追踪记录，尝试自动修复
-            if not saved_chapters:
-                logger.info(f"没有找到章节追踪记录，尝试自动修复...")
-                repair_result = db_manager.repair_chapter_tracking(site_id, novel_id)
-                if repair_result['success']:
-                    logger.info(f"自动修复成功: {repair_result['message']}")
-                    # 重新获取章节信息
-                    saved_chapters = db_manager.get_saved_chapters(
-                        site_id, 
-                        novel_id, 
-                        record_id=last_successful['id']
-                    )
-            
-            logger.info(f"已有 {len(saved_chapters)} 个章节，从第 {len(saved_chapters)+1} 章开始爬取")
+            logger.info(f"最后一章URL: {last_chapter_url}，从第 {start_index + 1} 章开始爬取")
         
         # 3. 爬取所有章节（如果提供了parse_result则使用，否则重新解析）
         if parse_result is None:
-            result = await self._async_parse_novel_detail(parser, novel_id)
+            # 优先尝试增量爬取
+            if last_chapter_url and hasattr(parser, 'parse_novel_detail_incremental'):
+                try:
+                    logger.info(f"使用增量爬取模式，从URL: {last_chapter_url} 开始")
+                    result = parser.parse_novel_detail_incremental(
+                        novel_id=novel_id,
+                        start_url=last_chapter_url,
+                        title=last_successful.get('novel_title') if last_successful else None,
+                        author=last_successful.get('author', '') if last_successful else None,
+                        start_index=start_index
+                    )
+                    
+                    # 检查是否成功爬取到新章节
+                    if result and result.get('chapters'):
+                        logger.info(f"增量爬取成功，获取到 {len(result['chapters'])} 个新章节")
+                    else:
+                        logger.info("增量爬取没有找到新章节")
+                        return {
+                            'success': True,
+                            'title': last_successful.get('novel_title', novel_title),
+                            'message': '没有新章节需要更新',
+                            'new_chapters': 0,
+                            'already_exists': True
+                        }
+                except NotImplementedError:
+                    logger.info("解析器不支持增量爬取，使用常规爬取模式")
+                    result = await self._async_parse_novel_detail(parser, novel_id)
+                except Exception as e:
+                    logger.warning(f"增量爬取失败: {e}，回退到常规爬取模式")
+                    result = await self._async_parse_novel_detail(parser, novel_id)
+            else:
+                result = await self._async_parse_novel_detail(parser, novel_id)
+                
             if 'success' in result and not result['success']:
                 return result
         else:
@@ -428,37 +447,26 @@ class CrawlerManager:
         
         all_chapters = result.get('chapters', [])
         
-        # 4. 章节去重
-        new_chapters, duplicate_count = detect_chapter_duplicates(all_chapters, saved_chapters)
-        
-        # 5. 保存策略
-        if new_chapters:
+        # 4. 保存策略
+        if all_chapters:
             if last_successful and os.path.exists(last_successful['file_path']):
-                # 检查是否是真正的增量更新（有章节追踪记录）
-                if saved_chapters and len(saved_chapters) > 0:
-                    # 追加模式：读取已有文件，追加新章节
-                    old_content = read_text_file(last_successful['file_path'])
-                    new_content = append_chapters_to_file(old_content, new_chapters)
-                    
-                    # 保存文件
-                    file_path = last_successful['file_path']
-                    write_text_file(file_path, new_content)
-                    
-                    logger.info(f"追加模式：追加 {len(new_chapters)} 个新章节，跳过 {duplicate_count} 个重复章节")
-                else:
-                    # 覆盖模式：没有章节追踪记录，直接覆盖整个文件
-                    storage_folder = os.path.expanduser(storage_folder)
-                    file_path = parser.save_to_file(result, storage_folder)
-                    
-                    logger.info(f"覆盖模式：没有章节追踪记录，直接覆盖文件（共 {len(all_chapters)} 章）")
+                # 追加模式：读取已有文件，追加新章节
+                old_content = read_text_file(last_successful['file_path'])
+                new_content = append_chapters_to_file(old_content, all_chapters)
+                
+                # 保存文件
+                file_path = last_successful['file_path']
+                write_text_file(file_path, new_content)
+                
+                logger.info(f"追加模式：追加 {len(all_chapters)} 个新章节")
                 
                 # 更新数据库记录
-                # 检查是否需要修复标题（如果标题等于ID，说明是旧数据）
                 update_data = {
                     'file_path': file_path,
-                    'chapter_count': len(all_chapters),
-                    'last_chapter_index': len(all_chapters) - 1,
-                    'last_chapter_title': all_chapters[-1].get('title', '') if all_chapters else '',
+                    'chapter_count': last_successful.get('chapter_count', 0) + len(all_chapters),
+                    'last_chapter_index': last_successful.get('chapter_count', 0) + len(all_chapters) - 1,
+                    'last_chapter_title': all_chapters[-1].get('title', '') if all_chapters else last_successful.get('last_chapter_title', ''),
+                    'last_chapter_url': all_chapters[-1].get('url', '') if all_chapters else last_successful.get('last_chapter_url', ''),
                     'content_hash': calculate_file_hash(file_path) if file_path else '',
                     'last_update_time': datetime.now().isoformat()
                 }
@@ -489,6 +497,7 @@ class CrawlerManager:
                     chapter_count=len(all_chapters),
                     last_chapter_index=len(all_chapters) - 1 if all_chapters else -1,
                     last_chapter_title=all_chapters[-1].get('title', '') if all_chapters else '',
+                    last_chapter_url=all_chapters[-1].get('url', '') if all_chapters else '',
                     content_hash=calculate_file_hash(file_path) if file_path else '',
                     serial_mode=len(all_chapters) > 1  # 多章节自动启用连载模式
                 )
@@ -506,72 +515,19 @@ class CrawlerManager:
                 'already_exists': True
             }
         
-        # 6. 记录章节追踪信息
-        chapter_tracking_data = []
-        
-        # 判断是否需要记录所有章节
-        should_record_all = False
-        
-        # 如果是首次爬取（没有last_successful），记录所有章节
-        if not last_successful:
-            should_record_all = True
-            logger.info(f"首次爬取，记录所有章节追踪信息")
-        # 如果没有章节追踪记录（saved_chapters为空），说明是旧数据，也记录所有章节
-        elif not saved_chapters:
-            should_record_all = True
-            logger.info(f"旧数据（无追踪记录），记录所有章节追踪信息")
-        
-        if should_record_all:
-            # 记录所有章节
-            for idx, chapter in enumerate(all_chapters):
-                chapter_hash = calculate_content_hash(chapter.get('content', ''))
-                chapter_tracking_data.append({
-                    'chapter_index': idx,
-                    'chapter_title': chapter.get('title', ''),
-                    'chapter_hash': chapter_hash,
-                    'crawl_time': datetime.now().isoformat()
-                })
-            logger.info(f"记录 {len(chapter_tracking_data)} 个章节追踪信息")
-        else:
-            # 如果是真正的增量更新，只记录新章节
-            for idx, chapter in enumerate(new_chapters):
-                # 找到该章节在所有章节中的实际索引
-                actual_index = -1
-                for i, ch in enumerate(all_chapters):
-                    if ch.get('title') == chapter.get('title') or calculate_content_hash(ch.get('content', '')) == chapter.get('hash'):
-                        actual_index = i
-                        break
-                
-                if actual_index >= 0:
-                    chapter_tracking_data.append({
-                        'chapter_index': actual_index,
-                        'chapter_title': chapter.get('title', ''),
-                        'chapter_hash': chapter.get('hash', ''),
-                        'crawl_time': datetime.now().isoformat()
-                    })
-            logger.info(f"增量更新，记录 {len(chapter_tracking_data)} 个新章节追踪信息")
-        
-        if chapter_tracking_data:
-            db_manager.batch_add_chapter_tracking(
-                site_id=site_id,
-                novel_id=novel_id,
-                chapters=chapter_tracking_data
-            )
-        
         # 反爬虫优化：添加延迟
-        if len(new_chapters) > 5:
+        if len(all_chapters) > 5:
             import time
-            delay = min(len(new_chapters) * 0.5, 10)  # 最多延迟10秒
-            logger.info(f"爬取了 {len(new_chapters)} 个新章节，延迟 {delay} 秒")
+            delay = min(len(all_chapters) * 0.5, 10)  # 最多延迟10秒
+            logger.info(f"爬取了 {len(all_chapters)} 个新章节，延迟 {delay} 秒")
             await asyncio.sleep(delay)
         
         return {
             'success': True,
             'title': result['title'],
             'file_path': file_path if 'file_path' in locals() else last_successful.get('file_path') if last_successful else '',
-            'total_chapters': len(all_chapters),
-            'new_chapters': len(new_chapters),
-            'duplicate_count': duplicate_count,
+            'total_chapters': len(all_chapters) + (last_successful.get('chapter_count', 0) if last_successful else 0),
+            'new_chapters': len(all_chapters),
             'already_exists': bool(last_successful)
         }
     

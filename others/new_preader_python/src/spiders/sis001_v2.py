@@ -1038,3 +1038,81 @@ class Sis001Parser(BaseParser):
             小说信息列表
         """
         return []
+    
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定章节URL开始继续爬取（通过"下一页"链接）
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节URL（最后一章的URL）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引
+            
+        Returns:
+            小说详情信息
+        """
+        # 创建小说内容
+        novel_content = {
+            'title': title or f'书籍-{novel_id}',
+            'author': author or self.novel_site_name,
+            'novel_id': novel_id,
+            'url': start_url,
+            'chapters': []
+        }
+        
+        # 从最后一章开始爬取
+        current_url = start_url
+        chapter_number = start_index + 1
+        
+        while current_url:
+            logger.info(f"正在爬取第 {chapter_number} 章: {current_url}")
+            
+            # 获取章节页面内容
+            chapter_content = self._get_url_content(current_url)
+            
+            if not chapter_content:
+                logger.warning(f"✗ 第 {chapter_number} 章抓取失败")
+                break
+            
+            # 提取章节标题
+            chapter_title = self._extract_with_regex(chapter_content, self.title_reg) or f'第{chapter_number}章'
+            
+            # 提取章节内容
+            extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
+            
+            if extracted_content:
+                # 执行爬取后处理函数
+                processed_content = self._execute_after_crawler_funcs(extracted_content)
+                
+                if processed_content and len(processed_content.strip()) > 0:
+                    novel_content['chapters'].append({
+                        'chapter_number': chapter_number,
+                        'title': chapter_title,
+                        'content': processed_content,
+                        'url': current_url
+                    })
+                    logger.info(f"✓ 第 {chapter_number} 章抓取成功")
+                else:
+                    logger.warning(f"✗ 第 {chapter_number} 章内容处理后为空")
+                    break
+            else:
+                logger.warning(f"✗ 第 {chapter_number} 章内容提取失败")
+                break
+            
+            # 获取下一页URL
+            next_url = self._get_next_page_url(chapter_content, current_url)
+            
+            if not next_url:
+                logger.info("已到达最后一章")
+                break
+            
+            current_url = next_url
+            chapter_number += 1
+            
+            # 章节间延迟
+            time.sleep(1)
+        
+        logger.info(f"增量爬取完成，共爬取 {len(novel_content['chapters'])} 个新章节")
+        return novel_content

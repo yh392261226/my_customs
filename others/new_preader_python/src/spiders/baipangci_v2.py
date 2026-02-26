@@ -501,3 +501,106 @@ class BaipangciParser(BaseParser):
             return ', '.join(tags)
         
         return ""
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定章节URL开始继续爬取
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节URL（最后一章的URL）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引
+            
+        Returns:
+            小说详情信息
+        """
+        # 获取小说页面，提取章节列表
+        novel_url = self.get_novel_url(novel_id)
+        content = self._get_url_content(novel_url)
+        
+        if not content:
+            raise Exception(f"无法获取小说页面: {novel_url}")
+        
+        # 提取章节列表（子类需要实现 _extract_chapter_links 方法）
+        chapter_links = self._extract_chapter_links(content)
+        if not chapter_links:
+            raise Exception("无法获取章节列表")
+        
+        # 通过比对URL找到起始位置
+        start_pos = 0
+        for i, chapter in enumerate(chapter_links):
+            chapter_full_url = chapter.get('url', '')
+            if chapter_full_url == start_url or (not chapter_full_url.startswith('http') and f"{self.base_url}{chapter_full_url}" == start_url):
+                start_pos = i + 1  # 从下一章开始
+                break
+        
+        if start_pos >= len(chapter_links):
+            # 没有新章节
+            return {
+                'title': title or f'书籍-{novel_id}',
+                'chapters': []
+            }
+        
+        logger.info(f"从第 {start_pos + 1} 章开始爬取，共 {len(chapter_links) - start_pos} 个新章节")
+        
+        # 创建小说内容
+        novel_content = {
+            'title': title or f'书籍-{novel_id}',
+            'author': author or self.novel_site_name,
+            'novel_id': novel_id,
+            'url': novel_url,
+            'chapters': []
+        }
+        
+        # 从起始位置开始爬取
+        self._get_all_chapters_incremental(chapter_links[start_pos:], novel_content, start_index)
+        
+        return novel_content
+    
+    def _get_all_chapters_incremental(self, chapter_links, novel_content, start_index=0):
+        """
+        增量爬取所有章节内容
+        
+        Args:
+            chapter_links: 章节链接列表
+            novel_content: 小说内容字典
+            start_index: 起始章节索引
+        """
+        import time
+        
+        self.chapter_count = start_index
+        
+        for i, chapter_info in enumerate(chapter_links, 1):
+            chapter_url = chapter_info.get('url', '')
+            chapter_title = chapter_info.get('title', f'第{start_index + i}章')
+            
+            logger.info(f"正在爬取第 {start_index + i} 章: {chapter_title}")
+            
+            # 获取章节内容
+            full_url = f"{self.base_url}{chapter_url}" if chapter_url and not chapter_url.startswith('http') else chapter_url
+            chapter_content = self._get_url_content(full_url)
+            
+            if chapter_content:
+                # 使用配置的正则提取内容
+                extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
+                
+                if extracted_content:
+                    # 执行爬取后处理函数
+                    processed_content = self._execute_after_crawler_funcs(extracted_content)
+                    
+                    self.chapter_count += 1
+                    novel_content['chapters'].append({
+                        'chapter_number': self.chapter_count,
+                        'title': chapter_title,
+                        'content': processed_content,
+                        'url': full_url
+                    })
+                    logger.info(f"✓ 第 {start_index + i} 章抓取成功")
+                else:
+                    logger.warning(f"✗ 第 {start_index + i} 章内容提取失败")
+            else:
+                logger.warning(f"✗ 第 {start_index + i} 章抓取失败")
+            
+            # 章节间延迟
+            time.sleep(1)

@@ -750,6 +750,26 @@ class BaseParser:
         logger.info(f'[ {title} ] 完成')
         return novel_content
     
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定URL开始爬取新章节
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节的URL（最后一章的链接）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引（从0开始）
+        
+        Returns:
+            小说详情信息（只包含新章节）
+        
+        Raises:
+            NotImplementedError: 子类必须实现此方法
+        """
+        # 子类必须实现增量爬取逻辑
+        raise NotImplementedError("子类必须实现增量爬取逻辑")
+    
     def _parse_single_chapter_novel(self, content: str, novel_url: str, title: str) -> Dict[str, Any]:
         """解析单章节小说"""
         # 使用配置的正则提取内容

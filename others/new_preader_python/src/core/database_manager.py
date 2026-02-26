@@ -472,28 +472,12 @@ class DatabaseManager:
                 )
             """)
             
-            # 创建章节追踪表
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS chapter_tracking (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    site_id INTEGER NOT NULL,
-                    novel_id TEXT NOT NULL,
-                    chapter_index INTEGER NOT NULL,
-                    chapter_title TEXT NOT NULL,
-                    chapter_hash TEXT,
-                    crawl_time TEXT NOT NULL,
-                    UNIQUE(site_id, novel_id, chapter_index),
-                    FOREIGN KEY (site_id) REFERENCES novel_sites (id) ON DELETE CASCADE
-                )
-            """)
-            
             # 创建索引
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_name ON novel_sites(name)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_novel_sites_url ON novel_sites(url)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_site_id ON crawl_history(site_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_novel_id ON crawl_history(novel_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_history_crawl_time ON crawl_history(crawl_time)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_chapter_tracking_site_novel ON chapter_tracking(site_id, novel_id)")
             
              # 创建书籍网站备注表
             cursor.execute("""
@@ -530,6 +514,7 @@ class DatabaseManager:
             self._add_column_if_not_exists(cursor, "crawl_history", "chapter_count", "INTEGER", "0")
             self._add_column_if_not_exists(cursor, "crawl_history", "last_chapter_index", "INTEGER", "-1")
             self._add_column_if_not_exists(cursor, "crawl_history", "last_chapter_title", "TEXT", "''")
+            self._add_column_if_not_exists(cursor, "crawl_history", "last_chapter_url", "TEXT", "''")
             self._add_column_if_not_exists(cursor, "crawl_history", "content_hash", "TEXT", "''")
             self._add_column_if_not_exists(cursor, "crawl_history", "serial_mode", "BOOLEAN", "0")
             self._add_column_if_not_exists(cursor, "crawl_history", "first_crawl_time", "TEXT")
@@ -2333,18 +2318,19 @@ class DatabaseManager:
             return None
 
     # 爬取历史记录相关方法
-    def add_crawl_history(self, site_id: int, novel_id: str, novel_title: str, 
-                         status: str, file_path: Optional[str] = None, 
+    def add_crawl_history(self, site_id: int, novel_id: str, novel_title: str,
+                         status: str, file_path: Optional[str] = None,
                          error_message: Optional[str] = None,
                          book_type: str = '短篇',
                          chapter_count: int = 0,
                          last_chapter_index: int = -1,
                          last_chapter_title: str = '',
+                         last_chapter_url: str = '',
                          content_hash: str = '',
                          serial_mode: bool = False) -> bool:
         """
         添加爬取历史记录（支持增量爬取字段）
-        
+
         Args:
             site_id: 网站ID
             novel_id: 小说ID
@@ -2356,26 +2342,27 @@ class DatabaseManager:
             chapter_count: 章节数量
             last_chapter_index: 最后章节索引
             last_chapter_title: 最后章节标题
+            last_chapter_url: 最后章节URL
             content_hash: 内容哈希
             serial_mode: 是否连载模式
-            
+
         Returns:
             bool: 添加是否成功
         """
         try:
             # 生成书名拼音
             pinyin_text = convert_to_pinyin(novel_title) if novel_title else ""
-            
+
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 crawl_time = datetime.now().isoformat()
-                
+
                 cursor.execute("""
-                    INSERT INTO crawl_history 
+                    INSERT INTO crawl_history
                     (site_id, novel_id, novel_title, crawl_time, status, file_path, error_message,
-                     book_type, chapter_count, last_chapter_index, last_chapter_title, 
+                     book_type, chapter_count, last_chapter_index, last_chapter_title, last_chapter_url,
                      content_hash, serial_mode, first_crawl_time, last_update_time, pinyin)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     site_id,
                     novel_id,
@@ -2388,6 +2375,7 @@ class DatabaseManager:
                     chapter_count,
                     last_chapter_index,
                     last_chapter_title,
+                    last_chapter_url,
                     content_hash,
                     1 if serial_mode else 0,
                     crawl_time if status == 'success' else None,
@@ -2540,79 +2528,6 @@ class DatabaseManager:
             logger.error(f"获取连续失败次数失败: {e}")
             return 0
 
-    def get_saved_chapters(self, site_id: int, novel_id: str, record_id: Optional[int] = None) -> Dict[int, Dict[str, Any]]:
-        """
-        获取已保存的章节信息
-        
-        Args:
-            site_id: 网站ID
-            novel_id: 小说ID
-            record_id: 爬取记录ID（可选，用于筛选特定记录）
-        
-        Returns:
-            {chapter_index: {title, hash, crawl_time}}
-        """
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                
-                query = """
-                    SELECT chapter_index, chapter_title, chapter_hash, crawl_time
-                    FROM chapter_tracking
-                    WHERE site_id = ? AND novel_id = ?
-                    ORDER BY chapter_index
-                """
-                cursor.execute(query, (site_id, novel_id))
-                rows = cursor.fetchall()
-                
-                return {
-                    row['chapter_index']: {
-                        'title': row['chapter_title'],
-                        'hash': row['chapter_hash'],
-                        'crawl_time': row['crawl_time']
-                    }
-                    for row in rows
-                }
-        except sqlite3.Error as e:
-            logger.error(f"获取已保存章节信息失败: {e}")
-            return {}
-
-    def batch_add_chapter_tracking(self, site_id: int, novel_id: str, chapters: List[Dict[str, Any]]) -> bool:
-        """
-        批量添加章节追踪记录
-        
-        Args:
-            site_id: 网站ID
-            novel_id: 小说ID
-            chapters: 章节列表，每个章节包含 chapter_index, chapter_title, chapter_hash, crawl_time
-        
-        Returns:
-            是否成功
-        """
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                
-                data = [
-                    (site_id, novel_id, ch['chapter_index'], ch['chapter_title'], 
-                     ch.get('chapter_hash', ''), ch.get('crawl_time', datetime.now().isoformat()))
-                    for ch in chapters
-                ]
-                
-                cursor.executemany("""
-                    INSERT OR REPLACE INTO chapter_tracking 
-                    (site_id, novel_id, chapter_index, chapter_title, chapter_hash, crawl_time)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, data)
-                
-                conn.commit()
-                logger.info(f"批量添加 {len(chapters)} 个章节追踪记录成功")
-                return True
-        except sqlite3.Error as e:
-            logger.error(f"批量添加章节追踪记录失败: {e}")
-            return False
-
     def repair_novel_title(self, site_id: int, novel_id: str, new_title: str) -> bool:
         """
         修复小说标题
@@ -2646,140 +2561,6 @@ class DatabaseManager:
                     
         except sqlite3.Error as e:
             logger.error(f"修复小说标题失败: {e}")
-            return False
-    
-    def repair_chapter_tracking(self, site_id: int, novel_id: str) -> Dict[str, Any]:
-        """
-        修复章节追踪信息：从已有文件中提取章节信息并补充到chapter_tracking表
-        
-        Args:
-            site_id: 网站ID
-            novel_id: 小说ID
-        
-        Returns:
-            修复结果字典 {'success': bool, 'count': int, 'message': str}
-        """
-        try:
-            # 获取最新的成功记录
-            with sqlite3.connect(self.db_path) as conn:
-                conn.row_factory = sqlite3.Row
-                cursor = conn.cursor()
-                
-                cursor.execute("""
-                    SELECT id, file_path, chapter_count, serial_mode
-                    FROM crawl_history
-                    WHERE site_id = ? AND novel_id = ? AND status = 'success'
-                    ORDER BY crawl_time DESC LIMIT 1
-                """, (site_id, novel_id))
-                
-                record = cursor.fetchone()
-                
-                if not record:
-                    return {'success': False, 'count': 0, 'message': '未找到成功记录'}
-                
-                record_id = record['id']
-                file_path = record['file_path']
-                chapter_count = record['chapter_count']
-                serial_mode = record['serial_mode']
-                
-                # 检查是否已有追踪记录
-                cursor.execute("""
-                    SELECT COUNT(*) as count
-                    FROM chapter_tracking
-                    WHERE site_id = ? AND novel_id = ?
-                """, (site_id, novel_id))
-                
-                existing_count = cursor.fetchone()['count']
-                
-                if existing_count > 0:
-                    return {'success': False, 'count': 0, 'message': f'已有{existing_count}条追踪记录，无需修复'}
-                
-                # 如果不是连载模式或没有章节信息，不需要修复
-                if not serial_mode or chapter_count <= 0:
-                    return {'success': False, 'count': 0, 'message': '不是连载模式，无需修复'}
-                
-                # 读取文件并提取章节
-                if not file_path or not os.path.exists(file_path):
-                    return {'success': False, 'count': 0, 'message': '文件不存在'}
-                
-                # 尝试解析文件内容
-                from src.utils.file_helpers import read_text_file, calculate_content_hash
-                
-                content = read_text_file(file_path)
-                
-                # 简单的章节提取逻辑：查找 "###" 开头的行作为章节标题
-                import re
-                chapter_pattern = r'^#{3,}\s*(.+?)(?:\s*#{3,})?$'
-                chapter_titles = re.findall(chapter_pattern, content, re.MULTILINE)
-                
-                if not chapter_titles:
-                    return {'success': False, 'count': 0, 'message': '无法从文件中提取章节信息'}
-                
-                # 生成章节追踪记录
-                chapter_tracking_data = []
-                for idx, title in enumerate(chapter_titles):
-                    # 为每个章节计算哈希（这里使用章节标题的哈希，因为难以分割具体内容）
-                    chapter_hash = calculate_content_hash(title)
-                    chapter_tracking_data.append({
-                        'chapter_index': idx,
-                        'chapter_title': title,
-                        'chapter_hash': chapter_hash,
-                        'crawl_time': datetime.now().isoformat()
-                    })
-                
-                # 批量插入
-                data = [
-                    (site_id, novel_id, ch['chapter_index'], ch['chapter_title'], 
-                     ch['chapter_hash'], ch['crawl_time'])
-                    for ch in chapter_tracking_data
-                ]
-                
-                cursor.executemany("""
-                    INSERT OR REPLACE INTO chapter_tracking 
-                    (site_id, novel_id, chapter_index, chapter_title, chapter_hash, crawl_time)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, data)
-                
-                conn.commit()
-                
-                logger.info(f"为书籍 {novel_id} 修复了 {len(chapter_tracking_data)} 个章节追踪记录")
-                
-                return {
-                    'success': True,
-                    'count': len(chapter_tracking_data),
-                    'message': f'成功修复{len(chapter_tracking_data)}个章节追踪记录'
-                }
-                
-        except sqlite3.Error as e:
-            logger.error(f"修复章节追踪信息失败: {e}")
-            return {'success': False, 'count': 0, 'message': f'数据库错误: {e}'}
-        except Exception as e:
-            logger.error(f"修复章节追踪信息失败: {e}")
-            return {'success': False, 'count': 0, 'message': f'错误: {e}'}
-    
-    def delete_chapter_tracking(self, site_id: int, novel_id: str) -> bool:
-        """
-        删除指定小说的所有章节追踪记录
-        
-        Args:
-            site_id: 网站ID
-            novel_id: 小说ID
-        
-        Returns:
-            是否成功
-        """
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    DELETE FROM chapter_tracking
-                    WHERE site_id = ? AND novel_id = ?
-                """, (site_id, novel_id))
-                conn.commit()
-                logger.info(f"删除小说 {novel_id} 的章节追踪记录成功")
-                return True
-        except sqlite3.Error as e:
-            logger.error(f"删除章节追踪记录失败: {e}")
             return False
 
     def get_last_successful_crawl(self, site_id: int, novel_id: str) -> Optional[Dict[str, Any]]:
