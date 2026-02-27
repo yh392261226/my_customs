@@ -228,32 +228,15 @@ class CrawlerManager:
                     # 获取存储文件夹
                     storage_folder = novel_site.get('storage_folder', 'novels')
                     
-                    # 先解析小说详情获取标题
-                    parse_result = await self._async_parse_novel_detail(parser, novel_id)
-                    if 'success' in parse_result and not parse_result['success']:
-                        # 解析失败
-                        task.failed_count += 1
-                        db_manager.add_crawl_history(
-                            site_id=task.site_id,
-                            novel_id=novel_id,
-                            novel_title=f"书籍ID: {novel_id}",
-                            status="failed",
-                            file_path="",
-                            error_message=parse_result.get('error_message', get_global_i18n().t('crawler.unknown_error'))
-                        )
-                        continue
-                    
-                    # 使用解析后的标题
-                    actual_novel_title = parse_result.get('title', f"书籍ID: {novel_id}")
-                    
-                    # 使用增量爬取方法，传入已解析的结果
+                    # 直接使用增量爬取方法，不预先解析
+                    # 让 _incremental_crawl 内部判断是否需要增量爬取
                     result = await self._incremental_crawl(
                         parser=parser,
                         novel_id=novel_id,
                         site_id=task.site_id,
-                        novel_title=actual_novel_title,
+                        novel_title=f"书籍ID: {novel_id}",  # 使用占位标题，会在增量爬取中获取真实标题
                         storage_folder=storage_folder,
-                        parse_result=parse_result
+                        parse_result=None  # 传入None，让增量爬取逻辑生效
                     )
                     
                     # 假设解析器成功执行时返回的结果就是成功的
@@ -368,6 +351,68 @@ class CrawlerManager:
                 'error_message': str(e)
             }
     
+    async def _crawl_from_last_chapter(self, parser, novel_id: str, last_chapter_url: str, novel_title: str = None) -> Dict[str, Any]:
+        """
+        从最后一章URL开始爬取新章节（当解析器不支持增量爬取时使用）
+        
+        Args:
+            parser: 解析器实例
+            novel_id: 小说ID
+            last_chapter_url: 最后一章的URL
+            novel_title: 小说标题（可选）
+            
+        Returns:
+            爬取结果
+        """
+        import asyncio
+        from src.utils.logger import get_logger
+        logger = get_logger(__name__)
+        
+        if not last_chapter_url:
+            logger.warning("没有last_chapter_url，回退到常规爬取模式")
+            return await self._async_parse_novel_detail(parser, novel_id)
+        
+        try:
+            # 检查解析器是否有 _get_all_content_pages 方法
+            if not hasattr(parser, '_get_all_content_pages'):
+                logger.warning("解析器不支持 _get_all_content_pages 方法，回退到常规爬取模式")
+                return await self._async_parse_novel_detail(parser, novel_id)
+            
+            # 构建完整的内容页面URL
+            if last_chapter_url.startswith('/'):
+                full_start_url = f"{parser.base_url}{last_chapter_url}"
+            elif not last_chapter_url.startswith('http'):
+                full_start_url = f"{parser.base_url}/{last_chapter_url}"
+            else:
+                full_start_url = last_chapter_url
+            
+            logger.info(f"从最后一章URL开始爬取: {full_start_url}")
+            
+            # 创建小说内容结构
+            novel_content = {
+                'title': novel_title or f"书籍ID: {novel_id}",
+                'author': parser.novel_site_name,
+                'novel_id': novel_id,
+                'url': parser.get_novel_url(novel_id) if hasattr(parser, 'get_novel_url') else '',
+                'chapters': []
+            }
+            
+            # 使用线程池执行同步的 _get_all_content_pages 方法
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, parser._get_all_content_pages, full_start_url, novel_content)
+            
+            logger.info(f"从最后一章URL爬取成功，获取到 {len(novel_content['chapters'])} 个章节")
+            
+            return {
+                'success': True,
+                'title': novel_content['title'],
+                'chapters': novel_content['chapters']
+            }
+            
+        except Exception as e:
+            logger.warning(f"从最后一章URL爬取失败: {e}，回退到常规爬取模式")
+            return await self._async_parse_novel_detail(parser, novel_id)
+    
     async def _incremental_crawl(self, parser, novel_id: str, site_id: int, novel_title: str, storage_folder: str, parse_result: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         增量爬取：只爬取新章节，追加到已有文件
@@ -437,11 +482,13 @@ class CrawlerManager:
                             'already_exists': True
                         }
                 except NotImplementedError:
-                    logger.info("解析器不支持增量爬取，使用常规爬取模式")
-                    result = await self._async_parse_novel_detail(parser, novel_id)
+                    logger.info("解析器不支持增量爬取，尝试从最后一章URL开始爬取")
+                    result = await self._crawl_from_last_chapter(parser, novel_id, last_chapter_url, last_successful.get('novel_title'))
+                    used_incremental_crawl = True  # 标记使用了增量爬取（通过最后一章URL）
                 except Exception as e:
-                    logger.warning(f"增量爬取失败: {e}，回退到常规爬取模式")
-                    result = await self._async_parse_novel_detail(parser, novel_id)
+                    logger.warning(f"增量爬取失败: {e}，尝试从最后一章URL开始爬取")
+                    result = await self._crawl_from_last_chapter(parser, novel_id, last_chapter_url, last_successful.get('novel_title'))
+                    used_incremental_crawl = True  # 标记使用了增量爬取（通过最后一章URL）
             else:
                 result = await self._async_parse_novel_detail(parser, novel_id)
                 
@@ -458,33 +505,53 @@ class CrawlerManager:
         # 4. 保存策略
         if all_chapters:
             if last_successful and os.path.exists(last_successful['file_path']):
-                # 追加模式：读取已有文件，追加新章节
-                old_content = read_text_file(last_successful['file_path'])
-                new_content = append_chapters_to_file(old_content, all_chapters)
-                
-                # 保存文件
-                file_path = last_successful['file_path']
-                write_text_file(file_path, new_content)
-                
-                logger.info(f"追加模式：追加 {len(all_chapters)} 个新章节")
-                
-                # 更新数据库记录
-                update_data = {
-                    'file_path': file_path,
-                    'chapter_count': last_successful.get('chapter_count', 0) + len(all_chapters),
-                    'content_hash': calculate_file_hash(file_path) if file_path else '',
-                    'last_update_time': datetime.now().isoformat()
-                }
-                
-                # 只有在使用增量爬取模式时，才更新最后一章的索引和URL
-                # 常规爬取可能只返回部分章节（如从中间开始），会导致错误的索引
-                if used_incremental_crawl and all_chapters:
-                    update_data['last_chapter_index'] = last_successful.get('chapter_count', 0) + len(all_chapters) - 1
-                    update_data['last_chapter_title'] = all_chapters[-1].get('title', '')
-                    update_data['last_chapter_url'] = all_chapters[-1].get('url', '')
+                if used_incremental_crawl:
+                    # 增量爬取模式：读取已有文件，追加新章节
+                    old_content = read_text_file(last_successful['file_path'])
+                    new_content = append_chapters_to_file(old_content, all_chapters)
+                    
+                    # 保存文件
+                    file_path = last_successful['file_path']
+                    write_text_file(file_path, new_content)
+                    
+                    logger.info(f"增量爬取模式：追加 {len(all_chapters)} 个新章节")
+                    
+                    # 更新数据库记录
+                    update_data = {
+                        'file_path': file_path,
+                        'chapter_count': last_successful.get('chapter_count', 0) + len(all_chapters),
+                        'last_chapter_index': last_successful.get('chapter_count', 0) + len(all_chapters) - 1,
+                        'last_chapter_title': all_chapters[-1].get('title', ''),
+                        'last_chapter_url': all_chapters[-1].get('url', ''),
+                        'content_hash': calculate_file_hash(file_path) if file_path else '',
+                        'last_update_time': datetime.now().isoformat()
+                    }
                     logger.info(f"更新最后一章: {update_data['last_chapter_title']} (索引: {update_data['last_chapter_index']})")
                 else:
-                    # 保持原有的最后一章信息不变
+                    # 常规爬取模式：覆盖已有文件（返回的是完整章节列表）
+                    # 注意：因为 last_successful 存在，必须使用已有文件路径，不能创建新文件
+                    file_path = last_successful['file_path']
+                    
+                    # 将所有章节转换为文本格式
+                    content_lines = []
+                    for chapter in all_chapters:
+                        title = chapter.get('title', '')
+                        text = chapter.get('text', '')
+                        content_lines.append(f"## {title}\n\n{text}\n")
+                    
+                    new_content = "\n".join(content_lines)
+                    write_text_file(file_path, new_content)
+                    
+                    logger.info(f"常规爬取模式：覆盖已有文件 {file_path}，共 {len(all_chapters)} 个章节")
+                    
+                    # 更新数据库记录
+                    update_data = {
+                        'file_path': file_path,
+                        'chapter_count': len(all_chapters),
+                        'content_hash': calculate_file_hash(file_path) if file_path else '',
+                        'last_update_time': datetime.now().isoformat()
+                    }
+                    # 保持原有的最后一章信息不变（因为无法确定哪些是真正的新章节）
                     logger.info(f"常规爬取模式，保持原有的最后一章信息不变: {last_successful.get('last_chapter_title', '')} (索引: {last_successful.get('last_chapter_index', -1)})")
                 
                 # 如果标题等于ID，修复为正确的标题

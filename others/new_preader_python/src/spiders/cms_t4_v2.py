@@ -828,6 +828,76 @@ class CmsT4Parser(BaseParser):
 
         
         return "unknown"
+    
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定URL开始爬取新章节（CMS T4特定实现）
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节的URL（最后一章的链接）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引（可选）
+            
+        Returns:
+            小说详情信息
+        """
+        from src.utils.logger import get_logger
+        logger = get_logger(__name__)
+        
+        # 重置章节计数器
+        self.chapter_count = 0
+        
+        # 如果没有提供标题，需要先获取小说信息页面
+        if not title:
+            novel_url = self.get_novel_url(novel_id)
+            content = self._get_url_content(novel_url)
+            
+            if not content:
+                raise Exception(f"无法获取小说页面: {novel_url}")
+            
+            # 提取标题
+            title = self._extract_with_regex(content, self.title_reg)
+            if not title:
+                raise Exception("无法提取小说标题")
+        
+        logger.info(f"开始增量爬取 [ {title} ] - 从URL: {start_url} 开始")
+        
+        # 构建完整的内容页面URL（如果是相对路径）
+        if start_url.startswith('/'):
+            full_start_url = f"{self.base_url}{start_url}"
+        elif not start_url.startswith('http'):
+            full_start_url = f"{self.base_url}/{start_url}"
+        else:
+            full_start_url = start_url
+        
+        # 创建小说内容
+        novel_content = {
+            'title': title,
+            'author': author or self.novel_site_name,
+            'novel_id': novel_id,
+            'url': self.get_novel_url(novel_id),
+            'chapters': []
+        }
+        
+        # 先获取start_url的下一页URL（因为start_url本身就是最后一章）
+        # 获取当前页面内容
+        current_page_content = self._get_url_content(full_start_url)
+        if current_page_content:
+            # 获取下一页URL
+            next_url = self._get_next_page_url(current_page_content, full_start_url)
+            if next_url:
+                logger.info(f"从下一页开始爬取: {next_url}")
+                # 从下一页开始抓取
+                self._get_all_content_pages(next_url, novel_content)
+            else:
+                logger.info(f"没有找到下一页，可能已经是最新章节")
+        else:
+            logger.warning(f"无法获取最后一章页面内容: {full_start_url}")
+        
+        logger.info(f'[ {title} ] 增量爬取完成，获取 {len(novel_content["chapters"])} 个新章节')
+        return novel_content
 
 
 # 使用示例
