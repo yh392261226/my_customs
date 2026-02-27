@@ -262,15 +262,19 @@ class CrawlerManager:
                         # 解析器明确返回失败
                         task.failed_count += 1
                         
-                        # 保存失败记录
-                        db_manager.add_crawl_history(
-                            site_id=task.site_id,
-                            novel_id=novel_id,
-                            novel_title=novel_id,
-                            status="failed",
-                            file_path="",
-                            error_message=result.get('error_message', get_global_i18n().t('crawler.unknown_error'))
-                        )
+                        # 检查是否已有成功的记录，避免覆盖原有记录
+                        existing_record = db_manager.get_last_successful_crawl(task.site_id, novel_id)
+                        if not existing_record:
+                            # 只有在没有成功记录时才创建失败记录
+                            # 避免覆盖原有的连载模式记录为错误的短篇记录
+                            db_manager.add_crawl_history(
+                                site_id=task.site_id,
+                                novel_id=novel_id,
+                                novel_title=novel_id,
+                                status="failed",
+                                file_path="",
+                                error_message=result.get('error_message', get_global_i18n().t('crawler.unknown_error'))
+                            )
                     else:
                         # 解析器成功返回小说内容
                         task.success_count += 1
@@ -403,6 +407,8 @@ class CrawlerManager:
             logger.info(f"最后一章URL: {last_chapter_url}，从第 {start_index + 1} 章开始爬取")
         
         # 3. 爬取所有章节（如果提供了parse_result则使用，否则重新解析）
+        used_incremental_crawl = False  # 标记是否使用了增量爬取
+        
         if parse_result is None:
             # 优先尝试增量爬取
             if last_chapter_url and hasattr(parser, 'parse_novel_detail_incremental'):
@@ -415,6 +421,8 @@ class CrawlerManager:
                         author=last_successful.get('author', '') if last_successful else None,
                         start_index=start_index
                     )
+                    
+                    used_incremental_crawl = True  # 标记使用了增量爬取
                     
                     # 检查是否成功爬取到新章节
                     if result and result.get('chapters'):
@@ -464,12 +472,20 @@ class CrawlerManager:
                 update_data = {
                     'file_path': file_path,
                     'chapter_count': last_successful.get('chapter_count', 0) + len(all_chapters),
-                    'last_chapter_index': last_successful.get('chapter_count', 0) + len(all_chapters) - 1,
-                    'last_chapter_title': all_chapters[-1].get('title', '') if all_chapters else last_successful.get('last_chapter_title', ''),
-                    'last_chapter_url': all_chapters[-1].get('url', '') if all_chapters else last_successful.get('last_chapter_url', ''),
                     'content_hash': calculate_file_hash(file_path) if file_path else '',
                     'last_update_time': datetime.now().isoformat()
                 }
+                
+                # 只有在使用增量爬取模式时，才更新最后一章的索引和URL
+                # 常规爬取可能只返回部分章节（如从中间开始），会导致错误的索引
+                if used_incremental_crawl and all_chapters:
+                    update_data['last_chapter_index'] = last_successful.get('chapter_count', 0) + len(all_chapters) - 1
+                    update_data['last_chapter_title'] = all_chapters[-1].get('title', '')
+                    update_data['last_chapter_url'] = all_chapters[-1].get('url', '')
+                    logger.info(f"更新最后一章: {update_data['last_chapter_title']} (索引: {update_data['last_chapter_index']})")
+                else:
+                    # 保持原有的最后一章信息不变
+                    logger.info(f"常规爬取模式，保持原有的最后一章信息不变: {last_successful.get('last_chapter_title', '')} (索引: {last_successful.get('last_chapter_index', -1)})")
                 
                 # 如果标题等于ID，修复为正确的标题
                 if last_successful.get('novel_title') == novel_id:
