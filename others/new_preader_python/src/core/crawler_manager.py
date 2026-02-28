@@ -450,6 +450,16 @@ class CrawlerManager:
             start_index = last_successful.get('last_chapter_index', -1) + 1
             
             logger.info(f"最后一章URL: {last_chapter_url}，从第 {start_index + 1} 章开始爬取")
+        elif last_successful and not last_successful.get('serial_mode'):
+            # 非连载模式，不需要增量爬取
+            logger.info(f"该书为非连载模式（{last_successful.get('book_type', '未知')}），跳过增量爬取")
+            return {
+                'success': True,
+                'title': last_successful.get('novel_title', novel_title),
+                'message': '非连载模式，无需更新',
+                'new_chapters': 0,
+                'already_exists': True
+            }
         
         # 3. 爬取所有章节（如果提供了parse_result则使用，否则重新解析）
         used_incremental_crawl = False  # 标记是否使用了增量爬取
@@ -536,8 +546,8 @@ class CrawlerManager:
                     content_lines = []
                     for chapter in all_chapters:
                         title = chapter.get('title', '')
-                        text = chapter.get('text', '')
-                        content_lines.append(f"## {title}\n\n{text}\n")
+                        content = chapter.get('content', '')
+                        content_lines.append(f"## {title}\n\n{content}\n")
                     
                     new_content = "\n".join(content_lines)
                     write_text_file(file_path, new_content)
