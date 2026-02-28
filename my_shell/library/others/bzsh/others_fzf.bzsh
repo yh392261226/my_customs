@@ -187,6 +187,7 @@ FZF_DEFAULT_OPTS+=' --header-border '
 FZF_DEFAULT_OPTS+=' --input-border '
 FZF_DEFAULT_OPTS+=' --gap '
 FZF_DEFAULT_OPTS+=' --min-height=40 '
+FZF_DEFAULT_OPTS+=' --wrap=word '
 
 # 样式与布局
 FZF_DEFAULT_OPTS+=' --style=full:double '
