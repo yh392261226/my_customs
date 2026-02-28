@@ -65,7 +65,8 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
                 ),
                 
                 id="confirm-container"
-            )
+            ),
+            id="confirm-contain"
         )
     
     def on_mount(self) -> None:

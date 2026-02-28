@@ -1,6 +1,9 @@
 /* 确认对话框专用样式 */
 
-
+#confirm-contain {
+    align: center middle;
+    background: $surface 30%;
+}
 
 #confirm-container {
     width: 90%;
