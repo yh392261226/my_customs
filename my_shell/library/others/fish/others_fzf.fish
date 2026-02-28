@@ -160,7 +160,8 @@ set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --header-lines-border='bottom' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --gutter-raw="▚"'
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color gutter:green '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color nomatch:dim:strip:strikethrough '
-set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color ghost:red:italic'
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --color ghost:red:italic '
+set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS" --color 'fg:underline-curly,current-fg:underline-dashed' "
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --no-input '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --preview-window="right:70%:border-rounded,hidden,~3" '
 set FZF_DEFAULT_OPTS $FZF_DEFAULT_OPTS' --walker="file,dir,hidden,follow" '
