@@ -727,9 +727,11 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     severity="information"
                 )
             else:
-                # 所有批次已完成
+                # 所有批次已完成 - 显示完整完成提示
+                total_groups = len(self.duplicate_groups)
                 self.notify(
-                    get_global_i18n().t("duplicate_books.all_batches_completed"),
+                    get_global_i18n().t("duplicate_books.all_batches_completed") +
+                    f"！共找到 {total_groups} 组重复书籍",
                     severity="information"
                 )
             
@@ -752,11 +754,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     severity="information"
                 )
             else:
-                # 所有批次已完成
-                self.notify(
-                    get_global_i18n().t("duplicate_books.all_batches_completed"),
-                    severity="information"
-                )
+                # 所有批次已完成 - 显示完整完成提示（第二次，移除重复通知）
+                # 注释：上面的代码已经显示了完成提示，这里不需要重复
+                pass
             
             # 如果还有剩余批次，显示处理状态
             if processing_remaining:
