@@ -3269,3 +3269,115 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"更新爬取历史记录错误信息失败: {e}")
             return False
+
+    def fix_empty_authors_from_crawl_history(self) -> Dict[str, Any]:
+        """
+        修复 bookshelf 表中作者为空的书籍，从 crawl_history 表获取作者信息
+        
+        Returns:
+            Dict[str, Any]: 修复结果统计
+                {
+                    'total_empty': int,  # 作者为空的书籍总数
+                    'fixed': int,  # 成功修复的数量
+                    'failed': int,  # 修复失败的数量
+                    'details': List[Dict]  # 详细修复记录
+                }
+        """
+        result = {
+            'total_empty': 0,
+            'fixed': 0,
+            'failed': 0,
+            'details': []
+        }
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                # 1. 查找 books 表中作者为空、空字符串、"未知"、"未知作者"等情况的书籍
+                cursor.execute("""
+                    SELECT b.path, b.title, b.author, c.site_id, c.novel_id, c.novel_title
+                    FROM books b
+                    LEFT JOIN crawl_history c ON b.path = c.file_path
+                    WHERE b.author IS NULL 
+                       OR b.author = '' 
+                       OR b.author = '未知' 
+                       OR b.author = '未知作者'
+                       OR b.author LIKE '%未知%'
+                       OR TRIM(b.author) = ''
+                """)
+                
+                empty_authors = cursor.fetchall()
+                result['total_empty'] = len(empty_authors)
+                
+                logger.info(f"找到 {result['total_empty']} 本作者为空的书籍")
+                
+                if result['total_empty'] == 0:
+                    logger.info("没有需要修复的书籍")
+                    return result
+                
+                # 2. 遍历每本书，从 crawl_history 获取网站信息
+                for row in empty_authors:
+                    book_path = row['path']
+                    book_title = row['title']
+                    site_id = row['site_id']
+                    novel_id = row['novel_id']
+                    
+                    detail = {
+                        'path': book_path,
+                        'title': book_title,
+                        'old_author': row['author'],
+                        'new_author': None,
+                        'status': 'failed',
+                        'message': ''
+                    }
+                    
+                    try:
+                        if site_id and novel_id:
+                            # 获取网站信息
+                            cursor.execute("SELECT name FROM novel_sites WHERE id = ?", (site_id,))
+                            site_row = cursor.fetchone()
+                            
+                            if site_row:
+                                site_name = site_row['name']
+                                
+                                # 更新书籍作者为网站名称
+                                cursor.execute("""
+                                    UPDATE books 
+                                    SET author = ?
+                                    WHERE path = ?
+                                """, (site_name, book_path))
+                                
+                                detail['new_author'] = site_name
+                                detail['status'] = 'fixed'
+                                detail['message'] = f"从网站 '{site_name}' 获取作者信息"
+                                result['fixed'] += 1
+                                
+                                logger.info(f"修复成功: {book_title} -> 作者: {site_name}")
+                            else:
+                                detail['message'] = f"无法找到网站 ID {site_id}"
+                                result['failed'] += 1
+                                logger.warning(f"修复失败: {book_title} - {detail['message']}")
+                        else:
+                            detail['message'] = "没有关联的 crawl_history 记录"
+                            result['failed'] += 1
+                            logger.warning(f"修复失败: {book_title} - {detail['message']}")
+                    
+                    except Exception as e:
+                        detail['message'] = f"更新失败: {str(e)}"
+                        result['failed'] += 1
+                        logger.error(f"修复失败: {book_title} - {detail['message']}")
+                    
+                    result['details'].append(detail)
+                
+                # 提交所有更改
+                conn.commit()
+                
+                logger.info(f"修复完成: 成功 {result['fixed']} 本，失败 {result['failed']} 本")
+                
+        except sqlite3.Error as e:
+            logger.error(f"修复作者信息失败: {e}")
+            result['message'] = str(e)
+        
+        return result

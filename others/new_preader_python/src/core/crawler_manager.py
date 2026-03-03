@@ -406,6 +406,7 @@ class CrawlerManager:
             return {
                 'success': True,
                 'title': novel_content['title'],
+                'author': novel_content.get('author', parser.novel_site_name),
                 'chapters': novel_content['chapters']
             }
             
@@ -456,6 +457,7 @@ class CrawlerManager:
             return {
                 'success': True,
                 'title': last_successful.get('novel_title', novel_title),
+                'author': last_successful.get('author', parser.novel_site_name),
                 'message': '非连载模式，无需更新',
                 'new_chapters': 0,
                 'already_exists': True
@@ -487,6 +489,7 @@ class CrawlerManager:
                         return {
                             'success': True,
                             'title': last_successful.get('novel_title', novel_title),
+                            'author': last_successful.get('author', parser.novel_site_name),
                             'message': '没有新章节需要更新',
                             'new_chapters': 0,
                             'already_exists': True
@@ -618,6 +621,7 @@ class CrawlerManager:
         return {
             'success': True,
             'title': result['title'],
+            'author': result.get('author', parser.novel_site_name),  # 返回作者信息，优先使用解析结果中的作者，否则使用网站名称
             'file_path': file_path if 'file_path' in locals() else last_successful.get('file_path') if last_successful else '',
             'total_chapters': len(all_chapters) + (last_successful.get('chapter_count', 0) if last_successful else 0),
             'new_chapters': len(all_chapters),
