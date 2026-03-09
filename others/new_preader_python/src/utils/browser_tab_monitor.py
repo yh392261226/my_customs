@@ -173,14 +173,35 @@ class BrowserTabMonitor:
             # 获取URL模式
             url_pattern = site_config.get('url_pattern', '')
             site_url = site_config.get('url', '')
-            
+
+            # 调试日志
+            logger.info(f"extract_novel_id_from_url: url={url}, site_url={site_url}, url_pattern={url_pattern}")
+
             # 初始化base_url
             if site_url.endswith('.html'):
                 # 如果URL以.html结尾，去掉文件名部分
                 base_url = site_url.rsplit('/', 1)[0]
             else:
                 base_url = site_url.rstrip('/')
-            
+
+            logger.info(f"base_url={base_url}")
+            logger.info(f"检查是否包含cool18.com: {'cool18.com' in site_url}")
+
+            # 特殊处理cool18.com网站 - 优先处理
+            if 'cool18.com' in site_url:
+                logger.info(f"匹配到cool18.com网站，开始提取ID")
+                # cool18.com实际URL格式：/bbs4/index.php?app=forum&act=threadview&tid={novel_id}
+                # base_url已经是 https://www.cool18.com/bbs4/index.php，所以只需要匹配后面的查询参数
+                pattern = rf"{re.escape(base_url)}\?.*?tid=(\d+)"
+                logger.info(f"正则表达式: {pattern}")
+                match = re.search(pattern, url)
+                if match:
+                    novel_id = match.group(1)
+                    logger.info(f"成功提取到cool18.com书籍ID: {novel_id}")
+                    return novel_id
+                else:
+                    logger.info(f"cool18.com正则匹配失败，url={url}")
+
             # 特殊处理xx-book.com网站 - 优先处理
             if 'xx-book.com' in site_url or 'seqing001.com' in site_url:
                 # xx-book.com实际URL格式：/?p={novel_id}
@@ -402,12 +423,12 @@ class BrowserTabMonitor:
                 match1 = re.search(pattern1, url)
                 if match1:
                     return unquote(match1.group(1))
-                
+
                 pattern2 = rf"{re.escape(base_url)}/\?view_novel/([^/?&]+)"
                 match2 = re.search(pattern2, url)
                 if match2:
                     return unquote(match2.group(1))
-            
+
             # 特殊处理rouwenwu20网站（新御宅屋）
             elif 'rouwenwu20.com' in site_url:
                 # rouwenwu20实际URL格式：/{prefix}_{novel_id}/
@@ -448,10 +469,11 @@ class BrowserTabMonitor:
                 if match:
                     return unquote(match.group(1))
 
+            logger.info(f"所有规则都未匹配，返回None")
             return None
-            
+
         except Exception as e:
-            logger.debug(f"提取小说ID失败: {url}, 错误: {e}")
+            logger.error(f"提取小说ID失败: {url}, 错误: {e}", exc_info=True)
             return None
     
     def is_valid_novel_url(self, url: str) -> Optional[Dict]:
@@ -465,14 +487,16 @@ class BrowserTabMonitor:
             匹配的网站配置或None
         """
         try:
+            logger.info(f"is_valid_novel_url: 检查URL={url}")
             for site in self.novel_sites:
                 # 跳过没有有效URL配置的网站
                 if not site.get('url'):
                     continue
-                
+
                 site_url = site.get('url', '')
                 base_url = site_url.rstrip('/')
-                
+                logger.debug(f"检查网站: {base_url}")
+
 # 特殊处理91porna.com - base_url配置包含/novels/new，但实际小说URL不包含这个路径
                 if '91porna.com' in site_url:
                     # 91porna的URL规则：
@@ -487,16 +511,19 @@ class BrowserTabMonitor:
                             if potential_id.isdigit():
                                 return site
                             # 否则是列表页面，不返回
-                
+
                 # 检查URL是否包含网站的基础URL
                 if base_url in url:
+                    logger.info(f"URL包含基础URL: {base_url}")
                     # 尝试提取小说ID
                     novel_id = self.extract_novel_id_from_url(url, site)
+                    logger.info(f"提取到的novel_id: {novel_id}")
                     if novel_id:
                         return site
-            
+
+            logger.info(f"未找到匹配的网站配置")
             return None
-            
+
         except Exception as e:
             logger.error(f"检查URL有效性失败: {url}, 错误: {e}")
             return None

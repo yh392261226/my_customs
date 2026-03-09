@@ -1791,14 +1791,6 @@ class PhotoGramParser(BaseParser):
             if len(result['chapters']) > 3:
                 print(f"... 还有 {len(result['chapters']) - 3} 个章节")
 
-
-# 测试代码
-if __name__ == "__main__":
-    # 创建解析器实例
-    parser = PhotoGramParser()
-    
-    # 运行测试
-    parser.run_test()
     def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
         """
         增量爬取：从指定章节URL开始继续爬取
@@ -1820,25 +1812,8 @@ if __name__ == "__main__":
         if not content:
             raise Exception(f"无法获取小说页面: {novel_url}")
         
-        # 提取章节列表（子类需要实现提取方法）
-        # 这里尝试提取章节，如果没有则返回空列表
-        chapters = []
-        
-        # 尝试使用正则表达式提取章节
-        import re
-        chapter_patterns = [
-            r'<a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a>',
-            r'<li[^>]*><a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a></li>',
-        ]
-        
-        for pattern in chapter_patterns:
-            matches = re.findall(pattern, content)
-            if matches:
-                chapters = [
-                    {'url': match[0], 'title': match[1]}
-                    for match in matches
-                ]
-                break
+        # 使用 _extract_chapters 方法正确提取章节列表
+        chapters = self._extract_chapters(content, novel_url)
         
         if not chapters:
             # 无法获取章节列表，返回空结果
@@ -1883,39 +1858,38 @@ if __name__ == "__main__":
             if not chapter_url:
                 continue
             
-            # 构建完整URL
-            if not chapter_url.startswith('http'):
-                chapter_url = f"{self.base_url}{chapter_url}"
-            
             logger.info(f"正在爬取第 {i+1} 章: {chapter_title}")
             
-            # 获取章节内容
-            chapter_content = self._get_url_content(chapter_url)
+            # 使用 parse_chapter_content 方法获取章节内容（包含解密逻辑）
+            extracted_content = self.parse_chapter_content(chapter_url)
             
-            if chapter_content:
-                # 提取章节内容
-                extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
+            if extracted_content:
+                # 执行爬取后处理函数
+                processed_content = self._execute_after_crawler_funcs(extracted_content)
                 
-                if extracted_content:
-                    # 执行爬取后处理函数
-                    processed_content = self._execute_after_crawler_funcs(extracted_content)
-                    
-                    if processed_content and len(processed_content.strip()) > 0:
-                        novel_content['chapters'].append({
-                            'chapter_number': start_index + (i - start_pos) + 1,
-                            'title': chapter_title,
-                            'content': processed_content,
-                            'url': chapter_url
-                        })
-                        logger.info(f"✓ 第 {i+1} 章抓取成功")
-                    else:
-                        logger.warning(f"✗ 第 {i+1} 章内容处理后为空")
+                if processed_content and len(processed_content.strip()) > 0:
+                    novel_content['chapters'].append({
+                        'chapter_number': start_index + (i - start_pos) + 1,
+                        'title': chapter_title,
+                        'content': processed_content,
+                        'url': chapter_url
+                    })
+                    logger.info(f"✓ 第 {i+1} 章抓取成功")
                 else:
-                    logger.warning(f"✗ 第 {i+1} 章内容提取失败")
+                    logger.warning(f"✗ 第 {i+1} 章内容处理后为空")
             else:
-                logger.warning(f"✗ 第 {i+1} 章抓取失败")
+                logger.warning(f"✗ 第 {i+1} 章内容提取失败")
             
             # 章节间延迟
             time.sleep(1)
         
         return novel_content
+
+
+# 测试代码
+if __name__ == "__main__":
+    # 创建解析器实例
+    parser = PhotoGramParser()
+    
+    # 运行测试
+    parser.run_test()
