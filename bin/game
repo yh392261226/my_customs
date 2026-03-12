@@ -164,10 +164,29 @@ def build_weights(numbers, history, avoid_recent=2):
     return {k: max(1, int(v)) for k, v in weight.items()}
 
 def weighted_choice(numbers, weights, k):
-    pool = []
-    for n in numbers:
-        pool.extend([n] * weights[n])
-    return sorted(random.sample(pool, k))
+    if k > len(numbers):
+        raise ValueError(f'Cannot choose {k} numbers from {len(numbers)} options')
+    
+    remaining_numbers = list(numbers)
+    remaining_weights = {n: weights[n] for n in remaining_numbers}
+    result = []
+    
+    for _ in range(k):
+        total_weight = sum(remaining_weights.values())
+        if total_weight == 0:
+            chosen = random.choice(remaining_numbers)
+        else:
+            chosen = random.choices(
+                remaining_numbers,
+                weights=[remaining_weights[n] for n in remaining_numbers],
+                k=1
+            )[0]
+        
+        result.append(chosen)
+        remaining_numbers.remove(chosen)
+        del remaining_weights[chosen]
+    
+    return sorted(result)
 
 def generate_ssq(history, count):
     reds = list(range(1, 34))
@@ -179,7 +198,8 @@ def generate_ssq(history, count):
         w_red = build_weights(reds, red_history)
         chosen_red = weighted_choice(reds, w_red, 6)
         chosen_blue = random.choice(blues)
-        print(f'双色球: {' '.join(f'{x:02d}' for x in chosen_red)} + {chosen_blue:02d}')
+        red_str = ' '.join(f'{x:02d}' for x in chosen_red)
+        print(f'双色球: {red_str} + {chosen_blue:02d}')
 
 hist = fetch_history('ssq', limit=50)
 generate_ssq(hist, $count)
@@ -319,10 +339,29 @@ def build_weights(numbers, history, avoid_recent=2):
     return {k: max(1, int(v)) for k, v in weight.items()}
 
 def weighted_choice(numbers, weights, k):
-    pool = []
-    for n in numbers:
-        pool.extend([n] * weights[n])
-    return sorted(random.sample(pool, k))
+    if k > len(numbers):
+        raise ValueError(f'Cannot choose {k} numbers from {len(numbers)} options')
+    
+    remaining_numbers = list(numbers)
+    remaining_weights = {n: weights[n] for n in remaining_numbers}
+    result = []
+    
+    for _ in range(k):
+        total_weight = sum(remaining_weights.values())
+        if total_weight == 0:
+            chosen = random.choice(remaining_numbers)
+        else:
+            chosen = random.choices(
+                remaining_numbers,
+                weights=[remaining_weights[n] for n in remaining_numbers],
+                k=1
+            )[0]
+        
+        result.append(chosen)
+        remaining_numbers.remove(chosen)
+        del remaining_weights[chosen]
+    
+    return sorted(result)
 
 def generate_dlt(history, count):
     front = list(range(1, 36))
@@ -338,9 +377,9 @@ def generate_dlt(history, count):
         w_back = build_weights(back, back_history)
         chosen_back = weighted_choice(back, w_back, 2)
 
-        print(
-            f'大乐透: {' '.join(f'{x:02d}' for x in chosen_front)} + {' '.join(f'{x:02d}' for x in chosen_back)}'
-        )
+        front_str = ' '.join(f'{x:02d}' for x in chosen_front)
+        back_str = ' '.join(f'{x:02d}' for x in chosen_back)
+        print(f'大乐透: {front_str} + {back_str}')
 
 hist = fetch_history('dlt', limit=50)
 generate_dlt(hist, $count)
