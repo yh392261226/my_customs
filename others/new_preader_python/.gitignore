@@ -16,3 +16,5 @@ library/
 current_log.log
 .iflow/
 develop
+.folderslice.assetmeta/
+firebase-debug.log
