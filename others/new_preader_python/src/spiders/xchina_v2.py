@@ -1,9 +1,9 @@
 """
-xchina.fit 小说网站解析器 - 基于配置驱动版本
+xchina.co 小说网站解析器 - 基于配置驱动版本
 继承自 BaseParser，使用属性配置实现
 
 网站结构特点：
-- 书籍详情页和章节列表页都是同一个URL：https://xchina.fit/fiction/id-{id}.html
+- 书籍详情页和章节列表页都是同一个URL：https://xchina.co/fiction/id-{id}.html
 - 多章节书籍：包含 <div class="fiction-overview-chapters"> 章节列表
 - 单篇书籍：包含 <div class="fiction-body"> 内容
 - 书名：<h1 class="hero-title-item">标题</h1>
@@ -18,12 +18,12 @@ from .base_parser_v2 import BaseParser
 logger = get_logger(__name__)
 
 class XchinaParser(BaseParser):
-    """xchina.fit 小说解析器 - 配置驱动版本"""
+    """xchina.co 小说解析器 - 配置驱动版本"""
     
     # 基本信息
-    name = "xchina.fit"
-    description = "xchina.fit 小说解析器（支持单篇和多篇）"
-    base_url = "https://xchina.fit"
+    name = "xchina.co"
+    description = "xchina.co 小说解析器（支持单篇和多篇）"
+    base_url = "https://xchina.co"
     
     # 正则表达式配置
     title_reg = [
@@ -66,7 +66,7 @@ class XchinaParser(BaseParser):
     
     def get_novel_url(self, novel_id: str) -> str:
         """
-        重写URL生成方法，适配xchina.fit的URL格式
+        重写URL生成方法，适配xchina.co的URL格式
         
         Args:
             novel_id: 小说ID
@@ -78,7 +78,7 @@ class XchinaParser(BaseParser):
     
     def get_homepage_meta(self, novel_id: str) -> Optional[Dict[str, str]]:
         """
-        重写获取书籍首页元数据方法，专门处理xchina.fit的标签提取
+        重写获取书籍首页元数据方法，专门处理xchina.co的标签提取
         
         Args:
             novel_id: 小说ID
@@ -216,7 +216,7 @@ class XchinaParser(BaseParser):
     
     def _extract_chapter_links(self, content: str) -> List[Dict[str, str]]:
         """
-        提取章节链接列表 - xchina.fit特定实现
+        提取章节链接列表 - xchina.co特定实现
         只在<div class="fiction-overview-chapters">标签内查找
         
         Args:
@@ -347,7 +347,7 @@ class XchinaParser(BaseParser):
     
     def _remove_ads(self, content: str) -> str:
         """
-        移除广告内容 - xchina.fit特有处理
+        移除广告内容 - xchina.co特有处理
         
         Args:
             content: 原始内容
@@ -357,7 +357,7 @@ class XchinaParser(BaseParser):
         """
         import re
         
-        # 移除xchina.fit常见的广告模式
+        # 移除xchina.co常见的广告模式
         ad_patterns = [
             r'<div[^>]*class="fiction-banner"[^>]*>.*?</div>',
             r'<div[^>]*class="ad"[^>]*>.*?</div>',
@@ -446,7 +446,7 @@ class XchinaParser(BaseParser):
     
     def parse_novel_list(self, url: str) -> List[Dict[str, Any]]:
         """
-        解析小说列表页 - xchina.fit不需要列表页解析
+        解析小说列表页 - xchina.co不需要列表页解析
         
         Args:
             url: 小说列表页URL
