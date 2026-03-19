@@ -229,6 +229,14 @@ class Sis001Parser(BaseParser):
         has_pages = 'class="pages"' in content
         has_thread = 'thread-' in content
         has_post = 'post-' in content
+        
+        # 新增更多有效内容标记
+        has_message = 'id="message"' in content or 'class="message"' in content
+        has_post_id = 'id="post_' in content or 'class="post "' in content
+        has_thread_id = 'id="thread"' in content or 'class="thread"' in content
+        has_h1 = '<h1>' in content or '<h2>' in content or '<h3>' in content
+        has_title = '<title>' in content and '</title>' in content
+        has_body = '<body' in content and '</body>' in content
 
         logger.info(f"内容有效性检查 - "
                    f"长度: {content_length}, "
@@ -238,7 +246,12 @@ class Sis001Parser(BaseParser):
                    f"t_msgfont: {has_t_msgfont}, "
                    f"pages: {has_pages}, "
                    f"thread: {has_thread}, "
-                   f"post: {has_post}")
+                   f"post: {has_post}, "
+                   f"message: {has_message}, "
+                   f"post_id: {has_post_id}, "
+                   f"thread_id: {has_thread_id}, "
+                   f"headings: {has_h1}, "
+                   f"title: {has_title}")
 
         # 检查是否包含Cloudflare错误页面标记 (严格的错误页面)
         if has_error_code and 'error-code' in content and 'Cloudflare' in content:
@@ -250,28 +263,45 @@ class Sis001Parser(BaseParser):
             logger.warning(f"内容被识别为错误页面 (长度过短: {content_length})")
             return False
 
-        # 优先检查是否包含预期的内容标记
-        if has_t_msgfont or has_pages:
-            logger.info(f"内容通过验证 (包含预期标记: t_msgfont={has_t_msgfont}, pages={has_pages})")
-            return True
-
-        # 检查是否包含Discuz论坛的典型元素
-        if has_thread or has_post:
-            # 如果内容长度合理(大于10000字符),认为是有效内容
-            # 因为某些正常页面可能也会在页脚或某个地方提到Cloudflare
-            if content_length > 10000:
-                logger.info(f"内容通过验证 (包含论坛标记且长度足够: {content_length})")
-                return True
-            else:
-                logger.warning(f"内容包含论坛标记但长度不足 (长度: {content_length})")
+        # ❌ 严格排除 Cloudflare 错误页面
+        # Cloudflare 5xx 错误页面通常包含: Cloudflare + ray id, 但不包含真实内容标记
+        # 扩展检查: 如果有 Cloudflare + ray id,需要有足够的真实内容标记才认为有效
+        if has_turnstile and has_ray_id:
+            # 检查是否有真实内容标记 (扩展列表)
+            has_real_content = any([
+                has_t_msgfont,
+                has_pages,
+                has_message,
+                has_post_id,
+                has_thread_id,
+            ])
+            
+            if not has_real_content:
+                logger.warning(f"内容被识别为 Cloudflare 错误页面 (有 Cloudflare + ray id 但无内容标记)")
                 return False
 
-        # 如果只是提到Cloudflare但没有错误标记,且内容长度很长,可能是正常的页面
-        if has_turnstile and content_length > 20000:
-            logger.info(f"内容通过验证 (包含Cloudflare但长度较长: {content_length})")
+        # 优先检查是否包含预期的内容标记 (扩展列表)
+        has_valid_content = any([
+            has_t_msgfont,
+            has_pages,
+            has_message,
+            has_post_id,
+            has_thread_id,
+        ])
+        
+        if has_valid_content:
+            logger.info(f"内容通过验证 (包含有效标记)")
             return True
 
-        logger.warning(f"内容被识别为无效 (缺少预期标记, 长度: {content_length})")
+        # 如果以上标记都没有,但页面足够长且有标题,也可能是有效页面
+        # (避免误判一些特殊格式的页面)
+        if content_length > 10000 and has_title and has_body and (has_thread or has_post):
+            logger.warning(f"内容通过验证 (足够长,有标题,有thread/post标记)")
+            return True
+
+        # ❌ 不要只根据 thread- 或 post- 判断
+        # Cloudflare 错误页面也会包含原始 URL (thread-xxx-1-1)
+        logger.warning(f"内容无效 (缺少有效内容标记)")
         return False
 
     def _get_url_content_with_playwright_sis001(self, url: str, timeout: int = 120) -> Optional[str]:
@@ -429,6 +459,11 @@ class Sis001Parser(BaseParser):
                             with open(final_debug_file, 'w', encoding='utf-8') as f:
                                 f.write(content)
                             logger.info(f"最终页面HTML已保存到: {final_debug_file}")
+
+                            # 再次验证内容
+                            if not self._is_valid_content(content):
+                                logger.warning(f"内容仍然无效,Playwright 无法获取真实内容,返回 None 触发重试流程")
+                                return None
 
                         logger.info(f"成功获取页面内容,长度: {len(content)}")
                         return content

@@ -111,14 +111,15 @@ class BaseParser:
     
     def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
-        获取URL内容，支持四层反爬虫绕过策略 + 网络检测
+        获取URL内容，支持五层反爬虫绕过策略 + 网络检测
 
         策略层级：
         1. 普通请求 (requests)
         2. Cloudscraper 绕过
         3. Selenium 浏览器模拟
         4. Playwright 高级反爬虫处理
-        5. 失败时检测网络并等待恢复
+        5. Scrapling (最后兜底方案，强大的反爬虫能力)
+        6. 失败时检测网络并等待恢复
 
         Args:
             url: 目标URL
@@ -158,9 +159,9 @@ class BaseParser:
                     logger.warning(f"页面不存在: {url}")
                     return None
                 elif response.status_code in [403, 429, 503]:  # 反爬虫相关状态码
-                    logger.warning(f"检测到反爬虫限制 (HTTP {response.status_code})，尝试使用cloudscraper: {url}")
-                    # 使用cloudscraper绕过反爬虫
-                    return self._get_url_content_with_cloudscraper(url, proxies)
+                    logger.warning(f"检测到反爬虫限制 (HTTP {response.status_code})，将在重试中尝试cloudscraper: {url}")
+                    # 不直接返回,让重试机制处理反爬虫
+                    raise requests.exceptions.HTTPError(f"HTTP {response.status_code}", response=response)
                 else:
                     logger.warning(f"HTTP {response.status_code} 获取失败: {url}")
 
@@ -199,16 +200,25 @@ class BaseParser:
                             return content
                     except Exception as selenium_error:
                         logger.warning(f"selenium也失败: {selenium_error}")
-                        # 最后一次尝试，使用普通请求
-                        logger.warning(f"尝试普通请求: {url}")
+                        # 尝试 Scrapling（作为最后的兜底方案）
+                        logger.warning(f"尝试使用 Scrapling 兜底方案: {url}")
                         try:
-                            response = self.session.get(url, proxies=proxies, timeout=(20, 40))
-                            if response.status_code == 200:
-                                encoding = getattr(self, 'encoding', 'utf-8')
-                                response.encoding = encoding
-                                return response.text
-                        except Exception as final_error:
-                            logger.warning(f"最终请求失败: {final_error}")
+                            content = self._get_url_content_with_scrapling(url, proxies)
+                            if content:
+                                logger.info(f"Scrapling 成功获取内容: {url}")
+                                return content
+                        except Exception as scrapling_error:
+                            logger.warning(f"Scrapling也失败: {scrapling_error}")
+                            # 最后一次尝试，使用普通请求
+                            logger.warning(f"尝试普通请求: {url}")
+                            try:
+                                response = self.session.get(url, proxies=proxies, timeout=(20, 40))
+                                if response.status_code == 200:
+                                    encoding = getattr(self, 'encoding', 'utf-8')
+                                    response.encoding = encoding
+                                    return response.text
+                            except Exception as final_error:
+                                logger.warning(f"最终请求失败: {final_error}")
 
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
@@ -444,6 +454,7 @@ class BaseParser:
     def _selenium_request(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         使用selenium + 浏览器指纹伪装作为最后的反爬虫绕过手段
+        特别优化了 Cloudflare Turnstile 验证的等待逻辑
         
         Args:
             url: 目标URL
@@ -458,7 +469,11 @@ class BaseParser:
             from selenium.webdriver.chrome.service import Service
             from webdriver_manager.chrome import ChromeDriverManager
             from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            from selenium.common.exceptions import TimeoutException
             import time
+            import re
             
             # 配置Chrome选项进行浏览器指纹伪装
             chrome_options = Options()
@@ -477,12 +492,16 @@ class BaseParser:
             chrome_options.add_argument('--disable-gpu')
             chrome_options.add_argument('--disable-extensions')
             chrome_options.add_argument('--disable-plugins')
-            chrome_options.add_argument('--disable-images')
-            chrome_options.add_argument('--disable-javascript')
             chrome_options.add_argument('--disable-popup-blocking')
             chrome_options.add_argument('--disable-background-timer-throttling')
             chrome_options.add_argument('--disable-backgrounding-occluded-windows')
             chrome_options.add_argument('--disable-renderer-backgrounding')
+            
+            # 不要禁用 JavaScript! Cloudflare Turnstile 需要 JavaScript 执行
+            # chrome_options.add_argument('--disable-javascript')
+            
+            # 禁用图片加载以提高速度（但保持 JS 运行）
+            chrome_options.add_argument('--disable-images')
             
             # 设置用户代理
             chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
@@ -504,24 +523,73 @@ class BaseParser:
                 # 执行JavaScript脚本进一步伪装
                 driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                 
+                logger.info(f"Selenium 开始访问: {url}")
+                
                 # 访问目标URL
                 driver.get(url)
                 
-                # 等待页面加载
-                time.sleep(10)
+                # 等待初始页面加载
+                time.sleep(3)
                 
-                # 获取页面源代码
+                # 检测是否是 Cloudflare 验证页面
+                max_wait_time = 120  # 最长等待 2 分钟
+                start_time = time.time()
+                check_interval = 2  # 每 2 秒检查一次
+                
+                logger.info(f"开始检测 Cloudflare 验证状态, 最长等待 {max_wait_time} 秒")
+                
+                while time.time() - start_time < max_wait_time:
+                    current_page_source = driver.page_source
+                    
+                    # 检查是否仍然在 Cloudflare 验证页面
+                    has_cloudflare = 'Cloudflare' in current_page_source
+                    has_turnstile = 'turnstile' in current_page_source.lower() or 'challenges.cloudflare.com' in current_page_source.lower()
+                    has_ray_id = 'ray id' in current_page_source.lower() or 'cf-ray' in current_page_source.lower()
+                    has_challenge = '请稍候' in current_page_source or 'challenge' in current_page_source.lower()
+                    
+                    # 检查是否已经通过验证（页面不再有 Cloudflare 标记）
+                    if not (has_cloudflare and has_ray_id):
+                        logger.info(f"Cloudflare 验证似乎已完成, 获取页面内容")
+                        page_source = driver.page_source
+                        
+                        # 再次验证内容长度和标记
+                        if page_source and len(page_source) > 1000:
+                            logger.info(f"Selenium 成功获取页面内容, 长度: {len(page_source)}")
+                            return page_source
+                        else:
+                            logger.warning(f"页面内容过短: {len(page_source)}")
+                            time.sleep(check_interval)
+                            continue
+                    
+                    # 检查是否有新的验证元素出现
+                    if has_turnstile and has_challenge:
+                        logger.info(f"检测到 Cloudflare Turnstile 验证, 等待自动验证...")
+                    
+                    # 等待一段时间再检查
+                    time.sleep(check_interval)
+                    elapsed = int(time.time() - start_time)
+                    if elapsed % 10 == 0:  # 每 10 秒输出一次进度
+                        logger.info(f"等待 Cloudflare 验证... 已等待 {elapsed} 秒")
+                
+                # 超时后获取最终页面内容
+                logger.warning(f"等待 Cloudflare 验证超时 ({max_wait_time} 秒), 获取最终页面内容")
                 page_source = driver.page_source
                 
-                if page_source and len(page_source) > 100:  # 确保有内容
-                    logger.info(f"selenium成功获取页面内容: {url}")
+                if page_source and len(page_source) > 1000:
+                    logger.warning(f"获取到页面内容 (可能未完成验证), 长度: {len(page_source)}")
+                    
+                    # 检查是否仍然在验证页面
+                    if 'Cloudflare' in page_source and 'ray id' in page_source.lower():
+                        logger.warning("页面仍显示 Cloudflare 验证, 返回 None 触发 Scrapling")
+                        return None
+                    
                     return page_source
                 else:
-                    logger.warning(f"selenium获取的页面内容为空或过短: {url}")
+                    logger.warning(f"Selenium 获取的页面内容为空或过短: {url}")
                     return None
                     
             except Exception as e:
-                logger.warning(f"selenium操作异常: {e}")
+                logger.warning(f"selenium操作异常: {e}", exc_info=True)
                 return None
                 
             finally:
@@ -535,7 +603,89 @@ class BaseParser:
             logger.warning("selenium库未安装，无法使用浏览器指纹伪装")
             return None
         except Exception as e:
-            logger.warning(f"selenium初始化异常: {e}")
+            logger.warning(f"selenium初始化异常: {e}", exc_info=True)
+            return None
+    
+    def _get_url_content_with_scrapling(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        使用 Scrapling 获取页面内容，作为最终的兜底方案
+        Scrapling 具有强大的反爬虫能力，特别是针对 Cloudflare Turnstile
+        
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+            
+        Returns:
+            页面内容或None
+        """
+        try:
+            from scrapling.fetchers import Fetcher, StealthyFetcher
+            
+            # 构建 Scrapling 的代理配置
+            scrapling_proxies = None
+            if self.proxy_config.get('enabled', False):
+                proxy_url = self.proxy_config.get('proxy_url', '')
+                if proxy_url:
+                    # Scrapling 支持字符串格式的代理
+                    scrapling_proxies = proxy_url
+            
+            # 首先尝试使用 Fetcher (普通HTTP请求)
+            try:
+                logger.info(f"Scrapling Fetcher 尝试获取: {url}")
+                fetcher = Fetcher()
+                if scrapling_proxies:
+                    page = fetcher.get(url, proxies={'http': scrapling_proxies, 'https': scrapling_proxies})
+                else:
+                    page = fetcher.get(url)
+                
+                if page:
+                    content = page.text
+                    
+                    # 检测是否需要使用 StealthyFetcher
+                    if self._detect_advanced_anti_bot(content):
+                        logger.warning(f"Fetcher 检测到反爬虫，切换到 StealthyFetcher: {url}")
+                        raise Exception("需要使用 StealthyFetcher")
+                    
+                    logger.info(f"Scrapling Fetcher 成功获取内容: {url}")
+                    return content
+            except Exception as fetcher_error:
+                logger.warning(f"Scrapling Fetcher 失败: {fetcher_error}")
+            
+            # 如果 Fetcher 失败或检测到反爬虫，使用 StealthyFetcher (高级隐身模式)
+            logger.info(f"Scrapling StealthyFetcher 尝试获取: {url}")
+            stealth_fetcher = StealthyFetcher()
+            
+            # 配置 StealthyFetcher 参数
+            stealth_args = {
+                'headless': True,
+                'timeout': 60,
+            }
+            
+            # 如果有代理，添加代理配置
+            if scrapling_proxies:
+                # StealthyFetcher 代理配置格式可能不同，这里尝试多种格式
+                stealth_args['proxy'] = scrapling_proxies
+            
+            page = stealth_fetcher.fetch(url, **stealth_args)
+            
+            if page and page.text:
+                content = page.text
+                # 确保有实际内容
+                if len(content) > 100:
+                    logger.info(f"Scrapling StealthyFetcher 成功获取内容: {url}")
+                    return content
+                else:
+                    logger.warning(f"Scrapling StealthyFetcher 获取的内容过短: {url}")
+                    return None
+            else:
+                logger.warning(f"Scrapling StealthyFetcher 未能获取内容: {url}")
+                return None
+            
+        except ImportError:
+            logger.warning("scrapling库未安装，无法使用 Scrapling 兜底方案")
+            return None
+        except Exception as e:
+            logger.warning(f"Scrapling 获取页面内容失败: {url}, 错误: {e}")
             return None
     
     def _clean_html_content(self, html_content: str) -> str:
