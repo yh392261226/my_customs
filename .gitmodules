@@ -28,9 +28,6 @@
 [submodule "others/iterm2-theme-toggle"]
 	path = others/iterm2-theme-toggle
 	url = git@github.com:yh392261226/iterm2-theme-toggle.git
-[submodule "others/linux-command"]
-	path = others/linux-command
-	url = git@github.com:jaywcjlove/linux-command.git
 [submodule "others/phpstorm-stubs"]
 	path = others/phpstorm-stubs
 	url = git@github.com:JetBrains/phpstorm-stubs.git
