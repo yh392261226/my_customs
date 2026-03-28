@@ -1885,6 +1885,12 @@ class BookshelfScreen(Screen[None]):
                                 search_author=self._search_author,
                                 from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
                             )
+                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
+                            try:
+                                self.app.push_screen(RefreshBookshelfMessage())
+                                logger.info("已发送书架刷新消息（删除了 1 本书籍）")
+                            except Exception as e:
+                                logger.error(f"发送书架刷新消息失败: {e}")
                         else:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_failed"), severity="error")
                     except Exception as e:
@@ -2335,6 +2341,12 @@ class BookshelfScreen(Screen[None]):
                                 search_author=self._search_author,
                                 from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
                             )
+                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
+                            try:
+                                self.app.push_screen(RefreshBookshelfMessage())
+                                logger.info(f"已发送书架刷新消息（添加了 {added_count} 本书籍）")
+                            except Exception as e:
+                                logger.error(f"发送书架刷新消息失败: {e}")
                         else:
                             self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                     else:
@@ -2351,6 +2363,12 @@ class BookshelfScreen(Screen[None]):
                                 search_author=self._search_author,
                                 from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
                             )
+                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
+                            try:
+                                self.app.push_screen(RefreshBookshelfMessage())
+                                logger.info("已发送书架刷新消息（添加了 1 本书籍）")
+                            except Exception as e:
+                                logger.error(f"发送书架刷新消息失败: {e}")
                         else:
                             self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
                 except Exception as e:
@@ -2395,6 +2413,12 @@ class BookshelfScreen(Screen[None]):
                                 search_author=self._search_author,
                                 from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
                             )
+                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
+                            try:
+                                self.app.push_screen(RefreshBookshelfMessage())
+                                logger.info(f"已发送书架刷新消息（扫描添加了 {added_count} 本书籍）")
+                            except Exception as e:
+                                logger.error(f"发送书架刷新消息失败: {e}")
                         else:
                             self.notify(
                                 get_global_i18n().t("bookshelf.no_books_found"),
