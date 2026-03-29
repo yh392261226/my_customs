@@ -69,7 +69,7 @@ class BrowserTabMonitor:
             logger.info(f"使用浏览器: {app_name}, self.browser_type={self.browser_type}")
 
             result = subprocess.run(['osascript', '-e', script],
-                                  capture_output=True, text=True, timeout=10)
+                                  capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
                 # 解析AppleScript返回的结果
@@ -118,13 +118,23 @@ class BrowserTabMonitor:
         return f'''
             tell application "{app_name}"
                 if it is running then
-                    set window_list to every window
                     set tab_list to {{}}
-                    repeat with current_window in window_list
-                        repeat with current_tab in every tab of current_window
-                            set tab_info to {{url:URL of current_tab, title:title of current_tab}}
-                            set end of tab_list to tab_info
-                        end repeat
+                    set window_count to count of windows
+                    repeat with i from 1 to window_count
+                        try
+                            set current_window to window i
+                            set tab_count to count of tabs of current_window
+                            repeat with j from 1 to tab_count
+                                try
+                                    set current_tab to tab j of current_window
+                                    set tab_url to URL of current_tab
+                                    set tab_title to title of current_tab
+                                    if tab_url is not missing value and tab_title is not missing value then
+                                        set end of tab_list to "URL:" & tab_url & ", name:" & tab_title
+                                    end if
+                                end try
+                            end repeat
+                        end try
                     end repeat
                     return tab_list
                 else
@@ -143,13 +153,23 @@ class BrowserTabMonitor:
         return '''
             tell application "Safari"
                 if it is running then
-                    set window_list to every window
                     set tab_list to {}
-                    repeat with current_window in window_list
-                        repeat with current_tab in every tab of current_window
-                            set tab_info to {url:URL of current_tab, name:name of current_tab}
-                            set end of tab_list to tab_info
-                        end repeat
+                    set window_count to count of windows
+                    repeat with i from 1 to window_count
+                        try
+                            set current_window to window i
+                            set tab_count to count of tabs of current_window
+                            repeat with j from 1 to tab_count
+                                try
+                                    set current_tab to tab j of current_window
+                                    set tab_url to URL of current_tab
+                                    set tab_name to name of current_tab
+                                    if tab_url is not missing value and tab_name is not missing value then
+                                        set end of tab_list to "URL:" & tab_url & ", name:" & tab_name
+                                    end if
+                                end try
+                            end repeat
+                        end try
                     end repeat
                     return tab_list
                 else
@@ -756,7 +776,7 @@ class BrowserTabMonitor:
             '''
 
             result = subprocess.run(['osascript', '-e', script],
-                                  capture_output=True, text=True, timeout=10)
+                                  capture_output=True, text=True, timeout=30)
 
             if result.returncode == 0:
                 output = result.stdout.strip()
