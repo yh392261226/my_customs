@@ -6,9 +6,10 @@ import os
 import re
 import unicodedata
 from difflib import SequenceMatcher
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from src.utils.logger import get_logger
+from src.core.book import Book
 
 logger = get_logger(__name__)
 
@@ -366,22 +367,31 @@ class StringUtils:
                 - "none": 无包含关系
         """
         try:
-            # 获取内容采样
-            content1 = StringUtils._read_book_sample(book1.path, sample_size=10000)
-            content2 = StringUtils._read_book_sample(book2.path, sample_size=10000)
+            # 获取内容采样（改进版：增加采样大小和采样位置）
+            # 对于整本和部分章节的情况，需要更全面的采样
+            content1 = StringUtils._read_book_sample_enhanced(book1.path, sample_size=20000)
+            content2 = StringUtils._read_book_sample_enhanced(book2.path, sample_size=20000)
             
             if not content1 or not content2:
                 return "none", 0.0
             
-            # 检查 book1 是否是 book2 的子集
-            is_subset, ratio1 = StringUtils.is_content_subset(content1, content2)
+            # 检查 book1 是否是 book2 的子集（降低阈值到60%）
+            is_subset, ratio1 = StringUtils.is_content_subset(content1, content2, min_match_ratio=0.6)
             if is_subset:
                 return "subset", ratio1
             
-            # 检查 book2 是否是 book1 的子集
-            is_subset, ratio2 = StringUtils.is_content_subset(content2, content1)
+            # 检查 book2 是否是 book1 的子集（降低阈值到60%）
+            is_subset, ratio2 = StringUtils.is_content_subset(content2, content1, min_match_ratio=0.6)
             if is_subset:
                 return "superset", ratio2
+            
+            # 如果未检测到明确子集关系，检查部分匹配
+            # 对于整本和章节的情况，可能只是部分匹配
+            part_match, part_ratio = StringUtils._check_partial_subset(content1, content2, min_ratio=0.5)
+            if part_match == "subset":
+                return "subset", part_ratio
+            elif part_match == "superset":
+                return "superset", part_ratio
             
             return "none", 0.0
         except Exception as e:
@@ -400,6 +410,22 @@ class StringUtils:
         Returns:
             Optional[str]: 内容采样
         """
+        return StringUtils._read_book_sample_enhanced(book_path, sample_size)
+    
+    @staticmethod
+    def _read_book_sample_enhanced(book_path: str, sample_size: int = 20000, parts: int = 5) -> Optional[str]:
+        """
+        增强的书籍内容采样（用于子集检测）
+        从多个位置采样以捕获整本和部分章节的关系
+        
+        Args:
+            book_path: 书籍路径
+            sample_size: 总采样大小
+            parts: 采样部分数
+            
+        Returns:
+            Optional[str]: 合并的采样内容
+        """
         try:
             if not os.path.exists(book_path):
                 return None
@@ -412,9 +438,91 @@ class StringUtils:
                 # 对于二进制格式，返回 None
                 return None
             
-            # 读取开头部分
-            with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
-                return f.read(sample_size)
+            # 获取文件大小
+            file_size = os.path.getsize(book_path)
+            
+            if file_size <= sample_size:
+                # 如果文件较小，读取整个文件
+                with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read(sample_size)
+            else:
+                # 从多个位置采样
+                part_size = sample_size // parts
+                sampled_content = []
+                
+                with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    # 采样开头部分
+                    sampled_content.append(f.read(part_size))
+                    
+                    # 采样多个中间部分
+                    for i in range(1, parts - 1):
+                        # 移动到文件的不同位置
+                        seek_position = int(file_size * i / parts)
+                        f.seek(seek_position)
+                        sampled_content.append(f.read(part_size))
+                    
+                    # 采样结尾部分
+                    f.seek(file_size - part_size)
+                    sampled_content.append(f.read(part_size))
+                
+                return ''.join(sampled_content)
         except Exception as e:
             logger.error(f"读取书籍内容时出错: {e}")
-            return None
+            # 如果增强采样失败，回退到简单采样
+            try:
+                with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read(sample_size)
+            except Exception:
+                return None
+    
+    @staticmethod
+    def _check_partial_subset(content1: str, content2: str, min_ratio: float = 0.5) -> Tuple[Optional[str], float]:
+        """
+        检查部分包含关系（用于检测整本和章节的关系）
+        
+        Args:
+            content1: 内容1
+            content2: 内容2
+            min_ratio: 最小匹配比例
+            
+        Returns:
+            Tuple[Optional[str], float]: (关系类型, 匹配比例)
+                - "subset": content1 是 content2 的子集
+                - "superset": content1 是 content2 的超集
+                - "none": 无关系
+        """
+        if not content1 or not content2:
+            return "none", 0.0
+        
+        # 规范化文本
+        content1 = re.sub(r'\s+', '', content1)
+        content2 = re.sub(r'\s+', '', content2)
+        
+        len1 = len(content1)
+        len2 = len(content2)
+        
+        if len1 == 0 or len2 == 0:
+            return "none", 0.0
+        
+        # 检查直接包含关系
+        if content1 in content2:
+            return "subset", 1.0
+        
+        if content2 in content1:
+            return "superset", 1.0
+        
+        # 使用SequenceMatcher检查部分匹配
+        matcher = SequenceMatcher(None, content1, content2)
+        similarity = matcher.quick_ratio()
+        
+        # 根据相似度和长度比判断关系
+        if similarity >= min_ratio:
+            # 判断哪个可能是子集
+            len_ratio = min(len1, len2) / max(len1, len2)
+            if len_ratio < 0.7:  # 长度差异较大
+                if len1 < len2 and similarity >= 0.7:  # content1明显较短但相似度高
+                    return "subset", similarity
+                elif len2 < len1 and similarity >= 0.7:  # content2明显较短但相似度高
+                    return "superset", similarity
+        
+        return "none", similarity

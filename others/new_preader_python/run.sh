@@ -6,15 +6,23 @@ export LINES=$(tput lines)
 export COLUMNS=$(tput cols)
 # 自动运行Python程序并处理错误
 
-# 1. 检查Python版本
-PYTHON_CMD="python3"
-if ! command -v python3 &>/dev/null; then
-	PYTHON_CMD="python"
-	if ! command -v python &>/dev/null; then
-		echo "错误: 未找到Python解释器"
-		exit 1
+# 1. 检查Python版本（优先使用项目虚拟环境）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_CMD="$SCRIPT_DIR/venv/bin/python"
+
+if [ ! -f "$PYTHON_CMD" ]; then
+	echo "警告: 未找到项目虚拟环境，尝试使用系统Python"
+	PYTHON_CMD="python3"
+	if ! command -v python3 &>/dev/null; then
+		PYTHON_CMD="python"
+		if ! command -v python &>/dev/null; then
+			echo "错误: 未找到Python解释器"
+			exit 1
+		fi
 	fi
 fi
+
+echo "使用Python: $PYTHON_CMD"
 
 # 2. 检查依赖
 echo "检查Python依赖..."

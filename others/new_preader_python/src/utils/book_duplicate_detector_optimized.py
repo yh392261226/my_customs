@@ -275,32 +275,38 @@ class OptimizedBookDuplicateDetector:
         # 检查文件名是否相同
         file_name_match = book1.file_name.lower() == book2.file_name.lower()
         
-        # 计算内容相似度（仅当文件大小相近时）
+        # 计算内容相似度（放宽文件大小限制）
         similarity = 0.0
         try:
-            # 只在文件大小相近时才进行内容比较
-            if book1.size and book2.size:
-                size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
-                if size_ratio >= 0.5:  # 文件大小相近
-                    content1 = OptimizedBookDuplicateDetector._get_book_content_sample(book1)
-                    content2 = OptimizedBookDuplicateDetector._get_book_content_sample(book2)
-                    
-                    if content1 and content2:
-                        similarity = StringUtils.book_content_similarity(content1, content2)
+            # 放宽内容比较限制，允许文件大小差异更大的比较
+            # 对于整本和章节的情况，文件大小可能差异较大
+            content1 = OptimizedBookDuplicateDetector._get_book_content_enhanced(book1)
+            content2 = OptimizedBookDuplicateDetector._get_book_content_enhanced(book2)
+            
+            if content1 and content2:
+                similarity = StringUtils.book_content_similarity(content1, content2, sample_size=15000)
         except Exception as e:
             logger.error(f"比较书籍内容时出错: {e}")
         
-        # 检查包含关系（当文件大小差异较大时）
+        # 检查包含关系（文件大小差异较大时优先检查，但对大小相近的也检查）
         subset_relationship = None
         try:
             if book1.size and book2.size:
                 size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
-                # 当文件大小差异超过30%时，检查包含关系
-                if size_ratio < 0.7:
+                # 放宽包含关系检测条件：
+                # 1. 当文件大小差异较大时（差异超过10%）优先检查
+                # 2. 对于文本文件，即使大小相近也可能有包含关系（如不同的编码格式）
+                if size_ratio < 0.9:  # 放宽到10%差异
                     subset_relationship, subset_ratio = StringUtils.check_subset_relationship(book1, book2)
-                    if subset_relationship != "none" and subset_ratio >= 0.8:
-                        # 如果包含关系成立，使用子集匹配比例作为相似度
-                        similarity = subset_ratio
+                    if subset_relationship != "none":
+                        # 降低子集检测阈值到60%，以捕获更多部分章节情况
+                        min_subset_ratio = 0.6  # 原为0.8
+                        if subset_ratio >= min_subset_ratio:
+                            # 如果包含关系成立，使用子集匹配比例作为相似度
+                            similarity = max(similarity, subset_ratio)  # 取最大值
+                            # 如果检测到子集关系，增加相似度以标记为重复
+                            if similarity < 0.2:  # 如果当前相似度较低，但确实有子集关系
+                                similarity = subset_ratio
         except Exception as e:
             logger.error(f"检查包含关系时出错: {e}")
         
@@ -314,16 +320,39 @@ class OptimizedBookDuplicateDetector:
         except Exception as e:
             logger.error(f"计算文件哈希时出错: {e}")
         
-        # 确定重复类型
+        # 确定重复类型（优化阈值以检测更多重复）
         duplicate_types = []
+        
+        # 哈希值相同是最强的重复类型
         if hash_match:
             duplicate_types.append(DuplicateType.HASH_IDENTICAL)
-        if similarity >= 0.2:  # 相似度超过20%
+        
+        # 降低内容相似度阈值以检测更多重复
+        # 对于整本和章节的情况，即使相似度较低也可能是重复
+        min_similarity_threshold = 0.15  # 原为0.2
+        if similarity >= min_similarity_threshold:
             duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
-        if subset_relationship and subset_relationship != "none" and subset_relationship in ["subset", "superset"]:
-            duplicate_types.append(DuplicateType.CONTENT_SUBSET)
+        
+        # 包含关系检测（放宽条件）
+        if subset_relationship and subset_relationship != "none":
+            if subset_relationship in ["subset", "superset"]:
+                # 只要检测到包含关系，就标记为内容子集类型
+                duplicate_types.append(DuplicateType.CONTENT_SUBSET)
+                # 同时如果相似度较低，提升相似度值
+                if similarity < 0.3:
+                    similarity = max(similarity, 0.5)  # 包含关系至少50%相似度
+            elif similarity >= min_similarity_threshold:
+                # 如果是部分匹配但相似度足够，也标记为内容相似
+                duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
+        
+        # 文件名相同（弱重复类型）
         if file_name_match:
             duplicate_types.append(DuplicateType.FILE_NAME)
+        
+        # 如果检测到内容相似或包含关系，确保至少有相似的重复类型
+        if not duplicate_types and similarity >= 0.1:
+            # 即使相似度较低，如果没有任何其他重复类型，仍标记为内容相似
+            duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
         
         return BookComparison(
             book1=book1,
@@ -346,6 +375,21 @@ class OptimizedBookDuplicateDetector:
         Returns:
             Optional[str]: 书籍内容采样
         """
+        return OptimizedBookDuplicateDetector._get_book_content_enhanced(book, sample_size)
+    
+    @staticmethod
+    def _get_book_content_enhanced(book: Book, sample_size: int = 15000) -> Optional[str]:
+        """
+        获取增强的书籍内容采样（用于更准确的重复检测）
+        从多个位置采样以捕获整本和部分章节的关系
+        
+        Args:
+            book: 书籍对象
+            sample_size: 采样大小
+            
+        Returns:
+            Optional[str]: 书籍内容采样
+        """
         try:
             if not os.path.exists(book.path):
                 return None
@@ -358,13 +402,44 @@ class OptimizedBookDuplicateDetector:
                 # 对于二进制格式文件，尝试通过应用读取内容（如果有内容的话）
                 # 这里返回None表示无法直接读取内容进行比较
                 return None
+            
+            # 获取文件大小
+            file_size = os.path.getsize(book.path)
+            
+            if file_size <= sample_size:
+                # 如果文件较小，读取整个文件
+                with open(book.path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read(sample_size)
+            else:
+                # 从多个位置采样以捕获章节内容
+                parts = 5  # 采样5个部分
+                part_size = sample_size // parts
+                sampled_content = []
                 
-            # 只读取开头部分，避免seek操作
-            with open(book.path, 'r', encoding='utf-8', errors='ignore') as f:
-                return f.read(sample_size)
+                with open(book.path, 'r', encoding='utf-8', errors='ignore') as f:
+                    # 采样开头部分
+                    sampled_content.append(f.read(part_size))
+                    
+                    # 采样多个中间部分
+                    for i in range(1, parts - 1):
+                        # 移动到文件的不同位置（特别关注可能的章节位置）
+                        seek_position = int(file_size * i / parts)
+                        f.seek(seek_position)
+                        sampled_content.append(f.read(part_size))
+                    
+                    # 采样结尾部分
+                    f.seek(file_size - part_size)
+                    sampled_content.append(f.read(part_size))
+                
+                return ''.join(sampled_content)
         except Exception as e:
             logger.error(f"读取书籍内容时出错: {e}")
-            return None
+            # 如果增强采样失败，回退到简单开头采样
+            try:
+                with open(book.path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read(sample_size)
+            except Exception:
+                return None
     
     @staticmethod
     def _recommend_deletion(group: DuplicateGroup):

@@ -1534,7 +1534,8 @@ class GetBooksScreen(Screen[None]):
 
         if event.key == "escape":
             # ESC键返回（仅一次）
-            self.app.pop_screen()
+            if len(self.app.screen_stack) > 1:
+                self.app.pop_screen()
             event.stop()
 
     def _clear_all_invalid_records(self) -> None:
