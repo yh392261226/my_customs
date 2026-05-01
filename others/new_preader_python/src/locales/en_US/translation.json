@@ -268,7 +268,8 @@
     "rename_failed": "Failed to rename book",
     "all_sources": "All Sources",
     "select_source": "Select Source",
-    "jump_to": "Jump To"
+    "jump_to": "Jump To",
+    "title_copied": "Copied book title '{title}' to clipboard"
   },
   "batch_ops": {
     "title": "Batch Operations",
@@ -1169,6 +1170,7 @@
     "copy_ids": "Copy IDs",
     "copy_ids_success": "Successfully copied IDs",
     "copy_ids_failed": "Failed to copy IDs",
+    "title_copied": "Copied book title '{title}' to clipboard",
     "books_count": "books",
     "crawl_history": "Crawl History",
     "prev_page": "Previous Page",

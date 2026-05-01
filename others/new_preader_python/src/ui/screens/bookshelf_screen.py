@@ -1533,6 +1533,12 @@ class BookshelfScreen(Screen[None]):
                         # 阻止事件冒泡，避免触发其他处理程序
                         event.stop()
                     
+                    # 处理标题列点击：复制书名到剪贴板
+                    # 列索引从0开始：1=标题列
+                    elif column_key == 1:
+                        self._copy_book_title_to_clipboard(book.title)
+                        event.stop()
+
                     # 处理筛选列（作者、格式、标签）
                     # 列索引从0开始：2=作者, 3=格式, 7=标签
                     elif column_key in [2, 3, 7]:
@@ -1546,6 +1552,43 @@ class BookshelfScreen(Screen[None]):
         except Exception as e:
             self.logger.error(f"处理单元格选择时出错: {e}")
     
+    def _copy_book_title_to_clipboard(self, title: str) -> None:
+        """复制书名到剪贴板
+        
+        Args:
+            title: 书籍标题
+        """
+        try:
+            # 使用pyperclip复制到剪贴板
+            import pyperclip
+            pyperclip.copy(title)
+            self.notify(get_global_i18n().t("bookshelf.title_copied", title=title), severity="information")
+        except ImportError:
+            # 如果pyperclip未安装，尝试使用系统命令
+            import subprocess
+            import platform
+            
+            system = platform.system()
+            try:
+                if system == 'Darwin':  # macOS
+                    subprocess.run(['pbcopy'], input=title, text=True, check=True)
+                elif system == 'Windows':  # Windows
+                    subprocess.run(['clip'], input=title, text=True, check=True, shell=True)
+                else:  # Linux
+                    # 尝试使用xclip或xsel
+                    try:
+                        subprocess.run(['xclip', '-selection', 'clipboard'], input=title, text=True, check=True)
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        subprocess.run(['xsel', '--clipboard', '--input'], input=title, text=True, check=True)
+                
+                self.notify(get_global_i18n().t("bookshelf.title_copied", title=title), severity="information")
+            except Exception as e:
+                self.logger.error(f"复制书名到剪贴板失败: {e}")
+                self.notify(get_global_i18n().t("cannot_copy"), severity="error")
+        except Exception as e:
+            self.logger.error(f"复制书名到剪贴板失败: {e}")
+            self.notify(get_global_i18n().t("cannot_copy"), severity="error")
+
     def _handle_column_filter(self, column_key: int, book) -> None:
         """处理列筛选功能
         

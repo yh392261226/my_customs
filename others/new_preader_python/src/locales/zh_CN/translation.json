@@ -268,7 +268,8 @@
     "rename_failed": "重命名书籍失败",
     "all_sources": "所有来源",
     "select_source": "选择来源",
-    "jump_to": "跳转到"
+    "jump_to": "跳转到",
+    "title_copied": "已复制书名《{title}》到剪贴板"
   },
   "batch_ops": {
     "title": "批量操作",
@@ -1255,6 +1256,7 @@
     "copy_ids": "复制ID",
     "copy_ids_success": "成功复制ID",
     "copy_ids_failed": "复制ID失败",
+    "title_copied": "已复制书名《{title}》到剪贴板",
     "books_count": "本书",
     "crawl_history": "爬取历史",
     "prev_page": "上一页",

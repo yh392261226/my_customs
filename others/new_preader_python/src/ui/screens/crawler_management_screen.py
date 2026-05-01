@@ -2060,13 +2060,72 @@ class CrawlerManagementScreen(Screen[None]):
             elif column == "crawl_latest":
                 self._crawl_latest_chapters(row_key)
                 
+            # 处理书名标题列点击：复制书名到剪贴板
+            elif column == "novel_title":
+                self._copy_novel_title_to_clipboard(row_key)
+
             # 处理空格键选择：当点击任何非按钮列时，触发选择切换
-            elif column not in ["selected", "view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry"]:
+            elif column not in ["selected", "view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "novel_title"]:
                 self._handle_cell_selection(row_key)
                     
         except Exception as e:
             logger.error(f"单元格选择事件处理失败: {e}")
-    
+
+    def _copy_novel_title_to_clipboard(self, row_key: str) -> None:
+        """复制小说标题到剪贴板
+        
+        Args:
+            row_key: 行键值
+        """
+        try:
+            # 查找对应的历史记录
+            history_item = None
+            for item in self.crawler_history:
+                if str(item.get("id")) == row_key:
+                    history_item = item
+                    break
+
+            if not history_item:
+                logger.debug(f"无法找到对应的历史记录: {row_key}")
+                return
+
+            novel_title = history_item.get('novel_title', '')
+            if not novel_title:
+                self._update_status(get_global_i18n().t('crawler.unknown_book'), "warning")
+                return
+
+            # 使用pyperclip复制到剪贴板
+            try:
+                import pyperclip
+                pyperclip.copy(novel_title)
+                self._update_status(get_global_i18n().t('crawler.title_copied', title=novel_title), "information")
+            except ImportError:
+                # 如果pyperclip未安装，尝试使用系统命令
+                import subprocess
+                import platform
+                
+                system = platform.system()
+                try:
+                    if system == 'Darwin':  # macOS
+                        subprocess.run(['pbcopy'], input=novel_title, text=True, check=True)
+                    elif system == 'Windows':  # Windows
+                        subprocess.run(['clip'], input=novel_title, text=True, check=True, shell=True)
+                    else:  # Linux
+                        # 尝试使用xclip或xsel
+                        try:
+                            subprocess.run(['xclip', '-selection', 'clipboard'], input=novel_title, text=True, check=True)
+                        except (subprocess.SubprocessError, FileNotFoundError):
+                            subprocess.run(['xsel', '--clipboard', '--input'], input=novel_title, text=True, check=True)
+
+                    self._update_status(get_global_i18n().t('crawler.title_copied', title=novel_title), "information")
+                except Exception as copy_error:
+                    logger.error(f"复制书名到剪贴板失败: {copy_error}")
+                    self._update_status(get_global_i18n().t('cannot_copy'), "error")
+                    
+        except Exception as e:
+            logger.error(f"复制书名到剪贴板失败: {e}")
+            self._update_status(get_global_i18n().t('cannot_copy'), "error")
+
     def _toggle_serial_mode(self, row_key: str) -> None:
         """切换连载模式"""
         try:
