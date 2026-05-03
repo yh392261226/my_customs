@@ -2126,6 +2126,42 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"复制书名到剪贴板失败: {e}")
             self._update_status(get_global_i18n().t('cannot_copy'), "error")
 
+    def _copy_focused_novel_title(self) -> None:
+        """复制当前焦点所在行的小说标题到剪贴板"""
+        try:
+            table = self.query_one("#crawl-history-table", DataTable)
+            
+            # 检查是否有有效行和光标位置
+            if not table.rows or table.cursor_row is None or table.cursor_row < 0:
+                self._update_status("没有可用的数据行", "warning")
+                return
+            
+            # 计算当前页的起始索引
+            start_index = (self.current_page - 1) * self.items_per_page
+            row_index = table.cursor_row
+            
+            # 检查是否超出范围
+            if start_index + row_index >= len(self.crawler_history):
+                logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self.crawler_history)}, 起始索引={start_index}")
+                return
+            
+            # 获取对应的历史记录
+            history_item = self.crawler_history[start_index + row_index]
+            if not history_item:
+                return
+            
+            # 调用现有的复制方法
+            novel_title = history_item.get('novel_title', '')
+            if novel_title:
+                # 直接调用已有的复制方法，传入行键值
+                self._copy_novel_title_to_clipboard(str(history_item.get("id")))
+            else:
+                self._update_status(get_global_i18n().t('crawler.unknown_book'), "warning")
+                    
+        except Exception as e:
+            logger.error(f"复制焦点书籍标题失败: {e}")
+            self._update_status(get_global_i18n().t('cannot_copy'), "error")
+
     def _toggle_serial_mode(self, row_key: str) -> None:
         """切换连载模式"""
         try:
@@ -3644,6 +3680,11 @@ class CrawlerManagementScreen(Screen[None]):
         if event.key == "escape":
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()
+            event.stop()
+        elif event.key == "y":
+            # Y键复制当前焦点书籍标题
+            self._copy_focused_novel_title()
+            event.prevent_default()
             event.stop()
         
         # 数字键功能 - 根据是否有选中项执行不同操作

@@ -1589,6 +1589,45 @@ class BookshelfScreen(Screen[None]):
             self.logger.error(f"复制书名到剪贴板失败: {e}")
             self.notify(get_global_i18n().t("cannot_copy"), severity="error")
 
+    def _copy_focused_book_title(self) -> None:
+        """复制当前焦点所在行的书籍标题到剪贴板"""
+        try:
+            table = self.query_one("#books-table", DataTable)
+            
+            # 检查是否有有效行
+            if not table.rows or table.cursor_row is None or table.cursor_row < 0:
+                self.notify(get_global_i18n().t("bookshelf.no_books"), severity="warning")
+                return
+            
+            # 计算当前光标行对应的书籍索引
+            start_index = (self._current_page - 1) * self._books_per_page
+            row_index = table.cursor_row
+            
+            # 检查是否超出范围
+            if row_index >= len(self._all_books) - start_index:
+                self.logger.warning(f"行索引超出范围: row_index={row_index}, 总数据长度={len(self._all_books)}, 起始索引={start_index}")
+                return
+            
+            # 获取对应书籍
+            book = self._all_books[start_index + row_index]
+            if not book:
+                return
+            
+            # 复制书籍标题（去除可能的前缀标记）
+            title = book.title
+            if title.startswith("[🈚] ") or title.startswith("[书籍文件不存在] "):
+                # 提取原始标题
+                if title.startswith("[🈚] "):
+                    title = title[5:]  # 去掉 "[🈚] " 前缀
+                else:
+                    title = title[len("[书籍文件不存在] "):]  # 去掉前缀
+            
+            self._copy_book_title_to_clipboard(title)
+            
+        except Exception as e:
+            self.logger.error(f"复制焦点书籍标题失败: {e}")
+            self.notify(get_global_i18n().t("cannot_copy"), severity="error")
+
     def _handle_column_filter(self, column_key: int, book) -> None:
         """处理列筛选功能
         
@@ -2046,6 +2085,11 @@ class BookshelfScreen(Screen[None]):
         elif event.key == "escape" or event.key == "q":
             # ESC键或Q键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
+            event.stop()
+        elif event.key == "y":
+            # Y键复制当前焦点书籍标题
+            self._copy_focused_book_title()
+            event.prevent_default()
             event.stop()
         
         elif event.key == "down":
