@@ -66,6 +66,9 @@ cloud_conversation_storage_enabled = false
 [agents.warp_agent.input]
 nld_in_terminal_enabled = true
 
+[agents.warp_agent.other]
+should_render_use_agent_toolbar_for_user_commands = false
+
 [notifications]
 
 [notifications.preferences]
