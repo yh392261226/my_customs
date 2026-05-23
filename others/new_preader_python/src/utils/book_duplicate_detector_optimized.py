@@ -186,9 +186,10 @@ class OptimizedBookDuplicateDetector:
                         continue
                     
                     # 只比较文件大小相近的书籍（减少比较次数）
+                    # 【优化】放宽文件大小限制，从0.5改为0.3，允许更大差异
                     if book1.size and book2.size:
                         size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
-                        if size_ratio < 0.5:  # 文件大小相差超过一倍，不太可能内容相似
+                        if size_ratio < 0.3:  # 放宽：文件大小相差超过70%才跳过
                             continue
                     
                     try:
@@ -253,12 +254,100 @@ class OptimizedBookDuplicateDetector:
         
         # 将内容相似度组添加到总体重复组列表
         duplicate_groups.extend(content_similar_groups)
-        
+
+        # 【新增】跨批重复检测：检查当前批发现的重复书籍是否与其他批的未处理书籍存在重复关系
+        if content_similar_groups:
+            logger.info("开始跨批重复检测...")
+            cross_batch_groups = OptimizedBookDuplicateDetector._detect_cross_batch_duplicates(
+                remaining_books, content_similar_groups, batch_size
+            )
+            if cross_batch_groups:
+                logger.info(f"跨批检测发现{len(cross_batch_groups)}组额外重复")
+                # 为新发现的重复组推荐删除策略
+                for group in cross_batch_groups:
+                    OptimizedBookDuplicateDetector._recommend_deletion(group)
+                duplicate_groups.extend(cross_batch_groups)
+
         if progress_callback:
             progress_callback(total * 3, total * 3)
         
         logger.info(f"重复检测完成，找到{len(duplicate_groups)}组重复书籍")
         return duplicate_groups
+    
+    @staticmethod
+    def _detect_cross_batch_duplicates(remaining_books: List[Book], content_similar_groups: List[DuplicateGroup], 
+                                       batch_size: int = 200) -> List[DuplicateGroup]:
+        """
+        检测跨批次的重复书籍
+        
+        当某一批中发现重复书籍时，这些书籍可能与其他批次中的书籍也存在重复关系。
+        此函数用于捕获这种跨批重复。
+        
+        Args:
+            remaining_books: 所有未处理的书籍（包括当前批和后续批次）
+            content_similar_groups: 当前批发现的重复组
+            batch_size: 批次大小
+            
+        Returns:
+            List[DuplicateGroup]: 额外发现的跨批重复组
+        """
+        cross_batch_groups = []
+        
+        # 收集所有已在内容相似组中的书籍路径
+        books_in_similar_groups = set()
+        for group in content_similar_groups:
+            for book in group.books:
+                books_in_similar_groups.add(book.path)
+        
+        # 对于每个已发现的重复书籍，检查它是否与不在同一组的其他书籍存在重复关系
+        checked_pairs = set()  # 避免重复检查
+        
+        # 获取所有在相似组中的书籍对象
+        similar_books = [book for book in remaining_books if book.path in books_in_similar_groups]
+        
+        for sim_book in similar_books:
+            # 只与其他批中不在此重复组中的书籍比较
+            for other_book in remaining_books:
+                # 跳过同一本书或已在同一重复组中的书
+                if sim_book.path == other_book.path or other_book.path in books_in_similar_groups:
+                    continue
+                
+                # 创建唯一的配对标识，避免重复检查
+                pair_key = tuple(sorted([sim_book.path, other_book.path]))
+                if pair_key in checked_pairs:
+                    continue
+                checked_pairs.add(pair_key)
+                
+                try:
+                    comparison = OptimizedBookDuplicateDetector._compare_books_fast(sim_book, other_book)
+                    
+                    # 检查是否存在强重复信号（哈希相同、高相似度、或包含关系）
+                    is_strong_duplicate = (
+                        (comparison.hash_match) or
+                        (DuplicateType.CONTENT_SIMILAR in comparison.duplicate_types and comparison.similarity >= 0.25) or
+                        (DuplicateType.CONTENT_SUBSET in comparison.duplicate_types) or
+                        (comparison.file_name_match and comparison.similarity >= 0.15)
+                    )
+                    
+                    if is_strong_duplicate:
+                        logger.info(f"发现跨批重复: {sim_book.file_name} <-> {other_book.file_name}, "
+                                   f"类型={[dt.value for dt in comparison.duplicate_types]}, 相似度={comparison.similarity:.2%}")
+                        
+                        # 创建新的重复组
+                        group = DuplicateGroup(
+                            duplicate_type=DuplicateType.CONTENT_SIMILAR,
+                            books=[sim_book, other_book],
+                            similarity=comparison.similarity
+                        )
+                        cross_batch_groups.append(group)
+                        
+                        # 将新发现的重复书籍也加入检测集合，以便级联检测
+                        books_in_similar_groups.add(other_book.path)
+                        
+                except Exception as e:
+                    logger.error(f"跨批检测失败: {sim_book.path} vs {other_book.path}, 错误: {e}")
+        
+        return cross_batch_groups
     
     @staticmethod
     def _compare_books_fast(book1: Book, book2: Book) -> BookComparison:

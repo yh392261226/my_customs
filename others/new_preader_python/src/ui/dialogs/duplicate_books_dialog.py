@@ -23,7 +23,7 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
-    """重复书籍对话框"""
+    """重复书籍对话框（支持取消后台任务）"""
     
     CSS_PATH = "../styles/duplicate_books_dialog.tcss"
 
@@ -54,6 +54,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         self.current_batch = current_batch  # 当前批次数(0表示初始批次)
         self.total_batches = total_batches  # 总批次数
         self.processing_remaining = processing_remaining  # 是否还有剩余批次需要处理
+        
+        # 【新增】实例级取消标志 - 用于通知后台线程停止
+        self._is_cancelled = False
         
         # 预先推荐选中所有组中推荐的删除书籍
         for group in duplicate_groups:
@@ -308,8 +311,23 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         )
     
     def action_cancel(self) -> None:
-        """取消操作"""
-        self.dismiss({"refresh": False})
+        """取消操作 - 停止后台检测线程并退出"""
+        # 【关键】设置取消标志，通知后台线程停止
+        self._is_cancelled = True
+        DuplicateBooksDialog._cancel_requested = True  # 类级别标志
+        
+        logger.info("用户按ESC取消去重操作，正在停止后台检测...")
+        
+        try:
+            # 尝试通知父对话框也设置取消标志
+            parent_screen = self.app.screen_stack[-2] if len(self.app.screen_stack) > 1 else None
+            if hasattr(parent_screen, '_duplicate_cancel_requested'):
+                parent_screen._duplicate_cancel_requested = True
+        except Exception:
+            pass
+        
+        # 立即关闭对话框（不等待后台线程）
+        self.dismiss({"refresh": False, "cancelled": True})
     
     def action_toggle_row(self) -> None:
         """切换当前行选中状态"""
@@ -496,29 +514,42 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             for i in reversed(groups_to_remove):
                 del self.duplicate_groups[i]
             
-            # 重新检测剩余书籍是否形成新的重复关系
-            if remaining_books_from_deleted_groups and len(remaining_books_from_deleted_groups) >= 2:
-                logger.info(f"重新检测{len(remaining_books_from_deleted_groups)}本剩余书籍中的新重复关系")
+            # 【改进】收集所有组中的剩余书籍（不仅限于被删除的组）
+            all_remaining_books = []
+            for group in self.duplicate_groups:
+                for book in group.books:
+                    if book.path not in deleted_book_paths:
+                        all_remaining_books.append(book)
+            
+            # 添加之前被删除组中剩余的书籍（去重）
+            for book in remaining_books_from_deleted_groups:
+                if book not in all_remaining_books:
+                    all_remaining_books.append(book)
+            
+            # 重新检测所有剩余书籍是否形成新的重复关系
+            if len(all_remaining_books) >= 2:
+                logger.info(f"重新检测{len(all_remaining_books)}本剩余书籍中的新重复关系（全局检测）")
                 
-                # 对剩余书籍进行重复检测
+                # 对所有剩余书籍进行重复检测（使用超高性能版本）
                 try:
-                    from src.utils.book_duplicate_detector_optimized import OptimizedBookDuplicateDetector
-                    new_duplicate_groups = OptimizedBookDuplicateDetector.find_duplicates(
-                        remaining_books_from_deleted_groups,
+                    from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector
+                    new_duplicate_groups = UltraBookDuplicateDetector.find_duplicates(
+                        all_remaining_books,
                         progress_callback=None,
                         batch_callback=None
                     )
                     
                     if new_duplicate_groups:
                         logger.info(f"在剩余书籍中发现{len(new_duplicate_groups)}组新的重复关系")
-                        # 将新的重复组添加到列表中
-                        self.duplicate_groups.extend(new_duplicate_groups)
+                        # 移除旧的空组或单书组，只保留新发现的重复关系
+                        self.duplicate_groups = new_duplicate_groups
                         self.notify(
                             f"删除完成后，在剩余书籍中发现{len(new_duplicate_groups)}组新的重复关系",
                             severity="information"
                         )
                     else:
                         logger.info("剩余书籍中未发现新的重复关系")
+                        self.duplicate_groups = []  # 清空，因为没有重复了
                 except Exception as e:
                     logger.error(f"重新检测剩余书籍时出错: {e}")
                     # 不影响删除操作，只是记录错误
