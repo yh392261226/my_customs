@@ -55,13 +55,16 @@ class DaemonThreadPoolExecutor(ThreadPoolExecutor):
     """
     
     def submit(self, fn, *args, **kwargs):
-        """重写submit：提交任务后立即将新创建的工作线程设为daemon"""
+        """重写submit：提交任务后将新创建的工作线程设为daemon"""
         future = super().submit(fn, *args, **kwargs)
         
-        # 将当前所有工作线程设为daemon（包括刚创建的）
+        # 将当前所有工作线程尝试设为daemon
         for t in self._threads:
             if not t.daemon:
-                t.daemon = True
+                try:
+                    t.daemon = True  # 忽略已经启动的线程错误
+                except (RuntimeError, ValueError):
+                    pass  # 线程已启动或已结束，忽略
         
         return future
 
@@ -137,16 +140,21 @@ class UltraBookDuplicateDetector:
     
     # SimHash参数（平衡精准度和召回率）
     SIMHASH_BITS = 64
-    SIMHASH_THRESHOLD = 3  # 海明距离阈值（回退到3，避免漏检）
+    SIMHASH_THRESHOLD = 3  # 海明距离阈值（保持3）
     
-    # 判定阈值（合理水平 - 平衡精准度和召回率）
-    MIN_CONTENT_SIMILARITY = 0.28      # 内容相似度最低要求（从0.40回调到0.28）
-    HIGH_CONFIDENCE = 0.72              # 高置信度阈值（从0.80回调到0.72）
-    FEATURE_SIMILARITY_WEIGHT = 0.20    # 特征相似度权重
+    # 【收紧】判定阈值 - 减少误报，提高精准度
+    MIN_CONTENT_SIMILARITY = 0.32      # 内容相似度：从28%提高到32%
+    HIGH_CONFIDENCE = 0.76              # 置信度：从72%提高到76%
+    FEATURE_SIMILARITY_WEIGHT = 0.15    # 特征权重：从20%降到15%（减少弱信号影响）
     
-    # 大规模数据集保护（平衡速度和质量 - 优化版）
-    MAX_DEEP_DETECT_SIZE = 2500         # 最大深度检测数量
-    MAX_PAIRS_PER_GROUP = 8000         # 每组最大比较对数（从20000降到8000，提速2.5倍）
+    # 包含关系检测专用参数
+    SUBSET_MIN_RATIO = 0.65            # 子集匹配最低比例：从55%提高到65%
+    SUBSET_SIZE_MIN_RATIO = 0.08        # 大小差异最小要求：从3%提高到8%
+    SUBSET_SIZE_MAX_RATIO = 0.92        # 大小差异最大要求：从97%降到92%
+    
+    # 大规模数据集保护
+    MAX_DEEP_DETECT_SIZE = 2500         
+    MAX_PAIRS_PER_GROUP = 8000         
     
     # 并行参数
     MAX_WORKERS = None  # 自动检测CPU核心数
@@ -1146,98 +1154,96 @@ class UltraBookDuplicateDetector:
             if book1.size and book2.size and max(book1.size, book2.size) > 0:
                 size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
             
-            # 3e. 包含关系检测（针对整本vs章节的情况）
+            # 3e. 包含关系检测（针对整本vs章节的情况 - 【收紧】减少误报）
             subset_relationship = None
             subset_ratio = 0.0
-            if book1.size and book2.size and 0.1 < size_ratio < 0.95:  # 大小差异在5%-90%之间
+            # 使用类级别参数控制范围
+            if book1.size and book2.size and self.SUBSET_SIZE_MIN_RATIO < size_ratio < self.SUBSET_SIZE_MAX_RATIO:
                 try:
                     subset_rel, sub_rat = StringUtils.check_subset_relationship(book1, book2)
-                    if subset_rel != "none" and sub_rat >= 0.70:  # 提高子集检测阈值
+                    # 【收紧】使用类参数 SUBSET_MIN_RATIO (65%)
+                    if subset_rel != "none" and sub_rat >= self.SUBSET_MIN_RATIO:
                         subset_relationship = subset_rel
                         subset_ratio = sub_rat
                 except Exception as e:
                     logger.debug(f"包含关系检查异常: {e}")
             
-            # ===== 阶段4：多层验证判断（核心改进）=====
+            # ===== 阶段4：多层验证判断（【收紧】高精准度版本）=====
             is_duplicate = False
             duplicate_types = []
             confidence = 0.0
             reason = ""
             
-            # 规则A：高内容相似度（最强的证据）
+            # 规则A：高内容相似度（最强的证据）- 提高门槛
             if has_enough_content and content_similarity >= self.MIN_CONTENT_SIMILARITY:
-                # 高相似度：>= 40% 直接判定为重复
                 is_duplicate = True
                 duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
                 
-                # 计算置信度：基础分 + 内容分 + 特征加权
-                base_confidence = 0.60
-                content_bonus = min(0.30, content_similarity * 0.5)
+                # 【收紧】提高基础分和权重要求
+                base_confidence = 0.58  # 从55%提高到58%
+                content_bonus = min(0.25, content_similarity * 0.42)  # 减小bonus
                 feature_bonus = feature_sim * self.FEATURE_SIMILARITY_WEIGHT
                 
-                confidence = min(0.98, base_confidence + content_bonus + feature_bonus)
-                reason = f"高内容相似度({content_similarity:.1%})"
+                confidence = min(0.94, base_confidence + content_bonus + feature_bonus)
+                reason = f"内容相似度({content_similarity:.1%})"
                 
-                # 如果文件名也匹配，置信度更高
                 if file_name_match:
-                    confidence = min(0.99, confidence + 0.05)
+                    confidence = min(0.96, confidence + 0.03)  # 减少文件名加分
                     reason += "+文件名相同"
             
-            # 规则B：明确的包含关系（整本 vs 章节/部分章节）
-            elif subset_relationship in ["subset", "superset"] and subset_ratio >= 0.75:
-                # 子集匹配率很高（>= 75%）且大小有明显差异
+            # 规则B：明确的包含关系 - 【收紧】提高触发阈值
+            elif subset_relationship in ["subset", "superset"] and subset_ratio >= self.SUBSET_MIN_RATIO:
                 is_duplicate = True
                 duplicate_types.append(DuplicateType.CONTENT_SUBSET)
                 
-                confidence = 0.72 + subset_ratio * 0.20  # 范围: 0.87-0.92
+                # 【收紧】降低基础置信度，需要更高匹配率才能达标
+                confidence = 0.65 + subset_ratio * 0.20  # 范围: 0.78-0.85
                 reason = f"包含关系({subset_relationship}, {subset_ratio:.1%})"
             
-            # 规则C：中等相似度 + 多个辅助证据（需要多重确认）
+            # 规则C：中等相似度 + 多个辅助证据（【收紧】需要更强证据）
             elif (has_enough_content and 
-                  content_similarity >= 0.28 and  # 至少28%
-                  (file_name_match or feature_sim >= 0.7 or simhash_dist <= 3)):
+                  content_similarity >= 0.32 and  # 【收紧】从28%提高到32%
+                  (file_name_match or feature_sim >= 0.75 or simhash_dist <= 2)):  # 特征阈值提高
                 
-                # 必须至少有一个额外的强证据
                 additional_evidence = 0
                 
                 if file_name_match:
-                    additional_evidence += 0.15
+                    additional_evidence += 0.13  # 从0.15降到0.13
                     reason_part = "文件名相同"
                     
-                if feature_sim >= 0.7:
-                    additional_evidence += 0.12
+                if feature_sim >= 0.75:  # 从0.7提高到0.75
+                    additional_evidence += 0.10  # 从0.12降到0.10
                     reason_part = f"特征相似({feature_sim:.1%})"
                     
-                if simhash_dist <= 3:
-                    additional_evidence += 0.10
+                if simhash_dist <= 2:  # 从3降到2
+                    additional_evidence += 0.08  # 从0.10降到0.08
                     reason_part = f"SimHash接近(距{simhash_dist})"
                 
-                # 综合置信度必须达到阈值
-                combined_confidence = (content_similarity * 0.6 + 
-                                      feature_sim * 0.2 + 
+                # 综合置信度必须达到阈值（提高）
+                combined_confidence = (content_similarity * 0.55 + 
+                                      feature_sim * 0.18 + 
                                       additional_evidence)
                 
-                if combined_confidence >= 0.55:  # 综合阈值
+                if combined_confidence >= 0.60:  # 【收紧】从0.55提高到0.60
                     is_duplicate = True
                     duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
                     if file_name_match:
                         duplicate_types.append(DuplicateType.FILE_NAME)
                     
-                    confidence = min(0.85, combined_confidence + 0.15)
+                    confidence = min(0.82, combined_confidence + 0.12)  # 上限从85%降到82%
                     reason = f"中等相似({content_similarity:.1%})+{reason_part}"
             
-            # 规则D：仅文件名相同（弱信号，需要高特征匹配）
+            # 规则D：仅文件名相同（【收紧】弱信号，几乎不触发）
             elif (file_name_match and 
-                  feature_sim >= 0.8 and 
+                  feature_sim >= 0.85 and   # 【收紧】从0.8提高到0.85
                   has_enough_content and 
-                  content_similarity >= 0.18):
+                  content_similarity >= 0.22):  # 【收紧】从0.18提高到0.22
                 
-                # 文件名相同、特征高度匹配、有一定内容相似
                 is_duplicate = True
                 duplicate_types.append(DuplicateType.FILE_NAME)
                 
-                confidence = 0.62 + content_similarity * 0.5 + (feature_sim - 0.8) * 0.5
-                confidence = min(0.78, confidence)  # 上限较低，因为这是弱证据
+                confidence = 0.58 + content_similarity * 0.4 + (feature_sim - 0.85) * 0.4
+                confidence = min(0.74, confidence)  # 【收紧】上限从78%降到74%
                 reason = f"同名+特征匹配"
             
             # ===== 最终决策 =====

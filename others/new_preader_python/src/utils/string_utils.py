@@ -301,12 +301,17 @@ class StringUtils:
     @staticmethod
     def is_content_subset(content1: str, content2: str, min_match_ratio: float = 0.8) -> Tuple[bool, float]:
         """
-        检查一个内容是否是另一个内容的子集
+        检测一个内容是否是另一个内容的子集（改进版 - 支持任意位置嵌入）
+        
+        核心改进：
+        1. 使用滑动窗口检测：将小内容分成多个块，在大内容中搜索
+        2. 使用SimHash指纹快速定位：找到可能的匹配区域
+        3. 多级验证：从粗到细逐步确认
         
         Args:
             content1: 内容1（较小的内容）
             content2: 内容2（较大的内容）
-            min_match_ratio: 最小匹配比例，默认0.8（80%）
+            min_match_ratio: 最小匹配比例，默认0.8
             
         Returns:
             Tuple[bool, float]: (是否为子集, 匹配比例)
@@ -314,42 +319,163 @@ class StringUtils:
         if not content1 or not content2:
             return False, 0.0
         
-        # 规范化文本（去除空白字符）
-        content1 = re.sub(r'\s+', '', content1)
-        content2 = re.sub(r'\s+', '', content2)
+        # 规范化文本
+        content1_clean = re.sub(r'\s+', '', content1)
+        content2_clean = re.sub(r'\s+', '', content2)
         
-        len1 = len(content1)
-        len2 = len(content2)
+        len1 = len(content1_clean)
+        len2 = len(content2_clean)
         
-        # 如果两者长度相同，不可能是子集关系
+        if len1 == 0 or len2 == 0:
+            return False, 0.0
+        
+        # 如果两者长度相同或更长，不可能是子集
         if len1 >= len2:
             return False, 0.0
         
-        # 使用 SequenceMatcher 检查 content1 是否完全包含在 content2 中
-        # 先检查是否是连续的子串
-        if content1 in content2:
+        # ===== 策略1：快速检查 - 完整连续子串 =====
+        if content1_clean in content2_clean:
             return True, 1.0
         
-        # 如果不是连续子串，检查分散匹配
-        # 使用 SequenceMatcher 计算最长公共子序列
-        matcher = SequenceMatcher(None, content1, content2)
+        # ===== 策略2：滑动窗口检测（核心创新）=====
+        # 将content1分成多个窗口，检查每个窗口是否在content2中
+        window_size = min(500, len1 // 4)  # 窗口大小：至少500字符，最多是len1/4
+        step_size = max(100, window_size // 2)  # 步长：重叠50%
         
-        # 获取匹配块
+        found_windows = 0
+        total_windows = (len1 - window_size) // step_size + 1
+        
+        for i in range(0, len1 - window_size + 1, step_size):
+            window_content = content1_clean[i:i + window_size]
+            
+            if window_content in content2_clean:
+                found_windows += 1
+        
+        # 如果大部分窗口都在content2中找到，认为是子集
+        if total_windows > 0 and found_windows / total_windows >= min_match_ratio * 0.9:
+            return True, found_windows / total_windows
+        
+        # ===== 策略3：基于指纹的模糊匹配 =====
+        # 计算两个内容的SimHash
+        simhash1 = StringUtils._compute_simhash_fast(content1_clean)
+        simhash2 = StringUtils._compute_simhash_fast(content2_clean)
+        
+        # 计算海明距离
+        hamming_dist = StringUtils._hamming_distance(simhash1, simhash2)
+        
+        # 如果海明距离很小（<5），说明内容高度相似
+        if hamming_dist <= 5 and len1 < len2 * 0.7:
+            # 进一步用SequenceMatcher验证
+            matcher = SequenceMatcher(None, content1_clean[:min(3000, len1)], 
+                                    content2_clean[:min(3000 + len1 * 2, len2)])
+            ratio = matcher.quick_ratio()
+            
+            if ratio >= min_match_ratio:
+                return True, ratio
+        
+        # ===== 策略4：关键段落匹配 =====
+        # 提取content1的关键特征段落（开头、中间、结尾各取一段）
+        key_segments = []
+        segment_len = min(800, len1 // 6)  # 每段长度
+        
+        # 开头段
+        if len1 >= segment_len:
+            key_segments.append((content1_clean[:segment_len], "head"))
+        
+        # 中间段（可能有多处）
+        mid_positions = [len1 // 3, len1 // 2, 2 * len1 // 3]
+        for pos in mid_positions:
+            if pos + segment_len <= len1:
+                key_segments.append((content1_clean[pos:pos + segment_len], f"mid_{pos}"))
+        
+        # 结尾段
+        if len1 >= segment_len:
+            key_segments.append((content1_clean[-segment_len:], "tail"))
+        
+        matched_segments = 0
+        total_segments = len(key_segments)
+        
+        for seg_content, seg_name in key_segments:
+            if len(seg_content) >= 200:  # 至少200字符才有效
+                if seg_content in content2_clean:
+                    matched_segments += 1
+                else:
+                    # 尝试模糊匹配：允许少量差异
+                    matcher = SequenceMatcher(None, seg_content, content2_clean)
+                    match_blocks = matcher.get_matching_blocks()
+                    
+                    # 找到最长的连续匹配块
+                    best_match_len = max(block.size for block in match_blocks)
+                    
+                    if best_match_len >= len(seg_content) * 0.85:  # 85%匹配
+                        matched_segments += 1
+        
+        # 如果超过80%的关键段落都匹配成功
+        if total_segments > 0 and matched_segments / total_segments >= 0.75:
+            return True, matched_segments / total_segments
+        
+        # ===== 最终回退：SequenceMatcher全局匹配 =====
+        matcher = SequenceMatcher(None, content1_clean, content2_clean)
         matches = matcher.get_opcodes()
         
-        # 计算 content1 中匹配的内容长度
         matched_length = 0
         for op in matches:
-            if op[0] == 'equal':  # 匹配的内容
+            if op[0] == 'equal':
                 matched_length += op[2] - op[1]
         
-        # 计算匹配比例
         match_ratio = matched_length / len1 if len1 > 0 else 0.0
         
-        # 判断是否为子集（匹配比例超过阈值）
-        is_subset = match_ratio >= min_match_ratio
+        if match_ratio >= min_match_ratio:
+            return True, match_ratio
         
-        return is_subset, match_ratio
+        return False, match_ratio
+    
+    @staticmethod
+    def _compute_simhash_fast(text: str, bits: int = 64) -> int:
+        """快速计算文本的SimHash指纹"""
+        if not text or len(text) == 0:
+            return 0
+        
+        import hashlib
+        
+        # 分词（简单按字符分组）
+        chunk_size = max(10, len(text) // bits)
+        chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        
+        v = [0] * bits
+        
+        for i, chunk in enumerate(chunks):
+            if not chunk.strip():
+                continue
+                
+            # 用MD5哈希每个chunk
+            chunk_hash = hashlib.md5(chunk.encode('utf-8')).hexdigest()
+            bin_hash = bin(int(chunk_hash[:16], 16))[2:].zfill(bits)
+            
+            weight = 1.0  # 统一权重
+            
+            for j in range(bits):
+                if j < len(bin_hash) and bin_hash[j] == '1':
+                    v[j] += weight
+                else:
+                    v[j] -= weight
+        
+        fingerprint = 0
+        for j in range(bits):
+            if v[j] > 0:
+                fingerprint |= (1 << (bits - 1 - j))
+        
+        return fingerprint
+    
+    @staticmethod
+    def _hamming_distance(hash1: int, hash2: int) -> int:
+        """计算两个整数之间的海明距离"""
+        xor = hash1 ^ hash2
+        distance = 0
+        while xor:
+            distance += xor & 1
+            xor >>= 1
+        return distance
     
     @staticmethod
     def check_subset_relationship(book1: Book, book2: Book) -> Tuple[Optional[str], float]:
@@ -413,10 +539,15 @@ class StringUtils:
         return StringUtils._read_book_sample_enhanced(book_path, sample_size)
     
     @staticmethod
-    def _read_book_sample_enhanced(book_path: str, sample_size: int = 20000, parts: int = 5) -> Optional[str]:
+    def _read_book_sample_enhanced(book_path: str, sample_size: int = 30000, parts: int = 10) -> Optional[str]:
         """
-        增强的书籍内容采样（用于子集检测）
-        从多个位置采样以捕获整本和部分章节的关系
+        增强的书籍内容采样（用于子集检测 - 支持任意位置嵌入）
+        
+        改进策略：
+        1. 增加采样位置数量（从5个到10个）
+        2. 添加基于文件大小的自适应采样密度
+        3. 添加少量随机采样（覆盖非均匀分布的内容）
+        4. 增大总采样量（从20000到30000）
         
         Args:
             book_path: 书籍路径
@@ -435,40 +566,65 @@ class StringUtils:
             binary_extensions = {'.epub', '.mobi', '.azw', '.azw3', '.pdf', '.djvu', '.cbr', '.cbz', '.fb2'}
             
             if ext in binary_extensions:
-                # 对于二进制格式，返回 None
                 return None
             
             # 获取文件大小
             file_size = os.path.getsize(book_path)
             
-            if file_size <= sample_size:
-                # 如果文件较小，读取整个文件
+            # 根据文件大小自适应调整采样策略
+            actual_sample_size = sample_size
+            actual_parts = parts
+            
+            if file_size > 5000000:  # >5MB
+                actual_sample_size = min(45000, sample_size)
+                actual_parts = 12
+            elif file_size > 1000000:  # >1MB
+                actual_sample_size = min(38000, sample_size)
+                actual_parts = 10
+            else:  # <1MB
+                actual_sample_size = min(35000, sample_size)
+                actual_parts = 8
+            
+            if file_size <= actual_sample_size:
+                # 文件较小，直接读取全部
                 with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    return f.read(sample_size)
-            else:
-                # 从多个位置采样
-                part_size = sample_size // parts
-                sampled_content = []
+                    return f.read(actual_sample_size)
+            
+            part_size = actual_sample_size // actual_parts
+            sampled_content = []
+            
+            with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
+                # 1. 开头部分（最重要）
+                sampled_content.append(f.read(part_size))
                 
-                with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    # 采样开头部分
-                    sampled_content.append(f.read(part_size))
-                    
-                    # 采样多个中间部分
-                    for i in range(1, parts - 1):
-                        # 移动到文件的不同位置
-                        seek_position = int(file_size * i / parts)
-                        f.seek(seek_position)
-                        sampled_content.append(f.read(part_size))
-                    
-                    # 采样结尾部分
-                    f.seek(file_size - part_size)
+                # 2. 均匀分布的中间部分（高密度）
+                for i in range(1, actual_parts - 2):
+                    seek_position = int(file_size * i / (actual_parts - 1))
+                    f.seek(seek_position)
                     sampled_content.append(f.read(part_size))
                 
-                return ''.join(sampled_content)
+                # 3. 结尾部分
+                f.seek(max(0, file_size - part_size))
+                sampled_content.append(f.read(part_size))
+                
+                # 4. 【新增】随机位置额外采样（捕获非均匀分布的子集）
+                import random
+                random.seed(hash(book_path))  # 固定种子确保可复现
+                
+                num_random_samples = min(5, max(2, int(file_size / 1500000)))
+                
+                for _ in range(num_random_samples):
+                    rand_pos = random.randint(part_size * 2, max(part_size * 2 + 1, file_size - part_size * 3))
+                    f.seek(rand_pos)
+                    rand_sample = f.read(part_size // 2)
+                    
+                    if len(rand_sample.strip()) >= 80:
+                        sampled_content.append(rand_sample)
+            
+            return ''.join(sampled_content)
         except Exception as e:
             logger.error(f"读取书籍内容时出错: {e}")
-            # 如果增强采样失败，回退到简单采样
+            # 回退到简单采样
             try:
                 with open(book_path, 'r', encoding='utf-8', errors='ignore') as f:
                     return f.read(sample_size)
@@ -478,7 +634,11 @@ class StringUtils:
     @staticmethod
     def _check_partial_subset(content1: str, content2: str, min_ratio: float = 0.5) -> Tuple[Optional[str], float]:
         """
-        检查部分包含关系（用于检测整本和章节的关系）
+        检测部分包含关系（增强版 - 支持任意位置嵌入的子集检测）
+        
+        专门用于检测：
+        - 整本书 vs 某几章（子集在任意位置）
+        - A书包含B书的全部内容（但B书内容分散/嵌套在A书中间）
         
         Args:
             content1: 内容1
@@ -504,25 +664,109 @@ class StringUtils:
         if len1 == 0 or len2 == 0:
             return "none", 0.0
         
-        # 检查直接包含关系
+        # ===== 快速检查1：直接包含 =====
         if content1 in content2:
             return "subset", 1.0
         
         if content2 in content1:
             return "superset", 1.0
         
-        # 使用SequenceMatcher检查部分匹配
-        matcher = SequenceMatcher(None, content1, content2)
+        # ===== 新增：滑动窗口深度检测 =====
+        def check_sliding_window_subset(small_content: str, large_content: str) -> float:
+            """使用滑动窗口检测small是否是large的子集"""
+            small_len = len(small_content)
+            large_len = len(large_content)
+            
+            if small_len >= large_len:
+                return 0.0
+            
+            if small_len < 500:  # 太短，直接用in检查
+                return 1.0 if small_content in large_content else 0.0
+            
+            # 窗口大小和步长
+            window_size = min(400, small_len // 3)
+            step_size = max(80, window_size // 2)
+            
+            found_count = 0
+            total_windows = (small_len - window_size) // step_size + 1
+            
+            for i in range(0, small_len - window_size + 1, step_size):
+                window = small_content[i:i + window_size]
+                
+                if window in large_content:
+                    found_count += 1
+            
+            return found_count / total_windows if total_windows > 0 else 0.0
+        
+        # 检测两个方向（【收紧】提高匹配率要求）
+        subset_ratio_12 = check_sliding_window_subset(content1, content2)
+        subset_ratio_21 = check_sliding_window_subset(content2, content1)
+        
+        # 【收紧】判断方向 - 从65%提高到72%
+        if len1 < len2 and subset_ratio_12 >= 0.72:  # content1较短且大部分窗口匹配
+            return "subset", subset_ratio_12
+        
+        if len2 < len1 and subset_ratio_21 >= 0.72:  # content2较短且大部分窗口匹配
+            return "superset", subset_ratio_21
+        
+        # ===== 新增：关键段落匹配检测 =====
+        def extract_key_paragraphs(text: str, num_paragraphs: int = 6) -> List[str]:
+            """提取文本中的关键段落"""
+            paragraphs = []
+            text_len = len(text)
+            
+            if text_len <= 1000:
+                return [text]
+            
+            para_len = min(600, text_len // (num_paragraphs + 1))
+            
+            # 开头、结尾必须包含
+            paragraphs.append(text[:para_len])
+            paragraphs.append(text[-para_len:])
+            
+            # 均匀分布的中间段落
+            positions = [
+                text_len * i // (num_paragraphs + 1) 
+                for i in range(1, num_paragraphs + 1)
+            ]
+            
+            for pos in positions:
+                start = max(0, int(pos))
+                end = min(text_len, start + para_len)
+                if end > start + 100:  # 至少100字符有效
+                    paragraphs.append(text[start:end])
+            
+            return paragraphs
+        
+        key_paras_1 = extract_key_paragraphs(content1, num_paragraphs=5)
+        key_paras_2 = extract_key_paragraphs(content2, num_paragraphs=5)
+        
+        # 统计关键段落匹配数
+        matched_1_in_2 = sum(1 for p in key_paras_1 if len(p) >= 200 and p in content2)
+        matched_2_in_1 = sum(1 for p in key_paras_2 if len(p) >= 200 and p in content1)
+        
+        match_rate_1_in_2 = matched_1_in_2 / len(key_paras_1) if key_paras_1 else 0
+        match_rate_2_in_1 = matched_2_in_1 / len(key_paras_2) if key_paras_2 else 0
+        
+        # 【收紧】判断 - 提高匹配率要求和长度差异要求
+        if len1 < len2 * 0.6 and match_rate_1_in_2 >= 0.7:  # 从60%提到70%，长度差从70%到60%
+            return "subset", match_rate_1_in_2
+        
+        if len2 < len1 * 0.6 and match_rate_2_in_1 >= 0.7:  # 同上收紧
+            return "superset", match_rate_2_in_1
+        
+        # ===== 回退：SequenceMatcher相似度判断 =====
+        matcher = SequenceMatcher(None, content1[:min(4000, len1)], content2[:min(4000, len2)])
         similarity = matcher.quick_ratio()
         
-        # 根据相似度和长度比判断关系
-        if similarity >= min_ratio:
-            # 判断哪个可能是子集
-            len_ratio = min(len1, len2) / max(len1, len2)
-            if len_ratio < 0.7:  # 长度差异较大
-                if len1 < len2 and similarity >= 0.7:  # content1明显较短但相似度高
-                    return "subset", similarity
-                elif len2 < len1 and similarity >= 0.7:  # content2明显较短但相似度高
-                    return "superset", similarity
+        # 根据相似度和长度比综合判断
+        len_ratio = min(len1, len2) / max(len1, len2)
+        
+        # 长度差异大(>30%)且相似度高(>60%)→ 可能是包含关系
+        if len_ratio < 0.7 and similarity >= min_ratio:
+            if len1 < len2:
+                return "subset", similarity
+            else:
+                return "superset", similarity
         
         return "none", similarity
