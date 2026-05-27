@@ -601,6 +601,10 @@ class CrawlerManagementScreen(Screen[None]):
         self.selected_browser = "chrome"  # 默认选择Chrome
         self.browser_options = ["chrome", "safari", "brave", "firefox"]
         
+        # 窗口选择相关属性
+        self.selected_window_index: Optional[int] = None  # None表示所有窗口
+        self.window_options: List[Dict[str, Any]] = []  # 窗口选项列表
+        
         # 浏览器标签页监听器（AppleScript模式）
         self.browser_monitor: Optional[BrowserTabMonitor] = None
         self.browser_monitor_active = False  # 监听器状态
@@ -786,6 +790,16 @@ class CrawlerManagementScreen(Screen[None]):
                                 value="chrome",
                                 classes="browser-select"
                             ),
+                            # 窗口选择下拉框（动态更新）
+                            Select(
+                                id="window-select",
+                                options=[
+                                    (get_global_i18n().t('crawler.all_windows'), "all")
+                                ],
+                                value="all",
+                                classes="browser-tab-select"
+                            ),
+                            Button(get_global_i18n().t('crawler.refresh_windows'), id="refresh-window-btn", classes="refresh-window-btn"),
                             id="novel-id-container", classes="form-row"
                         ),
                         id="novel-id-section"
@@ -4349,6 +4363,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._batch_crawl_latest()
         elif button_id == "toggle-monitor-btn":
             self._toggle_browser_monitor()
+        elif button_id == "refresh-window-btn":
+            self._refresh_window_options()
     
     def _batch_delete_files(self) -> None:
         """批量删除选中的文件"""
@@ -4640,14 +4656,73 @@ class CrawlerManagementScreen(Screen[None]):
                     headless=False,  # AppleScript模式不需要headless
                     browser_type=browser_type  # 传递浏览器类型
                 )
+                # 设置窗口选择和刷新回调
+                self.browser_monitor.selected_window_index = self.selected_window_index
+                self.browser_monitor.on_window_refresh_callback = self._on_window_refresh_from_monitor
                 logger.info(f"初始化监听器: selected_browser={self.selected_browser}, browser_type={browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}")
                 logger.info(f"{self.selected_browser}浏览器标签页监听器初始化成功")
+                # 刷新窗口选项列表
+                self._refresh_window_options()
             except Exception as e:
                 logger.error(f"{self.selected_browser}监听器初始化失败: {e}")
                 self.browser_monitor = None
 
         except Exception as e:
             logger.error(f"初始化浏览器监听器失败: {e}")
+
+    def _on_window_refresh_from_monitor(self) -> None:
+        """从后台监控线程安全地刷新窗口列表（通过call_from_thread调用UI更新）"""
+        try:
+            app = self.app
+            if app and self.is_mounted_flag:
+                # 在主线程中刷新UI，避免线程安全问题
+                app.call_from_thread(self._refresh_window_options)
+        except Exception as e:
+            logger.warning(f"从后台线程触发窗口刷新失败: {e}")
+
+    def _refresh_window_options(self) -> None:
+        """刷新窗口选择下拉框的选项"""
+        try:
+            if not self.browser_monitor:
+                return
+            
+            # 获取所有窗口信息
+            windows = self.browser_monitor.get_browser_windows()
+            
+            # 构建选项列表
+            options = [(get_global_i18n().t('crawler.all_windows'), "all")]
+            for win in windows:
+                label = f"{get_global_i18n().t('crawler.window_label')} {win['index']} ({win['tab_count']} {get_global_i18n().t('crawler.tabs')})"
+                if win['title']:
+                    label += f" - {win['title'][:30]}"
+                options.append((label, str(win['index'])))
+            
+            # 保存窗口选项
+            self.window_options = windows
+            
+            # 更新UI中的下拉框
+            try:
+                window_select = self.query_one("#window-select", Select)
+                # 保留当前选择
+                current_value = "all"
+                if self.selected_window_index is not None:
+                    current_value = str(self.selected_window_index)
+                
+                # 更新选项
+                window_select.set_options(options)
+                # 恢复之前的选择（如果仍然有效）
+                if current_value == "all" or any(str(w['index']) == current_value for w in windows):
+                    window_select.value = current_value
+                else:
+                    window_select.value = "all"
+                    self.selected_window_index = None
+                
+                logger.info(f"窗口列表已刷新: {len(windows)} 个窗口")
+            except Exception as e:
+                logger.error(f"更新窗口选择框UI失败: {e}")
+                
+        except Exception as e:
+            logger.error(f"刷新窗口选项失败: {e}")
 
     def _reinit_monitor_with_browser(self) -> None:
         """使用新浏览器类型重新初始化监听器"""
@@ -4846,6 +4921,14 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status("监听器未初始化", "error")
                 return
             
+            # 刷新窗口列表以确保选项是最新的
+            self._refresh_window_options()
+            
+            # 确保监听器使用当前选择的窗口设置
+            self.browser_monitor.selected_window_index = self.selected_window_index
+            window_info = f"所有窗口" if self.selected_window_index is None else f"窗口 {self.selected_window_index}"
+            logger.info(f"开始浏览器标签页监听, 目标: {window_info}")
+            
             success = self.browser_monitor.start_monitoring()
             if success:
                 self.browser_monitor_active = True
@@ -4923,6 +5006,28 @@ class CrawlerManagementScreen(Screen[None]):
                 logger.info("监听器对象不存在,创建新监听器...")
                 # 直接初始化监听器
                 self._init_browser_monitor()
+
+            # 刷新窗口列表
+            self._refresh_window_options()
+
+        elif event.select.id == "window-select":
+            # 更新当前选择的窗口
+            if event.value is None or event.value == Select.NULL or event.value == "all":
+                self.selected_window_index = None
+                logger.info(f"窗口选择已更改为: 所有窗口")
+            else:
+                try:
+                    self.selected_window_index = int(event.value)
+                    logger.info(f"窗口选择已更改为: 窗口 {self.selected_window_index}")
+                except (ValueError, TypeError):
+                    self.selected_window_index = None
+            
+            # 更新监听器的窗口设置
+            if self.browser_monitor:
+                self.browser_monitor.selected_window_index = self.selected_window_index
+            
+            window_value = str(self.selected_window_index) if self.selected_window_index else get_global_i18n().t('crawler.all_windows')
+            self._update_status(get_global_i18n().t("crawler.window_changed_info", window=window_value), "information")
 
 
 

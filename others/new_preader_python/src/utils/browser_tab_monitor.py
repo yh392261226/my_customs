@@ -38,35 +38,42 @@ class BrowserTabMonitor:
         self.on_url_detected = on_url_detected
         self.headless = headless
         self.browser_type = browser_type or BrowserType.CHROME  # 默认使用Chrome
+        self.selected_window_index = None  # 选中的窗口索引，None表示所有窗口
+        self.on_window_refresh_callback = None  # 窗口列表刷新回调
         logger.info(f"BrowserTabMonitor初始化: browser_type={self.browser_type}")
         self.last_urls = {}  # 记录上次检测的URL，避免重复处理
         self._monitoring_thread = None
         self._stop_monitoring = False
         
-    def get_browser_tabs(self) -> List[Dict[str, Any]]:
+    def get_browser_tabs(self, window_index: Optional[int] = None) -> List[Dict[str, Any]]:
         """
-        获取浏览器所有标签页
+        获取浏览器标签页
+
+        Args:
+            window_index: 窗口索引（从1开始），None表示获取所有窗口的标签页
 
         Returns:
             标签页信息列表
         """
         try:
-            logger.info(f"get_browser_tabs: self.browser_type={self.browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}")
+            logger.info(f"get_browser_tabs: self.browser_type={self.browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}, window_index={window_index}")
+            # 使用传入的window_index或实例的selected_window_index
+            target_window = window_index if window_index is not None else self.selected_window_index
             # 根据浏览器类型选择对应的AppleScript
+            app_name = "Google Chrome"  # 默认值
             if self.browser_type == BrowserType.SAFARI:
-                script = self._get_safari_script()
+                script = self._get_safari_script(target_window)
                 app_name = "Safari"
             elif self.browser_type == BrowserType.BRAVE:
-                script = self._get_browser_script("Brave Browser")
+                script = self._get_browser_script("Brave Browser", target_window)
                 app_name = "Brave Browser"
             elif self.browser_type == BrowserType.FIREFOX:
                 # Firefox不支持AppleScript，使用替代方案
                 logger.warning("Firefox暂不支持标签页监听")
                 return []
             else:  # Chrome
-                script = self._get_browser_script("Google Chrome")
-                app_name = "Google Chrome"
-            logger.info(f"使用浏览器: {app_name}, self.browser_type={self.browser_type}")
+                script = self._get_browser_script("Google Chrome", target_window)
+            logger.info(f"使用浏览器: {app_name}, 目标窗口: {target_window or '所有窗口'}")
 
             result = subprocess.run(['osascript', '-e', script],
                                   capture_output=True, text=True, timeout=30)
@@ -74,66 +81,128 @@ class BrowserTabMonitor:
             if result.returncode == 0:
                 # 解析AppleScript返回的结果
                 output = result.stdout.strip()
-                logger.info(f"AppleScript原始输出: {output}")
+                logger.info(f"AppleScript原始输出长度: {len(output)}, 内容预览: {output[:200]}...")
                 if output and output != '{}':
-                    # 解析实际的AppleScript输出格式
                     tabs = []
-                    lines = output.split('\n')
-                    logger.info(f"分割后的行数: {len(lines)}")
-                    for line in lines:
-                        logger.info(f"处理行: {line}")
-                        # AppleScript实际返回格式: URL:..., name:..., URL:..., name:...
-                        if 'URL:' in line and 'name:' in line:
-                            # 使用正则表达式匹配所有URL和name对
-                            url_pattern = r'URL:([^,]+),\s*name:([^,]+)'
-                            matches = re.findall(url_pattern, line)
-                            logger.info(f"匹配到的URL-name对: {matches}")
-                            for url, title in matches:
+                    # 新格式：每个窗口的数据用 WIN_END 分隔，内部用 | 分隔各个标签
+                    # 格式: URL:xxx, name:xxx, w:N | URL:xxx, name:xxx, w:N [WIN_END] URL:xxx...
+                    # 旧格式兼容（单窗口或无分隔符）: URL:xxx, name:xxx, window:N, URL:xxx...
+
+                    # 先按 WIN_END 或换行分割为各窗口的数据块
+                    blocks = output.replace('WIN_END', '\n').split('\n')
+
+                    for block in blocks:
+                        block = block.strip()
+                        if not block or block == '{}':
+                            continue
+
+                        # 在每个块内用 | 或直接按 URL 匹配所有标签
+                        # 支持两种格式: "URL:x, name:y, w:n | URL:x..." 和 "URL:x, name:y, window:n, URL:x..."
+                        segments = block.split(' | ')
+                        for seg in segments:
+                            seg = seg.strip()
+                            if not seg:
+                                continue
+                            # 匹配标签信息，支持 w:N 或 window:N 格式
+                            pattern = r'URL:([^,]+),\s*name:([^,]+)(?:,\s*w:(\d+)|,\s*window:(\d+))?'
+                            matches = re.findall(pattern, seg)
+                            for url, title, win1, win2 in matches:
                                 url = url.strip()
                                 title = title.strip()
                                 if url and title:
-                                    tabs.append({
-                                        'url': url,
-                                        'title': title
-                                    })
-                    logger.info(f"解析到的标签页数量: {len(tabs)}")
+                                    tab_info = {'url': url, 'title': title}
+                                    win_idx = win1 or win2
+                                    if win_idx:
+                                        tab_info['window'] = int(win_idx)
+                                    tabs.append(tab_info)
+
+                    logger.info(f"解析到的标签页数量: {len(tabs)}, 按窗口分布:")
+                    from collections import Counter
+                    by_win = Counter(t.get('window', '?') for t in tabs)
+                    for w, c in sorted(by_win.items()):
+                        logger.info(f"  窗口{w}: {c}个")
                     return tabs
 
-            return []
+                return []
 
         except Exception as e:
             logger.error(f"获取{app_name}标签页失败: {e}")
             return []
 
-    def _get_browser_script(self, app_name: str) -> str:
+    def _get_browser_script(self, app_name: str, window_index: Optional[int] = None) -> str:
         """
         获取浏览器内核的AppleScript脚本
 
         Args:
             app_name: 应用程序名称
+            window_index: 窗口索引（从1开始），None表示获取所有窗口
 
         Returns:
             AppleScript脚本
         """
-        return f'''
+        if window_index is not None:
+            # 只获取指定窗口的标签页
+            return f'''
+            tell application "{app_name}"
+                if it is running then
+                    set tab_list to {{}}
+                    try
+                        set current_window to window {window_index}
+                        set tab_count to count of tabs of current_window
+                        repeat with j from 1 to tab_count
+                            try
+                                set current_tab to tab j of current_window
+                                set tab_url to URL of current_tab
+                                set tab_title to title of current_tab
+                                if tab_url is not missing value and tab_title is not missing value then
+                                    set end of tab_list to "URL:" & tab_url & ", name:" & tab_title & ", window:{window_index}"
+                                end if
+                            end try
+                        end repeat
+                    end try
+                    return tab_list
+                else
+                    return {{}}
+                end if
+            end tell
+            '''
+        else:
+            # 获取所有窗口的标签页（逐窗口处理，避免嵌套循环中途失败导致后续窗口丢失）
+            return f'''
             tell application "{app_name}"
                 if it is running then
                     set tab_list to {{}}
                     set window_count to count of windows
                     repeat with i from 1 to window_count
                         try
+                            -- 先获取当前窗口信息，单独处理每个窗口
                             set current_window to window i
                             set tab_count to count of tabs of current_window
+                            set window_result to ""
                             repeat with j from 1 to tab_count
                                 try
                                     set current_tab to tab j of current_window
                                     set tab_url to URL of current_tab
                                     set tab_title to title of current_tab
                                     if tab_url is not missing value and tab_title is not missing value then
-                                        set end of tab_list to "URL:" & tab_url & ", name:" & tab_title
+                                        if length of window_result > 0 then
+                                            set window_result to window_result & " | "
+                                        end if
+                                        set window_result to window_result & "URL:" & tab_url & ", name:" & tab_title & ", w:" & (i as text)
                                     end if
+                                on error
+                                    -- 单个标签获取失败不影响其他标签
                                 end try
                             end repeat
+                            -- 将当前窗口的结果追加到总列表
+                            if length of window_result > 0 then
+                                if length of tab_list > 0 then
+                                    set end of tab_list to "WIN_END"
+                                end if
+                                set end of tab_list to window_result
+                            end if
+                        on error msg
+                            -- 单个窗口处理失败不影响其他窗口
                         end try
                     end repeat
                     return tab_list
@@ -141,16 +210,47 @@ class BrowserTabMonitor:
                     return {{}}
                 end if
             end tell
-        '''
+            '''
 
-    def _get_safari_script(self) -> str:
+    def _get_safari_script(self, window_index: Optional[int] = None) -> str:
         """
         获取Safari浏览器的AppleScript脚本
+
+        Args:
+            window_index: 窗口索引（从1开始），None表示获取所有窗口
 
         Returns:
             AppleScript脚本
         """
-        return '''
+        if window_index is not None:
+            # 只获取指定窗口的标签页
+            return f'''
+            tell application "Safari"
+                if it is running then
+                    set tab_list to {{}}
+                    try
+                        set current_window to window {window_index}
+                        set tab_count to count of tabs of current_window
+                        repeat with j from 1 to tab_count
+                            try
+                                set current_tab to tab j of current_window
+                                set tab_url to URL of current_tab
+                                set tab_name to name of current_tab
+                                if tab_url is not missing value and tab_name is not missing value then
+                                    set end of tab_list to "URL:" & tab_url & ", name:" & tab_name & ", window:{window_index}"
+                                end if
+                            end try
+                        end repeat
+                    end try
+                    return tab_list
+                else
+                    return {{}}
+                end if
+            end tell
+            '''
+        else:
+            # 获取所有窗口的标签页（逐窗口处理，避免嵌套循环中途失败导致后续窗口丢失）
+            return '''
             tell application "Safari"
                 if it is running then
                     set tab_list to {}
@@ -159,16 +259,28 @@ class BrowserTabMonitor:
                         try
                             set current_window to window i
                             set tab_count to count of tabs of current_window
+                            set window_result to ""
                             repeat with j from 1 to tab_count
                                 try
                                     set current_tab to tab j of current_window
                                     set tab_url to URL of current_tab
                                     set tab_name to name of current_tab
                                     if tab_url is not missing value and tab_name is not missing value then
-                                        set end of tab_list to "URL:" & tab_url & ", name:" & tab_name
+                                        if length of window_result > 0 then
+                                            set window_result to window_result & " | "
+                                        end if
+                                        set window_result to window_result & "URL:" & tab_url & ", name:" & tab_name & ", w:" & (i as text)
                                     end if
+                                on error
                                 end try
                             end repeat
+                            if length of window_result > 0 then
+                                if length of tab_list > 0 then
+                                    set end of tab_list to "WIN_END"
+                                end if
+                                set end of tab_list to window_result
+                            end if
+                        on error msg
                         end try
                     end repeat
                     return tab_list
@@ -176,8 +288,92 @@ class BrowserTabMonitor:
                     return {}
                 end if
             end tell
-        '''
-    
+            '''
+
+    def get_browser_windows(self) -> List[Dict[str, Any]]:
+        """
+        获取浏览器所有窗口的信息
+
+        Returns:
+            窗口信息列表，每个窗口包含 index、title、tab_count
+        """
+        try:
+            # 根据浏览器类型选择对应的应用名称
+            app_name = "Google Chrome"  # 默认值
+            if self.browser_type == BrowserType.SAFARI:
+                app_name = "Safari"
+            elif self.browser_type == BrowserType.BRAVE:
+                app_name = "Brave Browser"
+            elif self.browser_type == BrowserType.FIREFOX:
+                logger.warning("Firefox暂不支持获取窗口信息")
+                return []
+
+            script = f'''
+            tell application "{app_name}"
+                if it is running then
+                    set window_list to {{}}
+                    set window_count to count of windows
+                    repeat with i from 1 to window_count
+                        try
+                            set current_window to window i
+                            set tab_count to count of tabs of current_window
+                            set tab_title to ""
+                            try
+                                set active_tab to active tab of current_window
+                                set tab_title to title of active_tab
+                                if tab_title is missing value then
+                                    set tab_title to ""
+                                end if
+                            end try
+                            set end of window_list to "index:" & i & ", tabs:" & tab_count & ", title:" & tab_title
+                        on error
+                            -- 窗口获取失败时仍然记录基本信息
+                            set end of window_list to "index:" & i & ", tabs:0, title:"
+                        end try
+                    end repeat
+                    return window_list
+                else
+                    return {{}}
+                end if
+            end tell
+            '''
+
+            result = subprocess.run(['osascript', '-e', script],
+                                  capture_output=True, text=True, timeout=30)
+
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                logger.info(f"get_browser_windows 原始输出: {output}")
+                windows = []
+                if output and output != '{}':
+                    # 按 'index:' 分割每段数据（比正则 findall 更可靠，避免跨段吞噬问题）
+                    segments = output.split('index:')
+                    for seg in segments:
+                        seg = seg.strip()
+                        if not seg:
+                            continue
+                        # 每段格式: N, tabs:X, title:...
+                        m = re.match(r'(\d+),\s*tabs:(\d+),\s*title:(.*)', seg)
+                        if m:
+                            windows.append({
+                                'index': int(m.group(1)),
+                                'tab_count': int(m.group(2)),
+                                'title': (m.group(3) or '').strip()
+                            })
+                            logger.info(f"成功解析窗口: index={m.group(1)}, tabs={m.group(2)}, title={m.group(3)[:50]}...")
+                        else:
+                            logger.warning(f"无法解析窗口段: '{seg[:80]}'")
+                else:
+                    logger.warning("输出为空或为{}")
+                logger.info(f"共获取到 {len(windows)} 个窗口")
+                return windows
+
+            return []
+
+        except Exception as e:
+            logger.error(f"获取{app_name}窗口信息失败: {e}")
+            return []
+
     def extract_novel_id_from_url(self, url: str, site_config: Dict[str, Any]) -> Optional[str]:
         """
         从URL中提取小说ID
@@ -666,6 +862,8 @@ class BrowserTabMonitor:
     def _monitor_loop(self, interval, callback):
         """监控循环（在后台线程中运行）"""
         try:
+            refresh_counter = 0
+            refresh_interval = max(30 // interval, 6)  # 每30秒刷新一次窗口列表（至少6次轮询）
             while not self._stop_monitoring:
                 novel_urls = self.monitor_tabs(callback)
                 
@@ -674,6 +872,15 @@ class BrowserTabMonitor:
                         logger.info(f"发现小说URL: {novel_info['url']}, "
                                   f"网站: {novel_info['site_name']}, "
                                   f"小说ID: {novel_info['novel_id']}")
+                
+                # 定期触发窗口列表刷新回调（让UI更新下拉框）
+                refresh_counter += 1
+                if refresh_counter >= refresh_interval and self.on_window_refresh_callback:
+                    refresh_counter = 0
+                    try:
+                        self.on_window_refresh_callback()
+                    except Exception as e:
+                        logger.warning(f"窗口刷新回调执行失败: {e}")
                 
                 # 使用可中断的sleep
                 for _ in range(interval * 10):  # 每0.1秒检查一次停止标志

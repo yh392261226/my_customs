@@ -159,6 +159,18 @@ Footer {
     width: 17;
 }
 
+#window-select {
+    width: 30%;
+    min-width: 17;
+}
+
+#refresh-window-btn {
+   min-width: 12;
+    height: 3;
+    margin-right: 1;
+    width: auto;
+}
+
 #crawl-history-section {
     height: auto;
     min-height: 10;

@@ -228,33 +228,49 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.line_spacing"), classes="setting-label")
             spacing_setting = self.setting_registry.get_setting("reading.line_spacing")
             if spacing_setting:
+                # 将存储的浮点值转换为整数，确保与选项值匹配
+                spacing_value = spacing_setting.value
+                try:
+                    spacing_value = int(round(float(spacing_value)))
+                except (TypeError, ValueError):
+                    spacing_value = 1
+                # 限制在有效范围内
+                spacing_value = max(0, min(spacing_value, 5))
                 yield Select(
                     [
-                        (f"0 ({get_global_i18n().t("settings.compact")})", 0),
-                        (f"1 ({get_global_i18n().t("settings.standard")})", 1),
-                        (f"2 ({get_global_i18n().t("settings.loose")})", 2),
-                        (f"3 ({get_global_i18n().t("settings.looser")})", 3),
-                        (f"4 ({get_global_i18n().t("settings.loosest")})", 4),
-                        (f"5 ({get_global_i18n().t("settings.max")})", 5)
+                        (f"0 ({get_global_i18n().t("settings.compact")})", "0"),
+                        (f"1 ({get_global_i18n().t("settings.standard")})", "1"),
+                        (f"2 ({get_global_i18n().t("settings.loose")})", "2"),
+                        (f"3 ({get_global_i18n().t("settings.looser")})", "3"),
+                        (f"4 ({get_global_i18n().t("settings.loosest")})", "4"),
+                        (f"5 ({get_global_i18n().t("settings.max")})", "5")
                     ],
-                    value=spacing_setting.value,
+                    value=str(spacing_value),
                     id="reading-spacing-select"
                 )
-            
+
             # 段落间距
             yield Label(get_global_i18n().t("settings.paragraph_spacing"), classes="setting-label")
             para_setting = self.setting_registry.get_setting("reading.paragraph_spacing")
             if para_setting:
+                # 将存储的浮点值转换为整数，确保与选项值匹配
+                para_value = para_setting.value
+                try:
+                    para_value = int(round(float(para_value)))
+                except (TypeError, ValueError):
+                    para_value = 1
+                # 限制在有效范围内
+                para_value = max(0, min(para_value, 5))
                 yield Select(
                     [
-                        (f"0 ({get_global_i18n().t("settings.compact")})", 0),
-                        (f"1 ({get_global_i18n().t("settings.standard")})", 1),
-                        (f"2 ({get_global_i18n().t("settings.loose")})", 2),
-                        (f"3 ({get_global_i18n().t("settings.looser")})", 3),
-                        (f"4 ({get_global_i18n().t("settings.loosest")})", 4),
-                        (f"5 ({get_global_i18n().t("settings.max")})", 5)
+                        (f"0 ({get_global_i18n().t("settings.compact")})", "0"),
+                        (f"1 ({get_global_i18n().t("settings.standard")})", "1"),
+                        (f"2 ({get_global_i18n().t("settings.loose")})", "2"),
+                        (f"3 ({get_global_i18n().t("settings.looser")})", "3"),
+                        (f"4 ({get_global_i18n().t("settings.loosest")})", "4"),
+                        (f"5 ({get_global_i18n().t("settings.max")})", "5")
                     ],
-                    value=para_setting.value,
+                    value=str(para_value),
                     id="reading-para-select"
                 )
             
@@ -982,34 +998,25 @@ class SettingsScreen(Screen[Any]):
         """
         if event.select.id == "reading-spacing-select" and event.value is not None:
             # 立即应用行间距设置（安全转换）
-            val = event.value
             try:
-                # 确保值可以被转换为int
-                if isinstance(val, (int, str)):
-                    new_val = int(val)
-                else:
-                    return
+                new_val = float(int(event.value))
             except (ValueError, TypeError):
                 return
             old_value = self.setting_registry.get_value("reading.line_spacing", 0)
             self.setting_registry.set_value("reading.line_spacing", new_val)
             notify_setting_change("reading.line_spacing", old_value, new_val, "settings_screen")
-            
+
         elif event.select.id == "reading-para-select" and event.value is not None:
             # 立即应用段落间距设置（安全转换）
-            val = event.value
             try:
-                # 确保值可以被转换为int
-                if isinstance(val, (int, str)):
-                    new_val = int(val)
-                else:
-                    return
+                new_val = float(int(event.value))
             except (ValueError, TypeError):
                 return
             old_value = self.setting_registry.get_value("reading.paragraph_spacing", 0)
             self.setting_registry.set_value("reading.paragraph_spacing", new_val)
             notify_setting_change("reading.paragraph_spacing", old_value, new_val, "settings_screen")
-    
+
+
     
 
     @on(Button.Pressed)
@@ -1223,20 +1230,16 @@ class SettingsScreen(Screen[Any]):
         spacing_select = self.query_one("#reading-spacing-select", Select)
         if spacing_select.value is not None:
             try:
-                # 确保值可以被安全转换为int
-                val = spacing_select.value
-                if isinstance(val, (int, str)):
-                    self.setting_registry.set_value("reading.line_spacing", int(val))
+                val = int(spacing_select.value)
+                self.setting_registry.set_value("reading.line_spacing", float(val))
             except (ValueError, TypeError):
                 pass
-        
+
         para_select = self.query_one("#reading-para-select", Select)
         if para_select.value is not None:
             try:
-                # 确保值可以被安全转换为int
-                val = para_select.value
-                if isinstance(val, (int, str)):
-                    self.setting_registry.set_value("reading.paragraph_spacing", int(val))
+                val = int(para_select.value)
+                self.setting_registry.set_value("reading.paragraph_spacing", float(val))
             except (ValueError, TypeError):
                 pass
         
