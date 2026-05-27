@@ -133,6 +133,7 @@ Footer {
 #novel-id-container, #search-container {
     height: 3;
     align: center middle;  /* 居中输入区域 */
+    overflow-x: auto;
 }
 
 #novel-id-input {
