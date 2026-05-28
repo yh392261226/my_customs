@@ -22,6 +22,7 @@ from textual.containers import Center, Middle, Horizontal, Vertical
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
+from src.core.bookshelf import Bookshelf
 from src.utils.logger import get_logger
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
@@ -747,6 +748,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
                     Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t('batch_ops.compare_read'), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
                     Button(get_global_i18n().t('crawler.delete_file'), id="delete-file-btn", variant="warning"),
@@ -4357,6 +4359,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._move_selected_down()
         elif button_id == "merge-btn":
             self._merge_selected()
+        elif button_id == "compare-read-btn":
+            self._compare_read_selected()
         elif button_id == "set-serial-btn":
             self._set_selected_as_serial()
         elif button_id == "batch-crawl-latest-btn":
@@ -5052,3 +5056,57 @@ class CrawlerManagementScreen(Screen[None]):
         # 即使页面卸载，这些消息也会被正确处理
         logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
 
+    def _compare_read_selected(self) -> None:
+        """对比阅读选中的书籍"""
+        try:
+            # 验证选中数量
+            if len(self.selected_history) < 2:
+                self._update_status(get_global_i18n().t("batch_ops.compare_read_min_2"), "warning")
+                return
+            
+            if len(self.selected_history) > 4:
+                self._update_status(get_global_i18n().t("batch_ops.compare_read_max_4"), "warning")
+                return
+            
+            # 获取选中的记录的文件路径
+            selected_ids = list(self.selected_history)[:4]  # 最多4个
+            book_paths = []
+            
+            for record_id in selected_ids:
+                # 从crawler_history中查找对应的记录
+                for item in self.crawler_history:
+                    if str(item.get('id')) == str(record_id):
+                        file_path = item.get('file_path')
+                        if file_path and file_path != 'already_exists' and os.path.exists(file_path):
+                            book_paths.append(file_path)
+                            break
+                        elif file_path and file_path != 'already_exists':
+                            # 文件路径存在但文件不存在，也加入（会显示错误提示）
+                            book_paths.append(file_path)
+                            break
+                else:
+                    logger.warning(f"未找到ID为 {record_id} 的爬取记录")
+            
+            # 再次验证有效文件数量
+            valid_paths = [p for p in book_paths if p]
+            if len(valid_paths) < 2:
+                self._update_status(get_global_i18n().t("batch_ops.compare_read_min_2") + "（需要至少2个有效的文件）", "error")
+                return
+            
+            # 导入并打开对比阅读屏幕
+            from src.ui.screens.compare_reader_screen import CompareReaderScreen
+            
+            self.app.push_screen(
+                CompareReaderScreen(
+                    book_paths=valid_paths,
+                    theme_manager=self.theme_manager,
+                    bookshelf=getattr(self.app, 'bookshelf', None) or Bookshelf()
+                )
+            )
+            
+            logger.info(f"开始对比阅读，共 {len(valid_paths)} 个文件")
+            self._update_status(f"正在打开对比阅读（{len(valid_paths)} 个文件）...", "information")
+            
+        except Exception as e:
+            logger.error(f"打开对比阅读失败: {e}")
+            self._update_status(f"打开对比阅读失败: {str(e)}", "error")

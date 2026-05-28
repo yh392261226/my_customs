@@ -516,6 +516,7 @@ class CrawlerManager:
         all_chapters = result.get('chapters', [])
         
         # 4. 保存策略
+        duplicate_count = 0  # 默认值，后续可能被覆盖
         if all_chapters:
             if last_successful and os.path.exists(last_successful['file_path']):
                 if used_incremental_crawl:

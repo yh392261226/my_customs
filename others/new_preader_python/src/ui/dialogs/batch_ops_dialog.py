@@ -502,6 +502,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("batch_ops.move_up"), id="move-up-btn"),
                     Button(get_global_i18n().t("batch_ops.move_down"), id="move-down-btn"),
                     Button(get_global_i18n().t("batch_ops.merge"), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t("batch_ops.compare_read"), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t("batch_ops.find_duplicates"), id="find-duplicates-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_author"), id="set-author-btn", variant="primary"),
                     Button(get_global_i18n().t("bookshelf.batch_ops.set_tags"), id="set-tags-btn", variant="primary"),
@@ -1467,6 +1468,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self._move_selected_book_down()
         elif event.button.id == "merge-btn":
             await self._merge_selected_books()
+        elif event.button.id == "compare-read-btn":
+            await self._compare_read_selected_books()
         elif event.button.id == "find-duplicates-btn":
             await self._find_duplicate_books()
         elif event.button.id == "delete-btn":
@@ -1596,6 +1599,39 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         
         # 设置返回结果为需要刷新
         self.dismiss({"refresh": True})
+    
+    async def _compare_read_selected_books(self) -> None:
+        """对比阅读选中的书籍"""
+        # 验证选中数量
+        if len(self.selected_books) < 2:
+            self.notify(get_global_i18n().t("batch_ops.compare_read_min_2"), severity="warning")
+            return
+        
+        if len(self.selected_books) > 4:
+            self.notify(get_global_i18n().t("batch_ops.compare_read_max_4"), severity="warning")
+            return
+        
+        try:
+            # 导入对比阅读屏幕
+            from src.ui.screens.compare_reader_screen import CompareReaderScreen
+            
+            # 获取选中的书籍路径列表（保持选择顺序）
+            book_paths = list(self.selected_books)[:4]  # 最多4个
+            
+            # 打开对比阅读屏幕
+            self.app.push_screen(
+                CompareReaderScreen(
+                    book_paths=book_paths,
+                    theme_manager=self.theme_manager,
+                    bookshelf=self.bookshelf
+                )
+            )
+            
+            logger.info(f"开始对比阅读，共 {len(book_paths)} 本书")
+            
+        except Exception as e:
+            logger.error(f"打开对比阅读失败: {e}")
+            self.notify(f"打开对比阅读失败: {e}", severity="error")
     
     def _export_selected_books(self) -> None:
         """导出选中的书籍"""

@@ -845,9 +845,10 @@ class DatabaseManager:
                 
                 cursor.execute("""
                     UPDATE books 
-                    SET title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?
+                    SET path = ?, title = ?, pinyin = ?, author = ?, format = ?, tags = ?, metadata = ?, file_size = ?
                     WHERE path = ?
                 """, (
+                    book.path,
                     book.title,
                     pinyin_text,
                     book.author,
