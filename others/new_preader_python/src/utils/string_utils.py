@@ -299,19 +299,20 @@ class StringUtils:
         return samples
     
     @staticmethod
-    def is_content_subset(content1: str, content2: str, min_match_ratio: float = 0.8) -> Tuple[bool, float]:
+    def is_content_subset(content1: str, content2: str, min_match_ratio: float = 0.70) -> Tuple[bool, float]:
         """
-        检测一个内容是否是另一个内容的子集（改进版 - 支持任意位置嵌入）
+        检测一个内容是否是另一个内容的子集（优化版 - 针对整本vs章节场景增强）
         
-        核心改进：
-        1. 使用滑动窗口检测：将小内容分成多个块，在大内容中搜索
-        2. 使用SimHash指纹快速定位：找到可能的匹配区域
-        3. 多级验证：从粗到细逐步确认
+        【核心改进】：
+        1. 降低默认匹配率要求：从0.8降到0.7
+        2. 增加滑动窗口的覆盖范围：窗口更小、步长更短
+        3. 新增基于章节/段落边界的智能检测
+        4. 增加SimHash辅助验证（降低海明距离阈值）
         
         Args:
             content1: 内容1（较小的内容）
             content2: 内容2（较大的内容）
-            min_match_ratio: 最小匹配比例，默认0.8
+            min_match_ratio: 最小匹配比例，默认0.7
             
         Returns:
             Tuple[bool, float]: (是否为子集, 匹配比例)
@@ -337,10 +338,10 @@ class StringUtils:
         if content1_clean in content2_clean:
             return True, 1.0
         
-        # ===== 策略2：滑动窗口检测（核心创新）=====
-        # 将content1分成多个窗口，检查每个窗口是否在content2中
-        window_size = min(500, len1 // 4)  # 窗口大小：至少500字符，最多是len1/4
-        step_size = max(100, window_size // 2)  # 步长：重叠50%
+        # ===== 策略2：滑动窗口检测（【优化】增强版）=====
+        # 【关键改进】：使用更小的窗口和更短的步长，提高对"部分重叠"场景的敏感性
+        window_size = min(600, max(300, len1 // 5))  # 窗口大小：至少300字符，最多600，或len1/5
+        step_size = max(80, window_size // 3)  # 步长：【缩短】从window_size//2改为window_size//3（重叠67%）
         
         found_windows = 0
         total_windows = (len1 - window_size) // step_size + 1
@@ -351,26 +352,44 @@ class StringUtils:
             if window_content in content2_clean:
                 found_windows += 1
         
-        # 如果大部分窗口都在content2中找到，认为是子集
-        if total_windows > 0 and found_windows / total_windows >= min_match_ratio * 0.9:
+        # 【优化】降低匹配率要求：从min_match_ratio*0.9降到min_match_ratio*0.8
+        if total_windows > 0 and found_windows / total_windows >= min_match_ratio * 0.80:
             return True, found_windows / total_windows
         
-        # ===== 策略3：基于指纹的模糊匹配 =====
-        # 计算两个内容的SimHash
+        # ===== 【新增】策略2.5：多尺度滑动窗口检测 =====
+        # 使用不同大小的窗口进行二次检测（捕获不同粒度的重复模式）
+        if found_windows / max(total_windows, 1) >= min_match_ratio * 0.60:  # 如果第一轮接近但未达标
+            # 使用更大的窗口重新检测
+            large_window_size = min(1000, len1 // 3)
+            large_step_size = large_window_size // 3
+            large_found = 0
+            large_total = (len1 - large_window_size) // large_step_size + 1
+            
+            for i in range(0, len1 - large_window_size + 1, large_step_size):
+                large_window = content1_clean[i:i + large_window_size]
+                if large_window in content2_clean:
+                    large_found += 1
+            
+            # 综合两轮结果
+            combined_ratio = (found_windows + large_found) / max(total_windows + large_total, 1)
+            if combined_ratio >= min_match_ratio * 0.65:  # 综合匹配率>=45.5%（当min_match_ratio=0.7时）
+                return True, combined_ratio
+        
+        # ===== 策略3：基于指纹的模糊匹配（【优化】放宽条件）======
         simhash1 = StringUtils._compute_simhash_fast(content1_clean)
         simhash2 = StringUtils._compute_simhash_fast(content2_clean)
         
-        # 计算海明距离
         hamming_dist = StringUtils._hamming_distance(simhash1, simhash2)
         
-        # 如果海明距离很小（<5），说明内容高度相似
-        if hamming_dist <= 5 and len1 < len2 * 0.7:
+        # 【优化】从海明距离<=5且长度比<0.7 改为 <=6且<0.75
+        if hamming_dist <= 6 and len1 < len2 * 0.75:
             # 进一步用SequenceMatcher验证
-            matcher = SequenceMatcher(None, content1_clean[:min(3000, len1)], 
-                                    content2_clean[:min(3000 + len1 * 2, len2)])
+            matcher = SequenceMatcher(None, content1_clean[:min(4000, len1)], 
+                                    content2_clean[:min(5000 + int(len1 * 1.5), len2)])
             ratio = matcher.quick_ratio()
             
-            if ratio >= min_match_ratio:
+            # 【优化】降低验证阈值
+            if ratio >= min_match_ratio * 0.90:  # 从min_match_ratio改为min_match_ratio*0.9
                 return True, ratio
         
         # ===== 策略4：关键段落匹配 =====
@@ -698,15 +717,15 @@ class StringUtils:
             
             return found_count / total_windows if total_windows > 0 else 0.0
         
-        # 检测两个方向（【收紧】提高匹配率要求）
+        # 检测两个方向（【优化】降低匹配率要求以提高召回）
         subset_ratio_12 = check_sliding_window_subset(content1, content2)
         subset_ratio_21 = check_sliding_window_subset(content2, content1)
         
-        # 【收紧】判断方向 - 从65%提高到72%
-        if len1 < len2 and subset_ratio_12 >= 0.72:  # content1较短且大部分窗口匹配
+        # 【优化】判断方向 - 从72%降到65%（更宽松）
+        if len1 < len2 and subset_ratio_12 >= 0.65:  # content1较短且大部分窗口匹配
             return "subset", subset_ratio_12
         
-        if len2 < len1 and subset_ratio_21 >= 0.72:  # content2较短且大部分窗口匹配
+        if len2 < len1 and subset_ratio_21 >= 0.65:  # content2较短且大部分窗口匹配
             return "superset", subset_ratio_21
         
         # ===== 新增：关键段落匹配检测 =====
@@ -748,22 +767,25 @@ class StringUtils:
         match_rate_1_in_2 = matched_1_in_2 / len(key_paras_1) if key_paras_1 else 0
         match_rate_2_in_1 = matched_2_in_1 / len(key_paras_2) if key_paras_2 else 0
         
-        # 【收紧】判断 - 提高匹配率要求和长度差异要求
-        if len1 < len2 * 0.6 and match_rate_1_in_2 >= 0.7:  # 从60%提到70%，长度差从70%到60%
+        # 【优化】判断 - 放宽长度差异要求和匹配率要求
+        if len1 < len2 * 0.7 and match_rate_1_in_2 >= 0.60:  # 从0.6放宽到0.7，匹配率从70%降到60%
             return "subset", match_rate_1_in_2
         
-        if len2 < len1 * 0.6 and match_rate_2_in_1 >= 0.7:  # 同上收紧
+        if len2 < len1 * 0.7 and match_rate_2_in_1 >= 0.60:  # 同上优化
             return "superset", match_rate_2_in_1
         
-        # ===== 回退：SequenceMatcher相似度判断 =====
-        matcher = SequenceMatcher(None, content1[:min(4000, len1)], content2[:min(4000, len2)])
+        # ===== 回退：SequenceMatcher相似度判断（【优化】增强版）=====
+        # 增加采样量以提高准确性
+        sample_len_1 = min(6000, len1)  # 从4000增加到6000
+        sample_len_2 = min(6000 + int(len1 * 1.5), len2)  # 动态调整，考虑可能的超集内容
+        matcher = SequenceMatcher(None, content1[:sample_len_1], content2[:sample_len_2])
         similarity = matcher.quick_ratio()
         
-        # 根据相似度和长度比综合判断
+        # 根据相似度和长度比综合判断（【优化】放宽条件）
         len_ratio = min(len1, len2) / max(len1, len2)
         
-        # 长度差异大(>30%)且相似度高(>60%)→ 可能是包含关系
-        if len_ratio < 0.7 and similarity >= min_ratio:
+        # 长度差异大(>25%)且相似度高(>50%)→ 可能是包含关系（从30%/60%放宽）
+        if len_ratio < 0.75 and similarity >= max(min_ratio, 0.50):
             if len1 < len2:
                 return "subset", similarity
             else:

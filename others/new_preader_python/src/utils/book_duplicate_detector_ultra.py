@@ -147,10 +147,10 @@ class UltraBookDuplicateDetector:
     HIGH_CONFIDENCE = 0.76              # 置信度：从72%提高到76%
     FEATURE_SIMILARITY_WEIGHT = 0.15    # 特征权重：从20%降到15%（减少弱信号影响）
     
-    # 包含关系检测专用参数
-    SUBSET_MIN_RATIO = 0.65            # 子集匹配最低比例：从55%提高到65%
-    SUBSET_SIZE_MIN_RATIO = 0.08        # 大小差异最小要求：从3%提高到8%
-    SUBSET_SIZE_MAX_RATIO = 0.92        # 大小差异最大要求：从97%降到92%
+    # 包含关系检测专用参数（【优化】针对整本vs章节场景）
+    SUBSET_MIN_RATIO = 0.55            # 子集匹配最低比例：从65%降低到55%（提高召回）
+    SUBSET_SIZE_MIN_RATIO = 0.05        # 大小差异最小要求：从8%降到5%
+    SUBSET_SIZE_MAX_RATIO = 0.95        # 大小差异最大要求：从92%提高到95%
     
     # 大规模数据集保护
     MAX_DEEP_DETECT_SIZE = 2500         
@@ -450,8 +450,14 @@ class UltraBookDuplicateDetector:
         return ""
     
     @staticmethod
-    def _read_book_sample_fast(path: str, sample_size: int = 15000) -> str:
-        """快速读取文件内容采样（优化版）"""
+    def _read_book_sample_fast(path: str, sample_size: int = 30000) -> str:
+        """快速读取文件内容采样（优化版 - 针对包含关系场景增强）
+        
+        【关键改进】：
+        1. 增加采样量：从15000字符增加到30000字符
+        2. 增加采样位置：从5个位置增加到8个位置
+        3. 添加智能采样：根据文件大小动态调整策略
+        """
         if not os.path.exists(path):
             return ""
         
@@ -464,28 +470,33 @@ class UltraBookDuplicateDetector:
             
             file_size = os.path.getsize(path)
             
+            # 小文件：直接读取全部内容
             if file_size <= sample_size:
                 with open(path, 'r', encoding='utf-8', errors='ignore') as f:
                     return f.read(sample_size)
-            else:
-                # 从多个位置采样（比原版更智能的位置选择）
-                parts = 5
-                part_size = sample_size // parts
-                samples = []
+            
+            # 大文件：多位置均匀采样（【优化】增加采样密度）
+            parts = 8  # 从5个增加到8个
+            part_size = sample_size // parts
+            samples = []
+            
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                # 开头部分（最重要，权重高）
+                samples.append(f.read(part_size))
                 
-                with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                    # 开头
+                # 中间部分（均匀分布，覆盖更多章节）
+                for i in range(1, parts - 1):
+                    pos = int(file_size * i / (parts - 1))
+                    f.seek(pos)
+                    # 读取到下一个换行符，避免截断单词
+                    f.readline()  
                     samples.append(f.read(part_size))
-                    
-                    # 四个均匀分布的中间位置
-                    for i in range(1, parts):
-                        pos = int(file_size * i / parts)
-                        f.seek(pos)
-                        # 读取到下一个换行符，避免截断单词
-                        f.readline()  
-                        samples.append(f.read(part_size))
                 
-                return ''.join(samples)
+                # 结尾部分（重要，用于检测是否完整）
+                f.seek(max(0, file_size - part_size))
+                samples.append(f.read(part_size))
+            
+            return ''.join(samples)
         except Exception as e:
             logger.error(f"快速读取失败: {path}, {e}")
             return ""
@@ -1126,6 +1137,54 @@ class UltraBookDuplicateDetector:
             if self._is_likely_false_positive(fp1, fp2):
                 return None
             
+            # ===== 【新增】阶段2.5：包含关系的特殊预检测（针对整本vs章节场景）=====
+            # 如果大小差异在25%-95%之间，且文件名有一定关联，优先进行包含关系检测
+            if book1.size and book2.size:
+                size_ratio_val = min(book1.size, book2.size) / max(book1.size, book2.size)
+                
+                if 0.25 <= size_ratio_val <= 0.95:  # 覆盖5/8=62.5%, 4/7=57%等常见场景
+                    # 检查是否有基本的名称关联（避免完全无关的书）
+                    has_name_relation = (
+                        file_name_match or 
+                        len(fp1.title_keywords & fp2.title_keywords) >= 1 or
+                        (len(meaningful_common := (set(fp1.normalized_name.replace('.', ' ').split()) & 
+                                                    set(fp2.normalized_name.replace('.', ' ').split()))) > 0 and
+                         meaningful_common - {'txt', 'epub', 'pdf', 'mobi', 'azw', 'azw3'})
+                    )
+                    
+                    if has_name_relation:
+                        try:
+                            # 使用更宽松的条件进行预检测
+                            subset_rel, sub_rat = StringUtils.check_subset_relationship(
+                                book1, book2
+                            )
+                            
+                            # 【优化】对于有明显大小差异的情况，降低匹配率要求
+                            if subset_rel in ["subset", "superset"]:
+                                is_subset_likely = False
+                                
+                                if sub_rat >= 0.50:  # 匹配率>=50%
+                                    is_subset_likely = True
+                                elif sub_rat >= 0.42 and size_ratio_val < 0.70:  # 匹配率>=42%且差异>30%
+                                    if file_name_match or feature_sim >= 0.50:
+                                        is_subset_likely = True
+                                
+                                if is_subset_likely:
+                                    # 提前返回包含关系结果（跳过后续计算）
+                                    confidence = 0.62 + sub_rat * 0.20  # 0.72-0.82范围
+                                    
+                                    return BookComparison(
+                                        book1=book1,
+                                        book2=book2,
+                                        file_name_match=file_name_match,
+                                        similarity=sub_rat,
+                                        hash_match=False,
+                                        duplicate_types=[DuplicateType.CONTENT_SUBSET],
+                                        confidence=min(confidence, 0.88)
+                                    )
+                        except Exception as e:
+                            logger.debug(f"包含关系预检异常: {e}")
+            
             # ===== 阶段3：计算各维度的相似性 =====
             
             # 3a. 内容相似度（最权威的指标）
@@ -1154,19 +1213,39 @@ class UltraBookDuplicateDetector:
             if book1.size and book2.size and max(book1.size, book2.size) > 0:
                 size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
             
-            # 3e. 包含关系检测（针对整本vs章节的情况 - 【收紧】减少误报）
+            # 3e. 包含关系检测（针对整本vs章节的情况 - 【优化】放宽条件提高召回）
             subset_relationship = None
             subset_ratio = 0.0
-            # 使用类级别参数控制范围
-            if book1.size and book2.size and self.SUBSET_SIZE_MIN_RATIO < size_ratio < self.SUBSET_SIZE_MAX_RATIO:
-                try:
-                    subset_rel, sub_rat = StringUtils.check_subset_relationship(book1, book2)
-                    # 【收紧】使用类参数 SUBSET_MIN_RATIO (65%)
-                    if subset_rel != "none" and sub_rat >= self.SUBSET_MIN_RATIO:
-                        subset_relationship = subset_rel
-                        subset_ratio = sub_rat
-                except Exception as e:
-                    logger.debug(f"包含关系检查异常: {e}")
+            
+            if book1.size and book2.size:
+                size_ratio_val = size_ratio  # 避免与函数名冲突
+                
+                # 【优化】扩大检测范围：从(8%, 92%)扩大到(5%, 95%)
+                if self.SUBSET_SIZE_MIN_RATIO < size_ratio_val < self.SUBSET_SIZE_MAX_RATIO:
+                    try:
+                        subset_rel, sub_rat = StringUtils.check_subset_relationship(book1, book2)
+                        
+                        # 【优化】降低匹配率要求：从65%降到55%
+                        # 对于"1-5章 vs 1-8章"的场景，实际匹配率可能在50%-70%之间
+                        if subset_rel != "none" and sub_rat >= self.SUBSET_MIN_RATIO:
+                            subset_relationship = subset_rel
+                            subset_ratio = sub_rat
+                            
+                            # 【新增】对于明显的包含关系（大小差异30%+），进一步放宽
+                            if size_ratio_val < 0.75 and sub_rat >= 0.50:  # 大小差异>25%，匹配率>=50%
+                                subset_relationship = subset_rel
+                                subset_ratio = sub_rat
+                                
+                    except Exception as e:
+                        logger.debug(f"包含关系检查异常: {e}")
+                
+                # 【新增特殊处理】如果大小比例在合理范围内但未触发上面的检测，
+                # 使用更宽松的内容相似度作为补充判断
+                elif 0.40 <= size_ratio_val <= 0.95:  # 40%-95%的范围（覆盖5/8=62.5%等场景）
+                    if has_enough_content and content_similarity >= 0.28:  # 相似度>=28%
+                        # 标记为可能的包含关系，但不设置subset_relationship
+                        # 让后续规则C来处理
+                        pass
             
             # ===== 阶段4：多层验证判断（【收紧】高精准度版本）=====
             is_duplicate = False
@@ -1191,46 +1270,68 @@ class UltraBookDuplicateDetector:
                     confidence = min(0.96, confidence + 0.03)  # 减少文件名加分
                     reason += "+文件名相同"
             
-            # 规则B：明确的包含关系 - 【收紧】提高触发阈值
-            elif subset_relationship in ["subset", "superset"] and subset_ratio >= self.SUBSET_MIN_RATIO:
-                is_duplicate = True
-                duplicate_types.append(DuplicateType.CONTENT_SUBSET)
+            # 规则B：明确的包含关系 - 【优化】放宽触发条件，提高召回率
+            elif subset_relationship in ["subset", "superset"]:
+                # 【核心改进】分层判断，根据匹配率和大小差异综合决定
+                is_subset_confident = False
                 
-                # 【收紧】降低基础置信度，需要更高匹配率才能达标
-                confidence = 0.65 + subset_ratio * 0.20  # 范围: 0.78-0.85
-                reason = f"包含关系({subset_relationship}, {subset_ratio:.1%})"
+                if subset_ratio >= self.SUBSET_MIN_RATIO:  # >= 55%
+                    # 高置信度：直接判定为重复
+                    is_subset_confident = True
+                elif subset_ratio >= 0.48 and size_ratio < 0.75:  # >=48% 且 大小差异>25%
+                    # 中等置信度：对于明显的部分重叠（如5/8章），放宽条件
+                    if file_name_match or feature_sim >= 0.60:
+                        is_subset_confident = True
+                elif subset_ratio >= 0.42 and size_ratio < 0.65:  # >=42% 且 大小差异>35%
+                    # 低置信度：需要更多辅助证据
+                    if file_name_match and feature_sim >= 0.55:
+                        is_subset_confident = True
+                
+                if is_subset_confident:
+                    is_duplicate = True
+                    duplicate_types.append(DuplicateType.CONTENT_SUBSET)
+                    
+                    # 根据匹配率计算置信度（更平滑的曲线）
+                    confidence = 0.58 + subset_ratio * 0.22  # 范围: 0.676-0.892
+                    reason = f"包含关系({subset_relationship}, {subset_ratio:.1%})"
             
-            # 规则C：中等相似度 + 多个辅助证据（【收紧】需要更强证据）
+            # 规则C：中等相似度 + 多个辅助证据（【优化】针对包含关系场景增强）
             elif (has_enough_content and 
-                  content_similarity >= 0.32 and  # 【收紧】从28%提高到32%
-                  (file_name_match or feature_sim >= 0.75 or simhash_dist <= 2)):  # 特征阈值提高
+                  content_similarity >= 0.28 and  # 【优化】从32%降到28%（提高召回）
+                  (file_name_match or feature_sim >= 0.65 or simhash_dist <= 3)):  # 特征阈值适当降低
                 
                 additional_evidence = 0
                 
                 if file_name_match:
-                    additional_evidence += 0.13  # 从0.15降到0.13
+                    additional_evidence += 0.13
                     reason_part = "文件名相同"
                     
-                if feature_sim >= 0.75:  # 从0.7提高到0.75
-                    additional_evidence += 0.10  # 从0.12降到0.10
+                if feature_sim >= 0.65:  # 【优化】从0.75降到0.65
+                    additional_evidence += 0.10
                     reason_part = f"特征相似({feature_sim:.1%})"
                     
-                if simhash_dist <= 2:  # 从3降到2
-                    additional_evidence += 0.08  # 从0.10降到0.08
+                if simhash_dist <= 3:  # 【优化】从2放宽到3
+                    additional_evidence += 0.08
                     reason_part = f"SimHash接近(距{simhash_dist})"
                 
-                # 综合置信度必须达到阈值（提高）
+                # 【新增】大小差异在合理范围内（30%-95%），可能是包含关系
+                if book1.size and book2.size:
+                    size_ratio_val = min(book1.size, book2.size) / max(book1.size, book2.size)
+                    if 0.30 <= size_ratio_val <= 0.95:  # 覆盖5/8=62.5%, 4/7=57%等常见场景
+                        additional_evidence += 0.06  # 小幅加分
+                
+                # 综合置信度必须达到阈值（略微降低）
                 combined_confidence = (content_similarity * 0.55 + 
                                       feature_sim * 0.18 + 
                                       additional_evidence)
                 
-                if combined_confidence >= 0.60:  # 【收紧】从0.55提高到0.60
+                if combined_confidence >= 0.56:  # 【优化】从0.60降到0.56
                     is_duplicate = True
                     duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
                     if file_name_match:
                         duplicate_types.append(DuplicateType.FILE_NAME)
                     
-                    confidence = min(0.82, combined_confidence + 0.12)  # 上限从85%降到82%
+                    confidence = min(0.82, combined_confidence + 0.12)
                     reason = f"中等相似({content_similarity:.1%})+{reason_part}"
             
             # 规则D：仅文件名相同（【收紧】弱信号，几乎不触发）
