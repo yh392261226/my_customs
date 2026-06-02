@@ -2558,28 +2558,28 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 severity="information"
             )
             
-            # 异步查找重复书籍（【2026-05-29 最终版】使用稳定的Ultra检测器）
+            # 异步查找重复书籍（【2026-06-01 升级版】使用V3增强检测器）
             def find_duplicates_async():
-                """异步查找重复书籍（Ultra检测器 - 稳定可靠版本）"""
+                """异步查找重复书籍（V3检测器 - Ultra完整实现 + 智能优化）"""
                 try:
-                    # 【重要决定】使用经过充分测试的UltraBookDuplicateDetector
+                    # 【重要升级】使用SmartDuplicateDetectorV3
                     #
-                    # 原因：
-                    # 1. V2引擎存在严重的稳定性问题（卡死、资源泄漏、无法检测重复）
-                    # 2. Ultra已经过长期验证，功能完整可靠
-                    # 3. 用户反馈：V2"根本不好使"，不如回退到能用的版本
-                    # 
-                    # Ultra已包含的优化（本次会话已应用）：
-                    # ✅ 包含关系参数放宽（SUBSET_MIN_RATIO: 65%→55%）
-                    # ✅ 内容采样量增加（15000→30000字符，5位置→8位置）  
-                    # ✅ 规则B/C/D针对包含关系场景优化
-                    # ✅ 推荐删除功能正常工作
-                    # ✅ 多级过滤架构（哈希→SimHash→深度内容→文件名）
-                    # ✅ 并行处理+取消支持+超时保护
+                    # 为什么选择V3而不是纯Ultra？
+                    # 1. V3 = Ultra 100%兼容 + 增强功能
+                    # 2. 完整实现Ultra的4级检测流程（哈希→SimHash→深度内容→文件名）
+                    # 3. 解决Ultra的两个已知问题：
+                    #    - 漏检：多尺度滑动窗口 + 更大采样量(30000字符) + 放宽阈值
+                    #    - 空窗口：正确处理空结果，不弹窗只通知
+                    # 4. 新增特性：
+                    #    - TXT专用模式（自动过滤非txt）
+                    #    - 多尺度包含关系检测（解决1-N章场景）
+                    #    - 推荐删除功能正常工作
+                    # 5. 接口100%兼容：find_duplicates(books, progress_callback, batch_callback)
+                    # 6. batch_callback格式：((groups, batch_idx, total_batches, processing_remaining)
                     
-                    from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector
+                    from src.utils.book_duplicate_detector_v2 import SmartDuplicateDetectorV3
                     
-                    result = UltraBookDuplicateDetector.find_duplicates(
+                    result = SmartDuplicateDetectorV3.find_duplicates(
                         all_books,
                         progress_callback=progress_callback,
                         batch_callback=batch_callback
@@ -2703,12 +2703,39 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 标记所有批次已完成
             self._all_batches_completed = True
             
-            # 检查是否找到重复书籍
-            if not duplicate_groups:
+            # 【关键修复】合并所有阶段的结果（包括batch_callback中已添加的）
+            all_results = list(self._shown_duplicate_groups) if hasattr(self, '_shown_duplicate_groups') else []
+            
+            # 去重（避免重复添加）
+            seen_paths = set()
+            unique_results = []
+            for group in all_results:
+                group_key = tuple(sorted([book.path for book in group.books]))
+                if group_key not in seen_paths:
+                    seen_paths.add(group_key)
+                    unique_results.append(group)
+            
+            # 【关键修复】如果没有找到任何重复书籍，不弹窗！
+            if not unique_results:
                 self.notify(
                     get_global_i18n().t("duplicate_books.no_duplicates_found"),
                     severity="information"
                 )
+                
+                # 【额外保护】如果已经弹出了窗口，尝试关闭它
+                if getattr(self, '_duplicate_dialog_created', False):
+                    try:
+                        self.app.pop_screen()  # 关闭可能存在的空白对话框
+                    except Exception:
+                        pass
+                return
+            
+            # 使用去重后的完整结果
+            final_groups = unique_results
+            
+            # 【修复】只有当确实有重复结果时才创建对话框
+            if not final_groups:
+                # 二次确认：没有重复 → 不弹窗
                 return
             
             # 如果没有打开对话框，创建一个显示所有结果的对话框
@@ -2733,13 +2760,13 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                         # 设置返回结果为需要刷新
                         self.dismiss({"refresh": True})
                 
-                # 显示重复书籍对话框
+                # 显示重复书籍对话框（使用最终去重后的结果）
                 dialog = DuplicateBooksDialog(
                     self.theme_manager, 
-                    self._shown_duplicate_groups,
-                    self._current_batch,
-                    self._total_batches,
-                    self._processing_remaining
+                    final_groups,  # 【修复】使用最终结果，不是中间的 _shown_duplicate_groups
+                    0,  # 所有阶段完成
+                    len(final_groups),  # 总批次数 = 实际组数
+                    False  # 不再有后续处理
                 )
                 self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
             else:
