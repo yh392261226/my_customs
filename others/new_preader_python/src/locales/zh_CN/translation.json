@@ -274,6 +274,8 @@
   "batch_ops": {
     "title": "批量操作",
     "select_all": "全选",
+    "select_all_pages": "超全选",
+    "enter_new_title": "请输入新书名",
     "deselect_all": "取消全选",
     "delete": "删除",
     "export": "导出",

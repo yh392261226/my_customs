@@ -743,6 +743,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('crawler.clear_invalid'), id="clear-invalid-btn", variant="error"),
                     # 多选操作按钮
                     Button(get_global_i18n().t('bookshelf.batch_ops.select_all'), id="select-all-btn"),
+                    Button(get_global_i18n().t('batch_ops.select_all_pages'), id="select-all-pages-btn"),
                     Button(get_global_i18n().t('bookshelf.batch_ops.invert_selection'), id="invert-selection-btn"),
                     Button(get_global_i18n().t('bookshelf.batch_ops.deselect_all'), id="deselect-all-btn"),
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
@@ -4401,6 +4402,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._show_jump_dialog()
         elif button_id == "select-all-btn":
             self._select_all_rows()
+        elif button_id == "select-all-pages-btn":
+            self._select_all()
         elif button_id == "invert-selection-btn":
             self._invert_selection()
         elif button_id == "deselect-all-btn":

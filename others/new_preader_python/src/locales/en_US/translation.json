@@ -274,6 +274,8 @@
   "batch_ops": {
     "title": "Batch Operations",
     "select_all": "Select All",
+    "select_all_pages": "Select All Pages",
+    "enter_new_title": "Please enter new title",
     "deselect_all": "Deselect All",
     "delete": "Delete",
     "export": "Export",
