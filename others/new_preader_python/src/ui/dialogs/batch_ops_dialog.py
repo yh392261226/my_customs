@@ -796,16 +796,25 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             logger.info("用户按ESC，强制停止后台去重检测...")
             
             try:
-                # 1. 设置所有取消标志
-                from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector
-                UltraBookDuplicateDetector.request_cancel()
+                # 1. 【关键修复】设置所有取消标志（包括V3检测器）
+                from src.utils.book_duplicate_detector_v2 import SmartDuplicateDetectorV3
+                SmartDuplicateDetectorV3.request_cancel()
+                
+                try:
+                    from src.utils.book_duplicate_detector_ultra import UltraBookDuplicateDetector
+                    UltraBookDuplicateDetector.request_cancel()
+                except ImportError:
+                    pass
                 
                 if hasattr(self, '_duplicate_cancel_requested'):
                     self._duplicate_cancel_requested = True
                 if hasattr(self, '_duplicate_dialog') and self._duplicate_dialog:
                     if hasattr(self._duplicate_dialog, '_is_cancelled'):
                         self._duplicate_dialog._is_cancelled = True
-                    DuplicateBooksDialog._cancel_requested = True
+                    try:
+                        DuplicateBooksDialog._cancel_requested = True
+                    except AttributeError:
+                        pass
                 
                 # 2. 清空回调函数（避免继续调用）
                 self._progress_callback = lambda c, t: None

@@ -119,7 +119,8 @@ class BrowserTabMonitor:
                     logger.info(f"解析到的标签页数量: {len(tabs)}, 按窗口分布:")
                     from collections import Counter
                     by_win = Counter(t.get('window', '?') for t in tabs)
-                    for w, c in sorted(by_win.items()):
+                    # 【修复】统一转换为字符串排序，避免 str/int 比较错误
+                    for w, c in sorted(by_win.items(), key=lambda x: (str(x[0]), x[1])):
                         logger.info(f"  窗口{w}: {c}个")
                     return tabs
 

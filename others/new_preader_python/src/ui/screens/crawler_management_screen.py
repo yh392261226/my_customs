@@ -892,6 +892,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.view_reason'), key="view_reason")
         table.add_column(get_global_i18n().t('crawler.retry'), key="retry")
         table.add_column(get_global_i18n().t('crawler.crawl_latest'), key="crawl_latest")
+        table.add_column(get_global_i18n().t('crawler.rename_novel'), key="rename_novel")
         
         table.zebra_stripes = True
         
@@ -1179,7 +1180,8 @@ class CrawlerManagementScreen(Screen[None]):
                     "delete_record": get_global_i18n().t('crawler.delete_record'),
                     "view_reason": get_global_i18n().t('crawler.view_reason') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
                     "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
-                    "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('crawler.status_success') else ""
+                    "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "rename_novel": get_global_i18n().t('crawler.rename') if item["status"] == get_global_i18n().t('crawler.status_success') else ""
                 }
                 
                 # 调试：打印row_data
@@ -2065,7 +2067,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._handle_cell_selection(row_key)
                 
             # 处理其他列的按钮点击
-            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry"]:
+            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel"]:
                 self._handle_button_click(column, row_key)
             
             # 处理连载列点击：切换连载模式
@@ -2459,6 +2461,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self._view_reason(history_item)
             elif column == "retry":
                 self._retry_crawl(history_item)
+            elif column == "rename_novel":
+                self._rename_novel(history_item)
                 
         except Exception as e:
             logger.debug(f"处理按钮点击失败: {e}")
@@ -4024,6 +4028,54 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(f"{get_global_i18n().t('crawler.retry_failed')}: {str(e)}", "error")
             # 重置爬取状态
             self._reset_crawl_state()
+    
+    def _rename_novel(self, history_item: Dict[str, Any]) -> None:
+        """重命名小说标题"""
+        try:
+            from src.ui.dialogs.rename_book_dialog import RenameBookDialog
+            
+            current_title = history_item.get('novel_title', '')
+            history_id = history_item.get('id')
+            
+            if not current_title or not history_id:
+                self._update_status(get_global_i18n().t('crawler.unknown_book'), "error")
+                return
+            
+            def handle_rename_result(result: Optional[Dict[str, Any]]) -> None:
+                """处理重命名结果"""
+                if result and result.get("success"):
+                    new_title = result.get("new_title", "")
+                    
+                    if not new_title:
+                        self._update_status(get_global_i18n().t('crawler.title_empty'), "error")
+                        return
+                    
+                    # 更新数据库中的小说标题
+                    if self.db_manager.update_crawl_history_full(history_id, novel_title=new_title):
+                        # 更新内存中的数据
+                        for item in self.crawler_history:
+                            if item.get("id") == history_id:
+                                item["novel_title"] = new_title
+                                break
+                        
+                        self._update_status(
+                            get_global_i18n().t('crawler.rename_success', title=new_title),
+                            "information"
+                        )
+                        # 刷新表格显示
+                        self._update_history_table()
+                    else:
+                        self._update_status(get_global_i18n().t('crawler.rename_failed'), "error")
+            
+            # 弹出重命名对话框
+            self.app.push_screen(
+                RenameBookDialog(current_title, ""),
+                callback=handle_rename_result
+            )
+            
+        except Exception as e:
+            logger.error(f"重命名小说失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.rename_failed')}: {str(e)}", "error")
     
     async def _retry_crawl_single(self, novel_id: str, proxy_config: Dict[str, Any], history_item: Dict[str, Any]) -> None:
         """异步重试单个小说的爬取"""

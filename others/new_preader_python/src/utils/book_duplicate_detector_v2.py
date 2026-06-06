@@ -170,7 +170,11 @@ class SmartDuplicateDetectorV3:
         with cls._executors_lock:
             for executor in cls._active_executors:
                 try:
-                    executor.shutdown(wait=False, cancel_futures=True)
+                    # 【修复】兼容 Python < 3.9
+                    try:
+                        executor.shutdown(wait=False, cancel_futures=True)
+                    except TypeError:
+                        executor.shutdown(wait=False)
                 except Exception:
                     pass
             cls._active_executors.clear()
@@ -367,10 +371,15 @@ class SmartDuplicateDetectorV3:
             for future in as_completed(futures):
                 if self.is_cancelled():
                     break
-                result = future.result(timeout=10)
+                result = future.result(timeout=3)  # 【修复】从10秒减少到3秒
                 if result:
                     fingerprints.append(result)
             
+            # 【关键修复】确保线程池在取消时立即关闭
+            try:
+                executor.shutdown(wait=False, cancel_futures=True)
+            except TypeError:
+                executor.shutdown(wait=False)
             self.unregister_executor(executor)
         
         return fingerprints
@@ -800,19 +809,26 @@ class SmartDuplicateDetectorV3:
                 
                 futures = [executor.submit(check_pair_with_cancel, pair) for pair in pairs_to_check]
                 
+                # 【修复】减少超时时间并增强取消响应
                 for future in as_completed(futures):
                     if self.is_cancelled():
+                        # 【关键】立即中断循环，不等待剩余future
                         break
                     
                     try:
-                        result = future.result(timeout=5)
+                        result = future.result(timeout=1)  # 从5秒减少到1秒
                         if result:
                             pair_key = tuple(sorted([result.book1.path, result.book2.path]))
                             all_similar_pairs.add(pair_key)
                     except Exception:
                         pass
                 
-                executor.shutdown(wait=False, cancel_futures=True)
+                # 【关键修复】确保线程池立即关闭
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except TypeError:
+                    # Python < 3.9 不支持 cancel_futures 参数
+                    executor.shutdown(wait=False)
                 self.unregister_executor(executor)
         
         groups = self._cluster_pairs_into_groups(all_similar_pairs, fingerprints)
