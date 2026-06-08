@@ -1,0 +1,58 @@
+/* 选择页数全选对话框样式 */
+
+.select-pages-dialog {
+    width: 60%;
+    height: auto;
+    min-height: 10;
+    background: $panel;
+    border: round $primary;
+    padding: 1 2;
+    align: center middle;
+}
+
+.select-pages-dialog .dialog-title {
+    text-style: bold;
+    color: $primary;
+    margin-bottom: 1;
+    text-align: center;
+}
+
+.select-pages-dialog #pages-select {
+    width: 100%;
+    height: auto;
+    min-height: 4;
+    margin: 1 0;
+}
+
+.select-pages-dialog .dialog-buttons {
+    layout: horizontal;
+    width: 100%;
+    align-horizontal: center;
+    margin-top: 1;
+    height: auto;
+}
+
+.select-pages-dialog .dialog-buttons Button {
+    margin: 0 1;
+    min-width: 10;
+    height: 3;
+}
+
+.select-pages-dialog #confirm-btn {
+    background: $success;
+    color: $text;
+}
+
+.select-pages-dialog #confirm-btn:hover {
+    background: $success-darken-1;
+}
+
+.select-pages-dialog #cancel-btn {
+    background: $surface;
+    border: round $primary;
+    color: $text;
+}
+
+.select-pages-dialog #cancel-btn:hover {
+    background: $surface-darken-1;
+}

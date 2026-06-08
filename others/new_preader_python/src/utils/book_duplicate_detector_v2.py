@@ -27,12 +27,16 @@ import hashlib
 import math
 import re
 import time
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List, Dict, Tuple, Optional, Set, TYPE_CHECKING
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+
+# 【修复】添加TYPE_CHECKING以支持类型注解的前向引用
+if TYPE_CHECKING:
+    from src.core.book import Book
 
 # 【修复】添加全局logger（与Ultra保持一致）
 from src.utils.logger import get_logger
@@ -42,6 +46,13 @@ logger = get_logger(__name__)
 # ============================================================================
 # 第一部分：数据结构定义（完全兼容Ultra）
 # ============================================================================
+
+# 【新增】常见网站/来源前缀列表（用于文件名标准化）
+SOURCE_PREFIXES = [
+    '成人小说网_', '龙腾小说网_', 'AA阅读_', '晋江_', '起点中文网_', '纵横中文网_',
+    '17k小说_', '小说阅读网_', '书旗小说_', '番茄小说_', '七猫小说_',
+    '掌阅_', 'QQ阅读_', '豆瓣_', '知乎_', '百度_', '搜狗_',
+]
 
 class DuplicateType(Enum):
     """重复类型（与Ultra完全相同）"""
@@ -58,8 +69,8 @@ class DuplicateGroup:
     duplicate_type: DuplicateType
     books: List['Book']
     similarity: float = 0.0
-    recommended_to_keep: List['Book'] = None
-    recommended_to_delete: List['Book'] = None
+    recommended_to_keep: Optional[List['Book']] = None  # 【修复】改为 Optional
+    recommended_to_delete: Optional[List['Book']] = None  # 【修复】改为 Optional
     confidence: float = 1.0
     
     def __post_init__(self):
@@ -122,23 +133,117 @@ class SmartDuplicateDetectorV3:
        - 更大的内容采样(30000字符)
        - 多尺度包含关系检测
        - TXT专用过滤
+       - 【V5新增】智能文件名标准化(去除来源前缀、副标题)
+       - 【V5新增】文本归一化(消除格式差异)
     """
+    
+    # 【新增】静态方法：智能标准化书籍文件名（解决类型①②③⑤）
+    @staticmethod
+    def _normalize_book_name(file_name: str) -> str:
+        """
+        智能标准化书籍文件名，去除来源前缀、副标题等噪声
+        
+        处理规则：
+        1. 去除常见网站/来源前缀（成人小说网_、龙腾小说网_等）
+        2. 去除括号内的副标题（如（妖刀记前传）、(全集)等）
+        3. 去除文件扩展名
+        4. 统一空格和特殊字符
+        
+        示例：
+        - "成人小说网_黄蓉智斗群雄之饮鸩止渴.txt" → "黄蓉智斗群雄之饮鸩止渴"
+        - "AA阅读_鱼龙舞（妖刀记前传）.txt" → "鱼龙舞"
+        - "龙腾小说网_高考后的假期.txt" → "高考后的假期"
+        """
+        if not file_name:
+            return ""
+        
+        name = file_name
+        
+        # 1. 去除扩展名
+        base_name, _ = os.path.splitext(name)
+        name = base_name if base_name else name
+        
+        # 2. 去除常见网站/来源前缀
+        for prefix in SOURCE_PREFIXES:
+            if name.startswith(prefix):
+                name = name[len(prefix):]
+                break
+        
+        # 3. 去除括号内的副标题（支持中文括号、英文括号、全角括号）
+        # 匹配模式：（...）、(...)、〔...〕、【...】、<...>、《...》
+        import re as _re
+        # 先去除《》内的内容（书名号，通常包含完整书名）
+        # 保留《》外的括号内容作为副标题去除
+        name = _re.sub(r'[（(][^）)]*[）)]', '', name)   # 中文/英文圆括号
+        name = _re.sub(r'[【[][^】]*[】]]', '', name)   # 中文方括号
+        name = _re.sub(r'[[].*?[]]', '', name)           # 英文方括号
+        name = _re.sub(r'<[^>]*>', '', name)             # 尖括号
+        name = _re.sub(r'[〔[^〕]*〕]', '', name)         # 全角括号
+        
+        # 4. 去除下划线、连字符等分隔符（有些文件名用下划线代替空格）
+        name = name.replace('_', ' ').replace('-', ' ')
+        
+        # 5. 去除多余空格并转小写
+        name = ' '.join(name.split()).lower().strip()
+        
+        return name
+    
+    # 【新增】静态方法：文本归一化（用于SimHash计算前，解决类型④）
+    @staticmethod
+    def _normalize_text_for_comparison(text: str) -> str:
+        """
+        文本归一化处理，消除格式差异对相似度计算的影响
+        
+        处理内容：
+        1. 统一章节标记格式（## 第X章 / ## 第X页 / ## Chapter X）
+        2. 去除HTML标签
+        3. 统一中文标点（全角→半角或统一处理）
+        4. 去除多余的空白字符
+        """
+        if not text:
+            return ""
+        
+        import re as _re
+        
+        # 1. 统一章节标记：将各种章节标记统一为空格
+        text = _re.sub(r'#{1,6}\s*第\s*\d+\s*[章节回页折卷篇部]\s*', ' ', text)
+        text = _re.sub(r'#{1,6}\s*第\s*\d+\s*页\s*', ' ', text)
+        text = _re.sub(r'#{1,6}\s*Chapter\s+\d+', ' ', text, flags=_re.IGNORECASE)
+        
+        # 2. 去除HTML/XML标签
+        text = _re.sub(r'<[^>]+>', '', text)
+        
+        # 3. 去除URL链接
+        text = _re.sub(r'https?://\S+', '', text)
+        
+        # 4. 统一常见中文标点（保留基本结构但减少差异）
+        text = text.replace('，', ',').replace('。', '.').replace('！', '!').replace('？', '?')
+        text = text.replace('：', ':').replace('；', ';').replace('"', '"').replace('"', '"')
+        
+        # 5. 去除多余空白但保留单词边界
+        text = _re.sub(r'\s+', ' ', text).strip()
+        
+        return text
     
     # ===== Ultra原始参数（V3优化版）=====
     SIMHASH_BITS = 64
     SIMHASH_THRESHOLD = 3  # SimHash汉明距离阈值
     
-    # ===== V3优化后的规则参数（平衡灵敏度和精确度）=====
-    MIN_CONTENT_SIMILARITY = 0.30      # 规则A：高内容相似度门槛（回调到0.30）
-    HIGH_CONFIDENCE = 0.74             # 最终置信度门槛（回调到0.74）
-    SUBSET_MIN_RATIO = 0.50            # 包含关系最低匹配率（回调到0.50）
-    SUBSET_SIZE_MIN_RATIO = 0.08       # 大小差异下限（回调到0.08）
-    SUBSET_SIZE_MAX_RATIO = 0.95       # 大小差异上限
+    # ===== V4优化后的规则参数（大幅提升召回率，增加交叉验证）=====
+    MIN_CONTENT_SIMILARITY = 0.22      # 规则A：从0.30降到0.22
+    HIGH_CONFIDENCE = 0.70             # 最终置信度门槛：从0.74降到0.70
+    SUBSET_MIN_RATIO = 0.35            # 包含关系最低匹配率：从0.50降到0.35
+    SUBSET_SIZE_MIN_RATIO = 0.05       # 大小差异下限：从0.08降到0.05
+    SUBSET_SIZE_MAX_RATIO = 0.98       # 大小差异上限：从0.95升到0.98
+    FINGERPRINT_SLICE_SIZE = 800       # 指纹切片大小（字符）
+    FINGERPRINT_MIN_OVERLAP = 0.40     # 切片重叠率门槛（判断子集）
 
-    # ===== 【新增】防误报参数 =====
-    MIN_FILE_SIZE_FOR_DETECTION = 1024   # 最小文件大小(字节)，低于此值的书籍跳过深度检测
+    # ===== 【V6更新】防误报参数（适应0.1KB~30MB范围）=====
+    MIN_FILE_SIZE_FOR_DETECTION = 256    # 最小文件大小(字节)【从1024降到256，适应0.1KB小文件】
     SHORT_CONTENT_THRESHOLD = 2000       # 短篇内容阈值(字节)
     FEATURE_SIMILARITY_WEIGHT = 0.15
+    LARGE_FILE_THRESHOLD = 5 * 1024 * 1024   # 【新增】大文件阈值：5MB
+    LARGE_FILE_SAMPLE_SIZE = 50000           # 【新增】大文件采样量：50KB
     
     # ===== V3增强参数（可选开启）=====
     ENABLE_ENHANCED_SAMPLING = True     # 是否使用增强采样（30000 vs 15000）
@@ -157,6 +262,9 @@ class SmartDuplicateDetectorV3:
     _content_cache: Dict[str, str] = {}
     _fingerprint_cache: Dict[str, BookFingerprint] = {}
     _cache_lock = threading.Lock()
+    
+    # 【修复】初始化_last_subset_result实例变量
+    _last_subset_result: Tuple[bool, Optional['BookComparison']] = (False, None)
     
     # 取消标志
     _cancelled: bool = False
@@ -251,16 +359,21 @@ class SmartDuplicateDetectorV3:
         if progress_callback:
             progress_callback(0, 100)
         
+        # 【修复】安全处理progress_callback可能为None的情况
+        _callback = progress_callback  # 局部变量捕获
+        safe_callback = (lambda c, t: _callback(c // 10, t)) if _callback else None
+        
         fingerprints = self._compute_all_fingerprints(
             books,
-            progress_callback=lambda c, t: progress_callback(c // 10, t)
+            progress_callback=safe_callback
         )
         
         if self.is_cancelled():
             return all_duplicate_groups
         
         # ===== 阶段2：多级过滤检测（完全遵循Ultra流程）=====
-        phases = [
+        # 【类型注解】使用Tuple因为各检测函数签名不同，在调用时根据phase_name区分
+        phases: List[Tuple[str, object, int]] = [
             ("Level 0: 文件哈希匹配", self._detect_by_hash, 10),
             ("Level 1: SimHash检测", self._detect_by_simhash, 30),
             ("Level 2: 深度内容检测", self._detect_by_deep_content, 60),
@@ -281,10 +394,19 @@ class SmartDuplicateDetectorV3:
                           if fp.book.path not in processed_books]
             
             # 【修复】_detect_by_filename需要额外传入已有结果
+            # 根据phase_name调用不同签名的函数
             if phase_name == "Level 3: 文件名兜底":
-                phase_groups = detect_func(remaining_fps, all_duplicate_groups)
+                phase_groups = self._detect_by_filename(remaining_fps, all_duplicate_groups)
             else:
-                phase_groups = detect_func(remaining_fps)
+                # 根据phase_name调用对应的检测函数
+                if phase_name == "Level 0: 文件哈希匹配":
+                    phase_groups = self._detect_by_hash(remaining_fps)
+                elif phase_name == "Level 1: SimHash检测":
+                    phase_groups = self._detect_by_simhash(remaining_fps)
+                elif phase_name == "Level 2: 深度内容检测":
+                    phase_groups = self._detect_by_deep_content(remaining_fps, progress_callback=None)
+                else:
+                    phase_groups = []
             
             all_duplicate_groups.extend(phase_groups)
             
@@ -335,17 +457,31 @@ class SmartDuplicateDetectorV3:
         def compute_one(book):
             try:
                 fp = BookFingerprint(book=book)
-                fp.normalized_name = book.file_name.lower().strip()
+                # 【V5改进】使用智能文件名标准化（去除来源前缀、副标题）
+                fp.normalized_name = SmartDuplicateDetectorV3._normalize_book_name(book.file_name)
                 
                 fp.file_hash = self._get_cached_hash(book.path)
                 
-                # 内容采样（根据模式选择大小）
-                sample_size = self.SAMPLE_SIZE_V3 if self.ENABLE_ENHANCED_SAMPLING else self.SAMPLE_SIZE_ULTRA
+                # 【V6改进】动态采样策略（适应0.1KB~30MB范围）
+                book_size = book.size if hasattr(book, 'size') and book.size else 0
+                
+                if book_size > self.LARGE_FILE_THRESHOLD:
+                    # 大文件(>5MB)：增加采样量以获得更好代表性
+                    sample_size = self.LARGE_FILE_SAMPLE_SIZE  # 50KB
+                elif book_size < 1024:
+                    # 小文件(<1KB)：读取全部内容
+                    sample_size = min(book_size * 2, 4096) if book_size > 0 else 2048
+                else:
+                    # 普通文件：使用默认采样
+                    sample_size = self.SAMPLE_SIZE_V3 if self.ENABLE_ENHANCED_SAMPLING else self.SAMPLE_SIZE_ULTRA
+                
                 content = self._read_book_content(book.path, sample_size)
                 
                 if content:
+                    # 【V5改进】对内容进行归一化处理后再计算SimHash（解决类型④格式差异）
+                    content_for_simhash = SmartDuplicateDetectorV3._normalize_text_for_comparison(content)
                     fp.content_sample = content[:5000] if len(content) > 5000 else content
-                    fp.simhash = self._compute_simhash(content)
+                    fp.simhash = self._compute_simhash(content_for_simhash)
                     
                     lines = content.count('\n')
                     words = len(re.findall(r'[\u4e00-\u9fa5a-zA-Z]+', content))
@@ -870,7 +1006,7 @@ class SmartDuplicateDetectorV3:
     
     def _compare_fingerprints_detailed(self, fp1, fp2):
         """
-        详细比较两个书籍指纹（Ultra的多层验证 + V3包含关系增强 + 防误报）
+        详细比较两个书籍指纹（Ultra的多层验证 + V3包含关系增强 + 防误报）【V5性能优化版】
         """
         try:
             book1, book2 = fp1.book, fp2.book
@@ -897,15 +1033,40 @@ class SmartDuplicateDetectorV3:
             if self._is_likely_false_positive(fp1, fp2):
                 return None
             
+            # 【V5新增】快速预筛选 - 避免不必要的深度计算
+            # 如果文件名不匹配 且 大小比例极低(<5%) 且 SimHash距离大(>10)，直接跳过
+            size_ratio = 1.0
+            if size1 and size2 and max(size1, size2) > 0:
+                size_ratio = min(size1, size2) / max(size1, size2)
+            
+            simhash_dist = float('inf')
+            if fp1.simhash != 0 and fp2.simhash != 0:
+                simhash_dist = self.hamming_distance(fp1.simhash, fp2.simhash)
+            
+            # 【V5】快速路径：明显不相似的配对提前退出
+            if (not file_name_match and 
+                size_ratio < 0.05 and 
+                simhash_dist > 10):
+                return None
+            
             # 【V3增强】阶段2.5: 包含关系预检测（针对整本vs章节）
-            subset_result = self._check_subset_relation_enhanced(fp1, fp2)
+            # 【V5优化】只在满足条件时才执行（避免不必要的IO）
+            should_check_subset = (
+                0.05 <= size_ratio <= 0.95 or  # 大小有一定关联
+                file_name_match or              # 或文件名匹配
+                simhash_dist <= 7               # 或SimHash较接近
+            )
+            
+            subset_result = None
+            if should_check_subset:
+                subset_result = self._check_subset_relation_enhanced(fp1, fp2)
             
             if subset_result and subset_result[0]:  # (is_duplicate, comparison)
                 return subset_result[1]  # 返回ComparisonResult
             
             # 阶段3: 计算各维度
             content_similarity = 0.0
-            subset_ratio = 0.0  # 【修复】提前初始化，避免UnboundLocalError
+            subset_ratio_val = 0.0  # 【修复】重命名避免与外部变量冲突
             has_enough_content = False
             
             if fp1.content_sample and fp2.content_sample:
@@ -918,53 +1079,67 @@ class SmartDuplicateDetectorV3:
             
             feature_sim = self._feature_similarity(fp1, fp2)
             
-            simhash_dist = float('inf')
-            if fp1.simhash != 0 and fp2.simhash != 0:
-                simhash_dist = self.hamming_distance(fp1.simhash, fp2.simhash)
-            
-            size_ratio = 1.0
-            if book1.size and book2.size and max(book1.size, book2.size) > 0:
-                size_ratio = min(book1.size, book2.size) / max(book1.size, book2.size)
-            
-            # 阶段4: Ultra多层验证判断（规则A/B/C/D）
+            # 阶段4: V4多层验证判断（规则A/B/C/D - 大幅提升召回率）
             is_duplicate = False
             duplicate_types = []
             confidence = 0.0
             
-            # 规则A: 高内容相似度
+            # 获取文件大小用于后续判断
+            size1 = book1.size if hasattr(book1, 'size') and book1.size else 0
+            size2 = book2.size if hasattr(book2, 'size') and book2.size else 0
+            
+            # 规则A: 高内容相似度（V4: 降低门槛 + 大小合理性验证）
             if has_enough_content and content_similarity >= self.MIN_CONTENT_SIMILARITY:
                 is_duplicate = True
                 duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
                 
-                base_confidence = 0.58
-                content_bonus = min(0.25, content_similarity * 0.42)
+                base_confidence = 0.55  # 从0.58降到0.55
+                content_bonus = min(0.28, content_similarity * 0.48)  # 增加bonus比例
                 feature_bonus = feature_sim * self.FEATURE_SIMILARITY_WEIGHT
                 
-                confidence = min(0.94, base_confidence + content_bonus + feature_bonus)
+                # 【V4新增】大小合理性加分：如果大小比例合理（不是极端差异），提高置信度
+                size_reasonableness = 0.0
+                if 0.20 <= size_ratio <= 0.95:
+                    size_reasonableness = 0.04  # 大小接近 → 加分
+                elif size_ratio >= 0.10:
+                    size_reasonableness = 0.02  # 有一定关联 → 小幅加分
+                
+                confidence = min(0.94, base_confidence + content_bonus + feature_bonus + size_reasonableness)
                 
                 if file_name_match:
-                    confidence = min(0.96, confidence + 0.03)
+                    confidence = min(0.96, confidence + 0.04)  # 从0.03提高到0.04
             
-            # 规则B: 包含关系（使用V3增强检测结果或Ultra原逻辑）
+            # 规则B: 包含关系（V4: 使用增强检测结果 + 更宽松的阈值）
             elif hasattr(self, '_last_subset_result') and self._last_subset_result[0]:
-                # 使用V3增强的包含关系结果
+                # 使用V4增强的包含关系结果
                 is_duplicate = True
                 duplicate_types.append(DuplicateType.CONTENT_SUBSET)
-                subset_ratio = self._last_subset_result[1]
-                confidence = 0.65 + subset_ratio * 0.20
-            else:
-                # 使用Ultra原生的包含关系检测
-                subset_relationship = None
-                subset_ratio = 0.0
                 
-                if book1.size and book2.size and 0.08 < size_ratio < 0.92:
+                subset_result_obj = self._last_subset_result[1]
+                # _last_subset_result[1] 现在是 BookComparison 对象，包含 similarity 和 confidence
+                if subset_result_obj and hasattr(subset_result_obj, 'similarity'):
+                    ratio_val = subset_result_obj.similarity
+                else:
+                    ratio_val = 0.5
+                
+                if subset_result_obj and hasattr(subset_result_obj, 'confidence'):
+                    confidence = max(confidence, subset_result_obj.confidence)
+                else:
+                    confidence = 0.60 + ratio_val * 0.25  # 范围: 0.60-0.85
+                    
+            else:
+                # 使用StringUtils原生检测作为兜底
+                subset_relationship = None
+                subset_ratio_val = 0.0
+                
+                if book1.size and book2.size and self.SUBSET_SIZE_MIN_RATIO < size_ratio < self.SUBSET_SIZE_MAX_RATIO:
                     try:
                         from src.utils.string_utils import StringUtils
                         subset_rel, sub_rat = StringUtils.check_subset_relationship(book1, book2)
                         
-                        if subset_rel in ["subset", "superset"] and sub_rat >= self.SUBSET_MIN_RATIO:
+                        if subset_rel in ["subset", "superset"] and sub_rat >= (self.SUBSET_MIN_RATIO * 0.8):  # 从0.50降到0.40
                             subset_relationship = subset_rel
-                            subset_ratio = sub_rat
+                            subset_ratio_val = sub_rat
                     except Exception as e:
                         logger.debug(f"包含关系检查异常: {e}")
                 
@@ -972,60 +1147,89 @@ class SmartDuplicateDetectorV3:
                     is_duplicate = True
                     duplicate_types.append(DuplicateType.CONTENT_SUBSET)
                     
-                    if subset_ratio >= self.SUBSET_MIN_RATIO:
-                        confidence = 0.65 + subset_ratio * 0.20
-                    elif subset_ratio >= 0.48 and size_ratio < 0.75:
-                        if file_name_match or feature_sim >= 0.60:
-                            confidence = 0.65 + subset_ratio * 0.20
-                    elif subset_ratio >= 0.42 and size_ratio < 0.65:
-                        if file_name_match and feature_sim >= 0.55:
-                            confidence = 0.65 + subset_ratio * 0.20
+                    # V4: 放宽置信度计算条件
+                    if subset_ratio_val >= self.SUBSET_MIN_RATIO:
+                        confidence = 0.62 + subset_ratio_val * 0.22
+                    elif subset_ratio_val >= 0.35 and size_ratio < 0.80:  # 从0.48降到0.35, 从0.75升到0.80
+                        if file_name_match or feature_sim >= 0.50:  # 特征门槛从0.60降到0.50
+                            confidence = 0.58 + subset_ratio_val * 0.24
+                    elif subset_ratio_val >= 0.30 and size_ratio < 0.65:  # 新增更低档
+                        if file_name_match and feature_sim >= 0.45:
+                            confidence = 0.55 + subset_ratio_val * 0.25
             
-            # 规则C: 中等相似度 + 辅助证据（V3优化版）
+            # 规则C: 中等相似度 + 多维辅助证据（V4: 针对类型②③增强）
             if (not is_duplicate and has_enough_content and 
-                  content_similarity >= 0.24 and  # 【优化】从0.28降到0.24
-                  (file_name_match or feature_sim >= 0.58 or simhash_dist <= 4)):  # 【优化】放宽条件
+                  content_similarity >= 0.18 and  # 【V4】从0.24降到0.18，捕获更多"内容相同"
+                  (file_name_match or feature_sim >= 0.50 or simhash_dist <= 5)):  # 全面放宽
                 
-                additional_evidence = 0
+                additional_evidence = 0.0
                 
                 if file_name_match:
-                    additional_evidence += 0.13
-                if feature_sim >= 0.58:  # 【优化】从0.65降到0.58
-                    additional_evidence += 0.10
-                if simhash_dist <= 4:  # 【优化】从3放宽到4
-                    additional_evidence += 0.08
+                    additional_evidence += 0.15  # 从0.13增加到0.15（针对类型③）
+                if feature_sim >= 0.50:  # 从0.58降到0.50
+                    additional_evidence += 0.12  # 从0.10增加到0.12
+                if simhash_dist <= 5:  # 从4放宽到5
+                    additional_evidence += 0.10  # 从0.08增加到0.10
+                if simhash_dist <= 2:  # 极近海明距离额外加分
+                    additional_evidence += 0.06
+                
+                # 【V4新增】大小合理性加分
+                if size1 > self.MIN_FILE_SIZE_FOR_DETECTION and size2 > self.MIN_FILE_SIZE_FOR_DETECTION:
+                    if 0.30 <= size_ratio <= 0.95:
+                        additional_evidence += 0.05  # 两本都是有效文件且大小合理
+                    elif size_ratio >= 0.15:
+                        additional_evidence += 0.03
                 
                 combined_confidence = (
-                    content_similarity * 0.55 + 
+                    content_similarity * 0.52 +   # 内容权重略降
                     feature_sim * 0.18 + 
                     additional_evidence
                 )
                 
-                if combined_confidence >= 0.52:  # 【优化】从0.56降到0.52
+                # 【V4】动态阈值：根据辅助证据数量调整
+                evidence_count = sum([
+                    1 for v in [file_name_match, feature_sim >= 0.50, simhash_dist <= 5] if v
+                ])
+                dynamic_threshold = 0.48 - (evidence_count - 1) * 0.05  # 证据越多阈值越低
+                dynamic_threshold = max(0.42, dynamic_threshold)
+                
+                if combined_confidence >= dynamic_threshold:
                     is_duplicate = True
-                    duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
-                    confidence = min(0.82, combined_confidence + 0.12)
+                    # 根据情况选择重复类型
+                    if content_similarity >= 0.25 or (content_similarity >= 0.20 and file_name_match):
+                        duplicate_types.append(DuplicateType.CONTENT_SIMILAR)
+                    else:
+                        duplicate_types.append(DuplicateType.CONTENT_SUBSET)  # 低相似但有其他证据时标记为子集
+                        
+                    if file_name_match:
+                        duplicate_types.append(DuplicateType.FILE_NAME)
+                    
+                    confidence = min(0.84, combined_confidence + 0.14)  # 提高上限
             
-            # 规则D: 仅文件名相同（【收紧】高门槛防误报）
-            # 只有当文件名完全相同 + 高特征相似度 + 较高内容相似度时才判定
+            # 规则D: 仅文件名相同（V4: 适度放宽，针对类型③）
             if (not is_duplicate and file_name_match and
-                  feature_sim >= 0.88 and  # 【收紧】从0.80提高到0.88
+                  feature_sim >= 0.78 and      # 【V4】从0.88降到0.78
                   has_enough_content and
-                  content_similarity >= 0.30 and  # 【收紧】从0.18提高到0.30
-                  size1 > self.MIN_FILE_SIZE_FOR_DETECTION and  # 【新增】两个文件都要足够大
+                  content_similarity >= 0.22 and # 【V4】从0.30降到0.22
+                  size1 > self.MIN_FILE_SIZE_FOR_DETECTION and  
                   size2 > self.MIN_FILE_SIZE_FOR_DETECTION):
 
                 is_duplicate = True
                 duplicate_types.append(DuplicateType.FILE_NAME)
-                confidence = 0.58 + content_similarity * 0.4 + (feature_sim - 0.88) * 0.5
-                confidence = min(0.76, confidence)
+                
+                # 根据实际相似度动态计算置信度
+                name_factor = 1.0 if file_name_match else 0.8
+                confidence = 0.54 + content_similarity * 0.45 + (feature_sim - 0.78) * 0.6
+                confidence *= name_factor
+                confidence = min(0.78, confidence)  # 上限从0.76提到0.78
             
             # 最终决策
             if not is_duplicate or not duplicate_types:
                 return None
             
+            # 【V4调整】置信度门槛检查
             if confidence < self.HIGH_CONFIDENCE:
-                if confidence >= 0.70:
+                if confidence >= 0.64:  # 从0.70降到0.64，记录更多边界情况
                     logger.debug(f"低置信度候选: {book1.file_name} vs {book2.file_name}, conf={confidence:.2f}")
                 return None
             
@@ -1033,7 +1237,7 @@ class SmartDuplicateDetectorV3:
                 book1=book1,
                 book2=book2,
                 file_name_match=file_name_match,
-                similarity=max(content_similarity, subset_ratio),
+                similarity=max(content_similarity, subset_ratio_val),
                 hash_match=False,
                 duplicate_types=duplicate_types,
                 confidence=min(confidence, 0.99)
@@ -1045,63 +1249,142 @@ class SmartDuplicateDetectorV3:
     
     def _check_subset_relation_enhanced(self, fp1, fp2):
         """
-        V3增强的包含关系检测（针对1-N章场景）
+        V4重写：增强的包含关系检测（支持任意位置子集/中间截断/非连续重叠）
         
-        使用多尺度滑动窗口+关键段落匹配，比Ultra更灵敏但更准确
+        核心改进：
+        1. 指纹切片匹配：将内容切分成多段hash，支持任意位置的子集检测
+        2. 双向检测：不再限制len_small <= len_large，支持"中间截断"场景
+        3. 非连续匹配：即使内容有增删（如A是B的第3,5,7章），也能检测到
+        4. 多层交叉验证：结合大小比例、文件名、特征相似度综合判断
         """
         from src.utils.string_utils import StringUtils
         
         try:
             book1, book2 = fp1.book, fp2.book
             
-            content1 = self._read_book_content(book1.path, 35000)
-            content2 = self._read_book_content(book2.path, 35000)
+            # 【V5性能优化】分阶段读取内容（先快速检查，再完整检测）
+            # 第一阶段：读取较小样本进行快速筛选
+            content1 = self._read_book_content(book1.path, 8000)
+            content2 = self._read_book_content(book2.path, 8000)
             
             if not content1 or not content2:
                 self._last_subset_result = (False, None)
                 return self._last_subset_result
             
-            clean1 = re.sub(r'\s+', '', content1)
-            clean2 = re.sub(r'\s+', '', content2)
-            len1, len2 = len(clean1), len(clean2)
+            # 【V5新增】快速预检：如果归一化后前1000字符完全没有重叠，直接返回
+            quick1 = SmartDuplicateDetectorV3._normalize_text_for_comparison(content1[:1000])
+            quick2 = SmartDuplicateDetectorV3._normalize_text_for_comparison(content2[:1000])
+            quick1_clean = re.sub(r'\s+', '', quick1)
+            quick2_clean = re.sub(r'\s+', '', quick2)
             
-            if len1 == 0 or len2 == 0 or len1 >= len2:
+            if len(quick1_clean) > 50 and len(quick2_clean) > 50:
+                # 检查是否有任何公共子串（长度>=20）
+                has_common = False
+                for start in range(max(0, len(quick1_clean) - 100), len(quick1_clean)):
+                    substr = quick1_clean[start:start+20]
+                    if substr in quick2_clean:
+                        has_common = True
+                        break
+                
+                if not has_common:
+                    # 再用字符集合做最后检查
+                    common_chars = len(set(quick1_clean) & set(quick2_clean))
+                    if common_chars < 30:  # 完全没有共同字符
+                        self._last_subset_result = (False, None)
+                        return self._last_subset_result
+            
+            # 【V6】只有通过快速预检才读取完整内容（动态采样量）
+            size1 = book1.size if hasattr(book1, 'size') and book1.size else 0
+            size2 = book2.size if hasattr(book2, 'size') and book2.size else 0
+            
+            # 根据文件大小动态决定第二阶段采样量
+            max_size = max(size1, size2)
+            if max_size > self.LARGE_FILE_THRESHOLD:
+                deep_sample_size = min(80000, max_size // 10)  # 大文件：最多80KB或文件大小的10%
+            elif max_size > 1024 * 1024:  # >1MB
+                deep_sample_size = 40000   # 中大文件：40KB
+            elif max_size < 2048:  # <2KB的小文件
+                deep_sample_size = min(max_size, 8192)  # 小文件：读取全部但不超过8KB
+            else:
+                deep_sample_size = 25000  # 普通文件：25KB
+            
+            content1 = self._read_book_content(book1.path, deep_sample_size)
+            content2 = self._read_book_content(book2.path, deep_sample_size)
+            
+            if not content1 or not content2:
                 self._last_subset_result = (False, None)
                 return self._last_subset_result
             
+            # 【V5改进】对内容进行归一化处理（消除格式差异，解决类型④）
+            content1_clean = SmartDuplicateDetectorV3._normalize_text_for_comparison(content1)
+            content2_clean = SmartDuplicateDetectorV3._normalize_text_for_comparison(content2)
+            
+            clean1 = re.sub(r'\s+', '', content1_clean)
+            clean2 = re.sub(r'\s+', '', content2_clean)
+            len1, len2 = len(clean1), len(clean2)
+            
+            if len1 == 0 or len2 == 0:
+                self._last_subset_result = (False, None)
+                return self._last_subset_result
+            
+            # 确定大小关系（但不再因此跳过）
             small_content, large_content = (clean1, clean2) if len1 <= len2 else (clean2, clean1)
             small_len, large_len = len(small_content), len(large_content)
             size_ratio = small_len / large_len
             
-            # 快速检查：直接包含
-            if small_content in large_content:
-                self._last_subset_result = (True, 1.0)
-                return self._last_subset_result
+            # ===== 新核心算法：指纹切片匹配 =====
+            fingerprint_overlap = self._fingerprint_slice_match(small_content, large_content)
             
-            # 多尺度滑动窗口
+            # 快速检查：直接包含
+            direct_contains = 1.0 if small_content in large_content else 0.0
+            
+            # 多尺度滑动窗口（保留作为辅助验证）
             window_ratio = self._multi_scale_sliding_window(small_content, large_content)
             
             # 关键段落匹配
             paragraph_ratio = self._key_paragraph_check(small_content, large_content)
             
-            # 综合判定（V3优化版）
+            # ===== 综合判定（V4新权重）=====
+            # 指纹切片是最可靠的指标，给予最高权重
             final_ratio = (
-                window_ratio * 0.50 +
-                paragraph_ratio * 0.30 +
-                (size_ratio * 0.20)  # 大小合理性加分
+                max(direct_contains, fingerprint_overlap) * 0.45 +  # 直接包含或指纹匹配
+                window_ratio * 0.25 +                              # 滑动窗口
+                paragraph_ratio * 0.15 +                            # 关键段落
+                min(size_ratio * 1.5, 0.15)                        # 大小合理性（封顶）
             )
             
-            is_duplicate = final_ratio >= 0.42  # 【优化】从0.48降到0.42，大幅提升包含关系灵敏度
+            # 动态阈值：根据辅助证据调整
+            file_name_match = fp1.normalized_name == fp2.normalized_name
+            feature_sim = self._feature_similarity(fp1, fp2)
+            
+            dynamic_threshold = 0.32  # 基础阈值从0.42大幅降低
+            
+            # 如果有辅助证据，进一步放宽阈值
+            if file_name_match:
+                dynamic_threshold -= 0.05   # 文件名相同 → 降低到0.27
+            if feature_sim >= 0.50:
+                dynamic_threshold -= 0.04   # 特征相似 → 降低到0.28
+            if size_ratio >= 0.40 and size_ratio <= 0.90:
+                dynamic_threshold -= 0.03   # 大小合理 → 再降
+            
+            dynamic_threshold = max(0.22, dynamic_threshold)  # 最低不低于0.22
+            
+            is_duplicate = final_ratio >= dynamic_threshold
             
             if is_duplicate:
-                # 构建ComparisonResult（提升置信度）
-                score = 62 + final_ratio * 25  # 范围: 73-87
-                confidence = min(0.90, 0.58 + final_ratio * 0.32)  # 【优化】提高置信度计算
+                # 置信度计算（V4优化）
+                base_conf = 0.55
+                ratio_bonus = min(0.25, final_ratio * 0.35)
+                name_bonus = 0.06 if file_name_match else 0
+                feature_bonus = min(0.08, feature_sim * 0.12)
+                size_bonus = min(0.05, size_ratio * 0.08) if 0.15 < size_ratio < 0.95 else 0
+                
+                confidence = min(0.92, base_conf + ratio_bonus + name_bonus + feature_bonus + size_bonus)
                 
                 result = BookComparison(
                     book1=book1,
                     book2=book2,
-                    file_name_match=(fp1.normalized_name == fp2.normalized_name),
+                    file_name_match=file_name_match,
                     similarity=final_ratio,
                     hash_match=False,
                     duplicate_types=[DuplicateType.CONTENT_SUBSET],
@@ -1118,6 +1401,73 @@ class SmartDuplicateDetectorV3:
             logger.debug(f"包含关系检查异常: {e}")
             self._last_subset_result = (False, None)
             return self._last_subset_result
+    
+    def _fingerprint_slice_match(self, small_content: str, large_content: str) -> float:
+        """
+        【V4新增】指纹切片匹配算法 - 核心创新
+        
+        原理：
+        将较小内容切成固定大小的片段，每个片段计算hash，
+        然后检查这些hash中有多少能在较大内容中找到。
+        
+        优势：
+        1. 能检测任意位置的子集（不限于开头/结尾）
+        2. 对"中间截断"场景特别有效（如第3-8章 vs 第1-10章）
+        3. 计算效率高，不需要逐字符比较
+        
+        返回值：0.0 - 1.0，表示匹配程度
+        """
+        import hashlib as hl
+        
+        small_len = len(small_content)
+        large_len = len(large_content)
+        
+        if small_len < 200 or large_len < 200:
+            return 1.0 if small_content in large_content else 0.0
+        
+        slice_size = self.FINGERPRINT_SLICE_SIZE
+        step_size = int(slice_size * 0.7)  # 70%重叠，提高覆盖精度
+        
+        # 切分小内容的指纹
+        small_fingerprints = set()
+        
+        for start in range(0, small_len - slice_size + 1, step_size):
+            chunk = small_content[start:start + slice_size]
+            if len(chunk) >= slice_size // 2:  # 至少半个有效切片
+                fp_hash = hl.md5(chunk.encode('utf-8')).hexdigest()[:12]
+                small_fingerprints.add(fp_hash)
+        
+        # 如果小内容太短，不足一个完整切片
+        if not small_fingerprints and small_len >= 100:
+            fp_hash = hl.md5(small_content[:min(small_len, slice_size)].encode('utf-8')).hexdigest()[:12]
+            small_fingerprints.add(fp_hash)
+        
+        if not small_fingerprints:
+            return 0.0
+        
+        # 在大内容中查找这些指纹
+        matched_count = 0
+        total_checked = 0
+        
+        for start in range(0, large_len - slice_size + 1, step_size):
+            chunk = large_content[start:start + slice_size]
+            if len(chunk) >= slice_size // 2:
+                fp_hash = hl.md5(chunk.encode('utf-8')).hexdigest()[:12]
+                total_checked += 1
+                if fp_hash in small_fingerprints:
+                    matched_count += 1
+        
+        if total_checked == 0:
+            return 0.0
+        
+        # 匹配率：匹配到的切片数 / 大内容总切片数
+        raw_match_rate = matched_count / total_checked
+        
+        # 归一化修正：考虑大小比例的影响
+        size_factor = min(large_len / small_len, 10.0) / 10.0  # 0-1范围
+        adjusted_rate = raw_match_rate * (1 + size_factor * 0.3)
+        
+        return min(1.0, adjusted_rate)
     
     def _multi_scale_sliding_window(self, small_content, large_content) -> float:
         """多尺度滑动窗口检测（V3增强）"""
@@ -1172,7 +1522,7 @@ class SmartDuplicateDetectorV3:
     # =========================================================================
     
     def _detect_by_filename(self, fingerprints, existing_groups) -> List[DuplicateGroup]:
-        """Level 3: 检测文件名相同但在之前阶段未被捕获的书籍"""
+        """Level 3: 检测文件名相同但在之前阶段未被捕获的书籍【V5增强版】"""
         groups = []
         
         existing_paths = set()
@@ -1183,6 +1533,8 @@ class SmartDuplicateDetectorV3:
         name_to_fps: Dict[str, List[BookFingerprint]] = {}
         for fp in fingerprints:
             name = fp.normalized_name
+            if not name:  # 【V5】跳过空名称
+                continue
             if name not in name_to_fps:
                 name_to_fps[name] = []
             name_to_fps[name].append(fp)
@@ -1190,45 +1542,125 @@ class SmartDuplicateDetectorV3:
         for name, fps_list in name_to_fps.items():
             remaining = [fp for fp in fps_list if fp.book.path not in existing_paths]
             
-            if len(remaining) > 1:
-                # 【加强版】文件名兜底检测 - 需要更多验证
-                verified = []
-                for fp in remaining:
-                    # 必须有内容采样或文件哈希
-                    if fp.content_sample or fp.file_hash:
-                        # 【新增】文件大小检查
-                        size = fp.book.size if hasattr(fp.book, 'size') and fp.book.size else 0
-                        if size >= self.MIN_FILE_SIZE_FOR_DETECTION:  # 只接受足够大的文件
-                            verified.append(fp)
-
-                # 【新增】进一步验证：检查是否有足够多的有效内容
-                if len(verified) > 1:
-                    # 检查是否至少有一对书籍有合理的内容相似度
-                    has_content_evidence = False
-                    for i in range(len(verified)):
-                        for j in range(i + 1, len(verified)):
-                            if (verified[i].content_sample and verified[j].content_sample and
-                                len(verified[i].content_sample) > 100 and
-                                len(verified[j].content_sample) > 100):
-                                # 简单的字符串包含检查
-                                s1, s2 = verified[i].content_sample[:500], verified[j].content_sample[:500]
-                                if s1 in s2 or s2 in s1 or len(set(s1) & set(s2)) > 200:
-                                    has_content_evidence = True
-                                    break
-                        if has_content_evidence:
+            if len(remaining) < 2:
+                continue
+            
+            # 【V5增强】分两级验证
+            verified = []
+            for fp in remaining:
+                # 基本验证：有内容采样或文件哈希
+                if fp.content_sample or fp.file_hash:
+                    size = fp.book.size if hasattr(fp.book, 'size') and fp.book.size else 0
+                    # 【V6更新】使用统一的常量（256字节），适应0.1KB小文件
+                    if size >= self.MIN_FILE_SIZE_FOR_DETECTION:
+                        verified.append(fp)
+            
+            # 【V6新增】如果标准化后文件名完全相同但都太小，也加入候选列表
+            if len(verified) < 2 and len(remaining) >= 2:
+                # 检查是否有多个极小文件且文件名相同
+                tiny_files = [fp for fp in remaining 
+                             if (not fp.content_sample and not fp.file_hash) or
+                             (fp.book.size or 0) < self.MIN_FILE_SIZE_FOR_DETECTION]
+                if len(tiny_files) >= 2:
+                    # 对极小文件做基本检查：文件名+大小完全匹配
+                    sizes = [fp.book.size if hasattr(fp.book, 'size') and fp.book.size else 0 
+                            for fp in tiny_files]
+                    if len(set(sizes)) == 1:  # 大小完全相同
+                        verified.extend(tiny_files[:2])  # 只取前2个避免误报
+            
+            if len(verified) < 2:
+                continue
+            
+            # 【V5新增】智能内容相似度快速检查（替代原来的严格字符串包含）
+            has_content_evidence = False
+            content_evidence_score = 0.0
+            
+            for i in range(len(verified)):
+                for j in range(i + 1, len(verified)):
+                    if (verified[i].content_sample and verified[j].content_sample and
+                        len(verified[i].content_sample) > 50 and
+                        len(verified[j].content_sample) > 50):
+                        
+                        s1 = verified[i].content_sample[:800]
+                        s2 = verified[j].content_sample[:800]
+                        
+                        # 【V5】使用多种宽松策略判断内容相关
+                        score = 0.0
+                        
+                        # 策略1: 直接包含（权重高）
+                        if s1 in s2 or s2 in s1:
+                            score += 0.8
+                        
+                        # 策略2: 归一化后包含（处理格式差异）
+                        s1_clean = re.sub(r'\s+', '', s1[:300])
+                        s2_clean = re.sub(r'\s+', '', s2[:300])
+                        if s1_clean in s2_clean or s2_clean in s1_clean:
+                            score += 0.6
+                        elif len(s1_clean) > 0 and len(s2_clean) > 0:
+                            # 策略3: 字符集重叠度（放宽从200到100）
+                            common_chars = len(set(s1_clean) & set(s2_clean))
+                            if common_chars > 100:
+                                score += min(0.5, common_chars / 400)
+                            
+                            # 策略4: 使用StringUtils相似度（最准确）
+                            try:
+                                from src.utils.string_utils import StringUtils
+                                quick_sim = StringUtils.book_content_similarity(
+                                    verified[i].content_sample[:2000],
+                                    verified[j].content_sample[:2000],
+                                    sample_size=2000
+                                )
+                                if quick_sim >= 0.15:  # 【V5放宽】从隐含的0.3降到0.15
+                                    score += quick_sim * 0.5
+                            except Exception:
+                                pass
+                        
+                        content_evidence_score = max(content_evidence_score, score)
+                        
+                        if score >= 0.35:  # 【V5放宽】综合证据阈值
+                            has_content_evidence = True
                             break
-
-                    # 只有在有内容证据或书籍数量>=3时才创建组（减少误报）
-                    if has_content_evidence or len(verified) >= 3:
-                        books = [fp.book for fp in verified]
-                        group = DuplicateGroup(
-                            duplicate_type=DuplicateType.FILE_NAME,
-                            books=books,
-                            similarity=0.0,
-                            confidence=0.42 if has_content_evidence else 0.38  # 根据证据调整置信度
-                        )
-                        self._recommend_deletion(group)
-                        groups.append(group)
+                
+                if has_content_evidence:
+                    break
+            
+            # 【V5放宽决策条件】
+            # 条件1: 有内容证据（阈值降低）
+            # 条件2: 书籍数量>=3（保持不变）
+            # 条件3: 【新增】文件名标准化后完全相同 + 大小合理（针对类型①②③）
+            is_size_reasonable = True
+            if len(verified) == 2:
+                sizes = [fp.book.size if hasattr(fp.book, 'size') and fp.book.size else 0 
+                        for fp in verified]
+                if sizes[0] > 0 and sizes[1] > 0:
+                    ratio = min(sizes) / max(sizes)
+                    is_size_reasonable = ratio >= 0.10  # 大小比例不太极端
+            
+            should_create = (
+                has_content_evidence or 
+                len(verified) >= 3 or
+                (len(verified) >= 2 and is_size_reasonable and content_evidence_score >= 0.15)
+            )
+            
+            if should_create:
+                books = [fp.book for fp in verified]
+                
+                # 【V5】根据证据强度动态调整置信度
+                if has_content_evidence:
+                    confidence = 0.52 + min(0.20, content_evidence_score * 0.3)
+                elif len(verified) >= 3:
+                    confidence = 0.45
+                else:
+                    confidence = 0.40  # 仅靠文件名+大小，置信度较低但仍然接受
+                
+                group = DuplicateGroup(
+                    duplicate_type=DuplicateType.FILE_NAME,
+                    books=books,
+                    similarity=content_evidence_score,
+                    confidence=min(confidence, 0.75)
+                )
+                self._recommend_deletion(group)
+                groups.append(group)
         
         return groups
     

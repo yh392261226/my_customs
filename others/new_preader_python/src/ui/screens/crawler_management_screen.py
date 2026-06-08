@@ -1390,19 +1390,116 @@ class CrawlerManagementScreen(Screen[None]):
         self._update_status(get_global_i18n().t('batch_ops.selected_count', count=selected_count))
     
     def _select_all(self) -> None:
-        """全选"""
+        """超全选：弹出对话框让用户选择要全选的页数"""
         try:
-            # 选择当前显示的所有记录
-            for item in self.crawler_history:
-                # 确保类型一致：将item["id"]转换为字符串
-                self.selected_history.add(str(item["id"]))
+            # 计算总页数
+            total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
             
-            # 更新表格显示
-            self._update_history_table()
-            self._update_selection_status()
+            if total_pages <= 1:
+                # 只有1页时直接全选当前页
+                self._select_all_rows()
+                return
+            
+            # 显示页数选择对话框
+            self._show_select_pages_dialog(total_pages)
             
         except Exception as e:
-            logger.error(f"全选失败: {e}")
+            logger.error(f"超全选失败: {e}")
+    
+    def _show_select_pages_dialog(self, total_pages: int) -> None:
+        """显示选择页数的对话框"""
+        from textual import on
+        from textual.app import ComposeResult
+        from textual.containers import Center, Vertical, Horizontal
+        from textual.screen import ModalScreen
+        from textual.widgets import Button, Label, Select
+        from src.themes.theme_manager import ThemeManager
+        
+        class SelectPagesDialog(ModalScreen[Optional[int]]):
+            """选择要全选的页数对话框"""
+            
+            CSS_PATH = "../styles/select_pages_dialog_overrides.tcss"
+            
+            def __init__(self, theme_manager: ThemeManager, total_pages: int, **kwargs) -> None:
+                super().__init__(**kwargs)
+                self.theme_manager = theme_manager
+                self.total_pages = total_pages
+            
+            def compose(self) -> ComposeResult:
+                _t = get_global_i18n().t
+                with Vertical(classes="select-pages-dialog"):
+                    yield Label(_t("crawler.select_pages_title").format(total=self.total_pages), classes="dialog-title")
+                    
+                    # 构建下拉选项：所有页放在第一位，然后是1页、2页...
+                    options = [(_t("crawler.all_pages"), "all")]
+                    options.extend([(_t("crawler.page_n").format(n=i), str(i)) for i in range(1, self.total_pages + 1)])
+                    
+                    # 默认选中"所有页面"
+                    yield Select(
+                        options,
+                        value="all",
+                        id="pages-select",
+                        allow_blank=False
+                    )
+                    
+                    with Horizontal(classes="dialog-buttons"):
+                        yield Button(_t("crawler.confirm"), id="confirm-btn", variant="primary")
+                        yield Button(_t("crawler.cancel"), id="cancel-btn")
+            
+            def on_mount(self) -> None:
+                select = self.query_one("#pages-select", Select)
+                select.focus()
+            
+            @on(Button.Pressed, "#confirm-btn")
+            def on_confirm(self) -> None:
+                select = self.query_one("#pages-select", Select)
+                selected_value = select.value
+                if selected_value == "all":
+                    self.dismiss(-1)  # -1 表示所有页
+                else:
+                    try:
+                        self.dismiss(int(selected_value))
+                    except (ValueError, TypeError):
+                        self.notify(get_global_i18n().t("crawler.invalid_page_number"), severity="error")
+            
+            @on(Button.Pressed, "#cancel-btn")
+            def on_cancel(self) -> None:
+                self.dismiss(None)
+            
+            def on_key(self, event) -> None:
+                if event.key == "escape":
+                    self.on_cancel()
+                    event.stop()
+        
+        def handle_select_result(result: Optional[int]) -> None:
+            _t = get_global_i18n().t
+            if result is None:
+                return  # 用户取消
+            
+            try:
+                if result == -1:
+                    # 选择所有页
+                    for item in self.crawler_history:
+                        self.selected_history.add(str(item["id"]))
+                    self._update_status(_t("crawler.selected_all_pages").format(count=len(self.crawler_history)))
+                else:
+                    # 选择指定页及之前的所有页
+                    page_count = min(result, total_pages)
+                    end_index = min(page_count * self.items_per_page, len(self.crawler_history))
+                    for i in range(end_index):
+                        item = self.crawler_history[i]
+                        self.selected_history.add(str(item["id"]))
+                    self._update_status(_t("crawler.selected_pages").format(pages=page_count, count=end_index))
+                
+                # 更新表格显示
+                self._update_history_table()
+                self._update_selection_status()
+                
+            except Exception as e:
+                logger.error(f"执行分页选择失败: {e}")
+        
+        dialog = SelectPagesDialog(self.theme_manager, total_pages)
+        self.app.push_screen(dialog, handle_select_result)
     
     def _select_all_rows(self) -> None:
         """全选当前页"""
@@ -1924,31 +2021,57 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception as e:
                 logger.error(f"添加合并书籍到书库失败: {e}")
             
-            # 删除源文件和源数据
+            # 【修复】使用事务保护整个合并+删除流程，确保数据一致性
+            deletion_failures = []  # 记录删除失败的项，用于后续重试或警告
+            
             for i, (file_path, record_id) in enumerate(zip(file_paths, record_ids)):
                 try:
-                    # 删除源文件
-                    if os.path.exists(file_path):
-                        send2trash(file_path)
-                        logger.info(f"源文件已移至回收站: {file_path}")
-                    
-                    # 删除书架中的对应书籍
+                    # 第1步：删除书架中的对应书籍（先于文件删除，因为需要path信息）
+                    book_deleted = False
                     books = self.db_manager.get_all_books()
                     for book in books:
                         if hasattr(book, 'path') and book.path == file_path:
-                            if self.db_manager.delete_book(book.path):
-                                logger.info(f"删除书架中的书籍: {book.title}")
+                            # 【修复】不再使用break，确保所有匹配的记录都被删除
+                            if self.db_manager.delete_book(book.path, cleanup_associated=True):
+                                logger.info(f"✓ 删除书架书籍及关联数据: {book.title} ({book.path})")
+                                book_deleted = True
                             else:
-                                logger.warning(f"删除书架书籍失败: {book.title}")
-                            break
+                                logger.warning(f"✗ 删除书架书籍失败(返回False): {book.title}")
+                                deletion_failures.append({"type": "book", "path": file_path, "title": getattr(book, 'title', 'Unknown')})
+                            break  # 同一个path在books表中通常只有一条记录
                     
-                    # 删除爬取历史记录
+                    if not book_deleted and os.path.exists(file_path):
+                        # 书架中没有找到对应书籍（可能之前就未添加），尝试直接用路径删除
+                        self.db_manager.delete_book(file_path, cleanup_associated=True)
+                        logger.info(f"✓ 直接按路径删除书籍数据: {file_path}")
+                    
+                    # 第2步：删除源文件（移至回收站）
+                    if os.path.exists(file_path):
+                        send2trash(file_path)
+                        logger.info(f"✓ 源文件已移至回收站: {file_path}")
+                    else:
+                        logger.warning(f"源文件不存在(可能已删除): {file_path}")
+                    
+                    # 第3步：删除爬取历史记录
                     if record_id:
-                        self.db_manager.delete_crawl_history(record_id)
-                        logger.info(f"删除爬取历史记录: {record_id}")
+                        if self.db_manager.delete_crawl_history(record_id):
+                            logger.info(f"✓ 删除爬取历史记录: ID={record_id}")
+                        else:
+                            logger.warning(f"✗ 删除爬取历史记录失败: ID={record_id}")
+                            deletion_failures.append({"type": "history", "id": record_id})
                         
                 except Exception as e:
-                    logger.error(f"删除源文件或数据失败 {i}: {e}")
+                    logger.error(f"✗ 删除源数据异常 [{i}] file={file_path} id={record_id}: {e}")
+                    import traceback
+                    logger.debug(traceback.format_exc())
+                    deletion_failures.append({"type": "exception", "path": file_path, "error": str(e)})
+            
+            # 【修复】检查是否有删除失败的项目并发出警告
+            if deletion_failures:
+                failure_count = len(deletion_failures)
+                logger.warning(f"⚠ 合并完成但有 {failure_count}/{len(file_paths)} 个源项目清理失败:")
+                for fail in deletion_failures:
+                    logger.warning(f"   - 类型:{fail.get('type')} 详情:{fail}")
             
             # 发送书架刷新消息
             try:

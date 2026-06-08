@@ -42,6 +42,21 @@ class BrowserReaderServerManager:
         
         logger.info("浏览器阅读器服务器管理器已初始化")
     
+    def _check_existing_server(self, host: str, port: int) -> bool:
+        """快速检测端口上是否已有本程序的服务器在运行"""
+        try:
+            import json
+            import urllib.request
+            url = f"http://{host}:{port}/health_check"
+            req = urllib.request.Request(url, method='GET')
+            req.add_header('Connection', 'close')
+            with urllib.request.urlopen(req, timeout=0.3) as response:
+                data = response.read().decode('utf-8')
+                result = json.loads(data)
+                return result.get("status") == "ok"
+        except Exception:
+            return False
+
     def start_server(self) -> bool:
         """启动浏览器阅读器服务器"""
         try:
@@ -49,59 +64,44 @@ class BrowserReaderServerManager:
                 logger.info("浏览器阅读器服务器已在运行")
                 return True
             
-            # 创建虚拟文件路径用于服务器初始化
-            import tempfile
-            import os
-            
-            temp_dir = tempfile.mkdtemp()
-            dummy_file = os.path.join(temp_dir, "browser_reader_server.txt")
-            
-            with open(dummy_file, 'w', encoding='utf-8') as f:
-                f.write("浏览器阅读器服务器占位文件")
-            
-            # 定义进度保存回调
-            def on_progress_save(progress: float, scroll_top: int, scroll_height: int,
-                              current_page: Optional[int] = None, total_pages: Optional[int] = None,
-                              word_count: Optional[int] = None):
-                """保存进度回调"""
-                # 从请求中获取书籍ID（通过HTTP头传递）
-                # 这里暂时不处理，实际保存会在HTTP处理器中进行
-                logger.debug(f"收到进度保存请求: progress={progress:.4f}, scrollTop={scroll_top}")
-            
-            # 定义进度加载回调
-            def on_progress_load() -> Optional[Dict[str, Any]]:
-                """加载进度回调"""
-                # 这里暂时不处理，实际加载会在HTTP处理器中进行
-                return None
-            
-            # 获取配置的固定端口
+            # 获取配置
             from src.config.config_manager import ConfigManager
             config_manager = ConfigManager.get_instance()
             config = config_manager.get_config()
             browser_config = config.get("browser_server", {})
             fixed_port = browser_config.get("port", 54321)
-            
-            # 强制使用固定端口
-            logger.info(f"尝试在固定端口 {fixed_port} 启动浏览器阅读器服务器...")
-            
+            host = browser_config.get("host", "localhost")
+
+            # ★ 快速检测：端口是否已被其他实例占用
+            # 如果是本程序的服务器，直接复用URL，无需等待或重复启动
             import socket
-            
-            # 等待端口释放（如果被占用）
-            max_wait = 10  # 最多等待10秒
-            wait_interval = 0.5  # 每0.5秒检查一次
-            
-            for i in range(int(max_wait / wait_interval)):
-                # 检查端口是否可用
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.1)
-                result = sock.connect_ex(('localhost', fixed_port))
-                sock.close()
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.2)
+            port_in_use = sock.connect_ex((host, fixed_port)) == 0
+            sock.close()
+
+            if port_in_use and self._check_existing_server(host, fixed_port):
+                logger.info(f"检测到端口 {fixed_port} 已有服务在运行，直接复用")
+                self._save_url = f"http://{host}:{fixed_port}/save_progress"
+                self._load_url = f"http://{host}:{fixed_port}/load_progress"
+                self._server = None  # 不持有服务器对象，因为不是我们启动的
+                self._server_thread = None
+                return True
+
+            # 端口未被占用或非本程序服务，等待后启动（缩短等待时间）
+            if port_in_use:
+                max_wait = 2  # 减少到最多等2秒
+                wait_interval = 0.2
                 
-                if result != 0:  # 端口可用
-                    break
-                
-                if i < int(max_wait / wait_interval) - 1:
-                    logger.info(f"端口 {fixed_port} 被占用，等待 {wait_interval} 秒后重试...")
+                for i in range(int(max_wait / wait_interval)):
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(0.1)
+                    result = sock.connect_ex((host, fixed_port))
+                    sock.close()
+                    
+                    if result != 0:  # 端口释放了
+                        break
+                    
                     time.sleep(wait_interval)
             
             # 获取配置中的host设置

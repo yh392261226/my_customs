@@ -268,14 +268,14 @@ class StringUtils:
         return 0.0
     
     @staticmethod
-    def _sample_content(content: str, sample_size: int, parts: int = 3) -> List[str]:
+    def _sample_content(content: str, sample_size: int, parts: int = 7) -> List[str]:
         """
-        对内容进行采样
+        对内容进行采样（V4增强版 - 7段均匀采样）
         
         Args:
             content: 原始内容
             sample_size: 采样总大小
-            parts: 采样部分数
+            parts: 采样部分数（从3提升到7）
             
         Returns:
             List[str]: 采样内容列表
@@ -285,18 +285,37 @@ class StringUtils:
         
         part_size = sample_size // parts
         samples = []
+        total_len = len(content)
         
-        # 采样开头
-        samples.append(content[:part_size])
+        # V4: 7段均匀采样，覆盖开头、1/6、1/4、中间、3/4、5/6、结尾
+        positions = [
+            0,                                    # 开头
+            total_len // 6,                        # 约16.7%处
+            total_len // 4,                        # 25%处
+            (total_len - part_size) // 2,         # 中间
+            (total_len * 3) // 4,                 # 75%处
+            (total_len * 5) // 6,                 # 约83.3%处
+            max(0, total_len - part_size),        # 结尾
+        ]
         
-        # 采样中间
-        middle_start = (len(content) - part_size) // 2
-        samples.append(content[middle_start:middle_start + part_size])
+        for pos in positions:
+            if pos < 0:
+                pos = 0
+            end_pos = min(pos + part_size, total_len)
+            if pos < end_pos:
+                samples.append(content[pos:end_pos])
         
-        # 采样结尾
-        samples.append(content[-part_size:])
+        # 去重（如果某些位置重叠太多）
+        unique_samples = []
+        seen_starts = set()
+        for i, s in enumerate(samples):
+            actual_start = positions[i] if i < len(positions) else 0
+            rounded_start = actual_start // 100 * 100  # 按100字符精度去重
+            if rounded_start not in seen_starts:
+                seen_starts.add(rounded_start)
+                unique_samples.append(s)
         
-        return samples
+        return unique_samples if unique_samples else [content[:part_size]]
     
     @staticmethod
     def is_content_subset(content1: str, content2: str, min_match_ratio: float = 0.70) -> Tuple[bool, float]:

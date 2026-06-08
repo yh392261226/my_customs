@@ -869,12 +869,13 @@ class DatabaseManager:
             logger.error(f"更新书籍信息失败: {e}")
             return False
     
-    def delete_book(self, book_path: str) -> bool:
+    def delete_book(self, book_path: str, cleanup_associated: bool = True) -> bool:
         """
-        删除书籍
+        删除书籍（含关联数据清理）
         
         Args:
             book_path: 书籍路径
+            cleanup_associated: 是否同时清理关联表（user_books等），默认True
             
         Returns:
             bool: 删除是否成功
@@ -882,9 +883,25 @@ class DatabaseManager:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
+                
+                # 【修复】先删除关联表数据
+                if cleanup_associated:
+                    # 删除用户书籍关联
+                    cursor.execute("DELETE FROM user_books WHERE book_path = ?", (book_path,))
+                    # 删除阅读进度（如果有）
+                    try:
+                        cursor.execute("DELETE FROM reading_progress WHERE book_path = ?", (book_path,))
+                    except sqlite3.OperationalError:
+                        pass  # 表可能不存在，忽略
+                
+                # 删除主表数据
                 cursor.execute("DELETE FROM books WHERE path = ?", (book_path,))
                 conn.commit()
-                return cursor.rowcount > 0
+                
+                deleted = cursor.rowcount > 0
+                if deleted:
+                    logger.info(f"已删除书籍及关联数据: {book_path}")
+                return deleted
         except sqlite3.Error as e:
             logger.error(f"删除书籍失败: {e}")
             return False
