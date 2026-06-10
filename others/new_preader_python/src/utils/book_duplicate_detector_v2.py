@@ -192,9 +192,10 @@ class SmartDuplicateDetectorV3:
     @staticmethod
     def _normalize_text_for_comparison(text: str) -> str:
         """
-        文本归一化处理，消除格式差异对相似度计算的影响
+        文本归一化处理，消除格式差异对相似度计算的影响（V7增强版）
         
         处理内容：
+        0. 【V7新增】繁简中文转换（解决简体/繁体同书无法匹配的核心问题）
         1. 统一章节标记格式（## 第X章 / ## 第X页 / ## Chapter X）
         2. 去除HTML标签
         3. 统一中文标点（全角→半角或统一处理）
@@ -204,7 +205,14 @@ class SmartDuplicateDetectorV3:
             return ""
         
         import re as _re
-        
+
+        # 【V7新增】步骤0: 繁体中文 → 简体中文转换
+        try:
+            from src.utils.string_utils import _ChineseConverter
+            text = _ChineseConverter.to_simplified(text)
+        except Exception:
+            pass  # 转换失败时继续使用原文
+
         # 1. 统一章节标记：将各种章节标记统一为空格
         text = _re.sub(r'#{1,6}\s*第\s*\d+\s*[章节回页折卷篇部]\s*', ' ', text)
         text = _re.sub(r'#{1,6}\s*第\s*\d+\s*页\s*', ' ', text)
@@ -229,10 +237,10 @@ class SmartDuplicateDetectorV3:
     SIMHASH_BITS = 64
     SIMHASH_THRESHOLD = 3  # SimHash汉明距离阈值
     
-    # ===== V4优化后的规则参数（大幅提升召回率，增加交叉验证）=====
-    MIN_CONTENT_SIMILARITY = 0.22      # 规则A：从0.30降到0.22
-    HIGH_CONFIDENCE = 0.70             # 最终置信度门槛：从0.74降到0.70
-    SUBSET_MIN_RATIO = 0.35            # 包含关系最低匹配率：从0.50降到0.35
+    # ===== V7优化后的规则参数（平衡精准度与召回率）=====
+    MIN_CONTENT_SIMILARITY = 0.32      # 规则A：从0.22提高到0.32（减少误报）
+    HIGH_CONFIDENCE = 0.76             # 最终置信度门槛：从0.70提高到0.76（与Ultra一致）
+    SUBSET_MIN_RATIO = 0.45            # 包含关系最低匹配率：从0.35提高到0.45（减少误报）
     SUBSET_SIZE_MIN_RATIO = 0.05       # 大小差异下限：从0.08降到0.05
     SUBSET_SIZE_MAX_RATIO = 0.98       # 大小差异上限：从0.95升到0.98
     FINGERPRINT_SLICE_SIZE = 800       # 指纹切片大小（字符）
@@ -660,7 +668,7 @@ class SmartDuplicateDetectorV3:
                         )
 
                     should_include = (
-                        content_sim >= 0.28 or  # 【收紧】从0.25提高到0.28
+                        content_sim >= 0.32 or  # 【V7】从0.28提高到0.32
                         (content_sim == 0 and dist <= 1) or
                         fp1.normalized_name == fp2.normalized_name
                     )
@@ -678,8 +686,8 @@ class SmartDuplicateDetectorV3:
                 )
                 
                 should_create = (
-                    max_sim >= 0.25 or
-                    (max_sim >= 0.18 and has_name_match) or
+                    max_sim >= 0.30 or  # 【V7】从0.25提高到0.30
+                    (max_sim >= 0.22 and has_name_match) or  # 【V7】从0.18到0.22
                     len(candidate_pairs) >= 3
                 )
                 
@@ -813,9 +821,9 @@ class SmartDuplicateDetectorV3:
                     )
                     
                     should_create = (
-                        (max_sim >= 0.22) or
-                        (max_sim >= 0.15 and has_name_match) or
-                        (verified_pairs >= max(1, total_possible_pairs * 0.25))
+                        (max_sim >= 0.28) or  # 【V7】从0.22提高到0.28
+                        (max_sim >= 0.20 and has_name_match) or  # 【V7】从0.15到0.20
+                        (verified_pairs >= max(1, total_possible_pairs * 0.30))  # 【V7】从0.25到0.30
                     )
                     
                     if should_create:
@@ -1190,8 +1198,8 @@ class SmartDuplicateDetectorV3:
                 evidence_count = sum([
                     1 for v in [file_name_match, feature_sim >= 0.50, simhash_dist <= 5] if v
                 ])
-                dynamic_threshold = 0.48 - (evidence_count - 1) * 0.05  # 证据越多阈值越低
-                dynamic_threshold = max(0.42, dynamic_threshold)
+                dynamic_threshold = 0.52 - (evidence_count - 1) * 0.04  # 【V7】从0.48提高到0.52，最低从0.42升到0.48
+                dynamic_threshold = max(0.48, dynamic_threshold)
                 
                 if combined_confidence >= dynamic_threshold:
                     is_duplicate = True
@@ -1206,11 +1214,11 @@ class SmartDuplicateDetectorV3:
                     
                     confidence = min(0.84, combined_confidence + 0.14)  # 提高上限
             
-            # 规则D: 仅文件名相同（V4: 适度放宽，针对类型③）
+            # 规则D: 仅文件名相同（【V7收紧】减少误报）
             if (not is_duplicate and file_name_match and
-                  feature_sim >= 0.78 and      # 【V4】从0.88降到0.78
+                  feature_sim >= 0.85 and      # 【V7】从0.78提高到0.85
                   has_enough_content and
-                  content_similarity >= 0.22 and # 【V4】从0.30降到0.22
+                  content_similarity >= 0.30 and # 【V7】从0.22提高到0.30
                   size1 > self.MIN_FILE_SIZE_FOR_DETECTION and  
                   size2 > self.MIN_FILE_SIZE_FOR_DETECTION):
 
@@ -1617,7 +1625,7 @@ class SmartDuplicateDetectorV3:
                         
                         content_evidence_score = max(content_evidence_score, score)
                         
-                        if score >= 0.35:  # 【V5放宽】综合证据阈值
+                        if score >= 0.50:  # 【V7收紧】从0.35提高到0.50（减少文件名误报）
                             has_content_evidence = True
                             break
                 
@@ -1639,7 +1647,7 @@ class SmartDuplicateDetectorV3:
             should_create = (
                 has_content_evidence or 
                 len(verified) >= 3 or
-                (len(verified) >= 2 and is_size_reasonable and content_evidence_score >= 0.15)
+                (len(verified) >= 2 and is_size_reasonable and content_evidence_score >= 0.30)  # 【V7】从0.15提高到0.30
             )
             
             if should_create:
@@ -1726,6 +1734,18 @@ class SmartDuplicateDetectorV3:
     
     @staticmethod
     def _compute_simhash(text, bits=64):
+        """计算文本的SimHash指纹（V7增强版 - 支持繁简中文统一）"""
+        # 【V7新增】繁简转换预处理
+        if text:
+            try:
+                from src.utils.string_utils import _ChineseConverter
+                text = _ChineseConverter.to_simplified(text)
+            except Exception:
+                pass
+            # 基本清理：去空白转小写
+            import re as _re
+            text = _re.sub(r'\s+', '', text).lower()
+        
         words = re.findall(r'[\u4e00-\u9fa5]{2,}|[a-zA-Z]{3,}', text)
         if not words:
             return 0

@@ -2021,29 +2021,51 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception as e:
                 logger.error(f"添加合并书籍到书库失败: {e}")
             
-            # 【修复】使用事务保护整个合并+删除流程，确保数据一致性
+            # 【修复v2】使用数据库事务 + 多策略路径匹配确保彻底删除
+            import unicodedata
+            
+            def _normalize_path(p: str) -> str:
+                """统一路径：Unicode标准化 + 去除尾部空格"""
+                if not p:
+                    return ""
+                return unicodedata.normalize('NFC', p.strip())
+            
+            def _paths_match(a: str, b: str) -> bool:
+                """宽松路径匹配（处理Unicode差异）"""
+                return _normalize_path(a) == _normalize_path(b) or a == b or os.path.realpath(a) == os.path.realpath(b)
+            
             deletion_failures = []  # 记录删除失败的项，用于后续重试或警告
             
             for i, (file_path, record_id) in enumerate(zip(file_paths, record_ids)):
                 try:
-                    # 第1步：删除书架中的对应书籍（先于文件删除，因为需要path信息）
-                    book_deleted = False
+                    # 第1步：删除书架中的对应书籍（多策略匹配）
+                    book_deleted_count = 0
                     books = self.db_manager.get_all_books()
-                    for book in books:
-                        if hasattr(book, 'path') and book.path == file_path:
-                            # 【修复】不再使用break，确保所有匹配的记录都被删除
-                            if self.db_manager.delete_book(book.path, cleanup_associated=True):
-                                logger.info(f"✓ 删除书架书籍及关联数据: {book.title} ({book.path})")
-                                book_deleted = True
-                            else:
-                                logger.warning(f"✗ 删除书架书籍失败(返回False): {book.title}")
-                                deletion_failures.append({"type": "book", "path": file_path, "title": getattr(book, 'title', 'Unknown')})
-                            break  # 同一个path在books表中通常只有一条记录
+                    matched_books = []
                     
-                    if not book_deleted and os.path.exists(file_path):
-                        # 书架中没有找到对应书籍（可能之前就未添加），尝试直接用路径删除
-                        self.db_manager.delete_book(file_path, cleanup_associated=True)
-                        logger.info(f"✓ 直接按路径删除书籍数据: {file_path}")
+                    for book in books:
+                        if hasattr(book, 'path'):
+                            bp = book.path
+                            if _paths_match(bp, file_path):
+                                matched_books.append(bp)
+                    
+                    # 【修复】不再break，删除所有匹配记录
+                    if matched_books:
+                        for matched_path in matched_books:
+                            if self.db_manager.delete_book(matched_path, cleanup_associated=True):
+                                book_deleted_count += 1
+                            else:
+                                deletion_failures.append({"type": "book", "path": matched_path, "title": file_path})
+                        
+                        logger.info(f"✓ 删除书架书籍及关联数据: {book_deleted_count}条记录 (源文件: {os.path.basename(file_path)})")
+                    else:
+                        # 精确匹配未命中，尝试直接按原始路径删除
+                        if self.db_manager.delete_book(file_path, cleanup_associated=True):
+                            book_deleted_count = 1
+                            logger.info(f"✓ 直接按路径删除书籍数据: {os.path.basename(file_path)}")
+                        else:
+                            logger.warning(f"⚠ 未在书架中找到对应书籍(可能未添加过): {os.path.basename(file_path)}")
+                            # 即使没找到书架记录也不算失败，继续清理文件和历史记录
                     
                     # 第2步：删除源文件（移至回收站）
                     if os.path.exists(file_path):
@@ -2072,6 +2094,21 @@ class CrawlerManagementScreen(Screen[None]):
                 logger.warning(f"⚠ 合并完成但有 {failure_count}/{len(file_paths)} 个源项目清理失败:")
                 for fail in deletion_failures:
                     logger.warning(f"   - 类型:{fail.get('type')} 详情:{fail}")
+            
+            # 【最终安全网】检查合并源文件是否仍有残留书籍记录（处理Unicode路径差异等边界情况）
+            try:
+                all_books_after = self.db_manager.get_all_books()
+                orphaned_found = False
+                for source_path in file_paths:
+                    for book in all_books_after:
+                        if hasattr(book, 'path') and _paths_match(book.path, source_path):
+                            logger.warning(f"⚠ 发现合并后残留书籍记录，执行补救删除: {book.title} ({book.path})")
+                            self.db_manager.delete_book(book.path, cleanup_associated=True)
+                            orphaned_found = True
+                if orphaned_found:
+                    logger.info("✓ 合并残留记录清理完成")
+            except Exception as cleanup_err:
+                logger.debug(f"最终清理跳过(非致命): {cleanup_err}")
             
             # 发送书架刷新消息
             try:

@@ -504,18 +504,30 @@ class UltraBookDuplicateDetector:
     @staticmethod
     def _compute_simhash(text: str, bits: int = SIMHASH_BITS) -> int:
         """
-        计算文本的SimHash指纹
-        
+        计算文本的SimHash指纹（V5增强版 - 支持繁简中文统一）
+
         SimHash是一种局部敏感哈希(LSH)，相似文档的SimHash海明距离很小。
         时间复杂度：O(n)，n为文本长度
-        
+
+        【V5增强】：
+        - 在分词前进行繁简中文转换
+        - 统一全角/半角字符
+        - 确保简体/繁体同本书能产生相似的指纹
+
         Args:
             text: 输入文本
             bits: 哈希位数（默认64位）
-            
+
         Returns:
             int: 64位整数指纹
         """
+        # 【V5增强】预处理：繁简转换 + 基本清理
+        if text:
+            from src.utils.string_utils import _ChineseConverter, StringUtils
+            text = _ChineseConverter.to_simplified(text)
+            # 轻量级清理：只去空白和转小写，保留标点用于边界识别
+            text = re.sub(r'\s+', '', text).lower()
+
         # 分词（支持中英文）
         words = re.findall(r'[\u4e00-\u9fa5]{2,}|[a-zA-Z]{3,}', text)
         

@@ -115,7 +115,7 @@ export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
 export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
 export LDFLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib/unwind -lunwind"
 export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
-
+export PATH="/opt/homebrew/Cellar/john-jumbo/1.9.0_1/share/john:$PATH"
 
 
 alias wxmd="md-cli port=8899 > /dev/null &; open http://127.0.0.1:8899/md/"
