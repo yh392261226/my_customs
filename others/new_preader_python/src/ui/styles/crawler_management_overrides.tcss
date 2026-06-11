@@ -46,7 +46,7 @@ Footer {
 
 #crawler-buttons Button {
     margin: 0 1;
-    min-width: 12;
+    min-width: 10;
     width: auto;
 }
 

@@ -507,24 +507,45 @@ class SmartDuplicateDetectorV3:
                 logger.error(f"计算指纹失败: {book.path}, {e}")
                 return None
         
+        # 【V7修复】指纹计算阶段：逐个submit避免shutdown后崩溃
         with ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
             self.register_executor(executor)
             
-            futures = [executor.submit(compute_one, book) for book in books]
+            futures = []
+            for book in books:
+                if self.is_cancelled():
+                    break
+                try:
+                    future = executor.submit(compute_one, book)
+                    futures.append(future)
+                except RuntimeError as re_err:
+                    if "cannot schedule new futures after shutdown" in str(re_err):
+                        logger.debug("指纹计算: Executor已关闭，停止提交")
+                        break
+                    raise
+            
+            if not futures or self.is_cancelled():
+                # 【V7修复关键】取消时必须先drain所有pending future，避免executor shutdown时
+                # 打印 "Exception in thread Thread-X" 错误（Python默认线程异常处理）
+                for f in futures:
+                    try:
+                        f.result(timeout=1)
+                        r = f.result()
+                        if r:
+                            fingerprints.append(r)
+                    except Exception:
+                        pass
+                return fingerprints
             
             for future in as_completed(futures):
                 if self.is_cancelled():
                     break
-                result = future.result(timeout=3)  # 【修复】从10秒减少到3秒
-                if result:
-                    fingerprints.append(result)
-            
-            # 【关键修复】确保线程池在取消时立即关闭
-            try:
-                executor.shutdown(wait=False, cancel_futures=True)
-            except TypeError:
-                executor.shutdown(wait=False)
-            self.unregister_executor(executor)
+                try:
+                    result = future.result(timeout=3)
+                    if result:
+                        fingerprints.append(result)
+                except Exception:
+                    pass
         
         return fingerprints
     
@@ -921,6 +942,10 @@ class SmartDuplicateDetectorV3:
         all_similar_pairs: Set[Tuple[str, str]] = set()
         
         for size_group_key, group_fps in size_groups.items():
+            # 【V7修复】外层循环：取消时立即退出
+            if self.is_cancelled():
+                break
+                
             if len(group_fps) < 2:
                 continue
             
@@ -948,30 +973,55 @@ class SmartDuplicateDetectorV3:
                     logger.debug(f"比较失败: {fp1.book.path} vs {fp2.book.path}, {e}")
                 return None
             
+            # 【V7修复】使用显式循环替代列表推导式，避免 shutdown 后继续 submit 导致崩溃
             with DaemonThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
                 self.register_executor(executor)
                 
-                futures = [executor.submit(check_pair_with_cancel, pair) for pair in pairs_to_check]
+                futures = []
+                # 逐个提交任务，每次检查取消标志
+                submit_error = False
+                for pair in pairs_to_check:
+                    if self.is_cancelled():
+                        break
+                    try:
+                        future = executor.submit(check_pair_with_cancel, pair)
+                        futures.append(future)
+                    except RuntimeError as re_err:
+                        if "cannot schedule new futures after shutdown" in str(re_err):
+                            logger.debug("Executor已关闭，停止提交新任务")
+                            submit_error = True
+                            break
+                        raise
                 
-                # 【修复】减少超时时间并增强取消响应
+                if submit_error or not futures:
+                    continue
+                
                 for future in as_completed(futures):
                     if self.is_cancelled():
-                        # 【关键】立即中断循环，不等待剩余future
+                        # 【关键】中断循环，但先drain剩余future避免异常
                         break
                     
                     try:
-                        result = future.result(timeout=1)  # 从5秒减少到1秒
+                        result = future.result(timeout=1)
                         if result:
                             pair_key = tuple(sorted([result.book1.path, result.book2.path]))
                             all_similar_pairs.add(pair_key)
                     except Exception:
                         pass
                 
-                # 【关键修复】确保线程池立即关闭
+                # 【V7修复】取消时drain所有未完成的future，避免 "Exception in thread" 崩溃
+                if self.is_cancelled():
+                    for f in futures:
+                        try:
+                            f.cancel()
+                            f.result(timeout=0.5)
+                        except Exception:
+                            pass
+                
+                # 确保线程池关闭
                 try:
                     executor.shutdown(wait=False, cancel_futures=True)
                 except TypeError:
-                    # Python < 3.9 不支持 cancel_futures 参数
                     executor.shutdown(wait=False)
                 self.unregister_executor(executor)
         
