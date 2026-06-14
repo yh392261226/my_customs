@@ -526,11 +526,33 @@ class CrawlerManagementScreen(Screen[None]):
         self._show_jump_dialog()
 
     def action_select_all_rows(self) -> None:
-        """a键 - 切换全选/取消全选（无选中项时全选，有选中项时取消全选）"""
-        if self.selected_history:
-            self._deselect_all_rows()
+        """a键 - 切换全选/取消全选（仅判断当前页的选中状态）"""
+        # 计算当前页的起始索引和结束索引
+        start_index = (self.current_page - 1) * self.items_per_page
+        end_index = min(start_index + self.items_per_page, len(self.crawler_history))
+        
+        # 只检查当前页是否有选中项
+        current_page_has_selection = False
+        for i in range(start_index, end_index):
+            item = self.crawler_history[i]
+            if str(item["id"]) in self.selected_history:
+                current_page_has_selection = True
+                break
+        
+        if current_page_has_selection:
+            # 当前页有选中项 -> 取消全选当前页
+            for i in range(start_index, end_index):
+                item = self.crawler_history[i]
+                self.selected_history.discard(str(item["id"]))
         else:
-            self._select_all_rows()
+            # 当前页无选中项 -> 全选当前页
+            for i in range(start_index, end_index):
+                item = self.crawler_history[i]
+                self.selected_history.add(str(item["id"]))
+        
+        # 更新表格显示
+        self._update_history_table()
+        self._update_selection_status()
 
     def action_select_all_pages(self) -> None:
         """A键 - 超全选（可选择多页）"""
