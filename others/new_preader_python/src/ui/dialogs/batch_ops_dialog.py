@@ -437,11 +437,21 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
         ("n", "next_page", get_global_i18n().t('batch_ops.next_page')),
         ("p", "prev_page", get_global_i18n().t('batch_ops.prev_page')),
-        ("d", "find_duplicates", get_global_i18n().t('batch_ops.find_duplicates')),
+        # ("d", "find_duplicates", get_global_i18n().t('batch_ops.find_duplicates')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("l", "view_logs", get_global_i18n().t('crawler.view_logs')),
         ("escape", "cancel", get_global_i18n().t('batch_ops.cancel')),
+        ("a", "toggle_select_all", get_global_i18n().t('batch_ops.shortcut_a')),
+        ("C", "merge_selected", get_global_i18n().t('batch_ops.shortcut_C')),
+        ("D", "compare_read", get_global_i18n().t('batch_ops.shortcut_D')),
+        ("u", "deduplicate", get_global_i18n().t('batch_ops.shortcut_u')),
+        ("w", "set_author", get_global_i18n().t('batch_ops.shortcut_w')),
+        ("t", "set_tags", get_global_i18n().t('batch_ops.shortcut_t')),
+        ("T", "clear_tags", get_global_i18n().t('batch_ops.shortcut_T')),
+        ("c", "convert_traditional", get_global_i18n().t('batch_ops.shortcut_c')),
+        ("r", "delete_selected", get_global_i18n().t('batch_ops.shortcut_r')),
+        ("R", "remove_missing", get_global_i18n().t('batch_ops.shortcut_R')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -826,12 +836,12 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             # 3. 立即关闭对话框（不等待任何线程）
             self.dismiss({"refresh": False, "cancelled": True})
             event.stop()
-        elif event.key == "d":
-            # D键执行批量去重
-            # 使用call_later异步执行,避免在同步函数中直接await
-            import asyncio
-            asyncio.create_task(self._find_duplicate_books())
-            event.stop()
+        # elif event.key == "d":
+        #     # D键执行批量去重
+        #     # 使用call_later异步执行,避免在同步函数中直接await
+        #     import asyncio
+        #     asyncio.create_task(self._find_duplicate_books())
+        #     event.stop()
         elif event.key == "n":
             # N键下一页
             if self._current_page < self._total_pages:
@@ -1457,6 +1467,57 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
     def action_view_logs(self) -> None:
         """打开日志查看器弹窗"""
         self._open_log_viewer()
+
+    def action_toggle_select_all(self) -> None:
+        """a键 - 切换全选/取消全选（无选中项时全选，有选中项时取消全选）"""
+        if self.selected_books:
+            self._deselect_all_books()
+        else:
+            self._select_all_books()
+
+    def action_merge_selected(self) -> None:
+        """C键 - 合并选中的书籍"""
+        import asyncio
+        asyncio.create_task(self._merge_selected_books())
+
+    def action_compare_read(self) -> None:
+        """D键 - 对比阅读选中的书籍"""
+        import asyncio
+        asyncio.create_task(self._compare_read_selected_books())
+
+    def action_deduplicate(self) -> None:
+        """u键 - 批量去重"""
+        import asyncio
+        asyncio.create_task(self._find_duplicate_books())
+
+    def action_set_author(self) -> None:
+        """w键 - 设置作者"""
+        import asyncio
+        asyncio.create_task(self._set_author_for_selected_books())
+
+    def action_set_tags(self) -> None:
+        """t键 - 设置标签"""
+        import asyncio
+        asyncio.create_task(self._set_tags_for_selected_books())
+
+    def action_clear_tags(self) -> None:
+        """T键 - 清空标签"""
+        import asyncio
+        asyncio.create_task(self._clear_tags_for_selected_books())
+
+    def action_convert_traditional(self) -> None:
+        """c键 - 繁体转换简体"""
+        import asyncio
+        asyncio.create_task(self._convert_traditional_to_simplified())
+
+    def action_delete_selected(self) -> None:
+        """r键 - 删除选中的书籍"""
+        self._delete_selected_books()
+
+    def action_remove_missing(self) -> None:
+        """R键 - 清理无效/不存在的书籍"""
+        import asyncio
+        asyncio.create_task(self._remove_missing_books())
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """

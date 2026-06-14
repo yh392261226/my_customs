@@ -354,7 +354,17 @@
     "convert_failed": "Convert Traditional to Simplified failed: {error}",
     "convert_confirm": "Confirm Traditional to Simplified Conversion",
     "convert_confirm_message": "Are you sure you want to convert the selected books from Traditional to Simplified? This operation will modify book content, please backup first.",
-    "find_duplicates": "Batch Deduplication"
+    "find_duplicates": "Batch Deduplication",
+    "shortcut_a": "Toggle Select All",
+    "shortcut_C": "Merge Selected",
+    "shortcut_D": "Compare Read",
+    "shortcut_u": "Batch Deduplication",
+    "shortcut_w": "Set Author",
+    "shortcut_t": "Set Tags",
+    "shortcut_T": "Clear Tags",
+    "shortcut_c": "Traditional to Simplified",
+    "shortcut_r": "Delete Selected",
+    "shortcut_R": "Remove Invalid"
   },
   "search": {
     "title": "Search",
@@ -1234,6 +1244,7 @@
     "shortcut_A": "Select All Pages",
     "shortcut_C": "Merge Selected",
     "shortcut_d": "Clear Invalid Records",
+    "shortcut_R": "Clear Invalid Records",
     "confirm_delete_message": "This action cannot be undone, are you sure to continue?",
     "book_added_to_shelf": "Automatically added to bookshelf",
     "select_pages_title": "Select pages to select all (Total {total} pages)",

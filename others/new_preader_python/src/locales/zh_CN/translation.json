@@ -354,7 +354,17 @@
     "compare_read_title": "对比阅读 - {count} 个文件",
     "compare_read_min_2": "请至少选择 2 本书进行对比阅读",
     "compare_read_max_4": "最多支持同时对比阅读 4 本书",
-    "loading_content": "正在加载内容..."
+    "loading_content": "正在加载内容...",
+    "shortcut_a": "切换全选",
+    "shortcut_C": "合并选中",
+    "shortcut_D": "对比阅读",
+    "shortcut_u": "批量去重",
+    "shortcut_w": "设置作者",
+    "shortcut_t": "设置标签",
+    "shortcut_T": "清空标签",
+    "shortcut_c": "繁体转简体",
+    "shortcut_r": "删除选中",
+    "shortcut_R": "清理无效"
   },
   "search": {
     "title": "搜索",
@@ -1320,6 +1330,7 @@
     "shortcut_A": "超全选",
     "shortcut_C": "合并选中项",
     "shortcut_d": "清理无效记录",
+    "shortcut_R": "清理无效记录",
     "confirm_delete_message": "此操作不可撤销，确定要继续吗？",
     "book_added_to_shelf": "已自动加入书库",
     "select_pages_title": "请选择要全选的页数（共 {total} 页）",

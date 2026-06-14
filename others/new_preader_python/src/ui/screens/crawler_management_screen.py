@@ -412,6 +412,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("A", "select_all_pages", get_global_i18n().t('crawler.shortcut_A')),
         ("C", "merge_selected", get_global_i18n().t('crawler.shortcut_C')),
         ("d", "clear_invalid", get_global_i18n().t('crawler.shortcut_d')),
+        ("R", "clear_invalid", get_global_i18n().t('crawler.shortcut_R')),
     ]
 
     def action_open_browser(self) -> None:
