@@ -1334,6 +1334,8 @@
     "shortcut_C": "合并选中项",
     "shortcut_d": "清理无效记录",
     "shortcut_R": "清理无效记录",
+    "shortcut_Y": "复制ID",
+    "shortcut_y": "复制标题",
     "confirm_delete_message": "此操作不可撤销，确定要继续吗？",
     "book_added_to_shelf": "已自动加入书库",
     "select_pages_title": "请选择要全选的页数（共 {total} 页）",

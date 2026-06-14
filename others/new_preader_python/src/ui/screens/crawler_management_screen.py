@@ -413,6 +413,8 @@ class CrawlerManagementScreen(Screen[None]):
         ("C", "merge_selected", get_global_i18n().t('crawler.shortcut_C')),
         ("d", "clear_invalid", get_global_i18n().t('crawler.shortcut_d')),
         ("R", "clear_invalid", get_global_i18n().t('crawler.shortcut_R')),
+        ("Y", "copy_ids", get_global_i18n().t('crawler.shortcut_Y')),
+        ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
     ]
 
     def action_open_browser(self) -> None:
@@ -565,6 +567,14 @@ class CrawlerManagementScreen(Screen[None]):
     def action_clear_invalid(self) -> None:
         """d键 - 清理无效记录"""
         self._clear_invalid_records()
+
+    def action_copy_ids(self) -> None:
+        """Y键 - 复制选中项的ID"""
+        self._copy_novel_ids()
+
+    def action_copy_title(self) -> None:
+        # Y键复制当前焦点书籍标题
+        self._copy_focused_novel_title()
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""
@@ -3907,11 +3917,11 @@ class CrawlerManagementScreen(Screen[None]):
             # ESC键返回 - 爬取继续在后台运行
             self.app.pop_screen()
             event.stop()
-        elif event.key == "y":
-            # Y键复制当前焦点书籍标题
-            self._copy_focused_novel_title()
-            event.prevent_default()
-            event.stop()
+        # elif event.key == "y":
+        #     # Y键复制当前焦点书籍标题
+        #     self._copy_focused_novel_title()
+        #     event.prevent_default()
+        #     event.stop()
         
         # 数字键功能 - 根据是否有选中项执行不同操作
         if event.key in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]:

@@ -1248,6 +1248,8 @@
     "shortcut_C": "Merge Selected",
     "shortcut_d": "Clear Invalid Records",
     "shortcut_R": "Clear Invalid Records",
+    "shortcut_Y": "Copy IDs",
+    "shortcut_y": "Copy Title",
     "confirm_delete_message": "This action cannot be undone, are you sure to continue?",
     "book_added_to_shelf": "Automatically added to bookshelf",
     "select_pages_title": "Select pages to select all (Total {total} pages)",
