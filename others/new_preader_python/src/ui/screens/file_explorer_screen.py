@@ -45,6 +45,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         ("escape", "back", get_global_i18n().t('common.back')),
         ("enter", "select_button", get_global_i18n().t('common.select')),
         ("s", "select_button", get_global_i18n().t('common.select')),
+        ("u", "toggle_diff_mode", get_global_i18n().t('file_explorer.shortcut_u')),
     ]
     
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -858,6 +859,20 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         
         # 选择操作
         self._handle_selection()
+
+    def action_toggle_diff_mode(self) -> None:
+        """u键 - 切换差异模式（仅在文件选择模式下可用）"""
+        # 差异模式仅在文件选择模式下显示
+        if self.selection_mode != "file":
+            return
+        
+        try:
+            diff_switch = self.query_one("#file-explorer-diff-mode-switch", Switch)
+            # 切换开关状态
+            diff_switch.value = not diff_switch.value
+            # 触发开关改变事件（会自动触发 on_diff_mode_switch_changed）
+        except Exception as e:
+            logger.error(f"切换差异模式失败: {e}")
 
     def _check_button_permissions(self) -> None:
         """检查按钮权限并禁用/启用按钮"""

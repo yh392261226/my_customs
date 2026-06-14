@@ -1568,7 +1568,8 @@
     "single_mode": "单选模式",
     "multype_mode": "多选模式",
     "right": "补全路径",
-    "updown": "选择补全建议"
+    "updown": "选择补全建议",
+    "shortcut_u": "差异模式"
   },
   "lock_screen": {
     "placeholder": "请输入密码以继续",
