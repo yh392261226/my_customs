@@ -111,15 +111,16 @@ class BaseParser:
     
     def _get_url_content(self, url: str, max_retries: int = 3) -> Optional[str]:
         """
-        获取URL内容，支持五层反爬虫绕过策略 + 网络检测
+        获取URL内容，支持六层反爬虫绕过策略 + 网络检测
 
         策略层级：
         1. 普通请求 (requests)
         2. Cloudscraper 绕过
-        3. Selenium 浏览器模拟
-        4. Playwright 高级反爬虫处理
-        5. Scrapling (最后兜底方案，强大的反爬虫能力)
-        6. 失败时检测网络并等待恢复
+        3. Playwright 高级反爬虫处理
+        4. CloakBrowser 浏览器指纹伪装（比 Selenium 更高级）
+        5. Selenium 浏览器模拟
+        6. Scrapling (最后兜底方案，强大的反爬虫能力)
+        7. 失败时检测网络并等待恢复
 
         Args:
             url: 目标URL
@@ -193,32 +194,44 @@ class BaseParser:
                             return content
                     except Exception as playwright_error:
                         logger.warning(f"playwright也失败: {playwright_error}")
-                elif attempt == 2:  # 第三次失败：尝试 selenium
+                elif attempt == 2:  # 第三次失败：尝试 CloakBrowser -> Selenium -> Scrapling
+                    # 首先尝试 CloakBrowser（高级浏览器指纹伪装）
+                    logger.warning(f"尝试使用 CloakBrowser 浏览器指纹伪装: {url}")
+                    try:
+                        content = self._get_url_content_with_cloakbrowser(url, proxies)
+                        if content:
+                            logger.info(f"CloakBrowser 成功获取内容: {url}")
+                            return content
+                    except Exception as cloakbrowser_error:
+                        logger.warning(f"CloakBrowser也失败: {cloakbrowser_error}")
+
+                    # CloakBrowser 失败后尝试 Selenium
                     try:
                         content = self._selenium_request(url, proxies)
                         if content:
                             return content
                     except Exception as selenium_error:
                         logger.warning(f"selenium也失败: {selenium_error}")
-                        # 尝试 Scrapling（作为最后的兜底方案）
-                        logger.warning(f"尝试使用 Scrapling 兜底方案: {url}")
+
+                    # 尝试 Scrapling（作为最后的兜底方案）
+                    logger.warning(f"尝试使用 Scrapling 兜底方案: {url}")
+                    try:
+                        content = self._get_url_content_with_scrapling(url, proxies)
+                        if content:
+                            logger.info(f"Scrapling 成功获取内容: {url}")
+                            return content
+                    except Exception as scrapling_error:
+                        logger.warning(f"Scrapling也失败: {scrapling_error}")
+                        # 最后一次尝试，使用普通请求
+                        logger.warning(f"尝试普通请求: {url}")
                         try:
-                            content = self._get_url_content_with_scrapling(url, proxies)
-                            if content:
-                                logger.info(f"Scrapling 成功获取内容: {url}")
-                                return content
-                        except Exception as scrapling_error:
-                            logger.warning(f"Scrapling也失败: {scrapling_error}")
-                            # 最后一次尝试，使用普通请求
-                            logger.warning(f"尝试普通请求: {url}")
-                            try:
-                                response = self.session.get(url, proxies=proxies, timeout=(20, 40))
-                                if response.status_code == 200:
-                                    encoding = getattr(self, 'encoding', 'utf-8')
-                                    response.encoding = encoding
-                                    return response.text
-                            except Exception as final_error:
-                                logger.warning(f"最终请求失败: {final_error}")
+                            response = self.session.get(url, proxies=proxies, timeout=(20, 40))
+                            if response.status_code == 200:
+                                encoding = getattr(self, 'encoding', 'utf-8')
+                                response.encoding = encoding
+                                return response.text
+                        except Exception as final_error:
+                            logger.warning(f"最终请求失败: {final_error}")
 
             if attempt < max_retries - 1:
                 time.sleep(2 ** attempt)  # 指数退避
@@ -278,6 +291,260 @@ class BaseParser:
             logger.warning(f"Playwright 获取页面内容失败: {url}, 错误: {e}")
             return None
     
+    def _get_url_content_with_cloakbrowser(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
+        """
+        使用 CloakBrowser 浏览器指纹伪装获取页面内容
+        在 Playwright 失败后尝试使用，比 Selenium 更高级的浏览器伪装
+
+        Args:
+            url: 目标URL
+            proxies: 代理配置
+
+        Returns:
+            页面内容或None
+        """
+        try:
+            # 尝试导入必要的库
+            try:
+                from selenium import webdriver
+                from selenium.webdriver.chrome.options import Options
+                from selenium.webdriver.chrome.service import Service
+                from webdriver_manager.chrome import ChromeDriverManager
+                from selenium.webdriver.common.by import By
+                from selenium.webdriver.support.ui import WebDriverWait
+                from selenium.webdriver.support import expected_conditions as EC
+                from selenium.common.exceptions import TimeoutException
+                from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+                from selenium.webdriver.common.proxy import Proxy, ProxyType
+                import time
+                import random
+                import re
+            except ImportError:
+                logger.warning("CloakBrowser 所需的库未安装，无法使用浏览器指纹伪装")
+                return None
+
+            logger.info(f"CloakBrowser 开始访问: {url}")
+
+            # 配置Chrome选项进行高级浏览器指纹伪装
+            chrome_options = Options()
+
+            # 无头模式 - 根据需求调整
+            chrome_options.add_argument('--headless')  # 默认使用无头模式，减少资源消耗
+
+            # 高级浏览器指纹伪装 - 禁用自动化检测
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_options.add_experimental_option('useAutomationExtension', False)
+
+            # 模拟真实浏览器指纹
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--disable-dev-shm-usage')
+            chrome_options.add_argument('--disable-gpu')
+
+            # 禁用不必要的功能
+            chrome_options.add_argument('--disable-extensions')
+            chrome_options.add_argument('--disable-plugins')
+            chrome_options.add_argument('--disable-popup-blocking')
+            chrome_options.add_argument('--disable-background-timer-throttling')
+            chrome_options.add_argument('--disable-backgrounding-occluded-windows')
+            chrome_options.add_argument('--disable-renderer-backgrounding')
+            chrome_options.add_argument('--disable-features=IsolateOrigins,site-per-process')
+            chrome_options.add_argument('--disable-site-isolation-trials')
+
+            # 禁用图片和字体加载以提高速度
+            chrome_options.add_argument('--blink-settings=imagesEnabled=false')
+            chrome_options.add_argument('--disable-webgl')
+            chrome_options.add_argument('--disable-3d-apis')
+
+            # 随机化用户代理（模拟不同浏览器）
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:126.0) Gecko/20100101 Firefox/126.0',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+            ]
+            chrome_options.add_argument(f'--user-agent={random.choice(user_agents)}')
+
+            # 设置窗口大小模拟真实浏览器（随机化）
+            resolutions = [
+                '--window-size=1920,1080',
+                '--window-size=1366,768',
+                '--window-size=1536,864',
+                '--window-size=1440,900',
+                '--window-size=1280,720',
+            ]
+            chrome_options.add_argument(random.choice(resolutions))
+
+            # 设置代理
+            if proxies:
+                proxy_url = proxies.get('http') or proxies.get('https')
+                if proxy_url:
+                    chrome_options.add_argument(f'--proxy-server={proxy_url}')
+
+            # 添加额外的命令行参数
+            chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+            chrome_options.add_argument('--disable-features=TranslateUI')
+            chrome_options.add_argument('--no-first-run')
+            chrome_options.add_argument('--no-default-browser-check')
+            chrome_options.add_argument('--disable-component-update')
+            chrome_options.add_argument('--disable-default-apps')
+            chrome_options.add_argument('--disable-sync')
+
+            try:
+                # 使用webdriver-manager自动管理ChromeDriver
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+
+                try:
+                    # 执行JavaScript脚本进行高级浏览器指纹伪装
+                    driver.execute_script("""
+                        // 隐藏webdriver属性
+                        Object.defineProperty(navigator, 'webdriver', {
+                            get: () => undefined
+                        });
+
+                        // 修改navigator属性
+                        Object.defineProperty(navigator, 'languages', {
+                            get: () => ['zh-CN', 'zh', 'en']
+                        });
+
+                        Object.defineProperty(navigator, 'plugins', {
+                            get: () => [1, 2, 3, 4, 5]
+                        });
+
+                        // 修改屏幕属性
+                        Object.defineProperty(screen, 'colorDepth', {
+                            get: () => 24
+                        });
+
+                        Object.defineProperty(screen, 'pixelDepth', {
+                            get: () => 24
+                        });
+
+                        // 修改时区
+                        Object.defineProperty(Intl.DateTimeFormat.prototype, 'resolvedOptions', {
+                            get: () => {
+                                return () => ({
+                                    locale: 'zh-CN',
+                                    timeZone: 'Asia/Shanghai'
+                                });
+                            }
+                        });
+
+                        // 修改硬件并发数
+                        Object.defineProperty(navigator, 'hardwareConcurrency', {
+                            get: () => 8
+                        });
+                    """)
+
+                    # 添加随机延迟，模拟人类行为
+                    initial_delay = random.uniform(1.0, 3.0)
+                    time.sleep(initial_delay)
+
+                    # 访问目标URL
+                    driver.get(url)
+
+                    # 随机延迟，模拟页面加载时间
+                    page_load_delay = random.uniform(2.0, 5.0)
+                    time.sleep(page_load_delay)
+
+                    # 执行随机滚动，模拟人类浏览行为
+                    for _ in range(random.randint(2, 5)):
+                        scroll_height = driver.execute_script("return document.body.scrollHeight")
+                        scroll_position = random.randint(0, scroll_height)
+                        driver.execute_script(f"window.scrollTo(0, {scroll_position})")
+                        time.sleep(random.uniform(0.5, 1.5))
+
+                    # 检测是否是 Cloudflare 验证页面
+                    page_source = driver.page_source
+
+                    # 检查是否存在 Cloudflare Turnstile 或其他验证
+                    cloudflare_patterns = [
+                        r'challenges\.cloudflare\.com',
+                        r'cf-turnstile',
+                        r'data-sitekey',
+                        r'turnstile\.cloudflare\.com',
+                        r'Cloudflare.*Security',
+                        r'Checking your browser',
+                        r'Please wait.*accessing'
+                    ]
+
+                    has_cloudflare = False
+                    for pattern in cloudflare_patterns:
+                        if re.search(pattern, page_source, re.IGNORECASE):
+                            has_cloudflare = True
+                            break
+
+                    if has_cloudflare:
+                        logger.warning("检测到 Cloudflare 验证页面，等待验证完成")
+
+                        # 尝试等待验证完成
+                        max_wait_time = 60  # 最长等待 60 秒
+                        start_time = time.time()
+
+                        while time.time() - start_time < max_wait_time:
+                            current_page_source = driver.page_source
+
+                            # 检查验证是否通过（页面包含实际内容而不是验证页面）
+                            content_indicators = [
+                                r'<main',
+                                r'<article',
+                                r'<div.*class=.*content',
+                                r'<div.*id=.*content',
+                                r'<body.*>.*[\s\S]{100,}'
+                            ]
+
+                            has_content = False
+                            for indicator in content_indicators:
+                                if re.search(indicator, current_page_source, re.IGNORECASE):
+                                    has_content = True
+                                    break
+
+                            if has_content:
+                                logger.info("Cloudflare 验证已通过，获取到实际内容")
+                                page_source = current_page_source
+                                break
+
+                            # 随机延迟后再次检查
+                            time.sleep(random.uniform(2.0, 4.0))
+
+                    # 获取页面内容
+                    page_source = driver.page_source
+
+                    # 检查页面内容是否有效
+                    if not page_source or len(page_source.strip()) < 100:
+                        logger.warning(f"CloakBrowser 获取的页面内容过短或为空: {url}")
+                        return None
+
+                    # 检查是否仍然在验证页面
+                    if any(re.search(pattern, page_source, re.IGNORECASE) for pattern in cloudflare_patterns):
+                        logger.warning("CloakBrowser 未能通过 Cloudflare 验证")
+                        return None
+
+                    logger.info(f"CloakBrowser 成功获取页面内容, 长度: {len(page_source)}")
+                    return page_source
+
+                except Exception as e:
+                    logger.warning(f"CloakBrowser 页面操作异常: {e}", exc_info=True)
+                    return None
+
+                finally:
+                    # 确保浏览器关闭
+                    try:
+                        driver.quit()
+                    except:
+                        pass
+
+            except Exception as e:
+                logger.warning(f"CloakBrowser 初始化异常: {e}", exc_info=True)
+                return None
+
+        except Exception as e:
+            logger.warning(f"CloakBrowser 总体异常: {e}", exc_info=True)
+            return None
+
     def _get_url_content_with_cloudscraper(self, url: str, proxies: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         使用cloudscraper绕过反爬虫限制获取URL内容

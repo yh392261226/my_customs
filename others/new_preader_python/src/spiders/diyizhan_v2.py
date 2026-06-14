@@ -1,5 +1,5 @@
 """
-diyizhan.xyz解析器 - 基于配置驱动版本
+diyizhan.cc解析器 - 基于配置驱动版本
 支持多章节小说和内容页分页类型
 """
 
@@ -13,14 +13,14 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 class DiyizhanParser(BaseParser):
-    """diyizhan.xyz解析器 - 配置驱动版本"""
+    """diyizhan.cc解析器 - 配置驱动版本"""
     
     # 基本信息
-    name = "diyizhan.xyz"
-    description = "diyizhan.xyz小说爬取解析器（支持多章节和分页类型）"
-    base_url = "https://www.diyizhan.xyz"
+    name = "diyizhan.cc"
+    description = "diyizhan.cc小说爬取解析器（支持多章节和分页类型）"
+    base_url = "https://www.diyizhan.cc"
     
-    # 编码配置 - diyizhan.xyz使用gbk编码
+    # 编码配置 - diyizhan.cc使用gbk编码
     encoding = "gbk"
     
     # 正则表达式配置
@@ -161,7 +161,11 @@ class DiyizhanParser(BaseParser):
                     })
         
         # 按章节顺序排序（通常序号在URL中的数字越大越新）
-        chapter_list.sort(key=lambda x: int(re.search(r'(\d+)\.html', x['url']).group(1)) if re.search(r'(\d+)\.html', x['url']) else 0)
+        def get_chapter_number(chapter):
+            match = re.search(r'(\d+)\.html', chapter['url'])
+            return int(match.group(1)) if match else 0
+        
+        chapter_list.sort(key=get_chapter_number)
         
         return chapter_list
 
@@ -182,7 +186,7 @@ class DiyizhanParser(BaseParser):
                 return match.group(1)
         
         # 如果是内容，从页面中提取
-        pattern = r'<link[^>]*href="https://www\.diyizhan\.xyz/zhan/(\d+)/"[^>]*/>'
+        pattern = r'<link[^>]*href="https://www\.diyizhan\.cc/zhan/(\d+)/"[^>]*/>'
         match = re.search(pattern, content_or_url)
         if match:
             return match.group(1)
@@ -633,7 +637,8 @@ class DiyizhanParser(BaseParser):
         
         # 默认为单章节
         return "短篇"
-    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
+
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: Optional[str] = None, author: Optional[str] = None, start_index: int = 0) -> Dict[str, Any]:
         """
         增量爬取：从指定章节URL开始继续爬取
         
@@ -654,25 +659,8 @@ class DiyizhanParser(BaseParser):
         if not content:
             raise Exception(f"无法获取小说页面: {novel_url}")
         
-        # 提取章节列表（子类需要实现提取方法）
-        # 这里尝试提取章节，如果没有则返回空列表
-        chapters = []
-        
-        # 尝试使用正则表达式提取章节
-        import re
-        chapter_patterns = [
-            r'<a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a>',
-            r'<li[^>]*><a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a></li>',
-        ]
-        
-        for pattern in chapter_patterns:
-            matches = re.findall(pattern, content)
-            if matches:
-                chapters = [
-                    {'url': match[0], 'title': match[1]}
-                    for match in matches
-                ]
-                break
+        # 使用类中定义的章节提取方法
+        chapters = self._extract_chapter_list(content)
         
         if not chapters:
             # 无法获取章节列表，返回空结果
@@ -700,7 +688,7 @@ class DiyizhanParser(BaseParser):
         logger.info(f"从第 {start_pos + 1} 章开始爬取，共 {len(chapters) - start_pos} 个新章节")
         
         # 创建小说内容
-        novel_content = {
+        novel_content: Dict[str, Any] = {
             'title': title or f'书籍-{novel_id}',
             'author': author or self.novel_site_name,
             'novel_id': novel_id,
@@ -717,35 +705,22 @@ class DiyizhanParser(BaseParser):
             if not chapter_url:
                 continue
             
-            # 构建完整URL
-            if not chapter_url.startswith('http'):
-                chapter_url = f"{self.base_url}{chapter_url}"
-            
             logger.info(f"正在爬取第 {i+1} 章: {chapter_title}")
             
             # 获取章节内容
-            chapter_content = self._get_url_content(chapter_url)
+            chapter_content = self._get_chapter_content(chapter_url)
             
             if chapter_content:
-                # 提取章节内容
-                extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
-                
-                if extracted_content:
-                    # 执行爬取后处理函数
-                    processed_content = self._execute_after_crawler_funcs(extracted_content)
-                    
-                    if processed_content and len(processed_content.strip()) > 0:
-                        novel_content['chapters'].append({
-                            'chapter_number': start_index + (i - start_pos) + 1,
-                            'title': chapter_title,
-                            'content': processed_content,
-                            'url': chapter_url
-                        })
-                        logger.info(f"✓ 第 {i+1} 章抓取成功")
-                    else:
-                        logger.warning(f"✗ 第 {i+1} 章内容处理后为空")
+                if chapter_content and len(chapter_content.strip()) > 0:
+                    novel_content['chapters'].append({
+                        'chapter_number': start_index + (i - start_pos) + 1,
+                        'title': chapter_title,
+                        'content': chapter_content,
+                        'url': chapter_url
+                    })
+                    logger.info(f"✓ 第 {i+1} 章抓取成功")
                 else:
-                    logger.warning(f"✗ 第 {i+1} 章内容提取失败")
+                    logger.warning(f"✗ 第 {i+1} 章内容处理后为空")
             else:
                 logger.warning(f"✗ 第 {i+1} 章抓取失败")
             

@@ -324,7 +324,7 @@ class CmsT5Parser(BaseParser):
         page_links = self._parse_content_page_links(main_content, novel_url)
         
         # 创建小说内容字典
-        novel_content = {
+        novel_content: Dict[str, Any] = {
             'title': title,
             'author': f'来自 {self.novel_site_name}',
             'novel_id': novel_id,
@@ -665,7 +665,7 @@ class CmsT5Parser(BaseParser):
         page_links = self._parse_content_page_links(content, novel_url)
         
         # 创建小说内容
-        novel_content = {
+        novel_content: Dict[str, Any] = {
             'title': title,
             'author': f'来自 {self.novel_site_name}',
             'novel_id': self._extract_novel_id_from_url(novel_url),
@@ -732,6 +732,115 @@ class CmsT5Parser(BaseParser):
         path = parsed_url.path.strip('/')
         return path if path else "unknown"
 
+    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: Optional[str] = None, author: Optional[str] = None, start_index: int = 0) -> Dict[str, Any]:
+        """
+        增量爬取：从指定章节URL开始继续爬取
+        注意：CMS T5网站通常没有章节列表，而是分页内容
+        
+        Args:
+            novel_id: 小说ID
+            start_url: 起始章节URL（最后一章的URL）
+            title: 小说标题（可选）
+            author: 作者（可选）
+            start_index: 起始章节索引
+            
+        Returns:
+            小说详情信息
+        """
+        logger.warning("CMS T5网站通常不支持增量爬取，因为它们是单页或分页内容，而不是多章节")
+        
+        # 获取小说页面
+        novel_url = self.get_novel_url(novel_id)
+        content = self._get_url_content(novel_url)
+        
+        if not content:
+            raise Exception(f"无法获取小说页面: {novel_url}")
+        
+        # 对于CMS T5网站，检测书籍类型
+        book_type = self._detect_book_type(content)
+        
+        if book_type == "短篇":
+            # 短篇小说不支持增量爬取
+            logger.info(f"检测到书籍类型为 '{book_type}'，不支持增量爬取")
+            return {
+                'title': title or f'书籍-{novel_id}',
+                'chapters': []
+            }
+        elif book_type == "内容页内分页":
+            # 获取分页链接
+            page_links = self._parse_content_page_links(content, novel_url)
+            
+            # 查找起始位置
+            start_pos = 0
+            if start_url:
+                # 找到起始URL在分页链接中的位置
+                for i, page_url in enumerate(page_links):
+                    if page_url == start_url:
+                        start_pos = i + 1  # 从下一页开始
+                        break
+            
+            if start_pos >= len(page_links):
+                # 没有新页面
+                logger.info("没有新的分页内容")
+                return {
+                    'title': title or f'书籍-{novel_id}',
+                    'chapters': []
+                }
+            
+            logger.info(f"从第 {start_pos + 1} 页开始爬取，共 {len(page_links) - start_pos} 个新页面")
+            
+            # 创建小说内容
+            novel_content: Dict[str, Any] = {
+                'title': title or f'书籍-{novel_id}',
+                'author': author or self.novel_site_name,
+                'novel_id': novel_id,
+                'url': novel_url,
+                'chapters': []
+            }
+            
+            # 从起始位置开始爬取
+            for i in range(start_pos, len(page_links)):
+                page_url = page_links[i]
+                logger.info(f"正在爬取第 {i+1} 页: {page_url}")
+                
+                # 获取页面内容
+                page_content = self._get_url_content(page_url)
+                
+                if page_content:
+                    # 提取页面内容
+                    extracted_content = self._extract_with_regex(page_content, self.content_reg)
+                    
+                    if extracted_content:
+                        # 执行爬取后处理函数
+                        processed_content = self._execute_after_crawler_funcs(extracted_content)
+                        
+                        if processed_content and len(processed_content.strip()) > 0:
+                            novel_content['chapters'].append({
+                                'chapter_number': start_index + (i - start_pos) + 1,
+                                'title': f"第{i+1}页",
+                                'content': processed_content,
+                                'url': page_url
+                            })
+                            logger.info(f"✓ 第 {i+1} 页抓取成功")
+                        else:
+                            logger.warning(f"✗ 第 {i+1} 页内容处理后为空")
+                    else:
+                        logger.warning(f"✗ 第 {i+1} 页内容提取失败")
+                else:
+                    logger.warning(f"✗ 第 {i+1} 页抓取失败")
+                
+                # 页面间延迟
+                time.sleep(1)
+            
+            return novel_content
+        else:
+            # 其他类型不支持增量爬取
+            logger.warning(f"书籍类型 '{book_type}' 不支持增量爬取")
+            return {
+                'title': title or f'书籍-{novel_id}',
+                'chapters': []
+            }
+
 
 # 使用示例
 if __name__ == "__main__":
@@ -776,123 +885,4 @@ if __name__ == "__main__":
             print("数据库中没有CMS T5网站")
     except Exception as e:
         print(f"使用工厂方法创建解析器失败: {e}")
-    def parse_novel_detail_incremental(self, novel_id: str, start_url: str, title: str = None, author: str = None, start_index: int = 0) -> Dict[str, Any]:
-        """
-        增量爬取：从指定章节URL开始继续爬取
-        
-        Args:
-            novel_id: 小说ID
-            start_url: 起始章节URL（最后一章的URL）
-            title: 小说标题（可选）
-            author: 作者（可选）
-            start_index: 起始章节索引
-            
-        Returns:
-            小说详情信息
-        """
-        # 获取小说页面，提取章节列表
-        novel_url = self.get_novel_url(novel_id)
-        content = self._get_url_content(novel_url)
-        
-        if not content:
-            raise Exception(f"无法获取小说页面: {novel_url}")
-        
-        # 提取章节列表（子类需要实现提取方法）
-        # 这里尝试提取章节，如果没有则返回空列表
-        chapters = []
-        
-        # 尝试使用正则表达式提取章节
-        import re
-        chapter_patterns = [
-            r'<a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a>',
-            r'<li[^>]*><a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a></li>',
-        ]
-        
-        for pattern in chapter_patterns:
-            matches = re.findall(pattern, content)
-            if matches:
-                chapters = [
-                    {'url': match[0], 'title': match[1]}
-                    for match in matches
-                ]
-                break
-        
-        if not chapters:
-            # 无法获取章节列表，返回空结果
-            logger.warning("无法获取章节列表，无法进行增量爬取")
-            return {
-                'title': title or f'书籍-{novel_id}',
-                'chapters': []
-            }
-        
-        # 通过比对URL找到起始位置
-        start_pos = 0
-        for i, chapter in enumerate(chapters):
-            chapter_full_url = chapter.get('url', '')
-            if chapter_full_url == start_url:
-                start_pos = i + 1  # 从下一章开始
-                break
-        
-        if start_pos >= len(chapters):
-            # 没有新章节
-            return {
-                'title': title or f'书籍-{novel_id}',
-                'chapters': []
-            }
-        
-        logger.info(f"从第 {start_pos + 1} 章开始爬取，共 {len(chapters) - start_pos} 个新章节")
-        
-        # 创建小说内容
-        novel_content = {
-            'title': title or f'书籍-{novel_id}',
-            'author': author or self.novel_site_name,
-            'novel_id': novel_id,
-            'url': novel_url,
-            'chapters': []
-        }
-        
-        # 从起始位置开始爬取
-        for i in range(start_pos, len(chapters)):
-            chapter = chapters[i]
-            chapter_url = chapter.get('url', '')
-            chapter_title = chapter.get('title', f'第{i+1}章')
-            
-            if not chapter_url:
-                continue
-            
-            # 构建完整URL
-            if not chapter_url.startswith('http'):
-                chapter_url = f"{self.base_url}{chapter_url}"
-            
-            logger.info(f"正在爬取第 {i+1} 章: {chapter_title}")
-            
-            # 获取章节内容
-            chapter_content = self._get_url_content(chapter_url)
-            
-            if chapter_content:
-                # 提取章节内容
-                extracted_content = self._extract_with_regex(chapter_content, self.content_reg)
-                
-                if extracted_content:
-                    # 执行爬取后处理函数
-                    processed_content = self._execute_after_crawler_funcs(extracted_content)
-                    
-                    if processed_content and len(processed_content.strip()) > 0:
-                        novel_content['chapters'].append({
-                            'chapter_number': start_index + (i - start_pos) + 1,
-                            'title': chapter_title,
-                            'content': processed_content,
-                            'url': chapter_url
-                        })
-                        logger.info(f"✓ 第 {i+1} 章抓取成功")
-                    else:
-                        logger.warning(f"✗ 第 {i+1} 章内容处理后为空")
-                else:
-                    logger.warning(f"✗ 第 {i+1} 章内容提取失败")
-            else:
-                logger.warning(f"✗ 第 {i+1} 章抓取失败")
-            
-            # 章节间延迟
-            time.sleep(1)
-        
-        return novel_content
+    
