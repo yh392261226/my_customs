@@ -35,6 +35,9 @@ class GetBooksScreen(Screen[None]):
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
+        ("d", "clear_all_invalid", get_global_i18n().t('get_books.shortcut_d')),
+        ("C", "check_all_sites", get_global_i18n().t('get_books.shortcut_C')),
+        ("b", "view_book_catalog", get_global_i18n().t('get_books.shortcut_b')),
     ]
 
 
@@ -1273,6 +1276,18 @@ class GetBooksScreen(Screen[None]):
         self.query_one("#novel-sites-proxy-filter", Select).value = "all"
         self.query_one("#novel-sites-status-filter", Select).value = "all"
         self.query_one("#novel-sites-rating-filter", Select).value = "all"
+
+    def action_clear_all_invalid(self) -> None:
+        """d键 - 清理所有无效爬取记录"""
+        self._clear_all_invalid_records()
+
+    def action_check_all_sites(self) -> None:
+        """C键 - 一键检测所有网站状态"""
+        self._check_all_sites_status_async()
+
+    def action_view_book_catalog(self) -> None:
+        """b键 - 打开书籍目录"""
+        self.action_open_books_folder()
     
     def on_input_changed(self, event: Input.Changed) -> None:
         """处理输入框内容变化事件"""
