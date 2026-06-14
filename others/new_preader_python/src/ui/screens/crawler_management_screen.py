@@ -408,6 +408,10 @@ class CrawlerManagementScreen(Screen[None]):
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
+        ("a", "select_all_rows", get_global_i18n().t('crawler.shortcut_a')),
+        ("A", "select_all_pages", get_global_i18n().t('crawler.shortcut_A')),
+        ("C", "merge_selected", get_global_i18n().t('crawler.shortcut_C')),
+        ("d", "clear_invalid", get_global_i18n().t('crawler.shortcut_d')),
     ]
 
     def action_open_browser(self) -> None:
@@ -515,11 +519,29 @@ class CrawlerManagementScreen(Screen[None]):
 
     def action_clear_search_params(self) -> None:
         """清除搜索参数"""
-        self.query_one("#search-input-field", Input).value = ""
-        self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t('crawler.search_placeholder')
+        self._clear_search()
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
+
+    def action_select_all_rows(self) -> None:
+        """a键 - 切换全选/取消全选（无选中项时全选，有选中项时取消全选）"""
+        if self.selected_history:
+            self._deselect_all_rows()
+        else:
+            self._select_all_rows()
+
+    def action_select_all_pages(self) -> None:
+        """A键 - 超全选（可选择多页）"""
+        self._select_all()
+
+    def action_merge_selected(self) -> None:
+        """C键 - 合并选中项"""
+        self._merge_selected()
+
+    def action_clear_invalid(self) -> None:
+        """d键 - 清理无效记录"""
+        self._clear_invalid_records()
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""
