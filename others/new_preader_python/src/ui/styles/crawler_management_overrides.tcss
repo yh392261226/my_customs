@@ -108,7 +108,8 @@ Footer {
 }
 
 #search-section #search-input-field {
-    width: 40;
+    width: 40%;
+    min-width: 40;
     height: 3;
     margin-right: 1;
 }

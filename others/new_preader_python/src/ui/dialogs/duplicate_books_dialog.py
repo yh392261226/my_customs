@@ -138,6 +138,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             table.add_column(get_global_i18n().t("bookshelf.format"), key="format")
             table.add_column(get_global_i18n().t("duplicate_books.recommended"), key="recommended")
             table.add_column(get_global_i18n().t("bookshelf.view_file"), key="view_action")  # 查看文件按钮列
+            table.add_column(get_global_i18n().t("crawler.preview"), key="preview")  # 预览按钮列
             table.add_column(get_global_i18n().t("duplicate_books.selected"), key="selected")
             
             # 启用隔行变色效果
@@ -239,6 +240,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
             # 添加查看文件按钮
             view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
+            # 添加预览按钮
+            preview_button = f"[{get_global_i18n().t('crawler.preview')}]"
             
             # 准备行数据 - 使用书籍路径作为键
             try:
@@ -251,6 +254,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     book.format.upper() if book.format else "",
                     recommended_text,
                     view_file_button,  # 查看文件按钮
+                    preview_button,    # 预览按钮
                     "✓" if is_selected else "□")  # 直接在这里设置选中标记
                 )
             except Exception as e:
@@ -276,7 +280,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     row_data[5],       # 格式
                     row_data[6],       # 推荐
                     row_data[7],       # 查看文件按钮
-                    row_data[8],       # 选中标记（已在准备数据时设置）
+                    row_data[8],       # 预览按钮
+                    row_data[9],       # 选中标记（已在准备数据时设置）
                     key=book_path      # 使用书籍路径作为键
                 )
             except Exception as add_error:
@@ -632,7 +637,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 return
             
             # 列索引映射：
-            # 0=索引, 1=书名, 2=作者, 3=大小, 4=格式, 5=推荐, 6=查看文件按钮, 7=已选择列
+            # 0=索引, 1=书名, 2=作者, 3=大小, 4=格式, 5=推荐, 6=查看文件按钮, 7=预览按钮, 8=已选择列
             
             # 处理查看文件按钮列的点击（索引6）
             if event.coordinate.column == 6:
@@ -640,8 +645,14 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 event.stop()
                 return
             
-            # 处理已选择列的点击（最后一列）
+            # 处理预览按钮列的点击（索引7）
             if event.coordinate.column == 7:
+                self._preview_book(book)
+                event.stop()
+                return
+            
+            # 处理已选择列的点击（最后一列，索引8）
+            if event.coordinate.column == 8:
                 # 切换选中状态
                 if book_path in self.selected_books:
                     self.selected_books.remove(book_path)
@@ -689,6 +700,47 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
         except Exception as e:
             self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
+    
+    def _preview_book(self, book: Book) -> None:
+        """预览书籍内容（显示前1000字）"""
+        try:
+            file_path = book.path
+            
+            if not file_path:
+                self.notify(get_global_i18n().t("crawler.no_file_path"), severity="warning")
+                return
+            
+            if not os.path.exists(file_path):
+                self.notify(f"{get_global_i18n().t('crawler.file_not_exists')}: {file_path}", severity="warning")
+                return
+            
+            # 读取文件前200字
+            content = ""
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read(1000)
+            except Exception as e:
+                logger.error(f"读取文件失败: {e}")
+                self.notify(get_global_i18n().t("crawler.preview_failed", error=str(e)), severity="error")
+                return
+            
+            if not content.strip():
+                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
+                return
+            
+            # 导入并使用预览弹窗
+            from src.ui.screens.crawler_management_screen import BookPreviewDialog
+            self.app.push_screen(
+                BookPreviewDialog(
+                    self.theme_manager,
+                    book.title,
+                    content
+                )
+            )
+            
+        except Exception as e:
+            logger.error(f"预览书籍失败: {e}")
+            self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
     
     @on(UpdateDuplicateGroupsMessage)
     def on_update_duplicate_groups(self, message: UpdateDuplicateGroupsMessage) -> None:
