@@ -52,6 +52,7 @@ class BookshelfScreen(Screen[None]):
         ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
+        ("v", "preview_book", get_global_i18n().t('bookshelf.shortcut_v')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -135,6 +136,7 @@ class BookshelfScreen(Screen[None]):
             (get_global_i18n().t("bookshelf.browser_read"), "browser_read_action"),  # 浏览器阅读按钮列
             (get_global_i18n().t("bookshelf.view_file"), "view_action"),  # 查看文件按钮列
             (get_global_i18n().t("bookshelf.rename"), "rename_action"),  # 重命名按钮列
+            (get_global_i18n().t("crawler.preview"), "preview_action"),  # 预览按钮列
             (get_global_i18n().t("bookshelf.delete"), "delete_action"),  # 删除按钮列
         ]
         
@@ -795,6 +797,7 @@ class BookshelfScreen(Screen[None]):
                 'browser_read_action': '',
                 'view_action': '',
                 'rename_action': '',
+                'preview_action': '',
                 'delete_action': '',
                 '_row_key': row_key,  # 添加行键信息用于虚拟滚动组件
                 '_global_index': global_index  # 添加全局索引用于显示
@@ -810,6 +813,7 @@ class BookshelfScreen(Screen[None]):
             
             if not getattr(book, 'file_not_found', False):
                 row_data['rename_action'] = f"[{get_global_i18n().t('bookshelf.rename')}]"
+                row_data['preview_action'] = f"[{get_global_i18n().t('crawler.preview')}]"
             
             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
                 row_data['delete_action'] = f"[{get_global_i18n().t('bookshelf.delete')}]"
@@ -832,6 +836,7 @@ class BookshelfScreen(Screen[None]):
                 row_data['browser_read_action'],
                 row_data['view_action'],
                 row_data['rename_action'],
+                row_data['preview_action'],
                 row_data['delete_action']
             )
         
@@ -1282,16 +1287,18 @@ class BookshelfScreen(Screen[None]):
                 tags_display = book.tags if book.tags else ""
                 
                 # 添加操作按钮
-                # 文件不存在时，不显示阅读、查看文件、重命名按钮
+                # 文件不存在时，不显示阅读、查看文件、重命名、预览按钮
                 if getattr(book, 'file_not_found', False):
                     read_button = ""
                     view_file_button = ""
                     rename_button = ""
+                    preview_button = ""
                     delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
                 else:
                     read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
                     view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
                     rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
+                    preview_button = f"[{get_global_i18n().t('crawler.preview')}]"
                     delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
                 
                 # 如果文件不存在，在标题前添加标记
@@ -1315,7 +1322,8 @@ class BookshelfScreen(Screen[None]):
                     read_button,  # 阅读按钮
                     view_file_button,  # 查看文件按钮
                     rename_button,  # 重命名按钮
-                    delete_button,  # 删除按钮
+                    preview_button,  # 预览按钮
+                    delete_button,  # 删除按钮,
                     key=f"{book.path}_{global_index}"  # 使用唯一的key，避免重复（book.path + 索引）
                 )
             
@@ -1494,9 +1502,9 @@ class BookshelfScreen(Screen[None]):
                         
                     book_id = book.path
                     
-                    # 处理操作按钮列（阅读、浏览器阅读、查看文件、重命名、删除）
-                    # 列索引从0开始：8=阅读, 9=浏览器阅读, 10=查看文件, 11=重命名, 12=删除
-                    if column_key in [8, 9, 10, 11, 12]:
+                    # 处理操作按钮列（阅读、浏览器阅读、查看文件、重命名、预览、删除）
+                    # 列索引从0开始：8=阅读, 9=浏览器阅读, 10=查看文件, 11=重命名, 12=预览, 13=删除
+                    if column_key in [8, 9, 10, 11, 12, 13]:
                         
                         # 根据列索引执行不同的操作
                         if column_key == 8:  # 阅读按钮列
@@ -1523,7 +1531,10 @@ class BookshelfScreen(Screen[None]):
                                 self._rename_book(book_id)
                             else:
                                 self.notify(get_global_i18n().t("bookshelf.np_rename"), severity="warning")
-                        elif column_key == 12:  # 删除按钮列
+                        elif column_key == 12:  # 预览按钮列
+                            self.logger.info(f"点击预览按钮: {book_id}")
+                            self._preview_book(book_id)
+                        elif column_key == 13:  # 删除按钮列
                             self.logger.info(f"点击删除按钮: {book_id}")
                             if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
                                 self._delete_book(book_id)
@@ -2238,16 +2249,18 @@ class BookshelfScreen(Screen[None]):
                     tags_display = book.tags if book.tags else ""
 
                     # 添加操作按钮
-                    # 文件不存在时，不显示阅读、查看文件、重命名按钮
+                    # 文件不存在时，不显示阅读、查看文件、重命名、预览按钮
                     if getattr(book, 'file_not_found', False):
                         read_button = ""
                         view_file_button = ""
                         rename_button = ""
+                        preview_button = ""
                         delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
                     else:
                         read_button = f"[{get_global_i18n().t('bookshelf.read')}]"
                         view_file_button = f"[{get_global_i18n().t('bookshelf.view_file')}]"
                         rename_button = f"[{get_global_i18n().t('bookshelf.rename')}]"
+                        preview_button = f"[{get_global_i18n().t('crawler.preview')}]"
                         delete_button = f"[{get_global_i18n().t('bookshelf.delete')}]"
 
                     # 如果文件不存在，在标题前添加标记
@@ -2271,11 +2284,10 @@ class BookshelfScreen(Screen[None]):
                         read_button,  # 阅读按钮
                         view_file_button,  # 查看文件按钮
                         rename_button,  # 重命名按钮
-                        delete_button,  # 删除按钮
+                        preview_button,  # 预览按钮
+                        delete_button,  # 删除按钮,
                         key=f"{book.path}_{index}"  # 使用唯一的key，避免重复（book.path + 索引）
                     )
-
-                # 重新计算分页信息
                 self._total_pages = max(1, (len(self._all_books) + self._books_per_page - 1) // self._books_per_page)
                 # 回到第一页
                 self._current_page = 1
@@ -2627,6 +2639,63 @@ class BookshelfScreen(Screen[None]):
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
+
+    def action_preview_book(self) -> None:
+        """v键 - 预览当前焦点书籍"""
+        table = self.query_one("#books-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+        
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            # 获取当前行对应的书籍
+            start_index = (self._current_page - 1) * self._books_per_page
+            book_index = start_index + current_row_index
+            if 0 <= book_index < len(self._all_books):
+                book = self._all_books[book_index]
+                self._preview_book(book.path)
+
+    def _preview_book(self, book_path: str) -> None:
+        """预览书籍内容（显示前1000字）"""
+        try:
+            if not os.path.exists(book_path):
+                self.notify(get_global_i18n().t('crawler.file_not_exists'), severity="warning")
+                return
+            
+            # 获取书籍信息
+            book = self.bookshelf.get_book(book_path)
+            if not book:
+                self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
+                return
+            
+            # 读取文件前1000字
+            content = ""
+            try:
+                with open(book_path, 'r', encoding='utf-8') as f:
+                    content = f.read(1000)
+            except Exception as e:
+                self.logger.error(f"读取文件失败: {e}")
+                self.notify(get_global_i18n().t("crawler.preview_failed", error=str(e)), severity="error")
+                return
+            
+            if not content.strip():
+                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
+                return
+            
+            # 弹出预览对话框
+            from src.ui.screens.crawler_management_screen import BookPreviewDialog
+            from src.themes.theme_manager import ThemeManager
+            theme_manager = getattr(self.app, 'theme_manager', None) if hasattr(self.app, 'theme_manager') else ThemeManager()
+            
+            self.app.push_screen(
+                BookPreviewDialog(
+                    theme_manager,
+                    book.title,
+                    content
+                )
+            )
+            
+        except Exception as e:
+            self.logger.error(f"预览书籍失败: {e}")
+            self.notify(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", severity="error")
 
     # 分页导航方法
     def _go_to_first_page(self) -> None:
