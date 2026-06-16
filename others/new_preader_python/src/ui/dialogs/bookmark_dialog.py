@@ -18,7 +18,7 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/bookmark_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#confirm-button')", get_global_i18n().t("common.ok")),
+        ("enter", "confirm_bookmark", get_global_i18n().t("common.ok")),
     ]
     
     def __init__(self, bookmark_data: Dict[str, Any]) -> None:
@@ -41,6 +41,10 @@ class BookmarkDialog(ModalScreen[Dict[str, Any]]):
         # 聚焦输入框
         input_widget = self.query_one("#notes-input", Input)
         input_widget.focus()
+
+    def action_confirm_bookmark(self) -> None:
+        """确认书签备注"""
+        self._confirm_bookmark()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮按下时的回调"""

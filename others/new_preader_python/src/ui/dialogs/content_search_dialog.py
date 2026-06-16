@@ -18,8 +18,8 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
     
     CSS_PATH = "../styles/search_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#search-btn')", "Search"),
-        ("escape", "press('#cancel-btn')", "Cancel"),
+        ("enter", "search", "Search"),
+        ("escape", "cancel", "Cancel"),
     ]
     
     def __init__(self, theme_manager: ThemeManager):
@@ -50,8 +50,8 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
         try:
             i18n = get_global_i18n()
             type(self).BINDINGS = [
-                ("enter", "press('#search-btn')", i18n.t('common.search')),
-                ("escape", "press('#cancel-btn')", i18n.t('common.cancel')),
+                ("enter", "search", i18n.t('common.search')),
+                ("escape", "cancel", i18n.t('common.cancel')),
             ]
         except Exception:
             pass
@@ -63,6 +63,17 @@ class ContentSearchDialog(ModalScreen[Optional[str]]):
         if event.input.id == "search-input":
             has_text = bool(event.input.value and event.input.value.strip())
             self.query_one("#search-btn", Button).disabled = not has_text
+    
+    def action_search(self) -> None:
+        """执行搜索"""
+        search_input = self.query_one("#search-input", Input)
+        search_text = search_input.value.strip()
+        if search_text:
+            self.dismiss(search_text)
+    
+    def action_cancel(self) -> None:
+        """取消搜索"""
+        self.dismiss(None)
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """按钮点击处理"""

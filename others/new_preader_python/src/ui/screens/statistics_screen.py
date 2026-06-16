@@ -35,9 +35,9 @@ class StatisticsScreen(Screen[None]):
     CSS_PATH = "../styles/statistics_overrides.tcss"
     # 使用 Textual BINDINGS 进行快捷键绑定（不移除 on_key，逐步过渡）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("escape", "press('#back-btn')", get_global_i18n().t('common.back')),
-        ("r", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
-        ("e", "press('#export-btn')", get_global_i18n().t('batch_ops.export')),
+        ("escape", "back", get_global_i18n().t('common.back')),
+        ("r", "refresh_stats", get_global_i18n().t('bookshelf.refresh')),
+        ("e", "export_stats", get_global_i18n().t('batch_ops.export')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, statistics_manager: StatisticsManagerDirect):
@@ -792,31 +792,24 @@ class StatisticsScreen(Screen[None]):
             logger.error(f"确认重置操作失败: {e}")
             return False
     
-    def on_key(self, event) -> None:
-        """
-        处理键盘事件
-        
-        Args:
-            event: 键盘事件
-        """
-        if event.key == "escape":
-            self.app.pop_screen()
-            event.stop()
-        elif event.key == "r":
-            # 刷新统计需要权限
-            if self._has_permission("statistics.refresh"):
-                self._refresh_stats()
-            else:
-                self.notify(get_global_i18n().t("statistics.np_refresh"), severity="warning")
-            event.prevent_default()
-        elif event.key == "e":
-            # 导出统计需要权限
-            if self._has_permission("statistics.export"):
-                import asyncio
-                asyncio.create_task(self._export_stats())
-            else:
-                self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
-            event.prevent_default()
+    def action_back(self) -> None:
+        """返回"""
+        self.app.pop_screen()
+
+    def action_refresh_stats(self) -> None:
+        """刷新统计"""
+        if self._has_permission("statistics.refresh"):
+            self._refresh_stats()
+        else:
+            self.notify(get_global_i18n().t("statistics.np_refresh"), severity="warning")
+
+    def action_export_stats(self) -> None:
+        """导出统计"""
+        if self._has_permission("statistics.export"):
+            import asyncio
+            asyncio.create_task(self._export_stats())
+        else:
+            self.notify(get_global_i18n().t("statistics.np_export"), severity="warning")
     
     def _format_reading_trend(self) -> str:
         """格式化阅读趋势数据"""

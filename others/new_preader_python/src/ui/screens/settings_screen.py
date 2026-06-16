@@ -81,8 +81,8 @@ class SettingsScreen(Screen[Any]):
         
         # 设置快捷键绑定
         self.BINDINGS = [
-            ("enter", "press('#save-btn')", get_global_i18n().t("settings.save")),
-            ("r", "press('#reset-btn')", get_global_i18n().t("settings.reset")),
+            ("enter", "save_settings", get_global_i18n().t("settings.save")),
+            ("r", "reset_settings", get_global_i18n().t("settings.reset")),
         ]
         
         # 初始化设置系统
@@ -966,27 +966,27 @@ class SettingsScreen(Screen[Any]):
             self._restore_database()
 
     def on_key(self, event: events.Key) -> None:
-        """处理键盘事件"""
+        """处理键盘事件（仅处理特殊交互按键）"""
         if event.key == "escape":
             # ESC键返回（仅一次）
             self.app.pop_screen()
             event.stop()
-        elif event.key == "enter" or event.key == "ctrl+s":
-            # 保存设置需要权限
-            if self._has_permission("settings.save"):
-                self._save_settings()
-                self.notify(get_global_i18n().t("settings.saved"), severity="information")
-            else:
-                self.notify(get_global_i18n().t("settings.np_save"), severity="warning")
-            event.stop()
-        elif event.key == "r":
-            # 重置设置需要权限
-            if self._has_permission("settings.reset"):
-                self._reset_settings()
-                self.notify(get_global_i18n().t("settings.np_save"), severity="information")
-            else:
-                self.notify(get_global_i18n().t("settings.reseted"), severity="warning")
-            event.prevent_default()
+
+    def action_save_settings(self) -> None:
+        """保存设置"""
+        if self._has_permission("settings.save"):
+            self._save_settings()
+            self.notify(get_global_i18n().t("settings.saved"), severity="information")
+        else:
+            self.notify(get_global_i18n().t("settings.np_save"), severity="warning")
+
+    def action_reset_settings(self) -> None:
+        """重置设置"""
+        if self._has_permission("settings.reset"):
+            self._reset_settings()
+            self.notify(get_global_i18n().t("settings.reseted"), severity="information")
+        else:
+            self.notify(get_global_i18n().t("settings.np_save"), severity="warning")
     
     @on(Select.Changed)
     def on_select_changed(self, event: Select.Changed) -> None:

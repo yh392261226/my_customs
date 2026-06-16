@@ -23,7 +23,7 @@ class UsersManagementScreen(Screen[None]):
 
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("q", "press('#back-btn')", get_global_i18n().t('common.back')),
+        ("q", "back", get_global_i18n().t('common.back')),
     ]
 
     def __init__(self, theme_manager: ThemeManager, db_manager: DatabaseManager):
@@ -978,6 +978,10 @@ class UsersManagementScreen(Screen[None]):
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
+
+    def action_back(self) -> None:
+        """q键 - 返回"""
+        self.app.pop_screen()
 
     def on_key(self, event) -> None:
         """

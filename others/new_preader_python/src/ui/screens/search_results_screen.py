@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 class SearchResultsScreen(Screen[None]):
     # 使用 Textual BINDINGS（逐步替代 on_key）
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("escape", "press('#back-button')", get_global_i18n().t('common.back')),
+        ("escape", "back", get_global_i18n().t('common.back')),
         ("n", "next_page", get_global_i18n().t('bookshelf.next_page')),
         ("p", "prev_page", get_global_i18n().t('bookshelf.prev_page')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
@@ -105,64 +105,11 @@ class SearchResultsScreen(Screen[None]):
         # 更新分页按钮状态
         self._update_pagination_buttons()
 
-    def on_key(self, event: events.Key) -> None:
-        """处理键盘导航"""
-        if event.key == "escape":
-            self.app.pop_screen()
-            event.stop()
-        # elif event.key == "n":
-        #     # N键下一页
-        #     if not self._has_permission("search_results.navigation"):
-        #         self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-        #         event.stop()
-        #         return
-        #     if self._current_page < self._total_pages:
-        #         self._current_page += 1
-        #         self._refresh_table()
-        #     event.prevent_default()
-        # elif event.key == "p":
-        #     # P键上一页
-        #     if not self._has_permission("search_results.navigation"):
-        #         self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-        #         event.stop()
-        #         return
-        #     if self._current_page > 1:
-        #         self._current_page -= 1
-        #         self._refresh_table()
-        #     event.prevent_default()
-        elif event.key == "down":
-            # 下键：如果到达当前页底部且有下一页，则翻到下一页
-            # if not self._has_permission("search_results.navigation"):
-            #     self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-            #     event.stop()
-            #     return
-            table = self.query_one("#results-table", DataTable)
-            if (table.cursor_row == len(table.rows) - 1 and 
-                self._current_page < self._total_pages):
-                self._go_to_next_page()
-                # 将光标移动到新页面的第一行
-                table.move_cursor(row=0, column=0)  # 直接移动到第一行第一列
-                event.prevent_default()
-                event.stop()
-                return
-        elif event.key == "up":
-            # 上键：如果到达当前页顶部且有上一页，则翻到上一页
-            # if not self._has_permission("search_results.navigation"):
-            #     self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
-            #     event.stop()
-            #     return
-            table = self.query_one("#results-table", DataTable)
-            if table.cursor_row == 0 and self._current_page > 1:
-                self._go_to_prev_page()
-                # 将光标移动到新页面的最后一行
-                # 将光标移动到新页面的最后一行
-                last_row_index = len(table.rows) - 1
-                table.move_cursor(row=last_row_index, column=0)  # 直接移动到最后一行第一列
-                event.prevent_default()
-                event.stop()
-                return
-
     # Actions for BINDINGS
+    def action_back(self) -> None:
+        """返回"""
+        self.app.pop_screen()
+
     def action_next_page(self) -> None:
         if not self._has_permission("search_results.navigation"):
             self.notify(get_global_i18n().t('search_results_screen.np_turn_page'), severity="error")
@@ -283,11 +230,8 @@ class SearchResultsScreen(Screen[None]):
             self._handle_result_selection(actual_index)
 
     def on_key(self, event: events.Key) -> None:
-        """处理键盘导航"""
-        if event.key == "escape":
-            self.app.pop_screen()
-            event.stop()
-        elif event.key == "enter":
+        """处理键盘导航（仅处理需要与DataTable交互的特殊按键）"""
+        if event.key == "enter":
             # 回车键跳转当前选中行
             if not self.results:
                 return

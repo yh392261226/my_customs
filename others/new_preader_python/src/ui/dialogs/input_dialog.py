@@ -7,7 +7,6 @@ from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label
-from textual import events
 
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
@@ -18,8 +17,8 @@ class InputDialog(ModalScreen[Optional[str]]):
     
     CSS_PATH = "../styles/input_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#ok-btn')", get_global_i18n().t('common.ok')),
-        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
+        ("enter", "ok", get_global_i18n().t('common.ok')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, title: str, prompt: str, placeholder: str = ""):
@@ -67,12 +66,11 @@ class InputDialog(ModalScreen[Optional[str]]):
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
     
-    def on_key(self, event: events.Key) -> None:
-        """键盘事件处理"""
-        if event.key == "enter":
-            input_field = self.query_one("#input-field", Input)
-            self.dismiss(input_field.value)
-            event.stop()
-        elif event.key == "escape":
-            self.dismiss(None)
-            event.stop()
+    def action_ok(self) -> None:
+        """确认"""
+        input_field = self.query_one("#input-field", Input)
+        self.dismiss(input_field.value)
+
+    def action_cancel(self) -> None:
+        """取消"""
+        self.dismiss(None)

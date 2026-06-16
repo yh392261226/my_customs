@@ -20,8 +20,8 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
     
     CSS_PATH = "../styles/sort_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#apply-btn')", get_global_i18n().t('common.apply')),
-        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
+        ("enter", "apply", get_global_i18n().t('common.apply')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager):
@@ -44,7 +44,7 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
             
             # 排序字段选择
             yield Label(get_global_i18n().t("sort.sort_by"), id="sort-by-label", classes="section-title")
-            with RadioSet(id="sort-key-radio"):
+            with RadioSet(id="sort-key-radios"):
                 yield RadioButton(get_global_i18n().t("common.book_name"), value=True, id="title-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.author"), id="author-radio")
                 yield RadioButton(get_global_i18n().t("bookshelf.add_date"), id="add-date-radio")
@@ -54,7 +54,7 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
             
             # 排序顺序选择
             yield Label(get_global_i18n().t("sort.order"), id="order-label", classes="section-title")
-            with RadioSet(id="sort-order-radio"):
+            with RadioSet(id="sort-order-radios"):
                 yield RadioButton(get_global_i18n().t("sort.ascending"), value=True, id="asc-radio")
                 yield RadioButton(get_global_i18n().t("sort.descending"), id="desc-radio")
             
@@ -72,7 +72,7 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         """单选按钮变化时的回调"""
         radio_set = event.radio_set
-        if radio_set.id == "sort-key-radio":
+        if radio_set.id == "sort-key-radios":
             # 更新排序字段
             pressed_button = radio_set.pressed_button
             if pressed_button and pressed_button.id == "title-radio":
@@ -88,7 +88,7 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
             elif pressed_button and pressed_button.id == "file-size-radio":
                 self.sort_key = "file_size"
         
-        elif radio_set.id == "sort-order-radio":
+        elif radio_set.id == "sort-order-radios":
             # 更新排序顺序
             pressed_button = radio_set.pressed_button
             if pressed_button and pressed_button.id == "asc-radio":
@@ -107,15 +107,14 @@ class SortDialog(ModalScreen[Dict[str, Any]]):
         elif event.button.id == "cancel-btn":
             self.dismiss(None)
 
-    def on_key(self, event: events.Key) -> None:
-        """键盘事件处理：确保 ESC 能关闭，Enter 能应用"""
-        if event.key == "escape":
-            self.dismiss(None)
-            event.stop()
-        elif event.key == "enter":
-            self.dismiss({
-                "sort_key": self.sort_key,
-                "reverse": self.reverse
-            })
-            event.stop()
+    def action_apply(self) -> None:
+        """应用排序"""
+        self.dismiss({
+            "sort_key": self.sort_key,
+            "reverse": self.reverse
+        })
+
+    def action_cancel(self) -> None:
+        """取消"""
+        self.dismiss(None)
 

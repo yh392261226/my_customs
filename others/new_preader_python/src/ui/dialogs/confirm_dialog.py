@@ -24,8 +24,8 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
     # 加载CSS样式
     CSS_PATH = "../styles/confirm_dialog_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "press('#confirm-btn')", get_global_i18n().t('common.confirm')),
-        ("escape", "press('#cancel-btn')", get_global_i18n().t('common.cancel')),
+        ("enter", "confirm", get_global_i18n().t('common.confirm')),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, title: str, message: str):
@@ -79,6 +79,14 @@ class ConfirmDialog(ModalScreen[Optional[bool]]):
         confirm_btn = self.query_one("#confirm-btn", Button)
         if confirm_btn:
             self.set_focus(confirm_btn)
+    
+    def action_confirm(self) -> None:
+        """确认操作"""
+        self.dismiss(True)
+    
+    def action_cancel(self) -> None:
+        """取消操作"""
+        self.dismiss(False)
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """

@@ -24,8 +24,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
     
     CSS_PATH = "../styles/search_dialog_overrides.tcss"
     BINDINGS = [
-        ("enter", "press('#select-btn')", get_global_i18n().t("common.select")),
-        ("escape", "press('#cancel-btn')", get_global_i18n().t("common.cancel")),
+        ("enter", "select_result", get_global_i18n().t("common.select")),
+        ("escape", "cancel", get_global_i18n().t("common.cancel")),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -75,6 +75,14 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                 yield Button("← " + get_global_i18n().t("common.cancel"), id="cancel-btn", variant="primary")
                 yield Button(get_global_i18n().t("common.select"), id="select-btn", disabled=True)
         yield Footer()
+    
+    def action_select_result(self) -> None:
+        """选择当前搜索结果"""
+        self._select_current_result()
+    
+    def action_cancel(self) -> None:
+        """取消搜索"""
+        self.dismiss(None)
     
     async def action_clear_search_params(self) -> None:
         """清除搜索参数"""
@@ -223,16 +231,6 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
             if 0 <= selected_index < len(self.results):
                 self.dismiss(self.results[selected_index])
 
-    def on_key(self, event: events.Key) -> None:
-        """键盘事件处理：确保 ESC 能关闭，Enter 能选择"""
-        if event.key == "escape":
-            self.dismiss(None)
-            event.stop()
-        elif event.key == "enter":
-            # 与按钮一致的行为：选择当前结果
-            self._select_current_result()
-            event.stop()
-    
     def _view_file(self, book_path: str) -> None:
         """查看书籍文件"""
         try:
