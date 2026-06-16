@@ -469,6 +469,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
         ("v", "preview_book", get_global_i18n().t('crawler.shortcut_v')),
         ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
+        ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
     ]
 
     def action_open_browser(self) -> None:
@@ -694,6 +695,10 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception:
             # 如果出错，重新渲染整个表格
             self._update_history_table()
+
+    def action_toggle_monitor(self) -> None:
+        """e键 - 切换开始监听/停止监听"""
+        self._toggle_browser_monitor()
 
     def __init__(self, theme_manager: ThemeManager, novel_site: Dict[str, Any]):
         """
