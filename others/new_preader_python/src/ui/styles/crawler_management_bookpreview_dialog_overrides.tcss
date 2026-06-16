@@ -25,6 +25,7 @@
     content-align: left top;
     padding: 5;
     text-wrap: wrap;
+    text-overflow: fold;
 }
 
 #preview-buttons {
