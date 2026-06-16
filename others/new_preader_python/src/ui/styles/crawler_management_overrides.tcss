@@ -108,10 +108,15 @@ Footer {
 }
 
 #search-section #search-input-field {
-    width: 40%;
-    min-width: 40;
+    width: 20%;
+    min-width: 20;
     height: 3;
     margin-right: 1;
+}
+
+#search-section #search-input-field:hover {
+    width: 40%;
+    min-width: 40;
 }
 
 #search-section #search-btn, #clear-search-btn{
@@ -143,6 +148,10 @@ Footer {
     margin-right: 1;
 }
 
+#novel-id-input:hover {
+    width: 40%;
+}
+
 #start-crawl-btn {
     min-width: 12;
     height: 3;
@@ -162,8 +171,12 @@ Footer {
 }
 
 #window-select {
-    width: 30%;
+    width: 10%;
     min-width: 17;
+}
+
+#window-select:hover {
+    width: 30%;
 }
 
 #refresh-window-btn {
