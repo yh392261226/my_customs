@@ -1,173 +1,75 @@
 """
-帮助屏幕
+帮助屏幕 - 自动扫描所有页面的快捷键绑定并生成分类 Markdown 帮助文档
 """
 
 
-from typing import Dict, Any, Optional, List, ClassVar
+from typing import Optional, ClassVar
+import time
 
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, MarkdownViewer, Header, Footer
-from textual.reactive import reactive
+from textual.widgets import Button, MarkdownViewer, Header, Footer
 
-from src.locales.i18n import I18n
 from src.locales.i18n_manager import get_global_i18n, t
 from src.utils.logger import get_logger
-from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
-from src.core.database_manager import DatabaseManager
+from src.utils.help_generator import HelpGenerator
 
 logger = get_logger(__name__)
+
+# 模块级缓存：避免每次打开帮助都重新扫描
+_help_cache: Optional[str] = None
+_help_cache_time: float = 0.0
+_help_cache_ttl: float = 300.0  # 5 分钟缓存
+
+
+def _get_help_content(force_refresh: bool = False) -> str:
+    """获取帮助内容（带缓存）"""
+    global _help_cache, _help_cache_time
+    now = time.time()
+    if not force_refresh and _help_cache is not None and (now - _help_cache_time) < _help_cache_ttl:
+        return _help_cache
+    try:
+        generator = HelpGenerator()
+        content = generator.generate_markdown()
+        _help_cache = content
+        _help_cache_time = now
+        return content
+    except Exception as e:
+        logger.error(f"自动生成帮助文档失败: {e}")
+        import traceback as _tb
+        logger.error(_tb.format_exc())
+        # 降级：完全不依赖 i18n，确保无论如何都能显示
+        return (
+            "# 帮助中心\n\n"
+            "## 快捷键\n\n"
+            "> ⚠ 自动扫描失败，以下为基础快捷键。\n\n"
+            "- **H** : 打开帮助\n"
+            "- **K** : 打开书架\n"
+            "- **S** : 打开设置\n"
+            "- **C** : 打开统计\n"
+            "- **Q** : 退出\n"
+            "- **ESC** : 返回\n\n"
+            "## 关于\n\n"
+            "NewReader - 终端阅读器\n"
+        )
+
 
 class HelpScreen(Screen[None]):
     """帮助屏幕"""
     CSS_PATH = "../styles/help_screen_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("t", "toggle_table_of_contents", get_global_i18n().t('help.toggle_table_of_contents')),
+        ("r", "refresh_help", t('statistics.refresh')),
     ]
     
     def __init__(self):
         """
-        初始化帮助屏幕
+        初始化帮助屏幕 - 自动扫描所有页面和弹窗的快捷键
         """
         super().__init__()
         self.title = get_global_i18n().t("help.title")
-        # self.db_manager = DatabaseManager()  # 数据库管理器
-        
-        # 逐行从语言包读取，拼装 Markdown
-        self.help_content = (
-            f"# {t('help.sub_title')}\n\n"
-            f"## {t('help.keyboard_shortcuts')}\n\n"
-            # 全局
-            f"### {t('help.global')}\n"
-            f"- h  : {t('app.bindings.help')}\n"
-            f"- k  : {t('app.bindings.bookshelf')}\n"
-            f"- s  : {t('app.bindings.settings')}\n"
-            f"- c  : {t('app.bindings.statistics')}\n"
-            f"- /  : {t('app.bindings.boss_key')}\n"
-            f"- t  : {t('settings.theme')}\n"
-            f"- ESC: {t('common.back')}\n"
-            f"- q  : {t('help.quit')}\n\n"
-            # 阅读器
-            f"### {t('reader.title')}\n"
-            f"- ← p/n → : {t('help.prev_next_page')}\n"
-            f"- ↑/↓ : {t('help.scroll_content')}\n"
-            f"- j   : {t('help.go_to_page')}\n"
-            f"- a   : {t('reader.auto_page')}\n"
-            f"- b   : {t('reader.bookmark')}\n"
-            f"- B   : {t('reader.bookmark_list')}\n"
-            f"- f   : {t('reader.search')}\n"
-            f"- r   : {t('reader.aloud')}\n"
-            f"- /   : {t('help.boss_key')}\n"
-            f"- s   : {t('reader.settings')}\n"
-            f"- o   : {t('bookshelf.view_file')}\n"
-            f"- l   : {t('reader.translation')}\n"
-            f"- w   : {t('reader.vocabulary')}\n"
-            f"- {t('reader.vocabulary_info')}\n\n"
-            f"- v   : {t('reader.enter_selection_mode')}\n"
-            f"- {t('selection_mode.in_notify_message')}\n\n"
-            # 欢迎页
-            f"### {t('welcome.title')}\n"
-            f"- F1/1 : {t('welcome.open_book')}\n"
-            f"- F2/2 : {t('welcome.browse_library')}\n"
-            f"- F3/3 : {t('welcome.get_books')}\n"
-            f"- F4/4 : {t('welcome.browser_reader')}\n"
-            f"- F5/5 : {t('welcome.manage')}\n"
-            f"- F6/6 : {t('welcome.settings')}\n"
-            f"- F7/7 : {t('welcome.statistics')}\n"
-            f"- F8/8 : {t('welcome.help')}\n"
-            f"- ESC/Q: {t('welcome.exit')}\n\n"
-            # 书架
-            f"### {t('bookshelf.title')}\n"
-            f"- s    : {t('bookshelf.search')}\n"
-            f"- r    : {t('bookshelf.sort_name')}\n"
-            f"- l    : {t('bookshelf.batch_ops_name')}\n"
-            f"- f    : {t('bookshelf.refresh')}\n"
-            f"- a    : {t('bookshelf.add_book')}\n"
-            f"- d    : {t('bookshelf.scan_directory')}\n"
-            f"- g    : {t('bookshelf.get_books')}\n"
-            f"- j    : {t('bookshelf.jump_to')}\n"
-            f"- p/n  : {t('bookshelf.prev_page')} / {t('bookshelf.next_page')}\n"
-            f"- ↑↓   : {t('bookshelf.choose_book')}\n"
-            f"- x    : {t('bookshelf.clear_search_params')}\n"
-            f"- Enter: {t('bookshelf.open_book')}\n"
-            f"- ESC  : {t('bookshelf.back')}\n\n"
-            # 文件资源管理器
-            f"### {t('file_explorer.title')}\n"
-            f"- b      : {t('file_explorer.back')}\n"
-            f"- g      : {t('file_explorer.go')}\n"
-            f"- H      : {t('file_explorer.home')}\n"
-            f"- s      : {t('common.select')}\n"
-            f"- →      : {t('file_explorer.right')}\n"
-            f"- ↑/↓    : {t('file_explorer.updown')}\n"
-            f"- Enter/s: {t('common.select')}\n"
-            f"- ESC    : {t('common.back')}\n\n"
-            # 搜索结果
-            f"### {t('search_results_screen.title')}\n"
-            f"- n/p  : {t('bookshelf.next_page')} / {t('bookshelf.prev_page')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 获取书籍
-            f"### {t('get_books.title')}\n"
-            f"- N    : {t('get_books.novel_sites')}\n"
-            f"- P    : {t('get_books.proxy_settings')}\n"
-            f"- p    : {t('crawler.prev_page')}\n"
-            f"- n    : {t('crawler.next_page')}\n"
-            f"- j    : {t('bookshelf.jump_to')}\n"
-            f"- Space: {t('get_books.shortcut_space')}\n"
-            f"- Enter: {t('get_books.shortcut_enter')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 统计
-            f"### {t('statistics.title')}\n"
-            f"- r    : {t('statistics.refresh')}\n"
-            f"- e    : {t('statistics.export')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 书籍网站管理
-            f"### {t('novel_sites.title')}\n"
-            f"- a    : {t('novel_sites.add')}\n"
-            f"- e    : {t('novel_sites.edit')}\n"
-            f"- d    : {t('novel_sites.delete')}\n"
-            f"- b    : {t('novel_sites.batch_delete')}\n"
-            f"- p    : {t('crawler.prev_page')}\n"
-            f"- n    : {t('crawler.next_page')}\n"
-            f"- j    : {t('bookshelf.jump_to')}\n"
-            f"- Enter: {t('get_books.shortcut_enter')}\n"
-            f"- Space: {t('batch_ops.toggle_rows')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 代理列表
-            f"### {t('proxy_list.title')}\n"
-            f"- a    : {t('proxy_list.add_proxy')}\n"
-            f"- t    : {t('proxy_list.test_connection')}\n"
-            f"- e    : {t('proxy_list.edit_proxy')}\n"
-            f"- d    : {t('proxy_list.delete_proxy')}\n"
-            f"- p    : {t('crawler.prev_page')}\n"
-            f"- n    : {t('crawler.next_page')}\n"
-            f"- j    : {t('bookshelf.jump_to')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 爬取管理
-            f"### {t('crawler.title')}\n"
-            f"- o    : {t('crawler.open_browser')}\n"
-            f"- r    : {t('crawler.view_history')}\n"
-            f"- s    : {t('crawler.start_crawl')}\n"
-            f"- v    : {t('crawler.stop_crawl')}\n"
-            f"- X    : {t('crawler.select_books')}\n"
-            f"- b    : {t('note.title')}\n"
-            f"- p/n  : {t('crawler.prev_page')} / {t('crawler.next_page')}\n"
-            f"- j    : {t('bookshelf.jump_to')}\n"
-            f"- Space: {t('batch_ops.toggle_rows')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 选择书籍
-            f"### {t('select_books.select_books')}\n"
-            f"- s    : {t('common.search')}\n"
-            f"- g    : {t('common.ok')}\n"
-            f"- ESC  : {t('common.back')}\n\n"
-            # 设置
-            f"### {t('settings.title')}\n"
-            f"- r    : {t('settings.reset')}\n"
-            f"- Enter: {t('settings.save')}\n"
-            # 关于
-            f"## {t('help.about')}\n"
-            f"{t('help.about_content')}\n"
-        )
+        self.help_content = _get_help_content()
     
     def compose(self) -> ComposeResult:
         """
@@ -233,6 +135,16 @@ class HelpScreen(Screen[None]):
         else:
             self.query_one("MarkdownTableOfContents").styles.display = 'none'
 
+    def action_refresh_help(self) -> None:
+        """刷新帮助内容（强制重新扫描所有页面）"""
+        self.help_content = _get_help_content(force_refresh=True)
+        try:
+            from textual.widgets import Markdown
+            markdown = self.query_one(Markdown)
+            markdown.update(self.help_content)
+        except Exception:
+            # 如果无法更新组件，通知用户重新进入帮助
+            self.notify(t('statistics.refresh'), timeout=2)
     
     def on_key(self, event) -> None:
         """
