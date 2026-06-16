@@ -270,7 +270,8 @@
     "select_source": "Select Source",
     "jump_to": "Jump To",
     "title_copied": "Copied book title '{title}' to clipboard",
-    "shortcut_v": "Preview Book"
+    "shortcut_v": "Preview Book",
+    "shortcut_d": "Delete Book"
   },
   "batch_ops": {
     "title": "Batch Operations",

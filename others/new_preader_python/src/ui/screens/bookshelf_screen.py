@@ -43,16 +43,18 @@ class BookshelfScreen(Screen[None]):
     TITLE: ClassVar[Optional[str]] = None  # 在运行时设置
     CSS_PATH="../styles/bookshelf_overrides.tcss"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("a", "press('#add-book-btn')", get_global_i18n().t('common.add')),
-        ("d", "press('#scan-directory-btn')", get_global_i18n().t('bookshelf.scan_directory')),
-        ("s", "press('#search-btn')", get_global_i18n().t('common.search')),
-        ("r", "press('#sort-btn')", get_global_i18n().t('bookshelf.sort_name')),
-        ("l", "press('#batch-ops-btn')", get_global_i18n().t('bookshelf.batch_ops_name')),
-        ("g", "press('#get-books-btn')", get_global_i18n().t('bookshelf.get_books')),
-        ("f", "press('#refresh-btn')", get_global_i18n().t('bookshelf.refresh')),
+        ("a", "add_book", get_global_i18n().t('common.add')),
+        ("D", "scan_directory", get_global_i18n().t('bookshelf.scan_directory')),
+        ("s", "search_book", get_global_i18n().t('common.search')),
+        ("r", "sort_books", get_global_i18n().t('bookshelf.sort_name')),
+        ("l", "batch_ops", get_global_i18n().t('bookshelf.batch_ops_name')),
+        ("g", "get_books", get_global_i18n().t('bookshelf.get_books')),
+        ("f", "refresh_bookshelf", get_global_i18n().t('bookshelf.refresh')),
+        ("d", "delete_book", get_global_i18n().t('bookshelf.shortcut_d')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("v", "preview_book", get_global_i18n().t('bookshelf.shortcut_v')),
+        ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -2030,7 +2032,7 @@ class BookshelfScreen(Screen[None]):
         
     def on_key(self, event: events.Key) -> None:
         """
-        键盘事件处理
+        键盘事件处理（仅处理需要与DataTable交互的特殊按键）
 
         Args:
             event: 键盘事件
@@ -2041,68 +2043,10 @@ class BookshelfScreen(Screen[None]):
 
         table = self.query_one("#books-table", DataTable)
         
-        if event.key == "s":
-            # S键搜索
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                self._show_search_dialog()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_search"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "r":
-            # R键排序
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                self._show_sort_menu()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_sort"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "l":
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
-                self._show_batch_ops_menu()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_opts"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "a":
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.add_book"):
-                self._show_add_book_dialog()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_add_books"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "d":
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.scan_directory"):
-                self._show_scan_directory_dialog()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_scan_directory"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "g":
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
-                self._get_books()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_get_books"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "f":
-            # F键刷新书架
-            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
-                self._refresh_bookshelf()
-            else:
-                self.notify(get_global_i18n().t("bookshelf.np_refresh"), severity="warning")
-            event.prevent_default()
-            event.stop()
-        elif event.key == "escape" or event.key == "q":
+        if event.key == "escape" or event.key == "q":
             # ESC键或Q键返回（仅一次 pop，并停止冒泡）
             self.app.pop_screen()
             event.stop()
-        elif event.key == "y":
-            # Y键复制当前焦点书籍标题
-            self._copy_focused_book_title()
-            event.prevent_default()
-            event.stop()
-        
         elif event.key == "down":
             # 下键：如果到达当前页底部且有下一页，则翻到下一页
             table = self.query_one("#books-table", DataTable)
@@ -2357,40 +2301,7 @@ class BookshelfScreen(Screen[None]):
         except Exception:
             pass
     
-    def action_press(self, selector: str) -> None:
-        """重写press方法，添加权限检查"""
-        # 检查按钮权限映射
-        permission_mapping = {
-            "#add-book-btn": "bookshelf.add_book",
-            "#scan-directory-btn": "bookshelf.scan_directory", 
-            "#search-btn": "bookshelf.read",
-            "#sort-btn": "bookshelf.read",
-            "#batch-ops-btn": "bookshelf.delete_book",
-            "#get-books-btn": "bookshelf.get_books",
-            "#refresh-btn": "bookshelf.read"
-        }
-        
-        # 检查权限
-        required_permission = permission_mapping.get(selector)
-        if required_permission and not getattr(self.app, "has_permission", lambda k: True)(required_permission):
-            # 无权限时显示警告
-            permission_warnings = {
-                "bookshelf.add_book": get_global_i18n().t("bookshelf.np_add_books"),
-                "bookshelf.scan_directory": get_global_i18n().t("bookshelf.np_scan_directory"),
-                "bookshelf.read": get_global_i18n().t("bookshelf.np_search"),
-                "bookshelf.delete_book": get_global_i18n().t("bookshelf.np_opts"),
-                "bookshelf.get_books": get_global_i18n().t("bookshelf.np_get_books"),
-            }
-            warning_message = permission_warnings.get(required_permission, get_global_i18n().t("bookshelf.np_get_books"))
-            self.notify(warning_message, severity="warning")
-            return
-        
-        # 有权限时调用按钮的press方法（如果有的话）
-        # 注意：这里不能调用super().action_press(selector)，因为父类可能没有这个方法
-        # 而是直接调用原始按钮处理逻辑
-        pass
-
-
+    
     def _show_batch_ops_menu(self) -> None:
         """显示批量操作菜单"""
         def handle_batch_ops(result: Optional[Dict[str, Any]]) -> None:
@@ -2639,6 +2550,74 @@ class BookshelfScreen(Screen[None]):
 
     def action_jump_to(self) -> None:
         self._show_jump_dialog()
+
+    def action_add_book(self) -> None:
+        """a键 - 添加书籍"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.add_book"):
+            self._show_add_book_dialog()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_add_books"), severity="warning")
+
+    def action_scan_directory(self) -> None:
+        """D键 - 扫描目录"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.scan_directory"):
+            self._show_scan_directory_dialog()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_scan_directory"), severity="warning")
+
+    def action_search_book(self) -> None:
+        """s键 - 搜索"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+            self._show_search_dialog()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_search"), severity="warning")
+
+    def action_sort_books(self) -> None:
+        """r键 - 排序"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+            self._show_sort_menu()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_sort"), severity="warning")
+
+    def action_batch_ops(self) -> None:
+        """l键 - 批量操作"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
+            self._show_batch_ops_menu()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_opts"), severity="warning")
+
+    def action_get_books(self) -> None:
+        """g键 - 获取书籍"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.get_books"):
+            self._get_books()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_get_books"), severity="warning")
+
+    def action_refresh_bookshelf(self) -> None:
+        """f键 - 刷新书架"""
+        if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+            self._refresh_bookshelf()
+        else:
+            self.notify(get_global_i18n().t("bookshelf.np_refresh"), severity="warning")
+
+    def action_delete_book(self) -> None:
+        """d键 - 删除当前焦点所在的书籍"""
+        table = self.query_one("#books-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+        
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            start_index = (self._current_page - 1) * self._books_per_page
+            book_index = start_index + current_row_index
+            if 0 <= book_index < len(self._all_books):
+                book = self._all_books[book_index]
+                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.delete_book"):
+                    self._delete_book(book.path)
+                else:
+                    self.notify(get_global_i18n().t("bookshelf.np_delete"), severity="warning")
+
+    def action_copy_title(self) -> None:
+        """y键 - 复制当前焦点书籍标题"""
+        self._copy_focused_book_title()
 
     def action_preview_book(self) -> None:
         """v键 - 预览当前焦点书籍"""
