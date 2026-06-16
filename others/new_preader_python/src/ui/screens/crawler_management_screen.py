@@ -410,7 +410,7 @@ class BookPreviewDialog(ModalScreen):
         yield Header()
         yield Container(
             Vertical(
-                Label(f"📖 {get_global_i18n().t('crawler.preview_title')}: {self.title}", id="preview-title", classes="section-title"),
+                Label(f"📖 {get_global_i18n().t('crawler.preview_title')}", id="preview-title", classes="section-title"),
                 Label(f"{self.content} ......", id="preview-content", classes="preview-text"),
                 Horizontal(
                     Button(get_global_i18n().t('common.close'), id="preview-close-btn", variant="primary"),
@@ -425,8 +425,10 @@ class BookPreviewDialog(ModalScreen):
     def on_mount(self) -> None:
         """弹窗挂载时的回调"""
         self.theme_manager.apply_theme_to_screen(self)
-        self.query_one("#preview-content").border_subtitle = self.title
-        
+        preview_content=self.query_one("#preview-content")
+        preview_content.border_title = self.title
+        preview_content.border_subtitle = self.title
+
         try:
             self.query_one("#preview-close-btn", Button).focus()
         except Exception:

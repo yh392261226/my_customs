@@ -28,6 +28,10 @@
     text-overflow: fold;
     border: ascii black;
     
+    border-title-align: right;
+    border-title-color: black;
+    border-title-background: yellow;
+    border-title-style: italic;
     border-subtitle-align: left;
     border-subtitle-color: black;
     border-subtitle-background: yellow;
