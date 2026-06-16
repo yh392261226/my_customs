@@ -425,6 +425,8 @@ class BookPreviewDialog(ModalScreen):
     def on_mount(self) -> None:
         """弹窗挂载时的回调"""
         self.theme_manager.apply_theme_to_screen(self)
+        self.query_one("#preview-content").border_subtitle = self.title
+        
         try:
             self.query_one("#preview-close-btn", Button).focus()
         except Exception:

@@ -26,6 +26,12 @@
     padding: 5;
     text-wrap: wrap;
     text-overflow: fold;
+    border: ascii black;
+    
+    border-subtitle-align: left;
+    border-subtitle-color: black;
+    border-subtitle-background: yellow;
+    border-subtitle-style: italic;
 }
 
 #preview-buttons {
