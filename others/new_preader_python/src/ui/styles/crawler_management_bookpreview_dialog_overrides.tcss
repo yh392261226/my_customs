@@ -23,6 +23,8 @@
 #preview-content {
     width: 100%;
     content-align: left top;
+    padding: 5;
+    text-wrap: wrap;
 }
 
 #preview-buttons {

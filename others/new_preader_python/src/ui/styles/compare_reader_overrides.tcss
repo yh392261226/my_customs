@@ -18,6 +18,7 @@ Horizontal {
     padding: 0 1;
     margin: 0 1;
     overflow-y: hidden; /* 禁止容器滚动 */
+    text-wrap: wrap;
 }
 
 /* 列宽分配 */
