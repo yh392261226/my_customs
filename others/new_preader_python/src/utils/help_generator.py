@@ -195,12 +195,23 @@ class HelpGenerator:
                 except TypeError:
                     continue
 
-                bindings_raw = getattr(cls, "BINDINGS", [])
+                # 只取定义在当前模块中的类（排除 import 进来的 mixin / 基类）
+                if cls.__module__ != mod_name:
+                    continue
+
+                # 获取 BINDINGS（包括父类定义的可能有用的绑定）
+                bindings_raw = getattr(cls, "BINDINGS", None)
                 if not bindings_raw:
                     continue
 
-                doc = inspect.getdoc(cls) or cls_name
-                title = doc.split("\n")[0].strip("。，. ")
+                doc = inspect.getdoc(cls)
+                # 跳过继承自基类的 docstring（Textual 的 Screen / ModalScreen）
+                if doc and doc.startswith((
+                    "The base class for screens",
+                    "A screen with bindings that take precedence",
+                )):
+                    continue
+                title = (doc or cls_name).split("\n")[0].strip("。，. ")
 
                 bindings: list[tuple[str, str, str]] = []
                 for b in bindings_raw:

@@ -53,11 +53,7 @@ class GetBooksScreen(Screen[None]):
             theme_manager: 主题管理器
         """
         super().__init__()
-        try:
-            self.title = get_global_i18n().t('get_books.title')
-        except RuntimeError:
-            # 如果全局i18n未初始化，使用默认标题
-            self.title = "获取书籍"
+        self.title = get_global_i18n().t('get_books.title')
         self.theme_manager = theme_manager
         self.database_manager = DatabaseManager()
         self.novel_sites = []  # 书籍网站列表
