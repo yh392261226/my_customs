@@ -464,6 +464,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("Y", "copy_ids", get_global_i18n().t('crawler.shortcut_Y')),
         ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
         ("v", "preview_book", get_global_i18n().t('crawler.shortcut_v')),
+        ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
     ]
 
     def action_open_browser(self) -> None:
@@ -633,6 +634,10 @@ class CrawlerManagementScreen(Screen[None]):
     def action_copy_ids(self) -> None:
         """Y键 - 复制选中项的ID"""
         self._copy_novel_ids()
+
+    def action_copy_book_ids_pages(self) -> None:
+        """i键 - 复制书籍ID（可选择多页）"""
+        self._copy_book_ids_by_pages()
 
     def action_copy_title(self) -> None:
         # y键复制当前焦点书籍标题
@@ -874,6 +879,7 @@ class CrawlerManagementScreen(Screen[None]):
                     # 多选操作按钮
                     Button(get_global_i18n().t('bookshelf.batch_ops.select_all'), id="select-all-btn"),
                     Button(get_global_i18n().t('batch_ops.select_all_pages'), id="select-all-pages-btn"),
+                    Button(get_global_i18n().t('crawler.copy_book_ids_btn'), id="copy-book-ids-btn", variant="success"),
                     Button(get_global_i18n().t('bookshelf.batch_ops.invert_selection'), id="invert-selection-btn"),
                     Button(get_global_i18n().t('bookshelf.batch_ops.deselect_all'), id="deselect-all-btn"),
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
@@ -1632,6 +1638,157 @@ class CrawlerManagementScreen(Screen[None]):
         
         dialog = SelectPagesDialog(self.theme_manager, total_pages)
         self.app.push_screen(dialog, handle_select_result)
+    
+    def _copy_book_ids_by_pages(self) -> None:
+        """复制书籍ID（可选择多页）"""
+        try:
+            # 计算总页数
+            total_pages = max(1, (len(self.crawler_history) + self.items_per_page - 1) // self.items_per_page)
+            
+            if total_pages <= 1 and len(self.crawler_history) > 0:
+                # 只有1页时直接复制当前页的书籍ID
+                self._do_copy_book_ids(len(self.crawler_history))
+                return
+            
+            if len(self.crawler_history) == 0:
+                self._update_status(get_global_i18n().t('crawler.enter_novel_id'), "warning")
+                return
+            
+            # 显示页数选择对话框（复用_select_all的弹窗逻辑）
+            self._show_copy_book_ids_dialog(total_pages)
+            
+        except Exception as e:
+            logger.error(f"复制书籍ID失败: {e}")
+    
+    def _show_copy_book_ids_dialog(self, total_pages: int) -> None:
+        """显示选择要复制书籍ID的页数对话框"""
+        from textual import on
+        from textual.app import ComposeResult
+        from textual.containers import Center, Vertical, Horizontal
+        from textual.screen import ModalScreen
+        from textual.widgets import Button, Label, Select
+        from src.themes.theme_manager import ThemeManager
+        
+        class CopyBookIdsDialog(ModalScreen[Optional[int]]):
+            """选择要复制书籍ID的页数对话框"""
+            
+            CSS_PATH = "../styles/select_pages_dialog_overrides.tcss"
+            
+            def __init__(self, theme_manager: ThemeManager, total_pages: int, **kwargs) -> None:
+                super().__init__(**kwargs)
+                self.theme_manager = theme_manager
+                self.total_pages = total_pages
+            
+            def compose(self) -> ComposeResult:
+                _t = get_global_i18n().t
+                with Vertical(classes="select-pages-dialog"):
+                    yield Label(_t("crawler.copy_book_ids_title").format(total=self.total_pages), classes="dialog-title")
+                    
+                    # 构建下拉选项：所有页放在第一位，然后是1页、2页...
+                    options = [(_t("crawler.all_pages"), "all")]
+                    options.extend([(_t("crawler.page_n").format(n=i), str(i)) for i in range(1, self.total_pages + 1)])
+                    
+                    # 默认选中"所有页面"
+                    yield Select(
+                        options,
+                        value="all",
+                        id="pages-select",
+                        allow_blank=False
+                    )
+                    
+                    with Horizontal(classes="dialog-buttons"):
+                        yield Button(_t("common.copy"), id="confirm-btn", variant="primary")
+                        yield Button(_t("crawler.cancel"), id="cancel-btn")
+            
+            def on_mount(self) -> None:
+                select = self.query_one("#pages-select", Select)
+                select.focus()
+            
+            @on(Button.Pressed, "#confirm-btn")
+            def on_confirm(self) -> None:
+                select = self.query_one("#pages-select", Select)
+                selected_value = select.value
+                if selected_value == "all":
+                    self.dismiss(-1)  # -1 表示所有页
+                else:
+                    try:
+                        self.dismiss(int(selected_value))
+                    except (ValueError, TypeError):
+                        self.notify(get_global_i18n().t("crawler.invalid_page_number"), severity="error")
+            
+            @on(Button.Pressed, "#cancel-btn")
+            def on_cancel(self) -> None:
+                self.dismiss(None)
+            
+            def on_key(self, event) -> None:
+                if event.key == "escape":
+                    self.on_cancel()
+                    event.stop()
+        
+        dialog = CopyBookIdsDialog(self.theme_manager, total_pages)
+        self.app.push_screen(dialog, self._handle_copy_book_ids_result)
+    
+    def _handle_copy_book_ids_result(self, result: Optional[int]) -> None:
+        """处理复制书籍ID弹窗的结果"""
+        if result is None:
+            return  # 用户取消
+        
+        try:
+            if result == -1:
+                # 选择所有页
+                page_count = len(self.crawler_history)
+            else:
+                # 选择指定页及之前的所有页
+                page_count = min(result * self.items_per_page, len(self.crawler_history))
+            
+            self._do_copy_book_ids(page_count)
+            
+        except Exception as e:
+            logger.error(f"执行复制书籍ID失败: {e}")
+    
+    def _do_copy_book_ids(self, count: int) -> None:
+        """执行复制书籍ID操作"""
+        try:
+            # 获取指定数量的书籍ID（使用novel_id字段，即表格中显示的书籍ID列）
+            book_ids = []
+            for i in range(min(count, len(self.crawler_history))):
+                item = self.crawler_history[i]
+                novel_id = item.get("novel_id", "")
+                if novel_id:
+                    book_ids.append(novel_id)
+            
+            if not book_ids:
+                self._update_status(get_global_i18n().t('crawler.enter_novel_id'), "warning")
+                return
+            
+            # 使用逗号连接ID
+            ids_text = ','.join(book_ids)
+            
+            # 复制到剪贴板
+            try:
+                import pyperclip
+                pyperclip.copy(ids_text)
+                self._update_status(get_global_i18n().t('crawler.copy_book_ids_success').format(count=len(book_ids)))
+            except ImportError:
+                # 如果pyperclip未安装，尝试使用系统命令
+                import subprocess
+                import platform
+                
+                system = platform.system()
+                if system == 'Darwin':  # macOS
+                    process = subprocess.run(['pbcopy'], input=ids_text, text=True, check=True)
+                elif system == 'Windows':  # Windows
+                    process = subprocess.run(['clip'], input=ids_text, text=True, check=True, shell=True)
+                else:  # Linux
+                    try:
+                        process = subprocess.run(['xclip', '-selection', 'clipboard'], input=ids_text, text=True, check=True)
+                    except (subprocess.SubprocessError, FileNotFoundError):
+                        process = subprocess.run(['xsel', '--clipboard', '--input'], input=ids_text, text=True, check=True)
+                
+                self._update_status(get_global_i18n().t('crawler.copy_book_ids_success').format(count=len(book_ids)))
+            
+        except Exception as e:
+            self._update_status(f"{get_global_i18n().t('crawler.copy_ids_failed')}: {str(e)}", "error")
     
     def _select_all_rows(self) -> None:
         """全选当前页"""
@@ -4750,6 +4907,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._select_all_rows()
         elif button_id == "select-all-pages-btn":
             self._select_all()
+        elif button_id == "copy-book-ids-btn":
+            self._copy_book_ids_by_pages()
         elif button_id == "invert-selection-btn":
             self._invert_selection()
         elif button_id == "deselect-all-btn":
