@@ -468,6 +468,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("Y", "copy_ids", get_global_i18n().t('crawler.shortcut_Y')),
         ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
         ("v", "preview_book", get_global_i18n().t('crawler.shortcut_v')),
+        ("f", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
         ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
     ]
@@ -660,6 +661,19 @@ class CrawlerManagementScreen(Screen[None]):
             if 0 <= item_index < len(self.crawler_history):
                 history_item = self.crawler_history[item_index]
                 self._preview_book(history_item)
+
+    def action_view_current_file(self) -> None:
+        """f键 - 查看当前焦点书籍的文件"""
+        table = self.query_one("#crawl-history-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            # 获取当前行对应的history_item
+            start_index = (self.current_page - 1) * self.items_per_page
+            item_index = start_index + current_row_index
+            if 0 <= item_index < len(self.crawler_history):
+                history_item = self.crawler_history[item_index]
+                self._view_file(history_item)
 
     def _toggle_site_selection(self, table: DataTable, current_row_index: int) -> None:
         """切换网站选中状态（参考批量操作页面的实现）"""

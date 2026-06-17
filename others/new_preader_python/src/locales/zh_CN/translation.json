@@ -271,6 +271,7 @@
     "jump_to": "跳转到",
     "title_copied": "已复制书名《{title}》到剪贴板",
     "shortcut_v": "预览书籍",
+    "shortcut_f": "查看文件",
     "shortcut_d": "删除书籍"
   },
   "batch_ops": {
@@ -1348,6 +1349,7 @@
     "shortcut_Y": "复制ID",
     "shortcut_y": "复制标题",
     "shortcut_v": "预览",
+    "shortcut_f": "查看文件",
     "preview": "预览",
     "preview_title": "书籍预览",
     "preview_failed": "预览失败: {error}",

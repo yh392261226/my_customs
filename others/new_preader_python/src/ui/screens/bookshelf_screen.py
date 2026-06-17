@@ -49,11 +49,12 @@ class BookshelfScreen(Screen[None]):
         ("r", "sort_books", get_global_i18n().t('bookshelf.sort_name')),
         ("l", "batch_ops", get_global_i18n().t('bookshelf.batch_ops_name')),
         ("g", "get_books", get_global_i18n().t('bookshelf.get_books')),
-        ("f", "refresh_bookshelf", get_global_i18n().t('bookshelf.refresh')),
+        ("R", "refresh_bookshelf", get_global_i18n().t('bookshelf.refresh')),
         ("d", "delete_book", get_global_i18n().t('bookshelf.shortcut_d')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("v", "preview_book", get_global_i18n().t('bookshelf.shortcut_v')),
+        ("f", "view_current_file", get_global_i18n().t('bookshelf.shortcut_f')),
         ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
@@ -2631,6 +2632,22 @@ class BookshelfScreen(Screen[None]):
             if 0 <= book_index < len(self._all_books):
                 book = self._all_books[book_index]
                 self._preview_book(book.path)
+
+    def action_view_current_file(self) -> None:
+        """f键 - 查看当前焦点书籍的文件"""
+        table = self.query_one("#books-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            # 获取当前行对应的书籍
+            start_index = (self._current_page - 1) * self._books_per_page
+            book_index = start_index + current_row_index
+            if 0 <= book_index < len(self._all_books):
+                book = self._all_books[book_index]
+                if getattr(self.app, "has_permission", lambda k: True)("bookshelf.view_file"):
+                    self._view_file(book.path)
+                else:
+                    self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
 
     def _preview_book(self, book_path: str) -> None:
         """预览书籍内容（显示前1000字）"""
