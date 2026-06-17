@@ -1,129 +1,47 @@
 {
-    "name": "glass-mango",
-    "display_name": "Glass Mango",
-    "description": "Glass Mango 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FFB703",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FFE7A1"
-        },
-        "app.accent": {
-            "color": "#FFA500"
-        },
-        "app.highlight": {
-            "color": "#FFF176"
-        },
-        "app.warning": {
-            "color": "#E76F51"
-        },
-        "app.success": {
-            "color": "#2A9D8F"
-        },
-        "app.info": {
-            "color": "#4EA8DE"
-        },
-        "app.muted": {
-            "color": "#9E9E9E"
-        },
-        "ui.border": {
-            "color": "#FFD166"
-        },
-        "ui.panel.title": {
-            "color": "#FFB703",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FFF4CC"
-        },
-        "ui.button": {
-            "color": "#FFF4CC"
-        },
-        "ui.button.primary": {
-            "color": "#FFA500"
-        },
-        "ui.button.success": {
-            "color": "#2A9D8F"
-        },
-        "ui.button.warning": {
-            "color": "#FFF176"
-        },
-        "ui.button.danger": {
-            "color": "#E76F51"
-        },
-        "ui.input": {
-            "color": "#FFF4CC"
-        },
-        "ui.input.focus": {
-            "color": "#FFB703"
-        },
-        "content.text": {
-            "color": "#4E342E"
-        },
-        "content.heading": {
-            "color": "#FFB703",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FFA500",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#FFA500",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#2A9D8F",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#2A9D8F"
-        },
-        "content.highlight": {
-            "color": "#FFB703"
-        },
-        "progress.bar": {
-            "color": "#FFA500"
-        },
-        "progress.text": {
-            "color": "#FFE7A1"
-        },
-        "progress.percentage": {
-            "color": "#FFB703"
-        },
-        "bookshelf.title": {
-            "color": "#FFB703",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FFE7A1"
-        },
-        "bookshelf.progress": {
-            "color": "#FFA500"
-        },
-        "bookshelf.tag": {
-            "color": "#2A9D8F"
-        },
-        "bookshelf.selected": {
-            "color": "#FFE7A1"
-        },
-        "reader.text": {
-            "color": "#4E342E"
-        },
-        "reader.chapter": {
-            "color": "#FFB703",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#FFA500"
-        },
-        "reader.bookmark": {
-            "color": "#FFF176"
-        },
-        "reader.search_result": {
-            "color": "#FFB703"
-        }
-    }
+  "name": "glass-mango",
+  "display_name": "Glass Mango",
+  "description": "Glass Mango 内置主题",
+  "primary": "#FFA500",
+  "secondary": "#FFF176",
+  "accent": "#FFF176",
+  "warning": "#E76F51",
+  "error": "#E76F51",
+  "success": "#2A9D8F",
+  "foreground": "#4E342E",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FFD166",
+    "border-blurred": "#9E9E9E",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#FFA500",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#4E342E",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FFA500 35%",
+    "input-selection-foreground": "#4E342E",
+    "scrollbar": "#FFA500",
+    "scrollbar-hover": "#FFA500",
+    "scrollbar-active": "#FFF176",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#FFA500",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#4E342E",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#FFA500 35%",
+    "screen-selection-foreground": "#4E342E",
+    "ansi-background": "#4E342E",
+    "ansi-foreground": "#000000"
+  }
 }

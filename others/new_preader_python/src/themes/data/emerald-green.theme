@@ -1,153 +1,47 @@
 {
-    "name": "emerald-green",
-    "display_name": "Emerald Green",
-    "description": "Emerald Green 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#2E7D32",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#388E3C"
-        },
-        "app.accent": {
-            "color": "#43A047"
-        },
-        "app.highlight": {
-            "color": "#4CAF50"
-        },
-        "app.warning": {
-            "color": "#FFA726"
-        },
-        "app.success": {
-            "color": "#66BB6A"
-        },
-        "app.info": {
-            "color": "#26C6DA"
-        },
-        "app.muted": {
-            "color": "#388E3C"
-        },
-        "ui.border": {
-            "color": "#4CAF50"
-        },
-        "ui.background": {
-            "color": "#E8F5E8",
-            "bgcolor": "#E8F5E8"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#2E7D32",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#388E3C"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#2E7D32"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#43A047"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#66BB6A"
-        },
-        "ui.button.warning": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FFA726"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#EF5350"
-        },
-        "ui.input": {
-            "color": "#388E3C",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#43A047",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#388E3C"
-        },
-        "content.heading": {
-            "color": "#2E7D32",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#43A047",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#26C6DA",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#66BB6A",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#1B5E20",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#E8F5E8",
-            "bgcolor": "#4CAF50"
-        },
-        "progress.bar": {
-            "color": "#2E7D32"
-        },
-        "progress.text": {
-            "color": "#388E3C"
-        },
-        "progress.percentage": {
-            "color": "#43A047"
-        },
-        "bookshelf.title": {
-            "color": "#2E7D32",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#388E3C"
-        },
-        "bookshelf.progress": {
-            "color": "#26C6DA"
-        },
-        "bookshelf.tag": {
-            "color": "#66BB6A",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#388E3C"
-        },
-        "reader.chapter": {
-            "color": "#2E7D32",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#1B5E20"
-        },
-        "reader.bookmark": {
-            "color": "#4CAF50"
-        },
-        "reader.search_result": {
-            "color": "#E8F5E8",
-            "bgcolor": "#4CAF50"
-        }
-    }
+  "name": "emerald-green",
+  "display_name": "Emerald Green",
+  "description": "Emerald Green 内置主题",
+  "primary": "#43A047",
+  "secondary": "#4CAF50",
+  "accent": "#4CAF50",
+  "warning": "#FFA726",
+  "error": "#FFA726",
+  "success": "#66BB6A",
+  "foreground": "#388E3C",
+  "background": "#E8F5E8",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#4CAF50",
+    "border-blurred": "#388E3C",
+    "block-cursor-foreground": "#E8F5E8",
+    "block-cursor-background": "#43A047",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#388E3C",
+    "input-cursor-foreground": "#E8F5E8",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#43A047 35%",
+    "input-selection-foreground": "#388E3C",
+    "scrollbar": "#43A047",
+    "scrollbar-hover": "#43A047",
+    "scrollbar-active": "#4CAF50",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#43A047",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#388E3C",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#43A047 35%",
+    "screen-selection-foreground": "#388E3C",
+    "ansi-background": "#388E3C",
+    "ansi-foreground": "#E8F5E8"
+  }
 }

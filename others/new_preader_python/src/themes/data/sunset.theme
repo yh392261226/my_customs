@@ -1,153 +1,47 @@
 {
-    "name": "sunset",
-    "display_name": "Sunset",
-    "description": "Sunset 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FF6E40",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FAD6A5"
-        },
-        "app.accent": {
-            "color": "#FF9E80"
-        },
-        "app.highlight": {
-            "color": "#FFC13B"
-        },
-        "app.warning": {
-            "color": "#FF4E00"
-        },
-        "app.success": {
-            "color": "#78C091"
-        },
-        "app.info": {
-            "color": "#FF9E80"
-        },
-        "app.muted": {
-            "color": "#A36F4E"
-        },
-        "ui.border": {
-            "color": "#A36F4E"
-        },
-        "ui.background": {
-            "color": "#2B1D1A",
-            "bgcolor": "#2B1D1A"
-        },
-        "ui.panel": {
-            "color": "#3A2622",
-            "bgcolor": "#3A2622"
-        },
-        "ui.panel.title": {
-            "color": "#FFC13B",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FAD6A5"
-        },
-        "ui.button": {
-            "color": "#2B1D1A",
-            "bgcolor": "#FF6E40"
-        },
-        "ui.button.primary": {
-            "color": "#2B1D1A",
-            "bgcolor": "#FFC13B"
-        },
-        "ui.button.success": {
-            "color": "#2B1D1A",
-            "bgcolor": "#78C091"
-        },
-        "ui.button.warning": {
-            "color": "#2B1D1A",
-            "bgcolor": "#FF9E80"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF4E00"
-        },
-        "ui.input": {
-            "color": "#FAD6A5",
-            "bgcolor": "#3A2622"
-        },
-        "ui.input.focus": {
-            "color": "#FFC13B",
-            "bgcolor": "#4A302B"
-        },
-        "ui.selection": {
-            "color": "#3A2622",
-            "bgcolor": "#3A2622"
-        },
-        "content.text": {
-            "color": "#FAD6A5"
-        },
-        "content.heading": {
-            "color": "#FFC13B",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FF9E80",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#FF6E40",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#78C091",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#78C091",
-            "bgcolor": "#2B1D1A"
-        },
-        "content.highlight": {
-            "color": "#2B1D1A",
-            "bgcolor": "#FFC13B"
-        },
-        "progress.bar": {
-            "color": "#FF9E80"
-        },
-        "progress.text": {
-            "color": "#FAD6A5"
-        },
-        "progress.percentage": {
-            "color": "#FFC13B"
-        },
-        "bookshelf.title": {
-            "color": "#FFC13B",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FAD6A5"
-        },
-        "bookshelf.progress": {
-            "color": "#FF6E40"
-        },
-        "bookshelf.tag": {
-            "color": "#78C091",
-            "bgcolor": "#3A2622"
-        },
-        "bookshelf.selected": {
-            "color": "#4A302B",
-            "bgcolor": "#4A302B"
-        },
-        "reader.text": {
-            "color": "#FAD6A5"
-        },
-        "reader.chapter": {
-            "color": "#FFC13B",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#FF9E80"
-        },
-        "reader.bookmark": {
-            "color": "#FF6E40"
-        },
-        "reader.search_result": {
-            "color": "#2B1D1A",
-            "bgcolor": "#FFC13B"
-        }
-    }
+  "name": "sunset",
+  "display_name": "Sunset",
+  "description": "Sunset 内置主题",
+  "primary": "#FF9E80",
+  "secondary": "#FFC13B",
+  "accent": "#FFC13B",
+  "warning": "#FF4E00",
+  "error": "#FF4E00",
+  "success": "#78C091",
+  "foreground": "#FAD6A5",
+  "background": "#2B1D1A",
+  "surface": "#3A2622",
+  "panel": "#3A2622",
+  "boost": "#45332f",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#A36F4E",
+    "border-blurred": "#A36F4E",
+    "block-cursor-foreground": "#2B1D1A",
+    "block-cursor-background": "#FF9E80",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#FAD6A5",
+    "input-cursor-foreground": "#2B1D1A",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FF9E80 35%",
+    "input-selection-foreground": "#FAD6A5",
+    "scrollbar": "#FF9E80",
+    "scrollbar-hover": "#FF9E80",
+    "scrollbar-active": "#FFC13B",
+    "scrollbar-background": "#3A2622",
+    "scrollbar-background-hover": "#3A2622",
+    "scrollbar-background-active": "#3A2622",
+    "scrollbar-corner-color": "#3A2622",
+    "block-hover-background": "#3A2622",
+    "footer-key-foreground": "#FF9E80",
+    "footer-key-background": "#3A2622",
+    "footer-description-foreground": "#FAD6A5",
+    "footer-description-background": "#3A2622",
+    "screen-selection-background": "#FF9E80 35%",
+    "screen-selection-foreground": "#FAD6A5",
+    "ansi-background": "#FAD6A5",
+    "ansi-foreground": "#2B1D1A"
+  }
 }

@@ -1,24 +1,24 @@
-/* 老板键屏幕样式 */
+/* 老板键屏幕样式 - 终端模拟器主题 */
 BossKeyScreen {
-    background: black;
-    color: green;
+    background: $background;
+    color: $success;
 }
 
 #terminal-container {
     width: 100%;
     height: 100%;
-    background: black;
-    color: green;
+    background: $background;
+    color: $success;
     padding: 1;
 }
 
 #terminal-output {
     width: 100%;
     height: 1fr;
-    background: black;
-    color: green;
-    scrollbar-background: black;
-    scrollbar-color: green;
+    background: $background;
+    color: $success;
+    scrollbar-background: $background;
+    scrollbar-color: $success;
     border: none;
     padding: 0;
     margin: 0;
@@ -27,15 +27,15 @@ BossKeyScreen {
 #terminal-input-container {
     width: 100%;
     height: 1;
-    background: black;
+    background: $background;
     layout: horizontal;
 }
 
 #terminal-prompt {
     width: auto;
     height: 1;
-    background: black;
-    color: green;
+    background: $background;
+    color: $success;
     content-align: left middle;
     padding: 0;
     margin: 0;
@@ -44,8 +44,8 @@ BossKeyScreen {
 #terminal-input {
     width: 1fr;
     height: 1;
-    background: black;
-    color: green;
+    background: $background;
+    color: $success;
     border: none;
     padding: 0;
     margin: 0;
@@ -53,6 +53,6 @@ BossKeyScreen {
 
 #terminal-input:focus {
     border: none;
-    background: black;
-    color: green;
+    background: $background;
+    color: $success;
 }

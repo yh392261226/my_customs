@@ -1,129 +1,47 @@
 {
-    "name": "glass-limefresh",
-    "display_name": "Glass Limefresh",
-    "description": "Glass Limefresh 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#C6F432",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#E4FF8D"
-        },
-        "app.accent": {
-            "color": "#A3E635"
-        },
-        "app.highlight": {
-            "color": "#FFEA00"
-        },
-        "app.warning": {
-            "color": "#FB7185"
-        },
-        "app.success": {
-            "color": "#22C55E"
-        },
-        "app.info": {
-            "color": "#38BDF8"
-        },
-        "app.muted": {
-            "color": "#94A3B8"
-        },
-        "ui.border": {
-            "color": "#A3E635"
-        },
-        "ui.panel.title": {
-            "color": "#C6F432",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#F7FFCC"
-        },
-        "ui.button": {
-            "color": "#F7FFCC"
-        },
-        "ui.button.primary": {
-            "color": "#A3E635"
-        },
-        "ui.button.success": {
-            "color": "#22C55E"
-        },
-        "ui.button.warning": {
-            "color": "#FFEA00"
-        },
-        "ui.button.danger": {
-            "color": "#FB7185"
-        },
-        "ui.input": {
-            "color": "#F7FFCC"
-        },
-        "ui.input.focus": {
-            "color": "#C6F432"
-        },
-        "content.text": {
-            "color": "#1B5E20"
-        },
-        "content.heading": {
-            "color": "#C6F432",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#A3E635",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#A3E635",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#22C55E",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#22C55E"
-        },
-        "content.highlight": {
-            "color": "#C6F432"
-        },
-        "progress.bar": {
-            "color": "#A3E635"
-        },
-        "progress.text": {
-            "color": "#E4FF8D"
-        },
-        "progress.percentage": {
-            "color": "#C6F432"
-        },
-        "bookshelf.title": {
-            "color": "#C6F432",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#E4FF8D"
-        },
-        "bookshelf.progress": {
-            "color": "#A3E635"
-        },
-        "bookshelf.tag": {
-            "color": "#22C55E"
-        },
-        "bookshelf.selected": {
-            "color": "#E4FF8D"
-        },
-        "reader.text": {
-            "color": "#1B5E20"
-        },
-        "reader.chapter": {
-            "color": "#C6F432",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#A3E635"
-        },
-        "reader.bookmark": {
-            "color": "#FFEA00"
-        },
-        "reader.search_result": {
-            "color": "#C6F432"
-        }
-    }
+  "name": "glass-limefresh",
+  "display_name": "Glass Limefresh",
+  "description": "Glass Limefresh 内置主题",
+  "primary": "#A3E635",
+  "secondary": "#FFEA00",
+  "accent": "#FFEA00",
+  "warning": "#FB7185",
+  "error": "#FB7185",
+  "success": "#22C55E",
+  "foreground": "#1B5E20",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#A3E635",
+    "border-blurred": "#94A3B8",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#A3E635",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#1B5E20",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#A3E635 35%",
+    "input-selection-foreground": "#1B5E20",
+    "scrollbar": "#A3E635",
+    "scrollbar-hover": "#A3E635",
+    "scrollbar-active": "#FFEA00",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#A3E635",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#1B5E20",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#A3E635 35%",
+    "screen-selection-foreground": "#1B5E20",
+    "ansi-background": "#1B5E20",
+    "ansi-foreground": "#000000"
+  }
 }

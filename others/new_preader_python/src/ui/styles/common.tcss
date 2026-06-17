@@ -396,10 +396,6 @@ WelcomeScreen {
     background: $accent;
 }
 
-#statistics-btn {
-    background: $accent-darken-1;
-}
-
 #help-btn {
     background: $secondary;
 }

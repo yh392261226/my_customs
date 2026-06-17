@@ -1,153 +1,47 @@
 {
-    "name": "electric-blue",
-    "display_name": "Electric Blue",
-    "description": "Electric Blue 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#00A8E8",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#90E0EF"
-        },
-        "app.accent": {
-            "color": "#0077B6"
-        },
-        "app.highlight": {
-            "color": "#F9C74F"
-        },
-        "app.warning": {
-            "color": "#F94144"
-        },
-        "app.success": {
-            "color": "#43AA8B"
-        },
-        "app.info": {
-            "color": "#00A8E8"
-        },
-        "app.muted": {
-            "color": "#6C757D"
-        },
-        "ui.border": {
-            "color": "#0077B6"
-        },
-        "ui.background": {
-            "color": "#0B132B",
-            "bgcolor": "#0B132B"
-        },
-        "ui.panel": {
-            "color": "#1C2541",
-            "bgcolor": "#1C2541"
-        },
-        "ui.panel.title": {
-            "color": "#00A8E8",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#90E0EF"
-        },
-        "ui.button": {
-            "color": "#0B132B",
-            "bgcolor": "#00A8E8"
-        },
-        "ui.button.primary": {
-            "color": "#0B132B",
-            "bgcolor": "#F9C74F"
-        },
-        "ui.button.success": {
-            "color": "#0B132B",
-            "bgcolor": "#43AA8B"
-        },
-        "ui.button.warning": {
-            "color": "#0B132B",
-            "bgcolor": "#F94144"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#F94144"
-        },
-        "ui.input": {
-            "color": "#90E0EF",
-            "bgcolor": "#1C2541"
-        },
-        "ui.input.focus": {
-            "color": "#00A8E8",
-            "bgcolor": "#3A506B"
-        },
-        "ui.selection": {
-            "color": "#1C2541",
-            "bgcolor": "#1C2541"
-        },
-        "content.text": {
-            "color": "#E0FBFC"
-        },
-        "content.heading": {
-            "color": "#00A8E8",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#F9C74F",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#0077B6",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#43AA8B",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#43AA8B",
-            "bgcolor": "#0B132B"
-        },
-        "content.highlight": {
-            "color": "#0B132B",
-            "bgcolor": "#F9C74F"
-        },
-        "progress.bar": {
-            "color": "#00A8E8"
-        },
-        "progress.text": {
-            "color": "#90E0EF"
-        },
-        "progress.percentage": {
-            "color": "#F9C74F"
-        },
-        "bookshelf.title": {
-            "color": "#00A8E8",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#6C757D"
-        },
-        "bookshelf.progress": {
-            "color": "#0077B6"
-        },
-        "bookshelf.tag": {
-            "color": "#43AA8B",
-            "bgcolor": "#1C2541"
-        },
-        "bookshelf.selected": {
-            "color": "#3A506B",
-            "bgcolor": "#3A506B"
-        },
-        "reader.text": {
-            "color": "#E0FBFC"
-        },
-        "reader.chapter": {
-            "color": "#00A8E8",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#F9C74F"
-        },
-        "reader.bookmark": {
-            "color": "#0077B6"
-        },
-        "reader.search_result": {
-            "color": "#0B132B",
-            "bgcolor": "#F9C74F"
-        }
-    }
+  "name": "electric-blue",
+  "display_name": "Electric Blue",
+  "description": "Electric Blue 内置主题",
+  "primary": "#0077B6",
+  "secondary": "#F9C74F",
+  "accent": "#F9C74F",
+  "warning": "#F94144",
+  "error": "#F94144",
+  "success": "#43AA8B",
+  "foreground": "#E0FBFC",
+  "background": "#0B132B",
+  "surface": "#1C2541",
+  "panel": "#1C2541",
+  "boost": "#29324c",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#0077B6",
+    "border-blurred": "#6C757D",
+    "block-cursor-foreground": "#0B132B",
+    "block-cursor-background": "#0077B6",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#E0FBFC",
+    "input-cursor-foreground": "#0B132B",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#0077B6 35%",
+    "input-selection-foreground": "#E0FBFC",
+    "scrollbar": "#0077B6",
+    "scrollbar-hover": "#0077B6",
+    "scrollbar-active": "#F9C74F",
+    "scrollbar-background": "#1C2541",
+    "scrollbar-background-hover": "#1C2541",
+    "scrollbar-background-active": "#1C2541",
+    "scrollbar-corner-color": "#1C2541",
+    "block-hover-background": "#1C2541",
+    "footer-key-foreground": "#0077B6",
+    "footer-key-background": "#1C2541",
+    "footer-description-foreground": "#E0FBFC",
+    "footer-description-background": "#1C2541",
+    "screen-selection-background": "#0077B6 35%",
+    "screen-selection-foreground": "#E0FBFC",
+    "ansi-background": "#E0FBFC",
+    "ansi-foreground": "#0B132B"
+  }
 }

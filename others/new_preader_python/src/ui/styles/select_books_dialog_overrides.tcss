@@ -66,3 +66,8 @@
     min-width: 1;
     padding: 1 0;
 }
+
+/* 加载遮罩背景-使用主题背景色半透明 */
+#select-books-dialog .loading-overlay-bg {
+    background: $background 15%;
+}

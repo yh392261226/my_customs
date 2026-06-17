@@ -1088,18 +1088,18 @@ class SettingsScreen(Screen[Any]):
             # 检测端口
             if port == 0:
                 status_text.update(get_global_i18n().t("settings.port_status_random"))
-                status_text.styles.color = "blue"
+                status_text.set_class(True, "status-info")
             elif BrowserReader._is_port_available(host, port):
                 status_text.update(get_global_i18n().t("settings.port_status_available").format(host=host, port=port))
-                status_text.styles.color = "green"
+                status_text.set_class(True, "status-success")
             else:
                 status_text.update(get_global_i18n().t("settings.port_status_occupied").format(host=host, port=port))
-                status_text.styles.color = "red"
+                status_text.set_class(True, "status-error")
                 
         except Exception as e:
             status_text = self.query_one("#browser-server-port-status", Static)
             status_text.update(get_global_i18n().t("settings.port_check_failed").format(error=str(e)))
-            status_text.styles.color = "red"
+            status_text.set_class(True, "status-error")
 
     @on(Switch.Changed)
     def on_switch_changed(self, event: Switch.Changed) -> None:
@@ -1157,32 +1157,20 @@ class SettingsScreen(Screen[Any]):
             if self.config_adapter.save_settings_to_config():
                 # 通知所有设置变更
                 self._notify_setting_changes()
-                # 设置中心保存后：强同步 app.theme 到 appearance.theme，并立即应用刷新与持久化
+                # 设置中心保存后：同步 appearance.theme 并立即应用刷新
                 try:
                     desired = self.setting_registry.get_value("appearance.theme", None)
                     if desired and isinstance(desired, str):
-                        # 写入并应用到App与所有屏幕
                         if self.theme_manager.set_theme(desired):
-                            # 应用到当前App
+                            # 通过 Textual 原生系统应用主题
                             try:
-                                self.theme_manager.apply_theme_to_screen(self.app)
+                                theme_obj = self.theme_manager.get_theme_object(desired)
+                                if theme_obj:
+                                    self.app.register_theme(theme_obj)
                             except Exception:
                                 pass
-                            # 应用到已安装的屏幕
                             try:
-                                installed = getattr(self.app, "installed_screens", {})
-                                for scr in list(installed.values()):
-                                    self.theme_manager.apply_theme_to_screen(scr)
-                            except Exception:
-                                pass
-                            # 持久化 app.theme
-                            try:
-                                cfg = self.config_manager.get_config()
-                                app_cfg = cfg.get("app", {})
-                                app_cfg["theme"] = desired
-                                cfg["app"] = app_cfg
-                                if hasattr(self.config_manager, "save_config"):
-                                    self.config_manager.save_config(cfg)  # type: ignore[attr-defined]
+                                self.app.theme = desired
                             except Exception:
                                 pass
                             # 刷新UI

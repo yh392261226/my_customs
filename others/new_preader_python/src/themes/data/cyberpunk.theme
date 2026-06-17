@@ -1,153 +1,47 @@
 {
-    "name": "cyberpunk",
-    "display_name": "Cyberpunk",
-    "description": "Cyberpunk 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#00FFFF",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FF00FF"
-        },
-        "app.accent": {
-            "color": "#FCEE09"
-        },
-        "app.highlight": {
-            "color": "#FCEE09"
-        },
-        "app.warning": {
-            "color": "#FF003C"
-        },
-        "app.success": {
-            "color": "#00FF9F"
-        },
-        "app.info": {
-            "color": "#00FFFF"
-        },
-        "app.muted": {
-            "color": "#A0A0A0"
-        },
-        "ui.border": {
-            "color": "#FF00FF"
-        },
-        "ui.background": {
-            "color": "#0A0F1E",
-            "bgcolor": "#0A0F1E"
-        },
-        "ui.panel": {
-            "color": "#12172A",
-            "bgcolor": "#12172A"
-        },
-        "ui.panel.title": {
-            "color": "#00FFFF",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FCEE09"
-        },
-        "ui.button": {
-            "color": "#0A0F1E",
-            "bgcolor": "#00FFFF"
-        },
-        "ui.button.primary": {
-            "color": "#0A0F1E",
-            "bgcolor": "#FCEE09"
-        },
-        "ui.button.success": {
-            "color": "#0A0F1E",
-            "bgcolor": "#00FF9F"
-        },
-        "ui.button.warning": {
-            "color": "#0A0F1E",
-            "bgcolor": "#FF00FF"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF003C"
-        },
-        "ui.input": {
-            "color": "#FCEE09",
-            "bgcolor": "#12172A"
-        },
-        "ui.input.focus": {
-            "color": "#00FFFF",
-            "bgcolor": "#1B2240"
-        },
-        "ui.selection": {
-            "color": "#12172A",
-            "bgcolor": "#12172A"
-        },
-        "content.text": {
-            "color": "#D8F6FF"
-        },
-        "content.heading": {
-            "color": "#00FFFF",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FCEE09",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#FF00FF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#00FF9F",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#00FF9F",
-            "bgcolor": "#0A0F1E"
-        },
-        "content.highlight": {
-            "color": "#0A0F1E",
-            "bgcolor": "#FCEE09"
-        },
-        "progress.bar": {
-            "color": "#00FFFF"
-        },
-        "progress.text": {
-            "color": "#FCEE09"
-        },
-        "progress.percentage": {
-            "color": "#00FFFF"
-        },
-        "bookshelf.title": {
-            "color": "#00FFFF",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FCEE09"
-        },
-        "bookshelf.progress": {
-            "color": "#FF00FF"
-        },
-        "bookshelf.tag": {
-            "color": "#00FF9F",
-            "bgcolor": "#12172A"
-        },
-        "bookshelf.selected": {
-            "color": "#1B2240",
-            "bgcolor": "#1B2240"
-        },
-        "reader.text": {
-            "color": "#D8F6FF"
-        },
-        "reader.chapter": {
-            "color": "#00FFFF",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#FCEE09"
-        },
-        "reader.bookmark": {
-            "color": "#FF00FF"
-        },
-        "reader.search_result": {
-            "color": "#0A0F1E",
-            "bgcolor": "#FCEE09"
-        }
-    }
+  "name": "cyberpunk",
+  "display_name": "Cyberpunk",
+  "description": "Cyberpunk 内置主题",
+  "primary": "#FCEE09",
+  "secondary": "#FCEE09",
+  "accent": "#FCEE09",
+  "warning": "#FF003C",
+  "error": "#FF003C",
+  "success": "#00FF9F",
+  "foreground": "#D8F6FF",
+  "background": "#0A0F1E",
+  "surface": "#12172A",
+  "panel": "#12172A",
+  "boost": "#202436",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FF00FF",
+    "border-blurred": "#A0A0A0",
+    "block-cursor-foreground": "#0A0F1E",
+    "block-cursor-background": "#FCEE09",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#D8F6FF",
+    "input-cursor-foreground": "#0A0F1E",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FCEE09 35%",
+    "input-selection-foreground": "#D8F6FF",
+    "scrollbar": "#FCEE09",
+    "scrollbar-hover": "#FCEE09",
+    "scrollbar-active": "#FCEE09",
+    "scrollbar-background": "#12172A",
+    "scrollbar-background-hover": "#12172A",
+    "scrollbar-background-active": "#12172A",
+    "scrollbar-corner-color": "#12172A",
+    "block-hover-background": "#12172A",
+    "footer-key-foreground": "#FCEE09",
+    "footer-key-background": "#12172A",
+    "footer-description-foreground": "#D8F6FF",
+    "footer-description-background": "#12172A",
+    "screen-selection-background": "#FCEE09 35%",
+    "screen-selection-foreground": "#D8F6FF",
+    "ansi-background": "#D8F6FF",
+    "ansi-foreground": "#0A0F1E"
+  }
 }

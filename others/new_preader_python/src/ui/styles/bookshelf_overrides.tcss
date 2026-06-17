@@ -126,7 +126,7 @@ Footer {
 
 .bookshelf-screen #get-books-btn {
     background: $success;
-    color: white;
+    color: $text;
 }
 
 /* 按钮统一改用 .btn */

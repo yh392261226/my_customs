@@ -1,129 +1,47 @@
 {
-    "name": "glass-mint",
-    "display_name": "Glass Mint",
-    "description": "Glass Mint 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#64E1DC",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#B2F1EF"
-        },
-        "app.accent": {
-            "color": "#2DD4BF"
-        },
-        "app.highlight": {
-            "color": "#FDE047"
-        },
-        "app.warning": {
-            "color": "#FB7185"
-        },
-        "app.success": {
-            "color": "#22C55E"
-        },
-        "app.info": {
-            "color": "#60A5FA"
-        },
-        "app.muted": {
-            "color": "#94A3B8"
-        },
-        "ui.border": {
-            "color": "#2DD4BF"
-        },
-        "ui.panel.title": {
-            "color": "#64E1DC",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#ECFEFF"
-        },
-        "ui.button": {
-            "color": "#ECFEFF"
-        },
-        "ui.button.primary": {
-            "color": "#2DD4BF"
-        },
-        "ui.button.success": {
-            "color": "#22C55E"
-        },
-        "ui.button.warning": {
-            "color": "#FDE047"
-        },
-        "ui.button.danger": {
-            "color": "#FB7185"
-        },
-        "ui.input": {
-            "color": "#ECFEFF"
-        },
-        "ui.input.focus": {
-            "color": "#64E1DC"
-        },
-        "content.text": {
-            "color": "#ECFEFF"
-        },
-        "content.heading": {
-            "color": "#64E1DC",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#2DD4BF",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#2DD4BF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#22C55E",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#22C55E"
-        },
-        "content.highlight": {
-            "color": "#64E1DC"
-        },
-        "progress.bar": {
-            "color": "#2DD4BF"
-        },
-        "progress.text": {
-            "color": "#B2F1EF"
-        },
-        "progress.percentage": {
-            "color": "#64E1DC"
-        },
-        "bookshelf.title": {
-            "color": "#64E1DC",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#B2F1EF"
-        },
-        "bookshelf.progress": {
-            "color": "#2DD4BF"
-        },
-        "bookshelf.tag": {
-            "color": "#22C55E"
-        },
-        "bookshelf.selected": {
-            "color": "#B2F1EF"
-        },
-        "reader.text": {
-            "color": "#ECFEFF"
-        },
-        "reader.chapter": {
-            "color": "#64E1DC",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#2DD4BF"
-        },
-        "reader.bookmark": {
-            "color": "#FDE047"
-        },
-        "reader.search_result": {
-            "color": "#64E1DC"
-        }
-    }
+  "name": "glass-mint",
+  "display_name": "Glass Mint",
+  "description": "Glass Mint 内置主题",
+  "primary": "#2DD4BF",
+  "secondary": "#FDE047",
+  "accent": "#FDE047",
+  "warning": "#FB7185",
+  "error": "#FB7185",
+  "success": "#22C55E",
+  "foreground": "#ECFEFF",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#2DD4BF",
+    "border-blurred": "#94A3B8",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#2DD4BF",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#ECFEFF",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#2DD4BF 35%",
+    "input-selection-foreground": "#ECFEFF",
+    "scrollbar": "#2DD4BF",
+    "scrollbar-hover": "#2DD4BF",
+    "scrollbar-active": "#FDE047",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#2DD4BF",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#ECFEFF",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#2DD4BF 35%",
+    "screen-selection-foreground": "#ECFEFF",
+    "ansi-background": "#ECFEFF",
+    "ansi-foreground": "#000000"
+  }
 }

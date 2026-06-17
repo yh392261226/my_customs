@@ -2688,113 +2688,18 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         finally:
             loop.close()
     
-    def _get_color_string(self, color_obj) -> str:
-        """
-        将Rich库的Color对象转换为十六进制颜色字符串
-        
-        Args:
-            color_obj: Rich库的Color对象或字符串
-            
-        Returns:
-            str: 十六进制颜色字符串，如 "#FFFFFF"
-        """
-        if color_obj is None:
-            return ""
-        
-        # 如果已经是字符串，直接返回
-        if isinstance(color_obj, str):
-            return color_obj
-        
-        # 如果是Rich库的Color对象，调用其get_truecolor方法
-        try:
-            from rich.color import Color
-            if isinstance(color_obj, Color):
-                # 获取RGB值并转换为十六进制
-                rgb = color_obj.get_truecolor()
-                if rgb:
-                    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}".upper()
-        except (ImportError, AttributeError):
-            pass
-        
-        # 尝试调用str方法
-        try:
-            color_str = str(color_obj)
-            if color_str.startswith("#") and len(color_str) in [4, 7, 9]:
-                return color_str
-        except:
-            pass
-        
-        return ""
-    
     def _apply_theme_styles_to_css(self) -> None:
-        """根据当前主题注入阅读内容的多色位规则，让正文不再只有黑白"""
+        """阅读器的主题样式现在通过 Textual 原生 CSS 变量 ($primary, $text 等) 统一管理"""
         try:
-            tm = self.theme_manager
-
-            # 基础文本与背景
-            text_style = tm.get_style("reader.text") or tm.get_style("content.text")
-            text_color = self._get_color_string(getattr(text_style, "color", None)) if text_style else ""
-
-            bg_style = tm.get_style("ui.background")
-            bg_color = self._get_color_string(getattr(bg_style, "bgcolor", None)) if bg_style else ""
-
-            # 标题
-            heading_style = tm.get_style("reader.chapter") or tm.get_style("content.heading") or tm.get_style("app.title")
-            heading_color = self._get_color_string(getattr(heading_style, "color", None)) if heading_style else ""
-
-            # 链接
-            link_style = tm.get_style("content.link") or tm.get_style("app.accent")
-            link_color = self._get_color_string(getattr(link_style, "color", None)) if link_style else ""
-
-            # 引用
-            quote_style = tm.get_style("content.quote")
-            quote_color = self._get_color_string(getattr(quote_style, "color", None)) if quote_style else ""
-
-            # 代码块（前景/背景）
-            code_style = tm.get_style("content.code")
-            code_fg = self._get_color_string(getattr(code_style, "color", None)) if code_style else ""
-            code_bg = self._get_color_string(getattr(code_style, "bgcolor", None)) if code_style else ""
-            # 兜底：若没有 code 背景，用面板/表面色
-            surface_style = tm.get_style("ui.panel")
-            surface_color = self._get_color_string(getattr(surface_style, "bgcolor", None)) if surface_style else ""
-            if not code_bg:
-                code_bg = surface_color
-
-            # 高亮（前景/背景），优先 reader.search_result，其次 content.highlight
-            hl_style = tm.get_style("reader.search_result") or tm.get_style("content.highlight")
-            hl_fg = self._get_color_string(getattr(hl_style, "color", None)) if hl_style else ""
-            hl_bg = self._get_color_string(getattr(hl_style, "bgcolor", None)) if hl_style else ""
-
-            # 合理兜底（根据 app.dark 判断）
-            is_dark = bool(getattr(self.app, "dark", False))
-            text_fallback = "#FFFFFF" if is_dark else "#000000"
-            bg_fallback = "#000000" if is_dark else "#FFFFFF"
-
-            def pick(val: str, default: str) -> str:
-                return val if val else default
-
-            # 仅保留可用的部件/ID级规则，避免使用 HTML 标签选择器
             # 样式统一由 reader_overrides.tcss 管理，不再动态注入
-            pass
+            # Textual 原生主题系统自动提供 $text, $primary, $background 等变量
+            self._update_ui()
         except Exception as e:
-            logger.error(f"注入阅读内容多色位CSS失败: {e}")
+            logger.error(f"应用主题样式失败: {e}")
 
     def _apply_progress_styles(self) -> None:
-        """应用主题到标题行内的进度条与百分比文本（保持原位置）"""
+        """应用主题到进度条（现在通过 Textual 原生 CSS 变量管理）"""
         try:
-            tm = self.theme_manager
-            bar_style = tm.get_style("progress.bar")
-            text_style = tm.get_style("progress.text")
-            pct_style = tm.get_style("progress.percentage")
-
-            def pick(val: str, default: str) -> str:
-                return val if val else default
-
-            bar_color = self._get_color_string(getattr(bar_style, "color", None)) if bar_style else ""
-            text_color = self._get_color_string(getattr(text_style, "color", None)) if text_style else ""
-            pct_color = self._get_color_string(getattr(pct_style, "color", None)) if pct_style else ""
-
-            # 样式统一由 reader_overrides.tcss 管理，不再动态注入
             self._update_ui()
         except Exception as e:
             logger.debug(f"应用进度条样式失败: {e}")

@@ -1,153 +1,47 @@
 {
-    "name": "neon-pop",
-    "display_name": "Neon Pop",
-    "description": "Neon Pop 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#39FF14",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FF6EC7"
-        },
-        "app.accent": {
-            "color": "#00FFFF"
-        },
-        "app.highlight": {
-            "color": "#FFD300"
-        },
-        "app.warning": {
-            "color": "#FF3131"
-        },
-        "app.success": {
-            "color": "#39FF14"
-        },
-        "app.info": {
-            "color": "#7DF9FF"
-        },
-        "app.muted": {
-            "color": "#808080"
-        },
-        "ui.border": {
-            "color": "#FF6EC7"
-        },
-        "ui.background": {
-            "color": "#0F0F0F",
-            "bgcolor": "#0F0F0F"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#39FF14",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#E0FFE0"
-        },
-        "ui.button": {
-            "color": "#0F0F0F",
-            "bgcolor": "#39FF14"
-        },
-        "ui.button.primary": {
-            "color": "#0F0F0F",
-            "bgcolor": "#00FFFF"
-        },
-        "ui.button.success": {
-            "color": "#0F0F0F",
-            "bgcolor": "#39FF14"
-        },
-        "ui.button.warning": {
-            "color": "#0F0F0F",
-            "bgcolor": "#FFD300"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF3131"
-        },
-        "ui.input": {
-            "color": "#E0FFE0",
-            "bgcolor": "#222222"
-        },
-        "ui.input.focus": {
-            "color": "#39FF14",
-            "bgcolor": "#2B2B2B"
-        },
-        "ui.selection": {
-            "color": "#222222",
-            "bgcolor": "#222222"
-        },
-        "content.text": {
-            "color": "#E0FFE0"
-        },
-        "content.heading": {
-            "color": "#39FF14",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FFD300",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#00FFFF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#FF6EC7",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#39FF14",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#0F0F0F",
-            "bgcolor": "#FFD300"
-        },
-        "progress.bar": {
-            "color": "#00FFFF"
-        },
-        "progress.text": {
-            "color": "#E0FFE0"
-        },
-        "progress.percentage": {
-            "color": "#39FF14"
-        },
-        "bookshelf.title": {
-            "color": "#39FF14",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FF6EC7"
-        },
-        "bookshelf.progress": {
-            "color": "#00FFFF"
-        },
-        "bookshelf.tag": {
-            "color": "#FFD300",
-            "bgcolor": "#222222"
-        },
-        "bookshelf.selected": {
-            "color": "#2B2B2B",
-            "bgcolor": "#2B2B2B"
-        },
-        "reader.text": {
-            "color": "#E0FFE0"
-        },
-        "reader.chapter": {
-            "color": "#39FF14",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#FFD300"
-        },
-        "reader.bookmark": {
-            "color": "#00FFFF"
-        },
-        "reader.search_result": {
-            "color": "#0F0F0F",
-            "bgcolor": "#FFD300"
-        }
-    }
+  "name": "neon-pop",
+  "display_name": "Neon Pop",
+  "description": "Neon Pop 内置主题",
+  "primary": "#00FFFF",
+  "secondary": "#FFD300",
+  "accent": "#FFD300",
+  "warning": "#FF3131",
+  "error": "#FF3131",
+  "success": "#39FF14",
+  "foreground": "#E0FFE0",
+  "background": "#0F0F0F",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FF6EC7",
+    "border-blurred": "#808080",
+    "block-cursor-foreground": "#0F0F0F",
+    "block-cursor-background": "#00FFFF",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#E0FFE0",
+    "input-cursor-foreground": "#0F0F0F",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#00FFFF 35%",
+    "input-selection-foreground": "#E0FFE0",
+    "scrollbar": "#00FFFF",
+    "scrollbar-hover": "#00FFFF",
+    "scrollbar-active": "#FFD300",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#00FFFF",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#E0FFE0",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#00FFFF 35%",
+    "screen-selection-foreground": "#E0FFE0",
+    "ansi-background": "#E0FFE0",
+    "ansi-foreground": "#0F0F0F"
+  }
 }

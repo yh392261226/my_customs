@@ -182,3 +182,8 @@
 .port-status {
     margin-top: 1;
 }
+
+/* 状态文本颜色（使用主题变量，支持主题切换） */
+.status-success { color: $success; }
+.status-error { color: $error; }
+.status-info { color: $primary; }

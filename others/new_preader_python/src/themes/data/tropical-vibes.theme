@@ -1,153 +1,47 @@
 {
-    "name": "tropical-vibes",
-    "display_name": "Tropical Vibes",
-    "description": "Tropical Vibes 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FF6B35",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#F7931E"
-        },
-        "app.accent": {
-            "color": "#FDC830"
-        },
-        "app.highlight": {
-            "color": "#F37335"
-        },
-        "app.warning": {
-            "color": "#FF6B35"
-        },
-        "app.success": {
-            "color": "#00C896"
-        },
-        "app.info": {
-            "color": "#00B4D8"
-        },
-        "app.muted": {
-            "color": "#F7931E"
-        },
-        "ui.border": {
-            "color": "#FDC830"
-        },
-        "ui.background": {
-            "color": "#1A1A2E",
-            "bgcolor": "#1A1A2E"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#FF6B35",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#F7931E"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF6B35"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#00B4D8"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#00C896"
-        },
-        "ui.button.warning": {
-            "color": "#1A1A2E",
-            "bgcolor": "#FDC830"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF6B35"
-        },
-        "ui.input": {
-            "color": "#F7931E",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#FDC830",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#F7931E"
-        },
-        "content.heading": {
-            "color": "#FF6B35",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FDC830",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#00B4D8",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#00C896",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#F37335",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#1A1A2E",
-            "bgcolor": "#FDC830"
-        },
-        "progress.bar": {
-            "color": "#FF6B35"
-        },
-        "progress.text": {
-            "color": "#F7931E"
-        },
-        "progress.percentage": {
-            "color": "#FDC830"
-        },
-        "bookshelf.title": {
-            "color": "#FF6B35",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#F7931E"
-        },
-        "bookshelf.progress": {
-            "color": "#00B4D8"
-        },
-        "bookshelf.tag": {
-            "color": "#00C896",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#F7931E"
-        },
-        "reader.chapter": {
-            "color": "#FF6B35",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#F37335"
-        },
-        "reader.bookmark": {
-            "color": "#FDC830"
-        },
-        "reader.search_result": {
-            "color": "#1A1A2E",
-            "bgcolor": "#FDC830"
-        }
-    }
+  "name": "tropical-vibes",
+  "display_name": "Tropical Vibes",
+  "description": "Tropical Vibes 内置主题",
+  "primary": "#FDC830",
+  "secondary": "#F37335",
+  "accent": "#F37335",
+  "warning": "#FF6B35",
+  "error": "#FF6B35",
+  "success": "#00C896",
+  "foreground": "#F7931E",
+  "background": "#1A1A2E",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FDC830",
+    "border-blurred": "#F7931E",
+    "block-cursor-foreground": "#1A1A2E",
+    "block-cursor-background": "#FDC830",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#F7931E",
+    "input-cursor-foreground": "#1A1A2E",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FDC830 35%",
+    "input-selection-foreground": "#F7931E",
+    "scrollbar": "#FDC830",
+    "scrollbar-hover": "#FDC830",
+    "scrollbar-active": "#F37335",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#FDC830",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#F7931E",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#FDC830 35%",
+    "screen-selection-foreground": "#F7931E",
+    "ansi-background": "#F7931E",
+    "ansi-foreground": "#1A1A2E"
+  }
 }

@@ -6,15 +6,15 @@ BookmarkEditDialog {
     width: 70;
     height: 15;
     border: thick $primary;
-    background: black;
+    background: $background;
     padding: 1;
 }
 
 #title {
     width: 100%;
     text-align: center;
-    background: blue;
-    color: white;
+    background: $primary;
+    color: $text;
     padding: 0 1;
     margin-bottom: 1;
 }
@@ -44,6 +44,6 @@ BookmarkEditDialog {
 #info {
     width: 100%;
     text-align: center;
-    color: white;
+    color: $text;
     margin-bottom: 1;
 }

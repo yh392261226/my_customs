@@ -81,7 +81,7 @@
 
 .renamebook-component #rename-buttons #ok-btn {
     background: $primary;
-    color: white;
+    color: $text;
 }
 
 .renamebook-component #rename-buttons #ok-btn:hover {

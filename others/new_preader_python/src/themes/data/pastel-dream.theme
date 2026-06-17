@@ -1,153 +1,47 @@
 {
-    "name": "pastel-dream",
-    "display_name": "Pastel Dream",
-    "description": "Pastel Dream 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#6C5B7B",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#C06C84"
-        },
-        "app.accent": {
-            "color": "#F8B195"
-        },
-        "app.highlight": {
-            "color": "#F6C1C1"
-        },
-        "app.warning": {
-            "color": "#E84A5F"
-        },
-        "app.success": {
-            "color": "#99B898"
-        },
-        "app.info": {
-            "color": "#F8B195"
-        },
-        "app.muted": {
-            "color": "#A8A7A7"
-        },
-        "ui.border": {
-            "color": "#A8A7A7"
-        },
-        "ui.background": {
-            "color": "#FDF1ED",
-            "bgcolor": "#FDF1ED"
-        },
-        "ui.panel": {
-            "color": "#FEE9E1",
-            "bgcolor": "#FEE9E1"
-        },
-        "ui.panel.title": {
-            "color": "#6C5B7B",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#6C5B7B"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#C06C84"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#F8B195"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#99B898"
-        },
-        "ui.button.warning": {
-            "color": "#6C5B7B",
-            "bgcolor": "#F6C1C1"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#E84A5F"
-        },
-        "ui.input": {
-            "color": "#6C5B7B",
-            "bgcolor": "#FEE9E1"
-        },
-        "ui.input.focus": {
-            "color": "#6C5B7B",
-            "bgcolor": "#FADCD7"
-        },
-        "ui.selection": {
-            "color": "#FEE9E1",
-            "bgcolor": "#FEE9E1"
-        },
-        "content.text": {
-            "color": "#6C5B7B"
-        },
-        "content.heading": {
-            "color": "#6C5B7B",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#C06C84",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#F8B195",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#99B898",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#99B898",
-            "bgcolor": "#FDF1ED"
-        },
-        "content.highlight": {
-            "color": "#6C5B7B",
-            "bgcolor": "#F6C1C1"
-        },
-        "progress.bar": {
-            "color": "#F8B195"
-        },
-        "progress.text": {
-            "color": "#6C5B7B"
-        },
-        "progress.percentage": {
-            "color": "#6C5B7B"
-        },
-        "bookshelf.title": {
-            "color": "#6C5B7B",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#C06C84"
-        },
-        "bookshelf.progress": {
-            "color": "#F8B195"
-        },
-        "bookshelf.tag": {
-            "color": "#99B898",
-            "bgcolor": "#FEE9E1"
-        },
-        "bookshelf.selected": {
-            "color": "#FADCD7",
-            "bgcolor": "#FADCD7"
-        },
-        "reader.text": {
-            "color": "#6C5B7B"
-        },
-        "reader.chapter": {
-            "color": "#6C5B7B",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#C06C84"
-        },
-        "reader.bookmark": {
-            "color": "#F8B195"
-        },
-        "reader.search_result": {
-            "color": "#6C5B7B",
-            "bgcolor": "#F6C1C1"
-        }
-    }
+  "name": "pastel-dream",
+  "display_name": "Pastel Dream",
+  "description": "Pastel Dream 内置主题",
+  "primary": "#F8B195",
+  "secondary": "#F6C1C1",
+  "accent": "#F6C1C1",
+  "warning": "#E84A5F",
+  "error": "#E84A5F",
+  "success": "#99B898",
+  "foreground": "#6C5B7B",
+  "background": "#FDF1ED",
+  "surface": "#FEE9E1",
+  "panel": "#FEE9E1",
+  "boost": "#feeae2",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#A8A7A7",
+    "border-blurred": "#A8A7A7",
+    "block-cursor-foreground": "#FDF1ED",
+    "block-cursor-background": "#F8B195",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#6C5B7B",
+    "input-cursor-foreground": "#FDF1ED",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#F8B195 35%",
+    "input-selection-foreground": "#6C5B7B",
+    "scrollbar": "#F8B195",
+    "scrollbar-hover": "#F8B195",
+    "scrollbar-active": "#F6C1C1",
+    "scrollbar-background": "#FEE9E1",
+    "scrollbar-background-hover": "#FEE9E1",
+    "scrollbar-background-active": "#FEE9E1",
+    "scrollbar-corner-color": "#FEE9E1",
+    "block-hover-background": "#FEE9E1",
+    "footer-key-foreground": "#F8B195",
+    "footer-key-background": "#FEE9E1",
+    "footer-description-foreground": "#6C5B7B",
+    "footer-description-background": "#FEE9E1",
+    "screen-selection-background": "#F8B195 35%",
+    "screen-selection-foreground": "#6C5B7B",
+    "ansi-background": "#6C5B7B",
+    "ansi-foreground": "#FDF1ED"
+  }
 }

@@ -1,153 +1,47 @@
 {
-    "name": "dracula",
-    "display_name": "Dracula",
-    "description": "Dracula 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#F8F8F2",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#BFBFBF"
-        },
-        "app.accent": {
-            "color": "#BD93F9"
-        },
-        "app.highlight": {
-            "color": "#F1FA8C"
-        },
-        "app.warning": {
-            "color": "#FF5555"
-        },
-        "app.success": {
-            "color": "#50FA7B"
-        },
-        "app.info": {
-            "color": "#8BE9FD"
-        },
-        "app.muted": {
-            "color": "#6272A4"
-        },
-        "ui.border": {
-            "color": "#6272A4"
-        },
-        "ui.background": {
-            "color": "#282A36",
-            "bgcolor": "#282A36"
-        },
-        "ui.panel": {
-            "color": "#44475A",
-            "bgcolor": "#44475A"
-        },
-        "ui.panel.title": {
-            "color": "#F8F8F2",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#BD93F9"
-        },
-        "ui.button": {
-            "color": "#282A36",
-            "bgcolor": "#8BE9FD"
-        },
-        "ui.button.primary": {
-            "color": "#282A36",
-            "bgcolor": "#BD93F9"
-        },
-        "ui.button.success": {
-            "color": "#282A36",
-            "bgcolor": "#50FA7B"
-        },
-        "ui.button.warning": {
-            "color": "#282A36",
-            "bgcolor": "#F1FA8C"
-        },
-        "ui.button.danger": {
-            "color": "#F8F8F2",
-            "bgcolor": "#FF5555"
-        },
-        "ui.input": {
-            "color": "#8BE9FD",
-            "bgcolor": "#44475A"
-        },
-        "ui.input.focus": {
-            "color": "#F1FA8C",
-            "bgcolor": "#6272A4"
-        },
-        "ui.selection": {
-            "color": "#44475A",
-            "bgcolor": "#44475A"
-        },
-        "content.text": {
-            "color": "#BD93F9"
-        },
-        "content.heading": {
-            "color": "#BD93F9",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#F1FA8C",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#FF79C6",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#F1FA8C",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#50FA7B",
-            "bgcolor": "#282A36"
-        },
-        "content.highlight": {
-            "color": "#282A36",
-            "bgcolor": "#F1FA8C"
-        },
-        "progress.bar": {
-            "color": "#BD93F9"
-        },
-        "progress.text": {
-            "color": "#BD93F9"
-        },
-        "progress.percentage": {
-            "color": "#BD93F9"
-        },
-        "bookshelf.title": {
-            "color": "#BD93F9",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#BD93F9"
-        },
-        "bookshelf.progress": {
-            "color": "#FF79C6"
-        },
-        "bookshelf.tag": {
-            "color": "#8BE9FD",
-            "bgcolor": "#44475A"
-        },
-        "bookshelf.selected": {
-            "color": "#6272A4",
-            "bgcolor": "#6272A4"
-        },
-        "reader.text": {
-            "color": "#BD93F9"
-        },
-        "reader.chapter": {
-            "color": "#BD93F9",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#F1FA8C"
-        },
-        "reader.bookmark": {
-            "color": "#FF79C6"
-        },
-        "reader.search_result": {
-            "color": "#282A36",
-            "bgcolor": "#F1FA8C"
-        }
-    }
+  "name": "dracula",
+  "display_name": "Dracula",
+  "description": "Dracula 内置主题",
+  "primary": "#BD93F9",
+  "secondary": "#F1FA8C",
+  "accent": "#F1FA8C",
+  "warning": "#FF5555",
+  "error": "#FF5555",
+  "success": "#50FA7B",
+  "foreground": "#BD93F9",
+  "background": "#282A36",
+  "surface": "#44475A",
+  "panel": "#44475A",
+  "boost": "#4f5263",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#6272A4",
+    "border-blurred": "#6272A4",
+    "block-cursor-foreground": "#282A36",
+    "block-cursor-background": "#BD93F9",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#BD93F9",
+    "input-cursor-foreground": "#282A36",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#BD93F9 35%",
+    "input-selection-foreground": "#BD93F9",
+    "scrollbar": "#BD93F9",
+    "scrollbar-hover": "#BD93F9",
+    "scrollbar-active": "#F1FA8C",
+    "scrollbar-background": "#44475A",
+    "scrollbar-background-hover": "#44475A",
+    "scrollbar-background-active": "#44475A",
+    "scrollbar-corner-color": "#44475A",
+    "block-hover-background": "#44475A",
+    "footer-key-foreground": "#BD93F9",
+    "footer-key-background": "#44475A",
+    "footer-description-foreground": "#BD93F9",
+    "footer-description-background": "#44475A",
+    "screen-selection-background": "#BD93F9 35%",
+    "screen-selection-foreground": "#BD93F9",
+    "ansi-background": "#BD93F9",
+    "ansi-foreground": "#282A36"
+  }
 }

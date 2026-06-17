@@ -1,129 +1,47 @@
 {
-    "name": "glass-coral",
-    "display_name": "Glass Coral",
-    "description": "Glass Coral 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FF8A80",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FFD1C4"
-        },
-        "app.accent": {
-            "color": "#FF6F61"
-        },
-        "app.highlight": {
-            "color": "#FFD166"
-        },
-        "app.warning": {
-            "color": "#EF4444"
-        },
-        "app.success": {
-            "color": "#22C55E"
-        },
-        "app.info": {
-            "color": "#60A5FA"
-        },
-        "app.muted": {
-            "color": "#9CA3AF"
-        },
-        "ui.border": {
-            "color": "#FF8A80"
-        },
-        "ui.panel.title": {
-            "color": "#FF8A80",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FFE2DC"
-        },
-        "ui.button": {
-            "color": "#FFE2DC"
-        },
-        "ui.button.primary": {
-            "color": "#FF6F61"
-        },
-        "ui.button.success": {
-            "color": "#22C55E"
-        },
-        "ui.button.warning": {
-            "color": "#FFD166"
-        },
-        "ui.button.danger": {
-            "color": "#EF4444"
-        },
-        "ui.input": {
-            "color": "#FFE2DC"
-        },
-        "ui.input.focus": {
-            "color": "#FF8A80"
-        },
-        "content.text": {
-            "color": "#FFE2DC"
-        },
-        "content.heading": {
-            "color": "#FF8A80",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FF6F61",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#FF6F61",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#22C55E",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#22C55E"
-        },
-        "content.highlight": {
-            "color": "#FF8A80"
-        },
-        "progress.bar": {
-            "color": "#FF6F61"
-        },
-        "progress.text": {
-            "color": "#FFD1C4"
-        },
-        "progress.percentage": {
-            "color": "#FF8A80"
-        },
-        "bookshelf.title": {
-            "color": "#FF8A80",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FFD1C4"
-        },
-        "bookshelf.progress": {
-            "color": "#FF6F61"
-        },
-        "bookshelf.tag": {
-            "color": "#22C55E"
-        },
-        "bookshelf.selected": {
-            "color": "#FFD1C4"
-        },
-        "reader.text": {
-            "color": "#FFE2DC"
-        },
-        "reader.chapter": {
-            "color": "#FF8A80",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#FF6F61"
-        },
-        "reader.bookmark": {
-            "color": "#FFD166"
-        },
-        "reader.search_result": {
-            "color": "#FF8A80"
-        }
-    }
+  "name": "glass-coral",
+  "display_name": "Glass Coral",
+  "description": "Glass Coral 内置主题",
+  "primary": "#FF6F61",
+  "secondary": "#FFD166",
+  "accent": "#FFD166",
+  "warning": "#EF4444",
+  "error": "#EF4444",
+  "success": "#22C55E",
+  "foreground": "#FFE2DC",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FF8A80",
+    "border-blurred": "#9CA3AF",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#FF6F61",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#FFE2DC",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FF6F61 35%",
+    "input-selection-foreground": "#FFE2DC",
+    "scrollbar": "#FF6F61",
+    "scrollbar-hover": "#FF6F61",
+    "scrollbar-active": "#FFD166",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#FF6F61",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#FFE2DC",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#FF6F61 35%",
+    "screen-selection-foreground": "#FFE2DC",
+    "ansi-background": "#FFE2DC",
+    "ansi-foreground": "#000000"
+  }
 }

@@ -583,15 +583,16 @@ class ProxyListScreen(Screen[None]):
         status_label = self.query_one("#proxy-list-status", Label)
         status_label.update(message)
         
-        # 根据严重程度设置样式
+        # 根据严重程度设置样式（使用主题变量CSS类）
+        status_label.remove_class("status-success", "status-error", "status-warning", "status-info")
         if severity == "success":
-            status_label.styles.color = "green"
+            status_label.add_class("status-success")
         elif severity == "error":
-            status_label.styles.color = "red"
+            status_label.add_class("status-error")
         elif severity == "warning":
-            status_label.styles.color = "yellow"
+            status_label.add_class("status-warning")
         else:
-            status_label.styles.color = "blue"
+            status_label.add_class("status-info")
     
     def key_a(self) -> None:
         """A键 - 添加代理"""

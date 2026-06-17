@@ -1,150 +1,47 @@
 {
-    "name": "transparent-dark",
-    "display_name": "Transparent Dark",
-    "description": "Transparent Dark 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#8BC1FF",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#A6C6FF"
-        },
-        "app.accent": {
-            "color": "#5D9CEC"
-        },
-        "app.highlight": {
-            "color": "#FAC51C"
-        },
-        "app.warning": {
-            "color": "#DA4453"
-        },
-        "app.success": {
-            "color": "#37BC9B"
-        },
-        "app.info": {
-            "color": "#3BAFDA"
-        },
-        "app.muted": {
-            "color": "#656D78"
-        },
-        "ui.border": {
-            "color": "#434A54"
-        },
-        "ui.background": {},
-        "ui.panel": {
-            "color": "#2F2F2F",
-            "bgcolor": "#2F2F2F"
-        },
-        "ui.panel.title": {
-            "color": "#8BC1FF",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#A6C6FF"
-        },
-        "ui.button": {
-            "color": "#A6C6FF",
-            "bgcolor": "#434A54"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#5D9CEC"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#37BC9B"
-        },
-        "ui.button.warning": {
-            "color": "#000000",
-            "bgcolor": "#F6BB42"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#DA4453"
-        },
-        "ui.input": {
-            "color": "#A6C6FF",
-            "bgcolor": "#2F2F2F"
-        },
-        "ui.input.focus": {
-            "color": "#8BC1FF",
-            "bgcolor": "#434A54"
-        },
-        "ui.selection": {
-            "color": "#2F2F2F",
-            "bgcolor": "#2F2F2F"
-        },
-        "content.text": {
-            "color": "#A6C6FF"
-        },
-        "content.heading": {
-            "color": "#8BC1FF",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#A6C6FF",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#5D9CEC",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#A6C6FF",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#37BC9B",
-            "bgcolor": "#2F2F2F"
-        },
-        "content.highlight": {
-            "color": "#000000",
-            "bgcolor": "#FAC51C"
-        },
-        "progress.bar": {
-            "color": "#5D9CEC"
-        },
-        "progress.text": {
-            "color": "#A6C6FF"
-        },
-        "progress.percentage": {
-            "color": "#8BC1FF"
-        },
-        "bookshelf.title": {
-            "color": "#8BC1FF",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#A6C6FF"
-        },
-        "bookshelf.progress": {
-            "color": "#5D9CEC"
-        },
-        "bookshelf.tag": {
-            "color": "#A6C6FF",
-            "bgcolor": "#2F2F2F"
-        },
-        "bookshelf.selected": {
-            "color": "#2F2F2F",
-            "bgcolor": "#2F2F2F"
-        },
-        "reader.text": {
-            "color": "#A6C6FF"
-        },
-        "reader.chapter": {
-            "color": "#8BC1FF",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#656D78"
-        },
-        "reader.bookmark": {
-            "color": "#FAC51C"
-        },
-        "reader.search_result": {
-            "color": "#000000",
-            "bgcolor": "#FAC51C"
-        }
-    }
+  "name": "transparent-dark",
+  "display_name": "Transparent Dark",
+  "description": "Transparent Dark 内置主题",
+  "primary": "#5D9CEC",
+  "secondary": "#FAC51C",
+  "accent": "#FAC51C",
+  "warning": "#DA4453",
+  "error": "#DA4453",
+  "success": "#37BC9B",
+  "foreground": "#A6C6FF",
+  "background": "transparent",
+  "surface": "#2F2F2F",
+  "panel": "#2F2F2F",
+  "boost": "#3b3b3b",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#434A54",
+    "border-blurred": "#656D78",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#5D9CEC",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#A6C6FF",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#5D9CEC 35%",
+    "input-selection-foreground": "#A6C6FF",
+    "scrollbar": "#5D9CEC",
+    "scrollbar-hover": "#5D9CEC",
+    "scrollbar-active": "#FAC51C",
+    "scrollbar-background": "#2F2F2F",
+    "scrollbar-background-hover": "#2F2F2F",
+    "scrollbar-background-active": "#2F2F2F",
+    "scrollbar-corner-color": "#2F2F2F",
+    "block-hover-background": "#2F2F2F",
+    "footer-key-foreground": "#5D9CEC",
+    "footer-key-background": "#2F2F2F",
+    "footer-description-foreground": "#A6C6FF",
+    "footer-description-background": "#2F2F2F",
+    "screen-selection-background": "#5D9CEC 35%",
+    "screen-selection-foreground": "#A6C6FF",
+    "ansi-background": "#A6C6FF",
+    "ansi-foreground": "#000000"
+  }
 }

@@ -1,129 +1,47 @@
 {
-    "name": "glass-graphite",
-    "display_name": "Glass Graphite",
-    "description": "Glass Graphite 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#E5E7EB",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#D1D5DB"
-        },
-        "app.accent": {
-            "color": "#9CA3AF"
-        },
-        "app.highlight": {
-            "color": "#FCD34D"
-        },
-        "app.warning": {
-            "color": "#F87171"
-        },
-        "app.success": {
-            "color": "#34D399"
-        },
-        "app.info": {
-            "color": "#60A5FA"
-        },
-        "app.muted": {
-            "color": "#9CA3AF"
-        },
-        "ui.border": {
-            "color": "#9CA3AF"
-        },
-        "ui.panel.title": {
-            "color": "#E5E7EB",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#F3F4F6"
-        },
-        "ui.button": {
-            "color": "#F3F4F6"
-        },
-        "ui.button.primary": {
-            "color": "#9CA3AF"
-        },
-        "ui.button.success": {
-            "color": "#34D399"
-        },
-        "ui.button.warning": {
-            "color": "#FCD34D"
-        },
-        "ui.button.danger": {
-            "color": "#F87171"
-        },
-        "ui.input": {
-            "color": "#F3F4F6"
-        },
-        "ui.input.focus": {
-            "color": "#E5E7EB"
-        },
-        "content.text": {
-            "color": "#F3F4F6"
-        },
-        "content.heading": {
-            "color": "#E5E7EB",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#9CA3AF",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#9CA3AF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#34D399",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#34D399"
-        },
-        "content.highlight": {
-            "color": "#E5E7EB"
-        },
-        "progress.bar": {
-            "color": "#9CA3AF"
-        },
-        "progress.text": {
-            "color": "#D1D5DB"
-        },
-        "progress.percentage": {
-            "color": "#E5E7EB"
-        },
-        "bookshelf.title": {
-            "color": "#E5E7EB",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#D1D5DB"
-        },
-        "bookshelf.progress": {
-            "color": "#9CA3AF"
-        },
-        "bookshelf.tag": {
-            "color": "#34D399"
-        },
-        "bookshelf.selected": {
-            "color": "#D1D5DB"
-        },
-        "reader.text": {
-            "color": "#F3F4F6"
-        },
-        "reader.chapter": {
-            "color": "#E5E7EB",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#9CA3AF"
-        },
-        "reader.bookmark": {
-            "color": "#FCD34D"
-        },
-        "reader.search_result": {
-            "color": "#E5E7EB"
-        }
-    }
+  "name": "glass-graphite",
+  "display_name": "Glass Graphite",
+  "description": "Glass Graphite 内置主题",
+  "primary": "#9CA3AF",
+  "secondary": "#FCD34D",
+  "accent": "#FCD34D",
+  "warning": "#F87171",
+  "error": "#F87171",
+  "success": "#34D399",
+  "foreground": "#F3F4F6",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#9CA3AF",
+    "border-blurred": "#9CA3AF",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#9CA3AF",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#F3F4F6",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#9CA3AF 35%",
+    "input-selection-foreground": "#F3F4F6",
+    "scrollbar": "#9CA3AF",
+    "scrollbar-hover": "#9CA3AF",
+    "scrollbar-active": "#FCD34D",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#9CA3AF",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#F3F4F6",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#9CA3AF 35%",
+    "screen-selection-foreground": "#F3F4F6",
+    "ansi-background": "#F3F4F6",
+    "ansi-foreground": "#000000"
+  }
 }

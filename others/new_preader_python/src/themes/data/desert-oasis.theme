@@ -1,153 +1,47 @@
 {
-    "name": "desert-oasis",
-    "display_name": "Desert Oasis",
-    "description": "Desert Oasis 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FFF3E0",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FFE0B2"
-        },
-        "app.accent": {
-            "color": "#FFCC80"
-        },
-        "app.highlight": {
-            "color": "#FFE082"
-        },
-        "app.warning": {
-            "color": "#FF8A65"
-        },
-        "app.success": {
-            "color": "#81C784"
-        },
-        "app.info": {
-            "color": "#64B5F6"
-        },
-        "app.muted": {
-            "color": "#FFB74D"
-        },
-        "ui.border": {
-            "color": "#FFCC80"
-        },
-        "ui.background": {
-            "color": "#5D4037",
-            "bgcolor": "#5D4037"
-        },
-        "ui.panel": {
-            "color": "#6D4C41",
-            "bgcolor": "#6D4C41"
-        },
-        "ui.panel.title": {
-            "color": "#FFF3E0",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FFE0B2"
-        },
-        "ui.button": {
-            "color": "#5D4037",
-            "bgcolor": "#FFF3E0"
-        },
-        "ui.button.primary": {
-            "color": "#5D4037",
-            "bgcolor": "#FFCC80"
-        },
-        "ui.button.success": {
-            "color": "#5D4037",
-            "bgcolor": "#81C784"
-        },
-        "ui.button.warning": {
-            "color": "#5D4037",
-            "bgcolor": "#FF8A65"
-        },
-        "ui.button.danger": {
-            "color": "#FFF3E0",
-            "bgcolor": "#E57373"
-        },
-        "ui.input": {
-            "color": "#FFE0B2",
-            "bgcolor": "#6D4C41"
-        },
-        "ui.input.focus": {
-            "color": "#FFF3E0",
-            "bgcolor": "#795548"
-        },
-        "ui.selection": {
-            "color": "#795548",
-            "bgcolor": "#795548"
-        },
-        "content.text": {
-            "color": "#FFE0B2"
-        },
-        "content.heading": {
-            "color": "#FFF3E0",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FFCC80",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#64B5F6",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#81C784",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#FFE082",
-            "bgcolor": "#5D4037"
-        },
-        "content.highlight": {
-            "color": "#5D4037",
-            "bgcolor": "#FFE082"
-        },
-        "progress.bar": {
-            "color": "#FFF3E0"
-        },
-        "progress.text": {
-            "color": "#FFE0B2"
-        },
-        "progress.percentage": {
-            "color": "#FFCC80"
-        },
-        "bookshelf.title": {
-            "color": "#FFF3E0",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FFE0B2"
-        },
-        "bookshelf.progress": {
-            "color": "#64B5F6"
-        },
-        "bookshelf.tag": {
-            "color": "#81C784",
-            "bgcolor": "#6D4C41"
-        },
-        "bookshelf.selected": {
-            "color": "#795548",
-            "bgcolor": "#795548"
-        },
-        "reader.text": {
-            "color": "#FFE0B2"
-        },
-        "reader.chapter": {
-            "color": "#FFF3E0",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#FFB74D"
-        },
-        "reader.bookmark": {
-            "color": "#FFE082"
-        },
-        "reader.search_result": {
-            "color": "#5D4037",
-            "bgcolor": "#FFE082"
-        }
-    }
+  "name": "desert-oasis",
+  "display_name": "Desert Oasis",
+  "description": "Desert Oasis 内置主题",
+  "primary": "#FFCC80",
+  "secondary": "#FFE082",
+  "accent": "#FFE082",
+  "warning": "#FF8A65",
+  "error": "#FF8A65",
+  "success": "#81C784",
+  "foreground": "#FFE0B2",
+  "background": "#5D4037",
+  "surface": "#6D4C41",
+  "panel": "#6D4C41",
+  "boost": "#75564c",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FFCC80",
+    "border-blurred": "#FFB74D",
+    "block-cursor-foreground": "#5D4037",
+    "block-cursor-background": "#FFCC80",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#FFE0B2",
+    "input-cursor-foreground": "#5D4037",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FFCC80 35%",
+    "input-selection-foreground": "#FFE0B2",
+    "scrollbar": "#FFCC80",
+    "scrollbar-hover": "#FFCC80",
+    "scrollbar-active": "#FFE082",
+    "scrollbar-background": "#6D4C41",
+    "scrollbar-background-hover": "#6D4C41",
+    "scrollbar-background-active": "#6D4C41",
+    "scrollbar-corner-color": "#6D4C41",
+    "block-hover-background": "#6D4C41",
+    "footer-key-foreground": "#FFCC80",
+    "footer-key-background": "#6D4C41",
+    "footer-description-foreground": "#FFE0B2",
+    "footer-description-background": "#6D4C41",
+    "screen-selection-background": "#FFCC80 35%",
+    "screen-selection-foreground": "#FFE0B2",
+    "ansi-background": "#FFE0B2",
+    "ansi-foreground": "#5D4037"
+  }
 }

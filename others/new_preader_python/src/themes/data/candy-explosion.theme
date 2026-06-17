@@ -1,153 +1,47 @@
 {
-    "name": "candy-explosion",
-    "display_name": "Candy Explosion",
-    "description": "Candy Explosion 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FF1493",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#00CED1"
-        },
-        "app.accent": {
-            "color": "#FFD700"
-        },
-        "app.highlight": {
-            "color": "#FF69B4"
-        },
-        "app.warning": {
-            "color": "#FF1493"
-        },
-        "app.success": {
-            "color": "#32CD32"
-        },
-        "app.info": {
-            "color": "#00CED1"
-        },
-        "app.muted": {
-            "color": "#9370DB"
-        },
-        "ui.border": {
-            "color": "#FFD700"
-        },
-        "ui.background": {
-            "color": "#2C003E",
-            "bgcolor": "#2C003E"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#FF1493",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#00CED1"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF1493"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#00CED1"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#32CD32"
-        },
-        "ui.button.warning": {
-            "color": "#2C003E",
-            "bgcolor": "#FFD700"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF1493"
-        },
-        "ui.input": {
-            "color": "#00CED1",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#FFD700",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#00CED1"
-        },
-        "content.heading": {
-            "color": "#FF1493",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#FFD700",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#FF69B4",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#32CD32",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#9370DB",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#2C003E",
-            "bgcolor": "#FFD700"
-        },
-        "progress.bar": {
-            "color": "#FF1493"
-        },
-        "progress.text": {
-            "color": "#00CED1"
-        },
-        "progress.percentage": {
-            "color": "#FFD700"
-        },
-        "bookshelf.title": {
-            "color": "#FF1493",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#00CED1"
-        },
-        "bookshelf.progress": {
-            "color": "#FF69B4"
-        },
-        "bookshelf.tag": {
-            "color": "#32CD32",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#00CED1"
-        },
-        "reader.chapter": {
-            "color": "#FF1493",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#9370DB"
-        },
-        "reader.bookmark": {
-            "color": "#FFD700"
-        },
-        "reader.search_result": {
-            "color": "#2C003E",
-            "bgcolor": "#FFD700"
-        }
-    }
+  "name": "candy-explosion",
+  "display_name": "Candy Explosion",
+  "description": "Candy Explosion 内置主题",
+  "primary": "#FFD700",
+  "secondary": "#FF69B4",
+  "accent": "#FF69B4",
+  "warning": "#FF1493",
+  "error": "#FF1493",
+  "success": "#32CD32",
+  "foreground": "#00CED1",
+  "background": "#2C003E",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#FFD700",
+    "border-blurred": "#9370DB",
+    "block-cursor-foreground": "#2C003E",
+    "block-cursor-background": "#FFD700",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#00CED1",
+    "input-cursor-foreground": "#2C003E",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#FFD700 35%",
+    "input-selection-foreground": "#00CED1",
+    "scrollbar": "#FFD700",
+    "scrollbar-hover": "#FFD700",
+    "scrollbar-active": "#FF69B4",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#FFD700",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#00CED1",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#FFD700 35%",
+    "screen-selection-foreground": "#00CED1",
+    "ansi-background": "#00CED1",
+    "ansi-foreground": "#2C003E"
+  }
 }

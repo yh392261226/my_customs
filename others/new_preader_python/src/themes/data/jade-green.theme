@@ -1,153 +1,47 @@
 {
-    "name": "jade-green",
-    "display_name": "Jade Green",
-    "description": "Jade Green 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#A5D6A7",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#81C784"
-        },
-        "app.accent": {
-            "color": "#66BB6A"
-        },
-        "app.highlight": {
-            "color": "#4CAF50"
-        },
-        "app.warning": {
-            "color": "#FF9800"
-        },
-        "app.success": {
-            "color": "#2E7D32"
-        },
-        "app.info": {
-            "color": "#2196F3"
-        },
-        "app.muted": {
-            "color": "#388E3C"
-        },
-        "ui.border": {
-            "color": "#66BB6A"
-        },
-        "ui.background": {
-            "color": "#1B5E20",
-            "bgcolor": "#1B5E20"
-        },
-        "ui.panel": {
-            "color": "#2E7D32",
-            "bgcolor": "#2E7D32"
-        },
-        "ui.panel.title": {
-            "color": "#A5D6A7",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#81C784"
-        },
-        "ui.button": {
-            "color": "#1B5E20",
-            "bgcolor": "#A5D6A7"
-        },
-        "ui.button.primary": {
-            "color": "#1B5E20",
-            "bgcolor": "#66BB6A"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#2E7D32"
-        },
-        "ui.button.warning": {
-            "color": "#1B5E20",
-            "bgcolor": "#FF9800"
-        },
-        "ui.button.danger": {
-            "color": "#A5D6A7",
-            "bgcolor": "#E57373"
-        },
-        "ui.input": {
-            "color": "#81C784",
-            "bgcolor": "#2E7D32"
-        },
-        "ui.input.focus": {
-            "color": "#A5D6A7",
-            "bgcolor": "#388E3C"
-        },
-        "ui.selection": {
-            "color": "#388E3C",
-            "bgcolor": "#388E3C"
-        },
-        "content.text": {
-            "color": "#81C784"
-        },
-        "content.heading": {
-            "color": "#A5D6A7",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#66BB6A",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#2196F3",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#2E7D32",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#4CAF50",
-            "bgcolor": "#1B5E20"
-        },
-        "content.highlight": {
-            "color": "#1B5E20",
-            "bgcolor": "#4CAF50"
-        },
-        "progress.bar": {
-            "color": "#A5D6A7"
-        },
-        "progress.text": {
-            "color": "#81C784"
-        },
-        "progress.percentage": {
-            "color": "#66BB6A"
-        },
-        "bookshelf.title": {
-            "color": "#A5D6A7",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#81C784"
-        },
-        "bookshelf.progress": {
-            "color": "#2196F3"
-        },
-        "bookshelf.tag": {
-            "color": "#2E7D32",
-            "bgcolor": "#2E7D32"
-        },
-        "bookshelf.selected": {
-            "color": "#388E3C",
-            "bgcolor": "#388E3C"
-        },
-        "reader.text": {
-            "color": "#81C784"
-        },
-        "reader.chapter": {
-            "color": "#A5D6A7",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#388E3C"
-        },
-        "reader.bookmark": {
-            "color": "#4CAF50"
-        },
-        "reader.search_result": {
-            "color": "#1B5E20",
-            "bgcolor": "#4CAF50"
-        }
-    }
+  "name": "jade-green",
+  "display_name": "Jade Green",
+  "description": "Jade Green 内置主题",
+  "primary": "#66BB6A",
+  "secondary": "#4CAF50",
+  "accent": "#4CAF50",
+  "warning": "#FF9800",
+  "error": "#FF9800",
+  "success": "#2E7D32",
+  "foreground": "#81C784",
+  "background": "#1B5E20",
+  "surface": "#2E7D32",
+  "panel": "#2E7D32",
+  "boost": "#3a843e",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#66BB6A",
+    "border-blurred": "#388E3C",
+    "block-cursor-foreground": "#1B5E20",
+    "block-cursor-background": "#66BB6A",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#81C784",
+    "input-cursor-foreground": "#1B5E20",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#66BB6A 35%",
+    "input-selection-foreground": "#81C784",
+    "scrollbar": "#66BB6A",
+    "scrollbar-hover": "#66BB6A",
+    "scrollbar-active": "#4CAF50",
+    "scrollbar-background": "#2E7D32",
+    "scrollbar-background-hover": "#2E7D32",
+    "scrollbar-background-active": "#2E7D32",
+    "scrollbar-corner-color": "#2E7D32",
+    "block-hover-background": "#2E7D32",
+    "footer-key-foreground": "#66BB6A",
+    "footer-key-background": "#2E7D32",
+    "footer-description-foreground": "#81C784",
+    "footer-description-background": "#2E7D32",
+    "screen-selection-background": "#66BB6A 35%",
+    "screen-selection-foreground": "#81C784",
+    "ansi-background": "#81C784",
+    "ansi-foreground": "#1B5E20"
+  }
 }

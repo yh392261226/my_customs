@@ -1,153 +1,47 @@
 {
-    "name": "violet-dream",
-    "display_name": "Violet Dream",
-    "description": "Violet Dream 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#7B1FA2",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#8E24AA"
-        },
-        "app.accent": {
-            "color": "#9C27B0"
-        },
-        "app.highlight": {
-            "color": "#AB47BC"
-        },
-        "app.warning": {
-            "color": "#FFA726"
-        },
-        "app.success": {
-            "color": "#66BB6A"
-        },
-        "app.info": {
-            "color": "#42A5F5"
-        },
-        "app.muted": {
-            "color": "#8E24AA"
-        },
-        "ui.border": {
-            "color": "#9C27B0"
-        },
-        "ui.background": {
-            "color": "#F3E5F5",
-            "bgcolor": "#F3E5F5"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#7B1FA2",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#8E24AA"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#7B1FA2"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#9C27B0"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#66BB6A"
-        },
-        "ui.button.warning": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FFA726"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#EF5350"
-        },
-        "ui.input": {
-            "color": "#8E24AA",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#9C27B0",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#8E24AA"
-        },
-        "content.heading": {
-            "color": "#7B1FA2",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#9C27B0",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#42A5F5",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#66BB6A",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#6A1B9A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#F3E5F5",
-            "bgcolor": "#AB47BC"
-        },
-        "progress.bar": {
-            "color": "#7B1FA2"
-        },
-        "progress.text": {
-            "color": "#8E24AA"
-        },
-        "progress.percentage": {
-            "color": "#9C27B0"
-        },
-        "bookshelf.title": {
-            "color": "#7B1FA2",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#8E24AA"
-        },
-        "bookshelf.progress": {
-            "color": "#42A5F5"
-        },
-        "bookshelf.tag": {
-            "color": "#66BB6A",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#8E24AA"
-        },
-        "reader.chapter": {
-            "color": "#7B1FA2",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#6A1B9A"
-        },
-        "reader.bookmark": {
-            "color": "#AB47BC"
-        },
-        "reader.search_result": {
-            "color": "#F3E5F5",
-            "bgcolor": "#AB47BC"
-        }
-    }
+  "name": "violet-dream",
+  "display_name": "Violet Dream",
+  "description": "Violet Dream 内置主题",
+  "primary": "#9C27B0",
+  "secondary": "#AB47BC",
+  "accent": "#AB47BC",
+  "warning": "#FFA726",
+  "error": "#FFA726",
+  "success": "#66BB6A",
+  "foreground": "#8E24AA",
+  "background": "#F3E5F5",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#9C27B0",
+    "border-blurred": "#8E24AA",
+    "block-cursor-foreground": "#F3E5F5",
+    "block-cursor-background": "#9C27B0",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#8E24AA",
+    "input-cursor-foreground": "#F3E5F5",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#9C27B0 35%",
+    "input-selection-foreground": "#8E24AA",
+    "scrollbar": "#9C27B0",
+    "scrollbar-hover": "#9C27B0",
+    "scrollbar-active": "#AB47BC",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#9C27B0",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#8E24AA",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#9C27B0 35%",
+    "screen-selection-foreground": "#8E24AA",
+    "ansi-background": "#8E24AA",
+    "ansi-foreground": "#F3E5F5"
+  }
 }

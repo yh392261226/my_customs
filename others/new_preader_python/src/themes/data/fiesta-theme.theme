@@ -1,153 +1,47 @@
 {
-    "name": "fiesta-theme",
-    "display_name": "Fiesta Theme",
-    "description": "Fiesta Theme 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FF1744",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#F50057"
-        },
-        "app.accent": {
-            "color": "#D500F9"
-        },
-        "app.highlight": {
-            "color": "#651FFF"
-        },
-        "app.warning": {
-            "color": "#FF1744"
-        },
-        "app.success": {
-            "color": "#00E676"
-        },
-        "app.info": {
-            "color": "#00E5FF"
-        },
-        "app.muted": {
-            "color": "#F50057"
-        },
-        "ui.border": {
-            "color": "#D500F9"
-        },
-        "ui.background": {
-            "color": "#1A0033",
-            "bgcolor": "#1A0033"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#FF1744",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#F50057"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF1744"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#D500F9"
-        },
-        "ui.button.success": {
-            "color": "#1A0033",
-            "bgcolor": "#00E676"
-        },
-        "ui.button.warning": {
-            "color": "#1A0033",
-            "bgcolor": "#651FFF"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF1744"
-        },
-        "ui.input": {
-            "color": "#F50057",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#D500F9",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#F50057"
-        },
-        "content.heading": {
-            "color": "#FF1744",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#D500F9",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#00E5FF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#00E676",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#651FFF",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#1A0033",
-            "bgcolor": "#651FFF"
-        },
-        "progress.bar": {
-            "color": "#FF1744"
-        },
-        "progress.text": {
-            "color": "#F50057"
-        },
-        "progress.percentage": {
-            "color": "#D500F9"
-        },
-        "bookshelf.title": {
-            "color": "#FF1744",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#F50057"
-        },
-        "bookshelf.progress": {
-            "color": "#00E5FF"
-        },
-        "bookshelf.tag": {
-            "color": "#00E676",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#F50057"
-        },
-        "reader.chapter": {
-            "color": "#FF1744",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#651FFF"
-        },
-        "reader.bookmark": {
-            "color": "#D500F9"
-        },
-        "reader.search_result": {
-            "color": "#1A0033",
-            "bgcolor": "#D500F9"
-        }
-    }
+  "name": "fiesta-theme",
+  "display_name": "Fiesta Theme",
+  "description": "Fiesta Theme 内置主题",
+  "primary": "#D500F9",
+  "secondary": "#651FFF",
+  "accent": "#651FFF",
+  "warning": "#FF1744",
+  "error": "#FF1744",
+  "success": "#00E676",
+  "foreground": "#F50057",
+  "background": "#1A0033",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#D500F9",
+    "border-blurred": "#F50057",
+    "block-cursor-foreground": "#1A0033",
+    "block-cursor-background": "#D500F9",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#F50057",
+    "input-cursor-foreground": "#1A0033",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#D500F9 35%",
+    "input-selection-foreground": "#F50057",
+    "scrollbar": "#D500F9",
+    "scrollbar-hover": "#D500F9",
+    "scrollbar-active": "#651FFF",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#D500F9",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#F50057",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#D500F9 35%",
+    "screen-selection-foreground": "#F50057",
+    "ansi-background": "#F50057",
+    "ansi-foreground": "#1A0033"
+  }
 }

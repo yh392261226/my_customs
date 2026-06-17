@@ -1,153 +1,47 @@
 {
-    "name": "lavender-field",
-    "display_name": "Lavender Field",
-    "description": "Lavender Field 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#7E57C2",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#9575CD"
-        },
-        "app.accent": {
-            "color": "#B39DDB"
-        },
-        "app.highlight": {
-            "color": "#D1C4E9"
-        },
-        "app.warning": {
-            "color": "#FFA726"
-        },
-        "app.success": {
-            "color": "#66BB6A"
-        },
-        "app.info": {
-            "color": "#42A5F5"
-        },
-        "app.muted": {
-            "color": "#9575CD"
-        },
-        "ui.border": {
-            "color": "#B39DDB"
-        },
-        "ui.background": {
-            "color": "#EDE7F6",
-            "bgcolor": "#EDE7F6"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#7E57C2",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#9575CD"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#7E57C2"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#B39DDB"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#66BB6A"
-        },
-        "ui.button.warning": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FFA726"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#EF5350"
-        },
-        "ui.input": {
-            "color": "#9575CD",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#B39DDB",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#9575CD"
-        },
-        "content.heading": {
-            "color": "#7E57C2",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#B39DDB",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#42A5F5",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#66BB6A",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#512DA8",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#EDE7F6",
-            "bgcolor": "#D1C4E9"
-        },
-        "progress.bar": {
-            "color": "#7E57C2"
-        },
-        "progress.text": {
-            "color": "#9575CD"
-        },
-        "progress.percentage": {
-            "color": "#B39DDB"
-        },
-        "bookshelf.title": {
-            "color": "#7E57C2",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#9575CD"
-        },
-        "bookshelf.progress": {
-            "color": "#42A5F5"
-        },
-        "bookshelf.tag": {
-            "color": "#66BB6A",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#9575CD"
-        },
-        "reader.chapter": {
-            "color": "#7E57C2",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#512DA8"
-        },
-        "reader.bookmark": {
-            "color": "#D1C4E9"
-        },
-        "reader.search_result": {
-            "color": "#EDE7F6",
-            "bgcolor": "#D1C4E9"
-        }
-    }
+  "name": "lavender-field",
+  "display_name": "Lavender Field",
+  "description": "Lavender Field 内置主题",
+  "primary": "#B39DDB",
+  "secondary": "#D1C4E9",
+  "accent": "#D1C4E9",
+  "warning": "#FFA726",
+  "error": "#FFA726",
+  "success": "#66BB6A",
+  "foreground": "#9575CD",
+  "background": "#EDE7F6",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#B39DDB",
+    "border-blurred": "#9575CD",
+    "block-cursor-foreground": "#EDE7F6",
+    "block-cursor-background": "#B39DDB",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#9575CD",
+    "input-cursor-foreground": "#EDE7F6",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#B39DDB 35%",
+    "input-selection-foreground": "#9575CD",
+    "scrollbar": "#B39DDB",
+    "scrollbar-hover": "#B39DDB",
+    "scrollbar-active": "#D1C4E9",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#B39DDB",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#9575CD",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#B39DDB 35%",
+    "screen-selection-foreground": "#9575CD",
+    "ansi-background": "#9575CD",
+    "ansi-foreground": "#EDE7F6"
+  }
 }

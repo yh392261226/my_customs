@@ -1,153 +1,47 @@
 {
-    "name": "paper-white",
-    "display_name": "Paper White",
-    "description": "Paper White 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#000000",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#555555"
-        },
-        "app.accent": {
-            "color": "#0066CC"
-        },
-        "app.highlight": {
-            "color": "#FF9900"
-        },
-        "app.warning": {
-            "color": "#CC0000"
-        },
-        "app.success": {
-            "color": "#009900"
-        },
-        "app.info": {
-            "color": "#0099CC"
-        },
-        "app.muted": {
-            "color": "#888888"
-        },
-        "ui.border": {
-            "color": "#DDDDDD"
-        },
-        "ui.background": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FFFFFF"
-        },
-        "ui.panel": {
-            "color": "#F8F8F8",
-            "bgcolor": "#F8F8F8"
-        },
-        "ui.panel.title": {
-            "color": "#000000",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#333333"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#666666"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#0066CC"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#009900"
-        },
-        "ui.button.warning": {
-            "color": "#000000",
-            "bgcolor": "#FF9900"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#CC0000"
-        },
-        "ui.input": {
-            "color": "#000000",
-            "bgcolor": "#F0F0F0"
-        },
-        "ui.input.focus": {
-            "color": "#000000",
-            "bgcolor": "#E8E8E8"
-        },
-        "ui.selection": {
-            "color": "#E8E8E8",
-            "bgcolor": "#E8E8E8"
-        },
-        "content.text": {
-            "color": "#222222"
-        },
-        "content.heading": {
-            "color": "#000000",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#444444",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#0066CC",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#555555",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#009900",
-            "bgcolor": "#F5F5F5"
-        },
-        "content.highlight": {
-            "color": "#000000",
-            "bgcolor": "#FFF8DC"
-        },
-        "progress.bar": {
-            "color": "#0066CC"
-        },
-        "progress.text": {
-            "color": "#666666"
-        },
-        "progress.percentage": {
-            "color": "#000000"
-        },
-        "bookshelf.title": {
-            "color": "#000000",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#555555"
-        },
-        "bookshelf.progress": {
-            "color": "#0066CC"
-        },
-        "bookshelf.tag": {
-            "color": "#666666",
-            "bgcolor": "#F0F0F0"
-        },
-        "bookshelf.selected": {
-            "color": "#F0F0F0",
-            "bgcolor": "#F0F0F0"
-        },
-        "reader.text": {
-            "color": "#222222"
-        },
-        "reader.chapter": {
-            "color": "#000000",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#888888"
-        },
-        "reader.bookmark": {
-            "color": "#FF9900"
-        },
-        "reader.search_result": {
-            "color": "#000000",
-            "bgcolor": "#FFEBCD"
-        }
-    }
+  "name": "paper-white",
+  "display_name": "Paper White",
+  "description": "Paper White 内置主题",
+  "primary": "#0066CC",
+  "secondary": "#FF9900",
+  "accent": "#FF9900",
+  "warning": "#CC0000",
+  "error": "#CC0000",
+  "success": "#009900",
+  "foreground": "#222222",
+  "background": "#FFFFFF",
+  "surface": "#F8F8F8",
+  "panel": "#F8F8F8",
+  "boost": "#f8f8f8",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#DDDDDD",
+    "border-blurred": "#888888",
+    "block-cursor-foreground": "#FFFFFF",
+    "block-cursor-background": "#0066CC",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#222222",
+    "input-cursor-foreground": "#FFFFFF",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#0066CC 35%",
+    "input-selection-foreground": "#222222",
+    "scrollbar": "#0066CC",
+    "scrollbar-hover": "#0066CC",
+    "scrollbar-active": "#FF9900",
+    "scrollbar-background": "#F8F8F8",
+    "scrollbar-background-hover": "#F8F8F8",
+    "scrollbar-background-active": "#F8F8F8",
+    "scrollbar-corner-color": "#F8F8F8",
+    "block-hover-background": "#F8F8F8",
+    "footer-key-foreground": "#0066CC",
+    "footer-key-background": "#F8F8F8",
+    "footer-description-foreground": "#222222",
+    "footer-description-background": "#F8F8F8",
+    "screen-selection-background": "#0066CC 35%",
+    "screen-selection-foreground": "#222222",
+    "ansi-background": "#222222",
+    "ansi-foreground": "#FFFFFF"
+  }
 }

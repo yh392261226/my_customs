@@ -1,129 +1,47 @@
 {
-    "name": "glass-berry",
-    "display_name": "Glass Berry",
-    "description": "Glass Berry 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FB6F92",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FFC2D1"
-        },
-        "app.accent": {
-            "color": "#F72585"
-        },
-        "app.highlight": {
-            "color": "#FFD166"
-        },
-        "app.warning": {
-            "color": "#E63946"
-        },
-        "app.success": {
-            "color": "#06D6A0"
-        },
-        "app.info": {
-            "color": "#4CC9F0"
-        },
-        "app.muted": {
-            "color": "#A0A0A0"
-        },
-        "ui.border": {
-            "color": "#F72585"
-        },
-        "ui.panel.title": {
-            "color": "#FB6F92",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FFE3EC"
-        },
-        "ui.button": {
-            "color": "#FFE3EC"
-        },
-        "ui.button.primary": {
-            "color": "#F72585"
-        },
-        "ui.button.success": {
-            "color": "#06D6A0"
-        },
-        "ui.button.warning": {
-            "color": "#FFD166"
-        },
-        "ui.button.danger": {
-            "color": "#E63946"
-        },
-        "ui.input": {
-            "color": "#FFE3EC"
-        },
-        "ui.input.focus": {
-            "color": "#FB6F92"
-        },
-        "content.text": {
-            "color": "#FFE3EC"
-        },
-        "content.heading": {
-            "color": "#FB6F92",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#F72585",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#4CC9F0",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#06D6A0",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#06D6A0"
-        },
-        "content.highlight": {
-            "color": "#FB6F92"
-        },
-        "progress.bar": {
-            "color": "#4CC9F0"
-        },
-        "progress.text": {
-            "color": "#FFC2D1"
-        },
-        "progress.percentage": {
-            "color": "#FB6F92"
-        },
-        "bookshelf.title": {
-            "color": "#FB6F92",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FFC2D1"
-        },
-        "bookshelf.progress": {
-            "color": "#4CC9F0"
-        },
-        "bookshelf.tag": {
-            "color": "#06D6A0"
-        },
-        "bookshelf.selected": {
-            "color": "#FFC2D1"
-        },
-        "reader.text": {
-            "color": "#FFE3EC"
-        },
-        "reader.chapter": {
-            "color": "#FB6F92",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#4CC9F0"
-        },
-        "reader.bookmark": {
-            "color": "#FFD166"
-        },
-        "reader.search_result": {
-            "color": "#FB6F92"
-        }
-    }
+  "name": "glass-berry",
+  "display_name": "Glass Berry",
+  "description": "Glass Berry 内置主题",
+  "primary": "#F72585",
+  "secondary": "#FFD166",
+  "accent": "#FFD166",
+  "warning": "#E63946",
+  "error": "#E63946",
+  "success": "#06D6A0",
+  "foreground": "#FFE3EC",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#F72585",
+    "border-blurred": "#A0A0A0",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#F72585",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#FFE3EC",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#F72585 35%",
+    "input-selection-foreground": "#FFE3EC",
+    "scrollbar": "#F72585",
+    "scrollbar-hover": "#F72585",
+    "scrollbar-active": "#FFD166",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#F72585",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#FFE3EC",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#F72585 35%",
+    "screen-selection-foreground": "#FFE3EC",
+    "ansi-background": "#FFE3EC",
+    "ansi-foreground": "#000000"
+  }
 }

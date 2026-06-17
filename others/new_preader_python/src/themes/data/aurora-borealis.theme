@@ -1,153 +1,47 @@
 {
-    "name": "aurora-borealis",
-    "display_name": "Aurora Borealis",
-    "description": "Aurora Borealis 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#00E5FF",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#00BCD4"
-        },
-        "app.accent": {
-            "color": "#40C4FF"
-        },
-        "app.highlight": {
-            "color": "#84FFFF"
-        },
-        "app.warning": {
-            "color": "#FFB74D"
-        },
-        "app.success": {
-            "color": "#69F0AE"
-        },
-        "app.info": {
-            "color": "#82B1FF"
-        },
-        "app.muted": {
-            "color": "#00ACC1"
-        },
-        "ui.border": {
-            "color": "#40C4FF"
-        },
-        "ui.background": {
-            "color": "#0D47A1",
-            "bgcolor": "#0D47A1"
-        },
-        "ui.panel": {
-            "color": "#1565C0",
-            "bgcolor": "#1565C0"
-        },
-        "ui.panel.title": {
-            "color": "#00E5FF",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#00BCD4"
-        },
-        "ui.button": {
-            "color": "#0D47A1",
-            "bgcolor": "#00E5FF"
-        },
-        "ui.button.primary": {
-            "color": "#0D47A1",
-            "bgcolor": "#40C4FF"
-        },
-        "ui.button.success": {
-            "color": "#0D47A1",
-            "bgcolor": "#69F0AE"
-        },
-        "ui.button.warning": {
-            "color": "#0D47A1",
-            "bgcolor": "#FFB74D"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF5252"
-        },
-        "ui.input": {
-            "color": "#00BCD4",
-            "bgcolor": "#1565C0"
-        },
-        "ui.input.focus": {
-            "color": "#00E5FF",
-            "bgcolor": "#1976D2"
-        },
-        "ui.selection": {
-            "color": "#1976D2",
-            "bgcolor": "#1976D2"
-        },
-        "content.text": {
-            "color": "#00BCD4"
-        },
-        "content.heading": {
-            "color": "#00E5FF",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#40C4FF",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#82B1FF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#69F0AE",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#84FFFF",
-            "bgcolor": "#0D47A1"
-        },
-        "content.highlight": {
-            "color": "#0D47A1",
-            "bgcolor": "#84FFFF"
-        },
-        "progress.bar": {
-            "color": "#00E5FF"
-        },
-        "progress.text": {
-            "color": "#00BCD4"
-        },
-        "progress.percentage": {
-            "color": "#40C4FF"
-        },
-        "bookshelf.title": {
-            "color": "#00E5FF",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#00BCD4"
-        },
-        "bookshelf.progress": {
-            "color": "#82B1FF"
-        },
-        "bookshelf.tag": {
-            "color": "#69F0AE",
-            "bgcolor": "#1565C0"
-        },
-        "bookshelf.selected": {
-            "color": "#1976D2",
-            "bgcolor": "#1976D2"
-        },
-        "reader.text": {
-            "color": "#00BCD4"
-        },
-        "reader.chapter": {
-            "color": "#00E5FF",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#00ACC1"
-        },
-        "reader.bookmark": {
-            "color": "#84FFFF"
-        },
-        "reader.search_result": {
-            "color": "#0D47A1",
-            "bgcolor": "#84FFFF"
-        }
-    }
+  "name": "aurora-borealis",
+  "display_name": "Aurora Borealis",
+  "description": "Aurora Borealis 内置主题",
+  "primary": "#40C4FF",
+  "secondary": "#84FFFF",
+  "accent": "#84FFFF",
+  "warning": "#FFB74D",
+  "error": "#FFB74D",
+  "success": "#69F0AE",
+  "foreground": "#00BCD4",
+  "background": "#0D47A1",
+  "surface": "#1565C0",
+  "panel": "#1565C0",
+  "boost": "#236ec3",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#40C4FF",
+    "border-blurred": "#00ACC1",
+    "block-cursor-foreground": "#0D47A1",
+    "block-cursor-background": "#40C4FF",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#00BCD4",
+    "input-cursor-foreground": "#0D47A1",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#40C4FF 35%",
+    "input-selection-foreground": "#00BCD4",
+    "scrollbar": "#40C4FF",
+    "scrollbar-hover": "#40C4FF",
+    "scrollbar-active": "#84FFFF",
+    "scrollbar-background": "#1565C0",
+    "scrollbar-background-hover": "#1565C0",
+    "scrollbar-background-active": "#1565C0",
+    "scrollbar-corner-color": "#1565C0",
+    "block-hover-background": "#1565C0",
+    "footer-key-foreground": "#40C4FF",
+    "footer-key-background": "#1565C0",
+    "footer-description-foreground": "#00BCD4",
+    "footer-description-background": "#1565C0",
+    "screen-selection-background": "#40C4FF 35%",
+    "screen-selection-foreground": "#00BCD4",
+    "ansi-background": "#00BCD4",
+    "ansi-foreground": "#0D47A1"
+  }
 }

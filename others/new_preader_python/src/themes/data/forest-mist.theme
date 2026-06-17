@@ -1,153 +1,47 @@
 {
-    "name": "forest-mist",
-    "display_name": "Forest Mist",
-    "description": "Forest Mist 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#DCEDC8",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#C5E1A5"
-        },
-        "app.accent": {
-            "color": "#AED581"
-        },
-        "app.highlight": {
-            "color": "#9CCC65"
-        },
-        "app.warning": {
-            "color": "#FFB74D"
-        },
-        "app.success": {
-            "color": "#66BB6A"
-        },
-        "app.info": {
-            "color": "#64B5F6"
-        },
-        "app.muted": {
-            "color": "#8BC34A"
-        },
-        "ui.border": {
-            "color": "#AED581"
-        },
-        "ui.background": {
-            "color": "#1B5E20",
-            "bgcolor": "#1B5E20"
-        },
-        "ui.panel": {
-            "color": "#2E7D32",
-            "bgcolor": "#2E7D32"
-        },
-        "ui.panel.title": {
-            "color": "#DCEDC8",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#C5E1A5"
-        },
-        "ui.button": {
-            "color": "#1B5E20",
-            "bgcolor": "#DCEDC8"
-        },
-        "ui.button.primary": {
-            "color": "#1B5E20",
-            "bgcolor": "#AED581"
-        },
-        "ui.button.success": {
-            "color": "#1B5E20",
-            "bgcolor": "#66BB6A"
-        },
-        "ui.button.warning": {
-            "color": "#1B5E20",
-            "bgcolor": "#FFB74D"
-        },
-        "ui.button.danger": {
-            "color": "#DCEDC8",
-            "bgcolor": "#E57373"
-        },
-        "ui.input": {
-            "color": "#C5E1A5",
-            "bgcolor": "#2E7D32"
-        },
-        "ui.input.focus": {
-            "color": "#DCEDC8",
-            "bgcolor": "#388E3C"
-        },
-        "ui.selection": {
-            "color": "#388E3C",
-            "bgcolor": "#388E3C"
-        },
-        "content.text": {
-            "color": "#C5E1A5"
-        },
-        "content.heading": {
-            "color": "#DCEDC8",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#AED581",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#64B5F6",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#66BB6A",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#9CCC65",
-            "bgcolor": "#1B5E20"
-        },
-        "content.highlight": {
-            "color": "#1B5E20",
-            "bgcolor": "#9CCC65"
-        },
-        "progress.bar": {
-            "color": "#DCEDC8"
-        },
-        "progress.text": {
-            "color": "#C5E1A5"
-        },
-        "progress.percentage": {
-            "color": "#AED581"
-        },
-        "bookshelf.title": {
-            "color": "#DCEDC8",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#C5E1A5"
-        },
-        "bookshelf.progress": {
-            "color": "#64B5F6"
-        },
-        "bookshelf.tag": {
-            "color": "#66BB6A",
-            "bgcolor": "#2E7D32"
-        },
-        "bookshelf.selected": {
-            "color": "#388E3C",
-            "bgcolor": "#388E3C"
-        },
-        "reader.text": {
-            "color": "#C5E1A5"
-        },
-        "reader.chapter": {
-            "color": "#DCEDC8",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#8BC34A"
-        },
-        "reader.bookmark": {
-            "color": "#9CCC65"
-        },
-        "reader.search_result": {
-            "color": "#1B5E20",
-            "bgcolor": "#9CCC65"
-        }
-    }
+  "name": "forest-mist",
+  "display_name": "Forest Mist",
+  "description": "Forest Mist 内置主题",
+  "primary": "#AED581",
+  "secondary": "#9CCC65",
+  "accent": "#9CCC65",
+  "warning": "#FFB74D",
+  "error": "#FFB74D",
+  "success": "#66BB6A",
+  "foreground": "#C5E1A5",
+  "background": "#1B5E20",
+  "surface": "#2E7D32",
+  "panel": "#2E7D32",
+  "boost": "#3a843e",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#AED581",
+    "border-blurred": "#8BC34A",
+    "block-cursor-foreground": "#1B5E20",
+    "block-cursor-background": "#AED581",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#C5E1A5",
+    "input-cursor-foreground": "#1B5E20",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#AED581 35%",
+    "input-selection-foreground": "#C5E1A5",
+    "scrollbar": "#AED581",
+    "scrollbar-hover": "#AED581",
+    "scrollbar-active": "#9CCC65",
+    "scrollbar-background": "#2E7D32",
+    "scrollbar-background-hover": "#2E7D32",
+    "scrollbar-background-active": "#2E7D32",
+    "scrollbar-corner-color": "#2E7D32",
+    "block-hover-background": "#2E7D32",
+    "footer-key-foreground": "#AED581",
+    "footer-key-background": "#2E7D32",
+    "footer-description-foreground": "#C5E1A5",
+    "footer-description-background": "#2E7D32",
+    "screen-selection-background": "#AED581 35%",
+    "screen-selection-foreground": "#C5E1A5",
+    "ansi-background": "#C5E1A5",
+    "ansi-foreground": "#1B5E20"
+  }
 }

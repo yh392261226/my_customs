@@ -1,153 +1,47 @@
 {
-    "name": "cream",
-    "display_name": "Cream",
-    "description": "Cream 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#2C1810",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#5D4037"
-        },
-        "app.accent": {
-            "color": "#7B1FA2"
-        },
-        "app.highlight": {
-            "color": "#FF9800"
-        },
-        "app.warning": {
-            "color": "#D32F2F"
-        },
-        "app.success": {
-            "color": "#388E3C"
-        },
-        "app.info": {
-            "color": "#0288D1"
-        },
-        "app.muted": {
-            "color": "#795548"
-        },
-        "ui.border": {
-            "color": "#BCAAA4"
-        },
-        "ui.background": {
-            "color": "#FFF8E1",
-            "bgcolor": "#FFF8E1"
-        },
-        "ui.panel": {
-            "color": "#FFECB3",
-            "bgcolor": "#FFECB3"
-        },
-        "ui.panel.title": {
-            "color": "#2C1810",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#4E342E"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#8D6E63"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#7B1FA2"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#388E3C"
-        },
-        "ui.button.warning": {
-            "color": "#2C1810",
-            "bgcolor": "#FF9800"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#D32F2F"
-        },
-        "ui.input": {
-            "color": "#2C1810",
-            "bgcolor": "#FFE082"
-        },
-        "ui.input.focus": {
-            "color": "#2C1810",
-            "bgcolor": "#FFD54F"
-        },
-        "ui.selection": {
-            "color": "#FFE082",
-            "bgcolor": "#FFE082"
-        },
-        "content.text": {
-            "color": "#3E2723"
-        },
-        "content.heading": {
-            "color": "#2C1810",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#5D4037",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#7B1FA2",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#5D4037",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#388E3C",
-            "bgcolor": "#FFECB3"
-        },
-        "content.highlight": {
-            "color": "#2C1810",
-            "bgcolor": "#FFE57F"
-        },
-        "progress.bar": {
-            "color": "#7B1FA2"
-        },
-        "progress.text": {
-            "color": "#5D4037"
-        },
-        "progress.percentage": {
-            "color": "#2C1810"
-        },
-        "bookshelf.title": {
-            "color": "#2C1810",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#5D4037"
-        },
-        "bookshelf.progress": {
-            "color": "#7B1FA2"
-        },
-        "bookshelf.tag": {
-            "color": "#5D4037",
-            "bgcolor": "#FFECB3"
-        },
-        "bookshelf.selected": {
-            "color": "#FFECB3",
-            "bgcolor": "#FFECB3"
-        },
-        "reader.text": {
-            "color": "#3E2723"
-        },
-        "reader.chapter": {
-            "color": "#2C1810",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#795548"
-        },
-        "reader.bookmark": {
-            "color": "#FF9800"
-        },
-        "reader.search_result": {
-            "color": "#2C1810",
-            "bgcolor": "#FFE57F"
-        }
-    }
+  "name": "cream",
+  "display_name": "Cream",
+  "description": "Cream 内置主题",
+  "primary": "#7B1FA2",
+  "secondary": "#FF9800",
+  "accent": "#FF9800",
+  "warning": "#D32F2F",
+  "error": "#D32F2F",
+  "success": "#388E3C",
+  "foreground": "#3E2723",
+  "background": "#FFF8E1",
+  "surface": "#FFECB3",
+  "panel": "#FFECB3",
+  "boost": "#ffedb7",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#BCAAA4",
+    "border-blurred": "#795548",
+    "block-cursor-foreground": "#FFF8E1",
+    "block-cursor-background": "#7B1FA2",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#3E2723",
+    "input-cursor-foreground": "#FFF8E1",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#7B1FA2 35%",
+    "input-selection-foreground": "#3E2723",
+    "scrollbar": "#7B1FA2",
+    "scrollbar-hover": "#7B1FA2",
+    "scrollbar-active": "#FF9800",
+    "scrollbar-background": "#FFECB3",
+    "scrollbar-background-hover": "#FFECB3",
+    "scrollbar-background-active": "#FFECB3",
+    "scrollbar-corner-color": "#FFECB3",
+    "block-hover-background": "#FFECB3",
+    "footer-key-foreground": "#7B1FA2",
+    "footer-key-background": "#FFECB3",
+    "footer-description-foreground": "#3E2723",
+    "footer-description-background": "#FFECB3",
+    "screen-selection-background": "#7B1FA2 35%",
+    "screen-selection-foreground": "#3E2723",
+    "ansi-background": "#3E2723",
+    "ansi-foreground": "#FFF8E1"
+  }
 }

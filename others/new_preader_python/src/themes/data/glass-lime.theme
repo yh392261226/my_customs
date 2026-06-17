@@ -1,143 +1,47 @@
 {
-    "name": "glass-lime",
-    "display_name": "Glass Lime",
-    "description": "Glass Lime 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#0F5132",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#2E7D32"
-        },
-        "app.accent": {
-            "color": "#82CD47"
-        },
-        "app.highlight": {
-            "color": "#C3F73A"
-        },
-        "app.warning": {
-            "color": "#D9480F"
-        },
-        "app.success": {
-            "color": "#2BC48A"
-        },
-        "app.info": {
-            "color": "#2EA6FF"
-        },
-        "app.muted": {
-            "color": "#6E7F74"
-        },
-        "ui.border": {
-            "color": "#CFE8CF"
-        },
-        "ui.background": {},
-        "ui.panel": {},
-        "ui.panel.title": {
-            "color": "#0F5132",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#1B5E20"
-        },
-        "ui.button": {
-            "color": "#0F5132",
-            "bgcolor": "#C3F73A"
-        },
-        "ui.button.primary": {
-            "color": "#0F5132",
-            "bgcolor": "#82CD47"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#2BC48A"
-        },
-        "ui.button.warning": {
-            "color": "#0F5132",
-            "bgcolor": "#FFCD3C"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#D9480F"
-        },
-        "ui.input": {
-            "color": "#0F5132",
-            "bgcolor": "#F3FFF3"
-        },
-        "ui.input.focus": {
-            "color": "#0F5132",
-            "bgcolor": "#E5F9E5"
-        },
-        "ui.selection": {},
-        "content.text": {
-            "color": "#1B5E20"
-        },
-        "content.heading": {
-            "color": "#0F5132",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#2E7D32",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#82CD47",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#2BC48A",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#2BC48A"
-        },
-        "content.highlight": {
-            "color": "#0F5132",
-            "bgcolor": "#F0FFCC"
-        },
-        "progress.bar": {
-            "color": "#82CD47"
-        },
-        "progress.text": {
-            "color": "#2E7D32"
-        },
-        "progress.percentage": {
-            "color": "#0F5132"
-        },
-        "bookshelf.title": {
-            "color": "#0F5132",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#2E7D32"
-        },
-        "bookshelf.progress": {
-            "color": "#82CD47"
-        },
-        "bookshelf.tag": {
-            "color": "#2BC48A",
-            "bgcolor": "#F3FFF3"
-        },
-        "bookshelf.selected": {
-            "color": "#E5F9E5",
-            "bgcolor": "#E5F9E5"
-        },
-        "reader.text": {
-            "color": "#1B5E20"
-        },
-        "reader.chapter": {
-            "color": "#0F5132",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#6E7F74"
-        },
-        "reader.bookmark": {
-            "color": "#C3F73A"
-        },
-        "reader.search_result": {
-            "color": "#0F5132",
-            "bgcolor": "#F0FFCC"
-        }
-    }
+  "name": "glass-lime",
+  "display_name": "Glass Lime",
+  "description": "Glass Lime 内置主题",
+  "primary": "#82CD47",
+  "secondary": "#C3F73A",
+  "accent": "#C3F73A",
+  "warning": "#D9480F",
+  "error": "#D9480F",
+  "success": "#2BC48A",
+  "foreground": "#1B5E20",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#CFE8CF",
+    "border-blurred": "#6E7F74",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#82CD47",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#1B5E20",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#82CD47 35%",
+    "input-selection-foreground": "#1B5E20",
+    "scrollbar": "#82CD47",
+    "scrollbar-hover": "#82CD47",
+    "scrollbar-active": "#C3F73A",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#82CD47",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#1B5E20",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#82CD47 35%",
+    "screen-selection-foreground": "#1B5E20",
+    "ansi-background": "#1B5E20",
+    "ansi-foreground": "#000000"
+  }
 }

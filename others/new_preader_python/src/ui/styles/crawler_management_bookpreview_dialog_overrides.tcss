@@ -26,15 +26,15 @@
     padding: 5;
     text-wrap: wrap;
     text-overflow: fold;
-    border: ascii black;
+    border: ascii $text;
     
     border-title-align: right;
-    border-title-color: black;
-    border-title-background: yellow;
+    border-title-color: $text;
+    border-title-background: $warning;
     border-title-style: italic;
     border-subtitle-align: left;
-    border-subtitle-color: black;
-    border-subtitle-background: yellow;
+    border-subtitle-color: $text;
+    border-subtitle-background: $warning;
     border-subtitle-style: italic;
 }
 

@@ -1,153 +1,47 @@
 {
-    "name": "deep-sea-pearl",
-    "display_name": "Deep Sea Pearl",
-    "description": "Deep Sea Pearl 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#E0F2F1",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#B2DFDB"
-        },
-        "app.accent": {
-            "color": "#80CBC4"
-        },
-        "app.highlight": {
-            "color": "#4DB6AC"
-        },
-        "app.warning": {
-            "color": "#FFB74D"
-        },
-        "app.success": {
-            "color": "#81C784"
-        },
-        "app.info": {
-            "color": "#64B5F6"
-        },
-        "app.muted": {
-            "color": "#607D8B"
-        },
-        "ui.border": {
-            "color": "#80CBC4"
-        },
-        "ui.background": {
-            "color": "#004D40",
-            "bgcolor": "#004D40"
-        },
-        "ui.panel": {
-            "color": "#00695C",
-            "bgcolor": "#00695C"
-        },
-        "ui.panel.title": {
-            "color": "#E0F2F1",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#B2DFDB"
-        },
-        "ui.button": {
-            "color": "#004D40",
-            "bgcolor": "#E0F2F1"
-        },
-        "ui.button.primary": {
-            "color": "#004D40",
-            "bgcolor": "#80CBC4"
-        },
-        "ui.button.success": {
-            "color": "#004D40",
-            "bgcolor": "#81C784"
-        },
-        "ui.button.warning": {
-            "color": "#004D40",
-            "bgcolor": "#FFB74D"
-        },
-        "ui.button.danger": {
-            "color": "#E0F2F1",
-            "bgcolor": "#E57373"
-        },
-        "ui.input": {
-            "color": "#B2DFDB",
-            "bgcolor": "#00695C"
-        },
-        "ui.input.focus": {
-            "color": "#E0F2F1",
-            "bgcolor": "#00796B"
-        },
-        "ui.selection": {
-            "color": "#00897B",
-            "bgcolor": "#00897B"
-        },
-        "content.text": {
-            "color": "#B2DFDB"
-        },
-        "content.heading": {
-            "color": "#E0F2F1",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#80CBC4",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#64B5F6",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#81C784",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#4DB6AC",
-            "bgcolor": "#004D40"
-        },
-        "content.highlight": {
-            "color": "#004D40",
-            "bgcolor": "#4DB6AC"
-        },
-        "progress.bar": {
-            "color": "#E0F2F1"
-        },
-        "progress.text": {
-            "color": "#B2DFDB"
-        },
-        "progress.percentage": {
-            "color": "#80CBC4"
-        },
-        "bookshelf.title": {
-            "color": "#E0F2F1",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#B2DFDB"
-        },
-        "bookshelf.progress": {
-            "color": "#64B5F6"
-        },
-        "bookshelf.tag": {
-            "color": "#81C784",
-            "bgcolor": "#00695C"
-        },
-        "bookshelf.selected": {
-            "color": "#00796B",
-            "bgcolor": "#00796B"
-        },
-        "reader.text": {
-            "color": "#B2DFDB"
-        },
-        "reader.chapter": {
-            "color": "#E0F2F1",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#607D8B"
-        },
-        "reader.bookmark": {
-            "color": "#4DB6AC"
-        },
-        "reader.search_result": {
-            "color": "#004D40",
-            "bgcolor": "#4DB6AC"
-        }
-    }
+  "name": "deep-sea-pearl",
+  "display_name": "Deep Sea Pearl",
+  "description": "Deep Sea Pearl 内置主题",
+  "primary": "#80CBC4",
+  "secondary": "#4DB6AC",
+  "accent": "#4DB6AC",
+  "warning": "#FFB74D",
+  "error": "#FFB74D",
+  "success": "#81C784",
+  "foreground": "#B2DFDB",
+  "background": "#004D40",
+  "surface": "#00695C",
+  "panel": "#00695C",
+  "boost": "#0f7265",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#80CBC4",
+    "border-blurred": "#607D8B",
+    "block-cursor-foreground": "#004D40",
+    "block-cursor-background": "#80CBC4",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#B2DFDB",
+    "input-cursor-foreground": "#004D40",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#80CBC4 35%",
+    "input-selection-foreground": "#B2DFDB",
+    "scrollbar": "#80CBC4",
+    "scrollbar-hover": "#80CBC4",
+    "scrollbar-active": "#4DB6AC",
+    "scrollbar-background": "#00695C",
+    "scrollbar-background-hover": "#00695C",
+    "scrollbar-background-active": "#00695C",
+    "scrollbar-corner-color": "#00695C",
+    "block-hover-background": "#00695C",
+    "footer-key-foreground": "#80CBC4",
+    "footer-key-background": "#00695C",
+    "footer-description-foreground": "#B2DFDB",
+    "footer-description-background": "#00695C",
+    "screen-selection-background": "#80CBC4 35%",
+    "screen-selection-foreground": "#B2DFDB",
+    "ansi-background": "#B2DFDB",
+    "ansi-foreground": "#004D40"
+  }
 }

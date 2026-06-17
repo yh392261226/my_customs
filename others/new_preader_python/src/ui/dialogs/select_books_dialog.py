@@ -145,7 +145,7 @@ class SelectBooksDialog(ModalScreen[Optional[str]]):
                     self.loading_overlay.styles.height = "100%"
                     self.loading_overlay.styles.align_horizontal = "center"
                     self.loading_overlay.styles.align_vertical = "middle"
-                    self.loading_overlay.styles.background = "rgba(0,0,0,0.15)"
+                    self.loading_overlay.add_class("loading-overlay-bg")
                 except Exception:
                     pass
             # 挂载覆盖层到屏幕本身，避免受容器布局影响

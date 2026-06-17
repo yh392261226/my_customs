@@ -485,13 +485,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         status_label = self.query_one("#novel-site-dialog-status", Label)
         status_label.update(message)
         
-        # 根据严重程度设置样式
+        # 根据严重程度设置样式（使用主题变量CSS类）
+        status_label.remove_class("status-success", "status-error", "status-info")
         if severity == "success":
-            status_label.styles.color = "green"
+            status_label.add_class("status-success")
         elif severity == "error":
-            status_label.styles.color = "red"
+            status_label.add_class("status-error")
         else:
-            status_label.styles.color = "blue"
+            status_label.add_class("status-info")
     
     def on_key(self, event: events.Key) -> None:
         """已由 BINDINGS 处理，避免重复触发"""

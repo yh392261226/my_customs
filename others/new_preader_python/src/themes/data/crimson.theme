@@ -1,153 +1,47 @@
 {
-    "name": "crimson",
-    "display_name": "Crimson",
-    "description": "Crimson 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#FFFFFF",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#FFCCCB"
-        },
-        "app.accent": {
-            "color": "#DC143C"
-        },
-        "app.highlight": {
-            "color": "#FFD700"
-        },
-        "app.warning": {
-            "color": "#FF4500"
-        },
-        "app.success": {
-            "color": "#32CD32"
-        },
-        "app.info": {
-            "color": "#1E90FF"
-        },
-        "app.muted": {
-            "color": "#8B0000"
-        },
-        "ui.border": {
-            "color": "#8B0000"
-        },
-        "ui.background": {
-            "color": "#800000",
-            "bgcolor": "#800000"
-        },
-        "ui.panel": {
-            "color": "#8B0000",
-            "bgcolor": "#8B0000"
-        },
-        "ui.panel.title": {
-            "color": "#DC143C",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#FFD700"
-        },
-        "ui.button": {
-            "color": "#800000",
-            "bgcolor": "#FFD700"
-        },
-        "ui.button.primary": {
-            "color": "#800000",
-            "bgcolor": "#DC143C"
-        },
-        "ui.button.success": {
-            "color": "#800000",
-            "bgcolor": "#32CD32"
-        },
-        "ui.button.warning": {
-            "color": "#800000",
-            "bgcolor": "#FFD700"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF4500"
-        },
-        "ui.input": {
-            "color": "#FFD700",
-            "bgcolor": "#8B0000"
-        },
-        "ui.input.focus": {
-            "color": "#DC143C",
-            "bgcolor": "#A52A2A"
-        },
-        "ui.selection": {
-            "color": "#8B0000",
-            "bgcolor": "#8B0000"
-        },
-        "content.text": {
-            "color": "#FFD700"
-        },
-        "content.heading": {
-            "color": "#DC143C",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#32CD32",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#1E90FF",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#32CD32",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#32CD32",
-            "bgcolor": "#800000"
-        },
-        "content.highlight": {
-            "color": "#800000",
-            "bgcolor": "#FFD700"
-        },
-        "progress.bar": {
-            "color": "#DC143C"
-        },
-        "progress.text": {
-            "color": "#FFCCCB"
-        },
-        "progress.percentage": {
-            "color": "#FFFFFF"
-        },
-        "bookshelf.title": {
-            "color": "#DC143C",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#FFD700"
-        },
-        "bookshelf.progress": {
-            "color": "#1E90FF"
-        },
-        "bookshelf.tag": {
-            "color": "#32CD32",
-            "bgcolor": "#8B0000"
-        },
-        "bookshelf.selected": {
-            "color": "#A52A2A",
-            "bgcolor": "#A52A2A"
-        },
-        "reader.text": {
-            "color": "#FFD700"
-        },
-        "reader.chapter": {
-            "color": "#DC143C",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#32CD32"
-        },
-        "reader.bookmark": {
-            "color": "#1E90FF"
-        },
-        "reader.search_result": {
-            "color": "#800000",
-            "bgcolor": "#FFD700"
-        }
-    }
+  "name": "crimson",
+  "display_name": "Crimson",
+  "description": "Crimson 内置主题",
+  "primary": "#DC143C",
+  "secondary": "#FFD700",
+  "accent": "#FFD700",
+  "warning": "#FF4500",
+  "error": "#FF4500",
+  "success": "#32CD32",
+  "foreground": "#FFD700",
+  "background": "#800000",
+  "surface": "#8B0000",
+  "panel": "#8B0000",
+  "boost": "#910f0f",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#8B0000",
+    "border-blurred": "#8B0000",
+    "block-cursor-foreground": "#800000",
+    "block-cursor-background": "#DC143C",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#FFD700",
+    "input-cursor-foreground": "#800000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#DC143C 35%",
+    "input-selection-foreground": "#FFD700",
+    "scrollbar": "#DC143C",
+    "scrollbar-hover": "#DC143C",
+    "scrollbar-active": "#FFD700",
+    "scrollbar-background": "#8B0000",
+    "scrollbar-background-hover": "#8B0000",
+    "scrollbar-background-active": "#8B0000",
+    "scrollbar-corner-color": "#8B0000",
+    "block-hover-background": "#8B0000",
+    "footer-key-foreground": "#DC143C",
+    "footer-key-background": "#8B0000",
+    "footer-description-foreground": "#FFD700",
+    "footer-description-background": "#8B0000",
+    "screen-selection-background": "#DC143C 35%",
+    "screen-selection-foreground": "#FFD700",
+    "ansi-background": "#FFD700",
+    "ansi-foreground": "#800000"
+  }
 }

@@ -316,13 +316,14 @@ class ProxyEditDialog(ModalScreen[Optional[Dict[str, Any]]]):
             status_label = self.query_one("#proxy-status-info", Label)
             status_label.update(message)
             
-            # 根据消息类型设置样式
+            # 根据消息类型设置样式（使用主题变量CSS类）
+            status_label.remove_class("status-success", "status-error", "status-info")
             if message_type == "success":
-                status_label.styles.color = "green"
+                status_label.add_class("status-success")
             elif message_type == "error":
-                status_label.styles.color = "red"
+                status_label.add_class("status-error")
             else:
-                status_label.styles.color = "blue"
+                status_label.add_class("status-info")
         except:
             # 如果找不到状态标签，使用日志记录
             if message_type == "error":

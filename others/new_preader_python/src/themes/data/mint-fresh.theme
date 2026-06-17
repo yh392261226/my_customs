@@ -1,153 +1,47 @@
 {
-    "name": "mint-fresh",
-    "display_name": "Mint Fresh",
-    "description": "Mint Fresh 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#00BCD4",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#26C6DA"
-        },
-        "app.accent": {
-            "color": "#4DD0E1"
-        },
-        "app.highlight": {
-            "color": "#80DEEA"
-        },
-        "app.warning": {
-            "color": "#FF9800"
-        },
-        "app.success": {
-            "color": "#4CAF50"
-        },
-        "app.info": {
-            "color": "#00BCD4"
-        },
-        "app.muted": {
-            "color": "#26C6DA"
-        },
-        "ui.border": {
-            "color": "#4DD0E1"
-        },
-        "ui.background": {
-            "color": "#E0F7FA",
-            "bgcolor": "#E0F7FA"
-        },
-        "ui.panel": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.panel.title": {
-            "color": "#00BCD4",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#26C6DA"
-        },
-        "ui.button": {
-            "color": "#FFFFFF",
-            "bgcolor": "#00BCD4"
-        },
-        "ui.button.primary": {
-            "color": "#FFFFFF",
-            "bgcolor": "#4DD0E1"
-        },
-        "ui.button.success": {
-            "color": "#FFFFFF",
-            "bgcolor": "#4CAF50"
-        },
-        "ui.button.warning": {
-            "color": "#FFFFFF",
-            "bgcolor": "#FF9800"
-        },
-        "ui.button.danger": {
-            "color": "#FFFFFF",
-            "bgcolor": "#F44336"
-        },
-        "ui.input": {
-            "color": "#26C6DA",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.input.focus": {
-            "color": "#4DD0E1",
-            "bgcolor": "#1A1A1A"
-        },
-        "ui.selection": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.text": {
-            "color": "#26C6DA"
-        },
-        "content.heading": {
-            "color": "#00BCD4",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#4DD0E1",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#0288D1",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#4CAF50",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#0097A7",
-            "bgcolor": "#1A1A1A"
-        },
-        "content.highlight": {
-            "color": "#E0F7FA",
-            "bgcolor": "#80DEEA"
-        },
-        "progress.bar": {
-            "color": "#00BCD4"
-        },
-        "progress.text": {
-            "color": "#26C6DA"
-        },
-        "progress.percentage": {
-            "color": "#4DD0E1"
-        },
-        "bookshelf.title": {
-            "color": "#00BCD4",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#26C6DA"
-        },
-        "bookshelf.progress": {
-            "color": "#0288D1"
-        },
-        "bookshelf.tag": {
-            "color": "#4CAF50",
-            "bgcolor": "#1A1A1A"
-        },
-        "bookshelf.selected": {
-            "color": "#1A1A1A",
-            "bgcolor": "#1A1A1A"
-        },
-        "reader.text": {
-            "color": "#26C6DA"
-        },
-        "reader.chapter": {
-            "color": "#00BCD4",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#0097A7"
-        },
-        "reader.bookmark": {
-            "color": "#4DD0E1"
-        },
-        "reader.search_result": {
-            "color": "#E0F7FA",
-            "bgcolor": "#80DEEA"
-        }
-    }
+  "name": "mint-fresh",
+  "display_name": "Mint Fresh",
+  "description": "Mint Fresh 内置主题",
+  "primary": "#4DD0E1",
+  "secondary": "#80DEEA",
+  "accent": "#80DEEA",
+  "warning": "#FF9800",
+  "error": "#FF9800",
+  "success": "#4CAF50",
+  "foreground": "#26C6DA",
+  "background": "#E0F7FA",
+  "surface": "#1A1A1A",
+  "panel": "#1A1A1A",
+  "boost": "#272727",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#4DD0E1",
+    "border-blurred": "#26C6DA",
+    "block-cursor-foreground": "#E0F7FA",
+    "block-cursor-background": "#4DD0E1",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#26C6DA",
+    "input-cursor-foreground": "#E0F7FA",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#4DD0E1 35%",
+    "input-selection-foreground": "#26C6DA",
+    "scrollbar": "#4DD0E1",
+    "scrollbar-hover": "#4DD0E1",
+    "scrollbar-active": "#80DEEA",
+    "scrollbar-background": "#1A1A1A",
+    "scrollbar-background-hover": "#1A1A1A",
+    "scrollbar-background-active": "#1A1A1A",
+    "scrollbar-corner-color": "#1A1A1A",
+    "block-hover-background": "#1A1A1A",
+    "footer-key-foreground": "#4DD0E1",
+    "footer-key-background": "#1A1A1A",
+    "footer-description-foreground": "#26C6DA",
+    "footer-description-background": "#1A1A1A",
+    "screen-selection-background": "#4DD0E1 35%",
+    "screen-selection-foreground": "#26C6DA",
+    "ansi-background": "#26C6DA",
+    "ansi-foreground": "#E0F7FA"
+  }
 }

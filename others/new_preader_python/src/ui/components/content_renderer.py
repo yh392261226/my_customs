@@ -356,54 +356,46 @@ class ContentRenderer(Static):
             # 默认调色
             palette: Dict[str, Style] = {
                 "text": Style(color=light_dark("black", "white")),
-                "heading": Style(color=light_dark("black", "white")),
-                "link": Style(color="#3B82F6"),
-                "quote": Style(color=light_dark("#374151", "#D1D5DB")),
+                "heading": Style(color=light_dark("black", "white"), bold=True),
+                "link": Style(color="#3B82F6", underline=True),
+                "quote": Style(color=light_dark("#374151", "#D1D5DB"), italic=True),
                 "code": Style(color="#10B981", bgcolor=light_dark("#E5E7EB", "#1F2937")),
                 "highlight": Style(color=light_dark("#000000", "#000000"), bgcolor=light_dark("#FFF8C5", "#EBCB8B")),
             }
 
-            if self.theme_manager and hasattr(self.theme_manager, "themes") and theme_name in self.theme_manager.themes:
-                tm = self.theme_manager
-                theme = tm.themes[theme_name]
+            bg_color = light_dark("#FFFFFF", "#000000")
+            text_color = light_dark("#000000", "#FFFFFF")
 
-                def pick_color(style_key: str, attr: str) -> Optional[str]:
-                    st = theme.get(style_key)
-                    if not st:
-                        return None
-                    val = getattr(st, attr, None)
-                    if not val:
-                        return None
-                    return tm.convert_color_to_string(val)
+            if self.theme_manager and hasattr(self.theme_manager, "_theme_data") and theme_name in self.theme_manager._theme_data:
+                data = self.theme_manager._theme_data[theme_name]
+                primary = data.get("primary", "#3B82F6")
+                foreground = data.get("foreground", text_color)
+                background = data.get("background", bg_color)
+                surface = data.get("surface", background)
+                accent = data.get("accent", primary)
+                success = data.get("success", "#22C55E")
+                warning = data.get("warning", "#F59E0B")
 
-                # 基础前景/背景
-                text_color = pick_color("reader.text", "color") or pick_color("content.text", "color") or light_dark("black", "white")
-                bg_color = pick_color("ui.background", "bgcolor") or pick_color("ui.panel", "bgcolor") or light_dark("white", "black")
+                # 透明背景主题特殊处理
+                if not background or background == "#00000000" or background == "transparent":
+                    background = light_dark("#FFFFFF", "#000000")
+                    surface = light_dark("#F3F4F6", "#1F2937")
 
-                # 细分色位
-                heading_color = pick_color("reader.chapter", "color") or pick_color("content.heading", "color") or pick_color("app.title", "color") or text_color
-                link_color = pick_color("content.link", "color") or pick_color("app.accent", "color") or "#3B82F6"
-                quote_color = pick_color("content.quote", "color") or text_color
-                code_fg = pick_color("content.code", "color") or "#10B981"
-                code_bg = pick_color("content.code", "bgcolor") or (pick_color("ui.panel", "bgcolor") or bg_color)
-                hl_fg = pick_color("reader.search_result", "color") or pick_color("content.highlight", "color") or light_dark("#000000", "#000000")
-                hl_bg = pick_color("reader.search_result", "bgcolor") or pick_color("content.highlight", "bgcolor") or light_dark("#FFF8C5", "#EBCB8B")
+                text_color = foreground
+                bg_color = background
 
-                # 应用到组件样式
                 self.styles.background = bg_color
                 self.styles.color = text_color
 
-                # 构建 Rich 调色板
                 palette["text"] = Style(color=text_color)
-                palette["heading"] = Style(color=heading_color, bold=True)
-                palette["link"] = Style(color=link_color, underline=True)
-                palette["quote"] = Style(color=quote_color, italic=True)
-                palette["code"] = Style(color=code_fg, bgcolor=code_bg)
-                palette["highlight"] = Style(color=hl_fg, bgcolor=hl_bg)
+                palette["heading"] = Style(color=primary, bold=True)
+                palette["link"] = Style(color=accent, underline=True)
+                palette["quote"] = Style(color=foreground, italic=True)
+                palette["code"] = Style(color=success, bgcolor=surface)
+                palette["highlight"] = Style(color=background, bgcolor=warning)
                 logger.debug(f"应用主题样式: {theme_name}, 背景: {bg_color}, 文本: {text_color}")
             else:
                 # 无主题管理器或未找到主题：仅基础色
-                bg_color, text_color = (("white", "black") if "light" in theme_name.lower() else ("black", "white"))
                 self.styles.background = bg_color
                 self.styles.color = text_color
 

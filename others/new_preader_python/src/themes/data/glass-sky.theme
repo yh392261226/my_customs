@@ -1,129 +1,47 @@
 {
-    "name": "glass-sky",
-    "display_name": "Glass Sky",
-    "description": "Glass Sky 内置主题",
-    "styles": {
-        "app.title": {
-            "color": "#7DD3FC",
-            "bold": true
-        },
-        "app.subtitle": {
-            "color": "#BAE6FD"
-        },
-        "app.accent": {
-            "color": "#38BDF8"
-        },
-        "app.highlight": {
-            "color": "#FDE047"
-        },
-        "app.warning": {
-            "color": "#F87171"
-        },
-        "app.success": {
-            "color": "#34D399"
-        },
-        "app.info": {
-            "color": "#60A5FA"
-        },
-        "app.muted": {
-            "color": "#93A3B3"
-        },
-        "ui.border": {
-            "color": "#60A5FA"
-        },
-        "ui.panel.title": {
-            "color": "#7DD3FC",
-            "bold": true
-        },
-        "ui.label": {
-            "color": "#E0F2FE"
-        },
-        "ui.button": {
-            "color": "#E0F2FE"
-        },
-        "ui.button.primary": {
-            "color": "#38BDF8"
-        },
-        "ui.button.success": {
-            "color": "#34D399"
-        },
-        "ui.button.warning": {
-            "color": "#FDE047"
-        },
-        "ui.button.danger": {
-            "color": "#F87171"
-        },
-        "ui.input": {
-            "color": "#E0F2FE"
-        },
-        "ui.input.focus": {
-            "color": "#7DD3FC"
-        },
-        "content.text": {
-            "color": "#E0F2FE"
-        },
-        "content.heading": {
-            "color": "#7DD3FC",
-            "bold": true
-        },
-        "content.subheading": {
-            "color": "#38BDF8",
-            "bold": true
-        },
-        "content.link": {
-            "color": "#38BDF8",
-            "underline": true
-        },
-        "content.quote": {
-            "color": "#34D399",
-            "italic": true
-        },
-        "content.code": {
-            "color": "#34D399"
-        },
-        "content.highlight": {
-            "color": "#7DD3FC"
-        },
-        "progress.bar": {
-            "color": "#38BDF8"
-        },
-        "progress.text": {
-            "color": "#BAE6FD"
-        },
-        "progress.percentage": {
-            "color": "#7DD3FC"
-        },
-        "bookshelf.title": {
-            "color": "#7DD3FC",
-            "bold": true
-        },
-        "bookshelf.author": {
-            "color": "#BAE6FD"
-        },
-        "bookshelf.progress": {
-            "color": "#38BDF8"
-        },
-        "bookshelf.tag": {
-            "color": "#34D399"
-        },
-        "bookshelf.selected": {
-            "color": "#BAE6FD"
-        },
-        "reader.text": {
-            "color": "#E0F2FE"
-        },
-        "reader.chapter": {
-            "color": "#7DD3FC",
-            "bold": true
-        },
-        "reader.page_number": {
-            "color": "#60A5FA"
-        },
-        "reader.bookmark": {
-            "color": "#FDE047"
-        },
-        "reader.search_result": {
-            "color": "#7DD3FC"
-        }
-    }
+  "name": "glass-sky",
+  "display_name": "Glass Sky",
+  "description": "Glass Sky 内置主题",
+  "primary": "#38BDF8",
+  "secondary": "#FDE047",
+  "accent": "#FDE047",
+  "warning": "#F87171",
+  "error": "#F87171",
+  "success": "#34D399",
+  "foreground": "#E0F2FE",
+  "background": "transparent",
+  "surface": "#00000020",
+  "panel": "#00000020",
+  "boost": "#00000030",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {
+    "border": "#60A5FA",
+    "border-blurred": "#93A3B3",
+    "block-cursor-foreground": "#000000",
+    "block-cursor-background": "#38BDF8",
+    "block-cursor-text-style": "none",
+    "input-cursor-background": "#E0F2FE",
+    "input-cursor-foreground": "#000000",
+    "input-cursor-text-style": "reverse",
+    "input-selection-background": "#38BDF8 35%",
+    "input-selection-foreground": "#E0F2FE",
+    "scrollbar": "#38BDF8",
+    "scrollbar-hover": "#38BDF8",
+    "scrollbar-active": "#FDE047",
+    "scrollbar-background": "#00000020",
+    "scrollbar-background-hover": "#00000020",
+    "scrollbar-background-active": "#00000020",
+    "scrollbar-corner-color": "#00000020",
+    "block-hover-background": "#00000020",
+    "footer-key-foreground": "#38BDF8",
+    "footer-key-background": "#00000020",
+    "footer-description-foreground": "#E0F2FE",
+    "footer-description-background": "#00000020",
+    "screen-selection-background": "#38BDF8 35%",
+    "screen-selection-foreground": "#E0F2FE",
+    "ansi-background": "#E0F2FE",
+    "ansi-foreground": "#000000"
+  }
 }

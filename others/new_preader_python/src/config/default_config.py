@@ -172,7 +172,6 @@ def get_available_themes():
                         if theme_name:
                             available_themes.append(theme_name)
                 except Exception:
-                    # 如果读取失败，跳过该主题文件
                     continue
     
     # 确保至少有基本主题
