@@ -1596,7 +1596,12 @@
     "multype_mode": "多选模式",
     "right": "补全路径",
     "updown": "选择补全建议",
-    "shortcut_u": "差异模式"
+    "shortcut_u": "差异模式",
+    "select_all": "全选",
+    "selected_all": "已全选 {count} 个文件",
+    "deselected_all": "已取消全选",
+    "select_all_failed": "全选操作失败",
+    "no_files": "没有可选择的文件"
   },
   "lock_screen": {
     "placeholder": "请输入密码以继续",

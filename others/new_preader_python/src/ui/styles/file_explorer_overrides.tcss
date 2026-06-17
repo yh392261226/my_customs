@@ -114,7 +114,7 @@
 }
 
 #navigation-bar-right #file-explorer-search-select {
-    width: 30%;
+    width: 15%;
     min-width: 15;
     margin: 0 1;
     background: $surface;
@@ -130,7 +130,7 @@
 }
 
 /* 操作按钮 */
-#navigation-bar-right #select-btn {
+#navigation-bar-right #select-btn, #select-all-btn {
     background: $primary;
     min-width: 12;
     height: 3;

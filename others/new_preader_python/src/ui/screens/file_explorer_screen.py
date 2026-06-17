@@ -152,6 +152,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                             yield Select(id="file-explorer-search-select", options=search_options, prompt=get_global_i18n().t("common.select_ext_prompt"))
                             yield Button(get_global_i18n().t("common.search"), id="file-explorer-search-btn")
                             # 如果是文件选择模式，则显示搜索框和按钮 end
+                            yield Button(get_global_i18n().t("file_explorer.select_all"), id="select-all-btn")
                             yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
                         else:
                             yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
@@ -979,6 +980,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         elif event.button.id == "select-btn":
             # 选择操作
             self._handle_selection()
+
+        elif event.button.id == "select-all-btn":
+            # 全选/取消全选
+            self._select_all_files()
             
         elif event.button.id == "cancel-btn":
             # 取消操作 -> 返回上一页
@@ -1790,6 +1795,72 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                         
         except Exception as e:
             logger.error(f"更新文件列表视觉状态失败: {e}")
+
+    def _select_all_files(self) -> None:
+        """全选/取消全选 当前文件列表中的所有书籍
+        差异模式下也能正确全选过滤后的文件列表
+        """
+        try:
+            if not self.file_items:
+                self.notify(
+                    get_global_i18n().t("file_explorer.no_files", default="没有可选择的文件"),
+                    severity="warning",
+                )
+                return
+
+            # 收集所有书籍类型的索引和路径
+            book_indices: Set[int] = set()
+            book_paths: Set[str] = set()
+            for i, item in enumerate(self.file_items):
+                if item["type"] == "book":
+                    book_indices.add(i)
+                    book_paths.add(item["path"])
+
+            if not book_indices:
+                self.notify(
+                    get_global_i18n().t("file_explorer.no_files", default="没有可选择的文件"),
+                    severity="warning",
+                )
+                return
+
+            # 检查是否已全选（toggle 行为）
+            if self.multiple and self.selected_file_indices and book_indices == self.selected_file_indices:
+                # 已全选 → 取消全选
+                self.selected_file_indices.clear()
+                self.selected_files.clear()
+                count = 0
+                notify_key = "file_explorer.deselected_all"
+                default_msg = "已取消全选"
+            else:
+                # 未全选 → 全选
+                if self.multiple:
+                    self.selected_file_indices = book_indices
+                    self.selected_files = book_paths
+                else:
+                    # 单选模式：选第一个
+                    first_idx = min(book_indices)
+                    self.selected_file_index = first_idx
+                    first_item = self.file_items[first_idx]
+                    self.selected_file = first_item["path"]
+                    self.selected_file_indices.clear()
+                    self.selected_files.clear()
+                count = len(book_indices)
+                notify_key = "file_explorer.selected_all"
+                default_msg = f"已全选 {count} 个文件"
+
+            # 更新视觉状态和底部状态
+            self._update_file_list_visual_state()
+            self._update_selection_status()
+
+            msg = get_global_i18n().t(notify_key, default=default_msg).format(count=count)
+            self.notify(msg, severity="information")
+
+        except Exception as e:
+            logger.error(f"全选文件失败: {e}")
+            self.notify(
+                get_global_i18n().t("file_explorer.select_all_failed", default="全选操作失败"),
+                severity="error",
+            )
 
     def on_key(self, event: events.Key) -> None:       
         if event.key == "escape":
