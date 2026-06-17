@@ -1194,6 +1194,7 @@
     "novel_id_placeholder_multi": "Enter book IDs (multiple IDs separated by commas)",
     "start_crawl": "Start Crawl",
     "stop_crawl": "Stop Crawl",
+    "stop_crawl_failed": "Stop Crawl Failed",
     "copy_ids": "Copy IDs",
     "copy_ids_success": "Successfully copied IDs",
     "copy_ids_failed": "Failed to copy IDs",

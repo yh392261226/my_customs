@@ -1280,6 +1280,7 @@
     "novel_id_placeholder_multi": "输入书籍ID（多个ID用英文逗号分隔）",
     "start_crawl": "开始爬取",
     "stop_crawl": "停止爬取",
+    "stop_crawl_failed": "停止爬取失败",
     "copy_ids": "复制ID",
     "copy_ids_success": "成功复制ID",
     "copy_ids_failed": "复制ID失败",
