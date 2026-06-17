@@ -22,6 +22,7 @@ from src.config.config_manager import ConfigManager
 from src.config.settings import SettingRegistry, ConfigAdapter, initialize_settings_registry
 from src.config.settings.setting_observer import notify_setting_change
 from src.config.settings.setting_types import SelectSetting
+from src.ui.dialogs.directory_dialog import DirectoryDialog
 
 from src.utils.logger import get_logger
 
@@ -129,6 +130,10 @@ class SettingsScreen(Screen[Any]):
                 # 数据库管理标签页
                 with TabPane(get_global_i18n().t("settings.database_management"), id="database-tab"):
                     yield from self._compose_database_settings()
+                
+                # 路径设置标签页
+                with TabPane(get_global_i18n().t("settings.paths"), id="paths-tab"):
+                    yield from self._compose_path_settings()
                 
                 # 浏览器设置标签页
                 with TabPane(get_global_i18n().t("settings.browser"), id="browser-tab"):
@@ -785,6 +790,40 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.maintenance_tip_backup"), classes="setting-description")
             yield Label(get_global_i18n().t("settings.maintenance_tip_location"), classes="setting-description")
     
+    def _compose_path_settings(self) -> ComposeResult:
+        """组合路径相关设置"""
+        with ScrollableContainer(id="path-settings"):
+            config = self.config_manager.get_config()
+
+            # 配置目录（只读，仅供参考）
+            yield Label(get_global_i18n().t("settings.config_dir"), classes="setting-section-title")
+            config_dir = os.path.expanduser(config["paths"]["config_dir"])
+            yield Label(config_dir, classes="setting-value")
+
+            # 数据库路径（只读，仅供参考）
+            yield Label(get_global_i18n().t("settings.database"), classes="setting-section-title")
+            db_path = os.path.expanduser(config["paths"]["database"])
+            yield Label(db_path, classes="setting-value")
+
+            # 分隔线
+            yield Horizontal(id="path-separator", classes="setting-separator")
+
+            # 书籍库路径（可编辑）
+            yield Label(get_global_i18n().t("settings.library"), classes="setting-section-title")
+            # yield Label(get_global_i18n().t("settings.library_desc") if get_global_i18n().t("settings.library_desc") != "settings.library_desc" else "默认书籍存储目录", classes="setting-description")
+            with Horizontal(id="library-path-row"):
+                library_path = os.path.expanduser(config["paths"]["library"])
+                yield Input(
+                    value=library_path,
+                    id="paths-library-input",
+                    placeholder=get_global_i18n().t("settings.library"),
+                )
+                # yield Button(
+                #     get_global_i18n().t("settings.browse"),
+                #     id="library-browse-btn",
+                #     variant="primary",
+                # )
+
     def _compose_preview_config_settings(self) -> ComposeResult:
         """组合预览配置设置"""
         with ScrollableContainer(id="preview-config-settings"):
@@ -964,6 +1003,8 @@ class SettingsScreen(Screen[Any]):
             self._backup_database()
         elif event.button.id == "database-restore-btn":
             self._restore_database()
+        # elif event.button.id == "library-browse-btn":
+        #     self._browse_library_path()
 
     def on_key(self, event: events.Key) -> None:
         """处理键盘事件（仅处理特殊交互按键）"""
@@ -1455,6 +1496,11 @@ class SettingsScreen(Screen[Any]):
         new_pwd = (pwd_input.value or "").strip()
         if new_pwd:
             self.setting_registry.set_value("advanced.password", new_pwd)
+        
+        # 路径设置
+        library_input = self.query_one("#paths-library-input", Input)
+        if library_input.value:
+            self.setting_registry.set_value("paths.library", library_input.value)
 
     
     def _init_multi_user_password_linkage(self) -> None:
@@ -1487,6 +1533,25 @@ class SettingsScreen(Screen[Any]):
         # 这个方法会在重置后重新加载UI
         # 由于Textual的限制，我们需要重新加载整个屏幕
         # 在实际应用中，可以逐个更新UI控件
+
+    def _browse_library_path(self) -> None:
+        """浏览并选择书籍库目录"""
+        try:
+            def on_directory_selected(dir_path: Optional[str]) -> None:
+                if dir_path and os.path.isdir(dir_path):
+                    try:
+                        path_input = self.query_one("#paths-library-input", Input)
+                        path_input.value = dir_path
+                    except Exception:
+                        pass
+
+            self.app.push_screen(
+                DirectoryDialog(theme_manager=self.theme_manager),
+                on_directory_selected
+            )
+        except Exception as e:
+            logger.error(f"打开目录选择对话框失败: {e}")
+            self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
 
     def _backup_database(self) -> None:
         """备份数据库到下载文件夹"""

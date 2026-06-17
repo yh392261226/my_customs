@@ -1,21 +1,3 @@
-/* Settings screen minimal overrides (page-specific styles only) */
-Header {
-    dock: top;
-    width: 100%;
-    height: 1;
-    background: $background;
-    color: $accent;
-    text-align: left;
-    align: left middle;
-    content-align: left middle;
-}
-
-Footer {
-    height: 1;
-    width: 100%;
-    dock: bottom;
-}
-
 #settings-container {
     width: 100%;
     height: 100%;
@@ -101,7 +83,31 @@ Footer {
 }
 
 #settings-container TabbedContent {
-    height: 75%;
+    height: 80%;
+    overflow-y: auto;
+}
+
+#appearance-settings, #reading-settings, #audio-settings, #translation-settings, #browser-settings, #advanced-settings, #database-settings, #path-settings, #preview-config-settings {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+#paths-library-input {
+    width: 40%;
+    min-width: 30;
+    height: 3;
+    margin: 1 0;
+}
+
+#library-browse-btn {
+    width: 10;
+    height: 3;
+}
+
+#paths-library-input:hover {
+    background: $success;
+    width: 60%;
 }
 
 /* 数据库管理按钮样式 */
