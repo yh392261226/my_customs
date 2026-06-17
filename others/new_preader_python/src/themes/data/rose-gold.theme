@@ -1,0 +1,20 @@
+{
+  "name": "rose-gold",
+  "display_name": "玫瑰金",
+  "description": "优雅的玫瑰金色调，温润而有质感",
+  "primary": "#F43F5E",
+  "secondary": "#FDA4AF",
+  "accent": "#FDA4AF",
+  "warning": "#F59E0B",
+  "error": "#E11D48",
+  "success": "#4ADE80",
+  "foreground": "#FFE4E6",
+  "background": "#1A1016",
+  "surface": "#2D1C25",
+  "panel": "#2D1C25",
+  "boost": "#3D2632",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

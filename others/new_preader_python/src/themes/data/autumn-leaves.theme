@@ -1,0 +1,20 @@
+{
+  "name": "autumn-leaves",
+  "display_name": "秋叶飘落",
+  "description": "秋日枫叶的温暖色调，浓郁而怀旧",
+  "primary": "#F97316",
+  "secondary": "#FDBA74",
+  "accent": "#FDBA74",
+  "warning": "#FBBF24",
+  "error": "#DC2626",
+  "success": "#84CC16",
+  "foreground": "#FFF7ED",
+  "background": "#1A0F05",
+  "surface": "#2D1A0C",
+  "panel": "#2D1A0C",
+  "boost": "#3D2412",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

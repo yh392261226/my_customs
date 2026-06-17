@@ -1,0 +1,20 @@
+{
+  "name": "neon-city",
+  "display_name": "霓虹都市",
+  "description": "赛博朋克风格的霓虹灯色彩，极具视觉冲击力 #高对比度",
+  "primary": "#FF00FF",
+  "secondary": "#00FFFF",
+  "accent": "#00FFFF",
+  "warning": "#FFB800",
+  "error": "#FF3333",
+  "success": "#00FF41",
+  "foreground": "#F0F0FF",
+  "background": "#08081A",
+  "surface": "#12122A",
+  "panel": "#12122A",
+  "boost": "#1C1C3A",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

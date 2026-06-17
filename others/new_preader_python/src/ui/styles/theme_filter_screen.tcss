@@ -1,0 +1,33 @@
+/* 主题过滤选择器样式 */
+
+ThemeFilterScreen {
+    align: center middle;
+}
+
+#theme-filter-container {
+    width: 50;
+    max-height: 30;
+    background: $surface;
+    border: thick $primary;
+    padding: 1 2;
+}
+
+#theme-filter-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    padding-bottom: 1;
+    color: $text;
+}
+
+#theme-filter-input {
+    width: 100%;
+    height: 3;
+    margin-bottom: 1;
+}
+
+#theme-filter-list {
+    width: 100%;
+    height: auto;
+    max-height: 20;
+}

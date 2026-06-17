@@ -1,0 +1,20 @@
+{
+  "name": "lavender-dream",
+  "display_name": "薰衣草梦",
+  "description": "温柔的紫色梦境，淡雅而治愈",
+  "primary": "#A78BFA",
+  "secondary": "#C4B5FD",
+  "accent": "#C4B5FD",
+  "warning": "#FBBF24",
+  "error": "#FCA5A5",
+  "success": "#6EE7B7",
+  "foreground": "#EDE9FE",
+  "background": "#120C24",
+  "surface": "#1E1638",
+  "panel": "#1E1638",
+  "boost": "#281D48",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

@@ -1,0 +1,20 @@
+{
+  "name": "crimson-night",
+  "display_name": "深红之夜",
+  "description": "深邃的暗红夜色，神秘而有力量感",
+  "primary": "#DC2626",
+  "secondary": "#FCA5A5",
+  "accent": "#FCA5A5",
+  "warning": "#F59E0B",
+  "error": "#B91C1C",
+  "success": "#4ADE80",
+  "foreground": "#FEE2E2",
+  "background": "#0F0305",
+  "surface": "#1F0A0D",
+  "panel": "#1F0A0D",
+  "boost": "#2D1218",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

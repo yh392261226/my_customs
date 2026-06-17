@@ -412,6 +412,8 @@
     "advanced": "高级",
     "paths": "路径",
     "theme": "主题",
+    "theme_filter_title": "主题选择",
+    "theme_filter_placeholder": "输入关键词筛选主题...",
     "language": "语言",
     "save": "保存",
     "cancel": "取消",

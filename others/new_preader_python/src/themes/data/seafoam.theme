@@ -1,0 +1,20 @@
+{
+  "name": "seafoam",
+  "display_name": "海沫绿",
+  "description": "清新的海沫碧绿色，如海浪轻抚沙滩",
+  "primary": "#0D9488",
+  "secondary": "#2DD4BF",
+  "accent": "#2DD4BF",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#059669",
+  "foreground": "#042F2E",
+  "background": "#F0FDFA",
+  "surface": "#CCFBF1",
+  "panel": "#CCFBF1",
+  "boost": "#99F6E4",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

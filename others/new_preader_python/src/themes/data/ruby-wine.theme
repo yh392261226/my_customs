@@ -1,0 +1,20 @@
+{
+  "name": "ruby-wine",
+  "display_name": "红宝石酒",
+  "description": "醇厚的红酒色调，优雅而沉稳",
+  "primary": "#E11D48",
+  "secondary": "#FB7185",
+  "accent": "#FB7185",
+  "warning": "#F59E0B",
+  "error": "#BE123C",
+  "success": "#4ADE80",
+  "foreground": "#FCE7F3",
+  "background": "#1A0510",
+  "surface": "#2D0D1C",
+  "panel": "#2D0D1C",
+  "boost": "#3D1428",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

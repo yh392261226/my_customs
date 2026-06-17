@@ -1,0 +1,20 @@
+{
+  "name": "cotton-candy",
+  "display_name": "棉花糖",
+  "description": "梦幻的粉紫棉花糖色调，甜美而治愈",
+  "primary": "#7C3AED",
+  "secondary": "#A78BFA",
+  "accent": "#A78BFA",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#059669",
+  "foreground": "#2E1065",
+  "background": "#FAF5FF",
+  "surface": "#F3E8FF",
+  "panel": "#F3E8FF",
+  "boost": "#E9D5FF",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

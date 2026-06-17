@@ -1,0 +1,20 @@
+{
+  "name": "deep-ocean",
+  "display_name": "深海秘境",
+  "description": "神秘的深海蓝绿，静谧而深邃",
+  "primary": "#14B8A6",
+  "secondary": "#5EEAD4",
+  "accent": "#5EEAD4",
+  "warning": "#F59E0B",
+  "error": "#F87171",
+  "success": "#34D399",
+  "foreground": "#CCFBF1",
+  "background": "#021A1A",
+  "surface": "#042F2E",
+  "panel": "#042F2E",
+  "boost": "#0A3D3C",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

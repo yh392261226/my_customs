@@ -1,0 +1,20 @@
+{
+  "name": "obsidian",
+  "display_name": "黑曜石",
+  "description": "极致黑白对比，最纯粹的高对比度阅读体验 #高对比度",
+  "primary": "#FFFFFF",
+  "secondary": "#E2E8F0",
+  "accent": "#E2E8F0",
+  "warning": "#FCD34D",
+  "error": "#F87171",
+  "success": "#4ADE80",
+  "foreground": "#F8FAFC",
+  "background": "#000000",
+  "surface": "#0F0F0F",
+  "panel": "#0F0F0F",
+  "boost": "#1A1A1A",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

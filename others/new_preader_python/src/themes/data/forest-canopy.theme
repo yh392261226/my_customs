@@ -1,0 +1,20 @@
+{
+  "name": "forest-canopy",
+  "display_name": "森林华盖",
+  "description": "深邃的森林绿意，让人沉浸在大自然中",
+  "primary": "#4ADE80",
+  "secondary": "#A3E635",
+  "accent": "#A3E635",
+  "warning": "#FBBF24",
+  "error": "#F87171",
+  "success": "#34D399",
+  "foreground": "#DCFCE7",
+  "background": "#022306",
+  "surface": "#052E0A",
+  "panel": "#052E0A",
+  "boost": "#0A3D12",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

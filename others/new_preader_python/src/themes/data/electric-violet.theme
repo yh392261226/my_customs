@@ -1,0 +1,20 @@
+{
+  "name": "electric-violet",
+  "display_name": "电光紫罗兰",
+  "description": "鲜艳的紫罗兰电光色，充满活力与创造力 #高对比度",
+  "primary": "#D946EF",
+  "secondary": "#F0ABFC",
+  "accent": "#F0ABFC",
+  "warning": "#FBBF24",
+  "error": "#FB7185",
+  "success": "#34D399",
+  "foreground": "#FAF5FF",
+  "background": "#0D0221",
+  "surface": "#1A0533",
+  "panel": "#1A0533",
+  "boost": "#260A45",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

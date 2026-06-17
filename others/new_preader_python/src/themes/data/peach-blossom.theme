@@ -1,0 +1,20 @@
+{
+  "name": "peach-blossom",
+  "display_name": "桃花朵朵",
+  "description": "温暖的蜜桃橙色，如同春日桃花盛开",
+  "primary": "#C2410C",
+  "secondary": "#FB923C",
+  "accent": "#FB923C",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#059669",
+  "foreground": "#2D1608",
+  "background": "#FFF7ED",
+  "surface": "#FFEDD5",
+  "panel": "#FFEDD5",
+  "boost": "#FED7AA",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

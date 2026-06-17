@@ -1,0 +1,20 @@
+{
+  "name": "matcha-latte",
+  "display_name": "抹茶拿铁",
+  "description": "温暖的抹茶绿与奶白色，柔和自然",
+  "primary": "#4D7C0F",
+  "secondary": "#84CC16",
+  "accent": "#84CC16",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#15803D",
+  "foreground": "#1A2E05",
+  "background": "#F7FEE7",
+  "surface": "#ECFCCB",
+  "panel": "#ECFCCB",
+  "boost": "#D9F99D",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

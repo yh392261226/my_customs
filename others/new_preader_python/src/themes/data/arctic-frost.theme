@@ -1,0 +1,20 @@
+{
+  "name": "arctic-frost",
+  "display_name": "极地冰霜",
+  "description": "冰晶般清透的蓝白配色，极致纯净",
+  "primary": "#0284C7",
+  "secondary": "#38BDF8",
+  "accent": "#38BDF8",
+  "warning": "#EA580C",
+  "error": "#DC2626",
+  "success": "#16A34A",
+  "foreground": "#0C1929",
+  "background": "#F8FAFC",
+  "surface": "#E0F2FE",
+  "panel": "#E0F2FE",
+  "boost": "#BAE6FD",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

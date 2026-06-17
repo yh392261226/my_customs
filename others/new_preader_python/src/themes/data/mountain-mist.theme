@@ -1,0 +1,20 @@
+{
+  "name": "mountain-mist",
+  "display_name": "山间薄雾",
+  "description": "淡雅的山间灰雾色调，宁静而克制",
+  "primary": "#4B5563",
+  "secondary": "#9CA3AF",
+  "accent": "#9CA3AF",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#059669",
+  "foreground": "#111827",
+  "background": "#F9FAFB",
+  "surface": "#F3F4F6",
+  "panel": "#F3F4F6",
+  "boost": "#E5E7EB",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

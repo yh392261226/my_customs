@@ -1,0 +1,20 @@
+{
+  "name": "moonlight",
+  "display_name": "月光如水",
+  "description": "柔和的月光银蓝色，静谧而优雅",
+  "primary": "#818CF8",
+  "secondary": "#A5B4FC",
+  "accent": "#A5B4FC",
+  "warning": "#FBBF24",
+  "error": "#FCA5A5",
+  "success": "#86EFAC",
+  "foreground": "#E0E7FF",
+  "background": "#0D0F23",
+  "surface": "#161A3A",
+  "panel": "#161A3A",
+  "boost": "#1F2450",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

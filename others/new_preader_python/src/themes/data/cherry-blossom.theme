@@ -1,0 +1,20 @@
+{
+  "name": "cherry-blossom",
+  "display_name": "樱花物语",
+  "description": "粉嫩的樱花色调，温柔甜美令人心旷神怡",
+  "primary": "#DB2777",
+  "secondary": "#F472B6",
+  "accent": "#F472B6",
+  "warning": "#F59E0B",
+  "error": "#E11D48",
+  "success": "#10B981",
+  "foreground": "#4A102A",
+  "background": "#FFF5F7",
+  "surface": "#FFE4E6",
+  "panel": "#FFE4E6",
+  "boost": "#FFD1D6",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

@@ -1,0 +1,20 @@
+{
+  "name": "ocean-breeze",
+  "display_name": "海风拂面",
+  "description": "清新的深海蓝色调，如同海风吹拂般清爽",
+  "primary": "#00B4D8",
+  "secondary": "#90E0EF",
+  "accent": "#90E0EF",
+  "warning": "#F4A261",
+  "error": "#E76F51",
+  "success": "#2EC4B6",
+  "foreground": "#E0F7FA",
+  "background": "#021124",
+  "surface": "#0A1D3A",
+  "panel": "#0A1D3A",
+  "boost": "#102844",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

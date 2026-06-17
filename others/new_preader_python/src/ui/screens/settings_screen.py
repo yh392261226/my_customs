@@ -23,6 +23,7 @@ from src.config.settings import SettingRegistry, ConfigAdapter, initialize_setti
 from src.config.settings.setting_observer import notify_setting_change
 from src.config.settings.setting_types import SelectSetting
 from src.ui.dialogs.directory_dialog import DirectoryDialog
+from src.ui.screens.theme_filter_screen import ThemeFilterScreen
 
 from src.utils.logger import get_logger
 
@@ -85,6 +86,9 @@ class SettingsScreen(Screen[Any]):
             ("enter", "save_settings", get_global_i18n().t("settings.save")),
             ("r", "reset_settings", get_global_i18n().t("settings.reset")),
         ]
+        
+        # 当前选中的主题名（由 ThemeFilterScreen 回调更新）
+        self._selected_theme: str = ""
         
         # 初始化设置系统
         self.setting_registry = SettingRegistry()
@@ -165,14 +169,23 @@ class SettingsScreen(Screen[Any]):
     def _compose_appearance_settings(self) -> ComposeResult:
         """组合外观设置"""
         with ScrollableContainer(id="appearance-settings", classes="settings-scrollable"):
-            # 主题设置
+            # 主题设置 — 使用带搜索过滤的主题选择器，与快捷键 t / Ctrl+P 保持一致
             yield Label(get_global_i18n().t("settings.theme"), classes="setting-label")
             theme_setting = self.setting_registry.get_setting("appearance.theme")
             if theme_setting and isinstance(theme_setting, SelectSetting):
-                yield Select(
-                    [(label, value) for value, label in zip(theme_setting.options, theme_setting.option_labels)],
-                    value=theme_setting.value,
-                    id="appearance-theme-select"
+                # 从 ThemeManager 获取最新主题列表（支持热更新）
+                theme_names = self.theme_manager.get_available_themes()
+                # 确定当前选中的值（确保在列表中）
+                current_value = theme_setting.value
+                if current_value not in theme_names:
+                    current_value = theme_names[0] if theme_names else "dark"
+                # 记录当前选中值，供后续保存使用
+                self._selected_theme = current_value
+                # 使用 Button 展示当前主题，点击后打开带搜索过滤的选择器
+                yield Button(
+                    f"📌 {current_value.capitalize()}",
+                    id="appearance-theme-btn",
+                    variant="default",
                 )
             
             # 边框样式
@@ -1003,6 +1016,8 @@ class SettingsScreen(Screen[Any]):
             self._backup_database()
         elif event.button.id == "database-restore-btn":
             self._restore_database()
+        elif event.button.id == "appearance-theme-btn":
+            self._open_theme_filter()
         # elif event.button.id == "library-browse-btn":
         #     self._browse_library_path()
 
@@ -1229,10 +1244,9 @@ class SettingsScreen(Screen[Any]):
     
     def _update_settings_from_ui(self) -> None:
         """从UI更新设置项的值"""
-        # 外观设置
-        theme_select = self.query_one("#appearance-theme-select", Select)
-        if theme_select.value is not None:
-            self.setting_registry.set_value("appearance.theme", theme_select.value)
+        # 外观设置 — 使用 self._selected_theme（由 ThemeFilterScreen 回调设置）
+        if self._selected_theme:
+            self.setting_registry.set_value("appearance.theme", self._selected_theme)
         
         border_select = self.query_one("#appearance-border-select", Select)
         if border_select.value is not None:
@@ -1539,6 +1553,33 @@ class SettingsScreen(Screen[Any]):
             )
         except Exception as e:
             logger.error(f"打开目录选择对话框失败: {e}")
+            self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
+
+    def _open_theme_filter(self) -> None:
+        """打开带搜索过滤的主题选择器"""
+        try:
+            theme_names = self.theme_manager.get_available_themes()
+            if not theme_names:
+                self.notify(get_global_i18n().t("app.no_theme"), severity="warning")
+                return
+
+            def on_theme_selected(theme_name: Optional[str]) -> None:
+                if theme_name:
+                    # 更新选中的主题名
+                    self._selected_theme = theme_name
+                    # 更新按钮文本
+                    try:
+                        btn = self.query_one("#appearance-theme-btn", Button)
+                        btn.label = f"📌 {theme_name.capitalize()}"
+                    except Exception:
+                        pass
+
+            self.app.push_screen(
+                ThemeFilterScreen(theme_names, self._selected_theme),
+                on_theme_selected,
+            )
+        except Exception as e:
+            logger.error(f"打开主题过滤器失败: {e}")
             self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
 
     def _backup_database(self) -> None:

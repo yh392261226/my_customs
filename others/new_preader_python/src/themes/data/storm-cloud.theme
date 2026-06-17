@@ -1,0 +1,20 @@
+{
+  "name": "storm-cloud",
+  "display_name": "暴风云层",
+  "description": "暴风雨前的灰色云层，冷峻而专注",
+  "primary": "#94A3B8",
+  "secondary": "#CBD5E1",
+  "accent": "#CBD5E1",
+  "warning": "#FBBF24",
+  "error": "#F87171",
+  "success": "#86EFAC",
+  "foreground": "#E2E8F0",
+  "background": "#0F1219",
+  "surface": "#1A1F2C",
+  "panel": "#1A1F2C",
+  "boost": "#242A3A",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

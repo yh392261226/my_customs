@@ -412,6 +412,8 @@
     "advanced": "Advanced",
     "paths": "Paths",
     "theme": "Theme",
+    "theme_filter_title": "Select Theme",
+    "theme_filter_placeholder": "Type to filter themes...",
     "language": "Language",
     "save": "Save",
     "cancel": "Cancel",

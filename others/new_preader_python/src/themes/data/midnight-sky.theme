@@ -1,0 +1,20 @@
+{
+  "name": "midnight-sky",
+  "display_name": "午夜星空",
+  "description": "深邃夜幕下的星光，沉静而专注",
+  "primary": "#38BDF8",
+  "secondary": "#7DD3FC",
+  "accent": "#7DD3FC",
+  "warning": "#FBBF24",
+  "error": "#FB7185",
+  "success": "#4ADE80",
+  "foreground": "#E0F2FE",
+  "background": "#0A0E27",
+  "surface": "#111640",
+  "panel": "#111640",
+  "boost": "#1A2054",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

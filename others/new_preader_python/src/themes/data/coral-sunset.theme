@@ -1,0 +1,20 @@
+{
+  "name": "coral-sunset",
+  "display_name": "珊瑚暮色",
+  "description": "珊瑚粉色的暮光，浪漫而温暖",
+  "primary": "#FB7185",
+  "secondary": "#FDA4AF",
+  "accent": "#FDA4AF",
+  "warning": "#FBBF24",
+  "error": "#E11D48",
+  "success": "#34D399",
+  "foreground": "#FFE4E6",
+  "background": "#1F0D15",
+  "surface": "#2E1520",
+  "panel": "#2E1520",
+  "boost": "#3D1E2C",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

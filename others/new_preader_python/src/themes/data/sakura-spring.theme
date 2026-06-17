@@ -1,0 +1,20 @@
+{
+  "name": "sakura-spring",
+  "display_name": "樱之春",
+  "description": "春日樱花般的淡雅粉白，轻盈通透",
+  "primary": "#BE185D",
+  "secondary": "#F472B6",
+  "accent": "#F472B6",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#059669",
+  "foreground": "#3D0A1E",
+  "background": "#FFF1F2",
+  "surface": "#FFE4E6",
+  "panel": "#FFE4E6",
+  "boost": "#FECDD3",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}

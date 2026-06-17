@@ -1,0 +1,20 @@
+{
+  "name": "tropical-punch",
+  "display_name": "热带果饮",
+  "description": "热情奔放的热带水果色，活力四射 #高对比度",
+  "primary": "#EA580C",
+  "secondary": "#22D3EE",
+  "accent": "#22D3EE",
+  "warning": "#D97706",
+  "error": "#DC2626",
+  "success": "#16A34A",
+  "foreground": "#1C0A00",
+  "background": "#FFFBEB",
+  "surface": "#FEF3C7",
+  "panel": "#FEF3C7",
+  "boost": "#FDE68A",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95,
+  "variables": {}
+}
