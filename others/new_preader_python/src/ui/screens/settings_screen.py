@@ -181,12 +181,18 @@ class SettingsScreen(Screen[Any]):
                     current_value = theme_names[0] if theme_names else "dark"
                 # 记录当前选中值，供后续保存使用
                 self._selected_theme = current_value
-                # 使用 Button 展示当前主题，点击后打开带搜索过滤的选择器
-                yield Button(
-                    f"📌 {current_value.capitalize()}",
-                    id="appearance-theme-btn",
-                    variant="default",
-                )
+                # 主题选择按钮 + 同步按钮放在同一行
+                with Horizontal(classes="theme-selector-row"):
+                    yield Button(
+                        f"📌 {current_value.capitalize()}",
+                        id="appearance-theme-btn",
+                        variant="default",
+                    )
+                    yield Button(
+                        get_global_i18n().t("settings.sync_theme", default="同步当前主题"),
+                        id="appearance-theme-sync-btn",
+                        variant="primary",
+                    )
             
             # 边框样式
             yield Label(get_global_i18n().t("settings.border_style"), classes="setting-label hidden")
@@ -1018,6 +1024,8 @@ class SettingsScreen(Screen[Any]):
             self._restore_database()
         elif event.button.id == "appearance-theme-btn":
             self._open_theme_filter()
+        elif event.button.id == "appearance-theme-sync-btn":
+            self._sync_current_theme()
         # elif event.button.id == "library-browse-btn":
         #     self._browse_library_path()
 
@@ -1581,6 +1589,46 @@ class SettingsScreen(Screen[Any]):
         except Exception as e:
             logger.error(f"打开主题过滤器失败: {e}")
             self.notify(get_global_i18n().t("error.error") + f": {e}", severity="error")
+
+    def _sync_current_theme(self) -> None:
+        """将当前实际使用的主题（快捷键 t / Ctrl+P / Ctrl+P 内置选择 等所有方式）同步为设置中心的选中主题"""
+        try:
+            # 优先从 Textual 框架读取 app.theme（Ctrl+P 内置选择直接改这个值）
+            # 其次回退到 ThemeManager（快捷键 t 走的是这个）
+            current = getattr(self.app, "theme", None)
+            if not current:
+                current = self.theme_manager.get_current_theme_name()
+            if not current:
+                self.notify(
+                    get_global_i18n().t("settings.sync_theme_failed", default="无法获取当前主题"),
+                    severity="warning",
+                )
+                return
+            # 同时确保 ThemeManager 内部状态也一致（Ctrl+P 可能绕过了它）
+            if self.theme_manager.get_current_theme_name() != current:
+                try:
+                    self.theme_manager.set_theme(current)
+                except Exception:
+                    pass
+            # 更新选中值
+            self._selected_theme = current
+            # 更新按钮文本
+            try:
+                btn = self.query_one("#appearance-theme-btn", Button)
+                btn.label = f"📌 {current.capitalize()}"
+            except Exception:
+                pass
+            # 通知用户
+            self.notify(
+                get_global_i18n().t("settings.sync_theme_success", default="已同步至：{theme}").format(theme=current),
+                severity="information",
+            )
+        except Exception as e:
+            logger.error(f"同步当前主题失败: {e}")
+            self.notify(
+                get_global_i18n().t("settings.sync_theme_failed", default="同步失败") + f": {e}",
+                severity="error",
+            )
 
     def _backup_database(self) -> None:
         """备份数据库到下载文件夹"""
