@@ -65,7 +65,12 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
         Returns:
             ComposeResult: 组合结果
         """
-        yield Header()
+        yield Header(
+            time_format="%Y-%m-%d %H:%M:%S",
+            show_clock=True,
+            id="welcome-header",
+            name="welcome-header",
+        )
         yield Container(
             Vertical(
                 # Label(get_global_i18n().t('welcome.title_main'), id="welcome-title"),
