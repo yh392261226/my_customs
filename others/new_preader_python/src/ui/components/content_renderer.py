@@ -79,10 +79,10 @@ class ContentRenderer(Static):
     config = reactive({})
     
     # 添加CSS类名，确保主题样式正确应用
+    # 注意：不设置 height，由屏幕 CSS (height: 1fr) 控制实际高度
     DEFAULT_CSS = """
     #content {
         width: 100%;
-        height: 100%;
     }
     """
     
@@ -224,7 +224,11 @@ class ContentRenderer(Static):
             container_width=effective_width,
             container_height=effective_height,
             line_spacing=line_spacing,
-            paragraph_spacing=paragraph_spacing
+            paragraph_spacing=paragraph_spacing,
+            margin_top=0,
+            margin_bottom=0,
+            margin_left=2,
+            margin_right=2
         )
         
         logger.debug(f"分页间距设置: 行间距={line_spacing}, 段落间距={paragraph_spacing}")
@@ -232,11 +236,8 @@ class ContentRenderer(Static):
         # 使用简单分页策略，确保充分利用容器空间
         pages = self.paginator.paginate(self._original_content)
         
-        # 调试信息：显示分页结果
         if pages:
             logger.debug(f"分页结果: 总页数={len(pages)}, 第一页行数={len(pages[0])}")
-            if len(pages[0]) > 0:
-                logger.debug(f"第一页示例内容: {pages[0][:3]}...")
         
         # 确保至少有一页
         if not pages:
@@ -309,40 +310,10 @@ class ContentRenderer(Static):
         """
         对文本行应用行间距和段落间距
         
-        Args:
-            lines: 原始文本行列表
-            
-        Returns:
-            应用间距后的文本行列表
+        注意：分页器（SmartTextPagination）已经在内部分页时处理了行间距和段落间距，
+        此方法不再重复添加间距，避免双重应用导致内容溢出。
         """
-        if not lines:
-            return lines
-            
-        line_spacing = int(self.config.get("line_spacing", 0))
-        paragraph_spacing = int(self.config.get("paragraph_spacing", 0))
-        
-        formatted_lines = []
-        
-        for i, line in enumerate(lines):
-            # 添加当前行
-            formatted_lines.append(line)
-            
-            # 检查是否是段落结尾（当前行是空行或者下一行是空行）
-            is_paragraph_end = (
-                line.strip() == "" or  # 当前行是空行
-                (i + 1 < len(lines) and lines[i + 1].strip() == "")  # 下一行是空行
-            )
-            
-            # 如果是段落结尾，添加段落间距
-            if is_paragraph_end:
-                for _ in range(paragraph_spacing):
-                    formatted_lines.append("")
-            # 如果不是段落结尾且不是最后一行，添加行间距
-            elif i < len(lines) - 1:
-                for _ in range(line_spacing):
-                    formatted_lines.append("")
-        
-        return formatted_lines
+        return lines or []
     
     def _apply_theme_styles(self) -> None:
         """应用主题样式到内容渲染器（同时构建富文本调色板）"""

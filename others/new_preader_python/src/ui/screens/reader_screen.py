@@ -74,12 +74,19 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         ("shift+right", "shift_right", get_global_i18n().t('reader.shift_right')),
         ("shift+up", "shift_up", get_global_i18n().t('reader.shift_up')),
         ("shift+down", "shift_down", get_global_i18n().t('reader.shift_down')),
+        # 行间距调节
+        ("plus,equals", "increase_line_spacing", get_global_i18n().t('reader.increase_line_spacing')),
+        ("minus", "decrease_line_spacing", get_global_i18n().t('reader.decrease_line_spacing')),
+        # 段落间距调节
+        ("right_square_bracket", "increase_paragraph_spacing", get_global_i18n().t('reader.increase_paragraph_spacing')),
+        ("left_square_bracket", "decrease_paragraph_spacing", get_global_i18n().t('reader.decrease_paragraph_spacing')),
         # 其他功能
         ("j", "goto_page", get_global_i18n().t('reader.goto_page')),
         ("b", "toggle_bookmark", get_global_i18n().t('reader.toggle_bookmark')),
         ("B", "open_bookmark_list", get_global_i18n().t('reader.toggle_bookmark')),
         ("s", "open_settings", get_global_i18n().t('reader.open_settings')),
         ("o", "view_file", get_global_i18n().t('bookshelf.view_file')),
+        ("shift+o,O", "browser_read", get_global_i18n().t('reader.browser_read', default="浏览器阅读")),
         ("f", "search_text", get_global_i18n().t('reader.search_text')),
         ("a", "toggle_auto_page", get_global_i18n().t('reader.toggle_auto_page')),
         ("r", "toggle_tts", get_global_i18n().t('reader.toggle_tts')),
@@ -337,6 +344,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 yield Button(f"{get_global_i18n().t('reader.auto_page')}【a】", classes="btn", id="auto-page-btn")
                 yield Button(f"{get_global_i18n().t('reader.settings')}【s】", classes="btn", id="settings-btn")
                 yield Button(f"{get_global_i18n().t('bookshelf.view_file')}【o】", classes="btn", id="view-file-btn")
+                yield Button(f"{get_global_i18n().t('crawler.browser_read_book')}【O】", classes="btn", id="view-browser-btn")
                 yield Button(f"{get_global_i18n().t('common.back')}【q】", classes="btn", id="reader-back-btn")
         
         # 状态栏
@@ -379,8 +387,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         # 异步加载书籍内容（避免阻塞 UI 主线程）
         self._load_book_content_async()
         
-        # 设置容器尺寸
-        self._set_container_size()
+        # 延迟到布局完成后设置容器尺寸（此时 widget 高度才是真实的）
+        self.call_after_refresh(self._set_container_size)
         
         # 阅读位置恢复现在在内容加载完成后进行
         # 参见 _load_book_content_async 方法中的 _on_ok 回调
@@ -523,19 +531,30 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             line_offsets_per_page: List[List[int]] = []
             pointer = 0
             for page_lines in pages:
-                offsets.append(max(0, min(pointer, n)))
                 page_line_offsets: List[int] = []
+                page_offset_recorded = False
                 if not page_lines:
+                    offsets.append(max(0, min(pointer, n)))
                     line_offsets_per_page.append(page_line_offsets)
                     continue
                 for line in page_lines:
-                    # 记录该行开始偏移（先用当前指针，命中后会被“下一行开始”校正）
+                    # 记录该行开始偏移（先用当前指针，命中后会被"下一行开始"校正）
                     page_line_offsets.append(max(0, min(pointer, n)))
                     if not line:
-                        # 空行：仅当当前是换行推进一格
+                        # 空行：仅当原文指针位置确实有换行时才推进
+                        # 段落间距插入的额外空行在原文中没有对应换行，不推进指针
                         if pointer < n and original[pointer:pointer + 1] == "\n":
                             pointer += 1
                         continue
+
+                    # 第一个非空内容行 → 用其匹配位置作为该页的真实起始偏移
+                    if not page_offset_recorded:
+                        hit_first = _search_line_near(original, pointer, line)
+                        if hit_first != -1:
+                            offsets.append(max(0, min(hit_first, n)))
+                        else:
+                            offsets.append(max(0, min(pointer, n)))
+                        page_offset_recorded = True
 
                     hit = _search_line_near(original, pointer, line)
                     if hit != -1:
@@ -546,6 +565,9 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         pointer = min(n, pointer + step)
                         logger.debug(f"_build_page_offsets: 未在原文匹配到行，容错小步推进 step={step}, ptr={pointer}")
 
+                # 整页都是空行的极端情况（应极少发生）
+                if not page_offset_recorded:
+                    offsets.append(max(0, min(pointer, n)))
                 # 规范化行起始偏移
                 page_line_offsets = [max(0, min(off, n)) for off in page_line_offsets]
                 line_offsets_per_page.append(page_line_offsets)
@@ -586,7 +608,23 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             pass
         return self._page_offsets[cp]
     
-    def _set_container_size(self) -> None:
+    def _restore_position_from_offset(self, saved_offset: int) -> None:
+        """根据字符偏移恢复到对应的页面并刷新内容"""
+        try:
+            total = int(getattr(self.renderer, "total_pages", 0) or 0)
+            if total <= 0:
+                return
+            target_page = self._find_page_for_offset(saved_offset)
+            target_page = max(0, min(target_page, total - 1))
+            self.renderer.goto_page(target_page + 1)  # goto_page 使用 1-based
+            if hasattr(self.renderer, "update_content"):
+                self.renderer.update_content()
+            self.current_page = target_page
+            self.total_pages = total
+        except Exception as e:
+            logger.debug(f"从偏移恢复位置失败: {e}")
+    
+    def _set_container_size(self, from_resize: bool = False, retry_count: int = 0) -> None:
         # 获取屏幕尺寸
         screen_width = self.size.width
         screen_height = self.size.height
@@ -595,19 +633,47 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self.set_timer(0.1, self._set_container_size)
             return
         
-        # 计算内容区域可用尺寸
-        # 标题栏(1行) + 按钮区域(1行) + 状态栏(1行) = 3行
-        # 额外减少3行高度，避免底部按钮横向滚动条覆盖内容
         available_width = screen_width - 2  # 减去左右边距
-        available_height = screen_height - 6  # 减少6行高度，避免内容被覆盖
+        
+        # 优先使用 widget 的实际 content_region 高度（最准确）
+        try:
+            cr_h = self.renderer.content_region.height
+            sh_h = self.renderer.size.height
+        except Exception:
+            cr_h = 0
+            sh_h = 0
+        
+        # 估算值：
+        # Header(1) + reader-header(2+margin2=4) + buttons(2+margin1=3) + status(1) + Footer(1) = 10
+        estimated_h = screen_height - 10
+        
+        # 若 widget 尺寸仍未就绪，最多重试 30 次（约 1.5 秒）
+        if cr_h <= 0 and sh_h <= 0 and retry_count < 30 and not from_resize:
+            self.set_timer(0.05, lambda: self._set_container_size(retry_count=retry_count + 1))
+            return
+        
+        if cr_h >= 10:
+            available_height = cr_h
+            logger.debug(
+                f"_set_container_size: 使用 content_region.height={cr_h} "
+                f"(screen={screen_height}, size={sh_h}, estimated={estimated_h})"
+            )
+        elif sh_h >= 10:
+            available_height = sh_h
+            logger.debug(
+                f"_set_container_size: content_region=0, 使用 size.height={sh_h} "
+                f"(screen={screen_height}, estimated={estimated_h})"
+            )
+        else:
+            available_height = estimated_h
+            logger.debug(
+                f"_set_container_size: widget尺寸未就绪(重试{retry_count}次), "
+                f"使用估算值={estimated_h} (screen={screen_height})"
+            )
         
         # 确保最小尺寸
         width = max(60, available_width)
         height = max(15, available_height)
-        
-        # 临时调试信息
-        # print(f"DEBUG: 屏幕尺寸: {screen_width}x{screen_height}, 计算的内容尺寸: {width}x{height}")
-        # logger.debug(f"屏幕尺寸: {screen_width}x{screen_height}, 内容尺寸: {width}x{height}")
         
         # 设置渲染器容器尺寸
         self.renderer.set_container_size(width, height)
@@ -887,7 +953,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                     use_offset = corrected if (isinstance(corrected, int) and corrected >= 0) else saved_offset
                     if use_offset > 0 and self.renderer.total_pages > 0:
                         target_page_0 = self._find_page_for_offset(use_offset)
-                        # 再打开同一本书时，按需求跳到“上次页面的下一页”（不超过最后一页）
+                        # 再打开同一本书时，按需求跳到"上次页面的下一页"（不超过最后一页）
                         # 直接按 0 基页码跳转
                         if self.renderer.total_pages > 0:
                             target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
@@ -1050,6 +1116,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 return
         except Exception:
             pass
+        # 保存当前字符偏移，用于分页后恢复位置
+        saved_offset = self._current_page_offset()
         # 应用当前尺寸计算
         try:
             self._set_container_size()
@@ -1076,6 +1144,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         except Exception:
                             pass
                         self._build_page_offsets()
+                        self._restore_position_from_offset(saved_offset)
                         self._update_ui()
                     try:
                         if hasattr(self.app, "run_worker"):
@@ -1099,6 +1168,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                         self._pagination_in_progress = False
                         self._hide_loading_animation()
                         self._build_page_offsets()
+                        self._restore_position_from_offset(saved_offset)
                         self._update_ui()
         except Exception:
             # 即使异步失败也确保界面可用
@@ -1107,6 +1177,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             except Exception:
                 pass
             self._build_page_offsets()
+            self._restore_position_from_offset(saved_offset)
             self._update_ui()
         finally:
             self._resize_timer = None
@@ -1394,6 +1465,8 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             self._open_settings()
         elif button_id == "view-file-btn":
             self._view_file(self.book.path)
+        elif button_id == "view-browser-btn":
+            self._open_in_browser()
         elif button_id == "aloud-btn":
             self._toggle_tts()
         elif button_id == "auto-page-btn":
@@ -1493,6 +1566,143 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
 
     def action_view_file(self) -> None:
         self._view_file(self.book.path)
+
+    def action_browser_read(self) -> None:
+        """在浏览器中打开当前书籍（快捷键 O / Shift+O）"""
+        self._open_in_browser()
+
+    def _open_in_browser(self) -> None:
+        """使用浏览器打开当前阅读的书籍"""
+        try:
+            book_path = self.book.path
+            if not book_path or not os.path.exists(book_path):
+                self.notify(
+                    get_global_i18n().t("reader.browser_read_file_missing", default="文件不存在"),
+                    severity="error"
+                )
+                return
+
+            from src.utils.browser_reader import BrowserReader
+
+            # 回调：保存浏览器阅读进度
+            def on_progress_save(data: dict):
+                try:
+                    progress = data.get("progress", 0)
+                    position = data.get("position", 0)
+                    self.book.update_position(position)
+                    self.book.update_progress(progress)
+                    self.book.save()
+                    logger.debug(f"浏览器阅读进度已保存: {progress}%")
+                except Exception as e:
+                    logger.error(f"保存浏览器阅读进度失败: {e}")
+
+            # 回调：加载浏览器阅读进度
+            def on_progress_load(book_id: str):
+                try:
+                    pos = getattr(self.book, "position", 0) or 0
+                    page = int(getattr(self.book, "current_page", 0) or 0)
+                    total = int(getattr(self.book, "total_pages", 0) or 0)
+                    progress = (page / total * 100) if total > 0 else 0
+                    return {"position": pos, "progress": progress, "page": page, "total_pages": total}
+                except Exception:
+                    return {"position": 0, "progress": 0, "page": 0, "total_pages": 0}
+
+            success, message = BrowserReader.open_book_in_browser(
+                book_path,
+                on_progress_save=on_progress_save,
+                on_progress_load=on_progress_load
+            )
+
+            if success:
+                self.notify(
+                    get_global_i18n().t("reader.browser_read_opened", default="已在浏览器中打开"),
+                    severity="information"
+                )
+            else:
+                self.notify(
+                    get_global_i18n().t("reader.browser_read_failed", default=f"打开失败: {message}"),
+                    severity="error"
+                )
+        except Exception as e:
+            logger.error(f"浏览器阅读失败: {e}")
+            self.notify(
+                get_global_i18n().t("reader.browser_read_error", default=f"浏览器阅读出错: {e}"),
+                severity="error"
+            )
+
+    def action_increase_line_spacing(self) -> None:
+        """增大行间距（每次+1）"""
+        if getattr(self, "selection_mode", False):
+            return
+        current = self.settings_registry.get_value("reading.line_spacing", 0)
+        new_value = current + 1
+        self.settings_registry.set_value("reading.line_spacing", new_value)
+        # 保存到配置文件
+        self._save_settings_to_config()
+        self._reload_settings()
+        i18n = get_global_i18n()
+        msg = i18n.t("reader.line_spacing_changed", default="行间距已调整为 {value}").format(value=new_value)
+        self.notify(msg, severity="information")
+
+    def action_decrease_line_spacing(self) -> None:
+        """缩小行间距（每次-1）"""
+        if getattr(self, "selection_mode", False):
+            return
+        current = self.settings_registry.get_value("reading.line_spacing", 0)
+        new_value = max(0, current - 1)
+        self.settings_registry.set_value("reading.line_spacing", new_value)
+        # 保存到配置文件
+        self._save_settings_to_config()
+        self._reload_settings()
+        i18n = get_global_i18n()
+        if new_value == 0:
+            msg = i18n.t("reader.line_spacing_min", default="行间距已调整为最小值")
+        else:
+            msg = i18n.t("reader.line_spacing_changed", default="行间距已调整为 {value}").format(value=new_value)
+        self.notify(msg, severity="information")
+
+    def action_increase_paragraph_spacing(self) -> None:
+        """增大段落间距（每次+1）"""
+        if getattr(self, "selection_mode", False):
+            return
+        current = self.settings_registry.get_value("reading.paragraph_spacing", 0)
+        new_value = current + 1
+        self.settings_registry.set_value("reading.paragraph_spacing", new_value)
+        # 保存到配置文件
+        self._save_settings_to_config()
+        self._reload_settings()
+        i18n = get_global_i18n()
+        msg = i18n.t("reader.paragraph_spacing_changed", default="段落间距已调整为 {value}").format(value=new_value)
+        self.notify(msg, severity="information")
+
+    def action_decrease_paragraph_spacing(self) -> None:
+        """缩小段落间距（每次-1）"""
+        if getattr(self, "selection_mode", False):
+            return
+        current = self.settings_registry.get_value("reading.paragraph_spacing", 0)
+        new_value = max(0, current - 1)
+        self.settings_registry.set_value("reading.paragraph_spacing", new_value)
+        # 保存到配置文件
+        self._save_settings_to_config()
+        self._reload_settings()
+        i18n = get_global_i18n()
+        if new_value == 0:
+            msg = i18n.t("reader.paragraph_spacing_min", default="段落间距已达到最小值")
+        else:
+            msg = i18n.t("reader.paragraph_spacing_changed", default="段落间距已调整为 {value}").format(value=new_value)
+        self.notify(msg, severity="information")
+
+    def _save_settings_to_config(self) -> None:
+        """将当前设置保存到配置文件"""
+        try:
+            from src.config.settings.config_adapter import ConfigAdapter
+            if hasattr(self.app, "config_manager"):
+                config_manager = getattr(self.app, "config_manager", None)
+                if config_manager:
+                    adapter = ConfigAdapter(config_manager, self.settings_registry)
+                    adapter.save_settings_to_config()
+        except Exception as e:
+            logger.debug(f"保存设置到配置文件失败: {e}")
 
     def _activate_boss_key(self) -> None:
         logger.info("执行 _activate_boss_key() 方法")
@@ -1682,14 +1892,24 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             # 重新加载配置
             new_config = self._load_render_config_from_settings()
             
-            # 保存当前页面位置
-            current_page = self.current_page
+            # 保存当前字符偏移（用于间距/终端变化后精确恢复位置）
+            saved_offset = self._current_page_offset()
             
             # 更新渲染器配置
             self.renderer.update_config(new_config)
             self.render_config = new_config
-            # 设置变更会触发重分页，需重建页偏移缓存
+            # 重分页后重建页偏移缓存
             self._build_page_offsets()
+            
+            # 根据字符偏移恢复阅读位置
+            if self.renderer.total_pages > 0:
+                target_page = self._find_page_for_offset(saved_offset)
+                target_page = max(0, min(target_page, self.renderer.total_pages - 1))
+                # goto_page 使用 1-based
+                self.renderer.goto_page(target_page + 1)
+            # 确保内容刷新
+            if hasattr(self.renderer, "update_content"):
+                self.renderer.update_content()
             
             # 同步状态到屏幕组件
             self.current_page = self.renderer.current_page
@@ -3073,7 +3293,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
                 use_offset = corrected if (isinstance(corrected, int) and corrected >= 0) else saved_offset
                 if use_offset > 0 and self.renderer.total_pages > 0:
                     target_page_0 = self._find_page_for_offset(use_offset)
-                    # 规则：跳到“上次页面的下一页”，不超过最后一页
+                    # 规则：跳到"上次页面的下一页"，不超过最后一页
                     # 直接按 0 基页码跳转
                     target_page_0 = min(target_page_0, self.renderer.total_pages - 1)
                     # 先尝试 0-based
