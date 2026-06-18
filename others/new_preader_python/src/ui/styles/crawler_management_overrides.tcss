@@ -152,14 +152,7 @@ Footer {
     width: 40%;
 }
 
-#start-crawl-btn {
-    min-width: 12;
-    height: 3;
-    margin-right: 1;
-    width: auto;
-}
-
-#stop-crawl-btn {
+#toggle-crawl-btn {
     min-width: 12;
     height: 3;
     margin-right: 1;

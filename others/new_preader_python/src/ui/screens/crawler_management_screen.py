@@ -453,8 +453,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("l", "view_logs", get_global_i18n().t('crawler.view_logs')),
         ("escape", "back", get_global_i18n().t('common.back')),
         ("X", "select_books", get_global_i18n().t('crawler.select_books')),
-        ("s", "start_crawl", get_global_i18n().t('crawler.shortcut_s')),
-        ("S", "stop_crawl", get_global_i18n().t('crawler.shortcut_S')),
+        ("s", "toggle_crawl", get_global_i18n().t('crawler.toggle_crawl')),
         ("p", "prev_page", get_global_i18n().t('crawler.shortcut_p')),
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
@@ -481,13 +480,10 @@ class CrawlerManagementScreen(Screen[None]):
         self._view_history()
         self._update_status(get_global_i18n().t('crawler.history_loaded'), "warning")
 
-    def action_start_crawl(self) -> None:
-        self._start_crawl()
-        self._update_status(get_global_i18n().t('crawler.crawling'), "warning")
-
-    def action_stop_crawl(self) -> None:
-        self._stop_crawl()
-        self._update_status(get_global_i18n().t('crawler.crawl_stopped'), "warning")
+    def action_toggle_crawl(self) -> None:
+        self._toggle_crawl()
+        status_text = get_global_i18n().t('crawler.crawling') if self.is_crawling else get_global_i18n().t('crawler.crawl_stopped')
+        self._update_status(status_text, "warning")
 
     def action_note(self) -> None:
         self._open_note_dialog()
@@ -936,8 +932,7 @@ class CrawlerManagementScreen(Screen[None]):
                             # 根据书籍网站的"是否支持选择书籍"设置显示选择书籍按钮
                             *([Button(get_global_i18n().t('crawler.select_books'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
-                            Button(get_global_i18n().t('crawler.start_crawl'), id="start-crawl-btn", variant="primary"),
-                            Button(get_global_i18n().t('crawler.stop_crawl'), id="stop-crawl-btn", variant="error", disabled=True),
+                            Button(get_global_i18n().t('crawler.start_crawl'), id="toggle-crawl-btn", variant="primary"),
                             Button(get_global_i18n().t('crawler.copy_ids'), id="copy-ids-btn"),
                             Button(get_global_i18n().t('crawler.toggle_monitor'), id="toggle-monitor-btn", variant="success"),
                             # Label(get_global_i18n().t('crawler.browser_label'), id="browser-label", classes="browser-label"),
@@ -1021,9 +1016,9 @@ class CrawlerManagementScreen(Screen[None]):
         
         # 权限提示与按钮状态
         try:
-            start_btn = self.query_one("#start-crawl-btn", Button)
+            toggle_btn = self.query_one("#toggle-crawl-btn", Button)
             if not getattr(self.app, "has_permission", lambda k: True)("crawler.run"):
-                start_btn.disabled = True
+                toggle_btn.disabled = True
                 self._update_status(get_global_i18n().t('crawler.np_crawler'), "warning")
         except Exception:
             pass
@@ -3637,7 +3632,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.debug(f"从输入框中移除ID失败: {e}")
     
     def _update_crawl_button_state(self) -> None:
-        """更新爬取按钮状态"""
+        """更新爬取按钮状态（合并为可切换按钮）"""
         try:
             # 确保组件已经挂载
             if not self.is_mounted_flag:
@@ -3646,18 +3641,14 @@ class CrawlerManagementScreen(Screen[None]):
                 self.set_timer(0.1, self._update_crawl_button_state)
                 return
 
-            # 使用正确的CSS选择器语法，需要#号
-            start_crawl_button = self.query_one("#start-crawl-btn", Button)
-            stop_crawl_button = self.query_one("#stop-crawl-btn", Button)
+            toggle_btn = self.query_one("#toggle-crawl-btn", Button)
             
             if self.is_crawling:
-                start_crawl_button.label = get_global_i18n().t('crawler.crawling_in_progress')
-                start_crawl_button.disabled = True
-                stop_crawl_button.disabled = False
+                toggle_btn.label = get_global_i18n().t('crawler.crawling_in_progress')
+                toggle_btn.variant = "error"
             else:
-                start_crawl_button.label = get_global_i18n().t('crawler.start_crawl')
-                start_crawl_button.disabled = False
-                stop_crawl_button.disabled = True
+                toggle_btn.label = get_global_i18n().t('crawler.start_crawl')
+                toggle_btn.variant = "primary"
             
             logger.debug("爬取按钮状态更新成功")
         except Exception as e:
@@ -3666,6 +3657,17 @@ class CrawlerManagementScreen(Screen[None]):
             # 延迟重试
             self.set_timer(0.1, self._update_crawl_button_state)
     
+    def _toggle_crawl(self) -> None:
+        """切换爬取状态"""
+        try:
+            if self.is_crawling:
+                self._stop_crawl()
+            else:
+                self._start_crawl()
+        except Exception as e:
+            logger.error(f"切换爬取状态失败: {e}")
+            self._update_status(f"切换爬取状态失败: {str(e)}", "error")
+
     def _show_loading_animation(self) -> None:
         """显示加载动画"""
         try:
@@ -4908,10 +4910,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._clear_search()
             # 清除搜索后，保持焦点在搜索框
             self.set_timer(0.1, lambda: self._focus_search_input())
-        elif button_id == "start-crawl-btn":
-            self._start_crawl()
-        elif button_id == "stop-crawl-btn":
-            self._stop_crawl()
+        elif button_id == "toggle-crawl-btn":
+            self._toggle_crawl()
         elif button_id == "copy-ids-btn":
             self._copy_novel_ids()
         elif button_id == "choose-books-btn":
@@ -4952,7 +4952,19 @@ class CrawlerManagementScreen(Screen[None]):
             self._toggle_browser_monitor()
         elif button_id == "refresh-window-btn":
             self._refresh_window_options()
-    
+
+    @on(events.Enter)
+    def on_crawl_button_enter(self, event: events.Enter) -> None:
+        """鼠标进入爬取按钮 - 爬取中时显示'停止爬取'"""
+        if getattr(event, 'node', None) and event.node.id == "toggle-crawl-btn" and self.is_crawling:  # type: ignore[union-attr]
+            event.node.label = get_global_i18n().t('crawler.stop_crawl')  # type: ignore[union-attr]
+
+    @on(events.Leave)
+    def on_crawl_button_leave(self, event: events.Leave) -> None:
+        """鼠标离开爬取按钮 - 爬取中时恢复显示'正在爬取中...'"""
+        if getattr(event, 'node', None) and event.node.id == "toggle-crawl-btn" and self.is_crawling:  # type: ignore[union-attr]
+            event.node.label = get_global_i18n().t('crawler.crawling_in_progress')  # type: ignore[union-attr]
+
     def _batch_delete_files(self) -> None:
         """批量删除选中的文件"""
         try:
