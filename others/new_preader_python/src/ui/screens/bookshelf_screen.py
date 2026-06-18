@@ -1864,7 +1864,7 @@ class BookshelfScreen(Screen[None]):
                     self.logger.error(f"保存阅读进度异常: {e}", exc_info=True)
             
             # 加载进度回调
-            def on_progress_load() -> Optional[Dict[str, Any]]:
+            def on_progress_load(book_id: str = "") -> Optional[Dict[str, Any]]:
                 """加载阅读进度"""
                 try:
                     from src.core.bookmark import BookmarkManager

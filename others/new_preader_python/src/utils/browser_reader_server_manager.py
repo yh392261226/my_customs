@@ -457,7 +457,7 @@ class BrowserReaderServerManager:
             if book_id in self._callbacks and 'load' in self._callbacks[book_id]:
                 callback = self._callbacks[book_id]['load']
                 if callback:
-                    data = callback()
+                    data = callback(book_id)
                     if data:
                         # 保存到内存
                         self._book_progress_data[book_id] = data

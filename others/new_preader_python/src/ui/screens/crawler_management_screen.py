@@ -4400,7 +4400,7 @@ class CrawlerManagementScreen(Screen[None]):
 
             # 加载进度回调
             logger.info(f"[爬取管理-浏览器阅读] 注册进度加载回调函数: file_path={captured_file_path}")
-            def on_progress_load() -> Optional[Dict[str, Any]]:
+            def on_progress_load(book_id: str = "") -> Optional[Dict[str, Any]]:
                 """加载阅读进度"""
                 try:
                     from src.core.bookmark import BookmarkManager

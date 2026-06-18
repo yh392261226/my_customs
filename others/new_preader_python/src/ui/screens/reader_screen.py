@@ -1585,27 +1585,32 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
             from src.utils.browser_reader import BrowserReader
 
             # 回调：保存浏览器阅读进度
-            def on_progress_save(data: dict):
+            # 回调签名: (progress: float, scroll_top: int, scroll_height: int,
+            #            current_page: int, total_pages: int, word_count: int)
+            def on_progress_save(progress, scroll_top=0, scroll_height=0,
+                                 current_page=0, total_pages=0, word_count=0):
                 try:
-                    progress = data.get("progress", 0)
-                    position = data.get("position", 0)
-                    self.book.update_position(position)
-                    self.book.update_progress(progress)
-                    self.book.save()
-                    logger.debug(f"浏览器阅读进度已保存: {progress}%")
+                    self.book.update_reading_progress(
+                        position=int(scroll_top),
+                        page=int(current_page),
+                        total_pages=int(total_pages)
+                    )
+                    logger.debug(f"浏览器阅读进度已保存: pos={scroll_top}, page={current_page}/{total_pages}")
                 except Exception as e:
                     logger.error(f"保存浏览器阅读进度失败: {e}")
 
             # 回调：加载浏览器阅读进度
             def on_progress_load(book_id: str):
                 try:
-                    pos = getattr(self.book, "position", 0) or 0
-                    page = int(getattr(self.book, "current_page", 0) or 0)
-                    total = int(getattr(self.book, "total_pages", 0) or 0)
-                    progress = (page / total * 100) if total > 0 else 0
-                    return {"position": pos, "progress": progress, "page": page, "total_pages": total}
+                    pos = getattr(self.book, "current_position", 0) or 0
+                    page = int(getattr(self.renderer, "current_page", 0) or 0)
+                    total = int(getattr(self.renderer, "total_pages", 0) or 0)
+                    progress = (page / total) if total > 0 else 0
+                    return {"position": pos, "progress": str(progress), "scrollTop": pos,
+                            "scrollHeight": 0, "current_page": page, "total_pages": total}
                 except Exception:
-                    return {"position": 0, "progress": 0, "page": 0, "total_pages": 0}
+                    return {"position": 0, "progress": "0", "scrollTop": 0,
+                            "scrollHeight": 0, "current_page": 0, "total_pages": 0}
 
             success, message = BrowserReader.open_book_in_browser(
                 book_path,

@@ -10399,7 +10399,7 @@ class BrowserReader:
     def open_book_in_browser(file_path: str, theme: str = "light",
                           custom_settings: Optional[Dict[str, str]] = None,
                           on_progress_save: Optional[Callable[[float, int, int], None]] = None,
-                          on_progress_load: Optional[Callable[[], Optional[Dict[str, Any]]]] = None):
+                          on_progress_load: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None):
         """
         在浏览器中打开书籍，支持进度同步
         
@@ -10440,20 +10440,12 @@ class BrowserReader:
             except Exception as e:
                 logger.warning(f"无法获取browser_server配置，使用默认值: {e}")
             
-            # 如果需要进度同步，启动HTTP服务器
+            # 优先使用全局浏览器阅读器服务器
             save_url = None
             load_url = None
             server = None
             server_thread = None
             server_id = None
-
-            if on_progress_save or on_progress_load:
-                save_url, load_url, server, server_thread = BrowserReader._start_progress_server(
-                    file_path, on_progress_save, on_progress_load
-                )
-            # 使用全局浏览器阅读器服务器
-            save_url = None
-            load_url = None
             
             try:
                 from src.utils.browser_reader_server_manager import get_browser_reader_server_manager
@@ -10541,7 +10533,7 @@ class BrowserReader:
             # 如果有进度加载回调，尝试获取初始进度
             if on_progress_load:
                 try:
-                    progress_data = on_progress_load()
+                    progress_data = on_progress_load(book_id)
                     if progress_data and progress_data.get('progress') is not None:
                         initial_progress = float(progress_data['progress'])
                         logger.info(f"从Python端获取到初始进度: {initial_progress * 100:.2f}%")
