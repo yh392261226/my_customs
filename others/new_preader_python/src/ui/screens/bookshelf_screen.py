@@ -205,7 +205,7 @@ class BookshelfScreen(Screen[None]):
             Grid(
                 # 顶部标题和工具栏
                 Vertical(
-                    # Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-title", classes="section-title"),
+                    Label(get_global_i18n().t("bookshelf.library"), id="bookshelf-sub-title"),
                     Horizontal(
                         Button(get_global_i18n().t("bookshelf.add_book"), id="add-book-btn", classes="btn"),
                         Button(get_global_i18n().t("bookshelf.scan_directory"), id="scan-directory-btn", classes="btn"),

@@ -44,6 +44,12 @@ Footer {
 
 #bookshelf-title, .section-title {
     color: $accent;
+    text-align: left;
+}
+
+#bookshelf-sub-title {
+    text-align: left;
+    height: 1;
 }
 
 /* 顶部工具栏按钮居中 */
