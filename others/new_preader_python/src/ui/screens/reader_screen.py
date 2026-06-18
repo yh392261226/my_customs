@@ -75,11 +75,11 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
         ("shift+up", "shift_up", get_global_i18n().t('reader.shift_up')),
         ("shift+down", "shift_down", get_global_i18n().t('reader.shift_down')),
         # 行间距调节
-        ("plus,equals", "increase_line_spacing", get_global_i18n().t('reader.increase_line_spacing')),
-        ("minus", "decrease_line_spacing", get_global_i18n().t('reader.decrease_line_spacing')),
+        ("=", "increase_line_spacing", get_global_i18n().t('reader.increase_line_spacing')),
+        ("-", "decrease_line_spacing", get_global_i18n().t('reader.decrease_line_spacing')),
         # 段落间距调节
-        ("right_square_bracket", "increase_paragraph_spacing", get_global_i18n().t('reader.increase_paragraph_spacing')),
-        ("left_square_bracket", "decrease_paragraph_spacing", get_global_i18n().t('reader.decrease_paragraph_spacing')),
+        ("]", "increase_paragraph_spacing", get_global_i18n().t('reader.increase_paragraph_spacing')),
+        ("[", "decrease_paragraph_spacing", get_global_i18n().t('reader.decrease_paragraph_spacing')),
         # 其他功能
         ("j", "goto_page", get_global_i18n().t('reader.goto_page')),
         ("b", "toggle_bookmark", get_global_i18n().t('reader.toggle_bookmark')),
