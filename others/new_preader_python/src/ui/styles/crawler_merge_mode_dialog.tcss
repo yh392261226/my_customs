@@ -38,7 +38,7 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
 /* ── 日期筛选行 ── */
 #merge-mode-filter {
     width: 100%;
-    height: 3;
+    height: auto;
     align: center middle;
     margin-bottom: 1;
 }
@@ -48,21 +48,20 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
     text-style: bold;
     color: $text;
     margin-right: 1;
-    padding: 1 0;
     height: 3;
+    content-align: center middle;
 }
 
 #merge-mode-filter .date-sub-label {
     width: auto;
     color: $text-muted;
     margin: 0 1;
-    padding: 1 0;
     height: 3;
+    content-align: center middle;
 }
 
 #filter-start-date, #filter-end-date {
-    width: 10%;
-    min-width: 20;
+    width: 25;
     height: 3;
     margin: 0 1;
 }
@@ -191,4 +190,10 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
 /* ── DataTable 单元格内边距 ── */
 #merge-group-table .data-table--cell {
     padding: 0 1;
+}
+
+/* ── 覆盖 DatePickerDialog 的 layer 和 display，确保在 ModalScreen 中可见 ── */
+DatePickerDialog {
+    layer: overlay;
+    display: block;
 }

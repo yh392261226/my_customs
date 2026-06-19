@@ -12,11 +12,16 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Set, Tuple
 
 from rich import style
-from textual.screen import ModalScreen
+from textual.screen import ModalScreen, Screen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Header, Footer, Button, Label, DataTable, Static, Input
+from textual.widgets import Header, Footer, Button, Label, DataTable, Static
 from textual import on
+from textual.css.query import NoMatches
+from textual.widget import events
+
+from textual_datepicker import DateSelect, DatePicker
+import pendulum
 
 from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
@@ -376,7 +381,162 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         max_date: str = "",
         **kwargs,
     ) -> None:
-        super().__init__(**kwargs)
+        # DatePickerDialog 原生 CSS 有 layer: dialog + display:none。
+        # 在 ModalScreen 里 display:none 会导致 size 无法计算（(0,0)），
+        # layer 问题用 CSS 覆盖解决。
+        # 策略：dialog 挂载在 ModalScreen 直属下，display 始终为 True，
+        # 用 offset=(-999,-999) 离屏隐藏。_patched_show 中动态计算 Screen 内
+        # 绝对坐标，通过 reflow 让 compositor 感知位置变更。
+        self._orig_dateselect_on_mount = DateSelect.on_mount
+        DateSelect.on_mount = lambda self: None  # 阻止 compose 阶段创建 dialog
+
+        from textual_datepicker._date_select import DatePickerDialog
+        self._orig_dlg_on_selected = DatePickerDialog.on_date_picker_selected
+        self._orig_dlg_on_blur = DatePickerDialog.on_descendant_blur
+
+        # flow_position 缓存（按 dialog id），避免每次 show 都做两阶段 reflow
+        _flow_cache = {}  # type: dict[int, tuple[int,int,int,int]]
+
+        def _dlg_is_visible(dlg):
+            off = dlg.offset
+            return off is not None and not (str(off.x) == '-999' and str(off.y) == '-999')
+
+        def _patched_dlg_on_selected(self, event):  # type: ignore[override]
+            logger.debug(f"DLG_SELECTED: hiding dialog")
+            self.styles.offset = (-999, -999)
+            if self.target is not None:  # type: ignore[attr-defined]
+                self.target.focus()  # type: ignore[attr-defined]
+
+        def _patched_dlg_on_blur(self, event):  # type: ignore[override]
+            pass
+
+        DatePickerDialog.on_date_picker_selected = _patched_dlg_on_selected
+        DatePickerDialog.on_descendant_blur = _patched_dlg_on_blur
+
+        def _patched_show(self):
+            """show/hide dialog via offset (display stays True, layout always computed)"""
+            dlg = self.dialog
+            app = self.app
+
+            # toggle：已在屏幕上则隐藏
+            if _dlg_is_visible(dlg):
+                logger.debug(f"_patched_show: toggle hide")
+                dlg.styles.offset = (-999, -999)
+                return
+
+            screen = self.screen
+            comp = screen._compositor
+
+            # Step 1: 计算 DateSelect 在 Screen 内的绝对坐标
+            off_x, off_y = self.region.offset
+            node = self.parent
+            while node is not None and node is not screen:
+                off_x += node.region.offset.x
+                off_y += node.region.offset.y
+                node = node.parent  # type: ignore[assignment]
+
+            # Step 2: 获取 flow position（首次测量后缓存）
+            dlg_id = id(dlg)
+            if dlg_id in _flow_cache:
+                flow_x, flow_y, dlg_height, dlg_width = _flow_cache[dlg_id]
+            else:
+                # 首次测量：把 offset 临时设为 (0,0) 让 dialog 进入 Screen 的
+                # CSS 流布局，reflow 后从 full_map 读出其自然流位置。
+                # batch_update 抑制 offset 变更的中间帧渲染。
+                with app.batch_update():
+                    dlg.styles.offset = (0, 0)
+                comp.reflow(screen, screen.size)
+                full_map = comp.full_map
+                if dlg in full_map:
+                    region = full_map[dlg].region
+                    flow_x, flow_y = region.offset
+                    dlg_height, dlg_width = region.height, region.width
+                else:
+                    rw = getattr(dlg, '_render_widget', dlg)
+                    region = full_map[rw] if rw in full_map else None
+                    flow_x, flow_y = region.offset if region else (0, 0)
+                    dlg_height = region.height if region else 17
+                    dlg_width = region.width if region else 30
+                _flow_cache[dlg_id] = (flow_x, flow_y, dlg_height, dlg_width)
+
+            # Step 3: 扣除 flow position，得到纯 CSS offset，
+            # 并确保不超出屏幕右边界和底部
+            final_off_x = off_x - flow_x
+            final_off_y = off_y + 3 - flow_y
+            screen_w, screen_h = screen.size.width, screen.size.height
+            # 水平方向：右侧不超出屏幕
+            effective_x = flow_x + final_off_x
+            if effective_x + dlg_width > screen_w:
+                final_off_x = max(0, screen_w - dlg_width - flow_x - 1)
+            # 垂直方向：底部不超出屏幕
+            effective_y = flow_y + final_off_y
+            if effective_y + dlg_height > screen_h:
+                final_off_y = max(0, screen_h - dlg_height - flow_y - 1)
+
+            # 隐藏其他 dialog + 设置最终位置，合并所有样式变更到同一个 batch_update，
+            # 只触发一次布局+重绘，dialog 直接出现在最终位置，不闪屏
+            final_offset = (final_off_x, final_off_y)
+            with app.batch_update():
+                # 先隐藏其他可见的 dialog（如果还亮着）
+                for picker in screen.query(DateSelect):
+                    other = picker.dialog
+                    if other is not None and other is not dlg and _dlg_is_visible(other):
+                        other.styles.offset = (-999, -999)
+                # 再设置当前 dialog 到目标位置
+                dlg.styles.offset = final_offset
+
+            # 设置日期并聚焦
+            if self.date is not None:
+                dlg.date_picker.date = self.date
+                for day in dlg.query("DayLabel.--day"):
+                    if day.day == self.date.day:
+                        day.focus()
+                        break
+            else:
+                try:
+                    dlg.query_one("DayLabel.--today").focus()
+                except NoMatches:
+                    dlg.query("DayLabel.--day").first().focus()
+
+            # --- 诊断日志 ---
+            full_map = comp.full_map
+            screen_region = screen.size.region
+            vig = comp.visible_widgets
+
+            if dlg in full_map:
+                mg = full_map[dlg]
+                dlg_region, dlg_clip = mg.region, mg.clip
+                in_screen = dlg_region.overlaps(screen_region)
+                clip_ok = dlg_clip.overlaps(dlg_region)
+            else:
+                alt_key = dlg._render_widget if hasattr(dlg, '_render_widget') else None
+                if alt_key and alt_key != dlg and alt_key in full_map:
+                    mg = full_map[alt_key]
+                    dlg_region, dlg_clip = mg.region, mg.clip
+                    in_screen = dlg_region.overlaps(screen_region)
+                    clip_ok = dlg_clip.overlaps(dlg_region)
+                else:
+                    dlg_region = dlg_clip = "N/A"
+                    in_screen = clip_ok = "N/A"
+
+            in_compositor = dlg in vig
+            logger.debug(
+                f"_patched_show: final_offset={final_offset}, "
+                f"flow_position=({flow_x},{flow_y}) cached={dlg_id in _flow_cache}, "
+                f"in_compositor={in_compositor}, "
+                f"in_full_map={dlg in full_map}, "
+                f"dlg_region={dlg_region}, "
+                f"dlg_clip={dlg_clip}, "
+                f"screen_region={screen_region}, "
+                f"in_screen={in_screen}, clip_ok={clip_ok}, "
+                f"visible_widgets_count={len(vig)}, "
+                f"display={dlg.display}, "
+                f"visible={dlg.visible}, "
+                f"size=({dlg.size.width},{dlg.size.height})"
+            )
+
+        DateSelect._show_date_picker = _patched_show
+        super().__init__(id="merge-mode-dialog", **kwargs)
         self.theme_manager = theme_manager
         self.db_manager = db_manager
         self.site_id = site_id
@@ -393,7 +553,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         today = datetime.now().strftime('%Y-%m-%d')
         week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
         self._start_date = week_ago if week_ago >= min_date else min_date
-        self._start_date = today
+        self._start_date = today #只取今天即可 不用一周前
         self._end_date = today if today <= max_date else max_date
 
         # 分组结果（初始为空，on_mount 时加载）
@@ -413,9 +573,9 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Label(self.i18n.t('merge_mode.date_filter'), classes="date-filter-label"),
                     Label(self.i18n.t('merge_mode.date_start'), classes="date-sub-label"),
-                    Input(value=self._start_date, placeholder="YYYY-MM-DD", id="filter-start-date"),
+                    DateSelect(date=pendulum.parse(self._start_date), format="YYYY-MM-DD", picker_mount="#merge-mode-dialog", id="filter-start-date"),
                     Label(self.i18n.t('merge_mode.date_end'), classes="date-sub-label"),
-                    Input(value=self._end_date, placeholder="YYYY-MM-DD", id="filter-end-date"),
+                    DateSelect(date=pendulum.parse(self._end_date), format="YYYY-MM-DD", picker_mount="#merge-mode-dialog", id="filter-end-date"),
                     Button(self.i18n.t('merge_mode.date_query'), id="date-query-btn", variant="primary"),
                     id="merge-mode-filter",
                 ),
@@ -444,6 +604,32 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     def on_mount(self) -> None:
         """初始化：添加表格列，加载默认日期范围的分组"""
         self.theme_manager.apply_theme_to_screen(self)
+
+        # DateSelect.on_mount 保持 no-op，避免 recompose 时失效
+        from textual_datepicker._date_select import DatePickerDialog
+
+        # dialog 挂在 Screen 直属下，display=True 保证 layout 计算，
+        # offset=(-999,-999) 离屏隐藏。_patched_show 中动态获取 Screen
+        # 布局的 flow position 并计算正确的 CSS offset。
+        for picker_id in ("filter-start-date", "filter-end-date"):
+            try:
+                picker = self.query_one(f"#{picker_id}", DateSelect)
+                if picker.dialog is None:
+                    dlg = DatePickerDialog()
+                    dlg.target = picker  # type: ignore
+                    dlg.display = True
+                    dlg.offset = (-999, -999)  # 离屏隐藏
+                    picker.dialog = dlg
+                    self.mount(dlg)
+                    logger.debug(
+                        f"Mounted dialog for {picker_id} on Screen, "
+                        f"children={len(dlg.children)}, "
+                        f"date_picker={dlg.date_picker is not None}"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to init date picker {picker_id}: {e}")
+        self.screen._compositor.reflow(self.screen, self.screen.size)
+        self.refresh(layout=True)
 
         table = self.query_one("#merge-group-table", DataTable)
         table.cursor_type = "row"
@@ -652,10 +838,15 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     @on(Button.Pressed, "#date-query-btn")
     def on_date_query(self) -> None:
         """点击查询按钮重新分组"""
-        start = self.query_one("#filter-start-date", Input).value.strip()
-        end = self.query_one("#filter-end-date", Input).value.strip()
-        if not start or not end:
+        start_picker = self.query_one("#filter-start-date", DateSelect)
+        end_picker = self.query_one("#filter-end-date", DateSelect)
+        start_dt = start_picker.date
+        end_dt = end_picker.date
+        if start_dt is None or end_dt is None:
+            self.notify(self.i18n.t('merge_mode.no_date'), severity="warning")
             return
+        start = start_dt.format("YYYY-MM-DD")
+        end = end_dt.format("YYYY-MM-DD")
         if start > end:
             start, end = end, start
         self._do_grouping(start, end)
@@ -896,3 +1087,5 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         elif event.key == "space":
             self._toggle_current_row()
             event.stop()
+
+
