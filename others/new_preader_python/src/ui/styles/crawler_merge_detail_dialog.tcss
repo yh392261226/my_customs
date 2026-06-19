@@ -1,0 +1,219 @@
+/* ───── 合并详情弹窗样式 ───── */
+
+CrawlerMergeDetailDialog {
+    align: center middle;
+    background: $background 60%;
+}
+
+CrawlerMergeDetailDialog Header {
+    dock: top;
+    height: 1;
+}
+
+CrawlerMergeDetailDialog Footer {
+    dock: bottom;
+    height: 1;
+}
+
+/* ── 主容器 ── */
+CrawlerMergeDetailDialog Container, #merge-detail-container {
+    align: center middle;
+    width: 100%;
+    height: 100%;
+    background: $surface;
+    border: solid $primary;
+    padding: 1 2;
+    layout: vertical;
+    overflow-y: auto;
+}
+
+/* ── 标题 ── */
+#merge-detail-title {
+    width: 100%;
+    height: 1;
+    text-align: left;
+    text-style: bold;
+    color: $accent;
+}
+
+/* ── 类型提示 ── */
+#merge-detail-type-hint {
+    width: 100%;
+    height: 1;
+    text-align: left;
+    color: $warning;
+}
+
+/* ── 进度 ── */
+#merge-detail-progress {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+/* ── 书名输入行 ── */
+#title-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#title-label {
+    width: 12;
+    height: 3;
+    text-style: bold;
+    color: $text;
+    padding: 1 0;
+}
+
+#merge-title-input {
+    width: 40%;
+    min-width: 30;
+    height: 3;
+    margin: 0 0 2 0;
+    background: $accent;
+}
+
+/* ── 操作提示 ── */
+#table-hint {
+    width: 100%;
+    height: 1;
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ── 书籍表格 ── */
+#merge-detail-table {
+    width: 100%;
+    height: 1fr;
+    border: solid $border;
+    margin-bottom: 1;
+    align: center middle;
+}
+
+#merge-detail-table .data-table--header {
+    background: $primary 30%;
+    text-style: bold;
+    color: $text;
+    height: 1;
+}
+
+#merge-detail-table .data-table--row-selected {
+    background: $accent 30%;
+}
+
+#merge-detail-table .data-table--row:hover {
+    background: $primary 15%;
+}
+
+#merge-detail-table .data-table--cell {
+    padding: 0 1;
+}
+
+/* ── 排序按钮行 ── */
+#sort-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+#sort-buttons > Button {
+    margin: 0 1;
+    min-width: 12;
+}
+
+#move-up-btn, #move-down-btn {
+    background: $primary 60%;
+}
+
+#move-up-btn:hover, #move-down-btn:hover {
+    background: $primary 80%;
+}
+
+#sort-time-btn {
+    background: $secondary 60%;
+}
+
+#sort-time-btn:hover {
+    background: $secondary 80%;
+}
+
+#select-all-btn, #deselect-all-btn {
+    background: $surface 80%;
+}
+
+#select-all-btn:hover, #deselect-all-btn:hover {
+    background: $primary 40%;
+}
+
+/* ── 快速定位行 ── */
+#pos-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#pos-label {
+    width: 10;
+    text-style: bold;
+    color: $text-muted;
+    padding: 1 0;
+}
+
+#move-to-pos-input {
+    width: 8;
+    margin-bottom: 2;
+    background: $accent;
+}
+
+/* ── 状态栏 ── */
+#merge-detail-status {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    color: $text-muted;
+    text-style: italic;
+    margin-bottom: 1;
+}
+
+/* ── 底部按钮栏 ── */
+#detail-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#detail-buttons > Button {
+    margin: 0 1;
+    min-width: 14;
+}
+
+#merge-this-btn {
+    background: $success;
+    color: $text;
+}
+
+#merge-this-btn:hover {
+    background: $success 80%;
+}
+
+#skip-this-btn {
+    background: $warning 70%;
+    color: $text;
+}
+
+#skip-this-btn:hover {
+    background: $warning 90%;
+}
+
+#cancel-all-btn {
+    background: $error 80%;
+    color: $text;
+}
+
+#cancel-all-btn:hover {
+    background: $error;
+}

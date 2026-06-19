@@ -2437,6 +2437,43 @@ class DatabaseManager:
             logger.error(f"获取爬取历史记录失败: {e}")
             return []
 
+    def get_crawl_history_by_site_and_date_range(
+        self,
+        site_id: int,
+        start_date: str,
+        end_date: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        按日期范围查询指定网站的爬取历史记录，crawl_time 作为 SQL 条件。
+
+        Args:
+            site_id: 网站ID
+            start_date: 起始日期，格式 YYYY-MM-DD（包含当天 00:00:00）
+            end_date: 结束日期，格式 YYYY-MM-DD（包含当天 23:59:59）
+
+        Returns:
+            List[Dict[str, Any]]: 爬取历史记录列表
+        """
+        try:
+            from datetime import datetime, timedelta
+            end_next = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT * FROM crawl_history
+                    WHERE site_id = ? AND crawl_time >= ? AND crawl_time < ?
+                    ORDER BY crawl_time DESC
+                    """,
+                    (site_id, start_date, end_next),
+                )
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"按日期范围获取爬取历史记录失败: {e}")
+            return []
+
     def get_crawl_history_by_novel_id(self, site_id: int, novel_id: str) -> List[Dict[str, Any]]:
         """
         根据小说ID获取爬取历史记录
@@ -2461,6 +2498,58 @@ class DatabaseManager:
                 return [dict(row) for row in rows if row]
         except sqlite3.Error as e:
             logger.error(f"根据小说ID获取爬取历史记录失败: {e}")
+            return []
+
+    def get_crawl_history_by_date(self, site_id: int, date_str: str) -> List[Dict[str, Any]]:
+        """
+        获取指定网站在指定日期的爬取历史记录
+
+        Args:
+            site_id: 网站ID
+            date_str: 日期字符串，格式为 "YYYY-MM-DD"
+
+        Returns:
+            List[Dict[str, Any]]: 爬取历史记录列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM crawl_history 
+                    WHERE site_id = ? AND crawl_time LIKE ?
+                    ORDER BY crawl_time DESC
+                """, (site_id, f"{date_str}%"))
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"按日期获取爬取历史记录失败: {e}")
+            return []
+
+    def search_crawl_history_by_title(self, site_id: int, title_pattern: str) -> List[Dict[str, Any]]:
+        """
+        根据标题模糊搜索爬取历史记录
+
+        Args:
+            site_id: 网站ID
+            title_pattern: 标题搜索模式（会用 LIKE 匹配）
+
+        Returns:
+            List[Dict[str, Any]]: 匹配的爬取历史记录列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM crawl_history 
+                    WHERE site_id = ? AND novel_title LIKE ?
+                    ORDER BY crawl_time DESC
+                """, (site_id, f"%{title_pattern}%"))
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows if row]
+        except sqlite3.Error as e:
+            logger.error(f"按标题模糊搜索爬取历史记录失败: {e}")
             return []
 
     def check_novel_exists(self, site_id: int, novel_id: str, check_serial_mode: bool = True) -> bool:

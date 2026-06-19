@@ -1,0 +1,194 @@
+/* ───── 合并模式弹窗样式 ───── */
+
+CrawlerMergeModeDialog {
+    align: center middle;
+    background: $background 60%;
+}
+
+CrawlerMergeModeDialog Header {
+    dock: top;
+    height: 1;
+}
+
+CrawlerMergeModeDialog Footer {
+    dock: bottom;
+    height: 1;
+}
+
+/* ── 主容器 ── */
+CrawlerMergeModeDialog Container ,#merge-mode-container {
+    width: 90%;
+    height: 90%;
+    background: $surface;
+    border: solid $primary;
+    padding: 1 2;
+    layout: vertical;
+    align: center middle;
+    content-align: center middle;
+    overflow-y: auto;
+}
+
+/* ── 标题 ── */
+#merge-mode-title {
+    width: 100%;
+    height: 1;
+    text-align: left;
+}
+
+/* ── 日期筛选行 ── */
+#merge-mode-filter {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+#merge-mode-filter .date-filter-label {
+    width: auto;
+    text-style: bold;
+    color: $text;
+    margin-right: 1;
+    padding: 1 0;
+    height: 3;
+}
+
+#merge-mode-filter .date-sub-label {
+    width: auto;
+    color: $text-muted;
+    margin: 0 1;
+    padding: 1 0;
+    height: 3;
+}
+
+#filter-start-date, #filter-end-date {
+    width: 10%;
+    min-width: 20;
+    height: 3;
+    margin: 0 1;
+}
+
+#date-query-btn {
+    margin-left: 2;
+    min-width: 10;
+    background: $primary 60%;
+}
+
+#date-query-btn:hover {
+    background: $primary 80%;
+}
+
+/* ── 统计摘要 ── */
+#merge-mode-summary {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+/* ── 自动合并提示 ── */
+#merge-mode-auto-hint {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    color: $warning;
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+/* ── 分组表格 ── */
+#merge-group-table {
+    width: 100%;
+    height: 1fr;
+    border: solid $border;
+    margin-bottom: 1;
+}
+
+#merge-group-table .data-table--header {
+    background: $primary 30%;
+    text-style: bold;
+    color: $text;
+    height: 1;
+}
+
+#merge-group-table .data-table--row-selected {
+    background: $accent 30%;
+}
+
+#merge-group-table .data-table--row:hover {
+    background: $primary 15%;
+}
+
+/* ── 底部按钮栏 ── */
+#merge-mode-buttons {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+#merge-mode-buttons > Button {
+    margin: 0 1;
+    min-width: 12;
+}
+
+/* 合并按钮高亮 */
+#confirm-merge-btn {
+    background: $success;
+    color: $text;
+}
+
+#confirm-merge-btn:hover {
+    background: $success 80%;
+}
+
+/* 取消按钮 */
+#cancel-btn {
+    background: $error 80%;
+    color: $text;
+}
+
+#cancel-btn:hover {
+    background: $error;
+}
+
+/* 全选按钮 */
+#select-all-btn {
+    background: $primary 60%;
+}
+
+#select-all-btn:hover {
+    background: $primary 80%;
+}
+
+/* 取消全选按钮 */
+#deselect-all-btn {
+    background: $surface 80%;
+}
+
+#deselect-all-btn:hover {
+    background: $primary 40%;
+}
+
+/* 反选按钮 */
+#invert-btn {
+    background: $surface 80%;
+}
+
+#invert-btn:hover {
+    background: $primary 40%;
+}
+
+/* ── 状态栏 ── */
+#merge-mode-status {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    color: $text-muted;
+    text-style: italic;
+}
+
+/* ── DataTable 单元格内边距 ── */
+#merge-group-table .data-table--cell {
+    padding: 0 1;
+}

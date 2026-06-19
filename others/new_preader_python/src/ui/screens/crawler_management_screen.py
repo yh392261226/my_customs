@@ -470,6 +470,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("f", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
         ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
+        ("z", "merge_mode", get_global_i18n().t('crawler.merge_mode')),
     ]
 
     def action_open_browser(self) -> None:
@@ -615,6 +616,10 @@ class CrawlerManagementScreen(Screen[None]):
     def action_merge_selected(self) -> None:
         """C键 - 合并选中项"""
         self._merge_selected()
+
+    def action_merge_mode(self) -> None:
+        """z键 - 合并模式"""
+        self._open_merge_mode()
 
     def action_clear_invalid(self) -> None:
         """r键 - 清理无效记录"""
@@ -904,6 +909,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
                     Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
+                    Button(get_global_i18n().t('crawler.merge_mode'), id="merge-mode-btn", variant="primary"),
                     Button(get_global_i18n().t('batch_ops.compare_read'), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
@@ -2228,7 +2234,117 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"合并失败: {e}")
             self._update_status(get_global_i18n().t('crawler.merge_failed'), "error")
-    
+
+    def _open_merge_mode(self) -> None:
+        """打开合并模式弹窗，内置日期筛选和智能分组"""
+        try:
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self._update_status(get_global_i18n().t('merge_mode.no_site_id'), "error")
+                return
+
+            all_history = self.db_manager.get_crawl_history_by_site(site_id, limit=None)
+            if not all_history:
+                self._update_status(get_global_i18n().t('merge_mode.no_history'), "warning")
+                return
+
+            # 计算日期范围供对话框使用
+            dates = []
+            for item in all_history:
+                crawl_time = item.get('crawl_time', '')
+                if crawl_time:
+                    dates.append(crawl_time[:10])
+            if not dates:
+                self._update_status(get_global_i18n().t('merge_mode.no_date'), "warning")
+                return
+
+            min_date = min(dates)
+            max_date = max(dates)
+            site_name = self.novel_site.get('name', '')
+
+            from src.ui.dialogs.crawler_merge_mode_dialog import CrawlerMergeModeDialog
+
+            def do_merge_groups(merged_groups, skipped_groups):
+                """执行实际合并操作并更新状态"""
+                total_merged = 0
+                total_failed = 0
+
+                for group_data in merged_groups:
+                    selected_books = group_data.get('selected_books', [])
+                    new_title = group_data.get('new_title', '')
+
+                    if len(selected_books) < 2:
+                        continue
+
+                    try:
+                        if self._perform_actual_merge(selected_books, new_title):
+                            total_merged += 1
+                            logger.info(
+                                f"合并模式：成功合并 [{new_title}] "
+                                f"({len(selected_books)}本书)"
+                            )
+                        else:
+                            total_failed += 1
+                            logger.warning(f"合并模式：合并失败 [{new_title}]")
+                    except Exception as e:
+                        total_failed += 1
+                        logger.error(f"合并模式：合并异常 [{new_title}]: {e}")
+
+                self._load_crawl_history()
+
+                skip_info = ""
+                if skipped_groups:
+                    skip_info = get_global_i18n().t(
+                        'merge_mode.skipped_info', count=len(skipped_groups)
+                    )
+
+                if total_merged > 0:
+                    msg = get_global_i18n().t(
+                        'merge_mode.result',
+                        merged=total_merged,
+                        failed=total_failed,
+                    )
+                    self._update_status(
+                        f"{msg}{skip_info}",
+                        "information" if total_failed == 0 else "warning",
+                    )
+                elif total_failed > 0:
+                    self._update_status(
+                        get_global_i18n().t('crawler.merge_failed'),
+                        "error",
+                    )
+
+            def handle_merge_mode_result(result: Optional[Dict[str, Any]]) -> None:
+                if not result or not result.get('success'):
+                    return
+                merged_groups = result.get('merged_groups', [])
+                skipped_groups = result.get('skipped_groups', [])
+                if not merged_groups:
+                    return
+                do_merge_groups(merged_groups, skipped_groups)
+
+            self.app.push_screen(
+                CrawlerMergeModeDialog(
+                    self.theme_manager,
+                    all_history,
+                    self.db_manager,
+                    site_id,
+                    site_name=site_name,
+                    min_date=min_date,
+                    max_date=max_date,
+                ),
+                handle_merge_mode_result,
+            )
+
+        except Exception as e:
+            logger.error(f"合并模式异常: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            self._update_status(
+                get_global_i18n().t('merge_mode.error', error=str(e)),
+                "error"
+            )
+
     def _perform_actual_merge(self, selected_items: List[Dict[str, Any]], new_title: str) -> bool:
         """
         执行实际的合并操作
@@ -4942,6 +5058,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._move_selected_down()
         elif button_id == "merge-btn":
             self._merge_selected()
+        elif button_id == "merge-mode-btn":
+            self._open_merge_mode()
         elif button_id == "compare-read-btn":
             self._compare_read_selected()
         elif button_id == "set-serial-btn":
