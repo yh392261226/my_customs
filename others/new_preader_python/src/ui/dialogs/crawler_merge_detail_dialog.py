@@ -37,6 +37,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("up", "move_up", "上移"),
         ("down", "move_down", "下移"),
         ("y", "copy_title", "复制标题"),
+        ("x", "clear_title", "清除标题"),
     ]
 
     def __init__(
@@ -85,6 +86,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Label(self.i18n.t('merge_detail.merged_title_label'), id="title-label"),
                     Input(placeholder=self.i18n.t('merge_detail.title_placeholder'), id="merge-title-input"),
+                    Button(self.i18n.t('merge_detail.clear_title'), id="clear-title-btn"),
                     id="title-row",
                 ),
                 # 提示说明
@@ -526,6 +528,22 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def action_copy_title(self) -> None:
         """y键：复制当前行书名"""
         self._copy_focused_book_title()
+
+    def action_clear_title(self) -> None:
+        """x键：清除标题输入框内容"""
+        self._clear_title()
+
+    def _clear_title(self) -> None:
+        """清除标题输入框内容并保存空标题到当前组状态"""
+        title_input = self.query_one("#merge-title-input", Input)
+        title_input.value = ""
+        # 同步保存到组状态
+        self._group_state[self._current_index]['merged_title'] = ""
+
+    @on(Button.Pressed, "#clear-title-btn")
+    def on_clear_title_btn(self) -> None:
+        """清除标题按钮"""
+        self._clear_title()
 
     def _copy_focused_book_title(self) -> None:
         """复制当前光标所在行的书籍名称到剪贴板"""

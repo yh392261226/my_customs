@@ -76,6 +76,17 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
     background: $accent;
 }
 
+#clear-title-btn {
+    min-width: 10;
+    height: 3;
+    margin-left: 1;
+    background: $surface 80%;
+}
+
+#clear-title-btn:hover {
+    background: $primary 40%;
+}
+
 /* ── 操作提示 ── */
 #table-hint {
     width: 100%;

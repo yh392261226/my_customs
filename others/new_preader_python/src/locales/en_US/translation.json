@@ -1547,6 +1547,7 @@
     "need_at_least_two": "Select at least 2 books",
     "no_groups_to_merge": "No groups to merge",
     "completed": "Done: {merged} merged, {skipped} skipped",
+    "clear_title": "Clear",
     "status_text": "Checked {selected}/{total} · ↑↓ reorder · Space toggle"
   },
   "note": {

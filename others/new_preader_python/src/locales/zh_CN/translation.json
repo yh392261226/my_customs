@@ -1610,6 +1610,7 @@
     "need_at_least_two": "请至少勾选2本书",
     "no_groups_to_merge": "没有可合并的分组",
     "completed": "完成：合并 {merged} 组，跳过 {skipped} 组",
+    "clear_title": "清除",
     "status_text": "已勾选 {selected}/{total} 本 · ↑↓移动排序 · 空格切换"
   },
   "note": {
