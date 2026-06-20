@@ -1811,6 +1811,12 @@
     "books_deleted_continue_processing": "Successfully deleted {count} duplicate books, still processing in background",
     "toggle_row": "Select/Deselect Row",
     "select_current": "Select Current Row",
+    "toggle_select_current_page": "Select All/Deselect All Current Page",
+    "toggle_select_all_pages": "Select All/Deselect All All Pages",
+    "select_current_page_all": "Selected all {count} books on current page",
+    "deselect_current_page_all": "Deselected all {count} books on current page",
+    "select_all_pages_all": "Selected all {count} books on all pages",
+    "deselect_all_pages_all": "Deselected all {count} books on all pages",
     "processing_remaining": "Processing batch {batch}/{total}",
     "all_duplicates_processed": "All duplicate books have been processed"
   },

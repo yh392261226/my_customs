@@ -31,6 +31,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("escape", "cancel", get_global_i18n().t('common.cancel')),
         ("space", "toggle_row", get_global_i18n().t('duplicate_books.toggle_row')),
         ("s", "select_current", get_global_i18n().t('duplicate_books.select_current')),
+        ("a", "toggle_select_current_page", get_global_i18n().t('duplicate_books.toggle_select_current_page')),
+        ("A", "toggle_select_all_pages", get_global_i18n().t('duplicate_books.toggle_select_all_pages')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -370,6 +372,90 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
     def action_select_current(self) -> None:
         """选择当前行"""
         self.action_toggle_row()  # 复用切换行的处理逻辑
+
+    def action_toggle_select_current_page(self) -> None:
+        """a键 - 全选/取消全选当前页（当前重复组）
+        当前页有任意选中项时取消全选当前页；无任何选中项时全选当前页
+        """
+        if not self.duplicate_groups or self.current_group_index < 0 \
+                or self.current_group_index >= len(self.duplicate_groups):
+            return
+
+        current_group = self.duplicate_groups[self.current_group_index]
+        current_books = current_group.books
+        if not current_books:
+            return
+
+        # 当前页有任意选中项则取消全选当前页，否则全选当前页
+        has_selected = any(book.path in self.selected_books for book in current_books)
+        if has_selected:
+            removed = 0
+            for book in current_books:
+                if book.path in self.selected_books:
+                    self.selected_books.discard(book.path)
+                    removed += 1
+            self.notify(
+                get_global_i18n().t(
+                    "duplicate_books.deselect_current_page_all",
+                    count=removed
+                ),
+                severity="information"
+            )
+        else:
+            added = 0
+            for book in current_books:
+                if book.path not in self.selected_books:
+                    self.selected_books.add(book.path)
+                    added += 1
+            self.notify(
+                get_global_i18n().t(
+                    "duplicate_books.select_current_page_all",
+                    count=added
+                ),
+                severity="information"
+            )
+
+        # 重新加载当前组显示
+        self._display_duplicate_group(self.current_group_index)
+
+    def action_toggle_select_all_pages(self) -> None:
+        """A键 - 全选/取消全选全部页（所有重复组）
+        有任意选中项时取消全选（清空所有选择）；无任何选中项时全选所有组
+        """
+        # 有任意选中项则取消全选（清空所有选择），否则全选所有组
+        if self.selected_books:
+            total = len(self.selected_books)
+            self.selected_books.clear()
+            self.notify(
+                get_global_i18n().t(
+                    "duplicate_books.deselect_all_pages_all",
+                    count=total
+                ),
+                severity="information"
+            )
+        else:
+            all_books = []
+            for group in self.duplicate_groups:
+                all_books.extend(group.books)
+
+            if not all_books:
+                return
+
+            added = 0
+            for book in all_books:
+                if book.path not in self.selected_books:
+                    self.selected_books.add(book.path)
+                    added += 1
+            self.notify(
+                get_global_i18n().t(
+                    "duplicate_books.select_all_pages_all",
+                    count=added
+                ),
+                severity="information"
+            )
+
+        # 重新加载当前组显示
+        self._display_duplicate_group(self.current_group_index)
     
     @on(Button.Pressed, "#cancel-btn")
     def on_cancel_pressed(self) -> None:

@@ -1005,6 +1005,12 @@
     "books_deleted_continue_processing": "成功删除 {count} 本重复书籍，后台仍在处理",
     "toggle_row": "选中/取消选中行",
     "select_current": "选择当前行",
+    "toggle_select_current_page": "全选/取消全选当前页",
+    "toggle_select_all_pages": "全选/取消全选全部页",
+    "select_current_page_all": "已全选当前页 {count} 本书籍",
+    "deselect_current_page_all": "已取消全选当前页 {count} 本书籍",
+    "select_all_pages_all": "已全选全部页 {count} 本书籍",
+    "deselect_all_pages_all": "已取消全选全部页 {count} 本书籍",
     "processing_remaining": "正在处理第 {batch}/{total} 批",
     "all_duplicates_processed": "所有重复书籍已处理完成"
   },
