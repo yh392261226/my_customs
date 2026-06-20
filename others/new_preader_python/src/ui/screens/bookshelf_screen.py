@@ -2662,11 +2662,11 @@ class BookshelfScreen(Screen[None]):
                 self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
                 return
             
-            # 读取文件前1000字
+            # 读取文件前2000字
             content = ""
             try:
                 with open(book_path, 'r', encoding='utf-8') as f:
-                    content = f.read(1000)
+                    content = f.read(2000)
             except Exception as e:
                 self.logger.error(f"读取文件失败: {e}")
                 self.notify(get_global_i18n().t("crawler.preview_failed", error=str(e)), severity="error")

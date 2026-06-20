@@ -800,11 +800,11 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(f"{get_global_i18n().t('crawler.file_not_exists')}: {file_path}", severity="warning")
                 return
             
-            # 读取文件前200字
+            # 读取文件前2000字
             content = ""
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read(1000)
+                    content = f.read(2000)
             except Exception as e:
                 logger.error(f"读取文件失败: {e}")
                 self.notify(get_global_i18n().t("crawler.preview_failed", error=str(e)), severity="error")
