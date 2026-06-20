@@ -8,9 +8,11 @@
 4. 合并当前组后自动进入下一组
 """
 
+import os
 from copy import deepcopy
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, ClassVar
 
+from send2trash import send2trash
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
@@ -20,10 +22,60 @@ from textual import on
 from src.locales.i18n_manager import get_global_i18n
 from src.utils.file_utils import FileUtils
 from src.themes.theme_manager import ThemeManager
+from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.crawler_merge_mode_dialog import BookGroup
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+class _MergePreviewDialog(ModalScreen[None]):
+    """合并详情弹窗内部使用的书籍预览弹窗（避免循环导入）"""
+
+    CSS_PATH = "../styles/crawler_management_bookpreview_dialog_overrides.tcss"
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
+        ("escape", "close", get_global_i18n().t('common.close')),
+    ]
+
+    def action_close(self) -> None:
+        self.dismiss()
+
+    def __init__(self, theme_manager: ThemeManager, title: str, content: str):
+        super().__init__()
+        self.theme_manager = theme_manager
+        self.title = title
+        self.content = content
+        self.i18n = get_global_i18n()
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield Container(
+            Vertical(
+                Label(f"📖 {self.i18n.t('crawler.preview_title')}", id="preview-title", classes="section-title"),
+                Label(f"{self.content} ......", id="preview-content", classes="preview-text"),
+                Horizontal(
+                    Button(self.i18n.t('common.close'), id="preview-close-btn", variant="primary"),
+                    id="preview-buttons", classes="btn-row",
+                ),
+                id="preview-container",
+            ),
+            id="preview-window",
+        )
+        yield Footer()
+
+    def on_mount(self) -> None:
+        self.theme_manager.apply_theme_to_screen(self)
+        preview_content = self.query_one("#preview-content")
+        preview_content.border_title = self.title
+        preview_content.border_subtitle = self.title
+        try:
+            self.query_one("#preview-close-btn", Button).focus()
+        except Exception:
+            pass
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "preview-close-btn":
+            self.dismiss()
 
 
 class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
@@ -38,17 +90,21 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("down", "move_down", "下移"),
         ("y", "copy_title", "复制标题"),
         ("x", "clear_title", "清除标题"),
+        ("v", "preview_book", "预览"),
+        ("d", "delete_book", "删除"),
     ]
 
     def __init__(
         self,
         theme_manager: ThemeManager,
         groups: List[Dict[str, Any]],
+        db_manager: Optional[DatabaseManager] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.theme_manager = theme_manager
         self.i18n = get_global_i18n()
+        self.db_manager = db_manager
 
         # 深拷贝 groups，避免影响原始数据
         self.groups: List[Dict[str, Any]] = deepcopy(groups)
@@ -190,15 +246,19 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         table.clear()
 
         if not table.columns:
-            table.add_column("✓", width=3)
-            table.add_column(self.i18n.t('merge_detail.col_seq'), width=4)
-            table.add_column(self.i18n.t('merge_detail.col_title'), width=80)
-            table.add_column(self.i18n.t('merge_detail.col_time'), width=10)
-            table.add_column(self.i18n.t('merge_detail.col_size'), width=5)
+            table.add_column("✓", key="selected", width=3)
+            table.add_column(self.i18n.t('merge_detail.col_seq'), key="seq", width=4)
+            table.add_column(self.i18n.t('merge_detail.col_book_id'), key="book_id", width=14)
+            table.add_column(self.i18n.t('merge_detail.col_title'), key="title", width=60)
+            table.add_column(self.i18n.t('merge_detail.col_time'), key="time", width=10)
+            table.add_column(self.i18n.t('merge_detail.col_size'), key="size", width=5)
+            table.add_column(self.i18n.t('merge_detail.col_preview'), key="preview", width=4)
+            table.add_column(self.i18n.t('merge_detail.col_delete'), key="delete", width=4)
 
         for idx, book in enumerate(books, 1):
             bid = book.get('id')
             check = "☑" if bid in selected else "☐"
+            novel_id = str(book.get('novel_id', '') or '')
             title = book.get('novel_title', '')
             crawl_time = book.get('crawl_time', '')
             if isinstance(crawl_time, str) and len(crawl_time) >= 16:
@@ -217,9 +277,12 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             table.add_row(
                 check,
                 str(idx),
+                novel_id[:20],
                 title[:60] if len(title) > 60 else title,
                 crawl_time,
                 size_str,
+                self.i18n.t('merge_detail.preview_btn'),
+                self.i18n.t('merge_detail.delete_btn'),
                 key=str(bid),
             )
 
@@ -532,6 +595,161 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def action_clear_title(self) -> None:
         """x键：清除标题输入框内容"""
         self._clear_title()
+
+    def action_preview_book(self) -> None:
+        """v键：预览当前光标所在行的书籍"""
+        book = self._get_cursor_book()
+        if book is not None:
+            self._preview_book(book)
+
+    def action_delete_book(self) -> None:
+        """d键：删除当前光标所在行的书籍"""
+        book = self._get_cursor_book()
+        if book is not None:
+            self._delete_book(book)
+
+    def _get_cursor_book(self) -> Optional[Dict[str, Any]]:
+        """获取当前光标行对应的书籍字典"""
+        bid = self._get_cursor_book_id()
+        if bid is None:
+            return None
+        state = self._group_state[self._current_index]
+        return next((b for b in state['books'] if b.get('id') == bid), None)
+
+    @on(DataTable.CellSelected, "#merge-detail-table")
+    def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:
+        """单元格选择事件 —— 处理预览/删除按钮列点击"""
+        try:
+            column_key = event.cell_key.column_key.value or ""
+            bid_str = event.cell_key.row_key.value or ""
+            if not bid_str:
+                return
+            try:
+                bid = int(bid_str)
+            except ValueError:
+                return
+            state = self._group_state[self._current_index]
+            book = next((b for b in state['books'] if b.get('id') == bid), None)
+            if not book:
+                return
+
+            if column_key == "preview":
+                self._preview_book(book)
+            elif column_key == "delete":
+                self._delete_book(book)
+        except Exception as e:
+            logger.error(f"单元格选择事件处理失败: {e}")
+
+    def _preview_book(self, book: Dict[str, Any]) -> None:
+        """预览书籍内容（读取文件前 2000 字）"""
+        try:
+            file_path = book.get('file_path', '')
+            if not file_path or file_path == 'already_exists':
+                self.notify(self.i18n.t('crawler.no_file_path'), severity="warning", timeout=2)
+                return
+            if not os.path.exists(file_path):
+                self.notify(self.i18n.t('crawler.file_not_exists'), severity="warning", timeout=2)
+                return
+
+            content = ""
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read(2000)
+            except Exception as e:
+                logger.error(f"读取文件失败: {e}")
+                self.notify(
+                    self.i18n.t('crawler.preview_failed', error=str(e)),
+                    severity="error", timeout=3,
+                )
+                return
+
+            if not content.strip():
+                self.notify(self.i18n.t('crawler.preview_empty'), timeout=2)
+                return
+
+            # 使用本弹窗内部定义的预览弹窗（避免循环导入）
+            self.app.push_screen(
+                _MergePreviewDialog(
+                    self.theme_manager,
+                    book.get('novel_title', ''),
+                    content,
+                )
+            )
+        except Exception as e:
+            logger.error(f"预览书籍失败: {e}")
+            self.notify(
+                f"{self.i18n.t('crawler.preview_failed', error=str(e))}",
+                severity="error", timeout=3,
+            )
+
+    def _delete_book(self, book: Dict[str, Any]) -> None:
+        """删除光标所在行的书籍（文件 + 数据库记录）"""
+        if self.db_manager is None:
+            self.notify(self.i18n.t('merge_detail.delete_unavailable'), severity="warning", timeout=2)
+            return
+        db_manager = self.db_manager
+
+        try:
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+            novel_title = book.get('novel_title', '')
+            file_path = book.get('file_path', '')
+
+            def handle_delete_confirmation(confirmed: Optional[bool]) -> None:
+                if not confirmed:
+                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
+                    return
+                try:
+                    # 1) 删除文件（若有）
+                    if file_path and file_path != 'already_exists' and os.path.exists(file_path):
+                        try:
+                            send2trash(file_path)
+                            logger.info(f"文件已移至回收站: {file_path}")
+                        except Exception as e:
+                            logger.error(f"删除文件失败: {file_path} - {e}")
+
+                    # 2) 删除数据库记录
+                    history_id = book.get('id')
+                    if history_id is not None:
+                        try:
+                            db_manager.delete_crawl_history(int(history_id))
+                        except Exception as e:
+                            logger.error(f"删除爬取历史记录失败: {history_id} - {e}")
+
+                    # 3) 从当前组状态中移除该书籍
+                    state = self._group_state[self._current_index]
+                    state['books'] = [b for b in state['books'] if b.get('id') != book.get('id')]
+                    state['selected_ids'].discard(book.get('id'))
+
+                    # 4) 刷新界面
+                    self._refresh_table()
+                    self._update_status()
+                    self.notify(
+                        self.i18n.t('merge_detail.book_deleted', title=novel_title),
+                        timeout=2,
+                    )
+                except Exception as e:
+                    logger.error(f"删除书籍失败: {e}")
+                    self.notify(
+                        f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
+                        severity="error", timeout=3,
+                    )
+
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    self.i18n.t('merge_detail.confirm_delete_title'),
+                    self.i18n.t('merge_detail.confirm_delete_message', title=novel_title),
+                ),
+                handle_delete_confirmation,
+            )
+        except Exception as e:
+            logger.error(f"删除书籍失败: {e}")
+            self.notify(
+                f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
+                severity="error", timeout=3,
+            )
+
 
     def _clear_title(self) -> None:
         """清除标题输入框内容并保存空标题到当前组状态，并聚焦到输入框便于继续输入"""

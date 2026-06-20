@@ -1048,7 +1048,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 })
 
         self.app.push_screen(
-            CrawlerMergeDetailDialog(self.theme_manager, group_data),
+            CrawlerMergeDetailDialog(self.theme_manager, group_data, self.db_manager),
             handle_detail_result,
         )
 
