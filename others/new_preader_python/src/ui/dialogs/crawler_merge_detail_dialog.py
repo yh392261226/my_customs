@@ -534,11 +534,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._clear_title()
 
     def _clear_title(self) -> None:
-        """清除标题输入框内容并保存空标题到当前组状态"""
+        """清除标题输入框内容并保存空标题到当前组状态，并聚焦到输入框便于继续输入"""
         title_input = self.query_one("#merge-title-input", Input)
         title_input.value = ""
         # 同步保存到组状态
         self._group_state[self._current_index]['merged_title'] = ""
+        # 聚焦到输入框，便于接下来的输入操作
+        title_input.focus()
 
     @on(Button.Pressed, "#clear-title-btn")
     def on_clear_title_btn(self) -> None:
