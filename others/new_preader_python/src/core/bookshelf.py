@@ -95,15 +95,11 @@ class Bookshelf:
             # 使用批量查询方法获取书籍和阅读信息
             book_info_list = self.db_manager.get_all_books_with_reading_info(user_id)
 
+            # 性能优化：Book.__init__ 已在创建时通过 os.path.exists 设置了 file_not_found 标记，
+            # 这里无需再次调用 os.path.exists（避免 N 次冗余 stat 系统调用）。
             for book, reading_info in book_info_list:
                 if book.path:
-                    if os.path.exists(book.path):
-                        self.books[book.path] = book
-                    else:
-                        # 标记书籍为文件不存在状态
-                        book.file_not_found = True
-                        self.books[book.path] = book
-
+                    self.books[book.path] = book
                     # 缓存阅读信息
                     self._reading_info_cache[book.path] = reading_info
 

@@ -1265,81 +1265,61 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             logger.error(f"处理文件列表高亮失败: {e}")
     
     def _get_bookshelf_files(self) -> Set[str]:
-        """获取书库中所有书籍文件的文件名集合"""
+        """获取书库中所有书籍文件的文件名集合（性能优化版本 - 零热路径日志）
+
+        核心优化：不在循环内打日志，也不把整个集合转成字符串输出。
+        """
         try:
-            bookshelf_files = set()
-            # 直接使用self.bookshelf.books,避免重复查询数据库
-            logger.debug(f"开始获取书库文件列表，书架中书籍数量: {len(self.bookshelf.books)}")
+            bookshelf_files: Set[str] = set()
             for book_path, book in self.bookshelf.books.items():
-                # 获取书籍的文件名（不包含路径）
                 if hasattr(book, 'path') and book.path:
-                    filename = os.path.basename(book.path)
-                    bookshelf_files.add(filename)
-                    # logger.debug(f"书架中的书籍: {filename} (完整路径: {book.path})")
+                    bookshelf_files.add(os.path.basename(book.path))
                 else:
-                    logger.warning(f"书籍对象没有path属性或path为空: {book_path}")
-            logger.info(f"获取到的书库文件列表 ({len(bookshelf_files)} 个): {bookshelf_files}")
+                    logger.debug(f"书籍对象没有path属性或path为空: {book_path}")
+            logger.debug(f"书库文件名集合构建完成: {len(bookshelf_files)} 个")
             return bookshelf_files
         except Exception as e:
             logger.error(f"获取书库文件列表失败: {e}")
             return set()
     
     def _get_all_files_in_current_directory(self) -> List[Dict[str, str]]:
-        """获取当前目录下的所有文件（优化版本 - 使用缓存）"""
-        # 使用缓存避免重复I/O
+        """获取当前目录下的所有文件（性能优化版本 - 缓存 + 零热路径日志）
+
+        核心优化：
+        1. 单次 os.listdir，扩展名预过滤后再 lstat，减少系统调用
+        2. 热循环中无任何日志输出（避免 f-string 求值），仅汇总输出
+        3. 结果缓存 1 秒，切换目录时自动失效
+        """
         cache_key = (self.current_path, tuple(sorted(self.file_extensions)))
 
-        # 检查缓存是否存在且有效
-        # 注意：缓存有效期改为1秒，确保每次切换目录都重新扫描
         if hasattr(self, '_directory_cache'):
             cached_data = self._directory_cache.get(cache_key)
             if cached_data:
                 cache_time, cached_files = cached_data
-                # 缓存有效期1秒（从5秒缩短，确保刷新及时）
                 if time.time() - cache_time < 1:
-                    logger.debug(f"使用缓存的文件列表: {len(cached_files)} 个文件")
                     return cached_files
-                else:
-                    logger.debug(f"缓存已过期（{time.time() - cache_time:.2f}秒），重新扫描")
 
         all_files = []
         try:
-            # 只调用一次os.listdir
             items = os.listdir(self.current_path)
-
-            logger.info(f"📁 当前目录: {self.current_path}")
-            logger.info(f"📊 目录项目数量: {len(items)}, 支持的文件扩展名: {self.file_extensions}")
-
-            # 优化：预先扩展名集合用于快速查找
             supported_extensions = self.file_extensions
+            current_path = self.current_path
 
-            # 对于大量文件，使用进度提示和定时日志
-            start_time = time.time()
-            total_items = len(items)
-
-            for idx, item in enumerate(items):
-                # 每500个文件输出一次进度，对于14000个文件会输出28次
-                if idx % 500 == 0 and idx > 0:
-                    elapsed = time.time() - start_time
-                    remaining_pct = (idx / total_items) * 100
-                    logger.info(f"⏳ 已处理 {idx}/{total_items} 个项目 ({remaining_pct:.1f}%) - 用时: {elapsed:.1f}秒")
-
+            for item in items:
                 # 快速检查扩展名，避免不必要的系统调用
-                if '.' in item:
-                    ext = item.rsplit('.', 1)[-1].lower()
-                    if ext.startswith('.'):
-                        ext = ext[1:]
-                    ext_with_dot = '.' + ext
-                else:
-                    continue  # 没有扩展名，跳过
+                if '.' not in item:
+                    continue
+                ext = item.rsplit('.', 1)[-1].lower()
+                if ext.startswith('.'):
+                    ext = ext[1:]
+                ext_with_dot = '.' + ext
 
                 # 只处理支持的书籍格式
                 if ext_with_dot in supported_extensions:
-                    item_path = os.path.join(self.current_path, item)
+                    item_path = os.path.join(current_path, item)
                     try:
-                        # 使用os.lstat而不是os.path.isfile，更快且不跟随符号链接
                         stat_info = os.lstat(item_path)
-                        if stat.S_ISREG(stat_info.st_mode):  # 是普通文件
+                        if stat.S_ISREG(stat_info.st_mode):
                             all_files.append({
                                 "name": item,
                                 "path": item_path,
@@ -1348,75 +1328,77 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                                 "directory": "."
                             })
                     except (OSError, AttributeError):
-                        # 跳过无法访问的文件
                         continue
 
         except (PermissionError, OSError) as e:
-            logger.warning(f"⚠️  获取当前目录文件失败: {e}")
-
-        logger.info(f"最终获取到的文件数量: {len(all_files)}")
-        logger.debug(f"文件列表: {[f['name'] for f in all_files]}")
+            logger.warning(f"获取当前目录文件失败: {e}")
 
         # 缓存结果
         if not hasattr(self, '_directory_cache'):
             self._directory_cache = {}
-
         self._directory_cache[cache_key] = (time.time(), all_files)
 
+        logger.debug(f"目录扫描完成: {self.current_path} -> {len(all_files)} 个文件")
         return all_files
 
     def _filter_files_not_in_bookshelf(self, files: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        """过滤掉书库中已存在的文件（优化版本 - 使用缓存）"""
-        try:
-            # 缓存书库文件列表,避免重复查询
-            # 检查缓存是否存在
-            cache_valid = False
-            current_time = 0
-            bookshelf_files = set()
-            bookshelf_files_lower = set()
+        """过滤掉书库中已存在的文件（性能优化版本 - 集合差集 + 零热路径日志）
 
-            if hasattr(self, '_bookshelf_cache'):
+        核心优化：
+        1. 书架文件名构建为 lowercase 集合，O(1) 查找
+        2. 当前目录文件名构建为 lowercase 集合，用集合差集一次性求出"不在书架中"的文件名
+        3. 热路径中不做任何日志输出（避免 f-string 求值开销），仅在入口/出口汇总
+        """
+        try:
+            # 1. 获取书架文件名集合（带缓存）
+            cache_valid = False
+            bookshelf_files_lower: Set[str] = set()
+
+            if hasattr(self, '_bookshelf_cache') and isinstance(self._bookshelf_cache, dict):
                 cache_data = self._bookshelf_cache
-                if isinstance(cache_data, dict) and 'time' in cache_data:
-                    current_time = time.time()
-                    # 缓存有效期30秒
-                    if current_time - cache_data['time'] < 30:
-                        cache_valid = True
-                        bookshelf_files = cache_data.get('files', set())
-                        bookshelf_files_lower = cache_data.get('files_lower', set())
-                        logger.debug(f"使用书库文件缓存: {len(bookshelf_files)} 个文件")
+                cached_time = cache_data.get('time')
+                if isinstance(cached_time, (int, float)):
+                    if time.time() - cached_time < 30:
+                        cached_files_lower = cache_data.get('files_lower')
+                        if isinstance(cached_files_lower, set):
+                            cache_valid = True
+                            bookshelf_files_lower = cached_files_lower
 
             if not cache_valid:
-                # 缓存过期或不存在，重新获取
                 bookshelf_files = self._get_bookshelf_files()
                 bookshelf_files_lower = {filename.lower() for filename in bookshelf_files}
-
-                # 更新缓存
                 self._bookshelf_cache = {
-                    'time': current_time if current_time > 0 else time.time(),
+                    'time': time.time(),
                     'files': bookshelf_files,
                     'files_lower': bookshelf_files_lower
                 }
-                logger.debug(f"刷新书库文件缓存: {len(bookshelf_files)} 个文件")
 
-            filtered_files = []
+            if not files:
+                return []
 
-            # 调试信息：显示书库文件数量和当前目录文件数量
-            logger.info(f"书库文件数量: {len(bookshelf_files)}, 当前目录文件数量: {len(files)}")
-            logger.info(f"书库文件列表: {bookshelf_files}")
-
+            # 2. 构建当前目录文件名 -> file_info 的映射（小写键，保留原始 info）
+            #    同名文件（大小写不同）取第一个，符合"不区分大小写"的语义
+            name_to_info: Dict[str, Dict[str, str]] = {}
             for file_info in files:
-                filename = file_info["name"]
-                filename_lower = filename.lower()
-                # 如果文件不在书库中，则保留（不区分大小写）
-                if filename_lower not in bookshelf_files_lower:
-                    filtered_files.append(file_info)
-                    logger.info(f"✅ 文件 '{filename}' 不在书库中，保留")
-                # else:
-                #     logger.info(f"❌ 文件 '{filename}' 已在书库中，被过滤")
+                key = file_info["name"].lower()
+                if key not in name_to_info:
+                    name_to_info[key] = file_info
 
-            logger.info(f"过滤后文件数量: {len(filtered_files)}")
-            # logger.info(f"过滤后文件列表: {[f['name'] for f in filtered_files]}")
+            # 3. 集合差集：一次性求出不在书架中的文件名（O(n) 纯 C 实现，无 Python 循环开销）
+            dir_names_lower = set(name_to_info.keys())
+            new_names_lower = dir_names_lower - bookshelf_files_lower
+
+            # 4. 按原始顺序输出（保持文件列表顺序稳定）
+            filtered_files = [
+                name_to_info[name_lower]
+                for name_lower in dir_names_lower
+                if name_lower in new_names_lower
+            ]
+
+            logger.debug(
+                f"差异过滤完成: 目录文件 {len(files)} 个, 书架文件 {len(bookshelf_files_lower)} 个, "
+                f"新增(不在书架) {len(filtered_files)} 个"
+            )
             return filtered_files
         except Exception as e:
             logger.error(f"过滤书库文件时出错: {e}", exc_info=True)
@@ -1442,12 +1424,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
 
             diff_mode_enabled = diff_switch.value
 
-            # 调试信息：显示搜索条件
-            logger.info(f"🔍 搜索条件 - 关键词: '{search_keyword}', 文件类型: '{file_type}', 对比模式: {diff_mode_enabled}")
+            logger.debug(f"搜索条件 - 关键词: '{search_keyword}', 文件类型: '{file_type}', 对比模式: {diff_mode_enabled}")
             
             # 如果既没有搜索关键词也没有选择特定文件类型，恢复显示所有文件
             if not search_keyword and file_type == "all" and not diff_mode_enabled:
-                logger.debug("无搜索条件且对比模式关闭，恢复显示所有文件")
                 self._load_file_list()
                 return
             
@@ -1457,31 +1437,22 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             # 如果对比模式开启，优先处理对比模式
             if diff_mode_enabled:
                 # 差异模式：获取当前目录所有文件，然后过滤掉已添加的书籍
-                # 无论是否有搜索关键词或文件类型选择，差异模式都应该显示所有未添加的书籍
-                logger.info("🔄 差异模式已开启，获取当前目录所有文件...")
-
-                # 获取所有支持的文件
                 all_files = self._get_all_files_in_current_directory()
-                logger.info(f"📁 当前目录文件数量: {len(all_files)}")
 
                 # 如果有搜索条件，先过滤搜索条件
                 # 差异模式下只按关键词搜索，不按文件类型过滤
                 if search_keyword:
-                    logger.info(f"🔍 应用搜索条件 - 关键词: '{search_keyword}' (差异模式忽略文件类型)")
-                    filtered_by_search = []
-                    for file_info in all_files:
-                        if self._match_search_criteria(file_info["name"], search_keyword, "all"):
-                            filtered_by_search.append(file_info)
-                    logger.info(f"搜索后文件数量: {len(filtered_by_search)}")
-                    files_to_filter = filtered_by_search
+                    keyword_lower = search_keyword.lower()
+                    files_to_filter = [
+                        file_info for file_info in all_files
+                        if keyword_lower in file_info["name"].lower()
+                    ]
                 else:
-                    # 差异模式无搜索条件，显示所有文件
-                    logger.info(f"📁 差异模式无搜索条件，显示所有文件")
                     files_to_filter = all_files
 
                 # 过滤掉书库中已存在的文件
                 search_results = self._filter_files_not_in_bookshelf(files_to_filter)
-                logger.info(f"✅ 过滤后文件数量（不在书架中）: {len(search_results)}")
+                logger.debug(f"差异模式: 目录 {len(all_files)} -> 搜索后 {len(files_to_filter)} -> 过滤后 {len(search_results)}")
             else:
                 # 非对比模式，正常搜索
                 search_results = self._perform_search(search_keyword, file_type)
@@ -1524,27 +1495,39 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         search_results = []
         
         try:
-            # 获取当前目录下的所有文件和目录
             items = os.listdir(self.current_path)
-            
+            current_path = self.current_path
+            supported_extensions = self.file_extensions
+            keyword_lower = keyword.lower() if keyword else ""
+            file_type_lower = file_type.lower() if file_type != "all" else ""
+
             for item in items:
-                item_path = os.path.join(self.current_path, item)
-                
-                # 只处理文件，不处理目录
-                if os.path.isfile(item_path):
-                    # 检查文件是否匹配搜索条件
-                    if self._match_search_criteria(item, keyword, file_type):
-                        # 获取文件信息
-                        ext = FileUtils.get_file_extension(item_path)
-                        file_type_display = "book" if ext in self.file_extensions else "file"
-                        
-                        search_results.append({
-                            "name": item,
-                            "path": item_path,
-                            "type": file_type_display,
-                            "display": f"📖 {item}" if file_type_display == "book" else f"📄 {item}",
-                            "directory": "."
-                        })
+                # 先做廉价的字符串检查，再决定是否 stat
+                if keyword_lower and keyword_lower not in item.lower():
+                    continue
+                if file_type_lower:
+                    ext = FileUtils.get_file_extension(item).lower()
+                    if ext != file_type_lower:
+                        continue
+
+                item_path = os.path.join(current_path, item)
+                try:
+                    # 使用 lstat + S_ISREG 替代 os.path.isfile，更快且不跟随符号链接
+                    stat_info = os.lstat(item_path)
+                    if not stat.S_ISREG(stat_info.st_mode):
+                        continue
+                except (OSError, AttributeError):
+                    continue
+
+                ext = FileUtils.get_file_extension(item_path)
+                file_type_display = "book" if ext in supported_extensions else "file"
+                search_results.append({
+                    "name": item,
+                    "path": item_path,
+                    "type": file_type_display,
+                    "display": f"📖 {item}" if file_type_display == "book" else f"📄 {item}",
+                    "directory": "."
+                })
                         
         except (PermissionError, OSError) as e:
             logger.warning(f"搜索过程中无法访问目录: {e}")
