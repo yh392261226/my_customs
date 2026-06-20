@@ -487,4 +487,3 @@ class AlhsXyzV2Parser(BaseParser):
             time.sleep(1)
         
         return novel_content
-            return "unknown"
