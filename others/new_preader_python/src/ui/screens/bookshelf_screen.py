@@ -56,6 +56,7 @@ class BookshelfScreen(Screen[None]):
         ("v", "preview_book", get_global_i18n().t('bookshelf.shortcut_v')),
         ("f", "view_current_file", get_global_i18n().t('bookshelf.shortcut_f')),
         ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
+        ("b", "open_in_browser", get_global_i18n().t('bookshelf.shortcut_b')),
     ]
     # 支持的书籍文件扩展名（从配置文件读取）
     SUPPORTED_EXTENSIONS = set(SUPPORTED_FORMATS)
@@ -2648,6 +2649,26 @@ class BookshelfScreen(Screen[None]):
                     self._view_file(book.path)
                 else:
                     self.notify(get_global_i18n().t("bookshelf.np_view_file"), severity="warning")
+
+    def action_open_in_browser(self) -> None:
+        """b键 - 使用浏览器打开当前焦点所在行的书籍"""
+        table = self.query_one("#books-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+
+        if current_row_index is None or current_row_index < 0 or current_row_index >= len(table.rows):
+            self.notify(get_global_i18n().t("bookshelf.no_books"), severity="warning")
+            return
+
+        # 获取当前行对应的书籍
+        start_index = (self._current_page - 1) * self._books_per_page
+        book_index = start_index + current_row_index
+        if 0 <= book_index < len(self._all_books):
+            book = self._all_books[book_index]
+            self.logger.info(f"按b键在浏览器中打开书籍: {book.path}")
+            if getattr(self.app, "has_permission", lambda k: True)("bookshelf.read"):
+                self._open_book_in_browser(book.path)
+            else:
+                self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
 
     def _preview_book(self, book_path: str) -> None:
         """预览书籍内容（显示前1000字）"""

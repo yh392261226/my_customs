@@ -272,7 +272,8 @@
     "title_copied": "Copied book title '{title}' to clipboard",
     "shortcut_v": "Preview Book",
     "shortcut_f": "View File",
-    "shortcut_d": "Delete Book"
+    "shortcut_d": "Delete Book",
+    "shortcut_b": "Browser Read"
   },
   "batch_ops": {
     "title": "Batch Operations",
