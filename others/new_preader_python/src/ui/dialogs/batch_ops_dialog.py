@@ -1462,6 +1462,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         self.query_one("#search-input-field", Input).placeholder = get_global_i18n().t("bookshelf.search_placeholder")
         self.query_one("#search-author-filter", Select).value = "all"
         self.query_one("#search-format-filter", Select).value = "all"
+        self.query_one("#search-input-field", Input).focus()
         self._perform_search()
 
     def action_view_logs(self) -> None:

@@ -1480,7 +1480,8 @@ class CrawlerManagementScreen(Screen[None]):
             search_input = self.query_one("#search-input-field", Input)
             search_input.value = ""
             self._search_keyword = ""
-            
+            search_input.focus()
+
             # 重新加载历史记录
             self._load_crawl_history(from_search=True)
             self._update_status(get_global_i18n().t('crawler.search_cleared'))
