@@ -1,0 +1,19 @@
+{
+  "name": "pearl-mist",
+  "display_name": "Pearl Mist",
+  "description": "珍珠薄雾浅色主题，冷白底配深海军蓝字",
+  "primary": "#2563EB",
+  "secondary": "#B45309",
+  "accent": "#B45309",
+  "warning": "#C2410C",
+  "error": "#DC2626",
+  "success": "#15803D",
+  "foreground": "#1A2332",
+  "background": "#F5F7FA",
+  "surface": "#E8ECF2",
+  "panel": "#E8ECF2",
+  "boost": "#DDE3EC",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

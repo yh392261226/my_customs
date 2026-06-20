@@ -1,0 +1,19 @@
+{
+  "name": "sage-garden",
+  "display_name": "Sage Garden",
+  "description": "鼠尾草花园浅绿主题，淡灰绿底配深绿字",
+  "primary": "#4A7C4A",
+  "secondary": "#9A3412",
+  "accent": "#9A3412",
+  "warning": "#B45309",
+  "error": "#B91C1C",
+  "success": "#166534",
+  "foreground": "#243524",
+  "background": "#EFF5EF",
+  "surface": "#DDE9DD",
+  "panel": "#DDE9DD",
+  "boost": "#CFDFCF",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

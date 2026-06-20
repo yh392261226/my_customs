@@ -1,0 +1,19 @@
+{
+  "name": "glass-phantom",
+  "display_name": "Glass Phantom",
+  "description": "幻影玻璃透明主题，翠绿与琥珀点缀",
+  "primary": "#69F0AE",
+  "secondary": "#FFD740",
+  "accent": "#FFD740",
+  "warning": "#FFB74D",
+  "error": "#FF8A80",
+  "success": "#B9F6CA",
+  "foreground": "#E8FFF0",
+  "background": "transparent",
+  "surface": "#0A140F40",
+  "panel": "#0A140F40",
+  "boost": "#0F1F1550",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

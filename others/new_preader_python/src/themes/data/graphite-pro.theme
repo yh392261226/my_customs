@@ -1,0 +1,19 @@
+{
+  "name": "graphite-pro",
+  "display_name": "Graphite Pro",
+  "description": "专业石墨深色主题，中性灰底高对比",
+  "primary": "#4FB6FF",
+  "secondary": "#FFCA28",
+  "accent": "#FFCA28",
+  "warning": "#FFA726",
+  "error": "#EF5350",
+  "success": "#66BB6A",
+  "foreground": "#E0E0E0",
+  "background": "#1E1E1E",
+  "surface": "#2A2A2A",
+  "panel": "#2A2A2A",
+  "boost": "#363636",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

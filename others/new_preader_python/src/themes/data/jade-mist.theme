@@ -1,0 +1,19 @@
+{
+  "name": "jade-mist",
+  "display_name": "Jade Mist",
+  "description": "玉雾浅绿主题，浅玉底配深绿字",
+  "primary": "#2E7D32",
+  "secondary": "#B45309",
+  "accent": "#B45309",
+  "warning": "#C2410C",
+  "error": "#DC2626",
+  "success": "#15803D",
+  "foreground": "#1B3A1B",
+  "background": "#F0F7F0",
+  "surface": "#DDEBDD",
+  "panel": "#DDEBDD",
+  "boost": "#D0E0D0",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

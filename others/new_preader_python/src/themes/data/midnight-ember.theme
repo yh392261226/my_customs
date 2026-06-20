@@ -1,0 +1,19 @@
+{
+  "name": "midnight-ember",
+  "display_name": "Midnight Ember",
+  "description": "午夜余烬深色主题，暗棕底配暖白前景",
+  "primary": "#FF9100",
+  "secondary": "#4FC3F7",
+  "accent": "#4FC3F7",
+  "warning": "#FFD54F",
+  "error": "#FF5252",
+  "success": "#69F0AE",
+  "foreground": "#FFE8D6",
+  "background": "#1C0F0A",
+  "surface": "#2A1810",
+  "panel": "#2A1810",
+  "boost": "#382018",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

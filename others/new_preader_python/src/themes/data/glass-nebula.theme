@@ -1,0 +1,19 @@
+{
+  "name": "glass-nebula",
+  "display_name": "Glass Nebula",
+  "description": "星云玻璃透明主题，品红与青色交织",
+  "primary": "#FF80AB",
+  "secondary": "#18FFFF",
+  "accent": "#18FFFF",
+  "warning": "#FFE082",
+  "error": "#FF5252",
+  "success": "#64FFDA",
+  "foreground": "#FFF0F5",
+  "background": "transparent",
+  "surface": "#120A1440",
+  "panel": "#120A1440",
+  "boost": "#1A0F2050",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

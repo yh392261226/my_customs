@@ -1,0 +1,19 @@
+{
+  "name": "glass-twilight",
+  "display_name": "Glass Twilight",
+  "description": "暮光玻璃透明主题，紫色与金色调和",
+  "primary": "#B388FF",
+  "secondary": "#FFD54F",
+  "accent": "#FFD54F",
+  "warning": "#FFB74D",
+  "error": "#FF8A80",
+  "success": "#B9F6CA",
+  "foreground": "#F5EDFF",
+  "background": "transparent",
+  "surface": "#0F0A1A40",
+  "panel": "#0F0A1A40",
+  "boost": "#15102A50",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

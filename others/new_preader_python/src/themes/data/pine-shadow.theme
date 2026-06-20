@@ -1,0 +1,19 @@
+{
+  "name": "pine-shadow",
+  "display_name": "Pine Shadow",
+  "description": "松影深绿主题，暗松底配薄荷绿字",
+  "primary": "#34D399",
+  "secondary": "#FBBF24",
+  "accent": "#FBBF24",
+  "warning": "#FCD34D",
+  "error": "#F87171",
+  "success": "#6EE7B7",
+  "foreground": "#D1FAE5",
+  "background": "#0A1F12",
+  "surface": "#10291A",
+  "panel": "#10291A",
+  "boost": "#163322",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

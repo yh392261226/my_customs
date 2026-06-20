@@ -1,0 +1,19 @@
+{
+  "name": "glass-obsidian",
+  "display_name": "Glass Obsidian",
+  "description": "黑曜石玻璃透明主题，青色与品红撞色",
+  "primary": "#00E5FF",
+  "secondary": "#FF4081",
+  "accent": "#FF4081",
+  "warning": "#FFB74D",
+  "error": "#FF5252",
+  "success": "#69F0AE",
+  "foreground": "#F0F4F8",
+  "background": "transparent",
+  "surface": "#0A0A0F40",
+  "panel": "#0A0A0F40",
+  "boost": "#12121A50",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

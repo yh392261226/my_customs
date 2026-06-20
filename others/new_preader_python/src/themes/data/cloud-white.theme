@@ -1,0 +1,19 @@
+{
+  "name": "cloud-white",
+  "display_name": "Cloud White",
+  "description": "云白浅色主题，纯净白底配深石板字",
+  "primary": "#0369A1",
+  "secondary": "#B45309",
+  "accent": "#B45309",
+  "warning": "#C2410C",
+  "error": "#DC2626",
+  "success": "#15803D",
+  "foreground": "#1E293B",
+  "background": "#FAFCFF",
+  "surface": "#EDF1F7",
+  "panel": "#EDF1F7",
+  "boost": "#E0E6EF",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

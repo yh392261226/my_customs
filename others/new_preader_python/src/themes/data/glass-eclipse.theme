@@ -1,0 +1,19 @@
+{
+  "name": "glass-eclipse",
+  "display_name": "Glass Eclipse",
+  "description": "日蚀玻璃透明主题，暖橙与冷青对照",
+  "primary": "#FF9100",
+  "secondary": "#18FFFF",
+  "accent": "#18FFFF",
+  "warning": "#FFD54F",
+  "error": "#FF5252",
+  "success": "#64FFDA",
+  "foreground": "#FFF5E8",
+  "background": "transparent",
+  "surface": "#140F0A40",
+  "panel": "#140F0A40",
+  "boost": "#1F150F50",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

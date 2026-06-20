@@ -1,0 +1,19 @@
+{
+  "name": "moss-stone",
+  "display_name": "Moss Stone",
+  "description": "苔石深绿主题，深苔底配亮绿白字",
+  "primary": "#81C784",
+  "secondary": "#FFD54F",
+  "accent": "#FFD54F",
+  "warning": "#FFB74D",
+  "error": "#FF8A80",
+  "success": "#A5D6A7",
+  "foreground": "#E8F5E9",
+  "background": "#1A2E1A",
+  "surface": "#243824",
+  "panel": "#243824",
+  "boost": "#2E422E",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

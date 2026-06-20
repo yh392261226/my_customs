@@ -1,0 +1,19 @@
+{
+  "name": "sandstone",
+  "display_name": "Sandstone",
+  "description": "砂岩浅色主题，沙色底配深棕字",
+  "primary": "#9F1239",
+  "secondary": "#1E40AF",
+  "accent": "#1E40AF",
+  "warning": "#B45309",
+  "error": "#B91C1C",
+  "success": "#166534",
+  "foreground": "#2A2118",
+  "background": "#F5F0E8",
+  "surface": "#E8E0D2",
+  "panel": "#E8E0D2",
+  "boost": "#DCD2C0",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

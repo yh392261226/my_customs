@@ -1,0 +1,19 @@
+{
+  "name": "velvet-night",
+  "display_name": "Velvet Night",
+  "description": "天鹅绒夜色主题，深紫底配淡紫前景",
+  "primary": "#B388FF",
+  "secondary": "#FFD54F",
+  "accent": "#FFD54F",
+  "warning": "#FFB74D",
+  "error": "#FF8A80",
+  "success": "#B9F6CA",
+  "foreground": "#F0E6FF",
+  "background": "#1A0E2E",
+  "surface": "#241640",
+  "panel": "#241640",
+  "boost": "#2E1F52",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

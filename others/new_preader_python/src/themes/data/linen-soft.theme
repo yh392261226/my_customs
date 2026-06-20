@@ -1,0 +1,19 @@
+{
+  "name": "linen-soft",
+  "display_name": "Linen Soft",
+  "description": "亚麻柔光浅色主题，米色底配深褐字",
+  "primary": "#B45309",
+  "secondary": "#1E40AF",
+  "accent": "#1E40AF",
+  "warning": "#9A3412",
+  "error": "#B91C1C",
+  "success": "#166534",
+  "foreground": "#3D2B1F",
+  "background": "#FAF6F0",
+  "surface": "#EFE8DC",
+  "panel": "#EFE8DC",
+  "boost": "#E5DCCB",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

@@ -1,0 +1,19 @@
+{
+  "name": "ivory-breeze",
+  "display_name": "Ivory Breeze",
+  "description": "象牙清风浅色主题，暖白底配深棕字",
+  "primary": "#C2410C",
+  "secondary": "#1D4ED8",
+  "accent": "#1D4ED8",
+  "warning": "#B45309",
+  "error": "#DC2626",
+  "success": "#15803D",
+  "foreground": "#2D2419",
+  "background": "#FFF8F0",
+  "surface": "#F5EDE0",
+  "panel": "#F5EDE0",
+  "boost": "#EDE2D0",
+  "dark": false,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

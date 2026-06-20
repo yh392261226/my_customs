@@ -1,0 +1,19 @@
+{
+  "name": "abyss-blue",
+  "display_name": "Abyss Blue",
+  "description": "深渊蓝深色主题，冷调高对比",
+  "primary": "#4FC3F7",
+  "secondary": "#FFD54F",
+  "accent": "#FFD54F",
+  "warning": "#FFB74D",
+  "error": "#FF5252",
+  "success": "#69F0AE",
+  "foreground": "#E8F0FF",
+  "background": "#0A1628",
+  "surface": "#13233D",
+  "panel": "#13233D",
+  "boost": "#1A2D4A",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

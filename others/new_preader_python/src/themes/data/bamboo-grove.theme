@@ -1,0 +1,19 @@
+{
+  "name": "bamboo-grove",
+  "display_name": "Bamboo Grove",
+  "description": "竹林深绿主题，墨绿底配嫩绿字",
+  "primary": "#66BB6A",
+  "secondary": "#FFD54F",
+  "accent": "#FFD54F",
+  "warning": "#FFB74D",
+  "error": "#FF8A80",
+  "success": "#A5D6A7",
+  "foreground": "#C8E6C9",
+  "background": "#0F1F0F",
+  "surface": "#182B18",
+  "panel": "#182B18",
+  "boost": "#1F371F",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

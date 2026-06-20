@@ -1,0 +1,19 @@
+{
+  "name": "carbon-noir",
+  "display_name": "Carbon Noir",
+  "description": "碳黑深色主题，纯黑底配高亮前景",
+  "primary": "#FF5252",
+  "secondary": "#4FC3F7",
+  "accent": "#4FC3F7",
+  "warning": "#FFB74D",
+  "error": "#FF5252",
+  "success": "#69F0AE",
+  "foreground": "#F0F0F0",
+  "background": "#141414",
+  "surface": "#1F1F1F",
+  "panel": "#1F1F1F",
+  "boost": "#292929",
+  "dark": true,
+  "luminosity_spread": 16.0,
+  "text_alpha": 0.95
+}

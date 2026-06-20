@@ -62,6 +62,7 @@ class ThemeSelectScreen(ModalScreen[str]):
         self._original_theme: Optional[str] = None
         self._last_previewed: Optional[str] = None
         self._confirmed: bool = False
+        self._ready: bool = False  # 挂载完成标志，抑制初始化期间的预览触发
 
     def compose(self) -> ComposeResult:
         # 仅传入字符串选项，避免旧版 OptionList 对 (label, id) 的不兼容
@@ -100,11 +101,19 @@ class ThemeSelectScreen(ModalScreen[str]):
             event.stop()
 
     def on_mount(self) -> None:
-        """挂载时记录进入前的主题，供取消时回滚"""
+        """挂载时记录进入前的主题，供取消时回滚；并定位到当前真实使用的主题"""
         try:
             app = getattr(self, "app", None)
             if app and hasattr(app, "theme_manager"):
-                self._original_theme = app.theme_manager.get_current_theme_name()
+                # 优先取 Textual App 实际应用的主题（"真实在用的"），回退到 theme_manager 记录
+                current = None
+                try:
+                    current = getattr(app, "theme", None)
+                except Exception:
+                    current = None
+                if not current:
+                    current = app.theme_manager.get_current_theme_name()
+                self._original_theme = current
         except Exception:
             self._original_theme = None
 
@@ -123,6 +132,34 @@ class ThemeSelectScreen(ModalScreen[str]):
         except Exception:
             pass
 
+        # 定位到当前真实使用的主题，方便用户选择
+        # 参考 ThemeFilterScreen 的实现：通过 highlighted 属性赋值设置高亮
+        try:
+            current = self._original_theme
+            ol = self.query_one("#theme-option-list")
+            if current and current in self._options:
+                idx = self._options.index(current)
+                # 先标记当前主题为已预览，避免 highlight 触发的事件重复应用主题
+                self._last_previewed = current
+                # 使用 highlighted 属性赋值（Textual OptionList 的标准做法）
+                try:
+                    ol.highlighted = idx
+                except Exception:
+                    # 兜底：尝试 highlight 方法（旧版本兼容）
+                    try:
+                        if hasattr(ol, "highlight"):
+                            ol.highlight(idx)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        # 延迟开启预览，避免挂载期间触发的 highlight 事件导致不必要的主题切换
+        try:
+            self.call_after_refresh(lambda: setattr(self, "_ready", True))
+        except Exception:
+            self._ready = True
+
     def on_unmount(self) -> None:
         """关闭弹窗时，如未确认则回滚到进入前的主题"""
         try:
@@ -135,6 +172,9 @@ class ThemeSelectScreen(ModalScreen[str]):
 
     def on_option_list_option_highlighted(self, event) -> None:  # type: ignore[override]
         """移动高亮即预览主题（临时应用，不持久化）"""
+        # 挂载初始化期间抑制预览，避免默认/手动 highlight 触发不必要的主题切换
+        if not self._ready:
+            return
         try:
             # 尽量兼容不同版本事件结构
             name = None
