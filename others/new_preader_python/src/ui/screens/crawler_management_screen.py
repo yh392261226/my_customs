@@ -11,8 +11,10 @@ from send2trash import send2trash
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
 from textual.screen import Screen
+
+from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select
+from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select, Switch
 from textual.widgets import DataTable, Log
 from textual.app import ComposeResult
 from textual import events, on
@@ -925,6 +927,8 @@ class CrawlerManagementScreen(Screen[None]):
                     Vertical(
                         Horizontal(
                             Input(placeholder=get_global_i18n().t('crawler.search_placeholder'), id="search-input-field"),
+                            Label(get_global_i18n().t('crawler.smart_search'), id="smart-search-label"),
+                            Switch(value=True, id="smart-search-switch"),
                             Button(get_global_i18n().t('common.search'), id="search-btn"),
                             Button(get_global_i18n().t('crawler.clear_search'), id="clear-search-btn"),
                             id="search-container", classes="form-row"
@@ -1461,7 +1465,28 @@ class CrawlerManagementScreen(Screen[None]):
         """执行搜索"""
         try:
             search_input = self.query_one("#search-input-field", Input)
-            self._search_keyword = search_input.value.strip()
+            raw_keyword = search_input.value.strip()
+            
+            # 检查智能搜索开关状态
+            smart_search_enabled = True  # 默认开启
+            try:
+                smart_search_switch = self.query_one("#smart-search-switch", Switch)
+                smart_search_enabled = smart_search_switch.value
+            except Exception:
+                pass
+            
+            # 根据开关决定是否自动清理书名
+            if raw_keyword and smart_search_enabled:
+                self._search_keyword = normalize_book_title(raw_keyword)
+                if not self._search_keyword:
+                    # 清理后为空则回退到原始关键词
+                    self._search_keyword = raw_keyword
+                logger.debug(f"[智能搜索]搜索词规范化: '{raw_keyword}' -> '{self._search_keyword}'")
+            else:
+                # 关闭智能搜索时直接使用原始输入
+                self._search_keyword = raw_keyword
+                if smart_search_enabled:
+                    logger.debug(f"[普通搜索]使用原始词: '{raw_keyword}'")
             
             # 重新加载历史记录并应用搜索过滤
             self._load_crawl_history(from_search=True)

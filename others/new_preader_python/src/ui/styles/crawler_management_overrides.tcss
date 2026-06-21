@@ -119,6 +119,10 @@ Footer {
     min-width: 40;
 }
 
+#search-section #smart-search-label {
+    padding-top: 1;
+}
+
 #search-section #search-btn, #clear-search-btn{
     width: 12;
     height: 3;

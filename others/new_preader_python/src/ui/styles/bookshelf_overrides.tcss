@@ -93,6 +93,10 @@ Footer {
     margin-right: 1;
 }
 
+.bookshelf-screen #bookshelf-smart-search-label {
+    padding-top: 1;
+}
+
 .bookshelf-screen .bookshelf-search-select {
     width: 15%;
     min-width: 15;

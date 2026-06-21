@@ -1224,6 +1224,7 @@
     "page": "Page",
     "novel_title": "Book Title",
     "crawl_time": "Crawl Time",
+    "smart_search": "Crawl Search",
     "status": "Status",
     "file_path": "File Path",
     "actions": "Actions",

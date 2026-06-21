@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.containers import Container, Vertical, Horizontal, Grid, VerticalScroll
-from textual.widgets import Static, Button, Label, Header, Footer, LoadingIndicator, Input, Select
+from textual.widgets import Static, Button, Label, Header, Footer, LoadingIndicator, Input, Select, Switch
 from textual.widgets import DataTable
 from textual.reactive import reactive
 from textual import on, events
@@ -23,6 +23,8 @@ from src.themes.theme_manager import ThemeManager
 from src.core.bookshelf import Bookshelf
 from src.core.book_manager import BookManager
 from src.core.statistics_direct import StatisticsManagerDirect
+
+from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
 from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.batch_ops_dialog import BatchOpsDialog
 from src.ui.dialogs.search_dialog import SearchDialog
@@ -146,6 +148,7 @@ class BookshelfScreen(Screen[None]):
         
         # 初始化搜索状态变量
         self._search_keyword = ""
+        self._normalized_search_keyword = ""  # 规范化后的搜索关键词（用于实际搜索）
         self._search_format = "all"
         self._search_author = "all"
         
@@ -239,6 +242,8 @@ class BookshelfScreen(Screen[None]):
                             id="bookshelf-search-input", 
                             classes="bookshelf-search-input"
                         ),
+                        Label(get_global_i18n().t("crawler.smart_search"), id="bookshelf-smart-search-label"),
+                        Switch(value=True, id="bookshelf-smart-search-switch"),
                         Select(
                             id="bookshelf-format-filter",
                             options=search_options, 
@@ -953,7 +958,36 @@ class BookshelfScreen(Screen[None]):
         author_filter = self.query_one("#bookshelf-source-filter", Select)
         
         # 更新搜索状态
-        self._search_keyword = search_input.value or ""
+        raw_keyword = search_input.value or ""
+        
+        # 检查智能搜索开关状态
+        smart_search_enabled = True  # 默认开启
+        try:
+            smart_search_switch = self.query_one("#bookshelf-smart-search-switch", Switch)
+            smart_search_enabled = smart_search_switch.value
+        except Exception:
+            pass
+        
+        # 根据开关决定是否自动清理书名
+        if raw_keyword.strip():
+            if smart_search_enabled:
+                normalized_keyword = normalize_book_title(raw_keyword.strip())
+                if normalized_keyword and len(normalized_keyword) >= 1:
+                    self._search_keyword = raw_keyword  # 显示原始关键词用于UI展示/历史记录
+                    self._normalized_search_keyword = normalized_keyword  # 规范化后的关键词用于实际搜索
+                    logger.debug(f"[智能搜索]书架搜索词规范化: '{raw_keyword}' -> '{normalized_keyword}'")
+                else:
+                    self._search_keyword = raw_keyword
+                    self._normalized_search_keyword = raw_keyword
+                    logger.debug(f"[智能搜索]书架搜索词规范化结果过短，使用原始词: '{raw_keyword}'")
+            else:
+                # 关闭智能搜索时直接使用原始输入
+                self._search_keyword = raw_keyword
+                self._normalized_search_keyword = raw_keyword
+                logger.debug(f"[普通搜索]使用原始词: '{raw_keyword}'")
+        else:
+            self._search_keyword = ""
+            self._normalized_search_keyword = ""
         
         # 记录搜索历史（非空关键词）
         if self._search_keyword and self._search_keyword not in self._search_history:
@@ -990,7 +1024,9 @@ class BookshelfScreen(Screen[None]):
         self._current_page = 1
         
         # 重新加载书籍数据（应用搜索条件）
-        self._load_books(self._search_keyword, self._search_format, self._search_author, from_search=True)
+        # 使用规范化后的关键词进行实际搜索
+        search_key_to_use = getattr(self, '_normalized_search_keyword', self._search_keyword) or self._search_keyword
+        self._load_books(search_key_to_use, self._search_format, self._search_author, from_search=True)
         
         # 显示搜索结果的提示
         search_conditions = []
