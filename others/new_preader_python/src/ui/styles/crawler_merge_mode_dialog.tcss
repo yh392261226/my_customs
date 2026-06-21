@@ -98,7 +98,7 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
 /* ── 分组表格 ── */
 #merge-group-table {
     width: 100%;
-    height: 1fr;
+    height: auto;
     border: solid $border;
     margin-bottom: 1;
 }
