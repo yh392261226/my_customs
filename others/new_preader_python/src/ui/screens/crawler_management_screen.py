@@ -2270,50 +2270,63 @@ class CrawlerManagementScreen(Screen[None]):
                 total_merged = 0
                 total_failed = 0
 
-                for group_data in merged_groups:
-                    selected_books = group_data.get('selected_books', [])
-                    new_title = group_data.get('new_title', '')
+                # 显示加载动画
+                self._show_loading_animation()
+                self._update_status(get_global_i18n().t('merge_mode.merging_in_progress'), "warning")
 
-                    if len(selected_books) < 2:
-                        continue
+                try:
+                    for group_data in merged_groups:
+                        selected_books = group_data.get('selected_books', [])
+                        new_title = group_data.get('new_title', '')
 
-                    try:
-                        if self._perform_actual_merge(selected_books, new_title):
-                            total_merged += 1
-                            logger.info(
-                                f"合并模式：成功合并 [{new_title}] "
-                                f"({len(selected_books)}本书)"
-                            )
-                        else:
+                        if len(selected_books) < 2:
+                            continue
+
+                        # 自动剔除标题中的 / 字符（会导致文件路径/合并失败）
+                        if new_title:
+                            new_title = new_title.replace('/', '').replace('\\', '').strip()
+                            group_data['new_title'] = new_title
+
+                        try:
+                            if self._perform_actual_merge(selected_books, new_title):
+                                total_merged += 1
+                                logger.info(
+                                    f"合并模式：成功合并 [{new_title}] "
+                                    f"({len(selected_books)}本书)"
+                                )
+                            else:
+                                total_failed += 1
+                                logger.warning(f"合并模式：合并失败 [{new_title}]")
+                        except Exception as e:
                             total_failed += 1
-                            logger.warning(f"合并模式：合并失败 [{new_title}]")
-                    except Exception as e:
-                        total_failed += 1
-                        logger.error(f"合并模式：合并异常 [{new_title}]: {e}")
+                            logger.error(f"合并模式：合并异常 [{new_title}]: {e}")
 
-                self._load_crawl_history()
+                    self._load_crawl_history()
 
-                skip_info = ""
-                if skipped_groups:
-                    skip_info = get_global_i18n().t(
-                        'merge_mode.skipped_info', count=len(skipped_groups)
-                    )
+                    skip_info = ""
+                    if skipped_groups:
+                        skip_info = get_global_i18n().t(
+                            'merge_mode.skipped_info', count=len(skipped_groups)
+                        )
 
-                if total_merged > 0:
-                    msg = get_global_i18n().t(
-                        'merge_mode.result',
-                        merged=total_merged,
-                        failed=total_failed,
-                    )
-                    self._update_status(
-                        f"{msg}{skip_info}",
-                        "information" if total_failed == 0 else "warning",
-                    )
-                elif total_failed > 0:
-                    self._update_status(
-                        get_global_i18n().t('crawler.merge_failed'),
-                        "error",
-                    )
+                    if total_merged > 0:
+                        msg = get_global_i18n().t(
+                            'merge_mode.result',
+                            merged=total_merged,
+                            failed=total_failed,
+                        )
+                        self._update_status(
+                            f"{msg}{skip_info}",
+                            "information" if total_failed == 0 else "warning",
+                        )
+                    elif total_failed > 0:
+                        self._update_status(
+                            get_global_i18n().t('crawler.merge_failed'),
+                            "error",
+                        )
+                finally:
+                    # 隐藏加载动画
+                    self._hide_loading_animation()
 
             def handle_merge_mode_result(result: Optional[Dict[str, Any]]) -> None:
                 if not result or not result.get('success'):

@@ -600,7 +600,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
             merged_groups.append({
                 "group_id": group.get('group_id', i + 1),
-                "new_title": state.get('merged_title', group.get('base_title', '')),
+                "new_title": (state.get('merged_title', group.get('base_title', '')) or '').replace('/', '').replace('\\', '').strip(),
                 "selected_books": selected_books,
             })
 

@@ -1510,6 +1510,7 @@
     "no_groups": "No mergeable book groups found",
     "group_summary": "Date range {start} ~ {end}, {group_count} groups total",
     "result": "Merge complete: {merged} succeeded, {failed} failed",
+    "merging_in_progress": "Merging in progress...",
     "skipped_info": " (skipped {count} groups)",
     "error": "Merge mode error: {error}",
     "status": "Selected {selected_groups}/{total_groups} groups, {selected_books} books total",

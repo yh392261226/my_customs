@@ -1579,6 +1579,7 @@
     "no_groups": "未发现可合并的书籍分组",
     "group_summary": "日期范围 {start} ~ {end}，共 {group_count} 个分组",
     "result": "合并完成：成功 {merged} 组，失败 {failed} 组",
+    "merging_in_progress": "正在合并处理中...",
     "skipped_info": "（跳过 {count} 组）",
     "error": "合并模式错误: {error}",
     "status": "已选 {selected_groups}/{total_groups} 组，共 {selected_books} 本书",
