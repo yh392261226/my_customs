@@ -1555,7 +1555,8 @@
     "novel_exists": "书籍已存在",
     "only_retry_failed": "重试失败",
     "no_valid_novels": "没有有效的小说可爬取",
-    "merge_mode": "合并模式"
+    "merge_mode": "合并模式",
+    "books": "本书籍"
   },
   "merge_mode": {
     "title": "合并模式",

@@ -1486,7 +1486,8 @@
     "novel_exists": "Book already exists",
     "only_retry_failed": "Only retry crawl failed",
     "no_valid_novels": "No valid novels to crawl",
-    "merge_mode": "Merge Mode"
+    "merge_mode": "Merge Mode",
+    "books": "Books"
   },
   "merge_mode": {
     "title": "Merge Mode",

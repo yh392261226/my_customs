@@ -148,6 +148,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self.browser_monitor = None
         self.browser_monitor_active: bool = False
         self._crawler_manager = None  # 延迟初始化
+        self._crawling_novel_ids: List[str] = []  # 本次爬取的书籍ID
 
     # ─── Compose ────────────────────────────────────────────
 
@@ -913,50 +914,107 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 logger.error(f"初始化 CrawlerManager 失败: {e}")
         return self._crawler_manager
 
-    def _on_crawl_status_change(self, task_id: str, status: str, **kwargs) -> None:
+    def _on_crawl_status_change(self, task_id: str, task: Any) -> None:
         """爬取状态回调"""
         try:
+            from src.core.crawler_manager import CrawlStatus
+
             if task_id != self.current_task_id:
                 return
-            if status in ('completed', 'failed', 'cancelled'):
+
+            if task.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED):
                 self.is_crawling = False
                 self.current_task_id = None
-                self._update_crawl_button_state()
-                if status == 'completed':
-                    self.notify(self.i18n.t('crawler.crawl_success'), timeout=3)
-                    # 刷新当前组书籍列表
-                    self._refresh_books_from_db()
-                elif status == 'failed':
-                    self.notify(self.i18n.t('crawler.crawl_failed'), severity="error", timeout=3)
+                if task.status == CrawlStatus.COMPLETED:
+                    self.app.call_later(self._on_crawl_completed)
+                elif task.status == CrawlStatus.FAILED:
+                    self.app.call_later(
+                        self.notify,
+                        self.i18n.t('crawler.crawl_failed'),
+                        severity="error", timeout=3,
+                    )
+                    self.app.call_later(self._update_crawl_button_state)
         except Exception as e:
             logger.error(f"爬取状态回调失败: {e}")
 
-    def _on_crawl_success_notify(self, novel_id: str, title: str, file_path: str) -> None:
-        """爬取成功通知回调"""
+    def _on_crawl_completed(self) -> None:
+        """爬取完成后的 UI 更新（在主线程中执行）"""
         try:
-            self.notify(f"{self.i18n.t('crawler.crawl_success')}: {title}", timeout=2)
+            self._update_crawl_button_state()
+            self.notify(self.i18n.t('crawler.crawl_success'), timeout=3)
+            self._refresh_books_from_db()
+            # 隐藏补缺操作行
+            if self._fill_missing_visible:
+                self._fill_missing_visible = False
+                try:
+                    container = self.query_one("#md-fill-missing-container")
+                    container.add_class("hidden")
+                except Exception:
+                    pass
+            # 执行一次智能标题（重新排序 + 生成标题）
+            self._apply_smart_title()
+        except Exception as e:
+            logger.error(f"爬取完成回调失败: {e}")
+
+    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool) -> None:
+        """爬取成功通知回调 —— 清理输入框中的已爬取ID"""
+        try:
+            self.app.call_later(self._remove_id_from_input, novel_id)
+            self.app.call_later(
+                self.notify,
+                f"{self.i18n.t('crawler.crawl_success')}: {novel_title}",
+                timeout=2,
+            )
         except Exception:
             pass
 
+    def _remove_id_from_input(self, novel_id: str) -> None:
+        """从补缺输入框中移除指定的ID"""
+        try:
+            from urllib.parse import unquote
+            decoded_novel_id = unquote(novel_id)
+            novel_id_input = self.query_one("#md-novel-id-input", Input)
+            current_value = novel_id_input.value.strip()
+
+            ids = [unquote(id.strip()) for id in current_value.split(',') if id.strip()]
+            filtered_ids = [id for id in ids if id != decoded_novel_id]
+
+            if filtered_ids:
+                novel_id_input.value = ', '.join(filtered_ids) + ','
+            else:
+                novel_id_input.value = ''
+            novel_id_input.action_end()
+        except Exception as e:
+            logger.debug(f"从输入框中移除ID失败: {e}")
+
     def _refresh_books_from_db(self) -> None:
-        """从数据库刷新当前组的书籍列表（新书籍追加到末尾，不自动选中）"""
+        """从数据库刷新当前组的书籍列表（仅添加本次爬取的书籍，追加到末尾，不自动选中）"""
         if not self.db_manager:
             return
         try:
             site_id = self.novel_site.get('id')
             if not site_id:
                 return
+            crawled_ids = self._crawling_novel_ids
+            if not crawled_ids:
+                return
             state = self._group_state[self._current_index]
-            existing_ids = {b.get('id') for b in state['books']}
-            # 获取该网站最近的爬取历史
-            recent = self.db_manager.get_crawl_history_by_site(site_id)
+            existing_db_ids = {b.get('id') for b in state['books']}
+            existing_novel_ids = {b.get('novel_id') for b in state['books']}
             new_count = 0
-            if recent:
-                for item in recent:
-                    if item.get('id') not in existing_ids:
-                        # 新书籍追加到列表末尾，不加入 selected_ids（由人工确认）
-                        state['books'].append(item)
-                        new_count += 1
+            for novel_id in crawled_ids:
+                # 跳过列表中已存在该 novel_id 的书籍
+                if novel_id in existing_novel_ids:
+                    continue
+                # 按 novel_id 查询数据库
+                records = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                if records:
+                    for item in records:
+                        if item.get('id') not in existing_db_ids:
+                            state['books'].append(item)
+                            existing_db_ids.add(item.get('id'))
+                            existing_novel_ids.add(item.get('novel_id'))
+                            new_count += 1
             self._refresh_table()
             self._update_status()
             if new_count > 0:
@@ -964,6 +1022,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     self.i18n.t('merge_detail.new_books_added', count=new_count),
                     timeout=3,
                 )
+            # 清空本次爬取记录
+            self._crawling_novel_ids = []
         except Exception as e:
             logger.error(f"刷新书籍列表失败: {e}")
 
@@ -1037,6 +1097,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             task_id = crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
             if task_id:
                 self.current_task_id = task_id
+                self._crawling_novel_ids = novel_ids  # 记录本次爬取的书籍ID
                 self._update_crawl_button_state()
                 self.notify(
                     f"{self.i18n.t('crawler.starting_crawl')} ({len(novel_ids)} {self.i18n.t('crawler.books')})",
@@ -1156,10 +1217,19 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             logger.error(f"初始化浏览器监听器失败: {e}")
             self.browser_monitor = None
 
-    def _on_browser_url_detected(self, novel_id: str, site_info: Dict[str, Any]) -> None:
-        """浏览器 URL 检测回调 —— 将检测到的 novel_id 追加到输入框"""
+    def _on_browser_url_detected(self, novel_info: Dict[str, Any]) -> None:
+        """浏览器 URL 检测回调 —— 将检测到的 novel_id 追加到输入框，并关闭标签页"""
         try:
-            self.app.call_from_thread(self._append_detected_id, novel_id)
+            novel_id = novel_info.get('novel_id', '') if isinstance(novel_info, dict) else str(novel_info)
+            url = novel_info.get('url', '') if isinstance(novel_info, dict) else ''
+            if novel_id:
+                self.app.call_later(self._append_detected_id, novel_id)
+            # 关闭对应的标签页
+            if url and self.browser_monitor:
+                try:
+                    self.browser_monitor.close_tab(url)
+                except Exception as e:
+                    logger.debug(f"关闭标签页失败: {e}")
         except Exception as e:
             logger.error(f"URL 检测回调失败: {e}")
 
