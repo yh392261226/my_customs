@@ -2347,6 +2347,8 @@ class BookshelfScreen(Screen[None]):
                                 get_global_i18n().t("bookshelf.book_added", count=added_count),
                                 severity="information"
                             )
+                            # 清除缓存并强制重新加载（包含新增书籍）
+                            self._invalidate_books_cache()
                             self._load_books(
                                 search_keyword=self._search_keyword,
                                 search_format=self._search_format,
@@ -2369,6 +2371,8 @@ class BookshelfScreen(Screen[None]):
                                 get_global_i18n().t("bookshelf.book_added", count=1),
                                 severity="information"
                             )
+                            # 清除缓存并强制重新加载（包含新增书籍）
+                            self._invalidate_books_cache()
                             self._load_books(
                                 search_keyword=self._search_keyword,
                                 search_format=self._search_format,
@@ -2419,6 +2423,7 @@ class BookshelfScreen(Screen[None]):
                                 get_global_i18n().t("bookshelf.scan_success", count=added_count),
                                 severity="information"
                             )
+                            self._invalidate_books_cache()
                             self._load_books(
                                 search_keyword=self._search_keyword,
                                 search_format=self._search_format,
@@ -2799,6 +2804,16 @@ class BookshelfScreen(Screen[None]):
     def _get_cache_key(self) -> str:
         """生成缓存键"""
         return f"{self._search_keyword}_{self._search_format}_{self._search_author}"
+
+    def _invalidate_books_cache(self) -> None:
+        """清除书籍缓存并重置搜索参数，强制下次 _load_books 完全重新加载"""
+        self._books_cache.clear()
+        self._last_cache_key = ""
+        self._cache_timestamp = 0
+        # 重置上次搜索参数，确保 _load_books 不会命中 page_change_only 分支
+        self._last_search_params = ""
+        self._all_books = []
+        self.logger.debug("书籍缓存已清除，下次加载将完全重新获取数据")
 
     def _load_books_from_cache(self, cache_key: str) -> Optional[List[Book]]:
         """从缓存加载书籍数据"""
