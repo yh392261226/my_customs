@@ -1563,7 +1563,8 @@
     "fill_missing": "Fill",
     "smart_title": "Smart Title",
     "smart_title_applied": "Generated title: {title}",
-    "smart_title_failed": "Cannot generate smart title, please enter manually"
+    "smart_title_failed": "Cannot generate smart title, please enter manually",
+    "new_books_added": "Added {count} new books to end of list, please confirm selection manually"
   },
   "note": {
     "save": "Save",

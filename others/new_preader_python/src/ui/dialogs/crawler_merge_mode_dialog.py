@@ -366,6 +366,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
 
     BINDINGS = [
         ("escape", "cancel", "取消"),
+        ("g", "confirm_merge", "合并选中组"),
         ("space", "toggle_row", "切换选择"),
         ("a", "toggle_select_all", "全选/取消全选"),
         ("r", "invert_selection", "反选"),
@@ -1075,6 +1076,10 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         else:
             # 无选中项 -> 全选
             self.on_select_all()
+
+    def action_confirm_merge(self) -> None:
+        """回车键：合并选中组"""
+        self.on_confirm_merge()
 
     def action_invert_selection(self) -> None:
         """r键：反选"""

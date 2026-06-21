@@ -92,11 +92,14 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("x", "clear_title", "清除标题"),
         ("v", "preview_book", "预览"),
         ("d", "delete_book", "删除"),
+        ("a", "toggle_select_all", "全选/取消全选"),
+        ("g", "merge_this", "合并此组"),
+        ("t", "skip_this", "跳过此组"),
+        ("m", "smart_title", "智能标题"),
         ("X", "select_books", "选择书籍"),
         ("s", "toggle_crawl", "爬取"),
         ("e", "toggle_monitor", "监听"),
         ("f", "fill_missing", "补缺"),
-        ("g", "smart_title", "智能标题"),
     ]
 
     def __init__(
@@ -936,7 +939,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             pass
 
     def _refresh_books_from_db(self) -> None:
-        """从数据库刷新当前组的书籍列表"""
+        """从数据库刷新当前组的书籍列表（新书籍追加到末尾，不自动选中）"""
         if not self.db_manager:
             return
         try:
@@ -947,12 +950,20 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             existing_ids = {b.get('id') for b in state['books']}
             # 获取该网站最近的爬取历史
             recent = self.db_manager.get_crawl_history_by_site(site_id)
+            new_count = 0
             if recent:
                 for item in recent:
                     if item.get('id') not in existing_ids:
-                        state['books'].insert(0, item)
+                        # 新书籍追加到列表末尾，不加入 selected_ids（由人工确认）
+                        state['books'].append(item)
+                        new_count += 1
             self._refresh_table()
             self._update_status()
+            if new_count > 0:
+                self.notify(
+                    self.i18n.t('merge_detail.new_books_added', count=new_count),
+                    timeout=3,
+                )
         except Exception as e:
             logger.error(f"刷新书籍列表失败: {e}")
 
@@ -1478,6 +1489,22 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     # ─── 快捷键 action 方法 ─────────────────────────────────
 
+    def action_toggle_select_all(self) -> None:
+        """a键：全选/取消全选切换（与合并模式弹窗一致）"""
+        state = self._group_state[self._current_index]
+        if state['selected_ids']:
+            self.on_deselect_all()
+        else:
+            self.on_select_all()
+
+    def action_merge_this(self) -> None:
+        """g键：合并此组"""
+        self.on_merge_this()
+
+    def action_skip_this(self) -> None:
+        """t键：跳过此组"""
+        self.on_skip_this()
+
     def action_select_books(self) -> None:
         """X键：选择书籍"""
         self._open_select_books_dialog()
@@ -1494,7 +1521,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._toggle_browser_monitor()
 
     def action_smart_title(self) -> None:
-        """g键：智能标题"""
+        """m键：智能标题"""
         self._apply_smart_title()
 
     def action_fill_missing(self) -> None:

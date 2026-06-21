@@ -1632,7 +1632,8 @@
     "fill_missing": "补缺",
     "smart_title": "智能标题",
     "smart_title_applied": "已生成标题：{title}",
-    "smart_title_failed": "无法生成智能标题，请手动输入"
+    "smart_title_failed": "无法生成智能标题，请手动输入",
+    "new_books_added": "已添加 {count} 本新书籍到列表末尾，请人工确认是否选择"
   },
   "note": {
     "save": "保存",
