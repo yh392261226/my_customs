@@ -1241,6 +1241,7 @@
     "crawl_success": "Crawl successful",
     "crawl_failed": "Crawl failed",
     "crawl_stopped": "Crawl stopped",
+    "start_crawl_failed": "Failed to start crawl",
     "no_crawl_in_progress": "No crawl in progress",
     "novel_already_exists": "Book already exists, no need to download again",
     "view_file": "View File",
@@ -1558,7 +1559,11 @@
     "no_groups_to_merge": "No groups to merge",
     "completed": "Done: {merged} merged, {skipped} skipped",
     "clear_title": "Clear",
-    "status_text": "Checked {selected}/{total} · ↑↓ reorder · Space toggle · v preview · d delete"
+    "status_text": "Checked {selected}/{total} · ↑↓ reorder · Space toggle · v preview · d delete",
+    "fill_missing": "Fill",
+    "smart_title": "Smart Title",
+    "smart_title_applied": "Generated title: {title}",
+    "smart_title_failed": "Cannot generate smart title, please enter manually"
   },
   "note": {
     "save": "Save",

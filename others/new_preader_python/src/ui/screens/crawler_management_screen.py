@@ -2333,6 +2333,7 @@ class CrawlerManagementScreen(Screen[None]):
                     site_name=site_name,
                     min_date=min_date,
                     max_date=max_date,
+                    novel_site=self.novel_site,
                 ),
                 handle_merge_mode_result,
             )

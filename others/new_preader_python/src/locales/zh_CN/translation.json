@@ -1333,6 +1333,7 @@
     "crawl_success": "爬取成功",
     "crawl_failed": "爬取失败",
     "crawl_stopped": "爬取已停止",
+    "start_crawl_failed": "启动爬取失败",
     "no_crawl_in_progress": "没有正在进行的爬取",
     "novel_already_exists": "书籍已存在，无需重复下载",
     "view_file": "查看文件",
@@ -1627,7 +1628,11 @@
     "no_groups_to_merge": "没有可合并的分组",
     "completed": "完成：合并 {merged} 组，跳过 {skipped} 组",
     "clear_title": "清除",
-    "status_text": "已勾选 {selected}/{total} 本 · ↑↓移动排序 · 空格切换 · v预览 · d删除"
+    "status_text": "已勾选 {selected}/{total} 本 · ↑↓移动排序 · 空格切换 · v预览 · d删除",
+    "fill_missing": "补缺",
+    "smart_title": "智能标题",
+    "smart_title_applied": "已生成标题：{title}",
+    "smart_title_failed": "无法生成智能标题，请手动输入"
   },
   "note": {
     "save": "保存",

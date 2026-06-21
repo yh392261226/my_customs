@@ -367,8 +367,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     BINDINGS = [
         ("escape", "cancel", "取消"),
         ("space", "toggle_row", "切换选择"),
-        ("a", "select_all", "全选"),
-        ("d", "deselect_all", "取消全选"),
+        ("a", "toggle_select_all", "全选/取消全选"),
+        ("r", "invert_selection", "反选"),
         ("y", "copy_title", "复制标题"),
     ]
 
@@ -381,6 +381,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         site_name: str = "",
         min_date: str = "",
         max_date: str = "",
+        novel_site: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
         # DatePickerDialog 原生 CSS 有 layer: dialog + display:none。
@@ -544,6 +545,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self.site_id = site_id
         self.site_name = site_name
         self.i18n = get_global_i18n()
+        self.novel_site = novel_site or {}
 
         # 全量缓存
         self.all_history = all_history
@@ -1048,7 +1050,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 })
 
         self.app.push_screen(
-            CrawlerMergeDetailDialog(self.theme_manager, group_data, self.db_manager),
+            CrawlerMergeDetailDialog(self.theme_manager, group_data, self.db_manager, novel_site=self.novel_site),
             handle_detail_result,
         )
 
@@ -1065,13 +1067,18 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         """空格键：切换行选中"""
         self._toggle_current_row()
 
-    def action_select_all(self) -> None:
-        """a键：全选"""
-        self.on_select_all()
+    def action_toggle_select_all(self) -> None:
+        """a键：全选/取消全选切换（与爬取管理一致）"""
+        if self._selected_group_ids:
+            # 已有选中项 -> 取消全选
+            self.on_deselect_all()
+        else:
+            # 无选中项 -> 全选
+            self.on_select_all()
 
-    def action_deselect_all(self) -> None:
-        """d键：取消全选"""
-        self.on_deselect_all()
+    def action_invert_selection(self) -> None:
+        """r键：反选"""
+        self.on_invert_selection()
 
     def action_copy_title(self) -> None:
         """y键：复制当前行书名"""

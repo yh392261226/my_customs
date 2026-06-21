@@ -228,3 +228,65 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
 #cancel-all-btn:hover {
     background: $error;
 }
+
+/* ── 补缺按钮 ── */
+#fill-missing-btn {
+    background: $primary 70%;
+}
+
+#fill-missing-btn:hover {
+    background: $primary;
+}
+
+#smart-title-btn {
+    background: $success 60%;
+}
+
+#smart-title-btn:hover {
+    background: $success 80%;
+}
+
+/* ── 补缺操作行 ── */
+#md-fill-missing-container {
+    width: 100%;
+    height: 3;
+    margin-bottom: 1;
+}
+
+#md-fill-missing-container.hidden {
+    display: none;
+}
+
+#md-fill-missing-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+}
+
+#md-fill-missing-row > Button {
+    margin: 0 1;
+    min-width: 8;
+    height: 3;
+}
+
+#md-novel-id-input {
+    width: 20;
+    min-width: 15;
+    height: 3;
+    margin: 0 1;
+    background: $accent;
+}
+
+#md-browser-select, #md-window-select {
+    width: 16;
+    height: 3;
+    margin: 0 1;
+}
+
+#md-toggle-crawl-btn {
+    background: $success 70%;
+}
+
+#md-toggle-monitor-btn {
+    background: $secondary 60%;
+}

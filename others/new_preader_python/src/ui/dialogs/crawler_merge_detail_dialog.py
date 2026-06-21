@@ -16,7 +16,7 @@ from send2trash import send2trash
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Header, Footer, Button, Label, DataTable, Input, Static
+from textual.widgets import Header, Footer, Button, Label, DataTable, Input, Static, Select
 from textual import on
 
 from src.locales.i18n_manager import get_global_i18n
@@ -92,6 +92,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("x", "clear_title", "清除标题"),
         ("v", "preview_book", "预览"),
         ("d", "delete_book", "删除"),
+        ("X", "select_books", "选择书籍"),
+        ("s", "toggle_crawl", "爬取"),
+        ("e", "toggle_monitor", "监听"),
+        ("f", "fill_missing", "补缺"),
+        ("g", "smart_title", "智能标题"),
     ]
 
     def __init__(
@@ -99,12 +104,14 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         theme_manager: ThemeManager,
         groups: List[Dict[str, Any]],
         db_manager: Optional[DatabaseManager] = None,
+        novel_site: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.theme_manager = theme_manager
         self.i18n = get_global_i18n()
         self.db_manager = db_manager
+        self.novel_site = novel_site or {}
 
         # 深拷贝 groups，避免影响原始数据
         self.groups: List[Dict[str, Any]] = deepcopy(groups)
@@ -126,6 +133,18 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 'merged_title': g.get('base_title', ''),
                 'skipped': False,
             }
+
+        # ── 补缺功能相关状态 ──
+        self._fill_missing_visible: bool = False
+        self.is_crawling: bool = False
+        self.current_task_id: Optional[str] = None
+        self.current_crawling_id: Optional[str] = None
+        self.selected_browser: str = "chrome"
+        self.selected_window_index: Optional[int] = None
+        self.window_options: List[Dict[str, Any]] = []
+        self.browser_monitor = None
+        self.browser_monitor_active: bool = False
+        self._crawler_manager = None  # 延迟初始化
 
     # ─── Compose ────────────────────────────────────────────
 
@@ -156,7 +175,40 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('merge_detail.sort_by_time'), id="sort-time-btn"),
                     Button(self.i18n.t('merge_detail.select_all'), id="select-all-btn"),
                     Button(self.i18n.t('merge_detail.deselect_all'), id="deselect-all-btn"),
+                    Button(self.i18n.t('merge_detail.fill_missing'), id="fill-missing-btn", variant="primary"),
+                    Button(self.i18n.t('merge_detail.smart_title'), id="smart-title-btn", variant="success"),
                     id="sort-buttons",
+                ),
+                # 补缺操作行（默认隐藏）
+                Vertical(
+                    Horizontal(
+                        *([Button(self.i18n.t('crawler.select_books'), id="md-choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
+                        Input(placeholder=self.i18n.t('crawler.novel_id_placeholder_multi'), id="md-novel-id-input"),
+                        Button(self.i18n.t('crawler.start_crawl'), id="md-toggle-crawl-btn", variant="primary"),
+                        Button(self.i18n.t('crawler.copy_ids'), id="md-copy-ids-btn"),
+                        Button(self.i18n.t('crawler.toggle_monitor'), id="md-toggle-monitor-btn", variant="success"),
+                        Select(
+                            id="md-browser-select",
+                            options=[
+                                (self.i18n.t('crawler.browser_label'), "chrome"),
+                                ("Chrome", "chrome"),
+                                ("Safari", "safari"),
+                                ("Brave", "brave"),
+                            ],
+                            value="chrome",
+                        ),
+                        Select(
+                            id="md-window-select",
+                            options=[
+                                (self.i18n.t('crawler.all_windows'), "all"),
+                            ],
+                            value="all",
+                        ),
+                        Button(self.i18n.t('crawler.refresh_windows'), id="md-refresh-window-btn"),
+                        id="md-fill-missing-row",
+                    ),
+                    id="md-fill-missing-container",
+                    classes="hidden",
                 ),
                 # 快速定位行
                 Horizontal(
@@ -223,9 +275,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             )
         )
 
-        # 标题输入
+        # 智能排序：按书名中的章节号升序排列，并自动生成标题
+        self._smart_sort_books()
+        smart_title = self._generate_smart_title()
+        if smart_title:
+            state['merged_title'] = smart_title
         title_input = self.query_one("#merge-title-input", Input)
-        title_input.value = state.get('merged_title', '')
+        title_input.value = smart_title or state.get('merged_title', '')
 
         # 表格
         self._refresh_table()
@@ -822,3 +878,625 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 if pos <= len(state['books']):
                     self._move_to_position(pos)
                     event.stop()
+
+    # ─── 补缺功能 ───────────────────────────────────────────
+
+    def _toggle_fill_missing(self) -> None:
+        """切换补缺操作行的显示/隐藏"""
+        self._fill_missing_visible = not self._fill_missing_visible
+        try:
+            container = self.query_one("#md-fill-missing-container")
+            if self._fill_missing_visible:
+                container.remove_class("hidden")
+            else:
+                container.add_class("hidden")
+        except Exception:
+            pass
+
+    @on(Button.Pressed, "#fill-missing-btn")
+    def on_fill_missing_btn(self) -> None:
+        """补缺按钮"""
+        self._toggle_fill_missing()
+
+    def _get_crawler_manager(self):
+        """延迟初始化 CrawlerManager"""
+        if self._crawler_manager is None:
+            try:
+                from src.core.crawler_manager import CrawlerManager
+                self._crawler_manager = CrawlerManager()
+                self._crawler_manager.register_status_callback(self._on_crawl_status_change)
+                self._crawler_manager.register_notification_callback(self._on_crawl_success_notify)
+            except Exception as e:
+                logger.error(f"初始化 CrawlerManager 失败: {e}")
+        return self._crawler_manager
+
+    def _on_crawl_status_change(self, task_id: str, status: str, **kwargs) -> None:
+        """爬取状态回调"""
+        try:
+            if task_id != self.current_task_id:
+                return
+            if status in ('completed', 'failed', 'cancelled'):
+                self.is_crawling = False
+                self.current_task_id = None
+                self._update_crawl_button_state()
+                if status == 'completed':
+                    self.notify(self.i18n.t('crawler.crawl_success'), timeout=3)
+                    # 刷新当前组书籍列表
+                    self._refresh_books_from_db()
+                elif status == 'failed':
+                    self.notify(self.i18n.t('crawler.crawl_failed'), severity="error", timeout=3)
+        except Exception as e:
+            logger.error(f"爬取状态回调失败: {e}")
+
+    def _on_crawl_success_notify(self, novel_id: str, title: str, file_path: str) -> None:
+        """爬取成功通知回调"""
+        try:
+            self.notify(f"{self.i18n.t('crawler.crawl_success')}: {title}", timeout=2)
+        except Exception:
+            pass
+
+    def _refresh_books_from_db(self) -> None:
+        """从数据库刷新当前组的书籍列表"""
+        if not self.db_manager:
+            return
+        try:
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                return
+            state = self._group_state[self._current_index]
+            existing_ids = {b.get('id') for b in state['books']}
+            # 获取该网站最近的爬取历史
+            recent = self.db_manager.get_crawl_history_by_site(site_id)
+            if recent:
+                for item in recent:
+                    if item.get('id') not in existing_ids:
+                        state['books'].insert(0, item)
+            self._refresh_table()
+            self._update_status()
+        except Exception as e:
+            logger.error(f"刷新书籍列表失败: {e}")
+
+    def _update_crawl_button_state(self) -> None:
+        """更新爬取按钮状态"""
+        try:
+            btn = self.query_one("#md-toggle-crawl-btn", Button)
+            if self.is_crawling:
+                btn.label = self.i18n.t('crawler.stop_crawl')
+                btn.variant = "error"
+            else:
+                btn.label = self.i18n.t('crawler.start_crawl')
+                btn.variant = "primary"
+        except Exception:
+            pass
+
+    def _start_crawl(self) -> None:
+        """开始爬取"""
+        if not self.novel_site:
+            self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+            return
+        if self.is_crawling:
+            self._stop_crawl()
+            return
+
+        try:
+            novel_id_input = self.query_one("#md-novel-id-input", Input)
+            novel_ids_input = novel_id_input.value.strip()
+            if not novel_ids_input:
+                self.notify(self.i18n.t('crawler.enter_novel_id'), severity="warning", timeout=2)
+                return
+
+            from urllib.parse import unquote
+            novel_ids = [unquote(id.strip()) for id in novel_ids_input.split(',') if id.strip()]
+            if not novel_ids:
+                self.notify(self.i18n.t('crawler.enter_novel_id'), severity="warning", timeout=2)
+                return
+
+            site_id = self.novel_site.get('id')
+            if not site_id:
+                self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+                return
+
+            # 检查代理要求
+            proxy_config = {'enabled': False, 'proxy_url': ''}
+            try:
+                proxy_enabled = self.novel_site.get('proxy_enabled', False)
+                if proxy_enabled and self.db_manager:
+                    enabled_proxy = self.db_manager.get_enabled_proxy()
+                    if enabled_proxy:
+                        proxy_type = enabled_proxy.get('type', 'HTTP').lower()
+                        host = enabled_proxy.get('host', '')
+                        port = enabled_proxy.get('port', '')
+                        username = enabled_proxy.get('username', '')
+                        password = enabled_proxy.get('password', '')
+                        if host and port:
+                            if username and password:
+                                proxy_url = f"{proxy_type}://{username}:{password}@{host}:{port}"
+                            else:
+                                proxy_url = f"{proxy_type}://{host}:{port}"
+                            proxy_config = {'enabled': True, 'proxy_url': proxy_url}
+            except Exception:
+                pass
+
+            crawler_manager = self._get_crawler_manager()
+            if not crawler_manager:
+                self.notify(self.i18n.t('crawler.start_crawl_failed'), severity="error", timeout=3)
+                return
+
+            self.is_crawling = True
+            task_id = crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
+            if task_id:
+                self.current_task_id = task_id
+                self._update_crawl_button_state()
+                self.notify(
+                    f"{self.i18n.t('crawler.starting_crawl')} ({len(novel_ids)} {self.i18n.t('crawler.books')})",
+                    timeout=2,
+                )
+            else:
+                self.is_crawling = False
+                self.notify(self.i18n.t('crawler.start_crawl_failed'), severity="error", timeout=3)
+        except Exception as e:
+            self.is_crawling = False
+            logger.error(f"启动爬取失败: {e}")
+            self.notify(f"{self.i18n.t('crawler.start_crawl_failed')}: {e}", severity="error", timeout=3)
+
+    def _stop_crawl(self) -> None:
+        """停止爬取"""
+        try:
+            if self.current_task_id and self._crawler_manager:
+                self._crawler_manager.stop_crawl_task(self.current_task_id)
+            self.is_crawling = False
+            self.current_task_id = None
+            self._update_crawl_button_state()
+            self.notify(self.i18n.t('crawler.crawl_stopped'), timeout=2)
+        except Exception as e:
+            logger.error(f"停止爬取失败: {e}")
+
+    def _copy_novel_ids(self) -> None:
+        """复制选中书籍的 novel_id 到剪贴板"""
+        state = self._group_state[self._current_index]
+        selected_ids = state['selected_ids']
+        if not selected_ids:
+            self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
+            return
+
+        book_ids = []
+        for book in state['books']:
+            if book.get('id') in selected_ids:
+                nid = book.get('novel_id', '')
+                if nid:
+                    book_ids.append(str(nid))
+
+        if not book_ids:
+            self.notify(self.i18n.t('crawler.enter_novel_id'), severity="warning", timeout=2)
+            return
+
+        ids_text = ','.join(book_ids)
+        try:
+            import pyperclip
+            pyperclip.copy(ids_text)
+        except ImportError:
+            import subprocess
+            import platform
+            system = platform.system()
+            try:
+                if system == 'Darwin':
+                    subprocess.run(['pbcopy'], input=ids_text, text=True, check=True)
+                else:
+                    subprocess.run(['xclip', '-selection', 'clipboard'], input=ids_text, text=True, check=True)
+            except Exception:
+                subprocess.run(['xsel', '--clipboard', '--input'], input=ids_text, text=True, check=True)
+
+        self.notify(
+            self.i18n.t('crawler.copy_book_ids_success').format(count=len(book_ids)),
+            timeout=2,
+        )
+
+    def _open_select_books_dialog(self) -> None:
+        """打开选择书籍对话框"""
+        if not self.novel_site:
+            self.notify(self.i18n.t('crawler.no_site_id'), severity="warning", timeout=2)
+            return
+        if not self.novel_site.get("selectable_enabled", True):
+            return
+
+        from src.ui.dialogs.select_books_dialog import SelectBooksDialog
+
+        def handle_result(result: Optional[str]) -> None:
+            if result:
+                try:
+                    novel_id_input = self.query_one("#md-novel-id-input", Input)
+                    existing = novel_id_input.value.strip()
+                    if existing:
+                        novel_id_input.value = f"{existing},{result}"
+                    else:
+                        novel_id_input.value = result
+                except Exception:
+                    pass
+
+        self.app.push_screen(
+            SelectBooksDialog(self.theme_manager, self.novel_site),
+            handle_result,
+        )
+
+    def _init_browser_monitor(self) -> None:
+        """初始化浏览器标签页监听器"""
+        if not self.novel_site:
+            return
+        try:
+            from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
+
+            if self.selected_browser == "safari":
+                browser_type = BrowserType.SAFARI
+            elif self.selected_browser == "brave":
+                browser_type = BrowserType.BRAVE
+            else:
+                browser_type = BrowserType.CHROME
+
+            self.browser_monitor = BrowserTabMonitor(
+                novel_sites=[self.novel_site],
+                on_url_detected=self._on_browser_url_detected,
+                headless=False,
+                browser_type=browser_type,
+            )
+            self.browser_monitor.selected_window_index = self.selected_window_index  # type: ignore[assignment]
+            self.browser_monitor.on_window_refresh_callback = self._on_window_refresh_from_monitor  # type: ignore[assignment]
+            self._refresh_window_options()
+        except Exception as e:
+            logger.error(f"初始化浏览器监听器失败: {e}")
+            self.browser_monitor = None
+
+    def _on_browser_url_detected(self, novel_id: str, site_info: Dict[str, Any]) -> None:
+        """浏览器 URL 检测回调 —— 将检测到的 novel_id 追加到输入框"""
+        try:
+            self.app.call_from_thread(self._append_detected_id, novel_id)
+        except Exception as e:
+            logger.error(f"URL 检测回调失败: {e}")
+
+    def _append_detected_id(self, novel_id: str) -> None:
+        """将检测到的 novel_id 追加到输入框"""
+        try:
+            novel_id_input = self.query_one("#md-novel-id-input", Input)
+            existing = novel_id_input.value.strip()
+            if existing:
+                parts = [p.strip() for p in existing.split(',')]
+                if novel_id not in parts:
+                    novel_id_input.value = f"{existing},{novel_id}"
+                    self.notify(f"已添加ID: {novel_id}", timeout=2)
+            else:
+                novel_id_input.value = novel_id
+                self.notify(f"已添加ID: {novel_id}", timeout=2)
+        except Exception:
+            pass
+
+    def _on_window_refresh_from_monitor(self) -> None:
+        """从后台线程刷新窗口列表"""
+        try:
+            self.app.call_from_thread(self._refresh_window_options)
+        except Exception:
+            pass
+
+    def _refresh_window_options(self) -> None:
+        """刷新窗口选择下拉框"""
+        try:
+            if not self.browser_monitor:
+                return
+            windows = self.browser_monitor.get_browser_windows()
+            options = [(self.i18n.t('crawler.all_windows'), "all")]
+            for win in windows:
+                label = f"{self.i18n.t('crawler.window_label')} {win['index']} ({win['tab_count']} {self.i18n.t('crawler.tabs')})"
+                if win.get('title'):
+                    label += f" - {win['title'][:30]}"
+                options.append((label, str(win['index'])))
+
+            self.window_options = windows
+            try:
+                window_select = self.query_one("#md-window-select", Select)
+                current_value = "all"
+                if self.selected_window_index is not None:
+                    current_value = str(self.selected_window_index)
+                window_select.set_options(options)
+                if current_value == "all" or any(str(w['index']) == current_value for w in windows):
+                    window_select.value = current_value
+                else:
+                    window_select.value = "all"
+                    self.selected_window_index = None
+            except Exception:
+                pass
+        except Exception as e:
+            logger.error(f"刷新窗口选项失败: {e}")
+
+    def _toggle_browser_monitor(self) -> None:
+        """切换浏览器监听状态"""
+        try:
+            if self.browser_monitor_active:
+                self._stop_browser_monitor()
+            else:
+                self._start_browser_monitor()
+        except Exception as e:
+            logger.error(f"切换监听状态失败: {e}")
+
+    def _start_browser_monitor(self) -> None:
+        """开始监听"""
+        try:
+            if not self.browser_monitor:
+                self._init_browser_monitor()
+            if not self.browser_monitor:
+                self.notify(self.i18n.t('crawler.monitor_start_failed'), severity="error", timeout=2)
+                return
+
+            self.browser_monitor.selected_window_index = self.selected_window_index  # type: ignore[assignment]
+            success = self.browser_monitor.start_monitoring()
+            if success:
+                self.browser_monitor_active = True
+                self._update_monitor_button_state()
+                self.notify(self.i18n.t('crawler.monitor_started'), timeout=2)
+            else:
+                self.notify(self.i18n.t('crawler.monitor_start_failed'), severity="error", timeout=2)
+        except Exception as e:
+            logger.error(f"启动监听失败: {e}")
+            self.notify(f"启动监听失败: {e}", severity="error", timeout=3)
+
+    def _stop_browser_monitor(self) -> None:
+        """停止监听"""
+        try:
+            if self.browser_monitor:
+                self.browser_monitor.stop_monitoring()
+            self.browser_monitor_active = False
+            self._update_monitor_button_state()
+            self.notify(self.i18n.t('crawler.monitor_stopped'), timeout=2)
+        except Exception as e:
+            logger.error(f"停止监听失败: {e}")
+
+    def _update_monitor_button_state(self) -> None:
+        """更新监听按钮状态"""
+        try:
+            btn = self.query_one("#md-toggle-monitor-btn", Button)
+            if self.browser_monitor_active:
+                btn.label = self.i18n.t('crawler.stop_monitor')
+                btn.variant = "error"
+            else:
+                btn.label = self.i18n.t('crawler.start_monitor')
+                btn.variant = "success"
+        except Exception:
+            pass
+
+    # ─── 补缺按钮事件 ───────────────────────────────────────
+
+    @on(Button.Pressed, "#md-choose-books-btn")
+    def on_md_choose_books(self) -> None:
+        self._open_select_books_dialog()
+
+    @on(Button.Pressed, "#md-toggle-crawl-btn")
+    def on_md_toggle_crawl(self) -> None:
+        if self.is_crawling:
+            self._stop_crawl()
+        else:
+            self._start_crawl()
+
+    @on(Button.Pressed, "#md-copy-ids-btn")
+    def on_md_copy_ids(self) -> None:
+        self._copy_novel_ids()
+
+    @on(Button.Pressed, "#md-toggle-monitor-btn")
+    def on_md_toggle_monitor(self) -> None:
+        self._toggle_browser_monitor()
+
+    @on(Button.Pressed, "#md-refresh-window-btn")
+    def on_md_refresh_window(self) -> None:
+        if not self.browser_monitor:
+            self._init_browser_monitor()
+        self._refresh_window_options()
+
+    @on(Select.Changed, "#md-browser-select")
+    def on_md_browser_select_changed(self, event: Select.Changed) -> None:
+        if event.value is not None:
+            self.selected_browser = str(event.value)
+            if self.browser_monitor:
+                if self.browser_monitor_active:
+                    self._stop_browser_monitor()
+                self._init_browser_monitor()
+
+    @on(Select.Changed, "#md-window-select")
+    def on_md_window_select_changed(self, event: Select.Changed) -> None:
+        if event.value is not None and event.value != "all":
+            try:
+                self.selected_window_index = int(str(event.value))
+            except (ValueError, TypeError):
+                self.selected_window_index = None
+        else:
+            self.selected_window_index = None
+        if self.browser_monitor:
+            self.browser_monitor.selected_window_index = self.selected_window_index  # type: ignore[assignment]
+
+    # ─── 智能标题 ───────────────────────────────────────────
+
+    @staticmethod
+    def _extract_chapter_info(title: str):
+        """
+        从标题中提取章节信息。
+
+        常见格式： "A 1-3 作者", "A4-8完 小", "A 12 作者小明", "A.5.完"
+        返回：(start, end, prefix, suffix) 或 None
+        """
+        import re
+        chapter_pattern = re.compile(r'(\d+)(?:\s*[-–—~]\s*(\d+))?')
+        match = chapter_pattern.search(title)
+        if match:
+            start = int(match.group(1))
+            end = int(match.group(2)) if match.group(2) else start
+            prefix = title[:match.start()].rstrip()
+            suffix = title[match.end():].lstrip()
+            return (start, end, prefix, suffix)
+        return None
+
+    def _smart_sort_books(self) -> bool:
+        """
+        按书名中的章节号对当前组的书籍列表进行升序排序。
+
+        Returns:
+            True 表示已执行排序，False 表示无法提取章节号（未排序）
+        """
+        state = self._group_state[self._current_index]
+        books = state['books']
+
+        # 为每本书提取章节信息，保留原始索引
+        indexed = []
+        all_extracted = True
+        for idx, book in enumerate(books):
+            title = book.get('novel_title', '')
+            info = self._extract_chapter_info(title)
+            if info:
+                indexed.append((idx, book, info))
+            else:
+                all_extracted = False
+                break
+
+        if not all_extracted or len(indexed) < 2:
+            return False
+
+        # 按章节起始号排序，起始号相同则按结束号
+        indexed.sort(key=lambda x: (x[2][0], x[2][1]))
+
+        # 更新书籍列表顺序
+        state['books'] = [item[1] for item in indexed]
+        return True
+
+    def _generate_smart_title(self) -> Optional[str]:
+        """
+        从当前组选中的书籍中智能生成合并标题。
+
+        策略：
+        1. 取选中书籍的标题，按标题中提取的章节号排序
+        2. 找到公共前缀
+        3. 合并章节范围 (min_start - max_end)
+        4. 若最后一本书标题包含"完"/"全"等标记，附加到章节范围后
+        5. 取第一本书标题中章节号后的后缀作为作者/补充信息
+        """
+        import re
+
+        state = self._group_state[self._current_index]
+        selected_ids = state['selected_ids']
+        if len(selected_ids) < 2:
+            return None
+
+        selected_books = [b for b in state['books'] if b.get('id') in selected_ids]
+        if len(selected_books) < 2:
+            return None
+
+        titles = [b.get('novel_title', '') for b in selected_books]
+        if not all(titles):
+            return None
+
+        # 提取每本书标题中的章节号
+        chapter_infos = []
+        for title in titles:
+            info = self._extract_chapter_info(title)
+            if info:
+                chapter_infos.append(info)
+            else:
+                # 无法提取章节号，返回 None
+                return None
+
+        # 按章节起始号排序
+        chapter_infos.sort(key=lambda x: x[0])
+
+        min_start = chapter_infos[0][0]
+        max_end = max(ci[1] for ci in chapter_infos)
+
+        # 找公共前缀
+        prefixes = [ci[2] for ci in chapter_infos if ci[2]]
+        if prefixes:
+            common_prefix = os.path.commonprefix(prefixes)
+            # 确保不截断中文字符
+            # 逐字符比较找公共前缀
+            if not common_prefix:
+                common_prefix = prefixes[0]
+        else:
+            common_prefix = ""
+
+        # 取第一本书的后缀作为作者/补充信息
+        first_suffix = chapter_infos[0][3] if chapter_infos[0][3] else ""
+        # 取最后一本书的后缀，检查是否有"完"等标记
+        last_suffix = chapter_infos[-1][3] if chapter_infos[-1][3] else ""
+
+        # 检查"完"/"全"/"完结"/"全集"等标记
+        completion_marker = ""
+        completion_keywords = ['完结', '完', '全', '全集', '全本', '终']
+        for kw in completion_keywords:
+            if kw in last_suffix:
+                completion_marker = kw
+                break
+
+        # 构建章节范围
+        if min_start == max_end:
+            chapter_range = str(min_start)
+        else:
+            chapter_range = f"{min_start}-{max_end}"
+
+        # 组合标题
+        parts = []
+        if common_prefix:
+            parts.append(common_prefix)
+        parts.append(chapter_range)
+        if completion_marker:
+            parts.append(completion_marker)
+        if first_suffix:
+            # 清理后缀中的完标记（避免重复）
+            clean_suffix = first_suffix
+            for kw in completion_keywords:
+                clean_suffix = clean_suffix.replace(kw, '').strip()
+            if clean_suffix:
+                parts.append(clean_suffix)
+
+        smart_title = ' '.join(parts)
+        # 清理多余空格
+        smart_title = re.sub(r'\s+', ' ', smart_title).strip()
+        return smart_title if smart_title else None
+
+    @on(Button.Pressed, "#smart-title-btn")
+    def on_smart_title_btn(self) -> None:
+        """智能标题按钮"""
+        self._apply_smart_title()
+
+    def _apply_smart_title(self) -> None:
+        """智能排序并生成标题填充到输入框"""
+        sorted_ok = self._smart_sort_books()
+        smart_title = self._generate_smart_title()
+        if smart_title:
+            title_input = self.query_one("#merge-title-input", Input)
+            title_input.value = smart_title
+            self._group_state[self._current_index]['merged_title'] = smart_title
+            if sorted_ok:
+                self._refresh_table()
+                self._update_status()
+            self.notify(
+                self.i18n.t('merge_detail.smart_title_applied', title=smart_title),
+                timeout=2,
+            )
+        else:
+            self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+
+    # ─── 快捷键 action 方法 ─────────────────────────────────
+
+    def action_select_books(self) -> None:
+        """X键：选择书籍"""
+        self._open_select_books_dialog()
+
+    def action_toggle_crawl(self) -> None:
+        """s键：开始/停止爬取"""
+        if self.is_crawling:
+            self._stop_crawl()
+        else:
+            self._start_crawl()
+
+    def action_toggle_monitor(self) -> None:
+        """e键：开始/停止监听"""
+        self._toggle_browser_monitor()
+
+    def action_smart_title(self) -> None:
+        """g键：智能标题"""
+        self._apply_smart_title()
+
+    def action_fill_missing(self) -> None:
+        """f键：补缺"""
+        self._toggle_fill_missing()
