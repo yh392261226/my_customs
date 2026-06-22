@@ -91,7 +91,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("y", "copy_title", "复制标题"),
         ("x", "clear_title", "清除标题"),
         ("v", "preview_book", "预览"),
-        ("d", "delete_book", "删除"),
+        ("d", "delete_book", "删除当前行"),
+        ("D", "delete_selected", "多选删除"),
         ("a", "toggle_select_all", "全选/取消全选"),
         ("g", "merge_this", "合并此组"),
         ("t", "skip_this", "跳过此组"),
@@ -667,6 +668,103 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         book = self._get_cursor_book()
         if book is not None:
             self._delete_book(book)
+
+    def action_delete_selected(self) -> None:
+        """D键：批量删除当前组中所有选中的书籍"""
+        self._delete_selected_books()
+
+    def _delete_selected_books(self) -> None:
+        """批量删除所有选中的书籍"""
+        if self.db_manager is None:
+            self.notify(self.i18n.t('merge_detail.delete_unavailable'), severity="warning", timeout=2)
+            return
+
+        state = self._group_state[self._current_index]
+        selected_ids = state['selected_ids'].copy()
+        if not selected_ids:
+            return
+
+        # 获取要删除的书籍列表
+        books_to_delete = [b for b in state['books'] if b.get('id') in selected_ids]
+        if not books_to_delete:
+            return
+
+        try:
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+            count = len(books_to_delete)
+            titles = ', '.join([b.get('novel_title', '') for b in books_to_delete[:3]])
+            if count > 3:
+                titles += f' ... (共{count}本)'
+
+            def handle_batch_delete_confirmation(confirmed: Optional[bool]) -> None:
+                if not confirmed:
+                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
+                    return
+                try:
+                    db_manager = self.db_manager
+                    success_count = 0
+                    fail_count = 0
+
+                    for book in books_to_delete:
+                        try:
+                            file_path = book.get('file_path', '')
+
+                            # 1) 删除文件（若有）
+                            if file_path and file_path != 'already_exists' and os.path.exists(file_path):
+                                try:
+                                    send2trash(file_path)
+                                    logger.info(f"文件已移至回收站: {file_path}")
+                                except Exception as e:
+                                    logger.error(f"删除文件失败: {file_path} - {e}")
+
+                            # 2) 删除数据库记录
+                            history_id = book.get('id')
+                            if history_id is not None:
+                                try:
+                                    db_manager.delete_crawl_history(int(history_id))
+                                except Exception as e:
+                                    logger.error(f"删除爬取历史记录失败: {history_id} - {e}")
+
+                            success_count += 1
+                        except Exception as e:
+                            logger.error(f"删除书籍失败: {book.get('novel_title', '')} - {e}")
+                            fail_count += 1
+
+                    # 3) 从当前组状态中移除已删除的书籍
+                    deleted_ids = {book.get('id') for book in books_to_delete}
+                    state['books'] = [b for b in state['books'] if b.get('id') not in deleted_ids]
+                    state['selected_ids'].clear()
+
+                    # 4) 刷新界面
+                    self._refresh_table()
+                    self._update_status()
+
+                    msg = self.i18n.t('merge_detail.batch_deleted', count=success_count)
+                    if fail_count > 0:
+                        msg += f' ({fail_count} {self.i18n.t("crawler.failed")})'
+                    self.notify(msg, timeout=3)
+                except Exception as e:
+                    logger.error(f"批量删除书籍失败: {e}")
+                    self.notify(
+                        f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
+                        severity="error", timeout=3,
+                    )
+
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    self.i18n.t('merge_detail.confirm_batch_delete_title'),
+                    self.i18n.t('merge_detail.confirm_batch_delete_message', count=count, titles=titles),
+                ),
+                handle_batch_delete_confirmation,
+            )
+        except Exception as e:
+            logger.error(f"批量删除书籍失败: {e}")
+            self.notify(
+                f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
+                severity="error", timeout=3,
+            )
 
     def _get_cursor_book(self) -> Optional[Dict[str, Any]]:
         """获取当前光标行对应的书籍字典"""

@@ -2362,6 +2362,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self.app.run_worker(_merge_worker, name="merge-groups-worker", thread=True)
 
             def handle_merge_mode_result(result: Optional[Dict[str, Any]]) -> None:
+                # 无论取消还是完成都刷新列表（弹窗中可能删除了数据）
+                self._load_crawl_history(from_search=True)
                 if not result or not result.get('success'):
                     return
                 merged_groups = result.get('merged_groups', [])
