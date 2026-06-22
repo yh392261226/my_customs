@@ -101,6 +101,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("s", "toggle_crawl", "爬取"),
         ("e", "toggle_monitor", "监听"),
         ("f", "fill_missing", "补缺"),
+        ("F", "view_current_file", "查看文件"),
     ]
 
     def __init__(
@@ -317,6 +318,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             table.add_column(self.i18n.t('merge_detail.col_time'), key="time", width=10)
             table.add_column(self.i18n.t('merge_detail.col_size'), key="size", width=5)
             table.add_column(self.i18n.t('merge_detail.col_preview'), key="preview", width=4)
+            table.add_column(self.i18n.t('merge_detail.col_file'), key="file", width=4)
             table.add_column(self.i18n.t('merge_detail.col_delete'), key="delete", width=4)
 
         for idx, book in enumerate(books, 1):
@@ -346,6 +348,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 crawl_time,
                 size_str,
                 self.i18n.t('merge_detail.preview_btn'),
+                self.i18n.t('merge_detail.file_btn'),
                 self.i18n.t('merge_detail.delete_btn'),
                 key=str(bid),
             )
@@ -796,6 +799,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
             if column_key == "preview":
                 self._preview_book(book)
+            elif column_key == "file":
+                self._view_file(book)
             elif column_key == "delete":
                 self._delete_book(book)
         except Exception as e:
@@ -1698,3 +1703,40 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def action_fill_missing(self) -> None:
         """f键：补缺"""
         self._toggle_fill_missing()
+
+    def action_view_current_file(self) -> None:
+        """F键：查看光标所在行的文件（在文件管理器中显示）"""
+        book = self._get_cursor_book()
+        if book is not None:
+            self._view_file(book)
+
+    def _view_file(self, book: Dict[str, Any]) -> None:
+        """在文件管理器中显示书籍文件"""
+        try:
+            file_path = book.get('file_path', '')
+
+            if not file_path or file_path == 'already_exists':
+                self.notify(self.i18n.t('crawler.no_file_path'), severity="warning", timeout=2)
+                return
+
+            if not os.path.exists(file_path):
+                self.notify(self.i18n.t('crawler.file_not_exists'), severity="warning", timeout=2)
+                return
+
+            import platform
+            system = platform.system()
+
+            if system == "Darwin":  # macOS
+                os.system(f'open -R "{file_path}"')
+            elif system == "Windows":
+                os.system(f'explorer /select,"{file_path}"')
+            elif system == "Linux":
+                os.system(f'xdg-open "{os.path.dirname(file_path)}"')
+
+            self.notify(self.i18n.t('crawler.file_opened'), timeout=2)
+        except Exception as e:
+            logger.error(f"查看文件失败: {e}")
+            self.notify(
+                f"{self.i18n.t('crawler.open_file_failed')}: {e}",
+                severity="error", timeout=3,
+            )
