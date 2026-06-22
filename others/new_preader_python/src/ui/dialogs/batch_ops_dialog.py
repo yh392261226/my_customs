@@ -2656,13 +2656,19 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                         batch_callback=batch_callback
                     )
                     
-                    # 所有批次完成后，通知UI
-                    self.app.call_from_thread(self._on_all_batches_completed, result)
+                    # 所有批次完成后，通知UI（忽略应用已退出的情况）
+                    try:
+                        self.app.call_from_thread(self._on_all_batches_completed, result)
+                    except Exception:
+                        pass  # 应用可能已退出，静默忽略
                     return result
                     
                 except Exception as e:
-                    # 处理错误
-                    self.app.call_from_thread(self._on_duplicate_search_error, e)
+                    # 处理错误（忽略应用已退出的情况）
+                    try:
+                        self.app.call_from_thread(self._on_duplicate_search_error, e)
+                    except Exception:
+                        pass  # 应用可能已退出，静默忽略
                     return None
             
             # 【已注释】V2批次回调函数（Ultra引擎不需要此回调）
@@ -2676,15 +2682,18 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                 """处理批次完成（兼容旧格式）"""
                 logger.info(f"批回调被调用: 批次 {batch_index+1 if batch_index >= 0 else '初始'}, 找到 {len(batch_groups)} 组重复")
                 
-                # 使用 app.call_from_thread 确保线程安全
+                # 使用 app.call_from_thread 确保线程安全（忽略应用已退出的情况）
                 logger.info(f"准备显示重复结果: 批次 {batch_index+1 if batch_index >= 0 else '初始'}, 组数 {len(batch_groups)}")
-                self.app.call_from_thread(
-                    self._show_duplicate_results,
-                    batch_groups,
-                    batch_index,
-                    total_batches,
-                    processing_remaining
-                )
+                try:
+                    self.app.call_from_thread(
+                        self._show_duplicate_results,
+                        batch_groups,
+                        batch_index,
+                        total_batches,
+                        processing_remaining
+                    )
+                except Exception:
+                    pass  # 应用可能已退出，静默忽略
             
             # 用于存储已显示的重复组
             self._shown_duplicate_groups = []
