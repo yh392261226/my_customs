@@ -50,10 +50,11 @@ class BookshelfScreen(Screen[None]):
         ("s", "search_book", get_global_i18n().t('common.search')),
         ("r", "sort_books", get_global_i18n().t('bookshelf.sort_name')),
         ("l", "batch_ops", get_global_i18n().t('bookshelf.batch_ops_name')),
-        ("g", "get_books", get_global_i18n().t('bookshelf.get_books')),
+        ("G", "get_books", get_global_i18n().t('bookshelf.get_books')),
         ("R", "refresh_bookshelf", get_global_i18n().t('bookshelf.refresh')),
         ("d", "delete_book", get_global_i18n().t('bookshelf.shortcut_d')),
         ("x", "clear_search_params", get_global_i18n().t('bookshelf.clear_search_params')),
+        ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
         ("v", "preview_book", get_global_i18n().t('bookshelf.shortcut_v')),
         ("f", "view_current_file", get_global_i18n().t('bookshelf.shortcut_f')),
@@ -2710,6 +2711,17 @@ class BookshelfScreen(Screen[None]):
                 self._open_book_in_browser(book.path)
             else:
                 self.notify(get_global_i18n().t("bookshelf.np_read"), severity="warning")
+
+    def action_toggle_smart_search(self) -> None:
+        """g键 - 切换智能搜索开关"""
+        try:
+            smart_search_switch = self.query_one("#bookshelf-smart-search-switch")
+            # 切换开关状态
+            smart_search_switch.value = not smart_search_switch.value
+            status_text = get_global_i18n().t('crawler.smart_search_on') if smart_search_switch.value else get_global_i18n().t('crawler.smart_search_off')
+            self.notify(status_text, severity="information")
+        except Exception as e:
+            logger.error(f"切换智能搜索开关失败: {e}")
 
     def _preview_book(self, book_path: str) -> None:
         """预览书籍内容（显示前1000字）"""

@@ -1317,6 +1317,8 @@
     "novel_title": "书籍标题",
     "crawl_time": "爬取时间",
     "smart_search": "智能搜索",
+    "smart_search_on": "智能搜索已开启",
+    "smart_search_off": "智能搜索已关闭",
     "status": "状态",
     "file_path": "文件路径",
     "actions": "操作",

@@ -473,6 +473,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
         ("z", "merge_mode", get_global_i18n().t('crawler.merge_mode')),
+        ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
     ]
 
     def action_open_browser(self) -> None:
@@ -716,6 +717,17 @@ class CrawlerManagementScreen(Screen[None]):
     def action_toggle_monitor(self) -> None:
         """e键 - 切换开始监听/停止监听"""
         self._toggle_browser_monitor()
+
+    def action_toggle_smart_search(self) -> None:
+        """g键 - 切换智能搜索开关"""
+        try:
+            smart_search_switch = self.query_one("#smart-search-switch")
+            # 切换开关状态
+            smart_search_switch.value = not smart_search_switch.value
+            status_text = get_global_i18n().t('crawler.smart_search_on') if smart_search_switch.value else get_global_i18n().t('crawler.smart_search_off')
+            self.notify(status_text, timeout=2)
+        except Exception as e:
+            logger.error(f"切换智能搜索开关失败: {e}")
 
     def __init__(self, theme_manager: ThemeManager, novel_site: Dict[str, Any]):
         """
