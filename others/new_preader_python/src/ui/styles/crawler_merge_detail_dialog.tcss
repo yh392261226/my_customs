@@ -179,9 +179,15 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
 }
 
 #move-to-pos-input {
-    width: 8;
+    width: 15;
     margin-bottom: 2;
     background: $accent;
+}
+
+#move-to-pos-btn {
+    height: 3;
+    width: 8;
+    margin: 0;
 }
 
 /* ── 状态栏 ── */

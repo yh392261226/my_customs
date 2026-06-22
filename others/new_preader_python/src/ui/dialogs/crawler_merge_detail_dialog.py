@@ -225,6 +225,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                         id="move-to-pos-input",
                         type="integer",
                     ),
+                    Button("Move", id="move-to-pos-btn", variant="primary"),
                     id="pos-row",
                 ),
                 # 状态栏
@@ -625,14 +626,14 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     # ─── 快速定位 ───────────────────────────────────────────
 
-    @on(Input.Submitted, "#move-to-pos-input")
-    def on_pos_submitted(self, event: Input.Submitted) -> None:
+    @on(Button.Pressed, "#move-to-pos-btn")
+    def on_pos_submitted(self, event: Button.Pressed) -> None:
         """输入目标位置并定位"""
         try:
-            pos = int(event.value.strip())
+            pos_input = self.query_one("#move-to-pos-input", Input)
+            pos = int(pos_input.value.strip())
             self._move_to_position(pos)
             # 清空输入框
-            pos_input = self.query_one("#move-to-pos-input", Input)
             pos_input.value = ""
         except ValueError:
             pass
