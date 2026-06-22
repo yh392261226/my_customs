@@ -119,8 +119,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
         # 深拷贝 groups，避免影响原始数据
         self.groups: List[Dict[str, Any]] = deepcopy(groups)
+        # 按 display_title 长度降序排列（最长书名的组优先显示）
+        self.groups.sort(key=lambda g: len(g.get('display_title', g.get('base_title', ''))), reverse=True)
         self._current_index: int = 0       # 当前在第几组
-        self._total_groups: int = len(groups)
+        self._total_groups: int = len(self.groups)
 
         # 每组维护：选中的书籍 id 集合、排序后的书籍列表
         self._group_state: Dict[int, Dict[str, Any]] = {}
