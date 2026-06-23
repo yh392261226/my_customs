@@ -609,7 +609,9 @@
     "book": "Book",
     "book_name": "Book Name",
     "asc": "Asc",
-    "desc": "Desc"
+    "desc": "Desc",
+    "exit": "Exit",
+    "cancel_all": "Cancel All"
   },
   "reader": {
     "author": "Author",
@@ -1520,7 +1522,8 @@
     "date_filter": "Date Filter:",
     "date_start": "From",
     "date_end": "To",
-    "date_query": "Query"
+    "date_query": "Query",
+    "confirm_merge": "Merge Selected"
   },
   "merge_range": {
     "title": "Select Date Range — {site}",
@@ -1574,7 +1577,10 @@
     "smart_title": "Smart Title",
     "smart_title_applied": "Generated title: {title}",
     "smart_title_failed": "Cannot generate smart title, please enter manually",
-    "new_books_added": "Added {count} new books to end of list, please confirm selection manually"
+    "new_books_added": "Added {count} new books to end of list, please confirm selection manually",
+    "copy_title": "Copy Title",
+    "preview": "Preview",
+    "delete_current": "Delete Row"
   },
   "note": {
     "save": "Save",
@@ -2184,5 +2190,10 @@
     "delete": "Delete",
     "library_search_placeholder": "Search book titles...",
     "library_search_no_results": "No matching books found"
+  },
+  "compare_reader": {
+    "scroll_up": "Scroll Up",
+    "scroll_down": "Scroll Down",
+    "exit": "Exit Compare"
   }
 }

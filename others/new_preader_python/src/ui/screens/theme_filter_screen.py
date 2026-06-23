@@ -21,7 +21,7 @@ class ThemeFilterScreen(ModalScreen[Optional[str]]):
     CSS_PATH = "../styles/theme_filter_screen.tcss"
 
     BINDINGS = [
-        ("escape", "cancel", "取消"),
+        ("escape", "cancel", get_global_i18n().t("common.cancel")),
     ]
 
     def __init__(self, themes: list[str], current_theme: str) -> None:

@@ -609,7 +609,9 @@
     "book": "书籍",
     "book_name": "书籍名称",
     "asc": "正序",
-    "desc": "倒序"
+    "desc": "倒序",
+    "exit": "退出",
+    "cancel_all": "取消全部"
   },
   "reader": {
     "author": "作者",
@@ -1589,7 +1591,8 @@
     "date_filter": "日期筛选：",
     "date_start": "从",
     "date_end": "到",
-    "date_query": "查询"
+    "date_query": "查询",
+    "confirm_merge": "合并选中组"
   },
   "merge_range": {
     "title": "选择日期范围 — {site}",
@@ -1643,7 +1646,10 @@
     "smart_title": "智能标题",
     "smart_title_applied": "已生成标题：{title}",
     "smart_title_failed": "无法生成智能标题，请手动输入",
-    "new_books_added": "已添加 {count} 本新书籍到列表末尾，请人工确认是否选择"
+    "new_books_added": "已添加 {count} 本新书籍到列表末尾，请人工确认是否选择",
+    "copy_title": "复制标题",
+    "preview": "预览",
+    "delete_current": "删除当前行"
   },
   "note": {
     "save": "保存",
@@ -2184,5 +2190,10 @@
     "delete": "删除",
     "library_search_placeholder": "搜索书籍标题...",
     "library_search_no_results": "没有找到匹配的书籍"
+  },
+  "compare_reader": {
+    "scroll_up": "上翻",
+    "scroll_down": "下翻",
+    "exit": "退出对比"
   }
 }

@@ -366,12 +366,12 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     CSS_PATH = "../styles/crawler_merge_mode_dialog.tcss"
 
     BINDINGS = [
-        ("escape", "cancel", "取消"),
-        ("g", "confirm_merge", "合并选中组"),
-        ("space", "toggle_row", "切换选择"),
-        ("a", "toggle_select_all", "全选/取消全选"),
-        ("r", "invert_selection", "反选"),
-        ("y", "copy_title", "复制标题"),
+        ("escape", "cancel", get_global_i18n().t('common.cancel')),
+        ("g", "confirm_merge", get_global_i18n().t('merge_mode.confirm_merge')),
+        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
+        ("a", "toggle_select_all", get_global_i18n().t('batch_ops.select_all')),
+        ("r", "invert_selection", get_global_i18n().t('merge_mode.invert_selection')),
+        ("y", "copy_title", get_global_i18n().t('merge_detail.copy_title')),
     ]
 
     def __init__(

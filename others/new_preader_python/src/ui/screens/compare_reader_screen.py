@@ -34,10 +34,10 @@ class CompareReaderScreen(ModalScreen[None]):
     CSS_PATH = "../styles/compare_reader_overrides.tcss"
 
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("up", "scroll", "↑上翻"),
-        ("down", "scroll", "↓下翻"),
-        ("escape", "exit_compare", "退出"),
-        ("q", "exit_compare", "退出"),
+        ("up", "scroll", get_global_i18n().t('compare_reader.scroll_up')),
+        ("down", "scroll", get_global_i18n().t('compare_reader.scroll_down')),
+        ("escape", "exit_compare", get_global_i18n().t('common.exit')),
+        ("q", "exit_compare", get_global_i18n().t('common.exit')),
     ]
 
     def __init__(

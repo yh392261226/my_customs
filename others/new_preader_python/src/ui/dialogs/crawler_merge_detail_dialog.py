@@ -84,24 +84,24 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     CSS_PATH = "../styles/crawler_merge_detail_dialog.tcss"
 
     BINDINGS = [
-        ("escape", "cancel", "取消全部"),
-        ("space", "toggle_row", "切换选择"),
-        ("up", "move_up", "上移"),
-        ("down", "move_down", "下移"),
-        ("y", "copy_title", "复制标题"),
-        ("x", "clear_title", "清除标题"),
-        ("v", "preview_book", "预览"),
-        ("d", "delete_book", "删除当前行"),
-        ("D", "delete_selected", "多选删除"),
-        ("a", "toggle_select_all", "全选/取消全选"),
-        ("g", "merge_this", "合并此组"),
-        ("t", "skip_this", "跳过此组"),
-        ("m", "smart_title", "智能标题"),
-        ("X", "select_books", "选择书籍"),
-        ("s", "toggle_crawl", "爬取"),
-        ("e", "toggle_monitor", "监听"),
-        ("f", "fill_missing", "补缺"),
-        ("F", "view_current_file", "查看文件"),
+        ("escape", "cancel", get_global_i18n().t('common.cancel_all')),
+        ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
+        ("up", "move_up", get_global_i18n().t('merge_detail.move_up')),
+        ("down", "move_down", get_global_i18n().t('merge_detail.move_down')),
+        ("y", "copy_title", get_global_i18n().t('merge_detail.copy_title')),
+        ("x", "clear_title", get_global_i18n().t('merge_detail.clear_title')),
+        ("v", "preview_book", get_global_i18n().t('merge_detail.preview')),
+        ("d", "delete_book", get_global_i18n().t('merge_detail.delete_current')),
+        ("D", "delete_selected", get_global_i18n().t('novel_sites.batch_delete')),
+        ("a", "toggle_select_all", get_global_i18n().t('batch_ops.select_all')),
+        ("g", "merge_this", get_global_i18n().t('merge_detail.merge_this')),
+        ("t", "skip_this", get_global_i18n().t('merge_detail.skip_this')),
+        ("m", "smart_title", get_global_i18n().t('merge_detail.smart_title')),
+        ("X", "select_books", get_global_i18n().t('crawler.select_books')),
+        ("s", "toggle_crawl", get_global_i18n().t('crawler.toggle_crawl')),
+        ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
+        ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
+        ("F", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
     ]
 
     def __init__(
@@ -317,9 +317,9 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             table.add_column(self.i18n.t('merge_detail.col_title'), key="title", width=60)
             table.add_column(self.i18n.t('merge_detail.col_time'), key="time", width=10)
             table.add_column(self.i18n.t('merge_detail.col_size'), key="size", width=5)
-            table.add_column(self.i18n.t('merge_detail.col_preview'), key="preview", width=4)
-            table.add_column(self.i18n.t('merge_detail.col_file'), key="file", width=4)
-            table.add_column(self.i18n.t('merge_detail.col_delete'), key="delete", width=4)
+            table.add_column(self.i18n.t('merge_detail.col_preview'), key="preview", width=6)
+            table.add_column(self.i18n.t('crawler.shortcut_f'), key="file", width=10)
+            table.add_column(self.i18n.t('merge_detail.col_delete'), key="delete", width=10)
 
         for idx, book in enumerate(books, 1):
             bid = book.get('id')
@@ -348,7 +348,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 crawl_time,
                 size_str,
                 self.i18n.t('merge_detail.preview_btn'),
-                self.i18n.t('merge_detail.file_btn'),
+                self.i18n.t('crawler.shortcut_f'),
                 self.i18n.t('merge_detail.delete_btn'),
                 key=str(bid),
             )
