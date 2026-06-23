@@ -77,7 +77,7 @@ CrawlerMergeDetailDialog Container, #merge-detail-container {
 }
 
 #merge-title-input:hover {
-    width: 30%;
+    width: auto;
 }
 
 #clear-title-btn {

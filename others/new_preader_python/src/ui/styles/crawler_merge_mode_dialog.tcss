@@ -82,7 +82,7 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
     height: 1;
     text-align: center;
     color: $text-muted;
-    margin-bottom: 1;
+    margin: 0;
 }
 
 /* ── 自动合并提示 ── */
@@ -92,7 +92,7 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
     text-align: center;
     color: $warning;
     text-style: bold;
-    margin-bottom: 1;
+    margin: 0;
 }
 
 /* ── 分组表格 ── */
