@@ -113,6 +113,9 @@ def normalize_book_title(title: str) -> str:
         【半缘-陌上花开】（序-21）作者：修道  →  半缘
         【与老妈的(其他)故事】(1－28)作者:xxx →  与老妈的
         【女主播？我的女友！】               →  女主播
+        【蛆虫之歌】11-19完 译者：sunson -> 蛆虫之歌
+        【蛆虫之歌】(11-19完) 译者：sunson -> 蛆虫之歌
+        【蛆虫之歌】（11-19完） 译者：sunson -> 蛆虫之歌
     """
     if not title:
         return ""
@@ -123,14 +126,16 @@ def normalize_book_title(title: str) -> str:
     result = remove_chapter_info(result)
 
     # Step 2: 去除"作者"及之后的所有内容
-    author_idx = result.find('作者')
-    if author_idx > 0:
-        result = result[:author_idx]
+    for sep in ('译者', '作者', '作', '译'):
+        author_idx = result.find(sep)
+        if author_idx > 0:
+            result = result[:author_idx]
+            break
 
     # Step 3: 在第一个分隔符处截断，只保留主标题
     # 分隔符包括：逗号、顿号、问号、感叹号、句号、冒号、分号、括号、省略号、书名号闭合等
     # 注意：省略号必须在书名号闭合之前，否则 】 会先匹配导致截断位置错误
-    for sep in ('，', ',', '、', '？', '?', '！', '!', '。', '.', '；', ';', '：', ':', '(', '（', '…', '...', '】', '」', '》'):
+    for sep in ('，', ',', '、', '？', '?', '！', '!', '。', '.', '；', ';', '：', ':', '(', '（', '…', '...', '】', '」', '》', ')', '）'):
         idx = result.find(sep)
         if idx >= 2:
             result = result[:idx].strip()
@@ -151,7 +156,7 @@ def normalize_book_title(title: str) -> str:
             break
 
     # Step 5: 去除包裹符号
-    for ch in ('【', '】', '《', '》', '「', '」', '[', ']'):
+    for ch in ('【', '】', '《', '》', '「', '」', '[', ']', '（', '）', '(', ')'):
         result = result.replace(ch, '')
 
     # Step 6: 去除尾部省略号/句号
