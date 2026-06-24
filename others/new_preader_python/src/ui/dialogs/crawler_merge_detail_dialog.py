@@ -1033,6 +1033,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 self.current_task_id = None
                 if task.status == CrawlStatus.COMPLETED:
                     self.app.call_later(self._on_crawl_completed)
+                    # 自动检查输入框中是否还有剩余ID，如果有则继续爬取（与爬取管理页面逻辑一致）
+                    self.app.call_later(self._check_and_continue_crawl)
                 elif task.status == CrawlStatus.FAILED:
                     self.app.call_later(
                         self.notify,
@@ -1061,6 +1063,35 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self._apply_smart_title()
         except Exception as e:
             logger.error(f"爬取完成回调失败: {e}")
+
+    def _check_and_continue_crawl(self) -> None:
+        """检查输入框中是否还有新ID，如果有则继续爬取（与爬取管理页面逻辑一致）"""
+        try:
+            # 检查是否正在爬取
+            if self.is_crawling:
+                return
+
+            # 获取输入框内容
+            novel_id_input = self.query_one("#md-novel-id-input", Input)
+            novel_ids_input = novel_id_input.value.strip()
+
+            if not novel_ids_input:
+                # 输入框为空，停止爬取
+                return
+
+            from urllib.parse import unquote
+            # 分割多个小说ID
+            novel_ids = [unquote(id.strip()) for id in novel_ids_input.split(',') if id.strip()]
+
+            if not novel_ids:
+                # 没有有效的ID，停止爬取
+                return
+
+            # 有剩余的ID，自动继续爬取
+            logger.info(f"检测到输入框中还有 {len(novel_ids)} 个书籍ID，自动继续爬取")
+            self.app.call_later(self._start_crawl)
+        except Exception as e:
+            logger.error(f"检查并继续爬取失败: {e}")
 
     def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool) -> None:
         """爬取成功通知回调 —— 清理输入框中的已爬取ID"""
