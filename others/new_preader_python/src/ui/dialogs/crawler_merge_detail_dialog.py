@@ -102,6 +102,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
         ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
         ("F", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
+        ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
+        ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
     ]
 
     def __init__(
@@ -233,8 +235,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 Label("", id="merge-detail-status"),
                 # 底部操作按钮
                 Horizontal(
+                    Button(self.i18n.t('duplicate_books.prev_group'), id="prev-group-btn"),
                     Button(self.i18n.t('merge_detail.merge_this'), id="merge-this-btn", variant="primary"),
                     Button(self.i18n.t('merge_detail.skip_this'), id="skip-this-btn"),
+                    Button(self.i18n.t('duplicate_books.next_group'), id="next-group-btn"),
                     Button(self.i18n.t('common.cancel'), id="cancel-all-btn", variant="error"),
                     id="detail-buttons",
                 ),
@@ -563,6 +567,34 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self._refresh_display()
         else:
             self._finish_and_return()
+
+    @on(Button.Pressed, "#prev-group-btn")
+    def on_prev_group(self) -> None:
+        """返回上一组重新处理"""
+        # 先保存当前组的输入状态
+        state = self._group_state[self._current_index]
+        title_input = self.query_one("#merge-title-input", Input)
+        state['merged_title'] = title_input.value.strip()
+
+        if self._current_index > 0:
+            self._current_index -= 1
+            self._refresh_display()
+        else:
+            self.notify(self.i18n.t('duplicate_books.already_first_group'), severity="warning", timeout=2)
+
+    @on(Button.Pressed, "#next-group-btn")
+    def on_next_group(self) -> None:
+        """跳到下一组"""
+        # 先保存当前组的输入状态
+        state = self._group_state[self._current_index]
+        title_input = self.query_one("#merge-title-input", Input)
+        state['merged_title'] = title_input.value.strip()
+
+        if self._current_index + 1 < self._total_groups:
+            self._current_index += 1
+            self._refresh_display()
+        else:
+            self.notify(self.i18n.t('duplicate_books.already_last_group'), severity="warning", timeout=2)
 
     @on(Button.Pressed, "#cancel-all-btn")
     def on_cancel_all(self) -> None:
@@ -1711,6 +1743,14 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def action_skip_this(self) -> None:
         """t键：跳过此组"""
         self.on_skip_this()
+
+    def action_prev_group(self) -> None:
+        """[键：返回上一组"""
+        self.on_prev_group()
+
+    def action_next_group(self) -> None:
+        """]键：下一组"""
+        self.on_next_group()
 
     def action_select_books(self) -> None:
         """X键：选择书籍"""

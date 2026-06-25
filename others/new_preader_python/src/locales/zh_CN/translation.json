@@ -988,6 +988,8 @@
     "delete_selected": "删除选中",
     "next_group": "下一组",
     "prev_group": "上一组",
+    "already_first_group": "已经是第一组了",
+    "already_last_group": "已经是最后一组了",
     "need_at_least_two": "需要至少两本书籍才能检测重复",
     "finding": "正在查找重复书籍...",
     "finding_progress": "正在查找重复书籍: {current}/{total} ({progress}%)",
