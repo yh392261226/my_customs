@@ -1,0 +1,183 @@
+/* ───── 补缺弹窗样式（单屏模式 - 爬取+合并一体化） ───── */
+
+FillMissingDialog {
+    align: center middle;
+}
+
+FillMissingDialog Header { dock: top; height: 1; }
+FillMissingDialog Footer { dock: bottom; height: 1; }
+
+/* ── 主容器 ── */
+FillMissingDialog Container, #fm-container {
+    align: center middle;
+    width: 90%;
+    height: auto;
+    background: $surface;
+    border: solid $primary;
+    padding: 1 2;
+    layout: vertical;
+}
+
+/* ── 标题 ── */
+#fm-title {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 0;
+}
+
+/* ── 书籍信息 ── */
+#fm-book-info, .book-info {
+    width: 100%;
+    min-height: 2;
+    text-align: left;
+    color: $text-muted;
+    text-style: italic;
+    margin-bottom: 0;
+    padding: 0 1;
+}
+.hint-text {
+    width: 100%;
+    height: 1;
+    color: $text-secondary;
+    text-style: italic;
+    margin-top: 0;
+}
+
+.label-text { min-width: 7; height: 3; content-align: center middle; }
+
+/* ═══ 爬取操作行 ═══ */
+#fm-fill-row {
+    width: 100%; height: 3; align: center middle; margin-bottom: 1;
+}
+
+#fm-fill-row > Button { margin: 0 1; min-width: 5; height: 3; }
+#fm-choose-books-btn { background: $primary 60%; min-width: 7; }
+#fm-novel-id-input { margin: 0; width: 25%; min-width: 20; height: 3; background: $accent 80%; }
+#fm-novel-id-input:hover { width: auto; }
+#fm-toggle-crawl-btn { background: $success 70%; min-width: 9; }
+#fm-copy-ids-btn { min-width: 5; background: $surface 80%; }
+#fm-toggle-monitor-btn { background: $secondary 60%; min-width: 7; }
+#fm-browser-select { width: 15; height: 3; margin-left: 1; margin-right: 1; }
+#fm-window-select { width: 25%; min-width: 8; height: 3; margin-right: 1; }
+#fm-window-select:hover { width: auto; }
+#fm-refresh-window-btn { min-width: 5; height: 3; background: $surface 80%; }
+
+/* ═══ 中部左右分栏 ═══ */
+#fm-main-split {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+}
+
+/* ===== 左侧面板：书籍 DataTable + 操作按钮 ===== */
+#fm-left-panel {
+    width: 55%;
+    height: auto;
+    layout: vertical;
+    border: solid $border;
+    padding: 0 1;
+    margin-right: 1;
+}
+#fm-new-books-label { width: 100%; height: 1; color: $text-muted; margin-bottom: 0; }
+
+/* DataTable */
+#fm-books-table {
+    width: 100%;
+    height: 8;
+    border: solid $border;
+}
+
+#fm-books-table .data-table--header {
+    background: $primary 30%;
+    text-style: bold;
+    height: 1;
+}
+
+#fm-books-table .data-table--row:hover {
+    background: $primary 15%;
+}
+
+#fm-books-table .data-table--row-selected {
+    background: $accent 30%;
+}
+
+/* 选择+分配按钮行 */
+#fm-sel-ops-row {
+    width: 100%;
+    height: 3;
+    align: center middle;
+    margin-top: 1;
+}
+#fm-sel-ops-row > Button { margin: 0 1; }
+#fm-select-all-btn { background: $primary 40%; min-width: 6; }
+#fm-assign-front-btn { background: $success 70%; min-width: 6; }
+#fm-assign-middle-btn { background: $warning 70%; min-width: 6; }
+#fm-assign-back-btn { background: $primary 70%; min-width: 6; }
+
+/* ===== 右侧面板：分组显示 + 行号输入 ===== */
+#fm-right-top-panel {
+    width: 42%;
+    height: auto;
+    layout: vertical;
+    border: solid $border;
+    padding: 0 1;
+}
+#fm-group-plan-label {
+    width: 100%; height: 1; color: $accent; text-style: bold; margin-bottom: 0;
+}
+
+.group-display {
+    width: 100%;
+    min-height: 4;
+    max-height: 8;
+    color: $text;
+    border: solid $border;
+    padding: 0 1;
+    overflow-y: auto;
+    margin-bottom: 1;
+}
+
+#fm-middle-line-row {
+    width: 100%; height: 3; align: center middle;
+}
+#fm-middle-line-input { margin: 0; width: 15; height: 3; background: $accent; }
+#fm-middle-preview-btn { min-width: 6; background: $primary 60%; margin-left: 1; }
+
+/* ═══ 搜索+预览区 ═══ */
+#fm-search-row { width: 100%; height: 3; align: center middle; margin-bottom: 1; }
+#fm-search-input { margin: 0; width: 20; min-width: 15; height: 3; }
+#fm-search-btn { min-width: 5; background: $primary 60%; margin-left: 1; }
+#fm-load-preview-btn { min-width: 7; background: $secondary 60%; margin-left: 1; }
+
+/* 预览区 */
+#fm-preview-content {
+    width: 100%;
+    max-height: 6;
+    min-height: 2;
+    border: solid $border;
+    overflow-y: auto;
+    margin-bottom: 1;
+    color: $text;
+    padding: 0 1;
+    text-wrap: wrap;
+}
+
+/* ═══ 底部：新书名 + 按钮 ═══ */
+#fm-rename-row { width: 100%; height: 3; align: left middle; margin-bottom: 1; }
+#fm-rename-row > Label { min-width: 8; text-style: bold; color: $text; padding: 1 0; }
+#fm-new-name-input { margin: 0; width: 30%; min-width: 25; height: 3; background: $accent; }
+#fm-new-name-input:hover { width: auto; }
+#fm-confirm-btn { background: $success; color: $text; min-width: 10; margin-left: 1; margin-right: 2; }
+#fm-confirm-btn:hover { background: $success 80%; }
+
+/* 状态栏 */
+#fm-status { width: 100%; height: 3; text-align: center; color: $text-muted; text-style: italic; margin-top: 0; }
+
+/* 底部按钮 */
+#fm-buttons { width: 100%; height: 3; align: center middle; margin-top: 1; }
+#fm-buttons > Button { margin: 0 1; }
+#fm-cancel-btn { margin: 0; background: $error 80%; color: $text; min-width: 10; }
+#fm-cancel-btn:hover { background: $error; }

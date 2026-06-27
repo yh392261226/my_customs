@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
 from textual.screen import Screen
 
+from src.locales import i18n
 from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select, Switch
@@ -469,7 +470,8 @@ class CrawlerManagementScreen(Screen[None]):
         ("Y", "copy_ids", get_global_i18n().t('crawler.shortcut_Y')),
         ("y", "copy_title", get_global_i18n().t('crawler.shortcut_y')),
         ("v", "preview_book", get_global_i18n().t('crawler.shortcut_v')),
-        ("f", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
+        ("F", "view_current_file", get_global_i18n().t('crawler.shortcut_f')),
+        ("f", "fill_missing", get_global_i18n().t('merge_detail.fill_missing')),
         ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
         ("z", "merge_mode", get_global_i18n().t('crawler.merge_mode')),
@@ -666,8 +668,21 @@ class CrawlerManagementScreen(Screen[None]):
                 history_item = self.crawler_history[item_index]
                 self._preview_book(history_item)
 
+    def action_fill_missing(self) -> None:
+        """f键 - 补缺当前焦点书籍的文件"""
+        table = self.query_one("#crawl-history-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            # 获取当前行对应的 history_item
+            start_index = (self.current_page - 1) * self.items_per_page
+            item_index = start_index + current_row_index
+            if 0 <= item_index < len(self.crawler_history):
+                history_item = self.crawler_history[item_index]
+                self._fill_missing(history_item)
+
     def action_view_current_file(self) -> None:
-        """f键 - 查看当前焦点书籍的文件"""
+        """F键 - 查看当前焦点书籍的文件"""
         table = self.query_one("#crawl-history-table", DataTable)
         current_row_index = getattr(table, 'cursor_row', None)
 
@@ -1071,6 +1086,7 @@ class CrawlerManagementScreen(Screen[None]):
         table.add_column(get_global_i18n().t('crawler.crawl_latest'), key="crawl_latest")
         table.add_column(get_global_i18n().t('crawler.rename_novel'), key="rename_novel")
         table.add_column(get_global_i18n().t('crawler.preview'), key="preview")
+        table.add_column(get_global_i18n().t('merge_detail.fill_missing'), key="fill_missing")
         
         table.zebra_stripes = True
         
@@ -1360,7 +1376,8 @@ class CrawlerManagementScreen(Screen[None]):
                     "retry": get_global_i18n().t('crawler.retry') if item["status"] == get_global_i18n().t('crawler.status_failed') else "",
                     "crawl_latest": get_global_i18n().t('crawler.crawl_latest') if item.get("serial_mode") == 1 and item["status"] == get_global_i18n().t('crawler.status_success') else "",
                     "rename_novel": get_global_i18n().t('crawler.rename') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
-                    "preview": get_global_i18n().t('crawler.preview') if item["status"] == get_global_i18n().t('crawler.status_success') else ""
+                    "preview": get_global_i18n().t('crawler.preview') if item["status"] == get_global_i18n().t('crawler.status_success') else "",
+                    "fill_missing": get_global_i18n().t('merge_detail.fill_missing') if item["status"] == get_global_i18n().t('crawler.status_success') else ""
                 }
                 
                 # 调试：打印row_data
@@ -2605,7 +2622,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 记录合并操作日志
             logger.info(f"合并成功：{len(selected_items)}个文件合并为 {new_title}")
-            
+            self._update_status(f"{get_global_i18n().t('crawler.merge_success')}：{get_global_i18n().t('crawler.merge_counts_to_name', count=len(selected_items), name=new_title)}", "information")
             return True
             
         except Exception as e:
@@ -2713,7 +2730,7 @@ class CrawlerManagementScreen(Screen[None]):
                 self._handle_cell_selection(row_key)
                 
             # 处理其他列的按钮点击
-            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview"]:
+            elif column in ["view_file", "read_book", "browser_read_book", "delete_file", "delete_record", "view_reason", "retry", "rename_novel", "preview", "fill_missing"]:
                 self._handle_button_click(column, row_key)
             
             # 处理连载列点击：切换连载模式
@@ -3111,6 +3128,9 @@ class CrawlerManagementScreen(Screen[None]):
                 self._rename_novel(history_item)
             elif column == "preview":
                 self._preview_book(history_item)
+            elif column == "fill_missing":
+                self.notify(f"填充缺失章节: {row_key}")
+                self._fill_missing(history_item)
                 
         except Exception as e:
             logger.debug(f"处理按钮点击失败: {e}")
@@ -4783,6 +4803,44 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"预览书籍失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.preview_failed')}: {str(e)}", "error")
+
+    def _fill_missing(self, history_item: Dict[str, Any]) -> None:
+        """打开补缺弹窗，对指定书籍进行补缺操作"""
+        try:
+            from src.ui.dialogs.fill_missing_dialog import FillMissingDialog
+
+            def handle_fill_missing_result(result: Optional[Dict[str, Any]]) -> None:
+                if not result:
+                    return
+                action = result.get("action", "")
+                if result.get("success") and action == "merged":
+                    # 合并成功
+                    fill_direction = result.get("fill_direction", "backward")
+                    new_name = result.get("new_name", "")
+                    direction_text = get_global_i18n().t('fill_missing.forward') if fill_direction == "forward" else get_global_i18n().t('fill_missing.backward')
+                    msg = get_global_i18n().t('fill_missing.merge_success').format(
+                        count=len(result.get("merged_files", [])),
+                        direction=direction_text,
+                        name=new_name,
+                    )
+                    self._update_status(msg, "success")
+                    self.app.call_later(self._load_crawl_history)
+                elif action == "cancel":
+                    self._update_status(get_global_i18n().t('crawler.crawl_cancelled'), "information")
+
+            self.app.push_screen(
+                FillMissingDialog(
+                    theme_manager=self.theme_manager,
+                    novel_site=self.novel_site,
+                    target_book=history_item,
+                    db_manager=self.db_manager,
+                ),
+                handle_fill_missing_result
+            )
+
+        except Exception as e:
+            logger.error(f"打开补缺弹窗失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.open_dialog_failed')}: {str(e)}", "error")
     
     async def _retry_crawl_single(self, novel_id: str, proxy_config: Dict[str, Any], history_item: Dict[str, Any]) -> None:
         """异步重试单个小说的爬取"""
