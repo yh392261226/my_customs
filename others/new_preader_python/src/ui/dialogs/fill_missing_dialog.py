@@ -256,7 +256,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             # 定义列（第一列为独立的选择状态列，参考爬取管理页面）
             table.add_column(get_global_i18n().t('batch_ops.selected'), key="selected", width=5)
             table.add_column("#", key="idx", width=4)
-            table.add_column(self.i18n.t('fill_missing.col_title'), key="title", width=26)
+            table.add_column(self.i18n.t('fill_missing.col_title'), key="title", width=40)
             table.add_column(self.i18n.t('fill_missing.col_group'), key="group", width=4)
 
             if not self._crawled_books:

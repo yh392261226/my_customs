@@ -2622,7 +2622,7 @@ class CrawlerManagementScreen(Screen[None]):
             
             # 记录合并操作日志
             logger.info(f"合并成功：{len(selected_items)}个文件合并为 {new_title}")
-            self._update_status(f"{get_global_i18n().t('crawler.merge_success')}：{get_global_i18n().t('crawler.merge_counts_to_name', count=len(selected_items), name=new_title)}", "information")
+            self._update_status(f"{get_global_i18n().t('crawler.merge_success')}：{get_global_i18n().t('crawler.merge_counts_to_name', counts=len(selected_items), name=new_title)}", "information")
             return True
             
         except Exception as e:
