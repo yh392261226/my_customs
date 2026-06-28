@@ -156,6 +156,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._crawler_manager = None  # 延迟初始化
         self._crawling_novel_ids: List[str] = []  # 本次爬取的书籍ID
 
+        # ── 列标题排序相关状态 ──
+        self._sort_column: Optional[str] = None  # 当前排序列 key
+        self._sort_reverse: bool = False  # False=升序, True=降序
+
     # ─── Compose ────────────────────────────────────────────
 
     def compose(self) -> ComposeResult:
@@ -315,15 +319,47 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         table.clear()
 
         if not table.columns:
+            # 排序方向箭头
+            arrow = ""
+            if self._sort_column:
+                arrow = " ▼" if self._sort_reverse else " ▲"
+
             table.add_column("✓", key="selected", width=3)
             table.add_column(self.i18n.t('merge_detail.col_seq'), key="seq", width=4)
-            table.add_column(self.i18n.t('merge_detail.col_book_id'), key="book_id", width=14)
-            table.add_column(self.i18n.t('merge_detail.col_title'), key="title", width=60)
-            table.add_column(self.i18n.t('merge_detail.col_time'), key="time", width=10)
-            table.add_column(self.i18n.t('merge_detail.col_size'), key="size", width=5)
+            table.add_column(
+                (self.i18n.t('merge_detail.col_book_id') + arrow) if self._sort_column == "book_id" else self.i18n.t('merge_detail.col_book_id'),
+                key="book_id", width=14,
+            )
+            table.add_column(
+                (self.i18n.t('merge_detail.col_title') + arrow) if self._sort_column == "title" else self.i18n.t('merge_detail.col_title'),
+                key="title", width=60,
+            )
+            table.add_column(
+                (self.i18n.t('merge_detail.col_time') + arrow) if self._sort_column == "time" else self.i18n.t('merge_detail.col_time'),
+                key="time", width=10,
+            )
+            table.add_column(
+                (self.i18n.t('merge_detail.col_size') + arrow) if self._sort_column == "size" else self.i18n.t('merge_detail.col_size'),
+                key="size", width=5,
+            )
             table.add_column(self.i18n.t('merge_detail.col_preview'), key="preview", width=6)
             table.add_column(self.i18n.t('crawler.shortcut_f'), key="file", width=10)
             table.add_column(self.i18n.t('merge_detail.col_delete'), key="delete", width=10)
+        elif self._sort_column:
+            # 已有列定义时，更新排序列的标题显示箭头
+            arrow = " ▼" if self._sort_reverse else " ▲"
+            col_labels = {
+                "book_id": self.i18n.t('merge_detail.col_book_id'),
+                "title": self.i18n.t('merge_detail.col_title'),
+                "time": self.i18n.t('merge_detail.col_time'),
+                "size": self.i18n.t('merge_detail.col_size'),
+            }
+            base_label = col_labels.get(self._sort_column, '')
+            if base_label:
+                try:
+                    table.set_label(self._sort_column, base_label + arrow)
+                except Exception:
+                    pass
 
         for idx, book in enumerate(books, 1):
             bid = book.get('id')
@@ -515,6 +551,42 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state['books'].sort(key=lambda b: b.get('crawl_time', ''))
         self._refresh_table()
         self._update_status()
+
+    def _sort_books_by_column(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对当前组书籍排序
+
+        Args:
+            column_key: 列 key（book_id / title / time / size）
+            reverse: True=降序, False=升序
+        """
+        from datetime import datetime
+        from urllib.parse import unquote
+
+        state = self._group_state[self._current_index]
+
+        def get_sort_key(book: Dict[str, Any]):
+            if column_key == "book_id":
+                val = book.get('novel_id', '')
+                return unquote(val) if val else ''
+            elif column_key == "title":
+                return book.get('novel_title', '')
+            elif column_key == "time":
+                try:
+                    time_str = book.get('crawl_time', '')
+                    return datetime.strptime(time_str, "%Y-%m-%d %H:%M:%S") if time_str else datetime.min
+                except Exception:
+                    return datetime.min
+            elif column_key == "size":
+                file_path = book.get('file_path', '')
+                if file_path:
+                    try:
+                        return FileUtils.get_file_size(file_path)
+                    except Exception:
+                        pass
+                return book.get('file_size', 0) or 0
+            return ''
+
+        state['books'].sort(key=get_sort_key, reverse=reverse)
 
     @on(Button.Pressed, "#select-all-btn")
     def on_select_all(self) -> None:
@@ -811,6 +883,45 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             return None
         state = self._group_state[self._current_index]
         return next((b for b in state['books'] if b.get('id') == bid), None)
+
+    @on(DataTable.HeaderSelected, "#merge-detail-table")
+    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """数据表格表头点击事件 - 按列排序"""
+        try:
+            column_key = str(event.column_key.value or "")
+
+            # 可排序列
+            sortable_columns = {"book_id", "title", "time", "size"}
+
+            if column_key not in sortable_columns:
+                return
+
+            # 切换排序方向：同列切换，新列默认升序
+            if self._sort_column == column_key:
+                self._sort_reverse = not self._sort_reverse
+            else:
+                self._sort_column = column_key
+                self._sort_reverse = False  # 新列默认升序
+
+            # 执行排序
+            self._sort_books_by_column(column_key, self._sort_reverse)
+
+            # 刷新表格（会显示方向箭头）
+            self._refresh_table()
+
+            # 状态栏提示
+            direction = self.i18n.t('merge_detail.sort_desc') if self._sort_reverse else self.i18n.t('merge_detail.sort_asc')
+            column_names = {
+                "book_id": self.i18n.t('merge_detail.col_book_id'),
+                "title": self.i18n.t('merge_detail.col_title'),
+                "time": self.i18n.t('merge_detail.col_time'),
+                "size": self.i18n.t('merge_detail.col_size'),
+            }
+            col_name = column_names.get(column_key, column_key)
+            status = self.query_one("#merge-detail-status", Label)
+            status.update(f"{col_name} {direction}")
+        except Exception as e:
+            logger.error(f"表头点击排序失败: {e}")
 
     @on(DataTable.CellSelected, "#merge-detail-table")
     def on_data_table_cell_selected(self, event: DataTable.CellSelected) -> None:

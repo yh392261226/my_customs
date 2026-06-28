@@ -1634,6 +1634,8 @@
     "move_up": "上移(↑)",
     "move_down": "下移(↓)",
     "sort_by_time": "按时间排序",
+    "sort_asc": "升序 ↑",
+    "sort_desc": "降序 ↓",
     "select_all": "全选",
     "deselect_all": "取消全选",
     "move_to_pos": "移到第",
