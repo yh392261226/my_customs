@@ -161,18 +161,31 @@ FillMissingDialog Container, #fm-container {
 
 #fm-load-preview-btn { min-width: 7; background: $secondary 60%; margin-left: 1; }
 
-/* 预览区 */
+/* 预览区（DataTable，可点击行号） */
 #fm-preview-content {
     width: 100%;
-    max-height: 6;
-    min-height: 2;
+    height: 14;
     border: solid $border;
-    overflow-y: auto;
-    margin-bottom: 1;
     color: $text;
-    padding: 0 1;
-    text-wrap: wrap;
 }
+
+#fm-preview-content .data-table--header {
+    background: $primary 20%;
+    text-style: bold;
+    height: 1;
+}
+
+/* 预览区数据行悬停效果 */
+#fm-preview-content .data-table--row:hover {
+    background: $primary 15%;
+}
+
+/* 预览区选中行 */
+#fm-preview-content .data-table--row-selected {
+    background: $accent 30%;
+}
+
+/* 搜索匹配高亮行（>>> 前缀的行） */
 
 /* ═══ 底部：新书名 + 按钮 ═══ */
 #fm-rename-row { width: 100%; height: 3; align: left middle; margin-bottom: 1; }

@@ -1741,7 +1741,9 @@
     "quick_pos_middle": "中间 50%",
     "quick_pos_end": "末尾",
     "quick_pos_hint": "快速定位…",
-    "quick_pos_applied": "已定位到{pos}: 第 {line} 行"
+    "quick_pos_applied": "已定位到{pos}: 第 {line} 行",
+    "preview_content_col": "内容",
+    "preview_line_clicked": "已选第 {line} 行作为插入位置"
   },
   "note": {
     "save": "保存",

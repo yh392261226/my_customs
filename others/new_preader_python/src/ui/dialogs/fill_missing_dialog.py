@@ -43,6 +43,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     PREVIEW_MAX_LINES: int = 500
     PREVIEW_CONTEXT_LINES: int = 5
 
+    # 预览区内容列的基础宽度（会根据终端宽度动态调整）
+    PREVIEW_CONTENT_BASE_WIDTH: int = 100
+
     # 分组键
     GROUP_FRONT = "front"
     GROUP_MIDDLE = "middle"
@@ -176,7 +179,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('fill_missing.load_preview_btn'), id="fm-load-preview-btn"),
                     id="fm-search-row",
                 ),
-                Static("", id="fm-preview-content", classes="book-info"),
+                # 预览区（DataTable，支持点击行号设为插入位置）
+                DataTable(id="fm-preview-content"),
 
                 # 底部：新书名 + 合并按钮 + 取消
                 Horizontal(
@@ -584,20 +588,47 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         """中间行号回车触发预览"""
         self.on_middle_preview()
 
+    def _get_preview_content_width(self) -> int:
+        """动态计算预览区内容列的最大可用宽度"""
+        try:
+            # 尝试获取应用/终端的实际宽度
+            app_width = 120  # 默认值
+            if self.app and hasattr(self.app, 'size') and self.app.size:
+                app_width = self.app.size.width
+            elif hasattr(self, 'size') and self.size:
+                app_width = self.size.width
+
+            # 减去行号列宽度（6）、边距（约10）、表格边框等
+            content_width = max(60, app_width - 18)
+            # 限制最大宽度，避免过宽影响布局
+            return min(content_width, self.PREVIEW_CONTENT_BASE_WIDTH)
+        except Exception:
+            return self.PREVIEW_CONTENT_BASE_WIDTH
+
     def _show_line_context(self, line_num: int) -> None:
-        """显示指定行的上下文内容"""
+        """显示指定行的上下文内容到 DataTable"""
         if not self._target_lines:
             return
         try:
+            table = self.query_one("#fm-preview-content", DataTable)
+            table.clear(columns=True)
+
+            content_width = self._get_preview_content_width()
+            table.add_column("#", key="line_num", width=6)
+            table.add_column(
+                self.i18n.t('fill_missing.preview_content_col'),
+                key="content",
+                width=content_width,
+            )
+
             start = max(1, line_num - self.PREVIEW_CONTEXT_LINES)
             end = min(len(self._target_lines), line_num + self.PREVIEW_CONTEXT_LINES)
-            content_parts = []
             for i in range(start, end + 1):
-                marker = " >>> " if i == line_num else "     "
-                text = self._target_lines[i - 1]
-                content_parts.append(f"{marker}{i:>4}: {text}")
-            preview_el = self.query_one("#fm-preview-content", Static)
-            preview_el.update("\n".join(content_parts))
+                text = self._target_lines[i - 1].rstrip()
+                row_str = str(i)
+                if i == line_num:
+                    row_str = f">>> {row_str}"
+                table.add_row(row_str, text, key=str(i))
         except Exception as e:
             logger.error(f"显示行上下文失败: {e}")
 
@@ -635,33 +666,65 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             pass
 
     def _load_target_preview(self) -> None:
-        """加载目标文件内容到预览区"""
+        """加载目标文件内容到预览区（DataTable）"""
         try:
             t_file = self.target_book.get('file_path', '')
+            table = self.query_one("#fm-preview-content", DataTable)
+            table.clear(columns=True)
+
+            content_width = self._get_preview_content_width()
+
             if not t_file or not os.path.exists(t_file):
-                preview_el = self.query_one("#fm-preview-content", Static)
-                preview_el.update(f"  {self.i18n.t('fill_missing.file_not_found_for_preview')}")
+                table.add_column("#", key="line_num", width=6)
+                table.add_column(
+                    self.i18n.t('fill_missing.preview_content_col'),
+                    key="content",
+                    width=content_width,
+                )
+                table.add_row("?", f"  {self.i18n.t('fill_missing.file_not_found_for_preview')}", key="err")
                 self._target_lines = []
                 return
 
             with open(t_file, 'r', encoding='utf-8') as f:
                 self._target_lines = f.readlines()
 
-            # 显示前 N 行作为预览
-            display_count = min(len(self._target_lines), self.PREVIEW_MAX_LINES)
-            content_parts = []
-            for i in range(display_count):
-                content_parts.append(f"{i + 1:>4}: {self._target_lines[i].rstrip()}")
-            if len(self._target_lines) > self.PREVIEW_MAX_LINES:
-                content_parts.append(f"\n  ... ({self.i18n.t('fill_missing.more_lines').format(more=len(self._target_lines) - self.PREVIEW_MAX_LINES)})")
+            # 定义列（动态宽度）
+            table.add_column("#", key="line_num", width=6)
+            table.add_column(
+                self.i18n.t('fill_missing.preview_content_col'),
+                key="content",
+                width=content_width,
+            )
 
-            preview_el = self.query_one("#fm-preview-content", Static)
-            preview_el.update("\n".join(content_parts))
+            total = len(self._target_lines)
+            display_count = min(total, self.PREVIEW_MAX_LINES)
+            for i in range(display_count):
+                line_text = self._target_lines[i].rstrip()
+                row_key = str(i + 1)  # 用行号作为 key
+                table.add_row(str(i + 1), line_text, key=row_key)
+
+            if total > self.PREVIEW_MAX_LINES:
+                table.add_row(
+                    "",
+                    f"  ... {self.i18n.t('fill_missing.more_lines').format(more=total - self.PREVIEW_MAX_LINES)}",
+                    key="more",
+                )
 
         except Exception as e:
             logger.error(f"加载预览失败: {e}")
-            preview_el = self.query_one("#fm-preview-content", Static)
-            preview_el.update(f"  Error: {e}")
+            try:
+                table = self.query_one("#fm-preview-content", DataTable)
+                table.clear(columns=True)
+                content_width = self._get_preview_content_width()
+                table.add_column("#", key="line_num", width=6)
+                table.add_column(
+                    self.i18n.t('fill_missing.preview_content_col'),
+                    key="content",
+                    width=content_width,
+                )
+                table.add_row("?", f"  Error: {e}", key="err")
+            except Exception:
+                pass
             self._target_lines = []
 
     def _do_search(self, keyword: str) -> None:
@@ -690,27 +753,39 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         self._display_current_search_result()
 
     def _display_current_search_result(self) -> None:
-        """显示当前搜索结果的上下文（带导航状态）"""
+        """显示当前搜索结果的上下文到 DataTable（带导航状态）"""
         if not self._search_matches or self._search_current_match < 0 or self._search_current_match >= len(self._search_matches):
             return
 
         line_num = self._search_matches[self._search_current_match]
+        table = self.query_one("#fm-preview-content", DataTable)
+        table.clear(columns=True)
 
-        # 显示上下文
-        parts = []
         total = len(self._search_matches)
         kw = self._current_search_keyword or ""
-        parts.append(f"[{self.i18n.t('fill_missing.search_result_nav').format(current=self._search_current_match + 1, total=total, kw=kw)}]")
+        content_width = self._get_preview_content_width()
 
+        # 表头行作为状态提示（动态宽度）
+        table.add_column("#", key="line_num", width=6)
+        table.add_column(
+            self.i18n.t('fill_missing.preview_content_col'),
+            key="content",
+            width=content_width,
+        )
+
+        # 状态行
+        status_text = f"🔍 {self.i18n.t('fill_missing.search_result_nav').format(current=self._search_current_match + 1, total=total, kw=kw)}"
+        table.add_row("", status_text, key="status")
+
+        # 上下文行
         start = max(0, line_num - self.PREVIEW_CONTEXT_LINES)
         end = min(len(self._target_lines), line_num + self.PREVIEW_CONTEXT_LINES)
         for i in range(start, end):
-            marker = " >>> " if i == line_num - 1 else "     "
-            parts.append(f"{marker}{i + 1:>4}: {self._target_lines[i].rstrip()}")
-        parts.append("")
-
-        preview_el = self.query_one("#fm-preview-content", Static)
-        preview_el.update("\n".join(parts))
+            line_text = self._target_lines[i].rstrip()
+            row_num_str = str(i + 1)
+            if i == line_num - 1:
+                row_num_str = f">>> {row_num_str}"
+            table.add_row(row_num_str, line_text, key=str(i + 1))
 
         # 自动填入中间组行号
         self._insert_groups[self.GROUP_MIDDLE]["line"] = line_num
@@ -778,6 +853,33 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             severity="information",
             timeout=2,
         )
+
+    # ─── 预览 DataTable 行点击事件 ─────────────────────────
+
+    @on(DataTable.RowSelected, "#fm-preview-content")
+    def on_preview_row_selected(self, event: DataTable.RowSelected) -> None:
+        """点击预览区行号 → 自动填入中间组插入位置"""
+        try:
+            row_key = str(event.row_key.value) if event.row_key else ""
+            if not row_key or not row_key.isdigit():
+                return
+            line_num = int(row_key)
+            if line_num < 1:
+                return
+
+            # 设为中间组行号
+            self._insert_groups[self.GROUP_MIDDLE]["line"] = line_num
+            line_input = self.query_one("#fm-middle-line-input", Input)
+            line_input.value = str(line_num)
+
+            # 高亮提示
+            self.notify(
+                self.i18n.t('fill_missing.preview_line_clicked').format(line=line_num),
+                severity="information",
+                timeout=2,
+            )
+        except Exception as e:
+            logger.debug(f"预览行点击处理失败: {e}")
 
     # ─── 快速定位 Select ──────────────────────────────────────
 

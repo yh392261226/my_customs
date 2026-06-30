@@ -1670,7 +1670,9 @@
     "quick_pos_middle": "Middle 50%",
     "quick_pos_end": "End",
     "quick_pos_hint": "Quick pos…",
-    "quick_pos_applied": "Jumped to {pos}: line {line}"
+    "quick_pos_applied": "Jumped to {pos}: line {line}",
+    "preview_content_col": "Content",
+    "preview_line_clicked": "Line {line} selected as insert position"
   },
   "note": {
     "save": "Save",
