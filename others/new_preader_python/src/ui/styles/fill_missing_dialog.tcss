@@ -146,7 +146,7 @@ FillMissingDialog Container, #fm-container {
 #fm-middle-line-input { margin: 0; width: 12; height: 3; background: $accent; }
 #fm-middle-preview-btn { min-width: 6; background: $primary 60%; margin-left: 1; }
 /* 快速定位下拉框 */
-#fm-quick-pos-select { width: 14; height: 3; margin-left: 1; }
+#fm-quick-pos-select { width: 20; height: 3; margin-left: 1; }
 
 /* ═══ 搜索+预览区（含导航） ═══ */
 #fm-search-row { width: 100%; height: 3; align: center middle; margin-bottom: 1; }
