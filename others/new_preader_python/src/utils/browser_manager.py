@@ -134,11 +134,23 @@ class BrowserManager:
                     # Brave 使用应用程序名称
                     subprocess.run(["open", "-a", "Brave Browser", url], check=True)
                 else:
-                    # 其他浏览器使用路径
+                    # 获取浏览器路径
+                    browser_path = cls.get_browser_path(browser_name)
+                    if not browser_path:
+                        logger.error(f"未找到浏览器 {browser_name} 的路径")
+                        return False
                     subprocess.run(["open", "-a", browser_path, url], check=True)
             elif system == "Windows":  # Windows
+                browser_path = cls.get_browser_path(browser_name)
+                if not browser_path:
+                    logger.error(f"未找到浏览器 {browser_name} 的路径")
+                    return False
                 subprocess.run([browser_path, url], check=True)
             else:  # Linux
+                browser_path = cls.get_browser_path(browser_name)
+                if not browser_path:
+                    logger.error(f"未找到浏览器 {browser_name} 的路径")
+                    return False
                 subprocess.run([browser_path, url], check=True)
             
             logger.info(f"成功使用 {browser_name} 打开URL: {url}")

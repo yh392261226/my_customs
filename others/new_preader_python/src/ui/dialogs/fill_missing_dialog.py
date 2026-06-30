@@ -21,6 +21,7 @@ from textual import events
 
 from src.locales.i18n_manager import get_global_i18n
 from src.utils.logger import get_logger
+from src.utils.visual_merge_helper import VisualMergeHelper
 
 logger = get_logger(__name__)
 
@@ -37,6 +38,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         ("/", "search_preview", get_global_i18n().t('fill_missing.search_key')),
         ("a", "toggle_select_all", get_global_i18n().t('fill_missing.toggle_select_shortcut')),
         ("space", "toggle_row", get_global_i18n().t('fill_missing.toggle_row_shortcut')),
+        ("v", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
     ]
 
     # 预览最大行数（避免超大文件导致性能问题）
@@ -177,6 +179,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     Button("▶", id="fm-search-next-btn", variant="default"),
                     Button(self.i18n.t('fill_missing.set_as_insert_pos'), id="fm-set-insert-pos-btn", variant="warning"),
                     Button(self.i18n.t('fill_missing.load_preview_btn'), id="fm-load-preview-btn"),
+                    Button(self.i18n.t('fill_missing.visual_merge_btn'), id="fm-visual-merge-btn", variant="success"),
                     id="fm-search-row",
                 ),
                 # 预览区（DataTable，支持点击行号设为插入位置）
@@ -651,6 +654,129 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def on_load_preview(self):
         """重新加载完整预览"""
         self._load_target_preview()
+
+    @on(Button.Pressed, "#fm-visual-merge-btn")
+    def on_visual_merge(self):
+        """在浏览器中打开可视化拖拽补缺页面"""
+        self._open_visual_merge()
+
+    def _open_visual_merge(self) -> None:
+        """启动浏览器可视化补缺工具"""
+        try:
+            # 确保有目标文件内容
+            if not self._target_lines:
+                t_file = self.target_book.get('file_path', '')
+                if t_file and os.path.exists(t_file):
+                    with open(t_file, 'r', encoding='utf-8') as f:
+                        self._target_lines = f.readlines()
+                else:
+                    self.notify(self.i18n.t('fill_missing.no_target_for_visual'), severity="warning", timeout=3)
+                    return
+
+            helper = VisualMergeHelper.get_instance()
+
+            # 定义回调：浏览器确认后更新分组数据
+            def on_visual_result(data: Dict[str, Any]) -> None:
+                self._apply_visual_merge_result(data)
+
+            success = helper.open_visual_merge(
+                target_file_path=self.target_book.get('file_path', ''),
+                target_lines=self._target_lines,
+                crawled_books=self._crawled_books,
+                existing_groups={
+                    "front": {"books": self._insert_groups[self.GROUP_FRONT]["books"], "line": None},
+                    "middle": {"books": self._insert_groups[self.GROUP_MIDDLE]["books"], "line": self._insert_groups[self.GROUP_MIDDLE]["line"]},
+                    "back": {"books": self._insert_groups[self.GROUP_BACK]["books"], "line": None},
+                },
+                callback=on_visual_result,
+            )
+
+            if success:
+                self.notify(
+                    self.i18n.t('fill_missing.visual_merge_opened'),
+                    severity="information",
+                    timeout=4,
+                )
+            else:
+                self.notify(self.i18n.t('fill_missing.visual_merge_failed'), severity="error", timeout=3)
+
+        except Exception as e:
+            logger.error(f"打开可视化补缺失败: {e}")
+            self.notify(f"{self.i18n.t('fill_missing.visual_merge_failed')}: {e}", severity="error", timeout=4)
+
+    def _apply_visual_merge_result(self, data: Dict[str, Any]) -> None:
+        """应用从浏览器返回的可视化补缺结果"""
+        try:
+            # 清空现有分组
+            for gkey in (self.GROUP_FRONT, self.GROUP_MIDDLE, self.GROUP_BACK):
+                self._insert_groups[gkey]["books"] = []
+
+            # 应用前置区书籍
+            front_books = data.get("front_books") or []
+            for book in front_books:
+                idx = book.get("index")
+                if idx is not None and idx < len(self._crawled_books):
+                    self._insert_groups[self.GROUP_FRONT]["books"].append(idx)
+
+            # 应用中间区书籍 + 行号
+            middle_books = data.get("middle_books") or []
+            for book in middle_books:
+                idx = book.get("index")
+                if idx is not None and idx < len(self._crawled_books):
+                    self._insert_groups[self.GROUP_MIDDLE]["books"].append(idx)
+            mid_line = data.get("middle_line")
+            if mid_line is not None:
+                self._insert_groups[self.GROUP_MIDDLE]["line"] = int(mid_line)
+                # 同步行号到输入框
+                try:
+                    line_input = self.query_one("#fm-middle-line-input", Input)
+                    line_input.value = str(mid_line)
+                except Exception:
+                    pass
+                # 高亮显示该行上下文
+                self._show_line_context(int(mid_line))
+
+            # 应用后置区书籍
+            back_books = data.get("back_books") or []
+            for book in back_books:
+                idx = book.get("index")
+                if idx is not None and idx < len(self._crawled_books):
+                    self._insert_groups[self.GROUP_BACK]["books"].append(idx)
+
+            # 应用新标题
+            new_title = data.get("new_title")
+            if new_title:
+                try:
+                    name_input = self.query_one("#fm-new-name-input", Input)
+                    name_input.value = new_title
+                except Exception:
+                    pass
+
+            # 刷新所有显示
+            self._refresh_books_list_display()
+            self._refresh_group_display()
+
+            f_count = len(self._insert_groups[self.GROUP_FRONT]["books"])
+            m_count = len(self._insert_groups[self.GROUP_MIDDLE]["books"])
+            b_count = len(self._insert_groups[self.GROUP_BACK]["books"])
+
+            self.notify(
+                self.i18n.t('fill_missing.visual_merge_applied').format(
+                    front=f_count, middle=m_count, back=b_count, line=mid_line or "-"
+                ),
+                severity="success",
+                timeout=5,
+            )
+            logger.info(
+                f"可视化补缺结果已应用: 前{f_count}+中{m_count}@L{mid_line or '?'}+后{b_count}"
+            )
+            
+            # 自动执行合并
+            self.app.call_later(self._execute_merge)
+
+        except Exception as e:
+            logger.error(f"应用可视化补缺结果失败: {e}", exc_info=True)
+            self.notify(f"应用失败: {e}", severity="error", timeout=3)
 
     @on(Input.Submitted, "#fm-search-input")
     def on_search_submitted(self):
@@ -1676,6 +1802,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     # ─── 快捷键 ─────────────────────────────────────────
 
     def action_cancel(self): self.on_cancel()
+
+    def action_visual_merge(self):
+        """快捷键 v: 打开可视化补缺"""
+        if self._stage == "merge":
+            self._open_visual_merge()
 
     def action_toggle_crawl(self):
         if self.is_crawling: self._stop_crawl()

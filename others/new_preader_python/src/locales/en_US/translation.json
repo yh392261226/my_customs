@@ -1672,7 +1672,12 @@
     "quick_pos_hint": "Quick pos…",
     "quick_pos_applied": "Jumped to {pos}: line {line}",
     "preview_content_col": "Content",
-    "preview_line_clicked": "Line {line} selected as insert position"
+    "preview_line_clicked": "Line {line} selected as insert position",
+    "visual_merge_btn": "🖥️ Visual Merge",
+    "visual_merge_opened": "Visual merge page opened in browser — drag books to zones and confirm",
+    "visual_merge_failed": "Failed to open visual merge page",
+    "no_target_for_visual": "Target file not found or empty, cannot open visual merge",
+    "visual_merge_applied": "Visual result applied: {front} front + {middle} middle@L{line} + {back} back"
   },
   "note": {
     "save": "Save",

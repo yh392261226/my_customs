@@ -160,6 +160,7 @@ FillMissingDialog Container, #fm-container {
 #fm-set-insert-pos-btn { min-width: 8; background: $warning 70%; margin-left: 1; }
 
 #fm-load-preview-btn { min-width: 7; background: $secondary 60%; margin-left: 1; }
+#fm-visual-merge-btn { min-width: 10; background: $success 60%; margin-left: 1; }
 
 /* 预览区（DataTable，可点击行号） */
 #fm-preview-content {
