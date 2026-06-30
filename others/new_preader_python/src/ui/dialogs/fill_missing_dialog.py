@@ -87,6 +87,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         }
         self._target_lines: List[str] = []  # 目标文件按行分割的内容
 
+        # ── 搜索导航状态 ──
+        self._search_matches: List[int] = []  # 匹配的行号列表
+        self._search_current_match: int = -1  # 当前显示的匹配索引（0-based，-1=无）
+        self._current_search_keyword: str = ""  # 当前的搜索关键词
+
     # ─── Compose ────────────────────────────────────────────
 
     def compose(self) -> ComposeResult:
@@ -138,11 +143,21 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     Vertical(
                         Label(self.i18n.t('fill_missing.group_plan'), id="fm-group-plan-label"),
                         Static("", id="fm-group-display", classes="group-display"),
-                        # 中间组的行号输入
+                        # 中间组的行号输入 + 快速定位
                         Horizontal(
                             Label(f"{self.i18n.t('fill_missing.middle_line')}:", classes="label-text"),
                             Input(placeholder=self.i18n.t('fill_missing.line_placeholder'), id="fm-middle-line-input"),
                             Button(self.i18n.t('fill_missing.preview_btn'), id="fm-middle-preview-btn"),
+                            Select(
+                                id="fm-quick-pos-select",
+                                options=[
+                                    (self.i18n.t('fill_missing.quick_pos_hint'), ""),
+                                    (self.i18n.t('fill_missing.quick_pos_beginning'), "beginning"),
+                                    (self.i18n.t('fill_missing.quick_pos_middle'), "middle"),
+                                    (self.i18n.t('fill_missing.quick_pos_end'), "end"),
+                                ],
+                                value="",
+                            ),
                             id="fm-middle-line-row",
                         ),
                         id="fm-right-top-panel",
@@ -150,10 +165,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     id="fm-main-split",
                 ),
 
-                # 搜索+预览区
+                # 搜索+预览区（含导航按钮）
                 Horizontal(
                     Input(placeholder=self.i18n.t('fill_missing.search_placeholder'), id="fm-search-input"),
                     Button(self.i18n.t('fill_missing.search_btn'), id="fm-search-btn"),
+                    Button("◀", id="fm-search-prev-btn", variant="default"),
+                    Label("", id="fm-search-match-label", classes="label-text"),
+                    Button("▶", id="fm-search-next-btn", variant="default"),
+                    Button(self.i18n.t('fill_missing.set_as_insert_pos'), id="fm-set-insert-pos-btn", variant="warning"),
                     Button(self.i18n.t('fill_missing.load_preview_btn'), id="fm-load-preview-btn"),
                     id="fm-search-row",
                 ),
@@ -646,42 +665,155 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             self._target_lines = []
 
     def _do_search(self, keyword: str) -> None:
-        """执行搜索并在预览中高亮结果"""
+        """执行搜索，保存全部匹配结果，显示当前匹配项"""
         if not self._target_lines:
             self._load_target_preview()
 
-        matches = []  # [(line_num, line_text)]
+        # 搜索全部匹配
         keyword_lower = keyword.lower()
+        matches = []
         for idx, line in enumerate(self._target_lines):
             if keyword_lower in line.lower():
-                matches.append((idx + 1, line.rstrip()))
+                matches.append(idx + 1)  # 1-based 行号
+
+        self._search_matches = matches
+        self._current_search_keyword = keyword
 
         if not matches:
+            self._search_current_match = -1
+            self._update_search_nav_ui()
             self._update_status_text(self.i18n.t('fill_missing.no_match'))
             return
 
-        # 显示匹配结果的上下文
+        # 默认显示第一个匹配
+        self._search_current_match = 0
+        self._display_current_search_result()
+
+    def _display_current_search_result(self) -> None:
+        """显示当前搜索结果的上下文（带导航状态）"""
+        if not self._search_matches or self._search_current_match < 0 or self._search_current_match >= len(self._search_matches):
+            return
+
+        line_num = self._search_matches[self._search_current_match]
+
+        # 显示上下文
         parts = []
-        parts.append(f"[{self.i18n.t('fill_missing.found_matches').format(count=len(matches), kw=keyword)}]")
-        for line_num, text in matches[:20]:
-            start = max(0, line_num - 2)
-            end = min(len(self._target_lines), line_num + 2)
-            for i in range(start, end):
-                marker = " >>> " if i == line_num - 1 else "     "
-                parts.append(f"{marker}{i + 1:>4}: {self._target_lines[i].rstrip()}")
-            parts.append("")
-        if len(matches) > 20:
-            parts.append(f"... (+{len(matches) - 20})")
+        total = len(self._search_matches)
+        kw = self._current_search_keyword or ""
+        parts.append(f"[{self.i18n.t('fill_missing.search_result_nav').format(current=self._search_current_match + 1, total=total, kw=kw)}]")
+
+        start = max(0, line_num - self.PREVIEW_CONTEXT_LINES)
+        end = min(len(self._target_lines), line_num + self.PREVIEW_CONTEXT_LINES)
+        for i in range(start, end):
+            marker = " >>> " if i == line_num - 1 else "     "
+            parts.append(f"{marker}{i + 1:>4}: {self._target_lines[i].rstrip()}")
+        parts.append("")
 
         preview_el = self.query_one("#fm-preview-content", Static)
         preview_el.update("\n".join(parts))
 
-        # 自动填入中间组的行号（第一个匹配）
-        first_line = matches[0][0]
-        self._insert_groups[self.GROUP_MIDDLE]["line"] = first_line
+        # 自动填入中间组行号
+        self._insert_groups[self.GROUP_MIDDLE]["line"] = line_num
         try:
             line_input = self.query_one("#fm-middle-line-input", Input)
-            line_input.value = str(first_line)
+            line_input.value = str(line_num)
+        except Exception:
+            pass
+
+        # 更新导航按钮状态和标签
+        self._update_search_nav_ui()
+
+    def _update_search_nav_ui(self) -> None:
+        """更新搜索导航 UI（标签文字、按钮可用状态）"""
+        try:
+            label = self.query_one("#fm-search-match-label", Label)
+            prev_btn = self.query_one("#fm-search-prev-btn", Button)
+            next_btn = self.query_one("#fm-search-next-btn", Button)
+            set_pos_btn = self.query_one("#fm-set-insert-pos-btn", Button)
+
+            total = len(self._search_matches)
+            if total > 0 and 0 <= self._search_current_match < total:
+                label.update(f"{self._search_current_match + 1}/{total}")
+                prev_btn.disabled = (self._search_current_match <= 0)
+                next_btn.disabled = (self._search_current_match >= total - 1)
+                set_pos_btn.disabled = False
+            else:
+                label.update("")
+                prev_btn.disabled = True
+                next_btn.disabled = True
+                set_pos_btn.disabled = True
+        except Exception:
+            pass
+
+    # ─── 搜索导航按钮事件 ─────────────────────────────────
+
+    @on(Button.Pressed, "#fm-search-prev-btn")
+    def on_search_prev(self):
+        """上一条搜索结果"""
+        if self._search_current_match > 0:
+            self._search_current_match -= 1
+            self._display_current_search_result()
+
+    @on(Button.Pressed, "#fm-search-next-btn")
+    def on_search_next(self):
+        """下一条搜索结果"""
+        if self._search_matches and self._search_current_match < len(self._search_matches) - 1:
+            self._search_current_match += 1
+            self._display_current_search_result()
+
+    @on(Button.Pressed, "#fm-set-insert-pos-btn")
+    def on_set_insert_pos(self):
+        """将当前搜索结果行号设为中间组插入位置（并提示确认）"""
+        if not self._search_matches or self._search_current_match < 0 or self._search_current_match >= len(self._search_matches):
+            return
+        line_num = self._search_matches[self._search_current_match]
+        self._insert_groups[self.GROUP_MIDDLE]["line"] = line_num
+        try:
+            line_input = self.query_one("#fm-middle-line-input", Input)
+            line_input.value = str(line_num)
+        except Exception:
+            pass
+        self.notify(
+            self.i18n.t('fill_missing.insert_pos_set').format(line=line_num),
+            severity="information",
+            timeout=2,
+        )
+
+    # ─── 快速定位 Select ──────────────────────────────────────
+
+    @on(Select.Changed, "#fm-quick-pos-select")
+    def on_quick_pos_changed(self, event: Select.Changed):
+        """快速定位下拉框：开头 / 中间(50%) / 末尾"""
+        if not self._target_lines or event.value is None or not event.value:
+            return
+        total_lines = len(self._target_lines)
+        pos = event.value  # "beginning" | "middle" | "end"
+        if pos == "beginning":
+            target = 1
+        elif pos == "middle":
+            target = max(1, total_lines // 2)
+        elif pos == "end":
+            target = max(1, total_lines)
+        else:
+            return
+
+        self._insert_groups[self.GROUP_MIDDLE]["line"] = target
+        try:
+            line_input = self.query_one("#fm-middle-line-input", Input)
+            line_input.value = str(target)
+        except Exception:
+            pass
+        # 显示该位置的上下文预览
+        self._show_line_context(target)
+        self.notify(
+            self.i18n.t('fill_missing.quick_pos_applied').format(pos=pos, line=target),
+            severity="information",
+            timeout=2,
+        )
+        # 重置下拉框为空白状态，避免下次误操作
+        try:
+            sel = self.query_one("#fm-quick-pos-select", Select)
+            sel.value = ""
         except Exception:
             pass
 

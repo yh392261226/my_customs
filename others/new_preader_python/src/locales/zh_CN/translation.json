@@ -1733,7 +1733,15 @@
     "cached_found": "📦 已有记录: {title}，直接复用",
     "cached_skip_hint": "{count}本已有记录已跳过",
     "all_already_crawled": "全部 {count} 本书籍已有爬取记录，直接进入合并阶段",
-    "books_in_table": "表格中共 {count} 本书籍"
+    "books_in_table": "表格中共 {count} 本书籍",
+    "search_result_nav": "搜索「{kw}」: 第 {current}/{total} 个匹配",
+    "set_as_insert_pos": "设为插入位置",
+    "insert_pos_set": "已设中间组行号为第 {line} 行",
+    "quick_pos_beginning": "开头",
+    "quick_pos_middle": "中间 50%",
+    "quick_pos_end": "末尾",
+    "quick_pos_hint": "快速定位…",
+    "quick_pos_applied": "已定位到{pos}: 第 {line} 行"
   },
   "note": {
     "save": "保存",

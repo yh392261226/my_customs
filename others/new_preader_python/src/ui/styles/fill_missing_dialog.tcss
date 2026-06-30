@@ -143,13 +143,22 @@ FillMissingDialog Container, #fm-container {
 #fm-middle-line-row {
     width: 100%; height: 3; align: center middle;
 }
-#fm-middle-line-input { margin: 0; width: 15; height: 3; background: $accent; }
+#fm-middle-line-input { margin: 0; width: 12; height: 3; background: $accent; }
 #fm-middle-preview-btn { min-width: 6; background: $primary 60%; margin-left: 1; }
+/* 快速定位下拉框 */
+#fm-quick-pos-select { width: 14; height: 3; margin-left: 1; }
 
-/* ═══ 搜索+预览区 ═══ */
+/* ═══ 搜索+预览区（含导航） ═══ */
 #fm-search-row { width: 100%; height: 3; align: center middle; margin-bottom: 1; }
 #fm-search-input { margin: 0; width: 20; min-width: 15; height: 3; }
 #fm-search-btn { min-width: 5; background: $primary 60%; margin-left: 1; }
+
+/* 搜索导航按钮 */
+#fm-search-prev-btn { min-width: 2; margin-left: 1; padding: 0 1; }
+#fm-search-match-label { min-width: 4; text-align: center; content-align: center middle; height: 3; color: $accent; text-style: bold; }
+#fm-search-next-btn { min-width: 2; margin-left: 1; padding: 0 1; }
+#fm-set-insert-pos-btn { min-width: 8; background: $warning 70%; margin-left: 1; }
+
 #fm-load-preview-btn { min-width: 7; background: $secondary 60%; margin-left: 1; }
 
 /* 预览区 */

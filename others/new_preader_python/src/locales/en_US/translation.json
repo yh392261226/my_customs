@@ -1662,7 +1662,15 @@
     "cached_found": "📦 Cached: {title}, reusing directly",
     "cached_skip_hint": "{count} cached, skipped",
     "all_already_crawled": "All {count} books already crawled, entering merge stage",
-    "books_in_table": "{count} books in table"
+    "books_in_table": "{count} books in table",
+    "search_result_nav": "Search \"{kw}\": match {current}/{total}",
+    "set_as_insert_pos": "Set as Insert Pos",
+    "insert_pos_set": "Middle group line set to {line}",
+    "quick_pos_beginning": "Beginning",
+    "quick_pos_middle": "Middle 50%",
+    "quick_pos_end": "End",
+    "quick_pos_hint": "Quick pos…",
+    "quick_pos_applied": "Jumped to {pos}: line {line}"
   },
   "note": {
     "save": "Save",
