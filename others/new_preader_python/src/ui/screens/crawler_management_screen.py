@@ -7,6 +7,7 @@ import glob
 import subprocess
 import platform
 import asyncio
+import re
 from send2trash import send2trash
 from typing import Dict, Any, Optional, List, ClassVar, Set
 from urllib.parse import unquote
@@ -476,6 +477,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
         ("z", "merge_mode", get_global_i18n().t('crawler.merge_mode')),
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
+        ("m", "format_title", get_global_i18n().t('crawler.format_title')),
     ]
 
     def action_open_browser(self) -> None:
@@ -654,6 +656,27 @@ class CrawlerManagementScreen(Screen[None]):
     def action_copy_title(self) -> None:
         # y键复制当前焦点书籍标题
         self._copy_focused_novel_title()
+
+    def action_format_title(self) -> None:
+        """m键 - 格式化书籍标题（支持批量操作）"""
+        # 检查是否有选中的记录
+        if self.selected_history:
+            # 批量格式化选中的记录
+            self._batch_format_titles()
+        else:
+            # 单条记录格式化
+            table = self.query_one("#crawl-history-table", DataTable)
+            current_row_index = getattr(table, 'cursor_row', None)
+            
+            if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+                # 获取当前行对应的history_item
+                start_index = (self.current_page - 1) * self.items_per_page
+                item_index = start_index + current_row_index
+                if 0 <= item_index < len(self.crawler_history):
+                    history_item = self.crawler_history[item_index]
+                    self._format_title(history_item)
+            else:
+                self._update_status(get_global_i18n().t('crawler.format_title_no_selection'), "error")
 
     def action_preview_book(self) -> None:
         """v键 - 预览当前焦点书籍"""
@@ -4751,6 +4774,294 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"重命名小说失败: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.rename_failed')}: {str(e)}", "error")
+    
+    def _format_title(self, history_item: Dict[str, Any]) -> None:
+        """格式化书名标题为【书名】 (1-4) 作者：XXX格式，并同步到书库"""
+        try:
+            current_title = history_item.get('novel_title', '')
+            history_id = history_item.get('id')
+            file_path = history_item.get('file_path', '')
+            
+            if not current_title or not history_id:
+                self._update_status(get_global_i18n().t('crawler.format_title_invalid'), "error")
+                return
+            
+            # 智能格式化书名
+            formatted_title = self._format_book_title(current_title)
+            
+            if not formatted_title:
+                self._update_status(get_global_i18n().t('crawler.format_title_failed'), "error")
+                return
+            
+            # 更新数据库中的小说标题
+            if self.db_manager.update_crawl_history_full(history_id, novel_title=formatted_title):
+                # 更新内存中的数据
+                for item in self.crawler_history:
+                    if item.get("id") == history_id:
+                        item["novel_title"] = formatted_title
+                        break
+                
+                # 如果文件路径有效且存在，同步更新书库中的书籍标题
+                if file_path and file_path != 'already_exists' and os.path.exists(file_path):
+                    try:
+                        # 获取 bookshelf 实例
+                        bookshelf = getattr(self.app, "bookshelf", None)
+                        if bookshelf and hasattr(bookshelf, "rename_book"):
+                            # 从原始文件名中提取时间戳（如果有）
+                            old_file_name = os.path.basename(file_path)
+                            old_file_name_without_ext = os.path.splitext(old_file_name)[0]
+                            
+                            # 检查是否有时间戳格式 _YYYYMMDD_HHMMSS
+                            timestamp_match = re.search(r'_(\d{8}_\d{6})$', old_file_name_without_ext)
+                            if timestamp_match:
+                                # 保留时间戳
+                                timestamp = timestamp_match.group(1)
+                                title_with_timestamp = f"{formatted_title}_{timestamp}"
+                                logger.info(f"保留时间戳: {timestamp}，新文件名为: {title_with_timestamp}")
+                            else:
+                                title_with_timestamp = formatted_title
+                            
+                            # 调用重命名功能
+                            if bookshelf.rename_book(file_path, title_with_timestamp):
+                                logger.info(f"书库中的书籍标题已更新: {file_path} -> {title_with_timestamp}")
+                            else:
+                                logger.warning(f"更新书库标题失败: {file_path}")
+                    except Exception as bookshelf_error:
+                        logger.error(f"更新书库标题时出错: {bookshelf_error}")
+                
+                self._update_status(
+                    get_global_i18n().t('crawler.format_title_success', title=formatted_title),
+                    "information"
+                )
+                # 刷新表格显示
+                self._update_history_table()
+            else:
+                self._update_status(get_global_i18n().t('crawler.format_title_failed'), "error")
+                
+        except Exception as e:
+            logger.error(f"格式化书名失败: {e}")
+            self._update_status(f"{get_global_i18n().t('crawler.format_title_failed')}: {str(e)}", "error")
+    
+    def _batch_format_titles(self) -> None:
+        """批量格式化选中的书名标题"""
+        try:
+            # 获取选中的记录ID
+            selected_ids = self.selected_history
+            if not selected_ids:
+                self._update_status(get_global_i18n().t('crawler.format_title_no_selection'), "warning")
+                return
+            
+            # 从crawler_history中获取对应的完整行数据
+            selected_rows = []
+            for item in self.crawler_history:
+                if str(item.get("id")) in selected_ids:
+                    selected_rows.append(item)
+            
+            if not selected_rows:
+                self._update_status(get_global_i18n().t('batch_ops.no_data'), "warning")
+                return
+            
+            # 确认批量格式化
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            def handle_format_confirmation(confirmed: bool | None) -> None:
+                if confirmed:
+                    try:
+                        formatted_count = 0
+                        failed_count = 0
+                        
+                        for row_data in selected_rows:
+                            try:
+                                history_id = row_data.get('id')
+                                current_title = row_data.get('novel_title', '')
+                                file_path = row_data.get('file_path', '')
+                                
+                                if not current_title or not history_id:
+                                    logger.warning(f"跳过无效记录: {row_data}")
+                                    failed_count += 1
+                                    continue
+                                
+                                # 智能格式化书名
+                                formatted_title = self._format_book_title(current_title)
+                                
+                                if not formatted_title:
+                                    logger.warning(f"格式化失败: {current_title}")
+                                    failed_count += 1
+                                    continue
+                                
+                                # 更新数据库中的小说标题
+                                if self.db_manager.update_crawl_history_full(history_id, novel_title=formatted_title):
+                                    # 更新内存中的数据
+                                    for item in self.crawler_history:
+                                        if item.get("id") == history_id:
+                                            item["novel_title"] = formatted_title
+                                            break
+                                    
+                                    # 如果文件路径有效且存在，同步更新书库中的书籍标题
+                                    if file_path and file_path != 'already_exists' and os.path.exists(file_path):
+                                        try:
+                                            # 获取 bookshelf 实例
+                                            bookshelf = getattr(self.app, "bookshelf", None)
+                                            if bookshelf and hasattr(bookshelf, "rename_book"):
+                                                # 从原始文件名中提取时间戳（如果有）
+                                                old_file_name = os.path.basename(file_path)
+                                                old_file_name_without_ext = os.path.splitext(old_file_name)[0]
+                                                
+                                                # 检查是否有时间戳格式 _YYYYMMDD_HHMMSS
+                                                timestamp_match = re.search(r'_(\d{8}_\d{6})$', old_file_name_without_ext)
+                                                if timestamp_match:
+                                                    # 保留时间戳
+                                                    timestamp = timestamp_match.group(1)
+                                                    title_with_timestamp = f"{formatted_title}_{timestamp}"
+                                                    logger.info(f"保留时间戳: {timestamp}，新文件名为: {title_with_timestamp}")
+                                                else:
+                                                    title_with_timestamp = formatted_title
+                                                
+                                                # 调用重命名功能
+                                                if bookshelf.rename_book(file_path, title_with_timestamp):
+                                                    logger.info(f"书库中的书籍标题已更新: {file_path} -> {title_with_timestamp}")
+                                                else:
+                                                    logger.warning(f"更新书库标题失败: {file_path}")
+                                        except Exception as bookshelf_error:
+                                            logger.error(f"更新书库标题时出错: {bookshelf_error}")
+                                    
+                                    formatted_count += 1
+                                else:
+                                    failed_count += 1
+                                    
+                            except Exception as e:
+                                logger.error(f"格式化记录失败: {row_data}, 错误: {e}")
+                                failed_count += 1
+                        
+                        # 清除选中状态
+                        self.selected_history.clear()
+                        
+                        # 刷新历史记录
+                        self._load_crawl_history()
+                        
+                        # 显示结果
+                        if failed_count > 0:
+                            self._update_status(
+                                get_global_i18n().t('crawler.format_title_processed', count=formatted_count) + 
+                                f"，失败: {failed_count}", 
+                                "warning"
+                            )
+                        else:
+                            self._update_status(
+                                get_global_i18n().t('crawler.format_title_processed', count=formatted_count),
+                                "success"
+                            )
+                        
+                    except Exception as e:
+                        self._update_status(f"{get_global_i18n().t('crawler.format_title_failed')}: {str(e)}", "error")
+                elif confirmed is False:
+                    self._update_status(get_global_i18n().t('crawler.format_cancelled'))
+            
+            # 显示确认对话框
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    get_global_i18n().t('crawler.format_title_batch_title', count=len(selected_rows)),
+                    get_global_i18n().t('crawler.format_title_batch_desc', count=len(selected_rows))
+                ),
+                handle_format_confirmation
+            )
+            
+        except Exception as e:
+            self._update_status(f"{get_global_i18n().t('crawler.format_title_failed')}: {str(e)}", "error")
+    
+    def _format_book_title(self, title: str) -> str:
+        """格式化书名为【书名】 (1-4) 作者：XXX格式"""
+        if not title:
+            return ""
+        
+        # 先提取作者信息（如果存在）
+        author = ""
+        if "作者：" in title:
+            parts = title.split("作者：", 1)
+            title_part = parts[0].strip()
+            author_part = parts[1].strip()
+            # 作者部分可能包含其他信息，只取第一个作者
+            author_match = re.search(r'^[^\s,，;；、]+', author_part)
+            if author_match:
+                author = author_match.group(0)
+        else:
+            title_part = title
+        
+        # 提取书名部分和卷号信息
+        # 支持多种卷号格式：
+        # 1. 中文括号卷号：（ 1-11 ）、（9-11）、（一至四）
+        # 2. 英文括号卷号：(1-11)、(9-11)
+        # 3. 空格后数字卷号：9-11、一至四
+        volume_number = ""
+        book_name = title_part
+        
+        # 首先尝试匹配中文括号中的卷号
+        # 格式1: （ 1-11 ）、（9-11）、（一至四）
+        chinese_paren_volume_match = re.search(r'（\s*([^）]+)\s*）', title_part)
+        if chinese_paren_volume_match:
+            volume_content = chinese_paren_volume_match.group(1).strip()
+            # 检查是否是数字格式或中文数字格式
+            if re.search(r'^\d+-\d+$', volume_content) or re.search(r'^[一二三四五六七八九十百千万]+至[一二三四五六七八九十百千万]+$', volume_content):
+                volume_number = volume_content
+                book_name = book_name.replace(chinese_paren_volume_match.group(0), "").strip()
+        
+        # 如果没有找到中文括号卷号，尝试匹配英文括号中的卷号
+        # 格式2: (1-11)、(9-11)
+        if not volume_number:
+            english_paren_volume_match = re.search(r'\(\s*([^)]+)\s*\)', title_part)
+            if english_paren_volume_match:
+                volume_content = english_paren_volume_match.group(1).strip()
+                # 检查是否是数字格式
+                if re.search(r'^\d+-\d+$', volume_content):
+                    volume_number = volume_content
+                    book_name = book_name.replace(english_paren_volume_match.group(0), "").strip()
+        
+        # 如果没有找到括号卷号，尝试匹配空格后的数字或中文数字卷号
+        # 格式3: 书名 9-11、书名 一至四
+        if not volume_number:
+            # 匹配空格后的数字格式
+            space_volume_match = re.search(r'\s+(\d+-\d+)$', book_name)
+            if space_volume_match:
+                volume_number = space_volume_match.group(1)
+                book_name = book_name[:space_volume_match.start()].strip()
+            else:
+                # 匹配空格后的中文数字格式
+                chinese_volume_match = re.search(r'\s+([一二三四五六七八九十百千万]+至[一二三四五六七八九十百千万]+)$', book_name)
+                if chinese_volume_match:
+                    volume_number = chinese_volume_match.group(1)
+                    book_name = book_name[:chinese_volume_match.start()].strip()
+        
+        # 处理书名中的括号
+        # 只处理书名本身的括号，不处理卷号括号
+        # 首先，规范化所有类型的括号为【】
+        book_name = book_name.replace("《", "【").replace("》", "】")
+        book_name = book_name.replace("[", "【").replace("]", "】")
+        book_name = book_name.replace("「", "【").replace("」", "】")
+        
+        # 如果书名中有【】但只有一半，补全另一半
+        if "【" in book_name and "】" not in book_name:
+            book_name = book_name + "】"
+        elif "】" in book_name and "【" not in book_name:
+            book_name = "【" + book_name
+        # 如果书名中没有【】，则添加
+        elif "【" not in book_name and "】" not in book_name:
+            book_name = "【" + book_name + "】"
+        
+        # 确保书名格式正确
+        if not book_name.startswith("【"):
+            book_name = "【" + book_name
+        if not book_name.endswith("】"):
+            book_name = book_name + "】"
+        
+        # 构建最终格式
+        result = book_name
+        if volume_number:
+            # 卷号在书名括号外面，前面加一个空格
+            result += f" {volume_number}"
+        if author:
+            result += f" 作者：{author}"
+        
+        return result
     
     def _preview_book(self, history_item: Dict[str, Any]) -> None:
         """预览书籍内容（显示前200字）"""

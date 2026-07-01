@@ -1285,6 +1285,7 @@
     "shortcut_y": "Copy Title",
     "shortcut_v": "Preview",
     "shortcut_f": "View File",
+    "shortcut_m": "Format Title",
     "preview": "Preview",
     "preview_title": "Book Preview",
     "preview_failed": "Preview failed: {error}",
@@ -1494,7 +1495,17 @@
     "no_valid_novels": "No valid novels to crawl",
     "merge_mode": "Merge Mode",
     "books": "Books",
-    "crawl_cancelled": "Crawl cancelled"
+    "crawl_cancelled": "Crawl cancelled",
+    "format_title": "Format Title",
+    "format_title_success": "Format success: {title}",
+    "format_title_failed": "Format failed",
+    "format_title_no_selection": "Please select rows to format first",
+    "format_title_invalid": "Invalid title format",
+    "format_title_author_missing": "Author information missing",
+    "format_title_processed": "Processed {count} records",
+    "format_title_batch_title": "Batch Format Titles ({count})",
+    "format_title_batch_desc": "Confirm to format titles for the selected {count} records? This operation will format book titles to the pattern 【Book Title】 (1-4) Author: XXX.",
+    "format_cancelled": "Format cancelled"
   },
   "merge_mode": {
     "title": "Merge Mode",

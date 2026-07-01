@@ -1379,6 +1379,7 @@
     "shortcut_y": "复制标题",
     "shortcut_v": "预览",
     "shortcut_f": "查看文件",
+    "shortcut_m": "格式化标题",
     "preview": "预览",
     "preview_title": "书籍预览",
     "preview_failed": "预览失败: {error}",
@@ -1565,7 +1566,17 @@
     "no_valid_novels": "没有有效的小说可爬取",
     "merge_mode": "合并模式",
     "books": "本书籍",
-    "crawl_cancelled": "爬取已取消"
+    "crawl_cancelled": "爬取已取消",
+    "format_title": "格式化标题",
+    "format_title_success": "格式化成功: {title}",
+    "format_title_failed": "格式化失败",
+    "format_title_no_selection": "请先选择要格式化的行",
+    "format_title_invalid": "标题格式无效",
+    "format_title_author_missing": "作者信息缺失",
+    "format_title_processed": "已处理 {count} 条记录",
+    "format_title_batch_title": "批量格式化标题（{count} 个）",
+    "format_title_batch_desc": "确认要对选中的 {count} 条记录进行书名格式化吗？此操作会将书名格式化为【书名】 (1-4) 作者：XXX格式。",
+    "format_cancelled": "格式化已取消"
   },
   "merge_mode": {
     "title": "合并模式",
