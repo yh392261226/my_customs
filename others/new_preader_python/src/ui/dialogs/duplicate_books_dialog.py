@@ -33,6 +33,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("s", "select_current", get_global_i18n().t('duplicate_books.select_current')),
         ("a", "toggle_select_current_page", get_global_i18n().t('duplicate_books.toggle_select_current_page')),
         ("A", "toggle_select_all_pages", get_global_i18n().t('duplicate_books.toggle_select_all_pages')),
+        ("v", "preview_current", get_global_i18n().t('crawler.preview')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -456,7 +457,51 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
 
         # 重新加载当前组显示
         self._display_duplicate_group(self.current_group_index)
-    
+
+    def action_preview_current(self) -> None:
+        """v键 - 预览当前光标所在行的书籍内容"""
+        try:
+            table = self.query_one("#duplicate-books-table", DataTable)
+            
+            # 获取当前光标所在的行
+            current_row_index = getattr(table, 'cursor_row', None)
+            
+            if current_row_index is None or not (0 <= current_row_index < len(table.rows)):
+                self.notify("请先选择一行", severity="warning")
+                return
+            
+            # 获取行键
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[current_row_index]
+            
+            # 获取书籍路径
+            if hasattr(row_key, 'value') and row_key.value:
+                book_path = str(row_key.value)
+            else:
+                book_path = str(row_key)
+            
+            # 获取当前组的书籍对象
+            if not self.duplicate_groups or self.current_group_index < 0 or self.current_group_index >= len(self.duplicate_groups):
+                return
+            
+            group = self.duplicate_groups[self.current_group_index]
+            book = None
+            for b in group.books:
+                if b.path == book_path:
+                    book = b
+                    break
+            
+            if not book:
+                self.notify("未找到对应的书籍", severity="warning")
+                return
+            
+            # 调用预览方法
+            self._preview_book(book)
+            
+        except Exception as e:
+            logger.error(f"预览当前行失败: {e}")
+            self.notify(f"预览失败: {e}", severity="error")
+
     @on(Button.Pressed, "#cancel-btn")
     def on_cancel_pressed(self) -> None:
         """取消按钮按下时的回调"""
@@ -788,7 +833,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             self.notify(f"{get_global_i18n().t('bookshelf.view_file_failed')}: {e}", severity="error")
     
     def _preview_book(self, book: Book) -> None:
-        """预览书籍内容（显示前1000字）"""
+        """预览书籍内容（显示前2000字，支持多种编码）"""
         try:
             file_path = book.path
             
@@ -800,16 +845,33 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(f"{get_global_i18n().t('crawler.file_not_exists')}: {file_path}", severity="warning")
                 return
             
-            # 读取文件前2000字
+            # 读取文件前2000字，支持多种编码
             content = ""
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read(2000)
-            except Exception as e:
-                logger.error(f"读取文件失败: {e}")
-                self.notify(get_global_i18n().t("crawler.preview_failed", error=str(e)), severity="error")
+            encodings_to_try = ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5', 'latin1', 'cp1252']
+            
+            for encoding in encodings_to_try:
+                try:
+                    with open(file_path, 'r', encoding=encoding) as f:
+                        content = f.read(2000)
+                    logger.debug(f"成功使用 {encoding} 编码读取文件: {file_path}")
+                    break
+                except UnicodeDecodeError:
+                    continue
+                except Exception as e:
+                    logger.warning(f"使用 {encoding} 编码读取失败: {e}")
+                    continue
+            
+            if not content.strip():
+                self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
                 return
             
+            # 清理内容：移除控制字符和特殊字符，确保可以安全显示在 Textual 中
+            import re
+            # 移除除换行、制表符外的所有控制字符（0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F, 0x7F）
+            content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', content)
+            # 移除其他可能导致 markup 解析问题的特殊字符
+            content = re.sub(r'[\x80-\x9f]', '', content)
+            # 确保内容不为空
             if not content.strip():
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
                 return
