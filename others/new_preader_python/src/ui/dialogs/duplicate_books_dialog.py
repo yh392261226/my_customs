@@ -865,12 +865,57 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
                 return
             
-            # 清理内容：移除控制字符和特殊字符，确保可以安全显示在 Textual 中
+            # 清理内容：全面移除不安全的字符，确保可以安全显示在 Textual 中
+            import unicodedata
+            def clean_text_for_display(text: str) -> str:
+                """清理文本，移除所有可能引起显示或解析问题的字符"""
+                cleaned_chars = []
+                for char in text:
+                    category = unicodedata.category(char)
+                    
+                    # 允许的字符类别：
+                    # L*: 字母 (Lu, Ll, Lt, Lm, Lo)
+                    # N*: 数字 (Nd, Nl, No)
+                    # P*: 标点符号 (Pc, Pd, Ps, Pe, Pi, Pf, Po)
+                    # S*: 符号 (Sm, Sc, Sk, So)
+                    # Z*: 分隔符 (Zs - 空格, Zl - 行分隔符, Zp - 段分隔符)
+                    # Cc: 控制字符（仅允许 \n 和 \t）
+                    if category.startswith(('L', 'N', 'P', 'S')):
+                        cleaned_chars.append(char)
+                    elif category == 'Zs' or category in ('Zl', 'Zp'):
+                        cleaned_chars.append(char)
+                    elif category == 'Cc':
+                        # 仅保留换行符和制表符
+                        if char in ('\n', '\r', '\t'):
+                            cleaned_chars.append(char)
+                        # 其他控制字符全部丢弃
+                    elif category == 'Cf':
+                        # 格式化字符（如 BOM、零宽空格等）- 全部丢弃
+                        pass
+                    elif category == 'Co':
+                        # 私有使用区字符 - 尝试保留，但替换为占位符
+                        cleaned_chars.append('□')
+                    elif category == 'Cn':
+                        # 未分配字符 - 跳过
+                        pass
+                    else:
+                        # 其他未知类别 - 安全起见跳过
+                        pass
+                
+                return ''.join(cleaned_chars)
+            
+            content = clean_text_for_display(content)
+            
+            # 额外处理：移除可能残留的孤立字节标记和乱码模式
             import re
-            # 移除除换行、制表符外的所有控制字符（0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F, 0x7F）
-            content = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', content)
-            # 移除其他可能导致 markup 解析问题的特殊字符
-            content = re.sub(r'[\x80-\x9f]', '', content)
+            # 替换常见的二进制文件特征为省略号
+            content = re.sub(r'[ÿþ]{2,}', '... ', content)
+            content = re.sub(r'[«»]{3,}', '...', content)
+            # 清理多余的空白行（超过2个连续换行合并为2个）
+            content = re.sub(r'\n{3,}', '\n\n', content)
+            # 清理行首行尾空白
+            content = '\n'.join(line.rstrip() for line in content.split('\n'))
+            
             # 确保内容不为空
             if not content.strip():
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
