@@ -17,7 +17,7 @@ from src.locales import i18n
 from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
 from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Static, Button, Label, Input, Link, Header, Footer, LoadingIndicator, Select, Switch
-from textual.widgets import DataTable, Log
+from textual.widgets import DataTable, Log, RichLog
 from textual.app import ComposeResult
 from textual import events, on
 from textual.screen import ModalScreen
@@ -415,7 +415,8 @@ class BookPreviewDialog(ModalScreen):
         yield Container(
             Vertical(
                 Label(f"📖 {get_global_i18n().t('crawler.preview_title')}", id="preview-title", classes="section-title"),
-                Label(f"{self.content} ......", id="preview-content", classes="preview-text"),
+                # 使用 RichLog 替代 Label，完全避免 Markup 解析错误
+                RichLog(id="preview-content", classes="preview-text"),
                 Horizontal(
                     Button(get_global_i18n().t('common.close'), id="preview-close-btn", variant="primary"),
                     id="preview-buttons", classes="btn-row"
@@ -429,9 +430,17 @@ class BookPreviewDialog(ModalScreen):
     def on_mount(self) -> None:
         """弹窗挂载时的回调"""
         self.theme_manager.apply_theme_to_screen(self)
-        preview_content=self.query_one("#preview-content")
+        preview_content = self.query_one("#preview-content", RichLog)
         preview_content.border_title = self.title
         preview_content.border_subtitle = self.title
+        
+        # 将预览内容写入 RichLog（自动处理，无 Markup 解析风险）
+        try:
+            preview_content.write(self.content + " ......")
+        except Exception as e:
+            # 如果写入失败，显示提示信息
+            logger.warning(f"写入预览内容失败: {e}")
+            preview_content.write(get_global_i18n().t("crawler.preview_failed", error=str(e)))
 
         try:
             self.query_one("#preview-close-btn", Button).focus()
