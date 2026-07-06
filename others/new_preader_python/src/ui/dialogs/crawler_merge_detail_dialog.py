@@ -24,6 +24,7 @@ from src.utils.file_utils import FileUtils
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.crawler_merge_mode_dialog import BookGroup
+from src.ui.utils.smart_title_utils import SmartTitleUtils
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -1671,25 +1672,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     # ─── 智能标题 ───────────────────────────────────────────
 
-    @staticmethod
-    def _extract_chapter_info(title: str):
-        """
-        从标题中提取章节信息。
-
-        常见格式： "A 1-3 作者", "A4-8完 小", "A 12 作者小明", "A.5.完"
-        返回：(start, end, prefix, suffix) 或 None
-        """
-        import re
-        chapter_pattern = re.compile(r'(\d+)(?:\s*[-–—~]\s*(\d+))?')
-        match = chapter_pattern.search(title)
-        if match:
-            start = int(match.group(1))
-            end = int(match.group(2)) if match.group(2) else start
-            prefix = title[:match.start()].rstrip()
-            suffix = title[match.end():].lstrip()
-            return (start, end, prefix, suffix)
-        return None
-
     def _smart_sort_books(self) -> bool:
         """
         按书名中的章节号对当前组的书籍列表进行升序排序。
@@ -1700,41 +1682,20 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state = self._group_state[self._current_index]
         books = state['books']
 
-        # 为每本书提取章节信息，保留原始索引
-        indexed = []
-        all_extracted = True
-        for idx, book in enumerate(books):
-            title = book.get('novel_title', '')
-            info = self._extract_chapter_info(title)
-            if info:
-                indexed.append((idx, book, info))
-            else:
-                all_extracted = False
-                break
-
-        if not all_extracted or len(indexed) < 2:
-            return False
-
-        # 按章节起始号排序，起始号相同则按结束号
-        indexed.sort(key=lambda x: (x[2][0], x[2][1]))
-
-        # 更新书籍列表顺序
-        state['books'] = [item[1] for item in indexed]
-        return True
+        sorted_books, success = SmartTitleUtils.sort_books_by_chapter(books)
+        if success:
+            state['books'] = sorted_books
+        return success
 
     def _generate_smart_title(self) -> Optional[str]:
         """
         从当前组选中的书籍中智能生成合并标题。
-
-        策略：
-        1. 取选中书籍的标题，按标题中提取的章节号排序
-        2. 找到公共前缀
-        3. 合并章节范围 (min_start - max_end)
-        4. 若最后一本书标题包含"完"/"全"等标记，附加到章节范围后
-        5. 取第一本书标题中章节号后的后缀作为作者/补充信息
+        
+        使用 SmartTitleUtils 公共模块实现，支持：
+        - 多种数字格式：阿拉伯、中文大小写、罗马数字
+        - 章节标记识别：序、卷、部等
+        - 智能范围合并
         """
-        import re
-
         state = self._group_state[self._current_index]
         selected_ids = state['selected_ids']
         if len(selected_ids) < 2:
@@ -1748,71 +1709,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         if not all(titles):
             return None
 
-        # 提取每本书标题中的章节号
-        chapter_infos = []
-        for title in titles:
-            info = self._extract_chapter_info(title)
-            if info:
-                chapter_infos.append(info)
-            else:
-                # 无法提取章节号，返回 None
-                return None
-
-        # 按章节起始号排序
-        chapter_infos.sort(key=lambda x: x[0])
-
-        min_start = chapter_infos[0][0]
-        max_end = max(ci[1] for ci in chapter_infos)
-
-        # 找公共前缀
-        prefixes = [ci[2] for ci in chapter_infos if ci[2]]
-        if prefixes:
-            common_prefix = os.path.commonprefix(prefixes)
-            # 确保不截断中文字符
-            # 逐字符比较找公共前缀
-            if not common_prefix:
-                common_prefix = prefixes[0]
-        else:
-            common_prefix = ""
-
-        # 取第一本书的后缀作为作者/补充信息
-        first_suffix = chapter_infos[0][3] if chapter_infos[0][3] else ""
-        # 取最后一本书的后缀，检查是否有"完"等标记
-        last_suffix = chapter_infos[-1][3] if chapter_infos[-1][3] else ""
-
-        # 检查"完"/"全"/"完结"/"全集"等标记
-        completion_marker = ""
-        completion_keywords = ['完结', '完', '全', '全集', '全本', '终']
-        for kw in completion_keywords:
-            if kw in last_suffix:
-                completion_marker = kw
-                break
-
-        # 构建章节范围
-        if min_start == max_end:
-            chapter_range = str(min_start)
-        else:
-            chapter_range = f"{min_start}-{max_end}"
-
-        # 组合标题
-        parts = []
-        if common_prefix:
-            parts.append(common_prefix)
-        parts.append(chapter_range)
-        if completion_marker:
-            parts.append(completion_marker)
-        if first_suffix:
-            # 清理后缀中的完标记（避免重复）
-            clean_suffix = first_suffix
-            for kw in completion_keywords:
-                clean_suffix = clean_suffix.replace(kw, '').strip()
-            if clean_suffix:
-                parts.append(clean_suffix)
-
-        smart_title = ' '.join(parts)
-        # 清理多余空格
-        smart_title = re.sub(r'\s+', ' ', smart_title).strip()
-        return smart_title if smart_title else None
+        return SmartTitleUtils.generate_smart_title(titles)
 
     @on(Button.Pressed, "#smart-title-btn")
     def on_smart_title_btn(self) -> None:
