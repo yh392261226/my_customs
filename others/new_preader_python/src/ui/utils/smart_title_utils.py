@@ -101,9 +101,10 @@ class SmartTitleUtils:
 
         支持格式（按优先级）：
         1. 阿拉伯数字: 123, 456
-        2. 中文小写: 一, 二, 十二, 一百二十三
-        3. 中文大写: 壹, 贰, 叁, 拾贰
-        4. 罗马数字: I, II, III, XII, XLIX
+        2. 全角数字: ０１２, １００
+        3. 中文小写: 一, 二, 十二, 一百二十三
+        4. 中文大写: 壹, 贰, 叁, 拾贰
+        5. 罗马数字: I, II, III, XII, XLIX
         """
         num_str = num_str.strip()
         if not num_str:
@@ -114,6 +115,15 @@ class SmartTitleUtils:
             return int(num_str)
         except ValueError:
             pass
+
+        # 尝试全角数字：转半角后再解析
+        fullwidth_map = str.maketrans('０１２３４５６７８９', '0123456789')
+        converted = num_str.translate(fullwidth_map)
+        if converted != num_str and converted.isdigit():
+            try:
+                return int(converted)
+            except ValueError:
+                pass
 
         # 尝试中文数字（大小写）
         chinese_result = SmartTitleUtils.chinese_num_to_int(num_str)
@@ -133,6 +143,7 @@ class SmartTitleUtils:
     def _get_regex_patterns():
         """获取正则表达式模式组件（内部使用）"""
         arabic_num = r'\d+'  # 阿拉伯数字: 123
+        fullwidth_num = r'[０-９]+'  # 全角数字: ０１２３
         chinese_lower_num = r'[零一二三四五六七八九十百千万]+'
         chinese_upper_num = r'[〇壹贰叁肆伍陆柒捌玖拾佰仟萬]+'
         chinese_num = f'(?:{chinese_lower_num}|{chinese_upper_num})'  # 中文数字
@@ -142,7 +153,7 @@ class SmartTitleUtils:
             r'C(?:M|CD|D?C{0,3})|(?:CM|CD)?D?C{0,3})'
             r'(?:M{0,3})?'
         )  # 罗马数字
-        any_num = f'(?:{arabic_num}|{chinese_num}|{roman_num})'  # 任意数字格式
+        any_num = f'(?:{arabic_num}|{fullwidth_num}|{chinese_num}|{roman_num})'  # 任意数字格式
 
         chapter_markers = r'(?:序|前传|后传|外传|番外)'
         volume_markers = r'(?:第' + any_num + r'[卷部册集]|[卷部册集])'
@@ -178,13 +189,20 @@ class SmartTitleUtils:
         """
         any_num, all_markers = SmartTitleUtils._get_regex_patterns()
 
+        # 括号内任意非数字前缀（如 "重置版"、"序"、"第一卷" 等）
+        # 匹配不含数字、括号的任意中文/英文文字
+        arbitrary_prefix = r'(?:[^\d\(\)（）\s]+(?:\s+[^\d\(\)（）\s]+)*?)?'
+
+        # 数字后的常见后缀（如 上、下、中、前、后、外、终、完 等）
+        num_suffix = r'([上下中前后内外终完正续附增补篇回章集卷册部]*)'
+
         # 匹配模式列表（按优先级排序）
         patterns = [
-            # 0. 括号内包含数字范围: （ 1-11 ）, (序 3-5 ), （1.1-2.26）
-            rf'[\(（]\s*({all_markers}?)\s*({any_num})\s*[-–—~]\s*({any_num})\s*[\)）]',
+            # 0. 括号内包含数字范围（支持任意前缀+后缀）: （ 1-11 ）, (重置版 1-38), （1-2上）
+            rf'[\(（]\s*({arbitrary_prefix})\s*({any_num})\s*[-–—~－]\s*({any_num}){num_suffix}[^\)]*?[\)）]',
 
-            # 0.5. 括号内只有单数字（新增）: （4）, (4), （ 4 ）, 单章节
-            rf'[\(（]\s*({all_markers}?)\s*({any_num})\s*[\)）]',
+            # 0.5. 括号内只有单数字（支持后缀）: （4）, (4), （ 4 ）, （2下）, 单章节
+            rf'[\(（]\s*({arbitrary_prefix})\s*({any_num}){num_suffix}[^\)]*?[\)）]',
 
             # 1. 带括号的章节标记后跟数字: (序)3, (第一卷)1-5, (外传)II-IV
             rf'[\(（]({all_markers}?[^\)]*?)[\)）]\s*[-–—]?\s*({any_num})(?:\s*[-–—~]\s*({any_num}))?',
@@ -206,20 +224,42 @@ class SmartTitleUtils:
                 if not non_empty:
                     continue
 
-                if len(groups) >= 3 and groups[0] is not None and groups[2] is not None:
-                    # Pattern 0: 括号内包含数字范围（3个捕获组）
+                # 提取数字后缀（Pattern 0 和 0.5 有额外的后缀捕获组）
+                captured_suffix = ''  # 数字后的后缀如 "上"、"下"
+
+                if len(groups) >= 4 and groups[3] is not None:
+                    # Pattern 0: 4个捕获组（prefix, start, end, suffix）
                     chapter_prefix = groups[0].strip() if groups[0] else ''
                     start_str = groups[1].strip()
                     end_str = groups[2].strip()
+                    captured_suffix = groups[3].strip() if groups[3] else ''
+                elif len(groups) == 3:
+                    # 可能是 Pattern 0.5（3组：prefix, num, suffix）或 Pattern 1/2（3组：prefix, start, end）
+                    match_text = match.group()
+                    if match_text and match_text[0] in '（(':
+                        # Pattern 0.5: 括号内单数字 + 后缀
+                        chapter_prefix = groups[0].strip() if groups[0] else ''
+                        num_str = groups[1].strip()
+                        # groups[2] 可能是后缀（如果是 Pattern 0.5）
+                        if groups[2] and not SmartTitleUtils._looks_like_number(groups[2]):
+                            captured_suffix = groups[2].strip()
+                            start_str = num_str
+                            end_str = num_str
+                        else:
+                            start_str = num_str
+                            end_str = groups[2].strip() if groups[2] else num_str
+                    else:
+                        # Pattern 1 或 2: 有章节标记的模式
+                        chapter_prefix = groups[0].strip() if groups[0] else ''
+                        start_str = groups[1].strip()
+                        end_str = groups[2].strip() if len(groups) > 2 and groups[2] else start_str
                 elif len(groups) == 2:
-                    # Pattern 0.5: 括号内单数字（2个捕获组：可选标记 + 数字）
-                    # Pattern 3: 无括号的数字范围（2个捕获组：start, end）
                     # 判断依据：match 是否以括号开头
                     match_text = match.group()
                     if match_text and match_text[0] in '（(':
-                        # Pattern 0.5: 括号内的单数字格式
-                        chapter_prefix = groups[0].strip() if groups[0] and any(m in str(groups[0]) for m in ['序', '前', '后', '外', '番', '卷', '部', '册', '集', '第']) else ''
-                        num_str = groups[1].strip() if groups[1] is not None else (groups[0].strip() if groups[0] else '')
+                        # Pattern 0.5 无后缀: 括号内单数字
+                        chapter_prefix = groups[0].strip() if groups[0] else ''
+                        num_str = groups[1].strip() if groups[1] is not None else ''
                         start_str = num_str
                         end_str = num_str  # 单数字，start=end
                     else:
@@ -257,9 +297,32 @@ class SmartTitleUtils:
                 # 检测原始格式是否包含括号包裹的章节信息
                 has_parens = bool(re.match(r'^.*[\(（]', match.group()))
 
-                return (start, end, prefix, suffix, chapter_prefix, has_parens)
+                return (start, end, prefix, suffix, chapter_prefix, has_parens, captured_suffix)
 
         return None
+
+    @staticmethod
+    def _looks_like_number(s: str) -> bool:
+        """判断字符串是否看起来像数字（阿拉伯/中文/罗马/全角）"""
+        if not s:
+            return False
+        s = s.strip()
+        # 阿拉伯数字
+        if s.isdigit():
+            return True
+        # 全角数字
+        fullwidth_map = str.maketrans('０１２３４５６７８９', '0123456789')
+        if s.translate(fullwidth_map).isdigit():
+            return True
+        # 中文数字
+        chinese_chars = set('零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬')
+        if all(c in chinese_chars for c in s):
+            return True
+        # 罗马数字
+        roman_chars = set('IVXLCDMivxlcdm')
+        if all(c in roman_chars for c in s):
+            return True
+        return False
 
     # ─── 智能标题生成 ──────────────────────────────────────
 
@@ -351,25 +414,46 @@ class SmartTitleUtils:
                 break
 
         # 构建章节范围
-        raw_range = str(min_start) if min_start == max_end else f"{min_start}-{max_end}"
+        # 提取数字后缀（如 "上"、"下"）- 取最大 end 对应的后缀（多个时取最后出现的）
+        end_num_suffix = ''
+        for ci in reversed(chapter_infos):  # 从后往前遍历，优先取后面的
+            if len(ci) > 6 and ci[6]:  # ci[6] = captured_suffix
+                if ci[1] == max_end:
+                    end_num_suffix = ci[6]
+                    break
+        # 如果没找到精确匹配 max_end 的，用任意一个非空后缀
+        if not end_num_suffix:
+            for ci in reversed(chapter_infos):
+                if len(ci) > 6 and ci[6]:
+                    end_num_suffix = ci[6]
+                    break
+
+        raw_range = str(min_start) if min_start == max_end else f"{min_start}-{max_end}{end_num_suffix}"
 
         # 检测是否有书名使用括号格式，若有则保留括号
         has_any_parens = any(len(ci) > 5 and ci[5] for ci in chapter_infos)
-        if has_any_parens:
-            # 保留括号格式：使用中文全角括号（与常见格式一致）
-            chapter_range = f"（{raw_range}）"
-        else:
-            chapter_range = raw_range
 
         # 组合标题
         parts = []
         if common_prefix:
             parts.append(common_prefix)
 
-        if detected_chapter_prefix:
-            parts.append(f"{detected_chapter_prefix}{chapter_range}")
-        else:
+        # 根据是否有括号格式决定章节信息的组合方式
+        if detected_chapter_prefix and has_any_parens:
+            # 括号内格式：（标记 数字范围）如 （重置版 1-40）
+            chapter_range = f"（{detected_chapter_prefix} {raw_range}）"
             parts.append(chapter_range)
+        elif detected_chapter_prefix:
+            # 无括号：标记+数字范围 如 重置版 1-40
+            chapter_range = f"{detected_chapter_prefix} {raw_range}"
+            parts.append(chapter_range)
+        elif has_any_parens:
+            # 有括号但无标记：（数字范围）如 （1-40）
+            chapter_range = f"（{raw_range}）"
+            parts.append(chapter_range)
+        else:
+            # 无括号无标记：纯数字 如 1-40
+            parts.append(raw_range)
 
         if completion_marker:
             parts.append(completion_marker)
