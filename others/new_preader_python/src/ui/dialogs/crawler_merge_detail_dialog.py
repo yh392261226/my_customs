@@ -295,11 +295,17 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
         # 智能排序：按书名中的章节号升序排列，并自动生成标题
         self._smart_sort_books()
-        smart_title = self._generate_smart_title()
-        if smart_title:
-            state['merged_title'] = smart_title
-        title_input = self.query_one("#merge-title-input", Input)
-        title_input.value = smart_title or state.get('merged_title', '')
+        try:
+            smart_title = self._generate_smart_title()
+            if smart_title:
+                state['merged_title'] = smart_title
+            title_input = self.query_one("#merge-title-input", Input)
+            title_input.value = smart_title or state.get('merged_title', '')
+        except Exception as e:
+            logger.debug(f"智能标题生成失败（已忽略）: {e}")
+            # 使用已有的 merged_title 或 base_title
+            title_input = self.query_one("#merge-title-input", Input)
+            title_input.value = state.get('merged_title', group.get('base_title', ''))
 
         # 表格
         self._refresh_table()
@@ -1718,20 +1724,24 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def _apply_smart_title(self) -> None:
         """智能排序并生成标题填充到输入框"""
-        sorted_ok = self._smart_sort_books()
-        smart_title = self._generate_smart_title()
-        if smart_title:
-            title_input = self.query_one("#merge-title-input", Input)
-            title_input.value = smart_title
-            self._group_state[self._current_index]['merged_title'] = smart_title
-            if sorted_ok:
-                self._refresh_table()
-                self._update_status()
-            self.notify(
-                self.i18n.t('merge_detail.smart_title_applied', title=smart_title),
-                timeout=2,
-            )
-        else:
+        try:
+            sorted_ok = self._smart_sort_books()
+            smart_title = self._generate_smart_title()
+            if smart_title:
+                title_input = self.query_one("#merge-title-input", Input)
+                title_input.value = smart_title
+                self._group_state[self._current_index]['merged_title'] = smart_title
+                if sorted_ok:
+                    self._refresh_table()
+                    self._update_status()
+                self.notify(
+                    self.i18n.t('merge_detail.smart_title_applied', title=smart_title),
+                    timeout=2,
+                )
+            else:
+                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+        except Exception as e:
+            logger.error(f"智能标题生成失败: {e}")
             self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
 
     # ─── 快捷键 action 方法 ─────────────────────────────────
