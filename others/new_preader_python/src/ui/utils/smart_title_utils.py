@@ -161,143 +161,157 @@ class SmartTitleUtils:
 
         return any_num, all_markers
 
+    # 数字后缀字符（数字后的 上/下/中 等标记）
+    _NUM_SUFFIX_CHARS = set('上下中前后内外终完正续附增补篇回章集卷册部')
+
     @staticmethod
-    def extract_chapter_info(title: str) -> Optional[Tuple[int, int, str, str, str, bool]]:
+    def _parse_numeric(s: str):
+        """解析数字字符串为整数或浮点（支持阿拉伯、全角、小数）"""
+        if not s:
+            return None
+        fullwidth_map = str.maketrans('０１２３４５６７８９', '0123456789')
+        s2 = s.translate(fullwidth_map)
+        try:
+            if '.' in s2:
+                return float(s2)
+            return int(s2)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_inner_chapter(inner: str):
+        """
+        解析括号内的内容。
+
+        Returns:
+            (start, end, marker, start_suffix, end_suffix, is_text_marker) 或 None
+            - marker: 数字前的文字标记（如 序、重置版、第二卷第三章）
+            - start_suffix/end_suffix: 数字后的后缀（上/下/中）
+            - is_text_marker: True 表示纯标记模式（上/下/中篇等，无数字）
+        """
+        inner = inner.strip()
+        if not inner:
+            return None
+
+        # 1. 纯标记模式：整串都是标记字符（上/下/中篇/完结篇）
+        if inner and all(c in SmartTitleUtils._NUM_SUFFIX_CHARS for c in inner):
+            return (0, 0, inner, '', '', True)
+
+        # 2. 阿拉伯/全角数字（含小数）
+        digit_re = r'(\d+(?:\.\d+)*|[０-９]+(?:\.[０-９]+)*)'
+        digits = list(re.finditer(digit_re, inner))
+        if digits:
+            first = digits[0]
+            last = digits[-1]
+            marker = inner[:first.start()].strip()
+            num_strs = [d.group(0) for d in digits]
+            nums = [SmartTitleUtils._parse_numeric(s) for s in num_strs]
+            nums = [n if n is not None else 0 for n in nums]
+            if len(num_strs) >= 2:
+                end_suffix = inner[last.end():].strip()
+                end_suffix = ''.join(c for c in end_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
+                start_suffix = inner[first.end():digits[1].start()].strip() if len(digits) >= 2 else ''
+                start_suffix = ''.join(c for c in start_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
+                res = (nums[0], nums[-1], marker, start_suffix, end_suffix, False)
+            else:
+                end_suffix = inner[first.end():].strip()
+                end_suffix = ''.join(c for c in end_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
+                res = (nums[0], nums[0], marker, '', end_suffix, False)
+            # 清理 "第X章/回/节" 这类纯章节框定（仅保留数字）
+            if res[2] == '第' and res[4] in ('章', '回', '节', '集', '篇', '部', '册'):
+                res = (res[0], res[1], '', res[3], '', res[5])
+            return res
+
+        # 3. 中文数字（第六章、十二 等）
+        cn_re = r'([零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬]+)'
+        cn = list(re.finditer(cn_re, inner))
+        if cn:
+            first = cn[0]
+            last = cn[-1]
+            marker = inner[:first.start()].strip()
+            nums = [SmartTitleUtils.chinese_num_to_int(c.group(0)) for c in cn]
+            nums = [n if n is not None else 0 for n in nums]
+            end_suffix = inner[last.end():].strip()
+            end_suffix = ''.join(c for c in end_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
+            if len(cn) >= 2:
+                start_suffix = inner[first.end():cn[1].start()].strip()
+                start_suffix = ''.join(c for c in start_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
+                res = (nums[0], nums[-1], marker, start_suffix, end_suffix, False)
+            else:
+                res = (nums[0], nums[0], marker, '', end_suffix, False)
+            if res[2] == '第' and res[4] in ('章', '回', '节', '集', '篇', '部', '册'):
+                res = (res[0], res[1], '', res[3], '', res[5])
+            return res
+
+        # 4. 纯罗马数字
+        rm = list(re.finditer(r'([IVXLCDMivxlcdm]+)', inner))
+        if rm and all(c in 'IVXLCDMivxlcdm' for c in inner.replace(' ', '')):
+            nums = [SmartTitleUtils.roman_to_int(c.group(0)) for c in rm]
+            nums = [n if n is not None else 0 for n in nums]
+            if len(nums) >= 2:
+                return (nums[0], nums[-1], '', '', '', False)
+            return (nums[0], nums[0], '', '', '', False)
+
+        return None
+
+    @staticmethod
+    def extract_chapter_info(title: str) -> Optional[Tuple]:
         """
         从标题中提取章节信息。
 
-        支持的数字格式：
-        - 阿拉伯数字: 1, 23, 456
-        - 中文小写: 一, 二, 十二, 一百二十三
-        - 中文大写: 壹, 贰, 叁, 拾贰
-        - 罗马数字: I, II, III, IV, V, X, XII, XLIX
-        - 大小写混合: II-IV, 三-五, 1-VIII
-
-        支持的章节标记：
-        - 序, 卷, 部, 册, 集, 前/后传, 外传, 番外
-        - 第X卷/部等组合标记
-        - 括号内标记: (序), （序）
-
-        Returns:
-            元组 (start, end, prefix, suffix, chapter_prefix, has_parens) 或 None
-            - start: 起始章节数字
-            - end: 结束章节数字
+        Returns 9 元组 或 None:
+            (start, end, prefix, suffix, chapter_prefix, has_parens, end_suffix, start_suffix, inner_text)
+            - start/end: 数字（整数或浮点）；纯标记模式时为 -1
             - prefix: 书名前缀（不含章节信息）
             - suffix: 后缀（作者/补充信息）
-            - chapter_prefix: 章节文字标记（如"序"、"第一卷"等）
-            - has_parens: 原始格式是否使用括号包裹章节信息
+            - chapter_prefix: 章节文字标记（如"序"、"重置版"）
+            - has_parens: 是否括号包裹
+            - end_suffix/start_suffix: 数字后/前的后缀（上/下/中）
+            - inner_text: 括号内原文（用于小数合并）
         """
-        any_num, all_markers = SmartTitleUtils._get_regex_patterns()
+        if not title or not title.strip():
+            return None
+        title = title.strip()
 
-        # 括号内任意非数字前缀（如 "重置版"、"序"、"第一卷" 等）
-        # 匹配不含数字、括号的任意中文/英文文字
-        arbitrary_prefix = r'(?:[^\d\(\)（）\s]+(?:\s+[^\d\(\)（）\s]+)*?)?'
+        # ── 1. 有括号格式 ──
+        # 收集所有括号对，优先选含数字的（避免 （重制版） 等干扰），否则选最后一个
+        bracket_matches = list(re.finditer(r'[\(（]([^\(\)（）]*)[\)）]', title))
+        if bracket_matches:
+            bracket_match = None
+            for bm in bracket_matches:
+                if re.search(r'\d', bm.group(1)):
+                    bracket_match = bm
+                    break
+            if bracket_match is None:
+                bracket_match = bracket_matches[-1]
+            inner_raw = bracket_match.group(1)
+            inner = inner_raw.strip()
+            prefix = title[:bracket_match.start()].rstrip()
+            suffix = title[bracket_match.end():].lstrip()
+            parsed = SmartTitleUtils._parse_inner_chapter(inner)
+            if parsed is not None:
+                start, end, marker, start_suffix, end_suffix, is_text_marker = parsed
+                if is_text_marker:
+                    # 用 -1 标记纯标记模式（与数字 0 区分）
+                    return (-1, -1, prefix, suffix, marker, True, '', '', inner_raw)
+                return (start, end, prefix, suffix, marker, True, end_suffix, start_suffix, inner_raw)
 
-        # 数字后的常见后缀（如 上、下、中、前、后、外、终、完 等）
-        num_suffix = r'([上下中前后内外终完正续附增补篇回章集卷册部]*)'
-
-        # 匹配模式列表（按优先级排序）
-        patterns = [
-            # 0. 括号内包含数字范围（支持任意前缀+后缀）: （ 1-11 ）, (重置版 1-38), （1-2上）
-            rf'[\(（]\s*({arbitrary_prefix})\s*({any_num})\s*[-–—~－]\s*({any_num}){num_suffix}[^\)]*?[\)）]',
-
-            # 0.5. 括号内只有单数字（支持后缀）: （4）, (4), （ 4 ）, （2下）, 单章节
-            rf'[\(（]\s*({arbitrary_prefix})\s*({any_num}){num_suffix}[^\)]*?[\)）]',
-
-            # 1. 带括号的章节标记后跟数字: (序)3, (第一卷)1-5, (外传)II-IV
-            rf'[\(（]({all_markers}?[^\)]*?)[\)）]\s*[-–—]?\s*({any_num})(?:\s*[-–—~]\s*({any_num}))?',
-
-            # 2. 直接跟章节标记: 序3, 序III, 第一卷1-3, 外传II-V, 卷十二
-            rf'({all_markers})\s*[-–—]?\s*({any_num})(?:\s*[-–—~]\s*({any_num}))?',
-
-            # 3. 纯数字范围（无标记）: 3, 3-5, III-XII, 二-六, 1-VIII
-            rf'^.*?(?:[^章卷部册集])?\s*[-–—]?\s*({any_num})(?:\s*[-–—~]\s*({any_num}))(?:\s*[完全]|$)',
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, title, re.IGNORECASE)
-            if match:
-                groups = match.groups()
-
-                # 根据匹配到的组数判断是哪种模式
-                non_empty = [g for g in groups if g is not None]
-                if not non_empty:
-                    continue
-
-                # 提取数字后缀（Pattern 0 和 0.5 有额外的后缀捕获组）
-                captured_suffix = ''  # 数字后的后缀如 "上"、"下"
-
-                if len(groups) >= 4 and groups[3] is not None:
-                    # Pattern 0: 4个捕获组（prefix, start, end, suffix）
-                    chapter_prefix = groups[0].strip() if groups[0] else ''
-                    start_str = groups[1].strip()
-                    end_str = groups[2].strip()
-                    captured_suffix = groups[3].strip() if groups[3] else ''
-                elif len(groups) == 3:
-                    # 可能是 Pattern 0.5（3组：prefix, num, suffix）或 Pattern 1/2（3组：prefix, start, end）
-                    match_text = match.group()
-                    if match_text and match_text[0] in '（(':
-                        # Pattern 0.5: 括号内单数字 + 后缀
-                        chapter_prefix = groups[0].strip() if groups[0] else ''
-                        num_str = groups[1].strip()
-                        # groups[2] 可能是后缀（如果是 Pattern 0.5）
-                        if groups[2] and not SmartTitleUtils._looks_like_number(groups[2]):
-                            captured_suffix = groups[2].strip()
-                            start_str = num_str
-                            end_str = num_str
-                        else:
-                            start_str = num_str
-                            end_str = groups[2].strip() if groups[2] else num_str
-                    else:
-                        # Pattern 1 或 2: 有章节标记的模式
-                        chapter_prefix = groups[0].strip() if groups[0] else ''
-                        start_str = groups[1].strip()
-                        end_str = groups[2].strip() if len(groups) > 2 and groups[2] else start_str
-                elif len(groups) == 2:
-                    # 判断依据：match 是否以括号开头
-                    match_text = match.group()
-                    if match_text and match_text[0] in '（(':
-                        # Pattern 0.5 无后缀: 括号内单数字
-                        chapter_prefix = groups[0].strip() if groups[0] else ''
-                        num_str = groups[1].strip() if groups[1] is not None else ''
-                        start_str = num_str
-                        end_str = num_str  # 单数字，start=end
-                    else:
-                        # Pattern 3: 无括号范围格式
-                        chapter_prefix = ''
-                        start_str = groups[0].strip() if groups[0] else ''
-                        end_str = groups[1].strip() if groups[1] is not None else start_str
-                elif len(groups) >= 3 and groups[0] is not None:
-                    # Pattern 1 或 2: 有章节标记的模式（3个捕获组，end可能为空）
-                    chapter_prefix = groups[0].strip() if groups[0] else ''
-                    start_str = groups[1].strip()
-                    end_str = groups[2].strip() if len(groups) > 2 and groups[2] else start_str
+        # ── 2. 无括号格式（如 【书名】 1-20 译者）──
+        for pat in (
+            r'[】\]」』\.]\s*(\d+(?:\.\d+)*)\s*[-–—~－]\s*(\d+(?:\.\d+)*)',
+            r'[】\]」』\.]\s*(\d+(?:\.\d+)*)',
+        ):
+            m = re.search(pat, title)
+            if m:
+                prefix = title[:m.start()].rstrip()
+                suffix = title[m.end():].lstrip()
+                if len(m.groups()) == 2:
+                    s = SmartTitleUtils._parse_numeric(m.group(1))
+                    e = SmartTitleUtils._parse_numeric(m.group(2))
+                    return (s, e, prefix, suffix, '', False, '', '', f"{m.group(1)}-{m.group(2)}")
                 else:
-                    # 其他情况：用非空组
-                    chapter_prefix = ''
-                    if len(non_empty) >= 2:
-                        start_str = non_empty[0].strip()
-                        end_str = non_empty[-1].strip()
-                    elif len(non_empty) == 1:
-                        start_str = end_str = non_empty[0].strip()
-                    else:
-                        continue
-
-                # 将各种格式转为 int
-                start = SmartTitleUtils.extract_number_from_string(start_str)
-                end = SmartTitleUtils.extract_number_from_string(end_str)
-
-                if start is None or end is None:
-                    continue
-
-                # 提取前后缀
-                prefix = title[:match.start()].rstrip()
-                suffix = title[match.end():].lstrip()
-
-                # 检测原始格式是否包含括号包裹的章节信息
-                has_parens = bool(re.match(r'^.*[\(（]', match.group()))
-
-                return (start, end, prefix, suffix, chapter_prefix, has_parens, captured_suffix)
+                    s = SmartTitleUtils._parse_numeric(m.group(1))
+                    return (s, s, prefix, suffix, '', False, '', '', m.group(1))
 
         return None
 
@@ -307,18 +321,14 @@ class SmartTitleUtils:
         if not s:
             return False
         s = s.strip()
-        # 阿拉伯数字
         if s.isdigit():
             return True
-        # 全角数字
         fullwidth_map = str.maketrans('０１２３４５６７８９', '0123456789')
         if s.translate(fullwidth_map).isdigit():
             return True
-        # 中文数字
         chinese_chars = set('零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬')
         if all(c in chinese_chars for c in s):
             return True
-        # 罗马数字
         roman_chars = set('IVXLCDMivxlcdm')
         if all(c in roman_chars for c in s):
             return True
@@ -365,104 +375,153 @@ class SmartTitleUtils:
         return SmartTitleUtils._generate_title_from_common_prefix(titles)
 
     @staticmethod
+    def _num_to_str(v):
+        """数值转显示字符串（浮点去掉多余的 .0）"""
+        if isinstance(v, float):
+            if v == int(v):
+                return str(int(v))
+            return str(v)
+        return str(v)
+
+    @staticmethod
     def _generate_title_with_chapter_info(chapter_infos: list) -> Optional[str]:
         """
         基于已提取的章节信息生成完整智能标题。
 
         包含：公共前缀 + 章节标记 + 范围 + 完成标记 + 后缀
+        chapter_infos 元素为 9 元组（见 extract_chapter_info）。
         """
-        # 按章节起始号排序
-        chapter_infos.sort(key=lambda x: x[0])
+        # 区分纯标记模式（start == -1）和数字模式
+        text_marker_books = [ci for ci in chapter_infos if ci[0] == -1]
+        num_books = [ci for ci in chapter_infos if ci[0] != -1]
 
-        min_start = chapter_infos[0][0]
-        max_end = max(ci[1] for ci in chapter_infos)
+        # ── 全部是纯标记模式（如 （上）+（下））──
+        if not num_books and text_marker_books:
+            markers = [ci[4] for ci in chapter_infos if ci[4]]
+            combined = ''.join(markers)
+            prefix = chapter_infos[0][2]
+            suffix = chapter_infos[0][3]
+            has_parens = chapter_infos[0][5]
+            if has_parens:
+                title = f"{prefix}（{combined}）"
+            else:
+                title = f"{prefix}{combined}"
+            if suffix:
+                title = f"{title} {suffix}"
+            return title.strip()
 
-        # 找公共前缀（书名部分）
-        prefixes = [ci[2] for ci in chapter_infos if ci[2]]
-        common_prefix = ""
-        if prefixes:
-            common_prefix = os.path.commonprefix(prefixes)
-            if not common_prefix:
-                common_prefix = prefixes[0]
+        if not num_books:
+            return None
 
-        # 识别章节文字标记（优先级：序 > 前/后传 > 外传 > 番外 > 卷部册集）
-        chapter_markers_priority = ['序', '前传', '后传', '外传', '番外', '卷', '部', '册', '集']
-        detected_chapter_prefix = ''
+        # 数字模式：按 start, end 排序
+        num_books.sort(key=lambda x: (x[0] if x[0] != -1 else 0, x[1] if x[1] != -1 else 0))
+        min_start = num_books[0][0]
+        max_end = max(ci[1] for ci in num_books)
 
-        all_chapter_prefixes = [ci[4] for ci in chapter_infos if ci[4]]
-        if all_chapter_prefixes:
-            for marker in chapter_markers_priority:
-                for prefix in all_chapter_prefixes:
-                    if marker in prefix:
-                        detected_chapter_prefix = prefix
-                        break
-                if detected_chapter_prefix:
-                    break
-            if not detected_chapter_prefix:
-                detected_chapter_prefix = all_chapter_prefixes[0]
+        # 公共前缀（书名部分）
+        prefixes = [ci[2] for ci in num_books if ci[2]]
+        common_prefix = os.path.commonprefix(prefixes) if prefixes else ''
 
-        # 取后缀
-        first_suffix = chapter_infos[0][3] if chapter_infos[0][3] else ""
-        last_suffix = chapter_infos[-1][3] if chapter_infos[-1][3] else ""
+        # 章节标记：只取"最小编号那本书"的 marker。
+        # 只有当 marker 出现在范围起点的书（如 "序-"、"重置版"）才保留；
+        # 若 marker 只出现在后续的书（如 "第二卷第三章"），视为不连续的额外描述，丢弃。
+        detected_marker = num_books[0][4]
+        if detected_marker == '第':
+            # "第" 为纯章节框定词，合并时去除
+            detected_marker = ''
 
-        # 检查完成标记
-        completion_marker = ""
+        # 后缀处理（提取完成标记，剩余作为后缀）
         completion_keywords = ['完结', '完', '全', '全集', '全本', '终']
+        first_suffix = num_books[0][3].strip() if num_books[0][3] else ''
+        completion_marker = ''
+        clean_suffix = first_suffix
         for kw in completion_keywords:
-            if kw in last_suffix:
+            if kw in clean_suffix:
                 completion_marker = kw
+                clean_suffix = clean_suffix.replace(kw, '').strip()
                 break
 
-        # 构建章节范围
-        # 提取数字后缀（如 "上"、"下"）- 取最大 end 对应的后缀（多个时取最后出现的）
-        end_num_suffix = ''
-        for ci in reversed(chapter_infos):  # 从后往前遍历，优先取后面的
-            if len(ci) > 6 and ci[6]:  # ci[6] = captured_suffix
-                if ci[1] == max_end:
-                    end_num_suffix = ci[6]
-                    break
-        # 如果没找到精确匹配 max_end 的，用任意一个非空后缀
-        if not end_num_suffix:
-            for ci in reversed(chapter_infos):
-                if len(ci) > 6 and ci[6]:
-                    end_num_suffix = ci[6]
-                    break
+        has_parens = any(ci[5] for ci in num_books)
+        first_inner = num_books[0][8] if num_books[0][8] else ''
 
-        raw_range = str(min_start) if min_start == max_end else f"{min_start}-{max_end}{end_num_suffix}"
+        # 小数/带点编号检测：任意 inner 含小数点
+        has_decimal = any('.' in str(ci[8]) for ci in num_books)
 
-        # 检测是否有书名使用括号格式，若有则保留括号
-        has_any_parens = any(len(ci) > 5 and ci[5] for ci in chapter_infos)
+        if has_decimal:
+            # 带点编号合并：保留第一本书中的"点号前缀"（如 2.3.），
+            # 把末尾数字替换为合并后的最大编号。
+            first_inner_str = str(first_inner)
+            dot_nums = re.findall(r'\d+(?:\.\d+)*', first_inner_str)
+            if dot_nums:
+                first_num_text = dot_nums[0]
+                last_num_text = dot_nums[-1]
+                if '.' in last_num_text:
+                    pfx, _, _ = last_num_text.rpartition('.')
+                    dotted_prefix = pfx + '.'
+                else:
+                    dotted_prefix = ''
+                # 仅当后续书也沿用该点号前缀（或无点号）时才借用前缀
+                last_inner_str = str(num_books[-1][8])
+                last_has_dot = '.' in last_inner_str
+                if dotted_prefix and (
+                    not last_has_dot
+                    or str(SmartTitleUtils._num_to_str(max_end)).startswith(dotted_prefix)
+                ):
+                    # 借用前缀时，需去掉 max_end 自身已带的前缀段，避免重复
+                    max_end_str = SmartTitleUtils._num_to_str(max_end)
+                    if max_end_str.startswith(dotted_prefix):
+                        tail = max_end_str[len(dotted_prefix):]
+                    else:
+                        tail = max_end_str
+                    new_tail = dotted_prefix + tail
+                else:
+                    new_tail = SmartTitleUtils._num_to_str(max_end)
+                if len(dot_nums) >= 2:
+                    sep_match = re.search(r'(?<=\d)\s*([\-–—~－])\s*(?=\d)', first_inner_str)
+                    sep = sep_match.group(1) if sep_match else '-'
+                    range_text = first_num_text + sep + new_tail
+                else:
+                    range_text = first_num_text + '-' + new_tail
+            else:
+                range_text = f"{SmartTitleUtils._num_to_str(min_start)}-{SmartTitleUtils._num_to_str(max_end)}"
+        else:
+            first_book = num_books[0]
+            if first_book[0] == first_book[1]:
+                # 起点书为单个编号：其编号后的后缀即为起点后缀（如 "15上"）
+                start_suffix = first_book[7] or first_book[6]
+            else:
+                # 起点书为范围：后缀属于范围末端，起点后缀取其自身的（如有）
+                start_suffix = first_book[7]
+            end_suffix = num_books[-1][6]
+            if detected_marker and detected_marker[-1] in '-–—~－':
+                # marker 以分隔符结尾（如 "序-"），范围只显示 end
+                range_text = f"{SmartTitleUtils._num_to_str(max_end)}{end_suffix}"
+            else:
+                range_text = f"{SmartTitleUtils._num_to_str(min_start)}{start_suffix}-{SmartTitleUtils._num_to_str(max_end)}{end_suffix}"
 
-        # 组合标题
         parts = []
         if common_prefix:
             parts.append(common_prefix)
 
-        # 根据是否有括号格式决定章节信息的组合方式
-        if detected_chapter_prefix and has_any_parens:
-            # 括号内格式：（标记 数字范围）如 （重置版 1-40）
-            chapter_range = f"（{detected_chapter_prefix} {raw_range}）"
-            parts.append(chapter_range)
-        elif detected_chapter_prefix:
-            # 无括号：标记+数字范围 如 重置版 1-40
-            chapter_range = f"{detected_chapter_prefix} {raw_range}"
-            parts.append(chapter_range)
-        elif has_any_parens:
-            # 有括号但无标记：（数字范围）如 （1-40）
-            chapter_range = f"（{raw_range}）"
-            parts.append(chapter_range)
+        if detected_marker:
+            # marker 分支：不保留括号内首尾空格，marker 以分隔符结尾时不加空格
+            sep = '' if detected_marker[-1] in '-–—~－' else ' '
+            if has_parens:
+                parts.append(f"（{detected_marker}{sep}{range_text}）")
+            else:
+                parts.append(f"{detected_marker}{sep}{range_text}")
+        elif has_parens:
+            # 无 marker：保留第一本书括号内原始首尾空格（如 " 1-41 " → "（ 1-42 ）"）
+            ls = ' ' if str(first_inner).startswith(' ') else ''
+            rs = ' ' if str(first_inner).endswith(' ') else ''
+            parts.append(f"（{ls}{range_text}{rs}）")
         else:
-            # 无括号无标记：纯数字 如 1-40
-            parts.append(raw_range)
+            parts.append(range_text)
 
         if completion_marker:
             parts.append(completion_marker)
-        if first_suffix:
-            clean_suffix = first_suffix
-            for kw in completion_keywords:
-                clean_suffix = clean_suffix.replace(kw, '').strip()
-            if clean_suffix:
-                parts.append(clean_suffix)
+        elif clean_suffix:
+            parts.append(clean_suffix)
 
         smart_title = ' '.join(parts)
         smart_title = re.sub(r'\s+', ' ', smart_title).strip()
@@ -532,33 +591,38 @@ class SmartTitleUtils:
         """
         按书名中的章节号对书籍列表进行升序排序。
 
+        策略（非全有或全无）：
+        - 能提取到数字章节号的书籍，按 (start, end) 升序排在前部；
+        - 无法提取（或无数字，如「番外」「（上）」「（下）」）的书籍，
+          按书名正序排到末尾，避免因为个别书籍解析失败而整体不排序。
+
         Args:
             books: 书籍列表（每个元素需包含 title_key 对应的字段）
             title_key: 书名字段名，默认为 'novel_title'
 
         Returns:
             (sorted_books, success) 元组
-            - sorted_books: 排序后的书籍列表（原列表未修改则返回原列表）
-            - success: True 表示成功排序，False 表示无法提取章节号
+            - sorted_books: 排序后的书籍列表
+            - success: 始终为 True（本方法总会给出一个有序列表）
         """
-        # 为每本书提取章节信息，保留原始索引
+        if len(books) < 2:
+            return books, True
+
         indexed = []
-        all_extracted = True
         for idx, book in enumerate(books):
             title = book.get(title_key, '') if isinstance(book, dict) else getattr(book, title_key, '')
             info = SmartTitleUtils.extract_chapter_info(title)
-            if info:
-                indexed.append((idx, book, info))
+            if info and info[0] != -1:
+                # 数字章节号：按 (start, end) 排序
+                start = info[0] if isinstance(info[0], (int, float)) else float('inf')
+                end = info[1] if isinstance(info[1], (int, float)) else float('inf')
+                indexed.append((start, end, idx, book, title))
             else:
-                all_extracted = False
-                break
+                # 无法提取章节号 / 纯标记：放到末尾，按书名排序
+                indexed.append((float('inf'), float('inf'), idx, book, title))
 
-        if not all_extracted or len(indexed) < 2:
-            return books, False
+        # 排序键：章节号 → 书名（正序，忽略大小写）→ 原始顺序
+        indexed.sort(key=lambda x: (x[0], x[1], (x[4] or '').lower(), x[2]))
 
-        # 按章节起始号排序，起始号相同则按结束号
-        indexed.sort(key=lambda x: (x[2][0], x[2][1]))
-
-        # 返回排序后的书籍列表
-        sorted_books = [item[1] for item in indexed]
+        sorted_books = [item[3] for item in indexed]
         return sorted_books, True

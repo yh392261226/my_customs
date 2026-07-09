@@ -142,6 +142,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 'selected_ids': selected,
                 'merged_title': g.get('base_title', ''),
                 'skipped': False,
+                'auto_sorted': False,   # 是否已对该组执行过自动排序
             }
 
         # ── 补缺功能相关状态 ──
@@ -293,8 +294,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             )
         )
 
-        # 智能排序：按书名中的章节号升序排列，并自动生成标题
-        self._smart_sort_books()
+        # 智能排序：仅在该组首次显示时按章节号升序排列一次，
+        # 之后保留用户手动排序结果（避免刷新/切组时把手动顺序冲掉）
+        if not state.get('auto_sorted', False):
+            self._smart_sort_books()
+            state['auto_sorted'] = True
         try:
             smart_title = self._generate_smart_title()
             if smart_title:
@@ -1209,7 +1213,9 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     container.add_class("hidden")
                 except Exception:
                     pass
-            # 执行一次智能标题（重新排序 + 生成标题）
+            # 把新爬取的书籍并入排序，再重新生成智能标题
+            self._smart_sort_books()
+            self._refresh_table()
             self._apply_smart_title()
         except Exception as e:
             logger.error(f"爬取完成回调失败: {e}")
@@ -1680,18 +1686,30 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def _smart_sort_books(self) -> bool:
         """
-        按书名中的章节号对当前组的书籍列表进行升序排序。
+        按书名对当前组的书籍列表进行升序排序。
+        
+        优先级：
+        1. 智能章节号排序（如 1-3, 4-6, 7-10）
+        2. 回退：纯书名正序字符串排序
 
         Returns:
-            True 表示已执行排序，False 表示无法提取章节号（未排序）
+            True 表示已执行排序
         """
         state = self._group_state[self._current_index]
         books = state['books']
 
+        if len(books) < 2:
+            return False
+
+        # 首先尝试智能章节号排序
         sorted_books, success = SmartTitleUtils.sort_books_by_chapter(books)
         if success:
             state['books'] = sorted_books
-        return success
+            return True
+        
+        # 智能排序失败，回退到按书名正序字符串排序
+        books.sort(key=lambda b: b.get('novel_title', '').lower())
+        return True
 
     def _generate_smart_title(self) -> Optional[str]:
         """
@@ -1723,17 +1741,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._apply_smart_title()
 
     def _apply_smart_title(self) -> None:
-        """智能排序并生成标题填充到输入框"""
+        """生成智能标题填充到输入框（不改动书籍的现有排序，保留手动顺序）"""
         try:
-            sorted_ok = self._smart_sort_books()
             smart_title = self._generate_smart_title()
             if smart_title:
                 title_input = self.query_one("#merge-title-input", Input)
                 title_input.value = smart_title
                 self._group_state[self._current_index]['merged_title'] = smart_title
-                if sorted_ok:
-                    self._refresh_table()
-                    self._update_status()
                 self.notify(
                     self.i18n.t('merge_detail.smart_title_applied', title=smart_title),
                     timeout=2,

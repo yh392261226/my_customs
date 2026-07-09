@@ -1153,6 +1153,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
             logger.info(f"收集到 {len(self._crawled_books)} 本有效的新爬取书籍（本轮新增 {added_count} 本）")
 
+            # 按书名正序排序（便于用户查看和选择）
+            self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
+            # 同步更新选中索引和分组索引以保持一致性
+            self._sync_indices_after_sort()
+
             # 刷新 DataTable 显示
             if self._crawled_books:
                 self._refresh_books_list_display()
@@ -1163,6 +1168,17 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"收集已爬取书籍失败: {e}")
             return 0
+
+    def _sync_indices_after_sort(self) -> None:
+        """书籍列表重新排序后，重建索引映射以保持选中状态和分组分配的一致性"""
+        if not self._crawled_books:
+            return
+        # 由于 sort 是原地操作，旧的索引已经无效，需要清空选中状态和分组
+        # 用户需要重新选择（因为位置已改变，保持旧索引会导致错误分配）
+        # 这里只清空选中状态，分组信息在下次刷新时会自动校验
+        self._selected_indices.clear()
+        # 分组中的索引会在 _refresh_books_list_display 中通过 assigned_indices 校验
+        # 如果索引越界会自动忽略，所以不需要额外处理
 
     def _check_and_continue_crawl(self) -> None:
         try:
@@ -1302,6 +1318,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self._crawled_books.extend(cached)
                 for b in cached:
                     existing_nids.add(b['novel_id'])
+                # 按书名正序排序（保持列表有序）
+                self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
+                self._sync_indices_after_sort()
                 # 立即刷新 DataTable 显示
                 self._refresh_books_list_display()
 
