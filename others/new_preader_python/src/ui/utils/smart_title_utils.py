@@ -9,6 +9,7 @@
 
 import os
 import re
+from collections import Counter
 from typing import Any, Optional, List, Tuple
 
 
@@ -419,8 +420,16 @@ class SmartTitleUtils:
         max_end = max(ci[1] for ci in num_books)
 
         # 公共前缀（书名部分）
+        # 若各书前缀因包裹符号不同（如【】与《》）而无法字符对齐，
+        # commonprefix 会得到空串；此时回退到「出现最多的前缀」，
+        # 平局则取最小章节号那本（num_books[0]）的前缀，避免书名被整体截断。
         prefixes = [ci[2] for ci in num_books if ci[2]]
-        common_prefix = os.path.commonprefix(prefixes) if prefixes else ''
+        if prefixes:
+            common_prefix = os.path.commonprefix(prefixes)
+            if not common_prefix:
+                common_prefix = Counter(prefixes).most_common(1)[0][0]
+        else:
+            common_prefix = ''
 
         # 章节标记：只取"最小编号那本书"的 marker。
         # 只有当 marker 出现在范围起点的书（如 "序-"、"重置版"）才保留；
@@ -499,31 +508,44 @@ class SmartTitleUtils:
             else:
                 range_text = f"{SmartTitleUtils._num_to_str(min_start)}{start_suffix}-{SmartTitleUtils._num_to_str(max_end)}{end_suffix}"
 
-        parts = []
-        if common_prefix:
-            parts.append(common_prefix)
+        # 组装书名：书名前缀 + 章节范围 + 后缀。
+        # 前缀与章节范围之间：若前缀以中文闭合包裹符结尾、且章节以中文开放包裹符开头，
+        # 则不插入空格（如 【猎妻】（1-9））；否则（如英文书名）加空格。
+        # 后缀（完成标记 / 作者等）前始终加空格。
+        CLOSE_WRAP = '】》」』'
+        OPEN_WRAP = '（《【'
 
+        range_part = ''
         if detected_marker:
             # marker 分支：不保留括号内首尾空格，marker 以分隔符结尾时不加空格
             sep = '' if detected_marker[-1] in '-–—~－' else ' '
             if has_parens:
-                parts.append(f"（{detected_marker}{sep}{range_text}）")
+                range_part = f"（{detected_marker}{sep}{range_text}）"
             else:
-                parts.append(f"{detected_marker}{sep}{range_text}")
+                range_part = f"{detected_marker}{sep}{range_text}"
         elif has_parens:
             # 无 marker：保留第一本书括号内原始首尾空格（如 " 1-41 " → "（ 1-42 ）"）
             ls = ' ' if str(first_inner).startswith(' ') else ''
             rs = ' ' if str(first_inner).endswith(' ') else ''
-            parts.append(f"（{ls}{range_text}{rs}）")
+            range_part = f"（{ls}{range_text}{rs}）"
         else:
-            parts.append(range_text)
+            range_part = range_text
+
+        parts = []
+        if common_prefix:
+            parts.append(common_prefix)
+            if range_part:
+                no_space = common_prefix[-1:] in CLOSE_WRAP or range_part[:1] in OPEN_WRAP
+                parts.append(range_part if no_space else ' ' + range_part)
+        elif range_part:
+            parts.append(range_part)
 
         if completion_marker:
-            parts.append(completion_marker)
+            parts.append(' ' + completion_marker)
         elif clean_suffix:
-            parts.append(clean_suffix)
+            parts.append(' ' + clean_suffix)
 
-        smart_title = ' '.join(parts)
+        smart_title = ''.join(parts)
         smart_title = re.sub(r'\s+', ' ', smart_title).strip()
         return smart_title if smart_title else None
 
