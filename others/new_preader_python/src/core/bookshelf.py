@@ -272,6 +272,19 @@ class Bookshelf:
                 book_path == path):
                 return book
         
+        # 内存中未命中：回退查询数据库。
+        # 书籍可能在内存字典刷新之后才被加入书库（例如通过合并操作写入 books 表），
+        # 此时内存字典尚未包含该书，直接返回 None 会导致 rename_book 等后续操作误判为"未找到书籍"。
+        try:
+            if self.db_manager and hasattr(self.db_manager, "get_book"):
+                db_book = self.db_manager.get_book(path)
+                if db_book is not None:
+                    # 缓存到内存字典，键使用数据库记录中的真实路径，保证后续引用一致
+                    self.books[db_book.path or path] = db_book
+                    return db_book
+        except Exception as e:
+            logger.debug(f"从数据库回退查询书籍失败: {e}")
+        
         return None
     
     def get_all_books(self) -> List[Book]:

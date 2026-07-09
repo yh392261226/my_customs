@@ -171,12 +171,19 @@ class SmartTitleUtils:
         if not s:
             return None
         fullwidth_map = str.maketrans('０１２３４５６７８９', '0123456789')
-        s2 = s.translate(fullwidth_map)
+        s2 = s.translate(fullwidth_map).replace('．', '.')
         try:
             if '.' in s2:
                 return float(s2)
             return int(s2)
         except ValueError:
+            # 退化处理 7.5.2 这类多余小数点的编号：取首个可解析前缀（如 7.5）
+            m = re.match(r'\d+(?:\.\d+)?', s2)
+            if m:
+                try:
+                    return float(m.group(0))
+                except ValueError:
+                    return None
             return None
 
     @staticmethod
@@ -199,7 +206,7 @@ class SmartTitleUtils:
             return (0, 0, inner, '', '', True)
 
         # 2. 阿拉伯/全角数字（含小数）
-        digit_re = r'(\d+(?:\.\d+)*|[０-９]+(?:\.[０-９]+)*)'
+        digit_re = r'(\d+(?:\.\d+|．\d+)*|[０-９]+(?:\.[０-９]+|．[０-９]+)*)'
         digits = list(re.finditer(digit_re, inner))
         if digits:
             first = digits[0]
@@ -275,44 +282,98 @@ class SmartTitleUtils:
         title = title.strip()
 
         # ── 1. 有括号格式 ──
-        # 收集所有括号对，优先选含数字的（避免 （重制版） 等干扰），否则选最后一个
-        bracket_matches = list(re.finditer(r'[\(（]([^\(\)（）]*)[\)）]', title))
+        # 支持全部常见括号：() （） [] 【】 《》 「」 『』
+        # 【】《》「」『』 视为"包裹型书名括号"，（）[] 视为"内容括号"。
+        # 章节信息只从"内容括号"或"内部含明确数字范围"的包裹括号中提取，
+        # 避免把 【2012年9月21日枪挑日本女孩】 这类书名/日期误判为章节。
+        OPEN_WRAP = '【《「『'
+        CLOSE_WRAP = '】》」』'
+        bracket_re = r'[\(（\[【《「『]([^\(\)（）\[\]【】》《「」『]*)[\)）\]】》」』]'
+        bracket_matches = list(re.finditer(bracket_re, title))
         if bracket_matches:
-            bracket_match = None
-            for bm in bracket_matches:
-                if re.search(r'\d', bm.group(1)):
-                    bracket_match = bm
-                    break
-            if bracket_match is None:
-                bracket_match = bracket_matches[-1]
-            inner_raw = bracket_match.group(1)
-            inner = inner_raw.strip()
-            prefix = title[:bracket_match.start()].rstrip()
-            suffix = title[bracket_match.end():].lstrip()
-            parsed = SmartTitleUtils._parse_inner_chapter(inner)
-            if parsed is not None:
-                start, end, marker, start_suffix, end_suffix, is_text_marker = parsed
-                if is_text_marker:
-                    # 用 -1 标记纯标记模式（与数字 0 区分）
-                    return (-1, -1, prefix, suffix, marker, True, '', '', inner_raw)
-                return (start, end, prefix, suffix, marker, True, end_suffix, start_suffix, inner_raw)
+            def _bracket_is_chapter(inner: str, is_wrap: bool) -> bool:
+                # 任意可解析数字（阿拉伯/全角/中文/罗马）或纯标记（上/下/章…）即视为潜在章节
+                any_digit = re.search(
+                    r'[0-9０-９零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬'
+                    r'IVXLCDMivxlcdm]', inner)
+                is_pure_marker = bool(inner) and all(
+                    c in SmartTitleUtils._NUM_SUFFIX_CHARS for c in inner)
+                if not any_digit and not is_pure_marker:
+                    return False
+                if is_wrap:
+                    # 包裹型书名括号：纯标记直接接受；含数字时须为"明确范围/小数"，
+                    # 且去掉数字/分隔符/章节标记后不得残留书名中文字
+                    # （排除 【书名1-5】、【2012年9月21日…】 等）。
+                    if not is_pure_marker:
+                        if not re.search(r'[0-9０-９][\d.０-９.]*\s*[-–—~－]\s*[0-9０-９]', inner) \
+                                and not re.search(r'[0-9０-９]+\.[0-9０-９]+', inner):
+                            leftover = re.sub(
+                                r'[0-9０-９.\-–—~－\s第序卷部册章回集上下中前后内外终完]', '', inner)
+                            if re.search(r'[\u4e00-\u9fff]', leftover):
+                                return False
+                    return True
+                return True
 
-        # ── 2. 无括号格式（如 【书名】 1-20 译者）──
+            cand = None
+            for bm in bracket_matches:
+                g = bm.group(1)
+                is_wrap = bm.group(0)[0] in OPEN_WRAP
+                if _bracket_is_chapter(g, is_wrap):
+                    cand = bm
+                    break
+            if cand is not None:
+                bracket_match = cand
+                inner_raw = bracket_match.group(1)
+                # 以 +/＋ 分段，取"含数字"的片段作为章节范围：
+                # - 避免 "1-209章+番外" 把番外当范围末端；
+                # - "前传+0-9" 应选 0-9 而非前置标签。
+                # 保留首尾空白，供后续（ 1-4 ）样式空格还原使用。
+                segs = re.split(r'[+＋]', inner_raw)
+                inner = next((s for s in segs if re.search(r'[0-9０-９]', s)), segs[0])
+                prefix = title[:bracket_match.start()].rstrip()
+                suffix = title[bracket_match.end():].lstrip()
+                parsed = SmartTitleUtils._parse_inner_chapter(inner.strip())
+                if parsed is not None:
+                    start, end, marker, start_suffix, end_suffix, is_text_marker = parsed
+                    if is_text_marker:
+                        # 用 -1 标记纯标记模式（与数字 0 区分）
+                        return (-1, -1, prefix, suffix, marker, True, '', '', inner)
+                    return (start, end, prefix, suffix, marker, True, end_suffix, start_suffix, inner)
+            # 无章节括号时，交给下面的无括号分支处理
+
+        # ── 2. 无括号格式（如 书名 1-20 / 书名1~8 / 【书名】１-１４）──
+        # 锚点：中文、闭合包裹符、空白，或前缀连字符（-1-8 形式）；
+        # 数字支持半角/全角；分隔符支持 - – — ~ －。
+        num_re = r'[0-9０-９]+(?:\.[0-9０-９]+|．[0-9０-９]+)*'
+        # 使用反向预查，使锚点字符不被"吃掉"，从而保留完整前缀（如 【安全词】1-10 的 】）。
+        # 锚点：中文、各闭合包裹符（】」』》）、内容括号闭合（）)]）、空白，
+        # 以及前缀连字符/波浪号/破折号（- － ~ ～ — –，兼容 "X——1-8"、"X~1-6" 等）。
+        anchor = r'(?<=[\u4e00-\u9fff】」』》\]）)\s\-－~～—–])'
         for pat in (
-            r'[】\]」』\.]\s*(\d+(?:\.\d+)*)\s*[-–—~－]\s*(\d+(?:\.\d+)*)',
-            r'[】\]」』\.]\s*(\d+(?:\.\d+)*)',
+            anchor + r'\s*(' + num_re + r')\s*[-–—~－]\s*(' + num_re + r')',
+            anchor + r'\s*(' + num_re + r')',
         ):
             m = re.search(pat, title)
             if m:
+                # 仅取首个 "数字-数字" 片段（忽略后续 +番外 等附加章节）
+                raw = m.group(0)
+                rng = re.split(r'[+＋]', raw, maxsplit=1)[0]
+                rm = re.search(r'(' + num_re + r')(?:\s*[-–—~－]\s*(' + num_re + r'))?', rng)
+                if not rm:
+                    continue
                 prefix = title[:m.start()].rstrip()
                 suffix = title[m.end():].lstrip()
-                if len(m.groups()) == 2:
-                    s = SmartTitleUtils._parse_numeric(m.group(1))
-                    e = SmartTitleUtils._parse_numeric(m.group(2))
-                    return (s, e, prefix, suffix, '', False, '', '', f"{m.group(1)}-{m.group(2)}")
+                if rm.group(2):
+                    s = SmartTitleUtils._parse_numeric(rm.group(1))
+                    e = SmartTitleUtils._parse_numeric(rm.group(2))
+                    return (s, e, prefix, suffix, '', False, '', '', f"{rm.group(1)}-{rm.group(2)}")
                 else:
-                    s = SmartTitleUtils._parse_numeric(m.group(1))
-                    return (s, s, prefix, suffix, '', False, '', '', m.group(1))
+                    # 单数字：避免把 2012年9月21日 中的"年9月/月21日"误判为章节
+                    after = title[m.end():m.end() + 1]
+                    if after in '年月日号':
+                        continue
+                    s = SmartTitleUtils._parse_numeric(rm.group(1))
+                    return (s, s, prefix, suffix, '', False, '', '', rm.group(1))
 
         return None
 
@@ -440,8 +501,10 @@ class SmartTitleUtils:
             detected_marker = ''
 
         # 后缀处理（提取完成标记，剩余作为后缀）
-        completion_keywords = ['完结', '完', '全', '全集', '全本', '终']
+        completion_keywords = ['完结', '完本', '完整', '完', '全本', '全集', '全', '终']
         first_suffix = num_books[0][3].strip() if num_books[0][3] else ''
+        # 清理尾部进度标记，如 " (13/15)"、"(2/3)"，避免污染合并标题
+        first_suffix = re.sub(r'\(\s*\d+\s*/\s*\d+\s*\)', '', first_suffix).strip()
         completion_marker = ''
         clean_suffix = first_suffix
         for kw in completion_keywords:
