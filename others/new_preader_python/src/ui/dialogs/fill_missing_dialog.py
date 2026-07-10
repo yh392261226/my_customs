@@ -22,6 +22,7 @@ from textual import events
 from src.locales.i18n_manager import get_global_i18n
 from src.utils.logger import get_logger
 from src.utils.visual_merge_helper import VisualMergeHelper
+from src.ui.utils.smart_title_utils import SmartTitleUtils
 
 logger = get_logger(__name__)
 
@@ -1160,10 +1161,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
             logger.info(f"收集到 {len(self._crawled_books)} 本有效的新爬取书籍（本轮新增 {added_count} 本）")
 
-            # 按书名正序排序（便于用户查看和选择）
-            self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
-            # 同步更新选中索引和分组索引以保持一致性
-            self._sync_indices_after_sort()
+            # 按章节号升序排序（便于用户查看和选择）
+            self._sort_crawled_books_by_chapter()
 
             # 刷新 DataTable 显示
             if self._crawled_books:
@@ -1186,6 +1185,24 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         self._selected_indices.clear()
         # 分组中的索引会在 _refresh_books_list_display 中通过 assigned_indices 校验
         # 如果索引越界会自动忽略，所以不需要额外处理
+
+    def _sort_crawled_books_by_chapter(self) -> None:
+        """按章节号对候选书籍进行智能升序排序（便于查看/选择）。
+
+        使用与合并详情弹窗一致的 SmartTitleUtils.sort_books_by_chapter：
+        - 能提取到章节号（如 1-5、10-15）的书籍按 (start, end) 升序排在前面；
+        - 无法提取章节号的书籍按书名正序排在末尾，避免个别解析失败导致整体不排序。
+        失败则回退纯书名正序。
+        """
+        if len(self._crawled_books) < 2:
+            return
+        try:
+            sorted_books, _ = SmartTitleUtils.sort_books_by_chapter(self._crawled_books, title_key='title')
+            self._crawled_books = sorted_books
+        except Exception as e:
+            logger.debug(f"章节排序失败，回退字母序: {e}")
+            self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
+        self._sync_indices_after_sort()
 
     def _check_and_continue_crawl(self) -> None:
         try:
@@ -1325,9 +1342,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self._crawled_books.extend(cached)
                 for b in cached:
                     existing_nids.add(b['novel_id'])
-                # 按书名正序排序（保持列表有序）
-                self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
-                self._sync_indices_after_sort()
+                # 按章节号升序排序（保持列表有序）
+                self._sort_crawled_books_by_chapter()
                 # 立即刷新 DataTable 显示
                 self._refresh_books_list_display()
 

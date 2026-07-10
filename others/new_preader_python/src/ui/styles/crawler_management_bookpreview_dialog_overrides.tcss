@@ -27,7 +27,8 @@
     text-wrap: wrap;
     text-overflow: fold;
     border: ascii $text;
-    
+    overflow-y: auto;
+    overflow-x: auto;
     border-title-align: right;
     border-title-color: $text;
     border-title-background: $warning;

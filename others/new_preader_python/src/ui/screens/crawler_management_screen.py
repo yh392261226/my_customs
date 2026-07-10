@@ -1479,6 +1479,9 @@ class CrawlerManagementScreen(Screen[None]):
     
     def _update_status(self, message: str, severity: str = "information") -> None:
         """更新状态信息"""
+        # 屏幕已卸载（DOM 销毁）时直接跳过，避免 query_one 触发 "No nodes match" 报错
+        if not self.is_attached:
+            return
         try:
             status_label = self.query_one("#crawler-status", Label)
             status_label.update(message)
@@ -1496,7 +1499,8 @@ class CrawlerManagementScreen(Screen[None]):
                 status_label.add_class("status-info")
                 
         except Exception as e:
-            logger.error(f"更新状态信息失败: {e}")
+            # 屏幕卸载后挂起的 UI 更新可能访问已销毁节点，属正常现象，降级为 debug 避免刷屏
+            logger.debug(f"更新状态信息失败（屏幕可能已卸载）: {e}")
     
     def _initialize_loading_animation(self) -> None:
         """初始化加载动画"""
@@ -5332,6 +5336,9 @@ class CrawlerManagementScreen(Screen[None]):
     
     def _check_and_continue_crawl(self) -> None:
         """检查输入框中是否还有新ID，如果有则继续爬取"""
+        # 屏幕已卸载（DOM 销毁）时直接跳过，避免 query_one 触发 "No nodes match" 报错
+        if not self.is_attached:
+            return
         try:
             # 检查是否正在爬取
             if self.is_crawling:
@@ -5430,7 +5437,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(f"{get_global_i18n().t('crawler.continuing_crawl')} ({len(novel_ids)} {get_global_i18n().t('crawler.books')})")
             
         except Exception as e:
-            logger.error(f"自动继续爬取检查失败: {e}")
+            # 屏幕卸载后挂起的继续爬取检查可能访问已销毁节点，属正常现象，降级为 debug 避免刷屏
+            logger.debug(f"自动继续爬取检查失败（屏幕可能已卸载）: {e}")
             self._update_status(f"{get_global_i18n().t('crawler.continue_crawl_failed')}: {str(e)}", "error")
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -6206,7 +6214,7 @@ class CrawlerManagementScreen(Screen[None]):
         self.current_crawling_id = None
         # 注意：这里不停止爬取工作线程，让爬取继续在后台运行
         # 爬取工作线程会通过app.call_later和app.post_message来更新UI
-        # 即使页面卸载，这些消息也会被正确处理
+        # 即使页面卸载，这些消息也会被正确处理（挂起的 UI 更新在 _update_status 等方法内已做 is_attached 守卫，不会报错）
         logger.debug("爬取管理页面卸载，爬取工作线程继续在后台运行")
 
     def _compare_read_selected(self) -> None:

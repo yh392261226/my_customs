@@ -296,11 +296,15 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             )
         )
 
-        # 智能排序：仅在该组首次显示时按章节号升序排列一次，
-        # 之后保留用户手动排序结果（避免刷新/切组时把手动顺序冲掉）
-        if not state.get('auto_sorted', False):
+        # 智能排序：首次显示、或书籍数量增加（如爬取补全后加入新书）时按章节号升序排列；
+        # 数量不变的后续显示保留用户手动排序结果（避免刷新/切组把手动顺序冲掉）。
+        # 注意：之前在组内书 < 2 时 _smart_sort_books 会直接返回 False，但仍把 auto_sorted 置 True，
+        # 导致之后补全加入新书后永不重排——这里用 auto_sorted_count 跟踪数量来修正。
+        prev_count = state.get('auto_sorted_count', 0)
+        if not state.get('auto_sorted', False) or len(state['books']) > prev_count:
             self._smart_sort_books()
             state['auto_sorted'] = True
+            state['auto_sorted_count'] = len(state['books'])
         try:
             smart_title = self._generate_smart_title()
             if smart_title:
