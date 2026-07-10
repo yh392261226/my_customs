@@ -502,6 +502,9 @@ class DatabaseManager:
             
             # 检查并添加novel_sites表的book_id_example列（如果不存在）
             self._add_column_if_not_exists(cursor, "novel_sites", "book_id_example", "TEXT", "''")
+
+            # 检查并添加novel_sites表的search_url列（如果不存在）— 搜索连接地址（用于搜索章节功能）
+            self._add_column_if_not_exists(cursor, "novel_sites", "search_url", "TEXT", "''")
             
             # 检查并添加novel_sites表的rating列（如果不存在）
             self._add_column_if_not_exists(cursor, "novel_sites", "rating", "INTEGER NOT NULL", "2")
@@ -1741,7 +1744,7 @@ class DatabaseManager:
                     # 更新现有网站
                     cursor.execute("""
                         UPDATE novel_sites 
-                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, updated_at = ?
+                        SET name = ?, url = ?, storage_folder = ?, proxy_enabled = ?, selectable_enabled = ?, parser = ?, tags = ?, rating = ?, book_id_example = ?, status = ?, url_pattern = ?, search_url = ?, updated_at = ?
                         WHERE id = ?
                     """, (
                         site_data["name"],
@@ -1755,6 +1758,7 @@ class DatabaseManager:
                         site_data.get("book_id_example", ""),
                         site_data.get("status", "正常"),  # 默认状态为正常
                         site_data.get("url_pattern", ""),  # URL模式
+                        site_data.get("search_url", ""),  # 搜索连接地址
                         now,
                         site_data["id"]
                     ))
@@ -1762,8 +1766,8 @@ class DatabaseManager:
                     # 插入新网站
                     cursor.execute("""
                         INSERT INTO novel_sites 
-                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        (name, url, storage_folder, proxy_enabled, selectable_enabled, parser, tags, rating, book_id_example, status, url_pattern, search_url, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                         site_data["name"],
                         site_data["url"],
@@ -1776,6 +1780,7 @@ class DatabaseManager:
                         site_data.get("book_id_example", ""),
                         site_data.get("status", "正常"),  # 默认状态为正常
                         site_data.get("url_pattern", ""),  # URL模式
+                        site_data.get("search_url", ""),  # 搜索连接地址
                         now,
                         now
                     ))

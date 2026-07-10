@@ -39,6 +39,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         ("a", "toggle_select_all", get_global_i18n().t('fill_missing.toggle_select_shortcut')),
         ("space", "toggle_row", get_global_i18n().t('fill_missing.toggle_row_shortcut')),
         ("v", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
+        ("S", "search_chapters", get_global_i18n().t('crawler.search_chapters_shortcut')),
     ]
 
     # 预览最大行数（避免超大文件导致性能问题）
@@ -180,6 +181,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     Button(self.i18n.t('fill_missing.set_as_insert_pos'), id="fm-set-insert-pos-btn", variant="warning"),
                     Button(self.i18n.t('fill_missing.load_preview_btn'), id="fm-load-preview-btn"),
                     Button(self.i18n.t('fill_missing.visual_merge_btn'), id="fm-visual-merge-btn", variant="success"),
+                    Button(self.i18n.t('crawler.search_chapters'), id="fm-search-chapters-btn", variant="warning"),
                     id="fm-search-row",
                 ),
                 # 预览区（DataTable，支持点击行号设为插入位置）
@@ -659,6 +661,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def on_visual_merge(self):
         """在浏览器中打开可视化拖拽补缺页面"""
         self._open_visual_merge()
+
+    @on(Button.Pressed, "#fm-search-chapters-btn")
+    def on_search_chapters(self):
+        """搜索章节：使用网站配置的搜索连接地址，以被补缺书籍书名为关键词搜索"""
+        self._open_search_chapters(self.target_book.get('novel_title', '') or '')
 
     def _open_visual_merge(self) -> None:
         """启动浏览器可视化补缺工具"""
@@ -1772,6 +1779,65 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         try: self.query_one("#fm-status", Label).update(message)
         except Exception: pass
 
+    # ─── 搜索章节 ─────────────────────────────────────────
+    def _open_search_chapters(self, raw_title: str) -> None:
+        """
+        使用网站配置的搜索连接地址，以书名（经智能搜索规范化）为关键词在浏览器中搜索章节。
+
+        - 关键词处理与爬取管理页面的智能搜索一致：使用 normalize_book_title 规范化书名。
+        - 搜索连接地址中的 {keyword} 占位符会被替换为 URL 编码后的关键词。
+        - 若网站未配置搜索连接地址，提示"未配置搜索连接"。
+        """
+        site = self.novel_site or {}
+        search_url = (site.get("search_url") or "").strip()
+        if not search_url:
+            self.notify(self.i18n.t('crawler.search_url_not_configured'), severity="warning", timeout=3)
+            return
+
+        if not raw_title:
+            self.notify(self.i18n.t('crawler.search_title_empty'), severity="warning", timeout=2)
+            return
+
+        # 智能搜索处理：规范化书名为搜索关键词（与爬取管理页面智能搜索一致）
+        try:
+            from src.ui.dialogs.crawler_merge_mode_dialog import normalize_book_title
+            keyword = normalize_book_title(raw_title)
+        except Exception as e:
+            logger.debug(f"规范化书名失败，使用原始书名: {e}")
+            keyword = raw_title
+        if not keyword:
+            keyword = raw_title
+
+        from urllib.parse import quote
+        encoded = quote(keyword)
+        # 若地址包含 {keyword} 占位符则替换；否则直接把编码后的关键词追加到末尾
+        if "{keyword}" in search_url:
+            url = search_url.replace("{keyword}", encoded)
+        else:
+            url = search_url + encoded
+
+        try:
+            from src.utils.browser_manager import BrowserManager
+            success = BrowserManager.open_url(url)
+            if success:
+                self.notify(
+                    self.i18n.t('crawler.search_url_opened', keyword=keyword),
+                    severity="information", timeout=3,
+                )
+            else:
+                import webbrowser
+                webbrowser.open(url)
+                self.notify(
+                    self.i18n.t('crawler.search_url_opened', keyword=keyword),
+                    timeout=3,
+                )
+        except Exception as e:
+            logger.error(f"打开搜索连接失败: {e}")
+            self.notify(
+                self.i18n.t('crawler.search_url_open_failed', error=str(e)),
+                severity="error", timeout=3,
+            )
+
     # ─── 按钮事件 ───────────────────────────────────────────
 
     @on(Button.Pressed, "#fm-toggle-crawl-btn")
@@ -1826,6 +1892,10 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         """快捷键 v: 打开可视化补缺"""
         if self._stage == "merge":
             self._open_visual_merge()
+
+    def action_search_chapters(self):
+        """快捷键 S: 搜索章节（使用网站配置的搜索连接地址）"""
+        self._open_search_chapters(self.target_book.get('novel_title', '') or '')
 
     def action_toggle_crawl(self):
         if self.is_crawling: self._stop_crawl()

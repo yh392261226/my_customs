@@ -57,7 +57,8 @@ Container {
 #storage-folder-container,
 #parser-container,
 #selectable-enable-container,
-#proxy-enable-container {
+#proxy-enable-container,
+#search-url-container {
     width: 100%;
     height: 3;
     margin: 1 0;
@@ -75,7 +76,8 @@ Container {
 #tags-label,
 #book-id-example-label,
 #url-pattern-label,
-#rating-label {
+#rating-label,
+#search-url-label {
     width: 30%;
     height: 1;
     text-align: right;
@@ -88,7 +90,8 @@ Container {
 #storage-folder-input,
 #tags-input,
 #book-id-example-input,
-#url-pattern-input {
+#url-pattern-input,
+#search-url-input {
     width: 70%;
     min-width: 40;
     height: 3;

@@ -1185,6 +1185,9 @@
     "url_pattern": "URL Pattern",
     "url_pattern_placeholder": "Enter URL pattern, e.g.: book/{novel_id}.html",
     "url_pattern_help": "URL pattern is used by Chrome tab monitor to identify novel pages, {novel_id} will be replaced with actual book ID",
+    "search_url": "Search URL",
+    "search_url_placeholder": "Enter search URL, e.g.: search?q={keyword}",
+    "search_url_help": "Search URL is used by the search-chapters feature; {keyword} is replaced with the URL-encoded book title",
     "rating": "Rating",
     "rating_placeholder": "Select rating",
     "enter_site_name": "Please enter site name",
@@ -1505,7 +1508,13 @@
     "format_title_processed": "Processed {count} records",
     "format_title_batch_title": "Batch Format Titles ({count})",
     "format_title_batch_desc": "Confirm to format titles for the selected {count} records? This operation will format book titles to the pattern 【Book Title】 (1-4) Author: XXX.",
-    "format_cancelled": "Format cancelled"
+    "format_cancelled": "Format cancelled",
+    "search_chapters": "Search Chapters",
+    "search_chapters_shortcut": "Search Chapters",
+    "search_url_not_configured": "Search URL not configured",
+    "search_url_opened": "Opened search in browser: {keyword}",
+    "search_url_open_failed": "Failed to open search URL: {error}",
+    "search_title_empty": "Book title is empty, cannot search"
   },
   "merge_mode": {
     "title": "Merge Mode",

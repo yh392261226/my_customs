@@ -154,6 +154,14 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
                             id="url-pattern-container", classes="form-row"
                         ),
                         Horizontal(
+                            Label(get_global_i18n().t('novel_site_dialog.search_url'), id="search-url-label"),
+                            Input(
+                                placeholder=get_global_i18n().t('novel_site_dialog.search_url_placeholder'),
+                                id="search-url-input"
+                            ),
+                            id="search-url-container", classes="form-row"
+                        ),
+                        Horizontal(
                             Label(get_global_i18n().t('novel_site_dialog.rating'), id="rating-label"),
                             Select(
                                 [
@@ -312,6 +320,11 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         url_pattern_value = self.novel_site.get("url_pattern", "")
         url_pattern_input.value = url_pattern_value if url_pattern_value is not None else ""
         
+        # 搜索连接地址
+        search_url_input = self.query_one("#search-url-input", Input)
+        search_url_value = self.novel_site.get("search_url", "")
+        search_url_input.value = search_url_value if search_url_value is not None else ""
+        
         # 如果没有URL模式且已选择解析器，自动填充
         if not url_pattern_value and parser_value:
             self._auto_fill_url_pattern(parser_value)
@@ -372,6 +385,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
         tags_input = self.query_one("#tags-input", Input)
         book_id_example_input = self.query_one("#book-id-example-input", Input)
         url_pattern_input = self.query_one("#url-pattern-input", Input)
+        search_url_input = self.query_one("#search-url-input", Input)
         parser_select = self.query_one("#parser-select", Select)
         proxy_checkbox = self.query_one("#enable-proxy", Switch)
         selectable_checkbox = self.query_one("#enable-selectable", Switch)
@@ -417,6 +431,7 @@ class NovelSiteDialog(ModalScreen[Optional[Dict[str, Any]]]):
             "tags": tags_input.value.strip(),
             "book_id_example": book_id_example_input.value.strip(),
             "url_pattern": url_pattern_input.value.strip(),
+            "search_url": search_url_input.value.strip(),
             "parser": parser_value,
             "proxy_enabled": proxy_checkbox.value,
             "selectable_enabled": selectable_checkbox.value,
