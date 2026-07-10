@@ -271,6 +271,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     def _refresh_books_list_display(self, restore_cursor: bool = True, target_cursor: int = -1) -> None:
         """刷新新爬取书籍列表显示（DataTable），标注选中状态和已分配状态"""
+        # 弹窗已卸载（DOM 销毁）时直接跳过，避免 query_one 触发 "No nodes match" 报错
+        if not self.is_attached:
+            return
         try:
             table = self.query_one("#fm-books-table", DataTable)
 
@@ -330,10 +333,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     table.move_cursor(row=current_cursor)
 
         except Exception as e:
-            logger.error(f"刷新书籍列表显示失败: {e}")
+            # 屏幕可能已卸载导致节点不存在，属正常现象，降级为 debug 避免刷屏
+            logger.debug(f"刷新书籍列表显示失败（屏幕可能已卸载）: {e}")
 
     def _refresh_group_display(self) -> None:
         """刷新分组计划显示"""
+        # 弹窗已卸载（DOM 销毁）时直接跳过，避免 query_one 触发 "No nodes match" 报错
+        if not self.is_attached:
+            return
         try:
             display_el = self.query_one("#fm-group-display", Static)
             lines = []
@@ -377,7 +384,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
             display_el.update("\n".join(lines))
         except Exception as e:
-            logger.error(f"刷新分组显示失败: {e}")
+            # 屏幕可能已卸载导致节点不存在，属正常现象，降级为 debug 避免刷屏
+            logger.debug(f"刷新分组显示失败（屏幕可能已卸载）: {e}")
 
     def _suggest_merged_name(self) -> str:
         try:
@@ -1086,6 +1094,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             logger.error(f"爬取状态回调失败: {e}")
 
     def _on_crawl_completed(self) -> None:
+        # 弹窗已卸载时跳过（后台爬取可能仍在继续，挂起的刷新无需执行）
+        if not self.is_attached:
+            return
         try:
             self._update_crawl_button_state()
             self.notify(self.i18n.t('crawler.crawl_success'), timeout=3)
@@ -1233,6 +1244,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     def _collect_single_book(self, novel_id: str, novel_title: str = '') -> None:
         """收集单本已完成爬取的书籍并立即刷新表格"""
+        # 弹窗已卸载时跳过（后台爬取可能仍在继续，挂起的刷新无需执行）
+        if not self.is_attached:
+            return
         try:
             site_id = self.novel_site.get('id')
             if not site_id or not self.db_manager:

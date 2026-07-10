@@ -70,6 +70,7 @@ FillMissingDialog Container, #fm-container {
     width: 100%;
     height: auto;
     margin-bottom: 1;
+    overflow-y: auto;
 }
 
 /* ===== 左侧面板：书籍 DataTable + 操作按钮 ===== */
