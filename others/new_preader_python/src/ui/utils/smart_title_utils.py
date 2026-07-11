@@ -187,6 +187,34 @@ class SmartTitleUtils:
             return None
 
     @staticmethod
+    def _parse_chapter_number(s: str):
+        """
+        将章节数字字符串解析为可比较的"版本元组"，如 '26.7' -> (26, 7)、'5' -> (5,)。
+
+        小数章节按 '.' 拆分为整数段做字典序比较，保证章节语义正确
+        （26.12 在 26.7 之后，而非被浮点误判为 26.12 < 26.70）。
+        解析失败返回 None。
+        """
+        if not s:
+            return None
+        s = s.strip()
+        if '.' in s:
+            parts = s.split('.')
+            try:
+                return tuple(int(p) for p in parts)
+            except ValueError:
+                return None
+        fullwidth_map = str.maketrans('０１２３４５６７８９', '0123456789')
+        s2 = s.translate(fullwidth_map)
+        try:
+            return (int(s2),)
+        except ValueError:
+            try:
+                return (int(float(s2)),)
+            except ValueError:
+                return None
+
+    @staticmethod
     def _parse_inner_chapter(inner: str):
         """
         解析括号内的内容。
@@ -213,8 +241,8 @@ class SmartTitleUtils:
             last = digits[-1]
             marker = inner[:first.start()].strip()
             num_strs = [d.group(0) for d in digits]
-            nums = [SmartTitleUtils._parse_numeric(s) for s in num_strs]
-            nums = [n if n is not None else 0 for n in nums]
+            nums = [SmartTitleUtils._parse_chapter_number(s) for s in num_strs]
+            nums = [n if n is not None else (0,) for n in nums]
             if len(num_strs) >= 2:
                 end_suffix = inner[last.end():].strip()
                 end_suffix = ''.join(c for c in end_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
@@ -238,7 +266,7 @@ class SmartTitleUtils:
             last = cn[-1]
             marker = inner[:first.start()].strip()
             nums = [SmartTitleUtils.chinese_num_to_int(c.group(0)) for c in cn]
-            nums = [n if n is not None else 0 for n in nums]
+            nums = [(n,) if n is not None else (0,) for n in nums]
             end_suffix = inner[last.end():].strip()
             end_suffix = ''.join(c for c in end_suffix if c in SmartTitleUtils._NUM_SUFFIX_CHARS)
             if len(cn) >= 2:
@@ -255,7 +283,7 @@ class SmartTitleUtils:
         rm = list(re.finditer(r'([IVXLCDMivxlcdm]+)', inner))
         if rm and all(c in 'IVXLCDMivxlcdm' for c in inner.replace(' ', '')):
             nums = [SmartTitleUtils.roman_to_int(c.group(0)) for c in rm]
-            nums = [n if n is not None else 0 for n in nums]
+            nums = [(n,) if n is not None else (0,) for n in nums]
             if len(nums) >= 2:
                 return (nums[0], nums[-1], '', '', '', False)
             return (nums[0], nums[0], '', '', '', False)
@@ -291,6 +319,12 @@ class SmartTitleUtils:
         bracket_re = r'[\(（\[【《「『]([^\(\)（）\[\]【】》《「」『]*)[\)）\]】》」』]'
         bracket_matches = list(re.finditer(bracket_re, title))
         if bracket_matches:
+            # 强章节信号：明确的数字范围（分隔符连接两数字）或小数编号
+            def _is_strong_chapter(inner: str) -> bool:
+                return bool(re.search(
+                    r'[0-9０-９]+(?:\.[0-9０-９]+)?\s*[-–—~－]\s*[0-9０-９]+', inner)) \
+                    or bool(re.search(r'[0-9０-９]+\.[0-9０-９]+', inner))
+
             def _bracket_is_chapter(inner: str, is_wrap: bool) -> bool:
                 # 任意可解析数字（阿拉伯/全角/中文/罗马）或纯标记（上/下/章…）即视为潜在章节
                 any_digit = re.search(
@@ -300,6 +334,10 @@ class SmartTitleUtils:
                     c in SmartTitleUtils._NUM_SUFFIX_CHARS for c in inner)
                 if not any_digit and not is_pure_marker:
                     return False
+                # 强章节信号（明确范围/小数）：直接确认为章节括号，
+                # 优先于含标签文字的括号（如 （bg，弯掰直，1v2））。
+                if _is_strong_chapter(inner):
+                    return True
                 if is_wrap:
                     # 包裹型书名括号：纯标记直接接受；含数字时须为"明确范围/小数"，
                     # 且去掉数字/分隔符/章节标记后不得残留书名中文字
@@ -312,6 +350,13 @@ class SmartTitleUtils:
                             if re.search(r'[\u4e00-\u9fff]', leftover):
                                 return False
                     return True
+                # 内容括号（非包裹）弱信号：去掉数字/分隔符/标记/标点后若残留中文或字母，
+                # 说明是标签/描述括号（如 （bg，弯掰直，1v2）），而非章节范围，应排除。
+                leftover = re.sub(
+                    r'[0-9０-９零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬'
+                    r'IVXLCDMivxlcdm.\-–—~－\s，,、第序卷部册章回集上下中前后内外终完]', '', inner)
+                if re.search(r'[\u4e00-\u9fff]', leftover) or re.search(r'[a-zA-Z]', leftover):
+                    return False
                 return True
 
             cand = None
@@ -364,15 +409,15 @@ class SmartTitleUtils:
                 prefix = title[:m.start()].rstrip()
                 suffix = title[m.end():].lstrip()
                 if rm.group(2):
-                    s = SmartTitleUtils._parse_numeric(rm.group(1))
-                    e = SmartTitleUtils._parse_numeric(rm.group(2))
+                    s = SmartTitleUtils._parse_chapter_number(rm.group(1))
+                    e = SmartTitleUtils._parse_chapter_number(rm.group(2))
                     return (s, e, prefix, suffix, '', False, '', '', f"{rm.group(1)}-{rm.group(2)}")
                 else:
                     # 单数字：避免把 2012年9月21日 中的"年9月/月21日"误判为章节
                     after = title[m.end():m.end() + 1]
                     if after in '年月日号':
                         continue
-                    s = SmartTitleUtils._parse_numeric(rm.group(1))
+                    s = SmartTitleUtils._parse_chapter_number(rm.group(1))
                     return (s, s, prefix, suffix, '', False, '', '', rm.group(1))
 
         return None
@@ -438,7 +483,9 @@ class SmartTitleUtils:
 
     @staticmethod
     def _num_to_str(v):
-        """数值转显示字符串（浮点去掉多余的 .0）"""
+        """数值转显示字符串（浮点去掉多余的 .0；元组按版本号还原，如 (26,12)->'26.12'）"""
+        if isinstance(v, tuple):
+            return '.'.join(str(x) for x in v)
         if isinstance(v, float):
             if v == int(v):
                 return str(int(v))
@@ -539,13 +586,14 @@ class SmartTitleUtils:
                     not last_has_dot
                     or str(SmartTitleUtils._num_to_str(max_end)).startswith(dotted_prefix)
                 ):
-                    # 借用前缀时，需去掉 max_end 自身已带的前缀段，避免重复
+                    # 借用前缀时，需去掉 max_end 自身已带的前缀段，避免重复；
+                    # 若 max_end 并不含该点号前缀（如从 9.9 跨到 20），则直接使用 max_end 本身。
                     max_end_str = SmartTitleUtils._num_to_str(max_end)
                     if max_end_str.startswith(dotted_prefix):
                         tail = max_end_str[len(dotted_prefix):]
+                        new_tail = dotted_prefix + tail
                     else:
-                        tail = max_end_str
-                    new_tail = dotted_prefix + tail
+                        new_tail = max_end_str
                 else:
                     new_tail = SmartTitleUtils._num_to_str(max_end)
                 if len(dot_nums) >= 2:
@@ -698,13 +746,13 @@ class SmartTitleUtils:
             title = book.get(title_key, '') if isinstance(book, dict) else getattr(book, title_key, '')
             info = SmartTitleUtils.extract_chapter_info(title)
             if info and info[0] != -1:
-                # 数字章节号：按 (start, end) 排序
-                start = info[0] if isinstance(info[0], (int, float)) else float('inf')
-                end = info[1] if isinstance(info[1], (int, float)) else float('inf')
+                # 数字章节号：统一转为可比较元组（小数按版本号比较，如 26.12 > 26.7）
+                start = info[0] if isinstance(info[0], tuple) else (info[0],) if isinstance(info[0], (int, float)) else (float('inf'),)
+                end = info[1] if isinstance(info[1], tuple) else (info[1],) if isinstance(info[1], (int, float)) else (float('inf'),)
                 indexed.append((start, end, idx, book, title))
             else:
                 # 无法提取章节号 / 纯标记：放到末尾，按书名排序
-                indexed.append((float('inf'), float('inf'), idx, book, title))
+                indexed.append(((float('inf'),), (float('inf'),), idx, book, title))
 
         # 排序键：章节号 → 书名（正序，忽略大小写）→ 原始顺序
         indexed.sort(key=lambda x: (x[0], x[1], (x[4] or '').lower(), x[2]))
