@@ -2479,20 +2479,30 @@ class CrawlerManagementScreen(Screen[None]):
             # 收集需要合并的文件路径和记录信息
             file_paths = []
             record_ids = []
+            skipped = 0
             for item in selected_items:
-                if item.get("file_path"):
-                    file_paths.append(item["file_path"])
-                    record_ids.append(item["id"])
+                fp = item.get("file_path")
+                # 跳过无效路径（历史数据可能残留 'already_exists' 哨兵字符串）
+                if not fp or fp == 'already_exists':
+                    skipped += 1
+                    logger.warning(
+                        f"合并跳过：无效的路径记录 - {item.get('novel_title', item.get('id'))}"
+                    )
+                    continue
+                # 跳过文件实际不存在的记录，避免整次合并失败
+                if not os.path.exists(fp):
+                    skipped += 1
+                    logger.warning(f"合并跳过：文件不存在 - {fp}")
+                    continue
+                file_paths.append(fp)
+                record_ids.append(item["id"])
             
             if not file_paths:
                 logger.error("合并失败：没有找到可合并的文件")
                 return False
             
-            # 检查文件是否存在
-            for file_path in file_paths:
-                if not os.path.exists(file_path):
-                    logger.error(f"合并失败：文件不存在 - {file_path}")
-                    return False
+            if skipped > 0:
+                logger.warning(f"合并时已跳过 {skipped} 个无效/缺失的文件记录")
             
             # 创建新的合并文件
             from datetime import datetime

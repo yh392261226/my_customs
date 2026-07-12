@@ -640,6 +640,9 @@ class HaijBookxParser(BaseParser):
         # 确保存储目录存在
         os.makedirs(storage_folder, exist_ok=True)
         
+        # 标记本次保存是否命中已存在的文件（避免把哨兵字符串写入数据库）
+        self._last_save_collided = False
+        
         # 生成文件名（使用标题，避免特殊字符）
         title = novel_content.get('title', '未知标题')
         
@@ -666,14 +669,19 @@ class HaijBookxParser(BaseParser):
         
         file_path = os.path.join(storage_folder, f"{filename}.txt")
         
-        # 如果文件已存在，添加序号
-        original_path = file_path
-        # 如果文件已经存在, 则增书籍网站名称.
+        # 文件名冲突处理：同一标题可能对应不同书籍/分卷（如各分卷章节区间都是 1-3），
+        # 必须为冲突项生成唯一路径，避免多条记录指向同一文件导致合并时互相覆盖/误删。
         if os.path.exists(file_path):
-            file_path = original_path.replace('.txt', f'_{self.novel_site_name}.txt')
-        # 如果书籍网站名称的文件也存在, 则返回错误
-        if os.path.exists(file_path):
-            return 'already_exists'
+            novel_id = str(novel_content.get('novel_id') or '')
+            safe_id = re.sub(r'[<>:"/\\|?*]', '_', novel_id) if novel_id else ''
+            # 优先用 novel_id 区分，保证同一本书重新爬取时文件名稳定
+            candidate = file_path[:-4] + (f'_{safe_id}.txt' if safe_id else '_1.txt')
+            n = 2
+            while os.path.exists(candidate):
+                candidate = file_path[:-4] + (f'_{safe_id}_{n}.txt' if safe_id else f'_{n}.txt')
+                n += 1
+            file_path = candidate
+            self._last_save_collided = False
         
         # 写入文件，使用UTF-8编码
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -734,8 +742,8 @@ if __name__ == "__main__":
         # 尝试使用正则表达式提取章节
         import re
         chapter_patterns = [
-            r'<a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a>',
-            r'<li[^>]*><a[^>]*href=["']([^"']*)["'][^>]*>([^<]+)</a></li>',
+            r"<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>([^<]+)</a>",
+            r"<li[^>]*><a[^>]*href=[\"']([^\"']*)[\"'][^>]*>([^<]+)</a></li>",
         ]
         
         for pattern in chapter_patterns:

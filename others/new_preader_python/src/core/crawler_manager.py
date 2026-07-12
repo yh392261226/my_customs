@@ -626,7 +626,7 @@ class CrawlerManager:
             'file_path': file_path if 'file_path' in locals() else last_successful.get('file_path') if last_successful else '',
             'total_chapters': len(all_chapters) + (last_successful.get('chapter_count', 0) if last_successful else 0),
             'new_chapters': len(all_chapters),
-            'already_exists': bool(last_successful)
+            'already_exists': bool(last_successful) or getattr(parser, '_last_save_collided', False)
         }
     
     def stop_crawl_task(self, task_id: str) -> bool:
