@@ -2366,9 +2366,10 @@ class CrawlerManagementScreen(Screen[None]):
                     total_merged = 0
                     total_failed = 0
                     app = self.app
+                    total_groups = len(merged_groups)
 
                     try:
-                        for group_data in merged_groups:
+                        for idx, group_data in enumerate(merged_groups, 1):
                             selected_books = group_data.get('selected_books', [])
                             new_title = group_data.get('new_title', '')
 
@@ -2380,6 +2381,18 @@ class CrawlerManagementScreen(Screen[None]):
                                 new_title = new_title.replace('/', '').replace('\\', '').strip()
                                 group_data['new_title'] = new_title
 
+                            # 进度提示：当前正在合并第几组（每条合并通知都带上组序号，更直观）
+                            app.call_from_thread(
+                                self._update_status,
+                                get_global_i18n().t(
+                                    'merge_mode.merging_group',
+                                    index=idx,
+                                    total=total_groups,
+                                    title=new_title,
+                                ),
+                                "warning",
+                            )
+
                             try:
                                 if self._perform_actual_merge(selected_books, new_title):
                                     total_merged += 1
@@ -2387,12 +2400,45 @@ class CrawlerManagementScreen(Screen[None]):
                                         f"合并模式：成功合并 [{new_title}] "
                                         f"({len(selected_books)}本书)"
                                     )
+                                    app.call_from_thread(
+                                        self.notify,
+                                        get_global_i18n().t(
+                                            'merge_mode.group_merged',
+                                            index=idx,
+                                            total=total_groups,
+                                            title=new_title,
+                                        ),
+                                        timeout=2,
+                                    )
                                 else:
                                     total_failed += 1
                                     logger.warning(f"合并模式：合并失败 [{new_title}]")
+                                    app.call_from_thread(
+                                        self.notify,
+                                        get_global_i18n().t(
+                                            'merge_mode.group_failed',
+                                            index=idx,
+                                            total=total_groups,
+                                            title=new_title,
+                                        ),
+                                        severity="error",
+                                        timeout=3,
+                                    )
                             except Exception as e:
                                 total_failed += 1
                                 logger.error(f"合并模式：合并异常 [{new_title}]: {e}")
+                                app.call_from_thread(
+                                    self.notify,
+                                    get_global_i18n().t(
+                                        'merge_mode.group_error',
+                                        index=idx,
+                                        total=total_groups,
+                                        title=new_title,
+                                        error=str(e),
+                                    ),
+                                    severity="error",
+                                    timeout=3,
+                                )
 
                         # 计算结果消息
                         skip_info = ""
