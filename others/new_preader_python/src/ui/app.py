@@ -258,6 +258,12 @@ class NewReaderApp(App[None]):
             library_path = config.get("paths", {}).get("library", "~/Documents/New_Preader/books")
         self.bookshelf = Bookshelf(library_path, app=self)
         
+        # 共享的书籍管理器（后台补索引任务依赖其 _indexing 状态，需全局唯一，
+        # 同时被书架屏幕与设置屏幕共用，避免多个实例各自触发索引导致重复）
+        from src.core.book_manager import BookManager
+        self.book_manager = BookManager(self.bookshelf)
+        
+
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
         # 伪用户系统：当前用户会话
@@ -302,7 +308,7 @@ class NewReaderApp(App[None]):
         
         # 安装所有屏幕
         self.install_screen(WelcomeScreen(self.theme_manager, self.bookshelf), name="welcome")
-        self.install_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager), name="bookshelf")
+        self.install_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager, self.book_manager), name="bookshelf")
         # 创建一个默认的Book对象用于初始化阅读器屏幕
         from src.core.book import Book
         default_book = Book("", get_global_i18n().t("app.default_book"), get_global_i18n().t("app.unknown_author"))
@@ -600,7 +606,7 @@ class NewReaderApp(App[None]):
     def action_show_bookshelf(self) -> None:
         """显示书架屏幕（按权限）"""
         if self.has_permission("bookshelf.read"):
-            self.push_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager))
+            self.push_screen(BookshelfScreen(self.theme_manager, self.bookshelf, self.statistics_manager, self.book_manager))
         else:
             try:
                 self.notify(get_global_i18n().t("app.open_bookshelf"), severity="warning")

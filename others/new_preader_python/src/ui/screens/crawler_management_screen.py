@@ -4763,6 +4763,7 @@ class CrawlerManagementScreen(Screen[None]):
             logger.info(f"[爬取管理-浏览器阅读] 正在打开浏览器阅读器: file_path={file_path}")
             success, message = BrowserReader.open_book_in_browser(
                 file_path,
+                theme=self.theme_manager.get_current_theme_name(),
                 on_progress_save=on_progress_save,
                 on_progress_load=on_progress_load
             )

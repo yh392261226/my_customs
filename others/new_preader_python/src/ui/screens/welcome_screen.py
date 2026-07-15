@@ -397,7 +397,7 @@ class WelcomeScreen(QuickIsolationMixin, Screen[None]):
                         logger.info(f"打开上一次阅读的书籍: {last_book_path}")
                         success, message = BrowserReader.open_book_in_browser(
                             last_book_path,
-                            theme="light"
+                            theme=self.theme_manager.get_current_theme_name()
                         )
                     else:
                         # 书籍不存在，创建欢迎页临时文件

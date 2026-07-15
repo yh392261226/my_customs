@@ -26,6 +26,94 @@ logger = get_logger(__name__)
 _active_servers: Dict[str, Dict[str, Any]] = {}
 
 
+def _load_terminal_reader_themes() -> Dict[str, Dict[str, str]]:
+    """从终端阅读器的 .theme 文件加载主题，使浏览器阅读器与终端样式同步
+
+    终端阅读器的全部主题都定义在 ``src/themes/data/*.theme``，
+    浏览器阅读器复用同一份数据：既增加了可选主题数量，也保证了两端样式一致。
+    返回 {主题名: 浏览器阅读器主题字典}。
+    """
+    merged: Dict[str, Dict[str, str]] = {}
+    themes_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "themes", "data")
+    )
+    if not os.path.isdir(themes_dir):
+        return merged
+
+    # 与内置阅读主题键冲突的名称（保留阅读优化版本，不被覆盖）
+    reserved = {"light", "dark", "sepia", "matrix", "ocean", "forest", "warm", "purple", "custom"}
+
+    reading_defaults = {
+        "line_height": "1.8",
+        "font_size": "18",
+        "font_family": '"Georgia", "Microsoft YaHei", serif',
+        "font_weight": "normal",
+        "font_style": "normal",
+        "text_decoration": "none",
+        "letter_spacing": "0",
+        "word_spacing": "0",
+        "text_align": "justify",
+        "width": "800px",
+        "padding": "40px",
+    }
+
+    for filename in sorted(os.listdir(themes_dir)):
+        if not filename.endswith(".theme"):
+            continue
+        path = os.path.join(themes_dir, filename)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            continue
+
+        name = data.get("name")
+        if not name or name in reserved:
+            continue
+
+        dark = data.get("dark", True)
+        background = (data.get("background") or "").strip()
+        foreground = (data.get("foreground") or "").strip()
+        primary = (data.get("primary") or foreground or "").strip()
+
+        # 处理透明/空背景（玻璃、透明主题没有不透明底色）
+        is_transparent = (
+            not background
+            or background.lower() in ("transparent", "none")
+            or (background.startswith("#") and len(background) == 9 and background.endswith("00"))
+        )
+        if is_transparent:
+            background = "#0e1116" if dark else "#f5f6f8"
+
+        if not foreground:
+            foreground = "#e0e0e0" if dark else "#333333"
+        if not primary:
+            primary = foreground
+
+        display = data.get("display_name") or name
+
+        theme = dict(reading_defaults)
+        theme.update({
+            "name": display,
+            "background": background,
+            "text": foreground,
+            "title": primary,
+        })
+        merged[name] = theme
+
+    return merged
+
+
+def _merge_terminal_reader_themes_into(themes: Dict[str, Dict[str, str]]) -> None:
+    """将终端阅读器主题合并进浏览器阅读器主题字典（就地修改）"""
+    try:
+        for _tname, _tdata in _load_terminal_reader_themes().items():
+            if _tname not in themes:
+                themes[_tname] = _tdata
+    except Exception:
+        logger.debug("合并终端阅读器主题失败", exc_info=True)
+
+
 class BrowserReader:
     """浏览器阅读器类"""
 
@@ -415,7 +503,10 @@ class BrowserReader:
             "padding": "40px"
         }
     }
-    
+
+    # 合并终端阅读器主题，使浏览器阅读器与终端样式保持同步，并增加可选主题数量
+    _merge_terminal_reader_themes_into(THEMES)
+
     @staticmethod
     def create_reader_html(content: str, title: str = "书籍阅读", theme: str = "light", 
                         custom_settings: Optional[Dict[str, str]] = None,
@@ -516,7 +607,18 @@ class BrowserReader:
         # 应用自定义设置
         if custom_settings:
             settings.update(custom_settings)
-        
+
+        # 生成主题下拉选项（内置主题 + 与终端同步的主题）
+        theme_options_html = ""
+        theme_custom_selected = ' selected="selected"' if theme == "custom" else ""
+        _selected_theme_key = theme if theme in BrowserReader.THEMES else "light"
+        for _key, _t in BrowserReader.THEMES.items():
+            _label = str(_t.get("name", _key))
+            # 转义 HTML 特殊字符，避免破坏 <option>
+            _label = _label.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+            _sel = ' selected="selected"' if _key == _selected_theme_key else ""
+            theme_options_html += f'<option value="{_key}"{_sel}>{_label}</option>\n'
+
         # 获取翻译文本
         browser_reader_translations = BrowserReader.get_translations()
         browser_reader_title = browser_reader_translations.get('browser_reader', {}).get('title', '浏览器阅读器')
@@ -3055,15 +3157,7 @@ class BrowserReader:
         <label>
             <script>document.write(t('browser_reader.theme_label'));</script>
             <select id="themeSelect" onchange="changeTheme(this.value)">
-                <option value="light"><script>document.write(t('browser_reader.theme_light'));</script></option>
-                <option value="dark"><script>document.write(t('browser_reader.theme_dark'));</script></option>
-                <option value="sepia"><script>document.write(t('browser_reader.theme_sepia'));</script></option>
-                <option value="matrix"><script>document.write(t('browser_reader.theme_matrix'));</script></option>
-                <option value="ocean"><script>document.write(t('browser_reader.theme_ocean'));</script></option>
-                <option value="forest"><script>document.write(t('browser_reader.theme_forest'));</script></option>
-                <option value="warm"><script>document.write(t('browser_reader.theme_warm'));</script></option>
-                <option value="purple"><script>document.write(t('browser_reader.theme_purple'));</script></option>
-                <option value="custom"><script>document.write(t('browser_reader.theme_custom'));</script></option>
+                {theme_options_html}                <option value="custom"{theme_custom_selected}><script>document.write(t('browser_reader.theme_custom'));</script></option>
             </select>
             <button onclick="showThemeManager()" style="margin-left: 5px; padding: 4px 8px; font-size: 12px;"><script>document.write(t('browser_reader.theme_manager'));</script></button>
         </label>

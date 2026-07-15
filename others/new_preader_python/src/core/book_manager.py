@@ -37,6 +37,8 @@ class BookManager:
         self.max_workers = max_workers
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self._scan_callbacks: List[Callable[[Dict[str, Any]], None]] = []
+        # 后台补索引任务运行标志（保证全局只有一个补索引任务在跑）
+        self._indexing = False
         
         # 初始化搜索引擎
         config = ConfigManager.get_instance().get_config()
@@ -44,7 +46,7 @@ class BookManager:
         
     @LoggerSetup.debug_log
     def add_book(self, file_path: str, title: Optional[str] = None, 
-                author: Optional[str] = None) -> Optional[Book]:
+                author: Optional[str] = None, index_content: bool = True) -> Optional[Book]:
         """
         添加单本书籍
         
@@ -52,6 +54,9 @@ class BookManager:
             file_path: 书籍文件路径
             title: 书籍标题
             author: 书籍作者
+            index_content: 是否立即为书籍内容建立全文搜索索引。
+                批量导入时传 False，交由后台 index_unindexed_books 统一补建，
+                避免目录书籍过多时导入卡顿。
             
         Returns:
             Optional[Book]: 添加的书籍对象
@@ -67,8 +72,9 @@ class BookManager:
             if book:
                 logger.info(f"成功添加书籍: {book.title}")
                 
-                # 索引书籍内容到搜索数据库
-                self._index_book_content(book)
+                # 索引书籍内容到搜索数据库（批量导入阶段可跳过，由后台补建）
+                if index_content:
+                    self._index_book_content(book)
                 
                 return book
             else:
@@ -101,6 +107,95 @@ class BookManager:
                 
         return success_count, failed_files
         
+    def index_unindexed_books(self,
+                              start_callback: Optional[Callable[[], None]] = None,
+                              progress_callback: Optional[Callable[[int, int], None]] = None,
+                              done_callback: Optional[Callable[[], None]] = None) -> None:
+        """
+        后台为所有尚未建立全文搜索索引的书籍补建索引（幂等、可重入）。
+        
+        批量导入时 add_book 传入 index_content=False 跳过即时索引，由本方法在
+        后台统一补建，避免目录书籍过多时导入卡顿。可通过回调反馈进度。
+        """
+        if self._indexing:
+            return
+        # 快速预检：无未索引书籍则直接返回，避免无谓的动画闪烁与线程开销
+        try:
+            todo = self._get_unindexed_books()
+        except Exception as e:
+            logger.error(f"获取未索引书籍列表失败: {e}")
+            todo = []
+        if not todo:
+            return
+        
+        self._indexing = True
+        if start_callback:
+            try:
+                start_callback()
+            except Exception:
+                pass
+        total = len(todo)
+        
+        def task() -> None:
+            try:
+                for i, book in enumerate(todo):
+                    try:
+                        self._index_book_content(book)
+                    except Exception as e:
+                        logger.error(f"后台索引书籍失败 {book.path}: {e}")
+                    if progress_callback:
+                        try:
+                            progress_callback(i + 1, total)
+                        except Exception:
+                            pass
+            except Exception as e:
+                logger.error(f"后台索引任务出错: {e}")
+            finally:
+                self._indexing = False
+                if done_callback:
+                    try:
+                        done_callback()
+                    except Exception:
+                        pass
+        
+        threading.Thread(target=task, daemon=True).start()
+    
+    def _get_unindexed_books(self) -> List[Book]:
+        """返回书架中尚未建立全文搜索索引的书籍列表（基于一次查询，避免逐本查询）"""
+        indexed = self.search_engine.get_indexed_book_ids()
+        return [b for b in self.bookshelf.get_all_books()
+                if b.path and b.path not in indexed]
+    
+    def get_unindexed_count(self) -> int:
+        """返回尚未建立全文搜索索引的书籍数量"""
+        try:
+            return len(self._get_unindexed_books())
+        except Exception as e:
+            logger.error(f"获取未索引书籍数量失败: {e}")
+            return 0
+    
+    @property
+    def is_indexing(self) -> bool:
+        """后台补索引/重建索引任务是否正在运行"""
+        return self._indexing
+    
+    def rebuild_index(self,
+                      start_callback: Optional[Callable[[], None]] = None,
+                      progress_callback: Optional[Callable[[int, int], None]] = None,
+                      done_callback: Optional[Callable[[], None]] = None) -> None:
+        """
+        重建全文搜索索引：清空已有索引后重新为所有书籍建立索引。
+        适用于索引损坏或不一致时手动触发；清空后若中途退出，下次启动会自动继续补建。
+        """
+        if self._indexing:
+            return
+        try:
+            self.search_engine.clear_index()
+        except Exception as e:
+            logger.error(f"清空搜索索引失败: {e}")
+        # 清空后所有书籍均视为未索引，复用后台补索引逻辑
+        self.index_unindexed_books(start_callback, progress_callback, done_callback)
+    
     @LoggerSetup.debug_log
     def scan_directory(self, directory: str, 
                       progress_callback: Optional[Callable[[int, int], None]] = None,

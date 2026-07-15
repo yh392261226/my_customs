@@ -53,7 +53,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     
     def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect,
                  selection_mode: str = "file", title: Optional[str] = None, direct_open: bool = False,
-                 multiple: bool = False, file_extensions: Optional[Set[str]] = None):
+                 multiple: bool = False, file_extensions: Optional[Set[str]] = None,
+                 initial_path: Optional[str] = None):
         """
         初始化文件资源管理器屏幕
         
@@ -65,6 +66,7 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             title: 自定义标题
             multiple: 是否允许多选
             file_extensions: 自定义文件扩展名集合（如 {".zip", ".tar"}），如果为None则使用默认的书籍格式
+            initial_path: 初始打开的目录路径，若为 None 或不存在则回退到用户主目录
         """
         super().__init__()
         self.theme_manager = theme_manager
@@ -98,8 +100,11 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         self.selected_file: Optional[str] = None
         # 多选模式下选中的文件路径集合
         self.selected_files: Set[str] = set()
-        # 当前目录路径
-        self.current_path = FileUtils.get_home_dir()
+        # 当前目录路径：优先使用传入的初始路径（如书库文件夹），不存在则回退到用户主目录
+        if initial_path and os.path.isdir(os.path.expanduser(initial_path)):
+            self.current_path = os.path.expanduser(initial_path)
+        else:
+            self.current_path = FileUtils.get_home_dir()
         # 文件列表项
         self.file_items: List[Dict[str, str]] = []
         # 选中的文件索引（单选模式）

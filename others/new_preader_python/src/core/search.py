@@ -73,6 +73,49 @@ class SearchEngine:
             """, (book_id, content, position))
             conn.commit()
     
+    def get_indexed_book_ids(self) -> set:
+        """
+        返回已建立全文索引的 book_id 集合
+        
+        Returns:
+            set: 已索引的 book_id 集合
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT DISTINCT book_id FROM search_index")
+                return {row[0] for row in cursor.fetchall()}
+        except sqlite3.Error as e:
+            logger.error(f"获取已索引书籍列表失败: {e}")
+            return set()
+    
+    def is_book_indexed(self, book_id: str) -> bool:
+        """
+        判断指定书籍是否已建立全文索引
+        
+        Args:
+            book_id: 书籍ID（即书籍路径）
+            
+        Returns:
+            bool: 是否已索引
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1 FROM search_index WHERE book_id = ? LIMIT 1", (book_id,))
+                return cursor.fetchone() is not None
+        except sqlite3.Error as e:
+            logger.error(f"检查书籍索引状态失败: {e}")
+            return False
+    
+    def clear_index(self) -> None:
+        """清空全部全文搜索索引（用于重建索引）"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM search_index")
+            cursor.execute("DELETE FROM search_content")
+            conn.commit()
+    
     def search(self, query: str, book_id: Optional[str] = None) -> List[SearchResult]:
         """
         执行搜索

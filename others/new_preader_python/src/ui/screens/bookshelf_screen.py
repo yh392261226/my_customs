@@ -31,7 +31,6 @@ from src.ui.dialogs.search_dialog import SearchDialog
 from src.ui.dialogs.sort_dialog import SortDialog
 from src.ui.dialogs.directory_dialog import DirectoryDialog
 from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
-from src.ui.dialogs.scan_progress_dialog import ScanProgressDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import apply_style_isolation
 from src.config.default_config import SUPPORTED_FORMATS
@@ -85,7 +84,7 @@ class BookshelfScreen(Screen[None]):
         )
         self.logger.info("书架数据已刷新")
     
-    def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect):
+    def __init__(self, theme_manager: ThemeManager, bookshelf: Bookshelf, statistics_manager: StatisticsManagerDirect, book_manager: Optional["BookManager"] = None):
         """
         初始化书架屏幕
         
@@ -93,12 +92,13 @@ class BookshelfScreen(Screen[None]):
             theme_manager: 主题管理器
             bookshelf: 书架
             statistics_manager: 统计管理器
+            book_manager: 可选的共享书籍管理器；为 None 时内部新建（建议由 app 共享同一实例）
         """
         super().__init__()
         self.theme_manager = theme_manager
         self.bookshelf = bookshelf
         self.statistics_manager = statistics_manager
-        self.book_manager = BookManager(bookshelf)
+        self.book_manager = book_manager if book_manager is not None else BookManager(bookshelf)
         self.title = get_global_i18n().t("bookshelf.title")
         # 设置类的TITLE属性
         self.__class__.TITLE = self.title
@@ -398,6 +398,9 @@ class BookshelfScreen(Screen[None]):
         # 设置数据表焦点，使其能够接收键盘事件
         table = self.query_one("#books-table", DataTable)
         table.focus()
+        
+        # 挂载后，后台为尚未索引的书籍补建全文搜索索引（幂等，仅在有未索引书籍时触发）
+        self._ensure_search_index()
     
     def _add_table_columns(self, table) -> None:
         """添加表格列定义"""
@@ -1936,6 +1939,7 @@ class BookshelfScreen(Screen[None]):
             # 使用自定义浏览器阅读器打开，支持进度同步
             success, message = BrowserReader.open_book_in_browser(
                 book_path,
+                theme=self.theme_manager.get_current_theme_name(),
                 on_progress_save=on_progress_save,
                 on_progress_load=on_progress_load
             )
@@ -2363,73 +2367,13 @@ class BookshelfScreen(Screen[None]):
         self.app.push_screen(dialog, handle_batch_ops)
         
     def _show_add_book_dialog(self) -> None:
-        """显示添加书籍对话框 - 使用文件资源管理器屏幕"""
+        """显示添加书籍对话框 - 使用文件资源管理器屏幕（选择后后台异步导入，无需等待）"""
         def handle_add_book_result(result: Optional[str | List[str]]) -> None:
-            """处理添加书籍结果"""
-            if result:
-                # 显示加载动画
-                self._show_loading_animation(get_global_i18n().t("bookshelf.adding_books"))
-                
-                try:
-                    if isinstance(result, list):
-                        # 多选模式 - 添加多个文件
-                        added_count = 0
-                        for file_path in result:
-                            book = self.bookshelf.add_book(file_path)
-                            if book:
-                                added_count += 1
-                        
-                        if added_count > 0:
-                            self.notify(
-                                get_global_i18n().t("bookshelf.book_added", count=added_count),
-                                severity="information"
-                            )
-                            # 清除缓存并强制重新加载（包含新增书籍）
-                            self._invalidate_books_cache()
-                            self._load_books(
-                                search_keyword=self._search_keyword,
-                                search_format=self._search_format,
-                                search_author=self._search_author,
-                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
-                            )
-                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
-                            try:
-                                self.app.post_message(RefreshBookshelfMessage())
-                                logger.info(f"已发送书架刷新消息（添加了 {added_count} 本书籍）")
-                            except Exception as e:
-                                logger.error(f"发送书架刷新消息失败: {e}")
-                        else:
-                            self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
-                    else:
-                        # 单选模式 - 添加单个文件
-                        book = self.bookshelf.add_book(result)
-                        if book:
-                            self.notify(
-                                get_global_i18n().t("bookshelf.book_added", count=1),
-                                severity="information"
-                            )
-                            # 清除缓存并强制重新加载（包含新增书籍）
-                            self._invalidate_books_cache()
-                            self._load_books(
-                                search_keyword=self._search_keyword,
-                                search_format=self._search_format,
-                                search_author=self._search_author,
-                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
-                            )
-                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
-                            try:
-                                self.app.post_message(RefreshBookshelfMessage())
-                                logger.info("已发送书架刷新消息（添加了 1 本书籍）")
-                            except Exception as e:
-                                logger.error(f"发送书架刷新消息失败: {e}")
-                        else:
-                            self.notify(get_global_i18n().t("bookshelf.add_books_failed"), severity="error")
-                except Exception as e:
-                    logger.error(f"{get_global_i18n().t('bookshelf.add_books_failed')}: {e}")
-                    self.notify(f"{get_global_i18n().t("bookshelf.add_books_failed")}: {e}", severity="error")
-                
-                # 隐藏加载动画
-                self._hide_loading_animation()
+            """处理添加书籍结果（后台异步导入，不阻塞 UI）"""
+            if not result:
+                return
+            file_paths = result if isinstance(result, list) else [result]
+            self._import_books_async(file_paths)
         
         # 使用文件资源管理器屏幕，启用多选模式
         from src.ui.screens.file_explorer_screen import FileExplorerScreen
@@ -2440,51 +2384,18 @@ class BookshelfScreen(Screen[None]):
             statistics_manager=self.statistics_manager,
             selection_mode="file",
             title=get_global_i18n().t("bookshelf.add_book"),
-            multiple=True  # 启用多选模式
+            multiple=True,  # 启用多选模式
+            initial_path=self.bookshelf.data_dir  # 默认打开设置中的书库文件夹
         )
         
         self.app.push_screen(file_explorer_screen, handle_add_book_result)
         
     def _show_scan_directory_dialog(self) -> None:
-        """显示扫描目录对话框 - 使用文件资源管理器屏幕"""
+        """显示扫描目录对话框 - 使用文件资源管理器屏幕（选择后后台异步导入，无需等待）"""
         def handle_directory_result(result: Optional[str]) -> None:
-            """处理目录选择结果"""
+            """处理目录选择结果（后台异步导入，不阻塞 UI）"""
             if result:
-                # 显示扫描进度对话框
-                def handle_scan_result(scan_result: Optional[Dict[str, Any]]) -> None:
-                    """处理扫描结果"""
-                    if scan_result and scan_result.get("success"):
-                        added_count = scan_result.get("added_count", 0)
-                        if added_count > 0:
-                            self.notify(
-                                get_global_i18n().t("bookshelf.scan_success", count=added_count),
-                                severity="information"
-                            )
-                            self._invalidate_books_cache()
-                            self._load_books(
-                                search_keyword=self._search_keyword,
-                                search_format=self._search_format,
-                                search_author=self._search_author,
-                                from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
-                            )
-                            # 发送书架刷新消息，通知 FileExplorerScreen 更新
-                            try:
-                                self.app.post_message(RefreshBookshelfMessage())
-                                logger.info(f"已发送书架刷新消息（扫描添加了 {added_count} 本书籍）")
-                            except Exception as e:
-                                logger.error(f"发送书架刷新消息失败: {e}")
-                        else:
-                            self.notify(
-                                get_global_i18n().t("bookshelf.no_books_found"),
-                                severity="warning"
-                            )
-                
-                scan_dialog = ScanProgressDialog(
-                    self.theme_manager,
-                    self.book_manager,
-                    result
-                )
-                self.app.push_screen(scan_dialog, handle_scan_result)
+                self._import_directory_async(result)
         
         # 使用文件资源管理器屏幕
         from src.ui.screens.file_explorer_screen import FileExplorerScreen
@@ -2494,11 +2405,207 @@ class BookshelfScreen(Screen[None]):
             bookshelf=self.bookshelf,
             statistics_manager=self.statistics_manager,
             selection_mode="directory",
-            title=get_global_i18n().t("bookshelf.scan_directory")
+            title=get_global_i18n().t("bookshelf.scan_directory"),
+            initial_path=self.bookshelf.data_dir  # 默认打开设置中的书库文件夹
         )
         
         self.app.push_screen(file_explorer_screen, handle_directory_result)
     
+    # ------------------------------------------------------------------
+    # 后台异步导入（非阻塞，用加载动画 + 通知反馈，避免目录大时长时间等待）
+    # ------------------------------------------------------------------
+    def _import_directory_async(self, directory: str) -> None:
+        """异步扫描目录并导入书籍
+
+        流程：先快速列举支持的书籍文件并立即通知用户 -> 后台线程逐本与书库
+        对比去重并导入 -> 用非阻塞加载动画与通知实时反馈进度 -> 完成后刷新书架。
+        用户选完目录即可返回书架继续操作，无需等待导入完成。
+        """
+        i18n = get_global_i18n()
+        self._show_loading_animation(i18n.t("bookshelf.scanning_directory"))
+
+        import threading
+        from src.utils.file_utils import FileUtils
+
+        def worker() -> None:
+            # 1) 快速列举支持的书籍文件（仅扫描，不解析内容）
+            book_files: List[str] = []
+            try:
+                for root, _, files in os.walk(directory):
+                    for f in files:
+                        fp = os.path.join(root, f)
+                        if FileUtils.get_file_extension(fp) in SUPPORTED_FORMATS:
+                            book_files.append(fp)
+            except Exception as e:
+                logger.error(f"扫描目录出错 {directory}: {e}")
+                self.app.call_from_thread(self._hide_loading_animation)
+                self.app.call_from_thread(
+                    lambda: self.notify(i18n.t("bookshelf.scan_error", error=str(e)), severity="error")
+                )
+                return
+
+            total = len(book_files)
+            if total == 0:
+                self.app.call_from_thread(self._hide_loading_animation)
+                self.app.call_from_thread(
+                    lambda: self.notify(i18n.t("bookshelf.no_books_found"), severity="warning")
+                )
+                return
+
+            # 2) 立即通知发现数量，开始后台对比导入
+            self.app.call_from_thread(
+                lambda: self.notify(i18n.t("bookshelf.scan_found", count=total), severity="information")
+            )
+
+            # 3) 后台逐本导入（add_book 内部会与数据库对比去重并入库）
+            added = 0
+            failed: List[str] = []
+            last_notify = [0]
+            last_anim_pct = [-1]
+            for i, fp in enumerate(book_files):
+                try:
+                    if self.book_manager.add_book(fp, index_content=False):
+                        added += 1
+                    else:
+                        failed.append(fp)
+                except Exception as e:
+                    logger.error(f"导入书籍出错 {fp}: {e}")
+                    failed.append(fp)
+                pct = int((i + 1) / total * 100)
+                # 仅在百分比变化时更新加载动画，避免超大目录下主线程事件队列过载
+                if pct != last_anim_pct[0]:
+                    last_anim_pct[0] = pct
+                    msg = i18n.t("bookshelf.importing_books", current=i + 1, total=total)
+                    self.app.call_from_thread(lambda m=msg, p=pct: self._show_loading_animation(m, p))
+                if pct - last_notify[0] >= 10:
+                    last_notify[0] = pct
+                    msg = i18n.t("bookshelf.importing_books", current=i + 1, total=total)
+                    self.app.call_from_thread(lambda m=msg: self.notify(m, severity="information"))
+
+            self.app.call_from_thread(self._hide_loading_animation)
+            if added > 0 or not failed:
+                self.app.call_from_thread(
+                    lambda: self.notify(
+                        i18n.t("bookshelf.import_done", added=added, failed=len(failed)),
+                        severity="information",
+                    )
+                )
+            else:
+                self.app.call_from_thread(
+                    lambda: self.notify(i18n.t("bookshelf.add_books_failed"), severity="error")
+                )
+            self.app.call_from_thread(self._refresh_after_import)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _import_books_async(self, file_paths: List[str]) -> None:
+        """后台异步导入指定书籍文件（与书库对比去重），非阻塞反馈进度"""
+        if not file_paths:
+            return
+        i18n = get_global_i18n()
+        total = len(file_paths)
+        self._show_loading_animation(i18n.t("bookshelf.importing_books", current=0, total=total))
+
+        import threading
+
+        def worker() -> None:
+            added = 0
+            failed: List[str] = []
+            last_notify = [0]
+            last_anim_pct = [-1]
+            for i, fp in enumerate(file_paths):
+                try:
+                    if self.book_manager.add_book(fp, index_content=False):
+                        added += 1
+                    else:
+                        failed.append(fp)
+                except Exception as e:
+                    logger.error(f"导入书籍出错 {fp}: {e}")
+                    failed.append(fp)
+                pct = int((i + 1) / total * 100)
+                if pct != last_anim_pct[0]:
+                    last_anim_pct[0] = pct
+                    msg = i18n.t("bookshelf.importing_books", current=i + 1, total=total)
+                    self.app.call_from_thread(lambda m=msg, p=pct: self._show_loading_animation(m, p))
+                if pct - last_notify[0] >= 10:
+                    last_notify[0] = pct
+                    msg = i18n.t("bookshelf.importing_books", current=i + 1, total=total)
+                    self.app.call_from_thread(lambda m=msg: self.notify(m, severity="information"))
+
+            self.app.call_from_thread(self._hide_loading_animation)
+            if added > 0 or not failed:
+                self.app.call_from_thread(
+                    lambda: self.notify(
+                        i18n.t("bookshelf.import_done", added=added, failed=len(failed)),
+                        severity="information",
+                    )
+                )
+            else:
+                self.app.call_from_thread(
+                    lambda: self.notify(i18n.t("bookshelf.add_books_failed"), severity="error")
+                )
+            self.app.call_from_thread(self._refresh_after_import)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _refresh_after_import(self) -> None:
+        """导入完成后刷新书架（仅在当前界面仍挂载时执行，避免导航离开后报错）"""
+        if not self.is_attached:
+            return
+        self._invalidate_books_cache()
+        self._load_books(
+            search_keyword=self._search_keyword,
+            search_format=self._search_format,
+            search_author=self._search_author,
+            from_search=self._search_keyword != "" or self._search_format != "all" or self._search_author != "all"
+        )
+        try:
+            self.app.post_message(RefreshBookshelfMessage())
+            logger.info("已发送书架刷新消息（后台导入完成）")
+        except Exception as e:
+            logger.error(f"发送书架刷新消息失败: {e}")
+        # 导入完成后，后台为新增（及此前未索引的）书籍补建全文搜索索引
+        self._ensure_search_index()
+
+    def _ensure_search_index(self) -> None:
+        """后台为尚未建立全文搜索索引的书籍补建索引（非阻塞，带启动提示、加载动画与完成通知）"""
+        i18n = get_global_i18n()
+        # 先统计未索引书籍数量
+        try:
+            unindexed = self.book_manager.get_unindexed_count()
+        except Exception:
+            unindexed = 0
+        if unindexed <= 0:
+            return
+        # 启动轻量提示：告知用户有多少新书需要建立搜索索引
+        self.notify(
+            i18n.t("bookshelf.index_start_hint", count=unindexed),
+            severity="information",
+        )
+
+        def start_cb() -> None:
+            self.app.call_from_thread(
+                lambda: self._show_loading_animation(i18n.t("bookshelf.indexing_books"))
+            )
+
+        def progress_cb(current: int, total: int) -> None:
+            pct = int(current / total * 100) if total else 100
+            self.app.call_from_thread(
+                lambda: self._show_loading_animation(
+                    i18n.t("bookshelf.indexing_books_progress", current=current, total=total), pct
+                )
+            )
+
+        def done_cb() -> None:
+            self.app.call_from_thread(self._hide_loading_animation)
+            self.app.call_from_thread(
+                lambda: self.notify(i18n.t("bookshelf.index_done"), severity="information")
+            )
+
+        self.book_manager.index_unindexed_books(
+            start_callback=start_cb, progress_callback=progress_cb, done_callback=done_cb
+        )
+
     def _show_loading_animation(self, message: Optional[str] = None, progress: Optional[float] = None) -> None:
         """显示加载动画
         

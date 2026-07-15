@@ -1614,6 +1614,7 @@ class ReaderScreen(ScreenStyleMixin, Screen[None]):
 
             success, message = BrowserReader.open_book_in_browser(
                 book_path,
+                theme=self.theme_manager.get_current_theme_name(),
                 on_progress_save=on_progress_save,
                 on_progress_load=on_progress_load
             )

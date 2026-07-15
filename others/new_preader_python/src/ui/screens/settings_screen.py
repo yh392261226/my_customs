@@ -23,6 +23,7 @@ from src.config.settings import SettingRegistry, ConfigAdapter, initialize_setti
 from src.config.settings.setting_observer import notify_setting_change
 from src.config.settings.setting_types import SelectSetting
 from src.ui.dialogs.directory_dialog import DirectoryDialog
+from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.screens.theme_filter_screen import ThemeFilterScreen
 
 from src.utils.logger import get_logger
@@ -808,6 +809,16 @@ class SettingsScreen(Screen[Any]):
             yield Label(get_global_i18n().t("settings.maintenance_tip_vacuum"), classes="setting-description")
             yield Label(get_global_i18n().t("settings.maintenance_tip_backup"), classes="setting-description")
             yield Label(get_global_i18n().t("settings.maintenance_tip_location"), classes="setting-description")
+            
+            # 搜索索引维护
+            yield Horizontal(id="search-index-separator", classes="setting-separator")
+            yield Label(get_global_i18n().t("settings.search_index"), classes="setting-section-title")
+            yield Label(get_global_i18n().t("settings.rebuild_index_desc"), classes="setting-description")
+            yield Button(
+                get_global_i18n().t("settings.rebuild_index"),
+                id="rebuild-index-btn",
+                variant="warning"
+            )
     
     def _compose_path_settings(self) -> ComposeResult:
         """组合路径相关设置"""
@@ -1026,6 +1037,8 @@ class SettingsScreen(Screen[Any]):
             self._open_theme_filter()
         elif event.button.id == "appearance-theme-sync-btn":
             self._sync_current_theme()
+        elif event.button.id == "rebuild-index-btn":
+            self._confirm_rebuild_index()
         # elif event.button.id == "library-browse-btn":
         #     self._browse_library_path()
 
@@ -1780,3 +1793,53 @@ class SettingsScreen(Screen[Any]):
         except Exception as e:
             logger.error(f"Restore failed: {e}")
             self.notify(get_global_i18n().t("settings.restore_failed") + f": {e}", severity="error")
+
+    def _confirm_rebuild_index(self) -> None:
+        """弹出确认框后重建搜索索引"""
+        i18n = get_global_i18n()
+        confirm_dialog = ConfirmDialog(
+            self.theme_manager,
+            i18n.t("settings.rebuild_index_title"),
+            i18n.t("settings.rebuild_index_confirm"),
+        )
+        self.app.push_screen(confirm_dialog, self._on_rebuild_confirmed)
+
+    def _on_rebuild_confirmed(self, confirmed: Optional[bool]) -> None:
+        """确认重建索引后的回调"""
+        if not confirmed:
+            return
+        i18n = get_global_i18n()
+        book_manager = getattr(self.app, "book_manager", None)
+        if book_manager is None:
+            self.notify(i18n.t("settings.rebuild_index_unavailable"), severity="error")
+            return
+        if book_manager.is_indexing:
+            self.notify(i18n.t("settings.rebuild_index_running"), severity="warning")
+            return
+
+        last_notify = [0]
+
+        def start_cb() -> None:
+            self.app.call_from_thread(
+                lambda: self.notify(i18n.t("settings.rebuild_index_started"), severity="information")
+            )
+
+        def progress_cb(current: int, total: int) -> None:
+            pct = int(current / total * 100) if total else 100
+            if pct - last_notify[0] >= 10:
+                last_notify[0] = pct
+                self.app.call_from_thread(
+                    lambda: self.notify(
+                        i18n.t("settings.rebuild_index_progress", current=current, total=total),
+                        severity="information",
+                    )
+                )
+
+        def done_cb() -> None:
+            self.app.call_from_thread(
+                lambda: self.notify(i18n.t("settings.rebuild_index_done"), severity="information")
+            )
+
+        book_manager.rebuild_index(
+            start_callback=start_cb, progress_callback=progress_cb, done_callback=done_cb
+        )
