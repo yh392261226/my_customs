@@ -15,6 +15,7 @@ from datetime import datetime
 
 from src.core.book import Book
 from src.config.config_manager import ConfigManager
+from src.utils.file_utils import FileUtils
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -3047,7 +3048,9 @@ class DatabaseManager:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 # 从新路径中提取新的书籍名称（去掉目录路径和文件扩展名）
-                new_title = os.path.splitext(os.path.basename(new_path))[0]
+                # 文件名可能带时间戳后缀（如 _20260712_1809），剥离后仅保留书籍名称
+                raw_name = os.path.splitext(os.path.basename(new_path))[0]
+                new_title = FileUtils.strip_filename_timestamp(raw_name)
                 
                 # 更新文件路径和书籍名称
                 cursor.execute("UPDATE crawl_history SET file_path = ?, novel_title = ? WHERE file_path = ?", 

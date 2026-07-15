@@ -2355,8 +2355,9 @@ class CrawlerManagementScreen(Screen[None]):
 
             from src.ui.dialogs.crawler_merge_mode_dialog import CrawlerMergeModeDialog
 
-            def do_merge_groups(merged_groups, skipped_groups):
-                """执行实际合并操作并更新状态（后台线程执行避免UI卡顿）"""
+            def do_merge_groups(merged_groups, skipped_groups, pending_deletes=None):
+                """执行实际合并操作与延迟删除并更新状态（后台线程执行避免UI卡顿）"""
+                pending_deletes = pending_deletes or []
                 # 显示加载动画
                 self._show_loading_animation()
                 self._update_status(get_global_i18n().t('merge_mode.merging_in_progress'), "warning")
@@ -2365,6 +2366,7 @@ class CrawlerManagementScreen(Screen[None]):
                     """合并任务（在后台线程中执行）"""
                     total_merged = 0
                     total_failed = 0
+                    total_deleted = 0
                     app = self.app
                     total_groups = len(merged_groups)
 
@@ -2440,11 +2442,39 @@ class CrawlerManagementScreen(Screen[None]):
                                     timeout=3,
                                 )
 
+                        # 执行延迟删除（合并详情弹窗中标记为待删除的书籍，此处统一执行）
+                        for book in pending_deletes:
+                            try:
+                                file_path = book.get('file_path', '')
+                                # 1) 删除文件（若有）
+                                if file_path and file_path != 'already_exists' and os.path.exists(file_path):
+                                    try:
+                                        send2trash(file_path)
+                                        logger.info(f"合并模式：文件已移至回收站 {file_path}")
+                                    except Exception as e:
+                                        logger.error(f"合并模式：删除文件失败 {file_path} - {e}")
+                                # 2) 删除数据库记录
+                                history_id = book.get('id')
+                                if history_id is not None:
+                                    try:
+                                        self.db_manager.delete_crawl_history(int(history_id))
+                                    except Exception as e:
+                                        logger.error(f"合并模式：删除爬取历史失败 {history_id} - {e}")
+                                total_deleted += 1
+                            except Exception as e:
+                                logger.error(f"合并模式：删除书籍失败 {book.get('novel_title', '')} - {e}")
+
                         # 计算结果消息
                         skip_info = ""
                         if skipped_groups:
                             skip_info = get_global_i18n().t(
                                 'merge_mode.skipped_info', count=len(skipped_groups)
+                            )
+
+                        delete_info = ""
+                        if total_deleted > 0:
+                            delete_info = get_global_i18n().t(
+                                'merge_mode.deleted_info', count=total_deleted
                             )
 
                         if total_merged > 0:
@@ -2453,11 +2483,16 @@ class CrawlerManagementScreen(Screen[None]):
                                 merged=total_merged,
                                 failed=total_failed,
                             )
-                            final_status = f"{msg}{skip_info}"
+                            final_status = f"{msg}{skip_info}{delete_info}"
                             final_severity = "information" if total_failed == 0 else "warning"
                         elif total_failed > 0:
-                            final_status = get_global_i18n().t('crawler.merge_failed')
+                            final_status = f"{get_global_i18n().t('crawler.merge_failed')}{delete_info}"
                             final_severity = "error"
+                        elif total_deleted > 0:
+                            final_status = get_global_i18n().t(
+                                'merge_mode.deleted_only', count=total_deleted
+                            )
+                            final_severity = "information"
                         else:
                             final_status = ""
                             final_severity = "information"
@@ -2479,9 +2514,10 @@ class CrawlerManagementScreen(Screen[None]):
                     return
                 merged_groups = result.get('merged_groups', [])
                 skipped_groups = result.get('skipped_groups', [])
-                if not merged_groups:
+                pending_deletes = result.get('pending_deletes', [])
+                if not merged_groups and not pending_deletes:
                     return
-                do_merge_groups(merged_groups, skipped_groups)
+                do_merge_groups(merged_groups, skipped_groups, pending_deletes)
 
             self.app.push_screen(
                 CrawlerMergeModeDialog(

@@ -1048,6 +1048,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                     "action": "merge_mode",
                     "merged_groups": detail_result.get('merged_groups', []),
                     "skipped_groups": detail_result.get('skipped_groups', []),
+                    # 透传合并详情弹窗中标记为待删除的书籍（延迟到主页面合并时统一执行）
+                    "pending_deletes": detail_result.get('pending_deletes', []),
                 })
             else:
                 self.dismiss({

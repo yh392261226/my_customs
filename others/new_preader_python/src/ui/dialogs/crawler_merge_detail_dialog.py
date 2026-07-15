@@ -126,6 +126,19 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self.groups: List[Dict[str, Any]] = deepcopy(groups)
         # 按 display_title 长度降序排列（最长书名的组优先显示）
         self.groups.sort(key=lambda g: len(g.get('display_title', g.get('base_title', ''))), reverse=True)
+
+        # 清理每本书的标题：剥离文件名风格的时间戳/书籍ID后缀（如 _20260712_1809、_123456），
+        # 仅保留干净的书籍名称。这样序号列显示、章节智能排序、智能标题生成三处都保持一致，
+        # 且不影响磁盘文件名。该清理作用在深拷贝上，不会污染原始数据。
+        for _g in self.groups:
+            for _b in _g.get('books', []):
+                _raw_title = _b.get('novel_title', '')
+                if _raw_title:
+                    _b['novel_title'] = FileUtils.strip_filename_timestamp(_raw_title)
+            # 同步清洗分组显示标题（原值可能由原始 novel_title 派生，含脏后缀）
+            _books = _g.get('books', [])
+            if _books:
+                _g['display_title'] = _books[0].get('novel_title', _g.get('base_title', ''))
         self._current_index: int = 0       # 当前在第几组
         self._total_groups: int = len(self.groups)
 
@@ -141,6 +154,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self._group_state[i] = {
                 'books': list(books),
                 'selected_ids': selected,
+                'pending_delete_ids': set(),   # 标记为待删除的书籍 id（仅标记，完成后统一执行）
                 'merged_title': g.get('base_title', ''),
                 'skipped': False,
                 'auto_sorted': False,   # 是否已对该组执行过自动排序
@@ -331,6 +345,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state = self._group_state[self._current_index]
         books = state['books']
         selected = state['selected_ids']
+        pending_delete = state.get('pending_delete_ids', set())
 
         table = self.query_one("#merge-detail-table", DataTable)
         table.clear()
@@ -378,9 +393,22 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 except Exception:
                     pass
 
+        selected_seq = 0  # 被选中书籍的序号计数（数字排序针对被选中书籍）
         for idx, book in enumerate(books, 1):
             bid = book.get('id')
-            check = "☑" if bid in selected else "☐"
+            is_pending_delete = bid in pending_delete
+            is_selected = (not is_pending_delete) and (bid in selected)
+            # 待删除标记优先展示 🗑，否则显示勾选状态
+            if is_pending_delete:
+                check = "🗑"
+            else:
+                check = "☑" if is_selected else "☐"
+            # 序号列：被选中的书按选中顺序编号（1-based），未选中的显示占位符
+            if is_selected:
+                selected_seq += 1
+                seq_display = str(selected_seq)
+            else:
+                seq_display = "·"
             novel_id = str(book.get('novel_id', '') or '')
             title = book.get('novel_title', '')
             crawl_time = book.get('crawl_time', '')
@@ -397,16 +425,24 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 file_size = book.get('file_size', 0) or 0
             size_str = self._format_size(file_size)
 
+            # 待删除的行：书名前加标记，删除列显示“撤销删除”
+            display_title = title[:60] if len(title) > 60 else title
+            if is_pending_delete:
+                display_title = f"🗑 {display_title}"
+                delete_label = self.i18n.t('merge_detail.undo_delete_btn')
+            else:
+                delete_label = self.i18n.t('merge_detail.delete_btn')
+
             table.add_row(
                 check,
-                str(idx),
+                seq_display,
                 novel_id[:20],
-                title[:60] if len(title) > 60 else title,
+                display_title,
                 crawl_time,
                 size_str,
                 self.i18n.t('merge_detail.preview_btn'),
                 self.i18n.t('crawler.shortcut_f'),
-                self.i18n.t('merge_detail.delete_btn'),
+                delete_label,
                 key=str(bid),
             )
 
@@ -415,15 +451,20 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state = self._group_state[self._current_index]
         selected_count = len(state['selected_ids'])
         total_count = len(state['books'])
+        pending_delete_count = len(state.get('pending_delete_ids', set()))
 
         status = self.query_one("#merge-detail-status", Label)
-        status.update(
-            self.i18n.t(
-                'merge_detail.status_text',
-                selected=selected_count,
-                total=total_count,
-            )
+        text = self.i18n.t(
+            'merge_detail.status_text',
+            selected=selected_count,
+            total=total_count,
         )
+        if pending_delete_count > 0:
+            text += self.i18n.t(
+                'merge_detail.pending_delete_info',
+                count=pending_delete_count,
+            )
+        status.update(text)
 
     @staticmethod
     def _format_size(size: int) -> str:
@@ -515,10 +556,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def _move_to_position(self, target_pos: int) -> None:
         """
-        将当前行移动到指定位置（1-based 序号）。
+        将当前行移动到"被选中书籍"中的指定位置（1-based 序号）。
+
+        数字排序只针对已勾选的书籍进行排序（即最终参与合并的书），
+        未勾选的书籍绝对位置保持不变。
 
         Args:
-            target_pos: 目标位置（从 1 开始）
+            target_pos: 目标位置（从 1 开始，指在被选中书籍中的序号）
         """
         table = self.query_one("#merge-detail-table", DataTable)
         cursor_row = getattr(table, 'cursor_row', None)
@@ -527,26 +571,59 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
         state = self._group_state[self._current_index]
         books = state['books']
+        selected = state['selected_ids']
 
-        # 转换为 0-based
-        target_idx = target_pos - 1
-        if target_idx < 0 or target_idx >= len(books) or target_idx == cursor_row:
+        if not (0 <= cursor_row < len(books)):
             return
 
-        # 将当前项插入到目标位置
-        moved = books.pop(cursor_row)
-        books.insert(target_idx, moved)
+        cur_book = books[cursor_row]
+        cur_bid = cur_book.get('id')
+
+        # 数字排序仅对已勾选的书籍生效
+        if cur_bid not in selected:
+            self.notify(self.i18n.t('merge_detail.reorder_need_selected'), severity="warning", timeout=2)
+            return
+
+        # 被选中书籍在当前顺序下所处的绝对位置（作为可重排的"槽位"）
+        selected_positions = [i for i, b in enumerate(books) if b.get('id') in selected]
+        selected_order = [books[i] for i in selected_positions]
+
+        # 当前书在被选中序列中的下标
+        cur_sel_idx = next(
+            (k for k, b in enumerate(selected_order) if b.get('id') == cur_bid),
+            None,
+        )
+        if cur_sel_idx is None:
+            return
+
+        # 目标下标（被选中序列内，0-based），越界则钳制到末尾
+        target_idx = target_pos - 1
+        if target_idx < 0:
+            return
+        if target_idx >= len(selected_order):
+            target_idx = len(selected_order) - 1
+        if target_idx == cur_sel_idx:
+            return
+
+        # 在被选中序列内移动当前书
+        moved = selected_order.pop(cur_sel_idx)
+        selected_order.insert(target_idx, moved)
+
+        # 未勾选书籍保持绝对位置不变，只把选中槽位按新的选中顺序回填
+        for slot_idx, abs_pos in enumerate(selected_positions):
+            books[abs_pos] = selected_order[slot_idx]
 
         # 刷新表格
         self._refresh_table()
 
-        # 恢复光标到新位置
+        # 恢复光标到被移动书籍的新绝对位置
+        new_abs_pos = selected_positions[target_idx]
         if hasattr(table, 'move_cursor'):
-            table.move_cursor(row=target_idx)
+            table.move_cursor(row=new_abs_pos)
         else:
             while table.cursor_row > 0:
                 table.action_cursor_up()
-            for _ in range(target_idx):
+            for _ in range(new_abs_pos):
                 table.action_cursor_down()
 
         table.focus()
@@ -701,13 +778,24 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     # ─── 完成并返回 ─────────────────────────────────────────
 
     def _finish_and_return(self) -> None:
-        """收集所有组的合并结果并返回"""
+        """收集所有组的合并结果与待删除书籍，弹出最终确认后统一返回执行"""
         merged_groups = []
         skipped_groups = []
+        pending_deletes: List[Dict[str, Any]] = []
+        seen_delete_ids: set = set()
 
         for i in range(self._total_groups):
             state = self._group_state[i]
             group = self.groups[i]
+
+            # 收集该组标记为待删除的书籍（跨组去重）
+            pd_ids = state.get('pending_delete_ids', set())
+            if pd_ids:
+                for b in state['books']:
+                    bid = b.get('id')
+                    if bid in pd_ids and bid not in seen_delete_ids:
+                        pending_deletes.append(b)
+                        seen_delete_ids.add(bid)
 
             # 显式跳过的组不合并
             if state.get('skipped', False):
@@ -732,21 +820,49 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 "selected_books": selected_books,
             })
 
-        if not merged_groups:
+        if not merged_groups and not pending_deletes:
             self.notify(self.i18n.t('merge_detail.no_groups_to_merge'), severity="warning")
             return
 
-        self.dismiss({
-            "success": True,
-            "action": "merge_detail",
-            "merged_groups": merged_groups,
-            "skipped_groups": skipped_groups,
-            "message": self.i18n.t(
-                'merge_detail.completed',
-                merged=len(merged_groups),
-                skipped=len(skipped_groups),
-            ),
-        })
+        def _do_dismiss() -> None:
+            self.dismiss({
+                "success": True,
+                "action": "merge_detail",
+                "merged_groups": merged_groups,
+                "skipped_groups": skipped_groups,
+                "pending_deletes": pending_deletes,
+                "message": self.i18n.t(
+                    'merge_detail.completed',
+                    merged=len(merged_groups),
+                    skipped=len(skipped_groups),
+                ),
+            })
+
+        # 最终确认：汇总即将执行的合并 / 删除数量，确认后才真正执行（避免误操作不可恢复）
+        try:
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+
+            def handle_finish_confirmation(confirmed: Optional[bool]) -> None:
+                if not confirmed:
+                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
+                    return
+                _do_dismiss()
+
+            self.app.push_screen(
+                ConfirmDialog(
+                    self.theme_manager,
+                    self.i18n.t('merge_detail.confirm_finish_title'),
+                    self.i18n.t(
+                        'merge_detail.confirm_finish_message',
+                        merge_count=len(merged_groups),
+                        delete_count=len(pending_deletes),
+                    ),
+                ),
+                handle_finish_confirmation,
+            )
+        except Exception as e:
+            logger.error(f"最终确认弹窗失败，直接执行: {e}")
+            _do_dismiss()
 
     # ─── 快速定位 ───────────────────────────────────────────
 
@@ -801,97 +917,23 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._delete_selected_books()
 
     def _delete_selected_books(self) -> None:
-        """批量删除所有选中的书籍"""
-        if self.db_manager is None:
-            self.notify(self.i18n.t('merge_detail.delete_unavailable'), severity="warning", timeout=2)
-            return
-
+        """批量标记所有选中的书籍为待删除（仅标记，完成后统一执行，避免误操作不可恢复）"""
         state = self._group_state[self._current_index]
         selected_ids = state['selected_ids'].copy()
         if not selected_ids:
+            self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
             return
 
-        # 获取要删除的书籍列表
-        books_to_delete = [b for b in state['books'] if b.get('id') in selected_ids]
-        if not books_to_delete:
-            return
+        # 标记选中书籍为待删除，同时清空勾选（待删除的书不参与合并）
+        state['pending_delete_ids'].update(selected_ids)
+        state['selected_ids'].clear()
 
-        try:
-            from src.ui.dialogs.confirm_dialog import ConfirmDialog
-
-            count = len(books_to_delete)
-            titles = ', '.join([b.get('novel_title', '') for b in books_to_delete[:3]])
-            if count > 3:
-                titles += f' ... (共{count}本)'
-
-            def handle_batch_delete_confirmation(confirmed: Optional[bool]) -> None:
-                if not confirmed:
-                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
-                    return
-                try:
-                    db_manager = self.db_manager
-                    success_count = 0
-                    fail_count = 0
-
-                    for book in books_to_delete:
-                        try:
-                            file_path = book.get('file_path', '')
-
-                            # 1) 删除文件（若有）
-                            if file_path and file_path != 'already_exists' and os.path.exists(file_path):
-                                try:
-                                    send2trash(file_path)
-                                    logger.info(f"文件已移至回收站: {file_path}")
-                                except Exception as e:
-                                    logger.error(f"删除文件失败: {file_path} - {e}")
-
-                            # 2) 删除数据库记录
-                            history_id = book.get('id')
-                            if history_id is not None:
-                                try:
-                                    db_manager.delete_crawl_history(int(history_id))
-                                except Exception as e:
-                                    logger.error(f"删除爬取历史记录失败: {history_id} - {e}")
-
-                            success_count += 1
-                        except Exception as e:
-                            logger.error(f"删除书籍失败: {book.get('novel_title', '')} - {e}")
-                            fail_count += 1
-
-                    # 3) 从当前组状态中移除已删除的书籍
-                    deleted_ids = {book.get('id') for book in books_to_delete}
-                    state['books'] = [b for b in state['books'] if b.get('id') not in deleted_ids]
-                    state['selected_ids'].clear()
-
-                    # 4) 刷新界面
-                    self._refresh_table()
-                    self._update_status()
-
-                    msg = self.i18n.t('merge_detail.batch_deleted', count=success_count)
-                    if fail_count > 0:
-                        msg += f' ({fail_count} {self.i18n.t("crawler.failed")})'
-                    self.notify(msg, timeout=3)
-                except Exception as e:
-                    logger.error(f"批量删除书籍失败: {e}")
-                    self.notify(
-                        f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
-                        severity="error", timeout=3,
-                    )
-
-            self.app.push_screen(
-                ConfirmDialog(
-                    self.theme_manager,
-                    self.i18n.t('merge_detail.confirm_batch_delete_title'),
-                    self.i18n.t('merge_detail.confirm_batch_delete_message', count=count, titles=titles),
-                ),
-                handle_batch_delete_confirmation,
-            )
-        except Exception as e:
-            logger.error(f"批量删除书籍失败: {e}")
-            self.notify(
-                f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
-                severity="error", timeout=3,
-            )
+        self._refresh_table()
+        self._update_status()
+        self.notify(
+            self.i18n.t('merge_detail.batch_delete_marked', count=len(selected_ids)),
+            timeout=3,
+        )
 
     def _get_cursor_book(self) -> Optional[Dict[str, Any]]:
         """获取当前光标行对应的书籍字典"""
@@ -1009,72 +1051,32 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             )
 
     def _delete_book(self, book: Dict[str, Any]) -> None:
-        """删除光标所在行的书籍（文件 + 数据库记录）"""
-        if self.db_manager is None:
-            self.notify(self.i18n.t('merge_detail.delete_unavailable'), severity="warning", timeout=2)
+        """标记/取消标记光标所在行的书籍为待删除（仅标记，完成后统一执行，避免误操作不可恢复）"""
+        bid = book.get('id')
+        if bid is None:
             return
-        db_manager = self.db_manager
 
-        try:
-            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+        state = self._group_state[self._current_index]
+        novel_title = book.get('novel_title', '')
 
-            novel_title = book.get('novel_title', '')
-            file_path = book.get('file_path', '')
-
-            def handle_delete_confirmation(confirmed: Optional[bool]) -> None:
-                if not confirmed:
-                    self.notify(self.i18n.t('crawler.delete_cancelled'), timeout=2)
-                    return
-                try:
-                    # 1) 删除文件（若有）
-                    if file_path and file_path != 'already_exists' and os.path.exists(file_path):
-                        try:
-                            send2trash(file_path)
-                            logger.info(f"文件已移至回收站: {file_path}")
-                        except Exception as e:
-                            logger.error(f"删除文件失败: {file_path} - {e}")
-
-                    # 2) 删除数据库记录
-                    history_id = book.get('id')
-                    if history_id is not None:
-                        try:
-                            db_manager.delete_crawl_history(int(history_id))
-                        except Exception as e:
-                            logger.error(f"删除爬取历史记录失败: {history_id} - {e}")
-
-                    # 3) 从当前组状态中移除该书籍
-                    state = self._group_state[self._current_index]
-                    state['books'] = [b for b in state['books'] if b.get('id') != book.get('id')]
-                    state['selected_ids'].discard(book.get('id'))
-
-                    # 4) 刷新界面
-                    self._refresh_table()
-                    self._update_status()
-                    self.notify(
-                        self.i18n.t('merge_detail.book_deleted', title=novel_title),
-                        timeout=2,
-                    )
-                except Exception as e:
-                    logger.error(f"删除书籍失败: {e}")
-                    self.notify(
-                        f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
-                        severity="error", timeout=3,
-                    )
-
-            self.app.push_screen(
-                ConfirmDialog(
-                    self.theme_manager,
-                    self.i18n.t('merge_detail.confirm_delete_title'),
-                    self.i18n.t('merge_detail.confirm_delete_message', title=novel_title),
-                ),
-                handle_delete_confirmation,
-            )
-        except Exception as e:
-            logger.error(f"删除书籍失败: {e}")
+        if bid in state['pending_delete_ids']:
+            # 取消标记
+            state['pending_delete_ids'].discard(bid)
             self.notify(
-                f"{self.i18n.t('crawler.delete_file_failed')}: {e}",
-                severity="error", timeout=3,
+                self.i18n.t('merge_detail.delete_unmarked', title=novel_title),
+                timeout=2,
             )
+        else:
+            # 标记待删除，同时取消勾选（待删除的书不参与合并）
+            state['pending_delete_ids'].add(bid)
+            state['selected_ids'].discard(bid)
+            self.notify(
+                self.i18n.t('merge_detail.delete_marked', title=novel_title),
+                timeout=2,
+            )
+
+        self._refresh_table()
+        self._update_status()
 
 
     def _clear_title(self) -> None:
@@ -1140,14 +1142,15 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             event.stop()
             return
 
-        # 数字键 1-9：移动到对应行（1-based）
+        # 数字键 1-9、0（0 表示第 10 位）：将当前勾选的书移动到被选中书籍中的对应位置
         if event.key.isdigit():
-            pos = int(event.key)
-            if 1 <= pos <= 9:
-                state = self._group_state[self._current_index]
-                if pos <= len(state['books']):
-                    self._move_to_position(pos)
-                    event.stop()
+            d = int(event.key)
+            pos = 10 if d == 0 else d
+            state = self._group_state[self._current_index]
+            selected_count = len(state['selected_ids'])
+            if 1 <= pos <= selected_count:
+                self._move_to_position(pos)
+                event.stop()
 
     # ─── 补缺功能 ───────────────────────────────────────────
 

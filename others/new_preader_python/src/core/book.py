@@ -48,7 +48,13 @@ class Book:
             raise ValueError(f"不支持的文件格式: {self.format}")
         
         # 基本信息
-        self.title = title if title else os.path.splitext(self.file_name)[0]
+        # 当未显式指定标题时回退到文件名；文件名可能带时间戳后缀（如 _20260712_1809），
+        # 这里剥离时间戳，保证书籍名称干净（时间戳仅保留在磁盘文件名上）
+        if title:
+            self.title = title
+        else:
+            base_name = os.path.splitext(self.file_name)[0]
+            self.title = _fu.FileUtils.strip_filename_timestamp(base_name)
         self.author = author if author else "未知作者"
         self.tags: str = tags if tags else ""  # 存储逗号分隔的标签字符串
         self.size = os.path.getsize(path) if path and os.path.exists(path) else 0

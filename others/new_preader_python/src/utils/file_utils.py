@@ -3,6 +3,7 @@
 """
 
 import os
+import re
 
 import shutil
 from send2trash import send2trash
@@ -42,7 +43,32 @@ class FileUtils:
             str: 文件名
         """
         return os.path.splitext(os.path.basename(file_path))[0]
-    
+
+    @staticmethod
+    def strip_filename_timestamp(name: str) -> str:
+        """
+        去除名称末尾的"文件名专属后缀"，仅保留书籍显示名称本身，避免把磁盘文件名的
+        时间戳、书籍ID等脏后缀带进书籍名称/智能标题里。
+
+        会剥离以下末尾模式（前缀为下划线 _，避免误伤正常书名）：
+        - 时间戳：_20260712 / _20260712_1809 / _20260712_180945
+        - 书籍ID：_123456 等 6 位以上纯数字（下划线后紧跟至少 6 位数字）
+
+        注：该规则要求后缀以"下划线"开头，因此不会误伤形如"第5部""作者A"等正常书名。
+        智能标题、序号列显示、章节排序等场景统一复用本方法，保证一致。
+
+        Args:
+            name: 原始名称（通常是去掉扩展名后的文件名或数据库中的 novel_title）
+
+        Returns:
+            str: 去除时间戳/ID 后缀后的名称（若去除后为空则原样返回，避免清空）
+        """
+        if not name:
+            return name
+        cleaned = re.sub(r'_(?:\d{8}(?:_\d{4,6})?|\d{6,})$', '', name)
+        cleaned = cleaned.strip()
+        return cleaned or name
+
     @staticmethod
     def get_file_size(file_path: str) -> int:
         """
