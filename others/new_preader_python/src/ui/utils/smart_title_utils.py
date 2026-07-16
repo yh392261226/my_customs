@@ -215,6 +215,86 @@ class SmartTitleUtils:
                 return None
 
     @staticmethod
+    def _extract_volume_from_prefix(prefix: str):
+        """
+        若前缀末尾含有 第X卷 / X卷 / 卷X 形式的卷（部/册/集）标记，
+        返回 (卷号, 截断位置)；否则返回 None。
+
+        截断位置用于把该卷标记从书名前缀中剥离（如 【书名】第二卷 → 【书名】）。
+        """
+        if not prefix:
+            return None
+        num_atom = (r'(?:\d+|[０-９]+|'
+                    r'[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬]+|'
+                    r'[IVXLCDMivxlcdm]+)')
+        vol_marker = r'(?:卷|部|册|集)'
+        # 第X卷 / X卷（如 第二卷、2卷）
+        m = re.search(r'(?:第\s*)?(' + num_atom + r')\s*' + vol_marker + r'\s*$', prefix)
+        if m:
+            v = SmartTitleUtils.extract_number_from_string(m.group(1))
+            if v is not None:
+                return (v, m.start())
+        # 卷X（如 卷二）
+        m = re.search(r'' + vol_marker + r'\s*(' + num_atom + r')\s*$', prefix)
+        if m:
+            v = SmartTitleUtils.extract_number_from_string(m.group(1))
+            if v is not None:
+                return (v, m.start())
+        return None
+
+    @staticmethod
+    def _fold_volume_into_number(res):
+        """
+        若数字前的文字标记（marker）末尾含 第X卷 / X卷 / 卷X（卷/部/册/集），
+        将其作为"卷前缀"前置到章节号，并把该标记从 marker 中剥离。例如：
+          (start=(24,), end=(24,), marker='第三卷')
+              -> (start=(3,24), end=(3,24), marker='')
+        这样括号内"（第三卷 24）"与"（0.0-3.23）"可统一为"卷.章"元组正确合并。
+        """
+        marker = res[2]
+        if not marker:
+            return res
+        vol = SmartTitleUtils._extract_volume_from_prefix(marker)
+        if vol is None:
+            return res
+        v, v_start = vol
+        cleaned = marker[:v_start].rstrip()
+        new_start = (v,) + (res[0] if isinstance(res[0], tuple) else (res[0],))
+        new_end = (v,) + (res[1] if isinstance(res[1], tuple) else (res[1],))
+        return (new_start, new_end, cleaned, res[3], res[4], res[5])
+
+    @staticmethod
+    def _extract_bracket_extra(inner: str, trailing_segs: list) -> str:
+        """
+        提取括号内主数字范围之后的"附加信息"，合并时予以保留，例如：
+          '1-9缺3'      -> '缺3'
+          '1-9番外'      -> '番外'
+          '1-9+番外'     -> '+番外'
+          '1-9+番外1-5'  -> '+番外1-5'
+
+        Args:
+            inner: 主数字片段（已 strip）
+            trailing_segs: '+' 分割后、主片段之后的其余片段（如 ['番外']、['番外1-5']）
+        """
+        extra = ''
+        # 主数字范围之后的附加信息：缺XX / 番外（及其带编号形式）。
+        # 注意 inner 为原始片段（可能含 缺/番外），整串搜索以覆盖被 _parse_inner_chapter
+        # 按"缺"截断前的部分。
+        m = re.search(
+            r'(?:缺\s*[\d０-９一二三四五六七八九十百千万零]+'
+            r'(?:[－~\-–—]\s*[\d０-９一二三四五六七八九十百千万零]+)?'
+            r'|番外\s*[\d０-９一二三四五六七八九十百千万零]*'
+            r'(?:[－~\-–—]\s*[\d０-９一二三四五六七八九十百千万零]+)?)',
+            inner)
+        if m:
+            extra += m.group(0).strip()
+        for seg in trailing_segs:
+            seg = seg.strip()
+            if seg:
+                extra += '+' + seg
+        return extra
+
+    @staticmethod
     def _parse_inner_chapter(inner: str):
         """
         解析括号内的内容。
@@ -228,6 +308,9 @@ class SmartTitleUtils:
         inner = inner.strip()
         if not inner:
             return None
+        # "缺" 表示缺失章节（如 缺3 / 缺3-5）；其后的数字不属于主范围，
+        # 交由 _extract_bracket_extra 作为附加信息保留，避免被当成范围末端。
+        inner = inner.split('缺')[0]
 
         # 1. 纯标记模式：整串都是标记字符（上/下/中篇/完结篇）
         if inner and all(c in SmartTitleUtils._NUM_SUFFIX_CHARS for c in inner):
@@ -256,6 +339,8 @@ class SmartTitleUtils:
             # 清理 "第X章/回/节" 这类纯章节框定（仅保留数字）
             if res[2] == '第' and res[4] in ('章', '回', '节', '集', '篇', '部', '册'):
                 res = (res[0], res[1], '', res[3], '', res[5])
+            # 括号内文字标记末尾含 卷/部/册/集 时，折叠为章节号前缀（如 （第三卷 24）→ (3,24)）
+            res = SmartTitleUtils._fold_volume_into_number(res)
             return res
 
         # 3. 中文数字（第六章、十二 等）
@@ -277,6 +362,8 @@ class SmartTitleUtils:
                 res = (nums[0], nums[0], marker, '', end_suffix, False)
             if res[2] == '第' and res[4] in ('章', '回', '节', '集', '篇', '部', '册'):
                 res = (res[0], res[1], '', res[3], '', res[5])
+            # 括号内文字标记末尾含 卷/部/册/集 时，折叠为章节号前缀（如 （第三卷 24）→ (3,24)）
+            res = SmartTitleUtils._fold_volume_into_number(res)
             return res
 
         # 4. 纯罗马数字
@@ -295,8 +382,8 @@ class SmartTitleUtils:
         """
         从标题中提取章节信息。
 
-        Returns 9 元组 或 None:
-            (start, end, prefix, suffix, chapter_prefix, has_parens, end_suffix, start_suffix, inner_text)
+        Returns 10 元组 或 None:
+            (start, end, prefix, suffix, chapter_prefix, has_parens, end_suffix, start_suffix, inner_text, bracket_extra)
             - start/end: 数字（整数或浮点）；纯标记模式时为 -1
             - prefix: 书名前缀（不含章节信息）
             - suffix: 后缀（作者/补充信息）
@@ -369,12 +456,14 @@ class SmartTitleUtils:
             if cand is not None:
                 bracket_match = cand
                 inner_raw = bracket_match.group(1)
-                # 以 +/＋ 分段，取"含数字"的片段作为章节范围：
-                # - 避免 "1-209章+番外" 把番外当范围末端；
-                # - "前传+0-9" 应选 0-9 而非前置标签。
-                # 保留首尾空白，供后续（ 1-4 ）样式空格还原使用。
+                # 以 +/＋ 分段：取"含数字"的片段作为主章节范围，
+                # 其后的片段（如 +番外 / +番外1-5）作为附加信息保留。
                 segs = re.split(r'[+＋]', inner_raw)
-                inner = next((s for s in segs if re.search(r'[0-9０-９]', s)), segs[0])
+                numeric_segs = [s for s in segs if re.search(r'[0-9０-９]', s)]
+                chosen = numeric_segs[0] if numeric_segs else segs[0]
+                inner = chosen.strip()
+                chosen_idx = segs.index(chosen)
+                trailing_segs = segs[chosen_idx + 1:]
                 prefix = title[:bracket_match.start()].rstrip()
                 suffix = title[bracket_match.end():].lstrip()
                 parsed = SmartTitleUtils._parse_inner_chapter(inner.strip())
@@ -382,8 +471,24 @@ class SmartTitleUtils:
                     start, end, marker, start_suffix, end_suffix, is_text_marker = parsed
                     if is_text_marker:
                         # 用 -1 标记纯标记模式（与数字 0 区分）
-                        return (-1, -1, prefix, suffix, marker, True, '', '', inner)
-                    return (start, end, prefix, suffix, marker, True, end_suffix, start_suffix, inner)
+                        return (-1, -1, prefix, suffix, marker, True, '', '', inner, '')
+                    # ── 括号前的卷/部/册/集标记（如 【书名】第二卷（240-242））──
+                    # 将卷号作为"体积前缀"前置到章节号，使跨卷合并正确：
+                    #   （1.1-2.239）+ 第二卷（240-242） → 1.1-2.242
+                    # 若括号内已是"卷.章"小数形式（含 '.'），说明卷号已内嵌，跳过避免重复。
+                    if '.' not in inner:
+                        vol = SmartTitleUtils._extract_volume_from_prefix(prefix)
+                        if vol is not None:
+                            prefix = prefix[:vol[1]].rstrip()
+                            start = (vol[0],) + (start if isinstance(start, tuple) else (start,))
+                            end = (vol[0],) + (end if isinstance(end, tuple) else (end,))
+                    # ── 括号内附加信息（缺XX / 番外 / +番外...）──
+                    # 合并时保留在范围之后，如 （1-9缺3）+（10-15）→ （1-15缺3）
+                    extra = SmartTitleUtils._extract_bracket_extra(inner, trailing_segs)
+                    # 避免 番外 等同时被 end_suffix 捕获造成重复
+                    if extra and end_suffix.startswith(extra):
+                        end_suffix = end_suffix[len(extra):]
+                    return (start, end, prefix, suffix, marker, True, end_suffix, start_suffix, inner, extra)
             # 无章节括号时，交给下面的无括号分支处理
 
         # ── 2. 无括号格式（如 书名 1-20 / 书名1~8 / 【书名】１-１４）──
@@ -394,6 +499,26 @@ class SmartTitleUtils:
         # 锚点：中文、各闭合包裹符（】」』》）、内容括号闭合（）)]）、空白，
         # 以及前缀连字符/波浪号/破折号（- － ~ ～ — –，兼容 "X——1-8"、"X~1-6" 等）。
         anchor = r'(?<=[\u4e00-\u9fff】」』》\]）)\s\-－~～—–])'
+
+        # ── 2b. 第X卷/部/册/集/章/回/节 形式（无括号，支持中文/罗马/阿拉伯数字）──
+        # 例：【书名】第一卷 作者：X → (1, 1, 【书名】, 作者：X, '', True, 卷, '', 一)
+        # 量词后若紧跟数字（如 "第1卷1-3"）则不匹配，避免与下方范围解析冲突。
+        num_atom = r'(?:\d+|[０-９]+|[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬]+|[IVXLCDMivxlcdm]+)'
+        vol_marker = r'[卷部册集章回节]'
+        vm = re.search(r'第\s*(' + num_atom + r')\s*[-–—~－]\s*(' + num_atom + r')\s*(' + vol_marker + r')(?!\d)', title)
+        if vm:
+            s = SmartTitleUtils.extract_number_from_string(vm.group(1)) or 0
+            e = SmartTitleUtils.extract_number_from_string(vm.group(2)) or 0
+            prefix = title[:vm.start()].rstrip()
+            suffix = title[vm.end():].lstrip()
+            return (s, e, prefix, suffix, '', True, vm.group(3), '', f"{vm.group(1)}-{vm.group(2)}", '')
+        vm = re.search(r'第\s*(' + num_atom + r')\s*(' + vol_marker + r')\s*([上下中前后]?)(?!\d)', title)
+        if vm:
+            s = SmartTitleUtils.extract_number_from_string(vm.group(1)) or 0
+            prefix = title[:vm.start()].rstrip()
+            suffix = title[vm.end():].lstrip()
+            return (s, s, prefix, suffix, '', True, vm.group(2), vm.group(3), vm.group(1), '')
+
         for pat in (
             anchor + r'\s*(' + num_re + r')\s*[-–—~－]\s*(' + num_re + r')',
             anchor + r'\s*(' + num_re + r')',
@@ -411,14 +536,14 @@ class SmartTitleUtils:
                 if rm.group(2):
                     s = SmartTitleUtils._parse_chapter_number(rm.group(1))
                     e = SmartTitleUtils._parse_chapter_number(rm.group(2))
-                    return (s, e, prefix, suffix, '', False, '', '', f"{rm.group(1)}-{rm.group(2)}")
+                    return (s, e, prefix, suffix, '', False, '', '', f"{rm.group(1)}-{rm.group(2)}", '')
                 else:
                     # 单数字：避免把 2012年9月21日 中的"年9月/月21日"误判为章节
                     after = title[m.end():m.end() + 1]
                     if after in '年月日号':
                         continue
                     s = SmartTitleUtils._parse_chapter_number(rm.group(1))
-                    return (s, s, prefix, suffix, '', False, '', '', rm.group(1))
+                    return (s, s, prefix, suffix, '', False, '', '', rm.group(1), '')
 
         return None
 
@@ -605,10 +730,15 @@ class SmartTitleUtils:
             else:
                 range_text = f"{SmartTitleUtils._num_to_str(min_start)}-{SmartTitleUtils._num_to_str(max_end)}"
         else:
+            # 量词（卷/部/册/集/章/回/节）属于"整段范围"的度量单位，
+            # 应只在范围末尾出现一次（如 "1-6卷"），不能作为起点后缀（否则变成 "1卷-6卷"）。
+            measure_words = set('卷部册集章回节')
             first_book = num_books[0]
             if first_book[0] == first_book[1]:
-                # 起点书为单个编号：其编号后的后缀即为起点后缀（如 "15上"）
-                start_suffix = first_book[7] or first_book[6]
+                # 起点书为单个编号：其后缀作为起点后缀（如 "15上"）；量词除外
+                start_suffix = first_book[7]
+                if not start_suffix and first_book[6] and first_book[6] not in measure_words:
+                    start_suffix = first_book[6]
             else:
                 # 起点书为范围：后缀属于范围末端，起点后缀取其自身的（如有）
                 start_suffix = first_book[7]
@@ -618,6 +748,18 @@ class SmartTitleUtils:
                 range_text = f"{SmartTitleUtils._num_to_str(max_end)}{end_suffix}"
             else:
                 range_text = f"{SmartTitleUtils._num_to_str(min_start)}{start_suffix}-{SmartTitleUtils._num_to_str(max_end)}{end_suffix}"
+
+        # 括号内附加信息（缺XX / 番外 / +番外...）：保留在范围之后。
+        # 收集各书中非空附加串（按书籍顺序），避免重复拼接。
+        extras = [ci[9] for ci in num_books if len(ci) > 9 and ci[9]]
+        if extras:
+            seen = set()
+            extra_str = ''
+            for ex in extras:
+                if ex not in seen:
+                    seen.add(ex)
+                    extra_str += ex
+            range_text = range_text + extra_str
 
         # 组装书名：书名前缀 + 章节范围 + 后缀。
         # 前缀与章节范围之间：若前缀以中文闭合包裹符结尾、且章节以中文开放包裹符开头，
