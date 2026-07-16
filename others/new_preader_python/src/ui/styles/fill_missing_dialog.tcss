@@ -114,6 +114,7 @@ FillMissingDialog Container, #fm-container {
 }
 #fm-sel-ops-row > Button { margin: 0 1; }
 #fm-select-all-btn { background: $primary 40%; min-width: 6; }
+#fm-move-up-btn, #fm-move-down-btn { background: $secondary 60%; min-width: 6; }
 #fm-assign-front-btn { background: $success 70%; min-width: 6; }
 #fm-assign-middle-btn { background: $warning 70%; min-width: 6; }
 #fm-assign-back-btn { background: $primary 70%; min-width: 6; }
@@ -130,15 +131,20 @@ FillMissingDialog Container, #fm-container {
     width: 100%; height: 1; color: $accent; text-style: bold; margin-bottom: 0;
 }
 
-.group-display {
+#fm-group-scroll {
     width: 100%;
-    min-height: 4;
-    max-height: 8;
-    color: $text;
+    height: auto;
+    max-height: 14;
     border: solid $border;
     padding: 0 1;
-    overflow-y: auto;
     margin-bottom: 1;
+}
+
+.group-display {
+    width: 100%;
+    height: auto;
+    color: $text;
+    padding: 0;
 }
 
 #fm-middle-line-row {

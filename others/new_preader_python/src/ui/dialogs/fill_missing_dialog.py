@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, ClassVar, List, Set
 
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.widgets import (
     Header, Footer, Button, Label, Input, Select,
     Static, DataTable,
@@ -38,6 +38,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
         ("/", "search_preview", get_global_i18n().t('fill_missing.search_key')),
         ("a", "toggle_select_all", get_global_i18n().t('fill_missing.toggle_select_shortcut')),
+        ("p", "move_up", get_global_i18n().t('fill_missing.move_up_shortcut')),
+        ("n", "move_down", get_global_i18n().t('fill_missing.move_down_shortcut')),
         ("space", "toggle_row", get_global_i18n().t('fill_missing.toggle_row_shortcut')),
         ("v", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
         ("S", "search_chapters", get_global_i18n().t('crawler.search_chapters_shortcut')),
@@ -138,6 +140,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                         # 选择+分配按钮行
                         Horizontal(
                             Button(self.i18n.t('fill_missing.select_all'), id="fm-select-all-btn", variant="default"),
+                            Button(self.i18n.t('fill_missing.move_up'), id="fm-move-up-btn", variant="default"),
+                            Button(self.i18n.t('fill_missing.move_down'), id="fm-move-down-btn", variant="default"),
                             Button(self.i18n.t('fill_missing.assign_front'), id="fm-assign-front-btn", variant="success"),
                             Button(self.i18n.t('fill_missing.assign_middle'), id="fm-assign-middle-btn", variant="warning"),
                             Button(self.i18n.t('fill_missing.assign_back'), id="fm-assign-back-btn", variant="primary"),
@@ -149,7 +153,10 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     # 右侧：分组显示 + 行号输入
                     Vertical(
                         Label(self.i18n.t('fill_missing.group_plan'), id="fm-group-plan-label"),
-                        Static("", id="fm-group-display", classes="group-display"),
+                        VerticalScroll(
+                            Static("", id="fm-group-display", classes="group-display"),
+                            id="fm-group-scroll",
+                        ),
                         # 中间组的行号输入 + 快速定位
                         Horizontal(
                             Label(f"{self.i18n.t('fill_missing.middle_line')}:", classes="label-text"),
@@ -437,6 +444,44 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         else:
             btn.label = self.i18n.t('fill_missing.select_all')
 
+    # ─── 上移/下移排序（按钮 + 快捷键 p/n）───────────────────
+
+    @on(Button.Pressed, "#fm-move-up-btn")
+    def on_move_up_btn(self):
+        """上移按钮：将当前行书籍上移一位"""
+        self.action_move_up()
+
+    @on(Button.Pressed, "#fm-move-down-btn")
+    def on_move_down_btn(self):
+        """下移按钮：将当前行书籍下移一位"""
+        self.action_move_down()
+
+    def action_move_up(self) -> None:
+        """快捷键 p: 上移当前行书籍一位"""
+        if self._stage != "merge" or not self._crawled_books:
+            return
+        try:
+            table = self.query_one("#fm-books-table", DataTable)
+            cursor = table.cursor_row
+        except Exception:
+            return
+        if cursor is None or cursor <= 0:
+            return
+        self._move_book_to_position(cursor, cursor - 1)
+
+    def action_move_down(self) -> None:
+        """快捷键 n: 下移当前行书籍一位"""
+        if self._stage != "merge" or not self._crawled_books:
+            return
+        try:
+            table = self.query_one("#fm-books-table", DataTable)
+            cursor = table.cursor_row
+        except Exception:
+            return
+        if cursor is None or cursor >= len(self._crawled_books) - 1:
+            return
+        self._move_book_to_position(cursor, cursor + 1)
+
     # ─── 数字键排序 + 快捷键（DataTable自带方向键导航） ──────
 
     def action_toggle_row(self) -> None:
@@ -511,7 +556,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             gdata["books"] = updated_group_books
 
         # 5. 刷新显示（光标跟随到新位置 to_idx）
-        self._refresh_books_list_display(restore_cursor=False, target_cursor=to_idx)
+        self._refresh_books_list_display(restore_cursor=True, target_cursor=to_idx)
 
         # 显示提示信息
         display_key = "0" if to_idx == 9 else str(to_idx + 1)
