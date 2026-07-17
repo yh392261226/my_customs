@@ -43,6 +43,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         ("space", "toggle_row", get_global_i18n().t('fill_missing.toggle_row_shortcut')),
         ("v", "visual_merge", get_global_i18n().t('fill_missing.visual_merge_btn')),
         ("S", "search_chapters", get_global_i18n().t('crawler.search_chapters_shortcut')),
+        ("y", "copy_title", get_global_i18n().t('fill_missing.copy_title_shortcut')),
     ]
 
     # 预览最大行数（避免超大文件导致性能问题）
@@ -200,6 +201,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     Label(self.i18n.t('fill_missing.new_name') + ": ", classes="label-text"),
                     Input(id="fm-new-name-input", value=title),
                     Button(self.i18n.t('merge_detail.smart_title'), id="fm-smart-title-btn", variant="success"),
+                    Button(self.i18n.t('fill_missing.clear_title'), id="fm-clear-title-btn", variant="warning"),
                     Button(self.i18n.t('fill_missing.confirm_merge'), id="fm-confirm-btn", variant="primary"),
                     Button(self.i18n.t('common.cancel'), id="fm-cancel-btn", variant="error"),
                     id="fm-rename-row",
@@ -1839,6 +1841,29 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             except Exception: subprocess.run(['xsel', '--clipboard', '--input'], input=text, text=True, check=True)
         self.notify(self.i18n.t('crawler.copy_ids_success').format(count=len(text.split(','))), timeout=2)
 
+    @staticmethod
+    def _copy_text_to_clipboard(text: str) -> bool:
+        """将文本复制到系统剪贴板，返回是否成功"""
+        try:
+            import pyperclip
+            pyperclip.copy(text)
+            return True
+        except ImportError:
+            import subprocess, platform
+            sys = platform.system()
+            cmd = ['pbcopy'] if sys == 'Darwin' else ['xclip', '-selection', 'clipboard']
+            try:
+                subprocess.run(cmd, input=text, text=True, check=True)
+                return True
+            except Exception:
+                try:
+                    subprocess.run(['xsel', '--clipboard', '--input'], input=text, text=True, check=True)
+                    return True
+                except Exception:
+                    return False
+        except Exception:
+            return False
+
     def _open_select_books_dialog(self) -> None:
         if not self.novel_site or not self.novel_site.get("selectable_enabled", True): return
         from src.ui.dialogs.select_books_dialog import SelectBooksDialog
@@ -1990,6 +2015,15 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 titles.append(t)
         return titles
 
+    @on(Button.Pressed, "#fm-clear-title-btn")
+    def on_clear_title_btn(self):
+        """清空标题按钮：清空合并后的新书名输入框"""
+        try:
+            name_input = self.query_one("#fm-new-name-input", Input)
+            name_input.value = ""
+        except Exception as e:
+            logger.debug(f"清空书名失败: {e}")
+
     @on(Button.Pressed, "#fm-confirm-btn")
     def on_confirm_merge(self):
         self._execute_merge()
@@ -2012,3 +2046,30 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         else: self._start_crawl()
 
     def action_toggle_monitor(self): self._toggle_browser_monitor()
+
+    def action_copy_title(self) -> None:
+        """快捷键 y: 复制当前光标所在行书籍的标题到剪贴板"""
+        if self._stage != "merge" or not self._crawled_books:
+            self.notify(self.i18n.t('fill_missing.copy_title_no_book'), severity="warning", timeout=2)
+            return
+        try:
+            table = self.query_one("#fm-books-table", DataTable)
+            cursor = table.cursor_row
+            if cursor is None or cursor < 0 or cursor >= len(self._crawled_books):
+                self.notify(self.i18n.t('fill_missing.copy_title_no_book'), severity="warning", timeout=2)
+                return
+            book = self._crawled_books[cursor]
+            title = book.get('title', book.get('novel_title', '')) or ''
+            if not title:
+                self.notify(self.i18n.t('fill_missing.copy_title_no_book'), severity="warning", timeout=2)
+                return
+            if self._copy_text_to_clipboard(title):
+                self.notify(
+                    self.i18n.t('fill_missing.copy_title_success', title=title),
+                    severity="information", timeout=2,
+                )
+            else:
+                self.notify(self.i18n.t('fill_missing.copy_title_no_book'), severity="error", timeout=2)
+        except Exception as e:
+            logger.debug(f"复制书名失败: {e}")
+            self.notify(self.i18n.t('fill_missing.copy_title_no_book'), severity="error", timeout=2)

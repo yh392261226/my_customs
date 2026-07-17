@@ -1803,7 +1803,11 @@
     "visual_merge_opened": "已在浏览器中打开可视化补缺页面，拖拽分配后点击确认即可",
     "visual_merge_failed": "无法打开可视化补缺页面",
     "no_target_for_visual": "目标文件不存在或为空，无法打开可视化补缺",
-    "visual_merge_applied": "已应用可视化结果: 前{front}本 + 中{middle}本@L{line} + 后{back}本"
+    "visual_merge_applied": "已应用可视化结果: 前{front}本 + 中{middle}本@L{line} + 后{back}本",
+    "clear_title": "清空标题",
+    "copy_title_shortcut": "复制书名",
+    "copy_title_success": "已复制书名：{title}",
+    "copy_title_no_book": "未定位到可复制的书籍标题"
   },
   "note": {
     "save": "保存",

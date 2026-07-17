@@ -1732,7 +1732,11 @@
     "visual_merge_opened": "Visual merge page opened in browser — drag books to zones and confirm",
     "visual_merge_failed": "Failed to open visual merge page",
     "no_target_for_visual": "Target file not found or empty, cannot open visual merge",
-    "visual_merge_applied": "Visual result applied: {front} front + {middle} middle@L{line} + {back} back"
+    "visual_merge_applied": "Visual result applied: {front} front + {middle} middle@L{line} + {back} back",
+    "clear_title": "Clear Title",
+    "copy_title_shortcut": "Copy Title",
+    "copy_title_success": "Title copied: {title}",
+    "copy_title_no_book": "No book title found at cursor"
   },
   "note": {
     "save": "Save",
