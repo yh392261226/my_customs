@@ -199,6 +199,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 Horizontal(
                     Label(self.i18n.t('fill_missing.new_name') + ": ", classes="label-text"),
                     Input(id="fm-new-name-input", value=title),
+                    Button(self.i18n.t('merge_detail.smart_title'), id="fm-smart-title-btn", variant="success"),
                     Button(self.i18n.t('fill_missing.confirm_merge'), id="fm-confirm-btn", variant="primary"),
                     Button(self.i18n.t('common.cancel'), id="fm-cancel-btn", variant="error"),
                     id="fm-rename-row",
@@ -1954,6 +1955,40 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         if self.is_crawling: self._stop_crawl()
         if self.browser_monitor_active: self._stop_browser_monitor()
         self.dismiss({"success": False, "action": "cancel", "crawled_ids": self._crawling_novel_ids})
+
+    @on(Button.Pressed, "#fm-smart-title-btn")
+    def on_smart_title_btn(self):
+        """智能标题按钮：根据目标书籍与已爬取书籍的书名生成合并标题"""
+        try:
+            titles = self._collect_titles_for_smart_title()
+            if len(titles) < 2:
+                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+                return
+            smart_title = SmartTitleUtils.generate_smart_title(titles)
+            if smart_title:
+                name_input = self.query_one("#fm-new-name-input", Input)
+                name_input.value = smart_title
+                self.notify(
+                    self.i18n.t('fill_missing.smart_title_applied', title=smart_title),
+                    severity="information", timeout=3,
+                )
+            else:
+                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+        except Exception as e:
+            logger.error(f"智能标题生成失败: {e}")
+            self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="error", timeout=2)
+
+    def _collect_titles_for_smart_title(self) -> List[str]:
+        """收集用于生成智能标题的书名：目标书籍 + 所有已爬取书籍"""
+        titles: List[str] = []
+        target_title = self.target_book.get('novel_title', '') or ''
+        if target_title:
+            titles.append(target_title)
+        for b in self._crawled_books:
+            t = b.get('title', b.get('novel_title', '')) or ''
+            if t:
+                titles.append(t)
+        return titles
 
     @on(Button.Pressed, "#fm-confirm-btn")
     def on_confirm_merge(self):

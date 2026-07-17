@@ -201,6 +201,7 @@ FillMissingDialog Container, #fm-container {
 #fm-rename-row > Label { min-width: 8; text-style: bold; color: $text; padding: 1 0; }
 #fm-new-name-input { margin: 0; width: 30%; min-width: 25; height: 3; background: $accent; }
 #fm-new-name-input:hover { width: auto; }
+#fm-smart-title-btn { background: $success; color: $text; min-width: 10; margin-left: 1; margin-right: 2; }
 #fm-confirm-btn { background: $success; color: $text; min-width: 10; margin-left: 1; margin-right: 2; }
 #fm-confirm-btn:hover { background: $success 80%; }
 
