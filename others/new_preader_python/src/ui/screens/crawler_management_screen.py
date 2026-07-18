@@ -5098,52 +5098,63 @@ class CrawlerManagementScreen(Screen[None]):
         # 1. 中文括号卷号：（ 1-11 ）、（9-11）、（一至四）
         # 2. 英文括号卷号：(1-11)、(9-11)
         # 3. 空格后数字卷号：9-11、一至四
-        volume_number = ""
+        volume_text = ""        # 卷号字符串（带括号时保留原括号，如（13上-13下））
+        volume_has_paren = False
         book_name = title_part
-        
+
         # 首先尝试匹配中文括号中的卷号
-        # 格式1: （ 1-11 ）、（9-11）、（一至四）
+        # 格式1: （1-11）、（9-11）、（13上-13下）、（一至四）
         chinese_paren_volume_match = re.search(r'（\s*([^）]+)\s*）', title_part)
         if chinese_paren_volume_match:
             volume_content = chinese_paren_volume_match.group(1).strip()
-            # 检查是否是数字格式或中文数字格式
-            if re.search(r'^\d+-\d+$', volume_content) or re.search(r'^[一二三四五六七八九十百千万]+至[一二三四五六七八九十百千万]+$', volume_content):
-                volume_number = volume_content
+            if self._is_volume_content(volume_content):
+                volume_text = chinese_paren_volume_match.group(0)  # 保留原括号
+                volume_has_paren = True
                 book_name = book_name.replace(chinese_paren_volume_match.group(0), "").strip()
-        
+
         # 如果没有找到中文括号卷号，尝试匹配英文括号中的卷号
-        # 格式2: (1-11)、(9-11)
-        if not volume_number:
+        # 格式2: (1-11)、(9-11)、(13上-13下)
+        if not volume_text:
             english_paren_volume_match = re.search(r'\(\s*([^)]+)\s*\)', title_part)
             if english_paren_volume_match:
                 volume_content = english_paren_volume_match.group(1).strip()
-                # 检查是否是数字格式
-                if re.search(r'^\d+-\d+$', volume_content):
-                    volume_number = volume_content
+                if self._is_volume_content(volume_content):
+                    volume_text = english_paren_volume_match.group(0)
+                    volume_has_paren = True
                     book_name = book_name.replace(english_paren_volume_match.group(0), "").strip()
-        
+
         # 如果没有找到括号卷号，尝试匹配空格后的数字或中文数字卷号
         # 格式3: 书名 9-11、书名 一至四
-        if not volume_number:
+        if not volume_text:
             # 匹配空格后的数字格式
             space_volume_match = re.search(r'\s+(\d+-\d+)$', book_name)
             if space_volume_match:
-                volume_number = space_volume_match.group(1)
+                volume_text = space_volume_match.group(1)
                 book_name = book_name[:space_volume_match.start()].strip()
             else:
                 # 匹配空格后的中文数字格式
                 chinese_volume_match = re.search(r'\s+([一二三四五六七八九十百千万]+至[一二三四五六七八九十百千万]+)$', book_name)
                 if chinese_volume_match:
-                    volume_number = chinese_volume_match.group(1)
+                    volume_text = chinese_volume_match.group(1)
                     book_name = book_name[:chinese_volume_match.start()].strip()
-        
+
+        # 从书名中分离"第X章/回/节/卷/话/篇：章节名"等章节信息到【】之外
+        chapter_info = ""
+        chapter_match = re.search(
+            r'(第[\d一二三四五六七八九十百千万两零〇]+[章回节卷话篇][:：]?[^】\n]*)$',
+            book_name,
+        )
+        if chapter_match:
+            chapter_info = chapter_match.group(1).strip()
+            book_name = book_name[:chapter_match.start()].strip()
+
         # 处理书名中的括号
-        # 只处理书名本身的括号，不处理卷号括号
+        # 只处理书名本身的括号，不处理卷号/章节括号
         # 首先，规范化所有类型的括号为【】
         book_name = book_name.replace("《", "【").replace("》", "】")
         book_name = book_name.replace("[", "【").replace("]", "】")
         book_name = book_name.replace("「", "【").replace("」", "】")
-        
+
         # 如果书名中有【】但只有一半，补全另一半
         if "【" in book_name and "】" not in book_name:
             book_name = book_name + "】"
@@ -5152,22 +5163,48 @@ class CrawlerManagementScreen(Screen[None]):
         # 如果书名中没有【】，则添加
         elif "【" not in book_name and "】" not in book_name:
             book_name = "【" + book_name + "】"
-        
+
         # 确保书名格式正确
         if not book_name.startswith("【"):
             book_name = "【" + book_name
         if not book_name.endswith("】"):
             book_name = book_name + "】"
-        
-        # 构建最终格式
+
+        # 构建最终格式：【书名】 + 章节信息 + 卷号（均在【】之外）
         result = book_name
-        if volume_number:
-            # 卷号在书名括号外面，前面加一个空格
-            result += f" {volume_number}"
+        if chapter_info:
+            result += f" {chapter_info}"
+        if volume_text:
+            # 卷号若带括号且紧跟书名括号（】）则直接拼接，否则用空格分隔
+            if volume_has_paren and result.endswith("】"):
+                result += volume_text
+            else:
+                result += f" {volume_text}"
         if author:
             result += f" 作者：{author}"
-        
+
         return result
+    
+    @staticmethod
+    def _is_volume_content(vc: str) -> bool:
+        """判断括号内的内容是否为卷号信息（单卷/数字范围/带单位数字范围/中文数字范围）"""
+        v = vc.strip()
+        # 单个数字（可带单位）：7、7卷、7话
+        if re.search(r'^\d+[上下卷话册]?$', v):
+            return True
+        # 纯数字范围：1-11、9-11
+        if re.search(r'^\d+\s*-\s*\d+$', v):
+            return True
+        # 带单位的数字范围：13上-13下、1卷-3卷、2话-5话
+        if re.search(r'^\d+[上下卷话册]?\s*[-至～~]\s*\d+[上下卷话册]?$', v):
+            return True
+        # 单个中文数字（可带单位）：七、七卷
+        if re.search(r'^[一二三四五六七八九十百千万]+[上下卷话册]?$', v):
+            return True
+        # 中文数字范围：一至四、三至五
+        if re.search(r'^[一二三四五六七八九十百千万]+至[一二三四五六七八九十百千万]+$', v):
+            return True
+        return False
     
     def _preview_book(self, history_item: Dict[str, Any]) -> None:
         """预览书籍内容（显示前200字）"""
