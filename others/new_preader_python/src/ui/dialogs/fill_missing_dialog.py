@@ -623,6 +623,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                  self.GROUP_BACK: self.i18n.t('fill_missing.group_back')}.get(group_key, group_key)
         self.notify(self.i18n.t('fill_missing.assigned_msg').format(gname=gname, count=len(selected_sorted)), timeout=2)
 
+        # 分配完成后自动触发智能标题（填充合并后的新书名）
+        self._apply_smart_title()
+
     # ─── 中间组行号设置 ─────────────────────────────────────
 
     @on(Button.Pressed, "#fm-middle-preview-btn")
@@ -1998,24 +2001,33 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     @on(Button.Pressed, "#fm-smart-title-btn")
     def on_smart_title_btn(self):
         """智能标题按钮：根据目标书籍与已爬取书籍的书名生成合并标题"""
+        if self._apply_smart_title():
+            smart_title = self.query_one("#fm-new-name-input", Input).value
+            self.notify(
+                self.i18n.t('fill_missing.smart_title_applied', title=smart_title),
+                severity="information", timeout=3,
+            )
+        else:
+            self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+
+    def _apply_smart_title(self) -> bool:
+        """根据目标书籍与已爬取书籍的书名生成并应用合并标题。成功返回 True。
+
+        供手动按钮与「分配完成」自动触发共用。
+        """
         try:
             titles = self._collect_titles_for_smart_title()
             if len(titles) < 2:
-                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
-                return
+                return False
             smart_title = SmartTitleUtils.generate_smart_title(titles)
-            if smart_title:
-                name_input = self.query_one("#fm-new-name-input", Input)
-                name_input.value = smart_title
-                self.notify(
-                    self.i18n.t('fill_missing.smart_title_applied', title=smart_title),
-                    severity="information", timeout=3,
-                )
-            else:
-                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+            if not smart_title:
+                return False
+            name_input = self.query_one("#fm-new-name-input", Input)
+            name_input.value = smart_title
+            return True
         except Exception as e:
             logger.error(f"智能标题生成失败: {e}")
-            self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="error", timeout=2)
+            return False
 
     def _collect_titles_for_smart_title(self) -> List[str]:
         """收集用于生成智能标题的书名：目标书籍 + 所有已爬取书籍"""
