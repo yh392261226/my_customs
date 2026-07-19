@@ -825,7 +825,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             b_count = len(self._insert_groups[self.GROUP_BACK]["books"])
 
             self.notify(
-                self.i18n.t('fill_missing.visual_merge_applied').format(
+                get_global_i18n().t('fill_missing.visual_merge_applied').format(
                     front=f_count, middle=m_count, back=b_count, line=mid_line or "-"
                 ),
                 severity="success",
@@ -1213,6 +1213,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                                     'title': rec.get('novel_title', nid),
                                     'file_path': fp,
                                     'record_id': rec.get('id'),
+                                    'crawl_time': rec.get('crawl_time', ''),
                                 })
                                 existing_nids.add(nid)
                                 added_count += 1
@@ -1220,8 +1221,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
             logger.info(f"收集到 {len(self._crawled_books)} 本有效的新爬取书籍（本轮新增 {added_count} 本）")
 
-            # 按章节号升序排序（便于用户查看和选择）
-            self._sort_crawled_books_by_chapter()
+            # 按爬取时间倒序排序（最新爬取的书籍排在最前）
+            self._sort_crawled_books_by_crawl_time()
 
             # 刷新 DataTable 显示
             if self._crawled_books:
@@ -1261,6 +1262,18 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.debug(f"章节排序失败，回退字母序: {e}")
             self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
+        self._sync_indices_after_sort()
+
+    def _sort_crawled_books_by_crawl_time(self) -> None:
+        """按爬取时间倒序排序（最新爬取的书籍排在最前）"""
+        if len(self._crawled_books) < 2:
+            return
+        # crawl_time 为 ISO 格式字符串（datetime.isoformat），字典序即时间序；
+        # 缺失 crawl_time 的书籍排到末尾（reverse 时空串最小）
+        self._crawled_books.sort(
+            key=lambda b: b.get('crawl_time', '') or '',
+            reverse=True,
+        )
         self._sync_indices_after_sort()
 
     def _check_and_continue_crawl(self) -> None:
@@ -1319,6 +1332,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                             'title': rec.get('novel_title', novel_title),
                             'file_path': fp,
                             'record_id': rec.get('id'),
+                            'crawl_time': rec.get('crawl_time', ''),
                         })
                         logger.info(f"单本收集成功: {novel_title} ({novel_id})，当前共 {len(self._crawled_books)} 本")
                         # 立即刷新 DataTable

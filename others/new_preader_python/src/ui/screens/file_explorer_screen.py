@@ -144,7 +144,8 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                         if self.selection_mode == "file":
                             # 如果是文件选择模式，则显示搜索框和按钮 start
                             yield Label(get_global_i18n().t("file_explorer.diff_mode"), id="file-explorer-diff-mode-label")
-                            yield Switch(value=False, id="file-explorer-diff-mode-switch")
+                            # 添加书籍场景（非直接打开）默认开启比较差异，只列出书库中不存在的书籍
+                            yield Switch(value=not self.direct_open, id="file-explorer-diff-mode-switch")
                             yield Input(placeholder=get_global_i18n().t("file_explorer.search_placeholder"), id="file-explorer-search-input")
                             # 动态生成搜索选择框选项
                             search_options = [(get_global_i18n().t("search.all_formats"), "all")]
@@ -262,7 +263,19 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
     def _load_file_list(self) -> None:
         """加载当前目录的文件列表（优化版本 - 减少系统调用）"""
         file_list = self.query_one("#file-list", ListView)
-        
+
+        # 文件选择模式下，若比较差异（差异模式）已开启，则自动执行差异比较，
+        # 仅列出书库中不存在的书籍文件，避免重复添加
+        if self.selection_mode == "file":
+            try:
+                diff_switch = self.query_one("#file-explorer-diff-mode-switch", Switch)
+                if diff_switch.value:
+                    self._search_files()
+                    return
+            except Exception:
+                # 差异开关不存在或读取失败时，退回到普通列表
+                pass
+
         try:
             # 清空现有列表
             file_list.clear()
