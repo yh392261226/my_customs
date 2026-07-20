@@ -917,11 +917,24 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._delete_selected_books()
 
     def _delete_selected_books(self) -> None:
-        """批量标记所有选中的书籍为待删除（仅标记，完成后统一执行，避免误操作不可恢复）"""
+        """批量标记/取消标记所有选中的书籍为待删除（仅标记，完成后统一执行，避免误操作不可恢复）"""
         state = self._group_state[self._current_index]
         selected_ids = state['selected_ids'].copy()
         if not selected_ids:
             self.notify(self.i18n.t('batch_ops.no_selected_rows'), severity="warning", timeout=2)
+            return
+
+        # 若选中的书都已标记为待删除，再次按下则为「取消删除」
+        all_pending = all(bid in state['pending_delete_ids'] for bid in selected_ids)
+        if all_pending:
+            for bid in selected_ids:
+                state['pending_delete_ids'].discard(bid)
+            self._refresh_table()
+            self._update_status()
+            self.notify(
+                self.i18n.t('merge_detail.batch_delete_unmarked', count=len(selected_ids)),
+                timeout=3,
+            )
             return
 
         # 标记选中书籍为待删除，同时清空勾选（待删除的书不参与合并）
@@ -1387,11 +1400,17 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 records = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
                 if records:
                     for item in records:
-                        if item.get('id') not in existing_db_ids:
-                            state['books'].append(item)
+                        # 按主键 id 与 novel_id 双重去重，避免同一本书因主键不同而重复加入
+                        if item.get('id') in existing_db_ids:
+                            continue
+                        if item.get('novel_id') and item.get('novel_id') in existing_novel_ids:
                             existing_db_ids.add(item.get('id'))
+                            continue
+                        state['books'].append(item)
+                        existing_db_ids.add(item.get('id'))
+                        if item.get('novel_id'):
                             existing_novel_ids.add(item.get('novel_id'))
-                            new_count += 1
+                        new_count += 1
             self._refresh_table()
             self._update_status()
             if new_count > 0:

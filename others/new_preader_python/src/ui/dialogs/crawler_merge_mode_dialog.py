@@ -228,6 +228,19 @@ def is_same_book_chapters(title1: str, title2: str) -> bool:
     return False
 
 
+def _book_identity(book: Dict[str, Any]) -> Any:
+    """书籍去重标识。
+
+    crawl_history 表的主键是 `id`（自增），而真正标识「同一本书」的是 `novel_id`。
+    当数据库中存在 novel_id 相同、但主键 id 不同的重复记录时，若按 id 去重就会漏掉，
+    导致同一本书在分组里出现多次。因此去重应以 novel_id 为准，novel_id 缺失时再回退主键 id。
+    """
+    nid = book.get('novel_id')
+    if nid:
+        return ('novel', nid)
+    return ('pk', book.get('id'))
+
+
 def group_books_for_merge(
     all_history: List[Dict[str, Any]],
     db_manager: DatabaseManager,
@@ -328,12 +341,13 @@ def _auto_merge_chapter_groups(
             title_b = group_b.books[0].get('novel_title', '') if group_b.books else group_b.base_title
 
             if is_same_book_chapters(title_a, title_b):
-                # 合并书籍列表（按 ID 去重）
-                existing_ids = {b.get('id') for b in group_a.books}
+                # 合并书籍列表（按 novel_id 去重，避免同一本书因主键不同被重复加入）
+                existing_ids = {_book_identity(b) for b in group_a.books}
                 for book in group_b.books:
-                    if book.get('id') not in existing_ids:
+                    key = _book_identity(book)
+                    if key not in existing_ids:
                         group_a.books.append(book)
-                        existing_ids.add(book.get('id'))
+                        existing_ids.add(key)
 
                 group_a.is_auto_same_book = True
                 auto_merged_count += 1
@@ -765,11 +779,12 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 ]
 
             # 去重（不同核心书名可能搜到同一本书）
+            # 按 novel_id 去重，避免 novel_id 相同的重复记录（主键 id 不同）被保留
             deduped: List[Dict[str, Any]] = []
             for b in books:
-                bid = b.get('id')
-                if bid not in all_seen_ids:
-                    all_seen_ids.add(bid)
+                key = _book_identity(b)
+                if key not in all_seen_ids:
+                    all_seen_ids.add(key)
                     deduped.append(b)
 
             if deduped:

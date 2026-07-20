@@ -1677,6 +1677,7 @@
     "delete_marked": "已标记待删除《{title}》，完成后统一执行",
     "delete_unmarked": "已取消删除标记《{title}》",
     "batch_delete_marked": "已标记 {count} 本为待删除，完成后统一执行",
+    "batch_delete_unmarked": "已取消 {count} 本的删除标记",
     "undo_delete_btn": "撤销删除",
     "pending_delete_info": " · 待删除 {count} 本",
     "confirm_finish_title": "确认执行操作",
