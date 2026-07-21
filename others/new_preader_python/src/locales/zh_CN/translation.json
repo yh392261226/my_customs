@@ -1357,6 +1357,7 @@
     "starting_crawl": "开始爬取...",
     "crawling": "正在爬取...",
     "crawling_in_progress": "正在爬取中...",
+    "waiting_for_id": "等待书籍ID，输入后自动开始爬取",
     "crawl_success": "爬取成功",
     "crawl_failed": "爬取失败",
     "crawl_stopped": "爬取已停止",

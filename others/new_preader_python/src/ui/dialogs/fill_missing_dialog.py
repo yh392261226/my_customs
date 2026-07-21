@@ -238,6 +238,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             # 自动加载目标文件预览
             self._load_target_preview()
 
+            # 进入合并模式后将焦点移到书籍列表 DataTable，
+            # 否则焦点仍停留在输入框（on_mount 时聚焦的 #fm-novel-id-input），
+            # 此时按 a / space 会被输入框当作文本输入消费，导致全局快捷键失效。
+            try:
+                self.query_one("#fm-books-table", DataTable).focus()
+            except Exception:
+                pass
+
         except Exception as e:
             logger.error(f"进入合并模式失败: {e}")
 

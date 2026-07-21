@@ -1263,6 +1263,7 @@
     "starting_crawl": "Starting crawl...",
     "crawling": "Crawling...",
     "crawling_in_progress": "Crawling in progress...",
+    "waiting_for_id": "Waiting for book ID, will start automatically",
     "crawl_success": "Crawl successful",
     "crawl_failed": "Crawl failed",
     "crawl_stopped": "Crawl stopped",

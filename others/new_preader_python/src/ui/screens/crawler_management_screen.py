@@ -802,6 +802,10 @@ class CrawlerManagementScreen(Screen[None]):
         self.is_crawling = False  # 爬取状态标志（用于UI显示）
         # 当前正在爬取的ID（用于状态显示）
         self.current_crawling_id: Optional[str] = None
+        # 等待书籍ID模式：点击开始爬取时输入框为空，进入等待状态，
+        # 一旦输入框（手动输入或监听填入）出现有效书籍ID则自动开始爬取
+        self._waiting_for_id = False
+        self._waiting_timer = None  # 等待模式下的防抖定时器
         self.loading_animation = None  # 加载动画组件
         self.loading_indicator = None  # 原生 LoadingIndicator 引用
         self.is_mounted_flag = False  # 组件挂载标志
@@ -3432,6 +3436,15 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.no_crawl_in_progress'))
             return
         
+        # 退出等待模式并取消防抖定时器
+        self._waiting_for_id = False
+        if self._waiting_timer is not None:
+            try:
+                self._waiting_timer.stop()
+            except Exception:
+                pass
+            self._waiting_timer = None
+        
         # 立即更新UI状态
         self.is_crawling = False
         self._update_crawl_button_state()
@@ -3516,7 +3529,11 @@ class CrawlerManagementScreen(Screen[None]):
         novel_ids_input = novel_id_input.value.strip()
         
         if not novel_ids_input:
-            self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
+            # 输入框为空：进入等待模式，保持"正在爬取"状态，
+            # 等待输入框出现书籍ID后自动开始爬取（可再次点击按钮停止）
+            self._waiting_for_id = True
+            self._update_crawl_button_state()
+            self._update_status(get_global_i18n().t('crawler.waiting_for_id'), "information")
             return
         
         # 分割多个小说ID
@@ -3526,8 +3543,14 @@ class CrawlerManagementScreen(Screen[None]):
         novel_ids = [unquote(id) for id in novel_ids]
         
         if not novel_ids:
-            self._update_status(get_global_i18n().t('crawler.enter_novel_id'))
+            # 输入框内容无有效ID：同样进入等待模式
+            self._waiting_for_id = True
+            self._update_crawl_button_state()
+            self._update_status(get_global_i18n().t('crawler.waiting_for_id'), "information")
             return
+        
+        # 已获取到有效书籍ID，退出等待模式
+        self._waiting_for_id = False
         
         # 验证每个小说ID格式（支持多种格式：数字、字母、中文、日期路径等）
         invalid_ids = []
@@ -3969,7 +3992,11 @@ class CrawlerManagementScreen(Screen[None]):
 
             toggle_btn = self.query_one("#toggle-crawl-btn", Button)
             
-            if self.is_crawling:
+            if self._waiting_for_id:
+                # 等待书籍ID模式：显示等待文案，仍可点击停止
+                toggle_btn.label = get_global_i18n().t('crawler.waiting_for_id')
+                toggle_btn.variant = "warning"
+            elif self.is_crawling:
                 toggle_btn.label = get_global_i18n().t('crawler.crawling_in_progress')
                 toggle_btn.variant = "error"
             else:
@@ -3993,6 +4020,48 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"切换爬取状态失败: {e}")
             self._update_status(f"切换爬取状态失败: {str(e)}", "error")
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """输入框内容变化处理：等待模式下，输入框出现书籍ID时自动开始爬取。
+
+        兼容两种来源：
+        1. 用户手动输入/粘贴书籍ID
+        2. 浏览器监听自动填入书籍ID（会触发 Input.value 变化）
+        使用防抖定时器，避免手动逐字符输入时过早触发。
+        """
+        try:
+            if event.input.id != "novel-id-input":
+                return
+            if not self._waiting_for_id:
+                return
+            if not (event.value or "").strip():
+                return
+            # 防抖：重置定时器，停止输入一小段时间后再尝试爬取
+            if self._waiting_timer is not None:
+                try:
+                    self._waiting_timer.stop()
+                except Exception:
+                    pass
+            self._waiting_timer = self.set_timer(0.6, self._try_start_crawl_from_waiting)
+        except Exception as e:
+            logger.debug(f"处理输入框变化失败: {e}")
+
+    def _try_start_crawl_from_waiting(self) -> None:
+        """等待模式下尝试启动爬取"""
+        self._waiting_timer = None
+        if not self._waiting_for_id:
+            return
+        try:
+            novel_id_input = self.query_one("#novel-id-input", Input)
+            if not (novel_id_input.value or "").strip():
+                # 仍无内容，继续等待
+                return
+            # 退出等待模式并重置爬取状态，以便重新走完整的启动流程
+            self._waiting_for_id = False
+            self.is_crawling = False
+            self._start_crawl()
+        except Exception as e:
+            logger.debug(f"等待模式启动爬取失败: {e}")
 
     def _show_loading_animation(self) -> None:
         """显示加载动画"""
