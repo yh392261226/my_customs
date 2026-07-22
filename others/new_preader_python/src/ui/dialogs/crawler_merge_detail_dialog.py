@@ -21,6 +21,7 @@ from textual import on
 
 from src.locales.i18n_manager import get_global_i18n
 from src.utils.file_utils import FileUtils
+from src.utils.file_helpers import read_file_preview
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.crawler_merge_mode_dialog import BookGroup
@@ -53,7 +54,7 @@ class _MergePreviewDialog(ModalScreen[None]):
         yield Container(
             Vertical(
                 Label(f"📖 {self.i18n.t('crawler.preview_title')}", id="preview-title", classes="section-title"),
-                Label(f"{self.content} ......", id="preview-content", classes="preview-text"),
+                Label(f"{self.content} ......", id="preview-content", classes="preview-text", markup=False),
                 Horizontal(
                     Button(self.i18n.t('common.close'), id="preview-close-btn", variant="primary"),
                     id="preview-buttons", classes="btn-row",
@@ -1032,18 +1033,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(self.i18n.t('crawler.file_not_exists'), severity="warning", timeout=2)
                 return
 
-            content = ""
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read(2000)
-            except Exception as e:
-                logger.error(f"读取文件失败: {e}")
-                self.notify(
-                    self.i18n.t('crawler.preview_failed', error=str(e)),
-                    severity="error", timeout=3,
-                )
-                return
-
+            # 读取文件前 2000 字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
+            content = read_file_preview(file_path, max_chars=2000)
             if not content.strip():
                 self.notify(self.i18n.t('crawler.preview_empty'), timeout=2)
                 return

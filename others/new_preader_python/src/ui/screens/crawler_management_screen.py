@@ -28,6 +28,7 @@ from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.core.bookshelf import Bookshelf
 from src.utils.logger import get_logger
+from src.utils.file_helpers import read_file_preview
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
 from src.utils.browser_tab_monitor import BrowserTabMonitor, BrowserType
@@ -415,8 +416,9 @@ class BookPreviewDialog(ModalScreen):
         yield Container(
             Vertical(
                 Label(f"📖 {get_global_i18n().t('crawler.preview_title')}", id="preview-title", classes="section-title"),
-                # 使用 RichLog 替代 Label，完全避免 Markup 解析错误
-                RichLog(id="preview-content", classes="preview-text"),
+                # 使用 RichLog 替代 Label：wrap=True 让长行自动换行，
+                # markup=False + 以 Text 对象写入，完全避免 Markup 解析错误
+                RichLog(id="preview-content", classes="preview-text", wrap=True, markup=False),
                 Horizontal(
                     Button(get_global_i18n().t('common.close'), id="preview-close-btn", variant="primary"),
                     id="preview-buttons", classes="btn-row"
@@ -434,9 +436,11 @@ class BookPreviewDialog(ModalScreen):
         preview_content.border_title = self.title
         preview_content.border_subtitle = self.title
         
-        # 将预览内容写入 RichLog（自动处理，无 Markup 解析风险）
+        # 将预览内容写入 RichLog（以 Text 对象写入，不受 Markup 解析影响，
+        # RichLog 的 wrap=True 会让超长文字自动换行）
+        from rich.text import Text
         try:
-            preview_content.write(self.content + " ......")
+            preview_content.write(Text(self.content + " ......"))
         except Exception as e:
             # 如果写入失败，显示提示信息
             logger.warning(f"写入预览内容失败: {e}")
@@ -5300,16 +5304,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self._update_status(get_global_i18n().t('crawler.file_not_exists'), "warning")
                 return
             
-            # 读取文件前2000字
-            content = ""
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read(2000)
-            except Exception as e:
-                logger.error(f"读取文件失败: {e}")
-                self._update_status(get_global_i18n().t('crawler.preview_failed', error=str(e)), "error")
-                return
-            
+            # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
+            content = read_file_preview(file_path, max_chars=2000)
             if not content.strip():
                 self._update_status(get_global_i18n().t('crawler.preview_empty'), "information")
                 return

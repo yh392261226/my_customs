@@ -73,6 +73,90 @@ def read_text_file(file_path: str) -> str:
         logger.error(f"读取文件失败: {file_path}, 错误: {e}")
         return ""
 
+
+def _strict_decode_tolerant(raw: bytes, encoding: str) -> Optional[str]:
+    """
+    以严格方式解码字节，但对「末尾多字节序列被截断」这种错误做容错
+
+    读取预览时只读取了文件前缀字节，可能恰好把 UTF-8/GBK 等多字节字符从
+    中间截断，导致严格解码抛 ``UnicodeDecodeError``（如 "unexpected end of
+    data"）。这种情况不应视为编码不匹配，而是忽略末尾不完整的字节后再试。
+
+    Args:
+        raw: 文件前缀字节
+        encoding: 尝试的编码
+
+    Returns:
+        解码后的文本；若确实不是该编码则返回 ``None``
+    """
+    try:
+        return raw.decode(encoding)
+    except UnicodeDecodeError as e:
+        msg = str(e)
+        # 仅当错误发生在末尾、且属于“多字节序列被截断”时才容错重试
+        truncated = ("unexpected end of data" in msg) or ("incomplete" in msg)
+        at_tail = (getattr(e, "end", 0) or 0) >= len(raw) - 4
+        if truncated and at_tail:
+            try:
+                return raw.decode(encoding, errors="ignore")
+            except UnicodeDecodeError:
+                return None
+        return None
+
+
+def read_file_preview(file_path: str, max_chars: int = 2000) -> str:
+    """
+    读取文件前 max_chars 个字符用于预览，自动检测编码
+
+    依次尝试常见中文编码（utf-8 / gbk / gb2312 / big5 / utf-16 等），并对
+    “读到的字节恰好截断多字节字符”的情况做容错，避免把合法的 UTF-8 文件
+    误判成宽松编码（如 utf-16）而显示乱码。charset-normalizer 作为罕见编码
+    的补充检测。
+
+    Args:
+        file_path: 文件路径
+        max_chars: 最大字符数（默认 2000）
+
+    Returns:
+        解码后的文本（截断到 max_chars 个字符）；失败返回空字符串
+    """
+    try:
+        # 读取足够的前缀字节：多字节编码下 max_chars 字符最多约 4 倍字节数，
+        # 额外多读一些字节以覆盖边界情况（避免多字节字符被截断）
+        with open(file_path, 'rb') as f:
+            raw = f.read(max_chars * 4 + 64)
+
+        text: Optional[str] = None
+
+        # 1) 依次尝试常见编码；utf-8 优先，且对末尾截断做容错
+        encodings = ['utf-8-sig', 'utf-8', 'gbk', 'gb2312', 'gb18030', 'big5', 'utf-16']
+        for encoding in encodings:
+            decoded = _strict_decode_tolerant(raw, encoding)
+            if decoded is not None:
+                text = decoded
+                break
+
+        # 2) 补充：charset-normalizer 检测更罕见编码（若已安装且上面未命中）
+        if not text:
+            try:
+                from charset_normalizer import from_bytes
+                result = from_bytes(raw).best()
+                if result is not None and result.encoding:
+                    text = str(result)
+            except Exception:
+                pass
+
+        # 3) 最终回退：忽略无法解码的字节，避免预览直接失败
+        if not text:
+            text = raw.decode('utf-8', errors='ignore')
+
+        # 去掉可能导致渲染异常的 NUL 字符
+        text = text.replace('\x00', '')
+        return text[:max_chars]
+    except Exception as e:
+        logger.error(f"读取文件预览失败: {file_path}, 错误: {e}")
+        return ""
+
 def write_text_file(file_path: str, content: str) -> bool:
     """
     写入文本文件

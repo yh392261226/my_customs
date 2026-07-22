@@ -19,6 +19,7 @@ from src.ui.dialogs.confirm_dialog import ConfirmDialog
 from src.ui.dialogs.book_comparison_dialog import BookComparisonDialog
 from src.ui.messages import UpdateDuplicateGroupsMessage
 from src.utils.logger import get_logger
+from src.utils.file_helpers import read_file_preview
 
 logger = get_logger(__name__)
 
@@ -845,21 +846,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 self.notify(f"{get_global_i18n().t('crawler.file_not_exists')}: {file_path}", severity="warning")
                 return
             
-            # 读取文件前2000字，支持多种编码
-            content = ""
-            encodings_to_try = ['utf-8', 'gbk', 'gb2312', 'gb18030', 'big5', 'latin1', 'cp1252']
-            
-            for encoding in encodings_to_try:
-                try:
-                    with open(file_path, 'r', encoding=encoding) as f:
-                        content = f.read(2000)
-                    logger.debug(f"成功使用 {encoding} 编码读取文件: {file_path}")
-                    break
-                except UnicodeDecodeError:
-                    continue
-                except Exception as e:
-                    logger.warning(f"使用 {encoding} 编码读取失败: {e}")
-                    continue
+            # 读取文件前2000字，自动检测编码（charset-normalizer 优先，
+            # 支持 GBK/GB2312/Big5 等，避免乱码）
+            content = read_file_preview(file_path, max_chars=2000)
             
             if not content.strip():
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")

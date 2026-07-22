@@ -25,10 +25,9 @@
     content-align: left top;
     padding: 5;
     text-wrap: wrap;
-    text-overflow: fold;
     border: ascii $text;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
     border-title-align: right;
     border-title-color: $text;
     border-title-background: $warning;

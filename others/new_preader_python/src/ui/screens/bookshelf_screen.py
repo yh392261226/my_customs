@@ -34,6 +34,7 @@ from src.ui.dialogs.file_chooser_dialog import FileChooserDialog
 from src.ui.messages import RefreshBookshelfMessage
 from src.ui.styles.style_manager import apply_style_isolation
 from src.config.default_config import SUPPORTED_FORMATS
+from src.utils.file_helpers import read_file_preview
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -2843,16 +2844,8 @@ class BookshelfScreen(Screen[None]):
                 self.notify(get_global_i18n().t("bookshelf.find_book_failed"), severity="error")
                 return
             
-            # 读取文件前2000字
-            content = ""
-            try:
-                with open(book_path, 'r', encoding='utf-8') as f:
-                    content = f.read(2000)
-            except Exception as e:
-                self.logger.error(f"读取文件失败: {e}")
-                self.notify(get_global_i18n().t("crawler.preview_failed", error=str(e)), severity="error")
-                return
-            
+            # 读取文件前2000字，自动检测编码（支持 GBK/GB2312/Big5 等，避免乱码）
+            content = read_file_preview(book_path, max_chars=2000)
             if not content.strip():
                 self.notify(get_global_i18n().t("crawler.preview_empty"), severity="information")
                 return
