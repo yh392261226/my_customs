@@ -618,6 +618,20 @@ class SmartTitleUtils:
         return str(v)
 
     @staticmethod
+    def _chapter_num_key(v):
+        """把 start/end 规整为可比较的 (卷, 章) 元组。
+
+        extract_chapter_info 返回的章节号可能是 int（无卷标），也可能是
+        元组 (卷, 章)（带卷标前缀）。同一批书籍里二者可能混存，统一为
+        可比较元组后再排序/取最大值，避免 int 与 tuple 混合比较报错。
+        """
+        if v == -1:
+            return (0, 0)
+        if isinstance(v, tuple):
+            return v if len(v) >= 2 else (0, v[0])
+        return (0, v)
+
+    @staticmethod
     def _generate_title_with_chapter_info(chapter_infos: list) -> Optional[str]:
         """
         基于已提取的章节信息生成完整智能标题。
@@ -647,10 +661,13 @@ class SmartTitleUtils:
         if not num_books:
             return None
 
-        # 数字模式：按 start, end 排序
-        num_books.sort(key=lambda x: (x[0] if x[0] != -1 else 0, x[1] if x[1] != -1 else 0))
+        # 数字模式：按 start, end 排序（兼容 int 与 (卷,章) 元组的混合）
+        num_books.sort(key=lambda x: (
+            SmartTitleUtils._chapter_num_key(x[0]),
+            SmartTitleUtils._chapter_num_key(x[1]),
+        ))
         min_start = num_books[0][0]
-        max_end = max(ci[1] for ci in num_books)
+        max_end = max(num_books, key=lambda ci: SmartTitleUtils._chapter_num_key(ci[1]))[1]
 
         # 公共前缀（书名部分）
         # 若各书前缀因包裹符号不同（如【】与《》）而无法字符对齐，

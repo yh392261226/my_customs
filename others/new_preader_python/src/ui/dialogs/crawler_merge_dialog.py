@@ -11,6 +11,9 @@ from textual.widgets import Input, Button, Label
 from src.themes.theme_manager import ThemeManager
 from src.locales.i18n_manager import get_global_i18n
 from src.ui.utils.smart_title_utils import SmartTitleUtils
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class CrawlerMergeDialog(ModalScreen[Dict[str, Any]]):
@@ -67,7 +70,6 @@ class CrawlerMergeDialog(ModalScreen[Dict[str, Any]]):
                     if smart_title:
                         title_input.value = smart_title
         except Exception as e:
-            logger = __import__('src.utils.logger').get_logger(__name__)
             logger.debug(f"自动生成智能标题失败: {e}")
 
     @on(Button.Pressed, "#smart-title-btn")
@@ -89,7 +91,6 @@ class CrawlerMergeDialog(ModalScreen[Dict[str, Any]]):
             else:
                 self.notify(get_global_i18n().t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
         except Exception as e:
-            logger = __import__('src.utils.logger').get_logger(__name__)
             logger.error(f"智能标题生成失败: {e}")
             self.notify(get_global_i18n().t('merge_detail.smart_title_failed'), severity="error", timeout=2)
 

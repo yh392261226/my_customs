@@ -174,6 +174,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self._crawler_manager = None  # 延迟初始化
         self._crawling_novel_ids: List[str] = []  # 本次爬取的书籍ID
 
+        # 等待模式：点击"开始爬取"时输入框为空，则保持等待状态，
+        # 等待浏览器监听自动填入书籍ID后自动开始爬取（与爬取管理页面一致）
+        self._waiting_for_id: bool = False
+        self._waiting_timer = None  # 等待模式下的防抖定时器
+
         # ── 列标题排序相关状态 ──
         self._sort_column: Optional[str] = None  # 当前排序列 key
         self._sort_reverse: bool = False  # False=升序, True=降序
@@ -1418,7 +1423,11 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         """更新爬取按钮状态"""
         try:
             btn = self.query_one("#md-toggle-crawl-btn", Button)
-            if self.is_crawling:
+            if self._waiting_for_id:
+                # 等待书籍ID模式：显示等待文案，仍可点击停止
+                btn.label = self.i18n.t('crawler.waiting_for_id')
+                btn.variant = "warning"
+            elif self.is_crawling:
                 btn.label = self.i18n.t('crawler.stop_crawl')
                 btn.variant = "error"
             else:
@@ -1440,13 +1449,19 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             novel_id_input = self.query_one("#md-novel-id-input", Input)
             novel_ids_input = novel_id_input.value.strip()
             if not novel_ids_input:
-                self.notify(self.i18n.t('crawler.enter_novel_id'), severity="warning", timeout=2)
+                # 输入框为空：进入等待模式，等待浏览器监听自动填入书籍ID后自动开始爬取
+                self._waiting_for_id = True
+                self._update_crawl_button_state()
+                self.notify(self.i18n.t('crawler.waiting_for_id'), timeout=2)
                 return
 
             from urllib.parse import unquote
             novel_ids = [unquote(id.strip()) for id in novel_ids_input.split(',') if id.strip()]
             if not novel_ids:
-                self.notify(self.i18n.t('crawler.enter_novel_id'), severity="warning", timeout=2)
+                # 输入框内容无有效ID：同样进入等待模式
+                self._waiting_for_id = True
+                self._update_crawl_button_state()
+                self.notify(self.i18n.t('crawler.waiting_for_id'), timeout=2)
                 return
 
             site_id = self.novel_site.get('id')
@@ -1501,6 +1516,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def _stop_crawl(self) -> None:
         """停止爬取"""
         try:
+            if self._waiting_timer is not None:
+                try:
+                    self._waiting_timer.stop()
+                except Exception:
+                    pass
+                self._waiting_timer = None
+            self._waiting_for_id = False
             if self.current_task_id and self._crawler_manager:
                 self._crawler_manager.stop_crawl_task(self.current_task_id)
             self.is_crawling = False
@@ -1509,6 +1531,48 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self.notify(self.i18n.t('crawler.crawl_stopped'), timeout=2)
         except Exception as e:
             logger.error(f"停止爬取失败: {e}")
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """输入框内容变化处理：等待模式下，输入框出现书籍ID时自动开始爬取。
+
+        兼容两种来源：
+        1. 用户手动输入/粘贴书籍ID
+        2. 浏览器监听自动填入书籍ID（会触发 Input.value 变化）
+        使用防抖定时器，避免手动逐字符输入时过早触发。
+        """
+        try:
+            if event.input.id != "md-novel-id-input":
+                return
+            if not self._waiting_for_id:
+                return
+            if not (event.value or "").strip():
+                return
+            # 防抖：重置定时器，停止输入一小段时间后再尝试爬取
+            if self._waiting_timer is not None:
+                try:
+                    self._waiting_timer.stop()
+                except Exception:
+                    pass
+            self._waiting_timer = self.set_timer(0.6, self._try_start_crawl_from_waiting)
+        except Exception as e:
+            logger.debug(f"处理输入框变化失败: {e}")
+
+    def _try_start_crawl_from_waiting(self) -> None:
+        """等待模式下尝试启动爬取"""
+        self._waiting_timer = None
+        if not self._waiting_for_id:
+            return
+        try:
+            novel_id_input = self.query_one("#md-novel-id-input", Input)
+            if not (novel_id_input.value or "").strip():
+                # 仍无内容，继续等待
+                return
+            # 退出等待模式并重置爬取状态，以便重新走完整的启动流程
+            self._waiting_for_id = False
+            self.is_crawling = False
+            self._start_crawl()
+        except Exception as e:
+            logger.debug(f"等待模式启动爬取失败: {e}")
 
     def _copy_novel_ids(self) -> None:
         """复制选中书籍的 novel_id 到剪贴板"""
