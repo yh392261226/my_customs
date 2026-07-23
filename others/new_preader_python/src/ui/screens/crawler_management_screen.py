@@ -6107,7 +6107,12 @@ class CrawlerManagementScreen(Screen[None]):
     def _on_browser_url_detected(self, result: Dict[str, Any]) -> None:
         """
         Chrome监听器检测到URL时的回调函数
-        
+
+        注意：检测到书籍ID时不再立即判断是否已爬取过并跳过，而是统一把书籍ID
+        加入输入框，交给“开始爬取”流程来对比。这样可以保证连载书籍（如更新了
+        新章节）也能进入增量爬取，而不是被“已爬取”直接跳过，导致无法自动爬取
+        更新的章节。
+
         Args:
             result: 包含网站信息、小说ID和URL的字典
         """
@@ -6115,28 +6120,20 @@ class CrawlerManagementScreen(Screen[None]):
             site = result.get('site_config')
             novel_id = result['novel_id']
             url = result['url']
-            
+
             logger.info(f"检测到小说URL: {url}, 小说ID: {novel_id}")
-            
-            # 验证书籍ID是否已爬取过
-            if self._is_novel_already_crawled(site.get('id'), novel_id):
-                logger.info(f"小说 {novel_id} 已爬取过，跳过")
-                # 关闭对应的标签页
-                if self.browser_monitor:
-                    self.browser_monitor.close_tab(url)
-                return
-            
-            # 将小说ID添加到输入框
+
+            # 将小说ID添加到输入框（是否已爬取、是否增量更新交由开始爬取时判断）
             self._add_novel_id_to_input(novel_id)
-            
+
             # 关闭对应的标签页
             if self.browser_monitor:
                 self.browser_monitor.close_tab(url)
-            
+
             # 更新状态
             novel_title = site.get('name', '未知网站')
             self._update_status(f"自动检测到小说: {novel_id} ({novel_title})", "success")
-            
+
         except Exception as e:
             logger.error(f"处理检测到的URL失败: {e}")
 
@@ -6210,56 +6207,40 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(f"{get_global_i18n().t('crawler.open_log_viewer_failed')}: {e}", "error")
             self.app.notify(f"❌ {get_global_i18n().t('crawler.open_log_viewer_failed')}: {e}")
 
-    def _is_novel_already_crawled(self, site_id: str, novel_id: str) -> bool:
-        """
-        检查小说是否已经爬取过
-        
-        Args:
-            site_id: 网站ID
-            novel_id: 小说ID
-            
-        Returns:
-            是否已爬取过
-        """
-        try:
-            # 从数据库查询
-            crawl_history = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
-            if crawl_history:
-                # 检查是否有成功的记录
-                for record in crawl_history:
-                    if record.get('status') == 'success':
-                        return True
-            return False
-            
-        except Exception as e:
-            logger.error(f"检查小说爬取状态失败: {e}")
-            return False
-
     def _add_novel_id_to_input(self, novel_id: str) -> None:
         """
         将小说ID添加到输入框（追加形式）
-        
+
+        若输入框已包含该书籍ID则跳过，避免同一书籍被重复添加、重复爬取。
+        是否“已爬取/增量更新”的对比不在此处进行，而是统一在开始爬取时判断。
+
         Args:
             novel_id: 小说ID
         """
         try:
             input_field = self.query_one("#novel-id-input", Input)
             current_value = input_field.value.strip()
-            
+
             # URL解码小说ID
             from urllib.parse import unquote
             decoded_novel_id = unquote(novel_id)
-            
+
+            # 去重：若输入框已包含该书籍ID，则不重复添加
+            existing_ids = [i.strip() for i in current_value.split(',') if i.strip()]
+            if decoded_novel_id in existing_ids:
+                logger.info(f"小说ID {decoded_novel_id} 已存在于输入框，跳过重复添加")
+                return
+
             if current_value:
                 # 如果已有内容，用逗号追加到末尾
                 new_value = f"{current_value},{decoded_novel_id}"
             else:
                 # 如果为空，直接设置
                 new_value = decoded_novel_id
-            
+
             input_field.value = new_value
             logger.info(f"已将小说ID {decoded_novel_id} 添加到输入框")
-            
+
         except Exception as e:
             logger.error(f"添加小说ID到输入框失败: {e}")
 
