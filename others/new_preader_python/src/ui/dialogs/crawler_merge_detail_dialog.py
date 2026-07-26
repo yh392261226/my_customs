@@ -1732,6 +1732,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 else:
                     window_select.value = "all"
                     self.selected_window_index = None
+                    if self.browser_monitor:
+                        self.browser_monitor.selected_window_index = None
             except Exception:
                 pass
         except Exception as e:

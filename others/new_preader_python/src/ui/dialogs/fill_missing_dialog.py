@@ -1652,6 +1652,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 ws.value = cv
             else:
                 ws.value = "all"; self.selected_window_index = None
+                if self.browser_monitor:
+                    self.browser_monitor.selected_window_index = None
         except Exception as e:
             logger.error(f"刷新窗口选项失败: {e}")
 
