@@ -526,6 +526,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             table.focus()
 
         self._update_status()
+        # 选中状态变化会影响合并标题，自动刷新一次智能标题（静默）
+        self._apply_smart_title(notify=False)
 
     def _move_current_row(self, direction: int) -> None:
         """
@@ -694,6 +696,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state['selected_ids'] = {b.get('id') for b in state['books']}
         self._refresh_table()
         self._update_status()
+        # 选中状态变化会影响合并标题，自动刷新一次智能标题
+        self._apply_smart_title()
 
     @on(Button.Pressed, "#deselect-all-btn")
     def on_deselect_all(self) -> None:
@@ -701,6 +705,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         state['selected_ids'].clear()
         self._refresh_table()
         self._update_status()
+        # 取消全部选中后无法生成标题，静默保留原标题（不弹警告）
+        self._apply_smart_title(notify=False)
 
     @on(Button.Pressed, "#merge-this-btn")
     def on_merge_this(self) -> None:
@@ -1910,23 +1916,32 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         """智能标题按钮"""
         self._apply_smart_title()
 
-    def _apply_smart_title(self) -> None:
-        """生成智能标题填充到输入框（不改动书籍的现有排序，保留手动顺序）"""
+    def _apply_smart_title(self, notify: bool = True) -> None:
+        """生成智能标题填充到输入框（不改动书籍的现有排序，保留手动顺序）
+
+        Args:
+            notify: 是否弹出提示。手动点击「智能标题」按钮时为 True；
+                    选中/取消选中时自动调用传 False，避免每次操作都弹提示。
+        """
         try:
             smart_title = self._generate_smart_title()
             if smart_title:
                 title_input = self.query_one("#merge-title-input", Input)
                 title_input.value = smart_title
                 self._group_state[self._current_index]['merged_title'] = smart_title
-                self.notify(
-                    self.i18n.t('merge_detail.smart_title_applied', title=smart_title),
-                    timeout=2,
-                )
+                if notify:
+                    self.notify(
+                        self.i18n.t('merge_detail.smart_title_applied', title=smart_title),
+                        timeout=2,
+                    )
             else:
-                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+                # 选中不足 2 本无法生成，保留原标题（不覆盖用户已填内容）
+                if notify:
+                    self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
         except Exception as e:
             logger.error(f"智能标题生成失败: {e}")
-            self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
+            if notify:
+                self.notify(self.i18n.t('merge_detail.smart_title_failed'), severity="warning", timeout=2)
 
     # ─── 快捷键 action 方法 ─────────────────────────────────
 
