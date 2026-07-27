@@ -119,6 +119,19 @@ FillMissingDialog Container, #fm-container {
 #fm-assign-middle-btn { background: $warning 70%; min-width: 6; }
 #fm-assign-back-btn { background: $primary 70%; min-width: 6; }
 
+/* 移到第 N 行 输入框 */
+#fm-pos-label {
+    width: auto;
+    text-style: bold;
+    color: $text-muted;
+    padding: 1 0;
+}
+#fm-move-to-pos-input {
+    width: 8;
+    margin-bottom: 2;
+    background: $accent;
+}
+
 /* ===== 右侧面板：分组显示 + 行号输入 ===== */
 #fm-right-top-panel {
     width: 42%;

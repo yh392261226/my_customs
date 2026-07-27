@@ -3436,7 +3436,7 @@ class CrawlerManagementScreen(Screen[None]):
 
     def _stop_crawl(self) -> None:
         """停止爬取"""
-        if not self.is_crawling and not self.current_task_id:
+        if not self.is_crawling and not self.current_task_id and not self._waiting_for_id:
             self._update_status(get_global_i18n().t('crawler.no_crawl_in_progress'))
             return
         
@@ -4017,7 +4017,10 @@ class CrawlerManagementScreen(Screen[None]):
     def _toggle_crawl(self) -> None:
         """切换爬取状态"""
         try:
-            if self.is_crawling:
+            if self._waiting_for_id:
+                # 等待书籍ID模式下再次点击：取消等待
+                self._stop_crawl()
+            elif self.is_crawling:
                 self._stop_crawl()
             else:
                 self._start_crawl()
@@ -4046,7 +4049,7 @@ class CrawlerManagementScreen(Screen[None]):
                     self._waiting_timer.stop()
                 except Exception:
                     pass
-            self._waiting_timer = self.set_timer(0.6, self._try_start_crawl_from_waiting)
+            self._waiting_timer = self.set_timer(2, self._try_start_crawl_from_waiting)
         except Exception as e:
             logger.debug(f"处理输入框变化失败: {e}")
 

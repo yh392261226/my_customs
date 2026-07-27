@@ -148,6 +148,13 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                             Button(self.i18n.t('fill_missing.select_all'), id="fm-select-all-btn", variant="default"),
                             Button(self.i18n.t('fill_missing.move_up'), id="fm-move-up-btn", variant="default"),
                             Button(self.i18n.t('fill_missing.move_down'), id="fm-move-down-btn", variant="default"),
+                            Label(self.i18n.t('fill_missing.move_to_pos'), id="fm-pos-label"),
+                            Input(
+                                placeholder=self.i18n.t('fill_missing.pos_placeholder'),
+                                id="fm-move-to-pos-input",
+                                type="integer",
+                            ),
+                            Button(self.i18n.t('fill_missing.move_to_pos_btn'), id="fm-move-to-pos-btn", variant="primary"),
                             Button(self.i18n.t('fill_missing.assign_front'), id="fm-assign-front-btn", variant="success"),
                             Button(self.i18n.t('fill_missing.assign_middle'), id="fm-assign-middle-btn", variant="warning"),
                             Button(self.i18n.t('fill_missing.assign_back'), id="fm-assign-back-btn", variant="primary"),
@@ -472,6 +479,16 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         """下移按钮：将当前行书籍下移一位"""
         self.action_move_down()
 
+    @on(Button.Pressed, "#fm-move-to-pos-btn")
+    def on_move_to_pos_btn(self):
+        """移动到指定位置按钮：将当前光标所在书籍移动到输入的行号位置（1-based）"""
+        self._move_book_to_input_position()
+
+    @on(Input.Submitted, "#fm-move-to-pos-input")
+    def on_move_to_pos_submitted(self):
+        """输入框回车：等同于点击移动按钮"""
+        self._move_book_to_input_position()
+
     def action_move_up(self) -> None:
         """快捷键 p: 上移当前行书籍一位"""
         if self._stage != "merge" or not self._crawled_books:
@@ -497,6 +514,49 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         if cursor is None or cursor >= len(self._crawled_books) - 1:
             return
         self._move_book_to_position(cursor, cursor + 1)
+
+    def _move_book_to_input_position(self) -> None:
+        """
+        将当前光标所在书籍移动到输入框中指定的行号位置（1-based）。
+        点击「移动」按钮或在输入框回车均可触发。
+        """
+        if self._stage != "merge" or not self._crawled_books:
+            return
+        try:
+            table = self.query_one("#fm-books-table", DataTable)
+            cursor = table.cursor_row
+        except Exception:
+            return
+        if cursor is None:
+            return
+        try:
+            pos_input = self.query_one("#fm-move-to-pos-input", Input)
+            raw = (pos_input.value or "").strip()
+            if not raw:
+                return
+            target_pos = int(raw)
+        except (ValueError, TypeError):
+            self.notify(self.i18n.t('fill_missing.pos_placeholder'), severity="warning", timeout=2)
+            return
+
+        # 1-based 行号 -> 0-based 索引，并钳制到合法范围
+        target_idx = target_pos - 1
+        if target_idx < 0 or target_idx >= len(self._crawled_books):
+            self.notify(
+                self.i18n.t('fill_missing.books_in_table').format(count=len(self._crawled_books)),
+                severity="warning",
+                timeout=2,
+            )
+            return
+        if target_idx == cursor:
+            return
+
+        self._move_book_to_position(cursor, target_idx)
+        # 清空输入框，方便连续操作
+        try:
+            pos_input.value = ""
+        except Exception:
+            pass
 
     # ─── 数字键排序 + 快捷键（DataTable自带方向键导航） ──────
 
@@ -1569,7 +1629,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                     self._waiting_timer.stop()
                 except Exception:
                     pass
-            self._waiting_timer = self.set_timer(0.6, self._try_start_crawl_from_waiting)
+            self._waiting_timer = self.set_timer(2, self._try_start_crawl_from_waiting)
         except Exception as e:
             logger.debug(f"处理输入框变化失败: {e}")
 
@@ -1629,6 +1689,12 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             if novel_id not in parts:
                 inp.value = f"{existing},{novel_id}" if existing else novel_id
                 self.notify(f"已添加ID: {novel_id}", timeout=2)
+
+            # 关键修复：处于“等待书籍ID”模式时，监听检测到ID后必须主动触发爬取，
+            # 不能仅依赖 Input.Changed 事件（在某些弹窗/隐藏容器内该事件可能不触发，
+            # 导致一直卡在等待状态、即使已有ID也不自动爬取）。
+            if self._waiting_for_id:
+                self.app.call_later(self._try_start_crawl_from_waiting)
         except Exception: pass
 
     def _on_window_refresh_from_monitor(self) -> None:
@@ -2031,8 +2097,13 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#fm-toggle-crawl-btn")
     def on_toggle_crawl(self):
-        if self.is_crawling: self._stop_crawl()
-        else: self._start_crawl()
+        if self._waiting_for_id:
+            # 等待书籍ID模式下再次点击：取消等待
+            self._stop_crawl()
+        elif self.is_crawling:
+            self._stop_crawl()
+        else:
+            self._start_crawl()
 
     @on(Button.Pressed, "#fm-copy-ids-btn")
     def on_copy_ids(self): self._copy_novel_ids()
@@ -2139,8 +2210,13 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         self._open_search_chapters(self.target_book.get('novel_title', '') or '')
 
     def action_toggle_crawl(self):
-        if self.is_crawling: self._stop_crawl()
-        else: self._start_crawl()
+        if self._waiting_for_id:
+            # 等待书籍ID模式下再次点击：取消等待
+            self._stop_crawl()
+        elif self.is_crawling:
+            self._stop_crawl()
+        else:
+            self._start_crawl()
 
     def action_toggle_monitor(self): self._toggle_browser_monitor()
 

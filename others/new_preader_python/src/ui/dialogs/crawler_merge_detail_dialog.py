@@ -88,8 +88,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     BINDINGS = [
         ("escape", "cancel", get_global_i18n().t('common.cancel_all')),
         ("space", "toggle_row", get_global_i18n().t('batch_ops.toggle_row')),
-        ("up", "move_up", get_global_i18n().t('merge_detail.move_up')),
-        ("down", "move_down", get_global_i18n().t('merge_detail.move_down')),
+        ("k", "move_up", get_global_i18n().t('merge_detail.move_up')),
+        ("j", "move_down", get_global_i18n().t('merge_detail.move_down')),
         ("y", "copy_title", get_global_i18n().t('merge_detail.copy_title')),
         ("x", "clear_title", get_global_i18n().t('merge_detail.clear_title')),
         ("v", "preview_book", get_global_i18n().t('merge_detail.preview')),
@@ -873,8 +873,9 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     # ─── 快速定位 ───────────────────────────────────────────
 
     @on(Button.Pressed, "#move-to-pos-btn")
-    def on_pos_submitted(self, event: Button.Pressed) -> None:
-        """输入目标位置并定位"""
+    @on(Input.Submitted, "#move-to-pos-input")
+    def on_pos_submitted(self, event: Button.Pressed | Input.Submitted | None = None) -> None:
+        """输入目标位置并定位（点击移动按钮或输入框回车均可触发）"""
         try:
             pos_input = self.query_one("#move-to-pos-input", Input)
             pos = int(pos_input.value.strip())
@@ -1553,7 +1554,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     self._waiting_timer.stop()
                 except Exception:
                     pass
-            self._waiting_timer = self.set_timer(0.6, self._try_start_crawl_from_waiting)
+            self._waiting_timer = self.set_timer(2, self._try_start_crawl_from_waiting)
         except Exception as e:
             logger.debug(f"处理输入框变化失败: {e}")
 
@@ -1697,6 +1698,12 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             else:
                 novel_id_input.value = novel_id
                 self.notify(f"已添加ID: {novel_id}", timeout=2)
+
+            # 关键修复：处于“等待书籍ID”模式时，监听检测到ID后必须主动触发爬取，
+            # 不能仅依赖 Input.Changed 事件（在某些弹窗/隐藏容器内该事件可能不触发，
+            # 导致一直卡在等待状态、即使已有ID也不自动爬取）。
+            if self._waiting_for_id:
+                self.app.call_later(self._try_start_crawl_from_waiting)
         except Exception:
             pass
 
@@ -1802,7 +1809,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Button.Pressed, "#md-toggle-crawl-btn")
     def on_md_toggle_crawl(self) -> None:
-        if self.is_crawling:
+        if self._waiting_for_id:
+            # 等待书籍ID模式下再次点击：取消等待
+            self._stop_crawl()
+        elif self.is_crawling:
             self._stop_crawl()
         else:
             self._start_crawl()
@@ -1950,7 +1960,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
 
     def action_toggle_crawl(self) -> None:
         """s键：开始/停止爬取"""
-        if self.is_crawling:
+        if self._waiting_for_id:
+            # 等待书籍ID模式下再次点击：取消等待
+            self._stop_crawl()
+        elif self.is_crawling:
             self._stop_crawl()
         else:
             self._start_crawl()
