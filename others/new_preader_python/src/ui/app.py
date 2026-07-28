@@ -19,7 +19,7 @@ except Exception:
 from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Header, Footer, OptionList
+from textual.widgets import Header, Footer, OptionList, RichLog
 from textual import on, events
 import asyncio
 from textual.message import Message
@@ -50,6 +50,7 @@ from src.ui.messages import RefreshBookshelfMessage, RequestPasswordMessage, Ref
 from src.ui.styles.quick_fix_isolation import reset_quick_isolation
 
 from src.utils.logger import get_logger
+from src.utils.logger import get_recent_memory_logs, is_file_logging_enabled
 
 logger = get_logger(__name__)
 
@@ -598,6 +599,75 @@ class NewReaderApp(App[None]):
         else:
             # 显示欢迎屏幕（作为默认页面）
             self.push_screen("welcome")
+
+        # 启动全局内存日志面板（非文件日志模式下自动显示）
+        self._setup_mem_log_overlay()
+    
+    # ------------------------------------------------------------------
+    # 全局内存日志面板：非文件日志模式下自动显示处理进度/步骤
+    # （挂载到当前活动屏幕上的浮动覆盖层，切屏时自动重建）
+    # ------------------------------------------------------------------
+    MEM_LOG_ID = "global-mem-log"
+
+    def _setup_mem_log_overlay(self) -> None:
+        """初始化全局内存日志面板：定时刷新，并立即确保覆盖层存在。"""
+        try:
+            self.set_interval(1.0, self._refresh_mem_log)
+        except Exception:
+            pass
+        self._ensure_mem_log_overlay()
+        self._refresh_mem_log()
+
+    def _ensure_mem_log_overlay(self) -> None:
+        """确保当前活动屏幕上存在内存日志覆盖层（文件日志模式下则移除）。"""
+        try:
+            from textual.widgets import RichLog
+            # 文件日志模式下不显示内存面板
+            if is_file_logging_enabled():
+                try:
+                    self.screen.query_one(f"#{self.MEM_LOG_ID}", RichLog).remove()
+                except Exception:
+                    pass
+                return
+            # 当前屏幕已存在则跳过
+            try:
+                self.screen.query_one(f"#{self.MEM_LOG_ID}", RichLog)
+                return
+            except Exception:
+                pass
+            widget = RichLog(id=self.MEM_LOG_ID, classes="mem-log-panel")
+            self.screen.mount(widget)
+            # 使其成为底部浮动覆盖层，不挤压原有布局
+            try:
+                widget.styles.position = "absolute"
+                widget.styles.bottom = 0
+                widget.styles.left = 0
+                widget.styles.right = 0
+                widget.styles.height = 12
+                widget.styles.layer = "overlay"
+                widget.styles.background = "black"
+                widget.styles.border = ("round", "grey")
+                layers = list(self.screen.styles.layers or ())
+                if "overlay" not in layers:
+                    layers.append("overlay")
+                    self.screen.styles.layers = tuple(layers)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _refresh_mem_log(self) -> None:
+        """刷新内存日志面板内容（仅在非文件日志模式且有覆盖层时）。"""
+        try:
+            from textual.widgets import RichLog
+            if is_file_logging_enabled():
+                return
+            widget = self.screen.query_one(f"#{self.MEM_LOG_ID}", RichLog)
+            widget.clear()
+            for line in get_recent_memory_logs(200):
+                widget.write(line)
+        except Exception:
+            pass
     
     def action_show_help(self) -> None:
         """显示帮助屏幕"""
@@ -1142,6 +1212,14 @@ class NewReaderApp(App[None]):
         # 更新标题
         if hasattr(screen, "TITLE"):
             self._sub_title = screen.TITLE
+
+        # 全局内存日志面板：恢复时在非文件模式下确保显示（模态弹窗不挂载）
+        try:
+            if not isinstance(screen, ModalScreen):
+                self._ensure_mem_log_overlay()
+                self._refresh_mem_log()
+        except Exception:
+            pass
 
     def _on_content_theme_changed(self, name: str) -> None:
         """

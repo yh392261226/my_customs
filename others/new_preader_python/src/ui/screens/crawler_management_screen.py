@@ -28,6 +28,7 @@ from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.core.bookshelf import Bookshelf
 from src.utils.logger import get_logger
+from src.utils.logger import get_recent_memory_logs, is_file_logging_enabled
 from src.utils.file_helpers import read_file_preview
 from src.ui.dialogs.note_dialog import NoteDialog
 from src.ui.dialogs.select_books_dialog import SelectBooksDialog
@@ -104,9 +105,10 @@ class LogViewerPopup(ModalScreen):
     }
     """
     
-    def __init__(self, log_file_path: str):
+    def __init__(self, log_file_path: str, memory_mode: bool = False):
         super().__init__()
         self.log_file_path = log_file_path
+        self.memory_mode = memory_mode
         self.auto_scroll = True
         self.last_position = 0
         self.file_watcher_task = None
@@ -119,7 +121,7 @@ class LogViewerPopup(ModalScreen):
             Vertical(
                 # 标题栏
                 Horizontal(
-                    Label(f"📋 {get_global_i18n().t('crawler.viewing_logs')}: {os.path.basename(self.log_file_path)}", classes="log-popup-title"),
+                    Label(f"📋 {get_global_i18n().t('crawler.viewing_logs')}: {'内存日志' if self.memory_mode else os.path.basename(self.log_file_path)}", classes="log-popup-title"),
                     classes="log-popup-header"
                 ),
                 
@@ -143,8 +145,13 @@ class LogViewerPopup(ModalScreen):
     
     def on_mount(self) -> None:
         """弹窗挂载时的回调"""
-        self._load_initial_log_content()
-        self._start_file_watching()
+        if self.memory_mode:
+            # 内存模式：展示内存中的日志并定时刷新
+            self._load_memory_content()
+            self.set_interval(1.0, self._refresh_memory_content)
+        else:
+            self._load_initial_log_content()
+            self._start_file_watching()
         
         # 设置焦点到关闭按钮，方便操作
         try:
@@ -212,6 +219,34 @@ class LogViewerPopup(ModalScreen):
             log_viewer = self.query_one("#log-viewer", Log)
             log_viewer.write(f"❌ {get_global_i18n().t('crawler.load_log_failed')}: {e}")
     
+    def _load_memory_content(self) -> None:
+        """加载内存中的日志内容（内存模式下使用）"""
+        try:
+            log_viewer = self.query_one("#log-viewer", Log)
+            log_viewer.clear()
+            lines = get_recent_memory_logs(1000)
+            if lines:
+                log_viewer.write('\n'.join(lines))
+            else:
+                log_viewer.write("💡 内存中暂无日志记录（当前未写入文件日志）")
+            if self.auto_scroll:
+                self.set_timer(0.05, lambda: log_viewer.scroll_end(animate=False))
+        except Exception as e:
+            logger.error(f"加载内存日志失败: {e}")
+
+    def _refresh_memory_content(self) -> None:
+        """刷新内存日志内容（内存模式下定时调用）"""
+        try:
+            log_viewer = self.query_one("#log-viewer", Log)
+            log_viewer.clear()
+            lines = get_recent_memory_logs(1000)
+            if lines:
+                log_viewer.write('\n'.join(lines))
+            if self.auto_scroll:
+                self.set_timer(0.05, lambda: log_viewer.scroll_end(animate=False))
+        except Exception:
+            pass
+
     def _start_file_watching(self) -> None:
         """启动文件监控任务"""
         self.stop_watching = False
@@ -311,6 +346,10 @@ class LogViewerPopup(ModalScreen):
     
     def _refresh_log_content(self) -> None:
         """刷新日志内容"""
+        if self.memory_mode:
+            self._refresh_memory_content()
+            self.app.notify(f"📋 {get_global_i18n().t('crawler.log_refreshed')}")
+            return
         self.last_position = 0  # 重置位置，重新加载全部内容
         self._load_initial_log_content()
         self.app.notify(f"📋 {get_global_i18n().t('crawler.log_refreshed')}")
@@ -6182,6 +6221,18 @@ class CrawlerManagementScreen(Screen[None]):
     def _open_log_viewer(self) -> None:
         """打开日志查看器弹窗"""
         try:
+            # 非文件日志模式（内存模式）：直接展示内存中的日志，避免“日志文件不存在”
+            if not is_file_logging_enabled():
+                existing_screens = self.app.screen_stack
+                log_viewer_exists = any(isinstance(screen, LogViewerPopup) for screen in existing_screens)
+                if log_viewer_exists:
+                    return
+                log_viewer = LogViewerPopup("内存日志", memory_mode=True)
+                self.app.push_screen(log_viewer)
+                self._update_status(f"📋 {get_global_i18n().t('crawler.log_viewer_opened')}", "information")
+                self.app.notify(f"📋 {get_global_i18n().t('crawler.log_viewer_opened')}")
+                return
+
             log_file_path = self._get_log_file_path()
             
             # 检查日志文件是否存在
