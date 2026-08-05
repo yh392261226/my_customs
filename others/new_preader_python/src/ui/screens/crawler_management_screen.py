@@ -1245,7 +1245,7 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"爬取状态回调处理失败: {e}")
     
-    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False) -> None:
+    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False, file_path: str = '') -> None:
         """爬取成功通知回调
         
         Args:

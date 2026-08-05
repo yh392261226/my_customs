@@ -96,7 +96,7 @@ class CrawlerManager:
                     except Exception as e:
                         logger.error(f"状态回调执行失败: {e}")
     
-    def _notify_crawl_success(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False) -> None:
+    def _notify_crawl_success(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool = False, file_path: str = '') -> None:
         """通知爬取成功
         
         Args:
@@ -104,11 +104,14 @@ class CrawlerManager:
             novel_id: 小说ID
             novel_title: 小说标题
             already_exists: 是否文件已存在
+            file_path: 小说文件完整路径（若存在），用于各界面直接将书加入表格，
+                       避免依赖事后查询 crawl_history（尤其是 already_exists=True
+                       或非连载模式跳过增量爬取时，crawl_history 可能未被更新）。
         """
         with self._lock:
             for callback in self._notification_callbacks:
                 try:
-                    callback(task_id, novel_id, novel_title, already_exists)
+                    callback(task_id, novel_id, novel_title, already_exists, file_path)
                 except Exception as e:
                     logger.error(f"成功通知回调执行失败: {e}")
     
@@ -302,7 +305,7 @@ class CrawlerManager:
                         elif duplicate_count > 0:
                             logger.info(f"爬取成功: {result['title']}, 跳过 {duplicate_count} 个重复章节")
                         
-                        self._notify_crawl_success(task_id, novel_id, result['title'], already_exists=already_exists)
+                        self._notify_crawl_success(task_id, novel_id, result['title'], already_exists=already_exists, file_path=result.get('file_path', ''))
                         
                 except Exception as e:
                     task.failed_count += 1
@@ -460,7 +463,8 @@ class CrawlerManager:
                 'author': last_successful.get('author', parser.novel_site_name),
                 'message': '非连载模式，无需更新',
                 'new_chapters': 0,
-                'already_exists': True
+                'already_exists': True,
+                'file_path': last_successful.get('file_path', '')
             }
         
         # 3. 爬取所有章节（如果提供了parse_result则使用，否则重新解析）

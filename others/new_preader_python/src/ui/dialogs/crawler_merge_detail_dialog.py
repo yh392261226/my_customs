@@ -173,6 +173,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         self.browser_monitor_active: bool = False
         self._crawler_manager = None  # 延迟初始化
         self._crawling_novel_ids: List[str] = []  # 本次爬取的书籍ID
+        self._next_fake_id: int = -1  # 成功通知直接入表时使用的唯一负ID计数器（避免 id=None 导致表格 key 冲突）
 
         # 等待模式：点击"开始爬取"时输入框为空，则保持等待状态，
         # 等待浏览器监听自动填入书籍ID后自动开始爬取（与爬取管理页面一致）
@@ -495,7 +496,13 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             return None
         row_keys = list(table.rows.keys())
         key = row_keys[cursor_row]
-        return int(str(key.value if hasattr(key, 'value') else key))
+        val = str(key.value if hasattr(key, 'value') else key)
+        if not val or val == 'None':
+            return None
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return None
 
     def _toggle_current_row(self) -> None:
         """切换当前行的选中状态"""
@@ -1279,23 +1286,36 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         try:
             from src.core.crawler_manager import CrawlStatus
 
-            if task_id != self.current_task_id:
+            is_final = task.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED)
+            # 当前任务匹配：正常处理
+            if task_id == self.current_task_id:
+                if is_final:
+                    self.is_crawling = False
+                    self.current_task_id = None
+                    # 立即恢复按钮状态（不依赖 _on_crawl_completed，避免其因弹窗未挂载等原因
+                    # 提前 return 后按钮永远停在“正在爬取中”，需手动停止）
+                    self._update_crawl_button_state()
+                    if task.status == CrawlStatus.COMPLETED:
+                        self.app.call_later(self._on_crawl_completed)
+                        # 自动检查输入框中是否还有剩余ID，如果有则继续爬取（与爬取管理页面逻辑一致）
+                        self.app.call_later(self._check_and_continue_crawl)
+                    elif task.status == CrawlStatus.FAILED:
+                        self.app.call_later(
+                            self.notify,
+                            self.i18n.t('crawler.crawl_failed'),
+                            severity="error", timeout=3,
+                        )
                 return
-
-            if task.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED):
-                self.is_crawling = False
-                self.current_task_id = None
-                if task.status == CrawlStatus.COMPLETED:
-                    self.app.call_later(self._on_crawl_completed)
-                    # 自动检查输入框中是否还有剩余ID，如果有则继续爬取（与爬取管理页面逻辑一致）
-                    self.app.call_later(self._check_and_continue_crawl)
-                elif task.status == CrawlStatus.FAILED:
-                    self.app.call_later(
-                        self.notify,
-                        self.i18n.t('crawler.crawl_failed'),
-                        severity="error", timeout=3,
-                    )
-                    self.app.call_later(self._update_crawl_button_state)
+            # 兜底：收到最终状态，但 task_id 与当前记录的不一致（如分批续爬导致任务 ID 变化、
+            # 或多入口并发覆盖），且当前记录的任务其实已经结束，却仍卡在“正在爬取”状态。
+            # 此时强制结束爬取状态并恢复按钮，避免需手动停止。
+            if is_final and self.is_crawling:
+                cm = self._get_crawler_manager()
+                t = cm.get_task_by_id(self.current_task_id) if cm and self.current_task_id else None
+                if t is None or t.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED):
+                    self.is_crawling = False
+                    self.current_task_id = None
+                    self._update_crawl_button_state()
         except Exception as e:
             logger.error(f"爬取状态回调失败: {e}")
 
@@ -1349,8 +1369,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"检查并继续爬取失败: {e}")
 
-    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool) -> None:
-        """爬取成功通知回调 —— 清理输入框中的已爬取ID"""
+    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool, file_path: str = '') -> None:
+        """爬取成功通知回调 —— 清理输入框中的已爬取ID，并立即把书增量刷新进表格"""
         try:
             self.app.call_later(self._remove_id_from_input, novel_id)
             self.app.call_later(
@@ -1358,8 +1378,60 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 f"{self.i18n.t('crawler.crawl_success')}: {novel_title}",
                 timeout=2,
             )
+            # 收到成功通知时直接把该书加入 state['books']（按 novel_id/id 去重），
+            # 不依赖事后查询 crawl_history。原因：already_exists=True（文件已存在/
+            # 之前爬过）或非连载模式跳过增量爬取时，crawler_manager 不会把本次结果写入
+            # crawl_history，导致“提示爬取成功却没进表格”。通知已携带 novel_id/
+            # novel_title/file_path，可直接入表，且对已存在的书同样生效。
+            if novel_id:
+                self.app.call_later(self._add_crawled_book_to_table, novel_id, novel_title, file_path)
         except Exception:
             pass
+
+    def _add_crawled_book_to_table(self, novel_id: str, novel_title: str, file_path: str) -> None:
+        """将一本已成功爬取（含已存在书补缺）的书直接加入 state['books']，按 novel_id/id 去重"""
+        try:
+            if not self.is_attached:
+                return
+            state = self._group_state[self._current_index]
+            existing_novel_ids = {b.get('novel_id') for b in state['books']}
+            existing_db_ids = {b.get('id') for b in state['books']}
+            if novel_id in existing_novel_ids:
+                return
+            # 组装一条与 crawl_history 记录结构兼容的条目，便于 _refresh_table 统一渲染。
+            # id 优先从数据库按 novel_id 查出真实主键（与来自 DB 的记录保持一致，
+            # 便于后续选中/排序/合并；避免直接塞 None 导致 RowKey('None') 异常）。
+            # 极少数查不到时，才退化到唯一负ID作为兜底。
+            real_id = None
+            if self.db_manager and self.novel_site:
+                try:
+                    site_id = self.novel_site.get('id')
+                    if site_id:
+                        recs = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                        if recs:
+                            real_id = recs[0].get('id')
+                except Exception:
+                    real_id = None
+            if real_id is None or real_id in existing_db_ids:
+                real_id = self._next_fake_id
+                self._next_fake_id -= 1
+            # 优先使用通知携带的字段；若通知未提供 file_path/crawl_time，
+            # 但数据库记录里有，则一并补全，保证表格渲染信息完整。
+            item = {
+                'id': real_id,
+                'novel_id': novel_id,
+                'novel_title': novel_title or novel_id,
+                'file_path': (file_path or (recs[0].get('file_path', '') if recs else '')),
+                'status': 'success',
+                'crawl_time': (recs[0].get('crawl_time', '') if recs else ''),
+            }
+            state['books'].append(item)
+            existing_novel_ids.add(novel_id)
+            self._refresh_table()
+            self._update_status()
+            self.notify(self.i18n.t('merge_detail.new_books_added', count=1), timeout=3)
+        except Exception as e:
+            logger.debug(f"加入表格失败: {e}")
 
     def _remove_id_from_input(self, novel_id: str) -> None:
         """从补缺输入框中移除指定的ID"""
@@ -1381,39 +1453,36 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             logger.debug(f"从输入框中移除ID失败: {e}")
 
     def _refresh_books_from_db(self) -> None:
-        """从数据库刷新当前组的书籍列表（仅添加本次爬取的书籍，追加到末尾，不自动选中）"""
+        """从数据库刷新当前组的书籍列表（全量对比，把数据库中已存在但表格中尚无的书籍追加到末尾，不自动选中）
+
+        注意：不依赖、也不清空 self._crawling_novel_ids。否则在多书并发爬取或分批（自动续爬）
+        场景下，_crawling_novel_ids 会被提前清空，导致后续完成的书籍无法进入表格，却仍然弹出
+        “爬取成功”提示。改为基于数据库全量对比，可彻底消除这种竞态。
+        """
         if not self.db_manager:
             return
         try:
             site_id = self.novel_site.get('id')
             if not site_id:
                 return
-            crawled_ids = self._crawling_novel_ids
-            if not crawled_ids:
-                return
             state = self._group_state[self._current_index]
             existing_db_ids = {b.get('id') for b in state['books']}
             existing_novel_ids = {b.get('novel_id') for b in state['books']}
             new_count = 0
-            for novel_id in crawled_ids:
-                # 跳过列表中已存在该 novel_id 的书籍
-                if novel_id in existing_novel_ids:
+            # 直接查询该站点当前所有爬取记录，与表格已有书籍做差集，把缺失的追加进来
+            records = self.db_manager.get_crawl_history_by_site(site_id)
+            for item in records:
+                # 按主键 id 与 novel_id 双重去重，避免同一本书因主键不同而重复加入
+                if item.get('id') in existing_db_ids:
                     continue
-                # 按 novel_id 查询数据库
-                records = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
-                if records:
-                    for item in records:
-                        # 按主键 id 与 novel_id 双重去重，避免同一本书因主键不同而重复加入
-                        if item.get('id') in existing_db_ids:
-                            continue
-                        if item.get('novel_id') and item.get('novel_id') in existing_novel_ids:
-                            existing_db_ids.add(item.get('id'))
-                            continue
-                        state['books'].append(item)
-                        existing_db_ids.add(item.get('id'))
-                        if item.get('novel_id'):
-                            existing_novel_ids.add(item.get('novel_id'))
-                        new_count += 1
+                if item.get('novel_id') and item.get('novel_id') in existing_novel_ids:
+                    existing_db_ids.add(item.get('id'))
+                    continue
+                state['books'].append(item)
+                existing_db_ids.add(item.get('id'))
+                if item.get('novel_id'):
+                    existing_novel_ids.add(item.get('novel_id'))
+                new_count += 1
             self._refresh_table()
             self._update_status()
             if new_count > 0:
@@ -1421,8 +1490,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                     self.i18n.t('merge_detail.new_books_added', count=new_count),
                     timeout=3,
                 )
-            # 清空本次爬取记录
-            self._crawling_novel_ids = []
         except Exception as e:
             logger.error(f"刷新书籍列表失败: {e}")
 

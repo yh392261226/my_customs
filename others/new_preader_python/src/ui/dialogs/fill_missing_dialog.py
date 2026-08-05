@@ -1203,17 +1203,31 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def _on_crawl_status_change(self, task_id: str, task: Any) -> None:
         try:
             from src.core.crawler_manager import CrawlStatus
-            if task_id != self.current_task_id:
+            is_final = task.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED)
+            # 当前任务匹配：正常处理
+            if task_id == self.current_task_id:
+                if is_final:
+                    self.is_crawling = False
+                    self.current_task_id = None
+                    # 立即恢复按钮状态（不依赖 _on_crawl_completed，避免其因弹窗未挂载等原因
+                    # 提前 return 后按钮永远停在“正在爬取中”，需手动停止）
+                    self._update_crawl_button_state()
+                    if task.status == CrawlStatus.COMPLETED:
+                        self.app.call_later(self._on_crawl_completed)
+                        self.app.call_later(self._check_and_continue_crawl)
+                    elif task.status == CrawlStatus.FAILED:
+                        self.app.call_later(self.notify, self.i18n.t('crawler.crawl_failed'), severity="error", timeout=3)
                 return
-            if task.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED):
-                self.is_crawling = False
-                self.current_task_id = None
-                if task.status == CrawlStatus.COMPLETED:
-                    self.app.call_later(self._on_crawl_completed)
-                    self.app.call_later(self._check_and_continue_crawl)
-                elif task.status == CrawlStatus.FAILED:
-                    self.app.call_later(self.notify, self.i18n.t('crawler.crawl_failed'), severity="error", timeout=3)
-                    self.app.call_later(self._update_crawl_button_state)
+            # 兜底：收到最终状态，但 task_id 与当前记录的不一致（如分批续爬导致任务 ID 变化、
+            # 或多入口并发覆盖），且当前记录的任务其实已经结束，却仍卡在“正在爬取”状态。
+            # 此时强制结束爬取状态并恢复按钮，避免需手动停止。
+            if is_final and self.is_crawling:
+                cm = self._get_crawler_manager()
+                t = cm.get_task_by_id(self.current_task_id) if cm and self.current_task_id else None
+                if t is None or t.status in (CrawlStatus.COMPLETED, CrawlStatus.FAILED, CrawlStatus.STOPPED):
+                    self.is_crawling = False
+                    self.current_task_id = None
+                    self._update_crawl_button_state()
         except Exception as e:
             logger.error(f"爬取状态回调失败: {e}")
 
@@ -1251,9 +1265,14 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         """
         从爬取历史中收集已成功爬取的书籍并追加到列表。
         单屏模式下支持增量追加（不重置已有数据）。
+
+        注意：改为全量对比该站点所有爬取记录，不依赖 self._crawling_novel_ids，
+        也不使用 limit 限制。否则：
+          1) 在分批/续爬场景下 _crawling_novel_ids 可能为空或被覆盖，导致直接 return；
+          2) limit=20 会在一次补缺超过 20 本时截断，遗漏新爬的书。
         返回本次新收集的数量。
         """
-        if not self.db_manager or not self._crawling_novel_ids:
+        if not self.db_manager:
             return 0
 
         if reset:
@@ -1273,27 +1292,24 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             if not site_id:
                 return 0
 
-            for nid in self._crawling_novel_ids:
-                if nid in existing_nids:
+            # 直接查询该站点当前所有爬取记录（全量，无 limit），与已收集列表做差集追加
+            records = self.db_manager.get_crawl_history_by_site(site_id)
+            for rec in records:
+                nid = str(rec.get('novel_id', ''))
+                if not nid or nid in existing_nids:
                     continue  # 已在列表中，跳过
-                records = self.db_manager.get_crawl_history_by_site(site_id, limit=20)
-                if records:
-                    for rec in reversed(records):
-                        if str(rec.get('novel_id', '')) == nid \
-                                and rec.get('status') == 'success' \
-                                and rec.get('file_path'):
-                            fp = rec.get('file_path', '')
-                            if fp and os.path.exists(fp):
-                                self._crawled_books.append({
-                                    'novel_id': nid,
-                                    'title': rec.get('novel_title', nid),
-                                    'file_path': fp,
-                                    'record_id': rec.get('id'),
-                                    'crawl_time': rec.get('crawl_time', ''),
-                                })
-                                existing_nids.add(nid)
-                                added_count += 1
-                            break
+                if rec.get('status') == 'success' and rec.get('file_path'):
+                    fp = rec.get('file_path', '')
+                    if fp and os.path.exists(fp):
+                        self._crawled_books.append({
+                            'novel_id': nid,
+                            'title': rec.get('novel_title', nid),
+                            'file_path': fp,
+                            'record_id': rec.get('id'),
+                            'crawl_time': rec.get('crawl_time', ''),
+                        })
+                        existing_nids.add(nid)
+                        added_count += 1
 
             logger.info(f"收集到 {len(self._crawled_books)} 本有效的新爬取书籍（本轮新增 {added_count} 本）")
 
@@ -1369,53 +1385,51 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"检查并继续爬取失败: {e}")
 
-    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool) -> None:
+    def _on_crawl_success_notify(self, task_id: str, novel_id: str, novel_title: str, already_exists: bool, file_path: str = '') -> None:
         try:
             self.app.call_later(self._remove_id_from_input, novel_id)
             self.app.call_later(self.notify, f"{self.i18n.t('crawler.crawl_success')}: {novel_title}", timeout=2)
-            # 每完成一本，立即收集并刷新到 DataTable
-            if not already_exists:
-                self.app.call_later(lambda: self._collect_single_book(novel_id, novel_title))
+            # 收到爬取成功通知时，直接把这本书加入 DataTable（去重），不依赖事后查库。
+            # 原因：already_exists=True（文件已存在/之前爬过）或非连载模式跳过增量爬取时，
+            # crawler_manager 不会把本次结果写入 crawl_history，导致“提示爬取成功却没进表格”。
+            # 通知回调已携带 novel_id / novel_title / file_path，可直接入表，且对“已存在的书”
+            # 同样生效（用户期望：不论新书还是补全书都应进入合并表格）。
+            if novel_id:
+                self.app.call_later(self._add_crawled_book_to_table, novel_id, novel_title, file_path)
         except Exception:
             pass
 
-    def _collect_single_book(self, novel_id: str, novel_title: str = '') -> None:
-        """收集单本已完成爬取的书籍并立即刷新表格"""
-        # 弹窗已卸载时跳过（后台爬取可能仍在继续，挂起的刷新无需执行）
-        if not self.is_attached:
-            return
+    def _add_crawled_book_to_table(self, novel_id: str, novel_title: str, file_path: str) -> None:
+        """将一本已成功爬取（含已存在书补缺）的书直接加入 DataTable，按 novel_id 去重"""
         try:
-            site_id = self.novel_site.get('id')
-            if not site_id or not self.db_manager:
+            if not self.is_attached:
                 return
-
-            # 检查是否已在列表中
             existing_nids = {b['novel_id'] for b in self._crawled_books}
             if novel_id in existing_nids:
                 return
-
-            records = self.db_manager.get_crawl_history_by_site(site_id, limit=20)
-            if not records:
-                return
-            for rec in reversed(records):
-                if (str(rec.get('novel_id', '')) == novel_id
-                        and rec.get('status') == 'success'
-                        and rec.get('file_path')):
-                    fp = rec.get('file_path', '')
-                    if fp and os.path.exists(fp):
-                        self._crawled_books.append({
-                            'novel_id': novel_id,
-                            'title': rec.get('novel_title', novel_title),
-                            'file_path': fp,
-                            'record_id': rec.get('id'),
-                            'crawl_time': rec.get('crawl_time', ''),
-                        })
-                        logger.info(f"单本收集成功: {novel_title} ({novel_id})，当前共 {len(self._crawled_books)} 本")
-                        # 立即刷新 DataTable
-                        self._refresh_books_list_display()
-                    break
+            # 若通知未携带 file_path，尝试从数据库补充（兼容兜底）
+            fp = file_path
+            if not fp and self.db_manager:
+                site_id = self.novel_site.get('id')
+                if site_id:
+                    recs = self.db_manager.get_crawl_history_by_novel_id(site_id, novel_id)
+                    for rec in recs:
+                        if rec.get('status') == 'success' and rec.get('file_path'):
+                            fp = rec.get('file_path', '')
+                            break
+            self._crawled_books.append({
+                'novel_id': novel_id,
+                'title': novel_title or novel_id,
+                'file_path': fp or '',
+                'record_id': None,
+                'crawl_time': '',
+            })
+            logger.info(f"成功加入表格: {novel_title} ({novel_id})，当前共 {len(self._crawled_books)} 本")
+            self._sort_crawled_books_by_crawl_time()
+            self._refresh_books_list_display()
+            self._refresh_group_display()
         except Exception as e:
-            logger.debug(f"单本收集失败: {e}")
+            logger.debug(f"加入表格失败: {e}")
 
     def _remove_id_from_input(self, novel_id: str) -> None:
         try:
