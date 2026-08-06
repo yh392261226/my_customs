@@ -1266,10 +1266,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         从爬取历史中收集已成功爬取的书籍并追加到列表。
         单屏模式下支持增量追加（不重置已有数据）。
 
-        注意：改为全量对比该站点所有爬取记录，不依赖 self._crawling_novel_ids，
-        也不使用 limit 限制。否则：
-          1) 在分批/续爬场景下 _crawling_novel_ids 可能为空或被覆盖，导致直接 return；
-          2) limit=20 会在一次补缺超过 20 本时截断，遗漏新爬的书。
+        注意：只收集本次爬取涉及的小说（self._crawling_novel_ids 范围内的书），
+        不再全量对比整站爬取记录。否则会把该站点“之前爬过、但不在本次输入框”
+        的历史书也一并加入表格（用户期望：表格只含本次添加并爬取的书籍）。
+        每本书的成功通知已通过 _on_crawl_success_notify 即时入表，这里仅对
+        即时通知可能漏掉的具体小说做一次查库补齐兜底，不使用 limit 限制。
         返回本次新收集的数量。
         """
         if not self.db_manager:
@@ -1292,24 +1293,29 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             if not site_id:
                 return 0
 
-            # 直接查询该站点当前所有爬取记录（全量，无 limit），与已收集列表做差集追加
-            records = self.db_manager.get_crawl_history_by_site(site_id)
-            for rec in records:
-                nid = str(rec.get('novel_id', ''))
+            # 仅遍历本次爬取涉及的小说ID集合，逐本查库补齐，避免引入整站历史书
+            target_ids = [str(n) for n in self._crawling_novel_ids] if self._crawling_novel_ids else []
+            for nid in target_ids:
                 if not nid or nid in existing_nids:
                     continue  # 已在列表中，跳过
-                if rec.get('status') == 'success' and rec.get('file_path'):
-                    fp = rec.get('file_path', '')
-                    if fp and os.path.exists(fp):
-                        self._crawled_books.append({
-                            'novel_id': nid,
-                            'title': rec.get('novel_title', nid),
-                            'file_path': fp,
-                            'record_id': rec.get('id'),
-                            'crawl_time': rec.get('crawl_time', ''),
-                        })
-                        existing_nids.add(nid)
-                        added_count += 1
+                try:
+                    recs = self.db_manager.get_crawl_history_by_novel_id(site_id, nid)
+                except Exception:
+                    recs = []
+                for rec in recs:
+                    if rec.get('status') == 'success' and rec.get('file_path'):
+                        fp = rec.get('file_path', '')
+                        if fp and os.path.exists(fp):
+                            self._crawled_books.append({
+                                'novel_id': nid,
+                                'title': rec.get('novel_title', nid),
+                                'file_path': fp,
+                                'record_id': rec.get('id'),
+                                'crawl_time': rec.get('crawl_time', ''),
+                            })
+                            existing_nids.add(nid)
+                            added_count += 1
+                            break
 
             logger.info(f"收集到 {len(self._crawled_books)} 本有效的新爬取书籍（本轮新增 {added_count} 本）")
 

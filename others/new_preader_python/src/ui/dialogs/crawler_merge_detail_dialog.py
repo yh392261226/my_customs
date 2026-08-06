@@ -1324,7 +1324,10 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         try:
             self._update_crawl_button_state()
             self.notify(self.i18n.t('crawler.crawl_success'), timeout=3)
-            self._refresh_books_from_db()
+            # 注意：不再调用 _refresh_books_from_db() 做整站全量拉取。
+            # 否则会把该站点数据库里所有历史书（含之前爬过、并非本次添加ID的书）
+            # 一并加入表格。现在每本书都已通过 _on_crawl_success_notify 即时入表
+            # （含已存在书补缺、非连载短篇），无需全量刷新。
             # 隐藏补缺操作行
             if self._fill_missing_visible:
                 self._fill_missing_visible = False
@@ -1451,47 +1454,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             novel_id_input.action_end()
         except Exception as e:
             logger.debug(f"从输入框中移除ID失败: {e}")
-
-    def _refresh_books_from_db(self) -> None:
-        """从数据库刷新当前组的书籍列表（全量对比，把数据库中已存在但表格中尚无的书籍追加到末尾，不自动选中）
-
-        注意：不依赖、也不清空 self._crawling_novel_ids。否则在多书并发爬取或分批（自动续爬）
-        场景下，_crawling_novel_ids 会被提前清空，导致后续完成的书籍无法进入表格，却仍然弹出
-        “爬取成功”提示。改为基于数据库全量对比，可彻底消除这种竞态。
-        """
-        if not self.db_manager:
-            return
-        try:
-            site_id = self.novel_site.get('id')
-            if not site_id:
-                return
-            state = self._group_state[self._current_index]
-            existing_db_ids = {b.get('id') for b in state['books']}
-            existing_novel_ids = {b.get('novel_id') for b in state['books']}
-            new_count = 0
-            # 直接查询该站点当前所有爬取记录，与表格已有书籍做差集，把缺失的追加进来
-            records = self.db_manager.get_crawl_history_by_site(site_id)
-            for item in records:
-                # 按主键 id 与 novel_id 双重去重，避免同一本书因主键不同而重复加入
-                if item.get('id') in existing_db_ids:
-                    continue
-                if item.get('novel_id') and item.get('novel_id') in existing_novel_ids:
-                    existing_db_ids.add(item.get('id'))
-                    continue
-                state['books'].append(item)
-                existing_db_ids.add(item.get('id'))
-                if item.get('novel_id'):
-                    existing_novel_ids.add(item.get('novel_id'))
-                new_count += 1
-            self._refresh_table()
-            self._update_status()
-            if new_count > 0:
-                self.notify(
-                    self.i18n.t('merge_detail.new_books_added', count=new_count),
-                    timeout=3,
-                )
-        except Exception as e:
-            logger.error(f"刷新书籍列表失败: {e}")
 
     def _update_crawl_button_state(self) -> None:
         """更新爬取按钮状态"""
