@@ -88,8 +88,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
         # 合并状态 - 多分组
         self._crawled_books: List[Dict[str, Any]] = []
-        self._selected_indices: Set[int] = set()  # 当前选中的书籍索引（在列表中的原始位置）
-        # 三个插入组: {group_key -> {"books": [原始索引列表], "line": Optional[int]}}
+        self._selected_indices: Set[str] = set()  # 当前选中的书籍 novel_id 集合（基于身份，排序/移动自动跟随）
+        # 三个插入组: {group_key -> {"books": [novel_id 列表], "line": Optional[int]}}
         self._insert_groups: Dict[str, Dict[str, Any]] = {
             self.GROUP_FRONT: {"books": [], "line": None},
             self.GROUP_MIDDLE: {"books": [], "line": None},
@@ -324,24 +324,25 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             if not self._crawled_books:
                 return
 
-            assigned_indices: Set[int] = set()
+            assigned_nids: Set[str] = set()
             for group_data in self._insert_groups.values():
-                assigned_indices.update(group_data["books"])
+                assigned_nids.update(group_data["books"])
 
             for i, book in enumerate(self._crawled_books):
                 b_title = book.get('title', book.get('novel_title', ''))
                 b_file = book.get('file_path', '')
                 exists = os.path.exists(b_file) if b_file else False
+                cur_nid = book.get('novel_id')
 
                 # 独立选中列
-                is_selected = i in self._selected_indices
+                is_selected = cur_nid in self._selected_indices
                 sel_mark = "✓" if is_selected else ""
 
-                # 分配状态
+                # 分配状态（分组 books 存储 novel_id，排序后位置变化也能正确匹配）
                 group_mark = ""
-                if i in assigned_indices:
+                if cur_nid in assigned_nids:
                     for gkey, gdata in self._insert_groups.items():
-                        if i in gdata["books"]:
+                        if cur_nid in gdata["books"]:
                             glabel = {self.GROUP_FRONT: "F", self.GROUP_MIDDLE: "M", self.GROUP_BACK: "B"}.get(gkey, "?")
                             group_mark = f"[{glabel}]"
                             break
@@ -366,6 +367,18 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             # 屏幕可能已卸载导致节点不存在，属正常现象，降级为 debug 避免刷屏
             logger.debug(f"刷新书籍列表显示失败（屏幕可能已卸载）: {e}")
 
+    def _title_by_nid(self, nid: str) -> str:
+        """按 novel_id 在当前列表中查找书名（分组存储基于 novel_id，排序/移动后位置变化也能正确找到）"""
+        for b in self._crawled_books:
+            if b.get('novel_id') == nid:
+                return b.get('title', b.get('novel_title', f'#{nid}'))
+        return str(nid)
+
+    def _nids_to_indices(self, nids: List[str]) -> List[int]:
+        """将分组内部存储的 novel_id 列表转换为当前列表中的位置索引（供可视化合并前端定位）"""
+        nid_to_idx = {b.get('novel_id'): i for i, b in enumerate(self._crawled_books)}
+        return [nid_to_idx[n] for n in nids if n in nid_to_idx]
+
     def _refresh_group_display(self) -> None:
         """刷新分组计划显示"""
         # 弹窗已卸载（DOM 销毁）时直接跳过，避免 query_one 触发 "No nodes match" 报错
@@ -380,7 +393,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             front_books = self._insert_groups[self.GROUP_FRONT]["books"]
             total_assigned += len(front_books)
             if front_books:
-                titles = " → ".join([self._crawled_books[idx].get('title', self._crawled_books[idx].get('novel_title', f'#{idx+1}')) for idx in front_books])
+                titles = " → ".join([self._title_by_nid(nid) for nid in front_books])
                 lines.append(f"  ├─ {self.i18n.t('fill_missing.group_front')}: {titles}")
 
             # 中间组
@@ -388,7 +401,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             mid_line = self._insert_groups[self.GROUP_MIDDLE]["line"]
             total_assigned += len(mid_books)
             if mid_books:
-                titles = " → ".join([self._crawled_books[idx].get('title', self._crawled_books[idx].get('novel_title', f'#{idx+1}')) for idx in mid_books])
+                titles = " → ".join([self._title_by_nid(nid) for nid in mid_books])
                 line_str = f"@{mid_line}" if mid_line is not None else "?"
                 lines.append(f"  ├─ {self.i18n.t('fill_missing.group_middle')}({line_str}): {titles}")
                 # 同步行号到输入框
@@ -403,7 +416,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             back_books = self._insert_groups[self.GROUP_BACK]["books"]
             total_assigned += len(back_books)
             if back_books:
-                titles = " → ".join([self._crawled_books[idx].get('title', self._crawled_books[idx].get('novel_title', f'#{idx+1}')) for idx in back_books])
+                titles = " → ".join([self._title_by_nid(nid) for nid in back_books])
                 lines.append(f"  └─ {self.i18n.t('fill_missing.group_back')}: {titles}")
 
             unassigned = len(self._crawled_books) - total_assigned
@@ -420,7 +433,18 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
     def _suggest_merged_name(self) -> str:
         try:
             target_title = self.target_book.get('novel_title', '') or ''
-            new_titles = [b.get('title', b.get('novel_title', '')) for b in self._crawled_books]
+            selected_nids = set()
+            for gkey in (self.GROUP_FRONT, self.GROUP_MIDDLE, self.GROUP_BACK):
+                selected_nids.update(self._insert_groups[gkey]["books"])
+            nid_to_title = {
+                b.get('novel_id'): b.get('title', b.get('novel_title', '')) or ''
+                for b in self._crawled_books
+            }
+            if selected_nids:
+                candidate_titles = [nid_to_title.get(nid, '') for nid in selected_nids]
+            else:
+                candidate_titles = [t for t in nid_to_title.values()]
+            new_titles = [t for t in candidate_titles if t]
             all_titles = new_titles + [target_title]
             import re
             numbers = []
@@ -451,18 +475,18 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             self._toggle_select_all()
 
     def _toggle_select_all(self):
-        """内部实现：全选↔取消全选切换"""
-        all_count = len(self._crawled_books)
-        if len(self._selected_indices) >= all_count:
+        """内部实现：全选↔取消全选切换（基于 novel_id 身份，排序不影响）"""
+        all_nids = {b.get('novel_id') for b in self._crawled_books}
+        if self._selected_indices >= all_nids:
             # 已全选 → 取消全选
             self._selected_indices = set()
         else:
             # 未全选 → 全选
-            self._selected_indices = set(range(all_count))
+            self._selected_indices = set(all_nids)
         self._refresh_books_list_display()
         # 更新按钮文字显示当前状态
         btn = self.query_one("#fm-select-all-btn", Button)
-        if len(self._selected_indices) >= all_count:
+        if self._selected_indices >= all_nids:
             btn.label = self.i18n.t('fill_missing.deselect_all')
         else:
             btn.label = self.i18n.t('fill_missing.select_all')
@@ -568,10 +592,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             table = self.query_one("#fm-books-table", DataTable)
             cursor = table.cursor_row
             if cursor is not None and 0 <= cursor < len(self._crawled_books):
-                if cursor in self._selected_indices:
-                    self._selected_indices.discard(cursor)
+                nid = self._crawled_books[cursor].get('novel_id')
+                if nid in self._selected_indices:
+                    self._selected_indices.discard(nid)
                 else:
-                    self._selected_indices.add(cursor)
+                    self._selected_indices.add(nid)
                 self._refresh_books_list_display()
         except Exception as e:
             logger.debug(f"切换选中状态失败: {e}")
@@ -606,32 +631,11 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             return
         to_idx = max(0, min(to_idx, len(self._crawled_books) - 1))
 
-        # 1. 移动书籍
+        # 1. 移动书籍（原地重排，书籍身份 novel_id 不变，选中集与分组基于身份自动跟随，无需迁移）
         book = self._crawled_books.pop(from_idx)
         self._crawled_books.insert(to_idx, book)
 
-        # 2. 构建旧索引→新索引的映射（用于更新选中集和分组）
-        old_indices = list(range(len(self._crawled_books)))
-        new_indices = old_indices.copy()
-        moved_val = new_indices.pop(from_idx)
-        new_indices.insert(to_idx, moved_val)
-
-        old_to_new = {old: new for old, new in zip(old_indices, new_indices)}
-
-        # 3. 更新选中索引集合
-        updated_selected = set()
-        for idx in self._selected_indices:
-            updated_selected.add(old_to_new.get(idx, idx))
-        self._selected_indices = updated_selected
-
-        # 4. 更新各分组中的书籍索引
-        for gdata in self._insert_groups.values():
-            updated_group_books = []
-            for idx in gdata["books"]:
-                updated_group_books.append(old_to_new.get(idx, idx))
-            gdata["books"] = updated_group_books
-
-        # 5. 刷新显示（光标跟随到新位置 to_idx）
+        # 2. 刷新显示（光标跟随到新位置 to_idx）
         self._refresh_books_list_display(restore_cursor=True, target_cursor=to_idx)
 
         # 显示提示信息
@@ -670,18 +674,19 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             self.notify(self.i18n.t('fill_missing.no_selection_hint'), severity="warning", timeout=2)
             return
 
-        selected_sorted = sorted(self._selected_indices)
+        selected_nids = set(self._selected_indices)
 
-        # 从所有其他组移除这些索引
+        # 从所有其他组移除这些 novel_id
         for gk, gv in self._insert_groups.items():
             if gk != group_key:
-                gv["books"] = [idx for idx in gv["books"] if idx not in self._selected_indices]
+                gv["books"] = [nid for nid in gv["books"] if nid not in selected_nids]
 
-        # 添加到目标组（保持顺序，追加到末尾）
+        # 添加到目标组（按当前列表顺序，追加到末尾，避免重复）
         target_group = self._insert_groups[group_key]
-        for idx in selected_sorted:
-            if idx not in target_group["books"]:
-                target_group["books"].append(idx)
+        for b in self._crawled_books:
+            nid = b.get('novel_id')
+            if nid in selected_nids and nid not in target_group["books"]:
+                target_group["books"].append(nid)
 
         # 清空选择
         self._selected_indices.clear()
@@ -694,7 +699,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         gname = {self.GROUP_FRONT: self.i18n.t('fill_missing.group_front'),
                  self.GROUP_MIDDLE: self.i18n.t('fill_missing.group_middle'),
                  self.GROUP_BACK: self.i18n.t('fill_missing.group_back')}.get(group_key, group_key)
-        self.notify(self.i18n.t('fill_missing.assigned_msg').format(gname=gname, count=len(selected_sorted)), timeout=2)
+        self.notify(self.i18n.t('fill_missing.assigned_msg').format(gname=gname, count=len(selected_nids)), timeout=2)
 
         # 分配完成后自动触发智能标题（填充合并后的新书名）
         self._apply_smart_title()
@@ -824,9 +829,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 target_lines=self._target_lines,
                 crawled_books=self._crawled_books,
                 existing_groups={
-                    "front": {"books": self._insert_groups[self.GROUP_FRONT]["books"], "line": None},
-                    "middle": {"books": self._insert_groups[self.GROUP_MIDDLE]["books"], "line": self._insert_groups[self.GROUP_MIDDLE]["line"]},
-                    "back": {"books": self._insert_groups[self.GROUP_BACK]["books"], "line": None},
+                    "front": {"books": self._nids_to_indices(self._insert_groups[self.GROUP_FRONT]["books"]), "line": None},
+                    "middle": {"books": self._nids_to_indices(self._insert_groups[self.GROUP_MIDDLE]["books"]), "line": self._insert_groups[self.GROUP_MIDDLE]["line"]},
+                    "back": {"books": self._nids_to_indices(self._insert_groups[self.GROUP_BACK]["books"]), "line": None},
                 },
                 callback=on_visual_result,
             )
@@ -851,19 +856,19 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             for gkey in (self.GROUP_FRONT, self.GROUP_MIDDLE, self.GROUP_BACK):
                 self._insert_groups[gkey]["books"] = []
 
-            # 应用前置区书籍
+            # 应用前置区书籍（分组存储基于 novel_id，与列表渲染/排序语义一致）
             front_books = data.get("front_books") or []
             for book in front_books:
-                idx = book.get("index")
-                if idx is not None and idx < len(self._crawled_books):
-                    self._insert_groups[self.GROUP_FRONT]["books"].append(idx)
+                nid = book.get("novel_id")
+                if nid and nid not in self._insert_groups[self.GROUP_FRONT]["books"]:
+                    self._insert_groups[self.GROUP_FRONT]["books"].append(nid)
 
             # 应用中间区书籍 + 行号
             middle_books = data.get("middle_books") or []
             for book in middle_books:
-                idx = book.get("index")
-                if idx is not None and idx < len(self._crawled_books):
-                    self._insert_groups[self.GROUP_MIDDLE]["books"].append(idx)
+                nid = book.get("novel_id")
+                if nid and nid not in self._insert_groups[self.GROUP_MIDDLE]["books"]:
+                    self._insert_groups[self.GROUP_MIDDLE]["books"].append(nid)
             mid_line = data.get("middle_line")
             if mid_line is not None:
                 self._insert_groups[self.GROUP_MIDDLE]["line"] = int(mid_line)
@@ -879,9 +884,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             # 应用后置区书籍
             back_books = data.get("back_books") or []
             for book in back_books:
-                idx = book.get("index")
-                if idx is not None and idx < len(self._crawled_books):
-                    self._insert_groups[self.GROUP_BACK]["books"].append(idx)
+                nid = book.get("novel_id")
+                if nid and nid not in self._insert_groups[self.GROUP_BACK]["books"]:
+                    self._insert_groups[self.GROUP_BACK]["books"].append(nid)
 
             # 应用新标题
             new_title = data.get("new_title")
@@ -1319,8 +1324,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
             logger.info(f"收集到 {len(self._crawled_books)} 本有效的新爬取书籍（本轮新增 {added_count} 本）")
 
-            # 按爬取时间倒序排序（最新爬取的书籍排在最前）
-            self._sort_crawled_books_by_crawl_time()
+            # 按自然阅读顺序排序（章节号升序优先，无章节号的书按书名正序），与合并详情弹窗一致
+            self._sort_crawled_books_by_chapter()
 
             # 刷新 DataTable 显示
             if self._crawled_books:
@@ -1332,17 +1337,6 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"收集已爬取书籍失败: {e}")
             return 0
-
-    def _sync_indices_after_sort(self) -> None:
-        """书籍列表重新排序后，重建索引映射以保持选中状态和分组分配的一致性"""
-        if not self._crawled_books:
-            return
-        # 由于 sort 是原地操作，旧的索引已经无效，需要清空选中状态和分组
-        # 用户需要重新选择（因为位置已改变，保持旧索引会导致错误分配）
-        # 这里只清空选中状态，分组信息在下次刷新时会自动校验
-        self._selected_indices.clear()
-        # 分组中的索引会在 _refresh_books_list_display 中通过 assigned_indices 校验
-        # 如果索引越界会自动忽略，所以不需要额外处理
 
     def _sort_crawled_books_by_chapter(self) -> None:
         """按章节号对候选书籍进行智能升序排序（便于查看/选择）。
@@ -1360,7 +1354,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.debug(f"章节排序失败，回退字母序: {e}")
             self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
-        self._sync_indices_after_sort()
+        # 选中集与分组均基于 novel_id 身份，排序原地重排后自动跟随，无需迁移；仅重绘
+        self._refresh_books_list_display()
+        self._refresh_group_display()
 
     def _sort_crawled_books_by_crawl_time(self) -> None:
         """按爬取时间倒序排序（最新爬取的书籍排在最前）"""
@@ -1372,7 +1368,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             key=lambda b: b.get('crawl_time', '') or '',
             reverse=True,
         )
-        self._sync_indices_after_sort()
+        # 选中集与分组均基于 novel_id 身份，排序原地重排后自动跟随，无需迁移；仅重绘
+        self._refresh_books_list_display()
+        self._refresh_group_display()
 
     def _check_and_continue_crawl(self) -> None:
         try:
@@ -1431,9 +1429,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 'crawl_time': '',
             })
             logger.info(f"成功加入表格: {novel_title} ({novel_id})，当前共 {len(self._crawled_books)} 本")
-            self._sort_crawled_books_by_crawl_time()
-            self._refresh_books_list_display()
-            self._refresh_group_display()
+            # 按自然阅读顺序排序（章节号升序优先，无章节号的书按书名正序），与合并详情弹窗一致
+            self._sort_crawled_books_by_chapter()
         except Exception as e:
             logger.debug(f"加入表格失败: {e}")
 
@@ -1841,18 +1838,22 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         separator = "\n\n" + "=" * 50 + "\n\n"
 
         try:
-            # 构建各组的内容块
-            def build_content_block(indices: List[int]) -> str:
+            # 构建 novel_id -> 文件记录 映射（分组里存的是 novel_id，需按身份定位而非位置索引）
+            nid_to_file = {bf.get('novel_id'): bf for bf in valid_files}
+
+            # 构建各组的内容块（indices 实为本组的 novel_id 列表）
+            def build_content_block(nids: List[str]) -> str:
                 contents = []
-                for idx in indices:
-                    if idx < len(valid_files):
-                        bf = valid_files[idx]
-                        try:
-                            with open(bf['file_path'], 'r', encoding='utf-8') as f:
-                                c = f.read().strip()
-                                if c: contents.append(c)
-                        except Exception as e:
-                            logger.warning(f"读取文件失败 {bf.get('file_path', '')}: {e}")
+                for nid in nids:
+                    bf = nid_to_file.get(nid)
+                    if not bf:
+                        continue
+                    try:
+                        with open(bf['file_path'], 'r', encoding='utf-8') as f:
+                            c = f.read().strip()
+                            if c: contents.append(c)
+                    except Exception as e:
+                        logger.warning(f"读取文件失败 {bf.get('file_path', '')}: {e}")
                 return separator.join(contents) if contents else ""
 
             # 按前→中→后的顺序组装最终内容
@@ -1912,14 +1913,15 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             # 更新数据库标题
             self._update_target_book_title(new_name)
 
-            # 收集所有被合并的有效文件（用于清理）
+            # 收集所有被合并的有效文件（用于清理）— 按 novel_id 身份定位
             merged_valid_files = []
-            all_assigned_indices = (self._insert_groups[self.GROUP_FRONT]["books"] +
-                                   self._insert_groups[self.GROUP_MIDDLE]["books"] +
-                                   self._insert_groups[self.GROUP_BACK]["books"])
-            for idx in all_assigned_indices:
-                if idx < len(valid_files):
-                    merged_valid_files.append(valid_files[idx])
+            all_assigned_nids = (self._insert_groups[self.GROUP_FRONT]["books"] +
+                                 self._insert_groups[self.GROUP_MIDDLE]["books"] +
+                                 self._insert_groups[self.GROUP_BACK]["books"])
+            for nid in all_assigned_nids:
+                bf = nid_to_file.get(nid)
+                if bf:
+                    merged_valid_files.append(bf)
 
             # 清理临时文件和记录
             self._cleanup_crawled_records(merged_valid_files)
@@ -2192,13 +2194,31 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             return False
 
     def _collect_titles_for_smart_title(self) -> List[str]:
-        """收集用于生成智能标题的书名：目标书籍 + 所有已爬取书籍"""
+        """收集用于生成智能标题的书名：目标书籍 + 所有已分配到前/中/后组的书籍。
+
+        只取用户实际选中的分组（基于 novel_id 身份），而非全部候选书籍，
+        避免无关候选污染公共前缀/章节范围计算导致书名错误。
+        """
         titles: List[str] = []
         target_title = self.target_book.get('novel_title', '') or ''
         if target_title:
             titles.append(target_title)
-        for b in self._crawled_books:
-            t = b.get('title', b.get('novel_title', '')) or ''
+        selected_nids = set()
+        for gkey in (self.GROUP_FRONT, self.GROUP_MIDDLE, self.GROUP_BACK):
+            selected_nids.update(self._insert_groups[gkey]["books"])
+        if not selected_nids:
+            # 尚未分配任何分组时，退化为全部候选（保持旧行为，便于提前预览）
+            for b in self._crawled_books:
+                t = b.get('title', b.get('novel_title', '')) or ''
+                if t:
+                    titles.append(t)
+            return titles
+        nid_to_title = {
+            b.get('novel_id'): b.get('title', b.get('novel_title', '')) or ''
+            for b in self._crawled_books
+        }
+        for nid in selected_nids:
+            t = nid_to_title.get(nid, '')
             if t:
                 titles.append(t)
         return titles
