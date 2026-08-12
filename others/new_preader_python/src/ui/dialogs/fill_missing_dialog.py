@@ -89,6 +89,10 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         # 合并状态 - 多分组
         self._crawled_books: List[Dict[str, Any]] = []
         self._selected_indices: Set[str] = set()  # 当前选中的书籍 novel_id 集合（基于身份，排序/移动自动跟随）
+
+        # 列标题排序相关状态（点击表头排序，参考合并详情弹窗）
+        self._sort_column: Optional[str] = None  # 当前排序列 key: selected / title / group
+        self._sort_reverse: bool = False  # False=升序, True=降序
         # 三个插入组: {group_key -> {"books": [novel_id 列表], "line": Optional[int]}}
         self._insert_groups: Dict[str, Dict[str, Any]] = {
             self.GROUP_FRONT: {"books": [], "line": None},
@@ -316,10 +320,16 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             table.clear(columns=True)
 
             # 定义列（第一列为独立的选择状态列，参考爬取管理页面）
-            table.add_column(get_global_i18n().t('batch_ops.selected'), key="selected", width=5)
+            # 排序列显示方向箭头
+            def _col_label(base: str, ck: str) -> str:
+                if self._sort_column == ck:
+                    return base + (" ▼" if self._sort_reverse else " ▲")
+                return base
+
+            table.add_column(_col_label(get_global_i18n().t('batch_ops.selected'), "selected"), key="selected", width=5)
             table.add_column("#", key="idx", width=4)
-            table.add_column(self.i18n.t('fill_missing.col_title'), key="title", width=60)
-            table.add_column(self.i18n.t('fill_missing.col_group'), key="group", width=4)
+            table.add_column(_col_label(self.i18n.t('fill_missing.col_title'), "title"), key="title", width=60)
+            table.add_column(_col_label(self.i18n.t('fill_missing.col_group'), "group"), width=4)
 
             if not self._crawled_books:
                 return
@@ -359,7 +369,17 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 )
 
             # 恢复光标位置（仅当 restore_cursor=True 时）
-            if restore_cursor and current_cursor is not None and 0 <= current_cursor < len(table.rows):
+            if restore_cursor and table.rows:
+                # 当前光标可能在 clear 重建后丢失（为 None），回退到首行，
+                # 否则后续空格/方向键会因 cursor_row 为 None 而无法定位行。
+                if current_cursor is None or not (0 <= current_cursor < len(table.rows)):
+                    current_cursor = 0
+                # 确保表格重新获得焦点，move_cursor 才能生效（避免焦点落在输入框时
+                # cursor_row 为 None，导致空格选中/取消失效）。
+                try:
+                    table.focus()
+                except Exception:
+                    pass
                 if hasattr(table, 'move_cursor'):
                     table.move_cursor(row=current_cursor)
 
@@ -591,6 +611,15 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         try:
             table = self.query_one("#fm-books-table", DataTable)
             cursor = table.cursor_row
+            if cursor is None or not (0 <= cursor < len(self._crawled_books)):
+                # 光标丢失时聚焦表格并回退首行，避免空格选中/取消完全失效
+                try:
+                    table.focus()
+                    if table.rows:
+                        table.move_cursor(row=0)
+                        cursor = 0
+                except Exception:
+                    pass
             if cursor is not None and 0 <= cursor < len(self._crawled_books):
                 nid = self._crawled_books[cursor].get('novel_id')
                 if nid in self._selected_indices:
@@ -621,6 +650,54 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self._move_book_to_position(cursor, target_pos)
             event.stop()
             return
+
+    @on(DataTable.HeaderSelected, "#fm-books-table")
+    def on_books_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        """表格表头点击 —— 按列排序（参考合并详情弹窗）"""
+        try:
+            column_key = str(event.column_key.value or "")
+            # 可排序列：书名、组别、选中状态
+            sortable_columns = {"title", "group", "selected"}
+            if column_key not in sortable_columns:
+                return
+
+            # 同列点击切换方向，新列默认升序
+            if self._sort_column == column_key:
+                self._sort_reverse = not self._sort_reverse
+            else:
+                self._sort_column = column_key
+                self._sort_reverse = False
+
+            self._sort_books_by_column(column_key, self._sort_reverse)
+            self._refresh_books_list_display()
+        except Exception as e:
+            logger.error(f"表头点击排序失败: {e}")
+
+    def _sort_books_by_column(self, column_key: str, reverse: bool) -> None:
+        """根据指定列对爬取书籍排序（直接修改 self._crawled_books 顺序）。
+
+        选中集与分组均基于 novel_id 身份存储，排序原地重排后自动跟随，无需迁移。
+        """
+        from urllib.parse import unquote
+
+        def get_sort_key(book: Dict[str, Any]):
+            if column_key == "title":
+                # 复用底层「卷序 + 章节号」自然阅读顺序键，与合并详情一致
+                vk = SmartTitleUtils._volume_chapter_key(book.get('title', book.get('novel_title', '')))
+                return vk
+            elif column_key == "group":
+                # 组别顺序：F(前置) < M(中间) < B(后置) < 未分配
+                nid = book.get('novel_id')
+                order = {self.GROUP_FRONT: 0, self.GROUP_MIDDLE: 1, self.GROUP_BACK: 2}
+                for gkey, gdata in self._insert_groups.items():
+                    if nid in gdata["books"]:
+                        return order.get(gkey, 9)
+                return 9  # 未分配排最后
+            elif column_key == "selected":
+                return 1 if book.get('novel_id') in self._selected_indices else 0
+            return 0
+
+        self._crawled_books.sort(key=get_sort_key, reverse=reverse)
 
     def _move_book_to_position(self, from_idx: int, to_idx: int) -> None:
         """
@@ -1354,6 +1431,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.debug(f"章节排序失败，回退字母序: {e}")
             self._crawled_books.sort(key=lambda b: b.get('title', b.get('novel_title', '')).lower())
+        # 程序化排序会覆盖用户点列头产生的排序，清空列头排序状态避免箭头指示错位
+        self._sort_column = None
         # 选中集与分组均基于 novel_id 身份，排序原地重排后自动跟随，无需迁移；仅重绘
         self._refresh_books_list_display()
         self._refresh_group_display()
@@ -1368,6 +1447,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             key=lambda b: b.get('crawl_time', '') or '',
             reverse=True,
         )
+        # 程序化排序会覆盖用户点列头产生的排序，清空列头排序状态避免箭头指示错位
+        self._sort_column = None
         # 选中集与分组均基于 novel_id 身份，排序原地重排后自动跟随，无需迁移；仅重绘
         self._refresh_books_list_display()
         self._refresh_group_display()

@@ -632,6 +632,64 @@ class SmartTitleUtils:
         return (0, v)
 
     @staticmethod
+    def _volume_chapter_key(title: str) -> Tuple[float, float]:
+        """
+        为排序提取「卷序 + 真实章节号」两级键，使同一书名下
+        「普通卷 → 第二卷 → 同人续 → 番外」按人类阅读顺序升序，
+        且每卷内按真实章节号升序。
+
+        这是 sort_books_by_chapter 专用的排序增强，不改动 extract_chapter_info
+        的标题生成/范围合并语义。解决如下形式解析错乱：
+          - （第二卷）(17) ：卷号被正确识别为卷序 2，括号里的 17 作为真实章节号
+          - （同人续 26完）：「同人续」识别为续作卷序（排在普通卷/第二卷之后）
+          - （1-0017）：取起始章节号 1
+
+        Returns:
+            (volume_order, chapter) 元组，均为可比较数值。
+        """
+        vol = 1.0  # 默认第一卷（无卷标）
+        low = title or ''
+
+        # ── 1. 标准卷标：第N卷 / N卷 / 卷N（支持阿拉伯/中文数字）──
+        num_atom = (r'[0-9０-９]+|'
+                    r'[零一二三四五六七八九十百千万〇壹贰叁肆伍陆柒捌玖拾佰仟萬]+')
+        m = re.search(r'第\s*(' + num_atom + r')\s*卷', low)
+        if not m:
+            m = re.search(r'(' + num_atom + r')\s*卷(?!\S)', low)
+        if not m:
+            m = re.search(r'卷\s*(' + num_atom + r')', low)
+        if m:
+            v = SmartTitleUtils.extract_number_from_string(m.group(1))
+            if v is not None:
+                vol = float(v)
+
+        # ── 2. 续作 / 同人续：排在所有标准卷之后 ──
+        if '续' in low or '同人' in low:
+            sm = re.search(r'续\s*(' + num_atom + r')', low)
+            vol = 90.0 + (float(SmartTitleUtils.extract_number_from_string(sm.group(1)))
+                          if sm and SmartTitleUtils.extract_number_from_string(sm.group(1)) is not None else 0.0)
+
+        # ── 3. 番外 / 外传：永远最后 ──
+        if '番外' in low or '外传' in low:
+            vol = 99.0
+
+        # ── 4. 真实章节号：取最后一个「非卷标括号」内的首个数字范围 ──
+        chap = None
+        for mm in re.finditer(r'[\(（]([^\(\)（）]*)[\)）]', low):
+            inner = mm.group(1)
+            if re.search(r'[卷部册集]', inner):  # 这是卷括号，跳过
+                continue
+            num = re.search(r'([0-9０-９]+(?:\.[0-9０-９]+)?)', inner)
+            if num:
+                chap = float(num.group(1))
+        if chap is None:
+            # 退而从整标题取首个数字
+            num = re.search(r'([0-9０-９]+(?:\.[0-9０-９]+)?)', low)
+            chap = float(num.group(1)) if num else 0.0
+
+        return (vol, chap)
+
+    @staticmethod
     def _generate_title_with_chapter_info(chapter_infos: list) -> Optional[str]:
         """
         基于已提取的章节信息生成完整智能标题。
@@ -905,16 +963,18 @@ class SmartTitleUtils:
             title = book.get(title_key, '') if isinstance(book, dict) else getattr(book, title_key, '')
             info = SmartTitleUtils.extract_chapter_info(title)
             if info and info[0] != -1:
-                # 数字章节号：统一转为可比较元组（小数按版本号比较，如 26.12 > 26.7）
-                start = info[0] if isinstance(info[0], tuple) else (info[0],) if isinstance(info[0], (int, float)) else (float('inf'),)
-                end = info[1] if isinstance(info[1], tuple) else (info[1],) if isinstance(info[1], (int, float)) else (float('inf'),)
-                indexed.append((start, end, idx, book, title))
+                # 数字章节号：提取「卷序 + 真实章节号」两级键，保证
+                # 普通卷 → 第二卷 → 同人续 → 番外 按人类阅读顺序，卷内按章节升序。
+                vol, chap = SmartTitleUtils._volume_chapter_key(title)
+                # end 仍用于同卷同章起点时的稳定排序（取范围末端）
+                end = info[1] if isinstance(info[1], (int, float)) else (info[1][-1] if isinstance(info[1], tuple) and info[1] else chap)
+                indexed.append((vol, chap, end, idx, book, title))
             else:
                 # 无法提取章节号 / 纯标记：放到末尾，按书名排序
-                indexed.append(((float('inf'),), (float('inf'),), idx, book, title))
+                indexed.append((float('inf'), float('inf'), float('inf'), idx, book, title))
 
-        # 排序键：章节号 → 书名（正序，忽略大小写）→ 原始顺序
-        indexed.sort(key=lambda x: (x[0], x[1], (x[4] or '').lower(), x[2]))
+        # 排序键：卷序 → 章节号 → 章节范围末端 → 书名（正序，忽略大小写）→ 原始顺序
+        indexed.sort(key=lambda x: (x[0], x[1], x[2], (x[5] or '').lower(), x[3]))
 
-        sorted_books = [item[3] for item in indexed]
+        sorted_books = [item[4] for item in indexed]
         return sorted_books, True
