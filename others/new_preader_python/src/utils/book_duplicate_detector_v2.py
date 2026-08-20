@@ -52,7 +52,20 @@ SOURCE_PREFIXES = [
     '成人小说网_', '龙腾小说网_', 'AA阅读_', '晋江_', '起点中文网_', '纵横中文网_',
     '17k小说_', '小说阅读网_', '书旗小说_', '番茄小说_', '七猫小说_',
     '掌阅_', 'QQ阅读_', '豆瓣_', '知乎_', '百度_', '搜狗_',
+    # 【增强】实测数据集中出现的高频来源前缀
+    '禁忌书屋_', '第一站_', '爱豆社区', '狐狸小说网_', '骚洞小说网_',
+    '笔趣阁_', 'OLOL阅读_', 'OL阅读_', '第一小说网_', '看书网_',
+    '新笔趣阁_', '找小说网_', '啃书小说网_', '同人小说网_', '百合小说网_',
 ]
+
+# 【增强】归一化后会被误当"书名"的纯噪声（实为来源/卷号/译者等元数据残片）
+_NOISE_BOOK_TITLES = {
+    "爱豆社区", "愛豆社區", "第一卷", "第二卷", "第三卷", "第四卷", "第五卷",
+    "译者sunson", "譯者sunson", "作者yulu", "作者Yulu", "短篇作者yulu",
+    "ai辅助", "AI輔助", "ai辅助创作", "完", "全文", "番外", "合集", "全集",
+    "未删减版", "无删减", "精校版", "最新章节", "第一站", "禁忌书屋", "龙腾小说网",
+    "成人小说网", "狐狸小说网", "骚洞小说网", "笔趣阁",
+}
 
 class DuplicateType(Enum):
     """重复类型（与Ultra完全相同）"""
@@ -141,52 +154,83 @@ class SmartDuplicateDetectorV3:
     @staticmethod
     def _normalize_book_name(file_name: str) -> str:
         """
-        智能标准化书籍文件名，去除来源前缀、副标题等噪声
+        智能标准化书籍文件名，提取真实书名核心，去除来源前缀/元数据噪声。
         
-        处理规则：
-        1. 去除常见网站/来源前缀（成人小说网_、龙腾小说网_等）
-        2. 去除括号内的副标题（如（妖刀记前传）、(全集)等）
-        3. 去除文件扩展名
-        4. 统一空格和特殊字符
+        关键改进（解决"同书不同源漏检"）：
+        - 绝大多数小说站把真实书名包裹在 【】 内（如【我与处女情人燕的爱与恨】-爱豆社区），
+          旧逻辑会连 【】 一起删掉，只留下噪声后缀（爱豆社区/第一卷/译者sunson），
+          导致真实书名丢失、不同源的同一本书无法命中。
+        - 新逻辑：优先提取 【】 内书名；补全站点前缀表；过滤纯噪声书名；
+          并只对"书名核心"做保留，确保同名不同书（正文不同）仍不会被误并
+          （由后续内容相似度把关）。
         
         示例：
         - "成人小说网_黄蓉智斗群雄之饮鸩止渴.txt" → "黄蓉智斗群雄之饮鸩止渴"
-        - "AA阅读_鱼龙舞（妖刀记前传）.txt" → "鱼龙舞"
-        - "龙腾小说网_高考后的假期.txt" → "高考后的假期"
+        - "【我与处女情人燕的爱与恨】-爱豆社区.txt" → "我与处女情人燕的爱与恨"
+        - "禁忌书屋_【末世：寄生在校花的神之宫】第一卷（64-65）作者：万象穴.txt"
+          → "末世寄生在校花的神之宫"
         """
         if not file_name:
             return ""
         
+        import re as _re
         name = file_name
         
         # 1. 去除扩展名
         base_name, _ = os.path.splitext(name)
         name = base_name if base_name else name
+
+        # 1.1 去除文件名中混入的路径片段（如把完整路径当书名：
+        #      /Users/yanghao/Documents/novels/datas -> usersyanghaodocumentsnovelsdatas）
+        name = _re.sub(r'^(users?|home)?[a-z]{0,4}(yanghao|documents?|novels?|datas?|downloads?|books?)'
+                       r'[a-z]{0,4}(yanghao|documents?|novels?|datas?|downloads?|books?)*', '', name,
+                       flags=_re.I)
         
-        # 2. 去除常见网站/来源前缀
+        # 2. 去除常见网站/来源前缀（增强：补全实测出现的各类站点名）
         for prefix in SOURCE_PREFIXES:
             if name.startswith(prefix):
                 name = name[len(prefix):]
                 break
+        # 2.1 通用动态前缀：任意"xxx小说网_"/"xx阅读_"（覆盖未列举的来源站）
+        name = _re.sub(r'^[\u4e00-\u9fffA-Za-z]{1,8}(小说网|阅读|书屋|书城|读书)[_＿:：\-\s]*', '', name)
+        # 2.2 去除抓取时间戳后缀（如 _20260609_085716 / _2026-06-09 等，实测4304个）
+        name = _re.sub(r'[_\-_＿]?\d{4}[_\-]?\d{2}[_\-]?\d{2}([_\-_＿]\d{2}[_\-]?\d{2}([_\-]?\d{2})?)?', '', name)
+        name = _re.sub(r'[_\-_＿]?\d{8,14}', '', name)  # 兜底：纯长数字时间戳
         
-        # 3. 去除括号内的副标题（支持中文括号、英文括号、全角括号）
-        # 匹配模式：（...）、(...)、〔...〕、【...】、<...>、《...》
-        import re as _re
-        # 先去除《》内的内容（书名号，通常包含完整书名）
-        # 保留《》外的括号内容作为副标题去除
-        name = _re.sub(r'[（(][^）)]*[）)]', '', name)   # 中文/英文圆括号
-        name = _re.sub(r'[【[][^】]*[】]]', '', name)   # 中文方括号
-        name = _re.sub(r'[[].*?[]]', '', name)           # 英文方括号
-        name = _re.sub(r'<[^>]*>', '', name)             # 尖括号
-        name = _re.sub(r'[〔[^〕]*〕]', '', name)         # 全角括号
+        # 3. 优先提取 【】 内的真实书名（最常见、最可靠的书名标记）
+        bracket_title = _re.search(r'【([^】]+)】', name)
+        if bracket_title:
+            core = bracket_title.group(1)
+        else:
+            # 无【】时，去掉各类元数据括号后取主体
+            # 去除圆括号（作者/译者/卷/章节/完本等元数据）
+            name = _re.sub(
+                r'[（(][^（）()]*?(作者|译者|譯者|原作|卷|部|章|回|集|册|话|节|完|更|番外|'
+                r'第\d|[\d]+[-~～至]|色|种|重口|纯爱|度)[^（）()]*?[）)]', '', name)
+            # 去除英文/尖括号
+            name = _re.sub(r'[<\[][^>\]]*[>\]]', '', name)
+            core = name
         
-        # 4. 去除下划线、连字符等分隔符（有些文件名用下划线代替空格）
-        name = name.replace('_', ' ').replace('-', ' ')
+        # 4. 书名核心清理：去掉尾部的作者/章节/卷/副本等噪声
+        core = _re.sub(r'[_\- ]?(作者|译者|譯者)[：:].*$', '', core)
+        core = _re.sub(r'[_\- ]?(第\d+[章回卷部集话节]|[\d]+[-~～至]\d+|完|番外).*$', '', core)
+        core = _re.sub(
+            r'[ _－\-]?(副本|copy|复本|分卷|合集|全集|完整版|全文阅读|最新章节|'
+            r'无删减|精校版|校对版|完本|完整|全本|修订版|精修版)$', '', core, flags=_re.I)
+        core = _re.sub(r'[\s_－—~～·、，。：；！？""\'\'《》<>｜|.*()\[\]【】０-９（）：]+$', '', core)
         
-        # 5. 去除多余空格并转小写
-        name = ' '.join(name.split()).lower().strip()
+        # 5. 繁简/标点归一化（复用项目能力）
+        try:
+            from src.utils.string_utils import StringUtils
+            core = StringUtils.normalize_text_for_dedup(core, to_simplified=True, remove_punctuation=True)
+        except Exception:
+            core = core.strip()
         
-        return name
+        # 6. 过滤纯噪声书名（如"爱豆社区""第一卷""译者sunson""13"等）
+        if not core or len(core) < 3 or core in _NOISE_BOOK_TITLES:
+            return ""
+        
+        return core.strip()
     
     # 【新增】静态方法：文本归一化（用于SimHash计算前，解决类型④）
     @staticmethod
@@ -238,9 +282,9 @@ class SmartDuplicateDetectorV3:
     SIMHASH_THRESHOLD = 3  # SimHash汉明距离阈值
     
     # ===== V7优化后的规则参数（平衡精准度与召回率）=====
-    MIN_CONTENT_SIMILARITY = 0.32      # 规则A：从0.22提高到0.32（减少误报）
+    MIN_CONTENT_SIMILARITY = 0.55      # 规则A：从0.32提高到0.55（【V8】隔离无关书，真重复sim>=0.85）
     HIGH_CONFIDENCE = 0.76             # 最终置信度门槛：从0.70提高到0.76（与Ultra一致）
-    SUBSET_MIN_RATIO = 0.45            # 包含关系最低匹配率：从0.35提高到0.45（减少误报）
+    SUBSET_MIN_RATIO = 0.70            # 包含关系最低匹配率：从0.45提到0.70（【V8】隔离同题材误报，真子集>=0.8）
     SUBSET_SIZE_MIN_RATIO = 0.05       # 大小差异下限：从0.08降到0.05
     SUBSET_SIZE_MAX_RATIO = 0.98       # 大小差异上限：从0.95升到0.98
     FINGERPRINT_SLICE_SIZE = 800       # 指纹切片大小（字符）
@@ -488,7 +532,14 @@ class SmartDuplicateDetectorV3:
                 if content:
                     # 【V5改进】对内容进行归一化处理后再计算SimHash（解决类型④格式差异）
                     content_for_simhash = SmartDuplicateDetectorV3._normalize_text_for_comparison(content)
-                    fp.content_sample = content[:5000] if len(content) > 5000 else content
+                    # 【V8修复】深度内容比对用"中段采样"而非开头：
+                    # 不同来源站会在文件开头插入不同的广告头/站点声明，导致开头采样
+                    # 相似度被压低，同书不同源漏检。跳过开头 1/3，取中段正文做比对。
+                    if len(content) > 6000:
+                        _start = len(content) // 3
+                        fp.content_sample = content[_start:_start + 5000]
+                    else:
+                        fp.content_sample = content
                     fp.simhash = self._compute_simhash(content_for_simhash)
                     
                     lines = content.count('\n')
@@ -689,9 +740,9 @@ class SmartDuplicateDetectorV3:
                         )
 
                     should_include = (
-                        content_sim >= 0.32 or  # 【V7】从0.28提高到0.32
-                        (content_sim == 0 and dist <= 1) or
-                        fp1.normalized_name == fp2.normalized_name
+                        content_sim >= 0.70 or  # 【V8】从0.32提高到0.70：隔离同题材误报（真同书sim>=0.85）
+                        (content_sim == 0 and dist <= 1) or  # 完全相同的SimHash（仅hash，需谨慎）
+                        fp1.normalized_name == fp2.normalized_name  # 归一化书名相同（强信号）
                     )
                     
                     if should_include:
@@ -707,9 +758,9 @@ class SmartDuplicateDetectorV3:
                 )
                 
                 should_create = (
-                    max_sim >= 0.30 or  # 【V7】从0.25提高到0.30
-                    (max_sim >= 0.22 and has_name_match) or  # 【V7】从0.18到0.22
-                    len(candidate_pairs) >= 3
+                    max_sim >= 0.70 or  # 【V8】从0.30提高到0.70：隔离同题材误报（真同书sim>=0.85）
+                    (max_sim >= 0.22 and has_name_match) or  # 归一化书名相同（强信号，保留较低门槛）
+                    len(candidate_pairs) >= 3  # 多源聚合（同名书常见），但需配合内容验证
                 )
                 
                 if should_create:
@@ -1215,10 +1266,15 @@ class SmartDuplicateDetectorV3:
                         if file_name_match and feature_sim >= 0.45:
                             confidence = 0.55 + subset_ratio_val * 0.25
             
-            # 规则C: 中等相似度 + 多维辅助证据（V4: 针对类型②③增强）
-            if (not is_duplicate and has_enough_content and 
-                  content_similarity >= 0.18 and  # 【V4】从0.24降到0.18，捕获更多"内容相同"
-                  (file_name_match or feature_sim >= 0.50 or simhash_dist <= 5)):  # 全面放宽
+            # 规则C: 中等相似度 + 多维辅助证据
+            # 【V8修复】content_similarity 门槛从 0.18 提高到 0.70：
+            # 实测表明不同来源站抓取的"同书不同源"正文相似度高达 0.85~0.99，
+            # 而"同名不同书/同题材不同书"中段采样相似度仅约 0.5。0.18 的门槛会把
+            # 大量无关书误判为重复（进而误删好书）。提高到 0.70 既能保留真实同书
+            # 的召回，又能隔离无关书。章节切片类重复由规则B(子集)与Level3(同名)覆盖。
+            if (not is_duplicate and has_enough_content and
+                  content_similarity >= 0.70 and
+                  (file_name_match or feature_sim >= 0.50 or simhash_dist <= 5)):
                 
                 additional_evidence = 0.0
                 

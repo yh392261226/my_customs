@@ -35,6 +35,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("a", "toggle_select_current_page", get_global_i18n().t('duplicate_books.toggle_select_current_page')),
         ("A", "toggle_select_all_pages", get_global_i18n().t('duplicate_books.toggle_select_all_pages')),
         ("v", "preview_current", get_global_i18n().t('crawler.preview')),
+        ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
+        ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -517,6 +519,16 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
     @on(Button.Pressed, "#prev-group-btn")
     def on_prev_group_pressed(self) -> None:
         """上一组按钮按下时的回调"""
+        if self.current_group_index > 0:
+            self._display_duplicate_group(self.current_group_index - 1)
+
+    def action_next_group(self) -> None:
+        """快捷键 n：下一组"""
+        if self.current_group_index < len(self.duplicate_groups) - 1:
+            self._display_duplicate_group(self.current_group_index + 1)
+
+    def action_prev_group(self) -> None:
+        """快捷键 p：上一组"""
         if self.current_group_index > 0:
             self._display_duplicate_group(self.current_group_index - 1)
     

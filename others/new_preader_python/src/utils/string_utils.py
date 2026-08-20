@@ -955,7 +955,7 @@ class _ChineseConverter:
         # ===== 尝试加载 opencc（更完整）=====
         try:
             import opencc
-            cls._opencc_converter = opencc.OpenCC('s2t.json')
+            cls._opencc_converter = opencc.OpenCC('t2s.json')
             cls._use_opencc = True
             cls._initialized = True
             logger.info("使用 opencc 作为繁简转换后端")
@@ -965,7 +965,7 @@ class _ChineseConverter:
 
         try:
             import opencc
-            cls._opencc_converter = OpenCC('s2t')
+            cls._opencc_converter = OpenCC('t2s')
             cls._use_opencc = True
             cls._initialized = True
             logger.info("使用 opencc (OpenCC) 作为繁简转换后端")
