@@ -1005,6 +1005,8 @@
     "delete_selected": "删除选中",
     "next_group": "下一组",
     "prev_group": "上一组",
+    "skip_group": "跳过此组",
+    "elapsed_info": "对比耗时：{seconds} 秒",
     "already_first_group": "已经是第一组了",
     "already_last_group": "已经是最后一组了",
     "need_at_least_two": "需要至少两本书籍才能检测重复",

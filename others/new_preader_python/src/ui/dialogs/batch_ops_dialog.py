@@ -2689,15 +2689,18 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     
                     from src.utils.book_duplicate_detector_v2 import SmartDuplicateDetectorV3
                     
+                    import time as _time
+                    _t0 = _time.time()
                     result = SmartDuplicateDetectorV3.find_duplicates(
                         all_books,
                         progress_callback=progress_callback,
                         batch_callback=batch_callback
                     )
+                    _elapsed = _time.time() - _t0
                     
                     # 所有批次完成后，通知UI（忽略应用已退出的情况）
                     try:
-                        self.app.call_from_thread(self._on_all_batches_completed, result)
+                        self.app.call_from_thread(self._on_all_batches_completed, result, _elapsed)
                     except Exception:
                         pass  # 应用可能已退出，静默忽略
                     return result
@@ -2816,7 +2819,7 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"处理V2批次完成时出错: {e}")
     
-    def _on_all_batches_completed(self, duplicate_groups) -> None:
+    def _on_all_batches_completed(self, duplicate_groups, elapsed: float = None) -> None:
         """所有批次完成后的回调"""
         try:
             # 标记所有批次已完成
@@ -2885,7 +2888,8 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
                     final_groups,  # 【修复】使用最终结果，不是中间的 _shown_duplicate_groups
                     0,  # 所有阶段完成
                     len(final_groups),  # 总批次数 = 实际组数
-                    False  # 不再有后续处理
+                    False,  # 不再有后续处理
+                    elapsed_seconds=elapsed  # 对比耗时
                 )
                 self.app.push_screen(dialog, callback=on_duplicate_dialog_closed)
             else:

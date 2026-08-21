@@ -1983,6 +1983,8 @@
     "delete_selected": "Delete Selected",
     "next_group": "Next Group",
     "prev_group": "Previous Group",
+    "skip_group": "Skip This Group",
+    "elapsed_info": "Comparison time: {seconds} seconds",
     "already_first_group": "Already at the first group",
     "already_last_group": "Already at the last group",
     "need_at_least_two": "Need at least two books to detect duplicates",

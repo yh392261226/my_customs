@@ -37,10 +37,12 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("v", "preview_current", get_global_i18n().t('crawler.preview')),
         ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
         ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
+        ("k", "skip_group", get_global_i18n().t('duplicate_books.skip_group')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
-                 current_batch: int = 0, total_batches: int = 1, processing_remaining: bool = False):
+                 current_batch: int = 0, total_batches: int = 1, processing_remaining: bool = False,
+                 elapsed_seconds: float = None):
         """
         初始化重复书籍对话框
 
@@ -50,16 +52,19 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             current_batch: 当前批次数(0表示初始批次,即哈希值或文件名相同的重复组)
             total_batches: 总批次数
             processing_remaining: 是否还有剩余批次需要处理
+            elapsed_seconds: 对比/检测耗时（秒），为 None 时表示未知
         """
         super().__init__()
         self.theme_manager = theme_manager
         self.duplicate_groups = duplicate_groups
         self.selected_books: set[str] = set()  # 选中的书籍路径
         self.recommended_selected_books: set[str] = set()  # 推荐选中的书籍路径
+        self.skipped_groups: set[int] = set()  # 已跳过的组索引，组内书籍不参与删除
         self.current_group_index = 0  # 当前显示的重复组索引
         self.current_batch = current_batch  # 当前批次数(0表示初始批次)
         self.total_batches = total_batches  # 总批次数
         self.processing_remaining = processing_remaining  # 是否还有剩余批次需要处理
+        self.elapsed_seconds: float = elapsed_seconds  # 对比耗时（秒）
         
         # 【新增】实例级取消标志 - 用于通知后台线程停止
         self._is_cancelled = False
@@ -88,6 +93,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 
                 # 重复组信息
                 Label("", id="duplicate-group-info"),
+
+                # 对比耗时信息
+                Label("", id="duplicate-elapsed-info"),
                 
                 # 书籍对比表格
                 DataTable(id="duplicate-books-table"),
@@ -100,6 +108,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                     Button(get_global_i18n().t("duplicate_books.delete_selected"), id="delete-btn", variant="error"),
                     Button(get_global_i18n().t("duplicate_books.next_group"), id="next-group-btn"),
                     Button(get_global_i18n().t("duplicate_books.prev_group"), id="prev-group-btn"),
+                    Button(get_global_i18n().t("duplicate_books.skip_group"), id="skip-group-btn", variant="warning"),
                     Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
                 ),
                 
@@ -195,6 +204,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         elif group.duplicate_type == DuplicateType.CONTENT_SUBSET:
             duplicate_type_text = get_global_i18n().t("duplicate_books.type_content_subset", similarity=f"{group.similarity:.1%}")
         
+        skip_mark = "（已跳过）" if group_index in self.skipped_groups else ""
         group_info_label.update(
             get_global_i18n().t(
                 "duplicate_books.group_info",
@@ -202,7 +212,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 total_groups=len(self.duplicate_groups),
                 duplicate_type=duplicate_type_text,
                 books_count=len(group.books)
-            )
+            ) + skip_mark
         )
         
         # 更新书籍表格
@@ -300,26 +310,46 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
     def _update_status(self) -> None:
         """更新状态信息"""
         status_label = None
+        elapsed_label = None
         for widget in self.walk_children():
             if hasattr(widget, "id") and widget.id == "duplicate-books-status":
                 status_label = widget
-                break
+            elif hasattr(widget, "id") and widget.id == "duplicate-elapsed-info":
+                elapsed_label = widget
         
         if not status_label:
             logger.error("无法找到状态标签组件")
             return
         
-        # 计算当前组中选中的书籍数量
+        # 计算当前组中选中的书籍数量（排除被跳过组的书籍）
         current_group = self.duplicate_groups[self.current_group_index]
         current_group_selected = sum(1 for book in current_group.books if book.path in self.selected_books)
-        
+
+        # 总选中数也排除被跳过组的书籍
+        skipped_paths = set()
+        for idx in self.skipped_groups:
+            skipped_paths.update(b.path for b in self.duplicate_groups[idx].books)
+        total_selected = sum(1 for p in self.selected_books if p not in skipped_paths)
+
         status_label.update(
             get_global_i18n().t(
                 "duplicate_books.status_info",
-                total_selected=len(self.selected_books),
+                total_selected=total_selected,
                 current_group_selected=current_group_selected
             )
         )
+
+        # 显示对比耗时
+        if elapsed_label is not None:
+            if self.elapsed_seconds is not None:
+                elapsed_label.update(
+                    get_global_i18n().t(
+                        "duplicate_books.elapsed_info",
+                        seconds=f"{self.elapsed_seconds:.1f}"
+                    )
+                )
+            else:
+                elapsed_label.update("")
     
     def action_cancel(self) -> None:
         """取消操作 - 停止后台检测线程并退出"""
@@ -531,7 +561,28 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         """快捷键 p：上一组"""
         if self.current_group_index > 0:
             self._display_duplicate_group(self.current_group_index - 1)
+
+    def action_skip_group(self) -> None:
+        """快捷键 k：跳过当前组（组内书籍无论是否选中都不删除）"""
+        idx = self.current_group_index
+        if idx < 0 or idx >= len(self.duplicate_groups):
+            return
+        # 记录跳过，并清除该组已被选中的书籍
+        self.skipped_groups.add(idx)
+        group = self.duplicate_groups[idx]
+        for book in group.books:
+            self.selected_books.discard(book.path)
+        logger.info(f"跳过重复组 {idx + 1}/{len(self.duplicate_groups)}: {group.books[0].file_name}")
+        if self.current_group_index < len(self.duplicate_groups) - 1:
+            self._display_duplicate_group(self.current_group_index + 1)
+        else:
+            self._update_status()
     
+    @on(Button.Pressed, "#skip-group-btn")
+    def on_skip_group_pressed(self) -> None:
+        """跳过按钮回调"""
+        self.action_skip_group()
+
     @on(Button.Pressed, "#select-recommended-btn")
     def on_select_recommended_pressed(self) -> None:
         """选择推荐按钮按下时的回调"""
@@ -622,8 +673,15 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             
             # 记录被删除的书籍路径
             deleted_book_paths = set()
-            
-            for book_path in self.selected_books:
+
+            # 跳过组内的书籍不参与删除（防御性过滤）
+            skipped_paths = set()
+            for idx in self.skipped_groups:
+                for book in self.duplicate_groups[idx].books:
+                    skipped_paths.add(book.path)
+            selected_for_delete = [p for p in self.selected_books if p not in skipped_paths]
+
+            for book_path in selected_for_delete:
                 try:
                     if os.path.exists(book_path):
                         # 移动到回收站（根据操作系统）
