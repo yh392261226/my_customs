@@ -2554,7 +2554,15 @@ class CrawlerManagementScreen(Screen[None]):
 
                 self.app.run_worker(_merge_worker, name="merge-groups-worker", thread=True)
 
+            # 进入合并模式弹窗前，先关闭爬取管理页面的浏览器监听，避免被其子页面（合并详情）截留
+            was_monitoring = self.browser_monitor_active
+            if was_monitoring:
+                self._stop_browser_monitor()
+
             def handle_merge_mode_result(result: Optional[Dict[str, Any]]) -> None:
+                # 合并模式弹窗关闭后，若之前正在监听浏览器则恢复监听
+                if was_monitoring:
+                    self._start_browser_monitor()
                 # 无论取消还是完成都刷新列表（弹窗中可能删除了数据）
                 self._load_crawl_history(from_search=True)
                 if not result or not result.get('success'):
@@ -5370,7 +5378,15 @@ class CrawlerManagementScreen(Screen[None]):
         try:
             from src.ui.dialogs.fill_missing_dialog import FillMissingDialog
 
+            # 打开补缺弹窗前，先关闭爬取管理页面的浏览器监听，避免与补缺弹窗的监听互相截留
+            was_monitoring = self.browser_monitor_active
+            if was_monitoring:
+                self._stop_browser_monitor()
+
             def handle_fill_missing_result(result: Optional[Dict[str, Any]]) -> None:
+                # 补缺弹窗关闭后，若之前正在监听浏览器则恢复监听
+                if was_monitoring:
+                    self._start_browser_monitor()
                 if not result:
                     return
                 action = result.get("action", "")
