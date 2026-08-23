@@ -37,7 +37,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("v", "preview_current", get_global_i18n().t('crawler.preview')),
         ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
         ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
-        ("k", "skip_group", get_global_i18n().t('duplicate_books.skip_group')),
+        ("t", "skip_group", get_global_i18n().t('duplicate_books.skip_group')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -59,7 +59,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         self.duplicate_groups = duplicate_groups
         self.selected_books: set[str] = set()  # 选中的书籍路径
         self.recommended_selected_books: set[str] = set()  # 推荐选中的书籍路径
-        self.skipped_groups: set[int] = set()  # 已跳过的组索引，组内书籍不参与删除
+        self.skipped_groups: set[frozenset] = set()  # 已跳过组的稳定标识（组内书籍路径集合），避免列表重排导致索引失效
         self.current_group_index = 0  # 当前显示的重复组索引
         self.current_batch = current_batch  # 当前批次数(0表示初始批次)
         self.total_batches = total_batches  # 总批次数
@@ -204,7 +204,7 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         elif group.duplicate_type == DuplicateType.CONTENT_SUBSET:
             duplicate_type_text = get_global_i18n().t("duplicate_books.type_content_subset", similarity=f"{group.similarity:.1%}")
         
-        skip_mark = "（已跳过）" if group_index in self.skipped_groups else ""
+        skip_mark = "（已跳过）" if self._group_key(group) in self.skipped_groups else ""
         group_info_label.update(
             get_global_i18n().t(
                 "duplicate_books.group_info",
@@ -307,6 +307,15 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         # 更新状态信息
         self._update_status()
     
+    @staticmethod
+    def _group_key(group) -> frozenset:
+        """生成组的稳定标识：组内所有书籍路径的集合（不依赖列表位置，列表重排也不会失效）"""
+        return frozenset(book.path for book in group.books)
+
+    def _is_path_skipped(self, path: str) -> bool:
+        """判断某书籍路径是否属于任一被跳过的组"""
+        return any(path in key for key in self.skipped_groups)
+
     def _update_status(self) -> None:
         """更新状态信息"""
         status_label = None
@@ -325,10 +334,10 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         current_group = self.duplicate_groups[self.current_group_index]
         current_group_selected = sum(1 for book in current_group.books if book.path in self.selected_books)
 
-        # 总选中数也排除被跳过组的书籍
+        # 总选中数也排除被跳过组的书籍（用稳定组 key，避免列表重排后索引越界）
         skipped_paths = set()
-        for idx in self.skipped_groups:
-            skipped_paths.update(b.path for b in self.duplicate_groups[idx].books)
+        for key in self.skipped_groups:
+            skipped_paths.update(key)
         total_selected = sum(1 for p in self.selected_books if p not in skipped_paths)
 
         status_label.update(
@@ -567,9 +576,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         idx = self.current_group_index
         if idx < 0 or idx >= len(self.duplicate_groups):
             return
-        # 记录跳过，并清除该组已被选中的书籍
-        self.skipped_groups.add(idx)
         group = self.duplicate_groups[idx]
+        # 记录跳过用的是稳定组 key（组内书籍路径集合），列表重排后依然有效
+        self.skipped_groups.add(self._group_key(group))
         for book in group.books:
             self.selected_books.discard(book.path)
         logger.info(f"跳过重复组 {idx + 1}/{len(self.duplicate_groups)}: {group.books[0].file_name}")
@@ -674,12 +683,8 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             # 记录被删除的书籍路径
             deleted_book_paths = set()
 
-            # 跳过组内的书籍不参与删除（防御性过滤）
-            skipped_paths = set()
-            for idx in self.skipped_groups:
-                for book in self.duplicate_groups[idx].books:
-                    skipped_paths.add(book.path)
-            selected_for_delete = [p for p in self.selected_books if p not in skipped_paths]
+            # 跳过组内的书籍不参与删除（用稳定组 key 判断，避免列表重排后索引越界）
+            selected_for_delete = [p for p in self.selected_books if not self._is_path_skipped(p)]
 
             for book_path in selected_for_delete:
                 try:

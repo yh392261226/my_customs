@@ -825,7 +825,12 @@ class Book:
                 if animation_manager.show_default(message):
                     logger.debug(f"显示传统加载动画: {message}")
         except Exception as e:
-            logger.warning(f"显示加载动画失败或组件未找到: {e}")
+            # 在无运行事件循环的上下文（后台线程/脚本）中显示动画必然失败，
+            # 这是预期内的噪声，降级为 debug 避免刷屏；其余异常仍按 WARNING 暴露。
+            if "no running event loop" in str(e) or "event loop is not" in str(e):
+                logger.debug(f"非 UI 上下文跳过加载动画: {e}")
+            else:
+                logger.warning(f"显示加载动画失败或组件未找到: {e}")
     
     def _hide_loading_animation(self) -> None:
         """隐藏加载动画（动态导入以断开循环依赖）"""
