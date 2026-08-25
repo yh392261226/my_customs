@@ -38,6 +38,9 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         ("n", "next_group", get_global_i18n().t('duplicate_books.next_group')),
         ("p", "prev_group", get_global_i18n().t('duplicate_books.prev_group')),
         ("t", "skip_group", get_global_i18n().t('duplicate_books.skip_group')),
+        ("F", "view_file_current", get_global_i18n().t('duplicate_books.view_file_current')),
+        ("D", "select_current_group_recommended", get_global_i18n().t('duplicate_books.select_current_group_recommended')),
+        ("y", "copy_current_title", get_global_i18n().t('duplicate_books.copy_current_title')),
     ]
     
     def __init__(self, theme_manager: ThemeManager, duplicate_groups: List[DuplicateGroup],
@@ -543,6 +546,144 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"预览当前行失败: {e}")
             self.notify(f"预览失败: {e}", severity="error")
+
+    def action_view_file_current(self) -> None:
+        """F键 - 查看当前光标所在行的书籍文件"""
+        try:
+            table = self.query_one("#duplicate-books-table", DataTable)
+
+            # 获取当前光标所在的行
+            current_row_index = getattr(table, 'cursor_row', None)
+
+            if current_row_index is None or not (0 <= current_row_index < len(table.rows)):
+                self.notify(get_global_i18n().t("duplicate_books.view_file_no_row"), severity="warning")
+                return
+
+            # 获取行键
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[current_row_index]
+
+            # 获取书籍路径
+            if hasattr(row_key, 'value') and row_key.value:
+                book_path = str(row_key.value)
+            else:
+                book_path = str(row_key)
+
+            # 校验路径确实属于当前组（避免越界/错位）
+            if not self.duplicate_groups or self.current_group_index < 0 or self.current_group_index >= len(self.duplicate_groups):
+                self.notify(get_global_i18n().t("duplicate_books.view_file_no_row"), severity="warning")
+                return
+
+            group = self.duplicate_groups[self.current_group_index]
+            if not any(b.path == book_path for b in group.books):
+                self.notify(get_global_i18n().t("duplicate_books.view_file_no_row"), severity="warning")
+                return
+
+            # 在文件管理器中定位该文件
+            self._view_file(book_path)
+
+        except Exception as e:
+            logger.error(f"查看当前行文件失败: {e}")
+            self.notify(f"查看文件失败: {e}", severity="error")
+
+    def action_select_current_group_recommended(self) -> None:
+        """D键 - 自动选中当前组中的推荐删除书籍"""
+        try:
+            if not self.duplicate_groups or self.current_group_index < 0 or self.current_group_index >= len(self.duplicate_groups):
+                return
+
+            group = self.duplicate_groups[self.current_group_index]
+            recommended_paths = {book.path for book in group.recommended_to_delete}
+
+            if not recommended_paths:
+                self.notify(
+                    get_global_i18n().t("duplicate_books.select_recommended_current_group_none"),
+                    severity="information",
+                )
+                return
+
+            # 将当前组推荐删除的书籍加入选中集合
+            self.selected_books.update(recommended_paths)
+
+            # 重新加载当前组表格显示（同步勾选状态）并更新统计信息
+            self._display_duplicate_group(self.current_group_index)
+            self._update_status()
+
+            self.notify(
+                get_global_i18n().t(
+                    "duplicate_books.select_recommended_current_group",
+                    count=len(recommended_paths),
+                ),
+                severity="information",
+            )
+
+        except Exception as e:
+            logger.error(f"选中当前组推荐失败: {e}")
+            self.notify(f"选中推荐失败: {e}", severity="error")
+
+    def action_copy_current_title(self) -> None:
+        """y键 - 复制当前光标所在行的书籍标题"""
+        try:
+            if not self.duplicate_groups or self.current_group_index < 0 or self.current_group_index >= len(self.duplicate_groups):
+                return
+
+            table = self.query_one("#duplicate-books-table", DataTable)
+            current_row_index = getattr(table, 'cursor_row', None)
+
+            if current_row_index is None or not (0 <= current_row_index < len(table.rows)):
+                self.notify(get_global_i18n().t("duplicate_books.copy_title_no_row"), severity="warning")
+                return
+
+            # 通过行键（书籍路径）在当前组中查找书籍，获取其标题
+            row_keys = list(table.rows.keys())
+            row_key = row_keys[current_row_index]
+            if hasattr(row_key, 'value') and row_key.value:
+                book_path = str(row_key.value)
+            else:
+                book_path = str(row_key)
+
+            group = self.duplicate_groups[self.current_group_index]
+            book = next((b for b in group.books if b.path == book_path), None)
+            if book is None:
+                self.notify(get_global_i18n().t("duplicate_books.copy_title_no_row"), severity="warning")
+                return
+
+            title = getattr(book, 'title', '') or ''
+            if not title:
+                self.notify(get_global_i18n().t("duplicate_books.copy_title_empty"), severity="warning")
+                return
+
+            # 复制到剪贴板（优先 pyperclip，回退到系统命令）
+            try:
+                import pyperclip
+                pyperclip.copy(title)
+            except ImportError:
+                import subprocess
+                import platform
+                system = platform.system()
+                try:
+                    if system == 'Darwin':
+                        subprocess.run(['pbcopy'], input=title, text=True, check=True)
+                    elif system == 'Windows':
+                        subprocess.run(['clip'], input=title, text=True, check=True, shell=True)
+                    else:
+                        try:
+                            subprocess.run(['xclip', '-selection', 'clipboard'], input=title, text=True, check=True)
+                        except (subprocess.SubprocessError, FileNotFoundError):
+                            subprocess.run(['xsel', '--clipboard', '--input'], input=title, text=True, check=True)
+                except Exception as copy_error:
+                    logger.error(f"复制标题到剪贴板失败: {copy_error}")
+                    self.notify(get_global_i18n().t("duplicate_books.copy_title_failed"), severity="error")
+                    return
+
+            self.notify(
+                get_global_i18n().t("duplicate_books.copy_title_success", title=title),
+                severity="information",
+            )
+
+        except Exception as e:
+            logger.error(f"复制当前行标题失败: {e}")
+            self.notify(f"复制标题失败: {e}", severity="error")
 
     @on(Button.Pressed, "#cancel-btn")
     def on_cancel_pressed(self) -> None:

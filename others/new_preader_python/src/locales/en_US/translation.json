@@ -2007,6 +2007,11 @@
     "books_deleted_continue_processing": "Successfully deleted {count} duplicate books, still processing in background",
     "toggle_row": "Select/Deselect Row",
     "select_current": "Select Current Row",
+    "view_file_current": "View Current File",
+    "select_current_group_recommended": "Select Group Recommended",
+    "view_file_no_row": "Please move the cursor to a row first",
+    "select_recommended_current_group": "Selected {count} recommended books to delete in the current group",
+    "select_recommended_current_group_none": "No recommended books to delete in the current group",
     "toggle_select_current_page": "Select All/Deselect All Current Page",
     "toggle_select_all_pages": "Select All/Deselect All All Pages",
     "select_current_page_all": "Selected all {count} books on current page",
@@ -2014,7 +2019,12 @@
     "select_all_pages_all": "Selected all {count} books on all pages",
     "deselect_all_pages_all": "Deselected all {count} books on all pages",
     "processing_remaining": "Processing batch {batch}/{total}",
-    "all_duplicates_processed": "All duplicate books have been processed"
+    "all_duplicates_processed": "All duplicate books have been processed",
+    "copy_current_title": "Copy Title",
+    "copy_title_no_row": "Please move the cursor to a row first",
+    "copy_title_empty": "This book has no title to copy",
+    "copy_title_failed": "Failed to copy title to clipboard",
+    "copy_title_success": "Copied book title '{title}'"
   },
   "book_comparison": {
     "title": "Book Content Comparison",

@@ -1029,6 +1029,11 @@
     "books_deleted_continue_processing": "成功删除 {count} 本重复书籍，后台仍在处理",
     "toggle_row": "选中/取消选中行",
     "select_current": "选择当前行",
+    "view_file_current": "查看当前行文件",
+    "select_current_group_recommended": "选中当前组推荐",
+    "view_file_no_row": "请先移动光标到一行",
+    "select_recommended_current_group": "已选中当前组推荐的 {count} 本删除书籍",
+    "select_recommended_current_group_none": "当前组没有推荐删除的书籍",
     "toggle_select_current_page": "全选/取消全选当前页",
     "toggle_select_all_pages": "全选/取消全选全部页",
     "select_current_page_all": "已全选当前页 {count} 本书籍",
@@ -1036,7 +1041,12 @@
     "select_all_pages_all": "已全选全部页 {count} 本书籍",
     "deselect_all_pages_all": "已取消全选全部页 {count} 本书籍",
     "processing_remaining": "正在处理第 {batch}/{total} 批",
-    "all_duplicates_processed": "所有重复书籍已处理完成"
+    "all_duplicates_processed": "所有重复书籍已处理完成",
+    "copy_current_title": "复制标题",
+    "copy_title_no_row": "请先移动光标到一行",
+    "copy_title_empty": "该书籍没有可复制的标题",
+    "copy_title_failed": "复制标题到剪贴板失败",
+    "copy_title_success": "已复制书名《{title}》"
   },
   "book_comparison": {
     "title": "书籍内容对比",
