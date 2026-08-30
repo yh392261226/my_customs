@@ -38,12 +38,13 @@ class SearchEngine:
         """初始化数据库"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            # 已索引书籍登记表：仅记录已建立全文索引的 book_id，用于判断
+            # 哪些书尚未索引，避免每次启动重复索引。
+            # 全文内容只保留一份（FTS5 表），不再额外保存原始内容副本，
+            # 原先的 search_index 表与 FTS5 内容重复，会让数据库体积翻倍。
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS search_index (
-                    book_id TEXT NOT NULL,
-                    content TEXT NOT NULL,
-                    position TEXT NOT NULL,
-                    PRIMARY KEY (book_id, position)
+                CREATE TABLE IF NOT EXISTS search_indexed_books (
+                    book_id TEXT PRIMARY KEY
                 )
             """)
             cursor.execute("""
@@ -63,14 +64,15 @@ class SearchEngine:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT OR REPLACE INTO search_index 
-                VALUES (?, ?, ?)
-            """, (book_id, content, position))
+            # 全文内容只写入 FTS5 索引表（搜索实际只查询该表）
             cursor.execute("""
                 INSERT OR REPLACE INTO search_content 
                 VALUES (?, ?, ?)
             """, (book_id, content, position))
+            # 仅登记已索引状态，开销极小
+            cursor.execute("""
+                INSERT OR REPLACE INTO search_indexed_books (book_id) VALUES (?)
+            """, (book_id,))
             conn.commit()
     
     def get_indexed_book_ids(self) -> set:
@@ -83,7 +85,7 @@ class SearchEngine:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT DISTINCT book_id FROM search_index")
+                cursor.execute("SELECT book_id FROM search_indexed_books")
                 return {row[0] for row in cursor.fetchall()}
         except sqlite3.Error as e:
             logger.error(f"获取已索引书籍列表失败: {e}")
@@ -102,7 +104,7 @@ class SearchEngine:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT 1 FROM search_index WHERE book_id = ? LIMIT 1", (book_id,))
+                cursor.execute("SELECT 1 FROM search_indexed_books WHERE book_id = ? LIMIT 1", (book_id,))
                 return cursor.fetchone() is not None
         except sqlite3.Error as e:
             logger.error(f"检查书籍索引状态失败: {e}")
@@ -112,7 +114,7 @@ class SearchEngine:
         """清空全部全文搜索索引（用于重建索引）"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM search_index")
+            cursor.execute("DELETE FROM search_indexed_books")
             cursor.execute("DELETE FROM search_content")
             conn.commit()
     
@@ -183,7 +185,7 @@ class SearchEngine:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM search_index WHERE book_id = ?", (book_id,))
+            cursor.execute("DELETE FROM search_indexed_books WHERE book_id = ?", (book_id,))
             cursor.execute("DELETE FROM search_content WHERE book_id = ?", (book_id,))
             conn.commit()
     
