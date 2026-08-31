@@ -17,6 +17,10 @@ from src.core.search import SearchResult
 from src.ui.styles.universal_style_isolation import apply_universal_style_isolation, remove_universal_style_isolation
 from src.config.default_config import SUPPORTED_FORMATS
 
+# 搜索输入防抖间隔（秒）：停止输入后才真正发起检索，
+# 避免每敲一个字符都触发一次检索
+_SEARCH_DEBOUNCE = 0.3
+
 class SearchDialog(ModalScreen[Optional[SearchResult]]):
 
 
@@ -48,7 +52,9 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         self.book_id = book_id
         self.bookshelf = bookshelf
         self.results: List[SearchResult] = []
-        
+        # 输入防抖定时器，避免逐字符触发检索
+        self._search_timer: Optional[Any] = None
+    
     def compose(self) -> ComposeResult:
         """组合对话框界面"""
         # 动态生成搜索选择框选项
@@ -108,10 +114,23 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
         )
         table.zebra_stripes = True
         
-    async def on_input_changed(self, event: Input.Changed) -> None:
-        """输入变化时执行搜索"""
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """输入变化时执行搜索（防抖，避免逐字符触发检索）"""
         if event.input.id == "search-input" and event.input.value:
-            await self._perform_search()
+            self._schedule_search()
+    
+    def _schedule_search(self) -> None:
+        """延迟发起搜索；输入过程中会被反复调用，从而不断重置计时"""
+        if self._search_timer is not None:
+            try:
+                self._search_timer.stop()
+            except Exception:
+                pass
+        self._search_timer = self.set_timer(_SEARCH_DEBOUNCE, self._run_search)
+    
+    def _run_search(self) -> None:
+        """定时器回调：以 worker 执行异步搜索，exclusive 会取消上一次未完成的搜索"""
+        self.run_worker(self._perform_search(), exclusive=True)
     
     async def on_select_changed(self, event: Select.Changed) -> None:
         """文件类型选择变化时执行搜索"""

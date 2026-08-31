@@ -38,27 +38,29 @@ class BrowserTabMonitor:
         self.on_url_detected = on_url_detected
         self.headless = headless
         self.browser_type = browser_type or BrowserType.CHROME  # 默认使用Chrome
-        self.selected_window_index = None  # 选中的窗口索引，None表示所有窗口
+        self.selected_window_index = None  # 选中的窗口稳定ID，None表示所有窗口
         self.on_window_refresh_callback = None  # 窗口列表刷新回调
+        self.on_monitor_stopped = None  # 监听自动停止回调（如被监听窗口被关闭），参数为被关闭的窗口ID
         logger.info(f"BrowserTabMonitor初始化: browser_type={self.browser_type}")
         self.last_urls = {}  # 记录上次检测的URL，避免重复处理
         self._monitoring_thread = None
         self._stop_monitoring = False
         
-    def get_browser_tabs(self, window_index: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_browser_tabs(self, window_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         获取浏览器标签页
 
         Args:
-            window_index: 窗口索引（从1开始），None表示获取所有窗口的标签页
+            window_id: 窗口稳定ID（AppleScript 的 window id），None表示获取所有窗口的标签页
 
         Returns:
             标签页信息列表
         """
         try:
-            logger.info(f"get_browser_tabs: self.browser_type={self.browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}, window_index={window_index}")
-            # 使用传入的window_index或实例的selected_window_index
-            target_window = window_index if window_index is not None else self.selected_window_index
+            logger.info(f"get_browser_tabs: self.browser_type={self.browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}, window_id={window_id}")
+            # 使用传入的 window_id 或实例的 selected_window_index（均为稳定的窗口ID，
+            # 而非位置序号，避免窗口关闭/重排后序号漂移导致误监听其它窗口）
+            target_window = window_id if window_id is not None else self.selected_window_index
             # 根据浏览器类型选择对应的AppleScript
             app_name = "Google Chrome"  # 默认值
             if self.browser_type == BrowserType.SAFARI:
@@ -142,13 +144,14 @@ class BrowserTabMonitor:
             AppleScript脚本
         """
         if window_index is not None:
-            # 只获取指定窗口的标签页
+            # 只获取指定窗口的标签页（使用稳定的 window id 而非位置序号，
+            # 避免窗口被关闭/重排后位置序号漂移，导致误监听其它窗口）
             return f'''
             tell application "{app_name}"
                 if it is running then
                     set tab_list to {{}}
                     try
-                        set current_window to window {window_index}
+                        set current_window to window id {window_index}
                         set tab_count to count of tabs of current_window
                         repeat with j from 1 to tab_count
                             try
@@ -160,6 +163,9 @@ class BrowserTabMonitor:
                                 end if
                             end try
                         end repeat
+                    on error
+                        -- 目标窗口不存在（已被关闭）时返回空列表
+                        set tab_list to {{}}
                     end try
                     return tab_list
                 else
@@ -178,6 +184,7 @@ class BrowserTabMonitor:
                         try
                             -- 先获取当前窗口信息，单独处理每个窗口
                             set current_window to window i
+                            set win_id to id of current_window as text
                             set tab_count to count of tabs of current_window
                             set window_result to ""
                             repeat with j from 1 to tab_count
@@ -189,7 +196,7 @@ class BrowserTabMonitor:
                                         if length of window_result > 0 then
                                             set window_result to window_result & " | "
                                         end if
-                                        set window_result to window_result & "URL:" & tab_url & ", name:" & tab_title & ", w:" & (i as text)
+                                        set window_result to window_result & "URL:" & tab_url & ", name:" & tab_title & ", w:" & win_id
                                     end if
                                 on error
                                     -- 单个标签获取失败不影响其他标签
@@ -224,13 +231,13 @@ class BrowserTabMonitor:
             AppleScript脚本
         """
         if window_index is not None:
-            # 只获取指定窗口的标签页
+            # 只获取指定窗口的标签页（使用稳定的 window id 而非位置序号）
             return f'''
             tell application "Safari"
                 if it is running then
                     set tab_list to {{}}
                     try
-                        set current_window to window {window_index}
+                        set current_window to window id {window_index}
                         set tab_count to count of tabs of current_window
                         repeat with j from 1 to tab_count
                             try
@@ -242,6 +249,9 @@ class BrowserTabMonitor:
                                 end if
                             end try
                         end repeat
+                    on error
+                        -- 目标窗口不存在（已被关闭）时返回空列表
+                        set tab_list to {{}}
                     end try
                     return tab_list
                 else
@@ -259,6 +269,7 @@ class BrowserTabMonitor:
                     repeat with i from 1 to window_count
                         try
                             set current_window to window i
+                            set win_id to id of current_window as text
                             set tab_count to count of tabs of current_window
                             set window_result to ""
                             repeat with j from 1 to tab_count
@@ -270,7 +281,7 @@ class BrowserTabMonitor:
                                         if length of window_result > 0 then
                                             set window_result to window_result & " | "
                                         end if
-                                        set window_result to window_result & "URL:" & tab_url & ", name:" & tab_name & ", w:" & (i as text)
+                                        set window_result to window_result & "URL:" & tab_url & ", name:" & tab_name & ", w:" & win_id
                                     end if
                                 on error
                                 end try
@@ -317,6 +328,7 @@ class BrowserTabMonitor:
                     repeat with i from 1 to window_count
                         try
                             set current_window to window i
+                            set win_id to id of current_window as text
                             set tab_count to count of tabs of current_window
                             set tab_title to ""
                             try
@@ -326,10 +338,10 @@ class BrowserTabMonitor:
                                     set tab_title to ""
                                 end if
                             end try
-                            set end of window_list to "index:" & i & ", tabs:" & tab_count & ", title:" & tab_title
+                            set end of window_list to "index:" & i & ", id:" & win_id & ", tabs:" & tab_count & ", title:" & tab_title
                         on error
-                            -- 窗口获取失败时仍然记录基本信息
-                            set end of window_list to "index:" & i & ", tabs:0, title:"
+                            -- 窗口获取失败时仍然记录基本信息（id 回退为位置序号）
+                            set end of window_list to "index:" & i & ", id:" & i & ", tabs:0, title:"
                         end try
                     end repeat
                     return window_list
@@ -353,13 +365,14 @@ class BrowserTabMonitor:
                         seg = seg.strip()
                         if not seg:
                             continue
-                        # 每段格式: N, tabs:X, title:...
-                        m = re.match(r'(\d+),\s*tabs:(\d+),\s*title:(.*)', seg)
+                        # 每段格式: N, id:M, tabs:X, title:...
+                        m = re.match(r'(\d+),\s*id:(\d+),\s*tabs:(\d+),\s*title:(.*)', seg)
                         if m:
                             windows.append({
                                 'index': int(m.group(1)),
-                                'tab_count': int(m.group(2)),
-                                'title': (m.group(3) or '').strip()
+                                'id': int(m.group(2)),
+                                'tab_count': int(m.group(3)),
+                                'title': (m.group(4) or '').strip()
                             })
                             logger.info(f"成功解析窗口: index={m.group(1)}, tabs={m.group(2)}, title={m.group(3)[:50]}...")
                         else:
@@ -407,9 +420,11 @@ class BrowserTabMonitor:
             # 特殊处理cool18.com网站 - 优先处理
             if 'cool18.com' in site_url:
                 logger.info(f"匹配到cool18.com网站，开始提取ID")
-                # cool18.com实际URL格式：/bbs4/index.php?app=forum&act=threadview&tid={novel_id}
+                # cool18.com实际URL格式：
+                #  - 论坛帖: /bbs4/index.php?app=forum&act=threadview&tid={novel_id}
+                #  - 书库:   /bbs4/index.php?app=book&act=bookview&cid={novel_id}
                 # base_url已经是 https://www.cool18.com/bbs4/index.php，所以只需要匹配后面的查询参数
-                pattern = rf"{re.escape(base_url)}\?.*?tid=(\d+)"
+                pattern = rf"{re.escape(base_url)}\?.*?(?:tid|cid)=(\d+)"
                 logger.info(f"正则表达式: {pattern}")
                 match = re.search(pattern, url)
                 if match:
@@ -867,13 +882,33 @@ class BrowserTabMonitor:
             refresh_interval = max(30 // interval, 6)  # 每30秒刷新一次窗口列表（至少6次轮询）
             while not self._stop_monitoring:
                 novel_urls = self.monitor_tabs(callback)
-                
+
                 if novel_urls:
                     for novel_info in novel_urls:
                         logger.info(f"发现小说URL: {novel_info['url']}, "
                                   f"网站: {novel_info['site_name']}, "
                                   f"小说ID: {novel_info['novel_id']}")
-                
+
+                # 若监听的是某个特定窗口，检测该窗口是否仍然存在；
+                # 窗口被关闭（标签页抓完关窗、或浏览器退出）后自动停止监听，避免空转或误抓其它窗口
+                if not self._stop_monitoring and self.selected_window_index is not None:
+                    try:
+                        alive = any(
+                            w.get('id') == self.selected_window_index
+                            for w in self.get_browser_windows()
+                        )
+                        if not alive:
+                            logger.info(f"被监听窗口(id={self.selected_window_index})已关闭，自动停止监听")
+                            self._stop_monitoring = True
+                            if self.on_monitor_stopped:
+                                try:
+                                    self.on_monitor_stopped(self.selected_window_index)
+                                except Exception as cb_err:
+                                    logger.warning(f"监听停止回调执行失败: {cb_err}")
+                            continue
+                    except Exception as e:
+                        logger.warning(f"检测被监听窗口是否存在时出错: {e}")
+
                 # 定期触发窗口列表刷新回调（让UI更新下拉框）
                 refresh_counter += 1
                 if refresh_counter >= refresh_interval and self.on_window_refresh_callback:

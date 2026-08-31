@@ -27,6 +27,7 @@ from src.locales.i18n_manager import get_global_i18n
 from src.themes.theme_manager import ThemeManager
 from src.core.database_manager import DatabaseManager
 from src.core.bookshelf import Bookshelf
+from src.spiders import get_parser_options
 from src.utils.logger import get_logger
 from src.utils.logger import get_recent_memory_logs, is_file_logging_enabled
 from src.utils.file_helpers import read_file_preview
@@ -872,6 +873,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 窗口选择相关属性
         self.selected_window_index: Optional[int] = None  # None表示所有窗口
         self.window_options: List[Dict[str, Any]] = []  # 窗口选项列表
+        self._refreshing_windows: bool = False  # 刷新窗口列表时，屏蔽程序化修改下拉框值误触发的选择事件
         
         # 浏览器标签页监听器（AppleScript模式）
         self.browser_monitor: Optional[BrowserTabMonitor] = None
@@ -1045,6 +1047,14 @@ class CrawlerManagementScreen(Screen[None]):
                     # 小说ID输入区域
                     Vertical(
                         Horizontal(
+                            # 解析器下拉框：用于临时切换本次爬取使用的解析器（不修改网站默认配置）
+                            Select(
+                                id="parser-select",
+                                options=self._get_parser_select_options(),
+                                value=self._get_default_parser_value(),
+                                classes="parser-select",
+                                tooltip="选择本次爬取使用的解析器（仅本次临时生效，不修改网站默认配置）"
+                            ),
                             # 根据书籍网站的"是否支持选择书籍"设置显示选择书籍按钮
                             *([Button(get_global_i18n().t('crawler.select_books'), id="choose-books-btn")] if self.novel_site.get("selectable_enabled", True) else []),
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
@@ -2584,6 +2594,7 @@ class CrawlerManagementScreen(Screen[None]):
                     min_date=min_date,
                     max_date=max_date,
                     novel_site=self.novel_site,
+                    parser_override=self._resolve_parser_name(),
                 ),
                 handle_merge_mode_result,
             )
@@ -3562,6 +3573,56 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             self._update_status(f"{get_global_i18n().t('crawler.copy_ids_failed')}: {str(e)}", "error")
     
+    def _get_parser_select_options(self) -> List[tuple]:
+        """
+        获取解析器下拉框选项（value 与 label 均为解析器文件名）
+
+        Returns:
+            [(value, label), ...] 列表
+        """
+        try:
+            return get_parser_options()
+        except Exception:
+            return []
+
+    def _get_default_parser_value(self) -> Optional[str]:
+        """
+        计算解析器下拉框的默认值：优先使用当前网站的默认解析器，
+        若不存在于选项中则回退到第一个可用解析器
+
+        Returns:
+            默认解析器名称，无可用解析器时返回 None
+        """
+        options = self._get_parser_select_options()
+        if not options:
+            return None
+        site_parser = (getattr(self, 'novel_site', None) or {}).get('parser')
+        values = [value for value, _ in options]
+        if site_parser and site_parser in values:
+            return site_parser
+        return options[0][0]
+
+    def _resolve_parser_name(self) -> Optional[str]:
+        """
+        统一解析“当前应当使用的解析器名称”。
+
+        优先使用解析器下拉框(#parser-select)的当前选择（用户在UI上切换的结果），
+        其次回退到网站默认解析器。所有爬取路径（首次爬取、失败重试、多书批量等）
+        都必须统一走这里，避免“首次用下拉框选的解析器、重试却悄悄回退到网站默认
+        解析器”导致的不稳定切换（例如选了 cool18_2_v2 却偶尔被换成 cool18_v2）。
+
+        Returns:
+            解析器名称（文件名），无可用值时返回 None
+        """
+        try:
+            parser_select = self.query_one("#parser-select", Select)
+            value = parser_select.value
+            if value:
+                return value
+        except Exception:
+            pass
+        return (getattr(self, 'novel_site', None) or {}).get('parser')
+
     def _start_crawl(self) -> None:
         """开始爬取小说"""
         # 权限校验：执行爬取任务需 crawler.run
@@ -3705,9 +3766,13 @@ class CrawlerManagementScreen(Screen[None]):
             self._update_status(get_global_i18n().t('crawler.no_site_id'), "error")
             return
         
-        # 启动后台爬取任务
+        # 启动后台爬取任务（解析器统一取下拉框当前选择，与站点默认不一致时即临时覆盖本次爬取）
+        parser_override = self._resolve_parser_name()
+
         try:
-            task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
+            task_id = self.crawler_manager.start_crawl_task(
+                site_id, novel_ids, proxy_config, parser_override=parser_override
+            )
             if not task_id:
                 # 任务启动失败，回滚状态
                 self.is_crawling = False
@@ -3899,8 +3964,8 @@ class CrawlerManagementScreen(Screen[None]):
         self.app.call_later(self._update_status, get_global_i18n().t("crawler.start_to_crawler_books", counts=len(novel_ids)))
         
         try:
-            # 获取解析器名称
-            parser_name = self.novel_site.get('parser')
+            # 获取解析器名称（统一取下拉框当前选择，与首次爬取保持一致）
+            parser_name = self._resolve_parser_name()
             if not parser_name:
                 self.app.call_later(self._update_status, get_global_i18n().t("crawler.no_parser"), "error")
                 return
@@ -5411,6 +5476,7 @@ class CrawlerManagementScreen(Screen[None]):
                     novel_site=self.novel_site,
                     target_book=history_item,
                     db_manager=self.db_manager,
+                    parser_override=self._resolve_parser_name(),
                 ),
                 handle_fill_missing_result
             )
@@ -5425,8 +5491,8 @@ class CrawlerManagementScreen(Screen[None]):
         import time
         
         try:
-            # 获取解析器名称
-            parser_name = self.novel_site.get('parser')
+            # 获取解析器名称（统一取下拉框当前选择，避免重试时悄悄回退到网站默认解析器）
+            parser_name = self._resolve_parser_name()
             if not parser_name:
                 self.app.call_later(self._update_status, get_global_i18n().t('crawler.no_parser'), "error")
                 return
@@ -6077,6 +6143,8 @@ class CrawlerManagementScreen(Screen[None]):
                 # 设置窗口选择和刷新回调
                 self.browser_monitor.selected_window_index = self.selected_window_index
                 self.browser_monitor.on_window_refresh_callback = self._on_window_refresh_from_monitor
+                # 设置“被监听窗口关闭后自动停止”的回调
+                self.browser_monitor.on_monitor_stopped = self._on_monitor_auto_stopped
                 logger.info(f"初始化监听器: selected_browser={self.selected_browser}, browser_type={browser_type}, BrowserType.SAFARI={BrowserType.SAFARI}")
                 logger.info(f"{self.selected_browser}浏览器标签页监听器初始化成功")
                 # 刷新窗口选项列表
@@ -6098,6 +6166,35 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.warning(f"从后台线程触发窗口刷新失败: {e}")
 
+    def _on_monitor_auto_stopped(self, window_id: int) -> None:
+        """后台监控线程检测到被监听窗口已被关闭并自动停止后，转发到主线程更新UI"""
+        try:
+            app = self.app
+            if app and self.is_mounted_flag:
+                app.call_from_thread(self._handle_monitor_auto_stopped, window_id)
+        except Exception as e:
+            logger.warning(f"转发监听自动停止事件失败: {e}")
+
+    def _handle_monitor_auto_stopped(self, window_id: int) -> None:
+        """在主线程中处理“被监听窗口关闭后自动停止监听”的UI更新"""
+        try:
+            # 同步监听状态（线程外由回调置位，这里确保UI状态一致）
+            self.browser_monitor_active = False
+            self._update_monitor_button_state()
+            # 自动刷新窗口列表下拉框，让被关闭窗口从选项中消失（选中的窗口已不存在时UI回退到“所有窗口”）
+            try:
+                self._refresh_window_options()
+            except Exception as e:
+                logger.warning(f"自动停止后刷新窗口下拉框失败: {e}")
+            try:
+                status_msg = get_global_i18n().t('crawler.window_closed_auto_stop').format(window_id=window_id)
+            except Exception:
+                status_msg = f"被监听的窗口(编号 {window_id})已关闭，浏览器监听已自动停止"
+            self._update_status(status_msg, "information")
+            logger.info(f"被监听窗口(id={window_id})关闭，已自动停止监听并更新UI")
+        except Exception as e:
+            logger.error(f"处理监听自动停止UI更新失败: {e}")
+
     def _refresh_window_options(self) -> None:
         """刷新窗口选择下拉框的选项"""
         try:
@@ -6113,7 +6210,8 @@ class CrawlerManagementScreen(Screen[None]):
                 label = f"{get_global_i18n().t('crawler.window_label')} {win['index']} ({win['tab_count']} {get_global_i18n().t('crawler.tabs')})"
                 if win['title']:
                     label += f" - {win['title'][:30]}"
-                options.append((label, str(win['index'])))
+                # 下拉框的值是稳定的窗口 id（而非位置序号），避免窗口关闭/重排后误监听其它窗口
+                options.append((label, str(win['id'])))
             
             # 保存窗口选项
             self.window_options = windows
@@ -6125,18 +6223,26 @@ class CrawlerManagementScreen(Screen[None]):
                 current_value = "all"
                 if self.selected_window_index is not None:
                     current_value = str(self.selected_window_index)
-                
-                # 更新选项
-                window_select.set_options(options)
-                # 恢复之前的选择（如果仍然有效）
-                if current_value == "all" or any(str(w['index']) == current_value for w in windows):
-                    window_select.value = current_value
-                else:
-                    window_select.value = "all"
-                    self.selected_window_index = None
-                
+
+                # 标记正在刷新，避免下方程序化修改下拉框值触发 window-select 的
+                # change 事件，从而误把已选窗口清空、导致监听器扩大为“所有窗口”
+                self._refreshing_windows = True
+                try:
+                    # 更新选项
+                    window_select.set_options(options)
+                    # 恢复之前的选择（如果仍然有效，按稳定窗口 id 判断）
+                    if current_value == "all" or any(str(w['id']) == current_value for w in windows):
+                        window_select.value = current_value
+                    else:
+                        # 选中的窗口已不在最新列表（如被关闭/重排）时，UI 回退到“所有窗口”，
+                        # 但保持不变 self.selected_window_index 与监听器，避免监听范围被无意扩大
+                        window_select.value = "all"
+                finally:
+                    self._refreshing_windows = False
+
                 logger.info(f"窗口列表已刷新: {len(windows)} 个窗口")
             except Exception as e:
+                self._refreshing_windows = False
                 logger.error(f"更新窗口选择框UI失败: {e}")
                 
         except Exception as e:
@@ -6422,6 +6528,9 @@ class CrawlerManagementScreen(Screen[None]):
             self._refresh_window_options()
 
         elif event.select.id == "window-select":
+            # 由 _refresh_window_options 程序化刷新触发的次级事件，忽略以免覆盖用户选择
+            if getattr(self, '_refreshing_windows', False):
+                return
             # 更新当前选择的窗口
             if event.value is None or event.value == Select.NULL or event.value == "all":
                 self.selected_window_index = None

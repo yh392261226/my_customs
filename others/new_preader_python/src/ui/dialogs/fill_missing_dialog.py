@@ -64,6 +64,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         novel_site: Dict[str, Any],
         target_book: Optional[Dict[str, Any]] = None,
         db_manager=None,
+        parser_override: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -72,6 +73,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         self.novel_site = novel_site or {}
         self.target_book = target_book or {}
         self.db_manager = db_manager
+        # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
+        self.parser_override = parser_override
 
         self._stage: str = "crawl"
 
@@ -80,6 +83,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         self.current_task_id: Optional[str] = None
         self.selected_browser: str = "chrome"
         self.selected_window_index: Optional[int] = None
+        self._refreshing_windows: bool = False  # 刷新窗口列表时，屏蔽程序化修改下拉框值误触发的选择事件
         self.window_options: List[Dict[str, Any]] = []
         self.browser_monitor = None
         self.browser_monitor_active: bool = False
@@ -1673,7 +1677,7 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
                 self._crawling_novel_ids = list(uncached_ids)
             else:
                 self._crawling_novel_ids.extend(uncached_ids)
-            task_id = cm.start_crawl_task(site_id, uncached_ids, proxy_config)
+            task_id = cm.start_crawl_task(site_id, uncached_ids, proxy_config, parser_override=self.parser_override)
             if task_id:
                 self.current_task_id = task_id
                 self._update_crawl_button_state()
@@ -1762,6 +1766,8 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             )
             self.browser_monitor.selected_window_index = self.selected_window_index  # type: ignore
             self.browser_monitor.on_window_refresh_callback = self._on_window_refresh_from_monitor  # type: ignore
+            # 设置“被监听窗口关闭后自动停止”的回调
+            self.browser_monitor.on_monitor_stopped = self._on_monitor_auto_stopped  # type: ignore
             self._refresh_window_options()
         except Exception as e:
             logger.error(f"初始化浏览器监听器失败: {e}")
@@ -1799,6 +1805,31 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
         try: self.app.call_from_thread(self._refresh_window_options)
         except Exception: pass
 
+    def _on_monitor_auto_stopped(self, window_id: int) -> None:
+        """后台监控线程检测到被监听窗口已关闭并自动停止后，转发到主线程更新UI"""
+        try:
+            self.app.call_from_thread(self._handle_monitor_auto_stopped, window_id)
+        except Exception as e:
+            logger.warning(f"转发监听自动停止事件失败: {e}")
+
+    def _handle_monitor_auto_stopped(self, window_id: int) -> None:
+        """在主线程中处理“被监听窗口关闭后自动停止监听”的UI更新"""
+        try:
+            self.browser_monitor_active = False
+            self._update_monitor_button_state()
+            try:
+                self._refresh_window_options()
+            except Exception as e:
+                logger.warning(f"自动停止后刷新窗口下拉框失败: {e}")
+            try:
+                msg = self.i18n.t('crawler.window_closed_auto_stop').format(window_id=window_id)
+            except Exception:
+                msg = f"被监听的窗口(编号 {window_id})已关闭，浏览器监听已自动停止"
+            self.notify(msg, timeout=2)
+            logger.info(f"被监听窗口(id={window_id})关闭，已自动停止监听并更新UI")
+        except Exception as e:
+            logger.error(f"处理监听自动停止UI更新失败: {e}")
+
     def _refresh_window_options(self) -> None:
         try:
             if not self.browser_monitor: return
@@ -1807,18 +1838,26 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
             for w in windows:
                 label = f"{self.i18n.t('crawler.window_label')} {w['index']} ({w['tab_count']} {self.i18n.t('crawler.tabs')})"
                 if w.get('title'): label += f" - {w['title'][:30]}"
-                options.append((label, str(w['index'])))
+                # 下拉框的值是稳定的窗口 id（而非位置序号），避免窗口关闭/重排后误监听其它窗口
+                options.append((label, str(w['id'])))
             self.window_options = windows
             ws = self.query_one("#fm-window-select", Select)
             cv = str(self.selected_window_index) if self.selected_window_index is not None else "all"
-            ws.set_options(options)
-            if cv == "all" or any(str(w['index']) == cv for w in windows):
-                ws.value = cv
-            else:
-                ws.value = "all"; self.selected_window_index = None
-                if self.browser_monitor:
-                    self.browser_monitor.selected_window_index = None
+            # 标记正在刷新，避免下方程序化修改下拉框值触发 window-select 的
+            # change 事件，从而误把已选窗口清空、导致监听器扩大为“所有窗口”
+            self._refreshing_windows = True
+            try:
+                ws.set_options(options)
+                if cv == "all" or any(str(w['id']) == cv for w in windows):
+                    ws.value = cv
+                else:
+                    # 选中的窗口已不在最新列表（如被关闭/重排）时，UI 回退到“所有窗口”，
+                    # 但保持不变 self.selected_window_index 与监听器，避免监听范围被无意扩大
+                    ws.value = "all"
+            finally:
+                self._refreshing_windows = False
         except Exception as e:
+            self._refreshing_windows = False
             logger.error(f"刷新窗口选项失败: {e}")
 
     def _toggle_browser_monitor(self) -> None:
@@ -2231,6 +2270,9 @@ class FillMissingDialog(ModalScreen[Dict[str, Any]]):
 
     @on(Select.Changed, "#fm-window-select")
     def on_window_select_changed(self, event: Select.Changed):
+        # 由 _refresh_window_options 程序化刷新触发的次级事件，忽略以免覆盖用户选择
+        if getattr(self, '_refreshing_windows', False):
+            return
         if event.value is not None and event.value != "all":
             try: self.selected_window_index = int(str(event.value))
             except (ValueError, TypeError): self.selected_window_index = None

@@ -403,6 +403,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         min_date: str = "",
         max_date: str = "",
         novel_site: Optional[Dict[str, Any]] = None,
+        parser_override: Optional[str] = None,
         **kwargs,
     ) -> None:
         # DatePickerDialog 原生 CSS 有 layer: dialog + display:none。
@@ -567,6 +568,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self.site_name = site_name
         self.i18n = get_global_i18n()
         self.novel_site = novel_site or {}
+        # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
+        self.parser_override = parser_override
 
         # 全量缓存
         self.all_history = all_history
@@ -1074,7 +1077,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
                 })
 
         self.app.push_screen(
-            CrawlerMergeDetailDialog(self.theme_manager, group_data, self.db_manager, novel_site=self.novel_site),
+            CrawlerMergeDetailDialog(self.theme_manager, group_data, self.db_manager, novel_site=self.novel_site, parser_override=self.parser_override),
             handle_detail_result,
         )
 

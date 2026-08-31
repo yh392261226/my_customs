@@ -39,6 +39,7 @@ class CrawlTask:
     success_count: int = 0
     failed_count: int = 0
     error_message: Optional[str] = None
+    parser_override: Optional[str] = None  # 临时覆盖的解析器名称（不写入数据库）
 
 
 class CrawlerManager:
@@ -124,8 +125,15 @@ class CrawlerManager:
         """根据任务ID获取任务"""
         return self._tasks.get(task_id)
     
-    def start_crawl_task(self, site_id: int, novel_ids: List[str], proxy_config: Dict[str, Any]) -> str:
-        """开始新的爬取任务"""
+    def start_crawl_task(self, site_id: int, novel_ids: List[str], proxy_config: Dict[str, Any], parser_override: Optional[str] = None) -> str:
+        """开始新的爬取任务
+
+        Args:
+            site_id: 网站ID
+            novel_ids: 小说ID列表
+            proxy_config: 代理配置
+            parser_override: 临时覆盖的解析器名称（可选，不写入数据库）
+        """
         import uuid
         
         task_id = str(uuid.uuid4())
@@ -136,7 +144,8 @@ class CrawlerManager:
             novel_ids=novel_ids,
             proxy_config=proxy_config,
             status=CrawlStatus.PENDING,
-            total=len(novel_ids)
+            total=len(novel_ids),
+            parser_override=parser_override
         )
         
         with self._lock:
@@ -178,8 +187,8 @@ class CrawlerManager:
                 self._notify_status_change(task_id)
                 return
             
-            # 获取解析器名称
-            parser_name = novel_site.get('parser')
+            # 获取解析器名称（优先使用临时覆盖的解析器，否则使用网站默认解析器）
+            parser_name = task.parser_override or novel_site.get('parser')
             if not parser_name:
                 task.status = CrawlStatus.FAILED
                 task.error_message = get_global_i18n().t('crawler.no_parser')

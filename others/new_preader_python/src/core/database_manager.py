@@ -709,6 +709,81 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logger.error(f"按用户获取书籍失败: {e}")
             return []
+    
+    @staticmethod
+    def _escape_like(text: str) -> str:
+        """
+        转义 LIKE 模式中的通配符，使 % 和 _ 按字面量参与匹配
+        
+        Args:
+            text: 原始关键词
+            
+        Returns:
+            str: 转义后的字符串
+        """
+        return text.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    
+    def search_books_by_keyword(self,
+                                keyword: str,
+                                user_id: Optional[int] = None,
+                                is_admin: bool = False,
+                                file_format: Optional[str] = None) -> List[Book]:
+        """
+        按关键词搜索书籍（标题 / 作者 / 标签 / 拼音）
+        
+        关键词匹配、用户权限过滤、格式过滤全部下推到数据库执行，只返回命中的
+        记录。相比“先取出全部书籍再在 Python 中逐本比对”，避免了上万本书的
+        全量加载与内存遍历。
+        
+        Args:
+            keyword: 搜索关键词
+            user_id: 当前用户ID
+            is_admin: 是否超级管理员（可看全部书籍）
+            file_format: 可选的格式过滤，如 ".txt"
+            
+        Returns:
+            List[Book]: 命中的书籍列表
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                
+                pattern = "%" + self._escape_like(keyword) + "%"
+                params: List[Any] = [pattern, pattern, pattern, pattern]
+                
+                # LIKE 对 ASCII 大小写不敏感，中文无大小写差异，故无需额外 lower()
+                sql = """
+                    SELECT b.* FROM books b
+                    WHERE (b.title LIKE ? ESCAPE '\\'
+                        OR b.author LIKE ? ESCAPE '\\'
+                        OR b.pinyin LIKE ? ESCAPE '\\'
+                        OR b.tags LIKE ? ESCAPE '\\')
+                """
+                
+                # 权限过滤：非管理员只能检索归属自己的书籍
+                if not is_admin:
+                    if user_id is None:
+                        return []
+                    sql += """
+                        AND EXISTS (
+                            SELECT 1 FROM user_books ub
+                            WHERE ub.book_path = b.path AND ub.user_id = ?
+                        )
+                    """
+                    params.append(user_id)
+                
+                if file_format:
+                    sql += " AND b.format = ?"
+                    params.append(file_format.lower())
+                
+                sql += " ORDER BY b.pinyin ASC"
+                
+                cursor.execute(sql, params)
+                return [self._row_to_book(row) for row in cursor.fetchall() if row]
+        except sqlite3.Error as e:
+            logger.error(f"搜索书籍失败: {e}")
+            return []
 
     def get_all_books_with_reading_info(self, user_id: Optional[int] = None) -> List[tuple]:
         """

@@ -39,6 +39,10 @@ from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# 搜索输入防抖间隔（秒）：停止输入后才真正发起检索，
+# 避免每敲一个字符都触发一次全量过滤
+_SEARCH_DEBOUNCE = 0.3
+
 class BookshelfScreen(Screen[None]):
     """书架屏幕"""
     
@@ -115,6 +119,9 @@ class BookshelfScreen(Screen[None]):
         self._books_per_page = 15
         self._total_pages = 1
         self._all_books: List[Book] = []
+        
+        # 搜索输入防抖定时器，避免逐字符触发检索
+        self._search_timer = None
         
         # 分页优化：缓存和性能相关
         self._books_cache: Dict[str, List[Book]] = {}  # 缓存搜索结果
@@ -1159,10 +1166,19 @@ class BookshelfScreen(Screen[None]):
     def on_input_changed(self, event) -> None:
         """输入框内容变化时的回调"""
         if event.input.id == "bookshelf-search-input":
-            # 输入框内容变化时立即执行搜索
-            self._perform_search()
+            # 防抖：停止输入后再检索，避免逐字符触发全量过滤
+            self._schedule_search()
             # 执行搜索后，保持焦点在搜索框
             self.set_timer(0.1, lambda: self._focus_search_input())
+    
+    def _schedule_search(self) -> None:
+        """延迟发起搜索；输入过程中会被反复调用，从而不断重置计时"""
+        if self._search_timer is not None:
+            try:
+                self._search_timer.stop()
+            except Exception:
+                pass
+        self._search_timer = self.set_timer(_SEARCH_DEBOUNCE, self._perform_search)
     
     def on_select_changed(self, event) -> None:
         """下拉框选择变化时的回调"""

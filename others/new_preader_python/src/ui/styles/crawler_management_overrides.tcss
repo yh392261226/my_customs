@@ -163,6 +163,10 @@ Footer {
     width: auto;
 }
 
+#parser-select {
+    width: 17;
+}
+
 #browser-select {
     width: 17;
 }

@@ -1468,6 +1468,7 @@
     "monitor_already_running": "监听器已在运行中",
     "monitor_not_running": "监听器未运行",
     "monitor_init_failed": "浏览器监听器初始化失败",
+    "window_closed_auto_stop": "被监听的窗口(编号 {window_id})已关闭，浏览器监听已自动停止",
     "url_detected": "检测到小说URL",
     "novel_already_crawled": "小说已爬取过，跳过",
     "novel_added": "已将小说ID添加到输入框",
