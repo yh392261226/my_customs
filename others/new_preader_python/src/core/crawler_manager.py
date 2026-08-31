@@ -189,6 +189,11 @@ class CrawlerManager:
             
             # 获取解析器名称（优先使用临时覆盖的解析器，否则使用网站默认解析器）
             parser_name = task.parser_override or novel_site.get('parser')
+            logger.info(
+                f"爬取任务解析器选定: parser_name={parser_name!r}, "
+                f"parser_override={task.parser_override!r}, "
+                f"site_default={novel_site.get('parser')!r}"
+            )
             if not parser_name:
                 task.status = CrawlStatus.FAILED
                 task.error_message = get_global_i18n().t('crawler.no_parser')

@@ -3201,7 +3201,8 @@ class CrawlerManagementScreen(Screen[None]):
             task_id = crawler_manager.start_crawl_task(
                 site_id=site_id,
                 novel_ids=novel_ids,
-                proxy_config=proxy_check_result['proxy_config']
+                proxy_config=proxy_check_result['proxy_config'],
+                parser_override=self._resolve_parser_name()
             )
             
             # 保存当前任务ID
@@ -3272,7 +3273,8 @@ class CrawlerManagementScreen(Screen[None]):
             task_id = crawler_manager.start_crawl_task(
                 site_id=site_id,
                 novel_ids=[novel_id],
-                proxy_config=proxy_check_result['proxy_config']
+                proxy_config=proxy_check_result['proxy_config'],
+                parser_override=self._resolve_parser_name()
             )
             
             # 保存当前任务ID
@@ -5749,7 +5751,7 @@ class CrawlerManagementScreen(Screen[None]):
                 return
             
             # 启动后台爬取任务
-            task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config)
+            task_id = self.crawler_manager.start_crawl_task(site_id, novel_ids, proxy_config, parser_override=self._resolve_parser_name())
             self.current_task_id = task_id
             
             # 显示启动状态
