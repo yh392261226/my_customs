@@ -174,6 +174,24 @@ class ConfigManager:
         """
         return self.config
     
+    def get_monitor_no_id_timeout(self) -> int:
+        """
+        获取“监听浏览器获取书籍ID时，未获取到ID则自动停止监听”的超时秒数。
+
+        Returns:
+            int: 超时秒数（>=1 生效；<=0 表示禁用自动停止），读取异常时回退到默认 10 秒
+        """
+        try:
+            raw = self.config.get("browser", {}).get("monitor_no_id_timeout", 10)
+            value = int(raw)
+        except Exception:
+            return 10
+        if value < 0:
+            value = 0
+        if value > 600:
+            value = 600
+        return value
+
     def get_debug_mode(self) -> bool:
         """
         获取实际的调试模式状态，考虑开发模式

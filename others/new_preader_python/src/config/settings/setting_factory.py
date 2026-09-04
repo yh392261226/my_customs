@@ -606,6 +606,17 @@ def create_browser_settings() -> SettingSection:
         category="browser"
     ))
 
+    # 监听浏览器获取书籍ID超时自动停止
+    section.add_setting(IntegerSetting(
+        key="browser.monitor_no_id_timeout",
+        default_value=10,
+        display_name="Monitor No-ID Timeout",  # 将在UI中通过国际化显示
+        description="When monitoring the browser to fetch book IDs, automatically stop the monitor if no ID is detected within this many seconds (0 = never auto-stop)",  # 将在UI中通过国际化显示
+        min_value=0,
+        max_value=600,
+        category="browser"
+    ))
+
     # 分隔线
     section.add_setting(SeparatorSetting(
         key="browser.server_separator",

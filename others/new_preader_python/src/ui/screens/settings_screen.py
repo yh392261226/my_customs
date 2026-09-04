@@ -626,6 +626,16 @@ class SettingsScreen(Screen[Any]):
                     id="browser-start-page-select"
                 )
 
+            # 监听无书籍ID自动停止超时
+            yield Label(get_global_i18n().t("settings.monitor_no_id_timeout"), classes="setting-label")
+            monitor_timeout_setting = self.setting_registry.get_setting("browser.monitor_no_id_timeout")
+            if monitor_timeout_setting:
+                yield Input(
+                    value=str(monitor_timeout_setting.value),
+                    id="browser-monitor-timeout-input",
+                    placeholder=str(monitor_timeout_setting.default_value)
+                )
+
             # 分隔线
             yield Static("─", classes="setting-separator")
             yield Label(get_global_i18n().t("settings.browser_server"), classes="setting-section-title")
@@ -1438,6 +1448,13 @@ class SettingsScreen(Screen[Any]):
         start_page_select = self.query_one("#browser-start-page-select", Select)
         if start_page_select.value is not None:
             self.setting_registry.set_value("browser.start_page", start_page_select.value)
+
+        # 监听无书籍ID自动停止超时
+        monitor_timeout_input = self.query_one("#browser-monitor-timeout-input", Input)
+        try:
+            self.setting_registry.set_value("browser.monitor_no_id_timeout", int(monitor_timeout_input.value))
+        except ValueError:
+            pass
 
         # 浏览器服务器设置
         host_input = self.query_one("#browser-server-host-input", Input)

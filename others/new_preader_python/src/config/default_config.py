@@ -97,7 +97,8 @@ DEFAULT_CONFIG = {
         "chrome_path": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
         "safari_path": "/Applications/Safari.app/Contents/MacOS/Safari",
         "brave_path": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
-        "start_page": "last_book"  # 浏览器阅读器起始页: last_book(最后一次阅读书籍), welcome(欢迎页)
+        "start_page": "last_book",  # 浏览器阅读器起始页: last_book(最后一次阅读书籍), welcome(欢迎页)
+        "monitor_no_id_timeout": 10,  # 监听浏览器获取书籍ID时，若超过该秒数仍未获取到ID则自动停止监听（0表示不自动停止）
     },
     
     # 快捷键设置

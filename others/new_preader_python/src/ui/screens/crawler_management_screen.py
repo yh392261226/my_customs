@@ -850,6 +850,7 @@ class CrawlerManagementScreen(Screen[None]):
         # 一旦输入框（手动输入或监听填入）出现有效书籍ID则自动开始爬取
         self._waiting_for_id = False
         self._waiting_timer = None  # 等待模式下的防抖定时器
+        self._monitor_timeout_timer = None  # 监听无书籍ID自动停止的超时定时器
         self.loading_animation = None  # 加载动画组件
         self.loading_indicator = None  # 原生 LoadingIndicator 引用
         self.is_mounted_flag = False  # 组件挂载标志
@@ -3508,6 +3509,8 @@ class CrawlerManagementScreen(Screen[None]):
             except Exception:
                 pass
             self._waiting_timer = None
+        # 取消监听超时自动停止定时器
+        self._cancel_monitor_no_id_timeout()
         
         # 立即更新UI状态
         self.is_crawling = False
@@ -4179,6 +4182,8 @@ class CrawlerManagementScreen(Screen[None]):
                 return
             # 退出等待模式并重置爬取状态，以便重新走完整的启动流程
             self._waiting_for_id = False
+            # 已准备开始爬取，取消监听超时定时器
+            self._cancel_monitor_no_id_timeout()
             self.is_crawling = False
             self._start_crawl()
         except Exception as e:
@@ -6289,6 +6294,9 @@ class CrawlerManagementScreen(Screen[None]):
 
             logger.info(f"检测到小说URL: {url}, 小说ID: {novel_id}")
 
+            # 已获取到书籍ID，取消监听超时定时器
+            self._cancel_monitor_no_id_timeout()
+
             # 将小说ID添加到输入框（是否已爬取、是否增量更新交由开始爬取时判断）
             self._add_novel_id_to_input(novel_id)
 
@@ -6453,6 +6461,8 @@ class CrawlerManagementScreen(Screen[None]):
                 self.browser_monitor_active = True
                 self._update_status(get_global_i18n().t('crawler.monitor_started'), "success")
                 self._update_monitor_button_state()
+                # 监听已启动，启动“未获取到ID则自动停止”的超时定时器
+                self._start_monitor_no_id_timeout()
             else:
                 self._update_status(get_global_i18n().t('crawler.monitor_start_failed'), "error")
                 
@@ -6463,6 +6473,8 @@ class CrawlerManagementScreen(Screen[None]):
     def _stop_browser_monitor(self) -> None:
         """停止监听"""
         try:
+            # 取消监听超时定时器
+            self._cancel_monitor_no_id_timeout()
             # 停止Chrome监听
             if self.browser_monitor:
                 success = self.browser_monitor.stop_monitoring()
@@ -6476,6 +6488,54 @@ class CrawlerManagementScreen(Screen[None]):
         except Exception as e:
             logger.error(f"停止监听失败: {e}")
             self._update_status(f"停止监听失败: {str(e)}", "error")
+
+    def _start_monitor_no_id_timeout(self) -> None:
+        """监听启动后启动超时定时器。
+
+        若监听在配置超时时间内仍未获取到任何书籍ID，则自动停止监听；
+        一旦检测到书籍ID即取消定时器（继续监听以收集更多ID）。
+        超时值为 0 时禁用自动停止。
+        """
+        try:
+            self._cancel_monitor_no_id_timeout()
+            if not self.browser_monitor_active:
+                return
+            timeout = ConfigManager.get_instance().get_monitor_no_id_timeout()
+            if timeout <= 0:
+                return
+            self._monitor_timeout_timer = self.set_timer(
+                timeout, self._on_monitor_no_id_timeout
+            )
+        except Exception as e:
+            logger.debug(f"启动监听超时定时器失败: {e}")
+
+    def _cancel_monitor_no_id_timeout(self) -> None:
+        """取消监听超时定时器（已获取到ID或监听停止时调用）。"""
+        timer = getattr(self, "_monitor_timeout_timer", None)
+        if timer is not None:
+            try:
+                timer.stop()
+            except Exception:
+                pass
+        self._monitor_timeout_timer = None
+
+    def _on_monitor_no_id_timeout(self) -> None:
+        """监听超时回调：未在限定时间内获取到书籍ID，自动停止监听。"""
+        self._monitor_timeout_timer = None
+        try:
+            if not self.browser_monitor_active:
+                return
+            logger.info("监听获取书籍ID超时，自动停止监听")
+            self._stop_browser_monitor()
+            if self._waiting_for_id:
+                self._waiting_for_id = False
+                self._update_crawl_button_state()
+            self._update_status(
+                get_global_i18n().t('crawler.monitor_no_id_timeout_stopped'), "warning"
+            )
+        except Exception as e:
+            logger.debug(f"处理监听超时自动停止失败: {e}")
+
     def _update_monitor_button_state(self) -> None:
         """更新监听按钮状态"""
         try:
