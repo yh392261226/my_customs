@@ -27,7 +27,6 @@ from src.core.database_manager import DatabaseManager
 from src.ui.dialogs.crawler_merge_mode_dialog import BookGroup
 from src.ui.utils.smart_title_utils import SmartTitleUtils
 from src.utils.logger import get_logger
-from src.config.config_manager import ConfigManager
 
 logger = get_logger(__name__)
 
@@ -184,7 +183,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         # 等待浏览器监听自动填入书籍ID后自动开始爬取（与爬取管理页面一致）
         self._waiting_for_id: bool = False
         self._waiting_timer = None  # 等待模式下的防抖定时器
-        self._monitor_timeout_timer = None  # 监听无书籍ID自动停止的超时定时器
 
         # ── 列标题排序相关状态 ──
         self._sort_column: Optional[str] = None  # 当前排序列 key
@@ -1564,7 +1562,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 except Exception:
                     pass
                 self._waiting_timer = None
-            self._cancel_monitor_no_id_timeout()
             self._waiting_for_id = False
             if self.current_task_id and self._crawler_manager:
                 self._crawler_manager.stop_crawl_task(self.current_task_id)
@@ -1612,8 +1609,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 return
             # 退出等待模式并重置爬取状态，以便重新走完整的启动流程
             self._waiting_for_id = False
-            # 已准备开始爬取，取消监听超时定时器
-            self._cancel_monitor_no_id_timeout()
             self.is_crawling = False
             self._start_crawl()
         except Exception as e:
@@ -1710,6 +1705,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self.browser_monitor.on_window_refresh_callback = self._on_window_refresh_from_monitor  # type: ignore[assignment]
             # 设置“被监听窗口关闭后自动停止”的回调
             self.browser_monitor.on_monitor_stopped = self._on_monitor_auto_stopped  # type: ignore[assignment]
+            # 设置“设定时间内未获取到（新的）书籍ID则自动停止”的回调
+            self.browser_monitor.on_idle_timeout = self._on_monitor_idle_timeout  # type: ignore[assignment]
             self._refresh_window_options()
         except Exception as e:
             logger.error(f"初始化浏览器监听器失败: {e}")
@@ -1718,8 +1715,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def _on_browser_url_detected(self, novel_info: Dict[str, Any]) -> None:
         """浏览器 URL 检测回调 —— 将检测到的 novel_id 追加到输入框，并关闭标签页"""
         try:
-            # 已获取到书籍ID，取消监听超时定时器
-            self._cancel_monitor_no_id_timeout()
             novel_id = novel_info.get('novel_id', '') if isinstance(novel_info, dict) else str(novel_info)
             url = novel_info.get('url', '') if isinstance(novel_info, dict) else ''
             if novel_id:
@@ -1851,8 +1846,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 self.browser_monitor_active = True
                 self._update_monitor_button_state()
                 self.notify(self.i18n.t('crawler.monitor_started'), timeout=2)
-                # 监听已启动，启动“未获取到ID则自动停止”的超时定时器
-                self._start_monitor_no_id_timeout()
             else:
                 self.notify(self.i18n.t('crawler.monitor_start_failed'), severity="error", timeout=2)
         except Exception as e:
@@ -1862,7 +1855,6 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     def _stop_browser_monitor(self) -> None:
         """停止监听"""
         try:
-            self._cancel_monitor_no_id_timeout()
             if self.browser_monitor:
                 self.browser_monitor.stop_monitoring()
             self.browser_monitor_active = False
@@ -1871,48 +1863,34 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         except Exception as e:
             logger.error(f"停止监听失败: {e}")
 
-    def _start_monitor_no_id_timeout(self) -> None:
-        """监听启动后启动超时定时器。
+    def _on_monitor_idle_timeout(self) -> None:
+        """后台监控线程：设定时间内未获取到任何（新的）书籍ID，自动停止监听。"""
+        try:
+            self.app.call_from_thread(self._handle_monitor_idle_timeout)
+        except Exception as e:
+            logger.warning(f"转发监听空闲超时事件失败: {e}")
 
-        若监听在配置超时时间内仍未获取到任何书籍ID，则自动停止监听；
-        一旦检测到书籍ID即取消定时器（继续监听以收集更多ID）。
-        超时值为 0 时禁用自动停止。
+    def _handle_monitor_idle_timeout(self) -> None:
+        """在主线程中处理“监听空闲超时自动停止”的UI更新。
+
+        监听线程已自行停止，这里只负责同步UI状态并退出等待模式。
         """
         try:
-            self._cancel_monitor_no_id_timeout()
-            if not self.browser_monitor_active:
-                return
-            timeout = ConfigManager.get_instance().get_monitor_no_id_timeout()
-            if timeout <= 0:
-                return
-            self._monitor_timeout_timer = self.set_timer(timeout, self._on_monitor_no_id_timeout)
-        except Exception as e:
-            logger.debug(f"启动监听超时定时器失败: {e}")
-
-    def _cancel_monitor_no_id_timeout(self) -> None:
-        """取消监听超时定时器（已获取到ID或监听停止时调用）。"""
-        timer = getattr(self, "_monitor_timeout_timer", None)
-        if timer is not None:
-            try:
-                timer.stop()
-            except Exception:
-                pass
-        self._monitor_timeout_timer = None
-
-    def _on_monitor_no_id_timeout(self) -> None:
-        """监听超时回调：未在限定时间内获取到书籍ID，自动停止监听。"""
-        self._monitor_timeout_timer = None
-        try:
-            if not self.browser_monitor_active:
-                return
-            logger.info("监听获取书籍ID超时，自动停止监听")
-            self._stop_browser_monitor()
+            self.browser_monitor_active = False
+            self._update_monitor_button_state()
+            # 退出等待书籍ID模式，并清掉可能挂起的防抖定时器
+            if self._waiting_timer is not None:
+                try:
+                    self._waiting_timer.stop()
+                except Exception:
+                    pass
+                self._waiting_timer = None
             if self._waiting_for_id:
                 self._waiting_for_id = False
                 self._update_crawl_button_state()
             self.notify(self.i18n.t('crawler.monitor_no_id_timeout_stopped'), severity="warning", timeout=3)
         except Exception as e:
-            logger.debug(f"处理监听超时自动停止失败: {e}")
+            logger.debug(f"处理监听空闲超时停止失败: {e}")
 
     def _update_monitor_button_state(self) -> None:
         """更新监听按钮状态"""

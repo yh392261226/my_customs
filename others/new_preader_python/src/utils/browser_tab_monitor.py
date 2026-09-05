@@ -41,10 +41,14 @@ class BrowserTabMonitor:
         self.selected_window_index = None  # 选中的窗口稳定ID，None表示所有窗口
         self.on_window_refresh_callback = None  # 窗口列表刷新回调
         self.on_monitor_stopped = None  # 监听自动停止回调（如被监听窗口被关闭），参数为被关闭的窗口ID
+        self.on_idle_timeout = None  # 监听空闲超时回调：设定时间内未获取到任何（新的）书籍ID
         logger.info(f"BrowserTabMonitor初始化: browser_type={self.browser_type}")
         self.last_urls = {}  # 记录上次检测的URL，避免重复处理
         self._monitoring_thread = None
         self._stop_monitoring = False
+        # ── 空闲超时（看门狗）相关状态 ──
+        self._last_detection_time: Optional[float] = None  # 最近一次获取到书籍ID的时间戳
+        self._idle_timeout: int = 0  # 空闲超时秒数，0 表示禁用自动停止
         
     def get_browser_tabs(self, window_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
@@ -838,6 +842,9 @@ class BrowserTabMonitor:
                             callback(novel_info)
                         elif self.on_url_detected:
                             self.on_url_detected(novel_info)
+
+                        # 本次轮询成功获取到书籍ID，重置空闲计时（无论启动后首次还是后续新ID）
+                        self._reset_idle_timer()
             
             return novel_urls
             
@@ -845,6 +852,28 @@ class BrowserTabMonitor:
             logger.error(f"监控标签页失败: {e}")
             return []
     
+    def _read_idle_timeout_config(self) -> int:
+        """
+        读取“监听空闲超时”配置（秒）。
+
+        含义：监听启动后（或上次获取到书籍ID后）若持续该秒数仍未获取到任何（新的）
+        书籍ID，则自动停止监听。0 表示禁用自动停止。
+
+        Returns:
+            int: 空闲超时秒数，读取失败时回退为 10
+        """
+        try:
+            from src.config.config_manager import ConfigManager
+            value = ConfigManager.get_instance().get_monitor_no_id_timeout()
+            return int(value) if value is not None else 0
+        except Exception as e:
+            logger.warning(f"读取监听空闲超时配置失败，回退为10秒: {e}")
+            return 10
+
+    def _reset_idle_timer(self) -> None:
+        """重置空闲计时（每次成功获取到书籍ID时调用）。"""
+        self._last_detection_time = time.time()
+
     def start_monitoring(self, interval=5, callback=None):
         """
         开始持续监控Chrome标签页（非阻塞）
@@ -861,6 +890,11 @@ class BrowserTabMonitor:
                 logger.warning("监控已经在运行中")
                 return False
             
+            # 每次启动都读取最新配置，并重新开始空闲计时
+            self._idle_timeout = self._read_idle_timeout_config()
+            self._reset_idle_timer()
+            logger.info(f"监听空闲超时设置: {self._idle_timeout} 秒（0 表示不自动停止）")
+
             self._stop_monitoring = False
             self._monitoring_thread = threading.Thread(
                 target=self._monitor_loop,
@@ -922,6 +956,23 @@ class BrowserTabMonitor:
                 for _ in range(interval * 10):  # 每0.1秒检查一次停止标志
                     if self._stop_monitoring:
                         break
+
+                    # ── 空闲超时看门狗 ──
+                    # 只要“距上次获取到书籍ID”超过设定秒数（含启动后一直没ID的情况），
+                    # 就自动停止监听。每次获取到ID都会重置该计时。
+                    if (self._idle_timeout > 0 and self._last_detection_time is not None
+                            and time.time() - self._last_detection_time >= self._idle_timeout):
+                        logger.info(
+                            f"监听空闲超过 {self._idle_timeout} 秒未获取到书籍ID，自动停止监听"
+                        )
+                        self._stop_monitoring = True
+                        if self.on_idle_timeout:
+                            try:
+                                self.on_idle_timeout()
+                            except Exception as cb_err:
+                                logger.warning(f"监听空闲超时回调执行失败: {cb_err}")
+                        break
+
                     time.sleep(0.1)
                     
         except Exception as e:

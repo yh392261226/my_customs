@@ -1449,11 +1449,13 @@ class SettingsScreen(Screen[Any]):
         if start_page_select.value is not None:
             self.setting_registry.set_value("browser.start_page", start_page_select.value)
 
-        # 监听无书籍ID自动停止超时
-        monitor_timeout_input = self.query_one("#browser-monitor-timeout-input", Input)
+        # 监听无书籍ID自动停止超时（控件可能不存在，需容错，避免影响其他设置的保存）
         try:
+            monitor_timeout_input = self.query_one("#browser-monitor-timeout-input", Input)
             self.setting_registry.set_value("browser.monitor_no_id_timeout", int(monitor_timeout_input.value))
         except ValueError:
+            pass
+        except Exception:
             pass
 
         # 浏览器服务器设置
