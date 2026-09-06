@@ -1060,6 +1060,7 @@ class CrawlerManagementScreen(Screen[None]):
                             Input(placeholder=get_global_i18n().t('crawler.novel_id_placeholder_multi'), id="novel-id-input"),
                             Button(get_global_i18n().t('crawler.start_crawl'), id="toggle-crawl-btn", variant="primary"),
                             Button(get_global_i18n().t('crawler.copy_ids'), id="copy-ids-btn"),
+                            Button(get_global_i18n().t('crawler.clear_ids'), id="clear-ids-btn"),
                             Button(get_global_i18n().t('crawler.toggle_monitor'), id="toggle-monitor-btn", variant="success"),
                             # Label(get_global_i18n().t('crawler.browser_label'), id="browser-label", classes="browser-label"),
                             Select(
@@ -1636,6 +1637,15 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"清除搜索失败: {e}")
             self._update_status(get_global_i18n().t('crawler.clear_search_failed'), "error")
     
+    def _clear_ids(self) -> None:
+        """清除书籍输入框ID"""
+        try:
+            id_input = self.query_one("#novel-id-input", Input)
+            id_input.value = ""
+            id_input.focus()
+        except Exception as e:
+            logger.error(f"清除书籍输入框ID失败: {e}")
+
     # ==================== 多选操作方法 ====================
     
     def _handle_selection_click(self, row_index: int) -> None:
@@ -5795,6 +5805,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._clear_search()
             # 清除搜索后，保持焦点在搜索框
             self.set_timer(0.1, lambda: self._focus_search_input())
+        elif button_id == "clear-ids-btn":
+            self._clear_ids()
         elif button_id == "toggle-crawl-btn":
             self._toggle_crawl()
         elif button_id == "copy-ids-btn":
