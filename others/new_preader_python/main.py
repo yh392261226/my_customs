@@ -35,6 +35,7 @@ except Exception:
 from src.ui.app import NewReaderApp
 from src.utils.logger import setup_logging_from_config
 from src.config.config_manager import ConfigManager
+from src.utils.shutdown_coordinator import shutdown
 
 def main():
     """主程序入口"""
@@ -165,15 +166,29 @@ def main():
         # 创建应用实例
         app = NewReaderApp(config_manager, args.book_file, cli_password=locals().get("cli_password"))
         
+        # 安装优雅退出协调器：Ctrl+C / SIGTERM 时先取消后台任务（如批量去重），
+        # 再请求 UI 退出；超时或再次中断则强制退出，避免线程 join 卡住退出流程
+        shutdown.install(app_exit_callback=lambda: app.call_from_thread(app.exit))
+        
         # 应用内部已经集成了多用户设置检查逻辑
         # 在NewReaderApp的on_mount方法中会自动处理登录流程
         app.run()
+    except KeyboardInterrupt:
+        # 信号处理器未安装成功时的兜底路径
+        shutdown.request_shutdown("KeyboardInterrupt")
+        shutdown.force_exit()
     except ImportError as e:
         handle_error(f"缺少依赖: {e}\n请运行: pip install -r requirements.txt", 2)
     except PermissionError as e:
         handle_error(f"文件权限问题: {e}\n请检查文件和目录权限", 3)
     except Exception as e:
         handle_error(f"未处理的异常: {e}\n{traceback.format_exc()}", 99)
+    finally:
+        # 退出前取消仍在运行的后台任务（如批量去重），并摘除其工作线程，
+        # 避免解释器在退出阶段 join 这些线程导致迟迟无法退出
+        shutdown.cancel_background_tasks()
+        # 正常退出：停止看门狗，避免误触发强制退出
+        shutdown.finish()
 
 if __name__ == "__main__":
     main()

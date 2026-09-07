@@ -192,7 +192,14 @@ class UltraBookDuplicateDetector:
     @classmethod
     def is_cancelled(cls) -> bool:
         """检查是否已请求取消"""
-        return cls._cancel_requested
+        if cls._cancel_requested:
+            return True
+        # 进程收到 Ctrl+C / SIGTERM 时同样视为取消，避免退出阶段继续执行耗时计算
+        try:
+            from src.utils.shutdown_coordinator import is_shutdown_requested
+            return is_shutdown_requested()
+        except Exception:
+            return False
     
     @classmethod
     def reset_cancel(cls):

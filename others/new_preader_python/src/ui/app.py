@@ -404,6 +404,14 @@ class NewReaderApp(App[None]):
         except Exception:
             self._main_loop = None
         
+        # 把 asyncio 默认执行器换成 daemon 版本：退出时不再等待池线程结束，
+        # 解决批量去重等后台任务运行期间 Ctrl+C 后卡在 shutdown_default_executor 的问题
+        try:
+            from src.utils.shutdown_coordinator import shutdown as _shutdown
+            _shutdown.install_daemon_default_executor()
+        except Exception:
+            pass
+        
         # 启动浏览器阅读器服务器
         try:
             from src.utils.browser_reader_server_manager import start_browser_reader_server
