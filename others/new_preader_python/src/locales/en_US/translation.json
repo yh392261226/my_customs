@@ -1808,7 +1808,14 @@
     "selected_all": "Selected {count} files",
     "deselected_all": "Deselected all",
     "select_all_failed": "Select all failed",
-    "no_files": "No files to select"
+    "no_files": "No files to select",
+    "delete_selected_file": "Delete Selected Files",
+    "delete_no_selection": "Please select files to delete first",
+    "delete_confirm_title": "Confirm Delete",
+    "delete_confirm_message": "Move {count} selected file(s) to the recycle bin?",
+    "delete_success": "Moved {count} file(s) to the recycle bin",
+    "delete_partial": "Done: {success} succeeded, {failed} failed",
+    "delete_failed": "Failed to delete files"
   },
   "lock_screen": {
     "placeholder": "Please enter password to continue",

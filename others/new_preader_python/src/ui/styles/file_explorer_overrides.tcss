@@ -130,7 +130,7 @@
 }
 
 /* 操作按钮 */
-#navigation-bar-right #select-btn, #select-all-btn {
+#navigation-bar-right #select-btn, #delete-selected-file-btn, #select-all-btn {
     background: $primary;
     min-width: 12;
     height: 3;

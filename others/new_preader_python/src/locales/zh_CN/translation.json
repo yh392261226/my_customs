@@ -1892,7 +1892,14 @@
     "selected_all": "已全选 {count} 个文件",
     "deselected_all": "已取消全选",
     "select_all_failed": "全选操作失败",
-    "no_files": "没有可选择的文件"
+    "no_files": "没有可选择的文件",
+    "delete_selected_file": "删除选中文件",
+    "delete_no_selection": "请先选择要删除的文件",
+    "delete_confirm_title": "确认删除文件",
+    "delete_confirm_message": "确定要将选中的 {count} 个文件移动到回收站吗？",
+    "delete_success": "已将 {count} 个文件移到回收站",
+    "delete_partial": "已完成：成功 {success} 个，失败 {failed} 个",
+    "delete_failed": "删除文件失败"
   },
   "lock_screen": {
     "placeholder": "请输入密码以继续",

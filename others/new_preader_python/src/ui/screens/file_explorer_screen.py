@@ -160,6 +160,12 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
                             # 如果是文件选择模式，则显示搜索框和按钮 end
                             yield Button(get_global_i18n().t("file_explorer.select_all"), id="select-all-btn")
                             yield Button(get_global_i18n().t("file_explorer.select_file"), id="select-btn")
+                            # 删除选中文件：把选中的书籍文件移动到回收站
+                            yield Button(
+                                get_global_i18n().t("file_explorer.delete_selected_file", default="删除选中"),
+                                id="delete-selected-file-btn",
+                                variant="error",
+                            )
                         else:
                             yield Button(get_global_i18n().t("file_explorer.select_directory"), id="select-btn")
                         yield Button(get_global_i18n().t("common.cancel"), id="cancel-btn")
@@ -1002,6 +1008,10 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
         elif event.button.id == "select-all-btn":
             # 全选/取消全选
             self._select_all_files()
+            
+        elif event.button.id == "delete-selected-file-btn":
+            # 删除选中的文件（移动到回收站）
+            self._delete_selected_files()
             
         elif event.button.id == "cancel-btn":
             # 取消操作 -> 返回上一页
@@ -1860,6 +1870,85 @@ class FileExplorerScreen(ScreenStyleMixin, Screen[Optional[Union[str, List[str]]
             logger.error(f"全选文件失败: {e}")
             self.notify(
                 get_global_i18n().t("file_explorer.select_all_failed", default="全选操作失败"),
+                severity="error",
+            )
+    
+    def _delete_selected_files(self) -> None:
+        """删除当前选中的书籍文件（移动到回收站）"""
+        i18n = get_global_i18n()
+        try:
+            # 收集待删除的文件（只处理仍然存在的普通文件）
+            targets: List[str] = []
+            if self.multiple:
+                targets = [p for p in self.selected_files if p and os.path.isfile(p)]
+            elif self.selected_file and os.path.isfile(self.selected_file):
+                targets = [self.selected_file]
+            
+            if not targets:
+                self.notify(
+                    i18n.t("file_explorer.delete_no_selection", default="请先选择要删除的文件"),
+                    severity="warning",
+                )
+                return
+            
+            def handle_confirm(confirmed: Optional[bool]) -> None:
+                if not confirmed:
+                    return
+                
+                success = 0
+                failed: List[str] = []
+                for file_path in targets:
+                    try:
+                        if FileUtils.delete_file(file_path):
+                            success += 1
+                        else:
+                            failed.append(os.path.basename(file_path))
+                    except Exception as exc:
+                        logger.error(f"删除文件失败 {file_path}: {exc}")
+                        failed.append(os.path.basename(file_path))
+                
+                # 清空选中状态，避免残留已删除文件的引用
+                self.selected_files.clear()
+                self.selected_file_indices.clear()
+                self.selected_file = None
+                self.selected_file_index = None
+                
+                # 刷新文件列表（目录缓存需失效，否则删除后仍显示旧内容）
+                try:
+                    if hasattr(self, "_directory_cache") and isinstance(self._directory_cache, dict):
+                        self._directory_cache.clear()
+                except Exception:
+                    pass
+                self._load_file_list()
+                self._update_selection_status()
+                
+                if success and not failed:
+                    self.notify(
+                        i18n.t("file_explorer.delete_success", count=success),
+                        severity="information",
+                    )
+                elif success:
+                    self.notify(
+                        i18n.t("file_explorer.delete_partial", success=success, failed=len(failed)),
+                        severity="warning",
+                    )
+                else:
+                    self.notify(
+                        i18n.t("file_explorer.delete_failed", default="删除文件失败"),
+                        severity="error",
+                    )
+            
+            from src.ui.dialogs.confirm_dialog import ConfirmDialog
+            dialog = ConfirmDialog(
+                self.theme_manager,
+                i18n.t("file_explorer.delete_confirm_title"),
+                i18n.t("file_explorer.delete_confirm_message", count=len(targets)),
+            )
+            self.app.push_screen(dialog, handle_confirm)
+        except Exception as e:
+            logger.error(f"删除选中文件失败: {e}")
+            self.notify(
+                i18n.t("file_explorer.delete_failed", default="删除文件失败"),
                 severity="error",
             )
 
