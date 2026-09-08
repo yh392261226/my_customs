@@ -4,7 +4,7 @@
 
 import os
 import shutil
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from textual.screen import ModalScreen
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical, Horizontal
@@ -183,14 +183,20 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
             logger.error(f"初始化数据表失败: {e}")
             self.notify("无法初始化重复书籍对话框", severity="error")
     
-    def _display_duplicate_group(self, group_index: int) -> None:
+    def _display_duplicate_group(self, group_index: int, preserve_cursor: Optional[bool] = None) -> None:
         """显示指定索引的重复组
         
         Args:
             group_index: 组索引
+            preserve_cursor: 是否保持原有光标位置；None 表示只在组未切换时保持
+                （刷新同一组时保持光标，切换组时回到第一行）
         """
         if not self.duplicate_groups or group_index < 0 or group_index >= len(self.duplicate_groups):
             return
+        
+        if preserve_cursor is None:
+            # 同一组内刷新（如空格切换选中）保持光标；切换到其它组时回到第一行
+            preserve_cursor = (group_index == self.current_group_index)
         
         self.current_group_index = group_index
         group = self.duplicate_groups[group_index]
@@ -228,6 +234,10 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
         if not table:
             logger.error("无法找到DataTable组件")
             return
+        
+        # 记录当前光标位置：下面会清空并重建所有行，光标会被重置到第一行
+        prev_cursor_row = getattr(table, "cursor_row", None)
+        prev_cursor_column = getattr(table, "cursor_column", None)
         
         # 准备所有行数据和选中的键
         rows_data = []
@@ -307,8 +317,31 @@ class DuplicateBooksDialog(ModalScreen[Dict[str, Any]]):
                 logger.warning(f"添加行时出错: {add_error}")
                 continue
         
+        # 恢复光标位置：重建行后光标会被重置到第一行，这里还原到原来的行列
+        if preserve_cursor:
+            self._restore_table_cursor(table, prev_cursor_row, prev_cursor_column)
+        
         # 更新状态信息
         self._update_status()
+    
+    @staticmethod
+    def _restore_table_cursor(table, row: Optional[int], column: Optional[int] = None) -> None:
+        """把表格光标恢复到指定行列（行不存在时收敛到最近的有效行）"""
+        if row is None:
+            return
+        try:
+            row_count = len(table.rows) if hasattr(table, "rows") else 0
+            if row_count <= 0:
+                return
+            target_row = max(0, min(int(row), row_count - 1))
+            move_kwargs = {"row": target_row}
+            if column is not None:
+                column_count = len(table.columns) if hasattr(table, "columns") else 0
+                if column_count > 0:
+                    move_kwargs["column"] = max(0, min(int(column), column_count - 1))
+            table.move_cursor(**move_kwargs)
+        except Exception as e:
+            logger.debug(f"恢复表格光标失败（可忽略）: {e}")
     
     @staticmethod
     def _group_key(group) -> frozenset:
