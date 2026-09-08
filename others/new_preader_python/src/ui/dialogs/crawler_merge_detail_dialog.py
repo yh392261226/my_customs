@@ -342,8 +342,8 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             title_input = self.query_one("#merge-title-input", Input)
             title_input.value = state.get('merged_title', group.get('base_title', ''))
 
-        # 表格
-        self._refresh_table()
+        # 表格（切换分组，光标回到第一行）
+        self._refresh_table(preserve_cursor=False)
 
         # 状态
         self._update_status()
@@ -351,14 +351,23 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
         # 聚焦
         self.query_one("#merge-detail-table", DataTable).focus()
 
-    def _refresh_table(self) -> None:
-        """刷新书籍表格"""
+    def _refresh_table(self, preserve_cursor: bool = True) -> None:
+        """刷新书籍表格
+
+        Args:
+            preserve_cursor: 是否保持原有光标位置。清空重建行会把光标重置到
+                第一行，同一组内刷新（勾选、标记删除、排序等）需要保持原位；
+                切换分组时传 False 回到第一行。
+        """
         state = self._group_state[self._current_index]
         books = state['books']
         selected = state['selected_ids']
         pending_delete = state.get('pending_delete_ids', set())
 
         table = self.query_one("#merge-detail-table", DataTable)
+        # 记录当前光标位置，重建行后再恢复
+        prev_cursor_row = getattr(table, "cursor_row", None)
+        prev_cursor_column = getattr(table, "cursor_column", None)
         table.clear()
 
         if not table.columns:
@@ -456,6 +465,29 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
                 delete_label,
                 key=str(bid),
             )
+
+        # 恢复光标位置，避免重建行后跳回第一行
+        if preserve_cursor:
+            self._restore_table_cursor(table, prev_cursor_row, prev_cursor_column)
+
+    @staticmethod
+    def _restore_table_cursor(table, row: Optional[int], column: Optional[int] = None) -> None:
+        """把表格光标恢复到指定行列（行不存在时收敛到最近的有效行）"""
+        if row is None:
+            return
+        try:
+            row_count = len(table.rows) if hasattr(table, "rows") else 0
+            if row_count <= 0:
+                return
+            target_row = max(0, min(int(row), row_count - 1))
+            move_kwargs = {"row": target_row}
+            if column is not None:
+                column_count = len(table.columns) if hasattr(table, "columns") else 0
+                if column_count > 0:
+                    move_kwargs["column"] = max(0, min(int(column), column_count - 1))
+            table.move_cursor(**move_kwargs)
+        except Exception as e:
+            logger.debug(f"恢复表格光标失败（可忽略）: {e}")
 
     def _update_status(self) -> None:
         """更新状态栏"""
