@@ -1228,7 +1228,7 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
     # ─── 搜索章节 ─────────────────────────────────────────
     def _open_search_chapters(self) -> None:
         """
-        使用网站配置的搜索连接地址，以被补缺书籍书名（经智能搜索规范化）为关键词在浏览器中搜索章节。
+        使用网站配置的搜索连接地址，以光标所在行的书名（经智能搜索规范化）为关键词在浏览器中搜索章节。
 
         - 关键词处理与爬取管理页面的智能搜索一致：使用 normalize_book_title 规范化书名。
         - 搜索连接地址中的 {keyword} 占位符会被替换为 URL 编码后的关键词。
@@ -1240,13 +1240,22 @@ class CrawlerMergeDetailDialog(ModalScreen[Dict[str, Any]]):
             self.notify(self.i18n.t('crawler.search_url_not_configured'), severity="warning", timeout=3)
             return
 
-        # 被补缺书籍的书名：优先使用当前合并标题输入框内容，否则回退到组的基准/展示书名
+        # 被补缺书籍的书名：以光标所在行的书名为基础；
+        # 光标行取不到时再回退到当前合并标题输入框内容，最后回退到组的基准/展示书名
         raw_title = ""
         try:
-            title_input = self.query_one("#merge-title-input", Input)
-            raw_title = title_input.value.strip()
-        except Exception:
-            pass
+            cursor_book = self._get_cursor_book()
+            if cursor_book:
+                raw_title = (cursor_book.get('novel_title') or '').strip()
+        except Exception as e:
+            logger.debug(f"获取光标行书名失败: {e}")
+
+        if not raw_title:
+            try:
+                title_input = self.query_one("#merge-title-input", Input)
+                raw_title = title_input.value.strip()
+            except Exception:
+                pass
         if not raw_title:
             group = self.groups[self._current_index]
             raw_title = group.get('base_title') or group.get('display_title', '') or ''
