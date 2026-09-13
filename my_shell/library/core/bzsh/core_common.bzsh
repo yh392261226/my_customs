@@ -255,12 +255,24 @@ function custom_gum_hidden_header() {
 }
 
 # 利用gum spin输出显示一会再隐藏的header(带border)
-function custom_gum_hidden_header2() {
+custom_gum_hidden_header2() {
     local text="$1"
-    [[ ! $USE_GUM ]] && echo -e "$text" && return 
-    local duration=${2:-0.5}
-    gum spin --title "$(echo "" && gum style --bold --border rounded --border-foreground "#3f633fff" --align center --padding "2 4" --margin "$STTY_MARGIN_TOP $STTY_MARGIN_RIGHT $STTY_MARGIN_BOTTOM $STTY_MARGIN_LEFT" --width $STTY_HALF_WIDTH \"$text\")" -- sleep $duration
-    echo ""
+    local duration="${2:-0.5}"
+    if [[ "$USE_GUM" != true ]]; then
+        echo -e "$text"
+        return
+    fi
+    gum style \
+        --bold \
+        --border rounded \
+        --border-foreground "#3f633fff" \
+        --align center \
+        --padding "2 4" \
+        --margin "$STTY_MARGIN_TOP $STTY_MARGIN_RIGHT $STTY_MARGIN_BOTTOM $STTY_MARGIN_LEFT" \
+        --width "$STTY_HALF_WIDTH" \
+        "$text"
+    sleep "$duration"
+    # 清除刚刚输出的内容
 }
 
 # 利用gum spin输出显示一会再隐藏的header
