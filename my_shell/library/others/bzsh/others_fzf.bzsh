@@ -190,7 +190,7 @@ FZF_DEFAULT_OPTS+=' --min-height=40 '
 FZF_DEFAULT_OPTS+=' --wrap=word '
 
 # 样式与布局
-FZF_DEFAULT_OPTS+=' --style=full:double '
+FZF_DEFAULT_OPTS+=' --style=full '
 FZF_DEFAULT_OPTS+=' --border=rounded '
 FZF_DEFAULT_OPTS+=' --layout=reverse '
 FZF_DEFAULT_OPTS+=' --padding="1" '
@@ -215,6 +215,12 @@ FZF_DEFAULT_OPTS+=" --color fg:underline-curly,current-fg:underline-dashed "
 FZF_DEFAULT_OPTS+=' --freeze-left 2 '
 FZF_DEFAULT_OPTS+=' --keep-right '
 FZF_DEFAULT_OPTS+=' --freeze-right 2 '
+# 颜色
+FZF_DEFAULT_OPTS+=" --color 'border:#aaaaaa,label:#cccccc' "
+FZF_DEFAULT_OPTS+=" --color 'preview-border:#9999cc,preview-label:#ccccff' "
+FZF_DEFAULT_OPTS+=" --color 'list-border:#669966,list-label:#99cc99' "
+FZF_DEFAULT_OPTS+=" --color 'input-border:#996666,input-label:#ffcccc' "
+FZF_DEFAULT_OPTS+=" --color 'header-border:#6699cc,header-label:#99ccff' "
 
 
 # 历史与标签
