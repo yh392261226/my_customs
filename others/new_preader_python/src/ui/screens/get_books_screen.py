@@ -35,7 +35,7 @@ class GetBooksScreen(Screen[None]):
         ("n", "next_page", get_global_i18n().t('crawler.shortcut_n')),
         ("x", "clear_search_params", get_global_i18n().t('crawler.clear_search_params')),
         ("j", "jump_to", get_global_i18n().t('bookshelf.jump_to')),
-        ("d", "clear_all_invalid", get_global_i18n().t('get_books.shortcut_d')),
+        ("r", "clear_all_invalid", get_global_i18n().t('get_books.shortcut_d')),
         ("C", "check_all_sites", get_global_i18n().t('get_books.shortcut_C')),
         ("b", "view_book_catalog", get_global_i18n().t('get_books.shortcut_b')),
     ]
