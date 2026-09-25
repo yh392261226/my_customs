@@ -274,7 +274,9 @@ class BookshelfScreen(Screen[None]):
                     classes="bookshelf-header-vertical"
                 ),
                 # 中间数据表区域
-                DataTable(id="books-table"),
+                Vertical(
+                    DataTable(id="books-table"),
+                ),
                 # 书籍统计信息区域
                 Vertical(
                     Label("", id="books-stats-label"),
@@ -306,11 +308,8 @@ class BookshelfScreen(Screen[None]):
         # 应用主题
         self.theme_manager.apply_theme_to_screen(self)
         
-        # 设置Grid布局的行高分配 - 与CSS保持一致
-        grid = self.query_one("Grid")
-        grid.styles.grid_size_rows = 4
-        grid.styles.grid_size_columns = 1
-        grid.styles.grid_rows = ("25%", "55%", "10%", "10%")
+        # Grid 的行高分配交由 bookshelf_overrides.tcss 控制（35% 40% 10% 15%），
+        # 这里不再用代码覆盖，避免与 CSS 不一致导致顶部搜索栏被裁切
         
         # 原生 LoadingIndicator（初始隐藏），挂载到书籍统计区域
         try:
