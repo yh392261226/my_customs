@@ -50,7 +50,7 @@ FillMissingDialog Container, #fm-container {
 
 /* ═══ 爬取操作行 ═══ */
 #fm-fill-row {
-    width: 100%; height: 3; align: center middle; margin-bottom: 1;
+    width: 100%; height: 3; align: center middle; margin-bottom: 1; overflow-x: auto;
 }
 
 #fm-fill-row > Button { margin: 0 1; min-width: 5; height: 3; }
@@ -111,6 +111,7 @@ FillMissingDialog Container, #fm-container {
     height: 3;
     align: center middle;
     margin-top: 1;
+    overflow-x: auto;
 }
 #fm-sel-ops-row > Button { margin: 0 1; }
 #fm-select-all-btn { background: $primary 40%; min-width: 6; }
@@ -161,7 +162,7 @@ FillMissingDialog Container, #fm-container {
 }
 
 #fm-middle-line-row {
-    width: 100%; height: 3; align: center middle;
+    width: 100%; height: 3; align: center middle; overflow-x: auto;
 }
 #fm-middle-line-input { margin: 0; width: 12; height: 3; background: $accent; }
 #fm-middle-preview-btn { min-width: 6; background: $primary 60%; margin-left: 1; }
@@ -169,7 +170,7 @@ FillMissingDialog Container, #fm-container {
 #fm-quick-pos-select { width: 20; height: 3; margin-left: 1; }
 
 /* ═══ 搜索+预览区（含导航） ═══ */
-#fm-search-row { width: 100%; height: 3; align: center middle; margin-bottom: 1; }
+#fm-search-row { width: 100%; height: 3; align: center middle; margin-bottom: 1; overflow-x: auto;}
 #fm-search-input { margin: 0; width: 20; min-width: 15; height: 3; }
 #fm-search-btn { min-width: 5; background: $primary 60%; margin-left: 1; }
 
@@ -210,7 +211,7 @@ FillMissingDialog Container, #fm-container {
 /* 搜索匹配高亮行（>>> 前缀的行） */
 
 /* ═══ 底部：新书名 + 按钮 ═══ */
-#fm-rename-row { width: 100%; height: 3; align: left middle; margin-bottom: 1; }
+#fm-rename-row { width: 100%; height: 3; align: left middle; margin-bottom: 1; overflow-x: auto;}
 #fm-rename-row > Label { min-width: 8; text-style: bold; color: $text; padding: 1 0; }
 #fm-new-name-input { margin: 0; width: 30%; min-width: 25; height: 3; }
 #fm-new-name-input:hover { width: auto; }
