@@ -1279,11 +1279,8 @@ class Bookshelf:
                 except Exception as e:
                     logger.error(f"读取书籍内容失败 {book.title}: {e}")
             
-            if not merged_content:
-                logger.error("所有书籍内容读取失败，无法合并")
-                return None
-            
             # 写入合并后的文件
+            # 按合并逻辑：无论书籍内容是否为空都生成新合并文件（全为空时即生成空文件）
             with open(new_filepath, 'w', encoding='utf-8') as f:
                 f.write(''.join(merged_content))
             
