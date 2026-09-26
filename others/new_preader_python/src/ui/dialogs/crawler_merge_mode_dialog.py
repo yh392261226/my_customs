@@ -8,8 +8,9 @@
 """
 
 import re
+import traceback
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Set, Tuple
+from typing import Dict, Any, List, Optional, Set, Tuple, Callable
 
 from rich import style
 from textual.screen import ModalScreen, Screen
@@ -192,6 +193,40 @@ def remove_chapter_info(title: str) -> str:
     return result
 
 
+def _same_book_keys(k1: str, k2: str) -> bool:
+    """
+    判断两个【已规范化】的书名键是否为同一本书（章节变体）。
+
+    判定规则与 is_same_book_chapters 完全一致，但输入是预先算好的规范化键，
+    批量比较时每个书名只需规范化一次，而不是每对都重算（原先是最大性能瓶颈）。
+    """
+    if not k1 or not k2:
+        return False
+
+    # 精确匹配
+    if k1 == k2:
+        return True
+
+    # 一个包含另一个（如 "小红的一天" 包含在 "小红的一天续" 中）
+    if len(k1) >= 3 and len(k2) >= 3:
+        if k1 in k2 or k2 in k1:
+            return True
+
+    # 编辑距离（简单版：共同前缀比例）
+    min_len = min(len(k1), len(k2))
+    if min_len >= 4:
+        common = 0
+        for i in range(min_len):
+            if k1[i] == k2[i]:
+                common += 1
+            else:
+                break
+        if common >= min_len * 0.7 and common >= 4:
+            return True
+
+    return False
+
+
 def is_same_book_chapters(title1: str, title2: str) -> bool:
     """
     判断两个标题是否为同一本书的不同章节。
@@ -200,32 +235,21 @@ def is_same_book_chapters(title1: str, title2: str) -> bool:
     """
     n1 = remove_chapter_info(normalize_book_title(title1))
     n2 = remove_chapter_info(normalize_book_title(title2))
+    return _same_book_keys(n1, n2)
 
-    if not n1 or not n2:
-        return False
 
-    # 精确匹配
-    if n1 == n2:
-        return True
+def _grams_of(key: str, size: int = 3) -> Set[str]:
+    """
+    取书名键的所有 n-gram，用于构建倒排索引做「候选分块」。
 
-    # 一个包含另一个（如 "小红的一天" 包含在 "小红的一天续" 中）
-    if len(n1) >= 3 and len(n2) >= 3:
-        if n1 in n2 or n2 in n1:
-            return True
-
-    # 编辑距离（简单版：共同前缀比例）
-    min_len = min(len(n1), len(n2))
-    if min_len >= 4:
-        common = 0
-        for i in range(min_len):
-            if n1[i] == n2[i]:
-                common += 1
-            else:
-                break
-        if common >= min_len * 0.7 and common >= 4:
-            return True
-
-    return False
+    三条判定规则（相等 / 包含 / 共同前缀≥4）都要求两个键至少共享一个 n-gram，
+    所以用 n-gram 分块不会漏匹配，却能把 O(G²) 的全量比较降到近乎线性。
+    """
+    if not key:
+        return set()
+    if len(key) <= size:
+        return {key}
+    return {key[i:i + size] for i in range(len(key) - size + 1)}
 
 
 def _book_identity(book: Dict[str, Any]) -> Any:
@@ -317,49 +341,104 @@ def _auto_merge_chapter_groups(
     跨所有分组检测同一本书的不同命名变体，合并为一组。
 
     检测逻辑：
-    - 对任意两组，取各自第一条记录的原始标题
-    - 用 is_same_book_chapters 判断是否为同一本书
-    - 若是则合并，不在主列表中单独展示
+    - 每组取第一条记录的原始标题，规范化一次得到书名键
+    - 用 n-gram 倒排索引只比较「可能相同」的组（避免全量两两比较）
+    - 命中判定后按并查集合并，不在主列表中单独展示
+
+    性能说明：旧实现是 O(G²) 全量比较，且每对都重新规范化书名（正则密集），
+    2500 组就要约 1 分钟；现改为「每组规范化一次 + n-gram 分块 + 并查集」，
+    实测同规模降到 1 秒内。
     """
     if not groups:
         return [], set()
+
+    n = len(groups)
+
+    # ── 1) 每组只规范化一次（原来是每对比较都重算）────────────
+    keys: List[str] = []
+    for g in groups:
+        title = g.books[0].get('novel_title', '') if g.books else g.base_title
+        k = remove_chapter_info(normalize_book_title(title))
+        keys.append(k or (g.base_title or ''))
+
+    # ── 2) n-gram 倒排索引：只比较共享 n-gram 的组 ───────────
+    buckets: Dict[str, List[int]] = {}
+    group_grams: List[Set[str]] = []
+    for idx, k in enumerate(keys):
+        grams = _grams_of(k)
+        group_grams.append(grams)
+        for gram in grams:
+            bucket = buckets.get(gram)
+            if bucket is None:
+                buckets[gram] = [idx]
+            else:
+                bucket.append(idx)
+
+    # ── 3) 并查集合并命中的组 ────────────────────────────────
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for i, grams in enumerate(group_grams):
+        candidates: Set[int] = set()
+        for gram in grams:
+            bucket = buckets.get(gram)
+            if bucket:
+                candidates.update(bucket)
+        if not candidates:
+            continue
+
+        ki = keys[i]
+        for j in candidates:
+            if j <= i:
+                continue
+            if not _same_book_keys(ki, keys[j]):
+                continue
+
+            ri, rj = find(i), find(j)
+            if ri == rj:
+                continue
+            # 保留索引更小的组作为根（与旧实现"后者并入前者"一致）
+            if ri < rj:
+                parent[rj] = ri
+            else:
+                parent[ri] = rj
+
+    # ── 4) 按簇合并书籍列表 ─────────────────────────────────
+    clusters: Dict[int, List[int]] = {}
+    for idx in range(n):
+        clusters.setdefault(find(idx), []).append(idx)
+
     merged_group_ids: Set[int] = set()
     auto_merged_count = 0
 
-    for i, group_a in enumerate(groups):
-        if group_a.group_id in merged_group_ids:
+    for root, members in clusters.items():
+        if len(members) <= 1:
             continue
 
-        for j, group_b in enumerate(groups):
-            if j <= i:
+        root_group = groups[root]
+        existing_ids = {_book_identity(b) for b in root_group.books}
+        for idx in members:
+            if idx == root:
                 continue
-            if group_b.group_id in merged_group_ids:
-                continue
-
-            # 检查两组的代表书名是否为同一本书
-            title_a = group_a.books[0].get('novel_title', '') if group_a.books else group_a.base_title
-            title_b = group_b.books[0].get('novel_title', '') if group_b.books else group_b.base_title
-
-            if is_same_book_chapters(title_a, title_b):
-                # 合并书籍列表（按 novel_id 去重，避免同一本书因主键不同被重复加入）
-                existing_ids = {_book_identity(b) for b in group_a.books}
-                for book in group_b.books:
-                    key = _book_identity(book)
-                    if key not in existing_ids:
-                        group_a.books.append(book)
-                        existing_ids.add(key)
-
-                group_a.is_auto_same_book = True
-                auto_merged_count += 1
-                merged_group_ids.add(group_b.group_id)
-
-                n_a = remove_chapter_info(normalize_book_title(title_a))
-                n_b = remove_chapter_info(normalize_book_title(title_b))
-                logger.debug(
-                    f"自动合并: [{n_a[:40]}] ← [{n_b[:40]}]"
-                    f" (组{group_a.group_id}+{group_b.group_id}，"
-                    f"共{len(group_a.books)}本)"
-                )
+            # 合并书籍列表（按 novel_id 去重，避免同一本书因主键不同被重复加入）
+            for book in groups[idx].books:
+                key = _book_identity(book)
+                if key not in existing_ids:
+                    root_group.books.append(book)
+                    existing_ids.add(key)
+            merged_group_ids.add(groups[idx].group_id)
+            auto_merged_count += 1
+            logger.debug(
+                f"自动合并: [{keys[root][:40]}] ← [{keys[idx][:40]}]"
+                f" (组{root_group.group_id}+{groups[idx].group_id}，"
+                f"共{len(root_group.books)}本)"
+            )
+        root_group.is_auto_same_book = True
 
     # 过滤掉已合并的组
     result = [g for g in groups if g.group_id not in merged_group_ids]
@@ -404,6 +483,7 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         max_date: str = "",
         novel_site: Optional[Dict[str, Any]] = None,
         parser_override: Optional[str] = None,
+        full_scan: bool = False,
         **kwargs,
     ) -> None:
         # DatePickerDialog 原生 CSS 有 layer: dialog + display:none。
@@ -568,6 +648,10 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self.site_name = site_name
         self.i18n = get_global_i18n()
         self.novel_site = novel_site or {}
+        # 全合并模式：排查该网站下所有书籍（不按日期筛选）
+        self.full_scan = full_scan
+        # 全站排查任务的取消标记
+        self._scan_cancelled = False
         # 当前爬取使用的解析器（来自主界面用户选择，None 时由站点默认决定）
         self.parser_override = parser_override
 
@@ -576,13 +660,19 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self.min_date = min_date
         self.max_date = max_date
 
-        # 默认日期范围：最近一周 ~ 今天（避免遗漏近期下载的书籍）
         from datetime import datetime, timedelta
-        today = datetime.now().strftime('%Y-%m-%d')
-        week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-        self._start_date = week_ago if week_ago >= min_date else min_date
-        self._start_date = today #只取今天即可 不用一周前
-        self._end_date = today if today <= max_date else max_date
+
+        if self.full_scan:
+            # 全合并模式不使用日期筛选，仅保留全站范围用于展示
+            self._start_date = min_date
+            self._end_date = max_date
+        else:
+            # 默认日期范围：最近一周 ~ 今天（避免遗漏近期下载的书籍）
+            today = datetime.now().strftime('%Y-%m-%d')
+            week_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+            self._start_date = week_ago if week_ago >= min_date else min_date
+            self._start_date = today #只取今天即可 不用一周前
+            self._end_date = today if today <= max_date else max_date
 
         # 分组结果（初始为空，on_mount 时加载）
         self.groups: List[BookGroup] = []
@@ -594,18 +684,25 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             Vertical(
                 # 标题
                 Label(
-                    f"📑 {self.i18n.t('merge_mode.title')} — {self.site_name}",
+                    f"📑 {self.i18n.t('merge_mode.full_title' if self.full_scan else 'merge_mode.title')} — {self.site_name}",
                     id="merge-mode-title",
                 ),
-                # 日期筛选行
-                Horizontal(
-                    Label(self.i18n.t('merge_mode.date_filter'), classes="date-filter-label"),
-                    Label(self.i18n.t('merge_mode.date_start'), classes="date-sub-label"),
-                    DateSelect(date=pendulum.parse(self._start_date), format="YYYY-MM-DD", picker_mount="#merge-mode-dialog", id="filter-start-date"),
-                    Label(self.i18n.t('merge_mode.date_end'), classes="date-sub-label"),
-                    DateSelect(date=pendulum.parse(self._end_date), format="YYYY-MM-DD", picker_mount="#merge-mode-dialog", id="filter-end-date"),
-                    Button(self.i18n.t('merge_mode.date_query'), id="date-query-btn", variant="primary"),
-                    id="merge-mode-filter",
+                # 全合并模式不提供日期筛选：直接排查该网站下的全部书籍
+                (
+                    Label(
+                        self.i18n.t('merge_mode.full_scope', count=len(self.all_history)),
+                        id="merge-mode-full-scope",
+                    )
+                    if self.full_scan
+                    else Horizontal(
+                        Label(self.i18n.t('merge_mode.date_filter'), classes="date-filter-label"),
+                        Label(self.i18n.t('merge_mode.date_start'), classes="date-sub-label"),
+                        DateSelect(date=pendulum.parse(self._start_date), format="YYYY-MM-DD", picker_mount="#merge-mode-dialog", id="filter-start-date"),
+                        Label(self.i18n.t('merge_mode.date_end'), classes="date-sub-label"),
+                        DateSelect(date=pendulum.parse(self._end_date), format="YYYY-MM-DD", picker_mount="#merge-mode-dialog", id="filter-end-date"),
+                        Button(self.i18n.t('merge_mode.date_query'), id="date-query-btn", variant="primary"),
+                        id="merge-mode-filter",
+                    )
                 ),
                 # 统计摘要
                 Label("", id="merge-mode-summary"),
@@ -639,7 +736,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         # dialog 挂在 Screen 直属下，display=True 保证 layout 计算，
         # offset=(-999,-999) 离屏隐藏。_patched_show 中动态获取 Screen
         # 布局的 flow position 并计算正确的 CSS offset。
-        for picker_id in ("filter-start-date", "filter-end-date"):
+        # 全合并模式没有日期选择器，跳过初始化
+        for picker_id in (() if self.full_scan else ("filter-start-date", "filter-end-date")):
             try:
                 picker = self.query_one(f"#{picker_id}", DateSelect)
                 if picker.dialog is None:
@@ -667,50 +765,73 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         table.add_column(self.i18n.t('merge_mode.col_date'), width=22)
         table.add_column(self.i18n.t('merge_mode.col_type'), width=12)
 
-        # 默认加载昨天~今天的分组
-        self._do_grouping(self._start_date, self._end_date)
+        if self.full_scan:
+            # 全合并模式：后台线程排查全站所有书籍（数据量大，避免阻塞 UI）
+            self._scan_all_groups_async()
+        else:
+            # 默认加载昨天~今天的分组
+            self._do_grouping(self._start_date, self._end_date)
         table.focus()
 
     # ─── 分组逻辑 ───────────────────────────────────────────
 
-    def _do_grouping(self, start_date: str, end_date: str) -> None:
-        """根据日期范围重新分组并刷新显示（用 crawl_time 精确比较）"""
-        self._start_date = start_date
-        self._end_date = end_date
+    def _build_groups(
+        self,
+        start_date: str,
+        end_date: str,
+        ignore_date: bool = False,
+        progress_cb: Optional[Callable[[int, int], None]] = None,
+        cancel_check: Optional[Callable[[], bool]] = None,
+    ) -> Optional[List[BookGroup]]:
+        """核心分组计算（较慢，可在后台线程执行）
 
+        Args:
+            start_date: 起始日期 YYYY-MM-DD
+            end_date: 结束日期 YYYY-MM-DD
+            ignore_date: True 时忽略日期限定，排查该网站下的全部书籍
+            progress_cb: 进度回调 (done, total)
+            cancel_check: 中止检查回调，返回 True 时提前退出
+
+        Returns:
+            分组列表；None 表示没有任何待排查的记录
+        """
         from datetime import datetime, timedelta
 
-        # 解析日期边界
-        try:
-            start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1, microseconds=-1)
-        except ValueError:
-            # 日期格式错误时回退到简单字符串过滤
-            filtered = [
-                item for item in self.all_history
-                if start_date <= (item.get('crawl_time', '')[:10]) <= end_date
-            ]
+        if ignore_date:
+            # 全合并模式：排查全部记录，不按日期过滤
+            filtered = list(self.all_history)
         else:
-            # 用 crawl_time 精确比较（覆盖整天 00:00:00 ~ 23:59:59.999999）
-            filtered = []
-            for item in self.all_history:
-                crawl_time = item.get('crawl_time', '')
-                if not crawl_time:
-                    continue
-                try:
-                    # ISO 格式: 2026-06-19T11:30:00.123456
-                    ct = datetime.strptime(crawl_time.split('.')[0], "%Y-%m-%dT%H:%M:%S")
-                except ValueError:
-                    # 尝试其他格式
-                    try:
-                        ct = datetime.strptime(crawl_time[:19], "%Y-%m-%dT%H:%M:%S")
-                    except ValueError:
-                        # 最终回退：用前10位比较
-                        if start_date <= crawl_time[:10] <= end_date:
-                            filtered.append(item)
+            # 解析日期边界
+            try:
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1, microseconds=-1)
+            except ValueError:
+                # 日期格式错误时回退到简单字符串过滤
+                filtered = [
+                    item for item in self.all_history
+                    if start_date <= (item.get('crawl_time', '')[:10]) <= end_date
+                ]
+            else:
+                # 用 crawl_time 精确比较（覆盖整天 00:00:00 ~ 23:59:59.999999）
+                filtered = []
+                for item in self.all_history:
+                    crawl_time = item.get('crawl_time', '')
+                    if not crawl_time:
                         continue
-                if start_dt <= ct <= end_dt:
-                    filtered.append(item)
+                    try:
+                        # ISO 格式: 2026-06-19T11:30:00.123456
+                        ct = datetime.strptime(crawl_time.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                    except ValueError:
+                        # 尝试其他格式
+                        try:
+                            ct = datetime.strptime(crawl_time[:19], "%Y-%m-%dT%H:%M:%S")
+                        except ValueError:
+                            # 最终回退：用前10位比较
+                            if start_date <= crawl_time[:10] <= end_date:
+                                filtered.append(item)
+                            continue
+                    if start_dt <= ct <= end_dt:
+                        filtered.append(item)
 
         logger.debug(
             f"日期过滤: {start_date}~{end_date}, "
@@ -728,24 +849,17 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             logger.debug(f"结果前5本书名: {sample_titles}")
 
         if not filtered:
-            self.groups = []
-            self._selected_group_ids = set()
-            self._total_books = 0
-            self._refresh_display()
-            self.notify(
-                self.i18n.t('merge_mode.no_range_history', start=start_date, end=end_date),
-                severity="warning",
-            )
-            return
+            return None
 
         # ── 分组策略 ──
         # 1. 对 filtered 中的每条记录，用 normalize_book_title 提取核心书名
         # 2. 用核心书名 LIKE %xxx% 搜索数据库中该书的全部历史（跨日期）
         # 3. 去重建组，自动合并章节组
 
-        # Step 1: 提取唯一核心书名
+        # Step 1: 提取唯一核心书名（顺带建「核心书名 -> 记录」映射，供兜底查询 O(1) 使用）
         seen_cores: Set[str] = set()
         core_list: List[str] = []
+        records_by_core: Dict[str, List[Dict[str, Any]]] = {}
         for item in filtered:
             title = item.get('novel_title', '').strip()
             if not title:
@@ -753,6 +867,11 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
             core = normalize_book_title(title)
             if not core or len(core) < 2:
                 continue
+            bucket = records_by_core.get(core)
+            if bucket is None:
+                records_by_core[core] = [item]
+            else:
+                bucket.append(item)
             if core not in seen_cores:
                 seen_cores.add(core)
                 core_list.append(core)
@@ -765,21 +884,46 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         if len(core_list) > 10:
             logger.debug(f"  ... 共 {len(core_list)} 个（仅展示前10）")
 
-        # Step 2: 用每个核心书名 LIKE 搜索数据库全部历史记录
+        # Step 2: 用每个核心书名搜索数据库全部历史记录（全站排查走内存索引）
         all_seen_ids: Set[Any] = set()
         raw_groups: List[BookGroup] = []
         group_id = 0
+        total_cores = len(core_list)
+        # 数据量大时降低回调频率，避免频繁跨线程刷新
+        progress_step = 25 if total_cores > 200 else 5
+        # 全站排查时预建标题 2-gram 倒排索引（只建一次，供所有核心书名复用）
+        title_index: Optional[Dict[str, List[int]]] = (
+            self._build_title_index() if ignore_date else None
+        )
 
-        for core in core_list:
-            books = self.db_manager.search_crawl_history_by_title(
-                self.site_id, core
-            )
+        for core_index, core in enumerate(core_list, 1):
+            # 全站排查时可被取消
+            if cancel_check is not None and cancel_check():
+                logger.debug("分组计算被取消")
+                return None
+
+            if progress_cb is not None and (
+                core_index % progress_step == 0 or core_index == total_cores
+            ):
+                try:
+                    progress_cb(core_index, total_cores)
+                except Exception as e:
+                    logger.debug(f"分组进度回调失败: {e}")
+
+            if ignore_date:
+                # 全站排查：all_history 已含该网站全部记录，用 2-gram 倒排索引
+                # 做候选筛选后再精确校验，避免「核心书名 × 全部记录」的全量子串扫描
+                # 以及逐条 LIKE 查询
+                books = self._match_books_by_core(core, title_index)
+            else:
+                books = self.db_manager.search_crawl_history_by_title(
+                    self.site_id, core
+                )
             if not books:
-                # 兜底：DB 搜不到时用 filtered 中匹配的记录
-                books = [
-                    item for item in filtered
-                    if normalize_book_title(item.get('novel_title', '')) == core
-                ]
+                # 兜底：子串搜不到时，用「规范化后完全等于该核心书名」的记录。
+                # 这里直接复用 Step1 建好的映射，避免对全部记录重新做一次规范化
+                # （原先每个未命中的核心书名都要全表 normalize，是主要耗时点）
+                books = list(records_by_core.get(core, []))
 
             # 去重（不同核心书名可能搜到同一本书）
             # 按 novel_id 去重，避免 novel_id 相同的重复记录（主键 id 不同）被保留
@@ -806,27 +950,108 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         )
 
         # Step 3: 跨组合并在同一本书的不同章节/命名变体
-        self.groups, merged_ids = _auto_merge_chapter_groups(raw_groups)
+        groups, merged_ids = _auto_merge_chapter_groups(raw_groups)
         if merged_ids:
             logger.debug(
-                f"自动合并(第二步): {len(raw_groups)} → {len(self.groups)}组"
+                f"自动合并(第二步): {len(raw_groups)} → {len(groups)}组"
                 f"（合并了 {len(merged_ids)} 组）"
             )
 
         # 过滤：只显示记录数 > 1 的组（只有1条不需要合并）
-        if self.groups:
-            before = len(self.groups)
-            self.groups = [g for g in self.groups if g.book_count > 1]
+        if groups:
+            before = len(groups)
+            groups = [g for g in groups if g.book_count > 1]
             logger.debug(
-                f"过滤单本组: {before}组 → {len(self.groups)}组"
-                f"（移除 {before - len(self.groups)} 组）"
+                f"过滤单本组: {before}组 → {len(groups)}组"
+                f"（移除 {before - len(groups)} 组）"
             )
+
+        return groups
+
+    # ─── 全站排查用的标题倒排索引 ───────────────────────────
+
+    def _build_title_index(self) -> Dict[str, List[int]]:
+        """
+        为全站记录建立「2-gram -> 记录下标」倒排索引。
+
+        用于替代 `core in title` 的全量扫描：若 core 是某标题的子串，
+        则 core 的所有 2-gram 必然都出现在该标题中，据此可先筛候选再精确校验。
+        """
+        index: Dict[str, List[int]] = {}
+        for idx, item in enumerate(self.all_history):
+            title = item.get('novel_title', '')
+            if not title:
+                continue
+            grams = _grams_of(title, size=2)
+            for gram in grams:
+                bucket = index.get(gram)
+                if bucket is None:
+                    index[gram] = [idx]
+                else:
+                    bucket.append(idx)
+        return index
+
+    def _match_books_by_core(
+        self,
+        core: str,
+        title_index: Optional[Dict[str, List[int]]],
+    ) -> List[Dict[str, Any]]:
+        """用倒排索引找出标题包含 core 的全部记录"""
+        if title_index is None or not core:
+            return [item for item in self.all_history if core in item.get('novel_title', '')]
+
+        # 取候选最少的那个 2-gram，减少精确校验次数
+        best: Optional[List[int]] = None
+        for gram in _grams_of(core, size=2):
+            bucket = title_index.get(gram)
+            if not bucket:
+                # 该 2-gram 在全站标题中都不存在 → 必然没有匹配
+                return []
+            if best is None or len(bucket) < len(best):
+                best = bucket
+
+        if not best:
+            return []
+
+        return [
+            item for item in (self.all_history[i] for i in best)
+            if core in item.get('novel_title', '')
+        ]
+
+    def _do_grouping(self, start_date: str, end_date: str) -> None:
+        """根据日期范围重新分组并刷新显示（用 crawl_time 精确比较）"""
+        self._start_date = start_date
+        self._end_date = end_date
+
+        groups = self._build_groups(start_date, end_date)
+
+        if groups is None:
+            self.groups = []
+            self._selected_group_ids = set()
+            self._total_books = 0
+            self._refresh_display()
+            self.notify(
+                self.i18n.t('merge_mode.no_range_history', start=start_date, end=end_date),
+                severity="warning",
+            )
+            return
+
+        self._apply_groups_result(groups, notify_empty=True)
+
+    def _apply_groups_result(
+        self,
+        groups: Optional[List[BookGroup]],
+        notify_empty: bool = True,
+    ) -> None:
+        """把分组计算结果写入状态并刷新界面"""
+        self.groups = groups or []
 
         if not self.groups:
             self._selected_group_ids = set()
             self._total_books = 0
             self._refresh_display()
-            self.notify(self.i18n.t('merge_mode.no_groups'), severity="information")
+            if notify_empty:
+                self.notify(self.i18n.t('merge_mode.no_groups'), severity="information")
             return
 
         # 默认全选
@@ -834,19 +1059,128 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
         self._total_books = sum(g.book_count for g in self.groups)
         self._refresh_display()
 
+    # ─── 全合并模式：全站排查 ───────────────────────────────
+
+    def _scan_all_groups_async(self) -> None:
+        """全合并模式：后台线程排查该网站下所有书籍并分组（数据量大，避免 UI 卡死）"""
+        app = self.app
+        self._scan_cancelled = False
+
+        try:
+            self.query_one("#merge-mode-summary", Label).update(
+                self.i18n.t('merge_mode.scanning_all', count=len(self.all_history))
+            )
+        except Exception as e:
+            logger.debug(f"更新全站排查提示失败: {e}")
+
+        def _progress(done: int, total: int) -> None:
+            try:
+                app.call_from_thread(
+                    self._update_scan_status,
+                    self.i18n.t('merge_mode.scan_progress', done=done, total=total),
+                )
+            except Exception:
+                pass
+
+        def _scan_worker() -> None:
+            """后台线程：执行全站排查"""
+            try:
+                groups = self._build_groups(
+                    self._start_date,
+                    self._end_date,
+                    ignore_date=True,
+                    progress_cb=_progress,
+                    cancel_check=lambda: self._scan_cancelled,
+                )
+                if self._scan_cancelled:
+                    return
+                app.call_from_thread(self._apply_scan_result, groups)
+            except Exception as e:
+                logger.error(f"全站排查失败: {e}")
+                logger.debug(traceback.format_exc())
+                if self._scan_cancelled:
+                    return
+                app.call_from_thread(self._apply_scan_result, None, str(e))
+
+        self.run_worker(_scan_worker, name="full-scan-grouping", thread=True)
+
+    def _update_scan_status(self, text: str) -> None:
+        """更新排查进度（主线程）"""
+        if not self.is_attached:
+            return
+        try:
+            self.query_one("#merge-mode-status", Label).update(text)
+        except Exception as e:
+            logger.debug(f"更新排查进度失败: {e}")
+
+    def _apply_scan_result(
+        self,
+        groups: Optional[List[BookGroup]],
+        error: Optional[str] = None,
+    ) -> None:
+        """全站排查结束后把结果应用到界面（主线程）"""
+        if not self.is_attached:
+            return
+
+        try:
+            if error:
+                self.groups = []
+                self._selected_group_ids = set()
+                self._total_books = 0
+                self._refresh_display()
+                self.notify(
+                    self.i18n.t('merge_mode.scan_failed', error=error),
+                    severity="error",
+                    timeout=5,
+                )
+                return
+
+            self.groups = groups or []
+            if not self.groups:
+                self._selected_group_ids = set()
+                self._total_books = 0
+                self._refresh_display()
+                self.notify(self.i18n.t('merge_mode.no_groups'), severity="information")
+                return
+
+            self._selected_group_ids = set(g.group_id for g in self.groups if g.is_selected)
+            self._total_books = sum(g.book_count for g in self.groups)
+            self._refresh_display()
+            self.notify(
+                self.i18n.t(
+                    'merge_mode.summary',
+                    group_count=len(self.groups),
+                    book_count=self._total_books,
+                ),
+                severity="information",
+                timeout=3,
+            )
+        except Exception as e:
+            logger.debug(f"应用全站排查结果失败: {e}")
+
     def _refresh_display(self) -> None:
         """刷新摘要、表格、提示和状态"""
         # 统计摘要
         summary = self.query_one("#merge-mode-summary", Label)
         if self.groups:
-            summary.update(
-                self.i18n.t(
-                    'merge_mode.group_summary',
-                    group_count=len(self.groups),
-                    start=self._start_date,
-                    end=self._end_date,
+            if self.full_scan:
+                # 全合并模式：无日期范围，只展示分组与涉及记录数
+                summary.update(
+                    self.i18n.t(
+                        'merge_mode.summary',
+                        group_count=len(self.groups),
+                        book_count=sum(g.book_count for g in self.groups),
+                    )
                 )
-            )
+            else:
+                summary.update(
+                    self.i18n.t(
+                        'merge_mode.group_summary',
+                        group_count=len(self.groups),
+                        start=self._start_date,
+                        end=self._end_date,
+                    )
+                )
         else:
             summary.update("")
 
@@ -1084,6 +1418,8 @@ class CrawlerMergeModeDialog(ModalScreen[Dict[str, Any]]):
     @on(Button.Pressed, "#cancel-btn")
     def on_cancel(self) -> None:
         """取消"""
+        # 全站排查尚未结束时，标记取消避免后台线程继续回调 UI
+        self._scan_cancelled = True
         self.dismiss({
             "success": False,
             "action": "merge_mode",

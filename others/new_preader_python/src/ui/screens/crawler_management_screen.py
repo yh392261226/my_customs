@@ -529,6 +529,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("i", "copy_book_ids_pages", get_global_i18n().t('crawler.shortcut_i')),
         ("e", "toggle_monitor", get_global_i18n().t('crawler.toggle_monitor')),
         ("z", "merge_mode", get_global_i18n().t('crawler.merge_mode')),
+        ("Z", "merge_mode_all", get_global_i18n().t('crawler.shortcut_Z')),
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
         ("m", "format_title", get_global_i18n().t('crawler.format_title')),
     ]
@@ -680,6 +681,10 @@ class CrawlerManagementScreen(Screen[None]):
     def action_merge_mode(self) -> None:
         """z键 - 合并模式"""
         self._open_merge_mode()
+
+    def action_merge_mode_all(self) -> None:
+        """Z键 - 全合并模式（排查该网站下所有书籍）"""
+        self._open_merge_mode(full_scan=True)
 
     def action_clear_invalid(self) -> None:
         """r键 - 清理无效记录"""
@@ -1020,6 +1025,7 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
                     Button(get_global_i18n().t('crawler.merge_mode'), id="merge-mode-btn", variant="primary"),
+                    Button(get_global_i18n().t('crawler.merge_mode_all'), id="merge-mode-all-btn", variant="primary"),
                     Button(get_global_i18n().t('batch_ops.compare_read'), id="compare-read-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.set_serial_mode'), id="set-serial-btn", variant="success"),
                     Button(get_global_i18n().t('crawler.batch_crawl_latest'), id="batch-crawl-latest-btn", variant="primary"),
@@ -2393,8 +2399,12 @@ class CrawlerManagementScreen(Screen[None]):
             logger.error(f"合并失败: {e}")
             self._update_status(get_global_i18n().t('crawler.merge_failed'), "error")
 
-    def _open_merge_mode(self) -> None:
-        """打开合并模式弹窗，内置日期筛选和智能分组"""
+    def _open_merge_mode(self, full_scan: bool = False) -> None:
+        """打开合并模式弹窗，内置日期筛选和智能分组
+
+        Args:
+            full_scan: True 时为全合并模式，自动排查该网站下的所有书籍
+        """
         try:
             site_id = self.novel_site.get('id')
             if not site_id:
@@ -2413,11 +2423,14 @@ class CrawlerManagementScreen(Screen[None]):
                 if crawl_time:
                     dates.append(crawl_time[:10])
             if not dates:
-                self._update_status(get_global_i18n().t('merge_mode.no_date'), "warning")
-                return
-
-            min_date = min(dates)
-            max_date = max(dates)
+                # 全合并模式不依赖日期，仍可排查全部书籍
+                if not full_scan:
+                    self._update_status(get_global_i18n().t('merge_mode.no_date'), "warning")
+                    return
+                min_date = max_date = ""
+            else:
+                min_date = min(dates)
+                max_date = max(dates)
             site_name = self.novel_site.get('name', '')
 
             from src.ui.dialogs.crawler_merge_mode_dialog import CrawlerMergeModeDialog
@@ -2605,6 +2618,7 @@ class CrawlerManagementScreen(Screen[None]):
                     max_date=max_date,
                     novel_site=self.novel_site,
                     parser_override=self._resolve_parser_name(),
+                    full_scan=full_scan,
                 ),
                 handle_merge_mode_result,
             )
@@ -5841,6 +5855,8 @@ class CrawlerManagementScreen(Screen[None]):
             self._merge_selected()
         elif button_id == "merge-mode-btn":
             self._open_merge_mode()
+        elif button_id == "merge-mode-all-btn":
+            self._open_merge_mode(full_scan=True)
         elif button_id == "compare-read-btn":
             self._compare_read_selected()
         elif button_id == "set-serial-btn":

@@ -35,6 +35,17 @@ CrawlerMergeModeDialog Container ,#merge-mode-container {
     text-align: left;
 }
 
+/* ── 全合并模式：排查范围提示（替代日期筛选行）── */
+#merge-mode-full-scope {
+    width: 100%;
+    height: 3;
+    content-align: center middle;
+    text-align: center;
+    text-style: bold;
+    color: $text;
+    margin-bottom: 1;
+}
+
 /* ── 日期筛选行 ── */
 #merge-mode-filter {
     width: 100%;
