@@ -1020,7 +1020,6 @@ class CrawlerManagementScreen(Screen[None]):
                     Button(get_global_i18n().t('batch_ops.select_all_pages'), id="select-all-pages-btn"),
                     Button(get_global_i18n().t('crawler.copy_book_ids_btn'), id="copy-book-ids-btn", variant="success"),
                     Button(get_global_i18n().t('bookshelf.batch_ops.invert_selection'), id="invert-selection-btn"),
-                    Button(get_global_i18n().t('bookshelf.batch_ops.deselect_all'), id="deselect-all-btn"),
                     Button(get_global_i18n().t('batch_ops.move_up'), id="move-up-btn"),
                     Button(get_global_i18n().t('batch_ops.move_down'), id="move-down-btn"),
                     Button(get_global_i18n().t('batch_ops.merge'), id="merge-btn", variant="warning"),
@@ -1714,6 +1713,22 @@ class CrawlerManagementScreen(Screen[None]):
         """更新选择状态显示"""
         selected_count = len(self.selected_history)
         self._update_status(get_global_i18n().t('batch_ops.selected_count', count=selected_count))
+        self._update_select_all_button_label()
+
+    def _update_select_all_button_label(self) -> None:
+        """根据当前页是否有选中项，更新全选/取消全选按钮的文案"""
+        try:
+            start_index = (self.current_page - 1) * self.items_per_page
+            end_index = min(start_index + self.items_per_page, len(self.crawler_history))
+            has_selection = any(
+                str(self.crawler_history[i]["id"]) in self.selected_history
+                for i in range(start_index, end_index)
+            )
+            label = get_global_i18n().t('bookshelf.batch_ops.deselect_all') if has_selection \
+                else get_global_i18n().t('bookshelf.batch_ops.select_all')
+            self.query_one("#select-all-btn", Button).label = label
+        except Exception:
+            pass
     
     def _select_all(self) -> None:
         """超全选：弹出对话框让用户选择要全选的页数"""
@@ -5852,15 +5867,13 @@ class CrawlerManagementScreen(Screen[None]):
         elif button_id == "jump-page-btn":
             self._show_jump_dialog()
         elif button_id == "select-all-btn":
-            self._select_all_rows()
+            self.action_select_all_rows()
         elif button_id == "select-all-pages-btn":
             self._select_all()
         elif button_id == "copy-book-ids-btn":
             self._copy_book_ids_by_pages()
         elif button_id == "invert-selection-btn":
             self._invert_selection()
-        elif button_id == "deselect-all-btn":
-            self._deselect_all_rows()
         elif button_id == "move-up-btn":
             self._move_selected_up()
         elif button_id == "move-down-btn":
