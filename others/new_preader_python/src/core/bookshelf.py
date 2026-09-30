@@ -214,26 +214,40 @@ class Bookshelf:
             return None
     
     @debug_logged
-    def remove_book(self, path: str) -> bool:
+    def remove_book(self, path: str, delete_file: bool = False) -> bool:
         """
         移除书籍
-        
+
         Args:
             path: 书籍文件路径
-            
+            delete_file: 是否同时删除物理文件（移动到回收站，便于恢复），默认 False。
+                仅当调用方明确希望删除书籍时传 True；内部清理（如合并、清理缺失文件）
+                由调用方自行处理文件，保持默认 False 以免重复删除。
+
         Returns:
             bool: 是否成功移除
         """
         abs_path = os.path.abspath(path)
         if abs_path in self.books:
             del self.books[abs_path]
-            
+
             # 从数据库中删除书籍
             self.db_manager.delete_book(abs_path)
-            
+
             # 从阅读历史中移除相关记录
             self.reading_history = [record for record in self.reading_history if record.get("path") != abs_path and record.get("book_path") != abs_path]
-            
+
+            # 如需同时删除物理文件（移动到回收站，便于恢复）
+            if delete_file:
+                try:
+                    if os.path.exists(abs_path):
+                        send2trash(abs_path)
+                        logger.info(f"书籍文件已移至回收站: {abs_path}")
+                    else:
+                        logger.warning(f"书籍文件不存在，仅删除记录: {abs_path}")
+                except Exception as e:
+                    logger.error(f"删除书籍文件失败（记录已删除）: {abs_path}: {e}")
+
             logger.info(f"已从数据库中移除书籍: {abs_path}")
             return True
         else:

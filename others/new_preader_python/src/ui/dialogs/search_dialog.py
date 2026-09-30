@@ -305,8 +305,8 @@ class SearchDialog(ModalScreen[Optional[SearchResult]]):
                 if result:
                     # 确认删除
                     try:
-                        # 从书架中删除书籍
-                        success = bookshelf.remove_book(book_path)
+                        # 从书架中删除书籍（同时删除物理文件）
+                        success = bookshelf.remove_book(book_path, delete_file=True)
                         if success:
                             self.notify(get_global_i18n().t("bookshelf.delete_book_success"), severity="information")
                             # 重新执行搜索以刷新列表

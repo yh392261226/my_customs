@@ -4647,7 +4647,7 @@ class CrawlerManagementScreen(Screen[None]):
                         
                         # 刷新历史记录
                         self._load_crawl_history()
-                        self._update_status(get_global_i18n().t('crawler.file_deleted'))
+                        self._update_status(get_global_i18n().t('crawler.record_deleted'))
                     except Exception as e:
                         self._update_status(f"{get_global_i18n().t('crawler.delete_file_failed')}: {str(e)}", "error")
                 elif confirmed is False:
@@ -4687,12 +4687,23 @@ class CrawlerManagementScreen(Screen[None]):
                         # 先删除文件
                         send2trash(file_path)
                         logger.info(f"文件已移至回收站: {file_path}")
-                        
-                        # 从数据库中删除对应的记录
+
+                        # 从数据库中删除对应的爬取记录
                         history_id = history_item.get('id')
                         if history_id:
                             self.db_manager.delete_crawl_history(history_id)
-                        
+
+                        # 同时删除书架中的对应书籍记录（删除记录也删除文件）
+                        try:
+                            if self.db_manager.delete_book(file_path):
+                                try:
+                                    from src.ui.messages import RefreshBookshelfMessage
+                                    self.app.post_message(RefreshBookshelfMessage())
+                                except Exception as msg_error:
+                                    logger.debug(f"发送刷新书架消息失败: {msg_error}")
+                        except Exception as shelf_error:
+                            logger.error(f"删除书架书籍记录失败: {shelf_error}")
+
                         # 刷新历史记录
                         self._load_crawl_history()
                         self._update_status(get_global_i18n().t('crawler.file_deleted'))
@@ -5951,8 +5962,8 @@ class CrawlerManagementScreen(Screen[None]):
                                     # 删除文件
                                     send2trash(file_path)
                                     logger.info(f"文件已移至回收站: {file_path}")
-                                    
-                                    # 同时删除书架中的对应书籍
+
+                                    # 同时删除书架中的对应书籍记录
                                     try:
                                         if self.db_manager.delete_book(file_path):
                                             # 发送全局刷新书架消息
@@ -5963,10 +5974,18 @@ class CrawlerManagementScreen(Screen[None]):
                                                 logger.debug(f"发送刷新书架消息失败: {msg_error}")
                                     except Exception as shelf_error:
                                         logger.error(f"删除书架书籍失败: {shelf_error}")
-                                        
+
                                     deleted_count += 1
                                 else:
                                     failed_count += 1
+
+                                # 删除对应的爬取历史记录（删除文件也删除记录）
+                                record_id = row_data.get('id')
+                                if record_id is not None:
+                                    try:
+                                        self.db_manager.delete_crawl_history(int(record_id))
+                                    except Exception as rec_error:
+                                        logger.error(f"删除爬取记录失败: {record_id}, 错误: {rec_error}")
                             except Exception as e:
                                 logger.error(f"删除文件失败: {file_path}, 错误: {e}")
                                 failed_count += 1

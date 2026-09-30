@@ -1693,9 +1693,9 @@ class BatchOpsDialog(ModalScreen[Dict[str, Any]]):
             self.notify(get_global_i18n().t("batch_ops.no_books_selected"), severity="warning")
             return
         
-        # 这里实现删除逻辑
+        # 这里实现删除逻辑（同时删除物理文件）
         for book_id in self.selected_books:
-            self.bookshelf.remove_book(book_id)
+            self.bookshelf.remove_book(book_id, delete_file=True)
         
         self.notify(
             get_global_i18n().t("batch_ops.books_deleted", count=len(self.selected_books)),
