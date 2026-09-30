@@ -1082,11 +1082,12 @@ function brew_services_manage() {                                               
                 custom_title "Command: brew services list"
                 custom_title "Result:"
                 echo ""
-                echo "╭───────────────────────────────────────────────────────────────────────────────────────────────────────\n│" | lolcat -f
-                for service in $(brew services list | awk '{print $1}' | grep -v 'Name'); do
-                    echo "│    $service  " | lolcat -f
-                done
-                echo "│\n╰───────────────────────────────────────────────────────────────────────────────────────────────────────\n" | lolcat -f
+                brew services list | lolcat -F 1.4
+#                echo "╭───────────────────────────────────────────────────────────────────────────────────────────────────────\n│" | lolcat -f
+#                for service in $(brew services list | awk '{print $1}' | grep -v 'Name'); do
+#                    echo "│    $service  " | lolcat -f
+#                done
+#                echo "│\n╰───────────────────────────────────────────────────────────────────────────────────────────────────────\n" | lolcat -f
             else
                 custom_title "Command: brew services $myoption $myservice"
                 custom_title "Result:"
