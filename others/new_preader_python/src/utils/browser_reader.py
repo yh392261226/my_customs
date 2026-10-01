@@ -26,6 +26,666 @@ logger = get_logger(__name__)
 _active_servers: Dict[str, Dict[str, Any]] = {}
 
 
+# ============================================================================
+# 浏览器阅读器增强功能（注入到生成的 HTML 中）
+# 使用普通（非 f-string）字符串，避免与大模板的 {{ }} 转义冲突。
+# ============================================================================
+
+EXTRA_READER_CSS = r"""
+/* === 浏览器阅读器增强功能样式 === */
+#readingProgressBar {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  z-index: 10000; transition: width 0.2s ease; pointer-events: none;
+}
+.reader-selection-toolbar {
+  position: fixed; z-index: 10001; display: none;
+  background: #2b2b2b; border-radius: 8px; padding: 4px; gap: 2px;
+}
+.reader-selection-toolbar button {
+  background: transparent; color: #eee; border: none; cursor: pointer;
+  padding: 6px 10px; font-size: 13px; border-radius: 5px;
+}
+.reader-selection-toolbar button:hover { background: rgba(255,255,255,0.15); }
+.translation-bubble {
+  position: fixed; z-index: 10002; max-width: 320px; display: none;
+  background: #fff; color: #222; border: 1px solid #ddd; border-radius: 8px;
+  padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.25); font-size: 14px; line-height: 1.5;
+}
+.translation-bubble .tb-original { color: #888; font-size: 12px; margin-bottom: 4px; word-break: break-all; }
+.translation-bubble .tb-translated { font-weight: 500; word-break: break-all; }
+.translation-bubble .tb-close { position: absolute; top: 4px; right: 8px; cursor: pointer; color: #999; font-size: 16px; }
+.translation-bubble .tb-loading { color: #888; }
+.image-zoom-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10003;
+  display: none; align-items: center; justify-content: center; cursor: zoom-out;
+}
+.image-zoom-overlay img { max-width: 92%; max-height: 92%; box-shadow: 0 0 30px rgba(0,0,0,0.6); }
+.speech-active { background: rgba(79,172,254,0.20) !important; border-radius: 4px; box-shadow: 0 0 0 2px rgba(79,172,254,0.5) !important; }
+.speech-sentence { transition: background 0.15s; border-radius: 3px; }
+.reader-extra-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.reader-extra-bar button {
+  background: #4facfe; color: #fff; border: none; border-radius: 5px;
+  padding: 5px 10px; font-size: 12px; cursor: pointer;
+}
+.reader-extra-bar button.secondary { background: #888; }
+.search-options { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: inherit; }
+.reader-import-input { display: none; }
+.search-container { flex-wrap: wrap; align-items: flex-start; max-width: 360px; }
+.search-results { width: 100%; max-height: 320px; overflow-y: auto; margin-top: 8px;
+  background: rgba(255,255,255,0.98); color: #222; border: 1px solid rgba(128,128,128,0.3);
+  border-radius: 6px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; }
+.search-results.show { display: block; }
+.search-result-item { padding: 7px 9px; border-radius: 4px; cursor: pointer; font-size: 13px;
+  line-height: 1.5; border-bottom: 1px solid rgba(128,128,128,0.12); }
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: rgba(79,172,254,0.15); }
+.search-result-item.active { background: rgba(79,172,254,0.32); }
+.search-result-item .idx { color: #999; font-size: 11px; margin-right: 6px; }
+.search-result-item .snip b { color: #e53935; font-weight: 600; }
+.search-result-empty { padding: 10px; color: #888; font-size: 12px; }
+.search-mark { background: yellow; color: inherit; border-radius: 2px; padding: 0 1px; }
+"""
+
+EXTRA_READER_HTML = ""
+
+EXTRA_READER_JS = r"""
+/* === 浏览器阅读器增强功能 JS === */
+(function(){
+  'use strict';
+
+  var BOOK = (typeof BOOK_ID !== 'undefined' && BOOK_ID) ? BOOK_ID : (document.title || 'book');
+
+  function getApiBase() {
+    var u = (typeof SAVE_PROGRESS_URL !== 'undefined') ? SAVE_PROGRESS_URL : '';
+    if (u) return u.replace(/\/save_progress$/, '');
+    return '';
+  }
+  function apiPost(path, data) {
+    var base = getApiBase();
+    if (!base) return Promise.resolve(null);
+    return fetch(base + path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
+      .then(function(r){ return r.json(); }).catch(function(){ return null; });
+  }
+  function apiGet(path) {
+    var base = getApiBase();
+    if (!base) return Promise.resolve(null);
+    return fetch(base + path, { method:'GET', headers:{'Content-Type':'application/json'} })
+      .then(function(r){ return r.json(); }).catch(function(){ return null; });
+  }
+  function getContentEl(){ return document.getElementById('content'); }
+  function notify(msg){ if (typeof showNotification==='function') showNotification(msg); else alert(msg); }
+
+  /* ---------- 顶部阅读进度条 ---------- */
+  var progressBar = document.createElement('div');
+  progressBar.id = 'readingProgressBar';
+  document.body.appendChild(progressBar);
+  function updateProgressBar(){
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    var pct = h > 0 ? (window.scrollY / h) * 100 : 0;
+    progressBar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateProgressBar, { passive:true });
+  window.addEventListener('resize', updateProgressBar);
+  updateProgressBar();
+
+  /* ---------- 朗读：按句高亮 + 自动跟随 ---------- */
+  var _origStopSpeech = (typeof stopSpeech === 'function') ? stopSpeech : function(){};
+  window.stopSpeech = function(){
+    var els = document.querySelectorAll('.speech-active');
+    for (var i=0;i<els.length;i++){ els[i].classList.remove('speech-active'); }
+    _origStopSpeech();
+  };
+  function ensureVisible(el){
+    // 分页模式：滚动无效（内容为分页克隆），改为翻到包含该句的页面
+    if (typeof isPaginationMode !== 'undefined' && isPaginationMode) {
+      if (typeof pages !== 'undefined' && pages && pages.length) {
+        var txt = (el.textContent || '').trim().slice(0, 50);
+        if (txt) {
+          for (var i = 0; i < pages.length; i++) {
+            if (pages[i] && pages[i].textContent && pages[i].textContent.indexOf(txt) >= 0) {
+              if (i !== currentPageIndex && typeof showPage === 'function') {
+                showPage(i);
+              }
+              break;
+            }
+          }
+        }
+      }
+      return;
+    }
+    // 滚动模式：仅做最小位移，把当前句保持在视口 20%~80% 舒适区，避免大跳
+    var r = el.getBoundingClientRect();
+    var vh = window.innerHeight;
+    var topBand = vh * 0.2;
+    var bottomBand = vh * 0.8;
+    if (r.top < topBand) {
+      window.scrollBy({ top: r.top - topBand, behavior: 'smooth' });
+    } else if (r.bottom > bottomBand) {
+      window.scrollBy({ top: r.bottom - bottomBand, behavior: 'smooth' });
+    }
+  }
+  function speakParagraphBySentence(paragraph, text, onDone){
+    var parts = text.split(/(?<=[。！？!?；;\.\n])/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+    if (parts.length <= 1 || paragraph.querySelector('.highlight')) {
+      paragraph.classList.add('speech-active');
+      speakText(text, function(){ paragraph.classList.remove('speech-active'); onDone(); });
+      return;
+    }
+    var originalHTML = paragraph.innerHTML;
+    paragraph.innerHTML = '';
+    var spans = parts.map(function(p){
+      var s = document.createElement('span');
+      s.className = 'speech-sentence';
+      s.textContent = p;
+      paragraph.appendChild(s);
+      return s;
+    });
+    var idx = 0;
+    (function next(){
+      if (idx >= spans.length){ paragraph.innerHTML = originalHTML; onDone(); return; }
+      var sp = spans[idx];
+      sp.classList.add('speech-active');
+      ensureVisible(sp);
+      speakText(sp.textContent, function(){ sp.classList.remove('speech-active'); idx++; next(); });
+    })();
+  }
+  window.speakCurrentParagraph = function(){
+    if (typeof paragraphs === 'undefined' || currentParagraphIndex >= paragraphs.length) { stopSpeech(); notify('朗读完成'); return; }
+    var paragraph = paragraphs[currentParagraphIndex];
+    var text = paragraph.textContent.trim();
+    if (!text) { currentParagraphIndex++; speakCurrentParagraph(); return; }
+    var statusDisplay = document.getElementById('speechStatus');
+    if (statusDisplay) statusDisplay.textContent = '段落 ' + (currentParagraphIndex+1) + '/' + paragraphs.length;
+    speakParagraphBySentence(paragraph, text, function(){ currentParagraphIndex++; setTimeout(speakCurrentParagraph, 400); });
+  };
+
+  /* ---------- 划词浮动工具条 ---------- */
+  var selToolbar = document.createElement('div');
+  selToolbar.className = 'reader-selection-toolbar';
+  selToolbar.innerHTML = '<button data-act="highlight">高亮</button>' +
+    '<button data-act="note">笔记</button>' +
+    '<button data-act="copy">复制</button>' +
+    '<button data-act="cite">引用</button>' +
+    '<button data-act="translate">翻译</button>' +
+    '<button data-act="search">搜索</button>';
+  document.body.appendChild(selToolbar);
+  selToolbar.addEventListener('mousedown', function(e){ e.preventDefault(); });
+  selToolbar.addEventListener('click', function(e){
+    var act = e.target.getAttribute('data-act'); if(!act) return;
+    var sel = window.getSelection();
+    var txt = sel ? sel.toString().trim() : '';
+    if (act === 'highlight') { if (typeof addHighlight==='function') addHighlight(); }
+    else if (act === 'note') { if (txt) addNoteFromSelection(txt); }
+    else if (act === 'copy') { if (txt) copyText(txt); }
+    else if (act === 'cite') { if (txt) copyCitation(txt); }
+    else if (act === 'translate') { if (txt) translateAndShow(txt, selToolbar); }
+    else if (act === 'search') { if (txt) doSearchFromText(txt); }
+    hideSelToolbar();
+  });
+  function showSelToolbar(){
+    var sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) { hideSelToolbar(); return; }
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    var content = getContentEl();
+    if (content && !content.contains(range.commonAncestorContainer)) { hideSelToolbar(); return; }
+    selToolbar.style.display = 'flex';
+    var top = rect.top - 44; if (top < 5) top = rect.bottom + 8;
+    selToolbar.style.left = Math.max(5, rect.left) + 'px';
+    selToolbar.style.top = top + 'px';
+  }
+  function hideSelToolbar(){ selToolbar.style.display = 'none'; }
+  document.addEventListener('mouseup', function(e){
+    if (selToolbar.contains(e.target)) return;
+    setTimeout(showSelToolbar, 10);
+  });
+  document.addEventListener('scroll', hideSelToolbar, { passive:true });
+  document.addEventListener('mousedown', function(e){ if (!selToolbar.contains(e.target)) hideSelToolbar(); });
+
+  function copyText(txt){
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).then(function(){ notify('已复制'); }, function(){ fallbackCopy(txt); }); }
+    else fallbackCopy(txt);
+  }
+  function fallbackCopy(txt){
+    var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); notify('已复制'); } catch(e){ notify('复制失败'); }
+    document.body.removeChild(ta);
+  }
+  function copyCitation(txt){
+    var pos = Math.floor(window.scrollY);
+    var cite = '“' + txt + '” —— 《' + BOOK + '》 位置' + pos;
+    copyText(cite);
+  }
+  function addNoteFromSelection(txt){
+    var note = { id: Date.now(), text: txt, position: Math.floor(window.scrollY), time: new Date().toLocaleString() };
+    try { notes.push(note); localStorage.setItem('reader_notes', JSON.stringify(notes)); } catch(e){}
+    if (typeof updateNotesList==='function') updateNotesList();
+    scheduleAnnotationSync();
+    notify('已添加笔记');
+  }
+  function doSearchFromText(txt){
+    var inp = document.getElementById('searchInput');
+    if (inp){ inp.value = txt; }
+    if (typeof searchText==='function') searchText();
+  }
+
+  /* ---------- 翻译（复用系统翻译服务） ---------- */
+  var transBubble = document.createElement('div');
+  transBubble.className = 'translation-bubble';
+  document.body.appendChild(transBubble);
+  function translateAndShow(text, anchorEl){
+    var rect = anchorEl ? anchorEl.getBoundingClientRect() : {left: window.innerWidth/2, top: window.innerHeight/2, bottom: window.innerHeight/2};
+    transBubble.innerHTML = '<span class="tb-close" onclick="this.parentNode.style.display=\'none\'">×</span>' +
+      '<div class="tb-original"></div><div class="tb-translated tb-loading">翻译中...</div>';
+    transBubble.querySelector('.tb-original').textContent = text;
+    transBubble.style.display = 'block';
+    var left = Math.max(5, rect.left);
+    var top = (rect.top - 140 < 5) ? (rect.bottom + 10) : (rect.top - 140);
+    transBubble.style.left = left + 'px';
+    transBubble.style.top = top + 'px';
+    apiPost('/translate', { text: text, target_lang: 'zh', source_lang: 'auto' }).then(function(res){
+      var out = (res && res.success) ? res.translated_text : ('翻译失败：' + ((res&&res.error)||'未连接后端'));
+      var tEl = transBubble.querySelector('.tb-translated');
+      if (tEl){ tEl.classList.remove('tb-loading'); tEl.textContent = out; }
+    });
+  }
+  document.addEventListener('dblclick', function(e){
+    var content = getContentEl();
+    if (!content || !content.contains(e.target)) return;
+    var sel = window.getSelection();
+    var txt = sel ? sel.toString().trim() : '';
+    if (txt && txt.length <= 60) { translateAndShow(txt, { left: e.clientX, top: e.clientY, bottom: e.clientY }); }
+  });
+
+  /* ---------- 标注同步 + 导出/导入 ---------- */
+  var _syncTimer = null;
+  function scheduleAnnotationSync(){
+    if (_syncTimer) clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(syncAnnotationsToCloud, 1500);
+  }
+  function collectAnnotations(){
+    return {
+      highlights: JSON.parse(localStorage.getItem('reader_highlights')||'[]'),
+      notes: JSON.parse(localStorage.getItem('reader_notes')||'[]'),
+      bookmarks: JSON.parse(localStorage.getItem('reader_bookmarks')||'[]')
+    };
+  }
+  function syncAnnotationsToCloud(){
+    if (!getApiBase()) { notify('未连接后端，无法同步'); return; }
+    var data = collectAnnotations(); data.book_id = BOOK;
+    apiPost('/save_annotations', data).then(function(res){
+      if (res && res.success) notify('标注已同步到云端'); else notify('同步失败');
+    });
+  }
+  function loadAnnotationsFromCloud(){
+    if (!getApiBase()) { notify('未连接后端'); return; }
+    apiGet('/load_annotations?book_id=' + encodeURIComponent(BOOK)).then(function(res){
+      if (res && res.success) { mergeAnnotations(res); notify('已从云端拉取标注'); }
+      else notify('拉取失败');
+    });
+  }
+  function mergeAnnotations(res){
+    try {
+      var hl = res.highlights||[], nt = res.notes||[], bm = res.bookmarks||[];
+      var cur = collectAnnotations();
+      function merge(arr, key){ var m={}; arr.concat(cur[key]).forEach(function(x){ if(x&&x.id!=null) m[x.id]=x; }); return Object.keys(m).map(function(k){return m[k];}); }
+      localStorage.setItem('reader_highlights', JSON.stringify(merge(hl,'highlights')));
+      localStorage.setItem('reader_notes', JSON.stringify(merge(nt,'notes')));
+      localStorage.setItem('reader_bookmarks', JSON.stringify(merge(bm,'bookmarks')));
+      if (typeof updateHighlightsList==='function') updateHighlightsList();
+      if (typeof updateNotesList==='function') updateNotesList();
+      if (typeof updateBookmarksList==='function') updateBookmarksList();
+    } catch(e){ notify('合并标注出错'); }
+  }
+  function exportAnnotations(){
+    var data = collectAnnotations();
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = BOOK + '_标注.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    notify('已导出标注 JSON');
+  }
+  function exportAnnotationsMarkdown(){
+    var d = collectAnnotations();
+    var md = '# 《' + BOOK + '》 阅读标注\n\n';
+    md += '## 高亮\n';
+    d.highlights.forEach(function(h){ md += '- ' + (h.text||'') + '  (位置' + (h.position||0) + ')\n'; });
+    md += '\n## 笔记\n';
+    d.notes.forEach(function(n){ md += '- ' + (n.text||'') + '\n'; });
+    md += '\n## 书签\n';
+    d.bookmarks.forEach(function(b){ md += '- ' + (b.name||'书签') + '  (位置' + (b.position||0) + ')\n'; });
+    var blob = new Blob([md], { type:'text/markdown' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = BOOK + '_标注.md';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    notify('已导出标注 Markdown');
+  }
+  function importAnnotations(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      try {
+        var obj = JSON.parse(reader.result);
+        if (obj && (obj.highlights||obj.notes||obj.bookmarks)) mergeAnnotations(obj);
+        else notify('文件格式不正确');
+      } catch(e){ notify('导入失败：解析错误'); }
+    };
+    reader.readAsText(file);
+  }
+  if (typeof addHighlight==='function'){ var _oah=addHighlight; window.addHighlight=function(){ _oah(); scheduleAnnotationSync(); }; }
+  if (typeof deleteHighlight==='function'){ var _odh=deleteHighlight; window.deleteHighlight=function(id){ _odh(id); scheduleAnnotationSync(); }; }
+  if (typeof addNote==='function'){ var _oan=addNote; window.addNote=function(){ _oan(); scheduleAnnotationSync(); }; }
+  if (typeof deleteNote==='function'){ var _odn=deleteNote; window.deleteNote=function(id){ _odn(id); scheduleAnnotationSync(); }; }
+  window.syncAnnotationsToCloud = syncAnnotationsToCloud;
+  window.loadAnnotationsFromCloud = loadAnnotationsFromCloud;
+  window.exportAnnotations = exportAnnotations;
+  window.exportAnnotationsMarkdown = exportAnnotationsMarkdown;
+  window.importAnnotations = importAnnotations;
+
+  /* ---------- 书签增强：命名 + 统一到列表 ---------- */
+  window.addBookmark = function(){
+    if (typeof checkPermission==='function' && !checkPermission('bookmark.write')) return;
+    var name = window.prompt('书签名称（可留空）:', '');
+    if (name === null) return;
+    var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+    var bm = { id: Date.now(), name: name || ('书签' + (saved.length+1)), position: Math.floor(window.scrollY), time: Date.now() };
+    saved.push(bm); localStorage.setItem('reader_bookmarks', JSON.stringify(saved));
+    if (typeof updateBookmarksList==='function') updateBookmarksList();
+    scheduleAnnotationSync();
+    notify('书签已添加：' + bm.name);
+  };
+  window.updateBookmarksList = function(){
+    var list = document.getElementById('bookmarksList'); if(!list) return;
+    var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+    list.innerHTML = '';
+    saved.forEach(function(bm, index){
+      var item = document.createElement('div'); item.className='note-item';
+      var name = bm.name || ('书签'+(index+1));
+      var tstr = new Date(bm.time).toLocaleString();
+      item.innerHTML = '<span class="note-delete" onclick="deleteBookmark(' + bm.id + ')">×</span>' +
+        '<div class="note-text">' + name + '</div>' +
+        '<div class="note-time">' + tstr + ' · 位置' + bm.position + 'px</div>';
+      item.onclick = function(e){ if(e.target.className!=='note-delete'){ window.scrollTo({top:bm.position, behavior:'smooth'}); } };
+      list.appendChild(item);
+    });
+  };
+  window.toggleBookmark = function(){
+    var btn = document.getElementById('bookmarkBtn');
+    var pos = Math.floor(window.scrollY);
+    var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+    var existing = saved.find(function(b){ return Math.abs((b.position||0) - pos) < 10; });
+    if (existing){
+      var filtered = saved.filter(function(b){ return b.id !== existing.id; });
+      localStorage.setItem('reader_bookmarks', JSON.stringify(filtered));
+      if (btn) btn.classList.remove('bookmarked');
+      notify('书签已移除');
+    } else {
+      var bm = { id: Date.now(), name: '书签'+(saved.length+1), position: pos, time: Date.now() };
+      saved.push(bm); localStorage.setItem('reader_bookmarks', JSON.stringify(saved));
+      if (btn) btn.classList.add('bookmarked');
+      notify('书签已添加');
+    }
+    if (typeof updateBookmarksList==='function') updateBookmarksList();
+    scheduleAnnotationSync();
+  };
+  (function(){
+    try {
+      var btn = document.getElementById('bookmarkBtn'); if(!btn) return;
+      var pos = Math.floor(window.scrollY);
+      var saved = JSON.parse(localStorage.getItem('reader_bookmarks')||'[]');
+      if (saved.some(function(b){ return Math.abs((b.position||0)-pos)<10; })) btn.classList.add('bookmarked');
+    } catch(e){}
+  })();
+
+  /* ---------- 搜索选项（区分大小写 / 正则） ---------- */
+  window.searchText = function(){
+    var q = document.getElementById('searchInput').value.trim();
+    if (!q) return;
+    var content = getContentEl(); if(!content) return;
+    if (typeof clearSearchHighlights === 'function') clearSearchHighlights();
+    var caseSensitive = document.getElementById('searchCase') ? document.getElementById('searchCase').checked : false;
+    var useRegex = document.getElementById('searchRegex') ? document.getElementById('searchRegex').checked : false;
+    var flags = caseSensitive ? 'g' : 'gi';
+    var pattern;
+    try { pattern = useRegex ? new RegExp(q, flags) : new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags); }
+    catch(e){ notify('正则表达式无效'); return; }
+    var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+    var nodes=[]; var node; while((node=walker.nextNode())){ if(pattern.test(node.textContent)) nodes.push(node); }
+    searchResults = [];
+    nodes.forEach(function(n){
+      var span=document.createElement('span');
+      try { span.innerHTML = n.textContent.replace(pattern, '<mark style="background:yellow;padding:0 2px;">$&</mark>'); }
+      catch(e){ span.textContent = n.textContent; }
+      n.parentNode.replaceChild(span, n);
+      searchResults.push(span);
+    });
+    var cnt = document.getElementById('searchCount');
+    if (cnt) cnt.textContent = '找到 ' + searchResults.length + ' 个结果';
+    currentSearchIndex = 0;
+    if (searchResults.length>0 && typeof highlightSearchResult==='function') highlightSearchResult(0);
+  };
+
+  /* ---------- 高亮间跳转 ---------- */
+  function jumpToHighlight(dir){
+    var marks = Array.prototype.slice.call(document.querySelectorAll('#content .highlight'));
+    if (!marks.length) { notify('没有高亮'); return; }
+    var y = window.scrollY, best=null, bestDist=Infinity;
+    marks.forEach(function(m){
+      var top = m.getBoundingClientRect().top + window.scrollY;
+      var d = dir>0 ? (top - y) : (y - top);
+      if (d > 0 && d < bestDist){ bestDist=d; best=top; }
+    });
+    if (best===null){ best = dir>0 ? marks[0].getBoundingClientRect().top+window.scrollY : marks[marks.length-1].getBoundingClientRect().top+window.scrollY; }
+    window.scrollTo({ top: best-100, behavior:'smooth' });
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.target && (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+    if (e.key===']'){ jumpToHighlight(1); }
+    else if (e.key==='['){ jumpToHighlight(-1); }
+  });
+
+  /* ---------- 图片点击放大 ---------- */
+  document.addEventListener('click', function(e){
+    if (e.target && e.target.tagName==='IMG' && getContentEl() && getContentEl().contains(e.target)){
+      var overlay = document.getElementById('imageZoomOverlay');
+      if (!overlay){ overlay=document.createElement('div'); overlay.id='imageZoomOverlay'; overlay.className='image-zoom-overlay';
+        overlay.innerHTML='<img src="" alt="zoom">'; overlay.addEventListener('click', function(){ overlay.style.display='none'; });
+        document.body.appendChild(overlay); }
+      overlay.querySelector('img').src = e.target.src;
+      overlay.style.display='flex';
+    }
+  });
+
+  /* ---------- 自定义字体上传 ---------- */
+  function setupCustomFont(){
+    var panel = document.getElementById('fontSettingsPanel'); if(!panel) return;
+    if (document.getElementById('customFontInput')) return;
+    var wrap = document.createElement('div'); wrap.className='setting-item';
+    var label = document.createElement('label'); label.textContent='自定义字体'; wrap.appendChild(label);
+    var inp = document.createElement('input'); inp.type='file'; inp.accept='.ttf,.otf,.woff,.woff2'; inp.id='customFontInput'; inp.style.marginLeft='8px';
+    inp.addEventListener('change', function(){
+      var f = inp.files[0]; if(!f) return;
+      var reader=new FileReader();
+      reader.onload=function(){
+        var fname='CustomFont_'+Date.now();
+        var fmt = f.name.endsWith('.woff2')?'woff2':(f.name.endsWith('.woff')?'woff':'truetype');
+        var s=document.createElement('style');
+        s.textContent='@font-face{font-family:"'+fname+'";src:url('+reader.result+') format("'+fmt+'");}';
+        document.head.appendChild(s);
+        document.body.style.fontFamily='"'+fname+'", serif';
+        var sel=document.getElementById('fontFamilySelect');
+        if(sel){ var o=document.createElement('option'); o.value=fname; o.textContent='自定义：'+f.name; sel.appendChild(o); sel.value=fname; }
+        notify('已应用自定义字体');
+      };
+      reader.readAsDataURL(f);
+    });
+    wrap.appendChild(inp);
+    var actions = panel.querySelector('.setting-actions');
+    var content = panel.querySelector('.settings-content');
+    if (actions) content.insertBefore(wrap, actions); else content.appendChild(wrap);
+  }
+
+  /* ---------- 打印 / 导出 PDF ---------- */
+  function setupPrintButton(){
+    var tb = document.getElementById('toolbar'); if(!tb) return;
+    if (document.getElementById('printPdfBtn')) return;
+    var btn=document.createElement('button'); btn.id='printPdfBtn'; btn.textContent='打印/PDF';
+    btn.onclick=function(){ window.print(); };
+    tb.appendChild(btn);
+  }
+
+  /* ---------- 笔记面板：同步/导出/导入 ---------- */
+  function setupAnnotationBar(){
+    var panel=document.getElementById('notesPanel'); if(!panel) return;
+    if (document.getElementById('readerAnnoBar')) return;
+    var bar=document.createElement('div'); bar.id='readerAnnoBar'; bar.className='reader-extra-bar';
+    bar.innerHTML = '<button onclick="syncAnnotationsToCloud()">同步到云端</button>' +
+      '<button class="secondary" onclick="loadAnnotationsFromCloud()">从云端拉取</button>' +
+      '<button class="secondary" onclick="exportAnnotations()">导出JSON</button>' +
+      '<button class="secondary" onclick="exportAnnotationsMarkdown()">导出MD</button>' +
+      '<button class="secondary" onclick="document.getElementById(\'readerImportInput\').click()">导入</button>';
+    var imp=document.createElement('input'); imp.type='file'; imp.id='readerImportInput'; imp.className='reader-import-input'; imp.accept='.json';
+    imp.addEventListener('change', function(){ if(imp.files[0]) importAnnotations(imp.files[0]); });
+    var content=panel.querySelector('.settings-content');
+    content.insertBefore(bar, content.firstChild);
+    content.appendChild(imp);
+  }
+
+  /* ---------- 搜索框选项 + 结果列表 ---------- */
+  function setupSearchOptions(){
+    var sc=document.getElementById('searchContainer'); if(!sc) return;
+    if (document.getElementById('searchCase')) return;
+    var opt=document.createElement('div'); opt.className='search-options';
+    opt.innerHTML='<label><input type="checkbox" id="searchCase"> 区分大小写</label>' +
+      '<label><input type="checkbox" id="searchRegex"> 正则</label>';
+    sc.appendChild(opt);
+    var rl=document.createElement('div'); rl.id='searchResults'; rl.className='search-results';
+    sc.appendChild(rl);
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  var _prevSearchIdx = -1;
+
+  window.searchText = function(){
+    var input = document.getElementById('searchInput');
+    var q = input ? input.value.trim() : '';
+    if (!q) return;
+    var content = document.getElementById('content');
+    if (!content) return;
+    if (typeof clearSearchHighlights === 'function') clearSearchHighlights();
+    var caseSensitive = !!(document.getElementById('searchCase') && document.getElementById('searchCase').checked);
+    var useRegex = !!(document.getElementById('searchRegex') && document.getElementById('searchRegex').checked);
+    var patternStr = useRegex ? q : escapeRegExp(q);
+    var flags = caseSensitive ? 'g' : 'gi';
+    var regex;
+    try { regex = new RegExp(patternStr, flags); } catch(e){ notify('正则表达式无效'); return; }
+
+    var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = []; var n;
+    while ((n = walker.nextNode())) {
+      if (!n.parentNode) continue;
+      var tag = n.parentNode.tagName;
+      if (tag === 'MARK' || (n.parentNode.classList && n.parentNode.classList.contains('search-mark'))) continue;
+      if (n.textContent && regex.test(n.textContent)) { nodes.push(n); regex.lastIndex = 0; }
+    }
+
+    searchResults = [];
+    var list = document.getElementById('searchResults');
+    if (list) list.innerHTML = '';
+
+    nodes.forEach(function(node){
+      var text = node.textContent;
+      var html = text.replace(regex, '<mark class="search-mark">$&</mark>');
+      regex.lastIndex = 0;
+      var span = document.createElement('span');
+      span.innerHTML = html;
+      node.parentNode.replaceChild(span, node);
+      var marks = span.querySelectorAll('mark.search-mark');
+      var re2 = new RegExp(patternStr, flags), mm, withinNode = 0;
+      while ((mm = re2.exec(text)) !== null) {
+        var start = mm.index, end = mm.index + mm[0].length;
+        var pre = text.substring(Math.max(0, start-18), start);
+        var hit = text.substring(start, end);
+        var post = text.substring(end, Math.min(text.length, end+18));
+        var snippet = (start>0?'…':'') + escapeHtml(pre) + '<b>' + escapeHtml(hit) + '</b>' + escapeHtml(post) + (end<text.length?'…':'');
+        var markEl = marks[withinNode] || marks[marks.length-1];
+        var globalIdx = searchResults.length;
+        searchResults.push(markEl);
+        if (list) {
+          var item = document.createElement('div');
+          item.className = 'search-result-item';
+          item.setAttribute('data-idx', globalIdx);
+          item.innerHTML = '<span class="idx">' + (globalIdx+1) + '.</span><span class="snip">' + snippet + '</span>';
+          item.addEventListener('click', (function(idx){ return function(){ gotoSearchResult(idx); }; })(globalIdx));
+          list.appendChild(item);
+        }
+        withinNode++;
+        if (mm.index === re2.lastIndex) re2.lastIndex++;
+      }
+    });
+
+    if (list) list.classList.toggle('show', searchResults.length > 0);
+    var cnt = document.getElementById('searchCount');
+    if (cnt) cnt.textContent = '找到 ' + searchResults.length + ' 个结果';
+    _prevSearchIdx = -1;
+    currentSearchIndex = 0;
+    if (searchResults.length > 0) {
+      highlightSearchResult(0);
+    } else if (list) {
+      list.innerHTML = '<div class="search-result-empty">未找到匹配内容</div>';
+      list.classList.add('show');
+    }
+  };
+
+  function gotoSearchResult(idx){
+    if (!searchResults[idx]) return;
+    highlightSearchResult(idx);
+  }
+
+  function updateActiveSearchItem(index){
+    var list = document.getElementById('searchResults');
+    if (!list) return;
+    var items = list.querySelectorAll('.search-result-item');
+    for (var i=0;i<items.length;i++){
+      items[i].classList.toggle('active', items[i].getAttribute('data-idx') === String(index));
+    }
+    var active = list.querySelector('.search-result-item.active');
+    if (active) active.scrollIntoView({ block:'nearest' });
+  }
+
+  window.highlightSearchResult = function(index){
+    if (_prevSearchIdx >= 0 && searchResults[_prevSearchIdx]) {
+      searchResults[_prevSearchIdx].style.background = 'yellow';
+    }
+    var result = searchResults[index];
+    if (!result) return;
+    result.style.background = 'orange';
+    result.scrollIntoView({ behavior:'smooth', block:'center' });
+    _prevSearchIdx = index;
+    currentSearchIndex = index;
+    updateActiveSearchItem(index);
+  };
+
+  window.searchNext = function(){
+    if (searchResults.length === 0) { if (typeof notify==='function') notify('没有搜索结果'); return; }
+    var next = (currentSearchIndex + 1) % searchResults.length;
+    highlightSearchResult(next);
+  };
+
+  /* ---------- 初始化 ---------- */
+  function initReaderExtras(){
+    setupCustomFont();
+    setupPrintButton();
+    setupAnnotationBar();
+    setupSearchOptions();
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', initReaderExtras);
+  else initReaderExtras();
+
+})();
+"""
+
 def _load_terminal_reader_themes() -> Dict[str, Dict[str, str]]:
     """从终端阅读器的 .theme 文件加载主题，使浏览器阅读器与终端样式同步
 
@@ -2105,7 +2765,7 @@ class BrowserReader:
             letter-spacing: {settings['letter_spacing']}px;
             word-spacing: {settings['word_spacing']}px;
             text-align: {settings['text_align']};
-            overflow: hidden;
+            overflow-y: auto;
         }}
         
         .page {{
@@ -3099,7 +3759,7 @@ class BrowserReader:
             <li><kbd>c</kbd> <script>document.write(t('browser_reader.shortcut_chapter'));</script></li>
             <li><kbd>s</kbd> <script>document.write(t('browser_reader.shortcut_search'));</script></li>
             <li><kbd>b</kbd> <script>document.write(t('browser_reader.shortcut_bookmark'));</script></li>
-            <li><kbd>f</kbd> <script>document.write(t('browser_reader.shortcut_fullscreen'));</script></li>
+            <li><kbd>Ctrl+F</kbd> <script>document.write(t('browser_reader.shortcut_search'));</script></li>
             <li><kbd>F</kbd> <script>document.write(t('browser_reader.shortcut_focus'));</script></li>
             <li><kbd>a</kbd> <script>document.write(t('browser_reader.shortcut_auto_scroll'));</script></li>
             <li><kbd>Space</kbd> <script>document.write(t('browser_reader.shortcut_speech'));</script></li>
@@ -7063,6 +7723,13 @@ class BrowserReader:
             // 防止输入框触发
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
+            // Ctrl/Cmd+F 打开阅读器搜索框（覆盖浏览器自带查找）
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {{
+                e.preventDefault();
+                if (typeof toggleSearch === 'function') toggleSearch();
+                return;
+            }}
+
             switch(e.key) {{
                 case 'ArrowUp':
                     if (isPaginationMode) {{
@@ -7131,10 +7798,9 @@ class BrowserReader:
                     break;
                 case 'f':
                 case 'F':
+                    // 普通 f 不再触发全屏（避免误触）；Shift+F 仍为专注模式
                     if (e.shiftKey || e.key === 'F') {{
                         toggleFocusMode();
-                    }} else {{
-                        toggleFullscreen();
                     }}
                     e.preventDefault();
                     break;
@@ -7660,111 +8326,146 @@ class BrowserReader:
             const content = document.getElementById('content');
             const pageContainer = document.getElementById('paginationContainer');
             const pageContent = document.getElementById('pageContent');
-            
+
             if (!content || !pageContainer || !pageContent) {{
                 console.error('分页失败：缺少必要的DOM元素');
                 return;
             }}
-            
+
             // 确保容器有正确的尺寸
             if (pageContainer.offsetHeight === 0 || pageContainer.offsetWidth === 0) {{
                 console.error('分页失败：容器尺寸为0');
                 return;
             }}
-            
-            // 获取容器和样式信息
+
             const containerHeight = pageContainer.offsetHeight;
             const containerWidth = pageContainer.offsetWidth;
             const pageContentStyle = window.getComputedStyle(pageContent);
             const paddingTop = parseInt(pageContentStyle.paddingTop) || 40;
             const paddingBottom = parseInt(pageContentStyle.paddingBottom) || 40;
-            const availableHeight = containerHeight - paddingTop - paddingBottom;
-            
-            console.log('=== 智能分页调试信息 ===');
-            console.log('  容器尺寸:', containerWidth, 'x', containerHeight);
-            console.log('  可用高度:', availableHeight);
-            console.log('  内容元素总数:', content.children.length);
-            
-            // 验证容器尺寸
+            const paddingLeft = parseInt(pageContentStyle.paddingLeft) || 40;
+            const paddingRight = parseInt(pageContentStyle.paddingRight) || 40;
+            // 预留一定安全余量，吸收块级元素之间的 margin，避免内容被裁切
+            const availableHeight = containerHeight - paddingTop - paddingBottom - 40;
+
             if (containerWidth <= 0 || availableHeight <= 0) {{
                 console.error('容器尺寸无效，无法进行分页');
                 return;
             }}
-            
-            // 创建测试容器来测量元素高度
+
+            // 测试容器：与 pageContent 同宽、同内边距、同字体，用于精确测量元素高度
             const testContainer = document.createElement('div');
-            const testWidth = containerWidth - 80;
+            const testWidth = containerWidth - paddingLeft - paddingRight;
             testContainer.style.position = 'absolute';
             testContainer.style.top = '-9999px';
             testContainer.style.left = '-9999px';
             testContainer.style.width = testWidth + 'px';
-            testContainer.style.padding = paddingTop + 'px ' + paddingBottom + 'px';
+            testContainer.style.padding = paddingTop + 'px ' + paddingRight + 'px ' + paddingBottom + 'px ' + paddingLeft + 'px';
             testContainer.style.fontFamily = pageContentStyle.fontFamily;
             testContainer.style.fontSize = pageContentStyle.fontSize;
             testContainer.style.lineHeight = pageContentStyle.lineHeight;
             testContainer.style.visibility = 'hidden';
             document.body.appendChild(testContainer);
-            
-            // 克隆内容并分析每个元素
-            const contentClone = content.cloneNode(true);
-            const elements = Array.from(contentClone.children);
+
+            function marginOf(el) {{
+                const cs = window.getComputedStyle(el);
+                return (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+            }}
+            function measure(el) {{
+                testContainer.innerHTML = '';
+                testContainer.appendChild(el);
+                return testContainer.offsetHeight + marginOf(el);
+            }}
+
+            // 将一段文本拆分为多个“刚好能放进一页”的片段（CJK 按字、英文按词切分）
+            function splitText(text, avail) {{
+                if (!text) return [];
+                const tokens = text.match(/[\\u4e00-\\u9fff\\u3400-\\u4dbf\\u3000-\\u303f\\uff00-\\uffef]|[^\\s\\u4e00-\\u9fff\\u3400-\\u4dbf\\u3000-\\u303f\\uff00-\\uffef]+|\\s+/g) || [text];
+                const frags = [];
+                let start = 0;
+                while (start < tokens.length) {{
+                    let lo = start, hi = tokens.length - 1, best = start;
+                    while (lo <= hi) {{
+                        const mid = (lo + hi) >> 1;
+                        const f = document.createElement('span');
+                        f.textContent = tokens.slice(start, mid + 1).join('');
+                        if (measure(f) <= avail) {{ best = mid; lo = mid + 1; }} else {{ hi = mid - 1; }}
+                    }}
+                    const f = document.createElement('span');
+                    f.textContent = tokens.slice(start, best + 1).join('');
+                    frags.push(f);
+                    start = best + 1;
+                }}
+                return frags;
+            }}
+
+            // 递归地把一个元素拆成多个“均不超出一页高度”的片段元素（保留标签结构）
+            function fragmentize(el, avail) {{
+                const kids = Array.from(el.childNodes);
+                const hasElem = kids.some(function (n) {{ return n.nodeType === 1; }});
+                if (!hasElem) {{
+                    return splitText(el.textContent || '', avail).map(function (p) {{
+                        const c = el.cloneNode(false);
+                        c.appendChild(p);
+                        return c;
+                    }});
+                }}
+                const subFrags = [];
+                kids.forEach(function (ch) {{
+                    if (ch.nodeType === 3) {{
+                        splitText(ch.textContent || '', avail).forEach(function (p) {{
+                            const tmp = document.createElement('span');
+                            tmp.appendChild(p);
+                            subFrags.push(tmp);
+                        }});
+                    }} else if (ch.nodeType === 1) {{
+                        fragmentize(ch, avail).forEach(function (f) {{ subFrags.push(f); }});
+                    }}
+                }});
+                // 把子片段打包进若干“el 的克隆”片段中，避免单个片段超出一页
+                const wrappers = [];
+                let cur = el.cloneNode(false);
+                let curH = marginOf(el);
+                subFrags.forEach(function (sf) {{
+                    const added = measure(sf);
+                    if (curH + added > avail && cur.childNodes.length > 0) {{
+                        wrappers.push(cur);
+                        cur = el.cloneNode(false);
+                        curH = marginOf(el);
+                    }}
+                    cur.appendChild(sf.cloneNode(true));
+                    curH += added;
+                }});
+                if (cur.childNodes.length > 0) wrappers.push(cur);
+                return wrappers;
+            }}
+
+            const elements = Array.from(content.children);
             pages = [];
-            
             let currentPage = document.createElement('div');
             currentPage.className = 'page';
             let currentHeight = 0;
-            let currentPageText = '';
-            
-            elements.forEach((element, index) => {{
-                // 测试当前元素的高度
-                testContainer.innerHTML = '';
-                const elementClone = element.cloneNode(true);
-                testContainer.appendChild(elementClone);
-                const elementHeight = testContainer.offsetHeight;
-                
-                // 获取元素文本（用于检查是否在句子中间）
-                const elementText = element.textContent || '';
-                
-                const logMessage = '元素 ' + index + ': ' + element.tagName + ', 高度: ' + elementHeight + ', 文本长度: ' + elementText.length;
-                console.log(logMessage);
-                
-                // 检查添加这个元素是否会超出页面高度
-                if (currentHeight + elementHeight > availableHeight && currentPage.children.length > 0) {{
-                    const exceedMessage = '  -> 高度超出 (' + (currentHeight + elementHeight) + ' > ' + availableHeight + ')，创建新页';
-                    console.log(exceedMessage);
-                    
-                    // 保存当前页
-                    pages.push(currentPage);
-                    
-                    // 创建新页
-                    currentPage = document.createElement('div');
-                    currentPage.className = 'page';
-                    currentHeight = 0;
-                    currentPageText = '';
-                }}
-                
-                // 添加元素到当前页
-                currentPage.appendChild(element.cloneNode(true));
-                currentHeight += elementHeight;
-                currentPageText += elementText;
-                
-                console.log('  -> 已添加，当前页高度: ' + currentHeight);
+
+            elements.forEach(function (element) {{
+                const frags = fragmentize(element.cloneNode(true), availableHeight);
+                frags.forEach(function (frag) {{
+                    const h = measure(frag);
+                    if (currentHeight + h > availableHeight && currentPage.children.length > 0) {{
+                        pages.push(currentPage);
+                        currentPage = document.createElement('div');
+                        currentPage.className = 'page';
+                        currentHeight = 0;
+                    }}
+                    currentPage.appendChild(frag);
+                    currentHeight += h;
+                }});
             }});
-            
-            // 添加最后一页
-            if (currentPage.children.length > 0) {{
-                pages.push(currentPage);
-            }}
-            
-            // 清理测试容器
+
+            if (currentPage.children.length > 0) pages.push(currentPage);
+
             document.body.removeChild(testContainer);
-            
-            // 更新总页数
             document.getElementById('totalPages').textContent = pages.length;
-            
             console.log('分页完成，共 ' + pages.length + ' 页');
-            
-            // 注意：不再自动显示第一页，由调用者决定显示哪一页
         }}
         
         // 显示指定页面 - 确保内容完整显示
@@ -10285,6 +10986,10 @@ class BrowserReader:
 
         # 在</body>前插入脚本
         html = html.replace('</body>', placeholder_script + title_change_script + '</body>')
+
+        # 注入增强功能（CSS / HTML / JS）
+        html = html.replace('</style>', EXTRA_READER_CSS + '</style>', 1)
+        html = html.replace('</body>', EXTRA_READER_HTML + '<script>' + EXTRA_READER_JS + '</script>' + '</body>', 1)
         
 
         # Python端翻译处理 - 替换所有{t('browser_reader.xxx')}占位符
@@ -10534,7 +11239,9 @@ class BrowserReader:
     def open_book_in_browser(file_path: str, theme: str = "light",
                           custom_settings: Optional[Dict[str, str]] = None,
                           on_progress_save: Optional[Callable[[float, int, int], None]] = None,
-                          on_progress_load: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None):
+                          on_progress_load: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None,
+                          on_annotations_save: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+                          on_annotations_load: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None):
         """
         在浏览器中打开书籍，支持进度同步
         
@@ -10544,6 +11251,8 @@ class BrowserReader:
             custom_settings: 自定义设置
             on_progress_save: 进度保存回调函数(progress, scrollTop, scrollHeight)
             on_progress_load: 进度加载回调函数，返回进度数据字典
+            on_annotations_save: 标注保存回调(book_id, data)
+            on_annotations_load: 标注加载回调(book_id)，返回 data 或 None
             
         Returns:
             (success: bool, message: str)
@@ -10608,17 +11317,19 @@ class BrowserReader:
                 
                 if save_url and load_url:
                     # 注册书籍特定的回调
-                    if on_progress_save or on_progress_load:
+                    if on_progress_save or on_progress_load or on_annotations_save or on_annotations_load:
                         # 使用文件路径作为书籍ID
                         book_id = Path(file_path).stem
-                        server_manager.register_callbacks(book_id, on_progress_save, on_progress_load)
+                        server_manager.register_callbacks(
+                            book_id, on_progress_save, on_progress_load,
+                            on_annotations_save, on_annotations_load)
                     
                     logger.info(f"使用全局浏览器阅读器服务器: {save_url}")
                 else:
                     logger.warning("无法获取服务器URL，尝试启动独立服务器")
                     # 如果全局服务器不可用，启动独立服务器
                     save_url, load_url, server, server_thread = BrowserReader._start_progress_server(
-                        file_path, on_progress_save, on_progress_load
+                        file_path, on_progress_save, on_progress_load, on_annotations_save, on_annotations_load
                     )
                     if save_url and load_url:
                         # 保存服务器对象到全局字典，防止被垃圾回收
@@ -10636,7 +11347,7 @@ class BrowserReader:
                 # 最后的回退：尝试启动独立服务器
                 try:
                     save_url, load_url, server, server_thread = BrowserReader._start_progress_server(
-                        file_path, on_progress_save, on_progress_load
+                        file_path, on_progress_save, on_progress_load, on_annotations_save, on_annotations_load
                     )
                     if save_url and load_url:
                         server_id = str(uuid.uuid4())
@@ -10715,7 +11426,9 @@ class BrowserReader:
     @staticmethod
     def _start_progress_server(file_path: str,
                            on_progress_save: Optional[Callable[[float, int, int], None]],
-                           on_progress_load: Optional[Callable[[], Optional[Dict[str, Any]]]]):
+                           on_progress_load: Optional[Callable[[], Optional[Dict[str, Any]]]],
+                           on_annotations_save: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+                           on_annotations_load: Optional[Callable[[str], Optional[Dict[str, Any]]]] = None):
         """
         启动进度同步服务器
         
@@ -10723,6 +11436,8 @@ class BrowserReader:
             file_path: 文件路径（用于标识书籍）
             on_progress_save: 进度保存回调
             on_progress_load: 进度加载回调
+            on_annotations_save: 标注保存回调
+            on_annotations_load: 标注加载回调
             
         Returns:
             (save_url, load_url, server, server_thread)
@@ -10814,6 +11529,29 @@ class BrowserReader:
                 elif self.path.startswith('/src/locales/'):
                     # 提供静态文件访问（翻译文件）
                     self.serve_static_file(self.path[1:])  # 移除开头的 /
+                elif self.path == '/load_annotations':
+                    # 加载书籍标注（备用服务器，依赖回调）
+                    from urllib.parse import urlparse, parse_qs
+                    parsed = urlparse(self.path)
+                    query = parse_qs(parsed.query)
+                    book_id = query.get('book_id', [''])[0]
+                    try:
+                        data = on_annotations_load(book_id) if on_annotations_load else None
+                    except Exception as _e:
+                        logger.error(f"加载标注回调出错: {_e}")
+                        data = None
+                    if data is None:
+                        data = {'highlights': [], 'notes': [], 'bookmarks': []}
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "highlights": data.get("highlights", []),
+                        "notes": data.get("notes", []),
+                        "bookmarks": data.get("bookmarks", [])
+                    }, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -10894,6 +11632,52 @@ class BrowserReader:
                         logger.error(f"保存进度出错: {e}")
                         self.send_response(500)
                         self.end_headers()
+                elif self.path == '/translate':
+                    # 翻译文本（复用系统翻译服务）
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    try:
+                        data = json.loads(post_data.decode('utf-8'))
+                        text = data.get('text', '')
+                        target_lang = data.get('target_lang', 'zh')
+                        source_lang = data.get('source_lang', 'auto')
+                        from src.utils.browser_reader_server_manager import translate_text_via_manager
+                        result = translate_text_via_manager(text, target_lang, source_lang)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
+                elif self.path == '/save_annotations':
+                    # 保存书籍标注（备用服务器，依赖回调）
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    try:
+                        data = json.loads(post_data.decode('utf-8'))
+                        book_id = data.get('book_id', '')
+                        if on_annotations_save:
+                            on_annotations_save(book_id, {
+                                'highlights': data.get('highlights', []),
+                                'notes': data.get('notes', []),
+                                'bookmarks': data.get('bookmarks', [])
+                            })
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": True}, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": False, "error": str(e)}, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()

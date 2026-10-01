@@ -5,11 +5,105 @@
 
 import threading
 import time
+import re
 from typing import Optional, Dict, Any, Callable
 from src.utils.logger import get_logger
 from src.utils.browser_reader import BrowserReader
 
 logger = get_logger(__name__)
+
+
+def _map_translate_lang(code: str) -> str:
+    """将常见语言代码映射到 MyMemory 使用的 RFC3066 形式"""
+    code = (code or '').lower()
+    if code in ('zh', 'zh-cn', 'zh_chs', 'zh-chs', 'zh-cht', 'zh_cht'):
+        return 'zh-CN'
+    if code in ('zh-tw', 'zh_tw', 'zh-hant', 'zh_hant'):
+        return 'zh-TW'
+    return code or 'en'
+
+
+def translate_text_via_manager(text: str, target_lang: str = 'zh', source_lang: str = 'auto') -> Dict[str, Any]:
+    """翻译文本：优先复用系统已配置的翻译 API；未配置时回退到免费无密钥翻译（MyMemory）。"""
+    # 1. 优先使用系统中已配置的翻译服务（与 translation_dialog.py 共用 TranslationManager）
+    try:
+        from src.core.translation_manager import get_translation_manager, init_translation_manager_from_config
+        tm = get_translation_manager()
+        if not tm.get_available_services():
+            init_translation_manager_from_config()
+            tm = get_translation_manager()
+        if tm.get_available_services():
+            return tm.translate(text, target_lang, source_lang)
+    except Exception as e:
+        logger.warning(f"系统翻译服务不可用，尝试免费兜底翻译: {e}")
+
+    # 2. 未配置任何 API 时，使用免费无密钥翻译（MyMemory）兜底
+    return _fallback_translate(text, target_lang, source_lang)
+
+
+def _fallback_translate(text: str, target_lang: str, source_lang: str) -> Dict[str, Any]:
+    """免费无密钥翻译兜底，仅用于未配置翻译 API 时的应急。依次尝试多个公共接口。"""
+    # 粗略检测源语言
+    src = source_lang
+    if not src or src == 'auto':
+        if re.search(r'[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]', text):
+            src = 'zh-CN'
+        else:
+            src = 'en'
+    tl = _map_translate_lang(target_lang)
+
+    # 1) MyMemory 公共接口
+    try:
+        import requests
+        resp = requests.get(
+            "https://api.mymemory.translated.net/get",
+            params={"q": text, "langpair": f"{_map_translate_lang(src)}|{tl}"},
+            timeout=8
+        )
+        resp.raise_for_status()
+        j = resp.json()
+        translated = (j.get("responseData") or {}).get("translatedText")
+        if translated:
+            return {
+                "success": True,
+                "original_text": text,
+                "translated_text": translated,
+                "source_lang": src,
+                "target_lang": target_lang,
+                "service": "mymemory(free)"
+            }
+    except Exception as e:
+        logger.debug(f"MyMemory 兜底翻译失败: {e}")
+
+    # 2) Google 免费 gtx 接口
+    try:
+        import requests
+        resp = requests.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={"client": "gtx", "sl": _map_translate_lang(src), "tl": tl, "dt": "t", "q": text},
+            timeout=8
+        )
+        resp.raise_for_status()
+        j = resp.json()
+        # 返回结构: [[["译文","原文",...],...], ...]
+        parts = []
+        for seg in (j[0] or []):
+            if seg and seg[0]:
+                parts.append(seg[0])
+        translated = "".join(parts)
+        if translated:
+            return {
+                "success": True,
+                "original_text": text,
+                "translated_text": translated,
+                "source_lang": src,
+                "target_lang": target_lang,
+                "service": "google(free)"
+            }
+    except Exception as e:
+        logger.debug(f"Google gtx 兜底翻译失败: {e}")
+
+    return {"success": False, "error": "未配置翻译 API，且免费翻译接口暂不可用（可能受网络限制）"}
 
 
 class BrowserReaderServerManager:
@@ -39,6 +133,8 @@ class BrowserReaderServerManager:
         self._load_url: Optional[str] = None
         self._callbacks: Dict[str, Dict[str, Any]] = {}
         self._book_progress_data: Dict[str, Dict] = {}
+        self._book_annotations: Dict[str, Dict[str, Any]] = {}
+        self._annotation_callbacks: Dict[str, Dict[str, Any]] = {}
         
         logger.info("浏览器阅读器服务器管理器已初始化")
     
@@ -71,6 +167,13 @@ class BrowserReaderServerManager:
             browser_config = config.get("browser_server", {})
             fixed_port = browser_config.get("port", 54321)
             host = browser_config.get("host", "localhost")
+
+            # 初始化翻译管理器（复用系统中的翻译配置）
+            try:
+                from src.core.translation_manager import init_translation_manager_from_config
+                init_translation_manager_from_config()
+            except Exception as _e:
+                logger.warning(f"初始化翻译管理器失败（翻译功能将不可用）: {_e}")
 
             # ★ 快速检测：端口是否已被其他实例占用
             # 如果是本程序的服务器，直接复用URL，无需等待或重复启动
@@ -187,6 +290,23 @@ class BrowserReaderServerManager:
                     self.send_header('Access-Control-Allow-Origin', '*')
                     self.end_headers()
                     self.wfile.write(json.dumps({"status": "ok"}).encode())
+                elif self.path == '/load_annotations':
+                    # 加载书籍标注（高亮/笔记/书签）
+                    parsed = urlparse(self.path)
+                    query = parse_qs(parsed.query)
+                    book_id = query.get('book_id', [''])[0]
+                    manager = BrowserReaderServerManager.get_instance()
+                    data = manager.load_annotations(book_id)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "highlights": data.get("highlights", []),
+                        "notes": data.get("notes", []),
+                        "bookmarks": data.get("bookmarks", [])
+                    }, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -321,6 +441,59 @@ class BrowserReaderServerManager:
                             "error": str(e),
                             "traceback": traceback.format_exc()
                         }).encode())
+                elif self.path == '/translate':
+                    # 翻译文本（复用系统翻译服务）
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    try:
+                        data = json.loads(post_data.decode('utf-8'))
+                        text = data.get('text', '')
+                        target_lang = data.get('target_lang', 'zh')
+                        source_lang = data.get('source_lang', 'auto')
+
+                        from src.utils.browser_reader_server_manager import translate_text_via_manager
+                        result = translate_text_via_manager(text, target_lang, source_lang)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        import traceback
+                        logger.error(f"翻译出错: {e}", exc_info=True)
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            "success": False,
+                            "error": str(e)
+                        }, ensure_ascii=False).encode('utf-8'))
+                elif self.path == '/save_annotations':
+                    # 保存书籍标注（高亮/笔记/书签）
+                    content_length = int(self.headers['Content-Length'])
+                    post_data = self.rfile.read(content_length)
+                    try:
+                        data = json.loads(post_data.decode('utf-8'))
+                        book_id = data.get('book_id', '')
+                        manager = BrowserReaderServerManager.get_instance()
+                        ok = manager.save_annotations(book_id, data)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"success": ok}, ensure_ascii=False).encode('utf-8'))
+                    except Exception as e:
+                        import traceback
+                        logger.error(f"保存标注出错: {e}", exc_info=True)
+                        self.send_response(500)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            "success": False,
+                            "error": str(e)
+                        }, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.send_response(404)
                     self.end_headers()
@@ -406,7 +579,9 @@ class BrowserReaderServerManager:
     
     def register_callbacks(self, book_id: str, 
                           on_progress_save: Optional[Callable] = None,
-                          on_progress_load: Optional[Callable] = None):
+                          on_progress_load: Optional[Callable] = None,
+                          on_annotations_save: Optional[Callable] = None,
+                          on_annotations_load: Optional[Callable] = None):
         """注册书籍特定的回调函数"""
         if book_id not in self._callbacks:
             self._callbacks[book_id] = {}
@@ -415,6 +590,12 @@ class BrowserReaderServerManager:
             self._callbacks[book_id]['save'] = on_progress_save
         if on_progress_load:
             self._callbacks[book_id]['load'] = on_progress_load
+        
+        if on_annotations_save or on_annotations_load:
+            self._annotation_callbacks[book_id] = {
+                'save': on_annotations_save,
+                'load': on_annotations_load
+            }
         
         logger.debug(f"已注册书籍 {book_id} 的回调函数")
     
@@ -468,6 +649,46 @@ class BrowserReaderServerManager:
             logger.error(f"加载进度失败: {e}")
             return None
     
+    def save_annotations(self, book_id: str, data: Dict[str, Any]) -> bool:
+        """保存书籍标注（高亮/笔记/书签）
+
+        data 结构: {{"highlights": [...], "notes": [...], "bookmarks": [...]}}
+        """
+        try:
+            clean = {
+                'highlights': data.get('highlights', []),
+                'notes': data.get('notes', []),
+                'bookmarks': data.get('bookmarks', [])
+            }
+            self._book_annotations[book_id] = clean
+
+            if book_id in self._annotation_callbacks:
+                cb = self._annotation_callbacks[book_id].get('save')
+                if cb:
+                    cb(book_id, clean)
+            return True
+        except Exception as e:
+            logger.error(f"保存标注失败: {e}")
+            return False
+
+    def load_annotations(self, book_id: str) -> Dict[str, Any]:
+        """加载书籍标注"""
+        try:
+            if book_id in self._book_annotations:
+                return self._book_annotations[book_id]
+
+            if book_id in self._annotation_callbacks:
+                cb = self._annotation_callbacks[book_id].get('load')
+                if cb:
+                    data = cb(book_id)
+                    if data:
+                        self._book_annotations[book_id] = data
+                        return data
+            return {'highlights': [], 'notes': [], 'bookmarks': []}
+        except Exception as e:
+            logger.error(f"加载标注失败: {e}")
+            return {'highlights': [], 'notes': [], 'bookmarks': []}
+
     @classmethod
     def get_instance(cls) -> 'BrowserReaderServerManager':
         """获取单例实例"""
