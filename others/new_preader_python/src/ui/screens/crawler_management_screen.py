@@ -506,7 +506,7 @@ class CrawlerManagementScreen(Screen[None]):
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("o", "open_browser", get_global_i18n().t('crawler.shortcut_o')),
         ("R", "view_history", get_global_i18n().t('crawler.shortcut_r')),
-        ("b", "note", get_global_i18n().t('crawler.shortcut_b')),
+        ("B", "note", get_global_i18n().t('crawler.shortcut_b')),
         ("l", "view_logs", get_global_i18n().t('crawler.view_logs')),
         ("escape", "back", get_global_i18n().t('common.back')),
         ("X", "select_books", get_global_i18n().t('crawler.select_books')),
@@ -532,6 +532,7 @@ class CrawlerManagementScreen(Screen[None]):
         ("Z", "merge_mode_all", get_global_i18n().t('crawler.shortcut_Z')),
         ("g", "toggle_smart_search", get_global_i18n().t('crawler.smart_search')),
         ("m", "format_title", get_global_i18n().t('crawler.format_title')),
+        ("b", "browser_read", get_global_i18n().t('crawler.shortcut_B')),
     ]
 
     def action_open_browser(self) -> None:
@@ -702,6 +703,19 @@ class CrawlerManagementScreen(Screen[None]):
             if 0 <= item_index < len(self.crawler_history):
                 history_item = self.crawler_history[item_index]
                 self._delete_file(history_item)
+
+    def action_browser_read(self) -> None:
+        """B键 - 使用浏览器阅读光标所在行的书籍"""
+        table = self.query_one("#crawl-history-table", DataTable)
+        current_row_index = getattr(table, 'cursor_row', None)
+
+        if current_row_index is not None and 0 <= current_row_index < len(table.rows):
+            # 获取当前行对应的history_item
+            start_index = (self.current_page - 1) * self.items_per_page
+            item_index = start_index + current_row_index
+            if 0 <= item_index < len(self.crawler_history):
+                history_item = self.crawler_history[item_index]
+                self._read_book_in_browser(history_item)
 
     def action_copy_ids(self) -> None:
         """Y键 - 复制选中项的ID"""

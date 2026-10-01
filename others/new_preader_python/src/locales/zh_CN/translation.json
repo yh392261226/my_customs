@@ -280,7 +280,8 @@
     "shortcut_v": "预览书籍",
     "shortcut_f": "查看文件",
     "shortcut_d": "删除书籍",
-    "shortcut_b": "浏览器阅读"
+    "shortcut_b": "浏览器阅读",
+    "shortcut_B": "浏览器阅读(B)"
   },
   "batch_ops": {
     "title": "批量操作",
@@ -1415,6 +1416,7 @@
     "shortcut_v": "预览",
     "shortcut_f": "查看文件",
     "shortcut_m": "格式化标题",
+    "shortcut_B": "浏览器阅读",
     "preview": "预览",
     "preview_title": "书籍预览",
     "preview_failed": "预览失败: {error}",

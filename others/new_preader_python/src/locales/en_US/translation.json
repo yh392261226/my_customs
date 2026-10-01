@@ -280,7 +280,8 @@
     "shortcut_v": "Preview Book",
     "shortcut_f": "View File",
     "shortcut_d": "Delete Book",
-    "shortcut_b": "Browser Read"
+    "shortcut_b": "Browser Read",
+    "shortcut_B": "Browser Read (B)"
   },
   "batch_ops": {
     "title": "Batch Operations",
@@ -1309,6 +1310,7 @@
     "shortcut_v": "Preview",
     "shortcut_f": "View File",
     "shortcut_m": "Format Title",
+    "shortcut_B": "Browser Read",
     "preview": "Preview",
     "preview_title": "Book Preview",
     "preview_failed": "Preview failed: {error}",
