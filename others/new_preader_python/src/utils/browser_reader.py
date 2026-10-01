@@ -647,6 +647,17 @@ class BrowserReader:
             --reader-title: {settings['title']};
         }}
 
+        /* 满屏阅读：书籍内容占满网页宽度，仅保留几像素左右边距 */
+        body.full-width-reading {{
+            max-width: 100%;
+            padding-left: 8px;
+            padding-right: 8px;
+        }}
+        body.full-width-reading .page-content {{
+            padding-left: 8px;
+            padding-right: 8px;
+        }}
+
         body {{
             background-color: {settings['background']};
             color: var(--reader-text);
@@ -3183,6 +3194,7 @@ class BrowserReader:
         <button onclick="if(checkPermission('settings.write')) togglePaginationSettings()"><script>document.write(t('browser_reader.pagination_settings'));</script></button>
         <button onclick="toggleFocusMode()"><script>document.write(t('browser_reader.focus_mode'));</script></button>
         <button onclick="toggleFullscreen()"><script>document.write(t('browser_reader.fullscreen'));</script></button>
+        <button onclick="toggleFullWidthReading()" id="fullWidthReadingBtn"><script>document.write(t('browser_reader.full_width_reading'));</script></button>
         <button onclick="scrollToTop()"><script>document.write(t('browser_reader.scroll_to_top'));</script></button>
         <button onclick="scrollToBottom()"><script>document.write(t('browser_reader.bottom'));</script></button>
         
@@ -5790,6 +5802,19 @@ class BrowserReader:
                 
                 focusModeHiddenElements = [];
                 showNotification(t('browser_reader.focus_mode_off'));
+            }}
+        }}
+
+        // 满屏阅读模式：让书籍内容占满整个网页宽度，仅保留几像素左右边距
+        let isFullWidthReading = false;
+        function toggleFullWidthReading() {{
+            isFullWidthReading = !isFullWidthReading;
+            if (isFullWidthReading) {{
+                document.body.classList.add('full-width-reading');
+                showNotification(t('browser_reader.full_width_reading_on'));
+            }} else {{
+                document.body.classList.remove('full-width-reading');
+                showNotification(t('browser_reader.full_width_reading_off'));
             }}
         }}
 

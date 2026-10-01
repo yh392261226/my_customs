@@ -2127,6 +2127,7 @@
     "pagination_settings": "Pagination Settings",
     "focus_mode": "Focus Mode",
     "fullscreen": "Fullscreen",
+    "full_width_reading": "Full-width Reading",
     "scroll_to_top": "Top",
     "scroll_to_bottom": "Bottom",
     "position_jump": {
@@ -2315,6 +2316,8 @@
     "fullscreen_unavailable": "Fullscreen mode unavailable",
     "focus_mode_on": "Focus mode enabled, press ESC to exit",
     "focus_mode_off": "Focus mode disabled",
+    "full_width_reading_on": "Full-width reading mode enabled",
+    "full_width_reading_off": "Full-width reading mode disabled",
     "auto_scroll_started": "Auto scroll started, speed: {speed}",
     "auto_scroll_stopped": "Auto scroll stopped",
     "speech_no_content": "No content to read",

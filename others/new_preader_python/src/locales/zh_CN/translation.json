@@ -2128,6 +2128,7 @@
     "pagination_settings": "翻页设置",
     "focus_mode": "专注模式",
     "fullscreen": "全屏",
+    "full_width_reading": "满屏阅读",
     "scroll_to_top": "顶部",
     "scroll_to_bottom": "底部",
     "position_jump": {
@@ -2316,6 +2317,8 @@
     "fullscreen_unavailable": "全屏模式不可用",
     "focus_mode_on": "已进入专注模式，按 ESC 退出",
     "focus_mode_off": "已退出专注模式",
+    "full_width_reading_on": "已进入满屏阅读模式",
+    "full_width_reading_off": "已退出满屏阅读模式",
     "auto_scroll_started": "自动滚动已开启，速度: {speed}",
     "auto_scroll_stopped": "自动滚动已停止",
     "speech_no_content": "没有可朗读的内容",
