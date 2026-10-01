@@ -534,8 +534,8 @@ class BrowserReader:
         global_init_code = """
         // 页面加载完成后执行
         document.addEventListener('DOMContentLoaded', function() {
-            // 初始化主题
-            applyTheme(currentSettings);
+            // 初始化主题（applyTheme 未定义，改用 applySettings 统一应用当前设置）
+            applySettings(currentSettings);
             
             // 更新跳转弹窗的语言文本
             updatePositionJumpTranslations();
@@ -640,10 +640,16 @@ class BrowserReader:
             padding: 0;
             box-sizing: border-box;
         }}
-        
+
+        /* 用 CSS 变量统一驱动颜色，便于运行时随主题/字体色联动更新 */
+        :root {{
+            --reader-text: {settings['text']};
+            --reader-title: {settings['title']};
+        }}
+
         body {{
             background-color: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             font-family: {settings['font_family']};
             font-size: {settings['font_size']}px;
             line-height: {settings['line_height']};
@@ -662,21 +668,21 @@ class BrowserReader:
         
         /* 标题样式 */
         h1 {{
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 2em;
             margin: 1em 0 0.5em 0;
             font-weight: bold;
         }}
         
         h2 {{
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 1.5em;
             margin: 0.8em 0 0.4em 0;
             font-weight: bold;
         }}
         
         h3 {{
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 1.2em;
             margin: 0.6em 0 0.3em 0;
             font-weight: bold;
@@ -751,7 +757,7 @@ class BrowserReader:
         .keyboard-hint h4, #keyboardHint h4 {{
             margin: 0 0 5px 0;
             font-size: 12px;
-            color: {settings['title']};
+            color: var(--reader-title);
         }}
 
         .keyboard-hint ul {{
@@ -826,7 +832,7 @@ class BrowserReader:
         .toc-header h3 {{
             margin: 0;
             font-size: 16px;
-            color: {settings['title']};
+            color: var(--reader-title);
         }}
 
         .toc-close {{
@@ -834,7 +840,7 @@ class BrowserReader:
             border: none;
             font-size: 20px;
             cursor: pointer;
-            color: {settings['text']};
+            color: var(--reader-text);
             padding: 0;
             width: 24px;
             height: 24px;
@@ -893,7 +899,7 @@ class BrowserReader:
             top: 70px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -942,7 +948,7 @@ class BrowserReader:
             border: 1px solid rgba(128, 128, 128, 0.3);
             border-radius: 4px;
             background: rgba(128, 128, 128, 0.05);
-            color: {settings['text']};
+            color: var(--reader-text);
             font-size: 14px;
             margin-right: 5px;
         }}
@@ -953,7 +959,7 @@ class BrowserReader:
             border: 1px solid rgba(128, 128, 128, 0.3);
             border-radius: 4px;
             background: rgba(128, 128, 128, 0.05);
-            color: {settings['text']};
+            color: var(--reader-text);
             font-size: 14px;
             margin-right: 5px;
         }}
@@ -962,7 +968,7 @@ class BrowserReader:
             padding: 6px 12px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
@@ -976,7 +982,7 @@ class BrowserReader:
         .search-count {{
             font-size: 12px;
             margin-left: 10px;
-            color: {settings['text']};
+            color: var(--reader-text);
         }}
 
         /* 书签按钮 */
@@ -986,7 +992,7 @@ class BrowserReader:
             top: 70px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             width: 40px;
             height: 40px;
             border-radius: 50%;
@@ -1166,7 +1172,7 @@ class BrowserReader:
             top: 170px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             width: 32px;
             height: 32px;
             border-radius: 4px;
@@ -1246,7 +1252,7 @@ class BrowserReader:
             height: 24px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             cursor: pointer;
             border-radius: 0 0 12px 12px;
             display: flex;
@@ -1273,7 +1279,7 @@ class BrowserReader:
             padding: 6px 12px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             cursor: pointer;
             border-radius: 4px;
             font-size: 14px;
@@ -1293,7 +1299,7 @@ class BrowserReader:
             padding: 6px 12px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             font-size: 14px;
             cursor: pointer;
@@ -1306,7 +1312,7 @@ class BrowserReader:
         }}
         
         .toolbar label {{
-            color: {settings['text']};
+            color: var(--reader-text);
             font-size: 14px;
             display: flex;
             align-items: center;
@@ -1361,7 +1367,7 @@ class BrowserReader:
 
         .settings-content h3 {{
             margin: 0 0 20px 0;
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 18px;
             border-bottom: 2px solid rgba(128, 128, 128, 0.2);
             padding-bottom: 10px;
@@ -1375,7 +1381,7 @@ class BrowserReader:
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: {settings['text']};
+            color: var(--reader-text);
             width: 30px;
             height: 30px;
             display: flex;
@@ -1399,7 +1405,7 @@ class BrowserReader:
 
         .setting-item label {{
             font-size: 14px;
-            color: {settings['text']};
+            color: var(--reader-text);
             min-width: 80px;
         }}
 
@@ -1415,7 +1421,7 @@ class BrowserReader:
             height: 40px;
             border: 2px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
@@ -1446,7 +1452,7 @@ class BrowserReader:
             padding: 8px 16px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
         }}
@@ -1469,7 +1475,7 @@ class BrowserReader:
             background: none;
             border: none;
             border-bottom: 2px solid transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             cursor: pointer;
             font-size: 14px;
         }}
@@ -1538,7 +1544,7 @@ class BrowserReader:
             border: 1px solid rgba(128, 128, 128, 0.3);
             border-radius: 4px;
             background: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             font-family: inherit;
             font-size: 14px;
             resize: vertical;
@@ -1550,7 +1556,7 @@ class BrowserReader:
             margin-top: 10px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
@@ -1738,7 +1744,7 @@ class BrowserReader:
         
         .current-theme-info h4 {{
             margin: 0 0 10px 0;
-            color: {settings['title']};
+            color: var(--reader-title);
         }}
         
         .current-theme-info p {{
@@ -1753,7 +1759,7 @@ class BrowserReader:
         
         .themes-list h4 {{
             margin: 0 0 15px 0;
-            color: {settings['title']};
+            color: var(--reader-title);
         }}
         
         .theme-item {{
@@ -1794,7 +1800,7 @@ class BrowserReader:
             font-size: 12px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
         }}
@@ -1819,7 +1825,7 @@ class BrowserReader:
             transform: translateX(-50%);
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
@@ -1889,7 +1895,7 @@ class BrowserReader:
         
         .reading-stats-enhanced h4 {{
             margin: 0 0 10px 0;
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 14px;
             border-bottom: 1px solid rgba(128, 128, 128, 0.2);
             padding-bottom: 5px;
@@ -1903,7 +1909,7 @@ class BrowserReader:
         
         .reading-stats-enhanced .stat-value {{
             font-weight: bold;
-            color: {settings['title']};
+            color: var(--reader-title);
         }}
         
         /* 自动滚动控制面板 */
@@ -1936,7 +1942,7 @@ class BrowserReader:
             padding: 6px 12px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
@@ -1959,7 +1965,7 @@ class BrowserReader:
         .scroll-speed-display {{
             font-size: 14px;
             font-weight: bold;
-            color: {settings['title']};
+            color: var(--reader-title);
             min-width: 30px;
             text-align: center;
         }}
@@ -1994,7 +2000,7 @@ class BrowserReader:
             padding: 6px 12px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
@@ -2014,7 +2020,7 @@ class BrowserReader:
             padding: 6px 10px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             font-size: 14px;
         }}
@@ -2026,7 +2032,7 @@ class BrowserReader:
         .speech-status {{
             font-size: 14px;
             font-weight: bold;
-            color: {settings['title']};
+            color: var(--reader-title);
             min-width: 80px;
             text-align: center;
         }}
@@ -2057,7 +2063,7 @@ class BrowserReader:
             overflow: hidden;
             margin-top: 60px;
             background-color: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             font-family: {settings['font_family']};
             font-size: {settings['font_size']}px;
             line-height: {settings['line_height']};
@@ -2078,7 +2084,7 @@ class BrowserReader:
             padding: 40px;
             box-sizing: border-box;
             background-color: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             font-family: {settings['font_family']};
             font-size: {settings['font_size']}px;
             line-height: {settings['line_height']};
@@ -2099,21 +2105,21 @@ class BrowserReader:
         }}
         
         .page h1 {{
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 2em;
             margin: 1em 0 0.5em 0;
             font-weight: bold;
         }}
         
         .page h2 {{
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 1.5em;
             margin: 0.8em 0 0.4em 0;
             font-weight: bold;
         }}
         
         .page h3 {{
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 1.2em;
             margin: 0.6em 0 0.3em 0;
             font-weight: bold;
@@ -2125,7 +2131,7 @@ class BrowserReader:
             text-indent: 2em;
             overflow-y: auto;
             background: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             font-family: {settings['font_family']};
             font-size: {settings['font_size']}px;
             line-height: {settings['line_height']};
@@ -2547,7 +2553,7 @@ class BrowserReader:
             padding: 8px 16px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
@@ -2574,7 +2580,7 @@ class BrowserReader:
         
         .page-info {{
             font-size: 14px;
-            color: {settings['text']};
+            color: var(--reader-text);
             min-width: 80px;
             text-align: center;
         }}
@@ -2590,7 +2596,7 @@ class BrowserReader:
             padding: 4px 8px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: {settings['background']};
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             font-size: 14px;
             text-align: center;
@@ -2631,7 +2637,7 @@ class BrowserReader:
         
         .pagination-settings h3 {{
             margin: 0 0 20px 0;
-            color: {settings['title']};
+            color: var(--reader-title);
             font-size: 18px;
             border-bottom: 2px solid rgba(128, 128, 128, 0.2);
             padding-bottom: 10px;
@@ -2645,7 +2651,7 @@ class BrowserReader:
             border: none;
             font-size: 24px;
             cursor: pointer;
-            color: {settings['text']};
+            color: var(--reader-text);
             width: 30px;
             height: 30px;
             display: flex;
@@ -2668,7 +2674,7 @@ class BrowserReader:
             display: block;
             margin-bottom: 5px;
             font-size: 14px;
-            color: {settings['text']};
+            color: var(--reader-text);
         }}
         
         .setting-item select {{
@@ -2676,7 +2682,7 @@ class BrowserReader:
             padding: 8px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             font-size: 14px;
         }}
@@ -2697,7 +2703,7 @@ class BrowserReader:
             padding: 8px 16px;
             border: 1px solid rgba(128, 128, 128, 0.3);
             background: transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
         }}
@@ -2714,7 +2720,7 @@ class BrowserReader:
             left: 20px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
@@ -2792,7 +2798,7 @@ class BrowserReader:
             background: none;
             border: none;
             border-bottom: 2px solid transparent;
-            color: {settings['text']};
+            color: var(--reader-text);
             cursor: pointer;
             font-size: 14px;
         }}
@@ -2822,7 +2828,7 @@ class BrowserReader:
             padding: 6px 2px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
@@ -2869,7 +2875,7 @@ class BrowserReader:
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            color: {settings['text']};
+            color: var(--reader-text);
         }}
         
         .book-info {{
@@ -2879,7 +2885,7 @@ class BrowserReader:
         .book-title {{
             font-weight: bold;
             margin-bottom: 4px;
-            color: {settings['text']};
+            color: var(--reader-text);
         }}
         
         .book-meta {{
@@ -2896,7 +2902,7 @@ class BrowserReader:
             padding: 4px 8px;
             background: transparent;
             border: 1px solid rgba(128, 128, 128, 0.3);
-            color: {settings['text']};
+            color: var(--reader-text);
             border-radius: 4px;
             cursor: pointer;
             font-size: 12px;
@@ -4484,7 +4490,11 @@ class BrowserReader:
         // 修改字体颜色
         function changeFontColor(color) {{
             document.body.style.color = color;
+            // 同步更新 CSS 变量，使标题等写死颜色的元素也联动变化
+            document.documentElement.style.setProperty('--reader-text', color);
+            document.documentElement.style.setProperty('--reader-title', color);
             currentSettings['text'] = color;
+            currentSettings['title'] = color;
             saveSettings();
             
             // 如果在翻页模式，更新翻页样式
@@ -4492,7 +4502,7 @@ class BrowserReader:
                 updatePaginationStyles(currentSettings);
             }}
         }}
-
+        
         // 修改背景颜色
         function changeBackgroundColor(color) {{
             document.body.style.backgroundColor = color;
@@ -4845,6 +4855,9 @@ class BrowserReader:
             
             document.body.style.backgroundColor = selectedTheme.background;
             document.body.style.color = selectedTheme.text;
+            // 同步更新 CSS 变量，使标题等写死颜色的元素也随主题联动变化
+            document.documentElement.style.setProperty('--reader-text', selectedTheme.text);
+            document.documentElement.style.setProperty('--reader-title', selectedTheme.title);
             document.body.style.fontSize = selectedTheme.font_size + 'px';
             document.body.style.lineHeight = selectedTheme.line_height;
             document.body.style.fontFamily = selectedTheme.font_family;
@@ -5254,6 +5267,9 @@ class BrowserReader:
         function applySettings(settings) {{
             document.body.style.backgroundColor = settings.background;
             document.body.style.color = settings.text;
+            // 同步更新 CSS 变量，使标题等写死颜色的元素也随设置联动变化
+            document.documentElement.style.setProperty('--reader-text', settings.text);
+            document.documentElement.style.setProperty('--reader-title', settings.title);
             document.body.style.fontSize = settings.font_size + 'px';
             document.body.style.lineHeight = settings.line_height;
             document.body.style.fontFamily = settings.font_family;
