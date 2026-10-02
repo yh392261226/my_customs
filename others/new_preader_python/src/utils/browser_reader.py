@@ -3774,14 +3774,14 @@ class BrowserReader:
     </div>
 
     <!-- 阅读统计 -->
-    <div class="reading-stats" id="readingStats" onclick="toggleReadingStats()">
+    <div class="reading-stats" id="readingStats">
         <p><script>document.write(t('browser_reader.reading_time'));</script> <span id="readingTime">0:00</span></p>
         <p><script>document.write(t('browser_reader.word_count'));</script> <span id="wordCount">0</span></p>
         <p><script>document.write(t('browser_reader.reading_speed'));</script> <span id="readingSpeed">0</span> 字/分</p>
     </div>
     
     <!-- 增强的阅读统计面板 -->
-    <div class="reading-stats-enhanced" id="readingStatsEnhanced" onclick="toggleReadingStats()">
+    <div class="reading-stats-enhanced" id="readingStatsEnhanced">
         <h4><script>document.write(t('browser_reader.stats_title'));</script></h4>
         <p><script>document.write(t('browser_reader.stats_total_time'));</script> <span class="stat-value" id="totalReadingTime">0:00</span></p>
         <p><script>document.write(t('browser_reader.stats_session_time'));</script> <span class="stat-value" id="sessionReadingTime">0:00</span></p>
@@ -4018,7 +4018,6 @@ class BrowserReader:
         </select>
         <label><script>document.write(t('browser_reader.speech_speed'));</script> <input type="range" id="speechRate" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechRate(this.value)"></label>
         <label><script>document.write(t('browser_reader.speech_pitch'));</script> <input type="range" id="speechPitch" min="0.5" max="2" step="0.1" value="1" onchange="changeSpeechPitch(this.value)"></label>
-        <button onclick="stopSpeech()"><script>document.write(t('browser_reader.speech_stop'));</script></button>
         <span class="speech-status" id="speechStatus"><script>document.write(t('browser_reader.speech_not_started'));</script></span>
     </div>
     
